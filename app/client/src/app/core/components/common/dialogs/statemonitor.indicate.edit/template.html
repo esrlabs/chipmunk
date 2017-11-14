@@ -1,0 +1,6 @@
+<div [attr.class]="'edit-wrapper'">
+    <common-input [value]="name" [type]="'text'" [placeholder]="'Define Name Of Indicate'" [handles]="{ onChange : onLabelChange }"></common-input>
+</div>
+<div class="buttons">
+    <button-flat-text [handle]="onSave" [caption]="'Save'"></button-flat-text>
+</div>

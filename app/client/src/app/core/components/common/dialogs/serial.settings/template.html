@@ -1,0 +1,58 @@
+<div class="settings">
+    <table>
+        <tr>
+            <td><span>lock</span> Prevent other processes from opening the port, defaults to true. false is not currently supported on windows</td>
+            <td><simple-checkbox #_lock [checked]="lock"></simple-checkbox></td>
+        </tr>
+        <tr>
+            <td><span>baudRate</span> Custom rates as allowed by hardware is supported. Windows doesn't support custom baud rates.</td>
+            <td><div class="input-cover"><common-input  #_baudRate [type]="'number'" [value]="baudRate"></common-input></div></td>
+        </tr>
+        <tr>
+            <td><span>dataBits</span> Data Bits, defaults to 8. Must be one of: 8, 7, 6, or 5</td>
+            <td><div class="input-cover"><common-input  #_dataBits [type]="'number'" [value]="dataBits"></common-input></div></td>
+        </tr>
+        <tr>
+            <td><span>stopBits</span> Stop Bits, defaults to 1. Must be one of: 1 or 2.
+                parity Parity, defaults to 'none'. Must be one of: 'none', 'even', 'mark', 'odd', 'space'</td>
+            <td><div class="input-cover"><common-input  #_stopBits [type]="'number'" [value]="stopBits"></common-input></div></td>
+        </tr>
+        <tr>
+            <td><span>rtscts</span> flow control, defaults to false</td>
+            <td><simple-checkbox  #_rtscts [checked]="rtscts"></simple-checkbox></td>
+        </tr>
+        <tr>
+            <td><span>xon</span> flow control, defaults to false</td>
+            <td><simple-checkbox  #_xon [checked]="xon"></simple-checkbox></td>
+        </tr>
+        <tr>
+            <td><span>xoff</span> flow control, defaults to false
+            </td>
+            <td><simple-checkbox  #_xoff [checked]="xoff"></simple-checkbox></td>
+        </tr>
+        <tr>
+            <td><span>xany</span> flow control, defaults to false</td>
+            <td><simple-checkbox  #_xany [checked]="xany"></simple-checkbox></td>
+        </tr>
+        <tr>
+            <td><span>bufferSize</span> Size of read buffer, defaults to 65536. Must be an integer value.</td>
+            <td><div class="input-cover"><common-input  #_bufferSize [type]="'number'" [value]="bufferSize"></common-input></div></td>
+        </tr>
+        <tr>
+            <td><span>vmin</span> see man termios</td>
+            <td><div class="input-cover"><common-input  #_vmin [type]="'number'" [value]="vmin"></common-input></div></td>
+        </tr>
+        <tr>
+            <td><span>vtime</span> see man termios</td>
+            <td><div class="input-cover"><common-input  #_vtime [type]="'number'" [value]="vtime"></common-input></div></td>
+        </tr>
+        <tr>
+            <td><span>transmit delay</span> ms</td>
+            <td><div class="input-cover"><common-input  #_vtransmit [type]="'number'" [value]="vtransmit"></common-input></div></td>
+        </tr>
+    </table>
+</div>
+<div class="buttons">
+    <button-flat-text [caption]="'Connect'" [handle]="onProceed"></button-flat-text>
+    <button-flat-text [caption]="'Cancel'" [handle]="cancel"></button-flat-text>
+</div>

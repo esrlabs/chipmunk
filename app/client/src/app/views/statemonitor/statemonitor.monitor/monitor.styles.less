@@ -1,0 +1,88 @@
+.monitor-icon-red{
+    .icon{
+        color: red;
+    }
+}
+.monitor-icon-green{
+    .icon{
+        color: green;
+    }
+}
+.monitor-icon-yellow{
+    .icon{
+        color: yellow;
+    }
+}
+.monitor-icon-blink{
+    .icon{
+        animation			: monitor-blink-animation 300ms ease-in-out 0ms infinite normal;
+        -webkit-animation	: monitor-blink-animation 300ms ease-in-out 0ms infinite normal;
+        -moz-animation		: monitor-blink-animation 300ms ease-in-out 0ms infinite normal;
+        -o-animation		: monitor-blink-animation 300ms ease-in-out 0ms infinite normal;
+    }
+    @keyframes monitor-blink-animation {
+        0% {
+            opacity             :0;
+        }
+        50% {
+            opacity             :1;
+        }
+        100% {
+            opacity             :0;
+        }
+    }
+    @-moz-keyframes monitor-blink-animation {
+        0% {
+            opacity             :0;
+        }
+        50% {
+            opacity             :1;
+        }
+        100% {
+            opacity             :0;
+        }
+    }
+    @-webkit-keyframes monitor-blink-animation {
+        0% {
+            opacity             :0;
+        }
+        50% {
+            opacity             :1;
+        }
+        100% {
+            opacity             :0;
+        }
+    }
+}
+.monitor-icon-rotate{
+    .icon{
+        animation			: monitor-rotate-animation 600ms ease-in-out 0ms infinite normal;
+        -webkit-animation	: monitor-rotate-animation 600ms ease-in-out 0ms infinite normal;
+        -moz-animation		: monitor-rotate-animation 600ms ease-in-out 0ms infinite normal;
+        -o-animation		: monitor-rotate-animation 600ms ease-in-out 0ms infinite normal;
+    }
+    @keyframes monitor-rotate-animation {
+        0% {
+            transform             :rotate(0deg);
+        }
+        100% {
+            transform             :rotate(360deg);
+        }
+    }
+    @-moz-keyframes monitor-rotate-animation {
+        0% {
+            transform             :rotate(0deg);
+        }
+        100% {
+            transform             :rotate(360deg);
+        }
+    }
+    @-webkit-keyframes monitor-rotate-animation {
+        0% {
+            transform             :rotate(0deg);
+        }
+        100% {
+            transform             :rotate(360deg);
+        }
+    }
+}

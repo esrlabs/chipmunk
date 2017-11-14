@@ -1,0 +1,14 @@
+<p *ngIf="highlight.foregroundColor === ''"
+   (click)="onSelect($event)"
+   [attr.class]="(selection ? 'selected' : '') + ' ' + (bookmarked ? 'bookmarked' : '') + ' ' + (filtered ? 'filtered' : '')">
+    <span (click)="onFavorite($event)" [attr.class]="'font-system number ' + (!visibility ? 'hide' : '')">{{__index}}</span>
+    <span class="item font-system" [innerHTML]="safeHTML"></span>
+</p>
+<p *ngIf="highlight.foregroundColor !== ''"
+   (click)="onSelect($event)"
+   [style.color]="highlight.foregroundColor"
+   [style.background]="highlight.backgroundColor"
+   [attr.class]="(selection ? 'selected' : '') + ' ' + (bookmarked ? 'bookmarked' : '') + ' ' + (filtered ? 'filtered' : '')">
+    <span (click)="onFavorite($event)" [attr.class]="'font-system number ' + (!visibility ? 'hide' : '')">{{__index}}</span>
+    <span class="item font-system" [innerHTML]="safeHTML"></span>
+</p>

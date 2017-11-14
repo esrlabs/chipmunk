@@ -1,0 +1,11 @@
+<div class="input">
+    <input #input
+            (focus)="onFocus($event)"
+            (blur)="onBlur($event)"
+            (keydown)="onKeyDown($event)"
+            (keyup)="onKeyUp($event)"
+            (change)="onChange($event)"
+            type="{{type}}"
+            value="{{value}}"
+            placeholder="{{placeholder}}"/>
+</div>

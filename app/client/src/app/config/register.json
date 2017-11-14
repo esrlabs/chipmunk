@@ -1,0 +1,22 @@
+{
+  "SETS" : {
+    "SYSTEM"            : "system.json",
+    "SYSTEM_EVENTS"     : "events.system.json",
+    "EVENTS_TOOLBAR"    : "events.toolbar.json",
+    "EVENTS_SHORTCUTS"  : "events.shortcuts.json",
+    "KEYS_SHORTCUTS"    : "keys.shortcuts.json",
+    "CORE_TOP_BAR"      : "core.top-bar.json",
+    "VIEWS"             : "views.json",
+    "VIEWS_DEFAULTS"    : "views.defaults.json",
+    "EVENTS_VIEWS"      : "events.views.json",
+    "VIEW_STATEMONITOR" : "view.statemonitor.json",
+    "LOGS"              : "logs.json",
+    "VIEW_TRACKER"      : "view.tracker.data.json",
+    "THEMES"            : "themes.json"
+  },
+  "ORDERING" : [
+    ["SYSTEM", "SYSTEM_EVENTS", "EVENTS_TOOLBAR", "VIEWS", "VIEWS_DEFAULTS", "EVENTS_SHORTCUTS", "EVENTS_VIEWS", "LOGS", "KEYS_SHORTCUTS", "VIEW_TRACKER", "THEMES"],
+    "CORE_TOP_BAR",
+    ["VIEW_STATEMONITOR"]
+  ]
+}

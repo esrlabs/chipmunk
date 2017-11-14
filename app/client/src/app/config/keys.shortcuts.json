@@ -1,0 +1,9 @@
+{
+  "SHORTCUT_TO_END"                 : { "keys" : [ { "key": "G" }],                 "action": "Jump to the end"                             },
+  "SHORTCUT_TO_BEGIN"               : { "keys" : [ { "key": "g" }, { "key": "g" }], "action": "Jump to the beginning"                       },
+  "SHORTCUT_TO_SEARCH"              : { "keys" : [ { "key": "/" }],                 "action": "Search",                     "asynch": true  },
+  "SHORTCUT_PREV_IN_SEARCH"         : { "keys" : [ { "key": "N" }],                 "action": "Previous in search results"                  },
+  "SHORTCUT_NEXT_IN_SEARCH"         : { "keys" : [ { "key": "n" }],                 "action": "Next in search results"                      },
+  "SHORTCUT_OPEN_FILE"              : { "keys" : [ { "key": "o" }],                 "action": "Open file"                                   },
+  "SHORTCUT_HELP"                   : { "keys" : [ { "key": "?" }],                 "action": "Show shortcuts help"                         }
+}

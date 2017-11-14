@@ -1,0 +1,32 @@
+<div class="wrapper">
+    <textarea [(ngModel)]="value" (keypress)="onKeyPress($event)" (focus)="onFocus($event)" (blur)="onBlur($event)" (keyup)="onKeyUp($event)" (keydown)="onKeyDown($event)"></textarea>
+</div>
+<div class="history-wrapper">
+    <ul class="history">
+        <li *ngFor="let item of history;" (click)="item.onSelect()" [attr.class]="item.item.selected ? 'selected' : ''"><stream-sender-history-item
+                [item]="item.item"
+                [onChange]="item.onChange"
+                [onTyping]="item.onTyping"
+                [onRemove]="item.onRemove"></stream-sender-history-item></li>
+    </ul>
+</div>
+<div *ngIf="STATE === STATES.SENDING" class="shadow">
+    <p class="information">Sending message GUID {{packageGUID}} ...</p>
+    <progressbar-circle></progressbar-circle>
+    <button-flat-text [caption]="'cancel'" [handle]="onCancel"></button-flat-text>
+</div>
+<div *ngIf="STATE === STATES.VERIFYING" class="shadow">
+    <p class="information">Try to confirm a success of package {{packageGUID}}... Analyzed {{journal.getIncomes()}} income packages. Attempt {{journal.getAttempts()}}.</p>
+    <progressbar-circle></progressbar-circle>
+    <button-flat-text [caption]="'cancel'" [handle]="onCancel"></button-flat-text>
+</div>
+<div *ngIf="STATE === STATES.REPEATING" class="shadow">
+    <p class="information">Sending message GUID {{packageGUID}}... Attempt {{journal.getAttempts()}}</p>
+    <progressbar-circle></progressbar-circle>
+    <button-flat-text [caption]="'cancel'" [handle]="onCancel"></button-flat-text>
+</div>
+<div *ngIf="STATE === STATES.FAILED" class="shadow">
+    <p class="error">Fail to find a confirmation of sending buffer [{{journal.getBuffer()}}] in output. Make sure, that your command isn't and output and you can try once again.</p>
+    <button-flat-text [caption]="'try again'" [handle]="onRepeat"></button-flat-text>
+    <button-flat-text [caption]="'cancel'" [handle]="onCancel"></button-flat-text>
+</div>

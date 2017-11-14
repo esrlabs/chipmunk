@@ -1,0 +1,11 @@
+<ul>
+    <li *ngFor="let marker of markers;"><view-markers-item
+            [onChange]="marker.onChange"
+            [onChangeColor]="marker.onChangeColor"
+            [onRemove]="marker.onRemove"
+            [onChangeState]="marker.onChangeState"
+            [value]="marker.value"
+            [active]="marker.active"
+            [backgroundColor]="marker.backgroundColor"
+            [foregroundColor]="marker.foregroundColor"></view-markers-item></li>
+</ul>

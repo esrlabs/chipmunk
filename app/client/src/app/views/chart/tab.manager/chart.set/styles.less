@@ -1,0 +1,65 @@
+view-controller-chart-manager-set{
+    position    : relative;
+    display     : block;
+    margin      : 0;
+    cursor      : pointer;
+    white-space : nowrap;
+    span{
+        position: relative;
+        display : inline-block;
+    }
+    .trigger, .color, .remove, .edit{
+        width       : 0.75rem;
+        height      : 0.75rem;
+        font-size   : 1rem;
+        line-height : 1rem;
+        margin      : 0 0 0 0.5rem;
+    }
+    .color{
+        font-size   : 0.75rem;
+        padding     : 0.25rem;
+        width       : auto;
+        height      : auto;
+        border      : thin solid @dark;
+    }
+    .trigger{
+        color           : @dark;
+        margin-right    : 1rem;
+        &:after{
+            position    : absolute;
+            font-family : 'FontAwesome';
+            content     : '\f096';
+            font-size   : 1rem;
+            top         : 0;
+            left        : 0;
+        }
+        &.active:after{
+            content     : '\f046';
+        }
+        &.compact{
+            margin: 0;
+        }
+    }
+    .value{
+        width       : ~"calc(100% - 11rem)";
+        margin      : 0 auto;
+        font-size   : 0.85rem;
+        line-height : 1rem;
+        padding     : 0 0 0 0.5rem;
+    }
+    .color{
+
+    }
+    .remove{
+        color: @grey;
+        &:hover{
+            color: @soft-red;
+        }
+    }
+    .edit{
+        color: @grey;
+        &:hover{
+            color: @dark;
+        }
+    }
+}

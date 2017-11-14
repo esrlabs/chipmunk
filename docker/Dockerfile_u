@@ -1,0 +1,24 @@
+FROM ubuntu:17.04
+# Dockerfile author / maintainer
+MAINTAINER Dmitry Astafyev <dmitry.astafyev@esrlabs.com>
+#update system
+RUN apt-get update
+
+RUN apt-get install -y nodejs npm curl wget git python icnsutils
+RUN npm cache clean -f
+RUN npm install -g n
+RUN n stable
+RUN npm install -g npm@4.6.1
+
+#install gulp globally
+RUN npm install github:gulpjs/gulp#4.0 --global
+
+WORKDIR /application
+ADD . /docker
+
+ENTRYPOINT sed -i 's/\r$//' /docker/install.sh && sh /docker/install.sh && sh /docker/gulp.sh && /bin/bash
+
+
+MAINTAINER Florian Bramer florian.bramer@esrlabs.com
+
+

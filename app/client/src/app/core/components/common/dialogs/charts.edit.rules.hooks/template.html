@@ -1,0 +1,68 @@
+
+<div class="chart-content">
+    <p class="chart-title">Name of rules group</p>
+    <div class="chart-text-line">
+        <common-input [value]="name" [type]="'text'" [handles]="{ onKeyUp: this.onNameChange }" [placeholder]="'Type name of this rules group'"></common-input>
+    </div>
+    <div class="chart-tests">
+        <p class="chart-title">Define here RegExps for tests</p>
+        <p class="chart-info">Each line of income data will be tested with RegExps, which you will define here. If test will be positive process will go forward, if not - such line of text will be ignored.</p>
+        <ul *ngIf="tests.length > 0">
+            <li *ngFor="let test of tests;">
+                <div class="chart-tests-value">
+                    <common-input [value]="test.value"
+                                  [type]="'text'"
+                                  [handles]="{ onKeyUp: onTestChange.bind(this, test.GUID), onBlur: onTestBlur.bind(this, test.GUID) }"
+                                  [placeholder]="'RegExp for testing income data'"></common-input>
+                </div>
+                <span class="fa fa-close remove" (click)="onRemoveTest(test.GUID)"></span>
+            </li>
+        </ul>
+        <p *ngIf="tests.length === 0" class="chart-note">Press "Add New Test RegExp" to add the first test condition</p>
+        <div class="chart-tests-buttons">
+            <button-flat-text [caption]="'Add New Test RegExp'" [handle]="onAddNewTest"></button-flat-text>
+        </div>
+    </div>
+    <div class="chart-indexes">
+        <p class="chart-title">Define here hooks for indexes</p>
+        <p class="chart-info">Hook - RegExp, which will be bound with index on chart. Index - integer value on chart by Y axis. X axis is always time-line and will be detected automatically.</p>
+        <ul *ngIf="indexes.length > 0">
+            <li *ngFor="let index of indexes;">
+                <div class="chart-index-wrapper">
+                    <div class="chart-index-value">
+                        <common-input [value]="index.value"
+                                      [type]="'text'"
+                                      [handles]="{ onKeyUp: onIndexHookChange.bind(this, index.GUID) }"
+                                      [placeholder]="'RegExp for hook'"></common-input>
+                    </div>
+                    <div class="chart-index-index">
+                        <common-input [value]="index.index"
+                                      [type]="'number'"
+                                      [handles]="{ onKeyUp: onIndexIndexChange.bind(this, index.GUID) }"
+                                      [placeholder]="'Index'"></common-input>
+                    </div>
+                    <div class="chart-index-label">
+                        <common-input [value]="index.label"
+                                      [type]="'text'"
+                                      [handles]="{ onKeyUp: onIndexLabelChange.bind(this, index.GUID) }"
+                                      [placeholder]="'Label for chart'"></common-input>
+                    </div>
+                </div>
+                <span class="fa fa-close remove" (click)="onRemoveIndex(index.GUID)"></span>
+            </li>
+        </ul>
+        <p *ngIf="indexes.length === 0" class="chart-note">Press "Add New Index" to add the first index condition</p>
+        <div class="chart-tests-buttons">
+            <button-flat-text [caption]="'Add New Index'" [handle]="onAddNewIndex"></button-flat-text>
+        </div>
+    </div>
+</div>
+<div class="chart-controls">
+    <button-flat-text [caption]="'Apply'" [handle]="onApply"></button-flat-text>
+</div>
+<div *ngIf="errors.length > 0" class="chart-errors-wrapper" (click)="onErrorsReset()">
+    <ul class="chart-errors" (click)="onErrorsReset()">
+        <li *ngFor="let error of errors;">{{error}}</li>
+    </ul>
+    <p>(click to close it)</p>
+</div>

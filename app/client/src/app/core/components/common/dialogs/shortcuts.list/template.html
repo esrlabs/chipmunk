@@ -1,0 +1,10 @@
+<table class="shortcuts-list">
+    <tbody>
+        <tr *ngFor="let shortcut of shortcuts;">
+            <td class="keys">
+                <span class="key" *ngFor="let key of shortcut.keys;">{{key.key}}</span>
+            </td>
+            <td class="label">{{shortcut.label}}</td>
+        </tr>
+    </tbody>
+</table>

@@ -1,0 +1,5 @@
+<span [attr.class]="'trigger' + (set.active ? ' active': '')" (click)="onClickTrigger()"></span>
+<span class="value" (click)="onClickTriggerSafe()" (dblclick)="onClickEdit()">{{set.name}}</span>
+<span class="color" [style.borderColor]="set.lineColor" [style.color]="set.textColor" (click)="onClickColor()">example</span>
+<span class="fa fa-edit edit" (click)="onClickEdit()"></span>
+<span class="fa fa-close remove" (click)="onClickRemove()"></span>

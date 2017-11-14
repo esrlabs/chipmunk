@@ -1,0 +1,16 @@
+{
+  "name": "logviewer-service",
+  "version": "0.0.1",
+  "description": "LogViewer Service (Data Provider)",
+  "main": "service.js",
+  "scripts": {
+    "dist": "npm install --production"
+  },
+  "author": "Dmitry Astafyev (E.S.R.Labs)",
+  "license": "ISC",
+  "dependencies": {
+    "guid": "latest",
+    "serialport": "latest",
+    "websocket": "latest"
+  }
+}

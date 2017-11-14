@@ -1,0 +1,5 @@
+<ul class="statemonitor-manager-icons-edit-wrapper">
+    <li *ngFor="let icon of icons;">
+        <span [attr.class]="'icon fa ' + icon" (click)="onSelect(icon)"></span>
+    </li>
+</ul>

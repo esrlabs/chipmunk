@@ -1,0 +1,146 @@
+statemonitor-state-edit-dialog{
+    position    : absolute;
+    top         : 0.5rem;
+    left        : 0.5rem;
+    right       : 0.5rem;
+    bottom      : 0.5rem;
+    overflow    : hidden;
+    .settings{
+        position    : absolute;
+        top         : 0;
+        left        : 0;
+        width       : 100%;
+        bottom      : 3rem;
+        overflow-y  : auto;
+        overflow-x  : hidden;
+        .settings-section{
+            position: relative;
+            width   : 100%;
+            .settings-title{
+                position    : relative;
+                padding     : 0.5rem;
+                margin      : 0;
+                background  : @light-grey;
+            }
+            .field-name{
+                font-size   : 0.95rem;
+                margin      : 0;
+            }
+            .field-description{
+                font-size   : 0.75rem;
+                color       : @grey;
+                margin      : 0;
+            }
+            table{
+                position: relative;
+                margin  : 0;
+                padding : 0;
+                border  : none;
+                width   : 100%;
+                tr{
+                    position: relative;
+                    td:first-child{
+                        max-width   : 10rem;
+                        width       : 10rem;
+                        min-width   : 10rem;
+                    }
+                    td:last-child{
+                        width: 100%;
+                    }
+                    td{
+                        vertical-align: top;
+                    }
+                    .settings-controll-wrapper{
+                        position: relative;
+                        width   : 100%;
+                        height  : 1.5rem;
+                        margin  : 0.25rem 0;
+                        padding : 0;
+                        &.reset-checkbox .on,
+                        &.reset-checkbox .off,
+                        &.reset-checkbox .switcher{
+                            width: 7rem;
+                        }
+                    }
+                }
+            }
+            .icon-colors-wrapper{
+                position    : relative;
+                width       : 100%;
+                height      : 4rem;
+                .colors-wrapper{
+                    position    : absolute;
+                    top         :0;
+                    left        : 0;
+                    right       : 4rem;
+                    bottom      : 0;
+                    opacity     : 0.4;
+                    cursor      : pointer;
+                    &:hover{
+                        opacity: 1;
+                    }
+                }
+                .icon-wrapper{
+                    position: absolute;
+                    width   : 4rem;
+                    height  : 4rem;
+                    top     : 0;
+                    right   : 0;
+                    .icon{
+                        position    : absolute;
+                        top         : 0.5rem;
+                        left        : 0.5rem;
+                        width       : 3rem;
+                        height      : 3rem;
+                        font-size   : 3rem;
+                        text-align  : center;
+                    }
+                }
+            }
+        }
+        .preview{
+            position    : relative;
+            text-align  : center;
+            .indicate{
+                position: relative;
+                display : inline-block;
+                width   : 7rem;
+                height  : 7rem;
+                overflow: hidden;
+                .icon{
+                    position    : relative;
+                    display     : block;
+                    font-size   : 3rem;
+                    line-height : 3rem;
+                    width       : 100%;
+                    height      : 3rem;
+                }
+                .name{
+                    position    : relative;
+                    display     : block;
+                    font-size   : 0.85rem;
+                    width       : 100%;
+                    white-space : nowrap;
+                    margin      : 0.5rem 0;
+                }
+                .label{
+                    position    : relative;
+                    display     : block;
+                    font-size   : 0.75rem;
+                    width       : 100%;
+                    white-space : nowrap;
+                    margin      : 0.5rem 0;
+                }
+
+            }
+        }
+    }
+    .buttons{
+        position    : absolute;
+        bottom      : 0;
+        width       : 100%;
+        left        : 0;
+        height      : 3rem;
+        text-align  : right;
+    }
+}

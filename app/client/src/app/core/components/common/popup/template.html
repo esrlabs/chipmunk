@@ -1,0 +1,26 @@
+<div class="popup"
+     [style.top]="position.top + 'px'"
+     [style.left]="position.left + 'px'"
+     [style.height]="size.height + 'px'"
+     [style.width]="size.width + 'px'">
+    <div class="title" (mousedown)="onMouseDownTitle($event)">
+        <p>{{parameters.title}}</p>
+        <div class="titlebuttons">
+            <span *ngFor="let button of parameters.titlebuttons" [attr.class]="'button fa icon ' + button.icon" (click)="button.handle()"></span>
+        </div>
+    </div>
+    <div class="content" [attr.class]="'content' + (parameters.buttons.length > 0 ? '' : ' no-buttons')">
+        <span #placeholder></span>
+    </div>
+    <div *ngIf="parameters.buttons.length > 0" class="buttons">
+        <span class="button" *ngFor="let button of parameters.buttons" (click)="button.handle()">{{button.caption}}</span>
+    </div>
+    <div class="border-top"     (mousedown)="onResizeT($event)"></div>
+    <div class="border-right"   (mousedown)="onResizeR($event)"></div>
+    <div class="border-bottom"  (mousedown)="onResizeB($event)"></div>
+    <div class="border-left"    (mousedown)="onResizeL($event)"></div>
+    <div class="corner-tl"      (mousedown)="onResizeTL($event)"></div>
+    <div class="corner-tr"      (mousedown)="onResizeTR($event)"></div>
+    <div class="corner-br"      (mousedown)="onResizeBR($event)"></div>
+    <div class="corner-bl"      (mousedown)="onResizeBL($event)"></div>
+</div>

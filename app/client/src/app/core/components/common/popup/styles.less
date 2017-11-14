@@ -1,0 +1,146 @@
+popup{
+    position            : fixed;
+    width               : 100%;
+    height              : 100%;
+    background          : @white-opacity-0-5;
+    -webkit-user-select : none;
+    -moz-user-select    : none;
+    -ms-user-select     : none;
+    user-select         : none;
+    .popup{
+        position    : absolute;
+        width       : 50%;
+        height      : 50%;
+        top         : 25%;
+        left        : 25%;
+        background  : @white;
+        box-shadow  : @shadow-popup;
+        .title{
+            position    : absolute;
+            overflow    : hidden;
+            top         : 0;
+            width       : 100%;
+            height      : 2rem;
+            background  : @light-blue;
+            cursor      : default;
+            p{
+                text-align  : left;
+                font-size   : 0.9rem;
+                padding     : 0.5rem;
+                margin      : 0;
+            }
+            .titlebuttons{
+                position    : absolute;
+                width       : 100%;
+                height      : 100%;
+                top         :0;
+                overflow    : hidden;
+                white-space : nowrap;
+                text-align  : right;
+                .button{
+                    position    : relative;
+                    display     : inline-block;
+                    width       : 2rem;
+                    height      : 2rem;
+                    font-size   : 1.2rem;
+                    line-height : 2rem;
+                    text-align  : center;
+                    cursor      : pointer;
+                    &:hover{
+                        background: @black-opacity-0-2;
+                    }
+                }
+            }
+        }
+        .content{
+            position    : absolute;
+            width       : 100%;
+            top         : 2rem;
+            bottom      : 2.5rem;
+            &.no-buttons{
+                bottom: 0;
+            }
+        }
+        .buttons{
+            position    : absolute;
+            width       : 100%;
+            height      : 2.5rem;
+            bottom      : 0;
+            white-space : nowrap;
+            text-align  : right;
+            .button{
+                position    : relative;
+                display     : inline-block;
+                padding     : 0.5rem 1rem;
+                margin      : 0 0 0 0.5rem;
+                background  : @light-grey;
+                color       : @soft-dark;
+                cursor      : pointer;
+                transition  : all ease-in-out 50ms;
+                &:hover{
+                    background  : @soft-dark;
+                    color       : @light;
+                }
+                &:last-child{
+                    margin-right: 0.5rem;
+                }
+            }
+        }
+        .border-top, .border-right, .border-bottom, .border-left{
+            position    : absolute;
+            background  : @hidden;
+        }
+        .border-top{
+            top     : 0;
+            height  : 0.3rem;
+            width   : 100%;
+            cursor  : ns-resize;
+        }
+        .border-right{
+            top     : 0;
+            right   : 0;
+            width   : 0.3rem;
+            height  : 100%;
+            cursor  : ew-resize;
+        }
+        .border-bottom{
+            bottom  : 0;
+            height  : 0.3rem;
+            width   : 100%;
+            cursor  : ns-resize;
+        }
+        .border-left{
+            top     : 0;
+            height  : 100%;
+            width   : 0.3rem;
+            cursor  : ew-resize;
+        }
+        .corner-tl, .corner-tr, .corner-br, .corner-bl{
+            position    : absolute;
+            width       : 0.5rem;
+            height      : 0.5rem;
+            background  : @hidden;
+        }
+        .corner-tl{
+            top:0;
+            left:0;
+            cursor: nwse-resize;
+        }
+        .corner-tr{
+            top:0;
+            right: 0;
+            cursor: nesw-resize;
+        }
+        .corner-br{
+            bottom: 0;
+            right: 0;
+            cursor: nwse-resize;
+        }
+        .corner-bl{
+            bottom: 0;
+            left: 0;
+            cursor: nesw-resize;
+
+        }
+    }
+}

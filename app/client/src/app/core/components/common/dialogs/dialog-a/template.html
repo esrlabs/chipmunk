@@ -1,0 +1,13 @@
+<div class="dialog-a">
+    <div class="content">
+        <div class="caption">
+            <p>{{caption}}</p>
+        </div>
+        <div class="fields">
+            <common-input [type]="type" [value]="value" [placeholder]="placeholder"></common-input>
+        </div>
+    </div>
+    <div class="buttons">
+        <button-flat-text *ngFor="let button of buttons;" [handle]="button.handle" [caption]="button.caption"></button-flat-text>
+    </div>
+</div>

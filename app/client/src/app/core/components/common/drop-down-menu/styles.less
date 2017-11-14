@@ -1,0 +1,86 @@
+drop-down-menu{
+    position: relative;
+    .wrapper{
+        &.as-icon{
+            position: relative;
+            width   : 3rem;
+            height  : 3rem;
+            overflow: hidden;
+            .button{
+                position: relative;
+                width   : 3rem;
+                height  : 3rem;
+                span.fa{
+                    font-size   : 1.3rem!important;
+                    margin      : 0.9rem;
+                }
+            }
+        }
+        &.as-caption{
+
+        }
+        .list-wrapper-corrector{
+            position    : relative;
+            width       : 100%;
+            margin-left : 100%;
+            .list-wrapper{
+                position: fixed;
+                .list{
+                    display     : none;
+                    position    : absolute;
+                    z-index     : 100;
+                    list-style  : none;
+                    padding     : 0;
+                    margin      : 0;
+                    border      : 1px dotted @grey;
+                    right       : 0;
+                    background  : @menu-passive-background;
+                    box-shadow  : @shadow-menu;
+                    &:after{
+                        display: block;
+                        position: absolute;
+                        content: '';
+                        width: 50%;
+                        height: 2.5rem;
+                        background: @hidden;
+                        top: -2.35rem;
+                        right: 1rem;
+                        opacity: 0.01;
+                    }
+                    &:hover{
+                        display : block;
+                    }
+                    li{
+                        list-style  :  none;
+                        margin      : 0;
+                        padding     : 0;
+                        white-space : nowrap;
+                        cursor      : pointer;
+                        color       : @menu-passive-color;
+                        span:first-child{
+                            width: 2rem;
+                        }
+                        p{
+                            margin  : 0;
+                            padding : 0.25rem 0.25rem;
+                            &:hover{
+                                background  : @menu-hover-background;
+                                color       : @menu-hover-color;
+                            }
+                        }
+                        .line{
+                            position: relative;
+                            display: block;
+                            height: 1px;
+                            border-top: dotted 1px @dark-grey;
+                            margin : 0.5rem 0.5rem;
+                        }
+                    }
+                }
+            }
+        }
+        .button:hover ~.list-wrapper-corrector .list{
+            display: block;
+        }
+    }
+}

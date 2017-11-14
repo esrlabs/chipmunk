@@ -1,0 +1,17 @@
+<div class="chart-colors">
+    <div class="chart-colors-foreground">
+        <colors-canvas-dialog [callback]="onForegroundColorSelected"></colors-canvas-dialog>
+    </div>
+    <div class="chart-colors-background">
+        <colors-canvas-dialog [callback]="onBackgroundColorSelected"></colors-canvas-dialog>
+    </div>
+</div>
+
+<div class="chart-hook">
+    <div class="chart-color-example">
+        <p [style.borderColor]="backgroundColor" [style.color]="foregroundColor">This is an example</p>
+    </div>
+</div>
+<div class="chart-controls">
+    <button-flat-text [caption]="'Apply'" [handle]="onApply"></button-flat-text>
+</div>

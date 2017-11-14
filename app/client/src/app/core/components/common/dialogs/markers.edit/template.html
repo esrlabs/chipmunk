@@ -1,0 +1,20 @@
+<div class="marker-colors">
+    <div class="marker-colors-foreground">
+        <colors-canvas-dialog [callback]="onForegroundColorSelected"></colors-canvas-dialog>
+    </div>
+    <div class="marker-colors-background">
+        <colors-canvas-dialog [callback]="onBackgroundColorSelected"></colors-canvas-dialog>
+    </div>
+</div>
+
+<div class="marker-hook">
+    <div class="marker-color-example">
+        <p [style.backgroundColor]="backgroundColor" [style.color]="foregroundColor">This is an example</p>
+    </div>
+    <div class="marker-value">
+        <common-input (onEnter)="onApply()" [value]="hook" [type]="'text'" [handles]="this" [placeholder]="'Type key-phrase'"></common-input>
+    </div>
+</div>
+<div class="marker-controls">
+    <button-flat-text [caption]="'Apply'" [handle]="onApply"></button-flat-text>
+</div>

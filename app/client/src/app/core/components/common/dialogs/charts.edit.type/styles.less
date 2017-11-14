@@ -1,0 +1,49 @@
+chart-edit-type-dialog{
+    position    : absolute;
+    top         : 0.5rem;
+    left        : 0.5rem;
+    right       : 0.5rem;
+    bottom      : 0.5rem;
+    overflow    : hidden;
+    .chart-types{
+        position    : absolute;
+        width       : 100%;
+        height      : 100%;
+        margin      : 0;
+        padding     : 0;
+        list-style  : none;
+        text-align  : center;
+        li{
+            position    : relative;
+            display     : inline-block;
+            width       : calc(45% - 2rem);
+            height      : 10rem;
+            padding     : 0;
+            margin      : 1rem;
+            border      : thin dotted @dark-grey;
+            overflow    : hidden;
+            .chart-types-name{
+                font-size   : 1rem;
+                margin      : 0;
+                font-weight : bold;
+                background  : @grey;
+                white-space : nowrap;
+                padding     : 0.5rem;
+            }
+            .chart-types-description{
+                font-size   : 0.85rem;
+                padding     : 0.2rem 0.5rem;
+            }
+            .chart-types-buttons{
+                position    : absolute;
+                width       : 100%;
+                height      : 3rem;
+                bottom      : 0;
+                text-align  : center;
+                *{
+                    font-size: 0.85rem;
+                }
+            }
+        }
+    }
+}

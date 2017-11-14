@@ -1,0 +1,17 @@
+<div class="lv-wrapper" *ngIf="rows.length > 0">
+    <div [attr.class]="'lv-list' + (!line.visible ? ' no-line' : '')" class="lv-list">
+        <long-list #list [rows]="rows" [onScroll]="onScrollSubscription"></long-list>
+    </div>
+    <div *ngIf="line.visible" class="lv-line">
+        <list-view-line
+                [count]="line.count"
+                [marks]="line.marks"
+                [scroll]="line.scroll"
+                [offsetTop]="line.offsetTop"
+                [offsetBottom]="line.offsetBottom"
+                [scrollTo]="line.scrollTo"
+        ></list-view-line>
+    </div>
+</div>
+<p *ngIf="rows.length === 0" class="message-no-data">No Data Is Loaded</p>
+<a #exporturl [attr.href]="exportdata.url" class="export-url" [attr.download]="exportdata.filename"></a>

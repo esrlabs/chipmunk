@@ -1,0 +1,6 @@
+<div [attr.class]="'edit-wrapper' + (error ? ' error' : '')">
+    <textarea [(ngModel)]="json" (keypress)="onKeyPress($event)" (focus)="onFocus($event)" (blur)="onBlur($event)" (keyup)="onKeyUp($event)" (keydown)="onKeyDown($event)"></textarea>
+</div>
+<div class="buttons">
+    <button-flat-text [handle]="onSave" [caption]="'Save'"></button-flat-text>
+</div>

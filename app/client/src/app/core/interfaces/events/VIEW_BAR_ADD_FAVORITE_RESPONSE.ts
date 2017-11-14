@@ -1,0 +1,6 @@
+class VIEW_BAR_ADD_FAVORITE_RESPONSE {
+    GUID    : string;
+    index   : number;
+}
+
+export {VIEW_BAR_ADD_FAVORITE_RESPONSE as EVENT_VIEW_BAR_ADD_FAVORITE_RESPONSE }

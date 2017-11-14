@@ -1,0 +1,15 @@
+{
+  "name": "logviewer-builder",
+  "version": "0.0.1",
+  "description": "Builder of LogViewer electron based applications",
+  "main": "electron.js",
+  "scripts": {
+    "build": "gulp"
+  },
+  "keywords": [],
+  "author": "Dmitry Astafyev",
+  "license": "MIT",
+  "dependencies": {
+    "gulp": "github:gulpjs/gulp#4.0"
+  }
+}

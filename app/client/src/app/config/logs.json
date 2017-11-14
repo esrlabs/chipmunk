@@ -1,0 +1,19 @@
+/* Available types:
+    LOG             : 'LOG',
+    WARNING         : 'WARNING',
+    ERROR           : 'ERROR',
+    DEBUG           : 'DEBUG',
+    LOADING         : 'LOADING',
+    UI              : 'UI',
+    MEASURE         : 'MEASURE'
+*/
+{
+  "SHOW" : [
+    "WARNING",
+    "ERROR",
+    "DEBUG",
+    "LOADING",
+    "UI",
+    "MEASURE"
+  ]
+}

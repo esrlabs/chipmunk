@@ -1,0 +1,8 @@
+<span [attr.class]="'trigger' + (active ? ' active': '') + (compact ? ' compact': '')" (click)="onClickTrigger()"></span>
+<span *ngIf="!compact" [attr.class]="'trigger-activity-cover' + (passive ? ' right': '')"></span>
+<span *ngIf="!compact" class="trigger-activity" (click)="onActivePassive(false)">Active</span>
+<span *ngIf="!compact" class="trigger-activity" (click)="onActivePassive(true)">Passive</span>
+<span *ngIf="!compact" class="value" (click)="onClickTriggerSafe()" (dblclick)="onClickEdit()">{{value}}</span>
+<span *ngIf="compact" class="value" (click)="onClickTriggerSafe()" (dblclick)="onClickEdit()">{{passive ? '[P]' : '[A]'}}: {{value}}</span>
+<span *ngIf="!compact" class="color" [style.backgroundColor]="backgroundColor" [style.color]="foregroundColor" (click)="onClickEdit()">example</span>
+<span *ngIf="!compact" class="fa fa-close remove" (click)="onClickRemove()"></span>

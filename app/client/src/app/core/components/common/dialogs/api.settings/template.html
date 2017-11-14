@@ -1,0 +1,30 @@
+<div class="settings">
+    <table>
+        <tr>
+            <td colspan="2">LogViewer can work as standalone solution. You can load files from your file's system and parse it. But also you can connect to serial port. To do it, logviewer-service should be deployed on machine, which ports you want to listen. Here you can define address of this machine. Settings will be saved and restored with next using of LogViewer.</td>
+        </tr>
+        <tr>
+            <td><span>API Service</span> Define address of API service.</td>
+            <td><div class="input-cover"><common-input  #_serverAPI [type]="'text'" [value]="serverAPI"></common-input></div></td>
+        </tr>
+        <tr>
+            <td><span>Run-time service.</span> Define address of run-time service (web socket server).</td>
+            <td><div class="input-cover"><common-input  #_serverWS [type]="'text'" [value]="serverWS"></common-input></div></td>
+        </tr>
+        <tr>
+            <td><span>WS Protocol.</span> Define protocol of web socket service. In most cases better to leave default value.</td>
+            <td><div class="input-cover"><common-input  #_serverWSProtocol [type]="'text'" [value]="serverWSProtocol"></common-input></div></td>
+        </tr>
+        <tr>
+            <td><span>Reconnection timeout.</span> Define reconnection timeout for web socket service.</td>
+            <td><div class="input-cover"><common-input  #_serverWSTimeout [type]="'number'" [value]="serverWSTimeout"></common-input></div></td>
+        </tr>
+        <tr>
+            <td><span>Current state.</span> Current connection state.</td>
+            <td><div class="input-cover"><connection-state></connection-state></div></td>
+        </tr>
+    </table>
+</div>
+<div class="buttons">
+    <button-flat-text [caption]="'Connect'" [handle]="onProceed"></button-flat-text>
+</div>

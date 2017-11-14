@@ -1,0 +1,35 @@
+[
+  {
+    "id"        : "view_logs",
+    "size"      : {
+      "width"   : -1,
+      "height"  : -1
+    },
+    "position"  : {
+      "top"     : -1,
+      "left"    : -1
+    }
+  },
+  {
+    "id"        : "view_events_tracker",
+    "size"      : {
+      "width"   : -1,
+      "height"  : -1
+    },
+    "position"  : {
+      "top"     : -1,
+      "left"    : -1
+    }
+  },
+  {
+    "id"        : "view_state_monitor",
+    "size"      : {
+      "width"   : -1,
+      "height"  : -1
+    },
+    "position"  : {
+      "top"     : -1,
+      "left"    : -1
+    }
+  }
+]

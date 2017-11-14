@@ -1,0 +1,3 @@
+<svg [attr.id]="GUID" *ngIf="_rows.length > 0 && isAnySets()" #svg [style.width]="size.width + 'px'" [style.height]="size.height + 'px'" [attr.width]="size.width" [attr.height]="size.height"></svg>
+<p *ngIf="_rows.length === 0" class="message-no-data">No Data Is Loaded</p>
+<p *ngIf="!isAnySets() && _rows.length > 0" class="message-no-data">No any chart rules are defined. Go to tab "Manager" and define some chart rules.</p>

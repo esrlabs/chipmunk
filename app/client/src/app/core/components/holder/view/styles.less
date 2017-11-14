@@ -1,0 +1,64 @@
+view{
+    position: absolute;
+    border  : thin dotted @view-passive-border;
+    overflow: hidden;
+    &:hover{
+        border-color: @view-hover-border;
+        z-index: 100;
+    }
+    .wrapper{
+        position: absolute;
+        top     : 0;
+        left    : 0;
+        right   : 0;
+        bottom  : 0;
+        &.dragover{
+            background  : @view-dragover;
+        }
+        &.dragging{
+            opacity: 0.4;
+        }
+        .view{
+            position    : absolute;
+            top         : 2rem;
+            bottom      : 0;
+            width       : 100%;
+        }
+        .view-border-left,
+        .view-border-right,
+        .view-border-top,
+        .view-border-bottom{
+            position: absolute;
+            &:hover{
+                background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAaUlEQVQoU12PCw2AMAwFbzaGDLCBDXSgAxvYABlgY+RgWxqaLOnn+vqWgBE4+WIFNuCudUk1EZorYCsDF5Aa4OYelAowqCTg0GeodLhZ62yiXL8JTNFTJ9vNv6cG9JvhN68nAYdRaYmeHot9F9X2eFD0AAAAAElFTkSuQmCC) repeat;
+            }
+        }
+
+        .view-border-left,
+        .view-border-right{
+            width   : 0.25rem;
+            height  : 100%;
+            top     : 0;
+            cursor  : ew-resize;
+        }
+        .view-border-top,
+        .view-border-bottom{
+            height  : 0.25rem;
+            width   : 100%;
+            left    : 0;
+            cursor  : ns-resize;
+        }
+        .view-border-left{
+            left    : 0;
+        }
+        .view-border-right{
+            right   : 0;
+        }
+        .view-border-top{
+            top     : 0;
+        }
+        .view-border-bottom{
+            bottom  : 0;
+        }
+    }
+}

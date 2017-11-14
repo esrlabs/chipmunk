@@ -1,0 +1,6 @@
+<ul class="dialog-serialports-list">
+    <li *ngFor="let port of ports;">
+        <p (click)="onSelect(port.id, false)">{{port.name}}</p>
+        <span class="fa fa-cog" (click)="onSelect(port.id, true)"></span>
+    </li>
+</ul>

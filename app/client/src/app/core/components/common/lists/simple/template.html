@@ -1,0 +1,3 @@
+<ul [attr.css]="css">
+    <li *ngFor="let item of items;" (click)="item.handle()">{{item.caption}}</li>
+</ul>

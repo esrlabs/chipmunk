@@ -1,0 +1,5 @@
+<ul class="dialog-themes-list">
+    <li *ngFor="let theme of themes;">
+        <p (click)="onSelect(theme.file)">{{theme.name}}</p>
+    </li>
+</ul>

@@ -1,0 +1,24 @@
+<div class="wrapper">
+    <div class="title">
+        <p class="name">{{indicate.name}}</p>
+        <div class="buttons">
+            <span class="icon-button icon fa fa-plus" (click)="onAddNewState()"></span>
+            <span class="icon-button icon fa fa-pencil" (click)="onIndicateEdit()"></span>
+            <span class="icon-button icon fa fa-close"></span>
+        </div>
+    </div>
+    <ul class="states">
+        <li *ngFor="let state of indicate.states; let i = index;" title="Click to change state">
+            <simple-checkbox class="default-state" [on]="'default'" [off]="'regular'" [checked]="state.defaults" [onChange]="onChangeDefaults.bind(this, state, i)"></simple-checkbox>
+            <div [attr.class]="'states-list ' + state.css">
+                <span [attr.class]="'state icon ' + state.icon" [style.color]="state.color"></span>
+                <sup>hook</sup><span class="hook">{{state.hook}}</span>
+                <sup>label</sup><span class="hook">{{state.label}}</span>
+            </div>
+            <div class="buttons">
+                <span class="icon-button icon fa fa-pencil" (click)="onEdit(state, i)"></span>
+                <span class="icon-button icon fa fa-close" (click)="onRemove(state, i)"></span>
+            </div>
+        </li>
+    </ul>
+</div>

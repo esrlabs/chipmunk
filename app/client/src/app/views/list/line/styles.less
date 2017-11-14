@@ -1,0 +1,66 @@
+list-view-line{
+    display     : block;
+    position    : absolute;
+    width       : 100%;
+    height      : 100%;
+    .ln-navigation-wrapper{
+        display : block;
+        position: absolute;
+        right   : 0.15rem;
+        z-index : 100;
+        opacity : 1;
+        &.pinned:after{
+            position    : fixed;
+            content     : "\f08d";
+            color       : @soft-red;
+            font-family : 'FontAwesome';
+            font-size   : 1rem;
+            margin      : -0.5rem 0 0 0.5rem;
+            text-shadow : 0 0 0.2rem @dark-opacity-0-4;
+        }
+        .ln-navigation{
+            display     : block;
+            position    : fixed;
+            background  : @dark;
+            padding     : 0.5rem;
+            margin      : 0;
+            max-width   : 90%;
+            overflow    : hidden;
+            box-shadow  : @shadow-line;
+            li{
+                position    : relative;
+                padding     : 0.25rem 0;
+                margin      : 0;
+                cursor      : pointer;
+                white-space : nowrap;
+                font-size   : 0.65rem;
+                color       : @light;
+                &:hover{
+                    background: @list-hover-background;
+                }
+            }
+
+        }
+    }
+    .ln-pseudo-scroll-hidder{
+        position: absolute;
+        height  : 100%;
+        width   : 100%;
+        overflow: hidden;
+        top     :0;
+        .ln-pseudo-scroll-wrapper{
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 300%;
+            height: 100%;
+            overflow-x: hidden;
+            overflow-y: scroll;
+            .ln-pseudo-scroll-filler{
+                position: relative;
+                width: 1px;
+                top: 0;
+            }
+        }
+    }
+}

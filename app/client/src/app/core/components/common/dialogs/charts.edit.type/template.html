@@ -1,0 +1,12 @@
+<ul class="chart-types">
+    <li *ngFor="let type of types;">
+        <div class="chart-types-text">
+            <p class="chart-types-name">{{type.name}}</p>
+            <p class="chart-types-description">{{type.description}}</p>
+        </div>
+        <div class="chart-types-buttons">
+            <button-flat-text [caption]="'More Info'" [handle]="onMoreInfo.bind(this, type.scheme)"></button-flat-text>
+            <button-flat-text [caption]="'Select'" [handle]="onSelectType.bind(this, type.id)"></button-flat-text>
+        </div>
+    </li>
+</ul>

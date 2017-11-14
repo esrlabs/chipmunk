@@ -1,0 +1,3512 @@
+/*Inputs*/
+/*Menu*/
+/*Text*/
+/*Views*/
+/*Buttons*/
+/*Lists*/
+/*Common*/
+/*Shadows*/
+/*Fonts*/
+/*Backgrounds*/
+/*Borders*/
+/*Inputs*/
+.ANSI-font-bold {
+  font-weight: bold;
+}
+.ANSI-font-italic {
+  font-style: italic;
+}
+.ANSI-font-underline {
+  text-decoration: underline;
+}
+.ANSI-font-black {
+  color: black;
+}
+.ANSI-font-red {
+  color: red;
+}
+.ANSI-font-green {
+  color: green;
+}
+.ANSI-font-yellow {
+  color: yellow;
+}
+.ANSI-font-blue {
+  color: blue;
+}
+.ANSI-font-magenta {
+  color: magenta;
+}
+.ANSI-font-cyan {
+  color: cyan;
+}
+.ANSI-font-white {
+  color: white;
+}
+.ANSI-font-background-black {
+  background: black;
+}
+.ANSI-font-background-red {
+  background: red;
+}
+.ANSI-font-background-green {
+  background: green;
+}
+.ANSI-font-background-yellow {
+  background: yellow;
+}
+.ANSI-font-background-blue {
+  background: blue;
+}
+.ANSI-font-background-magenta {
+  background: magenta;
+}
+.ANSI-font-background-cyan {
+  background: cyan;
+}
+.ANSI-font-background-white {
+  background: white;
+}
+/*Inputs*/
+/*Icons*/
+/*Checkbox*/
+.icon {
+  cursor: pointer;
+}
+.icon span.fa {
+  color: rgba(250, 250, 250, 0.7);
+}
+.icon span.fa:hover {
+  color: #fafafa;
+  text-shadow: 0 0 0.5rem rgba(255, 255, 255, 0.2);
+  transition: color, text-shadow ease-in-out 100ms;
+}
+.icon:hover span.fa {
+  color: #fafafa;
+  text-shadow: 0 0 0.5rem rgba(255, 255, 255, 0.2);
+  transition: color, text-shadow ease-in-out 100ms;
+}
+.icon-2x2 span.fa {
+  margin: 0.3rem;
+  font-size: 1.3rem!important;
+}
+.icon-3x3 span.fa {
+  margin: 0.8rem;
+  font-size: 1.3rem!important;
+}
+* {
+  font-family: 'Roboto', sans-serif;
+  color: #fafafa;
+}
+body {
+  background: #1e1e1e;
+}
+.message-no-data {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  margin-top: -0.5rem;
+  top: 50%;
+  line-height: 1rem;
+  color: #c8c8c8;
+}
+.noselect {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+.noselect * {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+.font-system {
+  font-family: "Courier New", "Lucida Console", monospace, sans-serif !important;
+}
+.font-system * {
+  font-family: "Courier New", "Lucida Console", monospace, sans-serif !important;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #fafafa;
+  border-radius: 5px;
+}
+*::-webkit-scrollbar-track {
+  background: #505050;
+  border-radius: 5px;
+}
+view-controller-chart-main {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-chart-main div.charts-wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-list {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-list div.lv-wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-list div.lv-wrapper div.lv-list {
+  position: absolute;
+  height: 100%;
+  top: 0;
+  left: 1rem;
+  right: 0;
+  overflow: hidden;
+}
+view-controller-list div.lv-wrapper div.lv-list.no-line {
+  left: 0;
+}
+view-controller-list div.lv-wrapper div.lv-line {
+  position: absolute;
+  height: 100%;
+  top: 0;
+  left: 0;
+  width: 1rem;
+  overflow: hidden;
+}
+view-controller-list .export-url {
+  position: absolute;
+  display: block;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0.001;
+}
+view-controller-markers {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+view-controller-markers ul {
+  position: relative;
+  padding: 1rem;
+  margin: 0;
+  list-style: none;
+}
+view-controller-markers ul li {
+  position: relative;
+  padding: 0.5rem 0;
+  margin: 0;
+  border-bottom: 1px dotted #646464;
+  list-style: none;
+}
+view-controller-state-monitor {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-state-monitor ul {
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  text-align: center;
+}
+view-controller-state-monitor ul li {
+  position: relative;
+  display: inline-block;
+  width: 10rem;
+  height: 7rem;
+  margin: 1rem;
+}
+view-controller-search-results {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-search-results div.srv-wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-search-results div.srv-wrapper ul.srv-tabs {
+  position: absolute;
+  display: block;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  height: 2rem;
+  width: 100%;
+  top: 0;
+  left: 0;
+  border-bottom: thin solid #323232;
+}
+view-controller-search-results div.srv-wrapper ul.srv-tabs li {
+  position: relative;
+  display: inline-block;
+  padding: 0.25rem;
+  margin: 0.65rem 0 0 0;
+  border-top-left-radius: 0.1rem;
+  border-top-right-radius: 0.1rem;
+  border-left: thin solid #323232;
+  border-top: thin solid #323232;
+  border-right: thin solid #323232;
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 0.85rem;
+  background: #646464;
+}
+view-controller-search-results div.srv-wrapper ul.srv-tabs li:first-child {
+  margin-left: 0.5rem;
+}
+view-controller-search-results div.srv-wrapper ul.srv-tabs li.active:after {
+  position: absolute;
+  display: block;
+  content: '';
+  top: 100%;
+  width: 100%;
+  height: 2px;
+  background: #1e1e1e;
+  left: 0;
+}
+view-controller-search-results div.srv-wrapper ul.srv-tabs li.active {
+  background: #1e1e1e;
+}
+view-controller-search-results div.srv-wrapper ul.srv-content {
+  position: absolute;
+  display: block;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  left: 0;
+  top: 2rem;
+  bottom: 0;
+}
+view-controller-search-results div.srv-wrapper ul.srv-content li.src-content-tab {
+  position: absolute;
+  top: 0.25rem;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+view-controller-search-results div.srv-wrapper div.srv-list {
+  position: absolute;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+}
+view-controller-search-results div.srv-wrapper div.srv-list.no-line {
+  left: 0;
+}
+view-controller-search-results .export-url {
+  position: absolute;
+  display: block;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0.001;
+}
+view-controller-stream-sender {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #1e1e1e;
+}
+view-controller-stream-sender .wrapper {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  bottom: 30%;
+  right: 0.5rem;
+}
+view-controller-stream-sender .wrapper textarea {
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  resize: none;
+  outline: none;
+  font-size: 1rem;
+  color: rgba(250, 250, 250, 0.75);
+  box-sizing: border-box;
+  border: thin dotted rgba(50, 50, 50, 0.001);
+  margin: 0;
+  padding: 0 0.25rem;
+  box-shadow: 0 0 0rem rgba(0, 0, 0, 0.01) inset;
+  background: #1e1e1e;
+}
+view-controller-stream-sender .wrapper textarea:focus,
+view-controller-stream-sender .wrapper textarea:hover {
+  border: thin dotted #323232;
+  box-shadow: 0 0 0.15rem rgba(250, 250, 250, 0.4) inset;
+  transition: border, box-shadow ease-in-out 200ms;
+  color: #fafafa;
+}
+view-controller-stream-sender .shadow {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  text-align: center;
+}
+view-controller-stream-sender .history-wrapper {
+  position: absolute;
+  width: 100%;
+  top: 30%;
+  left: 0;
+  height: 70%;
+  border-top: 1px dotted #646464;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+view-controller-stream-sender .history-wrapper .history {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+view-controller-stream-sender .history-wrapper .history li:hover {
+  background: #282828;
+}
+view-controller-stream-sender .history-wrapper .history li {
+  border: 1px dotted rgba(0, 0, 0, 0.01);
+}
+view-controller-stream-sender .history-wrapper .history li.selected {
+  border: 1px dotted #646464;
+}
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+layout {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+layout .layout {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+root-holder {
+  position: fixed;
+  z-index: 100;
+}
+.connection-indicate-wrapper {
+  position: fixed;
+  bottom: 0.5rem;
+  right: 0.5rem;
+}
+view-controller-chart {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-chart .area {
+  fill: steelblue;
+  clip-path: url(#clip);
+}
+view-controller-chart .zoom {
+  cursor: move;
+  fill: none;
+  pointer-events: all;
+}
+view-controller-chart .axis path,
+view-controller-chart .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+view-controller-chart .line {
+  fill: none;
+  stroke-width: 1.5px;
+}
+view-controller-chart .label {
+  text-anchor: middle;
+}
+view-controller-chart .label rect {
+  fill: white;
+}
+view-controller-chart .label-key {
+  font-weight: bold;
+}
+view-controller-chart-manager {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-chart-manager .view-charts-manager-list {
+  position: absolute;
+  top: 0;
+  bottom: 3rem;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+view-controller-chart-manager .view-charts-manager-list ul {
+  position: relative;
+  list-style: none;
+  padding: 0.5rem 0;
+}
+view-controller-chart-manager .view-charts-manager-list ul li {
+  position: relative;
+  display: block;
+  padding: 0;
+  margin: 0.25rem 0;
+}
+view-controller-chart-manager .view-charts-manager-buttons {
+  position: absolute;
+  height: 3rem;
+  bottom: 0;
+  left: 0.5rem;
+  right: 0.5rem;
+  text-align: right;
+}
+view-controller-chart-manager .view-charts-manager-buttons * {
+  font-size: 0.85rem;
+}
+list-view-item {
+  position: relative;
+  display: block;
+  cursor: text;
+}
+list-view-item p {
+  margin: 0;
+  padding: 0;
+  height: 1rem;
+  display: inline-block;
+  min-width: 100%;
+}
+list-view-item p .highlight-wrapper {
+  margin: 0;
+  padding: 0;
+  height: 1rem;
+  display: inline-block;
+  min-width: 100%;
+}
+list-view-item p:hover {
+  background: #282828;
+}
+list-view-item p .number {
+  position: relative;
+  display: inline-block;
+  margin: 0 0.5rem 0 0;
+  font-size: 0.65rem;
+  color: #f0f0f0;
+  padding: 0 0.2rem;
+  border: none;
+  background: #282828;
+  line-height: 1rem;
+  cursor: pointer;
+}
+list-view-item p .number.hide {
+  display: none;
+}
+list-view-item p .item {
+  position: relative;
+  display: inline;
+  line-height: 1rem;
+}
+list-view-item p.selected {
+  background: #282828;
+}
+list-view-item p.selected .number {
+  background: #282828;
+}
+list-view-item p.filtered {
+  background: #839ab4;
+}
+list-view-item p.filtered .number {
+  background: #839ab4;
+}
+list-view-item p .favorite {
+  position: relative;
+  color: rgba(30, 240, 30, 0.4);
+  cursor: pointer;
+}
+list-view-item p .favorite:hover {
+  color: #1ef01e;
+}
+list-view-item p span.match {
+  position: relative;
+  display: inline-block;
+  background: #f01e1e;
+  color: #1e1e1e;
+}
+list-view-item p.bookmarked .number {
+  background: #a8c873;
+  color: #1e1e1e;
+}
+list-view-line {
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+list-view-line .ln-navigation-wrapper {
+  display: block;
+  position: absolute;
+  right: 0.15rem;
+  z-index: 100;
+  opacity: 1;
+}
+list-view-line .ln-navigation-wrapper.pinned:after {
+  position: fixed;
+  content: "\f08d";
+  color: #f01e1e;
+  font-family: 'FontAwesome';
+  font-size: 1rem;
+  margin: -0.5rem 0 0 0.5rem;
+  text-shadow: 0 0 0.2rem rgba(250, 250, 250, 0.4);
+}
+list-view-line .ln-navigation-wrapper .ln-navigation {
+  display: block;
+  position: fixed;
+  background: #fafafa;
+  padding: 0.5rem;
+  margin: 0;
+  max-width: 90%;
+  overflow: hidden;
+  box-shadow: none;
+}
+list-view-line .ln-navigation-wrapper .ln-navigation li {
+  position: relative;
+  padding: 0.25rem 0;
+  margin: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 0.65rem;
+  color: #1e1e1e;
+}
+list-view-line .ln-navigation-wrapper .ln-navigation li:hover {
+  background: rgba(80, 80, 80, 0.4);
+}
+list-view-line .ln-pseudo-scroll-hidder {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  top: 0;
+}
+list-view-line .ln-pseudo-scroll-hidder .ln-pseudo-scroll-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 300%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: scroll;
+}
+list-view-line .ln-pseudo-scroll-hidder .ln-pseudo-scroll-wrapper .ln-pseudo-scroll-filler {
+  position: relative;
+  width: 1px;
+  top: 0;
+}
+view-markers-item {
+  position: relative;
+  display: block;
+  margin: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+view-markers-item span {
+  position: relative;
+  display: inline-block;
+}
+view-markers-item .trigger,
+view-markers-item .color,
+view-markers-item .remove {
+  width: 0.75rem;
+  height: 0.75rem;
+  font-size: 1rem;
+  line-height: 1rem;
+  margin: 0 0 0 0.5rem;
+}
+view-markers-item .color {
+  font-size: 0.75rem;
+  padding: 0.25rem;
+  width: auto;
+  height: auto;
+}
+view-markers-item .trigger {
+  color: #fafafa;
+}
+view-markers-item .trigger:after {
+  position: absolute;
+  font-family: 'FontAwesome';
+  content: '\f096';
+  font-size: 1rem;
+  top: 0;
+  left: 0;
+}
+view-markers-item .trigger.active:after {
+  content: '\f046';
+}
+view-markers-item .value {
+  width: calc(100% - 8rem);
+  margin: 0 auto;
+  font-size: 0.85rem;
+  line-height: 1rem;
+  padding: 0 0 0 0.5rem;
+}
+view-markers-item .remove {
+  color: #646464;
+}
+view-markers-item .remove:hover {
+  color: #f01e1e;
+}
+view-controller-state-monitor-manager {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-state-monitor-manager .statemonitor-manager-wrapper {
+  position: absolute;
+  top: 0;
+  bottom: 3rem;
+  width: 100%;
+  padding: 0.5rem;
+  margin: 0;
+  list-style: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+view-controller-state-monitor-manager .statemonitor-manager-wrapper li {
+  list-style: none;
+}
+view-controller-state-monitor-manager .buttons {
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+  height: 3rem;
+  text-align: right;
+  font-size: 0.75rem;
+}
+.monitor-icon-red .icon {
+  color: red;
+}
+.monitor-icon-green .icon {
+  color: green;
+}
+.monitor-icon-yellow .icon {
+  color: yellow;
+}
+.monitor-icon-blink .icon {
+  animation: monitor-blink-animation 300ms ease-in-out 0ms infinite normal;
+  -webkit-animation: monitor-blink-animation 300ms ease-in-out 0ms infinite normal;
+  -moz-animation: monitor-blink-animation 300ms ease-in-out 0ms infinite normal;
+  -o-animation: monitor-blink-animation 300ms ease-in-out 0ms infinite normal;
+}
+@keyframes monitor-blink-animation {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@-moz-keyframes monitor-blink-animation {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@-webkit-keyframes monitor-blink-animation {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.monitor-icon-rotate .icon {
+  animation: monitor-rotate-animation 600ms ease-in-out 0ms infinite normal;
+  -webkit-animation: monitor-rotate-animation 600ms ease-in-out 0ms infinite normal;
+  -moz-animation: monitor-rotate-animation 600ms ease-in-out 0ms infinite normal;
+  -o-animation: monitor-rotate-animation 600ms ease-in-out 0ms infinite normal;
+}
+@keyframes monitor-rotate-animation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+@-moz-keyframes monitor-rotate-animation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+@-webkit-keyframes monitor-rotate-animation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+view-controller-state-monitor {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-state-monitor ul {
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  text-align: center;
+}
+view-controller-state-monitor ul li {
+  position: relative;
+  display: inline-block;
+  width: 10rem;
+  height: 7rem;
+  margin: 1rem;
+}
+tab-search-requests {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+tab-search-requests ul {
+  position: relative;
+  list-style: none;
+  padding: 0.5rem 0;
+}
+tab-search-requests ul li {
+  position: relative;
+  display: block;
+  padding: 0;
+  margin: 0.25rem 0;
+}
+view-controller-search-results {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-search-results .lv-list-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 2rem;
+  bottom: 0;
+  overflow: hidden;
+  -webkit-transition: all ease-in-out 100ms;
+  -moz-transition: all ease-in-out 100ms;
+  -ms-transition: all ease-in-out 100ms;
+  -o-transition: all ease-in-out 100ms;
+  transition: all ease-in-out 100ms;
+}
+view-controller-search-results .lv-list-wrapper.list-opened {
+  right: 15rem;
+}
+view-controller-search-results .lv-manager-wrapper {
+  position: absolute;
+  top: 0;
+  width: 2rem;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  border-left: thin dotted #646464;
+  -webkit-transition: all ease-in-out 100ms;
+  -moz-transition: all ease-in-out 100ms;
+  -ms-transition: all ease-in-out 100ms;
+  -o-transition: all ease-in-out 100ms;
+  transition: all ease-in-out 100ms;
+}
+view-controller-search-results .lv-manager-wrapper .lv-manager-trigger-area {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 2rem;
+  overflow: hidden;
+  cursor: pointer;
+}
+view-controller-search-results .lv-manager-wrapper .lv-manager-trigger-area:hover {
+  background: #282828;
+}
+view-controller-search-results .lv-manager-wrapper .lv-manager-trigger-area .lv-manager-trigger {
+  position: absolute;
+  display: block;
+  top: 0;
+  left: 0;
+  cursor: pointer;
+  width: 1rem;
+  height: 1rem;
+  padding: 0.5rem;
+  line-height: 1rem;
+  text-align: center;
+  -webkit-transition: all ease-in-out 300ms;
+  -moz-transition: all ease-in-out 300ms;
+  -ms-transition: all ease-in-out 300ms;
+  -o-transition: all ease-in-out 300ms;
+  transition: all ease-in-out 300ms;
+}
+view-controller-search-results .lv-manager-wrapper .lv-manager-trigger-area .lv-manager-title {
+  position: absolute;
+  display: block;
+  top: 50%;
+  left: 0;
+  width: 2rem;
+  -webkit-transform: rotate(-90deg);
+  -moz-transform: rotate(-90deg);
+  -ms-transform: rotate(-90deg);
+  -o-transform: rotate(-90deg);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+view-controller-search-results .lv-manager-wrapper .lv-manager-list {
+  position: absolute;
+  display: block;
+  top: 2rem;
+  bottom: 0;
+  left: 2.25rem;
+  right: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0.25rem 0 0 0;
+  margin: 0;
+}
+view-controller-search-results .lv-manager-wrapper .lv-manager-conditions-area {
+  position: absolute;
+  display: block;
+  top: 0;
+  height: 2rem;
+  left: 2rem;
+  right: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+view-controller-search-results .lv-manager-wrapper .lv-manager-conditions-area .wrapper {
+  position: absolute;
+  top: 0.25rem;
+  left: 0.25rem;
+  bottom: 0.25rem;
+  right: 0.25rem;
+}
+view-controller-search-results .lv-manager-wrapper.opened {
+  width: 15rem;
+}
+view-controller-search-results .lv-manager-wrapper.opened .lv-manager-trigger {
+  -webkit-transform: rotate(180deg);
+  -moz-transform: rotate(180deg);
+  -ms-transform: rotate(180deg);
+  -o-transform: rotate(180deg);
+}
+view-controller-search-results .export-url {
+  position: absolute;
+  display: block;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0.001;
+}
+stream-sender-history-item {
+  position: relative;
+  display: block;
+  margin: 0 0.5rem;
+  cursor: pointer;
+}
+stream-sender-history-item span {
+  position: relative;
+  display: inline-block;
+  font-size: 0.75rem;
+  height: 1rem;
+  line-height: 1rem;
+}
+stream-sender-history-item .time {
+  color: #282828;
+  min-width: 3rem;
+}
+stream-sender-history-item .usage {
+  color: #646464;
+  min-width: 2rem;
+}
+stream-sender-history-item .value {
+  color: #646464;
+  white-space: nowrap;
+}
+stream-sender-history-item .value.match {
+  color: #f0f0f0;
+  white-space: nowrap;
+}
+stream-sender-history-item .remove {
+  position: absolute;
+  right: 0.5rem;
+  opacity: 0.4;
+}
+stream-sender-history-item .remove:hover {
+  color: #f01e1e;
+  opacity: 1;
+}
+drop-down-menu {
+  position: relative;
+}
+drop-down-menu .wrapper.as-icon {
+  position: relative;
+  width: 3rem;
+  height: 3rem;
+  overflow: hidden;
+}
+drop-down-menu .wrapper.as-icon .button {
+  position: relative;
+  width: 3rem;
+  height: 3rem;
+}
+drop-down-menu .wrapper.as-icon .button span.fa {
+  font-size: 1.3rem!important;
+  margin: 0.9rem;
+}
+drop-down-menu .wrapper .list-wrapper-corrector {
+  position: relative;
+  width: 100%;
+  margin-left: 100%;
+}
+drop-down-menu .wrapper .list-wrapper-corrector .list-wrapper {
+  position: fixed;
+}
+drop-down-menu .wrapper .list-wrapper-corrector .list-wrapper .list {
+  display: none;
+  position: absolute;
+  z-index: 100;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px dotted #646464;
+  right: 0;
+  background: #1e1e1e;
+  box-shadow: none;
+}
+drop-down-menu .wrapper .list-wrapper-corrector .list-wrapper .list:after {
+  display: block;
+  position: absolute;
+  content: '';
+  width: 50%;
+  height: 2.5rem;
+  background: rgba(0, 0, 0, 0.01);
+  top: -2.35rem;
+  right: 1rem;
+  opacity: 0.01;
+}
+drop-down-menu .wrapper .list-wrapper-corrector .list-wrapper .list:hover {
+  display: block;
+}
+drop-down-menu .wrapper .list-wrapper-corrector .list-wrapper .list li {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  white-space: nowrap;
+  cursor: pointer;
+  color: rgba(250, 250, 250, 0.75);
+}
+drop-down-menu .wrapper .list-wrapper-corrector .list-wrapper .list li span:first-child {
+  width: 2rem;
+}
+drop-down-menu .wrapper .list-wrapper-corrector .list-wrapper .list li p {
+  margin: 0;
+  padding: 0.25rem 0.25rem;
+}
+drop-down-menu .wrapper .list-wrapper-corrector .list-wrapper .list li p:hover {
+  background: rgba(50, 50, 50, 0.4);
+  color: #fafafa;
+}
+drop-down-menu .wrapper .list-wrapper-corrector .list-wrapper .list li .line {
+  position: relative;
+  display: block;
+  height: 1px;
+  border-top: dotted 1px #323232;
+  margin: 0.5rem 0.5rem;
+}
+drop-down-menu .wrapper .button:hover ~ .list-wrapper-corrector .list {
+  display: block;
+}
+file-loader input {
+  display: block;
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  opacity: 0.01;
+}
+.input {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+.input input {
+  outline: none;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  font-size: 1rem;
+  color: rgba(250, 250, 250, 0.75);
+  box-sizing: border-box;
+  border: thin dotted rgba(50, 50, 50, 0.001);
+  margin: 0;
+  padding: 0 0.25rem;
+  box-shadow: 0 0 0rem rgba(0, 0, 0, 0.01) inset;
+  background: #1e1e1e;
+}
+.input input:focus,
+.input input:hover {
+  border: thin dotted #323232;
+  box-shadow: 0 0 0.15rem rgba(250, 250, 250, 0.4) inset;
+  transition: border, box-shadow ease-in-out 200ms;
+  color: #fafafa;
+}
+long-list {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+long-list .wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: scroll;
+}
+long-list .wrapper .space-filler {
+  position: absolute;
+  top: 0;
+  width: 1px;
+}
+long-list .wrapper .rows {
+  list-style: none;
+  font-size: 0.75rem;
+  color: #f0f0f0;
+  padding: 0.5rem;
+}
+long-list .wrapper .rows li {
+  display: block;
+  position: relative;
+  white-space: nowrap;
+}
+long-list .wrapper .rows li.show {
+  opacity: 1;
+  display: block;
+}
+progressbar-circle .wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  top: 0;
+  left: 0;
+}
+progressbar-circle .wrapper .label {
+  position: relative;
+  display: block;
+  text-align: center;
+  font-family: 'Roboto Condensed', Verdana, Arial, Helvetica, sans-serif;
+  font-size: 1em;
+  top: 50%;
+  margin-top: -3em;
+  color: #5b6991;
+}
+progressbar-circle .wrapper .particle {
+  position: absolute;
+  width: 2.5em;
+  height: 2.5em;
+  border-radius: 1.25em;
+  top: 50%;
+  left: 50%;
+  margin: -1.25em 0 0 -1.25em;
+  opacity: 0;
+  animation: progressbar-circle-animation 2050ms cubic-bezier(0.65, 0.95, 0.41, 0.13) 0ms infinite normal;
+  -webkit-animation: progressbar-circle-animation 2050ms cubic-bezier(0.65, 0.95, 0.41, 0.13) 0ms infinite normal;
+  -moz-animation: progressbar-circle-animation 2050ms cubic-bezier(0.65, 0.95, 0.41, 0.13) 0ms infinite normal;
+  -o-animation: progressbar-circle-animation 2050ms cubic-bezier(0.65, 0.95, 0.41, 0.13) 0ms infinite normal;
+}
+progressbar-circle .wrapper .particle:after {
+  position: absolute;
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 2px;
+  background: #a8c873;
+  /*box-shadow      : 0 0 1px rgba(0,0,0,0.4);*/
+  bottom: 0;
+  left: 50%;
+}
+progressbar-circle .wrapper .particle[data-addition-type="0"] {
+  -moz-animation-delay: 0ms;
+  -o-animation-delay: 0ms;
+  -webkit-animation-delay: 0ms;
+  animation-delay: 0ms;
+}
+progressbar-circle .wrapper .particle[data-addition-type="1"] {
+  -moz-animation-delay: 200ms;
+  -o-animation-delay: 200ms;
+  -webkit-animation-delay: 200ms;
+  animation-delay: 200ms;
+}
+progressbar-circle .wrapper .particle[data-addition-type="2"] {
+  -moz-animation-delay: 400ms;
+  -o-animation-delay: 400ms;
+  -webkit-animation-delay: 400ms;
+  animation-delay: 400ms;
+}
+progressbar-circle .wrapper .particle[data-addition-type="3"] {
+  -moz-animation-delay: 600ms;
+  -o-animation-delay: 600ms;
+  -webkit-animation-delay: 600ms;
+  animation-delay: 600ms;
+}
+progressbar-circle .wrapper .particle[data-addition-type="4"] {
+  -moz-animation-delay: 800ms;
+  -o-animation-delay: 800ms;
+  -webkit-animation-delay: 800ms;
+  animation-delay: 800ms;
+}
+progressbar-circle .wrapper .particle[data-addition-type="5"] {
+  -moz-animation-delay: 1000ms;
+  -o-animation-delay: 1000ms;
+  -webkit-animation-delay: 1000ms;
+  animation-delay: 1000ms;
+}
+@keyframes progressbar-circle-animation {
+  0% {
+    -moz-transform: rotateZ(0deg);
+    -ms-transform: rotateZ(0deg);
+    -o-transform: rotateZ(0deg);
+    -webkit-transform: rotateZ(0deg);
+    transform: rotateZ(0deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    -moz-transform: rotateZ(360deg);
+    -ms-transform: rotateZ(360deg);
+    -o-transform: rotateZ(360deg);
+    -webkit-transform: rotateZ(360deg);
+    transform: rotateZ(360deg);
+    opacity: 0;
+  }
+}
+@-moz-keyframes progressbar-circle-animation {
+  0% {
+    -moz-transform: rotateZ(0deg);
+    -ms-transform: rotateZ(0deg);
+    -o-transform: rotateZ(0deg);
+    -webkit-transform: rotateZ(0deg);
+    transform: rotateZ(0deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    -moz-transform: rotateZ(360deg);
+    -ms-transform: rotateZ(360deg);
+    -o-transform: rotateZ(360deg);
+    -webkit-transform: rotateZ(360deg);
+    transform: rotateZ(360deg);
+    opacity: 0;
+  }
+}
+@-webkit-keyframes progressbar-circle-animation {
+  0% {
+    -moz-transform: rotateZ(0deg);
+    -ms-transform: rotateZ(0deg);
+    -o-transform: rotateZ(0deg);
+    -webkit-transform: rotateZ(0deg);
+    transform: rotateZ(0deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    -moz-transform: rotateZ(360deg);
+    -ms-transform: rotateZ(360deg);
+    -o-transform: rotateZ(360deg);
+    -webkit-transform: rotateZ(360deg);
+    transform: rotateZ(360deg);
+    opacity: 0;
+  }
+}
+popup {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+popup .popup {
+  position: absolute;
+  width: 50%;
+  height: 50%;
+  top: 25%;
+  left: 25%;
+  background: #1e1e1e;
+  box-shadow: none;
+}
+popup .popup .title {
+  position: absolute;
+  overflow: hidden;
+  top: 0;
+  width: 100%;
+  height: 2rem;
+  background: #839ab4;
+  cursor: default;
+}
+popup .popup .title p {
+  text-align: left;
+  font-size: 0.9rem;
+  padding: 0.5rem;
+  margin: 0;
+}
+popup .popup .title .titlebuttons {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: right;
+}
+popup .popup .title .titlebuttons .button {
+  position: relative;
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.2rem;
+  line-height: 2rem;
+  text-align: center;
+  cursor: pointer;
+}
+popup .popup .title .titlebuttons .button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+popup .popup .content {
+  position: absolute;
+  width: 100%;
+  top: 2rem;
+  bottom: 2.5rem;
+}
+popup .popup .content.no-buttons {
+  bottom: 0;
+}
+popup .popup .buttons {
+  position: absolute;
+  width: 100%;
+  height: 2.5rem;
+  bottom: 0;
+  white-space: nowrap;
+  text-align: right;
+}
+popup .popup .buttons .button {
+  position: relative;
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  margin: 0 0 0 0.5rem;
+  background: #282828;
+  color: #f0f0f0;
+  cursor: pointer;
+  transition: all ease-in-out 50ms;
+}
+popup .popup .buttons .button:hover {
+  background: #f0f0f0;
+  color: #1e1e1e;
+}
+popup .popup .buttons .button:last-child {
+  margin-right: 0.5rem;
+}
+popup .popup .border-top,
+popup .popup .border-right,
+popup .popup .border-bottom,
+popup .popup .border-left {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.01);
+}
+popup .popup .border-top {
+  top: 0;
+  height: 0.3rem;
+  width: 100%;
+  cursor: ns-resize;
+}
+popup .popup .border-right {
+  top: 0;
+  right: 0;
+  width: 0.3rem;
+  height: 100%;
+  cursor: ew-resize;
+}
+popup .popup .border-bottom {
+  bottom: 0;
+  height: 0.3rem;
+  width: 100%;
+  cursor: ns-resize;
+}
+popup .popup .border-left {
+  top: 0;
+  height: 100%;
+  width: 0.3rem;
+  cursor: ew-resize;
+}
+popup .popup .corner-tl,
+popup .popup .corner-tr,
+popup .popup .corner-br,
+popup .popup .corner-bl {
+  position: absolute;
+  width: 0.5rem;
+  height: 0.5rem;
+  background: rgba(0, 0, 0, 0.01);
+}
+popup .popup .corner-tl {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+popup .popup .corner-tr {
+  top: 0;
+  right: 0;
+  cursor: nesw-resize;
+}
+popup .popup .corner-br {
+  bottom: 0;
+  right: 0;
+  cursor: nwse-resize;
+}
+popup .popup .corner-bl {
+  bottom: 0;
+  left: 0;
+  cursor: nesw-resize;
+}
+progressbar-line .wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  top: 0;
+  left: 0;
+}
+progressbar-line .wrapper .particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 2px;
+  background: #a8c873;
+  top: 50%;
+  left: 50%;
+  margin: -2px 0 0 -2px;
+  opacity: 0;
+  animation: progressbar-line-animation 2050ms cubic-bezier(0.17, 0.76, 0.73, 0.4) 0ms infinite normal;
+  -webkit-animation: progressbar-line-animation 2050ms cubic-bezier(0.17, 0.76, 0.73, 0.4) 0ms infinite normal;
+  -moz-animation: progressbar-line-animation 2050ms cubic-bezier(0.17, 0.76, 0.73, 0.4) 0ms infinite normal;
+  -o-animation: progressbar-line-animation 2050ms cubic-bezier(0.17, 0.76, 0.73, 0.4) 0ms infinite normal;
+}
+progressbar-line .wrapper .particle[data-addition-type="0"] {
+  -moz-animation-delay: 0ms;
+  -o-animation-delay: 0ms;
+  -webkit-animation-delay: 0ms;
+  animation-delay: 0ms;
+}
+progressbar-line .wrapper .particle[data-addition-type="1"] {
+  -moz-animation-delay: 200ms;
+  -o-animation-delay: 200ms;
+  -webkit-animation-delay: 200ms;
+  animation-delay: 200ms;
+}
+progressbar-line .wrapper .particle[data-addition-type="2"] {
+  -moz-animation-delay: 400ms;
+  -o-animation-delay: 400ms;
+  -webkit-animation-delay: 400ms;
+  animation-delay: 400ms;
+}
+progressbar-line .wrapper .particle[data-addition-type="3"] {
+  -moz-animation-delay: 600ms;
+  -o-animation-delay: 600ms;
+  -webkit-animation-delay: 600ms;
+  animation-delay: 600ms;
+}
+progressbar-line .wrapper .particle[data-addition-type="4"] {
+  -moz-animation-delay: 800ms;
+  -o-animation-delay: 800ms;
+  -webkit-animation-delay: 800ms;
+  animation-delay: 800ms;
+}
+progressbar-line .wrapper .particle[data-addition-type="5"] {
+  -moz-animation-delay: 1000ms;
+  -o-animation-delay: 1000ms;
+  -webkit-animation-delay: 1000ms;
+  animation-delay: 1000ms;
+}
+@keyframes progressbar-line-animation {
+  0% {
+    opacity: 0;
+    left: 0.01%;
+  }
+  50% {
+    opacity: 1;
+    left: 50%;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+@-moz-keyframes progressbar-line-animation {
+  0% {
+    opacity: 0;
+    left: 0.01%;
+  }
+  50% {
+    opacity: 1;
+    left: 50%;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+@-webkit-keyframes progressbar-line-animation {
+  0% {
+    opacity: 0;
+    left: 0.01%;
+  }
+  50% {
+    opacity: 1;
+    left: 50%;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+common-tabs {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+common-tabs .tabs-labels {
+  position: absolute;
+  display: block;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  height: 2rem;
+  width: 100%;
+  top: 0;
+  left: 0;
+  border-bottom: thin solid #323232;
+}
+common-tabs .tabs-labels li {
+  position: relative;
+  display: inline-block;
+  padding: 0.25rem;
+  margin: 0.65rem 0 0 0.5rem;
+  border-top-left-radius: 0.1rem;
+  border-top-right-radius: 0.1rem;
+  border-left: thin solid #323232;
+  border-top: thin solid #323232;
+  border-right: thin solid #323232;
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 0.85rem;
+  background: #646464;
+  color: #fafafa;
+}
+common-tabs .tabs-labels li:first-child {
+  margin-left: 0.5rem;
+}
+common-tabs .tabs-labels li.active:after {
+  position: absolute;
+  display: block;
+  content: '';
+  top: 100%;
+  width: 100%;
+  height: 2px;
+  background: #1e1e1e;
+  left: 0;
+}
+common-tabs .tabs-labels li.active {
+  background: #1e1e1e;
+}
+common-tabs .tabs-content {
+  position: absolute;
+  display: block;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  left: 0;
+  top: 2rem;
+  bottom: 0;
+}
+common-tabs .tabs-content li.src-content-tab {
+  position: absolute;
+  top: 0.25rem;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+top-bar-drop-down-menu {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 3rem;
+  height: 3rem;
+}
+top-bar-drop-down-menu .top-bar-correction .list-wrapper-corrector {
+  margin-left: calc(100% - 0.5rem) !important;
+}
+.top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3rem;
+  z-index: 100;
+}
+.top-bar .top-tool-bar-wrapper {
+  position: absolute;
+  display: table;
+  width: calc(100% - 3rem);
+  height: 100%;
+}
+.top-bar .top-tool-bar-wrapper topbar-space-holder {
+  position: relative;
+  display: table-cell;
+  width: auto;
+  height: 100%;
+}
+.top-bar .top-tool-bar-wrapper topbar-search-request {
+  position: relative;
+  display: table-cell;
+  width: 100%;
+  height: 100%;
+}
+topbar-space-holder .space-holder {
+  position: relative;
+  display: table;
+  width: 100%;
+  height: 100%;
+}
+topbar-space-holder .space-holder .shortcuts-holder {
+  display: table-cell;
+  position: relative;
+  width: 100%;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  vertical-align: middle;
+}
+topbar-space-holder .space-holder .shortcuts-holder .shortcuts {
+  display: block;
+  position: relative;
+  width: 100%;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  white-space: nowrap;
+}
+topbar-space-holder .space-holder .shortcuts-holder .shortcuts li {
+  position: relative;
+  display: inline-block;
+  width: 3rem;
+  height: 3rem;
+  margin: 0;
+  padding: 0;
+}
+topbar-space-holder .shortcuts {
+  position: relative;
+}
+.top-bar .request {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+.top-bar .request .buttons {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  text-align: right;
+}
+.top-bar .request .buttons .icon {
+  position: relative;
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  opacity: 0.4;
+}
+.top-bar .request .buttons .icon.active {
+  opacity: 1;
+}
+.top-bar .progress {
+  position: absolute;
+  height: 0.5rem;
+  bottom: 0;
+  left: 50%;
+  width: 20rem;
+  margin-left: -10rem;
+}
+holder {
+  position: absolute;
+  top: 3rem;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+view {
+  position: absolute;
+  border: thin dotted #323232;
+  overflow: hidden;
+}
+view:hover {
+  border-color: #323232;
+  z-index: 100;
+}
+view .wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+view .wrapper.dragover {
+  background: #646464;
+}
+view .wrapper.dragging {
+  opacity: 0.4;
+}
+view .wrapper .view {
+  position: absolute;
+  top: 2rem;
+  bottom: 0;
+  width: 100%;
+}
+view .wrapper .view-border-left,
+view .wrapper .view-border-right,
+view .wrapper .view-border-top,
+view .wrapper .view-border-bottom {
+  position: absolute;
+}
+view .wrapper .view-border-left:hover,
+view .wrapper .view-border-right:hover,
+view .wrapper .view-border-top:hover,
+view .wrapper .view-border-bottom:hover {
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAaUlEQVQoU12PCw2AMAwFbzaGDLCBDXSgAxvYABlgY+RgWxqaLOnn+vqWgBE4+WIFNuCudUk1EZorYCsDF5Aa4OYelAowqCTg0GeodLhZ62yiXL8JTNFTJ9vNv6cG9JvhN68nAYdRaYmeHot9F9X2eFD0AAAAAElFTkSuQmCC) repeat;
+}
+view .wrapper .view-border-left,
+view .wrapper .view-border-right {
+  width: 0.25rem;
+  height: 100%;
+  top: 0;
+  cursor: ew-resize;
+}
+view .wrapper .view-border-top,
+view .wrapper .view-border-bottom {
+  height: 0.25rem;
+  width: 100%;
+  left: 0;
+  cursor: ns-resize;
+}
+view .wrapper .view-border-left {
+  left: 0;
+}
+view .wrapper .view-border-right {
+  right: 0;
+}
+view .wrapper .view-border-top {
+  top: 0;
+}
+view .wrapper .view-border-bottom {
+  bottom: 0;
+}
+view-bar {
+  display: table;
+  position: absolute;
+  width: 100%;
+  top: 0;
+  height: 2rem;
+  max-height: 2rem;
+  box-shadow: none;
+  transition: box-shadow ease-in-out 200ms;
+}
+view-bar * {
+  margin: 0;
+  padding: 0;
+  vertical-align: middle;
+}
+view-bar .left,
+view-bar .middle,
+view-bar .right {
+  position: relative;
+  display: table-cell;
+  height: 2rem;
+  max-height: 2rem;
+}
+view-bar .middle {
+  width: 100%;
+  font-size: 0.75rem;
+  color: #fafafa;
+  padding: 0 1rem;
+  white-space: nowrap;
+}
+view-bar .left,
+view-bar .right {
+  white-space: nowrap;
+  list-style: none;
+}
+view-bar .left li,
+view-bar .right li {
+  position: relative;
+  display: inline-block;
+  height: 2rem;
+  max-height: 2rem;
+  list-style: none;
+}
+view-bar .left li.icon,
+view-bar .right li.icon {
+  width: 2rem;
+}
+view-bar .left li.icon span,
+view-bar .right li.icon span {
+  margin: 0.5rem;
+}
+view-bar .left li.icon:hover,
+view-bar .right li.icon:hover {
+  background: rgba(220, 220, 220, 0.4);
+}
+view-bar .left li.icon.active,
+view-bar .right li.icon.active {
+  background: rgba(220, 220, 220, 0.4);
+}
+view-bar .left li.icon.disable,
+view-bar .right li.icon.disable {
+  opacity: 0.4;
+}
+view-bar .left li.icon.disable:hover,
+view-bar .right li.icon.disable:hover {
+  background: none;
+  text-shadow: none;
+}
+view-bar .left li.icon.disable:hover .fa,
+view-bar .right li.icon.disable:hover .fa {
+  text-shadow: none;
+  color: rgba(250, 250, 250, 0.7);
+}
+view-bar .left li.icon.disable:hover .fa:hover,
+view-bar .right li.icon.disable:hover .fa:hover {
+  text-shadow: none;
+  color: rgba(250, 250, 250, 0.7);
+}
+view-bar .left li.mark,
+view-bar .right li.mark {
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+view-bar .left li.mark span,
+view-bar .right li.mark span {
+  display: block;
+  margin: 0.5rem 0.2rem;
+  border-bottom: thin dotted #dcdcdc;
+}
+view-bar .left li.mark:hover,
+view-bar .right li.mark:hover {
+  background: rgba(220, 220, 220, 0.4);
+}
+view:hover view-bar {
+  box-shadow: none;
+}
+view-controller-chart-manager-set {
+  position: relative;
+  display: block;
+  margin: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+view-controller-chart-manager-set span {
+  position: relative;
+  display: inline-block;
+}
+view-controller-chart-manager-set .trigger,
+view-controller-chart-manager-set .color,
+view-controller-chart-manager-set .remove,
+view-controller-chart-manager-set .edit {
+  width: 0.75rem;
+  height: 0.75rem;
+  font-size: 1rem;
+  line-height: 1rem;
+  margin: 0 0 0 0.5rem;
+}
+view-controller-chart-manager-set .color {
+  font-size: 0.75rem;
+  padding: 0.25rem;
+  width: auto;
+  height: auto;
+  border: thin solid #fafafa;
+}
+view-controller-chart-manager-set .trigger {
+  color: #fafafa;
+  margin-right: 1rem;
+}
+view-controller-chart-manager-set .trigger:after {
+  position: absolute;
+  font-family: 'FontAwesome';
+  content: '\f096';
+  font-size: 1rem;
+  top: 0;
+  left: 0;
+}
+view-controller-chart-manager-set .trigger.active:after {
+  content: '\f046';
+}
+view-controller-chart-manager-set .trigger.compact {
+  margin: 0;
+}
+view-controller-chart-manager-set .value {
+  width: calc(100% - 11rem);
+  margin: 0 auto;
+  font-size: 0.85rem;
+  line-height: 1rem;
+  padding: 0 0 0 0.5rem;
+}
+view-controller-chart-manager-set .remove {
+  color: #646464;
+}
+view-controller-chart-manager-set .remove:hover {
+  color: #f01e1e;
+}
+view-controller-chart-manager-set .edit {
+  color: #646464;
+}
+view-controller-chart-manager-set .edit:hover {
+  color: #fafafa;
+}
+view-controller-state-manager-item {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+view-controller-state-manager-item .wrapper {
+  position: relative;
+  width: 100%;
+}
+view-controller-state-manager-item .wrapper .title {
+  position: relative;
+  margin: 0;
+  padding: 0.25rem;
+  background: #282828;
+  font-size: 0.95rem;
+}
+view-controller-state-manager-item .wrapper .title .name {
+  margin: 0;
+  padding: 0;
+}
+view-controller-state-manager-item .wrapper .title .buttons {
+  position: absolute;
+  opacity: 0.2;
+  height: 100%;
+  top: 0;
+  right: 0.5rem;
+  text-align: right;
+  white-space: nowrap;
+  font-size: 0.95rem;
+}
+view-controller-state-manager-item .wrapper:hover .title .buttons {
+  opacity: 1;
+}
+view-controller-state-manager-item .wrapper ul.states {
+  position: relative;
+  display: block;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+view-controller-state-manager-item .wrapper ul.states li {
+  position: relative;
+  display: flex;
+  margin: 0;
+  padding: 0.25rem 0;
+  height: 1.5rem;
+  list-style: none;
+  border-bottom: thin dotted #646464;
+  font-size: 0.85rem;
+  overflow: hidden;
+}
+view-controller-state-manager-item .wrapper ul.states li .default-state {
+  position: relative;
+  display: inline-block;
+}
+view-controller-state-manager-item .wrapper ul.states li .default-state .on,
+view-controller-state-manager-item .wrapper ul.states li .default-state .off,
+view-controller-state-manager-item .wrapper ul.states li .default-state .switcher {
+  width: 3.5rem!important;
+}
+view-controller-state-manager-item .wrapper ul.states li .states-list {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+  height: 1.5rem;
+}
+view-controller-state-manager-item .wrapper ul.states li .states-list span.state {
+  position: relative;
+  display: inline-block;
+  height: 1rem;
+  width: 1rem;
+  margin: 0 0 0 0.5rem;
+  text-align: center;
+  line-height: 1rem;
+}
+view-controller-state-manager-item .wrapper ul.states li .states-list sup {
+  font-size: 0.75rem;
+  color: #646464;
+  margin: 0 0.25rem 0 0.5rem;
+}
+view-controller-state-manager-item .wrapper ul.states li .buttons {
+  position: absolute;
+  opacity: 0.2;
+  height: 100%;
+  top: 0;
+  right: 0.5rem;
+  width: auto;
+  text-align: right;
+  white-space: nowrap;
+  font-size: 0.95rem;
+}
+view-controller-state-manager-item .wrapper ul.states li:hover .buttons {
+  opacity: 1;
+}
+view-controller-state-manager-item .wrapper .icon-button {
+  position: relative;
+  display: inline-block;
+  height: 1rem;
+  width: 1rem;
+  padding: 0.25rem;
+  text-align: center;
+  border: thin dotted rgba(0, 0, 0, 0.01);
+  cursor: pointer;
+}
+view-controller-state-manager-item .wrapper .icon-button:hover {
+  border: thin dotted #323232;
+}
+view-controller-state-monitor-item {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  margin: 0.5rem;
+  border: 1px dotted #323232;
+  text-align: center;
+  top: 0;
+  left: 0;
+  cursor: default;
+}
+view-controller-state-monitor-item .indicate {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-state-monitor-item .indicate .icon {
+  position: relative;
+  display: block;
+  font-size: 3rem;
+  line-height: 3rem;
+  width: 100%;
+  height: 3rem;
+}
+view-controller-state-monitor-item .indicate .name {
+  position: relative;
+  display: block;
+  font-size: 0.85rem;
+  width: 100%;
+  white-space: nowrap;
+  margin: 0.5rem 0;
+}
+view-controller-state-monitor-item .indicate .label {
+  position: relative;
+  display: block;
+  font-size: 0.75rem;
+  width: 100%;
+  white-space: nowrap;
+  margin: 0.5rem 0;
+}
+view-request-item {
+  position: relative;
+  display: block;
+  margin: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+view-request-item span {
+  position: relative;
+  display: inline-block;
+}
+view-request-item .trigger,
+view-request-item .color,
+view-request-item .remove {
+  width: 0.75rem;
+  height: 0.75rem;
+  font-size: 1rem;
+  line-height: 1rem;
+  margin: 0 0 0 0.5rem;
+}
+view-request-item .trigger-activity {
+  font-size: 0.75rem;
+  padding: 0;
+  text-transform: uppercase;
+  margin: 0 0.25rem;
+  cursor: pointer;
+}
+view-request-item .trigger-activity-cover {
+  position: absolute;
+  display: block;
+  height: 1rem;
+  width: 3.5rem;
+  top: 0.24rem;
+  left: 2.25rem;
+  background: #646464;
+  transition: left ease-in-out 100ms;
+}
+view-request-item .trigger-activity-cover.right {
+  left: 5.75rem;
+}
+view-request-item .color {
+  font-size: 0.75rem;
+  padding: 0.25rem;
+  width: auto;
+  height: auto;
+}
+view-request-item .trigger {
+  color: #fafafa;
+  margin-right: 1rem;
+}
+view-request-item .trigger:after {
+  position: absolute;
+  font-family: 'FontAwesome';
+  content: '\f096';
+  font-size: 1rem;
+  top: 0;
+  left: 0;
+}
+view-request-item .trigger.active:after {
+  content: '\f046';
+}
+view-request-item .trigger.compact {
+  margin: 0;
+}
+view-request-item .value {
+  width: calc(100% - 16.5rem);
+  margin: 0 auto;
+  font-size: 0.85rem;
+  line-height: 1rem;
+  padding: 0 0 0 0.5rem;
+}
+view-request-item .remove {
+  color: #646464;
+}
+view-request-item .remove:hover {
+  color: #f01e1e;
+}
+simple-checkbox {
+  position: relative;
+  display: inline-block;
+  width: auto;
+  height: 1.5rem;
+  overflow: hidden;
+}
+simple-checkbox label {
+  position: relative;
+  display: inline-block;
+  width: auto;
+  height: 1.5rem;
+  white-space: nowrap;
+  cursor: pointer;
+  border: thin dotted #323232;
+  box-sizing: border-box;
+}
+simple-checkbox label input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0.001;
+}
+simple-checkbox label span.on,
+simple-checkbox label span.off {
+  position: relative;
+  display: inline-block;
+  width: 2.5rem;
+  height: 100%;
+  text-align: center;
+  line-height: 1.5rem;
+}
+simple-checkbox label span.switcher {
+  position: absolute;
+  width: 2.5rem;
+  left: 50%;
+  height: 100%;
+  background: rgba(250, 250, 250, 0.4);
+}
+simple-checkbox label input:checked ~ span.switcher {
+  left: 0;
+}
+simple-checkbox label span.on,
+simple-checkbox label span.off,
+simple-checkbox label span.switcher {
+  opacity: 0.4;
+  transition: all ease-in-out 100ms;
+}
+simple-checkbox label input:checked ~ span.on,
+simple-checkbox label input:checked ~ span.switcher {
+  opacity: 1;
+}
+button-flat-text span {
+  position: relative;
+  display: inline-block;
+  background: #141414;
+  color: #fafafa;
+  margin: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  border: thin dotted #fafafa;
+}
+button-flat-text span:hover {
+  background: #fafafa;
+  color: #141414;
+  border: thin dotted #141414;
+}
+dialog-api-settings {
+  position: absolute;
+  display: block;
+  top: 0.5rem;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  right: 0.5rem;
+}
+dialog-api-settings .settings {
+  position: absolute;
+  width: 100%;
+  top: 0;
+  bottom: 2.5rem;
+  overflow: auto;
+}
+dialog-api-settings .settings table {
+  position: relative;
+  width: 100%;
+}
+dialog-api-settings .settings table tr td:first-child {
+  position: relative;
+  width: 100%;
+  font-size: 0.85rem;
+  padding: 0.25rem 0;
+  margin: 0;
+  font-weight: normal;
+  color: #a0a0a0;
+}
+dialog-api-settings .settings table tr td:first-child span {
+  font-weight: bold;
+  color: #1e1e1e;
+}
+dialog-api-settings .settings table tr td:last-child {
+  padding: 0.25rem 0.5rem;
+  margin: 0;
+  position: relative;
+  min-width: 15rem;
+}
+dialog-api-settings .settings table tr .input-cover {
+  position: relative;
+  width: 100%;
+  height: 1.5rem;
+}
+dialog-api-settings .buttons {
+  position: absolute;
+  width: 100%;
+  height: 2.5rem;
+  bottom: 0;
+}
+chart-edit-color-dialog {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow: hidden;
+}
+chart-edit-color-dialog .chart-colors {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  bottom: 4.5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+chart-edit-color-dialog .chart-colors .chart-colors-foreground,
+chart-edit-color-dialog .chart-colors .chart-colors-background {
+  position: absolute;
+  width: 50%;
+  height: 100%;
+  left: 0;
+}
+chart-edit-color-dialog .chart-colors .chart-colors-background {
+  left: 50%;
+}
+chart-edit-color-dialog .chart-hook {
+  position: absolute;
+  top: calc(100% - 4.5rem);
+  width: 100%;
+  height: 2rem;
+}
+chart-edit-color-dialog .chart-hook .chart-color-example {
+  position: relative;
+  height: 2rem;
+  text-align: center;
+}
+chart-edit-color-dialog .chart-hook .chart-color-example p {
+  display: inline-block;
+  margin: 0.25rem;
+  padding: 0.25rem;
+  font-size: 0.85rem;
+  line-height: 0.85rem;
+  text-align: center;
+  border: thin solid #646464;
+  cursor: default;
+}
+chart-edit-color-dialog .chart-hook .chart-value {
+  position: relative;
+  height: 2rem;
+  border: 1px dotted #646464;
+}
+chart-edit-color-dialog .chart-controls {
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+  height: 2.5rem;
+  text-align: right;
+}
+chart-edit-rules-hooks-dialog {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow: hidden;
+}
+chart-edit-rules-hooks-dialog * {
+  font-size: 0.9rem;
+}
+chart-edit-rules-hooks-dialog .chart-content {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  bottom: 2.5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+chart-edit-rules-hooks-dialog .chart-content .chart-title {
+  position: relative;
+  margin: 0;
+  padding: 0.5rem 0.5rem 0.2rem 0rem;
+  font-weight: bold;
+}
+chart-edit-rules-hooks-dialog .chart-content .chart-info {
+  position: relative;
+  margin: 0;
+  padding: 0.2rem 0.5rem 0.2rem 0rem;
+  font-size: 0.85rem;
+  color: #323232;
+}
+chart-edit-rules-hooks-dialog .chart-content .chart-note {
+  position: relative;
+  margin: 0;
+  padding: 0.2rem 0.5rem 0.2rem 0rem;
+  font-size: 0.90rem;
+  color: #323232;
+}
+chart-edit-rules-hooks-dialog .chart-content .chart-text-line {
+  position: relative;
+  width: 100%;
+  height: 2rem;
+}
+chart-edit-rules-hooks-dialog .chart-content .chart-tests ul {
+  position: relative;
+  display: block;
+  list-style: none;
+  padding: 0.5rem;
+  margin: 0;
+  border: thin dotted #323232;
+}
+chart-edit-rules-hooks-dialog .chart-content .chart-tests ul li {
+  position: relative;
+  display: block;
+  height: 1.5rem;
+  margin: 0.3rem 0;
+  list-style: none;
+}
+chart-edit-rules-hooks-dialog .chart-content .chart-tests ul li .chart-tests-value {
+  position: absolute;
+  display: block;
+  height: 100%;
+  left: 0;
+  right: 3rem;
+}
+chart-edit-rules-hooks-dialog .chart-content .chart-tests ul li span.remove {
+  position: absolute;
+  display: block;
+  height: 100%;
+  width: 3rem;
+  right: 0;
+  text-align: center;
+  padding: 0.3rem 0 0 0;
+  cursor: pointer;
+  color: #323232;
+}
+chart-edit-rules-hooks-dialog .chart-content .chart-tests ul li span.remove:hover {
+  color: #f01e1e;
+}
+chart-edit-rules-hooks-dialog .chart-content .chart-indexes ul {
+  position: relative;
+  display: block;
+  list-style: none;
+  padding: 0.5rem;
+  margin: 0;
+  border: thin dotted #323232;
+}
+chart-edit-rules-hooks-dialog .chart-content .chart-indexes ul li {
+  position: relative;
+  display: block;
+  height: 1.5rem;
+  margin: 0.3rem 0;
+  list-style: none;
+}
+chart-edit-rules-hooks-dialog .chart-content .chart-indexes ul li .chart-index-wrapper {
+  position: absolute;
+  display: block;
+  height: 100%;
+  left: 0;
+  right: 3rem;
+}
+chart-edit-rules-hooks-dialog .chart-content .chart-indexes ul li .chart-index-wrapper .chart-index-value,
+chart-edit-rules-hooks-dialog .chart-content .chart-indexes ul li .chart-index-wrapper .chart-index-index,
+chart-edit-rules-hooks-dialog .chart-content .chart-indexes ul li .chart-index-wrapper .chart-index-label {
+  position: absolute;
+  height: 100%;
+}
+chart-edit-rules-hooks-dialog .chart-content .chart-indexes ul li .chart-index-wrapper .chart-index-value {
+  left: 0;
+  width: calc(39.5%);
+  margin-right: 0.5rem;
+}
+chart-edit-rules-hooks-dialog .chart-content .chart-indexes ul li .chart-index-wrapper .chart-index-index {
+  left: 40%;
+  width: calc(19.5%);
+  margin-right: 0.5rem;
+}
+chart-edit-rules-hooks-dialog .chart-content .chart-indexes ul li .chart-index-wrapper .chart-index-label {
+  left: 60%;
+  width: 40%;
+}
+chart-edit-rules-hooks-dialog .chart-content .chart-indexes ul li span.remove {
+  position: absolute;
+  display: block;
+  height: 100%;
+  width: 3rem;
+  right: 0;
+  text-align: center;
+  padding: 0.3rem 0 0 0;
+  cursor: pointer;
+  color: #323232;
+}
+chart-edit-rules-hooks-dialog .chart-content .chart-indexes ul li span.remove:hover {
+  color: #f01e1e;
+}
+chart-edit-rules-hooks-dialog .chart-content .chart-tests-buttons {
+  text-align: right;
+}
+chart-edit-rules-hooks-dialog .chart-controls {
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+  height: 2.5rem;
+  text-align: right;
+}
+chart-edit-rules-hooks-dialog .chart-errors-wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  padding: 0;
+  margin: 0;
+  background: rgba(0, 0, 0, 0.8);
+}
+chart-edit-rules-hooks-dialog .chart-errors-wrapper .chart-errors {
+  position: absolute;
+  width: 80%;
+  height: 80%;
+  top: 10%;
+  left: 10%;
+  padding: 0;
+  margin: 0;
+  background: rgba(0, 0, 0, 0.8);
+  overflow: auto;
+}
+chart-edit-rules-hooks-dialog .chart-errors-wrapper .chart-errors li {
+  position: relative;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  list-style: none;
+  color: #f01e1e;
+}
+chart-edit-rules-hooks-dialog .chart-errors-wrapper p {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  bottom: 0.5rem;
+  width: 100%;
+  left: 0;
+}
+chart-edit-rules-segments-dialog {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow: hidden;
+}
+chart-edit-rules-segments-dialog * {
+  font-size: 0.9rem;
+}
+chart-edit-rules-segments-dialog .chart-content {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  bottom: 2.5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+chart-edit-rules-segments-dialog .chart-content .chart-title {
+  position: relative;
+  margin: 0;
+  padding: 0.5rem 0.5rem 0.2rem 0rem;
+  font-weight: bold;
+}
+chart-edit-rules-segments-dialog .chart-content .chart-info {
+  position: relative;
+  margin: 0;
+  padding: 0.2rem 0.5rem 0.2rem 0rem;
+  font-size: 0.85rem;
+  color: #323232;
+}
+chart-edit-rules-segments-dialog .chart-content .chart-note {
+  position: relative;
+  margin: 0;
+  padding: 0.2rem 0.5rem 0.2rem 0rem;
+  font-size: 0.90rem;
+  color: #323232;
+}
+chart-edit-rules-segments-dialog .chart-content .chart-text-line {
+  position: relative;
+  width: 100%;
+  height: 2rem;
+}
+chart-edit-rules-segments-dialog .chart-content .chart-segments ul {
+  position: relative;
+  display: block;
+  list-style: none;
+  padding: 0.5rem;
+  margin: 0;
+  border: thin dotted #323232;
+}
+chart-edit-rules-segments-dialog .chart-content .chart-segments ul li {
+  position: relative;
+  display: block;
+  height: 1.5rem;
+  margin: 0.3rem 0;
+  list-style: none;
+}
+chart-edit-rules-segments-dialog .chart-content .chart-segments ul li .chart-segments-value {
+  position: absolute;
+  display: block;
+  height: 100%;
+  left: 0;
+  right: 3rem;
+}
+chart-edit-rules-segments-dialog .chart-content .chart-segments ul li span.remove {
+  position: absolute;
+  display: block;
+  height: 100%;
+  width: 3rem;
+  right: 0;
+  text-align: center;
+  padding: 0.3rem 0 0 0;
+  cursor: pointer;
+  color: #323232;
+}
+chart-edit-rules-segments-dialog .chart-content .chart-segments ul li span.remove:hover {
+  color: #f01e1e;
+}
+chart-edit-rules-segments-dialog .chart-content .chart-indexes ul {
+  position: relative;
+  display: block;
+  list-style: none;
+  padding: 0.5rem;
+  margin: 0;
+  border: thin dotted #323232;
+}
+chart-edit-rules-segments-dialog .chart-content .chart-indexes ul li {
+  position: relative;
+  display: block;
+  height: 1.5rem;
+  margin: 0.3rem 0;
+  list-style: none;
+}
+chart-edit-rules-segments-dialog .chart-content .chart-indexes ul li .chart-index-wrapper {
+  position: absolute;
+  display: block;
+  height: 100%;
+  left: 0;
+  right: 3rem;
+}
+chart-edit-rules-segments-dialog .chart-content .chart-indexes ul li .chart-index-wrapper .chart-index-value,
+chart-edit-rules-segments-dialog .chart-content .chart-indexes ul li .chart-index-wrapper .chart-index-index,
+chart-edit-rules-segments-dialog .chart-content .chart-indexes ul li .chart-index-wrapper .chart-index-label {
+  position: absolute;
+  height: 100%;
+}
+chart-edit-rules-segments-dialog .chart-content .chart-indexes ul li .chart-index-wrapper .chart-index-value {
+  left: 0;
+  width: calc(39.5%);
+  margin-right: 0.5rem;
+}
+chart-edit-rules-segments-dialog .chart-content .chart-indexes ul li .chart-index-wrapper .chart-index-index {
+  left: 40%;
+  width: calc(19.5%);
+  margin-right: 0.5rem;
+}
+chart-edit-rules-segments-dialog .chart-content .chart-indexes ul li .chart-index-wrapper .chart-index-label {
+  left: 60%;
+  width: 40%;
+}
+chart-edit-rules-segments-dialog .chart-content .chart-indexes ul li span.remove {
+  position: absolute;
+  display: block;
+  height: 100%;
+  width: 3rem;
+  right: 0;
+  text-align: center;
+  padding: 0.3rem 0 0 0;
+  cursor: pointer;
+  color: #323232;
+}
+chart-edit-rules-segments-dialog .chart-content .chart-indexes ul li span.remove:hover {
+  color: #f01e1e;
+}
+chart-edit-rules-segments-dialog .chart-content .chart-segments-buttons {
+  text-align: right;
+}
+chart-edit-rules-segments-dialog .chart-controls {
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+  height: 2.5rem;
+  text-align: right;
+}
+chart-edit-rules-segments-dialog .chart-errors-wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  padding: 0;
+  margin: 0;
+  background: rgba(0, 0, 0, 0.8);
+}
+chart-edit-rules-segments-dialog .chart-errors-wrapper .chart-errors {
+  position: absolute;
+  width: 80%;
+  height: 80%;
+  top: 10%;
+  left: 10%;
+  padding: 0;
+  margin: 0;
+  background: rgba(0, 0, 0, 0.8);
+  overflow: auto;
+}
+chart-edit-rules-segments-dialog .chart-errors-wrapper .chart-errors li {
+  position: relative;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  list-style: none;
+  color: #f01e1e;
+}
+chart-edit-rules-segments-dialog .chart-errors-wrapper p {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  bottom: 0.5rem;
+  width: 100%;
+  left: 0;
+}
+chart-edit-type-dialog {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow: hidden;
+}
+chart-edit-type-dialog .chart-types {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: center;
+}
+chart-edit-type-dialog .chart-types li {
+  position: relative;
+  display: inline-block;
+  width: calc(43%);
+  height: 10rem;
+  padding: 0;
+  margin: 1rem;
+  border: thin dotted #323232;
+  overflow: hidden;
+}
+chart-edit-type-dialog .chart-types li .chart-types-name {
+  font-size: 1rem;
+  margin: 0;
+  font-weight: bold;
+  background: #646464;
+  white-space: nowrap;
+  padding: 0.5rem;
+}
+chart-edit-type-dialog .chart-types li .chart-types-description {
+  font-size: 0.85rem;
+  padding: 0.2rem 0.5rem;
+}
+chart-edit-type-dialog .chart-types li .chart-types-buttons {
+  position: absolute;
+  width: 100%;
+  height: 3rem;
+  bottom: 0;
+  text-align: center;
+}
+chart-edit-type-dialog .chart-types li .chart-types-buttons * {
+  font-size: 0.85rem;
+}
+colors-dialog {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+colors-dialog span {
+  position: relative;
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  margin: 0.05rem;
+  padding: 0;
+  cursor: pointer;
+}
+colors-canvas-dialog {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+colors-canvas-dialog .colors-box {
+  position: absolute;
+  top: 0;
+  width: 80%;
+  height: 100%;
+  cursor: crosshair;
+}
+colors-canvas-dialog .colors-line {
+  position: absolute;
+  top: 0;
+  left: 80%;
+  width: 20%;
+  height: 100%;
+  cursor: crosshair;
+}
+.dialog-a {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow: hidden;
+}
+.dialog-a .content {
+  position: absolute;
+  top: 0!important;
+  bottom: 2.5rem;
+  width: 100%;
+  font-size: 1rem;
+}
+.dialog-a .content .caption {
+  position: relative;
+  width: 100%;
+}
+.dialog-a .content .fields {
+  position: relative;
+  width: 100%;
+  height: 2rem;
+}
+.dialog-a .buttons {
+  position: absolute;
+  bottom: 0;
+  height: 2.5rem;
+  overflow: hidden;
+  text-align: right;
+  white-space: nowrap;
+  width: 100%;
+}
+image-dialog {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow: hidden;
+}
+image-dialog .image-dialog-img {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-origin: content-box;
+}
+.dialog-message {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow: hidden;
+}
+.dialog-message .content {
+  position: absolute;
+  top: 0!important;
+  bottom: 2.5rem;
+  width: 100%;
+  font-size: 1rem;
+}
+.dialog-message .buttons {
+  position: absolute;
+  bottom: 0;
+  height: 2.5rem;
+  overflow: hidden;
+  text-align: right;
+  white-space: nowrap;
+  width: 100%;
+}
+dialog-serial-settings {
+  position: absolute;
+  display: block;
+  top: 0.5rem;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  right: 0.5rem;
+}
+dialog-serial-settings .settings {
+  position: absolute;
+  width: 100%;
+  top: 0;
+  bottom: 2.5rem;
+  overflow: auto;
+}
+dialog-serial-settings .settings table {
+  position: relative;
+  width: 100%;
+}
+dialog-serial-settings .settings table tr td:first-child {
+  position: relative;
+  width: 100%;
+  font-size: 0.85rem;
+  padding: 0.25rem 0;
+  margin: 0;
+  font-weight: normal;
+  color: #a0a0a0;
+}
+dialog-serial-settings .settings table tr td:first-child span {
+  font-weight: bold;
+  color: #1e1e1e;
+}
+dialog-serial-settings .settings table tr td:last-child {
+  padding: 0.25rem 0.5rem;
+  margin: 0;
+  position: relative;
+  min-width: 5rem;
+}
+dialog-serial-settings .settings table tr .input-cover {
+  position: relative;
+  width: 100%;
+  height: 1.5rem;
+}
+dialog-serial-settings .buttons {
+  position: absolute;
+  width: 100%;
+  height: 2.5rem;
+  bottom: 0;
+}
+markers-edit-dialog {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow: hidden;
+}
+markers-edit-dialog .marker-colors {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  bottom: 6.5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+markers-edit-dialog .marker-colors .marker-colors-foreground,
+markers-edit-dialog .marker-colors .marker-colors-background {
+  position: absolute;
+  width: 50%;
+  height: 100%;
+  left: 0;
+}
+markers-edit-dialog .marker-colors .marker-colors-background {
+  left: 50%;
+}
+markers-edit-dialog .marker-hook {
+  position: absolute;
+  top: calc(100% - 6.5rem);
+  width: 100%;
+  height: 4rem;
+}
+markers-edit-dialog .marker-hook .marker-color-example {
+  position: relative;
+  height: 2rem;
+  text-align: center;
+}
+markers-edit-dialog .marker-hook .marker-color-example p {
+  display: inline-block;
+  margin: 0.25rem;
+  padding: 0.25rem;
+  font-size: 0.85rem;
+  line-height: 0.85rem;
+  text-align: center;
+  border: 1px dotted #646464;
+  cursor: default;
+}
+markers-edit-dialog .marker-hook .marker-value {
+  position: relative;
+  height: 2rem;
+  border: 1px dotted #646464;
+}
+markers-edit-dialog .marker-controls {
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+  height: 2.5rem;
+  text-align: right;
+}
+dialog-serialports-list {
+  position: absolute;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+dialog-serialports-list .dialog-serialports-list {
+  position: relative;
+  left: 0.5rem;
+  width: calc(100% - 1rem);
+  display: block;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+dialog-serialports-list .dialog-serialports-list li {
+  position: relative;
+  display: block;
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
+}
+dialog-serialports-list .dialog-serialports-list li p {
+  margin: 0 2rem 0 0;
+  padding: 0.25rem 0;
+  cursor: default;
+}
+dialog-serialports-list .dialog-serialports-list li p:hover {
+  background: rgba(50, 50, 50, 0.4);
+}
+dialog-serialports-list .dialog-serialports-list li span {
+  position: absolute;
+  display: block;
+  right: 0rem;
+  top: 0.25rem;
+  height: 1.5rem;
+  width: 1.5rem;
+  font-size: 1.5rem;
+  cursor: pointer;
+  opacity: 0.4;
+}
+dialog-serialports-list .dialog-serialports-list li span:hover {
+  opacity: 1;
+}
+shortcuts-list {
+  position: absolute;
+  display: block;
+  top: 0.5rem;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+shortcuts-list .shortcuts-list {
+  position: absolute;
+  width: auto;
+  font-size: 0.85rem;
+}
+shortcuts-list .shortcuts-list .keys {
+  text-align: right;
+  padding-right: 1rem;
+  font-weight: bold;
+  color: #f01e1e;
+}
+shortcuts-list .shortcuts-list .label {
+  text-align: left;
+  padding-left: 2rem;
+}
+dialog-statemonitor-editjson {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow: hidden;
+}
+dialog-statemonitor-editjson .edit-wrapper {
+  position: absolute;
+  top: 0!important;
+  bottom: 2.5rem;
+  width: 100%;
+  font-size: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.01);
+  box-sizing: border-box;
+}
+dialog-statemonitor-editjson .edit-wrapper.error {
+  border: 1px solid #f01e1e;
+}
+dialog-statemonitor-editjson .edit-wrapper textarea {
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  resize: none;
+  outline: none;
+  font-size: 1rem;
+  color: rgba(250, 250, 250, 0.75);
+  box-sizing: border-box;
+  border: thin dotted rgba(50, 50, 50, 0.001);
+  margin: 0;
+  padding: 0 0.25rem;
+  box-shadow: 0 0 0rem rgba(0, 0, 0, 0.01) inset;
+}
+dialog-statemonitor-editjson .edit-wrapper textarea:focus,
+dialog-statemonitor-editjson .edit-wrapper textarea:hover {
+  border: thin dotted #323232;
+  box-shadow: 0 0 0.15rem rgba(250, 250, 250, 0.4) inset;
+  transition: border, box-shadow ease-in-out 200ms;
+  color: #fafafa;
+}
+dialog-statemonitor-editjson .buttons {
+  position: absolute;
+  bottom: 0;
+  height: 2.5rem;
+  overflow: hidden;
+  text-align: right;
+  white-space: nowrap;
+  width: 100%;
+}
+dialog-statemonitor-indicate-edit {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow: hidden;
+}
+dialog-statemonitor-indicate-edit .edit-wrapper {
+  position: absolute;
+  top: 0!important;
+  bottom: 2.5rem;
+  width: 100%;
+  font-size: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.01);
+  box-sizing: border-box;
+}
+dialog-statemonitor-indicate-edit .buttons {
+  position: absolute;
+  bottom: 0;
+  height: 2.5rem;
+  overflow: hidden;
+  text-align: right;
+  white-space: nowrap;
+  width: 100%;
+}
+statemonitor-state-edit-dialog {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow: hidden;
+}
+statemonitor-state-edit-dialog .settings {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  bottom: 3rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+statemonitor-state-edit-dialog .settings .settings-section {
+  position: relative;
+  width: 100%;
+}
+statemonitor-state-edit-dialog .settings .settings-section .settings-title {
+  position: relative;
+  padding: 0.5rem;
+  margin: 0;
+  background: #282828;
+}
+statemonitor-state-edit-dialog .settings .settings-section .field-name {
+  font-size: 0.95rem;
+  margin: 0;
+}
+statemonitor-state-edit-dialog .settings .settings-section .field-description {
+  font-size: 0.75rem;
+  color: #646464;
+  margin: 0;
+}
+statemonitor-state-edit-dialog .settings .settings-section table {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  border: none;
+  width: 100%;
+}
+statemonitor-state-edit-dialog .settings .settings-section table tr {
+  position: relative;
+}
+statemonitor-state-edit-dialog .settings .settings-section table tr td:first-child {
+  max-width: 10rem;
+  width: 10rem;
+  min-width: 10rem;
+}
+statemonitor-state-edit-dialog .settings .settings-section table tr td:last-child {
+  width: 100%;
+}
+statemonitor-state-edit-dialog .settings .settings-section table tr td {
+  vertical-align: top;
+}
+statemonitor-state-edit-dialog .settings .settings-section table tr .settings-controll-wrapper {
+  position: relative;
+  width: 100%;
+  height: 1.5rem;
+  margin: 0.25rem 0;
+  padding: 0;
+}
+statemonitor-state-edit-dialog .settings .settings-section table tr .settings-controll-wrapper.reset-checkbox .on,
+statemonitor-state-edit-dialog .settings .settings-section table tr .settings-controll-wrapper.reset-checkbox .off,
+statemonitor-state-edit-dialog .settings .settings-section table tr .settings-controll-wrapper.reset-checkbox .switcher {
+  width: 7rem;
+}
+statemonitor-state-edit-dialog .settings .settings-section .icon-colors-wrapper {
+  position: relative;
+  width: 100%;
+  height: 4rem;
+}
+statemonitor-state-edit-dialog .settings .settings-section .icon-colors-wrapper .colors-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 4rem;
+  bottom: 0;
+  opacity: 0.4;
+  cursor: pointer;
+}
+statemonitor-state-edit-dialog .settings .settings-section .icon-colors-wrapper .colors-wrapper:hover {
+  opacity: 1;
+}
+statemonitor-state-edit-dialog .settings .settings-section .icon-colors-wrapper .icon-wrapper {
+  position: absolute;
+  width: 4rem;
+  height: 4rem;
+  top: 0;
+  right: 0;
+}
+statemonitor-state-edit-dialog .settings .settings-section .icon-colors-wrapper .icon-wrapper .icon {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  width: 3rem;
+  height: 3rem;
+  font-size: 3rem;
+  text-align: center;
+}
+statemonitor-state-edit-dialog .settings .preview {
+  position: relative;
+  text-align: center;
+}
+statemonitor-state-edit-dialog .settings .preview .indicate {
+  position: relative;
+  display: inline-block;
+  width: 7rem;
+  height: 7rem;
+  overflow: hidden;
+}
+statemonitor-state-edit-dialog .settings .preview .indicate .icon {
+  position: relative;
+  display: block;
+  font-size: 3rem;
+  line-height: 3rem;
+  width: 100%;
+  height: 3rem;
+}
+statemonitor-state-edit-dialog .settings .preview .indicate .name {
+  position: relative;
+  display: block;
+  font-size: 0.85rem;
+  width: 100%;
+  white-space: nowrap;
+  margin: 0.5rem 0;
+}
+statemonitor-state-edit-dialog .settings .preview .indicate .label {
+  position: relative;
+  display: block;
+  font-size: 0.75rem;
+  width: 100%;
+  white-space: nowrap;
+  margin: 0.5rem 0;
+}
+statemonitor-state-edit-dialog .buttons {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  left: 0;
+  height: 3rem;
+  text-align: right;
+}
+statemonitor-state-edit-dialog {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow: hidden;
+}
+statemonitor-state-edit-dialog .statemonitor-manager-icons-edit-wrapper {
+  position: absolute;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: center;
+}
+statemonitor-state-edit-dialog .statemonitor-manager-icons-edit-wrapper li {
+  position: relative;
+  display: inline-block;
+  list-style: none;
+  margin: 0.5rem;
+  padding: 0;
+  width: 4rem;
+  height: 4rem;
+  border: thin dotted #282828;
+  cursor: pointer;
+  color: #fafafa;
+}
+statemonitor-state-edit-dialog .statemonitor-manager-icons-edit-wrapper li:hover {
+  border: thin dotted #646464;
+}
+statemonitor-state-edit-dialog .statemonitor-manager-icons-edit-wrapper li .icon {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  width: 3rem;
+  height: 3rem;
+  font-size: 3rem;
+  text-align: center;
+}
+dialog-themes-list {
+  position: absolute;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+dialog-themes-list .dialog-themes-list {
+  position: relative;
+  left: 0.5rem;
+  width: calc(100% - 1rem);
+  display: block;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+dialog-themes-list .dialog-themes-list li {
+  position: relative;
+  display: block;
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
+}
+dialog-themes-list .dialog-themes-list li p {
+  margin: 0;
+  padding: 0.25rem 0.25rem;
+  cursor: default;
+}
+dialog-themes-list .dialog-themes-list li p:hover {
+  background: rgba(50, 50, 50, 0.4);
+}
+views-list {
+  position: absolute;
+  display: block;
+  top: 0rem;
+  left: 0rem;
+  bottom: 0rem;
+  right: 0rem;
+}
+views-list .views-list {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: center;
+}
+views-list .views-list li {
+  position: relative;
+  display: inline-block;
+  list-style: none;
+  width: 5rem;
+  height: 5rem;
+  padding: 0.5rem;
+  margin: 0.5rem;
+  cursor: pointer;
+  border: 1px dotted rgba(0, 0, 0, 0.01);
+  color: #fafafa;
+}
+views-list .views-list li .icon {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  height: 3rem;
+  font-size: 3rem;
+}
+views-list .views-list li .name {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  height: 3rem;
+  font-size: 1rem;
+  overflow: hidden;
+}
+views-list .views-list li .description {
+  display: none;
+}
+views-list .views-list li:hover {
+  border: 1px dotted #505050;
+}
+views-list .views-list li:hover .description {
+  display: block;
+  position: absolute;
+  background: #1e1e1e;
+  width: 10rem;
+  top: 100%;
+  left: 50%;
+  margin-left: -5rem;
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  box-shadow: 0 0 0.15rem rgba(250, 250, 250, 0.4) inset;
+  z-index: 100;
+}
+simple-list {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  display: block;
+}
+simple-list ul {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+simple-list ul li {
+  position: relative;
+  display: block;
+  padding: 0.25rem 0.5rem;
+  margin: 0;
+  color: #f0f0f0;
+  background: rgba(80, 80, 80, 0);
+  cursor: pointer;
+  white-space: nowrap;
+}
+simple-list ul li:hover {
+  color: #fafafa;
+  background: rgba(80, 80, 80, 0.4);
+}
+simple-dd-list {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: block;
+}
+simple-dd-list select {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: block;
+  font-size: 0.85rem;
+}
+connection-state {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+}
+connection-state .status {
+  position: relative;
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 0.4rem;
+  background: #a90329;
+  /* Old browsers */
+  background: -moz-linear-gradient(-45deg, #a90329 0%, #8f0222 44%, #6d0019 100%);
+  /* FF3.6-15 */
+  background: -webkit-linear-gradient(-45deg, #a90329 0%, #8f0222 44%, #6d0019 100%);
+  /* Chrome10-25,Safari5.1-6 */
+  background: linear-gradient(135deg, #a90329 0%, #8f0222 44%, #6d0019 100%);
+  /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+  box-shadow: 0 0 0.25rem rgba(255, 255, 255, 0.2);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#a90329', endColorstr='#6d0019', GradientType=1);
+  /* IE6-9 fallback on horizontal gradient */
+}
+connection-state .status.connected {
+  background: #f8ffe8;
+  /* Old browsers */
+  background: -moz-linear-gradient(-45deg, #f8ffe8 0%, #e3f5ab 33%, #b7df2d 100%);
+  /* FF3.6-15 */
+  background: -webkit-linear-gradient(-45deg, #f8ffe8 0%, #e3f5ab 33%, #b7df2d 100%);
+  /* Chrome10-25,Safari5.1-6 */
+  background: linear-gradient(135deg, #f8ffe8 0%, #e3f5ab 33%, #b7df2d 100%);
+  /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#f8ffe8', endColorstr='#b7df2d', GradientType=1);
+  /* IE6-9 fallback on horizontal gradient */
+}
+connection-state .label {
+  font-size: 0.75rem;
+}
+simple-text p {
+  font-size: 0.85rem;
+  color: #1e1e1e;
+  padding: 0.5rem;
+  margin: 0;
+}

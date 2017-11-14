@@ -1,0 +1,3 @@
+<select [attr.class]="css" (change)="onChangeSelect($event)">
+    <option *ngFor="let item of items;" [attr.value]="item.value" [selected]="item.value === defaults">{{item.caption}}</option>
+</select>

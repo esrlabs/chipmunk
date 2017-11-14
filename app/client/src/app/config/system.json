@@ -1,0 +1,6 @@
+{
+  "API_URL"                 : "http://127.0.0.1:8082/API",
+  "WS_URL"                  : "ws://127.0.0.1:8082/",
+  "WS_PROTOCOL"             : "logviewer",
+  "WS_RECONNECTION_TIMEOUT" : 5000
+}

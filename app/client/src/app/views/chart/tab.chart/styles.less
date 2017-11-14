@@ -1,0 +1,40 @@
+view-controller-chart{
+    position: absolute;
+    width   : 100%;
+    height  : 100%;
+    overflow: hidden;
+    .area {
+        fill: steelblue;
+        clip-path: url(#clip);
+    }
+
+    .zoom {
+        cursor: move;
+        fill: none;
+        pointer-events: all;
+    }
+
+    .axis path,
+    .axis line {
+        fill: none;
+        stroke: #000;
+        shape-rendering: crispEdges;
+    }
+
+    .line {
+        fill: none;
+        stroke-width: 1.5px;
+    }
+
+    .label {
+        text-anchor: middle;
+    }
+
+    .label rect {
+        fill: white;
+    }
+
+    .label-key {
+        font-weight: bold;
+    }
+}

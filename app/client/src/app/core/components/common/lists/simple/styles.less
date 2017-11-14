@@ -1,0 +1,30 @@
+simple-list{
+    position    : relative;
+    width       : 100%;
+    height      : 100%;
+    overflow    : auto;
+    display     : block;
+    ul{
+        position    : relative;
+        display     : block;
+        width       : 100%;
+        height      : 100%;
+        list-style  : none;
+        padding     : 0;
+        margin      : 0;
+        li{
+            position    : relative;
+            display     : block;
+            padding     : 0.25rem 0.5rem;
+            margin      : 0;
+            color       : @list-passive-color;
+            background  : @list-passive-background;
+            cursor      : pointer;
+            white-space : nowrap;
+            &:hover{
+                color       : @list-hover-color;
+                background  : @list-hover-background;
+            }
+        }
+    }
+}
