@@ -1,1 +1,28 @@
-{"name":"logviewer","version":"0.0.1","description":"LogViewer","main":"electron.js","scripts":{"dist":"gulp","publish":"build --mac -p always","postinstall":"electron-builder install-app-deps"},"keywords":[],"author":"Dmitry Astafyev","license":"MIT","dependencies":{"electron-updater":"^2.16.1","node-localstorage":"latest","guid":"latest","serialport":"latest","websocket":"latest"},"devDependencies":{"electron":"latest","electron-builder":"latest"},"repository":{"type":"git","url":"https://git.esrlabs.com/bmw/csm4/logviewer"}}
+{
+  "name": "logviewer",
+  "version": "0.0.2",
+  "description": "LogViewer",
+  "main": "electron.js",
+  "scripts": {
+    "dist": "gulp",
+    "postinstall": "electron-builder install-app-deps",
+    "publish": "./node_modules/.bin/build --mac -p always"
+  },
+  "keywords": [
+
+  ],
+  "author": "Dmitry Astafyev",
+  "license": "MIT",
+  "dependencies": {
+    "node-localstorage": "^1.3.0",
+    "electron-updater": "^2.16.1"
+  },
+  "devDependencies": {
+    "electron": "latest",
+    "electron-builder": "latest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/esrlabs/logviewer.git"
+  }
+}

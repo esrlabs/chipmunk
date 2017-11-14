@@ -19,19 +19,67 @@ const TASKS = {
     DEFAULT         : 'default'
 };
 
+const PLATFORMS = {
+    DARWIN    : 'darwin',
+    LINUX     : 'linux',
+    WIN32     : 'win32'
+};
+
+const CONFIGURATION = {
+    COMMON              : {
+        appId           : 'com.logviewer.de',
+        productName     : 'LogViewer',
+        copyright       : 'Copyright © 2017 year E.S.R.Labs',
+        directories     :{
+            output  : 'dist'
+        },
+        publish: [{
+            provider: "github",
+            owner   : "esrlabs",
+            repo    : "logviewer"
+        }],
+        npmRebuild      : true
+    },
+    [PLATFORMS.DARWIN]  : {
+        mac: {
+            category: "public.app-category.developer-tools",
+        }
+    },
+    [PLATFORMS.LINUX] : {
+        linux: {
+            category: "public.app-category.developer-tools",
+        }
+    },
+    [PLATFORMS.WIN32] : {
+        win: {
+            target: [
+                {
+                    target: "msi",
+                    arch: [
+                        "x64",
+                        "ia32"
+                    ]
+                }
+            ]
+        }
+    }
+};
+
 const PLATFORMS_DEPS = {
-    COMMON      : {
+    COMMON              : {
         "electron"          : "latest",
         "electron-builder"  : "latest"
     },
-    'darwin'    : {
+    [PLATFORMS.DARWIN]  : {
     },
-    'linux'     : {
+    [PLATFORMS.LINUX]   : {
         "7zip-bin-linux"    : "latest"
     },
-    'win32'     : {
+    [PLATFORMS.WIN32]   : {
     }
 };
+
+
 
 const gulp      = require('gulp');
 const spawn     = require('child_process').spawn;
@@ -42,12 +90,18 @@ class BuildingTasks {
 
     }
 
-    _getDepsForPlatform(){
-        if (PLATFORMS_DEPS[process.platform] !== void 0) {
-            return Object.assign(PLATFORMS_DEPS.COMMON, PLATFORMS_DEPS[process.platform]);
-        } else {
-            throw new Error(`Cannot find dependenciesDev for current platform: ${process.platform}`);
+    _isPlatformAvailable(){
+        if (PLATFORMS_DEPS[process.platform] === void 0 || CONFIGURATION[process.platform] === void 0){
+            throw new Error(`Cannot find devDependencies or build configuration for current platform: ${process.platform}`);
         }
+    }
+
+    _getDepsForPlatform(){
+        return Object.assign(PLATFORMS_DEPS.COMMON, PLATFORMS_DEPS[process.platform]);
+    }
+
+    _getBuildConfiguration(){
+        return Object.assign(CONFIGURATION.COMMON, CONFIGURATION[process.platform]);
     }
 
     [TASKS.CLEAR_APP](){
@@ -112,10 +166,12 @@ class BuildingTasks {
             let _app            = FS.readFileSync('desktop/package.json', {encoding: 'utf8'});
             let _server         = FS.readFileSync('desktop/server/package.json', {encoding: 'utf8'});
             let devDependencies = this._getDepsForPlatform();
+            let buildConfig     = this._getBuildConfiguration();
             _app    = JSON.parse(_app);
             _server = JSON.parse(_server);
-            _app.dependencies       = Object.assign(_app.dependencies, _server.dependencies);
-            _app.devDependencies    = Object.assign(_app.devDependencies, devDependencies);
+            _app.dependencies       = Object.assign(_app.dependencies       !== void 0 ? _app.dependencies      : {}, _server.dependencies !== void 0 ? _server.dependencies : {});
+            _app.devDependencies    = Object.assign(_app.devDependencies    !== void 0 ? _app.devDependencies   : {}, devDependencies);
+            _app.build              = Object.assign(_app.build              !== void 0 ? _app.build             : {}, buildConfig);
             FS.writeFileSync('desktop/package.json', JSON.stringify(_app), { encoding: 'utf8' });
             done();
         });
@@ -126,7 +182,7 @@ class BuildingTasks {
     }
 
     [TASKS.BUILD](){
-        this._createSpawnTask(TASKS.BUILD, 'npm', ['run', 'dist'], { cwd: './desktop' });
+        this._createSpawnTask(TASKS.BUILD, 'npm', ['run', 'publish'], { cwd: './desktop' });
     }
 
     _onOutput(task, data){
@@ -155,6 +211,7 @@ class BuildingTasks {
         this._getTasks().forEach((task) => {
             this[task]();
         });
+        this._isPlatformAvailable();
         gulp.task(TASKS.DEFAULT, gulp.series(
             TASKS.RESET_SERVER,
             TASKS.RESET_CLIENT,

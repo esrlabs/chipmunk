@@ -19,6 +19,11 @@ const CONFIGURATION = {
         mac: {
             category: "public.app-category.developer-tools",
         },
+        publish: [{
+            provider: "github",
+            owner   : "esrlabs",
+            repo    : "logviewer"
+        }],
         npmRebuild      : true
     },
     [TASKS.BUILD_LINUX] : {

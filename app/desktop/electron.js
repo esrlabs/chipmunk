@@ -19,6 +19,8 @@ class Updater {
 
     constructor() {
         this._autoUpdater = updater.autoUpdater;
+        this._autoUpdater.requestHeaders = { "PRIVATE-TOKEN": "a6e41d8cb7e4102cff0763c8ce5adef521098c5c" };
+        this._autoUpdater.autoDownload = true;
     }
 
     [UPDATER_EVENTS.CHECKING]() {
