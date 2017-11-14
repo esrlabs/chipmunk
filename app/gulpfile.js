@@ -109,24 +109,24 @@ class BuildingTasks {
     [TASKS.ADD_DEPENDENCIES](){
         gulp.task(TASKS.ADD_DEPENDENCIES, (done) => {
             const FS = require('fs');
-            let _app            = FS.readFileSync('app/package.json', {encoding: 'utf8'});
-            let _server         = FS.readFileSync('app/server/package.json', {encoding: 'utf8'});
+            let _app            = FS.readFileSync('desktop/package.json', {encoding: 'utf8'});
+            let _server         = FS.readFileSync('desktop/server/package.json', {encoding: 'utf8'});
             let devDependencies = this._getDepsForPlatform();
             _app    = JSON.parse(_app);
             _server = JSON.parse(_server);
             _app.dependencies       = Object.assign(_app.dependencies, _server.dependencies);
             _app.devDependencies    = Object.assign(_app.devDependencies, devDependencies);
-            FS.writeFileSync('app/package.json', JSON.stringify(_app), { encoding: 'utf8' });
+            FS.writeFileSync('desktop/package.json', JSON.stringify(_app), { encoding: 'utf8' });
             done();
         });
     }
 
     [TASKS.INSTALL_ELECTRON](){
-        this._createSpawnTask(TASKS.INSTALL_ELECTRON, 'npm', ['install'], { cwd: './app' });
+        this._createSpawnTask(TASKS.INSTALL_ELECTRON, 'npm', ['install'], { cwd: './desktop' });
     }
 
     [TASKS.BUILD](){
-        this._createSpawnTask(TASKS.BUILD, 'npm', ['run', 'dist'], { cwd: './app' });
+        this._createSpawnTask(TASKS.BUILD, 'npm', ['run', 'dist'], { cwd: './desktop' });
     }
 
     _onOutput(task, data){
