@@ -89,7 +89,7 @@ class Starter {
     // Some APIs can only be used after this event occurs.
     _onReady(){
         this._create();
-        //this._update.check();
+        this._update.check();
         this._ready = true;
     }
 
