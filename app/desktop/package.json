@@ -1,6 +1,6 @@
 {
   "name": "logviewer",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "LogViewer",
   "main": "electron.js",
   "scripts": {
@@ -15,7 +15,8 @@
   "license": "MIT",
   "dependencies": {
     "node-localstorage": "^1.3.0",
-    "electron-updater": "^2.16.1"
+    "electron-updater": "^2.16.1",
+    "electron-log": "^2.2.11"
   },
   "devDependencies": {
     "electron": "latest",

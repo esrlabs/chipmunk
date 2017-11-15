@@ -4,7 +4,7 @@ const path              = require('path');
 const url               = require('url');
 const JSONSLocaltorage  = require('node-localstorage').JSONStorage;
 const updater           = require("electron-updater");
-const autoUpdater       = updater.autoUpdater;
+const logs              = require('electron-log');
 
 const UPDATER_EVENTS = {
     CHECKING        : 'checking-for-update',
@@ -20,43 +20,53 @@ class Updater {
     constructor() {
         this._autoUpdater = updater.autoUpdater;
         this._autoUpdater.requestHeaders = { "PRIVATE-TOKEN": "a6e41d8cb7e4102cff0763c8ce5adef521098c5c" };
+        this._autoUpdater.setFeedURL({
+            provider        : "github",
+            owner           : "esrlabs",
+            repo            : "logviewer",
+            token           : "a6e41d8cb7e4102cff0763c8ce5adef521098c5c"
+        });
         this._autoUpdater.autoDownload = true;
+        this._autoUpdater.logger = logs;
+        this._autoUpdater.logger.transports.file.level = 'info';
+        Object.keys(UPDATER_EVENTS).forEach((key) => {
+            this._autoUpdater.on(UPDATER_EVENTS[key], this[UPDATER_EVENTS[key]].bind(this));
+        });
+        logs.info('Updater is created');
     }
 
     [UPDATER_EVENTS.CHECKING]() {
-        console.log('Checking for update...');
+        logs.info('Checking for update...');
     }
 
     [UPDATER_EVENTS.AVAILABLE](info) {
-        console.log('Update available.');
+        logs.info('Update available.');
     }
 
     [UPDATER_EVENTS.NOT_AVAILABLE](info) {
-        console.log('Update not available.');
+        logs.info('Update not available.');
     }
 
     [UPDATER_EVENTS.PROGRESS](progressObj) {
         let log_message = "Download speed: " + progressObj.bytesPerSecond;
         log_message = log_message + ' - Downloaded ' + parseInt(progressObj.percent) + '%';
         log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
-        console.log(log_message);
+        logs.info(log_message);
     }
 
     [UPDATER_EVENTS.DOWNLOADED]() {
-        console.log('Update downloaded; will install in 1 seconds');
+        logs.info('Update downloaded; will install in 1 seconds');
         setTimeout(() => {
             this._autoUpdater.quitAndInstall();
         }, 1000);
     }
 
     [UPDATER_EVENTS.ERROR](error) {
-        console.log('Error in auto-updater.');
+        logs.info('Error in auto-updater.');
     }
 
     check(){
-        Object.keys(UPDATER_EVENTS).forEach((key) => {
-            this._autoUpdater.on(UPDATER_EVENTS[key], this[UPDATER_EVENTS[key]].bind(this));
-        });
+        logs.info('Start update checking.');
         this._autoUpdater.checkForUpdates();
     }
 }
@@ -69,7 +79,8 @@ class Starter {
         this._ready             = false;
         this._storageLocaltion  = this._app.getPath('userData');
         this._storage           = new JSONSLocaltorage(this._storageLocaltion);
-        this._update            = new Updater();
+        this._update            = null;
+        this._version           = this._app.getVersion();
         this._app.on('ready',               this._onReady.bind(this));
         this._app.on('window-all-closed',   this._onWindowAllClosed.bind(this));
         this._app.on('activate',            this._onActivate.bind(this));
@@ -89,6 +100,7 @@ class Starter {
     // Some APIs can only be used after this event occurs.
     _onReady(){
         this._create();
+        this._update = new Updater();
         this._update.check();
         this._ready = true;
     }
@@ -112,7 +124,7 @@ class Starter {
         if (this._window === null) {
             this._createClient();
             this._createServer();
-            //this._debug();
+            this._debug();
         }
     }
 
@@ -120,7 +132,7 @@ class Starter {
         let state = this._getWindowState();
         // Create the browser window.
         this._window = new BrowserWindow({
-            title   : 'LogViewer',
+            title   : `LogViewer@${this._version}`,
             width   : state.bounds !== void 0 ? (state.bounds.width !== void 0 ? state.bounds.width: 850) : 850,
             height  : state.bounds !== void 0 ? (state.bounds.height !== void 0 ? state.bounds.height: 600) : 600,
             x       : state.bounds !== void 0 ? (state.bounds.x !== void 0 ? state.bounds.x: undefined) : undefined,
@@ -128,10 +140,10 @@ class Starter {
         });
         // and load the index.html of the app.
         this._window.loadURL(url.format({
-            pathname: path.join(__dirname, 'client/index.html'),
+            pathname: path.join(__dirname, `client/index.html`),
             protocol: 'file:',
             slashes: true
-        }));
+        }) + `#v${this._version}`);
         // Emitted when the window is closed.
         this._window.on('closed', this._onClose.bind(this));
         //Attach handler for state saving

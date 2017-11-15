@@ -34,9 +34,9 @@ const CONFIGURATION = {
             output  : 'dist'
         },
         publish: [{
-            provider: "github",
-            owner   : "esrlabs",
-            repo    : "logviewer"
+            provider        : "github",
+            owner           : "esrlabs",
+            repo            : "logviewer"
         }],
         npmRebuild      : true
     },
