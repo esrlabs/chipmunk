@@ -1,6 +1,6 @@
 {
   "name": "logviewer-builder",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "description": "Builder of LogViewer electron based applications",
   "main": "electron.js",
   "scripts": {
