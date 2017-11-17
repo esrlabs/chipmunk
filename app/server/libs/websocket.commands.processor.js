@@ -8,7 +8,9 @@ const COMMANDS = {
     GUIDAccepted            : 'GUIDAccepted',
     SerialData              : 'SerialData',
     WriteToSerial           : 'WriteToSerial',
-    ResultWrittenToSerial   : 'ResultWrittenToSerial'
+    ResultWrittenToSerial   : 'ResultWrittenToSerial',
+    UpdateIsAvailable       : 'UpdateIsAvailable',
+    UpdateDownloadProgress  : 'UpdateDownloadProgress'
 };
 
 class IncomeCommandsProcessor {
@@ -93,6 +95,22 @@ class OutgoingCommandsProcessor {
         this.sender({
             GUID    : clientGUID,
             command : COMMANDS.ResultWrittenToSerial,
+            params  : params
+        });
+    }
+
+    [COMMANDS.UpdateIsAvailable ](clientGUID, params){
+        this.sender({
+            GUID    : clientGUID,
+            command : COMMANDS.UpdateIsAvailable,
+            params  : params
+        });
+    }
+
+    [COMMANDS.UpdateDownloadProgress ](clientGUID, params){
+        this.sender({
+            GUID    : clientGUID,
+            command : COMMANDS.UpdateDownloadProgress,
             params  : params
         });
     }

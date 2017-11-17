@@ -14,11 +14,19 @@ const UPDATER_EVENTS = {
     DOWNLOADED      : 'update-downloaded',
     ERROR           : 'error'
 };
-
+/*
+            ServerEmitter.emitter.emit(ServerEmitter.EVENTS.SEND_VIA_WS, clientGUID, outgoingWSCommands.COMMANDS.SerialData, {
+                connection  : this.GUID,
+                data        : str
+            });
+* */
 class Updater {
 
     constructor() {
-        this._autoUpdater = updater.autoUpdater;
+        this._ServerEmitter         = require('./server/libs/server.events');
+        this._outgoingWSCommands    = require('./server/libs/websocket.commands.processor.js');
+        this._autoUpdater           = updater.autoUpdater;
+        this._info                  = null;
         this._autoUpdater.requestHeaders = { "PRIVATE-TOKEN": "a6e41d8cb7e4102cff0763c8ce5adef521098c5c" };
         this._autoUpdater.setFeedURL({
             provider        : "github",
@@ -41,6 +49,10 @@ class Updater {
 
     [UPDATER_EVENTS.AVAILABLE](info) {
         logs.info('Update available.');
+        this._info = info;
+        this._ServerEmitter.emitter.emit(this._ServerEmitter.EVENTS.SEND_VIA_WS, '*', this._outgoingWSCommands.COMMANDS.UpdateIsAvailable, {
+            info: info
+        });
     }
 
     [UPDATER_EVENTS.NOT_AVAILABLE](info) {
@@ -52,6 +64,11 @@ class Updater {
         log_message = log_message + ' - Downloaded ' + parseInt(progressObj.percent) + '%';
         log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
         logs.info(log_message);
+        this._ServerEmitter.emitter.emit(this._ServerEmitter.EVENTS.SEND_VIA_WS, '*', this._outgoingWSCommands.COMMANDS.UpdateDownloadProgress, {
+            speed       : progressObj.bytesPerSecond,
+            progress    : progressObj.percent,
+            info        : this._info
+        });
     }
 
     [UPDATER_EVENTS.DOWNLOADED]() {
@@ -124,7 +141,7 @@ class Starter {
         if (this._window === null) {
             this._createClient();
             this._createServer();
-            this._debug();
+            //this._debug();
         }
     }
 

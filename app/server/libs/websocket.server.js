@@ -129,6 +129,13 @@ class WebSocketServer {
     }
 
     onSend(GUID, command, params){
+        if (GUID === '*') {
+            Object.keys(this.connections).forEach((key) => {
+                let GUID = this.connections[key].clientGUID !== void 0 ? this.connections[key].clientGUID : key;
+                this.onSend(GUID, command, params);
+            });
+            return false;
+        }
         let connection = this.getConnectionByClientGUID(GUID);
         if (connection !== null){
             connection.doCommand(command, params);

@@ -17,33 +17,35 @@ var component_3 = require("./popup/component");
 var component_4 = require("./fileloader/component");
 var component_5 = require("./progressbar.circle/component");
 var component_6 = require("./progressbar.line/component");
+var component_7 = require("./progressbar.progress/component");
 var module_1 = require("./long-list/module");
-var component_7 = require("./dialogs/dialog-a/component");
-var component_8 = require("./dialogs/image/component");
-var component_9 = require("./dialogs/dialog-message/component");
-var component_10 = require("./dialogs/serial.settings/component");
-var component_11 = require("./dialogs/views.list/component");
-var component_12 = require("./dialogs/shortcuts.list/component");
-var component_13 = require("./dialogs/api.settings/component");
-var component_14 = require("./dialogs/colors/component");
-var component_15 = require("./dialogs/colors.canvas/component");
-var component_16 = require("./dialogs/markers.edit/component");
-var component_17 = require("./dialogs/charts.edit.colors/component");
-var component_18 = require("./dialogs/charts.edit.rules.hooks/component");
-var component_19 = require("./dialogs/charts.edit.rules.segments/component");
-var component_20 = require("./dialogs/charts.edit.type/component");
-var component_21 = require("./dialogs/statemonitor.state.edit/component");
-var component_22 = require("./dialogs/statemonitor.state.edit.icons/component");
-var component_23 = require("./dialogs/statemonitor.indicate.edit/component");
-var component_24 = require("./dialogs/serialports.list/component");
-var component_25 = require("./dialogs/themes.list/component");
-var component_26 = require("./dialogs/statemonitor.edit/component");
-var component_27 = require("./buttons/flat-text/component");
-var component_28 = require("./text/simple/component");
-var component_29 = require("./lists/simple/component");
-var component_30 = require("./lists/simple-drop-down/component");
-var component_31 = require("./checkboxes/simple/component");
-var component_32 = require("./other/connection.state/component");
+var component_8 = require("./dialogs/dialog-a/component");
+var component_9 = require("./dialogs/image/component");
+var component_10 = require("./dialogs/dialog-message/component");
+var component_11 = require("./dialogs/serial.settings/component");
+var component_12 = require("./dialogs/views.list/component");
+var component_13 = require("./dialogs/shortcuts.list/component");
+var component_14 = require("./dialogs/api.settings/component");
+var component_15 = require("./dialogs/colors/component");
+var component_16 = require("./dialogs/colors.canvas/component");
+var component_17 = require("./dialogs/markers.edit/component");
+var component_18 = require("./dialogs/charts.edit.colors/component");
+var component_19 = require("./dialogs/charts.edit.rules.hooks/component");
+var component_20 = require("./dialogs/charts.edit.rules.segments/component");
+var component_21 = require("./dialogs/charts.edit.type/component");
+var component_22 = require("./dialogs/statemonitor.state.edit/component");
+var component_23 = require("./dialogs/statemonitor.state.edit.icons/component");
+var component_24 = require("./dialogs/statemonitor.indicate.edit/component");
+var component_25 = require("./dialogs/serialports.list/component");
+var component_26 = require("./dialogs/themes.list/component");
+var component_27 = require("./dialogs/update/component");
+var component_28 = require("./dialogs/statemonitor.edit/component");
+var component_29 = require("./buttons/flat-text/component");
+var component_30 = require("./text/simple/component");
+var component_31 = require("./lists/simple/component");
+var component_32 = require("./lists/simple-drop-down/component");
+var component_33 = require("./checkboxes/simple/component");
+var component_34 = require("./other/connection.state/component");
 var module_2 = require("./tabs/module");
 var Components = (function () {
     function Components() {
@@ -52,10 +54,10 @@ var Components = (function () {
 }());
 Components = __decorate([
     core_1.NgModule({
-        entryComponents: [component_3.Popup, component_4.FileLoader, component_5.ProgressBarCircle, component_25.DialogThemesList, component_24.DialogSerialPortsList, component_6.ProgressBarLine, component_9.DialogMessage, component_23.DialogStatemonitorIndicateEdit, component_22.StateMonitorStateEditIconsDialog, component_21.StateMonitorStateEditDialog, component_8.ImageDialog, component_7.DialogA, component_27.ButtonFlatText, component_28.SimpleText, component_29.SimpleList, component_30.SimpleDropDownList, component_10.DialogSerialSettings, component_31.SimpleCheckbox, component_11.ViewsList, component_12.ShortcutsList, component_13.DialogAPISettings, component_14.ColorsDialog, component_15.ColorsCanvasDialog, component_32.ConnectionState, component_20.ChartEditTypeDialog, component_19.ChartEditRulesSegmentsDialog, component_18.ChartEditRulesHooksDialog, component_17.ChartEditColorDialog, component_16.MarkersEditDialog, component_26.DialogStatemonitorEditJSON],
+        entryComponents: [component_3.Popup, component_4.FileLoader, component_5.ProgressBarCircle, component_27.DialogUpdate, component_26.DialogThemesList, component_25.DialogSerialPortsList, component_6.ProgressBarLine, component_7.ProgressBarProgress, component_10.DialogMessage, component_24.DialogStatemonitorIndicateEdit, component_23.StateMonitorStateEditIconsDialog, component_22.StateMonitorStateEditDialog, component_9.ImageDialog, component_8.DialogA, component_29.ButtonFlatText, component_30.SimpleText, component_31.SimpleList, component_32.SimpleDropDownList, component_11.DialogSerialSettings, component_33.SimpleCheckbox, component_12.ViewsList, component_13.ShortcutsList, component_14.DialogAPISettings, component_15.ColorsDialog, component_16.ColorsCanvasDialog, component_34.ConnectionState, component_21.ChartEditTypeDialog, component_20.ChartEditRulesSegmentsDialog, component_19.ChartEditRulesHooksDialog, component_18.ChartEditColorDialog, component_17.MarkersEditDialog, component_28.DialogStatemonitorEditJSON],
         imports: [common_1.CommonModule, forms_1.FormsModule],
-        declarations: [component_1.CommonInput, component_2.DropDownMenu, component_3.Popup, component_4.FileLoader, component_25.DialogThemesList, component_24.DialogSerialPortsList, component_5.ProgressBarCircle, component_6.ProgressBarLine, component_9.DialogMessage, component_23.DialogStatemonitorIndicateEdit, component_22.StateMonitorStateEditIconsDialog, component_21.StateMonitorStateEditDialog, component_8.ImageDialog, component_7.DialogA, component_27.ButtonFlatText, component_28.SimpleText, component_29.SimpleList, component_30.SimpleDropDownList, component_10.DialogSerialSettings, component_31.SimpleCheckbox, component_11.ViewsList, component_12.ShortcutsList, component_13.DialogAPISettings, component_14.ColorsDialog, component_15.ColorsCanvasDialog, component_32.ConnectionState, component_20.ChartEditTypeDialog, component_19.ChartEditRulesSegmentsDialog, component_18.ChartEditRulesHooksDialog, component_17.ChartEditColorDialog, component_16.MarkersEditDialog, component_26.DialogStatemonitorEditJSON],
-        exports: [component_1.CommonInput, component_2.DropDownMenu, module_1.LongListModule, module_2.CommonTabModule, component_3.Popup, component_4.FileLoader, component_25.DialogThemesList, component_24.DialogSerialPortsList, component_5.ProgressBarCircle, component_6.ProgressBarLine, component_9.DialogMessage, component_23.DialogStatemonitorIndicateEdit, component_22.StateMonitorStateEditIconsDialog, component_21.StateMonitorStateEditDialog, component_8.ImageDialog, component_7.DialogA, component_27.ButtonFlatText, component_28.SimpleText, component_29.SimpleList, component_30.SimpleDropDownList, component_10.DialogSerialSettings, component_31.SimpleCheckbox, component_11.ViewsList, component_12.ShortcutsList, component_13.DialogAPISettings, component_14.ColorsDialog, component_15.ColorsCanvasDialog, component_32.ConnectionState, component_20.ChartEditTypeDialog, component_19.ChartEditRulesSegmentsDialog, component_18.ChartEditRulesHooksDialog, component_17.ChartEditColorDialog, component_16.MarkersEditDialog, component_26.DialogStatemonitorEditJSON]
+        declarations: [component_1.CommonInput, component_2.DropDownMenu, component_3.Popup, component_4.FileLoader, component_27.DialogUpdate, component_26.DialogThemesList, component_25.DialogSerialPortsList, component_5.ProgressBarCircle, component_6.ProgressBarLine, component_7.ProgressBarProgress, component_10.DialogMessage, component_24.DialogStatemonitorIndicateEdit, component_23.StateMonitorStateEditIconsDialog, component_22.StateMonitorStateEditDialog, component_9.ImageDialog, component_8.DialogA, component_29.ButtonFlatText, component_30.SimpleText, component_31.SimpleList, component_32.SimpleDropDownList, component_11.DialogSerialSettings, component_33.SimpleCheckbox, component_12.ViewsList, component_13.ShortcutsList, component_14.DialogAPISettings, component_15.ColorsDialog, component_16.ColorsCanvasDialog, component_34.ConnectionState, component_21.ChartEditTypeDialog, component_20.ChartEditRulesSegmentsDialog, component_19.ChartEditRulesHooksDialog, component_18.ChartEditColorDialog, component_17.MarkersEditDialog, component_28.DialogStatemonitorEditJSON],
+        exports: [component_1.CommonInput, component_2.DropDownMenu, module_1.LongListModule, module_2.CommonTabModule, component_3.Popup, component_4.FileLoader, component_27.DialogUpdate, component_26.DialogThemesList, component_25.DialogSerialPortsList, component_5.ProgressBarCircle, component_6.ProgressBarLine, component_7.ProgressBarProgress, component_10.DialogMessage, component_24.DialogStatemonitorIndicateEdit, component_23.StateMonitorStateEditIconsDialog, component_22.StateMonitorStateEditDialog, component_9.ImageDialog, component_8.DialogA, component_29.ButtonFlatText, component_30.SimpleText, component_31.SimpleList, component_32.SimpleDropDownList, component_11.DialogSerialSettings, component_33.SimpleCheckbox, component_12.ViewsList, component_13.ShortcutsList, component_14.DialogAPISettings, component_15.ColorsDialog, component_16.ColorsCanvasDialog, component_34.ConnectionState, component_21.ChartEditTypeDialog, component_20.ChartEditRulesSegmentsDialog, component_19.ChartEditRulesHooksDialog, component_18.ChartEditColorDialog, component_17.MarkersEditDialog, component_28.DialogStatemonitorEditJSON]
     }),
     __metadata("design:paramtypes", [])
 ], Components);

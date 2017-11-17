@@ -196,6 +196,26 @@ view-controller-list .export-url {
   height: 1px;
   opacity: 0.001;
 }
+view-controller-markers {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+view-controller-markers ul {
+  position: relative;
+  padding: 1rem;
+  margin: 0;
+  list-style: none;
+}
+view-controller-markers ul li {
+  position: relative;
+  padding: 0.5rem 0;
+  margin: 0;
+  border-bottom: 1px dotted #646464;
+  list-style: none;
+}
 view-controller-state-monitor {
   position: absolute;
   width: 100%;
@@ -385,26 +405,6 @@ view-controller-stream-sender .history-wrapper .history li {
 view-controller-stream-sender .history-wrapper .history li.selected {
   border: 1px dotted #646464;
 }
-view-controller-markers {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-view-controller-markers ul {
-  position: relative;
-  padding: 1rem;
-  margin: 0;
-  list-style: none;
-}
-view-controller-markers ul li {
-  position: relative;
-  padding: 0.5rem 0;
-  margin: 0;
-  border-bottom: 1px dotted #646464;
-  list-style: none;
-}
 body {
   margin: 0;
   padding: 0;
@@ -501,71 +501,6 @@ view-controller-chart-manager .view-charts-manager-buttons {
 view-controller-chart-manager .view-charts-manager-buttons * {
   font-size: 0.85rem;
 }
-list-view-line {
-  display: block;
-  position: absolute;
-  width: 100%;
-  height: 100%;
-}
-list-view-line .ln-navigation-wrapper {
-  display: block;
-  position: absolute;
-  right: 0.15rem;
-  z-index: 100;
-  opacity: 1;
-}
-list-view-line .ln-navigation-wrapper.pinned:after {
-  position: fixed;
-  content: "\f08d";
-  color: #f01e1e;
-  font-family: 'FontAwesome';
-  font-size: 1rem;
-  margin: -0.5rem 0 0 0.5rem;
-  text-shadow: 0 0 0.2rem rgba(250, 250, 250, 0.4);
-}
-list-view-line .ln-navigation-wrapper .ln-navigation {
-  display: block;
-  position: fixed;
-  background: #fafafa;
-  padding: 0.5rem;
-  margin: 0;
-  max-width: 90%;
-  overflow: hidden;
-  box-shadow: none;
-}
-list-view-line .ln-navigation-wrapper .ln-navigation li {
-  position: relative;
-  padding: 0.25rem 0;
-  margin: 0;
-  cursor: pointer;
-  white-space: nowrap;
-  font-size: 0.65rem;
-  color: #1e1e1e;
-}
-list-view-line .ln-navigation-wrapper .ln-navigation li:hover {
-  background: rgba(80, 80, 80, 0.4);
-}
-list-view-line .ln-pseudo-scroll-hidder {
-  position: absolute;
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-  top: 0;
-}
-list-view-line .ln-pseudo-scroll-hidder .ln-pseudo-scroll-wrapper {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 300%;
-  height: 100%;
-  overflow-x: hidden;
-  overflow-y: scroll;
-}
-list-view-line .ln-pseudo-scroll-hidder .ln-pseudo-scroll-wrapper .ln-pseudo-scroll-filler {
-  position: relative;
-  width: 1px;
-  top: 0;
-}
 list-view-item {
   position: relative;
   display: block;
@@ -637,6 +572,124 @@ list-view-item p span.match {
 list-view-item p.bookmarked .number {
   background: #a8c873;
   color: #1e1e1e;
+}
+list-view-line {
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+list-view-line .ln-navigation-wrapper {
+  display: block;
+  position: absolute;
+  right: 0.15rem;
+  z-index: 100;
+  opacity: 1;
+}
+list-view-line .ln-navigation-wrapper.pinned:after {
+  position: fixed;
+  content: "\f08d";
+  color: #f01e1e;
+  font-family: 'FontAwesome';
+  font-size: 1rem;
+  margin: -0.5rem 0 0 0.5rem;
+  text-shadow: 0 0 0.2rem rgba(250, 250, 250, 0.4);
+}
+list-view-line .ln-navigation-wrapper .ln-navigation {
+  display: block;
+  position: fixed;
+  background: #fafafa;
+  padding: 0.5rem;
+  margin: 0;
+  max-width: 90%;
+  overflow: hidden;
+  box-shadow: none;
+}
+list-view-line .ln-navigation-wrapper .ln-navigation li {
+  position: relative;
+  padding: 0.25rem 0;
+  margin: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 0.65rem;
+  color: #1e1e1e;
+}
+list-view-line .ln-navigation-wrapper .ln-navigation li:hover {
+  background: rgba(80, 80, 80, 0.4);
+}
+list-view-line .ln-pseudo-scroll-hidder {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  top: 0;
+}
+list-view-line .ln-pseudo-scroll-hidder .ln-pseudo-scroll-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 300%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: scroll;
+}
+list-view-line .ln-pseudo-scroll-hidder .ln-pseudo-scroll-wrapper .ln-pseudo-scroll-filler {
+  position: relative;
+  width: 1px;
+  top: 0;
+}
+view-markers-item {
+  position: relative;
+  display: block;
+  margin: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+view-markers-item span {
+  position: relative;
+  display: inline-block;
+}
+view-markers-item .trigger,
+view-markers-item .color,
+view-markers-item .remove {
+  width: 0.75rem;
+  height: 0.75rem;
+  font-size: 1rem;
+  line-height: 1rem;
+  margin: 0 0 0 0.5rem;
+}
+view-markers-item .color {
+  font-size: 0.75rem;
+  padding: 0.25rem;
+  width: auto;
+  height: auto;
+}
+view-markers-item .trigger {
+  color: #fafafa;
+}
+view-markers-item .trigger:after {
+  position: absolute;
+  font-family: 'FontAwesome';
+  content: '\f096';
+  font-size: 1rem;
+  top: 0;
+  left: 0;
+}
+view-markers-item .trigger.active:after {
+  content: '\f046';
+}
+view-markers-item .value {
+  width: calc(100% - 8rem);
+  margin: 0 auto;
+  font-size: 0.85rem;
+  line-height: 1rem;
+  padding: 0 0 0 0.5rem;
+}
+view-markers-item .remove {
+  color: #646464;
+}
+view-markers-item .remove:hover {
+  color: #f01e1e;
 }
 view-controller-state-monitor-manager {
   position: absolute;
@@ -955,228 +1008,6 @@ stream-sender-history-item .remove:hover {
   color: #f01e1e;
   opacity: 1;
 }
-view-markers-item {
-  position: relative;
-  display: block;
-  margin: 0;
-  cursor: pointer;
-  white-space: nowrap;
-}
-view-markers-item span {
-  position: relative;
-  display: inline-block;
-}
-view-markers-item .trigger,
-view-markers-item .color,
-view-markers-item .remove {
-  width: 0.75rem;
-  height: 0.75rem;
-  font-size: 1rem;
-  line-height: 1rem;
-  margin: 0 0 0 0.5rem;
-}
-view-markers-item .color {
-  font-size: 0.75rem;
-  padding: 0.25rem;
-  width: auto;
-  height: auto;
-}
-view-markers-item .trigger {
-  color: #fafafa;
-}
-view-markers-item .trigger:after {
-  position: absolute;
-  font-family: 'FontAwesome';
-  content: '\f096';
-  font-size: 1rem;
-  top: 0;
-  left: 0;
-}
-view-markers-item .trigger.active:after {
-  content: '\f046';
-}
-view-markers-item .value {
-  width: calc(100% - 8rem);
-  margin: 0 auto;
-  font-size: 0.85rem;
-  line-height: 1rem;
-  padding: 0 0 0 0.5rem;
-}
-view-markers-item .remove {
-  color: #646464;
-}
-view-markers-item .remove:hover {
-  color: #f01e1e;
-}
-holder {
-  position: absolute;
-  top: 3rem;
-  bottom: 0;
-  left: 0;
-  right: 0;
-}
-view {
-  position: absolute;
-  border: thin dotted #323232;
-  overflow: hidden;
-}
-view:hover {
-  border-color: #323232;
-  z-index: 100;
-}
-view .wrapper {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-}
-view .wrapper.dragover {
-  background: #646464;
-}
-view .wrapper.dragging {
-  opacity: 0.4;
-}
-view .wrapper .view {
-  position: absolute;
-  top: 2rem;
-  bottom: 0;
-  width: 100%;
-}
-view .wrapper .view-border-left,
-view .wrapper .view-border-right,
-view .wrapper .view-border-top,
-view .wrapper .view-border-bottom {
-  position: absolute;
-}
-view .wrapper .view-border-left:hover,
-view .wrapper .view-border-right:hover,
-view .wrapper .view-border-top:hover,
-view .wrapper .view-border-bottom:hover {
-  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAaUlEQVQoU12PCw2AMAwFbzaGDLCBDXSgAxvYABlgY+RgWxqaLOnn+vqWgBE4+WIFNuCudUk1EZorYCsDF5Aa4OYelAowqCTg0GeodLhZ62yiXL8JTNFTJ9vNv6cG9JvhN68nAYdRaYmeHot9F9X2eFD0AAAAAElFTkSuQmCC) repeat;
-}
-view .wrapper .view-border-left,
-view .wrapper .view-border-right {
-  width: 0.25rem;
-  height: 100%;
-  top: 0;
-  cursor: ew-resize;
-}
-view .wrapper .view-border-top,
-view .wrapper .view-border-bottom {
-  height: 0.25rem;
-  width: 100%;
-  left: 0;
-  cursor: ns-resize;
-}
-view .wrapper .view-border-left {
-  left: 0;
-}
-view .wrapper .view-border-right {
-  right: 0;
-}
-view .wrapper .view-border-top {
-  top: 0;
-}
-view .wrapper .view-border-bottom {
-  bottom: 0;
-}
-view-bar {
-  display: table;
-  position: absolute;
-  width: 100%;
-  top: 0;
-  height: 2rem;
-  max-height: 2rem;
-  box-shadow: none;
-  transition: box-shadow ease-in-out 200ms;
-}
-view-bar * {
-  margin: 0;
-  padding: 0;
-  vertical-align: middle;
-}
-view-bar .left,
-view-bar .middle,
-view-bar .right {
-  position: relative;
-  display: table-cell;
-  height: 2rem;
-  max-height: 2rem;
-}
-view-bar .middle {
-  width: 100%;
-  font-size: 0.75rem;
-  color: #fafafa;
-  padding: 0 1rem;
-  white-space: nowrap;
-}
-view-bar .left,
-view-bar .right {
-  white-space: nowrap;
-  list-style: none;
-}
-view-bar .left li,
-view-bar .right li {
-  position: relative;
-  display: inline-block;
-  height: 2rem;
-  max-height: 2rem;
-  list-style: none;
-}
-view-bar .left li.icon,
-view-bar .right li.icon {
-  width: 2rem;
-}
-view-bar .left li.icon span,
-view-bar .right li.icon span {
-  margin: 0.5rem;
-}
-view-bar .left li.icon:hover,
-view-bar .right li.icon:hover {
-  background: rgba(220, 220, 220, 0.4);
-}
-view-bar .left li.icon.active,
-view-bar .right li.icon.active {
-  background: rgba(220, 220, 220, 0.4);
-}
-view-bar .left li.icon.disable,
-view-bar .right li.icon.disable {
-  opacity: 0.4;
-}
-view-bar .left li.icon.disable:hover,
-view-bar .right li.icon.disable:hover {
-  background: none;
-  text-shadow: none;
-}
-view-bar .left li.icon.disable:hover .fa,
-view-bar .right li.icon.disable:hover .fa {
-  text-shadow: none;
-  color: rgba(250, 250, 250, 0.7);
-}
-view-bar .left li.icon.disable:hover .fa:hover,
-view-bar .right li.icon.disable:hover .fa:hover {
-  text-shadow: none;
-  color: rgba(250, 250, 250, 0.7);
-}
-view-bar .left li.mark,
-view-bar .right li.mark {
-  font-size: 0.75rem;
-  cursor: pointer;
-}
-view-bar .left li.mark span,
-view-bar .right li.mark span {
-  display: block;
-  margin: 0.5rem 0.2rem;
-  border-bottom: thin dotted #dcdcdc;
-}
-view-bar .left li.mark:hover,
-view-bar .right li.mark:hover {
-  background: rgba(220, 220, 220, 0.4);
-}
-view:hover view-bar {
-  box-shadow: none;
-}
 drop-down-menu {
   position: relative;
 }
@@ -1258,13 +1089,6 @@ drop-down-menu .wrapper .list-wrapper-corrector .list-wrapper .list li .line {
 drop-down-menu .wrapper .button:hover ~ .list-wrapper-corrector .list {
   display: block;
 }
-file-loader input {
-  display: block;
-  position: absolute;
-  width: 100px;
-  height: 100px;
-  opacity: 0.01;
-}
 .input {
   position: absolute;
   width: 100%;
@@ -1290,6 +1114,13 @@ file-loader input {
   box-shadow: 0 0 0.15rem rgba(250, 250, 250, 0.4) inset;
   transition: border, box-shadow ease-in-out 200ms;
   color: #fafafa;
+}
+file-loader input {
+  display: block;
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  opacity: 0.01;
 }
 long-list {
   position: absolute;
@@ -1717,6 +1548,36 @@ progressbar-circle .wrapper .particle[data-addition-type="5"] {
     opacity: 0;
   }
 }
+progressbar-progress {
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+progressbar-progress .wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+progressbar-progress .wrapper .border {
+  position: absolute;
+  top: 0.25rem;
+  left: 0.25rem;
+  bottom: 0.25rem;
+  right: 0.25rem;
+  border: thin solid #fafafa;
+  overflow: hidden;
+}
+progressbar-progress .wrapper .border .filler {
+  position: absolute;
+  left: 0;
+  height: 100%;
+  background: #1ef01e;
+}
 common-tabs {
   position: absolute;
   width: 100%;
@@ -1786,15 +1647,174 @@ common-tabs .tabs-content li.src-content-tab {
   bottom: 0;
   overflow: hidden;
 }
-top-bar-drop-down-menu {
+holder {
+  position: absolute;
+  top: 3rem;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+view-bar {
+  display: table;
+  position: absolute;
+  width: 100%;
+  top: 0;
+  height: 2rem;
+  max-height: 2rem;
+  box-shadow: none;
+  transition: box-shadow ease-in-out 200ms;
+}
+view-bar * {
+  margin: 0;
+  padding: 0;
+  vertical-align: middle;
+}
+view-bar .left,
+view-bar .middle,
+view-bar .right {
+  position: relative;
+  display: table-cell;
+  height: 2rem;
+  max-height: 2rem;
+}
+view-bar .middle {
+  width: 100%;
+  font-size: 0.75rem;
+  color: #fafafa;
+  padding: 0 1rem;
+  white-space: nowrap;
+}
+view-bar .left,
+view-bar .right {
+  white-space: nowrap;
+  list-style: none;
+}
+view-bar .left li,
+view-bar .right li {
+  position: relative;
+  display: inline-block;
+  height: 2rem;
+  max-height: 2rem;
+  list-style: none;
+}
+view-bar .left li.icon,
+view-bar .right li.icon {
+  width: 2rem;
+}
+view-bar .left li.icon span,
+view-bar .right li.icon span {
+  margin: 0.5rem;
+}
+view-bar .left li.icon:hover,
+view-bar .right li.icon:hover {
+  background: rgba(220, 220, 220, 0.4);
+}
+view-bar .left li.icon.active,
+view-bar .right li.icon.active {
+  background: rgba(220, 220, 220, 0.4);
+}
+view-bar .left li.icon.disable,
+view-bar .right li.icon.disable {
+  opacity: 0.4;
+}
+view-bar .left li.icon.disable:hover,
+view-bar .right li.icon.disable:hover {
+  background: none;
+  text-shadow: none;
+}
+view-bar .left li.icon.disable:hover .fa,
+view-bar .right li.icon.disable:hover .fa {
+  text-shadow: none;
+  color: rgba(250, 250, 250, 0.7);
+}
+view-bar .left li.icon.disable:hover .fa:hover,
+view-bar .right li.icon.disable:hover .fa:hover {
+  text-shadow: none;
+  color: rgba(250, 250, 250, 0.7);
+}
+view-bar .left li.mark,
+view-bar .right li.mark {
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+view-bar .left li.mark span,
+view-bar .right li.mark span {
+  display: block;
+  margin: 0.5rem 0.2rem;
+  border-bottom: thin dotted #dcdcdc;
+}
+view-bar .left li.mark:hover,
+view-bar .right li.mark:hover {
+  background: rgba(220, 220, 220, 0.4);
+}
+view:hover view-bar {
+  box-shadow: none;
+}
+view {
+  position: absolute;
+  border: thin dotted #323232;
+  overflow: hidden;
+}
+view:hover {
+  border-color: #323232;
+  z-index: 100;
+}
+view .wrapper {
   position: absolute;
   top: 0;
+  left: 0;
   right: 0;
-  width: 3rem;
-  height: 3rem;
+  bottom: 0;
 }
-top-bar-drop-down-menu .top-bar-correction .list-wrapper-corrector {
-  margin-left: calc(100% - 0.5rem) !important;
+view .wrapper.dragover {
+  background: #646464;
+}
+view .wrapper.dragging {
+  opacity: 0.4;
+}
+view .wrapper .view {
+  position: absolute;
+  top: 2rem;
+  bottom: 0;
+  width: 100%;
+}
+view .wrapper .view-border-left,
+view .wrapper .view-border-right,
+view .wrapper .view-border-top,
+view .wrapper .view-border-bottom {
+  position: absolute;
+}
+view .wrapper .view-border-left:hover,
+view .wrapper .view-border-right:hover,
+view .wrapper .view-border-top:hover,
+view .wrapper .view-border-bottom:hover {
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAaUlEQVQoU12PCw2AMAwFbzaGDLCBDXSgAxvYABlgY+RgWxqaLOnn+vqWgBE4+WIFNuCudUk1EZorYCsDF5Aa4OYelAowqCTg0GeodLhZ62yiXL8JTNFTJ9vNv6cG9JvhN68nAYdRaYmeHot9F9X2eFD0AAAAAElFTkSuQmCC) repeat;
+}
+view .wrapper .view-border-left,
+view .wrapper .view-border-right {
+  width: 0.25rem;
+  height: 100%;
+  top: 0;
+  cursor: ew-resize;
+}
+view .wrapper .view-border-top,
+view .wrapper .view-border-bottom {
+  height: 0.25rem;
+  width: 100%;
+  left: 0;
+  cursor: ns-resize;
+}
+view .wrapper .view-border-left {
+  left: 0;
+}
+view .wrapper .view-border-right {
+  right: 0;
+}
+view .wrapper .view-border-top {
+  top: 0;
+}
+view .wrapper .view-border-bottom {
+  bottom: 0;
 }
 .top-bar {
   position: fixed;
@@ -1821,6 +1841,16 @@ top-bar-drop-down-menu .top-bar-correction .list-wrapper-corrector {
   display: table-cell;
   width: 100%;
   height: 100%;
+}
+top-bar-drop-down-menu {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 3rem;
+  height: 3rem;
+}
+top-bar-drop-down-menu .top-bar-correction .list-wrapper-corrector {
+  margin-left: calc(100% - 0.5rem) !important;
 }
 .top-bar .request {
   position: absolute;
@@ -2177,21 +2207,6 @@ view-request-item .remove {
 view-request-item .remove:hover {
   color: #f01e1e;
 }
-button-flat-text span {
-  position: relative;
-  display: inline-block;
-  background: #141414;
-  color: #fafafa;
-  margin: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  cursor: pointer;
-  border: thin dotted #fafafa;
-}
-button-flat-text span:hover {
-  background: #fafafa;
-  color: #141414;
-  border: thin dotted #141414;
-}
 simple-checkbox {
   position: relative;
   display: inline-block;
@@ -2244,49 +2259,69 @@ simple-checkbox label input:checked ~ span.on,
 simple-checkbox label input:checked ~ span.switcher {
   opacity: 1;
 }
-simple-list {
+button-flat-text span {
   position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  display: block;
-}
-simple-list ul {
-  position: relative;
-  display: block;
-  width: 100%;
-  height: 100%;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-simple-list ul li {
-  position: relative;
-  display: block;
-  padding: 0.25rem 0.5rem;
-  margin: 0;
-  color: #f0f0f0;
-  background: rgba(80, 80, 80, 0);
-  cursor: pointer;
-  white-space: nowrap;
-}
-simple-list ul li:hover {
+  display: inline-block;
+  background: #141414;
   color: #fafafa;
-  background: rgba(80, 80, 80, 0.4);
+  margin: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  border: thin dotted #fafafa;
 }
-simple-dd-list {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
+button-flat-text span:hover {
+  background: #fafafa;
+  color: #141414;
+  border: thin dotted #141414;
+}
+dialog-api-settings {
+  position: absolute;
   display: block;
+  top: 0.5rem;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  right: 0.5rem;
 }
-simple-dd-list select {
+dialog-api-settings .settings {
   position: absolute;
   width: 100%;
-  height: 100%;
-  display: block;
+  top: 0;
+  bottom: 2.5rem;
+  overflow: auto;
+}
+dialog-api-settings .settings table {
+  position: relative;
+  width: 100%;
+}
+dialog-api-settings .settings table tr td:first-child {
+  position: relative;
+  width: 100%;
   font-size: 0.85rem;
+  padding: 0.25rem 0;
+  margin: 0;
+  font-weight: normal;
+  color: #a0a0a0;
+}
+dialog-api-settings .settings table tr td:first-child span {
+  font-weight: bold;
+  color: #1e1e1e;
+}
+dialog-api-settings .settings table tr td:last-child {
+  padding: 0.25rem 0.5rem;
+  margin: 0;
+  position: relative;
+  min-width: 15rem;
+}
+dialog-api-settings .settings table tr .input-cover {
+  position: relative;
+  width: 100%;
+  height: 1.5rem;
+}
+dialog-api-settings .buttons {
+  position: absolute;
+  width: 100%;
+  height: 2.5rem;
+  bottom: 0;
 }
 chart-edit-color-dialog {
   position: absolute;
@@ -2346,55 +2381,6 @@ chart-edit-color-dialog .chart-controls {
   bottom: 0;
   height: 2.5rem;
   text-align: right;
-}
-dialog-api-settings {
-  position: absolute;
-  display: block;
-  top: 0.5rem;
-  left: 0.5rem;
-  bottom: 0.5rem;
-  right: 0.5rem;
-}
-dialog-api-settings .settings {
-  position: absolute;
-  width: 100%;
-  top: 0;
-  bottom: 2.5rem;
-  overflow: auto;
-}
-dialog-api-settings .settings table {
-  position: relative;
-  width: 100%;
-}
-dialog-api-settings .settings table tr td:first-child {
-  position: relative;
-  width: 100%;
-  font-size: 0.85rem;
-  padding: 0.25rem 0;
-  margin: 0;
-  font-weight: normal;
-  color: #a0a0a0;
-}
-dialog-api-settings .settings table tr td:first-child span {
-  font-weight: bold;
-  color: #1e1e1e;
-}
-dialog-api-settings .settings table tr td:last-child {
-  padding: 0.25rem 0.5rem;
-  margin: 0;
-  position: relative;
-  min-width: 15rem;
-}
-dialog-api-settings .settings table tr .input-cover {
-  position: relative;
-  width: 100%;
-  height: 1.5rem;
-}
-dialog-api-settings .buttons {
-  position: absolute;
-  width: 100%;
-  height: 2.5rem;
-  bottom: 0;
 }
 chart-edit-rules-hooks-dialog {
   position: absolute;
@@ -2762,6 +2748,24 @@ chart-edit-rules-segments-dialog .chart-errors-wrapper p {
   width: 100%;
   left: 0;
 }
+colors-dialog {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+colors-dialog span {
+  position: relative;
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  margin: 0.05rem;
+  padding: 0;
+  cursor: pointer;
+}
 chart-edit-type-dialog {
   position: absolute;
   top: 0.5rem;
@@ -2811,23 +2815,25 @@ chart-edit-type-dialog .chart-types li .chart-types-buttons {
 chart-edit-type-dialog .chart-types li .chart-types-buttons * {
   font-size: 0.85rem;
 }
-colors-dialog {
+colors-canvas-dialog {
   position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  right: 0.5rem;
-  bottom: 0.5rem;
-  overflow-x: hidden;
-  overflow-y: auto;
+  width: 100%;
+  height: 100%;
 }
-colors-dialog span {
-  position: relative;
-  display: inline-block;
-  width: 2rem;
-  height: 2rem;
-  margin: 0.05rem;
-  padding: 0;
-  cursor: pointer;
+colors-canvas-dialog .colors-box {
+  position: absolute;
+  top: 0;
+  width: 80%;
+  height: 100%;
+  cursor: crosshair;
+}
+colors-canvas-dialog .colors-line {
+  position: absolute;
+  top: 0;
+  left: 80%;
+  width: 20%;
+  height: 100%;
+  cursor: crosshair;
 }
 .dialog-a {
   position: absolute;
@@ -2885,26 +2891,6 @@ colors-dialog span {
   text-align: right;
   white-space: nowrap;
   width: 100%;
-}
-colors-canvas-dialog {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-}
-colors-canvas-dialog .colors-box {
-  position: absolute;
-  top: 0;
-  width: 80%;
-  height: 100%;
-  cursor: crosshair;
-}
-colors-canvas-dialog .colors-line {
-  position: absolute;
-  top: 0;
-  left: 80%;
-  width: 20%;
-  height: 100%;
-  cursor: crosshair;
 }
 image-dialog {
   position: absolute;
@@ -3401,6 +3387,37 @@ dialog-themes-list .dialog-themes-list li p {
 dialog-themes-list .dialog-themes-list li p:hover {
   background: rgba(50, 50, 50, 0.4);
 }
+dialog-update {
+  display: block;
+  position: absolute;
+  top: 0.5rem;
+  left: 1rem;
+  bottom: 0.5rem;
+  right: 1rem;
+}
+dialog-update .progress-holder {
+  position: relative;
+  width: 100%;
+  height: 1.5rem;
+}
+dialog-update div.info {
+  position: relative;
+  width: 100%;
+  overflow: auto;
+  height: 5rem;
+}
+dialog-update p.info {
+  font-size: 1rem;
+  color: #fafafa;
+  margin: 0.5rem 0;
+  padding: 0;
+}
+dialog-update p.sub-info {
+  font-size: 0.75rem;
+  color: #323232;
+  padding: 0;
+  margin: 0.25rem 0;
+}
 views-list {
   position: absolute;
   display: block;
@@ -3465,6 +3482,50 @@ views-list .views-list li:hover .description {
   font-size: 0.75rem;
   box-shadow: 0 0 0.15rem rgba(250, 250, 250, 0.4) inset;
   z-index: 100;
+}
+simple-list {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  display: block;
+}
+simple-list ul {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+simple-list ul li {
+  position: relative;
+  display: block;
+  padding: 0.25rem 0.5rem;
+  margin: 0;
+  color: #f0f0f0;
+  background: rgba(80, 80, 80, 0);
+  cursor: pointer;
+  white-space: nowrap;
+}
+simple-list ul li:hover {
+  color: #fafafa;
+  background: rgba(80, 80, 80, 0.4);
+}
+simple-dd-list {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: block;
+}
+simple-dd-list select {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: block;
+  font-size: 0.85rem;
 }
 connection-state {
   position: relative;

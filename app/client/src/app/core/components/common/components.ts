@@ -8,6 +8,7 @@ import { Popup                          } from './popup/component';
 import { FileLoader                     } from './fileloader/component';
 import { ProgressBarCircle              } from './progressbar.circle/component';
 import { ProgressBarLine                } from './progressbar.line/component';
+import { ProgressBarProgress            } from './progressbar.progress/component';
 
 import { LongListModule                 } from './long-list/module';
 
@@ -30,6 +31,7 @@ import { StateMonitorStateEditIconsDialog   } from './dialogs/statemonitor.state
 import { DialogStatemonitorIndicateEdit     } from './dialogs/statemonitor.indicate.edit/component';
 import { DialogSerialPortsList          } from './dialogs/serialports.list/component';
 import { DialogThemesList               } from './dialogs/themes.list/component';
+import { DialogUpdate                   } from './dialogs/update/component';
 
 
 
@@ -49,10 +51,10 @@ import { ConnectionState                } from './other/connection.state/compone
 import { CommonTabModule                } from './tabs/module';
 
 @NgModule({
-    entryComponents : [ Popup, FileLoader, ProgressBarCircle, DialogThemesList, DialogSerialPortsList, ProgressBarLine, DialogMessage, DialogStatemonitorIndicateEdit, StateMonitorStateEditIconsDialog, StateMonitorStateEditDialog, ImageDialog, DialogA, ButtonFlatText, SimpleText, SimpleList, SimpleDropDownList, DialogSerialSettings, SimpleCheckbox, ViewsList, ShortcutsList, DialogAPISettings, ColorsDialog, ColorsCanvasDialog, ConnectionState, ChartEditTypeDialog, ChartEditRulesSegmentsDialog, ChartEditRulesHooksDialog, ChartEditColorDialog, MarkersEditDialog, DialogStatemonitorEditJSON ],
+    entryComponents : [ Popup, FileLoader, ProgressBarCircle, DialogUpdate, DialogThemesList, DialogSerialPortsList, ProgressBarLine, ProgressBarProgress, DialogMessage, DialogStatemonitorIndicateEdit, StateMonitorStateEditIconsDialog, StateMonitorStateEditDialog, ImageDialog, DialogA, ButtonFlatText, SimpleText, SimpleList, SimpleDropDownList, DialogSerialSettings, SimpleCheckbox, ViewsList, ShortcutsList, DialogAPISettings, ColorsDialog, ColorsCanvasDialog, ConnectionState, ChartEditTypeDialog, ChartEditRulesSegmentsDialog, ChartEditRulesHooksDialog, ChartEditColorDialog, MarkersEditDialog, DialogStatemonitorEditJSON ],
     imports         : [ CommonModule, FormsModule  ],
-    declarations    : [ CommonInput, DropDownMenu, Popup, FileLoader, DialogThemesList, DialogSerialPortsList, ProgressBarCircle, ProgressBarLine, DialogMessage, DialogStatemonitorIndicateEdit, StateMonitorStateEditIconsDialog, StateMonitorStateEditDialog, ImageDialog, DialogA, ButtonFlatText, SimpleText, SimpleList, SimpleDropDownList, DialogSerialSettings, SimpleCheckbox, ViewsList, ShortcutsList, DialogAPISettings, ColorsDialog, ColorsCanvasDialog, ConnectionState, ChartEditTypeDialog, ChartEditRulesSegmentsDialog, ChartEditRulesHooksDialog, ChartEditColorDialog, MarkersEditDialog, DialogStatemonitorEditJSON ],
-    exports         : [ CommonInput, DropDownMenu, LongListModule, CommonTabModule, Popup, FileLoader, DialogThemesList, DialogSerialPortsList, ProgressBarCircle, ProgressBarLine, DialogMessage, DialogStatemonitorIndicateEdit, StateMonitorStateEditIconsDialog, StateMonitorStateEditDialog, ImageDialog, DialogA, ButtonFlatText, SimpleText, SimpleList, SimpleDropDownList, DialogSerialSettings, SimpleCheckbox, ViewsList, ShortcutsList, DialogAPISettings, ColorsDialog, ColorsCanvasDialog, ConnectionState, ChartEditTypeDialog, ChartEditRulesSegmentsDialog, ChartEditRulesHooksDialog, ChartEditColorDialog, MarkersEditDialog, DialogStatemonitorEditJSON ]
+    declarations    : [ CommonInput, DropDownMenu, Popup, FileLoader, DialogUpdate, DialogThemesList, DialogSerialPortsList, ProgressBarCircle, ProgressBarLine, ProgressBarProgress, DialogMessage, DialogStatemonitorIndicateEdit, StateMonitorStateEditIconsDialog, StateMonitorStateEditDialog, ImageDialog, DialogA, ButtonFlatText, SimpleText, SimpleList, SimpleDropDownList, DialogSerialSettings, SimpleCheckbox, ViewsList, ShortcutsList, DialogAPISettings, ColorsDialog, ColorsCanvasDialog, ConnectionState, ChartEditTypeDialog, ChartEditRulesSegmentsDialog, ChartEditRulesHooksDialog, ChartEditColorDialog, MarkersEditDialog, DialogStatemonitorEditJSON ],
+    exports         : [ CommonInput, DropDownMenu, LongListModule, CommonTabModule, Popup, FileLoader, DialogUpdate, DialogThemesList, DialogSerialPortsList, ProgressBarCircle, ProgressBarLine, ProgressBarProgress, DialogMessage, DialogStatemonitorIndicateEdit, StateMonitorStateEditIconsDialog, StateMonitorStateEditDialog, ImageDialog, DialogA, ButtonFlatText, SimpleText, SimpleList, SimpleDropDownList, DialogSerialSettings, SimpleCheckbox, ViewsList, ShortcutsList, DialogAPISettings, ColorsDialog, ColorsCanvasDialog, ConnectionState, ChartEditTypeDialog, ChartEditRulesSegmentsDialog, ChartEditRulesHooksDialog, ChartEditColorDialog, MarkersEditDialog, DialogStatemonitorEditJSON ]
 })
 
 

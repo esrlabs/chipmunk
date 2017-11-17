@@ -10,10 +10,12 @@ import { Components as ComponentsCommmon    } from './core/components/common/com
 
 import { WebSocketConnector                 } from './core/ws/ws.connector';
 import { APIProcessor                       } from './core/api/api.processor';
+
 import { SerialPorts                        } from './core/services/service.serialports';
 import { controllerThemes                   } from './core/modules/controller.themes';
 
 import { ShortcutController                 } from './core/modules/controller.shortcut';
+import { Updater                            } from './core/modules/controller.updater';
 
 @NgModule({
     imports:      [ BrowserModule, ComponentsCommmon, TopBarModule, HolderModule ],
@@ -22,9 +24,10 @@ import { ShortcutController                 } from './core/modules/controller.sh
 })
 
 export class AppModule {
-    private wsConnector         : WebSocketConnector = null;
-    private shortcutController  : ShortcutController = new ShortcutController();
-    private serialPorts         : SerialPorts        = new SerialPorts();
+    private wsConnector         : WebSocketConnector    = null;
+    private shortcutController  : ShortcutController    = new ShortcutController();
+    private serialPorts         : SerialPorts           = new SerialPorts();
+    private updater             : Updater               = new Updater();
 
     constructor(){
         APIProcessor.init();

@@ -8,7 +8,9 @@ const COMMANDS = {
     GUIDAccepted            : 'GUIDAccepted',
     SerialData              : 'SerialData',
     WriteToSerial           : 'WriteToSerial',
-    ResultWrittenToSerial   : 'ResultWrittenToSerial'
+    ResultWrittenToSerial   : 'ResultWrittenToSerial',
+    UpdateIsAvailable       : 'UpdateIsAvailable',
+    UpdateDownloadProgress  : 'UpdateDownloadProgress'
 };
 
 class WSCommands{
@@ -67,6 +69,18 @@ class WSCommands{
     [COMMANDS.ResultWrittenToSerial ](message : WSCommandMessage, sender: Function){
         if (typeof message.params === 'object' && message.params !== null && typeof message.params.serialGUID === 'string' && typeof message.params.packageGUID === 'string'){
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_TO_SERIAL_SENT, message.params);
+        }
+    }
+
+    [COMMANDS.UpdateIsAvailable ](message : WSCommandMessage, sender: Function){
+        if (typeof message.params === 'object' && message.params !== null){
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.UPDATE_IS_AVAILABLE, message.params);
+        }
+    }
+
+    [COMMANDS.UpdateDownloadProgress ](message : WSCommandMessage, sender: Function){
+        if (typeof message.params === 'object' && message.params !== null){
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.UPDATE_DOWNLOAD_PROGRESS, message.params);
         }
     }
 

@@ -7,7 +7,9 @@ var COMMANDS = {
     GUIDAccepted: 'GUIDAccepted',
     SerialData: 'SerialData',
     WriteToSerial: 'WriteToSerial',
-    ResultWrittenToSerial: 'ResultWrittenToSerial'
+    ResultWrittenToSerial: 'ResultWrittenToSerial',
+    UpdateIsAvailable: 'UpdateIsAvailable',
+    UpdateDownloadProgress: 'UpdateDownloadProgress'
 };
 exports.COMMANDS = COMMANDS;
 var WSCommands = (function () {
@@ -61,6 +63,16 @@ var WSCommands = (function () {
     WSCommands.prototype[COMMANDS.ResultWrittenToSerial] = function (message, sender) {
         if (typeof message.params === 'object' && message.params !== null && typeof message.params.serialGUID === 'string' && typeof message.params.packageGUID === 'string') {
             controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.DATA_TO_SERIAL_SENT, message.params);
+        }
+    };
+    WSCommands.prototype[COMMANDS.UpdateIsAvailable] = function (message, sender) {
+        if (typeof message.params === 'object' && message.params !== null) {
+            controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.UPDATE_IS_AVAILABLE, message.params);
+        }
+    };
+    WSCommands.prototype[COMMANDS.UpdateDownloadProgress] = function (message, sender) {
+        if (typeof message.params === 'object' && message.params !== null) {
+            controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.UPDATE_DOWNLOAD_PROGRESS, message.params);
         }
     };
     return WSCommands;
