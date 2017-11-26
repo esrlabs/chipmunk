@@ -13,6 +13,7 @@ var ServiceTopBarMenuItems = (function () {
         return [
             { icon: 'fa-upload', caption: 'Open log file', handle: 'openLocalFile', type: 'item' },
             { icon: 'fa-plug', caption: 'Open stream from serial', handle: 'openSerialStream', type: 'item' },
+            { icon: 'fa-plug', caption: 'Open stream from ADB logcat', handle: 'openADBLogcatStream', type: 'item' },
             { type: 'line' },
             { icon: 'fa-desktop', caption: 'Add view', handle: 'addView', type: 'item' },
             { type: 'line' },

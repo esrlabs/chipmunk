@@ -10,7 +10,8 @@ const COMMANDS = {
     WriteToSerial           : 'WriteToSerial',
     ResultWrittenToSerial   : 'ResultWrittenToSerial',
     UpdateIsAvailable       : 'UpdateIsAvailable',
-    UpdateDownloadProgress  : 'UpdateDownloadProgress'
+    UpdateDownloadProgress  : 'UpdateDownloadProgress',
+    ADBLogcatData           : 'ADBLogcatData'
 };
 
 class IncomeCommandsProcessor {
@@ -67,7 +68,7 @@ class OutgoingCommandsProcessor {
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Commands
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    [COMMANDS.greeting              ](){
+    [COMMANDS.greeting](){
         this.sender({
             GUID    : '',
             command : COMMANDS.greeting,
@@ -75,7 +76,7 @@ class OutgoingCommandsProcessor {
         });
     }
 
-    [COMMANDS.GUIDAccepted          ](clientGUID){
+    [COMMANDS.GUIDAccepted](clientGUID){
         this.sender({
             GUID    : clientGUID,
             command : COMMANDS.GUIDAccepted,
@@ -83,7 +84,7 @@ class OutgoingCommandsProcessor {
         });
     }
 
-    [COMMANDS.SerialData            ](clientGUID, params){
+    [COMMANDS.SerialData](clientGUID, params){
         this.sender({
             GUID    : clientGUID,
             command : COMMANDS.SerialData,
@@ -91,7 +92,7 @@ class OutgoingCommandsProcessor {
         });
     }
 
-    [COMMANDS.ResultWrittenToSerial ](clientGUID, params){
+    [COMMANDS.ResultWrittenToSerial](clientGUID, params){
         this.sender({
             GUID    : clientGUID,
             command : COMMANDS.ResultWrittenToSerial,
@@ -99,7 +100,7 @@ class OutgoingCommandsProcessor {
         });
     }
 
-    [COMMANDS.UpdateIsAvailable ](clientGUID, params){
+    [COMMANDS.UpdateIsAvailable](clientGUID, params){
         this.sender({
             GUID    : clientGUID,
             command : COMMANDS.UpdateIsAvailable,
@@ -107,10 +108,18 @@ class OutgoingCommandsProcessor {
         });
     }
 
-    [COMMANDS.UpdateDownloadProgress ](clientGUID, params){
+    [COMMANDS.UpdateDownloadProgress](clientGUID, params){
         this.sender({
             GUID    : clientGUID,
             command : COMMANDS.UpdateDownloadProgress,
+            params  : params
+        });
+    }
+
+    [COMMANDS.ADBLogcatData](clientGUID, params){
+        this.sender({
+            GUID    : clientGUID,
+            command : COMMANDS.ADBLogcatData,
             params  : params
         });
     }

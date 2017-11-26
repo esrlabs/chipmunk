@@ -9,7 +9,8 @@ var COMMANDS = {
     WriteToSerial: 'WriteToSerial',
     ResultWrittenToSerial: 'ResultWrittenToSerial',
     UpdateIsAvailable: 'UpdateIsAvailable',
-    UpdateDownloadProgress: 'UpdateDownloadProgress'
+    UpdateDownloadProgress: 'UpdateDownloadProgress',
+    ADBLogcatData: 'ADBLogcatData'
 };
 exports.COMMANDS = COMMANDS;
 var WSCommands = (function () {
@@ -73,6 +74,11 @@ var WSCommands = (function () {
     WSCommands.prototype[COMMANDS.UpdateDownloadProgress] = function (message, sender) {
         if (typeof message.params === 'object' && message.params !== null) {
             controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.UPDATE_DOWNLOAD_PROGRESS, message.params);
+        }
+    };
+    WSCommands.prototype[COMMANDS.ADBLogcatData] = function (message, sender) {
+        if (typeof message.params === 'object' && message.params !== null && typeof message.params.stream === 'string' && message.params.entries instanceof Array) {
+            controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.ADB_LOGCAT_DATA_COME, message.params);
         }
     };
     return WSCommands;

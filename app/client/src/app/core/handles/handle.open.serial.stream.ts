@@ -120,6 +120,7 @@ class SerialStream{
         Events.unbind(Configuration.sets.SYSTEM_EVENTS.SERIAL_DATA_COME,                this.onData);
         Events.unbind(Configuration.sets.SYSTEM_EVENTS.TXT_DATA_COME,                   this.onStreamReset);
         Events.unbind(Configuration.sets.SYSTEM_EVENTS.READY_TO_SEND_DATA_TO_SERIAL,    this.onReadyToSendData);
+        Events.unbind(Configuration.sets.SYSTEM_EVENTS.WS_DISCONNECTED,                 this.onLostConnection);
         //Kill buttons
         Object.keys(this.buttons).forEach((button)=>{
             Events.trigger(Configuration.sets.EVENTS_TOOLBAR.REMOVE_BUTTON, this.buttons[button]);

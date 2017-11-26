@@ -7,6 +7,8 @@ import { configuration as Configuration } from '../modules/controller.config';
 
 import { OpenRemoteFileStream           } from '../handles/handle.open.remote.file.stream';
 import { OpenSerialStream               } from '../handles/handle.open.serial.stream';
+import { OpenADBLogcatStream            } from '../handles/handle.open.adblogcat.stream';
+
 import { AddView                        } from '../handles/handle.add.view';
 import { APISettings                    } from '../handles/handle.api.settings';
 import { controllerThemes               } from '../modules/controller.themes';
@@ -70,6 +72,11 @@ class TopBarMenuHandles{
     openSerialStream(){
         let openSerialStream = new OpenSerialStream();
         openSerialStream.start();
+    }
+
+    openADBLogcatStream(){
+        let openADBLogcatStream = new OpenADBLogcatStream();
+        openADBLogcatStream.start();
     }
 
     connectionSettings(){

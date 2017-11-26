@@ -1,0 +1,289 @@
+const Signature         = 'ServiceADBStream';
+
+const
+    spawn           = require('child_process').spawn,
+    ServerEmitter   = require('./server.events'),
+    StringDecoder   = require('string_decoder').StringDecoder;
+
+const LOGCAT_STREAM_OPTIONS = {
+    ENTRIES_PER_PACKAGE     : 500,
+    DURATION_PER_DATA_EVENT : 200 //ms. If duration between on Data event less than here, data will be included into one package
+};
+
+class SpawnProcess {
+
+    constructor() {
+        this.error      = null;
+        this.spawn      = null;
+        process.on('exit', this.destroy.bind(this));
+    }
+
+    getProcess() {
+        if (this.spawn !== null) {
+            return this.spawn;
+        }
+        try {
+            this.spawn = spawn('adb', ['logcat', '-b', 'all']);
+            this.error = null;
+        } catch (error) {
+            this.error = error;
+            this.spawn = null;
+        }
+        return this.spawn;
+    }
+
+    getError() {
+        return this.error;
+    }
+
+    destroy() {
+        this.spawn !== null && this.spawn.kill();
+        this.spawn  = null;
+    }
+}
+
+class LogcatStream {
+
+    constructor(clientGUID, settings, stdout) {
+        this.clientGUID     = clientGUID;
+        this.GUID           = (require('guid')).raw();
+        this.stdout         = stdout;
+        this.onData         = this.onData.bind(this);
+        this.decoder        = new StringDecoder('utf8');
+        this.onBufferTimer  = this.onBufferTimer.bind(this);
+        this.resetBuffer();
+        this.setSettings(settings);
+    }
+
+    setSettings(settings) {
+        settings        = typeof settings === 'object' ? (settings !== null ? settings : {}) : {};
+        this.settings   = {
+            pid : typeof settings.pid === 'string' ? (settings.pid.trim() !== '' ? settings.pid : null) : null,
+            tid : typeof settings.tid === 'string' ? (settings.tid.trim() !== '' ? settings.tid : null) : null,
+            tags: settings.tags instanceof Array ? settings.tags : null
+        };
+        this.settings.tags instanceof Array && (this.settings.tags = this.settings.tags.filter((tag) => {
+            return typeof tag === 'string' ? (tag.trim() !== '') : false;
+        }).map((tag)=>{
+            return tag.toLowerCase();
+        }));
+        console.log(`[${Signature}]: settings of client ${this.clientGUID} was updated.`);
+    }
+
+    open() {
+        this.stdout.on('data', this.onData);
+        return true;
+    }
+
+    close(){
+        this.destroy();
+    }
+
+    destroy() {
+        this.stdout.removeListener('data', this.onData);
+        this.clientGUID = null;
+    }
+
+    resetBuffer() {
+        this.buffer     = {
+            parts       : 0,
+            entries     : [],
+            timer       : -1,
+            rest        : ''
+        };
+    }
+
+    resetBufferTimer(){
+        if (this.buffer.timer !== -1){
+            clearTimeout(this.buffer.timer);
+        }
+    }
+
+    setBufferTimer(){
+        this.resetBufferTimer();
+        this.buffer.timer = setTimeout(this.onBufferTimer, LOGCAT_STREAM_OPTIONS.DURATION_PER_DATA_EVENT);
+    }
+
+    addToBuffer(message) {
+        let entries = this.parseMessages(message);
+        if (entries !== null && entries.length > 0){
+            this.resetBufferTimer();
+            this.buffer.entries.push(...entries);
+            if (this.buffer.entries.length >= LOGCAT_STREAM_OPTIONS.ENTRIES_PER_PACKAGE) {
+                this.onBufferTimer();
+            } else {
+                this.setBufferTimer();
+            }
+        }
+    }
+
+    decodeBuffer(message){
+        try {
+            return this.decoder.write(message);
+        } catch (error){
+            return null;
+        }
+    }
+
+    onBufferTimer(){
+        const outgoingWSCommands = require('./websocket.commands.processor.js');
+        this.clientGUID !== null && ServerEmitter.emitter.emit(ServerEmitter.EVENTS.SEND_VIA_WS, this.clientGUID, outgoingWSCommands.COMMANDS.ADBLogcatData, {
+            stream      : this.GUID,
+            entries     : this.buffer.entries.filter(x=>true)
+        });
+        this.resetBufferTimer();
+        this.resetBuffer();
+    }
+
+    filter(entry) {
+        let result = true;
+        this.clientGUID === null && (result = false);
+        this.settings.pid   !== null && (this.settings.pid != entry.pid && (result = false));
+        this.settings.tid   !== null && (this.settings.tid != entry.tid && (result = false));
+        if (this.settings.tags !== null && typeof entry.tag === 'string' && entry.tag.trim() !== '') {
+            this.settings.tags.indexOf(entry.tag.toLowerCase()) === -1 && (result = false);
+        }
+        return result;
+    }
+
+    getGUID(){
+        return this.GUID;
+    }
+
+    parseMessages(data){
+        let message = this.decodeBuffer(data);
+        if (typeof message !== 'string'){
+            return null;
+        }
+        //Add rest from previous
+        message = this.buffer.rest + message;
+        //Split messages
+        let entries = message.split('\n');
+        //Exclude rest (not finished message)
+        if (message.search(/\n$/gi) === -1){
+            this.buffer.rest = entries[entries.length - 1];
+            entries.splice(-1, 1);
+        } else {
+            this.buffer.rest = '';
+        }
+        //Filter empty messages
+        entries = entries.filter((message) => {
+            return message.trim() !== '';
+        });
+        //Parsing messages
+        entries = entries.map((message) => {
+            return this.parseMessage(message);
+        });
+        //Filter message
+        entries = entries.filter((entry) => {
+            return this.filter(entry);
+        });
+        return entries;
+    }
+
+    parseMessage(str){
+        const date      = /^[\d-]* [\d:\.]*/gi;
+        const spaces    = /^[\s]*/gi;
+        const pid       = /^[\d]*/gi;
+        const tid       = /^[\d]*/gi;
+        const tag       = /^\w/gi;
+        let result = {
+            date    : '',
+            pid     : '',
+            tid     : '',
+            tag     : '',
+            message : '',
+            original: str
+        };
+        if (typeof str !== 'string') {
+            return null;
+        }
+        let match = str.match(date);
+        match instanceof Array && (match.length === 1 && (result.date = match[0]));
+        str = str.replace(date, '').replace(spaces, '');
+        match = str.match(pid);
+        match instanceof Array && (match.length === 1 && (result.pid = match[0]));
+        str = str.replace(pid, '').replace(spaces, '');
+        match = str.match(tid);
+        match instanceof Array && (match.length === 1 && (result.tid = match[0]));
+        str = str.replace(tid, '').replace(spaces, '');
+        match = str.match(tag);
+        match instanceof Array && (match.length === 1 && (result.tag = match[0]));
+        str = str.replace(tag, '').replace(spaces, '');
+        result.message = str;
+        return result;
+    }
+
+    onData(data) {
+        this.addToBuffer(data);
+    }
+
+}
+
+class ADBStream {
+
+    constructor(){
+        this.streams            = {};
+        this.onClientDisconnect = this.onClientDisconnect.bind(this);
+        this.spawnProcess       = new SpawnProcess();
+        ServerEmitter.emitter.on(ServerEmitter.EVENTS.CLIENT_IS_DISCONNECTED, this.onClientDisconnect );
+    }
+
+    open(clientGUID, settings, callback){
+        let spawn = this.spawnProcess.getProcess();
+        if (spawn === null) {
+            let msg = `[${Signature}]: client ${clientGUID} cannot open logcat stream. Error: ${spawn.getError().message}`;
+            console.log(msg);
+            return callback(false, new Error(msg));
+        }
+        if (typeof clientGUID !== 'string' || clientGUID.trim() === ''){
+            let msg = `[${Signature}]: clientGUID isn't defined or defined incorrectly.`;
+            console.log(msg);
+            return callback(false, new Error(msg));
+        }
+        if (this.streams[clientGUID] !== void 0) {
+            let msg = `[${Signature}]: client ${clientGUID} already is listening logcat stream.`;
+            console.log(msg);
+            return callback(false, new Error(msg));
+        }
+        let stream  = new LogcatStream(clientGUID, settings, spawn.stdout);
+        let error   = stream.open();
+        if (error !== true){
+            let msg = `[${Signature}]: client ${clientGUID} cannot open logcat stream. Error: ${error.message}`;
+            console.log(msg);
+            return callback(false, new Error(msg));
+        }
+        this.streams[clientGUID] = stream;
+        console.log(`[${Signature}]: client ${clientGUID} started listen logcat stream.`);
+        callback(stream.getGUID(), null);
+    }
+
+    setSettings(clientGUID, settings, callback){
+        if (this.streams[clientGUID] === void 0) {
+            let msg = `[${Signature}]: client ${clientGUID} isn't listening logcat stream.`;
+            console.log(msg);
+            return callback(false, new Error(msg));
+        }
+        this.streams[clientGUID].setSettings(settings);
+        callback(true, null);
+    }
+
+    close(clientGUID){
+        if (this.streams[clientGUID] !== void 0){
+            this.streams[clientGUID].destroy();
+            delete this.streams[clientGUID];
+            Object.keys(this.streams).length === 0 && this.spawnProcess.destroy();
+            console.log(`[${Signature}]: client ${clientGUID} stopped listen logcat stream.`);
+        }
+    }
+
+    onClientDisconnect(connection, clientGUID){
+        this.close(clientGUID);
+    }
+
+}
+
+let adbStream = new ADBStream();
+
+module.exports = adbStream;
+

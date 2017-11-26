@@ -42,6 +42,34 @@ class APICommands{
             callback(null, new Error('Not defined [connection].'))
         }
     }
+
+    openLogcatStream(income, response, callback){
+        let ADBStream = require('./service.adb');
+        ADBStream.open(income.GUID, income.params.settings, (streamGUID, error) => {
+            if (error === null){
+                callback(streamGUID, null);
+            } else {
+                callback(null, error);
+            }
+        });
+    }
+
+    setSettingsLogcatStream(income, response, callback){
+        let ADBStream = require('./service.adb');
+        ADBStream.setSettings(income.GUID, income.params.settings, (result, error) => {
+            if (error === null){
+                callback(true, null);
+            } else {
+                callback(null, error);
+            }
+        });
+    }
+
+    closeLogcatStream(income, response, callback){
+        let ADBStream = require('./service.adb');
+        ADBStream.close(income.GUID);
+        callback(true, null);
+    }
 };
 
 module.exports = APICommands;

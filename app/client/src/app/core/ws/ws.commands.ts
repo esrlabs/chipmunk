@@ -10,7 +10,8 @@ const COMMANDS = {
     WriteToSerial           : 'WriteToSerial',
     ResultWrittenToSerial   : 'ResultWrittenToSerial',
     UpdateIsAvailable       : 'UpdateIsAvailable',
-    UpdateDownloadProgress  : 'UpdateDownloadProgress'
+    UpdateDownloadProgress  : 'UpdateDownloadProgress',
+    ADBLogcatData           : 'ADBLogcatData'
 };
 
 class WSCommands{
@@ -34,7 +35,7 @@ class WSCommands{
      * Commands
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     //OUTGOING
-    [COMMANDS.greeting              ](message : WSCommandMessage, sender: Function){
+    [COMMANDS.greeting                  ](message : WSCommandMessage, sender: Function){
         sender({
             GUID    : this.GUID,
             command : COMMANDS.greeting,
@@ -42,7 +43,7 @@ class WSCommands{
         });
     }
 
-    [COMMANDS.WriteToSerial         ](message : WSCommandMessage, sender: Function){
+    [COMMANDS.WriteToSerial             ](message : WSCommandMessage, sender: Function){
         sender({
             GUID    : this.GUID,
             command : COMMANDS.WriteToSerial,
@@ -51,7 +52,7 @@ class WSCommands{
     }
 
     //INCOME
-    [COMMANDS.GUIDAccepted          ](message : WSCommandMessage, sender: Function){
+    [COMMANDS.GUIDAccepted              ](message : WSCommandMessage, sender: Function){
         if (this.GUID === message.GUID){
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.API_GUID_IS_ACCEPTED, message.GUID);
             Logs.msg(_('Client GUID was accepted by server. GUID: ') + this.GUID, TYPES.DEBUG);
@@ -60,27 +61,33 @@ class WSCommands{
         }
     }
 
-    [COMMANDS.SerialData            ](message : WSCommandMessage, sender: Function){
+    [COMMANDS.SerialData                ](message : WSCommandMessage, sender: Function){
         if (typeof message.params === 'object' && message.params !== null && typeof message.params.connection === 'string' && typeof message.params.data === 'string'){
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.SERIAL_DATA_COME, message.params);
         }
     }
 
-    [COMMANDS.ResultWrittenToSerial ](message : WSCommandMessage, sender: Function){
+    [COMMANDS.ResultWrittenToSerial     ](message : WSCommandMessage, sender: Function){
         if (typeof message.params === 'object' && message.params !== null && typeof message.params.serialGUID === 'string' && typeof message.params.packageGUID === 'string'){
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_TO_SERIAL_SENT, message.params);
         }
     }
 
-    [COMMANDS.UpdateIsAvailable ](message : WSCommandMessage, sender: Function){
+    [COMMANDS.UpdateIsAvailable         ](message : WSCommandMessage, sender: Function){
         if (typeof message.params === 'object' && message.params !== null){
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.UPDATE_IS_AVAILABLE, message.params);
         }
     }
 
-    [COMMANDS.UpdateDownloadProgress ](message : WSCommandMessage, sender: Function){
+    [COMMANDS.UpdateDownloadProgress    ](message : WSCommandMessage, sender: Function){
         if (typeof message.params === 'object' && message.params !== null){
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.UPDATE_DOWNLOAD_PROGRESS, message.params);
+        }
+    }
+
+    [COMMANDS.ADBLogcatData             ](message : WSCommandMessage, sender: Function){
+        if (typeof message.params === 'object' && message.params !== null && typeof message.params.stream === 'string' && message.params.entries instanceof Array){
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.ADB_LOGCAT_DATA_COME, message.params);
         }
     }
 

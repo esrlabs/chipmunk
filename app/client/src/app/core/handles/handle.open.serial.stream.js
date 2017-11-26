@@ -104,6 +104,7 @@ var SerialStream = (function () {
         controller_events_1.events.unbind(controller_config_1.configuration.sets.SYSTEM_EVENTS.SERIAL_DATA_COME, this.onData);
         controller_events_1.events.unbind(controller_config_1.configuration.sets.SYSTEM_EVENTS.TXT_DATA_COME, this.onStreamReset);
         controller_events_1.events.unbind(controller_config_1.configuration.sets.SYSTEM_EVENTS.READY_TO_SEND_DATA_TO_SERIAL, this.onReadyToSendData);
+        controller_events_1.events.unbind(controller_config_1.configuration.sets.SYSTEM_EVENTS.WS_DISCONNECTED, this.onLostConnection);
         //Kill buttons
         Object.keys(this.buttons).forEach(function (button) {
             controller_events_1.events.trigger(controller_config_1.configuration.sets.EVENTS_TOOLBAR.REMOVE_BUTTON, _this.buttons[button]);

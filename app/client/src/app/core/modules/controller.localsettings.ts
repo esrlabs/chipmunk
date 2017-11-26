@@ -15,7 +15,8 @@ const KEYs = {
     view_searchrequests : 'view_searchrequests',
     view_charts         : 'view_charts',
     serial_ports        : 'serial_ports',
-    themes              : 'themes'
+    themes              : 'themes',
+    adblogccat_stream   : 'adblogccat_stream'
 };
 
 class ControllerLocalSettings{

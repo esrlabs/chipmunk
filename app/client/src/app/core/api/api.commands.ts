@@ -1,8 +1,11 @@
 const APICommands = {
-    OPEN_FILE_STREAM : 'openFileStream',
-    serialPortsList  : 'serialPortsList',
-    openSerialPort   : 'openSerialPort',
-    closeSerialStream: 'closeSerialStream'
+    OPEN_FILE_STREAM        : 'openFileStream',
+    serialPortsList         : 'serialPortsList',
+    openSerialPort          : 'openSerialPort',
+    closeSerialStream       : 'closeSerialStream',
+    openLogcatStream        : 'openLogcatStream',
+    setSettingsLogcatStream : 'setSettingsLogcatStream',
+    closeLogcatStream       : 'closeLogcatStream'
 };
 
 function isAPICommandValid(command: string){
