@@ -10,6 +10,8 @@ import { APIProcessor                   } from '../api/api.processor';
 import { APICommands                    } from '../api/api.commands';
 import { APIResponse                    } from '../api/api.response.interface';
 import { DialogADBLogcatStreamSettings  } from '../components/common/dialogs/adblogcat.settings/component';
+import { DialogMessage                  } from '../components/common/dialogs/dialog-message/component';
+
 
 import { localSettings, KEYs            } from '../../core/modules/controller.localsettings';
 
@@ -47,6 +49,10 @@ const BUTTONS_CAPTIONS = {
     SETTINGS: 'settings of stream'
 };
 
+const ERRORS = {
+    ADB_SPAWN_01: 'ADB_SPAWN_01'
+};
+
 const DEFAULT_STREAM_SETTINGS = {
     levels : {
         V: true,
@@ -57,8 +63,9 @@ const DEFAULT_STREAM_SETTINGS = {
         D: true,
         S: true
     },
-    tid: -1,
-    pid: -1
+    tid : -1,
+    pid : -1,
+    path: ''
 };
 
 interface LocalLevelsSettings {
@@ -74,13 +81,15 @@ interface LocalLevelsSettings {
 interface LocalSettings {
     levels  : LocalLevelsSettings,
     tid     : number,
-    pid     : number
+    pid     : number,
+    path    : string
 }
 
 interface LogcatStreamSettings {
     pid : string,
     tid : string,
-    tags: Array<string>
+    tags: Array<string>,
+    path: string
 }
 
 class SettingsController{
@@ -114,7 +123,8 @@ class SettingsController{
         return {
             pid : settings.pid > 0 ? settings.pid.toString() : '',
             tid : settings.tid > 0 ? settings.tid.toString() : '',
-            tags: tags.length === 7 ? null : tags
+            tags: tags.length === 7 ? null : tags,
+            path: settings.path
         }
     }
 }
@@ -145,7 +155,6 @@ class LogcatStream {
         Events.bind(Configuration.sets.SYSTEM_EVENTS.TXT_DATA_COME,                     this.onStreamReset);
         Events.bind(Configuration.sets.SYSTEM_EVENTS.WS_DISCONNECTED,                   this.onLostConnection);
         this.addButtonsInToolBar();
-        this.applyDefaultSettings();
     }
 
     addButtonsInToolBar(){
@@ -215,7 +224,8 @@ class LogcatStream {
         let settings    = this.Settings.load();
         let params      = Object.assign({}, settings.levels) as any;
         params.tid      = settings.tid;
-        params.pid      = settings.pid
+        params.pid      = settings.pid;
+        params.path     = settings.path;
         params.proceed  = this.onApplySettings.bind(this, GUID);
         params.cancel   = this.onCancelSettings.bind(this, GUID);
         popupController.open({
@@ -246,11 +256,6 @@ class LogcatStream {
         this.hidePopup(GUID);
     }
 
-    applyDefaultSettings(){
-        let settings = this.Settings.load();
-        this.applySettings(this.Settings.convert(settings));
-    }
-
     applySettings(settings: LogcatStreamSettings){
         this.processor.send(
             APICommands.setSettingsLogcatStream,
@@ -264,7 +269,6 @@ class LogcatStream {
 
     onCancelSettings(GUID: symbol){
         this.hidePopup(GUID);
-
     }
 
     hidePopup(GUID: symbol){
@@ -299,10 +303,11 @@ class LogcatStream {
 }
 
 class OpenADBLogcatStream implements MenuHandleInterface{
-    private GUID            : symbol        = Symbol();
-    private progressGUID    : symbol        = Symbol();
-    private processor       : any           = APIProcessor;
-    private listening       : boolean       = false;
+    private GUID            : symbol                = Symbol();
+    private progressGUID    : symbol                = Symbol();
+    private processor       : any                   = APIProcessor;
+    private listening       : boolean               = false;
+    private Settings        : SettingsController    = new SettingsController();
 
     constructor(){
     }
@@ -313,10 +318,11 @@ class OpenADBLogcatStream implements MenuHandleInterface{
 
     openStream(){
         this.showProgress(_('Please wait... Opening...'));
+        let settings = this.Settings.load();
         this.processor.send(
             APICommands.openLogcatStream,
             {
-                settings : null
+                settings : this.Settings.convert(settings)
             },
             this.onStreamOpened.bind(this)
         );
@@ -330,7 +336,11 @@ class OpenADBLogcatStream implements MenuHandleInterface{
                 this.listening = true;
                 this.attachStream(response.output);
             } else{
-                this.showMessage(_('Error'), _('Server returned failed result. Code of error: ') + response.code + _('. Addition data: ') + this.outputToString(response.output));
+                if (~response.output.indexOf(ERRORS.ADB_SPAWN_01)){
+                    this.showPromptToSettings();
+                } else {
+                    this.showMessage(_('Error'), _('Server returned failed result. Code of error: ') + response.code + _('. Addition data: ') + this.outputToString(response.output));
+                }
             }
         } else {
             this.showMessage(_('Error'), error.message);
@@ -398,6 +408,85 @@ class OpenADBLogcatStream implements MenuHandleInterface{
             titlebuttons    : [],
             GUID            : this.progressGUID
         });
+    }
+
+    showPromptToSettings(){
+        let guid = Symbol();
+        popupController.open({
+            content : {
+                factory     : null,
+                component   : DialogMessage,
+                params      : {
+                    message: 'It looks like LogViewer cannot find adb SDK. You can open settings of ADB Logcat and define direct path to adb SDK. Be sure, that you have installed adb SDK on your system.',
+                    buttons: [
+                        {
+                            caption: 'Open settings',
+                            handle : this.showSettings.bind(this, guid)
+                        },
+                        {
+                            caption: 'Close',
+                            handle : ()=>{
+                                this.hidePopup(guid);
+                            }
+                        }
+                    ]
+                }
+            },
+            title   : 'Cannot find adb SDK',
+            settings: {
+                move            : true,
+                resize          : true,
+                width           : '30rem',
+                height          : '15rem',
+                close           : true,
+                addCloseHandle  : true,
+                css             : ''
+            },
+            buttons         : [],
+            titlebuttons    : [],
+            GUID            : guid
+        });
+    }
+
+    showSettings(){
+        let GUID        = Symbol();
+        let settings    = this.Settings.load();
+        let params      = Object.assign({}, settings.levels) as any;
+        params.tid      = settings.tid;
+        params.pid      = settings.pid;
+        params.path     = settings.path;
+        params.proceed  = this.onApplySettings.bind(this, GUID);
+        params.cancel   = this.onCancelSettings.bind(this, GUID);
+        popupController.open({
+            content : {
+                factory     : null,
+                component   : DialogADBLogcatStreamSettings,
+                params      : params
+            },
+            title   : _('Configuration of ADB logcat stream: '),
+            settings: {
+                move            : true,
+                resize          : true,
+                width           : '40rem',
+                height          : '35rem',
+                close           : true,
+                addCloseHandle  : true,
+                css             : ''
+            },
+            buttons         : [],
+            titlebuttons    : [],
+            GUID            : GUID
+        });
+    }
+
+    onApplySettings(GUID: symbol, settings: LocalSettings){
+        this.Settings.save(settings);
+        this.openStream();
+        this.hidePopup(GUID);
+    }
+
+    onCancelSettings(GUID: symbol){
+        this.hidePopup(GUID);
     }
 
     hidePopup(GUID: symbol){

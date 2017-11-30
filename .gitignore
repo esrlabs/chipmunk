@@ -45,4 +45,6 @@ desktop/dist
 client/build
 client/src/app/css/light.css
 client/src/app/css/dark.css
+app/client/src/app/css/light.css
+app/client/src/app/css/dark.css
 

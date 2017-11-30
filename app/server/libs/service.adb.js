@@ -10,12 +10,27 @@ const LOGCAT_STREAM_OPTIONS = {
     DURATION_PER_DATA_EVENT : 200 //ms. If duration between on Data event less than here, data will be included into one package
 };
 
+const PLATFORMS = {
+    DARWIN    : 'darwin',
+    LINUX     : 'linux',
+    WIN32     : 'win32'
+};
+
 class SpawnProcess {
 
     constructor() {
         this.error      = null;
         this.spawn      = null;
+        this.adbAlias   = '';
+        this.getAdbAlias();
         process.on('exit', this.destroy.bind(this));
+    }
+
+    getAdbAlias(){
+        this.adbAlias = 'adb';
+        if (process.platform === PLATFORMS.WIN32) {
+            this.adbAlias = 'adb.exe';
+        }
     }
 
     getPath(path){
@@ -26,22 +41,25 @@ class SpawnProcess {
                 path.indexOf('/usr/local/bin'  ) === -1 && (path = '/usr/local/bin:' + path);
                 path.indexOf('/usr/local/sbin' ) === -1 && (path = '/usr/local/sbin:' + path);
             }
+            return path;
+        } else {
+            return path + ':' + process.env.PATH;
         }
-        return path;
     }
 
     getProcess(path) {
+        console.log('path>>>>> ' + path);
         if (this.spawn !== null) {
             return this.spawn;
         }
         path = this.getPath(path);
         try {
-            this.spawn = spawn('adb', ['logcat', '-b', 'all'], {
+            this.spawn = spawn(this.adbAlias, ['logcat', '-b', 'all'], {
                 env: {
                     PATH: path
                 }
             }).on('error', (error) => {
-                console.log(`[${Signature}]: Error to execute adb: ${error.message}. PATH=${path}`);
+                console.log(`[${Signature}]: [ADB_SPAWN_01] Error to execute adb: ${error.message}. PATH=${path}`);
                 this.error = error;
                 this.spawn = null;
             });
@@ -51,10 +69,9 @@ class SpawnProcess {
             this.spawn = null;
         }
         if (this.spawn !== null && (typeof this.spawn.pid !== 'number' || this.spawn.pid <= 0)){
-            this.error = new Error(`Fail to execute adb. PATH=${path}`);
+            this.error = new Error(`[ADB_SPAWN_01] Fail to execute adb. PATH=${path}`);
             this.spawn = null;
         }
-        //   ‌/usr/local/sbin:/usr/local/mysql/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
         return this.spawn;
     }
 
@@ -257,7 +274,7 @@ class ADBStream {
 
     open(clientGUID, settings, callback){
         let spawn = this.spawnProcess.getProcess(
-            settings !== null ? (typeof settings === 'object' ? settings.PATH : null) : null
+            settings !== null ? (typeof settings === 'object' ? settings.path : null) : null
         );
         if (spawn === null) {
             let msg = `[${Signature}]: client ${clientGUID} cannot open logcat stream. Error: ${this.spawnProcess.getError().message}`;
