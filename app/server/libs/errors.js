@@ -8,6 +8,28 @@ const ERRORS = {
 };
 
 class Errors{
+
+    contentToStr(content){
+        let result = '';
+        (content instanceof Array ? content : [content]).forEach((content)=>{
+            if (typeof content === 'string') {
+                result += content;
+            } else if (typeof content === 'object' && content !== null && typeof content.message === 'string'){
+                result += content.message;
+            } else if (content !== null && typeof content.toString === 'function'){
+                result += content.toString();
+            } else {
+                try {
+                    let parsed = JSON.stringify(content);
+                    result += parsed;
+                } catch (error){
+
+                }
+            }
+        });
+        return result
+    }
+
     process(error, response, content){
         switch (error){
             case ERRORS.TOO_LARGE_REQ:
@@ -21,7 +43,7 @@ class Errors{
             case ERRORS.PARSING_COMMAND_ERROR:
                 let res     = new Response();
                 res.code    = error;
-                res.output  = content;
+                res.output  = this.contentToStr(content);
                 ResponseSender(res, response);
                 return true;
             default:

@@ -18,17 +18,43 @@ class SpawnProcess {
         process.on('exit', this.destroy.bind(this));
     }
 
-    getProcess() {
+    getPath(path){
+        if (typeof path !== 'string' || path.trim() === ''){
+            path = process.env.PATH;
+            if (~path.indexOf('/usr/bin') !== -1 || ~path.indexOf('/usr/sbin') !== -1){
+                //Linux & darwin patch
+                path.indexOf('/usr/local/bin'  ) === -1 && (path = '/usr/local/bin:' + path);
+                path.indexOf('/usr/local/sbin' ) === -1 && (path = '/usr/local/sbin:' + path);
+            }
+        }
+        return path;
+    }
+
+    getProcess(path) {
         if (this.spawn !== null) {
             return this.spawn;
         }
+        path = this.getPath(path);
         try {
-            this.spawn = spawn('adb', ['logcat', '-b', 'all']);
+            this.spawn = spawn('adb', ['logcat', '-b', 'all'], {
+                env: {
+                    PATH: path
+                }
+            }).on('error', (error) => {
+                console.log(`[${Signature}]: Error to execute adb: ${error.message}. PATH=${path}`);
+                this.error = error;
+                this.spawn = null;
+            });
             this.error = null;
         } catch (error) {
             this.error = error;
             this.spawn = null;
         }
+        if (this.spawn !== null && (typeof this.spawn.pid !== 'number' || this.spawn.pid <= 0)){
+            this.error = new Error(`Fail to execute adb. PATH=${path}`);
+            this.spawn = null;
+        }
+        //   ‌/usr/local/sbin:/usr/local/mysql/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
         return this.spawn;
     }
 
@@ -230,9 +256,11 @@ class ADBStream {
     }
 
     open(clientGUID, settings, callback){
-        let spawn = this.spawnProcess.getProcess();
+        let spawn = this.spawnProcess.getProcess(
+            settings !== null ? (typeof settings === 'object' ? settings.PATH : null) : null
+        );
         if (spawn === null) {
-            let msg = `[${Signature}]: client ${clientGUID} cannot open logcat stream. Error: ${spawn.getError().message}`;
+            let msg = `[${Signature}]: client ${clientGUID} cannot open logcat stream. Error: ${this.spawnProcess.getError().message}`;
             console.log(msg);
             return callback(false, new Error(msg));
         }

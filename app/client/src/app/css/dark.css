@@ -310,31 +310,6 @@ view-controller-search-results .export-url {
   height: 1px;
   opacity: 0.001;
 }
-view-controller-state-monitor {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-view-controller-state-monitor ul {
-  display: block;
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding: 0;
-  margin: 0;
-  list-style: none;
-  text-align: center;
-}
-view-controller-state-monitor ul li {
-  position: relative;
-  display: inline-block;
-  width: 10rem;
-  height: 7rem;
-  margin: 1rem;
-}
 view-controller-stream-sender {
   position: absolute;
   width: 100%;
@@ -405,6 +380,40 @@ view-controller-stream-sender .history-wrapper .history li {
 view-controller-stream-sender .history-wrapper .history li.selected {
   border: 1px dotted #646464;
 }
+view-controller-state-monitor {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-state-monitor ul {
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  text-align: center;
+}
+view-controller-state-monitor ul li {
+  position: relative;
+  display: inline-block;
+  width: 10rem;
+  height: 7rem;
+  margin: 1rem;
+}
+root-holder {
+  position: fixed;
+  z-index: 100;
+}
+.connection-indicate-wrapper {
+  position: fixed;
+  bottom: 0.5rem;
+  right: 0.5rem;
+}
 body {
   margin: 0;
   padding: 0;
@@ -422,14 +431,39 @@ layout .layout {
   width: 100%;
   height: 100%;
 }
-root-holder {
-  position: fixed;
-  z-index: 100;
+view-controller-chart {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
-.connection-indicate-wrapper {
-  position: fixed;
-  bottom: 0.5rem;
-  right: 0.5rem;
+view-controller-chart .area {
+  fill: steelblue;
+  clip-path: url(#clip);
+}
+view-controller-chart .zoom {
+  cursor: move;
+  fill: none;
+  pointer-events: all;
+}
+view-controller-chart .axis path,
+view-controller-chart .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+view-controller-chart .line {
+  fill: none;
+  stroke-width: 1.5px;
+}
+view-controller-chart .label {
+  text-anchor: middle;
+}
+view-controller-chart .label rect {
+  fill: white;
+}
+view-controller-chart .label-key {
+  font-weight: bold;
 }
 view-controller-chart-manager {
   position: absolute;
@@ -466,40 +500,6 @@ view-controller-chart-manager .view-charts-manager-buttons {
 }
 view-controller-chart-manager .view-charts-manager-buttons * {
   font-size: 0.85rem;
-}
-view-controller-chart {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-view-controller-chart .area {
-  fill: steelblue;
-  clip-path: url(#clip);
-}
-view-controller-chart .zoom {
-  cursor: move;
-  fill: none;
-  pointer-events: all;
-}
-view-controller-chart .axis path,
-view-controller-chart .axis line {
-  fill: none;
-  stroke: #000;
-  shape-rendering: crispEdges;
-}
-view-controller-chart .line {
-  fill: none;
-  stroke-width: 1.5px;
-}
-view-controller-chart .label {
-  text-anchor: middle;
-}
-view-controller-chart .label rect {
-  fill: white;
-}
-view-controller-chart .label-key {
-  font-weight: bold;
 }
 list-view-item {
   position: relative;
@@ -839,6 +839,44 @@ view-controller-search-results .export-url {
   height: 1px;
   opacity: 0.001;
 }
+stream-sender-history-item {
+  position: relative;
+  display: block;
+  margin: 0 0.5rem;
+  cursor: pointer;
+}
+stream-sender-history-item span {
+  position: relative;
+  display: inline-block;
+  font-size: 0.75rem;
+  height: 1rem;
+  line-height: 1rem;
+}
+stream-sender-history-item .time {
+  color: #282828;
+  min-width: 3rem;
+}
+stream-sender-history-item .usage {
+  color: #646464;
+  min-width: 2rem;
+}
+stream-sender-history-item .value {
+  color: #646464;
+  white-space: nowrap;
+}
+stream-sender-history-item .value.match {
+  color: #f0f0f0;
+  white-space: nowrap;
+}
+stream-sender-history-item .remove {
+  position: absolute;
+  right: 0.5rem;
+  opacity: 0.4;
+}
+stream-sender-history-item .remove:hover {
+  color: #f01e1e;
+  opacity: 1;
+}
 view-controller-state-monitor-manager {
   position: absolute;
   width: 100%;
@@ -970,51 +1008,6 @@ view-controller-state-monitor ul li {
   height: 7rem;
   margin: 1rem;
 }
-stream-sender-history-item {
-  position: relative;
-  display: block;
-  margin: 0 0.5rem;
-  cursor: pointer;
-}
-stream-sender-history-item span {
-  position: relative;
-  display: inline-block;
-  font-size: 0.75rem;
-  height: 1rem;
-  line-height: 1rem;
-}
-stream-sender-history-item .time {
-  color: #282828;
-  min-width: 3rem;
-}
-stream-sender-history-item .usage {
-  color: #646464;
-  min-width: 2rem;
-}
-stream-sender-history-item .value {
-  color: #646464;
-  white-space: nowrap;
-}
-stream-sender-history-item .value.match {
-  color: #f0f0f0;
-  white-space: nowrap;
-}
-stream-sender-history-item .remove {
-  position: absolute;
-  right: 0.5rem;
-  opacity: 0.4;
-}
-stream-sender-history-item .remove:hover {
-  color: #f01e1e;
-  opacity: 1;
-}
-holder {
-  position: absolute;
-  top: 3rem;
-  bottom: 0;
-  left: 0;
-  right: 0;
-}
 view {
   position: absolute;
   border: thin dotted #323232;
@@ -1080,6 +1073,13 @@ view .wrapper .view-border-top {
 }
 view .wrapper .view-border-bottom {
   bottom: 0;
+}
+holder {
+  position: absolute;
+  top: 3rem;
+  bottom: 0;
+  left: 0;
+  right: 0;
 }
 view-bar {
   display: table;
@@ -1177,6 +1177,113 @@ view-bar .right li.mark:hover {
 view:hover view-bar {
   box-shadow: none;
 }
+top-bar-drop-down-menu {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 3rem;
+  height: 3rem;
+}
+top-bar-drop-down-menu .top-bar-correction .list-wrapper-corrector {
+  margin-left: calc(100% - 0.5rem) !important;
+}
+.top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3rem;
+  z-index: 100;
+}
+.top-bar .top-tool-bar-wrapper {
+  position: absolute;
+  display: table;
+  width: calc(100% - 3rem);
+  height: 100%;
+}
+.top-bar .top-tool-bar-wrapper topbar-space-holder {
+  position: relative;
+  display: table-cell;
+  width: auto;
+  height: 100%;
+}
+.top-bar .top-tool-bar-wrapper topbar-search-request {
+  position: relative;
+  display: table-cell;
+  width: 100%;
+  height: 100%;
+}
+.top-bar .request {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+.top-bar .request .buttons {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  text-align: right;
+}
+.top-bar .request .buttons .icon {
+  position: relative;
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  opacity: 0.4;
+}
+.top-bar .request .buttons .icon.active {
+  opacity: 1;
+}
+.top-bar .progress {
+  position: absolute;
+  height: 0.5rem;
+  bottom: 0;
+  left: 50%;
+  width: 20rem;
+  margin-left: -10rem;
+}
+topbar-space-holder .space-holder {
+  position: relative;
+  display: table;
+  width: 100%;
+  height: 100%;
+}
+topbar-space-holder .space-holder .shortcuts-holder {
+  display: table-cell;
+  position: relative;
+  width: 100%;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  vertical-align: middle;
+}
+topbar-space-holder .space-holder .shortcuts-holder .shortcuts {
+  display: block;
+  position: relative;
+  width: 100%;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  white-space: nowrap;
+}
+topbar-space-holder .space-holder .shortcuts-holder .shortcuts li {
+  position: relative;
+  display: inline-block;
+  width: 3rem;
+  height: 3rem;
+  margin: 0;
+  padding: 0;
+}
+topbar-space-holder .shortcuts {
+  position: relative;
+}
+file-loader input {
+  display: block;
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  opacity: 0.01;
+}
 drop-down-menu {
   position: relative;
 }
@@ -1258,13 +1365,6 @@ drop-down-menu .wrapper .list-wrapper-corrector .list-wrapper .list li .line {
 drop-down-menu .wrapper .button:hover ~ .list-wrapper-corrector .list {
   display: block;
 }
-file-loader input {
-  display: block;
-  position: absolute;
-  width: 100px;
-  height: 100px;
-  opacity: 0.01;
-}
 .input {
   position: absolute;
   width: 100%;
@@ -1322,6 +1422,279 @@ long-list .wrapper .rows li {
 long-list .wrapper .rows li.show {
   opacity: 1;
   display: block;
+}
+progressbar-circle .wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  top: 0;
+  left: 0;
+}
+progressbar-circle .wrapper .label {
+  position: relative;
+  display: block;
+  text-align: center;
+  font-family: 'Roboto Condensed', Verdana, Arial, Helvetica, sans-serif;
+  font-size: 1em;
+  top: 50%;
+  margin-top: -3em;
+  color: #5b6991;
+}
+progressbar-circle .wrapper .particle {
+  position: absolute;
+  width: 2.5em;
+  height: 2.5em;
+  border-radius: 1.25em;
+  top: 50%;
+  left: 50%;
+  margin: -1.25em 0 0 -1.25em;
+  opacity: 0;
+  animation: progressbar-circle-animation 2050ms cubic-bezier(0.65, 0.95, 0.41, 0.13) 0ms infinite normal;
+  -webkit-animation: progressbar-circle-animation 2050ms cubic-bezier(0.65, 0.95, 0.41, 0.13) 0ms infinite normal;
+  -moz-animation: progressbar-circle-animation 2050ms cubic-bezier(0.65, 0.95, 0.41, 0.13) 0ms infinite normal;
+  -o-animation: progressbar-circle-animation 2050ms cubic-bezier(0.65, 0.95, 0.41, 0.13) 0ms infinite normal;
+}
+progressbar-circle .wrapper .particle:after {
+  position: absolute;
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 2px;
+  background: #a8c873;
+  /*box-shadow      : 0 0 1px rgba(0,0,0,0.4);*/
+  bottom: 0;
+  left: 50%;
+}
+progressbar-circle .wrapper .particle[data-addition-type="0"] {
+  -moz-animation-delay: 0ms;
+  -o-animation-delay: 0ms;
+  -webkit-animation-delay: 0ms;
+  animation-delay: 0ms;
+}
+progressbar-circle .wrapper .particle[data-addition-type="1"] {
+  -moz-animation-delay: 200ms;
+  -o-animation-delay: 200ms;
+  -webkit-animation-delay: 200ms;
+  animation-delay: 200ms;
+}
+progressbar-circle .wrapper .particle[data-addition-type="2"] {
+  -moz-animation-delay: 400ms;
+  -o-animation-delay: 400ms;
+  -webkit-animation-delay: 400ms;
+  animation-delay: 400ms;
+}
+progressbar-circle .wrapper .particle[data-addition-type="3"] {
+  -moz-animation-delay: 600ms;
+  -o-animation-delay: 600ms;
+  -webkit-animation-delay: 600ms;
+  animation-delay: 600ms;
+}
+progressbar-circle .wrapper .particle[data-addition-type="4"] {
+  -moz-animation-delay: 800ms;
+  -o-animation-delay: 800ms;
+  -webkit-animation-delay: 800ms;
+  animation-delay: 800ms;
+}
+progressbar-circle .wrapper .particle[data-addition-type="5"] {
+  -moz-animation-delay: 1000ms;
+  -o-animation-delay: 1000ms;
+  -webkit-animation-delay: 1000ms;
+  animation-delay: 1000ms;
+}
+@keyframes progressbar-circle-animation {
+  0% {
+    -moz-transform: rotateZ(0deg);
+    -ms-transform: rotateZ(0deg);
+    -o-transform: rotateZ(0deg);
+    -webkit-transform: rotateZ(0deg);
+    transform: rotateZ(0deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    -moz-transform: rotateZ(360deg);
+    -ms-transform: rotateZ(360deg);
+    -o-transform: rotateZ(360deg);
+    -webkit-transform: rotateZ(360deg);
+    transform: rotateZ(360deg);
+    opacity: 0;
+  }
+}
+@-moz-keyframes progressbar-circle-animation {
+  0% {
+    -moz-transform: rotateZ(0deg);
+    -ms-transform: rotateZ(0deg);
+    -o-transform: rotateZ(0deg);
+    -webkit-transform: rotateZ(0deg);
+    transform: rotateZ(0deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    -moz-transform: rotateZ(360deg);
+    -ms-transform: rotateZ(360deg);
+    -o-transform: rotateZ(360deg);
+    -webkit-transform: rotateZ(360deg);
+    transform: rotateZ(360deg);
+    opacity: 0;
+  }
+}
+@-webkit-keyframes progressbar-circle-animation {
+  0% {
+    -moz-transform: rotateZ(0deg);
+    -ms-transform: rotateZ(0deg);
+    -o-transform: rotateZ(0deg);
+    -webkit-transform: rotateZ(0deg);
+    transform: rotateZ(0deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    -moz-transform: rotateZ(360deg);
+    -ms-transform: rotateZ(360deg);
+    -o-transform: rotateZ(360deg);
+    -webkit-transform: rotateZ(360deg);
+    transform: rotateZ(360deg);
+    opacity: 0;
+  }
+}
+progressbar-progress {
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+progressbar-progress .wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+progressbar-progress .wrapper .border {
+  position: absolute;
+  top: 0.25rem;
+  left: 0.25rem;
+  bottom: 0.25rem;
+  right: 0.25rem;
+  border: thin solid #fafafa;
+  overflow: hidden;
+}
+progressbar-progress .wrapper .border .filler {
+  position: absolute;
+  left: 0;
+  height: 100%;
+  background: #1ef01e;
+}
+progressbar-line .wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  top: 0;
+  left: 0;
+}
+progressbar-line .wrapper .particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 2px;
+  background: #a8c873;
+  top: 50%;
+  left: 50%;
+  margin: -2px 0 0 -2px;
+  opacity: 0;
+  animation: progressbar-line-animation 2050ms cubic-bezier(0.17, 0.76, 0.73, 0.4) 0ms infinite normal;
+  -webkit-animation: progressbar-line-animation 2050ms cubic-bezier(0.17, 0.76, 0.73, 0.4) 0ms infinite normal;
+  -moz-animation: progressbar-line-animation 2050ms cubic-bezier(0.17, 0.76, 0.73, 0.4) 0ms infinite normal;
+  -o-animation: progressbar-line-animation 2050ms cubic-bezier(0.17, 0.76, 0.73, 0.4) 0ms infinite normal;
+}
+progressbar-line .wrapper .particle[data-addition-type="0"] {
+  -moz-animation-delay: 0ms;
+  -o-animation-delay: 0ms;
+  -webkit-animation-delay: 0ms;
+  animation-delay: 0ms;
+}
+progressbar-line .wrapper .particle[data-addition-type="1"] {
+  -moz-animation-delay: 200ms;
+  -o-animation-delay: 200ms;
+  -webkit-animation-delay: 200ms;
+  animation-delay: 200ms;
+}
+progressbar-line .wrapper .particle[data-addition-type="2"] {
+  -moz-animation-delay: 400ms;
+  -o-animation-delay: 400ms;
+  -webkit-animation-delay: 400ms;
+  animation-delay: 400ms;
+}
+progressbar-line .wrapper .particle[data-addition-type="3"] {
+  -moz-animation-delay: 600ms;
+  -o-animation-delay: 600ms;
+  -webkit-animation-delay: 600ms;
+  animation-delay: 600ms;
+}
+progressbar-line .wrapper .particle[data-addition-type="4"] {
+  -moz-animation-delay: 800ms;
+  -o-animation-delay: 800ms;
+  -webkit-animation-delay: 800ms;
+  animation-delay: 800ms;
+}
+progressbar-line .wrapper .particle[data-addition-type="5"] {
+  -moz-animation-delay: 1000ms;
+  -o-animation-delay: 1000ms;
+  -webkit-animation-delay: 1000ms;
+  animation-delay: 1000ms;
+}
+@keyframes progressbar-line-animation {
+  0% {
+    opacity: 0;
+    left: 0.01%;
+  }
+  50% {
+    opacity: 1;
+    left: 50%;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+@-moz-keyframes progressbar-line-animation {
+  0% {
+    opacity: 0;
+    left: 0.01%;
+  }
+  50% {
+    opacity: 1;
+    left: 50%;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+@-webkit-keyframes progressbar-line-animation {
+  0% {
+    opacity: 0;
+    left: 0.01%;
+  }
+  50% {
+    opacity: 1;
+    left: 50%;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
 }
 popup {
   position: fixed;
@@ -1474,279 +1847,6 @@ popup .popup .corner-bl {
   left: 0;
   cursor: nesw-resize;
 }
-progressbar-circle .wrapper {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  top: 0;
-  left: 0;
-}
-progressbar-circle .wrapper .label {
-  position: relative;
-  display: block;
-  text-align: center;
-  font-family: 'Roboto Condensed', Verdana, Arial, Helvetica, sans-serif;
-  font-size: 1em;
-  top: 50%;
-  margin-top: -3em;
-  color: #5b6991;
-}
-progressbar-circle .wrapper .particle {
-  position: absolute;
-  width: 2.5em;
-  height: 2.5em;
-  border-radius: 1.25em;
-  top: 50%;
-  left: 50%;
-  margin: -1.25em 0 0 -1.25em;
-  opacity: 0;
-  animation: progressbar-circle-animation 2050ms cubic-bezier(0.65, 0.95, 0.41, 0.13) 0ms infinite normal;
-  -webkit-animation: progressbar-circle-animation 2050ms cubic-bezier(0.65, 0.95, 0.41, 0.13) 0ms infinite normal;
-  -moz-animation: progressbar-circle-animation 2050ms cubic-bezier(0.65, 0.95, 0.41, 0.13) 0ms infinite normal;
-  -o-animation: progressbar-circle-animation 2050ms cubic-bezier(0.65, 0.95, 0.41, 0.13) 0ms infinite normal;
-}
-progressbar-circle .wrapper .particle:after {
-  position: absolute;
-  content: '';
-  width: 4px;
-  height: 4px;
-  border-radius: 2px;
-  background: #a8c873;
-  /*box-shadow      : 0 0 1px rgba(0,0,0,0.4);*/
-  bottom: 0;
-  left: 50%;
-}
-progressbar-circle .wrapper .particle[data-addition-type="0"] {
-  -moz-animation-delay: 0ms;
-  -o-animation-delay: 0ms;
-  -webkit-animation-delay: 0ms;
-  animation-delay: 0ms;
-}
-progressbar-circle .wrapper .particle[data-addition-type="1"] {
-  -moz-animation-delay: 200ms;
-  -o-animation-delay: 200ms;
-  -webkit-animation-delay: 200ms;
-  animation-delay: 200ms;
-}
-progressbar-circle .wrapper .particle[data-addition-type="2"] {
-  -moz-animation-delay: 400ms;
-  -o-animation-delay: 400ms;
-  -webkit-animation-delay: 400ms;
-  animation-delay: 400ms;
-}
-progressbar-circle .wrapper .particle[data-addition-type="3"] {
-  -moz-animation-delay: 600ms;
-  -o-animation-delay: 600ms;
-  -webkit-animation-delay: 600ms;
-  animation-delay: 600ms;
-}
-progressbar-circle .wrapper .particle[data-addition-type="4"] {
-  -moz-animation-delay: 800ms;
-  -o-animation-delay: 800ms;
-  -webkit-animation-delay: 800ms;
-  animation-delay: 800ms;
-}
-progressbar-circle .wrapper .particle[data-addition-type="5"] {
-  -moz-animation-delay: 1000ms;
-  -o-animation-delay: 1000ms;
-  -webkit-animation-delay: 1000ms;
-  animation-delay: 1000ms;
-}
-@keyframes progressbar-circle-animation {
-  0% {
-    -moz-transform: rotateZ(0deg);
-    -ms-transform: rotateZ(0deg);
-    -o-transform: rotateZ(0deg);
-    -webkit-transform: rotateZ(0deg);
-    transform: rotateZ(0deg);
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    -moz-transform: rotateZ(360deg);
-    -ms-transform: rotateZ(360deg);
-    -o-transform: rotateZ(360deg);
-    -webkit-transform: rotateZ(360deg);
-    transform: rotateZ(360deg);
-    opacity: 0;
-  }
-}
-@-moz-keyframes progressbar-circle-animation {
-  0% {
-    -moz-transform: rotateZ(0deg);
-    -ms-transform: rotateZ(0deg);
-    -o-transform: rotateZ(0deg);
-    -webkit-transform: rotateZ(0deg);
-    transform: rotateZ(0deg);
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    -moz-transform: rotateZ(360deg);
-    -ms-transform: rotateZ(360deg);
-    -o-transform: rotateZ(360deg);
-    -webkit-transform: rotateZ(360deg);
-    transform: rotateZ(360deg);
-    opacity: 0;
-  }
-}
-@-webkit-keyframes progressbar-circle-animation {
-  0% {
-    -moz-transform: rotateZ(0deg);
-    -ms-transform: rotateZ(0deg);
-    -o-transform: rotateZ(0deg);
-    -webkit-transform: rotateZ(0deg);
-    transform: rotateZ(0deg);
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    -moz-transform: rotateZ(360deg);
-    -ms-transform: rotateZ(360deg);
-    -o-transform: rotateZ(360deg);
-    -webkit-transform: rotateZ(360deg);
-    transform: rotateZ(360deg);
-    opacity: 0;
-  }
-}
-progressbar-line .wrapper {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  top: 0;
-  left: 0;
-}
-progressbar-line .wrapper .particle {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  border-radius: 2px;
-  background: #a8c873;
-  top: 50%;
-  left: 50%;
-  margin: -2px 0 0 -2px;
-  opacity: 0;
-  animation: progressbar-line-animation 2050ms cubic-bezier(0.17, 0.76, 0.73, 0.4) 0ms infinite normal;
-  -webkit-animation: progressbar-line-animation 2050ms cubic-bezier(0.17, 0.76, 0.73, 0.4) 0ms infinite normal;
-  -moz-animation: progressbar-line-animation 2050ms cubic-bezier(0.17, 0.76, 0.73, 0.4) 0ms infinite normal;
-  -o-animation: progressbar-line-animation 2050ms cubic-bezier(0.17, 0.76, 0.73, 0.4) 0ms infinite normal;
-}
-progressbar-line .wrapper .particle[data-addition-type="0"] {
-  -moz-animation-delay: 0ms;
-  -o-animation-delay: 0ms;
-  -webkit-animation-delay: 0ms;
-  animation-delay: 0ms;
-}
-progressbar-line .wrapper .particle[data-addition-type="1"] {
-  -moz-animation-delay: 200ms;
-  -o-animation-delay: 200ms;
-  -webkit-animation-delay: 200ms;
-  animation-delay: 200ms;
-}
-progressbar-line .wrapper .particle[data-addition-type="2"] {
-  -moz-animation-delay: 400ms;
-  -o-animation-delay: 400ms;
-  -webkit-animation-delay: 400ms;
-  animation-delay: 400ms;
-}
-progressbar-line .wrapper .particle[data-addition-type="3"] {
-  -moz-animation-delay: 600ms;
-  -o-animation-delay: 600ms;
-  -webkit-animation-delay: 600ms;
-  animation-delay: 600ms;
-}
-progressbar-line .wrapper .particle[data-addition-type="4"] {
-  -moz-animation-delay: 800ms;
-  -o-animation-delay: 800ms;
-  -webkit-animation-delay: 800ms;
-  animation-delay: 800ms;
-}
-progressbar-line .wrapper .particle[data-addition-type="5"] {
-  -moz-animation-delay: 1000ms;
-  -o-animation-delay: 1000ms;
-  -webkit-animation-delay: 1000ms;
-  animation-delay: 1000ms;
-}
-@keyframes progressbar-line-animation {
-  0% {
-    opacity: 0;
-    left: 0.01%;
-  }
-  50% {
-    opacity: 1;
-    left: 50%;
-  }
-  100% {
-    left: 100%;
-    opacity: 0;
-  }
-}
-@-moz-keyframes progressbar-line-animation {
-  0% {
-    opacity: 0;
-    left: 0.01%;
-  }
-  50% {
-    opacity: 1;
-    left: 50%;
-  }
-  100% {
-    left: 100%;
-    opacity: 0;
-  }
-}
-@-webkit-keyframes progressbar-line-animation {
-  0% {
-    opacity: 0;
-    left: 0.01%;
-  }
-  50% {
-    opacity: 1;
-    left: 50%;
-  }
-  100% {
-    left: 100%;
-    opacity: 0;
-  }
-}
-progressbar-progress {
-  display: block;
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-}
-progressbar-progress .wrapper {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-}
-progressbar-progress .wrapper .border {
-  position: absolute;
-  top: 0.25rem;
-  left: 0.25rem;
-  bottom: 0.25rem;
-  right: 0.25rem;
-  border: thin solid #fafafa;
-  overflow: hidden;
-}
-progressbar-progress .wrapper .border .filler {
-  position: absolute;
-  left: 0;
-  height: 100%;
-  background: #1ef01e;
-}
 common-tabs {
   position: absolute;
   width: 100%;
@@ -1815,106 +1915,6 @@ common-tabs .tabs-content li.src-content-tab {
   right: 0;
   bottom: 0;
   overflow: hidden;
-}
-top-bar-drop-down-menu {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 3rem;
-  height: 3rem;
-}
-top-bar-drop-down-menu .top-bar-correction .list-wrapper-corrector {
-  margin-left: calc(100% - 0.5rem) !important;
-}
-.top-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3rem;
-  z-index: 100;
-}
-.top-bar .top-tool-bar-wrapper {
-  position: absolute;
-  display: table;
-  width: calc(100% - 3rem);
-  height: 100%;
-}
-.top-bar .top-tool-bar-wrapper topbar-space-holder {
-  position: relative;
-  display: table-cell;
-  width: auto;
-  height: 100%;
-}
-.top-bar .top-tool-bar-wrapper topbar-search-request {
-  position: relative;
-  display: table-cell;
-  width: 100%;
-  height: 100%;
-}
-.top-bar .request {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-}
-.top-bar .request .buttons {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  text-align: right;
-}
-.top-bar .request .buttons .icon {
-  position: relative;
-  display: inline-block;
-  width: 2rem;
-  height: 2rem;
-  opacity: 0.4;
-}
-.top-bar .request .buttons .icon.active {
-  opacity: 1;
-}
-.top-bar .progress {
-  position: absolute;
-  height: 0.5rem;
-  bottom: 0;
-  left: 50%;
-  width: 20rem;
-  margin-left: -10rem;
-}
-topbar-space-holder .space-holder {
-  position: relative;
-  display: table;
-  width: 100%;
-  height: 100%;
-}
-topbar-space-holder .space-holder .shortcuts-holder {
-  display: table-cell;
-  position: relative;
-  width: 100%;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  vertical-align: middle;
-}
-topbar-space-holder .space-holder .shortcuts-holder .shortcuts {
-  display: block;
-  position: relative;
-  width: 100%;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  white-space: nowrap;
-}
-topbar-space-holder .space-holder .shortcuts-holder .shortcuts li {
-  position: relative;
-  display: inline-block;
-  width: 3rem;
-  height: 3rem;
-  margin: 0;
-  padding: 0;
-}
-topbar-space-holder .shortcuts {
-  position: relative;
 }
 view-controller-chart-manager-set {
   position: relative;
@@ -2377,65 +2377,6 @@ dialog-api-settings .buttons {
   height: 2.5rem;
   bottom: 0;
 }
-chart-edit-color-dialog {
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  right: 0.5rem;
-  bottom: 0.5rem;
-  overflow: hidden;
-}
-chart-edit-color-dialog .chart-colors {
-  position: absolute;
-  top: 0;
-  width: 100%;
-  bottom: 4.5rem;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-chart-edit-color-dialog .chart-colors .chart-colors-foreground,
-chart-edit-color-dialog .chart-colors .chart-colors-background {
-  position: absolute;
-  width: 50%;
-  height: 100%;
-  left: 0;
-}
-chart-edit-color-dialog .chart-colors .chart-colors-background {
-  left: 50%;
-}
-chart-edit-color-dialog .chart-hook {
-  position: absolute;
-  top: calc(100% - 4.5rem);
-  width: 100%;
-  height: 2rem;
-}
-chart-edit-color-dialog .chart-hook .chart-color-example {
-  position: relative;
-  height: 2rem;
-  text-align: center;
-}
-chart-edit-color-dialog .chart-hook .chart-color-example p {
-  display: inline-block;
-  margin: 0.25rem;
-  padding: 0.25rem;
-  font-size: 0.85rem;
-  line-height: 0.85rem;
-  text-align: center;
-  border: thin solid #646464;
-  cursor: default;
-}
-chart-edit-color-dialog .chart-hook .chart-value {
-  position: relative;
-  height: 2rem;
-  border: 1px dotted #646464;
-}
-chart-edit-color-dialog .chart-controls {
-  position: absolute;
-  width: 100%;
-  bottom: 0;
-  height: 2.5rem;
-  text-align: right;
-}
 chart-edit-rules-hooks-dialog {
   position: absolute;
   top: 0.5rem;
@@ -2618,6 +2559,65 @@ chart-edit-rules-hooks-dialog .chart-errors-wrapper p {
   bottom: 0.5rem;
   width: 100%;
   left: 0;
+}
+chart-edit-color-dialog {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow: hidden;
+}
+chart-edit-color-dialog .chart-colors {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  bottom: 4.5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+chart-edit-color-dialog .chart-colors .chart-colors-foreground,
+chart-edit-color-dialog .chart-colors .chart-colors-background {
+  position: absolute;
+  width: 50%;
+  height: 100%;
+  left: 0;
+}
+chart-edit-color-dialog .chart-colors .chart-colors-background {
+  left: 50%;
+}
+chart-edit-color-dialog .chart-hook {
+  position: absolute;
+  top: calc(100% - 4.5rem);
+  width: 100%;
+  height: 2rem;
+}
+chart-edit-color-dialog .chart-hook .chart-color-example {
+  position: relative;
+  height: 2rem;
+  text-align: center;
+}
+chart-edit-color-dialog .chart-hook .chart-color-example p {
+  display: inline-block;
+  margin: 0.25rem;
+  padding: 0.25rem;
+  font-size: 0.85rem;
+  line-height: 0.85rem;
+  text-align: center;
+  border: thin solid #646464;
+  cursor: default;
+}
+chart-edit-color-dialog .chart-hook .chart-value {
+  position: relative;
+  height: 2rem;
+  border: 1px dotted #646464;
+}
+chart-edit-color-dialog .chart-controls {
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+  height: 2.5rem;
+  text-align: right;
 }
 chart-edit-rules-segments-dialog {
   position: absolute;
@@ -2964,6 +2964,55 @@ image-dialog .image-dialog-img {
   background-repeat: no-repeat;
   background-origin: content-box;
 }
+dialog-serial-settings {
+  position: absolute;
+  display: block;
+  top: 0.5rem;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  right: 0.5rem;
+}
+dialog-serial-settings .settings {
+  position: absolute;
+  width: 100%;
+  top: 0;
+  bottom: 2.5rem;
+  overflow: auto;
+}
+dialog-serial-settings .settings table {
+  position: relative;
+  width: 100%;
+}
+dialog-serial-settings .settings table tr td:first-child {
+  position: relative;
+  width: 100%;
+  font-size: 0.85rem;
+  padding: 0.25rem 0;
+  margin: 0;
+  font-weight: normal;
+  color: #a0a0a0;
+}
+dialog-serial-settings .settings table tr td:first-child span {
+  font-weight: bold;
+  color: #1e1e1e;
+}
+dialog-serial-settings .settings table tr td:last-child {
+  padding: 0.25rem 0.5rem;
+  margin: 0;
+  position: relative;
+  min-width: 5rem;
+}
+dialog-serial-settings .settings table tr .input-cover {
+  position: relative;
+  width: 100%;
+  height: 1.5rem;
+}
+dialog-serial-settings .buttons {
+  position: absolute;
+  width: 100%;
+  height: 2.5rem;
+  bottom: 0;
+}
 markers-edit-dialog {
   position: absolute;
   top: 0.5rem;
@@ -3022,55 +3071,6 @@ markers-edit-dialog .marker-controls {
   bottom: 0;
   height: 2.5rem;
   text-align: right;
-}
-dialog-serial-settings {
-  position: absolute;
-  display: block;
-  top: 0.5rem;
-  left: 0.5rem;
-  bottom: 0.5rem;
-  right: 0.5rem;
-}
-dialog-serial-settings .settings {
-  position: absolute;
-  width: 100%;
-  top: 0;
-  bottom: 2.5rem;
-  overflow: auto;
-}
-dialog-serial-settings .settings table {
-  position: relative;
-  width: 100%;
-}
-dialog-serial-settings .settings table tr td:first-child {
-  position: relative;
-  width: 100%;
-  font-size: 0.85rem;
-  padding: 0.25rem 0;
-  margin: 0;
-  font-weight: normal;
-  color: #a0a0a0;
-}
-dialog-serial-settings .settings table tr td:first-child span {
-  font-weight: bold;
-  color: #1e1e1e;
-}
-dialog-serial-settings .settings table tr td:last-child {
-  padding: 0.25rem 0.5rem;
-  margin: 0;
-  position: relative;
-  min-width: 5rem;
-}
-dialog-serial-settings .settings table tr .input-cover {
-  position: relative;
-  width: 100%;
-  height: 1.5rem;
-}
-dialog-serial-settings .buttons {
-  position: absolute;
-  width: 100%;
-  height: 2.5rem;
-  bottom: 0;
 }
 dialog-serialports-list {
   position: absolute;
@@ -3441,37 +3441,6 @@ dialog-themes-list .dialog-themes-list li p {
 dialog-themes-list .dialog-themes-list li p:hover {
   background: rgba(50, 50, 50, 0.4);
 }
-dialog-update {
-  display: block;
-  position: absolute;
-  top: 0.5rem;
-  left: 1rem;
-  bottom: 0.5rem;
-  right: 1rem;
-}
-dialog-update .progress-holder {
-  position: relative;
-  width: 100%;
-  height: 1.5rem;
-}
-dialog-update div.info {
-  position: relative;
-  width: 100%;
-  overflow: auto;
-  height: 5rem;
-}
-dialog-update p.info {
-  font-size: 1rem;
-  color: #fafafa;
-  margin: 0.5rem 0;
-  padding: 0;
-}
-dialog-update p.sub-info {
-  font-size: 0.75rem;
-  color: #323232;
-  padding: 0;
-  margin: 0.25rem 0;
-}
 views-list {
   position: absolute;
   display: block;
@@ -3537,6 +3506,51 @@ views-list .views-list li:hover .description {
   box-shadow: 0 0 0.15rem rgba(250, 250, 250, 0.4) inset;
   z-index: 100;
 }
+dialog-update {
+  display: block;
+  position: absolute;
+  top: 0.5rem;
+  left: 1rem;
+  bottom: 0.5rem;
+  right: 1rem;
+}
+dialog-update .progress-holder {
+  position: relative;
+  width: 100%;
+  height: 1.5rem;
+}
+dialog-update div.info {
+  position: relative;
+  width: 100%;
+  overflow: auto;
+  height: 5rem;
+}
+dialog-update p.info {
+  font-size: 1rem;
+  color: #fafafa;
+  margin: 0.5rem 0;
+  padding: 0;
+}
+dialog-update p.sub-info {
+  font-size: 0.75rem;
+  color: #323232;
+  padding: 0;
+  margin: 0.25rem 0;
+}
+simple-dd-list {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: block;
+}
+simple-dd-list select {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: block;
+  font-size: 0.85rem;
+}
 simple-list {
   position: relative;
   width: 100%;
@@ -3566,20 +3580,6 @@ simple-list ul li {
 simple-list ul li:hover {
   color: #fafafa;
   background: rgba(80, 80, 80, 0.4);
-}
-simple-dd-list {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  display: block;
-}
-simple-dd-list select {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  display: block;
-  font-size: 0.85rem;
 }
 connection-state {
   position: relative;

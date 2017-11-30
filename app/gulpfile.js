@@ -47,20 +47,11 @@ const CONFIGURATION = {
     },
     [PLATFORMS.LINUX] : {
         linux: {
-            category: "public.app-category.developer-tools",
+            //category: "public.app-category.developer-tools",
         }
     },
     [PLATFORMS.WIN32] : {
         win: {
-            target: [
-                {
-                    target: "msi",
-                    arch: [
-                        "x64",
-                        "ia32"
-                    ]
-                }
-            ]
         }
     }
 };
@@ -76,6 +67,7 @@ const PLATFORMS_DEPS = {
         "7zip-bin-linux"    : "latest"
     },
     [PLATFORMS.WIN32]   : {
+        "7zip-bin-win"      : "^2.1.1"
     }
 };
 

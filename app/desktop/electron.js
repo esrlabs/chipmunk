@@ -14,12 +14,7 @@ const UPDATER_EVENTS = {
     DOWNLOADED      : 'update-downloaded',
     ERROR           : 'error'
 };
-/*
-            ServerEmitter.emitter.emit(ServerEmitter.EVENTS.SEND_VIA_WS, clientGUID, outgoingWSCommands.COMMANDS.SerialData, {
-                connection  : this.GUID,
-                data        : str
-            });
-* */
+
 class Updater {
 
     constructor() {
