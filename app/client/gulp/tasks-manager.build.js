@@ -6,6 +6,12 @@ const TASKS = {
     COPY    : 'copy'
 };
 
+const PLATFORMS = {
+    DARWIN    : 'darwin',
+    LINUX     : 'linux',
+    WIN32     : 'win32'
+};
+
 const PATHS = require('./config.js');
 
 const gulp      = require('gulp');
@@ -14,15 +20,24 @@ const spawn     = require('child_process').spawn;
 class BuildingTasks {
 
     constructor(){
+        this._npm = null;
+        this._detectNPM();
         this._createCompileTasks();
         this._createNPMTasks();
         this._createCopyTask();
         this._create();
     }
 
+    _detectNPM(){
+        this._npm = 'npm';
+        if (process.platform === PLATFORMS.WIN32) {
+            this._npm = 'npm.cmd';
+        }
+    }
+
     _createCompileTasks(){
         gulp.task(TASKS.COMPILE, (done) => {
-            this._process = spawn('npm', ['run', 'build']);
+            this._process = spawn(this._npm, ['run', 'build']);
             this._process.stdout.on('data', this._onOutput.bind(this, TASKS.COMPILE));
             this._process.stderr.on('data', this._onOutput.bind(this, TASKS.COMPILE));
             this._process.on('close', done);
@@ -31,7 +46,7 @@ class BuildingTasks {
 
     _createNPMTasks(){
         gulp.task(TASKS.NPM, (done) => {
-            this._process = spawn('npm', ['install', '--production'], { cwd: './build' });
+            this._process = spawn(this._npm, ['install', '--production'], { cwd: './build' });
             this._process.stdout.on('data', this._onOutput.bind(this, TASKS.NPM));
             this._process.stderr.on('data', this._onOutput.bind(this, TASKS.NPM));
             this._process.on('close', done);

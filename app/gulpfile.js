@@ -71,6 +71,30 @@ const PLATFORMS_DEPS = {
     }
 };
 
+const SCRIPTS = {
+    COMMON              : {
+        "dist"          : "gulp",
+        "postinstall"   : "electron-builder install-app-deps"
+    },
+    [PLATFORMS.DARWIN]  : {
+        "build"     : "./node_modules/.bin/build --mac",
+        "publish"   : "./node_modules/.bin/build --mac -p always"
+    },
+    [PLATFORMS.LINUX]   : {
+        "build"     : "./node_modules/.bin/build --linux",
+        "publish"   : "./node_modules/.bin/build --linux -p always"
+    },
+    [PLATFORMS.WIN32]   : {
+        "build"     : "./node_modules/.bin/build --win",
+        "publish"   : "./node_modules/.bin/build --win -p always"
+    }
+};
+
+const SETTINGS = {
+    publish : { key: ['-p', '--publish'],   value: false },
+    build   : { key: ['-b', '--build'],     value: false }
+};
+
 
 
 const gulp      = require('gulp');
@@ -78,8 +102,38 @@ const spawn     = require('child_process').spawn;
 
 class BuildingTasks {
 
-    constructor(){
+    constructor() {
+        this._settings = {};
+        this._npm = null;
+        this._parseCommandKeys();
+        this._validateSettings();
+        this._detectNPM();
+    }
 
+    _parseCommandKeys() {
+        this._settings = {};
+        Object.keys(SETTINGS).forEach((key) => {
+            this._settings[key] = SETTINGS[key].value;
+            if (process.argv instanceof Array) {
+                SETTINGS[key].key.forEach((param)=>{
+                    ~process.argv.indexOf(param) && (this._settings[key] = true);
+                });
+            }
+        });
+    }
+
+    _validateSettings(){
+        if ((!this._settings.publish && !this._settings.build) || (this._settings.publish && this._settings.build)){
+            console.log('Please run gulp script with flag --publish or --build');
+            throw new Error('Please run gulp script with flag --publish or --build');
+        }
+    }
+
+    _detectNPM(){
+        this._npm = 'npm';
+        if (process.platform === PLATFORMS.WIN32) {
+            this._npm = 'npm.cmd';
+        }
     }
 
     _isPlatformAvailable(){
@@ -94,6 +148,10 @@ class BuildingTasks {
 
     _getBuildConfiguration(){
         return Object.assign(CONFIGURATION.COMMON, CONFIGURATION[process.platform]);
+    }
+
+    _getScriptsForPlatform(){
+        return Object.assign(SCRIPTS.COMMON, SCRIPTS[process.platform]);
     }
 
     [TASKS.CLEAR_APP](){
@@ -125,11 +183,11 @@ class BuildingTasks {
     }
 
     [TASKS.INSTALL_CLIENT](){
-        this._createSpawnTask(TASKS.INSTALL_CLIENT, 'npm', ['install'], { cwd: './client' });
+        this._createSpawnTask(TASKS.INSTALL_CLIENT, this._npm, ['install'], { cwd: './client' });
     }
 
     [TASKS.BUILD_CLIENT](){
-        this._createSpawnTask(TASKS.BUILD_CLIENT, 'npm', ['run', 'dist'], { cwd: './client' });
+        this._createSpawnTask(TASKS.BUILD_CLIENT, this._npm, ['run', 'dist'], { cwd: './client' });
     }
 
     [TASKS.COPY_SERVER](){
@@ -159,22 +217,25 @@ class BuildingTasks {
             let _server         = FS.readFileSync('desktop/server/package.json', {encoding: 'utf8'});
             let devDependencies = this._getDepsForPlatform();
             let buildConfig     = this._getBuildConfiguration();
+            let scripts         = this._getScriptsForPlatform();
             _app    = JSON.parse(_app);
             _server = JSON.parse(_server);
             _app.dependencies       = Object.assign(_app.dependencies       !== void 0 ? _app.dependencies      : {}, _server.dependencies !== void 0 ? _server.dependencies : {});
             _app.devDependencies    = Object.assign(_app.devDependencies    !== void 0 ? _app.devDependencies   : {}, devDependencies);
             _app.build              = Object.assign(_app.build              !== void 0 ? _app.build             : {}, buildConfig);
+            //scripts will be overwriten
+            _app.scripts            = scripts;
             FS.writeFileSync('desktop/package.json', JSON.stringify(_app), { encoding: 'utf8' });
             done();
         });
     }
 
     [TASKS.INSTALL_ELECTRON](){
-        this._createSpawnTask(TASKS.INSTALL_ELECTRON, 'npm', ['install'], { cwd: './desktop' });
+        this._createSpawnTask(TASKS.INSTALL_ELECTRON, this._npm, ['install'], { cwd: './desktop' });
     }
 
     [TASKS.BUILD](){
-        this._createSpawnTask(TASKS.BUILD, 'npm', ['run', 'publish'], { cwd: './desktop' });
+        this._createSpawnTask(TASKS.BUILD, this._npm, ['run', this._settings.publish ? 'publish' : 'build'], { cwd: './desktop' });
     }
 
     _onOutput(task, data){
