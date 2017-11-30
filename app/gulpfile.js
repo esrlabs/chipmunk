@@ -43,15 +43,18 @@ const CONFIGURATION = {
     [PLATFORMS.DARWIN]  : {
         mac: {
             category: "public.app-category.developer-tools",
+            icon: './build/mac/icon.icns'
         }
     },
     [PLATFORMS.LINUX] : {
         linux: {
             //category: "public.app-category.developer-tools",
+            icon: './build/png'
         }
     },
     [PLATFORMS.WIN32] : {
         win: {
+            icon: './build/win/icon.ico'
         }
     }
 };
