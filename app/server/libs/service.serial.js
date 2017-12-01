@@ -136,10 +136,16 @@ class Port{
         return this.port;
     }
 
+
     close(callback){
-        this.ready = false;
-        this.instance.close(callback);
-        console.log('[' + Signature + '][session: ' + this.GUID + ']:: Port is closed: ' + this.port);
+        if (this.ready) {
+            this.ready = false;
+            this.instance.close(callback);
+            console.log('[' + Signature + '][session: ' + this.GUID + ']:: Port is closed: ' + this.port);
+        } else {
+            callback();
+            console.log('[' + Signature + '][session: ' + this.GUID + ']:: Port is already closed: ' + this.port);
+        }
     }
 
     logAndCallWithError(msg, callback, error){
@@ -291,9 +297,11 @@ class ServiceSerialStream{
 
     close(clientGUID, connection, callback){
         if (this.ports[connection] !== void 0){
+            this.ports[connection].removeClient(clientGUID);
             this.ports[connection].close((error)=>{
                 callback(error);
             });
+            this.clearNotUsedPorts();
         }
     }
 
@@ -305,6 +313,14 @@ class ServiceSerialStream{
             return this.ports[GUID].countClients() === 0;
         }).forEach((GUID)=>{
             this.ports[GUID].close();
+            delete this.ports[GUID];
+        });
+    }
+
+    clearNotUsedPorts(){
+        Object.keys(this.ports).filter((GUID)=>{
+            return this.ports[GUID].countClients() === 0;
+        }).forEach((GUID)=>{
             delete this.ports[GUID];
         });
     }
@@ -328,6 +344,7 @@ class ServiceSerialStream{
         });
         return _port;
     }
+
 
     onClientDisconnect(connection, clientGUID){
         this.closePortsOfClient(clientGUID);
