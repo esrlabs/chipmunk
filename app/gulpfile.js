@@ -106,11 +106,14 @@ const spawn     = require('child_process').spawn;
 class BuildingTasks {
 
     constructor() {
-        this._settings = {};
-        this._npm = null;
+        const StringDecoder = require('string_decoder').StringDecoder;
+        this._decoder       = new StringDecoder('utf8');
+        this._settings      = {};
+        this._npm           = null;
         this._parseCommandKeys();
         this._validateSettings();
         this._detectNPM();
+        process.env.FORCE_COLOR = true;
     }
 
     _parseCommandKeys() {
@@ -242,12 +245,13 @@ class BuildingTasks {
     }
 
     _onOutput(task, data){
-        console.log(`[${task}]: ${data}`);
+        var message = this._decoder.write(data);
+        console.log(`[${task}]: ${message.trim()}`);
     }
 
     _createSpawnTask(task, ...args){
         gulp.task(task, (done) => {
-            this._attachProcess(spawn(...args), task, done);
+            this._attachProcess(spawn(...args, { env: process.env }), task, done);
         });
     }
 

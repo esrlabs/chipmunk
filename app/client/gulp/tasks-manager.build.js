@@ -26,6 +26,9 @@ class BuildingTasks {
         this._createNPMTasks();
         this._createCopyTask();
         this._create();
+        const StringDecoder = require('string_decoder').StringDecoder;
+        this._decoder       = new StringDecoder('utf8');
+        process.env.FORCE_COLOR = true;
     }
 
     _detectNPM(){
@@ -36,25 +39,28 @@ class BuildingTasks {
     }
 
     _createCompileTasks(){
-        gulp.task(TASKS.COMPILE, (done) => {
-            this._process = spawn(this._npm, ['run', 'build']);
-            this._process.stdout.on('data', this._onOutput.bind(this, TASKS.COMPILE));
-            this._process.stderr.on('data', this._onOutput.bind(this, TASKS.COMPILE));
-            this._process.on('close', done);
-        });
+        this._createSpawnTask(TASKS.COMPILE, this._npm, ['run', 'build']);
     }
 
     _createNPMTasks(){
-        gulp.task(TASKS.NPM, (done) => {
-            this._process = spawn(this._npm, ['install', '--production'], { cwd: './build' });
-            this._process.stdout.on('data', this._onOutput.bind(this, TASKS.NPM));
-            this._process.stderr.on('data', this._onOutput.bind(this, TASKS.NPM));
-            this._process.on('close', done);
+        this._createSpawnTask(TASKS.NPM, this._npm, ['install', '--production'], { cwd: './build' })
+    }
+
+    _createSpawnTask(task, ...args){
+        gulp.task(task, (done) => {
+            this._attachProcess(spawn(...args, { env: process.env }), task, done);
         });
     }
 
+    _attachProcess(_process, task, done){
+        _process.stdout.on('data', this._onOutput.bind(this, task));
+        _process.stderr.on('data', this._onOutput.bind(this, task));
+        _process.on('close', done);
+    }
+
     _onOutput(task, data){
-        console.log(`[${task}]: ${data}`);
+        var message = this._decoder.write(data);
+        console.log(`[${task}]: ${message.trim()}`);
     }
 
     _createCopyTask(){
