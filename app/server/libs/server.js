@@ -1,4 +1,4 @@
-const Signature     = 'Server';
+const logger            = new (require('./tools.logger'))('Server');
 
 const SETTINGS          = require('../config.js'),
       Errors            = require('./errors'),
@@ -49,15 +49,15 @@ class Server {
         let http = require('http');
         this.probPort(SETTINGS.HTTP_PORT, (available) => {
             if (available) {
-                console.log('[' + Signature + ']:: Creating server on  http://127.0.0.1:' + SETTINGS.HTTP_PORT + '/');
+                logger.info('Creating server on  http://127.0.0.1:' + SETTINGS.HTTP_PORT + '/');
                 this.server     = http.createServer(this.onRequest.bind(this));
-                console.log('[' + Signature + ']:: Server is created. Start listening http://127.0.0.1:' + SETTINGS.HTTP_PORT + '/');
+                logger.info('Server is created. Start listening http://127.0.0.1:' + SETTINGS.HTTP_PORT + '/')
                 this.server.listen(SETTINGS.HTTP_PORT);
                 //Create WS Server
                 this.wsServer       = new WSServer(this.server);
                 this.WSEventEmitter = this.wsServer.create();
             } else {
-                console.log('[' + Signature + ']:: Default port is used: ' + SETTINGS.HTTP_PORT + '. Will try: ' + (++SETTINGS.HTTP_PORT));
+                logger.warning('Default port is used: ' + SETTINGS.HTTP_PORT + '. Will try: ' + (++SETTINGS.HTTP_PORT))
                 this.create();
             }
         });
@@ -74,10 +74,10 @@ class Server {
         this.allowAnyOrigin(response);
         switch (request.method){
             case METHODS.GET:
-                console.log('[' + Signature + ']:: Get GET request. Url: ' + request.url);
+                logger.info('Get GET request. Url: ' + request.url);
                 return this.onGET(request, response);
             case METHODS.POST:
-                console.log('[' + Signature + ']:: Get POST request. Url: ' + request.url);
+                logger.info('Get POST request. Url: ' + request.url);
                 return this.onPOST(request, response);
         }
     }
@@ -95,7 +95,7 @@ class Server {
                         processor.proceed((result, errors)=>{
                             if (errors instanceof Array || errors !== null){
                                 (errors instanceof Array ? errors : [errors]).forEach((error)=>{
-                                    console.log('[' + Signature + ']:: ' + error.message);
+                                    logger.error(error.message);
                                 });
                                 this.errors.process(Errors.ERRORS.PARSING_COMMAND_ERROR, response, errors);
                             } else {

@@ -1,4 +1,4 @@
-const Signature         = 'WebSocketServer';
+const logger            = new (require('./tools.logger'))('WebSocketServer');
 
 const
     CommandProcessor  = require('./websocket.commands.processor'),
@@ -51,28 +51,28 @@ class Connection{
 
     onMessage(message){
         if (message.type === MESSAGE_TYPES.utf8) {
-            console.log('[' + Signature + '][' + this.GUID + ']:: Received message from address (' + this.connection.remoteAddress + '): ' + message.utf8Data);
+            logger.verbose('[' + this.GUID + ']:: Received message from address (' + this.connection.remoteAddress + '): ' + message.utf8Data);
             let _message = this.getJSON(message.utf8Data);
             if (_message !== null){
                 this.income.proceed(_message);
             } else {
-                console.log('[' + Signature + '][' + this.GUID + ']:: Received message from address (' + this.connection.remoteAddress + ') has wrong format: ' + message.utf8Data);
+                logger.warning('[' + this.GUID + ']:: Received message from address (' + this.connection.remoteAddress + ') has wrong format: ' + message.utf8Data);
             }
         } else if (message.type === MESSAGE_TYPES.binary) {
-            console.log('[' + Signature + '][' + this.GUID + ']:: Received binary message from address (' + this.connection.remoteAddress + '): ' + message.binaryData.length + ' bytes');
+            logger.verbose('[' + this.GUID + ']:: Received binary message from address (' + this.connection.remoteAddress + '): ' + message.binaryData.length + ' bytes');
         }
 
     }
 
     onClose(reasonCode, description){
-        console.log('[' + Signature + ']:: Connection from address (' + this.connection.remoteAddress + ') is disconnected.');
+        logger.verbose('Connection from address (' + this.connection.remoteAddress + ') is disconnected.');
         ServerEmitter.emitter.emit(ServerEmitter.EVENTS.CLIENT_IS_DISCONNECTED, this.GUID, this.clientGUID);
     }
 
     onClientGUID(clientGUID){
         this.clientGUID = clientGUID;
         this.outgoing.GUIDAccepted(this.clientGUID);
-        console.log('[' + Signature + ']:: Connection from address (' + this.connection.remoteAddress + ') is set client GUID: ' + this.clientGUID);
+        logger.verbose('Connection from address (' + this.connection.remoteAddress + ') is set client GUID: ' + this.clientGUID);
     }
 
     doCommand(command, params){
@@ -101,7 +101,7 @@ class WebSocketServer {
     }
 
     create(){
-        console.log('[' + Signature + ']:: Starting webSocket server.');
+        logger.debug('Starting webSocket server.');
         let WebSocketServer = require('websocket').server;
         this.wsServer       = new WebSocketServer({
             httpServer              : this.httpServer,
@@ -110,7 +110,7 @@ class WebSocketServer {
         this.wsServer.on(WS_SERVER_EVENTS.request, this.onRequest.bind(this));
         this.wsServer.on(WS_SERVER_EVENTS.error, this.onError.bind(this));
         this.bindEvents();
-        console.log('[' + Signature + ']:: WebSocket server is started.');
+        logger.debug('WebSocket server is started.');
         return this.eventEmitter;
     }
 
@@ -140,7 +140,7 @@ class WebSocketServer {
         if (connection !== null){
             connection.doCommand(command, params);
         } else{
-            console.log('[' + Signature + ']:: cannot find connection for client: ' + GUID);
+            logger.warning('cannot find connection for client: ' + GUID);
         }
     }
 
@@ -161,21 +161,21 @@ class WebSocketServer {
                     request.accept(WS_SERVER_SETTINGS.PROTOCOL, request.origin),
                     this.eventEmitter
                 );
-                console.log('[' + Signature + ']:: Connection (' + GUID + ') from origin: ' + request.origin + ' is accepted.');
+                logger.verbose('Connection (' + GUID + ') from origin: ' + request.origin + ' is accepted.');
             } else {
-                console.log('[' + Signature + ']:: Cannot create connection for protocols: ' + request.requestedProtocols.join(', '));
+                logger.warning('Cannot create connection for protocols: ' + request.requestedProtocols.join(', '));
                 request.reject();
                 return false;
             }
         } else {
-            console.log('[' + Signature + ']:: Refuse connection from origin: ' + request.origin);
+            logger.warning('Refuse connection from origin: ' + request.origin);
             request.reject();
             return false;
         }
     }
 
     onError(error){
-        console.log(error);
+        logger.error(error);
     }
 
     onDisconnect(connection, clientGUID){

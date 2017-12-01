@@ -1,4 +1,4 @@
-const Signature         = 'WebSocketServer';
+const logger            = new (require('./tools.logger'))('WebSocketProcessor');
 
 const WebSocketEvents   = require('./websocket.events.js'),
       ServerEmitter     = require('./server.events.js');
@@ -35,10 +35,10 @@ class IncomeCommandsProcessor {
             if (this[message.command] !== void 0){
                 this[message.command](message);
             } else {
-                console.log('[' + Signature + '][' + this.GUID + ']:: Next command does not support: ' + message.command);
+                logger.warning('[' + this.GUID + ']:: Next command does not support: ' + message.command);
             }
         } else {
-            console.log('[' + Signature + '][' + this.GUID + ']:: Received message with wrong format: ' + JSON.stringify(message));
+            logger.warning('[' + this.GUID + ']:: Received message with wrong format: ' + JSON.stringify(message));
         }
     }
 
@@ -46,12 +46,12 @@ class IncomeCommandsProcessor {
     * Commands
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     [COMMANDS.greeting      ](message){
-        console.log('[' + Signature + '][' + this.GUID + ']:: GUID of current connection will be bound with client: ' + message.GUID);
+        logger.info('[' + this.GUID + ']:: GUID of current connection will be bound with client: ' + message.GUID);
         this.eventEmitter.emit(WebSocketEvents.CLIENT_GUID_IS_GOTTEN, message.GUID);
     }
 
     [COMMANDS.WriteToSerial ](message){
-        console.log('[' + Signature + '][' + this.GUID + ']:: Attempt to write into serial: ' + message.GUID);
+        logger.info('[' + this.GUID + ']:: Attempt to write into serial: ' + message.GUID);
         ServerEmitter.emitter.emit(ServerEmitter.EVENTS.WRITE_TO_SERIAL, this.GUID, message.params);
     }
 

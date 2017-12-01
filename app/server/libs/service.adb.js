@@ -1,5 +1,4 @@
-const Signature         = 'ServiceADBStream';
-
+const logger        = new (require('./tools.logger'))('ServiceADBStream');
 const
     spawn           = require('child_process').spawn,
     ServerEmitter   = require('./server.events'),
@@ -48,7 +47,6 @@ class SpawnProcess {
     }
 
     getProcess(path) {
-        console.log('path>>>>> ' + path);
         if (this.spawn !== null) {
             return this.spawn;
         }
@@ -59,7 +57,7 @@ class SpawnProcess {
                     PATH: path
                 }
             }).on('error', (error) => {
-                console.log(`[${Signature}]: [ADB_SPAWN_01] Error to execute adb: ${error.message}. PATH=${path}`);
+                logger.error(`[ADB_SPAWN_01] Error to execute adb: ${error.message}. PATH=${path}`);
                 this.error = error;
                 this.spawn = null;
             });
@@ -110,7 +108,7 @@ class LogcatStream {
         }).map((tag)=>{
             return tag.toLowerCase();
         }));
-        console.log(`[${Signature}]: settings of client ${this.clientGUID} was updated.`);
+        logger.debug(`settings of client ${this.clientGUID} was updated.`);
     }
 
     open() {
@@ -277,37 +275,28 @@ class ADBStream {
             settings !== null ? (typeof settings === 'object' ? settings.path : null) : null
         );
         if (spawn === null) {
-            let msg = `[${Signature}]: client ${clientGUID} cannot open logcat stream. Error: ${this.spawnProcess.getError().message}`;
-            console.log(msg);
-            return callback(false, new Error(msg));
+            return callback(false, new Error(logger.error(`[client ${clientGUID} cannot open logcat stream. Error: ${this.spawnProcess.getError().message}`)));
         }
         if (typeof clientGUID !== 'string' || clientGUID.trim() === ''){
-            let msg = `[${Signature}]: clientGUID isn't defined or defined incorrectly.`;
-            console.log(msg);
-            return callback(false, new Error(msg));
+
+            return callback(false, new Error(logger.error(`[clientGUID isn't defined or defined incorrectly.`)));
         }
         if (this.streams[clientGUID] !== void 0) {
-            let msg = `[${Signature}]: client ${clientGUID} already is listening logcat stream.`;
-            console.log(msg);
-            return callback(false, new Error(msg));
+            return callback(false, new Error(logger.error(`client ${clientGUID} already is listening logcat stream.`)));
         }
         let stream  = new LogcatStream(clientGUID, settings, spawn.stdout);
         let error   = stream.open();
         if (error !== true){
-            let msg = `[${Signature}]: client ${clientGUID} cannot open logcat stream. Error: ${error.message}`;
-            console.log(msg);
-            return callback(false, new Error(msg));
+            return callback(false, new Error(logger.error(`client ${clientGUID} cannot open logcat stream. Error: ${error.message}`)));
         }
         this.streams[clientGUID] = stream;
-        console.log(`[${Signature}]: client ${clientGUID} started listen logcat stream.`);
+        logger.debug(`client ${clientGUID} started listen logcat stream.`);
         callback(stream.getGUID(), null);
     }
 
     setSettings(clientGUID, settings, callback){
         if (this.streams[clientGUID] === void 0) {
-            let msg = `[${Signature}]: client ${clientGUID} isn't listening logcat stream.`;
-            console.log(msg);
-            return callback(false, new Error(msg));
+            return callback(false, new Error(logger.error(`client ${clientGUID} isn't listening logcat stream.`)));
         }
         this.streams[clientGUID].setSettings(settings);
         callback(true, null);
@@ -318,7 +307,7 @@ class ADBStream {
             this.streams[clientGUID].destroy();
             delete this.streams[clientGUID];
             Object.keys(this.streams).length === 0 && this.spawnProcess.destroy();
-            console.log(`[${Signature}]: client ${clientGUID} stopped listen logcat stream.`);
+            logger.debug(`client ${clientGUID} stopped listen logcat stream.`);
         }
     }
 

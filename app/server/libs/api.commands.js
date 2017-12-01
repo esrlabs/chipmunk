@@ -1,4 +1,4 @@
-const Signature = 'APICommands';
+const logger = new (require('./tools.logger'))('APICommands');
 
 class APICommands{
 
@@ -24,7 +24,7 @@ class APICommands{
                 }
             });
         } else {
-            callback(null, new Error('Not defined [port] or [settings].'))
+            callback(null, new Error(logger.warning('Not defined [port] or [settings].')))
         }
     }
 
@@ -39,7 +39,7 @@ class APICommands{
                 }
             });
         } else {
-            callback(null, new Error('Not defined [connection].'))
+            callback(null, new Error(logger.warning('Not defined [connection].')))
         }
     }
 

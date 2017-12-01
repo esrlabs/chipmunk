@@ -1,8 +1,8 @@
-const Signature         = 'ServiceSerialStream';
+const logger            = new (require('./tools.logger'))('ServiceSerialStream');
 
 const
-    SerialPort        = require('serialport'),
-    ServerEmitter     = require('./server.events');
+    SerialPort          = require('serialport'),
+    ServerEmitter       = require('./server.events');
 
 const PORT_EVENTS = {
     open    : 'open',
@@ -58,13 +58,16 @@ class PortWriter {
             let bufferIn    = buffer.substr(0,this.size),
                 bufferOut   = buffer.substr(this.size, buffer.length);
             setTimeout(()=>{
-                console.log('[' + Signature + ']:: Sending: "' + bufferIn + '".');
-                this.instance.write(bufferIn + (bufferOut === '' ? '\n\r' : ''), (error)=>{
-                    error   && this.onError(error);
-                    !error  && this.instance.drain(()=>{
-                        this.next(bufferOut);
+                try{
+                    this.instance.write(bufferIn + (bufferOut === '' ? '\n\r' : ''), (error)=>{
+                        error   && this.onError(error);
+                        !error  && this.instance.drain(()=>{
+                            this.next(bufferOut);
+                        });
                     });
-                });
+                } catch (error){
+                    this.onError(error);
+                }
             }, this.settings.vtransmit);
         } else {
             this.onFinish();
@@ -72,13 +75,13 @@ class PortWriter {
     }
 
     onError(error){
-        console.log('[' + Signature + '] Error during sending. Error: ' + error.message);
+        logger.error('Error during sending. Error: ' + error.message);
         this.setState(WRITER_STATES.READY);
         this.callback(error);
     }
 
     onFinish(){
-        console.log('[' + Signature + '] Finish sending.');
+        logger.debug('Finish sending.');
         this.setState(WRITER_STATES.READY);
         this.callback();
     }
@@ -114,22 +117,27 @@ class Port{
     }
 
     open(callback){
-        this.instance = new SerialPort(this.port, this.settings);
-        this.instance.open((error) => {
-            if (error) {
-                console.log('[' + Signature + '][session: ' + this.GUID + ']:: Fail to open port: ' + this.port + '. Error: ' + error.message);
-                callback(null, error);
-            } else {
-                this.ready  = true;
-                this.writer = new PortWriter(this.instance, this.settings);
-                console.log('[' + Signature + '][session: ' + this.GUID + ']:: Port is opened: ' + this.port);
-                callback(this.GUID, null);
-            }
-        });
-        //Attach events
-        Object.keys(PORT_EVENTS).forEach((event)=>{
-            this.instance.on(PORT_EVENTS[event], this['on' + event].bind(this));
-        });
+        try {
+            this.instance = new SerialPort(this.port, this.settings);
+            this.instance.open((error) => {
+                if (error) {
+                    logger.error('[session: ' + this.GUID + ']:: Fail to open port: ' + this.port + '. Error: ' + error.message);
+                    callback(null, error);
+                } else {
+                    this.ready  = true;
+                    this.writer = new PortWriter(this.instance, this.settings);
+                    logger.debug('[session: ' + this.GUID + ']:: Port is opened: ' + this.port);
+                    callback(this.GUID, null);
+                }
+            });
+            //Attach events
+            Object.keys(PORT_EVENTS).forEach((event)=>{
+                this.instance.on(PORT_EVENTS[event], this['on' + event].bind(this));
+            });
+        } catch (error){
+            logger.error('[session: ' + this.GUID + ']:: Fail to create port: ' + this.port + '. Error: ' + error.message);
+            callback(null, error);
+        }
     }
 
     getPort(){
@@ -141,15 +149,15 @@ class Port{
         if (this.ready) {
             this.ready = false;
             this.instance.close(callback);
-            console.log('[' + Signature + '][session: ' + this.GUID + ']:: Port is closed: ' + this.port);
+            logger.debug('[session: ' + this.GUID + ']:: Port is closed: ' + this.port);
         } else {
             callback();
-            console.log('[' + Signature + '][session: ' + this.GUID + ']:: Port is already closed: ' + this.port);
+            logger.warning('[session: ' + this.GUID + ']:: Port is already closed: ' + this.port);
         }
     }
 
     logAndCallWithError(msg, callback, error){
-        console.log('[' + Signature + '][session: ' + this.GUID + '][' + this.port + ']:: ' + msg);
+        logger.debug('[session: ' + this.GUID + '][' + this.port + ']:: ' + msg);
         typeof callback === 'function' && callback(error !== void 0 ? error : (new Error(msg)));
     }
 
@@ -192,7 +200,7 @@ class Port{
                         this.logAndCallWithError('Error during writing to serial: ' + error.message, callback, error);
                         typeof callback === 'function' && callback(error);
                     } else {
-                        console.log('[' + Signature + '][session: ' + this.GUID + '][' + this.port + ']:: Written into port successfully. Content: [' + (buffer instanceof Array ? buffer.join(', ') : buffer) + ']');
+                        logger.debug('[session: ' + this.GUID + '][' + this.port + ']:: Written into port successfully. Content: [' + (buffer instanceof Array ? buffer.join(', ') : buffer) + ']');
                         typeof callback === 'function' && callback(null);
                     }
                     this.changeState(PORT_STATES.LISTENING);
@@ -242,7 +250,6 @@ class Port{
         } else {
             this.buffer += data.toString('utf8');
         }
-        console.log(')))))===> ' + data);
     }
 }
 
@@ -260,16 +267,16 @@ class ServiceSerialStream{
     getListPorts(callback){
         SerialPort.list((error, ports) => {
             if (error === null){
-                console.log('[' + Signature + '][session: ' + this.GUID + ']:: Getting list of ports...');
+                logger.debug('[session: ' + this.GUID + ']:: Getting list of ports...');
                 ports.forEach((port) => {
-                    console.log('[' + Signature + '][session: ' + this.GUID + ']:: '+
+                    logger.debug('[session: ' + this.GUID + ']:: '+
                         'comName: '         + (port.comName         === 'string' ? port.comName         : '[no data]') +
                         '; pnpId: '         + (port.pnpId           === 'string' ? port.pnpId           : '[no data]') +
                         '; manufacturer: '  + (port.manufacturer    === 'string' ? port.manufacturer    : '[no data]'));
                 });
                 callback(ports);
             } else {
-                console.log('[' + Signature + '][session: ' + this.GUID + ']:: Error during getting list of ports: ' + error.message);
+                logger.error('[session: ' + this.GUID + ']:: Error during getting list of ports: ' + error.message);
                 callback(error);
             }
         });
@@ -291,7 +298,7 @@ class ServiceSerialStream{
         } else {
             _port.addClient(clientGUID);
             callback(_port.GUID, null);
-            console.log('[' + Signature + '][session: ' + this.GUID + ']:: Attached listener to port: ' + port);
+            logger.debug('[session: ' + this.GUID + ']:: Attached listener to port: ' + port);
         }
     }
 
@@ -362,16 +369,16 @@ class ServiceSerialStream{
                             packageGUID : params.packageGUID,
                             error       : error ? error.message : null
                         });
-                        error && console.log('[' + Signature + '][session: ' + this.GUID + ']:: Port [' + params.port + '] for client [' + params.clientGUID + '] an error during writing into port: ' + error.message);
+                        error && logger.error('[session: ' + this.GUID + ']:: Port [' + params.port + '] for client [' + params.clientGUID + '] an error during writing into port: ' + error.message);
                     });
                 } else {
-                    console.log('[' + Signature + '][session: ' + this.GUID + ']:: Port [' + params.port + '] for client [' + params.clientGUID + '] was not found.');
+                    logger.error('[session: ' + this.GUID + ']:: Port [' + params.port + '] for client [' + params.clientGUID + '] was not found.');
                 }
             } else {
-                console.log('[' + Signature + '][session: ' + this.GUID + ']:: Bad parameters for [onWriteToSerial]. Expected: clientGUID, port, buffer.');
+                logger.error('[session: ' + this.GUID + ']:: Bad parameters for [onWriteToSerial]. Expected: clientGUID, port, buffer.');
             }
         } else {
-            console.log('[' + Signature + '][session: ' + this.GUID + ']:: Bad parameters for [onWriteToSerial]. Expected: clientGUID, port, buffer.');
+            logger.error('[session: ' + this.GUID + ']:: Bad parameters for [onWriteToSerial]. Expected: clientGUID, port, buffer.');
         }
     }
 
