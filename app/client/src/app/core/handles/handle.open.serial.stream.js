@@ -188,6 +188,7 @@ var OpenSerialStream = (function () {
         this.processor = api_processor_1.APIProcessor;
         this.port = null;
         this.connection = null;
+        this.Settings = new SettingsController();
     }
     OpenSerialStream.prototype.start = function () {
         this.getListPorts();
@@ -247,21 +248,22 @@ var OpenSerialStream = (function () {
     };
     OpenSerialStream.prototype.showSettings = function (port) {
         var GUID = Symbol();
+        var settings = this.Settings.load(port);
+        var params = Object.assign({
+            proceed: function (GUID, port, settings) {
+                this.Settings.save(port, settings);
+                this.hidePopup(GUID);
+                this.openSerialPort(port, settings);
+            }.bind(this, GUID, port),
+            cancel: function (GUID, port) {
+                this.hidePopup(GUID);
+            }.bind(this, GUID, port)
+        }, settings);
         controller_1.popupController.open({
             content: {
                 factory: null,
                 component: component_3.DialogSerialSettings,
-                params: {
-                    proceed: function (GUID, port, settings) {
-                        var settingsController = new SettingsController();
-                        settingsController.save(port, settings);
-                        this.hidePopup(GUID);
-                        this.openSerialPort(port, settings);
-                    }.bind(this, GUID, port),
-                    cancel: function (GUID, port) {
-                        this.hidePopup(GUID);
-                    }.bind(this, GUID, port),
-                }
+                params: params
             },
             title: _('Configuration of connection: ') + port,
             settings: {

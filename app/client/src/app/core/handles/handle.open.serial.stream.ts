@@ -14,6 +14,7 @@ import { APIResponse                    } from '../api/api.response.interface';
 
 import { SerialSedingPackage            } from '../interfaces/interface.serial.send.package';
 import { localSettings, KEYs            } from '../../core/modules/controller.localsettings';
+import set = Reflect.set;
 
 interface IncomeData{
     connection  : string,
@@ -209,11 +210,12 @@ class SerialStream{
 }
 
 class OpenSerialStream implements MenuHandleInterface{
-    private GUID            : symbol        = Symbol();
-    private progressGUID    : symbol        = Symbol();
-    private processor       : any           = APIProcessor;
-    private port            : string        = null;
-    private connection      : string        = null;
+    private GUID            : symbol                = Symbol();
+    private progressGUID    : symbol                = Symbol();
+    private processor       : any                   = APIProcessor;
+    private port            : string                = null;
+    private connection      : string                = null;
+    private Settings        : SettingsController    = new SettingsController();
 
     constructor(){
     }
@@ -283,22 +285,23 @@ class OpenSerialStream implements MenuHandleInterface{
     }
 
     showSettings(port: string){
-        let GUID = Symbol();
+        let GUID        = Symbol();
+        let settings    = this.Settings.load(port);
+        let params      = Object.assign({
+            proceed : function (GUID: symbol, port: string, settings: any) {
+                this.Settings.save(port, settings);
+                this.hidePopup(GUID);
+                this.openSerialPort(port, settings);
+            }.bind(this, GUID, port),
+            cancel  : function (GUID: symbol, port: string) {
+                this.hidePopup(GUID);
+            }.bind(this, GUID, port)
+        }, settings);
         popupController.open({
             content : {
                 factory     : null,
                 component   : DialogSerialSettings,
-                params      : {
-                    proceed : function (GUID: symbol, port: string, settings: any) {
-                        let settingsController = new SettingsController();
-                        settingsController.save(port, settings);
-                        this.hidePopup(GUID);
-                        this.openSerialPort(port, settings);
-                    }.bind(this, GUID, port),
-                    cancel  : function (GUID: symbol, port: string) {
-                        this.hidePopup(GUID);
-                    }.bind(this, GUID, port),
-                }
+                params      : params
             },
             title   : _('Configuration of connection: ') + port,
             settings: {
