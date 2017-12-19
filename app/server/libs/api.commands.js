@@ -70,6 +70,23 @@ class APICommands{
         ADBStream.close(income.GUID);
         callback(true, null);
     }
+
+    openProcessStream(income, response, callback){
+        let Stream = require('./service.process');
+        Stream.open(income.GUID, income.params, (streamGUID, error) => {
+            if (error === null){
+                callback(streamGUID, null);
+            } else {
+                callback(null, error);
+            }
+        });
+    }
+
+    closeProcessStream(income, response, callback){
+        let Stream = require('./service.process');
+        Stream.close(income.GUID);
+        callback(true, null);
+    }
 };
 
 module.exports = APICommands;

@@ -11,7 +11,9 @@ const COMMANDS = {
     ResultWrittenToSerial   : 'ResultWrittenToSerial',
     UpdateIsAvailable       : 'UpdateIsAvailable',
     UpdateDownloadProgress  : 'UpdateDownloadProgress',
-    ADBLogcatData           : 'ADBLogcatData'
+    ADBLogcatData           : 'ADBLogcatData',
+    TermProcessData         : 'TermProcessData',
+    TermProcessClosed       : 'TermProcessClosed'
 };
 
 class WSCommands{
@@ -88,6 +90,18 @@ class WSCommands{
     [COMMANDS.ADBLogcatData             ](message : WSCommandMessage, sender: Function){
         if (typeof message.params === 'object' && message.params !== null && typeof message.params.stream === 'string' && message.params.entries instanceof Array){
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.ADB_LOGCAT_DATA_COME, message.params);
+        }
+    }
+
+    [COMMANDS.TermProcessData           ](message : WSCommandMessage, sender: Function){
+        if (typeof message.params === 'object' && message.params !== null && typeof message.params.stream === 'string' && message.params.entries instanceof Array){
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.TERM_PROCESS_DATA_COME, message.params);
+        }
+    }
+
+    [COMMANDS.TermProcessClosed         ](message : WSCommandMessage, sender: Function){
+        if (typeof message.params === 'object' && message.params !== null && typeof message.params.stream === 'string'){
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.TERM_PROCESS_CLOSED, message.params);
         }
     }
 

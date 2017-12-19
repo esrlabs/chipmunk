@@ -5,7 +5,9 @@ const APICommands = {
     closeSerialStream       : 'closeSerialStream',
     openLogcatStream        : 'openLogcatStream',
     setSettingsLogcatStream : 'setSettingsLogcatStream',
-    closeLogcatStream       : 'closeLogcatStream'
+    closeLogcatStream       : 'closeLogcatStream',
+    openProcessStream       : 'openProcessStream',
+    closeProcessStream      : 'closeProcessStream'
 };
 
 function isAPICommandValid(command: string){

@@ -57,8 +57,7 @@ class SpawnProcess {
                     PATH: path
                 }
             }).on('error', (error) => {
-                logger.error(`[ADB_SPAWN_01] Error to execute adb: ${error.message}. PATH=${path}`);
-                this.error = error;
+                this.error = new Error(logger.error(`[ADB_SPAWN_01] Error to execute adb: ${error.message}. PATH=${path}`));
                 this.spawn = null;
             });
             this.error = null;
@@ -67,7 +66,7 @@ class SpawnProcess {
             this.spawn = null;
         }
         if (this.spawn !== null && (typeof this.spawn.pid !== 'number' || this.spawn.pid <= 0)){
-            this.error = new Error(`[ADB_SPAWN_01] Fail to execute adb. PATH=${path}`);
+            this.error = new Error(logger.error(`[ADB_SPAWN_01] Fail to execute adb. PATH=${path}`));
             this.spawn = null;
         }
         return this.spawn;

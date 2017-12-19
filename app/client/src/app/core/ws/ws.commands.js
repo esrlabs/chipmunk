@@ -10,7 +10,9 @@ var COMMANDS = {
     ResultWrittenToSerial: 'ResultWrittenToSerial',
     UpdateIsAvailable: 'UpdateIsAvailable',
     UpdateDownloadProgress: 'UpdateDownloadProgress',
-    ADBLogcatData: 'ADBLogcatData'
+    ADBLogcatData: 'ADBLogcatData',
+    TermProcessData: 'TermProcessData',
+    TermProcessClosed: 'TermProcessClosed'
 };
 exports.COMMANDS = COMMANDS;
 var WSCommands = (function () {
@@ -79,6 +81,16 @@ var WSCommands = (function () {
     WSCommands.prototype[COMMANDS.ADBLogcatData] = function (message, sender) {
         if (typeof message.params === 'object' && message.params !== null && typeof message.params.stream === 'string' && message.params.entries instanceof Array) {
             controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.ADB_LOGCAT_DATA_COME, message.params);
+        }
+    };
+    WSCommands.prototype[COMMANDS.TermProcessData] = function (message, sender) {
+        if (typeof message.params === 'object' && message.params !== null && typeof message.params.stream === 'string' && message.params.entries instanceof Array) {
+            controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.TERM_PROCESS_DATA_COME, message.params);
+        }
+    };
+    WSCommands.prototype[COMMANDS.TermProcessClosed] = function (message, sender) {
+        if (typeof message.params === 'object' && message.params !== null && typeof message.params.stream === 'string') {
+            controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.TERM_PROCESS_CLOSED, message.params);
         }
     };
     return WSCommands;

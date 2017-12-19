@@ -7,6 +7,7 @@ var controller_config_1 = require("../modules/controller.config");
 var handle_open_remote_file_stream_1 = require("../handles/handle.open.remote.file.stream");
 var handle_open_serial_stream_1 = require("../handles/handle.open.serial.stream");
 var handle_open_adblogcat_stream_1 = require("../handles/handle.open.adblogcat.stream");
+var handle_open_terminal_stream_1 = require("../handles/handle.open.terminal.stream");
 var handle_add_view_1 = require("../handles/handle.add.view");
 var handle_api_settings_1 = require("../handles/handle.api.settings");
 var controller_themes_1 = require("../modules/controller.themes");
@@ -71,6 +72,10 @@ var TopBarMenuHandles = (function () {
     TopBarMenuHandles.prototype.openADBLogcatStream = function () {
         var openADBLogcatStream = new handle_open_adblogcat_stream_1.OpenADBLogcatStream();
         openADBLogcatStream.start();
+    };
+    TopBarMenuHandles.prototype.openTerminalCommand = function () {
+        var openTerminalStream = new handle_open_terminal_stream_1.OpenTerminalStream();
+        openTerminalStream.start();
     };
     TopBarMenuHandles.prototype.connectionSettings = function () {
         var APIsettings = new handle_api_settings_1.APISettings();

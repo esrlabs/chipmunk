@@ -11,7 +11,9 @@ const COMMANDS = {
     ResultWrittenToSerial   : 'ResultWrittenToSerial',
     UpdateIsAvailable       : 'UpdateIsAvailable',
     UpdateDownloadProgress  : 'UpdateDownloadProgress',
-    ADBLogcatData           : 'ADBLogcatData'
+    ADBLogcatData           : 'ADBLogcatData',
+    TermProcessData         : 'TermProcessData',
+    TermProcessClosed       : 'TermProcessClosed'
 };
 
 class IncomeCommandsProcessor {
@@ -120,6 +122,22 @@ class OutgoingCommandsProcessor {
         this.sender({
             GUID    : clientGUID,
             command : COMMANDS.ADBLogcatData,
+            params  : params
+        });
+    }
+
+    [COMMANDS.TermProcessData](clientGUID, params){
+        this.sender({
+            GUID    : clientGUID,
+            command : COMMANDS.TermProcessData,
+            params  : params
+        });
+    }
+
+    [COMMANDS.TermProcessClosed](clientGUID, params){
+        this.sender({
+            GUID    : clientGUID,
+            command : COMMANDS.TermProcessClosed,
             params  : params
         });
     }

@@ -6,7 +6,9 @@ var APICommands = {
     closeSerialStream: 'closeSerialStream',
     openLogcatStream: 'openLogcatStream',
     setSettingsLogcatStream: 'setSettingsLogcatStream',
-    closeLogcatStream: 'closeLogcatStream'
+    closeLogcatStream: 'closeLogcatStream',
+    openProcessStream: 'openProcessStream',
+    closeProcessStream: 'closeProcessStream'
 };
 exports.APICommands = APICommands;
 function isAPICommandValid(command) {
