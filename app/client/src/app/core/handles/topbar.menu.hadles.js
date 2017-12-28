@@ -8,6 +8,7 @@ var handle_open_remote_file_stream_1 = require("../handles/handle.open.remote.fi
 var handle_open_serial_stream_1 = require("../handles/handle.open.serial.stream");
 var handle_open_adblogcat_stream_1 = require("../handles/handle.open.adblogcat.stream");
 var handle_open_terminal_stream_1 = require("../handles/handle.open.terminal.stream");
+var hanlde_open_monitor_manager_1 = require("../handles/hanlde.open.monitor.manager");
 var handle_add_view_1 = require("../handles/handle.add.view");
 var handle_api_settings_1 = require("../handles/handle.api.settings");
 var controller_themes_1 = require("../modules/controller.themes");
@@ -76,6 +77,9 @@ var TopBarMenuHandles = (function () {
     TopBarMenuHandles.prototype.openTerminalCommand = function () {
         var openTerminalStream = new handle_open_terminal_stream_1.OpenTerminalStream();
         openTerminalStream.start();
+    };
+    TopBarMenuHandles.prototype.openMonitorManager = function () {
+        hanlde_open_monitor_manager_1.MonitorManager.start();
     };
     TopBarMenuHandles.prototype.connectionSettings = function () {
         var APIsettings = new handle_api_settings_1.APISettings();

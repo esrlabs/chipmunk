@@ -11,6 +11,10 @@ class APIProcessor {
 
     getErrors(){
         let errors = [];
+        if (typeof this.post !== 'object' || this.post === null){
+            errors.push(new Error(logger.error(`Expected post will be {object}.`)));
+            return errors;
+        }
         Object.keys(APICommandInterface).forEach((key)=>{
             let target = this.post[key];
             if (typeof APICommandInterface[key].parser === 'function'){

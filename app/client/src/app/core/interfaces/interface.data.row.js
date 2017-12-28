@@ -6,6 +6,7 @@ var DataRow = (function () {
         this.filtered = true;
         this.requests = {};
         this.match = '';
+        this.matchReg = true;
         this.filters = {};
         this.parsed = null;
     }

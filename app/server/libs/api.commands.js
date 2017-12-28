@@ -6,6 +6,7 @@ class APICommands{
         callback('some answer', null);
     }
 
+    //Serial port stream
     serialPortsList(income, response, callback){
         let Serial = require('./service.serial.js');
         Serial.getListPorts((result)=>{
@@ -43,6 +44,7 @@ class APICommands{
         }
     }
 
+    //Logcat stream
     openLogcatStream(income, response, callback){
         let ADBStream = require('./service.adb');
         ADBStream.open(income.GUID, income.params.settings, (streamGUID, error) => {
@@ -71,6 +73,7 @@ class APICommands{
         callback(true, null);
     }
 
+    //Process stream
     openProcessStream(income, response, callback){
         let Stream = require('./service.process');
         Stream.open(income.GUID, income.params, (streamGUID, error) => {
@@ -87,6 +90,89 @@ class APICommands{
         Stream.close(income.GUID);
         callback(true, null);
     }
+
+    //Monitor
+    setSettingsOfMonitor(income, response, callback){
+        let monitor = require('./service.monitor');
+        if (typeof income.params !== 'object' || income.params === null || typeof income.params.settings !== 'object' || income.params.settings === null) {
+            callback(null, new Error(logger.warning(`Cannot do "setSettingsOfMonitor" because settings isn't defined.`)));
+        } else {
+            let result = monitor.setSettings(income.params.settings);
+            callback(
+                !(result instanceof Error) ? true : null,
+                result instanceof Error ? result : null
+            );
+        }
+    }
+
+    restartMonitor(income, response, callback){
+        let monitor = require('./service.monitor');
+        monitor.restart();
+        callback(true, null);
+    }
+
+    getFilesDataMonitor(income, response, callback){
+        let monitor = require('./service.monitor');
+        callback(monitor.getFilesData(), null);
+    }
+
+    stopAndClearMonitor(income, response, callback){
+        let monitor = require('./service.monitor');
+        monitor.stopAndClear();
+        callback(true, null);
+    }
+
+    clearLogsOfMonitor(income, response, callback){
+        let monitor = require('./service.monitor');
+        monitor.clearLogs();
+        callback(true, null);
+    }
+
+    getSettingsMonitor(income, response, callback){
+        let monitor = require('./service.monitor');
+        callback(monitor.getSettings(), null);
+    }
+
+    getStateMonitor(income, response, callback){
+        let monitor = require('./service.monitor');
+        callback(monitor.getState(), null);
+    }
+
+    getFileContent(income, response, callback){
+        let monitor = require('./service.monitor');
+        if (typeof income.params !== 'object' || income.params === null || typeof income.params.file !== 'string') {
+            callback(null, new Error(logger.warning(`Cannot do "getFileContent" because file isn't defined.`)));
+        } else {
+            let content = monitor.getFileContent(income.params.file);
+            callback(
+                !(content instanceof Error) ? { text: content } : null,
+                content instanceof Error ? content : null
+            );
+        }
+    }
+
+    getAllFilesContent(income, response, callback){
+        let monitor = require('./service.monitor');
+        let content = monitor.getAllFilesContent();
+        callback(
+            !(content instanceof Error) ? { text: content } : null,
+            content instanceof Error ? content : null
+        );
+    }
+
+    getMatches(income, response, callback){
+        let monitor = require('./service.monitor');
+        if (typeof income.params !== 'object' || income.params === null || typeof income.params.reg !== 'boolean' || !(income.params.search instanceof Array) || income.params.search.length === 0) {
+            callback(null, new Error(logger.warning(`Cannot do "getMatches" because reg {boolean} isn't defined or search {Array<string>}.`)));
+        } else {
+            let result = monitor.getMatches(income.params.reg, income.params.search);
+            callback(
+                !(result instanceof Error) ? { result: result } : null,
+                result instanceof Error ? result : null
+            );
+        }
+    }
+
 };
 
 module.exports = APICommands;

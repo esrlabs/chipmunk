@@ -1,24 +1,27 @@
 import {Component, Input, ViewChild } from '@angular/core';
 import { SimpleCheckbox             } from '../../checkboxes/simple/component';
 import { CommonInput                } from '../../input/component';
+import { DefaultsPortSettings       } from './defaults.settings';
+
+const defaults = new DefaultsPortSettings();
 @Component({
     selector    : 'dialog-serial-settings',
     templateUrl : './template.html',
 })
 
 export class DialogSerialSettings {
-    @Input() lock           : boolean       = true;
-    @Input() baudRate       : number        = 921600;
-    @Input() dataBits       : number        = 8;
-    @Input() stopBits       : number        = 1;
-    @Input() rtscts         : boolean       = false;
-    @Input() xon            : boolean       = false;
-    @Input() xoff           : boolean       = false;
-    @Input() xany           : boolean       = false;
-    @Input() bufferSize     : number        = 65536;
-    @Input() vmin           : number        = 1;
-    @Input() vtime          : number        = 0;
-    @Input() vtransmit      : number        = 50;
+    @Input() lock           : boolean       = defaults.lock;
+    @Input() baudRate       : number        = defaults.baudRate;
+    @Input() dataBits       : number        = defaults.dataBits;
+    @Input() stopBits       : number        = defaults.stopBits;
+    @Input() rtscts         : boolean       = defaults.rtscts;
+    @Input() xon            : boolean       = defaults.xon;
+    @Input() xoff           : boolean       = defaults.xoff;
+    @Input() xany           : boolean       = defaults.xany;
+    @Input() bufferSize     : number        = defaults.bufferSize;
+    @Input() vmin           : number        = defaults.vmin;
+    @Input() vtime          : number        = defaults.vtime;
+    @Input() vtransmit      : number        = defaults.vtransmit;
     @Input() proceed        : Function      = null;
     @Input() cancel         : Function      = null;
 

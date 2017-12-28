@@ -8,7 +8,17 @@ var APICommands = {
     setSettingsLogcatStream: 'setSettingsLogcatStream',
     closeLogcatStream: 'closeLogcatStream',
     openProcessStream: 'openProcessStream',
-    closeProcessStream: 'closeProcessStream'
+    closeProcessStream: 'closeProcessStream',
+    setSettingsOfMonitor: 'setSettingsOfMonitor',
+    restartMonitor: 'restartMonitor',
+    getFilesDataMonitor: 'getFilesDataMonitor',
+    stopAndClearMonitor: 'stopAndClearMonitor',
+    getSettingsMonitor: 'getSettingsMonitor',
+    getFileContent: 'getFileContent',
+    getAllFilesContent: 'getAllFilesContent',
+    getMatches: 'getMatches',
+    clearLogsOfMonitor: 'clearLogsOfMonitor',
+    getStateMonitor: 'getStateMonitor'
 };
 exports.APICommands = APICommands;
 function isAPICommandValid(command) {

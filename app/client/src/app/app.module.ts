@@ -17,6 +17,8 @@ import { controllerThemes                   } from './core/modules/controller.th
 import { ShortcutController                 } from './core/modules/controller.shortcut';
 import { Updater                            } from './core/modules/controller.updater';
 
+import { MonitorManager                     } from './core/handles/hanlde.open.monitor.manager';
+
 @NgModule({
     imports:      [ BrowserModule, ComponentsCommmon, TopBarModule, HolderModule ],
     declarations: [ Layout, RootHolder ],
@@ -30,6 +32,9 @@ export class AppModule {
     private updater             : Updater               = new Updater();
 
     constructor(){
+        //Init others
+        MonitorManager.init();
+        //Init communication
         APIProcessor.init();
         controllerThemes.init();
         this.wsConnector = new WebSocketConnector();

@@ -115,6 +115,7 @@ class APIProcessor{
     onAPI_GUID_IS_ACCEPTED(GUID: string){
         if (typeof GUID === 'string' && GUID.trim() !== ''){
             this.GUID = GUID;
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.API_IS_READY_TO_USE);
         }
     }
 }

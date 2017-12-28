@@ -15,6 +15,7 @@ var ServiceTopBarMenuItems = (function () {
             { icon: 'fa-plug', caption: 'Open stream from serial', handle: 'openSerialStream', type: 'item' },
             { icon: 'fa-android', caption: 'Open stream from ADB logcat', handle: 'openADBLogcatStream', type: 'item' },
             { icon: 'fa-terminal', caption: 'Terminal command', handle: 'openTerminalCommand', type: 'item' },
+            { icon: 'fa-stethoscope', caption: 'Monitor manager', handle: 'openMonitorManager', type: 'item' },
             { type: 'line' },
             { icon: 'fa-desktop', caption: 'Add view', handle: 'addView', type: 'item' },
             { type: 'line' },

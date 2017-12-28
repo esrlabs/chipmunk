@@ -9,6 +9,8 @@ import { OpenRemoteFileStream           } from '../handles/handle.open.remote.fi
 import { OpenSerialStream               } from '../handles/handle.open.serial.stream';
 import { OpenADBLogcatStream            } from '../handles/handle.open.adblogcat.stream';
 import { OpenTerminalStream             } from '../handles/handle.open.terminal.stream';
+import { MonitorManager                 } from '../handles/hanlde.open.monitor.manager';
+
 
 import { AddView                        } from '../handles/handle.add.view';
 import { APISettings                    } from '../handles/handle.api.settings';
@@ -88,6 +90,10 @@ class TopBarMenuHandles{
     openTerminalCommand(){
         let openTerminalStream = new OpenTerminalStream();
         openTerminalStream.start();
+    }
+
+    openMonitorManager(){
+        MonitorManager.start();
     }
 
     connectionSettings(){

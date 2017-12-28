@@ -4,6 +4,7 @@ class DataRow{
     filtered    : boolean           = true;
     requests    : Object            = {};
     match       : string            = '';
+    matchReg    : boolean           = true;
     filters     : Object            = {};
     parsed      : any               = null
 }

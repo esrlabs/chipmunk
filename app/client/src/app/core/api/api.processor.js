@@ -115,6 +115,7 @@ var APIProcessor = (function () {
     APIProcessor.prototype.onAPI_GUID_IS_ACCEPTED = function (GUID) {
         if (typeof GUID === 'string' && GUID.trim() !== '') {
             this.GUID = GUID;
+            controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.API_IS_READY_TO_USE);
         }
     };
     return APIProcessor;

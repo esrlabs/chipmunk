@@ -21,12 +21,16 @@ var service_serialports_1 = require("./core/services/service.serialports");
 var controller_themes_1 = require("./core/modules/controller.themes");
 var controller_shortcut_1 = require("./core/modules/controller.shortcut");
 var controller_updater_1 = require("./core/modules/controller.updater");
+var hanlde_open_monitor_manager_1 = require("./core/handles/hanlde.open.monitor.manager");
 var AppModule = (function () {
     function AppModule() {
         this.wsConnector = null;
         this.shortcutController = new controller_shortcut_1.ShortcutController();
         this.serialPorts = new service_serialports_1.SerialPorts();
         this.updater = new controller_updater_1.Updater();
+        //Init others
+        hanlde_open_monitor_manager_1.MonitorManager.init();
+        //Init communication
         api_processor_1.APIProcessor.init();
         controller_themes_1.controllerThemes.init();
         this.wsConnector = new ws_connector_1.WebSocketConnector();

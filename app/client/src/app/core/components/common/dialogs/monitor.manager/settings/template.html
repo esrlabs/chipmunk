@@ -1,0 +1,47 @@
+<div class="wrapper">
+    <table>
+        <tr>
+            <td class="table-title" colspan="2"><span>Settings</span></td>
+        </tr>
+        <tr>
+            <td><span>State</span> Current state of monitor</td>
+            <td><span *ngIf="state.active">active on {{state.port}}</span><span *ngIf="!state.active">inactive</span></td>
+        </tr>
+        <tr>
+            <td *ngIf="port !==''"><span>Port</span> Change a port of monitoring</td>
+            <td *ngIf="port ===''"><span>Port</span> Select a port of monitoring</td>
+            <td><div class="input-cover"><simple-dd-list #_port [items]="portsList" [defaults]="port"></simple-dd-list></div></td>
+        </tr>
+        <tr>
+            <td><span>Port's settings</span> Configuration of port</td>
+            <td class="right"><button-flat-text [caption]="'Open settings of port'" [handle]="showPortSettings"></button-flat-text></td>
+        </tr>
+        <tr>
+            <td><span>File size</span> Define maximum of logs file size (MB)</td>
+            <td><div class="input-cover"><common-input  #_maxFileSizeMB [type]="'number'" [value]="maxFileSizeMB"></common-input></div></td>
+        </tr>
+        <tr>
+            <td><span>Files count</span> Define maximum count of logs files</td>
+            <td><div class="input-cover"><common-input  #_maxFilesCount [type]="'number'" [value]="maxFilesCount"></common-input></div></td>
+        </tr>
+        <tr>
+            <td class="table-title" colspan="2"><span>Addition actions</span></td>
+        </tr>
+        <tr>
+            <td><span>Clear</span> Remove all existing logs files. </td>
+            <td class="right"><button-flat-text [caption]="'Remove'" [handle]="onClearLogsOfMonitor"></button-flat-text></td>
+        </tr>
+        <tr *ngIf="port !==''">
+            <td><span>Restart</span> Restart monitor with existing settings</td>
+            <td class="right"><button-flat-text [caption]="'Restart'" [handle]="onRestartMonitor"></button-flat-text></td>
+        </tr>
+        <tr>
+            <td><span>Apply settings</span> Stop monitor. Setup new settings. Restart monitor.</td>
+            <td class="right"><button-flat-text [caption]="'Update & Restart'" [handle]="onSetSettingsOfMonitor"></button-flat-text></td>
+        </tr>
+        <tr *ngIf="port !==''">
+            <td><span>Stop</span> Stop monitor.</td>
+            <td class="right"><button-flat-text [caption]="'Stop'" [handle]="onStopMonitor"></button-flat-text></td>
+        </tr>
+    </table>
+</div>
