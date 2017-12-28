@@ -13,7 +13,14 @@ var ButtonFlatText = (function () {
     function ButtonFlatText() {
         this.caption = '';
         this.handle = function () { };
+        this.enabled = true;
     }
+    ButtonFlatText.prototype.disable = function () {
+        return this.enabled = false;
+    };
+    ButtonFlatText.prototype.enable = function () {
+        return this.enabled = true;
+    };
     return ButtonFlatText;
 }());
 __decorate([
@@ -24,6 +31,22 @@ __decorate([
     core_1.Input(),
     __metadata("design:type", Function)
 ], ButtonFlatText.prototype, "handle", void 0);
+__decorate([
+    core_1.Input(),
+    __metadata("design:type", Boolean)
+], ButtonFlatText.prototype, "enabled", void 0);
+__decorate([
+    core_1.Output(),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], ButtonFlatText.prototype, "disable", null);
+__decorate([
+    core_1.Output(),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], ButtonFlatText.prototype, "enable", null);
 ButtonFlatText = __decorate([
     core_1.Component({
         selector: 'button-flat-text',

@@ -16,7 +16,13 @@ var SimpleDropDownList = (function () {
         this.onChange = null;
         this.defaults = '';
     }
+    SimpleDropDownList.prototype.ngAfterContentInit = function () {
+    };
+    SimpleDropDownList.prototype.getValue = function () {
+        return this.list.element.nativeElement.value;
+    };
     SimpleDropDownList.prototype.onChangeSelect = function (event) {
+        this.defaults = event.target['value'];
         typeof this.onChange === 'function' && this.onChange(event.target['value']);
     };
     return SimpleDropDownList;
@@ -37,6 +43,16 @@ __decorate([
     core_1.Input(),
     __metadata("design:type", String)
 ], SimpleDropDownList.prototype, "defaults", void 0);
+__decorate([
+    core_1.ViewChild('list', { read: core_1.ViewContainerRef }),
+    __metadata("design:type", core_1.ViewContainerRef)
+], SimpleDropDownList.prototype, "list", void 0);
+__decorate([
+    core_1.Output(),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], SimpleDropDownList.prototype, "getValue", null);
 SimpleDropDownList = __decorate([
     core_1.Component({
         selector: 'simple-dd-list',

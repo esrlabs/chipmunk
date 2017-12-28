@@ -1,0 +1,40 @@
+<div class="settings">
+    <div class="files">
+        <div class="list">
+            <common-simple-table *ngIf="rows.length > 0" [columns]="columns" [rows]="rows" (onSelect)="onSelectFile($event)"></common-simple-table>
+            <p class="info-message" *ngIf="rows.length === 0">No logs files found</p>
+        </div>
+        <div class="actions">
+            <button-flat-text #_buttonDownload [caption]="'Open'" [handle]="onOpen" [enabled]="selected !== -1 ? true : false"></button-flat-text>
+            <button-flat-text #_buttonOpen [caption]="'Download'" [handle]="onDownload" [enabled]="selected !== -1 ? true : false"></button-flat-text>
+        </div>
+    </div>
+    <div class="search">
+        <div class="request">
+            <div class="request-input">
+                <common-input #_search_request [placeholder]="'Search request. Use ; to add several requests.'" (onEnter)="onSearchRequest()"></common-input>
+            </div>
+            <div class="request-regs">
+                <simple-checkbox #_search_reg [checked]="false" [on]="'RegExp'" [off]="'No Reg'"></simple-checkbox>
+            </div>
+        </div>
+        <div class="search-list">
+            <p class="info-message" *ngIf="searchResults.length === 0">No matches</p>
+            <div class="section-file" *ngFor="let searchResult of searchResults;">
+                <p class="section-file">File: {{searchResult.file}}</p>
+                <div class="section-request" *ngFor="let results of searchResult.results;">
+                    <p class="section-request">Request: {{results.request}}</p>
+                    <ul class="section-matches" *ngFor="let match of results.matches;">
+                        <li class="font-system" [innerHTML]="match"></li>
+                    </ul>
+                    <p class="more" *ngIf="results.matches.length < results.count">(to see more {{results.count - results.matches.length}} results, open this file)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="buttons">
+    <button-flat-text [caption]="'Open all as one file'" [handle]="onOpenAll" [enabled]="rows.length > 0 ? true : false"></button-flat-text>
+    <button-flat-text [caption]="'Download all as one file'" [handle]="onDownloadAll" [enabled]="rows.length > 0 ? true : false"></button-flat-text>
+</div>
+<a #exporturl [attr.href]="exportdata.url" class="export-url" [attr.download]="exportdata.filename"></a>

@@ -13,5 +13,15 @@ button-flat-text{
             color       : @button-flat-active-color;
             border      : @button-flat-active-border;
         }
+        &.disabled{
+            background  : @light-grey;
+            color       : @dark-grey;
+            cursor      : default;
+        }
+        &.disabled:hover{
+            background  : @light-grey;
+            color       : @dark-grey;
+            border      : @button-flat-passive-border;
+        }
     }
 }
