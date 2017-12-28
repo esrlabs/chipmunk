@@ -247,6 +247,7 @@ class DataController implements InitiableModule{
         let result      = processor !== void 0 ? (rows.map((row, index)=>{
             row.filtered    = this.dataFilter.value === '' ? true : processor(row.str, this.dataFilter.value, (index + offset));
             row.match       = match;
+            row.matchReg    = this.dataFilter.mode === MODES.REG;
             row.filters     = {};
             row.requests[requestGUID] === void 0 && (row.requests[requestGUID] = row.filtered);
             Object.keys(this.filters).forEach((GUID)=>{
@@ -259,7 +260,7 @@ class DataController implements InitiableModule{
     }
 
     getRenderStr(str: string){
-        return str.replace(/\s/gi, '&nbsp;').replace(/\t/gi, '&nbsp;&nbsp;&nbsp;&nbsp;');
+        return str;
     }
 
     getRequestGUID(mode: string, value: string){
@@ -278,6 +279,7 @@ class DataController implements InitiableModule{
                 let filtered    = filter.value === '' ? true : processor(row.str, filter.value, index);
                 //row.match       = match;
                 row.filters     = {};
+                row.matchReg    = filter.mode === MODES.REG;
                 row.requests[requestGUID] === void 0 && (row.requests[requestGUID] = filtered);
                 Object.keys(this.filters).forEach((GUID)=>{
                     let filter = this.filters[GUID];
@@ -343,6 +345,7 @@ class DataController implements InitiableModule{
                 parsed      : parsers.parse(str),
                 filtered    : true,
                 match       : '',
+                matchReg    : true,
                 filters     : {},
                 requests    : {}
             };
@@ -399,6 +402,7 @@ class DataController implements InitiableModule{
                             parsed      : parsers.parse(str),
                             filtered    : true,
                             match       : '',
+                            matchReg    : true,
                             filters     : {},
                             requests    : {}
                         };

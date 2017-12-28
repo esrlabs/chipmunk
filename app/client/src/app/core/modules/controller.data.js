@@ -228,6 +228,7 @@ var DataController = (function () {
         var result = processor !== void 0 ? (rows.map(function (row, index) {
             row.filtered = _this.dataFilter.value === '' ? true : processor(row.str, _this.dataFilter.value, (index + offset));
             row.match = match;
+            row.matchReg = _this.dataFilter.mode === controller_data_search_modes_1.MODES.REG;
             row.filters = {};
             row.requests[requestGUID] === void 0 && (row.requests[requestGUID] = row.filtered);
             Object.keys(_this.filters).forEach(function (GUID) {
@@ -239,7 +240,7 @@ var DataController = (function () {
         return result !== null ? result : rows;
     };
     DataController.prototype.getRenderStr = function (str) {
-        return str.replace(/\s/gi, '&nbsp;').replace(/\t/gi, '&nbsp;&nbsp;&nbsp;&nbsp;');
+        return str;
     };
     DataController.prototype.getRequestGUID = function (mode, value) {
         var key = mode + value;
@@ -254,6 +255,7 @@ var DataController = (function () {
                 var filtered = filter.value === '' ? true : processor(row.str, filter.value, index);
                 //row.match       = match;
                 row.filters = {};
+                row.matchReg = filter.mode === controller_data_search_modes_1.MODES.REG;
                 row.requests[requestGUID] === void 0 && (row.requests[requestGUID] = filtered);
                 Object.keys(_this.filters).forEach(function (GUID) {
                     var filter = _this.filters[GUID];
@@ -313,6 +315,7 @@ var DataController = (function () {
                 parsed: parsers.parse(str),
                 filtered: true,
                 match: '',
+                matchReg: true,
                 filters: {},
                 requests: {}
             };
@@ -366,6 +369,7 @@ var DataController = (function () {
                             parsed: parsers_1.parse(str),
                             filtered: true,
                             match: '',
+                            matchReg: true,
                             filters: {},
                             requests: {}
                         };
