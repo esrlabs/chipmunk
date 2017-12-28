@@ -10,5 +10,8 @@
    [style.background]="highlight.backgroundColor"
    [attr.class]="(selection ? 'selected' : '') + ' ' + (bookmarked ? 'bookmarked' : '') + ' ' + (filtered ? 'filtered' : '')">
     <span (click)="onFavorite($event)" [attr.class]="'font-system number ' + (!visibility ? 'hide' : '')">{{__index}}</span>
-    <span class="item font-system" [innerHTML]="safeHTML"></span>
+    <span class="item font-system"
+          [style.color]="highlight.foregroundColor"
+          [style.background]="highlight.backgroundColor"
+          [innerHTML]="safeHTML"></span>
 </p>

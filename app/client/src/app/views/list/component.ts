@@ -20,7 +20,6 @@ import { EVENT_DATA_IS_UPDATED                  } from '../../core/interfaces/ev
 import { EVENT_VIEW_BAR_ADD_FAVORITE_RESPONSE   } from '../../core/interfaces/events/VIEW_BAR_ADD_FAVORITE_RESPONSE';
 
 import { ViewClass                              } from '../../core/services/class.view';
-import { ANSIReader                             } from '../../core/modules/tools.ansireader';
 
 import { TextSelection                          } from '../../core/modules/controller.selection.text';
 
@@ -210,13 +209,14 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                 factory : factory,
                 params  : {
                     GUID        : this.viewParams !== null ? this.viewParams.GUID : null,
-                    val         : ANSIReader(this.serializeHTML(row.render_str)),
+                    val         : this.serializeHTML(row.render_str),
                     original    : row.str,
                     index       : _index,
                     selection   : this.selection.index === _index ? true : false,
                     bookmarked  : ~this.bookmarks.indexOf(_index) ? true : false,
                     filtered    : this.highlight ? filtered : false,
                     match       : row.match,
+                    matchReg    : row.matchReg,
                     visibility  : this.numbers,
                     total_rows  : this._rows.length === 0 ? rows.length : this._rows.length,
                     markers     : this.markers,
@@ -228,6 +228,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                 filtered: row.filtered  !== void 0 ? row.filtered   : true,
                 filters : row.filters   !== void 0 ? row.filters    : {},
                 match   : row.match,
+                matchReg: row.matchReg
             };
         });
     }
@@ -295,6 +296,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             row.params.visibility   = this.numbers;
             row.params.filtered     = this.highlight ? filtered : false;
             row.params.match        = row.match;
+            row.params.matchReg     = row.matchReg;
             row.params.total_rows   = this._rows.length;
             row.params.GUID         = this.viewParams !== null ? this.viewParams.GUID : null;
             row.params.markers      = this.markers;
@@ -377,10 +379,6 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                         foregroundColor : SETTINGS.TEXT_SELECTED_COLOR,
                         self            : true
                     });
-                    /*
-                     foregroundColor : string,
-                     backgroundColor : string,
-                    * */
                 }
                 this.updateMarkersOnly();
             } else if (~index) {
@@ -710,6 +708,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             this._rows          = this._rows.map((row, index)=>{
                 row.filtered    = event.rows[index].filtered;
                 row.match       = event.rows[index].match;
+                row.matchReg    = event.rows[index].matchReg;
                 row.filters     = event.rows[index].filters;
                 return row;
             });

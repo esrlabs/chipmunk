@@ -17,8 +17,6 @@ import { DataRow                                } from '../../../core/interfaces
 import { EVENT_DATA_IS_UPDATED                  } from '../../../core/interfaces/events/DATA_IS_UPDATE';
 import { EVENT_VIEW_BAR_ADD_FAVORITE_RESPONSE   } from '../../../core/interfaces/events/VIEW_BAR_ADD_FAVORITE_RESPONSE';
 
-import { ANSIReader                             } from '../../../core/modules/tools.ansireader';
-
 import { TextSelection                          } from '../../../core/modules/controller.selection.text';
 import { TabController                          } from '../../../core/components/common/tabs/tab/class.tab.controller';
 
@@ -294,7 +292,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
                 factory : factory,
                 params  : {
                     GUID        : this.viewParams !== null ? this.viewParams.GUID : null,
-                    val         : ANSIReader(this.serializeHTML(row.render_str)),
+                    val         : row.render_str,
                     original    : row.str,
                     index       : _index,
                     selection   : this.selection.index === _index ? true : false,
@@ -533,10 +531,6 @@ export class TabControllerSearchResults extends TabController implements ViewInt
                         foregroundColor : SETTINGS.TEXT_SELECTED_COLOR,
                         self            : true
                     });
-                    /*
-                     foregroundColor : string,
-                     backgroundColor : string,
-                    * */
                 }
                 this.updateMarkersOnly();
             } else if (~index) {
@@ -562,7 +556,9 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         if (event){
             this.line.scroll = event;
         } else {
-            this.line.scroll = this.listView.getScrollState();
+            if (this.listView !== void 0 && this.listView.getScrollState !== void 0){
+                this.line.scroll = this.listView.getScrollState();
+            }
         }
     }
 

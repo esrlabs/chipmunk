@@ -12,6 +12,14 @@ var core_1 = require("@angular/core");
 var platform_browser_1 = require("@angular/platform-browser");
 var controller_events_1 = require("../../../core/modules/controller.events");
 var controller_config_1 = require("../../../core/modules/controller.config");
+var tools_ansireader_1 = require("../../../core/modules/tools.ansireader");
+var tools_htmlserialize_1 = require("../../../core/modules/tools.htmlserialize");
+var tools_regexp_1 = require("../../../core/modules/tools.regexp");
+var MARKERS = {
+    MATCH: '\uAA86!\uAA87',
+    MARKER_LEFT: '\uAA88',
+    MARKER_RIGHT: '\uAA89'
+};
 var ViewControllerListItem = (function () {
     function ViewControllerListItem(changeDetectorRef, sanitizer) {
         this.changeDetectorRef = changeDetectorRef;
@@ -21,6 +29,7 @@ var ViewControllerListItem = (function () {
         this.visibility = true;
         this.filtered = false;
         this.match = '';
+        this.matchReg = true;
         this.index = 0;
         this.total_rows = 0;
         this.selection = false;
@@ -39,6 +48,7 @@ var ViewControllerListItem = (function () {
         this.safeHTML = null;
         this._markersHash = '';
         this._match = '';
+        this._matchReg = true;
         this.changeDetectorRef = changeDetectorRef;
         this.sanitizer = sanitizer;
     }
@@ -50,41 +60,64 @@ var ViewControllerListItem = (function () {
     };
     ViewControllerListItem.prototype.getHTML = function () {
         var _this = this;
-        this.html = this.val;
+        var matchMatches = null;
+        var markersMatches = [];
+        this.html = tools_htmlserialize_1.serializeHTML(this.val);
         if (typeof this.match === 'string' && this.match !== null && this.match !== '') {
-            var matches = null, mark_1 = '<@-=!=-@>';
-            this.regsCache[this.match] === void 0 && (this.regsCache[this.match] = new RegExp(this.match, 'gi'));
-            this.regsCache[mark_1] === void 0 && (this.regsCache[mark_1] = new RegExp(mark_1, 'gi'));
-            matches = this.html.match(this.regsCache[this.match]);
-            if (matches instanceof Array && matches.length > 0) {
-                matches.forEach(function (match) {
-                    var _match = match.substr(0, 1) + mark_1 + match.substr(1, match.length - 1);
-                    _this.html = _this.html.replace(match, '<span class="match">' + _match + '</span>');
-                });
-                this.html = this.html.replace(this.regsCache[mark_1], '');
+            var reg = null;
+            if (!this.matchReg) {
+                this.match = tools_regexp_1.serializeStringForReg(this.match);
+                this.regsCache[this.match + '_noReg'] === void 0 && (this.regsCache[this.match + '_noReg'] = new RegExp(this.match, 'g'));
+                reg = this.regsCache[this.match + '_noReg'];
+            }
+            else {
+                this.regsCache[this.match] === void 0 && (this.regsCache[this.match] = new RegExp(this.match, 'gi'));
+                reg = this.regsCache[this.match];
+            }
+            this.regsCache[MARKERS.MATCH] === void 0 && (this.regsCache[MARKERS.MATCH] = new RegExp(MARKERS.MATCH, 'gi'));
+            if (reg !== null) {
+                matchMatches = this.html.match(reg);
+                if (matchMatches instanceof Array && matchMatches.length > 0) {
+                    this.html = this.html.replace(reg, MARKERS.MATCH);
+                }
             }
         }
-    };
-    ViewControllerListItem.prototype.addMarkers = function () {
-        var _this = this;
         if (this.markers instanceof Array) {
             this.markers.forEach(function (marker) {
-                var matches = null, mark = '<@-=!=-@>';
-                _this.regsCache[marker.value] === void 0 && (_this.regsCache[marker.value] = _this.createRegExp(marker.value));
-                _this.regsCache[mark] === void 0 && (_this.regsCache[mark] = _this.createRegExp(mark));
-                if (_this.regsCache[marker.value] !== null) {
-                    matches = _this.html.match(_this.regsCache[marker.value]);
-                    if (matches instanceof Array && matches.length > 0) {
-                        matches.forEach(function (match) {
-                            var _match = match.substr(0, 1) + mark + match.substr(1, match.length - 1);
-                            //this.html = this.html.replace(match, '<span class="marker" style="' + this.sanitizer.bypassSecurityTrustStyle('background-color:' + marker.color) + '">' + _match + '</span>')
-                            _this.html = _this.html.replace(match, '<span class="marker" style="background-color: ' + marker.backgroundColor + ';color:' + marker.foregroundColor + ';">' + _match + '</span>');
-                        });
-                        _this.html = _this.html.replace(_this.regsCache[mark], '');
+                if (marker.value.length > 0) {
+                    var matches = null;
+                    var mark = "" + MARKERS.MARKER_LEFT + marker.value + MARKERS.MARKER_RIGHT;
+                    _this.regsCache[marker.value] === void 0 && (_this.regsCache[marker.value] = _this.createRegExp(marker.value));
+                    _this.regsCache[mark] === void 0 && (_this.regsCache[mark] = _this.createRegExp(mark));
+                    if (_this.regsCache[marker.value] !== null) {
+                        matches = _this.html.match(_this.regsCache[marker.value]);
+                        if (matches instanceof Array && matches.length > 0) {
+                            _this.html = _this.html.replace(_this.regsCache[marker.value], mark);
+                            markersMatches.push({
+                                mark: mark,
+                                matches: matches,
+                                bg: marker.backgroundColor,
+                                fg: marker.foregroundColor
+                            });
+                        }
                     }
                 }
             });
         }
+        if (matchMatches instanceof Array && matchMatches.length > 0) {
+            matchMatches.forEach(function (match) {
+                _this.html = _this.html.replace(MARKERS.MATCH, '<span class="match">' + match + '</span>');
+            });
+        }
+        if (markersMatches instanceof Array && markersMatches.length > 0) {
+            markersMatches.forEach(function (marker) {
+                marker.matches.forEach(function (match) {
+                    _this.html = _this.html.replace(marker.mark, "<span class=\"marker\" style=\"background-color: " + marker.bg + ";color:" + marker.fg + ";\">" + match + "</span>");
+                });
+            });
+        }
+        this.html = tools_ansireader_1.ANSIReader(this.html);
+        this.html = tools_htmlserialize_1.parseHTML(this.html);
     };
     ViewControllerListItem.prototype.createRegExp = function (str) {
         var result = null;
@@ -103,7 +136,6 @@ var ViewControllerListItem = (function () {
     };
     ViewControllerListItem.prototype.ngOnChanges = function () {
         this.getHTML();
-        this.addMarkers();
         this.convert();
         this.updateFilledIndex();
     };
@@ -119,9 +151,10 @@ var ViewControllerListItem = (function () {
         Object.keys(params).forEach(function (key) {
             _this[key] !== void 0 && (_this[key] = params[key]);
         });
-        if (this._markersHash !== this.markersHash || this._match !== this.match) {
+        if (this._markersHash !== this.markersHash || this._match !== this.match || this._matchReg !== this.matchReg) {
             this._markersHash = this.markersHash;
             this._match = this.match;
+            this._matchReg = this.matchReg;
             this.ngOnChanges();
         }
         this.changeDetectorRef.detectChanges();
@@ -153,6 +186,10 @@ __decorate([
     core_1.Input(),
     __metadata("design:type", String)
 ], ViewControllerListItem.prototype, "match", void 0);
+__decorate([
+    core_1.Input(),
+    __metadata("design:type", Boolean)
+], ViewControllerListItem.prototype, "matchReg", void 0);
 __decorate([
     core_1.Input(),
     __metadata("design:type", Number)

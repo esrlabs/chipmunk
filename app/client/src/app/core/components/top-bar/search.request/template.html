@@ -3,6 +3,7 @@
     <div class="buttons">
         <div [attr.class]="'icon icon-2x2 ' + (mode === 'reg' ? 'active' : '')" (click)="onModeReg()" title="Turn on/off regular expression"><span class="fa fa-free-code-camp"></span></div>
         <div [attr.class]="'icon icon-2x2 ' + (autoplay ? 'active' : '')" (click)="onAutoPlay()"><span class="fa fa-play" title="Automatically apply filter (without ENTER): on/off"></span></div>
+        <div [attr.class]="'icon icon-2x2 ' + (lastRequest !== null ? 'active' : '')" (click)="onAddRequest()"><span class="fa fa-plus" title="Save filter"></span></div>
     </div>
     <div class="progress" *ngIf="inprogress"><progressbar-line></progressbar-line></div>
 </div>

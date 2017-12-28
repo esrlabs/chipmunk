@@ -10,8 +10,10 @@ import { DataFilter                     } from '../../../core/interfaces/interfa
 import { localSettings, KEYs            } from '../../../core/modules/controller.localsettings';
 
 const SETTINGS = {
-    FOREGROUND_COLOR    : 'rgb(20,20, 20)',
-    BACKGROUND_COLOR    : 'rgb(255,255,255)',
+    //FOREGROUND_COLOR    : 'rgb(20,20, 20)',
+    //BACKGROUND_COLOR    : 'rgb(255,255,255)',
+    FOREGROUND_COLOR    : '',
+    BACKGROUND_COLOR    : '',
     LIST_KEY            : 'ListOfRequests'
 };
 
@@ -21,7 +23,8 @@ const SETTINGS = {
 })
 
 export class TabControllerSearchRequests extends TabController implements OnDestroy, OnInit{
-    public requests : Array<Request> = [];
+    private requests        : Array<Request>    = [];
+    private currentRequest  : Request           = null;
 
     constructor(
         private viewContainerRef            : ViewContainerRef,
@@ -34,6 +37,7 @@ export class TabControllerSearchRequests extends TabController implements OnDest
             Configuration.sets.SYSTEM_EVENTS.DATA_IS_MODIFIED,
             Configuration.sets.SYSTEM_EVENTS.DATA_FILTER_IS_UPDATED,
             Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_CHANGED,
+            Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_ACCEPTED,
             Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED_OUTSIDE,
             Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_GET_ALL].forEach((handle: string)=>{
             this['on' + handle] = this['on' + handle].bind(this);
@@ -48,6 +52,7 @@ export class TabControllerSearchRequests extends TabController implements OnDest
             Configuration.sets.SYSTEM_EVENTS.DATA_IS_MODIFIED,
             Configuration.sets.SYSTEM_EVENTS.DATA_FILTER_IS_UPDATED,
             Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_CHANGED,
+            Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_ACCEPTED,
             Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED_OUTSIDE,
             Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_GET_ALL].forEach((handle: string)=>{
             Events.unbind(handle, this['on' + handle]);
@@ -78,6 +83,21 @@ export class TabControllerSearchRequests extends TabController implements OnDest
     }
 
     onSEARCH_REQUEST_CHANGED(event: DataFilter){
+        if (event.value !== ''){
+            this.currentRequest = this.initRequest({
+                GUID            : dataController.getRequestGUID(event.mode, event.value),
+                value           : event.value,
+                type            : event.mode,
+                foregroundColor : SETTINGS.FOREGROUND_COLOR,
+                backgroundColor : SETTINGS.BACKGROUND_COLOR,
+                active          : true,
+                passive         : false
+            });
+            this.onRequestsChanges();
+        }
+    }
+
+    onSEARCH_REQUEST_ACCEPTED(event: DataFilter){
         if (!this.isExist(event.mode, event.value) && event.value !== ''){
             this.requests.push(this.initRequest({
                 GUID            : dataController.getRequestGUID(event.mode, event.value),
@@ -85,7 +105,7 @@ export class TabControllerSearchRequests extends TabController implements OnDest
                 type            : event.mode,
                 foregroundColor : SETTINGS.FOREGROUND_COLOR,
                 backgroundColor : SETTINGS.BACKGROUND_COLOR,
-                active          : false,
+                active          : true,
                 passive         : false
             }));
             this.onRequestsChanges();
@@ -121,15 +141,17 @@ export class TabControllerSearchRequests extends TabController implements OnDest
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Requests stuff
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    updateSearchResults(){
-        let measure = Logs.measure('[view.search.results.requests][updateSearchResults]');
-        this.requests.forEach((request: Request)=>{
-            request.active && dataController.updateForFilter({
-                mode    : request.type,
-                value   : request.value
+    updateSearchResults(current: boolean = false){
+        if (!current) {
+            let measure = Logs.measure('[view.search.results.requests][updateSearchResults]');
+            this.requests.forEach((request: Request)=>{
+                request.active && dataController.updateForFilter({
+                    mode    : request.type,
+                    value   : request.value
+                });
             });
-        });
-        Logs.measure(measure);
+            Logs.measure(measure);
+        }
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_APPLIED, dataController.getRows());
     }
 
@@ -240,6 +262,17 @@ export class TabControllerSearchRequests extends TabController implements OnDest
             });
     }
 
+    getCurrentRequest(){
+        return this.currentRequest !== null ? [{
+            GUID            : dataController.getRequestGUID(this.currentRequest.type, this.currentRequest.value),
+            value           : this.currentRequest.value,
+            passive         : this.currentRequest.passive,
+            type            : this.currentRequest.type,
+            foregroundColor : this.currentRequest.foregroundColor,
+            backgroundColor : this.currentRequest.backgroundColor,
+        }] : [];
+    }
+
     getRequests(){
         return this.requests.map((request)=>{
                 return {
@@ -255,9 +288,14 @@ export class TabControllerSearchRequests extends TabController implements OnDest
     }
 
     onRequestsChanges(){
-        this.saveRequests();
-        Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED, this.getActiveRequests(), this.getRequests());
-        this.updateSearchResults();
+        if (this.getActiveRequests().length === 0) {
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED, this.getCurrentRequest(), this.getRequests());
+            this.updateSearchResults(true);
+        } else {
+            this.saveRequests();
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED, this.getActiveRequests(), this.getRequests());
+            this.updateSearchResults();
+        }
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *

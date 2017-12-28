@@ -20,7 +20,6 @@ var component_2 = require("../../../core/components/common/long-list/component")
 var tools_logs_1 = require("../../../core/modules/tools.logs");
 var controller_events_1 = require("../../../core/modules/controller.events");
 var controller_config_1 = require("../../../core/modules/controller.config");
-var tools_ansireader_1 = require("../../../core/modules/tools.ansireader");
 var controller_selection_text_1 = require("../../../core/modules/controller.selection.text");
 var class_tab_controller_1 = require("../../../core/components/common/tabs/tab/class.tab.controller");
 var SETTINGS = {
@@ -238,7 +237,7 @@ var TabControllerSearchResults = (function (_super) {
                 factory: factory,
                 params: {
                     GUID: _this.viewParams !== null ? _this.viewParams.GUID : null,
-                    val: tools_ansireader_1.ANSIReader(_this.serializeHTML(row.render_str)),
+                    val: row.render_str,
                     original: row.str,
                     index: _index,
                     selection: _this.selection.index === _index ? true : false,
@@ -481,7 +480,9 @@ var TabControllerSearchResults = (function (_super) {
             this.line.scroll = event;
         }
         else {
-            this.line.scroll = this.listView.getScrollState();
+            if (this.listView !== void 0 && this.listView.getScrollState !== void 0) {
+                this.line.scroll = this.listView.getScrollState();
+            }
         }
     };
     TabControllerSearchResults.prototype.updateLineData = function () {

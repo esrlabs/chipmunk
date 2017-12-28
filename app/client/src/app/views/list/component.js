@@ -22,7 +22,6 @@ var controller_data_1 = require("../../core/modules/controller.data");
 var tools_logs_1 = require("../../core/modules/tools.logs");
 var controller_events_1 = require("../../core/modules/controller.events");
 var controller_config_1 = require("../../core/modules/controller.config");
-var tools_ansireader_1 = require("../../core/modules/tools.ansireader");
 var controller_selection_text_1 = require("../../core/modules/controller.selection.text");
 var SETTINGS = {
     SELECTION_OFFSET: 3,
@@ -157,13 +156,14 @@ var ViewControllerList = (function (_super) {
                 factory: factory,
                 params: {
                     GUID: _this.viewParams !== null ? _this.viewParams.GUID : null,
-                    val: tools_ansireader_1.ANSIReader(_this.serializeHTML(row.render_str)),
+                    val: _this.serializeHTML(row.render_str),
                     original: row.str,
                     index: _index,
                     selection: _this.selection.index === _index ? true : false,
                     bookmarked: ~_this.bookmarks.indexOf(_index) ? true : false,
                     filtered: _this.highlight ? filtered : false,
                     match: row.match,
+                    matchReg: row.matchReg,
                     visibility: _this.numbers,
                     total_rows: _this._rows.length === 0 ? rows.length : _this._rows.length,
                     markers: _this.markers,
@@ -175,6 +175,7 @@ var ViewControllerList = (function (_super) {
                 filtered: row.filtered !== void 0 ? row.filtered : true,
                 filters: row.filters !== void 0 ? row.filters : {},
                 match: row.match,
+                matchReg: row.matchReg
             };
         });
     };
@@ -239,6 +240,7 @@ var ViewControllerList = (function (_super) {
             row.params.visibility = _this.numbers;
             row.params.filtered = _this.highlight ? filtered : false;
             row.params.match = row.match;
+            row.params.matchReg = row.matchReg;
             row.params.total_rows = _this._rows.length;
             row.params.GUID = _this.viewParams !== null ? _this.viewParams.GUID : null;
             row.params.markers = _this.markers;
@@ -616,6 +618,7 @@ var ViewControllerList = (function (_super) {
             this._rows = this._rows.map(function (row, index) {
                 row.filtered = event.rows[index].filtered;
                 row.match = event.rows[index].match;
+                row.matchReg = event.rows[index].matchReg;
                 row.filters = event.rows[index].filters;
                 return row;
             });

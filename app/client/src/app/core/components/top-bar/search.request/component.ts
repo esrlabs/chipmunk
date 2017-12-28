@@ -5,6 +5,7 @@ import { configuration as Configuration } from '../../../modules/controller.conf
 import { MODES                          } from '../../../modules/controller.data.search.modes';
 import { DataFilter                     } from '../../../interfaces/interface.data.filter';
 import { CommonInput                    } from '../../common/input/component';
+import {dataController} from "../../../modules/controller.data";
 
 const SETTINGS = {
     TYPING_DELAY : 300 //ms
@@ -17,14 +18,15 @@ const SETTINGS = {
 export class TopBarSearchRequest implements AfterContentInit{
     @ViewChild('input') input : CommonInput;
 
-    value       : string;
-    type        : string;
-    placeholder : string;
-    handles     : Object;
-    delayTimer  : number    = -1;
-    mode        : string    = MODES.REG;
-    autoplay    : boolean   = false;
-    inprogress  : boolean   = false;
+    private value       : string;
+    private type        : string;
+    private placeholder : string;
+    private handles     : Object;
+    private delayTimer  : number    = -1;
+    private mode        : string    = MODES.REG;
+    private autoplay    : boolean   = false;
+    private inprogress  : boolean   = false;
+    private lastRequest : DataFilter= null;
 
     constructor(private changeDetectorRef : ChangeDetectorRef) {
         this.value          = '';
@@ -40,6 +42,7 @@ export class TopBarSearchRequest implements AfterContentInit{
         Events.bind(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_PROCESS_START,  this.onSEARCH_REQUEST_PROCESS_START.    bind(this));
         Events.bind(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_PROCESS_FINISH, this.onSEARCH_REQUEST_PROCESS_FINISH.   bind(this));
         Events.bind(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_RESET,          this.onSEARCH_REQUEST_RESET.            bind(this));
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_CHANGED,        this.onSEARCH_REQUEST_CHANGED.          bind(this));
         Events.bind(Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_SEARCH,         this.onSHORTCUT_TO_SEARCH.              bind(this));
     }
 
@@ -94,6 +97,11 @@ export class TopBarSearchRequest implements AfterContentInit{
         this.autoplay = !this.autoplay;
     }
 
+    onAddRequest(){
+        this.lastRequest !== null && Events.trigger(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_ACCEPTED, this.lastRequest);
+        this.lastRequest = null;
+    }
+
     onSEARCH_REQUEST_PROCESS_START(){
         this.inprogress = true;
         this.forceUpdate();
@@ -107,5 +115,9 @@ export class TopBarSearchRequest implements AfterContentInit{
     onSEARCH_REQUEST_RESET(){
         this.value = '';
         this.forceUpdate();
+    }
+
+    onSEARCH_REQUEST_CHANGED(event: DataFilter){
+        this.lastRequest = Object.assign({}, event);
     }
 }

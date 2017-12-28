@@ -25,6 +25,7 @@ var TopBarSearchRequest = (function () {
         this.mode = controller_data_search_modes_1.MODES.REG;
         this.autoplay = false;
         this.inprogress = false;
+        this.lastRequest = null;
         this.value = '';
         this.placeholder = 'type your search request';
         this.type = 'text';
@@ -38,6 +39,7 @@ var TopBarSearchRequest = (function () {
         controller_events_1.events.bind(controller_config_1.configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_PROCESS_START, this.onSEARCH_REQUEST_PROCESS_START.bind(this));
         controller_events_1.events.bind(controller_config_1.configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_PROCESS_FINISH, this.onSEARCH_REQUEST_PROCESS_FINISH.bind(this));
         controller_events_1.events.bind(controller_config_1.configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_RESET, this.onSEARCH_REQUEST_RESET.bind(this));
+        controller_events_1.events.bind(controller_config_1.configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_CHANGED, this.onSEARCH_REQUEST_CHANGED.bind(this));
         controller_events_1.events.bind(controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_SEARCH, this.onSHORTCUT_TO_SEARCH.bind(this));
     }
     TopBarSearchRequest.prototype.onSHORTCUT_TO_SEARCH = function () {
@@ -81,6 +83,10 @@ var TopBarSearchRequest = (function () {
     TopBarSearchRequest.prototype.onAutoPlay = function () {
         this.autoplay = !this.autoplay;
     };
+    TopBarSearchRequest.prototype.onAddRequest = function () {
+        this.lastRequest !== null && controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_ACCEPTED, this.lastRequest);
+        this.lastRequest = null;
+    };
     TopBarSearchRequest.prototype.onSEARCH_REQUEST_PROCESS_START = function () {
         this.inprogress = true;
         this.forceUpdate();
@@ -92,6 +98,9 @@ var TopBarSearchRequest = (function () {
     TopBarSearchRequest.prototype.onSEARCH_REQUEST_RESET = function () {
         this.value = '';
         this.forceUpdate();
+    };
+    TopBarSearchRequest.prototype.onSEARCH_REQUEST_CHANGED = function (event) {
+        this.lastRequest = Object.assign({}, event);
     };
     return TopBarSearchRequest;
 }());

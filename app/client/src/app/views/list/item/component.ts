@@ -4,6 +4,15 @@ import {DomSanitizer, SafeHtml} from '@angular/platform-browser';
 import { ListItemInterface                      } from './interface';
 import { events as Events                       } from '../../../core/modules/controller.events';
 import { configuration as Configuration         } from '../../../core/modules/controller.config';
+import { ANSIReader                             } from '../../../core/modules/tools.ansireader';
+import { serializeHTML, parseHTML               } from '../../../core/modules/tools.htmlserialize';
+import { serializeStringForReg                  } from '../../../core/modules/tools.regexp';
+
+const MARKERS = {
+    MATCH       : '\uAA86!\uAA87',
+    MARKER_LEFT : '\uAA88',
+    MARKER_RIGHT: '\uAA89'
+};
 
 @Component({
   selector      : 'list-view-item',
@@ -16,6 +25,7 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     @Input() visibility : boolean               = true;
     @Input() filtered   : boolean               = false;
     @Input() match      : string                = '';
+    @Input() matchReg   : boolean               = true;
     @Input() index      : number                = 0;
     @Input() total_rows : number                = 0;
     @Input() selection  : boolean               = false;
@@ -43,6 +53,7 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     public safeHTML     : SafeHtml              = null;
     private _markersHash: string                = '';
     private _match      : string                = '';
+    private _matchReg   : boolean               = true;
 
     ngOnDestroy(){
     }
@@ -60,44 +71,65 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     }
 
     getHTML(){
-        this.html = this.val;
+        let matchMatches    = null;
+        let markersMatches  : Array<{ mark: string, matches: Array<string>, bg: string, fg: string}> = [];
+        this.html = serializeHTML(this.val);
         if (typeof this.match === 'string' && this.match !== null && this.match !== ''){
-            let matches = null,
-                mark    = '<@-=!=-@>';
-            this.regsCache[this.match]  === void 0 && (this.regsCache[this.match]   = new RegExp(this.match, 'gi'));
-            this.regsCache[mark]        === void 0 && (this.regsCache[mark]         = new RegExp(mark, 'gi'));
-            matches = this.html.match(this.regsCache[this.match]);
-            if (matches instanceof Array && matches.length > 0){
-                matches.forEach((match)=>{
-                    let _match = match.substr(0,1) + mark + match.substr(1, match.length - 1);
-                    this.html = this.html.replace(match, '<span class="match">' + _match + '</span>')
-                });
-                this.html = this.html.replace(this.regsCache[mark], '');
+            let reg = null;
+            if (!this.matchReg) {
+                this.match = serializeStringForReg(this.match);
+                this.regsCache[this.match + '_noReg'] === void 0 && (this.regsCache[this.match + '_noReg'] = new RegExp(this.match, 'g'));
+                reg = this.regsCache[this.match + '_noReg'];
+            } else {
+                this.regsCache[this.match] === void 0 && (this.regsCache[this.match] = new RegExp(this.match, 'gi'));
+                reg = this.regsCache[this.match];
+            }
+            this.regsCache[MARKERS.MATCH] === void 0 && (this.regsCache[MARKERS.MATCH] = new RegExp(MARKERS.MATCH, 'gi'));
+            if (reg !== null) {
+                matchMatches = this.html.match(reg);
+                if (matchMatches instanceof Array && matchMatches.length > 0){
+                    this.html = this.html.replace(reg, MARKERS.MATCH);
+                }
             }
         }
-    }
-
-    addMarkers(){
         if (this.markers instanceof Array){
             this.markers.forEach((marker)=>{
-                let matches = null,
-                    mark    = '<@-=!=-@>';
-                this.regsCache[marker.value]    === void 0 && (this.regsCache[marker.value] = this.createRegExp(marker.value));
-                this.regsCache[mark]            === void 0 && (this.regsCache[mark]         = this.createRegExp(mark));
-                if (this.regsCache[marker.value] !== null){
-                    matches = this.html.match(this.regsCache[marker.value]);
-                    if (matches instanceof Array && matches.length > 0){
-                        matches.forEach((match)=>{
-                            let _match = match.substr(0,1) + mark + match.substr(1, match.length - 1);
-                            //this.html = this.html.replace(match, '<span class="marker" style="' + this.sanitizer.bypassSecurityTrustStyle('background-color:' + marker.color) + '">' + _match + '</span>')
-                            this.html = this.html.replace(match, '<span class="marker" style="background-color: ' + marker.backgroundColor + ';color:' + marker.foregroundColor+ ';">' + _match + '</span>')
-                        });
-                        this.html = this.html.replace(this.regsCache[mark], '');
+                if (marker.value.length > 0) {
+                    let matches = null;
+                    let mark    = `${MARKERS.MARKER_LEFT}${marker.value}${MARKERS.MARKER_RIGHT}`;
+                    this.regsCache[marker.value]    === void 0 && (this.regsCache[marker.value] = this.createRegExp(marker.value));
+                    this.regsCache[mark]            === void 0 && (this.regsCache[mark]         = this.createRegExp(mark));
+                    if (this.regsCache[marker.value] !== null){
+                        matches = this.html.match(this.regsCache[marker.value]);
+                        if (matches instanceof Array && matches.length > 0){
+                            this.html = this.html.replace(this.regsCache[marker.value], mark);
+                            markersMatches.push({
+                                mark    : mark,
+                                matches : matches,
+                                bg      : marker.backgroundColor,
+                                fg      : marker.foregroundColor
+                            });
+                        }
                     }
                 }
             });
         }
+        if (matchMatches instanceof Array && matchMatches.length > 0){
+            matchMatches.forEach((match)=>{
+                this.html = this.html.replace(MARKERS.MATCH, '<span class="match">' + match + '</span>')
+            });
+        }
+        if (markersMatches instanceof Array && markersMatches.length > 0) {
+            markersMatches.forEach((marker) => {
+                marker.matches.forEach((match)=>{
+                    this.html = this.html.replace(marker.mark, `<span class="marker" style="background-color: ${marker.bg};color:${marker.fg};">${match}</span>`)
+                });
+            });
+        }
+        this.html = ANSIReader(this.html);
+        this.html = parseHTML(this.html);
     }
+
 
     createRegExp(str: string): RegExp{
         let result = null;
@@ -118,7 +150,6 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
 
     ngOnChanges(){
         this.getHTML();
-        this.addMarkers();
         this.convert();
         this.updateFilledIndex();
     }
@@ -136,9 +167,10 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
         Object.keys(params).forEach((key)=>{
             this[key] !== void 0 && (this[key] = params[key]);
         });
-        if (this._markersHash !== this.markersHash || this._match !== this.match){
+        if (this._markersHash !== this.markersHash || this._match !== this.match || this._matchReg !== this.matchReg){
             this._markersHash   = this.markersHash;
             this._match         = this.match;
+            this._matchReg      = this.matchReg;
             this.ngOnChanges();
         }
         this.changeDetectorRef.detectChanges();
