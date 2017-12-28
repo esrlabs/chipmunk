@@ -21,6 +21,7 @@ var module_3 = require("../../../views/chart/module");
 var module_4 = require("../../../views/statemonitor/module");
 var module_5 = require("../../../views/streamsender/module");
 var module_6 = require("../../../views/markers/module");
+var module_7 = require("../../components/common/dialogs/monitor.manager/module");
 var HolderModule = (function () {
     function HolderModule() {
     }
@@ -31,7 +32,7 @@ HolderModule = __decorate([
         entryComponents: [],
         imports: [common_1.CommonModule, components_1.Components],
         declarations: [component_1.Holder, component_2.View, component_3.ViewBar, controllers_1.DynamicComponent],
-        exports: [component_1.Holder, component_2.View, component_3.ViewBar, module_1.ViewListModule, module_2.ViewSearchResultsModule, module_3.ViewChartModule, module_4.ViewStateMonitorModule, module_5.ViewStreamSenderModule, module_6.ViewMarkersModule]
+        exports: [component_1.Holder, component_2.View, component_3.ViewBar, module_1.ViewListModule, module_2.ViewSearchResultsModule, module_3.ViewChartModule, module_4.ViewStateMonitorModule, module_5.ViewStreamSenderModule, module_6.ViewMarkersModule, module_7.DialogMonitorManagerModule]
     }),
     __metadata("design:paramtypes", [])
 ], HolderModule);

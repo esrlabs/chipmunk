@@ -1,13 +1,13 @@
 <div [attr.class]="'wrapper ' + className + ' ' + (icon !== null ? 'as-icon' : 'as-caption')">
-    <div [attr.class]="'button ' + (icon !== null ? 'icon' : '')">
+    <div [attr.class]="'button ' + (icon !== null ? 'icon' : '')" (click)="onMenuClick()">
         <span *ngIf="icon !== null" [attr.class]="'fa ' + icon"></span>
         <span *ngIf="icon === null" class="caption">{{caption}}</span>
     </div>
     <div class="list-wrapper-corrector">
         <div class="list-wrapper">
-            <ul class="list">
+            <ul [attr.class]="'list ' + (isOpen ? 'open' : '')">
                 <li *ngFor="let item of items">
-                    <p *ngIf="item.type === 'item'" (click)="item.handle()">
+                    <p *ngIf="item.type === 'item'" (click)="onItemClick(item.handle)">
                         <span class="item-icon fa {{item.icon}}"></span>
                         <span class="item-caption">{{item.caption}}</span>
                     </p>

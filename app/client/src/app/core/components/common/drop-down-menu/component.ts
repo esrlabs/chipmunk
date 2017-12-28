@@ -10,6 +10,29 @@ export class DropDownMenu {
     @Input() caption    : string        = '';
     @Input() items      : Array<Object> = [];
 
+    private isOpen          : boolean = false;
+    private triggerClick    : boolean = false;
+
     constructor(){
+        window.addEventListener('click', this.onClickWindow.bind(this));
+    }
+
+    isTriggerClick() {
+        let triggerClick = this.triggerClick;
+        this.triggerClick = false;
+        return triggerClick;
+    }
+    onMenuClick(){
+        this.isOpen         = !this.isOpen;
+        this.triggerClick   = true;
+    }
+
+    onItemClick(handler: Function){
+        this.isOpen = false;
+        typeof handler === 'function' && handler();
+    }
+
+    onClickWindow(){
+        !this.isTriggerClick() && (this.isOpen = false);
     }
 }

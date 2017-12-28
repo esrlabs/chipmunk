@@ -36,18 +36,8 @@ drop-down-menu{
                     right       : 0;
                     background  : @menu-passive-background;
                     box-shadow  : @shadow-menu;
-                    &:after{
-                        display: block;
-                        position: absolute;
-                        content: '';
-                        width: 50%;
-                        height: 2.5rem;
-                        background: @hidden;
-                        top: -2.35rem;
-                        right: 1rem;
-                        opacity: 0.01;
-                    }
-                    &:hover{
+                    z-index     : 100;
+                    &.open{
                         display : block;
                     }
                     li{
@@ -78,9 +68,6 @@ drop-down-menu{
                     }
                 }
             }
-        }
-        .button:hover ~.list-wrapper-corrector .list{
-            display: block;
         }
     }
 }

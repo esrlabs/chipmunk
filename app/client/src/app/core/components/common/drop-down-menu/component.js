@@ -15,7 +15,26 @@ var DropDownMenu = (function () {
         this.icon = '';
         this.caption = '';
         this.items = [];
+        this.isOpen = false;
+        this.triggerClick = false;
+        window.addEventListener('click', this.onClickWindow.bind(this));
     }
+    DropDownMenu.prototype.isTriggerClick = function () {
+        var triggerClick = this.triggerClick;
+        this.triggerClick = false;
+        return triggerClick;
+    };
+    DropDownMenu.prototype.onMenuClick = function () {
+        this.isOpen = !this.isOpen;
+        this.triggerClick = true;
+    };
+    DropDownMenu.prototype.onItemClick = function (handler) {
+        this.isOpen = false;
+        typeof handler === 'function' && handler();
+    };
+    DropDownMenu.prototype.onClickWindow = function () {
+        !this.isTriggerClick() && (this.isOpen = false);
+    };
     return DropDownMenu;
 }());
 __decorate([
