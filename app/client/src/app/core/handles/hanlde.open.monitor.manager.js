@@ -14,9 +14,20 @@ var DefaultMonitorSettings = (function () {
         this.maxFilesCount = 30;
         this.port = '';
         this.portSettings = new defaults_settings_1.DefaultsPortSettings();
+        this.path = '';
+        this.command = '';
     }
     return DefaultMonitorSettings;
 }());
+var DefaultMonitorState = (function () {
+    function DefaultMonitorState() {
+        this.active = false;
+        this.port = '';
+        this.spawn = '';
+    }
+    return DefaultMonitorState;
+}());
+exports.DefaultMonitorState = DefaultMonitorState;
 var OpenMonitorManager = (function () {
     function OpenMonitorManager() {
         this.progressGUID = Symbol();
@@ -35,7 +46,7 @@ var OpenMonitorManager = (function () {
     OpenMonitorManager.prototype.onAPI_IS_READY_TO_USE = function () {
         var _this = this;
         this.getStateMonitor(function (state) {
-            _this.updateState(state !== null ? state : { active: false, port: '' });
+            _this.updateState(state !== null ? state : (new DefaultMonitorState()));
         });
     };
     OpenMonitorManager.prototype.getMonitorSettings = function (callback) {
@@ -64,7 +75,10 @@ var OpenMonitorManager = (function () {
                 }
             });
         }
-        !validSettings && (this.settings = new DefaultMonitorSettings());
+        if (!validSettings) {
+            this.settings = new DefaultMonitorSettings();
+            this.dropSettings();
+        }
         typeof callback === 'function' && callback(Object.assign({}, settings));
     };
     OpenMonitorManager.prototype.updateState = function (state) {
@@ -84,6 +98,10 @@ var OpenMonitorManager = (function () {
     OpenMonitorManager.prototype.removeToolBarButton = function () {
         controller_events_1.events.trigger(controller_config_1.configuration.sets.EVENTS_TOOLBAR.REMOVE_BUTTON, this.button.id);
         this.button.id = null;
+    };
+    OpenMonitorManager.prototype.dropSettings = function () {
+        this.processor.send(api_commands_1.APICommands.dropSettings, {}, function () {
+        });
     };
     OpenMonitorManager.prototype.getListPorts = function (callback) {
         this.processor.send(api_commands_1.APICommands.serialPortsList, {}, this.onListOfPorts.bind(this, callback));
@@ -175,7 +193,7 @@ var OpenMonitorManager = (function () {
         else {
             this.showMessage(_('Error'), error.message);
         }
-        this.updateState({ active: false, port: '' });
+        this.updateState((new DefaultMonitorState()));
         typeof callback === 'function' && callback(null);
     };
     OpenMonitorManager.prototype.stopAndClearMonitor = function (callback) {
@@ -246,7 +264,7 @@ var OpenMonitorManager = (function () {
                     info = info !== null ? info : { list: [], register: {} };
                     _this.getStateMonitor(function (state) {
                         controller_1.popupController.close(_this.progressGUID);
-                        state = state !== null ? state : { active: false, port: '' };
+                        state = state !== null ? state : (new DefaultMonitorState());
                         controller_1.popupController.open({
                             content: {
                                 factory: null,

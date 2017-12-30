@@ -11,8 +11,13 @@ import { TabController                  } from '../../../../common/tabs/tab/clas
 import { DefaultsPortSettings           } from '../../serial.settings/defaults.settings';
 import { ProgressBarCircle              } from "../../../progressbar.circle/component";
 import { MonitorState                   } from '../../../../../handles/hanlde.open.monitor.manager';
+import { DefaultMonitorState            } from '../../../../../handles/hanlde.open.monitor.manager';
 import { SimpleDropDownList             } from '../../../lists/simple-drop-down/component';
 
+const TARGETS = {
+    PORT    : 'port',
+    PROCESS : 'process'
+};
 @Component({
     selector    : 'dialog-monitor-manager-settings-tab',
     templateUrl : './template.html',
@@ -23,11 +28,14 @@ export class DialogMonitorManagerSettingTab extends TabController implements OnD
     @Input() maxFileSizeMB          : number        = 100;
     @Input() maxFilesCount          : number        = 10;
     @Input() port                   : string        = '';
+    @Input() command                : string        = '';
+    @Input() path                   : string        = '';
     @Input() portSettings           : any           = {};
     @Input() ports                  : Array<string> = [];
     @Input() state                  : MonitorState  = {
         active  : false,
-        port    : ''
+        port    : '',
+        spawn   : ''
     };
 
     @Input() stopAndClearMonitor    : Function      = null;
@@ -39,9 +47,15 @@ export class DialogMonitorManagerSettingTab extends TabController implements OnD
     @ViewChild('_maxFileSizeMB' ) _maxFileSizeMB    : CommonInput;
     @ViewChild('_maxFilesCount' ) _maxFilesCount    : CommonInput;
     @ViewChild('_port'          ) _port             : SimpleDropDownList;
+    @ViewChild('_target'        ) _target           : SimpleDropDownList;
+    @ViewChild('_command'       ) _command          : CommonInput;
+    @ViewChild('_path'          ) _path             : CommonInput;
+
 
 
     private portsList   : Array<any>    = [];
+    private targetsList : Array<any>    = [ {caption: 'Serial port', value: TARGETS.PORT } , { caption:  'Background process', value: TARGETS.PROCESS } ];
+    public target      : string        = TARGETS.PORT;
 
     constructor(private componentFactoryResolver    : ComponentFactoryResolver,
                 private viewContainerRef            : ViewContainerRef,
@@ -49,10 +63,12 @@ export class DialogMonitorManagerSettingTab extends TabController implements OnD
         super();
         this.onTabSelected              = this.onTabSelected.           bind(this);
         this.onTabDeselected            = this.onTabDeselected.         bind(this);
+        this.onTargetChange             = this.onTargetChange.          bind(this);
         this.onClearLogsOfMonitor       = this.onClearLogsOfMonitor.    bind(this);
         this.onRestartMonitor           = this.onRestartMonitor.        bind(this);
         this.onSetSettingsOfMonitor     = this.onSetSettingsOfMonitor.  bind(this);
         this.onStopMonitor              = this.onStopMonitor.           bind(this);
+        this.showPortSettings           = this.showPortSettings.        bind(this);
     }
 
     ngOnInit(){
@@ -73,6 +89,9 @@ export class DialogMonitorManagerSettingTab extends TabController implements OnD
                     value: port
                 };
             });
+            this.port       !== '' && (this.target = TARGETS.PORT);
+            this.command    !== '' && (this.target = TARGETS.PROCESS);
+            this._target.setValue(this.target);
         }
     }
 
@@ -108,6 +127,11 @@ export class DialogMonitorManagerSettingTab extends TabController implements OnD
 
     onTabDeselected(){
 
+    }
+
+    onTargetChange(target: string){
+        this.target = target;
+        this.forceUpdate();
     }
 
     showPortSettings(){
@@ -148,7 +172,7 @@ export class DialogMonitorManagerSettingTab extends TabController implements OnD
         let GUID = this.showProgress('Please wait...');
         this.clearLogsOfMonitor((result: boolean) => {
             this.getStateMonitor((state: MonitorState) => {
-                this.state = state !== null ? state : { active: false, port: ''};
+                this.state = state !== null ? state : (new DefaultMonitorState());
                 popupController.close(GUID);
                 this.forceUpdate();
             });
@@ -159,7 +183,7 @@ export class DialogMonitorManagerSettingTab extends TabController implements OnD
         let GUID = this.showProgress('Please wait...');
         this.restartMonitor((result: boolean) => {
             this.getStateMonitor((state: MonitorState) => {
-                this.state = state !== null ? state : { active: false, port: ''};
+                this.state = state !== null ? state : (new DefaultMonitorState());
                 popupController.close(GUID);
                 this.forceUpdate();
             });
@@ -171,7 +195,7 @@ export class DialogMonitorManagerSettingTab extends TabController implements OnD
         let GUID = this.showProgress('Please wait...');
         this.setSettingsOfMonitor((result: boolean) => {
             this.getStateMonitor((state: MonitorState) => {
-                this.state = state !== null ? state : { active: false, port: ''};
+                this.state = state !== null ? state : (new DefaultMonitorState());
                 popupController.close(GUID);
                 this.forceUpdate();
             });
@@ -179,17 +203,21 @@ export class DialogMonitorManagerSettingTab extends TabController implements OnD
             maxFilesCount   : this.maxFilesCount,
             maxFileSizeMB   : this.maxFileSizeMB,
             port            : this.port,
-            portSettings    : this.portSettings
+            portSettings    : this.portSettings,
+            command         : this.command,
+            path            : this.path
         });
     }
 
     onStopMonitor(){
         this.updateSettings();
-        this.port   = '';
-        let GUID    = this.showProgress('Please wait...');
+        this.port       = '';
+        this.command    = '';
+        this.path       = '';
+        let GUID        = this.showProgress('Please wait...');
         this.setSettingsOfMonitor((result: boolean) => {
             this.getStateMonitor((state: MonitorState) => {
-                this.state = state !== null ? state : { active: false, port: ''};
+                this.state = state !== null ? state : (new DefaultMonitorState());
                 popupController.close(GUID);
                 this.forceUpdate();
             });
@@ -197,14 +225,18 @@ export class DialogMonitorManagerSettingTab extends TabController implements OnD
             maxFilesCount   : this.maxFilesCount,
             maxFileSizeMB   : this.maxFileSizeMB,
             port            : this.port,
-            portSettings    : this.portSettings
+            portSettings    : this.portSettings,
+            command         : this.command,
+            path            : this.path
         });
     }
 
     updateSettings() {
         this.maxFilesCount  = parseInt(this._maxFilesCount.getValue(), 10);
         this.maxFileSizeMB  = parseInt(this._maxFileSizeMB.getValue(), 10);
-        this.port           = this._port.getValue();
+        this.port           = this._port    !== void 0 ? this._port.getValue()      : '';
+        this.command        = this._command !== void 0 ? this._command.getValue()   : '';
+        this.path           = this._path    !== void 0 ? this._path.getValue()      : '';
         let validSettings   = true;
         if (this.portSettings === null || typeof this.portSettings !== 'object') {
             validSettings   = false;

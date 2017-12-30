@@ -20,7 +20,12 @@ var component_2 = require("../../serial.settings/component");
 var class_tab_controller_1 = require("../../../../common/tabs/tab/class.tab.controller");
 var defaults_settings_1 = require("../../serial.settings/defaults.settings");
 var component_3 = require("../../../progressbar.circle/component");
+var hanlde_open_monitor_manager_1 = require("../../../../../handles/hanlde.open.monitor.manager");
 var component_4 = require("../../../lists/simple-drop-down/component");
+var TARGETS = {
+    PORT: 'port',
+    PROCESS: 'process'
+};
 var DialogMonitorManagerSettingTab = (function (_super) {
     __extends(DialogMonitorManagerSettingTab, _super);
     function DialogMonitorManagerSettingTab(componentFactoryResolver, viewContainerRef, changeDetectorRef) {
@@ -31,11 +36,14 @@ var DialogMonitorManagerSettingTab = (function (_super) {
         _this.maxFileSizeMB = 100;
         _this.maxFilesCount = 10;
         _this.port = '';
+        _this.command = '';
+        _this.path = '';
         _this.portSettings = {};
         _this.ports = [];
         _this.state = {
             active: false,
-            port: ''
+            port: '',
+            spawn: ''
         };
         _this.stopAndClearMonitor = null;
         _this.restartMonitor = null;
@@ -43,12 +51,16 @@ var DialogMonitorManagerSettingTab = (function (_super) {
         _this.clearLogsOfMonitor = null;
         _this.getStateMonitor = null;
         _this.portsList = [];
+        _this.targetsList = [{ caption: 'Serial port', value: TARGETS.PORT }, { caption: 'Background process', value: TARGETS.PROCESS }];
+        _this.target = TARGETS.PORT;
         _this.onTabSelected = _this.onTabSelected.bind(_this);
         _this.onTabDeselected = _this.onTabDeselected.bind(_this);
+        _this.onTargetChange = _this.onTargetChange.bind(_this);
         _this.onClearLogsOfMonitor = _this.onClearLogsOfMonitor.bind(_this);
         _this.onRestartMonitor = _this.onRestartMonitor.bind(_this);
         _this.onSetSettingsOfMonitor = _this.onSetSettingsOfMonitor.bind(_this);
         _this.onStopMonitor = _this.onStopMonitor.bind(_this);
+        _this.showPortSettings = _this.showPortSettings.bind(_this);
         return _this;
     }
     DialogMonitorManagerSettingTab.prototype.ngOnInit = function () {
@@ -67,6 +79,9 @@ var DialogMonitorManagerSettingTab = (function (_super) {
                     value: port
                 };
             });
+            this.port !== '' && (this.target = TARGETS.PORT);
+            this.command !== '' && (this.target = TARGETS.PROCESS);
+            this._target.setValue(this.target);
         }
     };
     DialogMonitorManagerSettingTab.prototype.showProgress = function (caption) {
@@ -96,6 +111,10 @@ var DialogMonitorManagerSettingTab = (function (_super) {
     DialogMonitorManagerSettingTab.prototype.onTabSelected = function () {
     };
     DialogMonitorManagerSettingTab.prototype.onTabDeselected = function () {
+    };
+    DialogMonitorManagerSettingTab.prototype.onTargetChange = function (target) {
+        this.target = target;
+        this.forceUpdate();
     };
     DialogMonitorManagerSettingTab.prototype.showPortSettings = function () {
         var GUID = Symbol();
@@ -135,7 +154,7 @@ var DialogMonitorManagerSettingTab = (function (_super) {
         var GUID = this.showProgress('Please wait...');
         this.clearLogsOfMonitor(function (result) {
             _this.getStateMonitor(function (state) {
-                _this.state = state !== null ? state : { active: false, port: '' };
+                _this.state = state !== null ? state : (new hanlde_open_monitor_manager_1.DefaultMonitorState());
                 controller_1.popupController.close(GUID);
                 _this.forceUpdate();
             });
@@ -146,7 +165,7 @@ var DialogMonitorManagerSettingTab = (function (_super) {
         var GUID = this.showProgress('Please wait...');
         this.restartMonitor(function (result) {
             _this.getStateMonitor(function (state) {
-                _this.state = state !== null ? state : { active: false, port: '' };
+                _this.state = state !== null ? state : (new hanlde_open_monitor_manager_1.DefaultMonitorState());
                 controller_1.popupController.close(GUID);
                 _this.forceUpdate();
             });
@@ -158,7 +177,7 @@ var DialogMonitorManagerSettingTab = (function (_super) {
         var GUID = this.showProgress('Please wait...');
         this.setSettingsOfMonitor(function (result) {
             _this.getStateMonitor(function (state) {
-                _this.state = state !== null ? state : { active: false, port: '' };
+                _this.state = state !== null ? state : (new hanlde_open_monitor_manager_1.DefaultMonitorState());
                 controller_1.popupController.close(GUID);
                 _this.forceUpdate();
             });
@@ -166,17 +185,21 @@ var DialogMonitorManagerSettingTab = (function (_super) {
             maxFilesCount: this.maxFilesCount,
             maxFileSizeMB: this.maxFileSizeMB,
             port: this.port,
-            portSettings: this.portSettings
+            portSettings: this.portSettings,
+            command: this.command,
+            path: this.path
         });
     };
     DialogMonitorManagerSettingTab.prototype.onStopMonitor = function () {
         var _this = this;
         this.updateSettings();
         this.port = '';
+        this.command = '';
+        this.path = '';
         var GUID = this.showProgress('Please wait...');
         this.setSettingsOfMonitor(function (result) {
             _this.getStateMonitor(function (state) {
-                _this.state = state !== null ? state : { active: false, port: '' };
+                _this.state = state !== null ? state : (new hanlde_open_monitor_manager_1.DefaultMonitorState());
                 controller_1.popupController.close(GUID);
                 _this.forceUpdate();
             });
@@ -184,14 +207,18 @@ var DialogMonitorManagerSettingTab = (function (_super) {
             maxFilesCount: this.maxFilesCount,
             maxFileSizeMB: this.maxFileSizeMB,
             port: this.port,
-            portSettings: this.portSettings
+            portSettings: this.portSettings,
+            command: this.command,
+            path: this.path
         });
     };
     DialogMonitorManagerSettingTab.prototype.updateSettings = function () {
         var _this = this;
         this.maxFilesCount = parseInt(this._maxFilesCount.getValue(), 10);
         this.maxFileSizeMB = parseInt(this._maxFileSizeMB.getValue(), 10);
-        this.port = this._port.getValue();
+        this.port = this._port !== void 0 ? this._port.getValue() : '';
+        this.command = this._command !== void 0 ? this._command.getValue() : '';
+        this.path = this._path !== void 0 ? this._path.getValue() : '';
         var validSettings = true;
         if (this.portSettings === null || typeof this.portSettings !== 'object') {
             validSettings = false;
@@ -223,6 +250,14 @@ __decorate([
     core_1.Input(),
     __metadata("design:type", String)
 ], DialogMonitorManagerSettingTab.prototype, "port", void 0);
+__decorate([
+    core_1.Input(),
+    __metadata("design:type", String)
+], DialogMonitorManagerSettingTab.prototype, "command", void 0);
+__decorate([
+    core_1.Input(),
+    __metadata("design:type", String)
+], DialogMonitorManagerSettingTab.prototype, "path", void 0);
 __decorate([
     core_1.Input(),
     __metadata("design:type", Object)
@@ -267,6 +302,18 @@ __decorate([
     core_1.ViewChild('_port'),
     __metadata("design:type", component_4.SimpleDropDownList)
 ], DialogMonitorManagerSettingTab.prototype, "_port", void 0);
+__decorate([
+    core_1.ViewChild('_target'),
+    __metadata("design:type", component_4.SimpleDropDownList)
+], DialogMonitorManagerSettingTab.prototype, "_target", void 0);
+__decorate([
+    core_1.ViewChild('_command'),
+    __metadata("design:type", component_1.CommonInput)
+], DialogMonitorManagerSettingTab.prototype, "_command", void 0);
+__decorate([
+    core_1.ViewChild('_path'),
+    __metadata("design:type", component_1.CommonInput)
+], DialogMonitorManagerSettingTab.prototype, "_path", void 0);
 DialogMonitorManagerSettingTab = __decorate([
     core_1.Component({
         selector: 'dialog-monitor-manager-settings-tab',

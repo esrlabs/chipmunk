@@ -18,7 +18,8 @@ var APICommands = {
     getAllFilesContent: 'getAllFilesContent',
     getMatches: 'getMatches',
     clearLogsOfMonitor: 'clearLogsOfMonitor',
-    getStateMonitor: 'getStateMonitor'
+    getStateMonitor: 'getStateMonitor',
+    dropSettings: 'dropSettings'
 };
 exports.APICommands = APICommands;
 function isAPICommandValid(command) {

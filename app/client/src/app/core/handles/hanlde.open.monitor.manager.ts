@@ -18,18 +18,29 @@ class DefaultMonitorSettings {
     public maxFilesCount: number = 30;
     public port         : string = '';
     public portSettings : DefaultsPortSettings = new DefaultsPortSettings();
+    public path         : string = '';
+    public command      : string = '';
+}
+
+class DefaultMonitorState {
+    public active   : boolean   = false;
+    public port     : string    = '';
+    public spawn    : string    = '';
 }
 
 interface MonitorSettings {
     maxFileSizeMB   : number,
     maxFilesCount   : number,
     port            : string,
-    portSettings    : DefaultsPortSettings
+    portSettings    : DefaultsPortSettings,
+    path            : string,
+    command         : string
 }
 
 interface MonitorState {
     active  : boolean,
-    port    : string
+    port    : string,
+    spawn   : string
 }
 
 class OpenMonitorManager implements MenuHandleInterface{
@@ -56,7 +67,7 @@ class OpenMonitorManager implements MenuHandleInterface{
 
     onAPI_IS_READY_TO_USE(){
         this.getStateMonitor((state: MonitorState) => {
-            this.updateState(state !== null ? state : { active: false, port: ''});
+            this.updateState(state !== null ? state : (new DefaultMonitorState()));
         });
     }
 
@@ -87,7 +98,10 @@ class OpenMonitorManager implements MenuHandleInterface{
                 }
             });
         }
-        !validSettings && (this.settings = new DefaultMonitorSettings());
+        if (!validSettings) {
+            this.settings = new DefaultMonitorSettings();
+            this.dropSettings();
+        }
         typeof callback === 'function' && callback(Object.assign({}, settings));
     }
 
@@ -109,6 +123,16 @@ class OpenMonitorManager implements MenuHandleInterface{
     removeToolBarButton(){
         Events.trigger(Configuration.sets.EVENTS_TOOLBAR.REMOVE_BUTTON, this.button.id);
         this.button.id = null;
+    }
+
+    dropSettings(){
+        this.processor.send(
+            APICommands.dropSettings,
+            {},
+            ()=>{
+
+            }
+        );
     }
 
     getListPorts(callback: Function){
@@ -228,7 +252,7 @@ class OpenMonitorManager implements MenuHandleInterface{
         } else {
             this.showMessage(_('Error'), error.message);
         }
-        this.updateState({ active: false, port: ''});
+        this.updateState((new DefaultMonitorState()));
         typeof callback === 'function' && callback(null);
     }
 
@@ -311,7 +335,7 @@ class OpenMonitorManager implements MenuHandleInterface{
                     info = info !== null ? info : { list: [], register: {} };
                     this.getStateMonitor((state: MonitorState) => {
                         popupController.close(this.progressGUID);
-                        state   = state !== null ? state    : { active: false, port: ''};
+                        state = state !== null ? state : (new DefaultMonitorState());
                         popupController.open({
                             content : {
                                 factory     : null,
@@ -405,4 +429,4 @@ class OpenMonitorManager implements MenuHandleInterface{
 
 const MonitorManager = new OpenMonitorManager();
 
-export { MonitorManager, MonitorState };
+export { MonitorManager, MonitorState, DefaultMonitorState };

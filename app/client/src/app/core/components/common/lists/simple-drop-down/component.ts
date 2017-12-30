@@ -1,4 +1,7 @@
-import {Component, Input, AfterContentInit, Output, ViewContainerRef, ViewChild} from '@angular/core';
+import {
+    Component, Input, AfterContentInit, Output, ViewContainerRef, ViewChild,
+    ChangeDetectorRef
+} from '@angular/core';
 import { SimpleListItem } from './item.interface';
 
 @Component({
@@ -13,20 +16,29 @@ export class SimpleDropDownList implements AfterContentInit{
 
     @ViewChild ('list', { read: ViewContainerRef}) list: ViewContainerRef;
 
-    constructor() {
+    constructor(private changeDetectorRef : ChangeDetectorRef) {
     }
 
     ngAfterContentInit(){
-
+        this.forceUpdate();
     }
 
     @Output() getValue(){
         return this.list.element.nativeElement.value;
     }
 
+    @Output() setValue(value: string){
+        this.defaults = value;
+        this.forceUpdate();
+    }
+
     onChangeSelect(event: Event){
         this.defaults = event.target['value'];
         typeof this.onChange === 'function' && this.onChange(event.target['value']);
+    }
+
+    forceUpdate(){
+        this.changeDetectorRef.detectChanges();
     }
 
 }

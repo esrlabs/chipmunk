@@ -2,7 +2,7 @@ const logger        = new (require('./tools.logger'))('ServiceProcessStream');
 const
     spawn           = require('child_process').spawn,
     ServerEmitter   = require('./server.events'),
-    StringDecoder   = require('string_decoder').StringDecoder;
+    StringDecoder   = require('string_decoder').StringDecoder,
     EventEmitter    = require('events').EventEmitter;
 
 const STREAM_OPTIONS = {

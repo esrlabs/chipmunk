@@ -10,20 +10,29 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 var core_1 = require("@angular/core");
 var SimpleDropDownList = (function () {
-    function SimpleDropDownList() {
+    function SimpleDropDownList(changeDetectorRef) {
+        this.changeDetectorRef = changeDetectorRef;
         this.items = [];
         this.css = '';
         this.onChange = null;
         this.defaults = '';
     }
     SimpleDropDownList.prototype.ngAfterContentInit = function () {
+        this.forceUpdate();
     };
     SimpleDropDownList.prototype.getValue = function () {
         return this.list.element.nativeElement.value;
     };
+    SimpleDropDownList.prototype.setValue = function (value) {
+        this.defaults = value;
+        this.forceUpdate();
+    };
     SimpleDropDownList.prototype.onChangeSelect = function (event) {
         this.defaults = event.target['value'];
         typeof this.onChange === 'function' && this.onChange(event.target['value']);
+    };
+    SimpleDropDownList.prototype.forceUpdate = function () {
+        this.changeDetectorRef.detectChanges();
     };
     return SimpleDropDownList;
 }());
@@ -53,12 +62,18 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], SimpleDropDownList.prototype, "getValue", null);
+__decorate([
+    core_1.Output(),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], SimpleDropDownList.prototype, "setValue", null);
 SimpleDropDownList = __decorate([
     core_1.Component({
         selector: 'simple-dd-list',
         templateUrl: './template.html',
     }),
-    __metadata("design:paramtypes", [])
+    __metadata("design:paramtypes", [core_1.ChangeDetectorRef])
 ], SimpleDropDownList);
 exports.SimpleDropDownList = SimpleDropDownList;
 //# sourceMappingURL=component.js.map

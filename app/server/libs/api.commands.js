@@ -173,6 +173,11 @@ class APICommands{
         }
     }
 
+    dropSettings(income, response, callback){
+        let monitor = require('./service.monitor');
+        callback(monitor.dropSettings(), null);
+    }
+
 };
 
 module.exports = APICommands;

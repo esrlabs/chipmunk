@@ -15,6 +15,8 @@ export class DialogMonitorManager implements OnInit{
     @Input() maxFileSizeMB          : number        = 100;
     @Input() maxFilesCount          : number        = 10;
     @Input() port                   : string        = '';
+    @Input() command                : string        = '';
+    @Input() path                   : string        = '';
     @Input() portSettings           : any           = {};
     @Input() ports                  : Array<string> = [];
     @Input() state                  : MonitorState  = null;
@@ -62,6 +64,8 @@ export class DialogMonitorManager implements OnInit{
                 maxFilesCount       : this.maxFilesCount,
                 portSettings        : this.portSettings,
                 port                : this.port,
+                command             : this.command,
+                path                : this.path,
                 state               : this.state,
                 onSelect            : emitterResultsSelect,
                 onDeselect          : emitterResultsDeselect,

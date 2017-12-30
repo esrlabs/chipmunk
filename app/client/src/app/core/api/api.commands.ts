@@ -17,8 +17,8 @@ const APICommands = {
     getAllFilesContent      : 'getAllFilesContent',
     getMatches              : 'getMatches',
     clearLogsOfMonitor      : 'clearLogsOfMonitor',
-    getStateMonitor         : 'getStateMonitor'
-
+    getStateMonitor         : 'getStateMonitor',
+    dropSettings            : 'dropSettings'
 };
 
 function isAPICommandValid(command: string){

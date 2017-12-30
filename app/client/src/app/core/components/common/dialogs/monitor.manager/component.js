@@ -17,6 +17,8 @@ var DialogMonitorManager = (function () {
         this.maxFileSizeMB = 100;
         this.maxFilesCount = 10;
         this.port = '';
+        this.command = '';
+        this.path = '';
         this.portSettings = {};
         this.ports = [];
         this.state = null;
@@ -52,6 +54,8 @@ var DialogMonitorManager = (function () {
                 maxFilesCount: this.maxFilesCount,
                 portSettings: this.portSettings,
                 port: this.port,
+                command: this.command,
+                path: this.path,
                 state: this.state,
                 onSelect: emitterResultsSelect,
                 onDeselect: emitterResultsDeselect,
@@ -101,6 +105,14 @@ __decorate([
     core_1.Input(),
     __metadata("design:type", String)
 ], DialogMonitorManager.prototype, "port", void 0);
+__decorate([
+    core_1.Input(),
+    __metadata("design:type", String)
+], DialogMonitorManager.prototype, "command", void 0);
+__decorate([
+    core_1.Input(),
+    __metadata("design:type", String)
+], DialogMonitorManager.prototype, "path", void 0);
 __decorate([
     core_1.Input(),
     __metadata("design:type", Object)
