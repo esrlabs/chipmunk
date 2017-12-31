@@ -232,8 +232,8 @@ export class DialogMonitorManagerSettingTab extends TabController implements OnD
     }
 
     updateSettings() {
-        this.maxFilesCount  = parseInt(this._maxFilesCount.getValue(), 10);
-        this.maxFileSizeMB  = parseInt(this._maxFileSizeMB.getValue(), 10);
+        this.maxFilesCount  = parseFloat(this._maxFilesCount.getValue());
+        this.maxFileSizeMB  = parseFloat(this._maxFileSizeMB.getValue());
         this.port           = this._port    !== void 0 ? this._port.getValue()      : '';
         this.command        = this._command !== void 0 ? this._command.getValue()   : '';
         this.path           = this._path    !== void 0 ? this._path.getValue()      : '';

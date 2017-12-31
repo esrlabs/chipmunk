@@ -570,17 +570,17 @@ class StoringManager{
         }
         if (this._current === null) {
             this._resetCurrent();
-            this._updateRegister(this._currentFileName, (new Date()).getTime(), -1);
+            this._updateRegister((new Date()).getTime(), -1);
         }
         let size = this._fileManager.getSize(this._current);
         if (size === -1) {
             //file doesn't exist
-            this._updateRegister(this._currentFileName, (new Date()).getTime(), -1);
-            this._fileManager.save('', this._current);
+            logger.error(`Logs file wasn't created. This is unexpected error. Permissions to FS should be checked.`);
         } else if (size >= this._settings.maxFileSizeMB * 1024 * 1024) {
             //size of file is too big
-            this._updateRegister(this._currentFileName, -1, (new Date()).getTime());
+            this._updateRegister(-1, (new Date()).getTime());
             this._resetCurrent();
+            this._updateRegister((new Date()).getTime(), -1);
         }
     }
 
@@ -599,19 +599,22 @@ class StoringManager{
         return this._fileManager.decodeBuffer(content);
     }
 
-    _updateRegister(fileName, opened, closed){
+    _updateRegister(opened, closed){
         let register = this._fileManager.bufferToJSON(this._fileManager.load(OPTIONS.REGISTER_FILE));
         if (register === null) {
             register = {};
         }
-        if (register[fileName] === void 0) {
-            register[fileName] = {
+        if (this._currentFileName === null) {
+            this._resetCurrent();
+        }
+        if (register[this._currentFileName] === void 0) {
+            register[this._currentFileName] = {
                 opened: -1,
                 closed: -1
             };
         }
-        opened !== -1 && (register[fileName].opened = opened);
-        closed !== -1 && (register[fileName].closed = closed);
+        opened !== -1 && (register[this._currentFileName].opened = opened);
+        closed !== -1 && (register[this._currentFileName].closed = closed);
         this._fileManager.save(JSON.stringify(register), OPTIONS.REGISTER_FILE);
     }
 
@@ -622,6 +625,7 @@ class StoringManager{
     _resetCurrent(){
         this._currentFileName = this._getFileName();
         this._current = Path.join(OPTIONS.LOGS_FOLDER, this._currentFileName);
+        this._fileManager.save('', this._current);
     }
 
 }
@@ -770,6 +774,8 @@ class Monitor {
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     _updateSettings(settings){
         this._settings = settings;
+        this._settings.maxFilesCount <= 0 ? 1 : this._settings.maxFilesCount;
+        this._settings.maxFileSizeMB <= 0 ? 1 : this._settings.maxFileSizeMB;
         this._settingManager.save(settings);
         this._storingManager.updateSettings(this._settings);
     }
