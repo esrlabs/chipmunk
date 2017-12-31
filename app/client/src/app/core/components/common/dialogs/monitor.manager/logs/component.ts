@@ -117,8 +117,8 @@ export class DialogMonitorManagerLogsTab extends TabController implements OnDest
                 if (this.parseRegisterEntry(this.register[file])) {
                     let row = [
                         file,
-                        this.getDate(this.register[file].opened),
-                        this.getDate(this.register[file].closed)
+                        this.register[file].opened !== -1 ? this.getDate(this.register[file].opened) : 'no open date',
+                        this.register[file].closed !== -1 ? this.getDate(this.register[file].closed) : 'not closed yet'
                     ];
                     if (byFiles[file] !== void 0){
                         row.push(...byFiles[file].map((results: SearchMatch) => {

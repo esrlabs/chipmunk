@@ -95,8 +95,8 @@ var DialogMonitorManagerLogsTab = (function (_super) {
                 if (_this.parseRegisterEntry(_this.register[file])) {
                     var row = [
                         file,
-                        _this.getDate(_this.register[file].opened),
-                        _this.getDate(_this.register[file].closed)
+                        _this.register[file].opened !== -1 ? _this.getDate(_this.register[file].opened) : 'no open date',
+                        _this.register[file].closed !== -1 ? _this.getDate(_this.register[file].closed) : 'not closed yet'
                     ];
                     if (byFiles[file] !== void 0) {
                         row.push.apply(row, byFiles[file].map(function (results) {

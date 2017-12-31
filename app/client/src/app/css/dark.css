@@ -44,7 +44,7 @@
   color: white;
 }
 .ANSI-font-background-black {
-  background: black;
+  background: rgba(0, 0, 0, 0.4);
 }
 .ANSI-font-background-red {
   background: red;
@@ -2200,6 +2200,31 @@ view-controller-state-monitor-item .indicate .label {
   white-space: nowrap;
   margin: 0.5rem 0;
 }
+button-flat-text span {
+  position: relative;
+  display: inline-block;
+  background: #141414;
+  color: #fafafa;
+  margin: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  border: thin dotted #fafafa;
+}
+button-flat-text span:hover {
+  background: #fafafa;
+  color: #141414;
+  border: thin dotted #141414;
+}
+button-flat-text span.disabled {
+  background: #282828;
+  color: #323232;
+  cursor: default;
+}
+button-flat-text span.disabled:hover {
+  background: #282828;
+  color: #323232;
+  border: thin dotted #fafafa;
+}
 simple-checkbox {
   position: relative;
   display: inline-block;
@@ -2251,31 +2276,6 @@ simple-checkbox label span.switcher {
 simple-checkbox label input:checked ~ span.on,
 simple-checkbox label input:checked ~ span.switcher {
   opacity: 1;
-}
-button-flat-text span {
-  position: relative;
-  display: inline-block;
-  background: #141414;
-  color: #fafafa;
-  margin: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  cursor: pointer;
-  border: thin dotted #fafafa;
-}
-button-flat-text span:hover {
-  background: #fafafa;
-  color: #141414;
-  border: thin dotted #141414;
-}
-button-flat-text span.disabled {
-  background: #282828;
-  color: #323232;
-  cursor: default;
-}
-button-flat-text span.disabled:hover {
-  background: #282828;
-  color: #323232;
-  border: thin dotted #fafafa;
 }
 dialog-adblogcatstream-settings {
   position: absolute;
@@ -2381,65 +2381,6 @@ dialog-api-settings .buttons {
   width: 100%;
   height: 2.5rem;
   bottom: 0;
-}
-chart-edit-color-dialog {
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  right: 0.5rem;
-  bottom: 0.5rem;
-  overflow: hidden;
-}
-chart-edit-color-dialog .chart-colors {
-  position: absolute;
-  top: 0;
-  width: 100%;
-  bottom: 4.5rem;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-chart-edit-color-dialog .chart-colors .chart-colors-foreground,
-chart-edit-color-dialog .chart-colors .chart-colors-background {
-  position: absolute;
-  width: 50%;
-  height: 100%;
-  left: 0;
-}
-chart-edit-color-dialog .chart-colors .chart-colors-background {
-  left: 50%;
-}
-chart-edit-color-dialog .chart-hook {
-  position: absolute;
-  top: calc(100% - 4.5rem);
-  width: 100%;
-  height: 2rem;
-}
-chart-edit-color-dialog .chart-hook .chart-color-example {
-  position: relative;
-  height: 2rem;
-  text-align: center;
-}
-chart-edit-color-dialog .chart-hook .chart-color-example p {
-  display: inline-block;
-  margin: 0.25rem;
-  padding: 0.25rem;
-  font-size: 0.85rem;
-  line-height: 0.85rem;
-  text-align: center;
-  border: thin solid #646464;
-  cursor: default;
-}
-chart-edit-color-dialog .chart-hook .chart-value {
-  position: relative;
-  height: 2rem;
-  border: 1px dotted #646464;
-}
-chart-edit-color-dialog .chart-controls {
-  position: absolute;
-  width: 100%;
-  bottom: 0;
-  height: 2.5rem;
-  text-align: right;
 }
 chart-edit-rules-hooks-dialog {
   position: absolute;
@@ -2623,6 +2564,65 @@ chart-edit-rules-hooks-dialog .chart-errors-wrapper p {
   bottom: 0.5rem;
   width: 100%;
   left: 0;
+}
+chart-edit-color-dialog {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow: hidden;
+}
+chart-edit-color-dialog .chart-colors {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  bottom: 4.5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+chart-edit-color-dialog .chart-colors .chart-colors-foreground,
+chart-edit-color-dialog .chart-colors .chart-colors-background {
+  position: absolute;
+  width: 50%;
+  height: 100%;
+  left: 0;
+}
+chart-edit-color-dialog .chart-colors .chart-colors-background {
+  left: 50%;
+}
+chart-edit-color-dialog .chart-hook {
+  position: absolute;
+  top: calc(100% - 4.5rem);
+  width: 100%;
+  height: 2rem;
+}
+chart-edit-color-dialog .chart-hook .chart-color-example {
+  position: relative;
+  height: 2rem;
+  text-align: center;
+}
+chart-edit-color-dialog .chart-hook .chart-color-example p {
+  display: inline-block;
+  margin: 0.25rem;
+  padding: 0.25rem;
+  font-size: 0.85rem;
+  line-height: 0.85rem;
+  text-align: center;
+  border: thin solid #646464;
+  cursor: default;
+}
+chart-edit-color-dialog .chart-hook .chart-value {
+  position: relative;
+  height: 2rem;
+  border: 1px dotted #646464;
+}
+chart-edit-color-dialog .chart-controls {
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+  height: 2.5rem;
+  text-align: right;
 }
 chart-edit-rules-segments-dialog {
   position: absolute;
@@ -2969,6 +2969,19 @@ image-dialog .image-dialog-img {
   background-repeat: no-repeat;
   background-origin: content-box;
 }
+dialog-monitor-manager {
+  position: absolute;
+  display: block;
+  top: 0.5rem;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  right: 0.5rem;
+}
+dialog-monitor-manager .monitor-manager-wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
 markers-edit-dialog {
   position: absolute;
   top: 0.5rem;
@@ -3027,19 +3040,6 @@ markers-edit-dialog .marker-controls {
   bottom: 0;
   height: 2.5rem;
   text-align: right;
-}
-dialog-monitor-manager {
-  position: absolute;
-  display: block;
-  top: 0.5rem;
-  left: 0.5rem;
-  bottom: 0.5rem;
-  right: 0.5rem;
-}
-dialog-monitor-manager .monitor-manager-wrapper {
-  position: absolute;
-  width: 100%;
-  height: 100%;
 }
 dialog-serial-settings {
   position: absolute;
@@ -3163,6 +3163,32 @@ shortcuts-list .shortcuts-list .label {
   text-align: left;
   padding-left: 2rem;
 }
+dialog-statemonitor-indicate-edit {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow: hidden;
+}
+dialog-statemonitor-indicate-edit .edit-wrapper {
+  position: absolute;
+  top: 0!important;
+  bottom: 2.5rem;
+  width: 100%;
+  font-size: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.01);
+  box-sizing: border-box;
+}
+dialog-statemonitor-indicate-edit .buttons {
+  position: absolute;
+  bottom: 0;
+  height: 2.5rem;
+  overflow: hidden;
+  text-align: right;
+  white-space: nowrap;
+  width: 100%;
+}
 dialog-statemonitor-editjson {
   position: absolute;
   top: 0.5rem;
@@ -3206,32 +3232,6 @@ dialog-statemonitor-editjson .edit-wrapper textarea:hover {
   color: #fafafa;
 }
 dialog-statemonitor-editjson .buttons {
-  position: absolute;
-  bottom: 0;
-  height: 2.5rem;
-  overflow: hidden;
-  text-align: right;
-  white-space: nowrap;
-  width: 100%;
-}
-dialog-statemonitor-indicate-edit {
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  right: 0.5rem;
-  bottom: 0.5rem;
-  overflow: hidden;
-}
-dialog-statemonitor-indicate-edit .edit-wrapper {
-  position: absolute;
-  top: 0!important;
-  bottom: 2.5rem;
-  width: 100%;
-  font-size: 1rem;
-  border: 1px solid rgba(0, 0, 0, 0.01);
-  box-sizing: border-box;
-}
-dialog-statemonitor-indicate-edit .buttons {
   position: absolute;
   bottom: 0;
   height: 2.5rem;
@@ -3484,6 +3484,37 @@ dialog-terminalstream-settings .buttons {
   height: 2.5rem;
   bottom: 0;
 }
+dialog-update {
+  display: block;
+  position: absolute;
+  top: 0.5rem;
+  left: 1rem;
+  bottom: 0.5rem;
+  right: 1rem;
+}
+dialog-update .progress-holder {
+  position: relative;
+  width: 100%;
+  height: 1.5rem;
+}
+dialog-update div.info {
+  position: relative;
+  width: 100%;
+  overflow: auto;
+  height: 5rem;
+}
+dialog-update p.info {
+  font-size: 1rem;
+  color: #fafafa;
+  margin: 0.5rem 0;
+  padding: 0;
+}
+dialog-update p.sub-info {
+  font-size: 0.75rem;
+  color: #323232;
+  padding: 0;
+  margin: 0.25rem 0;
+}
 dialog-themes-list {
   position: absolute;
   display: block;
@@ -3515,37 +3546,6 @@ dialog-themes-list .dialog-themes-list li p {
 }
 dialog-themes-list .dialog-themes-list li p:hover {
   background: rgba(50, 50, 50, 0.4);
-}
-dialog-update {
-  display: block;
-  position: absolute;
-  top: 0.5rem;
-  left: 1rem;
-  bottom: 0.5rem;
-  right: 1rem;
-}
-dialog-update .progress-holder {
-  position: relative;
-  width: 100%;
-  height: 1.5rem;
-}
-dialog-update div.info {
-  position: relative;
-  width: 100%;
-  overflow: auto;
-  height: 5rem;
-}
-dialog-update p.info {
-  font-size: 1rem;
-  color: #fafafa;
-  margin: 0.5rem 0;
-  padding: 0;
-}
-dialog-update p.sub-info {
-  font-size: 0.75rem;
-  color: #323232;
-  padding: 0;
-  margin: 0.25rem 0;
 }
 views-list {
   position: absolute;

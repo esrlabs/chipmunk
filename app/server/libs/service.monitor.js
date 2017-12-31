@@ -68,7 +68,7 @@ class FileManager{
     }
 
     save(str, dest) {
-        if (typeof str === 'string' && str.trim() !== '' && typeof dest === 'string' && dest.trim() !== '') {
+        if (typeof str === 'string' && typeof dest === 'string' && dest.trim() !== '') {
             try {
                 this._fs.writeFileSync(dest, str);
             } catch (error) {
@@ -308,7 +308,7 @@ class SpawnProcess extends Events.EventEmitter{
     }
 
     open() {
-        if (this.validate()) {
+        if (!this.validate()) {
             return this.emit(this.EVENTS.ON_ERROR, this.getError());
         }
         try {
@@ -405,7 +405,7 @@ class BufferManager extends Events.EventEmitter {
             let buffer  = this.buffer;
             this.buffer = '';
             this.drop();
-            this.emit(buffer);
+            this.emit(this.EVENTS.ON_DATA, buffer);
         }
     }
 
@@ -434,11 +434,12 @@ class BufferManager extends Events.EventEmitter {
 class StoringManager{
 
     constructor(settings) {
-        this._fileManager   = new FileManager();
-        this._bufferManager = new BufferManager();
-        this._current       = this._getFileName();
-        this._settings      = settings;
-        this._onWriteData   = this._onWriteData.bind(this);
+        this._fileManager       = new FileManager();
+        this._bufferManager     = new BufferManager();
+        this._current           = null;
+        this._currentFileName   = null;
+        this._settings          = settings;
+        this._onWriteData       = this._onWriteData.bind(this);
         this._bufferManager.on(this._bufferManager.EVENTS.ON_DATA, this._onWriteData);
     }
 
@@ -463,6 +464,8 @@ class StoringManager{
             logger.info(`Removing logs file: ${Path.join(OPTIONS.LOGS_FOLDER, file)}.`);
             this._fileManager.deleteFile(Path.join(OPTIONS.LOGS_FOLDER, file));
         });
+        this._resetCurrent();
+        this._clearRegister();
     }
 
     getFileContent(fileName){
@@ -550,9 +553,10 @@ class StoringManager{
 
     _onWriteData(str){
         if (typeof str !== 'string' || str === '') {
-            this._checkFile();
-            this._fileManager.append(str, Path.join(OPTIONS.LOGS_FOLDER, this._current));
+            return false;
         }
+        this._checkFile();
+        return this._fileManager.append(str, this._current);
     }
 
     _getFileName(){
@@ -565,13 +569,18 @@ class StoringManager{
             return false;
         }
         if (this._current === null) {
-            this._current = Path.join(OPTIONS.LOGS_FOLDER, this._getFileName());
-            this._updateRegister(this._current, (new Date()).getTime(), -1);
+            this._resetCurrent();
+            this._updateRegister(this._currentFileName, (new Date()).getTime(), -1);
         }
         let size = this._fileManager.getSize(this._current);
-        if (size >= this._settings.maxFileSizeMB * 1024 * 1024) {
-            this._updateRegister(this._current, -1, (new Date()).getTime());
-            this._current = Path.join(OPTIONS.LOGS_FOLDER, this._getFileName());
+        if (size === -1) {
+            //file doesn't exist
+            this._updateRegister(this._currentFileName, (new Date()).getTime(), -1);
+            this._fileManager.save('', this._current);
+        } else if (size >= this._settings.maxFileSizeMB * 1024 * 1024) {
+            //size of file is too big
+            this._updateRegister(this._currentFileName, -1, (new Date()).getTime());
+            this._resetCurrent();
         }
     }
 
@@ -591,7 +600,7 @@ class StoringManager{
     }
 
     _updateRegister(fileName, opened, closed){
-        let register = this._fileManager.load(OPTIONS.REGISTER_FILE);
+        let register = this._fileManager.bufferToJSON(this._fileManager.load(OPTIONS.REGISTER_FILE));
         if (register === null) {
             register = {};
         }
@@ -606,11 +615,25 @@ class StoringManager{
         this._fileManager.save(JSON.stringify(register), OPTIONS.REGISTER_FILE);
     }
 
+    _clearRegister(){
+        this._fileManager.deleteFile(OPTIONS.REGISTER_FILE);
+    }
+
+    _resetCurrent(){
+        this._currentFileName = this._getFileName();
+        this._current = Path.join(OPTIONS.LOGS_FOLDER, this._currentFileName);
+    }
+
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Monitor
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+const MONITOR_SETTINGS = {
+    RESTART_ON_ERROR: 5 * 1000, //ms
+    RESTART_ON_CLOSE: 5 * 1000 //ms
+};
+
 class Monitor {
 
     constructor(){
@@ -623,6 +646,7 @@ class Monitor {
         this._onData            = this._onData.bind(this);
         this._onError           = this._onError.bind(this);
         this._onClose           = this._onClose.bind(this);
+        this._restartTimer      = -1;
         this._reloadSettings();
         this.start();
     }
@@ -631,6 +655,7 @@ class Monitor {
      * Common
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     start() {
+        this._timerDrop();
         if (this._settings.port !== '') {
             return this.startPort();
         }
@@ -658,6 +683,21 @@ class Monitor {
         dest.removeAllListeners(dest.EVENTS.ON_DATA);
         dest.removeAllListeners(dest.EVENTS.ON_CLOSE);
         dest.removeAllListeners(dest.EVENTS.ON_ERROR);
+    }
+
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+     * Restarting
+     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    _timerRestart(delay){
+        if (this._restartTimer === -1){
+            setTimeout(this.start.bind(this), delay);
+        }
+    }
+
+    _timerDrop(){
+        if (this._restartTimer !== -1) {
+            clearTimeout(this._restartTimer);
+        }
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -717,10 +757,12 @@ class Monitor {
 
     _onClose(){
         this.stop();
+        this._timerRestart(MONITOR_SETTINGS.RESTART_ON_CLOSE);
     }
 
     _onError(error){
         this.stop();
+        this._timerRestart(MONITOR_SETTINGS.RESTART_ON_ERROR);
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -784,7 +826,7 @@ class Monitor {
 
     getState(){
         return {
-            active  : this._port    !== null,
+            active  : this._port    !== null ? true : (this._spawn !== null ? true : false),
             port    : this._port    !== null ? this._port.getPort()     : '',
             spawn   : this._spawn   !== null ? this._spawn.getAlias()   : ''
         };

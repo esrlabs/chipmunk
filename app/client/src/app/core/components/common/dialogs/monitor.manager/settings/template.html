@@ -38,11 +38,11 @@
 
         <tr *ngIf="target === 'process'">
             <td><span>Command</span> Command to execute process</td>
-            <td><div class="input-cover"><common-input #_command [placeholder]="'Command with parameters'"></common-input></div></td>
+            <td><div class="input-cover"><common-input #_command [placeholder]="'Command with parameters'" [value]="command"></common-input></div></td>
         </tr>
         <tr *ngIf="target === 'process'">
             <td><span>Path</span> Specify path to environment (optional)</td>
-            <td><div class="input-cover"><common-input #_command [placeholder]="'Path to environment'"></common-input></div></td>
+            <td><div class="input-cover"><common-input #_command [placeholder]="'Path to environment'" [value]="path"></common-input></div></td>
         </tr>
 
         <tr>
