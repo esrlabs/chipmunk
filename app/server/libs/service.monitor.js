@@ -595,7 +595,7 @@ class StoringManager{
         }
         if (this._current === null) {
             this._resetCurrent();
-            this._updateRegister((new Date()).getTime(), -1);
+            this._updateRegister((new Date()).getTime(), -1, 0);
         }
         let size = this._fileManager.getSize(this._current);
         if (size === -1) {
@@ -603,11 +603,13 @@ class StoringManager{
             logger.error(`Logs file wasn't created. This is unexpected error. Permissions to FS should be checked.`);
         } else if (size >= this._settings.maxFileSizeMB * 1024 * 1024) {
             //size of file is too big
-            this._updateRegister(-1, (new Date()).getTime());
+            this._updateRegister(-1, (new Date()).getTime(), size);
             logger.info(`Logs file ${this._currentFileName} is more than ${this._settings.maxFileSizeMB * 1024 * 1024} bytes and will be closed.`);
             this._resetCurrent();
             logger.info(`New logs file ${this._currentFileName} is created.`);
-            this._updateRegister((new Date()).getTime(), -1);
+            this._updateRegister((new Date()).getTime(), -1, 0);
+        } else {
+            this._updateRegister(-1, (new Date()).getTime(), size);
         }
     }
 
@@ -626,7 +628,7 @@ class StoringManager{
         return this._fileManager.decodeBuffer(content);
     }
 
-    _updateRegister(opened, closed){
+    _updateRegister(opened, closed, size){
         let register = this._fileManager.bufferToJSON(this._fileManager.load(OPTIONS.REGISTER_FILE));
         if (register === null) {
             register = {};
@@ -637,11 +639,13 @@ class StoringManager{
         if (register[this._currentFileName] === void 0) {
             register[this._currentFileName] = {
                 opened: -1,
-                closed: -1
+                closed: -1,
+                size: size
             };
         }
-        opened !== -1 && (register[this._currentFileName].opened = opened);
-        closed !== -1 && (register[this._currentFileName].closed = closed);
+        opened  !== -1 && (register[this._currentFileName].opened   = opened);
+        closed  !== -1 && (register[this._currentFileName].closed   = closed);
+        size    !== -1 && (register[this._currentFileName].size     = size);
         this._fileManager.save(JSON.stringify(register), OPTIONS.REGISTER_FILE);
     }
 

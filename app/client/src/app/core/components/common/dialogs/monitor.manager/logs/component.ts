@@ -49,7 +49,7 @@ export class DialogMonitorManagerLogsTab extends TabController implements OnDest
 
     @ViewChild ('exporturl', { read: ViewContainerRef}) exportURLNode: ViewContainerRef;
 
-    private defaultColumns  : Array<string>         = ['Name', 'Started', 'Closed'];
+    private defaultColumns  : Array<string>         = ['Name', 'Started', 'Updated', 'Size'];
     private columns         : Array<string>         = [];
     private rows            : Array<Array<string>>  = [];
     private selected        : number                = -1;
@@ -118,7 +118,8 @@ export class DialogMonitorManagerLogsTab extends TabController implements OnDest
                     let row = [
                         file,
                         this.register[file].opened !== -1 ? this.getDate(this.register[file].opened) : 'no open date',
-                        this.register[file].closed !== -1 ? this.getDate(this.register[file].closed) : 'not closed yet'
+                        this.register[file].closed !== -1 ? this.getDate(this.register[file].closed) : 'not updated yet',
+                        (this.register[file].size / 1024 / 1024).toFixed(2) + ' MB'
                     ];
                     if (byFiles[file] !== void 0){
                         row.push(...byFiles[file].map((results: SearchMatch) => {

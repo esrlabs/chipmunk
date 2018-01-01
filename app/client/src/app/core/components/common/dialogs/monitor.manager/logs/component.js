@@ -40,7 +40,7 @@ var DialogMonitorManagerLogsTab = (function (_super) {
         _this.getAllFilesContent = null;
         _this.getMatches = null;
         _this.getFilesInfo = null;
-        _this.defaultColumns = ['Name', 'Started', 'Closed'];
+        _this.defaultColumns = ['Name', 'Started', 'Updated', 'Size'];
         _this.columns = [];
         _this.rows = [];
         _this.selected = -1;
@@ -96,7 +96,8 @@ var DialogMonitorManagerLogsTab = (function (_super) {
                     var row = [
                         file,
                         _this.register[file].opened !== -1 ? _this.getDate(_this.register[file].opened) : 'no open date',
-                        _this.register[file].closed !== -1 ? _this.getDate(_this.register[file].closed) : 'not closed yet'
+                        _this.register[file].closed !== -1 ? _this.getDate(_this.register[file].closed) : 'not updated yet',
+                        (_this.register[file].size / 1024 / 1024).toFixed(2) + ' MB'
                     ];
                     if (byFiles[file] !== void 0) {
                         row.push.apply(row, byFiles[file].map(function (results) {
