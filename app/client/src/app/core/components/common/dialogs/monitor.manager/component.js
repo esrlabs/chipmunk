@@ -14,6 +14,8 @@ var component_2 = require("./logs/component");
 var DialogMonitorManager = (function () {
     function DialogMonitorManager(componentFactoryResolver) {
         this.componentFactoryResolver = componentFactoryResolver;
+        this.timeoutOnError = 5000;
+        this.timeoutOnClose = 5000;
         this.maxFileSizeMB = 100;
         this.maxFilesCount = 10;
         this.port = '';
@@ -50,6 +52,8 @@ var DialogMonitorManager = (function () {
             factory: this.componentFactoryResolver.resolveComponentFactory(component_1.DialogMonitorManagerSettingTab),
             params: {
                 ports: this.ports,
+                timeoutOnError: this.timeoutOnError,
+                timeoutOnClose: this.timeoutOnClose,
                 maxFileSizeMB: this.maxFileSizeMB,
                 maxFilesCount: this.maxFilesCount,
                 portSettings: this.portSettings,
@@ -93,6 +97,14 @@ var DialogMonitorManager = (function () {
     };
     return DialogMonitorManager;
 }());
+__decorate([
+    core_1.Input(),
+    __metadata("design:type", Number)
+], DialogMonitorManager.prototype, "timeoutOnError", void 0);
+__decorate([
+    core_1.Input(),
+    __metadata("design:type", Number)
+], DialogMonitorManager.prototype, "timeoutOnClose", void 0);
 __decorate([
     core_1.Input(),
     __metadata("design:type", Number)

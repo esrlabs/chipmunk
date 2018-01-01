@@ -1,9 +1,11 @@
-const logger        = new (require('./tools.logger'))('ServiceProcessStream');
+const logger        = new (require('./tools.logger'))('ServiceMonitor');
 const Events        = require('events');
 const Path          = require('path');
 const SerialPort    = require('serialport');
 
 const DEFAULT_SETTINGS = {
+    timeoutOnError: 5000,
+    timeoutOnClose: 2000,
     maxFileSizeMB: 100,
     maxFilesCount: 10,
     port: '',
@@ -16,6 +18,8 @@ class Settings{
 
     constructor(settings){
         settings = typeof settings === 'object' ? (settings !== null ? settings : {}) : {};
+        this.timeoutOnError = typeof settings.timeoutOnError=== 'number' ? (settings.timeoutOnError >= 1    ? settings.timeoutOnError   : DEFAULT_SETTINGS.timeoutOnError)  : DEFAULT_SETTINGS.timeoutOnError;
+        this.timeoutOnClose = typeof settings.timeoutOnClose=== 'number' ? (settings.timeoutOnClose >= 1    ? settings.timeoutOnClose   : DEFAULT_SETTINGS.timeoutOnClose)  : DEFAULT_SETTINGS.timeoutOnClose;
         this.maxFileSizeMB  = typeof settings.maxFileSizeMB === 'number' ? (settings.maxFileSizeMB >= 1     ? settings.maxFileSizeMB    : DEFAULT_SETTINGS.maxFileSizeMB)   : DEFAULT_SETTINGS.maxFileSizeMB;
         this.maxFilesCount  = typeof settings.maxFilesCount === 'number' ? (settings.maxFilesCount >= 1     ? settings.maxFilesCount    : DEFAULT_SETTINGS.maxFilesCount)   : DEFAULT_SETTINGS.maxFilesCount;
         this.port           = typeof settings.port          === 'string' ? (settings.port.trim() !== ''     ? settings.port             : DEFAULT_SETTINGS.port)            : DEFAULT_SETTINGS.port;
@@ -171,6 +175,16 @@ class Port extends Events.EventEmitter {
             ON_ERROR: Symbol(),
             ON_CLOSE: Symbol()
         };
+        this.close = this.close.bind(this);
+        this.bind();
+    }
+
+    bind(){
+        process.on('exit', this.close);
+    }
+
+    unbind(){
+        process.removeListener('exit', this.close);
     }
 
     open(){
@@ -201,6 +215,7 @@ class Port extends Events.EventEmitter {
 
 
     close(){
+        this.unbind();
         if (this.instance !== null) {
             try {
                 this.instance.close(() => {
@@ -260,7 +275,16 @@ class SpawnProcess extends Events.EventEmitter{
             ON_ERROR: Symbol(),
             ON_CLOSE: Symbol()
         };
-        process.on('exit', this.close.bind(this));
+        this.close = this.close.bind(this);
+        this.bind();
+    }
+
+    bind(){
+        process.on('exit', this.close);
+    }
+
+    unbind(){
+        process.removeListener('exit', this.close);
     }
 
     validate(command, parameters, path){
@@ -370,6 +394,7 @@ class SpawnProcess extends Events.EventEmitter{
 
     close() {
         try {
+            this.unbind();
             this.spawn !== null && this.spawn.stdout.removeListener('data', this.onData);
             this.spawn !== null && this.spawn.kill();
             this.spawn  = null;
@@ -579,7 +604,9 @@ class StoringManager{
         } else if (size >= this._settings.maxFileSizeMB * 1024 * 1024) {
             //size of file is too big
             this._updateRegister(-1, (new Date()).getTime());
+            logger.info(`Logs file ${this._currentFileName} is more than ${this._settings.maxFileSizeMB * 1024 * 1024} bytes and will be closed.`);
             this._resetCurrent();
+            logger.info(`New logs file ${this._currentFileName} is created.`);
             this._updateRegister((new Date()).getTime(), -1);
         }
     }
@@ -761,12 +788,12 @@ class Monitor {
 
     _onClose(){
         this.stop();
-        this._timerRestart(MONITOR_SETTINGS.RESTART_ON_CLOSE);
+        this._timerRestart(this._settings.timeoutOnClose);
     }
 
     _onError(error){
         this.stop();
-        this._timerRestart(MONITOR_SETTINGS.RESTART_ON_ERROR);
+        this._timerRestart(this._settings.timeoutOnError);
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -776,6 +803,8 @@ class Monitor {
         this._settings = settings;
         this._settings.maxFilesCount <= 0 ? 1 : this._settings.maxFilesCount;
         this._settings.maxFileSizeMB <= 0 ? 1 : this._settings.maxFileSizeMB;
+        this._settings.timeoutOnError <= 0 ? 5000 : this._settings.timeoutOnError;
+        this._settings.timeoutOnClose <= 0 ? 1000 : this._settings.timeoutOnClose;
         this._settingManager.save(settings);
         this._storingManager.updateSettings(this._settings);
     }

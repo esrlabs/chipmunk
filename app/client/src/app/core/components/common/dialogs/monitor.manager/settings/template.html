@@ -19,6 +19,14 @@
             <td><div class="input-cover"><common-input  #_maxFilesCount [type]="'number'" [value]="maxFilesCount"></common-input></div></td>
         </tr>
         <tr>
+            <td><span>Restart on error</span> Define timeout for restarting monitor in case of error</td>
+            <td><div class="input-cover"><common-input  #_timeoutOnError [type]="'number'" [value]="timeoutOnError"></common-input></div></td>
+        </tr>
+        <tr>
+            <td><span>Restart on close</span> Define timeout for restarting monitor in case of closing (finishing) process/socket stream</td>
+            <td><div class="input-cover"><common-input  #_timeoutOnClose [type]="'number'" [value]="timeoutOnClose"></common-input></div></td>
+        </tr>
+        <tr>
             <td><span>Target</span> Target of monitoring</td>
             <td><div class="input-cover"><simple-dd-list #_target [items]="targetsList" [defaults]="target" [onChange]="onTargetChange"></simple-dd-list></div></td>
         </tr>

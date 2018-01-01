@@ -12,9 +12,10 @@ import { MonitorState                   } from '../../../../handles/hanlde.open.
 
 export class DialogMonitorManager implements OnInit{
 
+    @Input() timeoutOnError         : number        = 5000;
+    @Input() timeoutOnClose         : number        = 5000;
     @Input() maxFileSizeMB          : number        = 100;
-    @Input() maxFilesCount          : number        = 10;
-    @Input() port                   : string        = '';
+    @Input() maxFilesCount          : number        = 10;    @Input() port                   : string        = '';
     @Input() command                : string        = '';
     @Input() path                   : string        = '';
     @Input() portSettings           : any           = {};
@@ -60,6 +61,8 @@ export class DialogMonitorManager implements OnInit{
             factory     : this.componentFactoryResolver.resolveComponentFactory(DialogMonitorManagerSettingTab),
             params      : {
                 ports               : this.ports,
+                timeoutOnError      : this.timeoutOnError,
+                timeoutOnClose      : this.timeoutOnClose,
                 maxFileSizeMB       : this.maxFileSizeMB,
                 maxFilesCount       : this.maxFilesCount,
                 portSettings        : this.portSettings,

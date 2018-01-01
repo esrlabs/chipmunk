@@ -10,6 +10,8 @@ var component_3 = require("../components/common/dialogs/monitor.manager/componen
 var defaults_settings_1 = require("../components/common/dialogs/serial.settings/defaults.settings");
 var DefaultMonitorSettings = (function () {
     function DefaultMonitorSettings() {
+        this.timeoutOnError = 5000; //ms
+        this.timeoutOnClose = 5000;
         this.maxFileSizeMB = 30;
         this.maxFilesCount = 30;
         this.port = '';
@@ -42,12 +44,16 @@ var OpenMonitorManager = (function () {
     }
     OpenMonitorManager.prototype.init = function () {
         controller_events_1.events.bind(controller_config_1.configuration.sets.SYSTEM_EVENTS.API_IS_READY_TO_USE, this.onAPI_IS_READY_TO_USE.bind(this));
+        controller_events_1.events.bind(controller_config_1.configuration.sets.SYSTEM_EVENTS.WS_DISCONNECTED, this.onWS_DISCONNECTED.bind(this));
     };
     OpenMonitorManager.prototype.onAPI_IS_READY_TO_USE = function () {
         var _this = this;
         this.getStateMonitor(function (state) {
             _this.updateState(state !== null ? state : (new DefaultMonitorState()));
         });
+    };
+    OpenMonitorManager.prototype.onWS_DISCONNECTED = function () {
+        this.updateState(new DefaultMonitorState());
     };
     OpenMonitorManager.prototype.getMonitorSettings = function (callback) {
         var _this = this;

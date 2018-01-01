@@ -14,12 +14,14 @@ import { DialogMonitorManager           } from '../components/common/dialogs/mon
 import { DefaultsPortSettings           } from '../components/common/dialogs/serial.settings/defaults.settings';
 
 class DefaultMonitorSettings {
-    public maxFileSizeMB: number = 30;
-    public maxFilesCount: number = 30;
-    public port         : string = '';
-    public portSettings : DefaultsPortSettings = new DefaultsPortSettings();
-    public path         : string = '';
-    public command      : string = '';
+    public timeoutOnError   : number = 5000;//ms
+    public timeoutOnClose   : number = 5000;
+    public maxFileSizeMB    : number = 30;
+    public maxFilesCount    : number = 30;
+    public port             : string = '';
+    public portSettings     : DefaultsPortSettings = new DefaultsPortSettings();
+    public path             : string = '';
+    public command          : string = '';
 }
 
 class DefaultMonitorState {
@@ -29,6 +31,8 @@ class DefaultMonitorState {
 }
 
 interface MonitorSettings {
+    timeoutOnError  : number,
+    timeoutOnClose  : number,
     maxFileSizeMB   : number,
     maxFilesCount   : number,
     port            : string,
@@ -62,13 +66,18 @@ class OpenMonitorManager implements MenuHandleInterface{
     }
 
     init(){
-        Events.bind(Configuration.sets.SYSTEM_EVENTS.API_IS_READY_TO_USE, this.onAPI_IS_READY_TO_USE.bind(this));
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.API_IS_READY_TO_USE,   this.onAPI_IS_READY_TO_USE.bind(this));
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.WS_DISCONNECTED,       this.onWS_DISCONNECTED.bind(this));
     }
 
     onAPI_IS_READY_TO_USE(){
         this.getStateMonitor((state: MonitorState) => {
             this.updateState(state !== null ? state : (new DefaultMonitorState()));
         });
+    }
+
+    onWS_DISCONNECTED(){
+        this.updateState(new DefaultMonitorState());
     }
 
     getMonitorSettings(callback: Function){

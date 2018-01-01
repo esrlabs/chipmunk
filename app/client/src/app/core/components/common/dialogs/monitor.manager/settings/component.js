@@ -33,6 +33,8 @@ var DialogMonitorManagerSettingTab = (function (_super) {
         _this.componentFactoryResolver = componentFactoryResolver;
         _this.viewContainerRef = viewContainerRef;
         _this.changeDetectorRef = changeDetectorRef;
+        _this.timeoutOnError = 5000;
+        _this.timeoutOnClose = 5000;
         _this.maxFileSizeMB = 100;
         _this.maxFilesCount = 10;
         _this.port = '';
@@ -182,6 +184,8 @@ var DialogMonitorManagerSettingTab = (function (_super) {
                 _this.forceUpdate();
             });
         }, {
+            timeoutOnError: this.timeoutOnError,
+            timeoutOnClose: this.timeoutOnClose,
             maxFilesCount: this.maxFilesCount,
             maxFileSizeMB: this.maxFileSizeMB,
             port: this.port,
@@ -204,6 +208,8 @@ var DialogMonitorManagerSettingTab = (function (_super) {
                 _this.forceUpdate();
             });
         }, {
+            timeoutOnError: this.timeoutOnError,
+            timeoutOnClose: this.timeoutOnClose,
             maxFilesCount: this.maxFilesCount,
             maxFileSizeMB: this.maxFileSizeMB,
             port: this.port,
@@ -214,6 +220,8 @@ var DialogMonitorManagerSettingTab = (function (_super) {
     };
     DialogMonitorManagerSettingTab.prototype.updateSettings = function () {
         var _this = this;
+        this.timeoutOnError = parseInt(this._timeoutOnError.getValue(), 10);
+        this.timeoutOnClose = parseInt(this._timeoutOnClose.getValue(), 10);
         this.maxFilesCount = parseFloat(this._maxFilesCount.getValue());
         this.maxFileSizeMB = parseFloat(this._maxFileSizeMB.getValue());
         this.port = this._port !== void 0 ? this._port.getValue() : '';
@@ -238,6 +246,14 @@ var DialogMonitorManagerSettingTab = (function (_super) {
     };
     return DialogMonitorManagerSettingTab;
 }(class_tab_controller_1.TabController));
+__decorate([
+    core_1.Input(),
+    __metadata("design:type", Number)
+], DialogMonitorManagerSettingTab.prototype, "timeoutOnError", void 0);
+__decorate([
+    core_1.Input(),
+    __metadata("design:type", Number)
+], DialogMonitorManagerSettingTab.prototype, "timeoutOnClose", void 0);
 __decorate([
     core_1.Input(),
     __metadata("design:type", Number)
@@ -290,6 +306,14 @@ __decorate([
     core_1.Input(),
     __metadata("design:type", Function)
 ], DialogMonitorManagerSettingTab.prototype, "getStateMonitor", void 0);
+__decorate([
+    core_1.ViewChild('_timeoutOnError'),
+    __metadata("design:type", component_1.CommonInput)
+], DialogMonitorManagerSettingTab.prototype, "_timeoutOnError", void 0);
+__decorate([
+    core_1.ViewChild('_timeoutOnClose'),
+    __metadata("design:type", component_1.CommonInput)
+], DialogMonitorManagerSettingTab.prototype, "_timeoutOnClose", void 0);
 __decorate([
     core_1.ViewChild('_maxFileSizeMB'),
     __metadata("design:type", component_1.CommonInput)

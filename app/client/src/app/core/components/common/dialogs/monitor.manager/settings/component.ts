@@ -5,8 +5,6 @@ import {
 import { CommonInput                    } from '../../../input/component';
 import {popupController                 } from "../../../popup/controller";
 import {DialogSerialSettings            } from "../../serial.settings/component";
-import {configuration as Configuration  } from "../../../../../modules/controller.config";
-import {events as Events                } from "../../../../../modules/controller.events";
 import { TabController                  } from '../../../../common/tabs/tab/class.tab.controller';
 import { DefaultsPortSettings           } from '../../serial.settings/defaults.settings';
 import { ProgressBarCircle              } from "../../../progressbar.circle/component";
@@ -25,6 +23,8 @@ const TARGETS = {
 
 export class DialogMonitorManagerSettingTab extends TabController implements OnDestroy, AfterContentInit, OnInit{
 
+    @Input() timeoutOnError         : number        = 5000;
+    @Input() timeoutOnClose         : number        = 5000;
     @Input() maxFileSizeMB          : number        = 100;
     @Input() maxFilesCount          : number        = 10;
     @Input() port                   : string        = '';
@@ -44,6 +44,8 @@ export class DialogMonitorManagerSettingTab extends TabController implements OnD
     @Input() clearLogsOfMonitor     : Function      = null;
     @Input() getStateMonitor        : Function      = null;
 
+    @ViewChild('_timeoutOnError') _timeoutOnError   : CommonInput;
+    @ViewChild('_timeoutOnClose') _timeoutOnClose   : CommonInput;
     @ViewChild('_maxFileSizeMB' ) _maxFileSizeMB    : CommonInput;
     @ViewChild('_maxFilesCount' ) _maxFilesCount    : CommonInput;
     @ViewChild('_port'          ) _port             : SimpleDropDownList;
@@ -200,6 +202,8 @@ export class DialogMonitorManagerSettingTab extends TabController implements OnD
                 this.forceUpdate();
             });
         },{
+            timeoutOnError  : this.timeoutOnError,
+            timeoutOnClose  : this.timeoutOnClose,
             maxFilesCount   : this.maxFilesCount,
             maxFileSizeMB   : this.maxFileSizeMB,
             port            : this.port,
@@ -222,6 +226,8 @@ export class DialogMonitorManagerSettingTab extends TabController implements OnD
                 this.forceUpdate();
             });
         },{
+            timeoutOnError  : this.timeoutOnError,
+            timeoutOnClose  : this.timeoutOnClose,
             maxFilesCount   : this.maxFilesCount,
             maxFileSizeMB   : this.maxFileSizeMB,
             port            : this.port,
@@ -232,6 +238,8 @@ export class DialogMonitorManagerSettingTab extends TabController implements OnD
     }
 
     updateSettings() {
+        this.timeoutOnError = parseInt(this._timeoutOnError.getValue(), 10);
+        this.timeoutOnClose = parseInt(this._timeoutOnClose.getValue(), 10);
         this.maxFilesCount  = parseFloat(this._maxFilesCount.getValue());
         this.maxFileSizeMB  = parseFloat(this._maxFileSizeMB.getValue());
         this.port           = this._port    !== void 0 ? this._port.getValue()      : '';
