@@ -15,8 +15,7 @@
   "license": "MIT",
   "dependencies": {
     "node-localstorage": "^1.3.0",
-    "electron-updater": "^2.16.1",
-    "electron-log": "^2.2.11"
+    "electron-updater": "^2.18.0"
   },
   "devDependencies": {
     "electron": "latest",
