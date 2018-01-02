@@ -3,8 +3,9 @@ const BrowserWindow     = electron.BrowserWindow;
 const path              = require('path');
 const url               = require('url');
 const JSONSLocaltorage  = require('node-localstorage').JSONStorage;
-const updater           = require("electron-updater");
-const logs              = require('electron-log');
+const electronUpdater   = require("electron-updater");
+const util              = require('util');
+const logger            = new (require('./server/libs/tools.logger'))('Electron');
 
 const UPDATER_EVENTS = {
     CHECKING        : 'checking-for-update',
@@ -20,7 +21,7 @@ class Updater {
     constructor() {
         this._ServerEmitter         = require('./server/libs/server.events');
         this._outgoingWSCommands    = require('./server/libs/websocket.commands.processor.js');
-        this._autoUpdater           = updater.autoUpdater;
+        this._autoUpdater           = electronUpdater.autoUpdater;
         this._info                  = null;
         this._autoUpdater.requestHeaders = { "PRIVATE-TOKEN": "a6e41d8cb7e4102cff0763c8ce5adef521098c5c" };
         this._autoUpdater.setFeedURL({
@@ -30,20 +31,19 @@ class Updater {
             token           : "a6e41d8cb7e4102cff0763c8ce5adef521098c5c"
         });
         this._autoUpdater.autoDownload = true;
-        this._autoUpdater.logger = logs;
-        this._autoUpdater.logger.transports.file.level = 'info';
+        this._autoUpdater.logger = logger;
         Object.keys(UPDATER_EVENTS).forEach((key) => {
             this._autoUpdater.on(UPDATER_EVENTS[key], this[UPDATER_EVENTS[key]].bind(this));
         });
-        logs.info('Updater is created');
+        logger.info('Updater is created');
     }
 
     [UPDATER_EVENTS.CHECKING]() {
-        logs.info('Checking for update...');
+        logger.info('Checking for update...');
     }
 
     [UPDATER_EVENTS.AVAILABLE](info) {
-        logs.info('Update available.');
+        logger.info('Update available.');
         this._info = info;
         this._ServerEmitter.emitter.emit(this._ServerEmitter.EVENTS.SEND_VIA_WS, '*', this._outgoingWSCommands.COMMANDS.UpdateIsAvailable, {
             info: info
@@ -51,14 +51,14 @@ class Updater {
     }
 
     [UPDATER_EVENTS.NOT_AVAILABLE](info) {
-        logs.info('Update not available.');
+        logger.info(`Update not available. Info: ${util.inspect(info)}.`);
     }
 
     [UPDATER_EVENTS.PROGRESS](progressObj) {
         let log_message = "Download speed: " + progressObj.bytesPerSecond;
         log_message = log_message + ' - Downloaded ' + parseInt(progressObj.percent) + '%';
         log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
-        logs.info(log_message);
+        logger.info(log_message);
         this._ServerEmitter.emitter.emit(this._ServerEmitter.EVENTS.SEND_VIA_WS, '*', this._outgoingWSCommands.COMMANDS.UpdateDownloadProgress, {
             speed       : progressObj.bytesPerSecond,
             progress    : progressObj.percent,
@@ -67,21 +67,27 @@ class Updater {
     }
 
     [UPDATER_EVENTS.DOWNLOADED]() {
-        logs.info('Update downloaded; will install in 1 seconds');
+        logger.info('Update downloaded; will install in 1 seconds');
         setTimeout(() => {
             this._autoUpdater.quitAndInstall();
         }, 1000);
     }
 
     [UPDATER_EVENTS.ERROR](error) {
-        logs.info('Error in auto-updater.');
+        logger.info(`Error in auto-updater. Error: ${util.inspect(error)}`);
     }
 
     check(){
-        logs.info('Start update checking.');
-        this._autoUpdater.checkForUpdates();
+        logger.info('Start update checking.');
+        return this._autoUpdater.checkForUpdates();
+    }
+
+    force(cancellationToken){
+        return this._autoUpdater.downloadUpdate(cancellationToken);
     }
 }
+
+const updater = new Updater();
 
 class Starter {
 
@@ -91,7 +97,6 @@ class Starter {
         this._ready             = false;
         this._storageLocaltion  = this._app.getPath('userData');
         this._storage           = new JSONSLocaltorage(this._storageLocaltion);
-        this._update            = null;
         this._version           = this._app.getVersion();
         this._app.on('ready',               this._onReady.bind(this));
         this._app.on('window-all-closed',   this._onWindowAllClosed.bind(this));
@@ -112,8 +117,7 @@ class Starter {
     // Some APIs can only be used after this event occurs.
     _onReady(){
         this._create();
-        this._update = new Updater();
-        this._update.check();
+        updater.check();
         this._ready = true;
     }
 
@@ -136,7 +140,7 @@ class Starter {
         if (this._window === null) {
             this._createClient();
             this._createServer();
-            //this._debug();
+            //this.debug();
         }
     }
 
@@ -189,10 +193,16 @@ class Starter {
         this._window = null
     }
 
-    _debug(){
+    debug(){
         this._window.webContents.openDevTools();
     }
 
 }
 
 const starter = new Starter();
+
+module.exports = {
+    starter: starter,
+    updater: updater
+};
+

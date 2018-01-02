@@ -10,11 +10,14 @@ import { OpenSerialStream               } from '../handles/handle.open.serial.st
 import { OpenADBLogcatStream            } from '../handles/handle.open.adblogcat.stream';
 import { OpenTerminalStream             } from '../handles/handle.open.terminal.stream';
 import { MonitorManager                 } from '../handles/hanlde.open.monitor.manager';
-
+import { UpdateChecks                   } from '../handles/handle.update.checks';
+import { DeveloperConsole               } from '../handles/handle.developer.console';
 
 import { AddView                        } from '../handles/handle.add.view';
 import { APISettings                    } from '../handles/handle.api.settings';
 import { controllerThemes               } from '../modules/controller.themes';
+import {APICommands} from "../api/api.commands";
+import {APIResponse} from "../api/api.response.interface";
 
 class TopBarMenuHandles{
 
@@ -112,6 +115,16 @@ class TopBarMenuHandles{
 
     openProgressBar(){
 
+    }
+
+    checkUpdates(){
+        let updater = new UpdateChecks();
+        updater.start();
+    }
+
+    openDevConsole(){
+        let developerConsole = new DeveloperConsole();
+        developerConsole.start();
     }
 
 }

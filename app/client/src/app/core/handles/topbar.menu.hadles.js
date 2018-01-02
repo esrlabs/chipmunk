@@ -9,6 +9,8 @@ var handle_open_serial_stream_1 = require("../handles/handle.open.serial.stream"
 var handle_open_adblogcat_stream_1 = require("../handles/handle.open.adblogcat.stream");
 var handle_open_terminal_stream_1 = require("../handles/handle.open.terminal.stream");
 var hanlde_open_monitor_manager_1 = require("../handles/hanlde.open.monitor.manager");
+var handle_update_checks_1 = require("../handles/handle.update.checks");
+var handle_developer_console_1 = require("../handles/handle.developer.console");
 var handle_add_view_1 = require("../handles/handle.add.view");
 var handle_api_settings_1 = require("../handles/handle.api.settings");
 var controller_themes_1 = require("../modules/controller.themes");
@@ -93,6 +95,14 @@ var TopBarMenuHandles = (function () {
         addView.start();
     };
     TopBarMenuHandles.prototype.openProgressBar = function () {
+    };
+    TopBarMenuHandles.prototype.checkUpdates = function () {
+        var updater = new handle_update_checks_1.UpdateChecks();
+        updater.start();
+    };
+    TopBarMenuHandles.prototype.openDevConsole = function () {
+        var developerConsole = new handle_developer_console_1.DeveloperConsole();
+        developerConsole.start();
     };
     return TopBarMenuHandles;
 }());

@@ -16,10 +16,54 @@ const COLORS = {
 
 };
 
+const FileManager = require('./tools.filemanager');
+const Path = require('path');
+
+class PathsSettings {
+
+    constructor(){
+        this.os                             = require('os');
+        this.ROOT                           = Path.resolve(this.os.homedir() + '/logviewer');
+        this.LOGS_FILE                      = '';
+        this.generate();
+    }
+
+    generate(){
+        this.LOGS_FILE                      = Path.resolve(this.ROOT + '/service.log');
+    }
+}
+
 class Logger {
 
-    constructor(signature){
-        this.signature = signature;
+    constructor(signature, noFSRecording){
+        this.signature      = signature;
+        this._fileManager   = new FileManager(true);
+        this._paths         = new PathsSettings();
+        this._FSReady       = false;
+        this._noFSRecording = typeof noFSRecording === 'boolean' ? noFSRecording : false;
+        this._initFSStorage();
+    }
+
+    _checkFolders(){
+        let error = null;
+        error = error !== null ? error : this._fileManager.createFolder(this._paths.ROOT);
+        return error;
+    }
+
+    _initFSStorage(){
+        if (this._checkFolders() === null || this._noFSRecording) {
+            if (!this._fileManager.isExistsSync(this._paths.LOGS_FILE)){
+                this._fileManager.save('', this._paths.LOGS_FILE);
+            }
+            this._FSReady = true;
+            this.info(`[${this._getTimeMark()}] Started session.\n`);
+        } else {
+            this._FSReady = false;
+        }
+    }
+
+    _writeFS(message){
+        this._FSReady && this._fileManager.append(message, this._paths.LOGS_FILE);
     }
 
     debug(message){
@@ -42,6 +86,18 @@ class Logger {
         return this._log(this._setColor(COLORS.RED, LEVELS.ERROR), message);
     }
 
+    warn(message){
+        return this.warning(message);
+    }
+
+    silly(message){
+        return this.verbose(message);
+    }
+
+    log(message){
+        return this.info(message);
+    }
+
     _setColor(color, message){
         return color + message + COLORS.NC;
     }
@@ -57,6 +113,7 @@ class Logger {
     _log(level, message){
         message = `[${this.signature}][${level}]: ${message}`;
         console.log(`[${this._getTimeMark()}]${message}`);
+        this._writeFS(`[${this._getTimeMark()}]${message}\n`);
         return message;
     }
 }

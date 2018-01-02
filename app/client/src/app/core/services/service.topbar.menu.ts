@@ -20,7 +20,9 @@ export class ServiceTopBarMenuItems{
             { type : 'line' },
             { icon : 'fa-paint-brush',  caption : 'Change color theme',         handle: 'changeThemeSettings',  type: 'item' },
             { type : 'line' },
-            { icon : 'fa-child',        caption : 'About',                      handle: null,                   type: 'item' },
+            { icon : 'fa-refresh',      caption : 'Check updates',              handle: 'checkUpdates',         type: 'item' },
+            { type : 'line' },
+            { icon : 'fa-wrench',       caption : 'Developer console',          handle: 'openDevConsole',       type: 'item' },
         ];
     }
 }

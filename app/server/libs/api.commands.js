@@ -203,6 +203,49 @@ class APICommands{
         );
     }
 
+    //Electron
+    checkUpdates(income, response, callback){
+        let updater = null;
+        try{
+            updater = require('../../electron').updater;
+        }catch (error){
+            updater = null;
+        }
+        if (updater === null || updater === void 0) {
+            return callback(null, new Error('Updater is available only for desktop versions.'))
+        }
+        updater.check().then((result) => {
+            if (result !== null && typeof result === 'object' && result.updateInfo !== void 0) {
+                if (result.cancellationToken !== void 0) {
+                    updater.force(result.cancellationToken);
+                }
+                callback({
+                    res: result,
+                    cancellationToken: result.cancellationToken,
+                    cancellationTokenType: typeof result.cancellationToken
+                }, null);
+            } else {
+                callback(null, new Error(`Unexpected result of updating checks`));
+            }
+        }).catch((error)=>{
+            callback(null, error);
+        });
+    }
+
+    openDevConsole(income, response, callback){
+        let starter = null;
+        try{
+            starter = require('../../electron').starter;
+        }catch (error){
+            starter = null;
+        }
+        if (starter === null || starter === void 0) {
+            return callback(null, new Error('Electron is available only for desktop versions.'))
+        }
+        starter.debug();
+        callback(true, null)
+    }
+
 };
 
 module.exports = APICommands;

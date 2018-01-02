@@ -19,7 +19,9 @@ var APICommands = {
     getMatches: 'getMatches',
     clearLogsOfMonitor: 'clearLogsOfMonitor',
     getStateMonitor: 'getStateMonitor',
-    dropSettings: 'dropSettings'
+    dropSettings: 'dropSettings',
+    checkUpdates: 'checkUpdates',
+    openDevConsole: 'openDevConsole'
 };
 exports.APICommands = APICommands;
 function isAPICommandValid(command) {
