@@ -35,6 +35,7 @@ var OpenMonitorManager = (function () {
         this.progressGUID = Symbol();
         this.processor = api_processor_1.APIProcessor;
         this.settings = null;
+        this.errors = [];
         this.button = {
             id: null,
             icon: 'fa-stethoscope',
@@ -50,14 +51,33 @@ var OpenMonitorManager = (function () {
         var _this = this;
         this.getStateMonitor(function (state) {
             _this.updateState(state !== null ? state : (new DefaultMonitorState()));
-        });
+        }, true);
     };
     OpenMonitorManager.prototype.onWS_DISCONNECTED = function () {
         this.updateState(new DefaultMonitorState());
     };
+    OpenMonitorManager.prototype.isResponseError = function (response, error, silence) {
+        if (silence === void 0) { silence = false; }
+        if (error === null) {
+            if (response.code !== 0) {
+                !silence && this.showMessage(_('Error'), _('Server returned failed result. Code of error: ') + response.code + _('. Addition data: ') + response.output);
+                !silence && this.hideProgress();
+                return true;
+            }
+        }
+        else {
+            !silence && this.showMessage(_('Error'), error.message);
+            !silence && this.hideProgress();
+            return true;
+        }
+        return false;
+    };
     OpenMonitorManager.prototype.getMonitorSettings = function (callback) {
         var _this = this;
-        this.processor.send(api_commands_1.APICommands.getSettingsMonitor, {}, function (response) {
+        this.processor.send(api_commands_1.APICommands.getSettingsMonitor, {}, function (response, error) {
+            if (_this.isResponseError(response, error)) {
+                return false;
+            }
             if (typeof response === 'object' && response !== null && typeof response.output === 'object' && response.output !== null) {
                 _this.onGetMonitorSettings(callback, response.output);
             }
@@ -106,88 +126,113 @@ var OpenMonitorManager = (function () {
         this.button.id = null;
     };
     OpenMonitorManager.prototype.dropSettings = function () {
-        this.processor.send(api_commands_1.APICommands.dropSettings, {}, function () {
+        var _this = this;
+        this.processor.send(api_commands_1.APICommands.dropSettings, {}, function (response, error) {
+            if (_this.isResponseError(response, error)) {
+                return false;
+            }
         });
     };
     OpenMonitorManager.prototype.getListPorts = function (callback) {
-        this.processor.send(api_commands_1.APICommands.serialPortsList, {}, this.onListOfPorts.bind(this, callback));
+        var _this = this;
+        this.processor.send(api_commands_1.APICommands.serialPortsList, {}, function (response, error) {
+            if (_this.isResponseError(response, error)) {
+                return false;
+            }
+            _this.onListOfPorts(callback, response, error);
+        });
     };
     OpenMonitorManager.prototype.onListOfPorts = function (callback, response, error) {
-        if (error === null) {
-            if (response.code === 0 && response.output instanceof Array) {
-                typeof callback === 'function' && callback(response.output.map(function (port) {
-                    return typeof port === 'object' ? (port !== null ? port.comName : null) : null;
-                }).filter(function (port) {
-                    return typeof port === 'string';
-                }));
-                return true;
-            }
-            else {
-                this.showMessage(_('Error'), _('Server returned failed result. Code of error: ') + response.code + _('. Addition data: ') + response.output);
-            }
+        if (response.output instanceof Array) {
+            typeof callback === 'function' && callback(response.output.map(function (port) {
+                return typeof port === 'object' ? (port !== null ? port.comName : null) : null;
+            }).filter(function (port) {
+                return typeof port === 'string';
+            }));
+            return true;
         }
         else {
-            this.showMessage(_('Error'), error.message);
+            typeof callback === 'function' && callback(null);
+            return false;
         }
-        typeof callback === 'function' && callback(null);
     };
     OpenMonitorManager.prototype.getFilesInfo = function (callback) {
-        this.processor.send(api_commands_1.APICommands.getFilesDataMonitor, {}, this.onGetFilesInfo.bind(this, callback));
+        var _this = this;
+        this.processor.send(api_commands_1.APICommands.getFilesDataMonitor, {}, function (response, error) {
+            if (_this.isResponseError(response, error)) {
+                return false;
+            }
+            _this.onGetFilesInfo(callback, response, error);
+        });
     };
     OpenMonitorManager.prototype.onGetFilesInfo = function (callback, response, error) {
-        if (error === null) {
-            if (response.code === 0 && typeof response.output === 'object' && response.output !== null && response.output.list !== void 0 && response.output.register !== void 0) {
-                typeof callback === 'function' && callback(response.output);
-                return true;
-            }
-            else {
-                this.showMessage(_('Error'), _('Server returned failed result. Code of error: ') + response.code + _('. Addition data: ') + response.output);
-            }
+        if (typeof response.output === 'object' && response.output !== null && response.output.list !== void 0 && response.output.register !== void 0) {
+            typeof callback === 'function' && callback(response.output);
+            return true;
         }
         else {
-            this.showMessage(_('Error'), error.message);
+            typeof callback === 'function' && callback(null);
+            return false;
         }
-        typeof callback === 'function' && callback(null);
     };
     OpenMonitorManager.prototype.getFileContent = function (file, callback) {
+        var _this = this;
         this.processor.send(api_commands_1.APICommands.getFileContent, {
             file: file
-        }, this.onGetFileContent.bind(this, callback));
+        }, function (response, error) {
+            if (_this.isResponseError(response, error)) {
+                return false;
+            }
+            _this.onGetFileContent(callback, response, error);
+        });
     };
     OpenMonitorManager.prototype.getAllFilesContent = function (callback) {
-        this.processor.send(api_commands_1.APICommands.getAllFilesContent, {}, this.onGetFileContent.bind(this, callback));
+        var _this = this;
+        this.processor.send(api_commands_1.APICommands.getAllFilesContent, {}, function (response, error) {
+            if (_this.isResponseError(response, error)) {
+                return false;
+            }
+            _this.onGetFileContent(callback, response, error);
+        });
     };
     OpenMonitorManager.prototype.onGetFileContent = function (callback, response, error) {
-        if (error === null) {
-            if (response.code === 0 && typeof response.output === 'object' && response.output !== null && response.output.text !== void 0) {
-                return typeof callback === 'function' && callback(response.output.text);
-            }
+        if (typeof response.output === 'object' && response.output !== null && response.output.text !== void 0) {
+            return typeof callback === 'function' && callback(response.output.text);
         }
         else {
-            this.showMessage(_('Error'), error.message);
+            return typeof callback === 'function' && callback(null);
         }
-        typeof callback === 'function' && callback(null);
     };
     OpenMonitorManager.prototype.getMatches = function (reg, search, callback) {
+        var _this = this;
         this.processor.send(api_commands_1.APICommands.getMatches, {
             reg: reg,
             search: search
-        }, this.onGetMatches.bind(this, callback));
+        }, function (response, error) {
+            if (_this.isResponseError(response, error)) {
+                return false;
+            }
+            _this.onGetMatches(callback, response, error);
+        });
     };
     OpenMonitorManager.prototype.onGetMatches = function (callback, response, error) {
-        if (error === null) {
-            if (response.code === 0 && typeof response.output === 'object' && response.output !== null && response.output.result !== void 0
-                && typeof response.output.result === 'object' && response.output.result !== null) {
-                return typeof callback === 'function' && callback(response.output.result);
-            }
+        if (typeof response.output === 'object' && response.output !== null && response.output.result !== void 0
+            && typeof response.output.result === 'object' && response.output.result !== null) {
+            return typeof callback === 'function' && callback(response.output.result);
         }
         else {
-            this.showMessage(_('Error'), error.message);
+            return typeof callback === 'function' && callback(null);
         }
-        typeof callback === 'function' && callback(null);
     };
-    OpenMonitorManager.prototype.getStateMonitor = function (callback) {
-        this.processor.send(api_commands_1.APICommands.getStateMonitor, {}, this.onGetStateMonitor.bind(this, callback));
+    OpenMonitorManager.prototype.getStateMonitor = function (callback, silence) {
+        var _this = this;
+        if (silence === void 0) { silence = false; }
+        this.processor.send(api_commands_1.APICommands.getStateMonitor, {}, function (response, error) {
+            if (_this.isResponseError(response, error, silence)) {
+                return false;
+            }
+            _this.onGetStateMonitor(callback, response, error);
+        });
     };
     OpenMonitorManager.prototype.onGetStateMonitor = function (callback, response, error) {
         if (error === null) {
@@ -205,29 +250,19 @@ var OpenMonitorManager = (function () {
     OpenMonitorManager.prototype.stopAndClearMonitor = function (callback) {
         var _this = this;
         this.processor.send(api_commands_1.APICommands.stopAndClearMonitor, {}, function (response, error) {
-            if (error === null) {
-                if (response.code === 0) {
-                    return typeof callback === 'function' && callback(true);
-                }
+            if (_this.isResponseError(response, error)) {
+                return false;
             }
-            else {
-                _this.showMessage(_('Error'), error.message);
-            }
-            typeof callback === 'function' && callback(false);
+            return typeof callback === 'function' && callback(true);
         });
     };
     OpenMonitorManager.prototype.clearLogsOfMonitor = function (callback) {
         var _this = this;
         this.processor.send(api_commands_1.APICommands.clearLogsOfMonitor, {}, function (response, error) {
-            if (error === null) {
-                if (response.code === 0) {
-                    return typeof callback === 'function' && callback(true);
-                }
+            if (_this.isResponseError(response, error)) {
+                return false;
             }
-            else {
-                _this.showMessage(_('Error'), error.message);
-            }
-            typeof callback === 'function' && callback(false);
+            return typeof callback === 'function' && callback(true);
         });
     };
     OpenMonitorManager.prototype.setSettingsOfMonitor = function (callback, settings) {
@@ -235,41 +270,31 @@ var OpenMonitorManager = (function () {
         this.processor.send(api_commands_1.APICommands.setSettingsOfMonitor, {
             settings: settings
         }, function (response, error) {
-            if (error === null) {
-                if (response.code === 0) {
-                    return typeof callback === 'function' && callback(true);
-                }
+            if (_this.isResponseError(response, error)) {
+                return false;
             }
-            else {
-                _this.showMessage(_('Error'), error.message);
-            }
-            typeof callback === 'function' && callback(false);
+            return typeof callback === 'function' && callback(true);
         });
     };
     OpenMonitorManager.prototype.restartMonitor = function (callback) {
         var _this = this;
         this.processor.send(api_commands_1.APICommands.restartMonitor, {}, function (response, error) {
-            if (error === null) {
-                if (response.code === 0) {
-                    return typeof callback === 'function' && callback(true);
-                }
+            if (_this.isResponseError(response, error)) {
+                return false;
             }
-            else {
-                _this.showMessage(_('Error'), error.message);
-            }
-            typeof callback === 'function' && callback(false);
+            return typeof callback === 'function' && callback(true);
         });
     };
     OpenMonitorManager.prototype.start = function () {
         var _this = this;
-        this.showProgress(_('Please wait... Getting list of available ports.'));
+        this.showProgress(_('Please wait...'));
         this.getMonitorSettings(function (settings) {
             _this.getListPorts(function (ports) {
                 ports = ports instanceof Array ? ports : [];
                 _this.getFilesInfo(function (info) {
                     info = info !== null ? info : { list: [], register: {} };
                     _this.getStateMonitor(function (state) {
-                        controller_1.popupController.close(_this.progressGUID);
+                        _this.hideProgress();
                         state = state !== null ? state : (new DefaultMonitorState());
                         controller_1.popupController.open({
                             content: {
@@ -356,6 +381,12 @@ var OpenMonitorManager = (function () {
             titlebuttons: [],
             GUID: this.progressGUID
         });
+    };
+    OpenMonitorManager.prototype.hideProgress = function () {
+        if (this.progressGUID !== null) {
+            controller_1.popupController.close(this.progressGUID);
+            this.progressGUID = null;
+        }
     };
     return OpenMonitorManager;
 }());

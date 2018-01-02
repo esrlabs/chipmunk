@@ -51,6 +51,7 @@ class OpenMonitorManager implements MenuHandleInterface{
     private progressGUID    : symbol                = Symbol();
     private processor       : any                   = APIProcessor;
     private settings        : MonitorSettings       = null;
+    private errors          : Array<string>         = [];
     private button          : {
         id: symbol | null,
         icon: string,
@@ -73,18 +74,36 @@ class OpenMonitorManager implements MenuHandleInterface{
     onAPI_IS_READY_TO_USE(){
         this.getStateMonitor((state: MonitorState) => {
             this.updateState(state !== null ? state : (new DefaultMonitorState()));
-        });
+        }, true);
     }
 
     onWS_DISCONNECTED(){
         this.updateState(new DefaultMonitorState());
     }
 
+    isResponseError(response : APIResponse, error: Error, silence: boolean = false){
+        if (error === null){
+            if (response.code !== 0){
+                !silence && this.showMessage(_('Error'), _('Server returned failed result. Code of error: ') + response.code + _('. Addition data: ') + response.output);
+                !silence && this.hideProgress();
+                return true;
+            }
+        } else {
+            !silence && this.showMessage(_('Error'), error.message);
+            !silence && this.hideProgress();
+            return true;
+        }
+        return false;
+    }
+
     getMonitorSettings(callback: Function){
         this.processor.send(
             APICommands.getSettingsMonitor,
             {},
-            (response: any)=>{
+            (response : APIResponse, error: Error)=>{
+                if (this.isResponseError(response, error)){
+                    return false;
+                }
                 if (typeof response === 'object' && response !== null && typeof response.output === 'object' && response.output !== null){
                     this.onGetMonitorSettings(callback, response.output as MonitorSettings);
                 } else {
@@ -138,8 +157,10 @@ class OpenMonitorManager implements MenuHandleInterface{
         this.processor.send(
             APICommands.dropSettings,
             {},
-            ()=>{
-
+            (response : APIResponse, error: Error)=>{
+                if (this.isResponseError(response, error)){
+                    return false;
+                }
             }
         );
     }
@@ -148,48 +169,50 @@ class OpenMonitorManager implements MenuHandleInterface{
         this.processor.send(
             APICommands.serialPortsList,
             {},
-            this.onListOfPorts.bind(this, callback)
+            (response : APIResponse, error: Error)=>{
+                if (this.isResponseError(response, error)){
+                    return false;
+                }
+                this.onListOfPorts(callback, response, error);
+            }
         );
     }
 
     onListOfPorts(callback: Function, response : APIResponse, error: Error){
-        if (error === null){
-            if (response.code === 0 && response.output instanceof Array){
-                typeof callback === 'function' && callback(response.output.map((port)=>{
-                    return typeof port === 'object' ? (port !== null ? port.comName : null) : null;
-                }).filter((port) => {
-                    return typeof port === 'string';
-                }));
-                return true;
-            } else{
-                this.showMessage(_('Error'), _('Server returned failed result. Code of error: ') + response.code + _('. Addition data: ') + response.output);
-            }
-        } else {
-            this.showMessage(_('Error'), error.message);
+        if (response.output instanceof Array){
+            typeof callback === 'function' && callback(response.output.map((port)=>{
+                return typeof port === 'object' ? (port !== null ? port.comName : null) : null;
+            }).filter((port) => {
+                return typeof port === 'string';
+            }));
+            return true;
+        } else{
+            typeof callback === 'function' && callback(null);
+            return false;
         }
-        typeof callback === 'function' && callback(null);
     }
 
     getFilesInfo(callback: Function){
         this.processor.send(
             APICommands.getFilesDataMonitor,
             {},
-            this.onGetFilesInfo.bind(this, callback)
+            (response : APIResponse, error: Error)=>{
+                if (this.isResponseError(response, error)){
+                    return false;
+                }
+                this.onGetFilesInfo(callback, response, error);
+            }
         );
     }
 
     onGetFilesInfo(callback: Function, response : APIResponse, error: Error){
-        if (error === null){
-            if (response.code === 0 && typeof response.output === 'object' && response.output !== null && response.output.list !== void 0 && response.output.register !== void 0){
-                typeof callback === 'function' && callback(response.output);
-                return true;
-            } else{
-                this.showMessage(_('Error'), _('Server returned failed result. Code of error: ') + response.code + _('. Addition data: ') + response.output);
-            }
-        } else {
-            this.showMessage(_('Error'), error.message);
+        if (typeof response.output === 'object' && response.output !== null && response.output.list !== void 0 && response.output.register !== void 0){
+            typeof callback === 'function' && callback(response.output);
+            return true;
+        } else{
+            typeof callback === 'function' && callback(null);
+            return false;
         }
-        typeof callback === 'function' && callback(null);
     }
 
     getFileContent(file: string, callback: Function) {
@@ -198,7 +221,12 @@ class OpenMonitorManager implements MenuHandleInterface{
             {
                 file: file
             },
-            this.onGetFileContent.bind(this, callback)
+            (response : APIResponse, error: Error)=>{
+                if (this.isResponseError(response, error)){
+                    return false;
+                }
+                this.onGetFileContent(callback, response, error);
+            }
         );
     }
 
@@ -206,19 +234,21 @@ class OpenMonitorManager implements MenuHandleInterface{
         this.processor.send(
             APICommands.getAllFilesContent,
             {},
-            this.onGetFileContent.bind(this, callback)
+            (response : APIResponse, error: Error)=>{
+                if (this.isResponseError(response, error)){
+                    return false;
+                }
+                this.onGetFileContent(callback, response, error);
+            }
         );
     }
 
     onGetFileContent(callback: Function, response : APIResponse, error: Error){
-        if (error === null){
-            if (response.code === 0 && typeof response.output === 'object' && response.output !== null && response.output.text !== void 0){
-                return typeof callback === 'function' && callback(response.output.text);
-            }
+        if (typeof response.output === 'object' && response.output !== null && response.output.text !== void 0){
+            return typeof callback === 'function' && callback(response.output.text);
         } else {
-            this.showMessage(_('Error'), error.message);
+            return typeof callback === 'function' && callback(null);
         }
-        typeof callback === 'function' && callback(null);
     }
 
     getMatches(reg: boolean, search: Array<string>, callback: Function) {
@@ -228,27 +258,34 @@ class OpenMonitorManager implements MenuHandleInterface{
                 reg     : reg,
                 search  : search
             },
-            this.onGetMatches.bind(this, callback)
+            (response : APIResponse, error: Error)=>{
+                if (this.isResponseError(response, error)){
+                    return false;
+                }
+                this.onGetMatches(callback, response, error);
+            }
         );
     }
 
     onGetMatches(callback: Function, response : APIResponse, error: Error) {
-        if (error === null){
-            if (response.code === 0 && typeof response.output === 'object' && response.output !== null && response.output.result !== void 0
-                && typeof response.output.result === 'object' && response.output.result !== null){
-                return typeof callback === 'function' && callback(response.output.result);
-            }
+        if (typeof response.output === 'object' && response.output !== null && response.output.result !== void 0
+            && typeof response.output.result === 'object' && response.output.result !== null){
+            return typeof callback === 'function' && callback(response.output.result);
         } else {
-            this.showMessage(_('Error'), error.message);
+            return typeof callback === 'function' && callback(null);
         }
-        typeof callback === 'function' && callback(null);
     }
 
-    getStateMonitor(callback: Function){
+    getStateMonitor(callback: Function, silence: boolean = false){
         this.processor.send(
             APICommands.getStateMonitor,
             {},
-            this.onGetStateMonitor.bind(this, callback)
+            (response : APIResponse, error: Error)=>{
+                if (this.isResponseError(response, error, silence)){
+                    return false;
+                }
+                this.onGetStateMonitor(callback, response, error);
+            }
         );
     }
 
@@ -270,14 +307,10 @@ class OpenMonitorManager implements MenuHandleInterface{
             APICommands.stopAndClearMonitor,
             {},
             (response : APIResponse, error: Error) => {
-                if (error === null){
-                    if (response.code === 0){
-                        return typeof callback === 'function' && callback(true);
-                    }
-                } else {
-                    this.showMessage(_('Error'), error.message);
+                if (this.isResponseError(response, error)){
+                    return false;
                 }
-                typeof callback === 'function' && callback(false);
+                return typeof callback === 'function' && callback(true);
             }
         );
     }
@@ -287,14 +320,10 @@ class OpenMonitorManager implements MenuHandleInterface{
             APICommands.clearLogsOfMonitor,
             {},
             (response : APIResponse, error: Error) => {
-                if (error === null){
-                    if (response.code === 0){
-                        return typeof callback === 'function' && callback(true);
-                    }
-                } else {
-                    this.showMessage(_('Error'), error.message);
+                if (this.isResponseError(response, error)){
+                    return false;
                 }
-                typeof callback === 'function' && callback(false);
+                return typeof callback === 'function' && callback(true);
             }
         );
     }
@@ -306,14 +335,10 @@ class OpenMonitorManager implements MenuHandleInterface{
                 settings: settings
             },
             (response : APIResponse, error: Error) => {
-                if (error === null){
-                    if (response.code === 0){
-                        return typeof callback === 'function' && callback(true);
-                    }
-                } else {
-                    this.showMessage(_('Error'), error.message);
+                if (this.isResponseError(response, error)){
+                    return false;
                 }
-                typeof callback === 'function' && callback(false);
+                return typeof callback === 'function' && callback(true);
             }
         );
     }
@@ -323,27 +348,23 @@ class OpenMonitorManager implements MenuHandleInterface{
             APICommands.restartMonitor,
             {},
             (response : APIResponse, error: Error) => {
-                if (error === null){
-                    if (response.code === 0){
-                        return typeof callback === 'function' && callback(true);
-                    }
-                } else {
-                    this.showMessage(_('Error'), error.message);
+                if (this.isResponseError(response, error)){
+                    return false;
                 }
-                typeof callback === 'function' && callback(false);
+                return typeof callback === 'function' && callback(true);
             }
         );
     }
 
     start(){
-        this.showProgress(_('Please wait... Getting list of available ports.'));
+        this.showProgress(_('Please wait...'));
         this.getMonitorSettings((settings: MonitorSettings) => {
             this.getListPorts((ports: Array<string>) => {
                 ports = ports instanceof Array ? ports : [];
                 this.getFilesInfo((info: any) => {
                     info = info !== null ? info : { list: [], register: {} };
                     this.getStateMonitor((state: MonitorState) => {
-                        popupController.close(this.progressGUID);
+                        this.hideProgress();
                         state = state !== null ? state : (new DefaultMonitorState());
                         popupController.open({
                             content : {
@@ -432,6 +453,13 @@ class OpenMonitorManager implements MenuHandleInterface{
             titlebuttons    : [],
             GUID            : this.progressGUID
         });
+    }
+
+    hideProgress(){
+        if (this.progressGUID !== null){
+            popupController.close(this.progressGUID);
+            this.progressGUID = null;
+        }
     }
 
 }

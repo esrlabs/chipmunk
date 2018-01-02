@@ -107,35 +107,56 @@ class APICommands{
 
     restartMonitor(income, response, callback){
         let monitor = require('./service.monitor');
-        monitor.restart();
-        callback(true, null);
+        let result = monitor.restart();
+        callback(
+            !(result instanceof Error) ? true : null,
+            result instanceof Error ? result : null
+        );
     }
 
     getFilesDataMonitor(income, response, callback){
         let monitor = require('./service.monitor');
-        callback(monitor.getFilesData(), null);
+        let result = monitor.getFilesData();
+        callback(
+            !(result instanceof Error) ? result : null,
+            result instanceof Error ? result : null
+        );
     }
 
     stopAndClearMonitor(income, response, callback){
         let monitor = require('./service.monitor');
-        monitor.stopAndClear();
-        callback(true, null);
+        let result = monitor.stopAndClear();
+        callback(
+            !(result instanceof Error) ? true : null,
+            result instanceof Error ? result : null
+        );
     }
 
     clearLogsOfMonitor(income, response, callback){
         let monitor = require('./service.monitor');
-        monitor.clearLogs();
-        callback(true, null);
+        let result = monitor.clearLogs();
+        callback(
+            !(result instanceof Error) ? true : null,
+            result instanceof Error ? result : null
+        );
     }
 
     getSettingsMonitor(income, response, callback){
         let monitor = require('./service.monitor');
-        callback(monitor.getSettings(), null);
+        let result = monitor.getSettings();
+        callback(
+            !(result instanceof Error) ? result : null,
+            result instanceof Error ? result : null
+        );
     }
 
     getStateMonitor(income, response, callback){
         let monitor = require('./service.monitor');
-        callback(monitor.getState(), null);
+        let result = monitor.getState();
+        callback(
+            !(result instanceof Error) ? result : null,
+            result instanceof Error ? result : null
+        );
     }
 
     getFileContent(income, response, callback){
@@ -175,7 +196,11 @@ class APICommands{
 
     dropSettings(income, response, callback){
         let monitor = require('./service.monitor');
-        callback(monitor.dropSettings(), null);
+        let result = monitor.dropSettings();
+        callback(
+            !(result instanceof Error) ? result : null,
+            result instanceof Error ? result : null
+        );
     }
 
 };

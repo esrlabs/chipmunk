@@ -133,10 +133,19 @@ class FileManager{
     }
 
     createFolder(dir){
-        if (!this._fs.existsSync(dir)){
-            this._fs.mkdirSync(dir);
+        let error = null;
+        try {
+            if (!this._fs.existsSync(dir)){
+                this._fs.mkdirSync(dir);
+                if (!this._fs.existsSync(dir)){
+                    error = new Error(`Cannot create folder ${dir}. Probably it's permissions issue.`);
+                }
+            }
+        } catch (err) {
+            error = err;
         }
-        return this._fs.existsSync(dir);
+        //return new Error(`Cannot create folder ${dir}. Probably it's permissions issue.`);
+        return error;
     }
 }
 
@@ -477,10 +486,10 @@ class StoringManager{
     }
 
     checkFolders() {
-        let result = true;
-        result = !result ? false : this._fileManager.createFolder(OPTIONS.LOGS_ROOT);
-        result = !result ? false : this._fileManager.createFolder(OPTIONS.LOGS_FOLDER);
-        return result;
+        let error = null;
+        error = error !== null ? error : this._fileManager.createFolder(OPTIONS.LOGS_ROOT);
+        error = error !== null ? error : this._fileManager.createFolder(OPTIONS.LOGS_FOLDER);
+        return error;
     }
 
     updateSettings(settings) {
@@ -710,7 +719,7 @@ class Monitor {
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     start() {
         if (!this._isReady()) {
-            return null;
+            return this._getInitError();
         }
         this._timerDrop();
         if (this._settings.port !== '') {
@@ -723,7 +732,7 @@ class Monitor {
 
     stop() {
         if (!this._isReady()) {
-            return null;
+            return this._getInitError();
         }
         if (this._port !== null) {
             return this.stopPort();
@@ -746,16 +755,15 @@ class Monitor {
     }
 
     _check(){
-        if (this._storingManager.checkFolders()){
-            this._ready = true;
-        } else {
-            logger.error(`Fail to create logs folders. Check permissions.`);
-            this._ready = false;
-        }
+        this._ready = this._storingManager.checkFolders();
     }
 
     _isReady(){
-        return this._ready;
+        return this._ready instanceof Error ? false : true;
+    }
+
+    _getInitError(){
+        return this._ready instanceof Error ? this._ready : null;
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -843,7 +851,7 @@ class Monitor {
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     _updateSettings(settings){
         if (!this._isReady()) {
-            return null;
+            return this._getInitError();
         }
         this._settings = settings;
         this._settings.maxFilesCount <= 0 ? 1 : this._settings.maxFilesCount;
@@ -856,7 +864,7 @@ class Monitor {
 
     _reloadSettings(){
         if (!this._isReady()) {
-            return null;
+            return this._getInitError();
         }
         this._settings = this._settingManager.load();
         this._storingManager.updateSettings(this._settings);
@@ -868,7 +876,7 @@ class Monitor {
 
     setSettings(settings){
         if (!this._isReady()) {
-            return null;
+            return this._getInitError();
         }
         this._updateSettings(settings);
         this.restart();
@@ -877,14 +885,14 @@ class Monitor {
 
     getFilesData(){
         if (!this._isReady()) {
-            return null;
+            return this._getInitError();
         }
         return this._storingManager.getFilesData();
     }
 
     clearLogs(){
         if (!this._isReady()) {
-            return null;
+            return this._getInitError();
         }
         this.stop();
         this._storingManager.removeLogsFiles();
@@ -894,7 +902,7 @@ class Monitor {
 
     restart(){
         if (!this._isReady()) {
-            return null;
+            return this._getInitError();
         }
         this.stop();
         this._reloadSettings();
@@ -904,7 +912,7 @@ class Monitor {
 
     stopAndClear(){
         if (!this._isReady()) {
-            return null;
+            return this._getInitError();
         }
         this.stopPort();
         this._storingManager.removeLogsFiles();
@@ -913,7 +921,7 @@ class Monitor {
 
     getSettings(){
         if (!this._isReady()) {
-            return null;
+            return this._getInitError();
         }
         this._reloadSettings();
         return Object.assign({}, this._settings);
@@ -921,7 +929,7 @@ class Monitor {
 
     dropSettings(){
         if (!this._isReady()) {
-            return null;
+            return this._getInitError();
         }
         this._settingManager.reset();
         this._reloadSettings();
@@ -930,7 +938,7 @@ class Monitor {
 
     getState(){
         if (!this._isReady()) {
-            return null;
+            return this._getInitError();
         }
         return {
             active  : this._port    !== null ? true : (this._spawn !== null ? true : false),
@@ -941,21 +949,21 @@ class Monitor {
 
     getFileContent(fileName){
         if (!this._isReady()) {
-            return null;
+            return this._getInitError();
         }
         return this._storingManager.getFileContent(fileName);
     }
 
     getAllFilesContent(){
         if (!this._isReady()) {
-            return null;
+            return this._getInitError();
         }
         return this._storingManager.getAllFilesContent();
     }
 
     getMatches(reg, search){
         if (!this._isReady()) {
-            return null;
+            return this._getInitError();
         }
         return this._storingManager.getMatches(reg, search);
     }
