@@ -216,6 +216,31 @@ view-controller-markers ul li {
   border-bottom: 1px dotted #646464;
   list-style: none;
 }
+view-controller-state-monitor {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-state-monitor ul {
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  text-align: center;
+}
+view-controller-state-monitor ul li {
+  position: relative;
+  display: inline-block;
+  width: 10rem;
+  height: 7rem;
+  margin: 1rem;
+}
 view-controller-search-results {
   position: absolute;
   width: 100%;
@@ -309,31 +334,6 @@ view-controller-search-results .export-url {
   width: 1px;
   height: 1px;
   opacity: 0.001;
-}
-view-controller-state-monitor {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-view-controller-state-monitor ul {
-  display: block;
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding: 0;
-  margin: 0;
-  list-style: none;
-  text-align: center;
-}
-view-controller-state-monitor ul li {
-  position: relative;
-  display: inline-block;
-  width: 10rem;
-  height: 7rem;
-  margin: 1rem;
 }
 view-controller-stream-sender {
   position: absolute;
@@ -691,6 +691,137 @@ view-markers-item .remove {
 view-markers-item .remove:hover {
   color: #f01e1e;
 }
+view-controller-state-monitor-manager {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-state-monitor-manager .statemonitor-manager-wrapper {
+  position: absolute;
+  top: 0;
+  bottom: 3rem;
+  width: 100%;
+  padding: 0.5rem;
+  margin: 0;
+  list-style: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+view-controller-state-monitor-manager .statemonitor-manager-wrapper li {
+  list-style: none;
+}
+view-controller-state-monitor-manager .buttons {
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+  height: 3rem;
+  text-align: right;
+  font-size: 0.75rem;
+}
+.monitor-icon-red .icon {
+  color: red;
+}
+.monitor-icon-green .icon {
+  color: green;
+}
+.monitor-icon-yellow .icon {
+  color: yellow;
+}
+.monitor-icon-blink .icon {
+  animation: monitor-blink-animation 300ms ease-in-out 0ms infinite normal;
+  -webkit-animation: monitor-blink-animation 300ms ease-in-out 0ms infinite normal;
+  -moz-animation: monitor-blink-animation 300ms ease-in-out 0ms infinite normal;
+  -o-animation: monitor-blink-animation 300ms ease-in-out 0ms infinite normal;
+}
+@keyframes monitor-blink-animation {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@-moz-keyframes monitor-blink-animation {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@-webkit-keyframes monitor-blink-animation {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.monitor-icon-rotate .icon {
+  animation: monitor-rotate-animation 600ms ease-in-out 0ms infinite normal;
+  -webkit-animation: monitor-rotate-animation 600ms ease-in-out 0ms infinite normal;
+  -moz-animation: monitor-rotate-animation 600ms ease-in-out 0ms infinite normal;
+  -o-animation: monitor-rotate-animation 600ms ease-in-out 0ms infinite normal;
+}
+@keyframes monitor-rotate-animation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+@-moz-keyframes monitor-rotate-animation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+@-webkit-keyframes monitor-rotate-animation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+view-controller-state-monitor {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-state-monitor ul {
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  text-align: center;
+}
+view-controller-state-monitor ul li {
+  position: relative;
+  display: inline-block;
+  width: 10rem;
+  height: 7rem;
+  margin: 1rem;
+}
 tab-search-requests {
   position: absolute;
   width: 100%;
@@ -840,137 +971,6 @@ view-controller-search-results .export-url {
   height: 1px;
   opacity: 0.001;
 }
-view-controller-state-monitor-manager {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-view-controller-state-monitor-manager .statemonitor-manager-wrapper {
-  position: absolute;
-  top: 0;
-  bottom: 3rem;
-  width: 100%;
-  padding: 0.5rem;
-  margin: 0;
-  list-style: none;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-view-controller-state-monitor-manager .statemonitor-manager-wrapper li {
-  list-style: none;
-}
-view-controller-state-monitor-manager .buttons {
-  position: absolute;
-  width: 100%;
-  bottom: 0;
-  height: 3rem;
-  text-align: right;
-  font-size: 0.75rem;
-}
-.monitor-icon-red .icon {
-  color: red;
-}
-.monitor-icon-green .icon {
-  color: green;
-}
-.monitor-icon-yellow .icon {
-  color: yellow;
-}
-.monitor-icon-blink .icon {
-  animation: monitor-blink-animation 300ms ease-in-out 0ms infinite normal;
-  -webkit-animation: monitor-blink-animation 300ms ease-in-out 0ms infinite normal;
-  -moz-animation: monitor-blink-animation 300ms ease-in-out 0ms infinite normal;
-  -o-animation: monitor-blink-animation 300ms ease-in-out 0ms infinite normal;
-}
-@keyframes monitor-blink-animation {
-  0% {
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-@-moz-keyframes monitor-blink-animation {
-  0% {
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-@-webkit-keyframes monitor-blink-animation {
-  0% {
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-.monitor-icon-rotate .icon {
-  animation: monitor-rotate-animation 600ms ease-in-out 0ms infinite normal;
-  -webkit-animation: monitor-rotate-animation 600ms ease-in-out 0ms infinite normal;
-  -moz-animation: monitor-rotate-animation 600ms ease-in-out 0ms infinite normal;
-  -o-animation: monitor-rotate-animation 600ms ease-in-out 0ms infinite normal;
-}
-@keyframes monitor-rotate-animation {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-@-moz-keyframes monitor-rotate-animation {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-@-webkit-keyframes monitor-rotate-animation {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-view-controller-state-monitor {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-view-controller-state-monitor ul {
-  display: block;
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding: 0;
-  margin: 0;
-  list-style: none;
-  text-align: center;
-}
-view-controller-state-monitor ul li {
-  position: relative;
-  display: inline-block;
-  width: 10rem;
-  height: 7rem;
-  margin: 1rem;
-}
 stream-sender-history-item {
   position: relative;
   display: block;
@@ -1008,6 +1008,175 @@ stream-sender-history-item .remove {
 stream-sender-history-item .remove:hover {
   color: #f01e1e;
   opacity: 1;
+}
+holder {
+  position: absolute;
+  top: 3rem;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+view {
+  position: absolute;
+  border: thin dotted #323232;
+  overflow: hidden;
+}
+view:hover {
+  border-color: #323232;
+  z-index: 10;
+}
+view .wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+view .wrapper.dragover {
+  background: #646464;
+}
+view .wrapper.dragging {
+  opacity: 0.4;
+}
+view .wrapper .view {
+  position: absolute;
+  top: 2rem;
+  bottom: 0;
+  width: 100%;
+}
+view .wrapper .view-border-left,
+view .wrapper .view-border-right,
+view .wrapper .view-border-top,
+view .wrapper .view-border-bottom {
+  position: absolute;
+}
+view .wrapper .view-border-left:hover,
+view .wrapper .view-border-right:hover,
+view .wrapper .view-border-top:hover,
+view .wrapper .view-border-bottom:hover {
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAaUlEQVQoU12PCw2AMAwFbzaGDLCBDXSgAxvYABlgY+RgWxqaLOnn+vqWgBE4+WIFNuCudUk1EZorYCsDF5Aa4OYelAowqCTg0GeodLhZ62yiXL8JTNFTJ9vNv6cG9JvhN68nAYdRaYmeHot9F9X2eFD0AAAAAElFTkSuQmCC) repeat;
+}
+view .wrapper .view-border-left,
+view .wrapper .view-border-right {
+  width: 0.25rem;
+  height: 100%;
+  top: 0;
+  cursor: ew-resize;
+}
+view .wrapper .view-border-top,
+view .wrapper .view-border-bottom {
+  height: 0.25rem;
+  width: 100%;
+  left: 0;
+  cursor: ns-resize;
+}
+view .wrapper .view-border-left {
+  left: 0;
+}
+view .wrapper .view-border-right {
+  right: 0;
+}
+view .wrapper .view-border-top {
+  top: 0;
+}
+view .wrapper .view-border-bottom {
+  bottom: 0;
+}
+view-bar {
+  display: table;
+  position: absolute;
+  width: 100%;
+  top: 0;
+  height: 2rem;
+  max-height: 2rem;
+  box-shadow: none;
+  transition: box-shadow ease-in-out 200ms;
+}
+view-bar * {
+  margin: 0;
+  padding: 0;
+  vertical-align: middle;
+}
+view-bar .left,
+view-bar .middle,
+view-bar .right {
+  position: relative;
+  display: table-cell;
+  height: 2rem;
+  max-height: 2rem;
+}
+view-bar .middle {
+  width: 100%;
+  font-size: 0.75rem;
+  color: #fafafa;
+  padding: 0 1rem;
+  white-space: nowrap;
+}
+view-bar .left,
+view-bar .right {
+  white-space: nowrap;
+  list-style: none;
+}
+view-bar .left li,
+view-bar .right li {
+  position: relative;
+  display: inline-block;
+  height: 2rem;
+  max-height: 2rem;
+  list-style: none;
+}
+view-bar .left li.icon,
+view-bar .right li.icon {
+  width: 2rem;
+}
+view-bar .left li.icon span,
+view-bar .right li.icon span {
+  margin: 0.5rem;
+}
+view-bar .left li.icon:hover,
+view-bar .right li.icon:hover {
+  background: rgba(220, 220, 220, 0.4);
+}
+view-bar .left li.icon.active,
+view-bar .right li.icon.active {
+  background: rgba(220, 220, 220, 0.4);
+}
+view-bar .left li.icon.disable,
+view-bar .right li.icon.disable {
+  opacity: 0.4;
+}
+view-bar .left li.icon.disable:hover,
+view-bar .right li.icon.disable:hover {
+  background: none;
+  text-shadow: none;
+}
+view-bar .left li.icon.disable:hover .fa,
+view-bar .right li.icon.disable:hover .fa {
+  text-shadow: none;
+  color: rgba(250, 250, 250, 0.7);
+}
+view-bar .left li.icon.disable:hover .fa:hover,
+view-bar .right li.icon.disable:hover .fa:hover {
+  text-shadow: none;
+  color: rgba(250, 250, 250, 0.7);
+}
+view-bar .left li.mark,
+view-bar .right li.mark {
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+view-bar .left li.mark span,
+view-bar .right li.mark span {
+  display: block;
+  margin: 0.5rem 0.2rem;
+  border-bottom: thin dotted #dcdcdc;
+}
+view-bar .left li.mark:hover,
+view-bar .right li.mark:hover {
+  background: rgba(220, 220, 220, 0.4);
+}
+view:hover view-bar {
+  box-shadow: none;
 }
 drop-down-menu {
   position: relative;
@@ -1640,175 +1809,6 @@ common-tabs .tabs-content li.src-content-tab {
   bottom: 0;
   overflow: hidden;
 }
-holder {
-  position: absolute;
-  top: 3rem;
-  bottom: 0;
-  left: 0;
-  right: 0;
-}
-view {
-  position: absolute;
-  border: thin dotted #323232;
-  overflow: hidden;
-}
-view:hover {
-  border-color: #323232;
-  z-index: 10;
-}
-view .wrapper {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-}
-view .wrapper.dragover {
-  background: #646464;
-}
-view .wrapper.dragging {
-  opacity: 0.4;
-}
-view .wrapper .view {
-  position: absolute;
-  top: 2rem;
-  bottom: 0;
-  width: 100%;
-}
-view .wrapper .view-border-left,
-view .wrapper .view-border-right,
-view .wrapper .view-border-top,
-view .wrapper .view-border-bottom {
-  position: absolute;
-}
-view .wrapper .view-border-left:hover,
-view .wrapper .view-border-right:hover,
-view .wrapper .view-border-top:hover,
-view .wrapper .view-border-bottom:hover {
-  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAaUlEQVQoU12PCw2AMAwFbzaGDLCBDXSgAxvYABlgY+RgWxqaLOnn+vqWgBE4+WIFNuCudUk1EZorYCsDF5Aa4OYelAowqCTg0GeodLhZ62yiXL8JTNFTJ9vNv6cG9JvhN68nAYdRaYmeHot9F9X2eFD0AAAAAElFTkSuQmCC) repeat;
-}
-view .wrapper .view-border-left,
-view .wrapper .view-border-right {
-  width: 0.25rem;
-  height: 100%;
-  top: 0;
-  cursor: ew-resize;
-}
-view .wrapper .view-border-top,
-view .wrapper .view-border-bottom {
-  height: 0.25rem;
-  width: 100%;
-  left: 0;
-  cursor: ns-resize;
-}
-view .wrapper .view-border-left {
-  left: 0;
-}
-view .wrapper .view-border-right {
-  right: 0;
-}
-view .wrapper .view-border-top {
-  top: 0;
-}
-view .wrapper .view-border-bottom {
-  bottom: 0;
-}
-view-bar {
-  display: table;
-  position: absolute;
-  width: 100%;
-  top: 0;
-  height: 2rem;
-  max-height: 2rem;
-  box-shadow: none;
-  transition: box-shadow ease-in-out 200ms;
-}
-view-bar * {
-  margin: 0;
-  padding: 0;
-  vertical-align: middle;
-}
-view-bar .left,
-view-bar .middle,
-view-bar .right {
-  position: relative;
-  display: table-cell;
-  height: 2rem;
-  max-height: 2rem;
-}
-view-bar .middle {
-  width: 100%;
-  font-size: 0.75rem;
-  color: #fafafa;
-  padding: 0 1rem;
-  white-space: nowrap;
-}
-view-bar .left,
-view-bar .right {
-  white-space: nowrap;
-  list-style: none;
-}
-view-bar .left li,
-view-bar .right li {
-  position: relative;
-  display: inline-block;
-  height: 2rem;
-  max-height: 2rem;
-  list-style: none;
-}
-view-bar .left li.icon,
-view-bar .right li.icon {
-  width: 2rem;
-}
-view-bar .left li.icon span,
-view-bar .right li.icon span {
-  margin: 0.5rem;
-}
-view-bar .left li.icon:hover,
-view-bar .right li.icon:hover {
-  background: rgba(220, 220, 220, 0.4);
-}
-view-bar .left li.icon.active,
-view-bar .right li.icon.active {
-  background: rgba(220, 220, 220, 0.4);
-}
-view-bar .left li.icon.disable,
-view-bar .right li.icon.disable {
-  opacity: 0.4;
-}
-view-bar .left li.icon.disable:hover,
-view-bar .right li.icon.disable:hover {
-  background: none;
-  text-shadow: none;
-}
-view-bar .left li.icon.disable:hover .fa,
-view-bar .right li.icon.disable:hover .fa {
-  text-shadow: none;
-  color: rgba(250, 250, 250, 0.7);
-}
-view-bar .left li.icon.disable:hover .fa:hover,
-view-bar .right li.icon.disable:hover .fa:hover {
-  text-shadow: none;
-  color: rgba(250, 250, 250, 0.7);
-}
-view-bar .left li.mark,
-view-bar .right li.mark {
-  font-size: 0.75rem;
-  cursor: pointer;
-}
-view-bar .left li.mark span,
-view-bar .right li.mark span {
-  display: block;
-  margin: 0.5rem 0.2rem;
-  border-bottom: thin dotted #dcdcdc;
-}
-view-bar .left li.mark:hover,
-view-bar .right li.mark:hover {
-  background: rgba(220, 220, 220, 0.4);
-}
-view:hover view-bar {
-  box-shadow: none;
-}
 top-bar-drop-down-menu {
   position: absolute;
   top: 0;
@@ -1974,83 +1974,6 @@ view-controller-chart-manager-set .edit {
 view-controller-chart-manager-set .edit:hover {
   color: #fafafa;
 }
-view-request-item {
-  position: relative;
-  display: block;
-  margin: 0;
-  cursor: pointer;
-  white-space: nowrap;
-}
-view-request-item span {
-  position: relative;
-  display: inline-block;
-}
-view-request-item .trigger,
-view-request-item .color,
-view-request-item .remove {
-  width: 0.75rem;
-  height: 0.75rem;
-  font-size: 1rem;
-  line-height: 1rem;
-  margin: 0 0 0 0.5rem;
-}
-view-request-item .trigger-activity {
-  font-size: 0.75rem;
-  padding: 0;
-  text-transform: uppercase;
-  margin: 0 0.25rem;
-  cursor: pointer;
-}
-view-request-item .trigger-activity-cover {
-  position: absolute;
-  display: block;
-  height: 1rem;
-  width: 3.5rem;
-  top: 0.24rem;
-  left: 2.25rem;
-  background: #646464;
-  transition: left ease-in-out 100ms;
-}
-view-request-item .trigger-activity-cover.right {
-  left: 5.75rem;
-}
-view-request-item .color {
-  font-size: 0.75rem;
-  padding: 0.25rem;
-  width: auto;
-  height: auto;
-}
-view-request-item .trigger {
-  color: #fafafa;
-  margin-right: 1rem;
-}
-view-request-item .trigger:after {
-  position: absolute;
-  font-family: 'FontAwesome';
-  content: '\f096';
-  font-size: 1rem;
-  top: 0;
-  left: 0;
-}
-view-request-item .trigger.active:after {
-  content: '\f046';
-}
-view-request-item .trigger.compact {
-  margin: 0;
-}
-view-request-item .value {
-  width: calc(100% - 16.5rem);
-  margin: 0 auto;
-  font-size: 0.85rem;
-  line-height: 1rem;
-  padding: 0 0 0 0.5rem;
-}
-view-request-item .remove {
-  color: #646464;
-}
-view-request-item .remove:hover {
-  color: #f01e1e;
-}
 view-controller-state-manager-item {
   position: relative;
   width: 100%;
@@ -2200,6 +2123,83 @@ view-controller-state-monitor-item .indicate .label {
   white-space: nowrap;
   margin: 0.5rem 0;
 }
+view-request-item {
+  position: relative;
+  display: block;
+  margin: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+view-request-item span {
+  position: relative;
+  display: inline-block;
+}
+view-request-item .trigger,
+view-request-item .color,
+view-request-item .remove {
+  width: 0.75rem;
+  height: 0.75rem;
+  font-size: 1rem;
+  line-height: 1rem;
+  margin: 0 0 0 0.5rem;
+}
+view-request-item .trigger-activity {
+  font-size: 0.75rem;
+  padding: 0;
+  text-transform: uppercase;
+  margin: 0 0.25rem;
+  cursor: pointer;
+}
+view-request-item .trigger-activity-cover {
+  position: absolute;
+  display: block;
+  height: 1rem;
+  width: 3.5rem;
+  top: 0.24rem;
+  left: 2.25rem;
+  background: #646464;
+  transition: left ease-in-out 100ms;
+}
+view-request-item .trigger-activity-cover.right {
+  left: 5.75rem;
+}
+view-request-item .color {
+  font-size: 0.75rem;
+  padding: 0.25rem;
+  width: auto;
+  height: auto;
+}
+view-request-item .trigger {
+  color: #fafafa;
+  margin-right: 1rem;
+}
+view-request-item .trigger:after {
+  position: absolute;
+  font-family: 'FontAwesome';
+  content: '\f096';
+  font-size: 1rem;
+  top: 0;
+  left: 0;
+}
+view-request-item .trigger.active:after {
+  content: '\f046';
+}
+view-request-item .trigger.compact {
+  margin: 0;
+}
+view-request-item .value {
+  width: calc(100% - 16.5rem);
+  margin: 0 auto;
+  font-size: 0.85rem;
+  line-height: 1rem;
+  padding: 0 0 0 0.5rem;
+}
+view-request-item .remove {
+  color: #646464;
+}
+view-request-item .remove:hover {
+  color: #f01e1e;
+}
 button-flat-text span {
   position: relative;
   display: inline-block;
@@ -2224,58 +2224,6 @@ button-flat-text span.disabled:hover {
   background: #282828;
   color: #323232;
   border: thin dotted #fafafa;
-}
-simple-checkbox {
-  position: relative;
-  display: inline-block;
-  width: auto;
-  height: 1.5rem;
-  overflow: hidden;
-}
-simple-checkbox label {
-  position: relative;
-  display: inline-block;
-  width: auto;
-  height: 1.5rem;
-  white-space: nowrap;
-  cursor: pointer;
-  border: thin dotted #323232;
-  box-sizing: border-box;
-}
-simple-checkbox label input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0.001;
-}
-simple-checkbox label span.on,
-simple-checkbox label span.off {
-  position: relative;
-  display: inline-block;
-  width: 2.5rem;
-  height: 100%;
-  text-align: center;
-  line-height: 1.5rem;
-}
-simple-checkbox label span.switcher {
-  position: absolute;
-  width: 2.5rem;
-  left: 50%;
-  height: 100%;
-  background: rgba(250, 250, 250, 0.4);
-}
-simple-checkbox label input:checked ~ span.switcher {
-  left: 0;
-}
-simple-checkbox label span.on,
-simple-checkbox label span.off,
-simple-checkbox label span.switcher {
-  opacity: 0.4;
-  transition: all ease-in-out 100ms;
-}
-simple-checkbox label input:checked ~ span.on,
-simple-checkbox label input:checked ~ span.switcher {
-  opacity: 1;
 }
 dialog-adblogcatstream-settings {
   position: absolute;
@@ -2333,6 +2281,58 @@ dialog-adblogcatstream-settings .buttons {
   height: 2.5rem;
   bottom: 0;
 }
+simple-checkbox {
+  position: relative;
+  display: inline-block;
+  width: auto;
+  height: 1.5rem;
+  overflow: hidden;
+}
+simple-checkbox label {
+  position: relative;
+  display: inline-block;
+  width: auto;
+  height: 1.5rem;
+  white-space: nowrap;
+  cursor: pointer;
+  border: thin dotted #323232;
+  box-sizing: border-box;
+}
+simple-checkbox label input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0.001;
+}
+simple-checkbox label span.on,
+simple-checkbox label span.off {
+  position: relative;
+  display: inline-block;
+  width: 2.5rem;
+  height: 100%;
+  text-align: center;
+  line-height: 1.5rem;
+}
+simple-checkbox label span.switcher {
+  position: absolute;
+  width: 2.5rem;
+  left: 50%;
+  height: 100%;
+  background: rgba(250, 250, 250, 0.4);
+}
+simple-checkbox label input:checked ~ span.switcher {
+  left: 0;
+}
+simple-checkbox label span.on,
+simple-checkbox label span.off,
+simple-checkbox label span.switcher {
+  opacity: 0.4;
+  transition: all ease-in-out 100ms;
+}
+simple-checkbox label input:checked ~ span.on,
+simple-checkbox label input:checked ~ span.switcher {
+  opacity: 1;
+}
 dialog-api-settings {
   position: absolute;
   display: block;
@@ -2381,6 +2381,65 @@ dialog-api-settings .buttons {
   width: 100%;
   height: 2.5rem;
   bottom: 0;
+}
+chart-edit-color-dialog {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow: hidden;
+}
+chart-edit-color-dialog .chart-colors {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  bottom: 4.5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+chart-edit-color-dialog .chart-colors .chart-colors-foreground,
+chart-edit-color-dialog .chart-colors .chart-colors-background {
+  position: absolute;
+  width: 50%;
+  height: 100%;
+  left: 0;
+}
+chart-edit-color-dialog .chart-colors .chart-colors-background {
+  left: 50%;
+}
+chart-edit-color-dialog .chart-hook {
+  position: absolute;
+  top: calc(100% - 4.5rem);
+  width: 100%;
+  height: 2rem;
+}
+chart-edit-color-dialog .chart-hook .chart-color-example {
+  position: relative;
+  height: 2rem;
+  text-align: center;
+}
+chart-edit-color-dialog .chart-hook .chart-color-example p {
+  display: inline-block;
+  margin: 0.25rem;
+  padding: 0.25rem;
+  font-size: 0.85rem;
+  line-height: 0.85rem;
+  text-align: center;
+  border: thin solid #646464;
+  cursor: default;
+}
+chart-edit-color-dialog .chart-hook .chart-value {
+  position: relative;
+  height: 2rem;
+  border: 1px dotted #646464;
+}
+chart-edit-color-dialog .chart-controls {
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+  height: 2.5rem;
+  text-align: right;
 }
 chart-edit-rules-hooks-dialog {
   position: absolute;
@@ -2564,65 +2623,6 @@ chart-edit-rules-hooks-dialog .chart-errors-wrapper p {
   bottom: 0.5rem;
   width: 100%;
   left: 0;
-}
-chart-edit-color-dialog {
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  right: 0.5rem;
-  bottom: 0.5rem;
-  overflow: hidden;
-}
-chart-edit-color-dialog .chart-colors {
-  position: absolute;
-  top: 0;
-  width: 100%;
-  bottom: 4.5rem;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-chart-edit-color-dialog .chart-colors .chart-colors-foreground,
-chart-edit-color-dialog .chart-colors .chart-colors-background {
-  position: absolute;
-  width: 50%;
-  height: 100%;
-  left: 0;
-}
-chart-edit-color-dialog .chart-colors .chart-colors-background {
-  left: 50%;
-}
-chart-edit-color-dialog .chart-hook {
-  position: absolute;
-  top: calc(100% - 4.5rem);
-  width: 100%;
-  height: 2rem;
-}
-chart-edit-color-dialog .chart-hook .chart-color-example {
-  position: relative;
-  height: 2rem;
-  text-align: center;
-}
-chart-edit-color-dialog .chart-hook .chart-color-example p {
-  display: inline-block;
-  margin: 0.25rem;
-  padding: 0.25rem;
-  font-size: 0.85rem;
-  line-height: 0.85rem;
-  text-align: center;
-  border: thin solid #646464;
-  cursor: default;
-}
-chart-edit-color-dialog .chart-hook .chart-value {
-  position: relative;
-  height: 2rem;
-  border: 1px dotted #646464;
-}
-chart-edit-color-dialog .chart-controls {
-  position: absolute;
-  width: 100%;
-  bottom: 0;
-  height: 2.5rem;
-  text-align: right;
 }
 chart-edit-rules-segments-dialog {
   position: absolute;
@@ -2969,19 +2969,6 @@ image-dialog .image-dialog-img {
   background-repeat: no-repeat;
   background-origin: content-box;
 }
-dialog-monitor-manager {
-  position: absolute;
-  display: block;
-  top: 0.5rem;
-  left: 0.5rem;
-  bottom: 0.5rem;
-  right: 0.5rem;
-}
-dialog-monitor-manager .monitor-manager-wrapper {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-}
 markers-edit-dialog {
   position: absolute;
   top: 0.5rem;
@@ -3040,6 +3027,19 @@ markers-edit-dialog .marker-controls {
   bottom: 0;
   height: 2.5rem;
   text-align: right;
+}
+dialog-monitor-manager {
+  position: absolute;
+  display: block;
+  top: 0.5rem;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  right: 0.5rem;
+}
+dialog-monitor-manager .monitor-manager-wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
 }
 dialog-serial-settings {
   position: absolute;
@@ -3163,32 +3163,6 @@ shortcuts-list .shortcuts-list .label {
   text-align: left;
   padding-left: 2rem;
 }
-dialog-statemonitor-indicate-edit {
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  right: 0.5rem;
-  bottom: 0.5rem;
-  overflow: hidden;
-}
-dialog-statemonitor-indicate-edit .edit-wrapper {
-  position: absolute;
-  top: 0!important;
-  bottom: 2.5rem;
-  width: 100%;
-  font-size: 1rem;
-  border: 1px solid rgba(0, 0, 0, 0.01);
-  box-sizing: border-box;
-}
-dialog-statemonitor-indicate-edit .buttons {
-  position: absolute;
-  bottom: 0;
-  height: 2.5rem;
-  overflow: hidden;
-  text-align: right;
-  white-space: nowrap;
-  width: 100%;
-}
 dialog-statemonitor-editjson {
   position: absolute;
   top: 0.5rem;
@@ -3232,6 +3206,32 @@ dialog-statemonitor-editjson .edit-wrapper textarea:hover {
   color: #fafafa;
 }
 dialog-statemonitor-editjson .buttons {
+  position: absolute;
+  bottom: 0;
+  height: 2.5rem;
+  overflow: hidden;
+  text-align: right;
+  white-space: nowrap;
+  width: 100%;
+}
+dialog-statemonitor-indicate-edit {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow: hidden;
+}
+dialog-statemonitor-indicate-edit .edit-wrapper {
+  position: absolute;
+  top: 0!important;
+  bottom: 2.5rem;
+  width: 100%;
+  font-size: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.01);
+  box-sizing: border-box;
+}
+dialog-statemonitor-indicate-edit .buttons {
   position: absolute;
   bottom: 0;
   height: 2.5rem;
@@ -3656,6 +3656,7 @@ simple-dd-list select {
   display: block;
   font-size: 0.85rem;
   color: #fafafa;
+  background: #1e1e1e;
 }
 connection-state {
   position: relative;

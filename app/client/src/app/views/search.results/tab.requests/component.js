@@ -272,12 +272,12 @@ var TabControllerSearchRequests = (function (_super) {
         });
     };
     TabControllerSearchRequests.prototype.onRequestsChanges = function () {
+        this.saveRequests();
         if (this.getActiveRequests().length === 0) {
             controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED, this.getCurrentRequest(), this.getRequests());
             this.updateSearchResults(true);
         }
         else {
-            this.saveRequests();
             controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED, this.getActiveRequests(), this.getRequests());
             this.updateSearchResults();
         }

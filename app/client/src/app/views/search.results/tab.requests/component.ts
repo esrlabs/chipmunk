@@ -288,11 +288,11 @@ export class TabControllerSearchRequests extends TabController implements OnDest
     }
 
     onRequestsChanges(){
+        this.saveRequests();
         if (this.getActiveRequests().length === 0) {
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED, this.getCurrentRequest(), this.getRequests());
             this.updateSearchResults(true);
         } else {
-            this.saveRequests();
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED, this.getActiveRequests(), this.getRequests());
             this.updateSearchResults();
         }
