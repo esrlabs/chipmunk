@@ -29,13 +29,27 @@ class Settings{
     }
 }
 
-const OPTIONS = {
-    SETTINGS_FILE: Path.resolve('./logs/settings.json'),
-    LOGS_ROOT: Path.resolve('./logs/'),
-    LOGS_FOLDER: Path.resolve('./logs/files/'),
-    REGISTER_FILE: Path.resolve('./logs/register.json'),
-    CHECK_FILE_SIZE_WITH_PACKAGE: 1000
-};
+class PathsSettings {
+
+    constructor(){
+        this.os                             = require('os');
+        this.ROOT                           = Path.resolve(this.os.homedir() + '/logviewer');
+        this.SETTINGS_FILE                  = '';
+        this.LOGS_ROOT                      = '';
+        this.LOGS_FOLDER                    = '';
+        this.REGISTER_FILE                  = '';
+        this.generate();
+    }
+
+    generate(){
+        this.SETTINGS_FILE                  = Path.resolve(this.ROOT + '/logs/settings.json');
+        this.LOGS_ROOT                      = Path.resolve(this.ROOT + '/logs/');
+        this.LOGS_FOLDER                    = Path.resolve(this.ROOT + '/logs/files/');
+        this.REGISTER_FILE                  = Path.resolve(this.ROOT + '/logs/register.json');
+    }
+}
+
+const pathSettings = new PathsSettings();
 
 class FileManager{
     constructor(){
@@ -156,17 +170,17 @@ class SettingsManager {
     }
 
     load(){
-        let loadedSetting = this._fileManager.load(OPTIONS.SETTINGS_FILE);
+        let loadedSetting = this._fileManager.load(pathSettings.SETTINGS_FILE);
         loadedSetting = this._fileManager.bufferToJSON(loadedSetting);
         return loadedSetting !== null ? loadedSetting : (new Settings());
     }
 
     save(settings){
-        this._fileManager.save(JSON.stringify(settings), OPTIONS.SETTINGS_FILE);
+        this._fileManager.save(JSON.stringify(settings), pathSettings.SETTINGS_FILE);
     }
 
     reset() {
-        this._fileManager.deleteFile(OPTIONS.SETTINGS_FILE);
+        this._fileManager.deleteFile(pathSettings.SETTINGS_FILE);
         this.save(new Settings());
     }
 
@@ -487,8 +501,9 @@ class StoringManager{
 
     checkFolders() {
         let error = null;
-        error = error !== null ? error : this._fileManager.createFolder(OPTIONS.LOGS_ROOT);
-        error = error !== null ? error : this._fileManager.createFolder(OPTIONS.LOGS_FOLDER);
+        error = error !== null ? error : this._fileManager.createFolder(pathSettings.ROOT);
+        error = error !== null ? error : this._fileManager.createFolder(pathSettings.LOGS_ROOT);
+        error = error !== null ? error : this._fileManager.createFolder(pathSettings.LOGS_FOLDER);
         return error;
     }
 
@@ -510,8 +525,8 @@ class StoringManager{
     removeLogsFiles(){
         let files = this._getFileList();
         files instanceof Array && files.forEach((file) => {
-            logger.info(`Removing logs file: ${Path.join(OPTIONS.LOGS_FOLDER, file)}.`);
-            this._fileManager.deleteFile(Path.join(OPTIONS.LOGS_FOLDER, file));
+            logger.info(`Removing logs file: ${Path.join(pathSettings.LOGS_FOLDER, file)}.`);
+            this._fileManager.deleteFile(Path.join(pathSettings.LOGS_FOLDER, file));
         });
         this._clearRegister();
         this._resetCurrent();
@@ -639,22 +654,22 @@ class StoringManager{
     }
 
     _getFileList(){
-        return this._fileManager.getListOfFile(OPTIONS.LOGS_FOLDER);
+        return this._fileManager.getListOfFile(pathSettings.LOGS_FOLDER);
     }
 
     _getFilesData(){
-        let data = this._fileManager.load(OPTIONS.REGISTER_FILE);
+        let data = this._fileManager.load(pathSettings.REGISTER_FILE);
         data = this._fileManager.bufferToJSON(data);
         return data !== null ? data : {};
     }
 
     _getFileContent(fileName){
-        let content = this._fileManager.load(Path.join(OPTIONS.LOGS_FOLDER, fileName));
+        let content = this._fileManager.load(Path.join(pathSettings.LOGS_FOLDER, fileName));
         return this._fileManager.decodeBuffer(content);
     }
 
     _updateRegister(opened, closed, size){
-        let register = this._fileManager.bufferToJSON(this._fileManager.load(OPTIONS.REGISTER_FILE));
+        let register = this._fileManager.bufferToJSON(this._fileManager.load(pathSettings.REGISTER_FILE));
         if (register === null) {
             register = {};
         }
@@ -671,16 +686,16 @@ class StoringManager{
         opened  !== -1 && (register[this._currentFileName].opened   = opened);
         closed  !== -1 && (register[this._currentFileName].closed   = closed);
         size    !== -1 && (register[this._currentFileName].size     = size);
-        this._fileManager.save(JSON.stringify(register), OPTIONS.REGISTER_FILE);
+        this._fileManager.save(JSON.stringify(register), pathSettings.REGISTER_FILE);
     }
 
     _clearRegister(){
-        this._fileManager.deleteFile(OPTIONS.REGISTER_FILE);
+        this._fileManager.deleteFile(pathSettings.REGISTER_FILE);
     }
 
     _resetCurrent(){
         this._currentFileName = this._getFileName();
-        this._current = Path.join(OPTIONS.LOGS_FOLDER, this._currentFileName);
+        this._current = Path.join(pathSettings.LOGS_FOLDER, this._currentFileName);
         this._fileManager.save('', this._current);
         this._updateRegister((new Date()).getTime(), -1, 0);
     }
@@ -712,6 +727,7 @@ class Monitor {
         this._check();
         this._reloadSettings();
         this.start();
+        logger.info(`is created.`);
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *

@@ -9,6 +9,8 @@ const SETTINGS          = require('../config.js'),
 const Response          = require('./api.response').Response,
       ResponseSender    = require('./api.response').ResponseSender;
 
+const MonitorService    = require('./service.monitor');
+
 const METHODS = {
     POST    : 'POST',
     GET     : 'GET'
