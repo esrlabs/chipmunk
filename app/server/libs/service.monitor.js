@@ -504,8 +504,8 @@ class StoringManager{
             logger.info(`Removing logs file: ${Path.join(OPTIONS.LOGS_FOLDER, file)}.`);
             this._fileManager.deleteFile(Path.join(OPTIONS.LOGS_FOLDER, file));
         });
-        this._resetCurrent();
         this._clearRegister();
+        this._resetCurrent();
     }
 
     getFileContent(fileName){
@@ -613,7 +613,6 @@ class StoringManager{
         }
         if (this._current === null) {
             this._resetCurrent();
-            this._updateRegister((new Date()).getTime(), -1, 0);
         }
         let size = this._fileManager.getSize(this._current);
         if (size === -1) {
@@ -625,7 +624,6 @@ class StoringManager{
             logger.info(`Logs file ${this._currentFileName} is more than ${this._settings.maxFileSizeMB * 1024 * 1024} bytes and will be closed.`);
             this._resetCurrent();
             logger.info(`New logs file ${this._currentFileName} is created.`);
-            this._updateRegister((new Date()).getTime(), -1, 0);
         } else {
             this._updateRegister(-1, (new Date()).getTime(), size);
         }
@@ -675,6 +673,7 @@ class StoringManager{
         this._currentFileName = this._getFileName();
         this._current = Path.join(OPTIONS.LOGS_FOLDER, this._currentFileName);
         this._fileManager.save('', this._current);
+        this._updateRegister((new Date()).getTime(), -1, 0);
     }
 
 }
