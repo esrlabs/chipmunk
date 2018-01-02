@@ -56,7 +56,6 @@ class Logger {
                 this._fileManager.save('', this._paths.LOGS_FILE);
             }
             this._FSReady = true;
-            this.info(`[${this._getTimeMark()}] Started session.\n`);
         } else {
             this._FSReady = false;
         }

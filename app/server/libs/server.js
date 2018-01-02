@@ -32,6 +32,7 @@ class Server {
         this.wsServer       = null;
         this.errors         = new Errors.Errors();
         this.WSEventEmitter = null;
+        logger.info('Session started');
     }
 
     probPort(port, callback){
