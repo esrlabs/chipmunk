@@ -31,6 +31,7 @@ class Settings{
 
 const OPTIONS = {
     SETTINGS_FILE: Path.resolve('./logs/settings.json'),
+    LOGS_ROOT: Path.resolve('./logs/'),
     LOGS_FOLDER: Path.resolve('./logs/files/'),
     REGISTER_FILE: Path.resolve('./logs/register.json'),
     CHECK_FILE_SIZE_WITH_PACKAGE: 1000
@@ -129,6 +130,13 @@ class FileManager{
             return null;
         }
         return buffer.toString('utf8');
+    }
+
+    createFolder(dir){
+        if (!this._fs.existsSync(dir)){
+            this._fs.mkdirSync(dir);
+        }
+        return this._fs.existsSync(dir);
     }
 }
 
@@ -468,6 +476,13 @@ class StoringManager{
         this._bufferManager.on(this._bufferManager.EVENTS.ON_DATA, this._onWriteData);
     }
 
+    checkFolders() {
+        let result = true;
+        result = !result ? false : this._fileManager.createFolder(OPTIONS.LOGS_ROOT);
+        result = !result ? false : this._fileManager.createFolder(OPTIONS.LOGS_FOLDER);
+        return result;
+    }
+
     updateSettings(settings) {
         this._settings = settings;
     }
@@ -533,7 +548,10 @@ class StoringManager{
                     };
                 }
             }
-            return -1;
+            return {
+                index: -1,
+                start: -1
+            };
         };
         let files = this._getFileList();
         if (!(files instanceof Array)) {
@@ -553,7 +571,7 @@ class StoringManager{
                     total += line.length + 1;
                     indexes[total] = index;
                 });
-                let matchesIndexes = [];
+                let matchesIndexes = [];//Still need it?
                 let matches = [];
                 do {
                     let match = regExp.exec(content);
@@ -562,7 +580,7 @@ class StoringManager{
                         index = match.index;
                         matchesIndexes.push(index);
                         index = getIndex(indexes, index);
-                        if (lines[index.index] !== void 0) {
+                        if (index.index !== -1 && lines[index.index] !== void 0) {
                             matches.push(lines[index.index]);
                             regExp.lastIndex < index.start && (regExp.lastIndex = index.start);
                         }
@@ -682,6 +700,8 @@ class Monitor {
         this._onError           = this._onError.bind(this);
         this._onClose           = this._onClose.bind(this);
         this._restartTimer      = -1;
+        this._ready             = false;
+        this._check();
         this._reloadSettings();
         this.start();
     }
@@ -690,6 +710,9 @@ class Monitor {
      * Common
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     start() {
+        if (!this._isReady()) {
+            return null;
+        }
         this._timerDrop();
         if (this._settings.port !== '') {
             return this.startPort();
@@ -700,6 +723,9 @@ class Monitor {
     }
 
     stop() {
+        if (!this._isReady()) {
+            return null;
+        }
         if (this._port !== null) {
             return this.stopPort();
         }
@@ -718,6 +744,19 @@ class Monitor {
         dest.removeAllListeners(dest.EVENTS.ON_DATA);
         dest.removeAllListeners(dest.EVENTS.ON_CLOSE);
         dest.removeAllListeners(dest.EVENTS.ON_ERROR);
+    }
+
+    _check(){
+        if (this._storingManager.checkFolders()){
+            this._ready = true;
+        } else {
+            logger.error(`Fail to create logs folders. Check permissions.`);
+            this._ready = false;
+        }
+    }
+
+    _isReady(){
+        return this._ready;
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -804,6 +843,9 @@ class Monitor {
      * Settings
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     _updateSettings(settings){
+        if (!this._isReady()) {
+            return null;
+        }
         this._settings = settings;
         this._settings.maxFilesCount <= 0 ? 1 : this._settings.maxFilesCount;
         this._settings.maxFileSizeMB <= 0 ? 1 : this._settings.maxFileSizeMB;
@@ -814,6 +856,9 @@ class Monitor {
     }
 
     _reloadSettings(){
+        if (!this._isReady()) {
+            return null;
+        }
         this._settings = this._settingManager.load();
         this._storingManager.updateSettings(this._settings);
     }
@@ -823,16 +868,25 @@ class Monitor {
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
     setSettings(settings){
+        if (!this._isReady()) {
+            return null;
+        }
         this._updateSettings(settings);
         this.restart();
         return true;
     }
 
     getFilesData(){
+        if (!this._isReady()) {
+            return null;
+        }
         return this._storingManager.getFilesData();
     }
 
     clearLogs(){
+        if (!this._isReady()) {
+            return null;
+        }
         this.stop();
         this._storingManager.removeLogsFiles();
         this.start();
@@ -840,6 +894,9 @@ class Monitor {
     }
 
     restart(){
+        if (!this._isReady()) {
+            return null;
+        }
         this.stop();
         this._reloadSettings();
         this.start();
@@ -847,23 +904,35 @@ class Monitor {
     }
 
     stopAndClear(){
+        if (!this._isReady()) {
+            return null;
+        }
         this.stopPort();
         this._storingManager.removeLogsFiles();
         return true;
     }
 
     getSettings(){
+        if (!this._isReady()) {
+            return null;
+        }
         this._reloadSettings();
         return Object.assign({}, this._settings);
     }
 
     dropSettings(){
+        if (!this._isReady()) {
+            return null;
+        }
         this._settingManager.reset();
         this._reloadSettings();
         return true;
     }
 
     getState(){
+        if (!this._isReady()) {
+            return null;
+        }
         return {
             active  : this._port    !== null ? true : (this._spawn !== null ? true : false),
             port    : this._port    !== null ? this._port.getPort()     : '',
@@ -872,14 +941,23 @@ class Monitor {
     }
 
     getFileContent(fileName){
+        if (!this._isReady()) {
+            return null;
+        }
         return this._storingManager.getFileContent(fileName);
     }
 
     getAllFilesContent(){
+        if (!this._isReady()) {
+            return null;
+        }
         return this._storingManager.getAllFilesContent();
     }
 
     getMatches(reg, search){
+        if (!this._isReady()) {
+            return null;
+        }
         return this._storingManager.getMatches(reg, search);
     }
 
