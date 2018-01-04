@@ -61,8 +61,8 @@ const CONFIGURATION = {
 
 const PLATFORMS_DEPS = {
     COMMON              : {
-        "electron"          : "latest",
-        "electron-builder"  : "latest"
+        "electron"          : "1.6.14",
+        "electron-builder"  : "19.41.0"
     },
     [PLATFORMS.DARWIN]  : {
     },
@@ -114,6 +114,7 @@ class BuildingTasks {
         this._validateSettings();
         this._detectNPM();
         process.env.FORCE_COLOR = true;
+        process.env.GH_TOKEN    = "a6e41d8cb7e4102cff0763c8ce5adef521098c5c";
     }
 
     _parseCommandKeys() {

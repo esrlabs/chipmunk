@@ -24,13 +24,7 @@ class Updater {
         this._autoUpdater           = electronUpdater.autoUpdater;
         this._info                  = null;
         this._autoUpdater.requestHeaders = { "PRIVATE-TOKEN": "a6e41d8cb7e4102cff0763c8ce5adef521098c5c" };
-        this._autoUpdater.setFeedURL({
-            provider        : "github",
-            owner           : "esrlabs",
-            repo            : "logviewer",
-            token           : "a6e41d8cb7e4102cff0763c8ce5adef521098c5c"
-        });
-        this._autoUpdater.autoDownload = true;
+        process.env.GH_TOKEN = "a6e41d8cb7e4102cff0763c8ce5adef521098c5c";
         this._autoUpdater.logger = logger;
         Object.keys(UPDATER_EVENTS).forEach((key) => {
             this._autoUpdater.on(UPDATER_EVENTS[key], this[UPDATER_EVENTS[key]].bind(this));
@@ -79,6 +73,12 @@ class Updater {
 
     check(){
         logger.info('Start update checking.');
+        this._autoUpdater.setFeedURL({
+            provider        : "github",
+            owner           : "esrlabs",
+            repo            : "logviewer",
+            token           : "a6e41d8cb7e4102cff0763c8ce5adef521098c5c"
+        });
         return this._autoUpdater.checkForUpdates();
     }
 
@@ -117,7 +117,7 @@ class Starter {
     // Some APIs can only be used after this event occurs.
     _onReady(){
         this._create();
-        updater.check();
+        //updater.check();
         this._ready = true;
     }
 

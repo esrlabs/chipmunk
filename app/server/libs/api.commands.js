@@ -216,9 +216,6 @@ class APICommands{
         }
         updater.check().then((result) => {
             if (result !== null && typeof result === 'object' && result.updateInfo !== void 0) {
-                if (result.cancellationToken !== void 0) {
-                    updater.force(result.cancellationToken);
-                }
                 callback({
                     res: result,
                     cancellationToken: result.cancellationToken,
