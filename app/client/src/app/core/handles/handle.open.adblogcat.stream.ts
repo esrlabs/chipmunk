@@ -283,7 +283,7 @@ class LogcatStream {
         if (this.stream === params.stream){
             switch (this.state){
                 case STREAM_STATE.WORKING:
-                    this.buffer += params.entries.map((entry) => { return entry.original;}).join('\n');
+                    this.buffer += params.entries.map((entry) => { return entry.original;}).join('\n') + '\n';
                     Events.trigger(Configuration.sets.SYSTEM_EVENTS.STREAM_DATA_UPDATE, this.buffer);
                     this.buffer = '';
                     break;

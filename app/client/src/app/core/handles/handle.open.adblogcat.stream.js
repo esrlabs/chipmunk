@@ -214,7 +214,7 @@ var LogcatStream = (function () {
         if (this.stream === params.stream) {
             switch (this.state) {
                 case STREAM_STATE.WORKING:
-                    this.buffer += params.entries.map(function (entry) { return entry.original; }).join('\n');
+                    this.buffer += params.entries.map(function (entry) { return entry.original; }).join('\n') + '\n';
                     controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.STREAM_DATA_UPDATE, this.buffer);
                     this.buffer = '';
                     break;

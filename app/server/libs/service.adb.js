@@ -198,7 +198,7 @@ class LogcatStream {
         //Add rest from previous
         message = this.buffer.rest + message;
         //Split messages
-        let entries = message.split('\n');
+        let entries = message.split(/[\n\r]/gi);
         //Exclude rest (not finished message)
         if (message.search(/\n$/gi) === -1){
             this.buffer.rest = entries[entries.length - 1];
