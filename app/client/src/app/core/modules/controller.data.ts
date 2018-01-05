@@ -229,7 +229,8 @@ class DataController implements InitiableModule{
                 case MODES.TEXT:
                     return filter;
                 case MODES.REG:
-                    return filter.replace(/[^\d\w,\-\+\|@#$_=]/gi, '');
+                    return filter;
+                //return filter.replace(/[^\d\w,\-\+\|@#$_=]/gi, '');
                 case MODES.PERIOD:
                     return '';
                 default:

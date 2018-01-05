@@ -211,7 +211,8 @@ var DataController = (function () {
                 case controller_data_search_modes_1.MODES.TEXT:
                     return filter;
                 case controller_data_search_modes_1.MODES.REG:
-                    return filter.replace(/[^\d\w,\-\+\|@#$_=]/gi, '');
+                    return filter;
+                //return filter.replace(/[^\d\w,\-\+\|@#$_=]/gi, '');
                 case controller_data_search_modes_1.MODES.PERIOD:
                     return '';
                 default:
