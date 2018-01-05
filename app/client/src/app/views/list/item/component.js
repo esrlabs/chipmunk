@@ -83,10 +83,10 @@ var ViewControllerListItem = (function () {
             }
         }
         if (this.markers instanceof Array) {
-            this.markers.forEach(function (marker) {
+            this.markers.forEach(function (marker, index) {
                 if (marker.value.length > 0) {
                     var matches = null;
-                    var mark = "" + MARKERS.MARKER_LEFT + marker.value + MARKERS.MARKER_RIGHT;
+                    var mark = "" + MARKERS.MARKER_LEFT + index + MARKERS.MARKER_RIGHT;
                     _this.regsCache[marker.value] === void 0 && (_this.regsCache[marker.value] = tools_regexp_1.safelyCreateRegExp(tools_htmlserialize_1.serializeHTML(tools_regexp_1.serializeStringForReg(marker.value)), 'gi'));
                     _this.regsCache[mark] === void 0 && (_this.regsCache[mark] = tools_regexp_1.safelyCreateRegExp(tools_htmlserialize_1.serializeHTML(tools_regexp_1.serializeStringForReg(mark)), 'gi'));
                     if (_this.regsCache[marker.value] !== null) {

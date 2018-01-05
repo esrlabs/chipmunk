@@ -93,10 +93,10 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
             }
         }
         if (this.markers instanceof Array){
-            this.markers.forEach((marker)=>{
+            this.markers.forEach((marker, index)=>{
                 if (marker.value.length > 0) {
                     let matches = null;
-                    let mark    = `${MARKERS.MARKER_LEFT}${marker.value}${MARKERS.MARKER_RIGHT}`;
+                    let mark    = `${MARKERS.MARKER_LEFT}${index}${MARKERS.MARKER_RIGHT}`;
                     this.regsCache[marker.value]    === void 0 && (this.regsCache[marker.value] = safelyCreateRegExp(serializeHTML(serializeStringForReg(marker.value)), 'gi'));
                     this.regsCache[mark]            === void 0 && (this.regsCache[mark]         = safelyCreateRegExp(serializeHTML(serializeStringForReg(mark)), 'gi'));
                     if (this.regsCache[marker.value] !== null){
