@@ -16,6 +16,7 @@ var TabController = (function () {
         this.onSelect = null;
         this.onDeselect = null;
         this.onResize = null;
+        this.setLabel = null;
     }
     return TabController;
 }());
@@ -35,5 +36,9 @@ __decorate([
     core_1.Input(),
     __metadata("design:type", core_1.EventEmitter)
 ], TabController.prototype, "onResize", void 0);
+__decorate([
+    core_1.Input(),
+    __metadata("design:type", core_1.EventEmitter)
+], TabController.prototype, "setLabel", void 0);
 exports.TabController = TabController;
 //# sourceMappingURL=class.tab.controller.js.map

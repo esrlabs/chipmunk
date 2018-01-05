@@ -168,17 +168,13 @@ var TabControllerSearchResults = (function (_super) {
     TabControllerSearchResults.prototype.onBOOKMARK_IS_CREATED = function (index) {
         if (this.lastBookmarkOperation !== index) {
             this.bookmarks.indexOf(index) === -1 && this.bookmarks.push(index);
-            this.filterRows();
-            this.updateRows();
-            this.forceUpdate();
+            this.updateTab();
         }
     };
     TabControllerSearchResults.prototype.onBOOKMARK_IS_REMOVED = function (index) {
         if (this.lastBookmarkOperation !== -index) {
             this.bookmarks.indexOf(index) !== -1 && this.bookmarks.splice(this.bookmarks.indexOf(index), 1);
-            this.filterRows();
-            this.updateRows();
-            this.forceUpdate();
+            this.updateTab();
         }
     };
     TabControllerSearchResults.prototype.onREQUESTS_HISTORY_UPDATED = function (requests, _requests) {
@@ -222,6 +218,14 @@ var TabControllerSearchResults = (function (_super) {
         this.forceUpdate();
         this.listView !== void 0 && this.listView.forceCalculation();
         this.listView !== void 0 && this.listView.forceUpdate();
+    };
+    TabControllerSearchResults.prototype.updateTab = function () {
+        this.filterRows();
+        this.updateRows();
+        this.forceUpdate();
+    };
+    TabControllerSearchResults.prototype.updateTitle = function () {
+        this.setLabel !== null && this.setLabel.emit("Results" + (this.rows.length > 0 ? (' (' + this.rows.length + ')') : ''));
     };
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Inline requests list
@@ -409,6 +413,7 @@ var TabControllerSearchResults = (function (_super) {
     };
     TabControllerSearchResults.prototype.filterRows = function () {
         this.rows = this.convertFilterRows(this._rows);
+        this.updateTitle();
     };
     TabControllerSearchResults.prototype.updateRows = function () {
         var _this = this;

@@ -216,18 +216,14 @@ export class TabControllerSearchResults extends TabController implements ViewInt
     onBOOKMARK_IS_CREATED(index: number) {
         if (this.lastBookmarkOperation !== index) {
             this.bookmarks.indexOf(index) === -1 && this.bookmarks.push(index);
-            this.filterRows();
-            this.updateRows();
-            this.forceUpdate();
+            this.updateTab();
         }
     }
 
     onBOOKMARK_IS_REMOVED(index: number) {
         if (this.lastBookmarkOperation !== -index) {
             this.bookmarks.indexOf(index) !== -1 && this.bookmarks.splice(this.bookmarks.indexOf(index),1);
-            this.filterRows();
-            this.updateRows();
-            this.forceUpdate();
+            this.updateTab();
         }
     }
 
@@ -277,6 +273,16 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         this.forceUpdate();
         this.listView !== void 0 && this.listView.forceCalculation();
         this.listView !== void 0 && this.listView.forceUpdate();
+    }
+
+    updateTab(){
+        this.filterRows();
+        this.updateRows();
+        this.forceUpdate();
+    }
+
+    updateTitle(){
+        this.setLabel !== null && this.setLabel.emit(`Results${(this.rows.length > 0 ? (' (' + this.rows.length + ')') : '')}`);
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -479,6 +485,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
 
     filterRows(){
         this.rows = this.convertFilterRows(this._rows);
+        this.updateTitle();
     }
 
     updateRows(){

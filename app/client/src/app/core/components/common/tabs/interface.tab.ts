@@ -6,6 +6,7 @@ interface Tab {
     onSelect    : EventEmitter<any>,
     onDeselect  : EventEmitter<any>,
     onResize    : EventEmitter<any>,
+    setLabel?   : EventEmitter<any>,
     factory     : any,
     params      : Object,
     update?     : Function,

@@ -30,8 +30,28 @@ var CommonTabs = (function () {
             this.onResize.subscribe(this.onResizeHandle);
         }
     };
+    CommonTabs.prototype.ngAfterContentInit = function () {
+        this.bindEvents();
+    };
     CommonTabs.prototype.ngOnDestroy = function () {
         this.onResize !== null && this.onResize.unsubscribe();
+        this.unbindEvents();
+    };
+    CommonTabs.prototype.bindEvents = function () {
+        var _this = this;
+        this.tabs instanceof Array && this.tabs.forEach(function (_tab, index) {
+            _tab.setLabel !== void 0 && _tab.setLabel.subscribe(_this.onSetLabel.bind(_this, index));
+        });
+    };
+    CommonTabs.prototype.unbindEvents = function () {
+        this.tabs instanceof Array && this.tabs.forEach(function (_tab, index) {
+            _tab.setLabel !== void 0 && _tab.setLabel.unsubscribe();
+        });
+    };
+    CommonTabs.prototype.onSetLabel = function (index, label) {
+        if (typeof label === 'string' && this.tabs instanceof Array && this.tabs[index] !== void 0) {
+            this.tabs[index].label = label;
+        }
     };
     CommonTabs.prototype.onResizeHandle = function () {
         this.tabs.forEach(function (_tab) {

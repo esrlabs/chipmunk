@@ -54,19 +54,21 @@ var ViewControllerSearchResults = (function (_super) {
         _super.prototype.ngAfterViewChecked.call(this);
     };
     ViewControllerSearchResults.prototype.initTabs = function () {
-        var emitterResultsSelect = new core_1.EventEmitter(), emitterRequestsSelect = new core_1.EventEmitter(), emitterResultsDeselect = new core_1.EventEmitter(), emitterRequestsDeselect = new core_1.EventEmitter(), emitterResultsResize = new core_1.EventEmitter(), emitterRequestsResize = new core_1.EventEmitter();
+        var emitterResultsSelect = new core_1.EventEmitter(), emitterRequestsSelect = new core_1.EventEmitter(), emitterResultsDeselect = new core_1.EventEmitter(), emitterRequestsDeselect = new core_1.EventEmitter(), emitterResultsResize = new core_1.EventEmitter(), emitterRequestsResize = new core_1.EventEmitter(), emitterSetLabel = new core_1.EventEmitter();
         this.tabs.push({
             id: Symbol(),
             label: 'Results',
             onSelect: emitterResultsSelect,
             onDeselect: emitterResultsDeselect,
             onResize: emitterResultsResize,
+            setLabel: emitterSetLabel,
             factory: this.componentFactoryResolver.resolveComponentFactory(component_1.TabControllerSearchResults),
             params: {
                 viewParams: this.viewParams,
                 onSelect: emitterResultsSelect,
                 onDeselect: emitterResultsDeselect,
-                onResize: emitterResultsResize
+                onResize: emitterResultsResize,
+                setLabel: emitterSetLabel
             },
             update: null,
             active: true

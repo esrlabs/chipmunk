@@ -6,6 +6,7 @@ class TabController {
     @Input() onSelect   : EventEmitter<any> = null;
     @Input() onDeselect : EventEmitter<any> = null;
     @Input() onResize   : EventEmitter<any> = null;
+    @Input() setLabel   : EventEmitter<any> = null;
 
 }
 

@@ -1,4 +1,4 @@
-import {Component, Input, AfterViewChecked, EventEmitter, OnDestroy } from '@angular/core';
+import {Component, Input, AfterViewChecked, EventEmitter, OnDestroy, AfterContentInit } from '@angular/core';
 import { configuration as Configuration } from '../../../modules/controller.config';
 import { events as Events               } from '../../../modules/controller.events';
 import { Tab                            } from './interface.tab';
@@ -7,7 +7,7 @@ import { Tab                            } from './interface.tab';
     selector    : 'common-tabs',
     templateUrl : './template.html',
 })
-export class CommonTabs implements AfterViewChecked, OnDestroy {
+export class CommonTabs implements AfterViewChecked, OnDestroy, AfterContentInit {
     @Input() tabs       : Array<Tab>            = [];
     @Input() onResize   : EventEmitter<null>    = new EventEmitter();
 
@@ -32,8 +32,31 @@ export class CommonTabs implements AfterViewChecked, OnDestroy {
         }
     }
 
+    ngAfterContentInit(){
+        this.bindEvents();
+    }
+
     ngOnDestroy(){
         this.onResize !== null && this.onResize.unsubscribe();
+        this.unbindEvents();
+    }
+
+    bindEvents(){
+        this.tabs instanceof Array && this.tabs.forEach((_tab: Tab, index: number) => {
+            _tab.setLabel !== void 0 && _tab.setLabel.subscribe(this.onSetLabel.bind(this, index));
+        });
+    }
+
+    unbindEvents(){
+        this.tabs instanceof Array && this.tabs.forEach((_tab: Tab, index: number) => {
+            _tab.setLabel !== void 0 && _tab.setLabel.unsubscribe();
+        });
+    }
+
+    onSetLabel(index: number, label: string){
+        if (typeof label === 'string' && this.tabs instanceof Array && this.tabs[index] !== void 0) {
+            this.tabs[index].label = label;
+        }
     }
 
     onResizeHandle(){

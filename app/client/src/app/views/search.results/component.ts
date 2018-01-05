@@ -71,19 +71,22 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
             emitterResultsDeselect  = new EventEmitter<any>(),
             emitterRequestsDeselect = new EventEmitter<any>(),
             emitterResultsResize    = new EventEmitter<any>(),
-            emitterRequestsResize   = new EventEmitter<any>();
+            emitterRequestsResize   = new EventEmitter<any>(),
+            emitterSetLabel         = new EventEmitter<any>();
         this.tabs.push({
             id          : Symbol(),
             label       : 'Results',
             onSelect    : emitterResultsSelect,
             onDeselect  : emitterResultsDeselect,
             onResize    : emitterResultsResize,
+            setLabel    : emitterSetLabel,
             factory     : this.componentFactoryResolver.resolveComponentFactory(TabControllerSearchResults),
             params      : {
                 viewParams  : this.viewParams,
                 onSelect    : emitterResultsSelect,
                 onDeselect  : emitterResultsDeselect,
-                onResize    : emitterResultsResize
+                onResize    : emitterResultsResize,
+                setLabel    : emitterSetLabel
             },
             update      : null,
             active      : true
