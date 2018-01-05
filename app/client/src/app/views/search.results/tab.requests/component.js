@@ -92,8 +92,11 @@ var TabControllerSearchRequests = (function (_super) {
                 active: true,
                 passive: false
             });
-            this.onRequestsChanges();
         }
+        else {
+            this.currentRequest = null;
+        }
+        this.onRequestsChanges();
     };
     TabControllerSearchRequests.prototype.onSEARCH_REQUEST_ACCEPTED = function (event) {
         if (!this.isExist(event.mode, event.value) && event.value !== '') {

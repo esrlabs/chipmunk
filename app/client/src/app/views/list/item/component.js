@@ -67,14 +67,14 @@ var ViewControllerListItem = (function () {
             var reg = null;
             if (!this.matchReg) {
                 this.match = tools_regexp_1.serializeStringForReg(this.match);
-                this.regsCache[this.match + '_noReg'] === void 0 && (this.regsCache[this.match + '_noReg'] = new RegExp(this.match, 'g'));
+                this.regsCache[this.match + '_noReg'] === void 0 && (this.regsCache[this.match + '_noReg'] = tools_regexp_1.safelyCreateRegExp(tools_htmlserialize_1.serializeHTML(this.match), 'g'));
                 reg = this.regsCache[this.match + '_noReg'];
             }
             else {
-                this.regsCache[this.match] === void 0 && (this.regsCache[this.match] = new RegExp(this.match, 'gi'));
+                this.regsCache[this.match] === void 0 && (this.regsCache[this.match] = tools_regexp_1.safelyCreateRegExp(tools_htmlserialize_1.serializeHTML(this.match), 'gi'));
                 reg = this.regsCache[this.match];
             }
-            this.regsCache[MARKERS.MATCH] === void 0 && (this.regsCache[MARKERS.MATCH] = new RegExp(MARKERS.MATCH, 'gi'));
+            this.regsCache[MARKERS.MATCH] === void 0 && (this.regsCache[MARKERS.MATCH] = tools_regexp_1.safelyCreateRegExp(MARKERS.MATCH, 'gi'));
             if (reg !== null) {
                 matchMatches = this.html.match(reg);
                 if (matchMatches instanceof Array && matchMatches.length > 0) {
@@ -87,8 +87,8 @@ var ViewControllerListItem = (function () {
                 if (marker.value.length > 0) {
                     var matches = null;
                     var mark = "" + MARKERS.MARKER_LEFT + marker.value + MARKERS.MARKER_RIGHT;
-                    _this.regsCache[marker.value] === void 0 && (_this.regsCache[marker.value] = _this.createRegExp(marker.value));
-                    _this.regsCache[mark] === void 0 && (_this.regsCache[mark] = _this.createRegExp(mark));
+                    _this.regsCache[marker.value] === void 0 && (_this.regsCache[marker.value] = tools_regexp_1.safelyCreateRegExp(tools_htmlserialize_1.serializeHTML(tools_regexp_1.serializeStringForReg(marker.value)), 'gi'));
+                    _this.regsCache[mark] === void 0 && (_this.regsCache[mark] = tools_regexp_1.safelyCreateRegExp(tools_htmlserialize_1.serializeHTML(tools_regexp_1.serializeStringForReg(mark)), 'gi'));
                     if (_this.regsCache[marker.value] !== null) {
                         matches = _this.html.match(_this.regsCache[marker.value]);
                         if (matches instanceof Array && matches.length > 0) {
@@ -122,8 +122,8 @@ var ViewControllerListItem = (function () {
     ViewControllerListItem.prototype.createRegExp = function (str) {
         var result = null;
         try {
-            str = str.replace(/\+/gi, '\\+').replace(/\[/gi, '\[').replace(/\\]/gi, '\\]');
-            result = new RegExp(str, 'gi');
+            str = str.replace(/\+/gi, '\\+').replace(/\[/gi, '\\[').replace(/\\]/gi, '\\]');
+            result = tools_regexp_1.safelyCreateRegExp(str, 'gi');
         }
         catch (e) { }
         return result;

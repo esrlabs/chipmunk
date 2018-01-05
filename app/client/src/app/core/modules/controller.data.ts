@@ -7,7 +7,7 @@ import { DataFilter                     } from '../interfaces/interface.data.fil
 import { Parsers                        } from './parsers/controller.data.parsers';
 import { MODES                          } from './controller.data.search.modes';
 import { GUID                           } from './tools.guid';
-
+import { isValidRegExp                  } from '../modules/tools.regexp';
 import { EVENT_DATA_IS_UPDATED          } from '../interfaces/events/DATA_IS_UPDATE';
 
 const RegSrcMarks = {
@@ -169,7 +169,7 @@ class DataController implements InitiableModule{
                 return function (str : string, smth : string, index: number) : boolean {
                     let reg: any    = null;
                     reg             = this.regExpCache[smth] !== void 0 ? this.regExpCache[smth] : null;
-                    if (reg === null && smth !== '' || (reg !== null && reg.stamp !== this.data.rows.length) || (reg !== null && index >= this.data.rows.length)){
+                    if (isValidRegExp(smth) && (reg === null && smth !== '' || (reg !== null && reg.stamp !== this.data.rows.length) || (reg !== null && index >= this.data.rows.length))){
                         //\u01c0[^\u01c0]*?(540[^\u01c0]*?OpenGL)[^\u01c0]*?\u01c2
                         try{
                             let _smth   = smth. replace(/\\*$/gi,   '').
@@ -211,7 +211,7 @@ class DataController implements InitiableModule{
                         };
                     }
                     this.regExpCache[smth] = reg;
-                    return reg.indexes === null ? true : (reg.indexes[index] !== void 0);
+                    return reg === null ? false : (reg.indexes === null ? true : (reg.indexes[index] !== void 0));
                 }.bind(this);
             case MODES.PERIOD:
                 return function (str : string, smth : string) : boolean {

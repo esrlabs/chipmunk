@@ -7,6 +7,7 @@ var interface_data_filter_1 = require("../interfaces/interface.data.filter");
 var controller_data_parsers_1 = require("./parsers/controller.data.parsers");
 var controller_data_search_modes_1 = require("./controller.data.search.modes");
 var tools_guid_1 = require("./tools.guid");
+var tools_regexp_1 = require("../modules/tools.regexp");
 var DATA_IS_UPDATE_1 = require("../interfaces/events/DATA_IS_UPDATE");
 var RegSrcMarks = {
     BEGIN: '\u001D',
@@ -149,7 +150,7 @@ var DataController = (function () {
                     var _this = this;
                     var reg = null;
                     reg = this.regExpCache[smth] !== void 0 ? this.regExpCache[smth] : null;
-                    if (reg === null && smth !== '' || (reg !== null && reg.stamp !== this.data.rows.length) || (reg !== null && index >= this.data.rows.length)) {
+                    if (tools_regexp_1.isValidRegExp(smth) && (reg === null && smth !== '' || (reg !== null && reg.stamp !== this.data.rows.length) || (reg !== null && index >= this.data.rows.length))) {
                         //\u01c0[^\u01c0]*?(540[^\u01c0]*?OpenGL)[^\u01c0]*?\u01c2
                         try {
                             var _smth = smth.replace(/\\*$/gi, '').
@@ -192,7 +193,7 @@ var DataController = (function () {
                         };
                     }
                     this.regExpCache[smth] = reg;
-                    return reg.indexes === null ? true : (reg.indexes[index] !== void 0);
+                    return reg === null ? false : (reg.indexes === null ? true : (reg.indexes[index] !== void 0));
                     var _a;
                 }.bind(this);
             case controller_data_search_modes_1.MODES.PERIOD:

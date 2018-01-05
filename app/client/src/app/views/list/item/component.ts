@@ -1,12 +1,12 @@
 import {Component, Input, Output, OnDestroy, OnChanges, AfterContentChecked, EventEmitter, ChangeDetectorRef} from '@angular/core';
 import {DomSanitizer, SafeHtml} from '@angular/platform-browser';
 
-import { ListItemInterface                      } from './interface';
-import { events as Events                       } from '../../../core/modules/controller.events';
-import { configuration as Configuration         } from '../../../core/modules/controller.config';
-import { ANSIReader                             } from '../../../core/modules/tools.ansireader';
-import { serializeHTML, parseHTML               } from '../../../core/modules/tools.htmlserialize';
-import { serializeStringForReg                  } from '../../../core/modules/tools.regexp';
+import { ListItemInterface                          } from './interface';
+import { events as Events                           } from '../../../core/modules/controller.events';
+import { configuration as Configuration             } from '../../../core/modules/controller.config';
+import { ANSIReader                                 } from '../../../core/modules/tools.ansireader';
+import { serializeHTML, parseHTML                   } from '../../../core/modules/tools.htmlserialize';
+import { serializeStringForReg, safelyCreateRegExp  } from '../../../core/modules/tools.regexp';
 
 const MARKERS = {
     MATCH       : '\uAA86!\uAA87',
@@ -78,13 +78,13 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
             let reg = null;
             if (!this.matchReg) {
                 this.match = serializeStringForReg(this.match);
-                this.regsCache[this.match + '_noReg'] === void 0 && (this.regsCache[this.match + '_noReg'] = new RegExp(this.match, 'g'));
+                this.regsCache[this.match + '_noReg'] === void 0 && (this.regsCache[this.match + '_noReg'] = safelyCreateRegExp(serializeHTML(this.match), 'g'));
                 reg = this.regsCache[this.match + '_noReg'];
             } else {
-                this.regsCache[this.match] === void 0 && (this.regsCache[this.match] = new RegExp(this.match, 'gi'));
+                this.regsCache[this.match] === void 0 && (this.regsCache[this.match] = safelyCreateRegExp(serializeHTML(this.match), 'gi'));
                 reg = this.regsCache[this.match];
             }
-            this.regsCache[MARKERS.MATCH] === void 0 && (this.regsCache[MARKERS.MATCH] = new RegExp(MARKERS.MATCH, 'gi'));
+            this.regsCache[MARKERS.MATCH] === void 0 && (this.regsCache[MARKERS.MATCH] = safelyCreateRegExp(MARKERS.MATCH, 'gi'));
             if (reg !== null) {
                 matchMatches = this.html.match(reg);
                 if (matchMatches instanceof Array && matchMatches.length > 0){
@@ -97,8 +97,8 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
                 if (marker.value.length > 0) {
                     let matches = null;
                     let mark    = `${MARKERS.MARKER_LEFT}${marker.value}${MARKERS.MARKER_RIGHT}`;
-                    this.regsCache[marker.value]    === void 0 && (this.regsCache[marker.value] = this.createRegExp(marker.value));
-                    this.regsCache[mark]            === void 0 && (this.regsCache[mark]         = this.createRegExp(mark));
+                    this.regsCache[marker.value]    === void 0 && (this.regsCache[marker.value] = safelyCreateRegExp(serializeHTML(serializeStringForReg(marker.value)), 'gi'));
+                    this.regsCache[mark]            === void 0 && (this.regsCache[mark]         = safelyCreateRegExp(serializeHTML(serializeStringForReg(mark)), 'gi'));
                     if (this.regsCache[marker.value] !== null){
                         matches = this.html.match(this.regsCache[marker.value]);
                         if (matches instanceof Array && matches.length > 0){
@@ -134,8 +134,8 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     createRegExp(str: string): RegExp{
         let result = null;
         try{
-            str     = str.replace(/\+/gi, '\\+').replace(/\[/gi, '\[').replace(/\\]/gi, '\\]');
-            result  = new RegExp(str, 'gi');
+            str     = str.replace(/\+/gi, '\\+').replace(/\[/gi, '\\[').replace(/\\]/gi, '\\]');
+            result  = safelyCreateRegExp(str, 'gi');
         } catch (e){}
         return result;
     }

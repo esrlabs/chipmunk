@@ -93,8 +93,10 @@ export class TabControllerSearchRequests extends TabController implements OnDest
                 active          : true,
                 passive         : false
             });
-            this.onRequestsChanges();
+        } else {
+            this.currentRequest = null;
         }
+        this.onRequestsChanges();
     }
 
     onSEARCH_REQUEST_ACCEPTED(event: DataFilter){
