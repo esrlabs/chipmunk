@@ -69,19 +69,19 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     @ViewChild(LongList) listView: LongList;
     @ViewChild ('exporturl', { read: ViewContainerRef}) exportURLNode: ViewContainerRef;
 
-    private _rows               : Array<any>                    = [];
-    private rows                : Array<any>                    = [];
-    private rowsCount           : number                        = 0;
-    private bookmarks           : Array<number>                 = [];
-    private numbers             : boolean                       = true;
-    private followByScroll      : boolean                       = true;
-    private showOnlyBookmarks   : boolean                       = false;
-    private highlight           : boolean                       = true;
-    private onScrollSubscription: EventEmitter<OnScrollEvent>   = new EventEmitter();
-    private textSelection       : TextSelection                 = null;
-    private textSelectionTrigger: EventEmitter<string>          = new EventEmitter();
-    private regsCache           : Object                        = {};
-
+    private _rows                   : Array<any>                    = [];
+    private rows                    : Array<any>                    = [];
+    private rowsCount               : number                        = 0;
+    private bookmarks               : Array<number>                 = [];
+    private numbers                 : boolean                       = true;
+    private followByScroll          : boolean                       = true;
+    private showOnlyBookmarks       : boolean                       = false;
+    private highlight               : boolean                       = true;
+    private onScrollSubscription    : EventEmitter<OnScrollEvent>   = new EventEmitter();
+    private textSelection           : TextSelection                 = null;
+    private textSelectionTrigger    : EventEmitter<string>          = new EventEmitter();
+    private regsCache               : Object                        = {};
+    private lastBookmarkOperation   : number                       = null;
     private selection : {
         own     : boolean,
         index   : number
@@ -145,7 +145,9 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_BEGIN,
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_END,
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_PREV_IN_SEARCH,
-            Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_NEXT_IN_SEARCH].forEach((handle: string)=>{
+            Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_NEXT_IN_SEARCH,
+            Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
+            Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED].forEach((handle: string)=>{
             this['on' + handle] = this['on' + handle].bind(this);
             Events.bind(handle, this['on' + handle]);
         });
@@ -182,7 +184,9 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_BEGIN,
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_END,
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_PREV_IN_SEARCH,
-            Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_NEXT_IN_SEARCH].forEach((handle: string)=>{
+            Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_NEXT_IN_SEARCH,
+            Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
+            Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED].forEach((handle: string)=>{
             Events.unbind(handle, this['on' + handle]);
         });
         this.onScrollSubscription.  unsubscribe();
@@ -343,12 +347,28 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         this.updateRows();
     }
 
-    toggleBookmark(index : number){
+    onBOOKMARK_IS_CREATED(index: number) {
+        if (this.lastBookmarkOperation !== index) {
+            this.toggleBookmark(index);
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.VIEW_BAR_ADD_FAVORITE_RESPONSE, { GUID: this.GUID, index: index });
+        }
+    }
+
+    onBOOKMARK_IS_REMOVED(index: number) {
+        if (this.lastBookmarkOperation !== -index) {
+            this.toggleBookmark(index);
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.VIEW_BAR_ADD_FAVORITE_RESPONSE, { GUID: this.GUID, index: index });
+        }
+    }
+
+    toggleBookmark(index : number) {
         if(~this.bookmarks.indexOf(index)){
             this.bookmarks.splice(this.bookmarks.indexOf(index),1);
+            this.lastBookmarkOperation = -index;
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED, index);
         } else {
             this.bookmarks.push(index);
+            this.lastBookmarkOperation = +index;
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED, index);
         }
         if (this.bookmarks.length > 0){

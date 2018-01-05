@@ -75,6 +75,7 @@ var TabControllerSearchResults = (function (_super) {
             { caption: 'Only Active', value: FILTER_MODES.ONLY_ACTIVE },
             { caption: 'Only Passive', value: FILTER_MODES.ONLY_PASSIVE }
         ];
+        _this.lastBookmarkOperation = null;
         _this.selection = {
             own: false,
             index: -1
@@ -165,16 +166,20 @@ var TabControllerSearchResults = (function (_super) {
         controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_GET_ALL, this.onREQUESTS_HISTORY_UPDATED.bind(this));
     };
     TabControllerSearchResults.prototype.onBOOKMARK_IS_CREATED = function (index) {
-        this.bookmarks.indexOf(index) === -1 && this.bookmarks.push(index);
-        this.filterRows();
-        this.updateRows();
-        this.forceUpdate();
+        if (this.lastBookmarkOperation !== index) {
+            this.bookmarks.indexOf(index) === -1 && this.bookmarks.push(index);
+            this.filterRows();
+            this.updateRows();
+            this.forceUpdate();
+        }
     };
     TabControllerSearchResults.prototype.onBOOKMARK_IS_REMOVED = function (index) {
-        this.bookmarks.indexOf(index) !== -1 && this.bookmarks.splice(this.bookmarks.indexOf(index), 1);
-        this.filterRows();
-        this.updateRows();
-        this.forceUpdate();
+        if (this.lastBookmarkOperation !== -index) {
+            this.bookmarks.indexOf(index) !== -1 && this.bookmarks.splice(this.bookmarks.indexOf(index), 1);
+            this.filterRows();
+            this.updateRows();
+            this.forceUpdate();
+        }
     };
     TabControllerSearchResults.prototype.onREQUESTS_HISTORY_UPDATED = function (requests, _requests) {
         var _this = this;
@@ -377,6 +382,7 @@ var TabControllerSearchResults = (function (_super) {
         };
     };
     TabControllerSearchResults.prototype.convertFilterRows = function (rows) {
+        var _this = this;
         var active = this.getActiveFilters(), passive = this.getPassiveFilters(), _active = [], _passive = [], _rows = [], result = [], measure = tools_logs_1.Logs.measure('[search.results/tab.results][convertFilterRows]');
         switch (this.filterMode) {
             case FILTER_MODES.ACTIVE_FROM_PASSIVE:
@@ -387,7 +393,7 @@ var TabControllerSearchResults = (function (_super) {
                 _active = this.getRowsByRequestsActive(rows, active);
                 _passive = this.getRowsByRequestsPassive(rows, passive, _active.map);
                 _rows = rows.filter(function (row, index) {
-                    return _active.map[index] !== void 0 ? true : (_passive.map[index] !== void 0);
+                    return _this.bookmarks.indexOf(index) !== -1 ? true : (_active.map[index] !== void 0 ? true : (_passive.map[index] !== void 0));
                 });
                 result = _rows;
                 break;
@@ -414,7 +420,7 @@ var TabControllerSearchResults = (function (_super) {
             row.params.visibility = _this.numbers;
             row.params.total_rows = _this._rows.length;
             row.params.GUID = _this.viewParams !== null ? _this.viewParams.GUID : null;
-            row.params.bookmarked = _this.bookmarks.indexOf(row.index) !== -1;
+            row.params.bookmarked = _this.bookmarks.indexOf(row.params.index) !== -1;
             row.params.markers = _this.markers;
             row.params.markersHash = markersHash;
             update && row.update(row.params);
@@ -441,7 +447,20 @@ var TabControllerSearchResults = (function (_super) {
     };
     TabControllerSearchResults.prototype.onRowInit = function (index, instance) {
         instance.selected.subscribe(this.onOwnSelected.bind(this));
+        instance.bookmark.subscribe(this.toggleBookmark.bind(this));
         this._rows[index] !== void 0 && (this._rows[index].update = instance.update.bind(instance));
+    };
+    TabControllerSearchResults.prototype.toggleBookmark = function (index) {
+        if (~this.bookmarks.indexOf(index)) {
+            this.onBOOKMARK_IS_REMOVED(index);
+            this.lastBookmarkOperation = -index;
+            controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED, index);
+        }
+        else {
+            this.onBOOKMARK_IS_CREATED(index);
+            this.lastBookmarkOperation = +index;
+            controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED, index);
+        }
     };
     TabControllerSearchResults.prototype.onOwnSelected = function (index) {
         this.select(index, true);

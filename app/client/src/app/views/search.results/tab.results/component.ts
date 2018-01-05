@@ -97,6 +97,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         { caption: 'Only Active',           value: FILTER_MODES.ONLY_ACTIVE             },
         { caption: 'Only Passive',          value: FILTER_MODES.ONLY_PASSIVE            }
     ];
+    private lastBookmarkOperation   : number                       = null;
 
     private selection : {
         own     : boolean,
@@ -213,17 +214,21 @@ export class TabControllerSearchResults extends TabController implements ViewInt
     }
 
     onBOOKMARK_IS_CREATED(index: number) {
-        this.bookmarks.indexOf(index) === -1 && this.bookmarks.push(index);
-        this.filterRows();
-        this.updateRows();
-        this.forceUpdate();
+        if (this.lastBookmarkOperation !== index) {
+            this.bookmarks.indexOf(index) === -1 && this.bookmarks.push(index);
+            this.filterRows();
+            this.updateRows();
+            this.forceUpdate();
+        }
     }
 
     onBOOKMARK_IS_REMOVED(index: number) {
-        this.bookmarks.indexOf(index) !== -1 && this.bookmarks.splice(this.bookmarks.indexOf(index),1);
-        this.filterRows();
-        this.updateRows();
-        this.forceUpdate();
+        if (this.lastBookmarkOperation !== -index) {
+            this.bookmarks.indexOf(index) !== -1 && this.bookmarks.splice(this.bookmarks.indexOf(index),1);
+            this.filterRows();
+            this.updateRows();
+            this.forceUpdate();
+        }
     }
 
     onREQUESTS_HISTORY_UPDATED(requests: Array<Request>, _requests: Array<Request>){
@@ -457,7 +462,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
                 _active     = this.getRowsByRequestsActive  (rows, active);
                 _passive    = this.getRowsByRequestsPassive (rows, passive, _active.map);
                 _rows       = rows.filter((row, index)=>{
-                    return _active.map[index] !== void 0 ? true : (_passive.map[index] !== void 0);
+                    return this.bookmarks.indexOf(index) !== -1 ? true : (_active.map[index] !== void 0 ? true : (_passive.map[index] !== void 0));
                 });
                 result = _rows;
                 break;
@@ -486,7 +491,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             row.params.visibility   = this.numbers;
             row.params.total_rows   = this._rows.length;
             row.params.GUID         = this.viewParams !== null ? this.viewParams.GUID : null;
-            row.params.bookmarked   = this.bookmarks.indexOf(row.index) !== -1;
+            row.params.bookmarked   = this.bookmarks.indexOf(row.params.index) !== -1;
             row.params.markers      = this.markers;
             row.params.markersHash  = markersHash;
             update && row.update(row.params);
@@ -515,7 +520,20 @@ export class TabControllerSearchResults extends TabController implements ViewInt
 
     onRowInit(index: number, instance : ListItemInterface){
         instance.selected.subscribe(this.onOwnSelected.bind(this));
+        instance.bookmark.subscribe(this.toggleBookmark.bind(this));
         this._rows[index] !== void 0 && (this._rows[index].update = instance.update.bind(instance));
+    }
+
+    toggleBookmark(index : number){
+        if(~this.bookmarks.indexOf(index)){
+            this.onBOOKMARK_IS_REMOVED(index);
+            this.lastBookmarkOperation = -index;
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED, index);
+        } else {
+            this.onBOOKMARK_IS_CREATED(index);
+            this.lastBookmarkOperation = +index;
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED, index);
+        }
     }
 
     onOwnSelected(index : number){

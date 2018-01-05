@@ -62,6 +62,7 @@ var ViewControllerList = (function (_super) {
         _this.textSelection = null;
         _this.textSelectionTrigger = new core_1.EventEmitter();
         _this.regsCache = {};
+        _this.lastBookmarkOperation = null;
         _this.selection = {
             own: false,
             index: -1
@@ -97,7 +98,9 @@ var ViewControllerList = (function (_super) {
             controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_BEGIN,
             controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_END,
             controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_PREV_IN_SEARCH,
-            controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_NEXT_IN_SEARCH].forEach(function (handle) {
+            controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_NEXT_IN_SEARCH,
+            controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
+            controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED].forEach(function (handle) {
             _this['on' + handle] = _this['on' + handle].bind(_this);
             controller_events_1.events.bind(handle, _this['on' + handle]);
         });
@@ -132,7 +135,9 @@ var ViewControllerList = (function (_super) {
             controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_BEGIN,
             controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_END,
             controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_PREV_IN_SEARCH,
-            controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_NEXT_IN_SEARCH].forEach(function (handle) {
+            controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_NEXT_IN_SEARCH,
+            controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
+            controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED].forEach(function (handle) {
             controller_events_1.events.unbind(handle, _this['on' + handle]);
         });
         this.onScrollSubscription.unsubscribe();
@@ -284,13 +289,27 @@ var ViewControllerList = (function (_super) {
         this.nextAfterSearchNavigation(index);
         this.updateRows();
     };
+    ViewControllerList.prototype.onBOOKMARK_IS_CREATED = function (index) {
+        if (this.lastBookmarkOperation !== index) {
+            this.toggleBookmark(index);
+            controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.VIEW_BAR_ADD_FAVORITE_RESPONSE, { GUID: this.GUID, index: index });
+        }
+    };
+    ViewControllerList.prototype.onBOOKMARK_IS_REMOVED = function (index) {
+        if (this.lastBookmarkOperation !== -index) {
+            this.toggleBookmark(index);
+            controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.VIEW_BAR_ADD_FAVORITE_RESPONSE, { GUID: this.GUID, index: index });
+        }
+    };
     ViewControllerList.prototype.toggleBookmark = function (index) {
         if (~this.bookmarks.indexOf(index)) {
             this.bookmarks.splice(this.bookmarks.indexOf(index), 1);
+            this.lastBookmarkOperation = -index;
             controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED, index);
         }
         else {
             this.bookmarks.push(index);
+            this.lastBookmarkOperation = +index;
             controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED, index);
         }
         if (this.bookmarks.length > 0) {
