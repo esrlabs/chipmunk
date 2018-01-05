@@ -16,7 +16,7 @@ list-view-item{
             min-width   : 100%;
         }
         &:hover{
-            background  : @light-grey;
+            background  : @list-hover-background;
         }
         .number{
             position        : relative;
@@ -26,7 +26,7 @@ list-view-item{
             color           : @soft-dark;
             padding         : 0 0.2rem;
             border          : none;
-            background      : @light-grey;
+            background      : @list-hover-background;
             line-height     : 1rem;
             cursor          : pointer;
             &.hide{
@@ -39,7 +39,7 @@ list-view-item{
             line-height     : 1rem;
         }
         &.selected{
-            background      : @light-grey;
+            background      : @list-hover-background;
             .number{
                 background  : @light-grey;
             }
