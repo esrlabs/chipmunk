@@ -85,12 +85,19 @@ export class TopBarSearchRequest implements AfterContentInit{
         let input : any     = event.target;
         this.value          = input.value;
         this.delayTimer = -1;
+        this.triggerSearchRequest();
+    }
+
+    triggerSearchRequest(){
         this.onSEARCH_REQUEST_PROCESS_START();
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_CHANGED, (new DataFilter(this.mode, this.value)));
     }
 
     onModeReg(){
         this.mode = this.mode === MODES.REG ? MODES.TEXT : MODES.REG;
+        if (this.value !== '') {
+            this.triggerSearchRequest();
+        }
     }
 
     onAutoPlay(){

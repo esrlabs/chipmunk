@@ -74,11 +74,17 @@ var TopBarSearchRequest = (function () {
         var input = event.target;
         this.value = input.value;
         this.delayTimer = -1;
+        this.triggerSearchRequest();
+    };
+    TopBarSearchRequest.prototype.triggerSearchRequest = function () {
         this.onSEARCH_REQUEST_PROCESS_START();
         controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_CHANGED, (new interface_data_filter_1.DataFilter(this.mode, this.value)));
     };
     TopBarSearchRequest.prototype.onModeReg = function () {
         this.mode = this.mode === controller_data_search_modes_1.MODES.REG ? controller_data_search_modes_1.MODES.TEXT : controller_data_search_modes_1.MODES.REG;
+        if (this.value !== '') {
+            this.triggerSearchRequest();
+        }
     };
     TopBarSearchRequest.prototype.onAutoPlay = function () {
         this.autoplay = !this.autoplay;
