@@ -287,9 +287,11 @@ var ViewControllerList = (function (_super) {
     ViewControllerList.prototype.toggleBookmark = function (index) {
         if (~this.bookmarks.indexOf(index)) {
             this.bookmarks.splice(this.bookmarks.indexOf(index), 1);
+            controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED, index);
         }
         else {
             this.bookmarks.push(index);
+            controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED, index);
         }
         if (this.bookmarks.length > 0) {
             controller_events_1.events.trigger(controller_config_1.configuration.sets.EVENTS_VIEWS.VIEW_BAR_ENABLE_BUTTON, this.viewParams.GUID, 'LIST_VIEW_ONLY_BOOKMARKS_TRIGGER');

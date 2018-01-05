@@ -346,8 +346,10 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     toggleBookmark(index : number){
         if(~this.bookmarks.indexOf(index)){
             this.bookmarks.splice(this.bookmarks.indexOf(index),1);
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED, index);
         } else {
             this.bookmarks.push(index);
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED, index);
         }
         if (this.bookmarks.length > 0){
             Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_BAR_ENABLE_BUTTON,  this.viewParams.GUID, 'LIST_VIEW_ONLY_BOOKMARKS_TRIGGER');

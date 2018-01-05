@@ -88,6 +88,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
     private regsCache           : Object                        = {};
     private requests            : Array<Request>                = [];
     private _requests           : Array<Request>                = [];
+    private bookmarks           : Array<number>                 = [];
     private requestsListClosed  : boolean                       = true;
     private filterMode          : string                        = FILTER_MODES.ACTIVE_AND_PASSIVE;
     private conditions          : Array<SimpleListItem>         = [
@@ -150,7 +151,9 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_BEGIN,
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_END,
             Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED,
-            Configuration.sets.SYSTEM_EVENTS.REQUESTS_APPLIED].forEach((handle: string)=>{
+            Configuration.sets.SYSTEM_EVENTS.REQUESTS_APPLIED,
+            Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
+            Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED].forEach((handle: string)=>{
             this['on' + handle] = this['on' + handle].bind(this);
             Events.bind(handle, this['on' + handle]);
         });
@@ -182,7 +185,9 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_BEGIN,
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_END,
             Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED,
-            Configuration.sets.SYSTEM_EVENTS.REQUESTS_APPLIED].forEach((handle: string)=>{
+            Configuration.sets.SYSTEM_EVENTS.REQUESTS_APPLIED,
+            Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
+            Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED].forEach((handle: string)=>{
             Events.unbind(handle, this['on' + handle]);
         });
         this.onScrollSubscription.  unsubscribe();
@@ -205,6 +210,20 @@ export class TabControllerSearchResults extends TabController implements ViewInt
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     initRequests(){
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_GET_ALL, this.onREQUESTS_HISTORY_UPDATED.bind(this));
+    }
+
+    onBOOKMARK_IS_CREATED(index: number) {
+        this.bookmarks.indexOf(index) === -1 && this.bookmarks.push(index);
+        this.filterRows();
+        this.updateRows();
+        this.forceUpdate();
+    }
+
+    onBOOKMARK_IS_REMOVED(index: number) {
+        this.bookmarks.indexOf(index) !== -1 && this.bookmarks.splice(this.bookmarks.indexOf(index),1);
+        this.filterRows();
+        this.updateRows();
+        this.forceUpdate();
     }
 
     onREQUESTS_HISTORY_UPDATED(requests: Array<Request>, _requests: Array<Request>){
@@ -296,7 +315,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
                     original    : row.str,
                     index       : _index,
                     selection   : this.selection.index === _index ? true : false,
-                    bookmarked  : false,
+                    bookmarked  : this.bookmarks.indexOf(index) !== -1,
                     visibility  : this.numbers,
                     total_rows  : this._rows.length === 0 ? rows.length : this._rows.length,
                     markers     : this.markers,
@@ -346,7 +365,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         if (requests.length > 0){
             result = rows.filter((row, index)=>{
                 if (exp[index] === void 0){
-                    let filtered    = false,
+                    let filtered    = this.bookmarks.indexOf(index) !== -1,
                         highlight   = {
                             foregroundColor: '',
                             backgroundColor: ''
@@ -459,7 +478,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
 
     updateRows(){
         let markersHash = this.getMarkersHash();
-        this.rows instanceof Array && (this.rows = this.rows.map((row)=>{
+        this.rows instanceof Array && (this.rows = this.rows.map((row, index)=>{
             let selection   = this.selection.index === row.params.index ? true : false,
                 update      = row.params.selection !== selection ? (row.update !== null) : false;
             update = row.params.GUID !== null ? (row.update !== null) : update;
@@ -467,6 +486,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             row.params.visibility   = this.numbers;
             row.params.total_rows   = this._rows.length;
             row.params.GUID         = this.viewParams !== null ? this.viewParams.GUID : null;
+            row.params.bookmarked   = this.bookmarks.indexOf(row.index) !== -1;
             row.params.markers      = this.markers;
             row.params.markersHash  = markersHash;
             update && row.update(row.params);

@@ -66,6 +66,7 @@ var TabControllerSearchResults = (function (_super) {
         _this.regsCache = {};
         _this.requests = [];
         _this._requests = [];
+        _this.bookmarks = [];
         _this.requestsListClosed = true;
         _this.filterMode = FILTER_MODES.ACTIVE_AND_PASSIVE;
         _this.conditions = [
@@ -105,7 +106,9 @@ var TabControllerSearchResults = (function (_super) {
             controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_BEGIN,
             controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_END,
             controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED,
-            controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_APPLIED].forEach(function (handle) {
+            controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_APPLIED,
+            controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
+            controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED].forEach(function (handle) {
             _this['on' + handle] = _this['on' + handle].bind(_this);
             controller_events_1.events.bind(handle, _this['on' + handle]);
         });
@@ -137,7 +140,9 @@ var TabControllerSearchResults = (function (_super) {
             controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_BEGIN,
             controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_END,
             controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED,
-            controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_APPLIED].forEach(function (handle) {
+            controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_APPLIED,
+            controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
+            controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED].forEach(function (handle) {
             controller_events_1.events.unbind(handle, _this['on' + handle]);
         });
         this.onScrollSubscription.unsubscribe();
@@ -158,6 +163,18 @@ var TabControllerSearchResults = (function (_super) {
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     TabControllerSearchResults.prototype.initRequests = function () {
         controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_GET_ALL, this.onREQUESTS_HISTORY_UPDATED.bind(this));
+    };
+    TabControllerSearchResults.prototype.onBOOKMARK_IS_CREATED = function (index) {
+        this.bookmarks.indexOf(index) === -1 && this.bookmarks.push(index);
+        this.filterRows();
+        this.updateRows();
+        this.forceUpdate();
+    };
+    TabControllerSearchResults.prototype.onBOOKMARK_IS_REMOVED = function (index) {
+        this.bookmarks.indexOf(index) !== -1 && this.bookmarks.splice(this.bookmarks.indexOf(index), 1);
+        this.filterRows();
+        this.updateRows();
+        this.forceUpdate();
     };
     TabControllerSearchResults.prototype.onREQUESTS_HISTORY_UPDATED = function (requests, _requests) {
         var _this = this;
@@ -241,7 +258,7 @@ var TabControllerSearchResults = (function (_super) {
                     original: row.str,
                     index: _index,
                     selection: _this.selection.index === _index ? true : false,
-                    bookmarked: false,
+                    bookmarked: _this.bookmarks.indexOf(index) !== -1,
                     visibility: _this.numbers,
                     total_rows: _this._rows.length === 0 ? rows.length : _this._rows.length,
                     markers: _this.markers,
@@ -281,12 +298,13 @@ var TabControllerSearchResults = (function (_super) {
         });
     };
     TabControllerSearchResults.prototype.getRowsByRequestsActive = function (rows, requests, exp) {
+        var _this = this;
         if (exp === void 0) { exp = {}; }
         var map = {}, i = 0, result = [], measure = tools_logs_1.Logs.measure('[search.results/tab.results][getRowsByRequestsActive]');
         if (requests.length > 0) {
             result = rows.filter(function (row, index) {
                 if (exp[index] === void 0) {
-                    var filtered_1 = false, highlight_1 = {
+                    var filtered_1 = _this.bookmarks.indexOf(index) !== -1, highlight_1 = {
                         foregroundColor: '',
                         backgroundColor: ''
                     };
@@ -389,13 +407,14 @@ var TabControllerSearchResults = (function (_super) {
     TabControllerSearchResults.prototype.updateRows = function () {
         var _this = this;
         var markersHash = this.getMarkersHash();
-        this.rows instanceof Array && (this.rows = this.rows.map(function (row) {
+        this.rows instanceof Array && (this.rows = this.rows.map(function (row, index) {
             var selection = _this.selection.index === row.params.index ? true : false, update = row.params.selection !== selection ? (row.update !== null) : false;
             update = row.params.GUID !== null ? (row.update !== null) : update;
             row.params.selection = selection;
             row.params.visibility = _this.numbers;
             row.params.total_rows = _this._rows.length;
             row.params.GUID = _this.viewParams !== null ? _this.viewParams.GUID : null;
+            row.params.bookmarked = _this.bookmarks.indexOf(row.index) !== -1;
             row.params.markers = _this.markers;
             row.params.markersHash = markersHash;
             update && row.update(row.params);
