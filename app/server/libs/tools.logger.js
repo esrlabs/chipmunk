@@ -106,7 +106,7 @@ class Logger {
             return (src + '').length < count ? ('0'.repeat(count - (src + '').length) + src) : (src + '');
         }
         let date = new Date();
-        return `${fill(date.getHours(), 2)}:${fill(date.getMinutes(), 2)}:${fill(date.getSeconds(), 2)}.${fill(date.getMilliseconds(), 3)}`;
+        return `${fill(date.getMonth() + 1, 2)}.${fill(date.getDate(), 2)} ${fill(date.getHours(), 2)}:${fill(date.getMinutes(), 2)}:${fill(date.getSeconds(), 2)}.${fill(date.getMilliseconds(), 3)}`;
     }
 
     _log(level, message){
