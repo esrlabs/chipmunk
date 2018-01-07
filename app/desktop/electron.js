@@ -1,5 +1,4 @@
-const electron          = require('electron');
-const BrowserWindow     = electron.BrowserWindow;
+const { app, Menu, BrowserWindow } = require('electron');
 const path              = require('path');
 const url               = require('url');
 const JSONSLocaltorage  = require('node-localstorage').JSONStorage;
@@ -89,15 +88,48 @@ class Updater {
 
 const updater = new Updater();
 
+class ApplicationMenu {
+
+    constructor(){
+        this.menu = Menu;
+    }
+
+    create(){
+        var template = [{
+            label: "Application",
+            submenu: [
+                { label: "About Application", selector: "orderFrontStandardAboutPanel:" },
+                { type: "separator" },
+                { label: "Quit", accelerator: "Command+Q", click: function() { app.quit(); }}
+            ]}, {
+            label: "Edit",
+            submenu: [
+                { label: "Undo", accelerator: "CmdOrCtrl+Z", selector: "undo:" },
+                { label: "Redo", accelerator: "Shift+CmdOrCtrl+Z", selector: "redo:" },
+                { type: "separator" },
+                { label: "Cut", accelerator: "CmdOrCtrl+X", selector: "cut:" },
+                { label: "Copy", accelerator: "CmdOrCtrl+C", selector: "copy:" },
+                { label: "Paste", accelerator: "CmdOrCtrl+V", selector: "paste:" },
+                { label: "Select All", accelerator: "CmdOrCtrl+A", selector: "selectAll:" }
+            ]}
+        ];
+        this.menu.setApplicationMenu(
+            this.menu.buildFromTemplate(template)
+        );
+    }
+
+}
+
 class Starter {
 
     constructor(){
-        this._app               = electron.app;
+        this._app               = app;
         this._window            = null;
         this._ready             = false;
         this._storageLocaltion  = this._app.getPath('userData');
         this._storage           = new JSONSLocaltorage(this._storageLocaltion);
         this._version           = this._app.getVersion();
+        this._menu              = new ApplicationMenu();
         this._app.on('ready',               this._onReady.bind(this));
         this._app.on('window-all-closed',   this._onWindowAllClosed.bind(this));
         this._app.on('activate',            this._onActivate.bind(this));
@@ -117,6 +149,7 @@ class Starter {
     // Some APIs can only be used after this event occurs.
     _onReady(){
         this._create();
+        this._menu.create();
         //updater.check();
         this._ready = true;
     }
