@@ -1,4 +1,5 @@
-import {Component, Input, ChangeDetectorRef } from '@angular/core';
+import {Component, Input, ChangeDetectorRef, ViewChild} from '@angular/core';
+import {CommonInput} from "../../input/component";
 
 @Component({
     selector    : 'markers-edit-dialog',
@@ -12,11 +13,12 @@ export class MarkersEditDialog {
     @Input() foregroundColor    : string        = 'rgb(50,250,50)';
     @Input() backgroundColor    : string        = 'rgb(250,250,250)';
 
+    @ViewChild('_hook'          ) _hook         : CommonInput;
+
     constructor(private changeDetectorRef : ChangeDetectorRef) {
         this.changeDetectorRef          = changeDetectorRef;
         this.onForegroundColorSelected  = this.onForegroundColorSelected.bind(this);
         this.onBackgroundColorSelected  = this.onBackgroundColorSelected.bind(this);
-        this.onKeyUp                    = this.onKeyUp.bind(this);
         this.onApply                    = this.onApply.bind(this);
     }
 
@@ -34,11 +36,8 @@ export class MarkersEditDialog {
         this.forceUpdate();
     }
 
-    onKeyUp(event: KeyboardEvent){
-        this.hook = event.target['value'];
-    }
-
     onApply(){
+        this.hook = this._hook.getValue();
         if (this.hook.trim() !== ''){
             typeof this.callback === 'function' && this.callback({
                 hook            : this.hook,

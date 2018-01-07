@@ -12,7 +12,7 @@
         <p [style.backgroundColor]="backgroundColor" [style.color]="foregroundColor">This is an example</p>
     </div>
     <div class="marker-value">
-        <common-input (onEnter)="onApply()" [value]="hook" [type]="'text'" [handles]="this" [placeholder]="'Type key-phrase'"></common-input>
+        <common-input #_hook (onEnter)="onApply()" [value]="hook" [type]="'text'" [placeholder]="'Type key-phrase'"></common-input>
     </div>
 </div>
 <div class="marker-controls">

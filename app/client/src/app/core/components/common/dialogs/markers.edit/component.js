@@ -9,6 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 var core_1 = require("@angular/core");
+var component_1 = require("../../input/component");
 var MarkersEditDialog = (function () {
     function MarkersEditDialog(changeDetectorRef) {
         this.changeDetectorRef = changeDetectorRef;
@@ -20,7 +21,6 @@ var MarkersEditDialog = (function () {
         this.changeDetectorRef = changeDetectorRef;
         this.onForegroundColorSelected = this.onForegroundColorSelected.bind(this);
         this.onBackgroundColorSelected = this.onBackgroundColorSelected.bind(this);
-        this.onKeyUp = this.onKeyUp.bind(this);
         this.onApply = this.onApply.bind(this);
     }
     MarkersEditDialog.prototype.forceUpdate = function () {
@@ -34,10 +34,8 @@ var MarkersEditDialog = (function () {
         this.backgroundColor = color;
         this.forceUpdate();
     };
-    MarkersEditDialog.prototype.onKeyUp = function (event) {
-        this.hook = event.target['value'];
-    };
     MarkersEditDialog.prototype.onApply = function () {
+        this.hook = this._hook.getValue();
         if (this.hook.trim() !== '') {
             typeof this.callback === 'function' && this.callback({
                 hook: this.hook,
@@ -68,6 +66,10 @@ __decorate([
     core_1.Input(),
     __metadata("design:type", String)
 ], MarkersEditDialog.prototype, "backgroundColor", void 0);
+__decorate([
+    core_1.ViewChild('_hook'),
+    __metadata("design:type", component_1.CommonInput)
+], MarkersEditDialog.prototype, "_hook", void 0);
 MarkersEditDialog = __decorate([
     core_1.Component({
         selector: 'markers-edit-dialog',
