@@ -218,11 +218,7 @@ class SpawnProcess extends Events.EventEmitter{
             this.alias      = this.setAlias(parts[0]);
             this.parameters = parts.length > 1 ? parts.slice(1, parts.length) : [];
         }
-        if (typeof this.path !== 'string' || this.path.trim() === '') {
-            this.path = this.setPath('');
-        } else {
-            this.path = this.setPath(this.path);
-        }
+        this.path = this.setPath(this.path);
         return this.error === null;
     }
 
