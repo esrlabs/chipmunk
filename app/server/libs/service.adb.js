@@ -52,7 +52,14 @@ class SpawnProcess {
         }
         path = this.getPath(path);
         try {
-            this.spawn = spawn(this.adbAlias, ['logcat', '-b', 'all'], {
+            //Clear before
+            spawn(this.adbAlias, ['logcat', '-c'], {
+                env: {
+                    PATH: path
+                }
+            });
+            //Start
+            this.spawn = spawn(this.adbAlias, ['logcat', '-b', 'all', '-v', 'color'], {
                 env: {
                     PATH: path
                 }

@@ -154,7 +154,8 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED,
             Configuration.sets.SYSTEM_EVENTS.REQUESTS_APPLIED,
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
-            Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED].forEach((handle: string)=>{
+            Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED,
+            Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED].forEach((handle: string)=>{
             this['on' + handle] = this['on' + handle].bind(this);
             Events.bind(handle, this['on' + handle]);
         });
@@ -188,7 +189,8 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED,
             Configuration.sets.SYSTEM_EVENTS.REQUESTS_APPLIED,
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
-            Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED].forEach((handle: string)=>{
+            Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED,
+            Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED].forEach((handle: string)=>{
             Events.unbind(handle, this['on' + handle]);
         });
         this.onScrollSubscription.  unsubscribe();
@@ -664,10 +666,17 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         }
     }
 
-    clearOutput(){
+    clearOutput(silence: boolean = false){
         this.rows       = [];
         this.rowsCount  = 0;
+        !silence && Events.trigger(Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED, this.viewParams.GUID);
         this.forceUpdate();
+    }
+
+    onVIEW_OUTPUT_IS_CLEARED(GUID: string | symbol){
+        if (this.viewParams.GUID !== GUID){
+            this.clearOutput(true);
+        }
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
