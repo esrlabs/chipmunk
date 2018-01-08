@@ -46,14 +46,15 @@ class SpawnProcess {
         }
     }
 
-    getProcess(path) {
+    getProcess(path, reset = false) {
         if (this.spawn !== null) {
             return this.spawn;
         }
-        path = this.getPath(path);
+        path    = this.getPath(path);
+        reset   = typeof reset === 'boolean' ? reset : false;
         try {
             //Clear before
-            spawn(this.adbAlias, ['logcat', '-c'], {
+            reset && spawn(this.adbAlias, ['logcat', '-c'], {
                 env: {
                     PATH: path
                 }
@@ -105,9 +106,10 @@ class LogcatStream {
     setSettings(settings) {
         settings        = typeof settings === 'object' ? (settings !== null ? settings : {}) : {};
         this.settings   = {
-            pid : typeof settings.pid === 'string' ? (settings.pid.trim() !== '' ? settings.pid : null) : null,
-            tid : typeof settings.tid === 'string' ? (settings.tid.trim() !== '' ? settings.tid : null) : null,
-            tags: settings.tags instanceof Array ? settings.tags : null
+            pid     : typeof settings.pid === 'string' ? (settings.pid.trim() !== '' ? settings.pid : null) : null,
+            tid     : typeof settings.tid === 'string' ? (settings.tid.trim() !== '' ? settings.tid : null) : null,
+            tags    : settings.tags instanceof Array ? settings.tags : null,
+            reset   : typeof settings.reset === 'boolean' ? settings.reset : false
         };
         this.settings.tags instanceof Array && (this.settings.tags = this.settings.tags.filter((tag) => {
             return typeof tag === 'string' ? (tag.trim() !== '') : false;
@@ -278,7 +280,8 @@ class ADBStream {
 
     open(clientGUID, settings, callback){
         let spawn = this.spawnProcess.getProcess(
-            settings !== null ? (typeof settings === 'object' ? settings.path : null) : null
+            settings !== null ? (typeof settings === 'object' ? settings.path   : null) : null,
+            settings !== null ? (typeof settings === 'object' ? settings.reset  : null) : null
         );
         if (spawn === null) {
             return callback(false, new Error(logger.error(`[client ${clientGUID} cannot open logcat stream. Error: ${this.spawnProcess.getError().message}`)));

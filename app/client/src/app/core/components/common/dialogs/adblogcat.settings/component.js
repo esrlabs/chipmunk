@@ -23,6 +23,7 @@ var DialogADBLogcatStreamSettings = (function () {
         this.tid = -1;
         this.pid = -1;
         this.path = '';
+        this.reset = false;
         this.proceed = null;
         this.cancel = null;
         this.onProceed = this.onProceed.bind(this);
@@ -37,7 +38,8 @@ var DialogADBLogcatStreamSettings = (function () {
             levels: levels,
             tid: parseInt(this._tid.getValue(), 10),
             pid: parseInt(this._pid.getValue(), 10),
-            path: this._path.getValue()
+            path: this._path.getValue(),
+            reset: this._reset.getValue()
         });
     };
     return DialogADBLogcatStreamSettings;
@@ -82,6 +84,10 @@ __decorate([
     core_1.Input(),
     __metadata("design:type", String)
 ], DialogADBLogcatStreamSettings.prototype, "path", void 0);
+__decorate([
+    core_1.Input(),
+    __metadata("design:type", Boolean)
+], DialogADBLogcatStreamSettings.prototype, "reset", void 0);
 __decorate([
     core_1.Input(),
     __metadata("design:type", Function)
@@ -130,6 +136,10 @@ __decorate([
     core_1.ViewChild('_path'),
     __metadata("design:type", component_2.CommonInput)
 ], DialogADBLogcatStreamSettings.prototype, "_path", void 0);
+__decorate([
+    core_1.ViewChild('_reset'),
+    __metadata("design:type", component_1.SimpleCheckbox)
+], DialogADBLogcatStreamSettings.prototype, "_reset", void 0);
 DialogADBLogcatStreamSettings = __decorate([
     core_1.Component({
         selector: 'dialog-adblogcatstream-settings',

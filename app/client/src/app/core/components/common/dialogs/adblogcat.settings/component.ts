@@ -17,6 +17,7 @@ export class DialogADBLogcatStreamSettings {
     @Input() tid        : number        = -1;
     @Input() pid        : number        = -1;
     @Input() path       : string        = '';
+    @Input() reset      : boolean       = false;
     @Input() proceed    : Function      = null;
     @Input() cancel     : Function      = null;
 
@@ -30,6 +31,7 @@ export class DialogADBLogcatStreamSettings {
     @ViewChild('_tid'           ) _tid      : CommonInput;
     @ViewChild('_pid'           ) _pid      : CommonInput;
     @ViewChild('_path'          ) _path     : CommonInput;
+    @ViewChild('_reset'         ) _reset    : SimpleCheckbox;
 
 
     constructor() {
@@ -45,7 +47,8 @@ export class DialogADBLogcatStreamSettings {
             levels : levels,
             tid    : parseInt(this._tid.getValue(), 10),
             pid    : parseInt(this._pid.getValue(), 10),
-            path   : this._path.getValue()
+            path   : this._path.getValue(),
+            reset  : this._reset.getValue()
         });
     }
 

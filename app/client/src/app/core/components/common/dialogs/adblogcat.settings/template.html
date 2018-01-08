@@ -46,6 +46,13 @@
             <td><span>PATH</span> Define path to adb SDK or leave it empty and let LogViewer detect it automatically.</td>
             <td><div class="input-cover"><common-input  #_path [type]="'text'" [value]="path"></common-input></div></td>
         </tr>
+        <tr>
+            <td class="table-title" colspan="2"><span>Other</span> Other settings of stream</td>
+        </tr>
+        <tr>
+            <td><span>Reset</span> Reset cache of adb logcat before start stream</td>
+            <td><simple-checkbox #_reset [checked]="reset"></simple-checkbox></td>
+        </tr>
     </table>
 </div>
 <div class="buttons">
