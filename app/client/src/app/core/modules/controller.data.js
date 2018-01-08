@@ -117,6 +117,7 @@ var DataController = (function () {
         controller_events_1.events.bind(controller_config_1.configuration.sets.SYSTEM_EVENTS.REMEMBER_FILTER, this.onREMEMBER_FILTER.bind(this));
         controller_events_1.events.bind(controller_config_1.configuration.sets.SYSTEM_EVENTS.FORGET_FILTER, this.onFORGET_FILTER.bind(this));
         controller_events_1.events.bind(controller_config_1.configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_RESET, this.onSEARCH_REQUEST_RESET.bind(this));
+        controller_events_1.events.bind(controller_config_1.configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED, this.onVIEW_OUTPUT_IS_CLEARED.bind(this));
     };
     DataController.prototype.init = function (callback) {
         if (callback === void 0) { callback = null; }
@@ -255,7 +256,7 @@ var DataController = (function () {
         target = processor !== void 0 ? (target.map(function (row, index) {
             if (row.requests[requestGUID] === void 0) {
                 var filtered = filter.value === '' ? true : processor(row.str, filter.value, index + offset);
-                //row.match       = match;
+                row.match = filter.value;
                 row.filters = {};
                 row.matchReg = filter.mode === controller_data_search_modes_1.MODES.REG;
                 row.requests[requestGUID] === void 0 && (row.requests[requestGUID] = filtered);
@@ -398,6 +399,10 @@ var DataController = (function () {
     };
     DataController.prototype.onSEARCH_REQUEST_RESET = function () {
         this.dataFilter = new interface_data_filter_1.DataFilter(controller_data_search_modes_1.MODES.REG, '');
+    };
+    DataController.prototype.onVIEW_OUTPUT_IS_CLEARED = function () {
+        this.onTXT_DATA_COME('', function () {
+        });
     };
     return DataController;
 }());

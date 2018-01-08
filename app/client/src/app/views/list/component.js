@@ -100,7 +100,8 @@ var ViewControllerList = (function (_super) {
             controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_PREV_IN_SEARCH,
             controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_NEXT_IN_SEARCH,
             controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
-            controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED].forEach(function (handle) {
+            controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED,
+            controller_config_1.configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED].forEach(function (handle) {
             _this['on' + handle] = _this['on' + handle].bind(_this);
             controller_events_1.events.bind(handle, _this['on' + handle]);
         });
@@ -137,7 +138,8 @@ var ViewControllerList = (function (_super) {
             controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_PREV_IN_SEARCH,
             controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_NEXT_IN_SEARCH,
             controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
-            controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED].forEach(function (handle) {
+            controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED,
+            controller_config_1.configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED].forEach(function (handle) {
             controller_events_1.events.unbind(handle, _this['on' + handle]);
         });
         this.onScrollSubscription.unsubscribe();
@@ -528,11 +530,18 @@ var ViewControllerList = (function (_super) {
             this.clearFunctionality.inited = false;
         }
     };
-    ViewControllerList.prototype.clearOutput = function () {
+    ViewControllerList.prototype.clearOutput = function (silence) {
+        if (silence === void 0) { silence = false; }
         this.rows = [];
         this.rowsCount = 0;
         this.bookmarks = [];
+        !silence && controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED, this.viewParams.GUID);
         this.forceUpdate();
+    };
+    ViewControllerList.prototype.onVIEW_OUTPUT_IS_CLEARED = function (GUID) {
+        if (this.viewParams.GUID !== GUID) {
+            this.clearOutput(true);
+        }
     };
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Other functionality

@@ -133,6 +133,7 @@ class DataController implements InitiableModule{
         Events.bind(Configuration.sets.SYSTEM_EVENTS.REMEMBER_FILTER,           this.onREMEMBER_FILTER.         bind(this));
         Events.bind(Configuration.sets.SYSTEM_EVENTS.FORGET_FILTER,             this.onFORGET_FILTER.           bind(this));
         Events.bind(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_RESET,      this.onSEARCH_REQUEST_RESET.    bind(this));
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED,    this.onVIEW_OUTPUT_IS_CLEARED.  bind(this));
     }
 
     public init(callback : Function = null){
@@ -279,7 +280,7 @@ class DataController implements InitiableModule{
         target = processor !== void 0 ? (target.map((row, index)=>{
             if (row.requests[requestGUID] === void 0){
                 let filtered    = filter.value === '' ? true : processor(row.str, filter.value, index + offset);
-                //row.match       = match;
+                row.match       = filter.value;
                 row.filters     = {};
                 row.matchReg    = filter.mode === MODES.REG;
                 row.requests[requestGUID] === void 0 && (row.requests[requestGUID] = filtered);
@@ -432,6 +433,12 @@ class DataController implements InitiableModule{
 
     onSEARCH_REQUEST_RESET(){
         this.dataFilter = new DataFilter(MODES.REG, '');
+    }
+
+    onVIEW_OUTPUT_IS_CLEARED(){
+        this.onTXT_DATA_COME('', ()=>{
+
+        });
     }
 
 }
