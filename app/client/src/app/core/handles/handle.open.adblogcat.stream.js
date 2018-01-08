@@ -41,7 +41,8 @@ var DEFAULT_STREAM_SETTINGS = {
     },
     tid: -1,
     pid: -1,
-    path: ''
+    path: '',
+    reset: true
 };
 var SettingsController = (function () {
     function SettingsController() {
@@ -52,7 +53,7 @@ var SettingsController = (function () {
     SettingsController.prototype.load = function () {
         var settings = controller_localsettings_1.localSettings.get();
         if (settings !== null && settings[controller_localsettings_1.KEYs.adblogccat_stream] !== void 0 && settings[controller_localsettings_1.KEYs.adblogccat_stream] !== null) {
-            return Object.assign({}, settings[controller_localsettings_1.KEYs.adblogccat_stream]);
+            return Object.assign({}, this.verify(settings[controller_localsettings_1.KEYs.adblogccat_stream], this.defaults()));
         }
         else {
             return this.defaults();
@@ -66,6 +67,18 @@ var SettingsController = (function () {
         }
         var _a;
     };
+    SettingsController.prototype.verify = function (settings, defaults) {
+        var _this = this;
+        Object.keys(defaults).forEach(function (key) {
+            if (typeof defaults[key] !== typeof settings[key]) {
+                settings[key] = defaults[key];
+            }
+            if (typeof settings[key] === 'object' && settings[key] !== null && !(settings[key] instanceof Array)) {
+                settings[key] = _this.verify(settings[key], defaults[key]);
+            }
+        });
+        return settings;
+    };
     SettingsController.prototype.convert = function (settings) {
         var tags = [];
         ['V', 'I', 'E', 'D', 'F', 'S', 'W'].forEach(function (key) {
@@ -75,7 +88,8 @@ var SettingsController = (function () {
             pid: settings.pid > 0 ? settings.pid.toString() : '',
             tid: settings.tid > 0 ? settings.tid.toString() : '',
             tags: tags.length === 7 ? null : tags,
-            path: settings.path
+            path: settings.path,
+            reset: settings.reset
         };
     };
     return SettingsController;
@@ -167,6 +181,7 @@ var LogcatStream = (function () {
         params.tid = settings.tid;
         params.pid = settings.pid;
         params.path = settings.path;
+        params.reset = settings.reset;
         params.proceed = this.onApplySettings.bind(this, GUID);
         params.cancel = this.onCancelSettings.bind(this, GUID);
         controller_1.popupController.open({
@@ -180,7 +195,7 @@ var LogcatStream = (function () {
                 move: true,
                 resize: true,
                 width: '40rem',
-                height: '35rem',
+                height: '40rem',
                 close: true,
                 addCloseHandle: true,
                 css: ''
@@ -376,6 +391,7 @@ var OpenADBLogcatStream = (function () {
         params.tid = settings.tid;
         params.pid = settings.pid;
         params.path = settings.path;
+        params.reset = settings.reset;
         params.proceed = this.onApplySettings.bind(this, GUID);
         params.cancel = this.onCancelSettings.bind(this, GUID);
         controller_1.popupController.open({
@@ -389,7 +405,7 @@ var OpenADBLogcatStream = (function () {
                 move: true,
                 resize: true,
                 width: '40rem',
-                height: '35rem',
+                height: '40rem',
                 close: true,
                 addCloseHandle: true,
                 css: ''

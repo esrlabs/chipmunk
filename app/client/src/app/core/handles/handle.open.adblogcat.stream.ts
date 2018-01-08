@@ -63,9 +63,10 @@ const DEFAULT_STREAM_SETTINGS = {
         D: true,
         S: true
     },
-    tid : -1,
-    pid : -1,
-    path: ''
+    tid     : -1,
+    pid     : -1,
+    path    : '',
+    reset   : true
 };
 
 interface LocalLevelsSettings {
@@ -82,14 +83,16 @@ interface LocalSettings {
     levels  : LocalLevelsSettings,
     tid     : number,
     pid     : number,
-    path    : string
+    path    : string,
+    reset   : boolean
 }
 
 interface LogcatStreamSettings {
-    pid : string,
-    tid : string,
-    tags: Array<string>,
-    path: string
+    pid     : string,
+    tid     : string,
+    tags    : Array<string>,
+    path    : string,
+    reset   : boolean
 }
 
 class SettingsController{
@@ -101,7 +104,7 @@ class SettingsController{
     load(): LocalSettings{
         let settings = localSettings.get();
         if (settings !== null && settings[KEYs.adblogccat_stream] !== void 0 && settings[KEYs.adblogccat_stream] !== null){
-            return Object.assign({}, settings[KEYs.adblogccat_stream]);
+            return Object.assign({}, this.verify(settings[KEYs.adblogccat_stream], this.defaults()));
         } else {
             return this.defaults();
         }
@@ -115,16 +118,29 @@ class SettingsController{
         }
     }
 
+    verify(settings: any, defaults: any){
+        Object.keys(defaults).forEach((key: string) => {
+            if (typeof defaults[key] !== typeof settings[key]) {
+                settings[key] = defaults[key];
+            }
+            if (typeof settings[key] === 'object' && settings[key] !== null && !(settings[key] instanceof Array)){
+                settings[key] = this.verify(settings[key], defaults[key]);
+            }
+        });
+        return settings;
+    }
+
     convert(settings: LocalSettings): LogcatStreamSettings {
         let tags: Array<string> = [];
         ['V', 'I', 'E', 'D', 'F', 'S', 'W'].forEach((key)=>{
             settings.levels[key] && tags.push(key);
         });
         return {
-            pid : settings.pid > 0 ? settings.pid.toString() : '',
-            tid : settings.tid > 0 ? settings.tid.toString() : '',
-            tags: tags.length === 7 ? null : tags,
-            path: settings.path
+            pid     : settings.pid > 0 ? settings.pid.toString() : '',
+            tid     : settings.tid > 0 ? settings.tid.toString() : '',
+            tags    : tags.length === 7 ? null : tags,
+            path    : settings.path,
+            reset   : settings.reset
         }
     }
 }
@@ -226,6 +242,7 @@ class LogcatStream {
         params.tid      = settings.tid;
         params.pid      = settings.pid;
         params.path     = settings.path;
+        params.reset    = settings.reset;
         params.proceed  = this.onApplySettings.bind(this, GUID);
         params.cancel   = this.onCancelSettings.bind(this, GUID);
         popupController.open({
@@ -239,7 +256,7 @@ class LogcatStream {
                 move            : true,
                 resize          : true,
                 width           : '40rem',
-                height          : '35rem',
+                height          : '40rem',
                 close           : true,
                 addCloseHandle  : true,
                 css             : ''
@@ -455,6 +472,7 @@ class OpenADBLogcatStream implements MenuHandleInterface{
         params.tid      = settings.tid;
         params.pid      = settings.pid;
         params.path     = settings.path;
+        params.reset    = settings.reset;
         params.proceed  = this.onApplySettings.bind(this, GUID);
         params.cancel   = this.onCancelSettings.bind(this, GUID);
         popupController.open({
@@ -468,7 +486,7 @@ class OpenADBLogcatStream implements MenuHandleInterface{
                 move            : true,
                 resize          : true,
                 width           : '40rem',
-                height          : '35rem',
+                height          : '40rem',
                 close           : true,
                 addCloseHandle  : true,
                 css             : ''
