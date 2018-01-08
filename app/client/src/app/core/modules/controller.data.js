@@ -251,10 +251,10 @@ var DataController = (function () {
     };
     DataController.prototype.updateForFilter = function (filter, rows) {
         var _this = this;
-        var processor = this.getTextParser(filter.mode), requestGUID = this.getRequestGUID(filter.mode, filter.value), measure = tools_logs_1.Logs.measure('[controller.data.ts][updateForFilter]: ' + filter.value), target = rows instanceof Array ? rows : this.data.rows;
+        var processor = this.getTextParser(filter.mode), requestGUID = this.getRequestGUID(filter.mode, filter.value), measure = tools_logs_1.Logs.measure('[controller.data.ts][updateForFilter]: ' + filter.value), target = rows instanceof Array ? rows : this.data.rows, offset = rows instanceof Array ? this.data.rows.length : 0;
         target = processor !== void 0 ? (target.map(function (row, index) {
             if (row.requests[requestGUID] === void 0) {
-                var filtered = filter.value === '' ? true : processor(row.str, filter.value, index);
+                var filtered = filter.value === '' ? true : processor(row.str, filter.value, index + offset);
                 //row.match       = match;
                 row.filters = {};
                 row.matchReg = filter.mode === controller_data_search_modes_1.MODES.REG;

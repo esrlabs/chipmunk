@@ -310,6 +310,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         this._rows. push(...rowsClear);
         this.rows.  push(...rowsFiltered);
         this.checkLength();
+        this.updateTitle();
         this.forceUpdate();
     }
 

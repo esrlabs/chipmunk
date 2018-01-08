@@ -250,6 +250,7 @@ var TabControllerSearchResults = (function (_super) {
         (_a = this._rows).push.apply(_a, rowsClear);
         (_b = this.rows).push.apply(_b, rowsFiltered);
         this.checkLength();
+        this.updateTitle();
         this.forceUpdate();
         var _a, _b;
     };

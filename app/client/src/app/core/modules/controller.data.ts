@@ -274,10 +274,11 @@ class DataController implements InitiableModule{
         let processor   = this.getTextParser(filter.mode),
             requestGUID = this.getRequestGUID(filter.mode, filter.value),
             measure     = Logs.measure('[controller.data.ts][updateForFilter]: ' + filter.value),
-            target      = rows instanceof Array ? rows : this.data.rows;
+            target      = rows instanceof Array ? rows : this.data.rows,
+            offset      = rows instanceof Array ? this.data.rows.length : 0;
         target = processor !== void 0 ? (target.map((row, index)=>{
             if (row.requests[requestGUID] === void 0){
-                let filtered    = filter.value === '' ? true : processor(row.str, filter.value, index);
+                let filtered    = filter.value === '' ? true : processor(row.str, filter.value, index + offset);
                 //row.match       = match;
                 row.filters     = {};
                 row.matchReg    = filter.mode === MODES.REG;
