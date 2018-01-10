@@ -18,6 +18,7 @@ var ViewRequestItem = (function () {
         this.changeDetectorRef = changeDetectorRef;
         this.active = true;
         this.value = '';
+        this.count = 0;
         this.type = '';
         this.foregroundColor = '';
         this.backgroundColor = '';
@@ -92,6 +93,10 @@ var ViewRequestItem = (function () {
             GUID: popup
         });
     };
+    ViewRequestItem.prototype.onClickTriggerState = function () {
+        this.passive = !this.passive;
+        typeof this.onChange === 'function' && this.onChange(this.value, this.foregroundColor, this.backgroundColor, this.type, this.passive);
+    };
     ViewRequestItem.prototype.onActivePassive = function (passive) {
         this.passive = passive;
         typeof this.onChange === 'function' && this.onChange(this.value, this.foregroundColor, this.backgroundColor, this.type, this.passive);
@@ -106,6 +111,10 @@ __decorate([
     core_1.Input(),
     __metadata("design:type", String)
 ], ViewRequestItem.prototype, "value", void 0);
+__decorate([
+    core_1.Input(),
+    __metadata("design:type", Number)
+], ViewRequestItem.prototype, "count", void 0);
 __decorate([
     core_1.Input(),
     __metadata("design:type", String)

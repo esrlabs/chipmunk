@@ -33,6 +33,10 @@ var FILTER_MODES = {
     ONLY_ACTIVE: 'ONLY_ACTIVE',
     ONLY_PASSIVE: 'ONLY_PASSIVE'
 };
+var ON_OFF = {
+    ON: 'On',
+    OFF: 'Off'
+};
 var TabControllerSearchResults = (function (_super) {
     __extends(TabControllerSearchResults, _super);
     function TabControllerSearchResults(componentFactoryResolver, viewContainerRef, changeDetectorRef, sanitizer) {
@@ -69,6 +73,8 @@ var TabControllerSearchResults = (function (_super) {
         _this.bookmarks = [];
         _this.requestsListClosed = true;
         _this.filterMode = FILTER_MODES.ACTIVE_AND_PASSIVE;
+        _this.onOffLabel = ON_OFF.OFF;
+        _this.onOffCache = {};
         _this.conditions = [
             { caption: 'Active from Passive', value: FILTER_MODES.ACTIVE_FROM_PASSIVE },
             { caption: 'Active and Passive', value: FILTER_MODES.ACTIVE_AND_PASSIVE },
@@ -95,6 +101,10 @@ var TabControllerSearchResults = (function (_super) {
         _this.onTabDeselected = _this.onTabDeselected.bind(_this);
         _this.onResizeHandle = _this.onResizeHandle.bind(_this);
         _this.onConditionChanged = _this.onConditionChanged.bind(_this);
+        _this.onSelectAll = _this.onSelectAll.bind(_this);
+        _this.onDeselectAll = _this.onDeselectAll.bind(_this);
+        _this.onInvert = _this.onInvert.bind(_this);
+        _this.onOffOn = _this.onOffOn.bind(_this);
         [controller_config_1.configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED,
             controller_config_1.configuration.sets.SYSTEM_EVENTS.ROW_IS_SELECTED,
             controller_config_1.configuration.sets.SYSTEM_EVENTS.DATA_IS_MODIFIED,
@@ -183,7 +193,10 @@ var TabControllerSearchResults = (function (_super) {
         var _this = this;
         this.requests = requests;
         this._requests = _requests.map(function (request) {
-            request['onChangeState'] = _this.onRequestChanged.bind(_this, request.GUID);
+            request['onChangeState'] = _this.onChangeState.bind(_this, request.GUID);
+            request['onChangeColor'] = _this.onRequestColorChange.bind(_this, request.GUID);
+            request['onRemove'] = _this.onRequestRemove.bind(_this, request.GUID);
+            request['onChange'] = _this.onRequestChange.bind(_this, request.GUID);
             return request;
         });
         this.forceUpdate();
@@ -193,18 +206,91 @@ var TabControllerSearchResults = (function (_super) {
         this.initRows(rows);
         tools_logs_1.Logs.measure(measure);
     };
-    TabControllerSearchResults.prototype.onRequestChanged = function (GUID, active) {
+    TabControllerSearchResults.prototype.clearHandles = function (request) {
+        delete request['onChangeState'];
+        delete request['onChangeColor'];
+        delete request['onRemove'];
+        delete request['onChange'];
+        return request;
+    };
+    TabControllerSearchResults.prototype.onChangeState = function (GUID, active) {
+        var _this = this;
         controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED_OUTSIDE, this._requests.map(function (request) {
-            var result = null;
             GUID === request.GUID && (request.active = active);
-            result = Object.assign({}, request);
-            delete result['onChangeState'];
-            return result;
+            return _this.clearHandles(Object.assign({}, request));
+        }));
+    };
+    TabControllerSearchResults.prototype.onRequestColorChange = function (GUID, foregroundColor, backgroundColor) {
+        var _this = this;
+        controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED_OUTSIDE, this._requests.map(function (request) {
+            GUID === request.GUID && (request.foregroundColor = foregroundColor);
+            GUID === request.GUID && (request.backgroundColor = backgroundColor);
+            return _this.clearHandles(Object.assign({}, request));
+        }));
+    };
+    TabControllerSearchResults.prototype.onRequestRemove = function (GUID) {
+        controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED_OUTSIDE, this._requests.filter(function (request) {
+            return GUID !== request.GUID;
+        }));
+    };
+    TabControllerSearchResults.prototype.onRequestChange = function (GUID, updated, foregroundColor, backgroundColor, type, passive) {
+        var _this = this;
+        controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED_OUTSIDE, this._requests.map(function (request) {
+            if (GUID === request.GUID) {
+                request.value = updated;
+                request.type = type;
+                request.passive = passive;
+                request.foregroundColor = foregroundColor;
+                request.backgroundColor = backgroundColor;
+            }
+            return _this.clearHandles(Object.assign({}, request));
         }));
     };
     TabControllerSearchResults.prototype.onConditionChanged = function (filterMdoe) {
         this.filterMode = filterMdoe;
         this.filterRows();
+    };
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    * Request manage functions
+    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    TabControllerSearchResults.prototype.onSelectAll = function () {
+        var _this = this;
+        controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED_OUTSIDE, this._requests.map(function (request) {
+            request.active = true;
+            return _this.clearHandles(Object.assign({}, request));
+        }));
+    };
+    TabControllerSearchResults.prototype.onDeselectAll = function () {
+        var _this = this;
+        controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED_OUTSIDE, this._requests.map(function (request) {
+            request.active = false;
+            return _this.clearHandles(Object.assign({}, request));
+        }));
+    };
+    TabControllerSearchResults.prototype.onInvert = function () {
+        var _this = this;
+        controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED_OUTSIDE, this._requests.map(function (request) {
+            request.active = !request.active;
+            return _this.clearHandles(Object.assign({}, request));
+        }));
+    };
+    TabControllerSearchResults.prototype.onOffOn = function () {
+        var _this = this;
+        this.onOffLabel = this.onOffLabel === ON_OFF.ON ? ON_OFF.OFF : ON_OFF.ON;
+        switch (this.onOffLabel) {
+            case ON_OFF.OFF:
+                controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED_OUTSIDE, this._requests.map(function (request) {
+                    request.active = _this.onOffCache[request.GUID] !== void 0 ? _this.onOffCache[request.GUID] : true;
+                    return _this.clearHandles(Object.assign({}, request));
+                }));
+                break;
+            case ON_OFF.ON:
+                this._requests.forEach(function (request) {
+                    _this.onOffCache[request.GUID] = request.active;
+                });
+                this.onDeselectAll();
+                break;
+        }
     };
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Tab functions
@@ -248,7 +334,7 @@ var TabControllerSearchResults = (function (_super) {
     };
     TabControllerSearchResults.prototype.addRows = function (rows) {
         if (rows === void 0) { rows = null; }
-        var sources = rows instanceof Array ? rows : [], rowsClear = this.convertRows(sources, this._rows.length), rowsFiltered = this.convertFilterRows(rowsClear);
+        var sources = rows instanceof Array ? rows : [], rowsClear = this.convertRows(sources, this._rows.length), rowsFiltered = this.convertFilterRows(rowsClear, true);
         (_a = this._rows).push.apply(_a, rowsClear);
         (_b = this.rows).push.apply(_b, rowsFiltered);
         this.checkLength();
@@ -309,11 +395,17 @@ var TabControllerSearchResults = (function (_super) {
             return !request.passive;
         });
     };
-    TabControllerSearchResults.prototype.getRowsByRequestsActive = function (rows, requests, exp) {
+    TabControllerSearchResults.prototype.getRowsByRequestsActive = function (rows, requests, exp, adding) {
         var _this = this;
         if (exp === void 0) { exp = {}; }
+        if (adding === void 0) { adding = false; }
         var map = {}, i = 0, result = [], measure = tools_logs_1.Logs.measure('[search.results/tab.results][getRowsByRequestsActive]');
         if (requests.length > 0) {
+            if (!adding) {
+                requests.forEach(function (request) {
+                    request.count = 0;
+                });
+            }
             result = rows.filter(function (row, index) {
                 if (exp[index] === void 0) {
                     var filtered_1 = _this.bookmarks.indexOf(index) !== -1, highlight_1 = {
@@ -326,6 +418,7 @@ var TabControllerSearchResults = (function (_super) {
                             row.requests[request.GUID] && (highlight_1.foregroundColor = request.foregroundColor);
                             row.requests[request.GUID] && (highlight_1.backgroundColor = request.backgroundColor);
                         }
+                        row.requests[request.GUID] && (request.count += 1);
                     });
                     row.params.highlight = highlight_1;
                     row.index = index;
@@ -347,10 +440,16 @@ var TabControllerSearchResults = (function (_super) {
             map: map
         };
     };
-    TabControllerSearchResults.prototype.getRowsByRequestsPassive = function (rows, requests, exp) {
+    TabControllerSearchResults.prototype.getRowsByRequestsPassive = function (rows, requests, exp, adding) {
         if (exp === void 0) { exp = {}; }
+        if (adding === void 0) { adding = false; }
         var map = {}, i = 0, result = [], measure = tools_logs_1.Logs.measure('[search.results/tab.results][getRowsByRequestsPassive]');
         if (requests.length > 0) {
+            if (!adding) {
+                requests.forEach(function (request) {
+                    request.count = 0;
+                });
+            }
             result = rows.filter(function (row, index) {
                 if (exp[index] === void 0) {
                     var filtered_2 = false, highlight_2 = {
@@ -368,6 +467,7 @@ var TabControllerSearchResults = (function (_super) {
                             row.requests[request.GUID] && (highlight_2.foregroundColor = '');
                             row.requests[request.GUID] && (highlight_2.backgroundColor = '');
                         }
+                        !row.requests[request.GUID] && (request.count += 1);
                     });
                     row.params.highlight = highlight_2;
                     row.update !== null && row.update(row.params);
@@ -388,34 +488,36 @@ var TabControllerSearchResults = (function (_super) {
             map: map
         };
     };
-    TabControllerSearchResults.prototype.convertFilterRows = function (rows) {
+    TabControllerSearchResults.prototype.convertFilterRows = function (rows, adding) {
         var _this = this;
+        if (adding === void 0) { adding = false; }
         var active = this.getActiveFilters(), passive = this.getPassiveFilters(), _active = [], _passive = [], _rows = [], result = [], measure = tools_logs_1.Logs.measure('[search.results/tab.results][convertFilterRows]');
         switch (this.filterMode) {
             case FILTER_MODES.ACTIVE_FROM_PASSIVE:
-                _rows = this.getRowsByRequestsPassive(rows, passive).rows;
-                result = this.getRowsByRequestsActive(_rows, active).rows;
+                _rows = this.getRowsByRequestsPassive(rows, passive, {}, adding).rows;
+                result = this.getRowsByRequestsActive(_rows, active, {}, adding).rows;
                 break;
             case FILTER_MODES.ACTIVE_AND_PASSIVE:
-                _active = this.getRowsByRequestsActive(rows, active);
-                _passive = this.getRowsByRequestsPassive(rows, passive, _active.map);
+                _active = this.getRowsByRequestsActive(rows, active, {}, adding);
+                _passive = this.getRowsByRequestsPassive(rows, passive, _active.map, adding);
                 _rows = rows.filter(function (row, index) {
                     return _this.bookmarks.indexOf(index) !== -1 ? true : (_active.map[index] !== void 0 ? true : (_passive.map[index] !== void 0));
                 });
                 result = _rows;
                 break;
             case FILTER_MODES.ONLY_ACTIVE:
-                result = this.getRowsByRequestsActive(rows, active).rows;
+                result = this.getRowsByRequestsActive(rows, active, {}, adding).rows;
                 break;
             case FILTER_MODES.ONLY_PASSIVE:
-                result = this.getRowsByRequestsPassive(rows, passive).rows;
+                result = this.getRowsByRequestsPassive(rows, passive, {}, adding).rows;
                 break;
         }
+        this.synchCounting();
         tools_logs_1.Logs.measure(measure);
         return result;
     };
     TabControllerSearchResults.prototype.filterRows = function () {
-        this.rows = this.convertFilterRows(this._rows);
+        this.rows = this.convertFilterRows(this._rows, false);
         this.updateTitle();
     };
     TabControllerSearchResults.prototype.updateRows = function () {
@@ -483,6 +585,22 @@ var TabControllerSearchResults = (function (_super) {
     };
     TabControllerSearchResults.prototype.serializeHTML = function (html) {
         return html.replace(/</gi, '&lt').replace(/>/gi, '&gt');
+    };
+    TabControllerSearchResults.prototype.synchCounting = function () {
+        var _this = this;
+        this.requests.forEach(function (request) {
+            _this._requests.forEach(function (_request) {
+                _request.GUID === request.GUID && (_request.count = request.count);
+            });
+        });
+    };
+    TabControllerSearchResults.prototype.resetCounts = function () {
+        this.requests.forEach(function (request) {
+            request.count = 0;
+        });
+        this._requests.forEach(function (request) {
+            request.count = 0;
+        });
     };
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Text selection
@@ -586,6 +704,7 @@ var TabControllerSearchResults = (function (_super) {
         if (silence === void 0) { silence = false; }
         this.rows = [];
         this.rowsCount = 0;
+        this.resetCounts();
         !silence && controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED, this.viewParams.GUID);
         this.forceUpdate();
     };

@@ -1,8 +1,16 @@
-<span [attr.class]="'trigger' + (active ? ' active': '') + (compact ? ' compact': '')" (click)="onClickTrigger()"></span>
-<span *ngIf="!compact" [attr.class]="'trigger-activity-cover' + (passive ? ' right': '')"></span>
-<span *ngIf="!compact" class="trigger-activity" (click)="onActivePassive(false)">Active</span>
-<span *ngIf="!compact" class="trigger-activity" (click)="onActivePassive(true)">Passive</span>
-<span *ngIf="!compact" class="value" (click)="onClickTriggerSafe()" (dblclick)="onClickEdit()">{{value}}</span>
-<span *ngIf="compact" class="value" (click)="onClickTriggerSafe()" (dblclick)="onClickEdit()">{{passive ? '[P]' : '[A]'}}: {{value}}</span>
-<span *ngIf="!compact" class="color" [style.backgroundColor]="backgroundColor" [style.color]="foregroundColor" (click)="onClickEdit()">example</span>
-<span *ngIf="!compact" class="fa fa-close remove" (click)="onClickRemove()"></span>
+<p *ngIf="!compact" class="full-view">
+    <span [attr.class]="'trigger' + (active ? ' active': '') + (compact ? ' compact': '')" (click)="onClickTrigger()"></span>
+    <span [attr.class]="'trigger-activity-cover' + (passive ? ' right': '')"></span>
+    <span class="trigger-activity" (click)="onActivePassive(false)">Active</span>
+    <span class="trigger-activity" (click)="onActivePassive(true)">Passive</span>
+    <span class="value" (click)="onClickTriggerSafe()" (dblclick)="onClickEdit()">{{value}}</span>
+    <span class="color" [style.backgroundColor]="backgroundColor" [style.color]="foregroundColor" (click)="onClickEdit()">example</span>
+    <span class="fa fa-close remove" (click)="onClickRemove()"></span>
+</p>
+<p *ngIf="compact" class="compact-view">
+    <span [attr.class]="'trigger' + (active ? ' active': '') + (compact ? ' compact': '')" (click)="onClickTrigger()"></span>
+    <span class="value" (click)="onClickTriggerSafe()" (dblclick)="onClickEdit()">{{count > 0 ? ('(' + count + ') ') : ''}} {{value}}</span>
+    <span class="trigger-state" (click)="onClickTriggerState()">{{passive ? '[P]' : '[A]'}}</span>
+    <span class="fa fa-paint-brush color" (click)="onClickEdit()" [style.color]="foregroundColor"></span>
+    <span class="fa fa-close remove" (click)="onClickRemove()"></span>
+</p>

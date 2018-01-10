@@ -16,6 +16,7 @@ import { GUID                                   } from '../../../../core/modules
 export class ViewRequestItem implements OnInit, OnDestroy, AfterViewInit {
     @Input() active         : boolean       = true;
     @Input() value          : string        = '';
+    @Input() count          : number        = 0;
     @Input() type           : string        = '';
     @Input() foregroundColor: string        = '';
     @Input() backgroundColor: string        = '';
@@ -104,6 +105,11 @@ export class ViewRequestItem implements OnInit, OnDestroy, AfterViewInit {
             titlebuttons    : [],
             GUID            : popup
         });
+    }
+
+    onClickTriggerState(){
+        this.passive = !this.passive;
+        typeof this.onChange === 'function' && this.onChange(this.value, this.foregroundColor, this.backgroundColor, this.type, this.passive);
     }
 
     onActivePassive(passive: boolean){

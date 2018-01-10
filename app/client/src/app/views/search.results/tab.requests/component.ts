@@ -91,7 +91,8 @@ export class TabControllerSearchRequests extends TabController implements OnDest
                 foregroundColor : SETTINGS.FOREGROUND_COLOR,
                 backgroundColor : SETTINGS.BACKGROUND_COLOR,
                 active          : true,
-                passive         : false
+                passive         : false,
+                count           : 0
             });
         } else {
             this.currentRequest = null;
@@ -108,7 +109,8 @@ export class TabControllerSearchRequests extends TabController implements OnDest
                 foregroundColor : SETTINGS.FOREGROUND_COLOR,
                 backgroundColor : SETTINGS.BACKGROUND_COLOR,
                 active          : true,
-                passive         : false
+                passive         : false,
+                count           : 0
             }));
             this.onRequestsChanges();
         }
@@ -179,6 +181,7 @@ export class TabControllerSearchRequests extends TabController implements OnDest
             active          : request.active,
             type            : request.type,
             passive         : request.passive,
+            count           : request.count !== void 0 ? request.count : 0,
             onChangeColor   : this.onRequestColorChange. bind(this, request.value),
             onRemove        : this.onRequestRemove.      bind(this, request.value),
             onChangeState   : this.onRequestChangeState. bind(this, request.value),
@@ -225,7 +228,8 @@ export class TabControllerSearchRequests extends TabController implements OnDest
                     foregroundColor : foregroundColor,
                     backgroundColor : backgroundColor,
                     active          : this.requests[index].active,
-                    passive         : passive
+                    passive         : passive,
+                    count           : this.requests[index].count !== void 0 ? this.requests[index].count : 0
                 });
             } else {
                 let index = this.getRequestIndexByHook(updated);
@@ -284,7 +288,8 @@ export class TabControllerSearchRequests extends TabController implements OnDest
                     type            : request.type,
                     foregroundColor : request.foregroundColor,
                     backgroundColor : request.backgroundColor,
-                    active          : request.active
+                    active          : request.active,
+                    count           : request.count !== void 0 ? request.count : 0
                 }
             });
     }

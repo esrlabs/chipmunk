@@ -17,7 +17,7 @@ view-controller-search-results{
         transition          : all ease-in-out 100ms;
         background          : @light;
         &.list-opened{
-            right: 15rem;
+            right: 18rem;
         }
     }
     .lv-manager-wrapper{
@@ -80,7 +80,7 @@ view-controller-search-results{
             position    : absolute;
             display     : block;
             top         : 2rem;
-            bottom      : 0;
+            bottom      : 2rem;
             left        : 2.25rem;
             right       : 0;
             overflow-x  : hidden;
@@ -109,8 +109,24 @@ view-controller-search-results{
                 right   : 0.25rem;
             }
         }
+        .lv-manager-fast-actions-area{
+            position    : absolute;
+            display     : block;
+            bottom      : 0rem;
+            height      : 2rem;
+            left        : 2.25rem;
+            right       : 0;
+            overflow    : hidden;
+            padding     : 0.25rem 0 0 0;
+            margin      : 0;
+            button-flat-text span {
+                margin: 0.25rem;
+                padding: 0.10rem 0.25rem;
+                font-size: 0.85rem;
+            }
+        }
         &.opened{
-            width: 15rem;
+            width: 18rem;
             .lv-manager-trigger{
                 -webkit-transform   : rotate(180deg);
                 -moz-transform      : rotate(180deg);

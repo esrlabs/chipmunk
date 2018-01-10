@@ -90,7 +90,8 @@ var TabControllerSearchRequests = (function (_super) {
                 foregroundColor: SETTINGS.FOREGROUND_COLOR,
                 backgroundColor: SETTINGS.BACKGROUND_COLOR,
                 active: true,
-                passive: false
+                passive: false,
+                count: 0
             });
         }
         else {
@@ -107,7 +108,8 @@ var TabControllerSearchRequests = (function (_super) {
                 foregroundColor: SETTINGS.FOREGROUND_COLOR,
                 backgroundColor: SETTINGS.BACKGROUND_COLOR,
                 active: true,
-                passive: false
+                passive: false,
+                count: 0
             }));
             this.onRequestsChanges();
         }
@@ -172,6 +174,7 @@ var TabControllerSearchRequests = (function (_super) {
             active: request.active,
             type: request.type,
             passive: request.passive,
+            count: request.count !== void 0 ? request.count : 0,
             onChangeColor: this.onRequestColorChange.bind(this, request.value),
             onRemove: this.onRequestRemove.bind(this, request.value),
             onChangeState: this.onRequestChangeState.bind(this, request.value),
@@ -214,7 +217,8 @@ var TabControllerSearchRequests = (function (_super) {
                     foregroundColor: foregroundColor,
                     backgroundColor: backgroundColor,
                     active: this.requests[index].active,
-                    passive: passive
+                    passive: passive,
+                    count: this.requests[index].count !== void 0 ? this.requests[index].count : 0
                 });
             }
             else {
@@ -270,7 +274,8 @@ var TabControllerSearchRequests = (function (_super) {
                 type: request.type,
                 foregroundColor: request.foregroundColor,
                 backgroundColor: request.backgroundColor,
-                active: request.active
+                active: request.active,
+                count: request.count !== void 0 ? request.count : 0
             };
         });
     };

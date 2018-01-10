@@ -40,6 +40,11 @@ const FILTER_MODES = {
     ONLY_PASSIVE        : 'ONLY_PASSIVE'
 };
 
+const ON_OFF = {
+    ON : 'On',
+    OFF: 'Off'
+};
+
 @Component({
     selector        : 'tab-search-results',
     templateUrl     : './template.html',
@@ -91,6 +96,9 @@ export class TabControllerSearchResults extends TabController implements ViewInt
     private bookmarks           : Array<number>                 = [];
     private requestsListClosed  : boolean                       = true;
     private filterMode          : string                        = FILTER_MODES.ACTIVE_AND_PASSIVE;
+    private onOffLabel          : string                        = ON_OFF.OFF;
+    private onOffCache          : Object                        = {};
+
     private conditions          : Array<SimpleListItem>         = [
         { caption: 'Active from Passive',   value: FILTER_MODES.ACTIVE_FROM_PASSIVE     },
         { caption: 'Active and Passive',    value: FILTER_MODES.ACTIVE_AND_PASSIVE      },
@@ -139,7 +147,10 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         this.onTabDeselected            = this.onTabDeselected.     bind(this);
         this.onResizeHandle             = this.onResizeHandle.      bind(this);
         this.onConditionChanged         = this.onConditionChanged.  bind(this);
-
+        this.onSelectAll                = this.onSelectAll.         bind(this);
+        this.onDeselectAll              = this.onDeselectAll.       bind(this);
+        this.onInvert                   = this.onInvert.            bind(this);
+        this.onOffOn                    = this.onOffOn.             bind(this);
         [   Configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED,
             Configuration.sets.SYSTEM_EVENTS.ROW_IS_SELECTED,
             Configuration.sets.SYSTEM_EVENTS.DATA_IS_MODIFIED,
@@ -232,7 +243,10 @@ export class TabControllerSearchResults extends TabController implements ViewInt
     onREQUESTS_HISTORY_UPDATED(requests: Array<Request>, _requests: Array<Request>){
         this.requests   = requests;
         this._requests  = _requests.map((request)=>{
-            request['onChangeState'] = this.onRequestChanged.bind(this, request.GUID);
+            request['onChangeState']    = this.onChangeState.bind(this, request.GUID);
+            request['onChangeColor']    = this.onRequestColorChange.bind(this, request.GUID);
+            request['onRemove']         = this.onRequestRemove.bind(this, request.GUID);
+            request['onChange']         = this.onRequestChange.bind(this, request.GUID);
             return request;
         });
         this.forceUpdate();
@@ -244,19 +258,107 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         Logs.measure(measure);
     }
 
-    onRequestChanged(GUID: string, active: boolean){
+    clearHandles(request: Request){
+        delete request['onChangeState'];
+        delete request['onChangeColor'];
+        delete request['onRemove'];
+        delete request['onChange'];
+        return request;
+    }
+
+    onChangeState(GUID: string, active: boolean){
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED_OUTSIDE, this._requests.map((request)=>{
-            let result = null;
             GUID === request.GUID && (request.active = active);
-            result = Object.assign({}, request);
-            delete result['onChangeState'];
-            return result;
+            return this.clearHandles(
+                Object.assign({}, request)
+            );
+        }));
+    }
+
+    onRequestColorChange(GUID: string, foregroundColor: string, backgroundColor: string){
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED_OUTSIDE, this._requests.map((request)=>{
+            GUID === request.GUID && (request.foregroundColor = foregroundColor);
+            GUID === request.GUID && (request.backgroundColor = backgroundColor);
+            return this.clearHandles(
+                Object.assign({}, request)
+            );
+        }));
+    }
+
+    onRequestRemove(GUID: string){
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED_OUTSIDE, this._requests.filter((request)=>{
+            return GUID !== request.GUID;
+        }));
+    }
+
+    onRequestChange(GUID: string, updated: string, foregroundColor: string, backgroundColor: string, type: string, passive: boolean){
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED_OUTSIDE, this._requests.map((request)=>{
+            if (GUID === request.GUID) {
+                request.value           = updated;
+                request.type            = type;
+                request.passive         = passive;
+                request.foregroundColor = foregroundColor;
+                request.backgroundColor = backgroundColor;
+            }
+            return this.clearHandles(
+                Object.assign({}, request)
+            );
         }));
     }
 
     onConditionChanged(filterMdoe: string){
         this.filterMode = filterMdoe;
         this.filterRows();
+    }
+
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    * Request manage functions
+    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    onSelectAll(){
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED_OUTSIDE, this._requests.map((request)=>{
+            request.active = true;
+            return this.clearHandles(
+                Object.assign({}, request)
+            );
+        }));
+    }
+
+    onDeselectAll(){
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED_OUTSIDE, this._requests.map((request)=>{
+            request.active = false;
+            return this.clearHandles(
+                Object.assign({}, request)
+            );
+        }));
+    }
+
+    onInvert(){
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED_OUTSIDE, this._requests.map((request)=>{
+            request.active = !request.active;
+            return this.clearHandles(
+                Object.assign({}, request)
+            );
+        }));
+    }
+
+    onOffOn(){
+        this.onOffLabel = this.onOffLabel === ON_OFF.ON ? ON_OFF.OFF : ON_OFF.ON;
+        switch (this.onOffLabel){
+            case ON_OFF.OFF:
+                Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED_OUTSIDE, this._requests.map((request)=>{
+                    request.active = this.onOffCache[request.GUID] !== void 0 ? this.onOffCache[request.GUID] : true;
+                    return this.clearHandles(
+                        Object.assign({}, request)
+                    );
+                }));
+                break;
+            case ON_OFF.ON:
+                this._requests.forEach((request)=>{
+                    this.onOffCache[request.GUID] = request.active;
+                });
+                this.onDeselectAll();
+                break;
+        }
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -308,7 +410,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
     addRows(rows : Array<DataRow> = null){
         let sources     = rows instanceof Array ? rows : [],
             rowsClear   = this.convertRows(sources, this._rows.length),
-            rowsFiltered= this.convertFilterRows(rowsClear);
+            rowsFiltered= this.convertFilterRows(rowsClear, true);
         this._rows. push(...rowsClear);
         this.rows.  push(...rowsFiltered);
         this.checkLength();
@@ -371,12 +473,17 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         });
     }
 
-    getRowsByRequestsActive(rows: Array<any>, requests: Array<Request>, exp: any = {}){
+    getRowsByRequestsActive(rows: Array<any>, requests: Array<Request>, exp: any = {}, adding: boolean = false){
         let map     = {},
             i       = 0,
             result  = [],
             measure = Logs.measure('[search.results/tab.results][getRowsByRequestsActive]');
         if (requests.length > 0){
+            if (!adding) {
+                requests.forEach((request: Request) => {
+                    request.count = 0;
+                });
+            }
             result = rows.filter((row, index)=>{
                 if (exp[index] === void 0){
                     let filtered    = this.bookmarks.indexOf(index) !== -1,
@@ -390,6 +497,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
                             row.requests[request.GUID] && (highlight.foregroundColor = request.foregroundColor);
                             row.requests[request.GUID] && (highlight.backgroundColor = request.backgroundColor);
                         }
+                        row.requests[request.GUID] && (request.count += 1);
                     });
                     row.params.highlight    = highlight;
                     row.index               = index;
@@ -411,12 +519,17 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         };
     }
 
-    getRowsByRequestsPassive(rows: Array<any>, requests: Array<Request>, exp: any = {}){
+    getRowsByRequestsPassive(rows: Array<any>, requests: Array<Request>, exp: any = {}, adding: boolean = false){
         let map     = {},
             i       = 0,
             result  = [],
             measure = Logs.measure('[search.results/tab.results][getRowsByRequestsPassive]');
         if (requests.length > 0){
+            if (!adding) {
+                requests.forEach((request: Request) => {
+                    request.count = 0;
+                });
+            }
             result = rows.filter((row, index)=>{
                 if (exp[index] === void 0){
                     let filtered    = false,
@@ -434,6 +547,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
                             row.requests[request.GUID] && (highlight.foregroundColor = '');
                             row.requests[request.GUID] && (highlight.backgroundColor = '');
                         }
+                        !row.requests[request.GUID] && (request.count += 1);
                     });
                     row.params.highlight    = highlight;
                     row.update !== null && row.update(row.params);
@@ -454,7 +568,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         };
     }
 
-    convertFilterRows (rows: Array<any>) {
+    convertFilterRows (rows: Array<any>, adding: boolean = false) {
         let active  : Array<Request>    = this.getActiveFilters(),
             passive : Array<Request>    = this.getPassiveFilters(),
             _active : any               = [],
@@ -464,30 +578,31 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             measure                     = Logs.measure('[search.results/tab.results][convertFilterRows]');
         switch (this.filterMode){
             case FILTER_MODES.ACTIVE_FROM_PASSIVE:
-                _rows   = this.getRowsByRequestsPassive(rows, passive).rows;
-                result  = this.getRowsByRequestsActive(_rows, active).rows;
+                _rows   = this.getRowsByRequestsPassive(rows, passive, {}, adding).rows;
+                result  = this.getRowsByRequestsActive(_rows, active, {}, adding).rows;
                 break;
             case FILTER_MODES.ACTIVE_AND_PASSIVE:
-                _active     = this.getRowsByRequestsActive  (rows, active);
-                _passive    = this.getRowsByRequestsPassive (rows, passive, _active.map);
+                _active     = this.getRowsByRequestsActive  (rows, active, {}, adding);
+                _passive    = this.getRowsByRequestsPassive (rows, passive, _active.map, adding);
                 _rows       = rows.filter((row, index)=>{
                     return this.bookmarks.indexOf(index) !== -1 ? true : (_active.map[index] !== void 0 ? true : (_passive.map[index] !== void 0));
                 });
                 result = _rows;
                 break;
             case FILTER_MODES.ONLY_ACTIVE:
-                result = this.getRowsByRequestsActive (rows, active).rows;
+                result = this.getRowsByRequestsActive (rows, active, {}, adding).rows;
                 break;
             case FILTER_MODES.ONLY_PASSIVE:
-                result = this.getRowsByRequestsPassive(rows, passive).rows;
+                result = this.getRowsByRequestsPassive(rows, passive, {}, adding).rows;
                 break;
         }
+        this.synchCounting();
         Logs.measure(measure);
         return result;
     }
 
     filterRows(){
-        this.rows = this.convertFilterRows(this._rows);
+        this.rows = this.convertFilterRows(this._rows, false);
         this.updateTitle();
     }
 
@@ -559,6 +674,23 @@ export class TabControllerSearchResults extends TabController implements ViewInt
 
     serializeHTML(html: string){
         return html.replace(/</gi, '&lt').replace(/>/gi, '&gt');
+    }
+
+    synchCounting(){
+        this.requests.forEach((request: Request) => {
+            this._requests.forEach((_request: Request) => {
+                _request.GUID === request.GUID && (_request.count = request.count);
+            });
+        });
+    }
+
+    resetCounts(){
+        this.requests.forEach((request: Request) => {
+            request.count = 0;
+        });
+        this._requests.forEach((request: Request) => {
+            request.count = 0;
+        });
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -669,6 +801,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
     clearOutput(silence: boolean = false){
         this.rows       = [];
         this.rowsCount  = 0;
+        this.resetCounts();
         !silence && Events.trigger(Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED, this.viewParams.GUID);
         this.forceUpdate();
     }
