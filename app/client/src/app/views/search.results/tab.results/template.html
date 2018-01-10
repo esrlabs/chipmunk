@@ -15,9 +15,19 @@
             <simple-dd-list [items]="conditions" [css]="'drop-down-list'" [onChange]="onConditionChanged" [defaults]="filterMode"></simple-dd-list>
         </div>
     </div>
+    <div class="lv-manager-fast-actions-area">
+        <button-flat-text [caption]="onOffLabel" [handle]="onOffOn"></button-flat-text>
+        <button-flat-text [caption]="'Deselect'" [handle]="onDeselectAll"></button-flat-text>
+        <button-flat-text [caption]="'Select'" [handle]="onSelectAll"></button-flat-text>
+        <button-flat-text [caption]="'Invert'" [handle]="onInvert"></button-flat-text>
+    </div>
     <ul class="lv-manager-list">
        <li *ngFor="let request of _requests;">
            <view-request-item [onChangeState]="request.onChangeState"
+                              [onChange]="request.onChange"
+                              [onChangeColor]="request.onChangeColor"
+                              [onRemove]="request.onRemove"
+                              [count]="request.count"
                               [value]="request.value"
                               [active]="request.active"
                               [passive]="request.passive"

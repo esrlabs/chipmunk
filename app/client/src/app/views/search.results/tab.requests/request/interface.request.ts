@@ -5,7 +5,8 @@ interface Request{
     foregroundColor : string,
     backgroundColor : string,
     active          : boolean,
-    passive         : boolean
+    passive         : boolean,
+    count           : number
 }
 
 export { Request };
