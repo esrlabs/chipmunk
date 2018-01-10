@@ -59,8 +59,14 @@ class SpawnProcess {
                     PATH: path
                 }
             });
+            //Set buffer size
+            spawn(this.adbAlias, ['logcat', '-G', '1m'], {
+                env: {
+                    PATH: path
+                }
+            });
             //Start
-            this.spawn = spawn(this.adbAlias, ['logcat', '-G', '1m', '-b', 'all', '-v', 'color'], {
+            this.spawn = spawn(this.adbAlias, ['logcat', '-b', 'all', '-v', 'color'], {
                 env: {
                     PATH: path
                 }
