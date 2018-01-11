@@ -155,6 +155,7 @@ var OpenTerminalStream = (function () {
         this.showProgress(_('Please wait... Opening...'));
         this.closeStream();
         this.processor.send(api_commands_1.APICommands.openProcessStream, {
+            path: params.path,
             alias: params.alias,
             parameters: params.parameters,
             keywords: params.keywords
@@ -279,6 +280,7 @@ var OpenTerminalStream = (function () {
             return false;
         }
         var params = {
+            path: data.path,
             alias: parts[0],
             parameters: parts.length > 1 ? parts.splice(1, parts.length) : [],
             keywords: data.keywords.split(';')

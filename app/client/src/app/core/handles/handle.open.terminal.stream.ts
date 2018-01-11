@@ -22,6 +22,7 @@ interface IncomeData{
 
 interface StreamParameters {
     alias       : string,
+    path        : string,
     parameters  : Array<string>,
     keywords    : Array<string>
 }
@@ -198,6 +199,7 @@ class OpenTerminalStream implements MenuHandleInterface{
         this.processor.send(
             APICommands.openProcessStream,
             {
+                path        : params.path,
                 alias       : params.alias,
                 parameters  : params.parameters,
                 keywords    : params.keywords
@@ -328,6 +330,7 @@ class OpenTerminalStream implements MenuHandleInterface{
             return false;
         }
         let params : StreamParameters = {
+            path        : data.path,
             alias       : parts[0],
             parameters  : parts.length > 1 ? parts.splice(1, parts.length) : [],
             keywords    : data.keywords.split(';')
