@@ -20,6 +20,7 @@ export class MarkersEditDialog {
         this.onForegroundColorSelected  = this.onForegroundColorSelected.bind(this);
         this.onBackgroundColorSelected  = this.onBackgroundColorSelected.bind(this);
         this.onApply                    = this.onApply.bind(this);
+        this.onReset                    = this.onReset.bind(this);
     }
 
     forceUpdate(){
@@ -45,6 +46,14 @@ export class MarkersEditDialog {
                 foregroundColor : this.foregroundColor
             });
         }
+    }
+
+    onReset(){
+        typeof this.callback === 'function' && this.callback({
+            hook            : this.hook,
+            backgroundColor : '',
+            foregroundColor : ''
+        });
     }
 
 }

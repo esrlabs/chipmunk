@@ -22,6 +22,7 @@ var MarkersEditDialog = (function () {
         this.onForegroundColorSelected = this.onForegroundColorSelected.bind(this);
         this.onBackgroundColorSelected = this.onBackgroundColorSelected.bind(this);
         this.onApply = this.onApply.bind(this);
+        this.onReset = this.onReset.bind(this);
     }
     MarkersEditDialog.prototype.forceUpdate = function () {
         this.changeDetectorRef.detectChanges();
@@ -43,6 +44,13 @@ var MarkersEditDialog = (function () {
                 foregroundColor: this.foregroundColor
             });
         }
+    };
+    MarkersEditDialog.prototype.onReset = function () {
+        typeof this.callback === 'function' && this.callback({
+            hook: this.hook,
+            backgroundColor: '',
+            foregroundColor: ''
+        });
     };
     return MarkersEditDialog;
 }());
