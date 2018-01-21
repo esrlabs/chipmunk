@@ -79,7 +79,7 @@ export class TabControllerSearchRequests extends TabController implements OnDest
      * Core events
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     onDATA_FILTER_IS_UPDATED(event : EVENT_DATA_IS_UPDATED){
-
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED, event.rows);
     }
 
     onSEARCH_REQUEST_CHANGED(event: DataFilter){
@@ -155,8 +155,9 @@ export class TabControllerSearchRequests extends TabController implements OnDest
                 });
             });
             Logs.measure(measure);
+        } else {
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED, dataController.getRows());
         }
-        Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_APPLIED, dataController.getRows());
     }
 
     isExist(mode: string, value: string){

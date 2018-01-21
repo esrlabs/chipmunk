@@ -1,5 +1,5 @@
-import { Logs, TYPES                                                    } from '../tools.logs';
-import { ParserDataIndex,  ParserData, ParserClass, ParsedResultIndexes } from './controller.data.parsers.tracker.inerfaces';
+import { Logs, TYPES            } from '../tools.logs.js';
+import { ParsedResultIndexes    } from './controller.data.parsers.tracker.inerfaces.js';
 
 
 class Generator {

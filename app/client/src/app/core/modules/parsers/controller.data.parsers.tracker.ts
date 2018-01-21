@@ -1,9 +1,7 @@
-import { Logs, TYPES                                                    } from '../tools.logs';
-import { GUID                                                           } from '../tools.guid';
-import { configuration as Configuration                                 } from '../../../core/modules/controller.config';
-import { ParserDataIndex,  ParserData, ParserClass, ParsedResultIndexes } from './controller.data.parsers.tracker.inerfaces';
-import { generator                                                      } from './controller.data.parsers.tracker.generator';
-import { Manager                                                        } from './controller.data.parsers.tracker.manager';
+
+import { ParserData, ParserClass, ParsedResultIndexes   } from './controller.data.parsers.tracker.inerfaces.js';
+import { generator                                      } from './controller.data.parsers.tracker.generator.js';
+import { Manager                                        } from './controller.data.parsers.tracker.manager.js';
 
 class Parser implements ParserClass{
     protected manager   : Manager   = new Manager();

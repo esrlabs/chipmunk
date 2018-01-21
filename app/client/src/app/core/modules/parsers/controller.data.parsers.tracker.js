@@ -1,16 +1,16 @@
 "use strict";
-var controller_data_parsers_tracker_generator_1 = require("./controller.data.parsers.tracker.generator");
-var controller_data_parsers_tracker_manager_1 = require("./controller.data.parsers.tracker.manager");
+var controller_data_parsers_tracker_generator_js_1 = require("./controller.data.parsers.tracker.generator.js");
+var controller_data_parsers_tracker_manager_js_1 = require("./controller.data.parsers.tracker.manager.js");
 var Parser = (function () {
     function Parser() {
-        this.manager = new controller_data_parsers_tracker_manager_1.Manager();
+        this.manager = new controller_data_parsers_tracker_manager_js_1.Manager();
         this.sets = null;
         this.sets = this.manager.load();
     }
     Parser.prototype.parseSegmentType = function (str, data, GUID) {
         function apply(income, regsStr, output) {
             regsStr.forEach(function (regStr) {
-                var reg = controller_data_parsers_tracker_generator_1.generator.getRegExp(regStr), matches = [];
+                var reg = controller_data_parsers_tracker_generator_js_1.generator.getRegExp(regStr), matches = [];
                 if (reg !== null) {
                     matches = regStr !== '' ? income.match(reg) : [income];
                     if (matches instanceof Array && matches.length > 0) {
@@ -26,8 +26,8 @@ var Parser = (function () {
         //Step 0. Get segments
         segments = apply(str, data.segments, segments);
         //Check cache
-        key = controller_data_parsers_tracker_generator_1.generator.getKey(GUID, segments);
-        result = controller_data_parsers_tracker_generator_1.generator.load(key);
+        key = controller_data_parsers_tracker_generator_js_1.generator.getKey(GUID, segments);
+        result = controller_data_parsers_tracker_generator_js_1.generator.load(key);
         if (result === null) {
             result = [];
             //Step 1. Get values from segments
@@ -37,7 +37,7 @@ var Parser = (function () {
             //Step 2. Clean up values
             values = values.map(function (value) {
                 data.clearing.forEach(function (parserRegStr) {
-                    value = value.replace(controller_data_parsers_tracker_generator_1.generator.getRegExp(parserRegStr), '');
+                    value = value.replace(controller_data_parsers_tracker_generator_js_1.generator.getRegExp(parserRegStr), '');
                 });
                 return value;
             });
@@ -54,19 +54,19 @@ var Parser = (function () {
                 }
             }).filter(function (item) { return item !== null; });
             //Step 4. Save cache
-            result.length > 0 && controller_data_parsers_tracker_generator_1.generator.save(key, result);
+            result.length > 0 && controller_data_parsers_tracker_generator_js_1.generator.save(key, result);
         }
         return result;
     };
     Parser.prototype.parseKeysType = function (str, data, GUID) {
         var result = [], actual = false, key = '';
         data.tests.forEach(function (test) {
-            var reg = controller_data_parsers_tracker_generator_1.generator.getRegExp(test);
+            var reg = controller_data_parsers_tracker_generator_js_1.generator.getRegExp(test);
             !actual && (actual = reg.test(str));
         });
         if (actual) {
-            key = controller_data_parsers_tracker_generator_1.generator.getKey(GUID, [str]);
-            result = controller_data_parsers_tracker_generator_1.generator.load(key);
+            key = controller_data_parsers_tracker_generator_js_1.generator.getKey(GUID, [str]);
+            result = controller_data_parsers_tracker_generator_js_1.generator.load(key);
             if (result === null) {
                 result = [];
                 Object.keys(data.indexes).forEach(function (key) {
@@ -77,7 +77,7 @@ var Parser = (function () {
                         });
                     }
                 });
-                result.length > 0 && controller_data_parsers_tracker_generator_1.generator.save(key, result);
+                result.length > 0 && controller_data_parsers_tracker_generator_js_1.generator.save(key, result);
             }
         }
         return result;

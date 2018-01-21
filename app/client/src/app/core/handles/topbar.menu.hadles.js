@@ -44,6 +44,11 @@ var TopBarMenuHandles = (function () {
         var GUID = null;
         controller_1.fileLoaderController.open(Symbol(), {
             load: function (data, files) {
+                function onDATA_IS_UPDATED() {
+                    controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.REMOVE_FROM_ROOT_HOLDER, GUID);
+                    controller_events_1.events.unbind(controller_config_1.configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED, onDATA_IS_UPDATED);
+                }
+                ;
                 if (files instanceof FileList) {
                     var description_1 = '';
                     Array.prototype.forEach.call(files, function (file) {
@@ -53,9 +58,8 @@ var TopBarMenuHandles = (function () {
                     controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.DESCRIPTION_OF_STREAM_UPDATED, description_1);
                 }
                 GUID === null && ShowWaitPopup();
-                controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.TXT_DATA_COME, data, function () {
-                    controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.REMOVE_FROM_ROOT_HOLDER, GUID);
-                });
+                controller_events_1.events.bind(controller_config_1.configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED, onDATA_IS_UPDATED);
+                controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.TXT_DATA_COME, data);
             },
             error: function (event) {
             },

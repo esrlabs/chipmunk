@@ -1,7 +1,8 @@
-import { Logs, TYPES                        } from '../tools.logs';
-import { configuration as Configuration     } from '../../../core/modules/controller.config';
-import { events as Events                   } from '../../../core/modules/controller.events';
-import { localSettings, KEYs                } from '../../../core/modules/controller.localsettings';
+import { configuration          } from '../../../core/modules/controller.config.js';
+import { events as Events       } from '../../../core/modules/controller.events.js';
+import { localSettings, KEYs    } from '../../../core/modules/controller.localsettings.js';
+
+declare var Configuration: any;//We need global one to support worker
 
 const
     DEFAULTS = {
@@ -20,8 +21,12 @@ class Manager{
         let settings = localSettings.get();
         if (settings[KEYs.view_charts] !== void 0 && settings[KEYs.view_charts] !== null && settings[KEYs.view_charts][SETTINGS.SETs] !== void 0){
             return Object.assign({}, settings[KEYs.view_charts][SETTINGS.SETs]);
-        } else {
+        } else if (Object.keys(configuration.sets).length > 0) {
+            return Object.assign({}, configuration.sets.VIEW_TRACKER.sets);
+        } else if (typeof Configuration !== 'undefined'){
             return Object.assign({}, Configuration.sets.VIEW_TRACKER.sets);
+        } else {
+            return null;
         }
     }
 
@@ -33,9 +38,9 @@ class Manager{
             }
         });
         if (needParsing){
-            Events.trigger(Configuration.sets.EVENTS_VIEWS.CHART_VIEW_CHARTS_UPDATED);
+            Events.trigger(configuration.sets.EVENTS_VIEWS.CHART_VIEW_CHARTS_UPDATED);
         } else {
-            Events.trigger(Configuration.sets.EVENTS_VIEWS.CHART_VIEW_CHARTS_STYLE_UPDATED);
+            Events.trigger(configuration.sets.EVENTS_VIEWS.CHART_VIEW_CHARTS_STYLE_UPDATED);
         }
     }
 

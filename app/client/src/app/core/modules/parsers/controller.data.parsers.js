@@ -1,11 +1,11 @@
 "use strict";
-var controller_data_parsers_timestamp_1 = require("./controller.data.parsers.timestamp");
-var controller_data_parsers_tracker_1 = require("./controller.data.parsers.tracker");
+var controller_data_parsers_timestamp_js_1 = require("./controller.data.parsers.timestamp.js");
+var controller_data_parsers_tracker_js_1 = require("./controller.data.parsers.tracker.js");
 var Parsers = (function () {
     function Parsers() {
         this.parsers = {
-            timestamp: new controller_data_parsers_timestamp_1.Timestamp(),
-            tracks: new controller_data_parsers_tracker_1.Parser()
+            timestamp: new controller_data_parsers_timestamp_js_1.Timestamp(),
+            tracks: new controller_data_parsers_tracker_js_1.Parser()
         };
     }
     Parsers.prototype.parse = function (str) {

@@ -1,6 +1,6 @@
 "use strict";
-var tools_logs_1 = require("./tools.logs");
-var tools_objects_merge_1 = require("./tools.objects.merge");
+var tools_logs_js_1 = require("./tools.logs.js");
+var tools_objects_merge_js_1 = require("./tools.objects.merge.js");
 var SETTINGS = {
     KEY: 'logviewer.localstare'
 };
@@ -43,6 +43,9 @@ var ControllerLocalSettings = (function () {
         return result;
     };
     ControllerLocalSettings.prototype.load = function () {
+        if (typeof window === 'undefined') {
+            return null;
+        }
         var result = window.localStorage.getItem(SETTINGS.KEY);
         if (typeof result === 'string') {
             try {
@@ -58,7 +61,9 @@ var ControllerLocalSettings = (function () {
         return result;
     };
     ControllerLocalSettings.prototype.save = function () {
-        window.localStorage.setItem(SETTINGS.KEY, JSON.stringify(this.storage));
+        if (typeof window !== 'undefined') {
+            window.localStorage.setItem(SETTINGS.KEY, JSON.stringify(this.storage));
+        }
     };
     ControllerLocalSettings.prototype.get = function () {
         return Object.assign({}, this.storage);
@@ -72,20 +77,20 @@ var ControllerLocalSettings = (function () {
                     accepted_1[key] = data[key];
                 }
                 else {
-                    tools_logs_1.Logs.msg('Property [' + key + '] is not defined in default settings. Check, please, module [controller.localstorage]', tools_logs_1.TYPES.WARNING);
+                    tools_logs_js_1.Logs.msg('Property [' + key + '] is not defined in default settings. Check, please, module [controller.localstorage]', tools_logs_js_1.TYPES.WARNING);
                 }
             });
-            tools_objects_merge_1.merge(this.storage, accepted_1);
+            tools_objects_merge_js_1.merge(this.storage, accepted_1);
             this.save();
         }
     };
     ControllerLocalSettings.prototype.reset = function (key, reason) {
         if (this.storage[key] !== void 0 && typeof reason === 'string' && reason.trim() !== '') {
             this.storage[key] = {};
-            tools_logs_1.Logs.msg('Property [' + key + '] was reset by reason: ' + reason, tools_logs_1.TYPES.WARNING);
+            tools_logs_js_1.Logs.msg('Property [' + key + '] was reset by reason: ' + reason, tools_logs_js_1.TYPES.WARNING);
         }
         else {
-            tools_logs_1.Logs.msg('Property cannot be reset without defined reason.', tools_logs_1.TYPES.WARNING);
+            tools_logs_js_1.Logs.msg('Property cannot be reset without defined reason.', tools_logs_js_1.TYPES.WARNING);
         }
         this.save();
     };

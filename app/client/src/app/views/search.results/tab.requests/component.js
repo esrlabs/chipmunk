@@ -80,6 +80,7 @@ var TabControllerSearchRequests = (function (_super) {
      * Core events
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     TabControllerSearchRequests.prototype.onDATA_FILTER_IS_UPDATED = function (event) {
+        controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED, event.rows);
     };
     TabControllerSearchRequests.prototype.onSEARCH_REQUEST_CHANGED = function (event) {
         if (event.value !== '') {
@@ -151,7 +152,9 @@ var TabControllerSearchRequests = (function (_super) {
             });
             tools_logs_1.Logs.measure(measure);
         }
-        controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_APPLIED, controller_data_1.dataController.getRows());
+        else {
+            controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED, controller_data_1.dataController.getRows());
+        }
     };
     TabControllerSearchRequests.prototype.isExist = function (mode, value) {
         var result = false;

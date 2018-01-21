@@ -1,5 +1,5 @@
-import { InitiableModule                } from '../interfaces/interface.module.initiable';
-import { configuration as Configuration } from './controller.config';
+import { InitiableModule                } from '../interfaces/interface.module.initiable.js';
+import { configuration as Configuration } from './controller.config.js';
 
 const TYPES = {
     LOG             : 'LOG',
@@ -85,6 +85,7 @@ class Logs implements InitiableModule{
     }
 
     public measure(mark: symbol | string){
+        //TODO: clearing stucked marks.
         typeof mark === 'string' && (mark = Symbol(mark));
         if (this.marks[mark] === void 0){
             this.marks[mark] = performance.now();

@@ -53,6 +53,10 @@ class TopBarMenuHandles{
         let GUID : any = null;
         fileLoaderController.open(Symbol(), {
             load    : (data : string, files: Array<File>)=>{
+                function onDATA_IS_UPDATED(){
+                    Events.trigger(Configuration.sets.SYSTEM_EVENTS.REMOVE_FROM_ROOT_HOLDER, GUID);
+                    Events.unbind(Configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED, onDATA_IS_UPDATED);
+                };
                 if (files instanceof FileList){
                     let description = '';
                     Array.prototype.forEach.call(files, (file : File)=>{
@@ -62,9 +66,8 @@ class TopBarMenuHandles{
                     Events.trigger(Configuration.sets.SYSTEM_EVENTS.DESCRIPTION_OF_STREAM_UPDATED, description);
                 }
                 GUID === null && ShowWaitPopup();
-                Events.trigger(Configuration.sets.SYSTEM_EVENTS.TXT_DATA_COME, data, ()=>{
-                    Events.trigger(Configuration.sets.SYSTEM_EVENTS.REMOVE_FROM_ROOT_HOLDER, GUID);
-                });
+                Events.bind(Configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED, onDATA_IS_UPDATED);
+                Events.trigger(Configuration.sets.SYSTEM_EVENTS.TXT_DATA_COME, data);
             },
             error   :(event : Event)=>{
 
