@@ -6,7 +6,7 @@ const
     EventEmitter    = require('events').EventEmitter;
 
 const STREAM_OPTIONS = {
-    ENTRIES_PER_PACKAGE     : 500,
+    ENTRIES_PER_PACKAGE     : 5000,
     DURATION_PER_DATA_EVENT : 200 //ms. If duration between on Data event less than here, data will be included into one package
 };
 
