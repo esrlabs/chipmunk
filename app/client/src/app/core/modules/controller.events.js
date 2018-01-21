@@ -1,5 +1,5 @@
 "use strict";
-var tools_logs_1 = require("./tools.logs");
+var tools_logs_js_1 = require("./tools.logs.js");
 var GUID = Symbol('__eventsControllerGUIDSymbol');
 var Event = (function () {
     function Event(id) {
@@ -55,20 +55,20 @@ var Events = (function () {
         this.storage = new Map();
     }
     Events.prototype.init = function (callback) {
-        tools_logs_1.Logs.msg('[controller.events][OK]:: ready.', tools_logs_1.TYPES.LOADING);
+        tools_logs_js_1.Logs.msg('[controller.events][OK]:: ready.', tools_logs_js_1.TYPES.LOADING);
         callback();
     };
     Events.prototype.add = function (id) {
         if (id === void 0) { id = ''; }
         if (typeof id === 'string' && id.trim() === '') {
-            tools_logs_1.Logs.msg('[controller.events][TypeError]:: Event name (id) cannot be empty string.', tools_logs_1.TYPES.ERROR);
+            tools_logs_js_1.Logs.msg('[controller.events][TypeError]:: Event name (id) cannot be empty string.', tools_logs_js_1.TYPES.ERROR);
         }
         else if (typeof id === 'string' || typeof id === 'symbol') {
             !this.storage.has(id) && this.storage.set(id, (new Event(id)));
             return this.storage.get(id);
         }
         else {
-            tools_logs_1.Logs.msg('[controller.events][TypeError]:: Event name (id) can be a STRING or SYMBOL.', tools_logs_1.TYPES.ERROR);
+            tools_logs_js_1.Logs.msg('[controller.events][TypeError]:: Event name (id) can be a STRING or SYMBOL.', tools_logs_js_1.TYPES.ERROR);
         }
     };
     Events.prototype.bind = function (id, handle) {
@@ -92,7 +92,7 @@ var Events = (function () {
         }
         var holder = this.storage.get(id);
         holder && holder.handle.apply(holder, args);
-        holder && tools_logs_1.Logs.msg('[controller.events][Triggering]:: ' + id, tools_logs_1.TYPES.EVENT_TRACKING);
+        holder && tools_logs_js_1.Logs.msg('[controller.events][Triggering]:: ' + id, tools_logs_js_1.TYPES.EVENT_TRACKING);
     };
     return Events;
 }());

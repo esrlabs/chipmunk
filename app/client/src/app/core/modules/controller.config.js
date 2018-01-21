@@ -1,8 +1,8 @@
 "use strict";
-var tools_ajax_1 = require("./tools.ajax");
-var tools_objects_validator_1 = require("./tools.objects.validator");
-var tools_logs_1 = require("./tools.logs");
-var interface_configuration_sets_1 = require("../interfaces/interface.configuration.sets");
+var tools_ajax_js_1 = require("./tools.ajax.js");
+var tools_objects_validator_js_1 = require("./tools.objects.validator.js");
+var tools_logs_js_1 = require("./tools.logs.js");
+var interface_configuration_sets_js_1 = require("../interfaces/interface.configuration.sets.js");
 var ALIASES = {
     SETS: 'SETS',
     ORDERING: 'ORDERING'
@@ -17,22 +17,22 @@ var ConfigurationController = (function () {
         this.register = {};
         this.queue = [];
         this.callback = null;
-        this.sets = new interface_configuration_sets_1.ConfigurationSets();
+        this.sets = new interface_configuration_sets_js_1.ConfigurationSets();
     }
     ConfigurationController.prototype.init = function (callback) {
         var _this = this;
         if (callback === void 0) { callback = null; }
-        tools_logs_1.Logs.msg('[controller.config] Start loading configuration.', tools_logs_1.TYPES.LOADING);
-        (new tools_ajax_1.Request({
+        tools_logs_js_1.Logs.msg('[controller.config] Start loading configuration.', tools_logs_js_1.TYPES.LOADING);
+        (new tools_ajax_js_1.Request({
             url: SETTINGS.PATH + SETTINGS.REGISTER,
-            method: new tools_ajax_1.Method(tools_ajax_1.DIRECTIONS.GET),
+            method: new tools_ajax_js_1.Method(tools_ajax_js_1.DIRECTIONS.GET),
             validator: this.validator
         })).then(function (response) {
-            var validation = tools_objects_validator_1.validator.validate(response, SETTINGS.VALIDATOR);
+            var validation = tools_objects_validator_js_1.validator.validate(response, SETTINGS.VALIDATOR);
             if (!(validation instanceof Error)) {
                 _this.register = response;
                 (_a = _this.queue).push.apply(_a, _this.register[ALIASES.ORDERING]);
-                tools_logs_1.Logs.msg('[controller.config][OK]:: ' + SETTINGS.REGISTER, tools_logs_1.TYPES.LOADING);
+                tools_logs_js_1.Logs.msg('[controller.config][OK]:: ' + SETTINGS.REGISTER, tools_logs_js_1.TYPES.LOADING);
                 _this.load();
             }
             else {
@@ -75,14 +75,14 @@ var ConfigurationController = (function () {
     ConfigurationController.prototype.getPromise = function (source) {
         var _this = this;
         return new Promise(function (resolve, reject) {
-            var request = new tools_ajax_1.Request({
+            var request = new tools_ajax_js_1.Request({
                 url: SETTINGS.PATH + _this.register[ALIASES.SETS][source],
-                method: new tools_ajax_1.Method(tools_ajax_1.DIRECTIONS.GET),
+                method: new tools_ajax_js_1.Method(tools_ajax_js_1.DIRECTIONS.GET),
                 validator: _this.validator,
                 parser: _this.parser
             }).then(function (response) {
                 _this.sets[source] = response;
-                tools_logs_1.Logs.msg('[controller.config][OK]:: ' + source, tools_logs_1.TYPES.LOADING);
+                tools_logs_js_1.Logs.msg('[controller.config][OK]:: ' + source, tools_logs_js_1.TYPES.LOADING);
                 resolve();
             }).catch(function (error) {
                 var message = 'no error details';
@@ -122,7 +122,7 @@ var ConfigurationController = (function () {
                 _this.nextInQueue();
             }
             else {
-                tools_logs_1.Logs.msg('[controller.config] Finish loading configuration.', tools_logs_1.TYPES.LOADING);
+                tools_logs_js_1.Logs.msg('[controller.config] Finish loading configuration.', tools_logs_js_1.TYPES.LOADING);
                 _this.freeze();
                 _this.callback();
             }
@@ -139,7 +139,7 @@ var ConfigurationController = (function () {
     };
     return ConfigurationController;
 }());
-var configuration = new ConfigurationController();
+var configuration = typeof Configuration !== 'undefined' ? Configuration : (new ConfigurationController());
 exports.configuration = configuration;
 var _a;
 //# sourceMappingURL=controller.config.js.map

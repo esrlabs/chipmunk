@@ -2,7 +2,6 @@
 var DataRow = (function () {
     function DataRow() {
         this.str = '';
-        this.render_str = '';
         this.filtered = true;
         this.requests = {};
         this.match = '';

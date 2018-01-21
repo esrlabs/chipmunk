@@ -1,4 +1,4 @@
-import { ParserClass } from './controller.data.parsers.tracker.inerfaces';
+import { ParserClass } from './controller.data.parsers.tracker.inerfaces.js';
 
 class Timestamp implements ParserClass{
     protected reg: RegExp = /\d{2}\-\d{2} \d{2}:\d{2}:\d{2}(\.\d{3})?/gi;

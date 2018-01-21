@@ -1,5 +1,5 @@
-import { InitiableModule } from '../interfaces/interface.module.initiable';
-import { Logs, TYPES as LogTypes    } from './tools.logs';
+import { InitiableModule } from '../interfaces/interface.module.initiable.js';
+import { Logs, TYPES as LogTypes    } from './tools.logs.js';
 
 const GUID = Symbol('__eventsControllerGUIDSymbol');
 

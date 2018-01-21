@@ -2241,6 +2241,31 @@ view-controller-state-monitor-item .indicate .label {
   white-space: nowrap;
   margin: 0.5rem 0;
 }
+button-flat-text span {
+  position: relative;
+  display: inline-block;
+  background: #141414;
+  color: #fafafa;
+  margin: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  border: thin dotted #fafafa;
+}
+button-flat-text span:hover {
+  background: #fafafa;
+  color: #141414;
+  border: thin dotted #141414;
+}
+button-flat-text span.disabled {
+  background: #282828;
+  color: #646464;
+  cursor: default;
+}
+button-flat-text span.disabled:hover {
+  background: #282828;
+  color: #646464;
+  border: thin dotted #fafafa;
+}
 simple-checkbox {
   position: relative;
   display: inline-block;
@@ -2292,31 +2317,6 @@ simple-checkbox label span.switcher {
 simple-checkbox label input:checked ~ span.on,
 simple-checkbox label input:checked ~ span.switcher {
   opacity: 1;
-}
-button-flat-text span {
-  position: relative;
-  display: inline-block;
-  background: #141414;
-  color: #fafafa;
-  margin: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  cursor: pointer;
-  border: thin dotted #fafafa;
-}
-button-flat-text span:hover {
-  background: #fafafa;
-  color: #141414;
-  border: thin dotted #141414;
-}
-button-flat-text span.disabled {
-  background: #282828;
-  color: #646464;
-  cursor: default;
-}
-button-flat-text span.disabled:hover {
-  background: #282828;
-  color: #646464;
-  border: thin dotted #fafafa;
 }
 dialog-adblogcatstream-settings {
   position: absolute;
@@ -2665,55 +2665,6 @@ chart-edit-rules-hooks-dialog .chart-errors-wrapper p {
   width: 100%;
   left: 0;
 }
-chart-edit-type-dialog {
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  right: 0.5rem;
-  bottom: 0.5rem;
-  overflow: hidden;
-}
-chart-edit-type-dialog .chart-types {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  text-align: center;
-}
-chart-edit-type-dialog .chart-types li {
-  position: relative;
-  display: inline-block;
-  width: calc(43%);
-  height: 10rem;
-  padding: 0;
-  margin: 1rem;
-  border: thin dotted #323232;
-  overflow: hidden;
-}
-chart-edit-type-dialog .chart-types li .chart-types-name {
-  font-size: 1rem;
-  margin: 0;
-  font-weight: bold;
-  background: #646464;
-  white-space: nowrap;
-  padding: 0.5rem;
-}
-chart-edit-type-dialog .chart-types li .chart-types-description {
-  font-size: 0.85rem;
-  padding: 0.2rem 0.5rem;
-}
-chart-edit-type-dialog .chart-types li .chart-types-buttons {
-  position: absolute;
-  width: 100%;
-  height: 3rem;
-  bottom: 0;
-  text-align: center;
-}
-chart-edit-type-dialog .chart-types li .chart-types-buttons * {
-  font-size: 0.85rem;
-}
 chart-edit-rules-segments-dialog {
   position: absolute;
   top: 0.5rem;
@@ -2897,6 +2848,55 @@ chart-edit-rules-segments-dialog .chart-errors-wrapper p {
   width: 100%;
   left: 0;
 }
+chart-edit-type-dialog {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow: hidden;
+}
+chart-edit-type-dialog .chart-types {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: center;
+}
+chart-edit-type-dialog .chart-types li {
+  position: relative;
+  display: inline-block;
+  width: calc(43%);
+  height: 10rem;
+  padding: 0;
+  margin: 1rem;
+  border: thin dotted #323232;
+  overflow: hidden;
+}
+chart-edit-type-dialog .chart-types li .chart-types-name {
+  font-size: 1rem;
+  margin: 0;
+  font-weight: bold;
+  background: #646464;
+  white-space: nowrap;
+  padding: 0.5rem;
+}
+chart-edit-type-dialog .chart-types li .chart-types-description {
+  font-size: 0.85rem;
+  padding: 0.2rem 0.5rem;
+}
+chart-edit-type-dialog .chart-types li .chart-types-buttons {
+  position: absolute;
+  width: 100%;
+  height: 3rem;
+  bottom: 0;
+  text-align: center;
+}
+chart-edit-type-dialog .chart-types li .chart-types-buttons * {
+  font-size: 0.85rem;
+}
 colors-dialog {
   position: absolute;
   top: 0.5rem;
@@ -2968,6 +2968,24 @@ colors-canvas-dialog .colors-line {
   white-space: nowrap;
   width: 100%;
 }
+image-dialog {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow: hidden;
+}
+image-dialog .image-dialog-img {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-origin: content-box;
+}
 .dialog-message {
   position: absolute;
   top: 0.5rem;
@@ -2991,24 +3009,6 @@ colors-canvas-dialog .colors-line {
   text-align: right;
   white-space: nowrap;
   width: 100%;
-}
-image-dialog {
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  right: 0.5rem;
-  bottom: 0.5rem;
-  overflow: hidden;
-}
-image-dialog .image-dialog-img {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-origin: content-box;
 }
 markers-edit-dialog {
   position: absolute;

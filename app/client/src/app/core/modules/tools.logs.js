@@ -1,5 +1,5 @@
 "use strict";
-var controller_config_1 = require("./controller.config");
+var controller_config_js_1 = require("./controller.config.js");
 var TYPES = {
     LOG: 'LOG',
     WARNING: 'WARNING',
@@ -29,8 +29,8 @@ var Logs = (function () {
         if (console === void 0) { console = false; }
         var message = new LogMessage((new Date()).getTime(), type, msg);
         this.logs.push(message);
-        if (controller_config_1.configuration.sets.LOGS !== void 0 && controller_config_1.configuration.sets.LOGS.SHOW instanceof Array) {
-            ~controller_config_1.configuration.sets.LOGS.SHOW.indexOf(type) && (console = true);
+        if (controller_config_js_1.configuration.sets.LOGS !== void 0 && controller_config_js_1.configuration.sets.LOGS.SHOW instanceof Array) {
+            ~controller_config_js_1.configuration.sets.LOGS.SHOW.indexOf(type) && (console = true);
         }
         else {
             console = true;
@@ -80,6 +80,7 @@ var Logs = (function () {
         callback();
     };
     Logs.prototype.measure = function (mark) {
+        //TODO: clearing stucked marks.
         typeof mark === 'string' && (mark = Symbol(mark));
         if (this.marks[mark] === void 0) {
             this.marks[mark] = performance.now();

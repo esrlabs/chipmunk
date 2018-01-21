@@ -1,5 +1,5 @@
 "use strict";
-var tools_logs_1 = require("../tools.logs");
+var tools_logs_js_1 = require("../tools.logs.js");
 var Generator = (function () {
     function Generator() {
         this.cacheRegs = {};
@@ -10,7 +10,7 @@ var Generator = (function () {
             this.cacheRegs[regStr] === void 0 && (this.cacheRegs[regStr] = new RegExp(regStr, 'gi'));
         }
         catch (e) {
-            tools_logs_1.Logs.msg("Cannot create RegExp based on [" + regStr + "].", tools_logs_1.TYPES.ERROR);
+            tools_logs_js_1.Logs.msg("Cannot create RegExp based on [" + regStr + "].", tools_logs_js_1.TYPES.ERROR);
             this.cacheRegs[regStr] = null;
         }
         return this.cacheRegs[regStr];
@@ -20,7 +20,7 @@ var Generator = (function () {
             this.history[key] = values;
         }
         else {
-            tools_logs_1.Logs.msg("History for [" + key + "] is already saved.", tools_logs_1.TYPES.ERROR);
+            tools_logs_js_1.Logs.msg("History for [" + key + "] is already saved.", tools_logs_js_1.TYPES.ERROR);
         }
     };
     Generator.prototype.load = function (key) {

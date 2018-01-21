@@ -163,7 +163,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_BEGIN,
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_END,
             Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED,
-            Configuration.sets.SYSTEM_EVENTS.REQUESTS_APPLIED,
+            Configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED,
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED,
             Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED].forEach((handle: string)=>{
@@ -198,7 +198,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_BEGIN,
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_END,
             Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED,
-            Configuration.sets.SYSTEM_EVENTS.REQUESTS_APPLIED,
+            Configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED,
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED,
             Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED].forEach((handle: string)=>{
@@ -252,8 +252,8 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         this.forceUpdate();
     }
 
-    onREQUESTS_APPLIED(rows : Array<DataRow>){
-        let measure = Logs.measure('[search.results/tab.results][onREQUESTS_APPLIED]');
+    onFILTER_IS_APPLIED(rows : Array<DataRow>){
+        let measure = Logs.measure('[search.results/tab.results][onFILTER_IS_APPLIED]');
         this.initRows(rows);
         Logs.measure(measure);
     }
@@ -427,7 +427,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
                 factory : factory,
                 params  : {
                     GUID        : this.viewParams !== null ? this.viewParams.GUID : null,
-                    val         : row.render_str,
+                    val         : row.str,
                     original    : row.str,
                     index       : _index,
                     selection   : this.selection.index === _index ? true : false,
@@ -912,31 +912,29 @@ export class TabControllerSearchResults extends TabController implements ViewInt
     }
 
 
-    correctIndex(index: number){
-        let _index = -1;
-        for(let i = index; i >= 0; i -= 1){
-            let filtered = this.highlight ? true : this._rows[i].filtered;
-            //(super.getState().favorites ? (this._rows[i].params.bookmarked ? true : filtered) : filtered) && (_index +=1);
+    getIndexInSearchList(index: number){
+        let result = -1;
+        if (this.rows instanceof Array){
+            for(let i = this.rows.length - 1; i >= 0; i -= 1){
+                if (this.rows[i].index === index) {
+                    result = i;
+                    break;
+                }
+            }
         }
-        return _index;
+        return result;
     }
 
     onROW_IS_SELECTED(index : number){
-        /*
-        let _index = this.correctIndex(index);
-        if (!this.selection.own && !super.getState().deafness){
+        let _index = this.getIndexInSearchList(index);
+        if (~index && !this.selection.own) {
             this.listView.scrollToIndex(_index > SETTINGS.SELECTION_OFFSET ? _index - SETTINGS.SELECTION_OFFSET : _index);
-            this.select(index, false);
+            this.select(_index, false);
         } else {
-            this.selection.own = false;
+            this.selection.own && (this.selection.own = false);
         }
-        */
     }
 
-    onFavoriteGOTO( event: EVENT_VIEW_BAR_ADD_FAVORITE_RESPONSE){
-        let _index = this.correctIndex(event.index);
-        this.listView.scrollToIndex(_index > SETTINGS.SELECTION_OFFSET ? _index - SETTINGS.SELECTION_OFFSET : _index);
-    }
 
     onFilterEmmiter(state: boolean){
         if (state){

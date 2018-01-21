@@ -1,5 +1,5 @@
-import { Timestamp  } from './controller.data.parsers.timestamp';
-import { Parser     } from './controller.data.parsers.tracker'
+import { Timestamp  } from './controller.data.parsers.timestamp.js';
+import { Parser     } from './controller.data.parsers.tracker.js'
 
 class Parsers {
     private parsers : {

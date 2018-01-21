@@ -1,5 +1,5 @@
-import { Logs, TYPES as LogTypes    } from './tools.logs';
-import { merge                      } from './tools.objects.merge';
+import { Logs, TYPES as LogTypes    } from './tools.logs.js';
+import { merge                      } from './tools.objects.merge.js';
 
 const SETTINGS = {
     KEY : 'logviewer.localstare'
@@ -48,6 +48,9 @@ class ControllerLocalSettings{
     }
 
     private load(){
+        if (typeof window === 'undefined') {
+            return null;
+        }
         let result = window.localStorage.getItem(SETTINGS.KEY);
         if (typeof result === 'string'){
             try {
@@ -62,7 +65,9 @@ class ControllerLocalSettings{
     }
 
     private save(){
-        window.localStorage.setItem(SETTINGS.KEY, JSON.stringify(this.storage));
+        if (typeof window !== 'undefined'){
+            window.localStorage.setItem(SETTINGS.KEY, JSON.stringify(this.storage));
+        }
     }
 
     get(){

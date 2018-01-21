@@ -215,7 +215,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                 factory : factory,
                 params  : {
                     GUID        : this.viewParams !== null ? this.viewParams.GUID : null,
-                    val         : this.serializeHTML(row.render_str),
+                    val         : this.serializeHTML(row.str),
                     original    : row.str,
                     index       : _index,
                     selection   : this.selection.index === _index ? true : false,

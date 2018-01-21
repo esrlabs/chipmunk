@@ -117,7 +117,7 @@ var TabControllerSearchResults = (function (_super) {
             controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_BEGIN,
             controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_END,
             controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED,
-            controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_APPLIED,
+            controller_config_1.configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED,
             controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
             controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED,
             controller_config_1.configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED].forEach(function (handle) {
@@ -152,7 +152,7 @@ var TabControllerSearchResults = (function (_super) {
             controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_BEGIN,
             controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_END,
             controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED,
-            controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_APPLIED,
+            controller_config_1.configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED,
             controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
             controller_config_1.configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED,
             controller_config_1.configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED].forEach(function (handle) {
@@ -201,8 +201,8 @@ var TabControllerSearchResults = (function (_super) {
         });
         this.forceUpdate();
     };
-    TabControllerSearchResults.prototype.onREQUESTS_APPLIED = function (rows) {
-        var measure = tools_logs_1.Logs.measure('[search.results/tab.results][onREQUESTS_APPLIED]');
+    TabControllerSearchResults.prototype.onFILTER_IS_APPLIED = function (rows) {
+        var measure = tools_logs_1.Logs.measure('[search.results/tab.results][onFILTER_IS_APPLIED]');
         this.initRows(rows);
         tools_logs_1.Logs.measure(measure);
     };
@@ -352,7 +352,7 @@ var TabControllerSearchResults = (function (_super) {
                 factory: factory,
                 params: {
                     GUID: _this.viewParams !== null ? _this.viewParams.GUID : null,
-                    val: row.render_str,
+                    val: row.str,
                     original: row.str,
                     index: _index,
                     selection: _this.selection.index === _index ? true : false,
@@ -798,27 +798,27 @@ var TabControllerSearchResults = (function (_super) {
         this.markers = markers;
         this.updateMarkersOnly();
     };
-    TabControllerSearchResults.prototype.correctIndex = function (index) {
-        var _index = -1;
-        for (var i = index; i >= 0; i -= 1) {
-            var filtered = this.highlight ? true : this._rows[i].filtered;
+    TabControllerSearchResults.prototype.getIndexInSearchList = function (index) {
+        var result = -1;
+        if (this.rows instanceof Array) {
+            for (var i = this.rows.length - 1; i >= 0; i -= 1) {
+                if (this.rows[i].index === index) {
+                    result = i;
+                    break;
+                }
+            }
         }
-        return _index;
+        return result;
     };
     TabControllerSearchResults.prototype.onROW_IS_SELECTED = function (index) {
-        /*
-        let _index = this.correctIndex(index);
-        if (!this.selection.own && !super.getState().deafness){
+        var _index = this.getIndexInSearchList(index);
+        if (~index && !this.selection.own) {
             this.listView.scrollToIndex(_index > SETTINGS.SELECTION_OFFSET ? _index - SETTINGS.SELECTION_OFFSET : _index);
-            this.select(index, false);
-        } else {
-            this.selection.own = false;
+            this.select(_index, false);
         }
-        */
-    };
-    TabControllerSearchResults.prototype.onFavoriteGOTO = function (event) {
-        var _index = this.correctIndex(event.index);
-        this.listView.scrollToIndex(_index > SETTINGS.SELECTION_OFFSET ? _index - SETTINGS.SELECTION_OFFSET : _index);
+        else {
+            this.selection.own && (this.selection.own = false);
+        }
     };
     TabControllerSearchResults.prototype.onFilterEmmiter = function (state) {
         if (state) {

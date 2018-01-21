@@ -1,9 +1,9 @@
-import { Request, Method, DIRECTIONS} from './tools.ajax';
-import { validator as ObjValidator  } from './tools.objects.validator';
-import { Logs, TYPES as LogTypes    } from './tools.logs';
+import { Request, Method, DIRECTIONS} from './tools.ajax.js';
+import { validator as ObjValidator  } from './tools.objects.validator.js';
+import { Logs, TYPES as LogTypes    } from './tools.logs.js';
 
-import { InitiableModule            } from '../interfaces/interface.module.initiable';
-import { ConfigurationSets          } from '../interfaces/interface.configuration.sets';
+import { InitiableModule            } from '../interfaces/interface.module.initiable.js';
+import { ConfigurationSets          } from '../interfaces/interface.configuration.sets.js';
 
 const ALIASES = {
     SETS        : 'SETS',
@@ -140,7 +140,8 @@ class ConfigurationController implements InitiableModule{
 
 }
 
-let configuration = new ConfigurationController();
+declare var Configuration : any;
+let configuration = typeof Configuration !== 'undefined' ? Configuration : (new ConfigurationController());
 
 export { configuration as configuration }
 

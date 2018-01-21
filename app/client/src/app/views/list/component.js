@@ -163,7 +163,7 @@ var ViewControllerList = (function (_super) {
                 factory: factory,
                 params: {
                     GUID: _this.viewParams !== null ? _this.viewParams.GUID : null,
-                    val: _this.serializeHTML(row.render_str),
+                    val: _this.serializeHTML(row.str),
                     original: row.str,
                     index: _index,
                     selection: _this.selection.index === _index ? true : false,
