@@ -6,8 +6,8 @@ import {
 import { OnScrollEvent } from './interface.scrollevent';
 
 const SETTINGS = {
-    END_SCROLL_OFFSET   : 100,//px
-    BEGIN_SCROLL_OFFSET : 100,//px
+    END_SCROLL_OFFSET   : 0,//px
+    BEGIN_SCROLL_OFFSET : 0,//px
     FILLER_OFFSET       : 0
 };
 
@@ -147,9 +147,9 @@ export class LongList implements AfterViewChecked{
             this.state.start                = this.state.buffer > start ? start : (start - this.state.buffer);
             this.state.distance             = Math.ceil(this.component.height / this.row.height) + this.state.buffer * 2;
             this.state.end                  = this.state.start + this.state.distance;
-            this.component.filler           = (height + SETTINGS.FILLER_OFFSET + this.row.height)+ 'px';
+            this.component.filler           = (height + SETTINGS.FILLER_OFFSET)+ 'px';
             this.state.offset               = this.state.scrollTop - (start < this.state.buffer ? 0 : (this.state.buffer * this.row.height)) + 'px';
-            this.component.expectedHeight   = height;
+            this.component.expectedHeight   = height + this.row.height;
 
         }
     }
@@ -162,9 +162,6 @@ export class LongList implements AfterViewChecked{
             isScrolledToBegin   : false,
             isScrolledToEnd     : false
         };
-        if (event.target.scrollTop >= (this.row.height * this.rows.length)){
-            console.log(this.row.height * this.rows.length - event.target.scrollTop);
-        }
         this.calculate(event.target.scrollTop, false);
         this.updateState();
         if (event.target.scrollHeight > this.component.height){
@@ -201,7 +198,8 @@ export class LongList implements AfterViewChecked{
         if (wrapper.scrollTop === scrollTop) {
             return false;
         }
-        wrapper.scrollTop = scrollTop;
+        wrapper.scrollTo(wrapper.scrollLeft, scrollTop);
+        //wrapper.scrollTop = scrollTop;
     }
 
     constructor(private element     : ElementRef,

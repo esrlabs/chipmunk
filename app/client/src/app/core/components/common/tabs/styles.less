@@ -1,8 +1,12 @@
 common-tabs{
     position: absolute;
+    display : block;
     width   : 100%;
     height  : 100%;
     overflow: hidden;
+    tab-item{
+        display: none;
+    }
     .tabs-labels{
         position    : absolute;
         display     : block;
@@ -59,7 +63,11 @@ common-tabs{
         bottom      : 0;
         li.src-content-tab{
             position    : absolute;
-            top         : 0.25rem;
+            display     : block;
+            list-style  : none;
+            margin      : 0;
+            padding     : 0;
+            top         :0;
             left        : 0;
             right       : 0;
             bottom      : 0;
