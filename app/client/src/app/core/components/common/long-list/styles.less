@@ -1,3 +1,41 @@
-long-list-item{
-    display: none;
+
+long-list{
+    position: absolute;
+    display : block;
+    width   : 100%;
+    height  : 100%;
+    overflow: hidden;
+    .wrapper{
+        position: absolute;
+        display : block;
+        width   : 100%;
+        height  : 100%;
+        overflow: scroll;
+        .space-filler{
+            position: absolute;
+            display : block;
+            top     : 0;
+            width   : 1px;
+        }
+        .rows{
+            list-style  : none;
+            font-size   : 0.75rem;
+            color       : @soft-dark;
+            padding     : 0 0.5rem;
+            margin      : 0;
+            list-style  : none;
+            li{
+                display             : block;
+                position            : relative;
+                white-space         : nowrap;
+                list-style          : none;
+                padding             : 0;
+                margin              : 0;
+                &.show{
+                    opacity: 1;
+                    display: block;
+                }
+            }
+        }
+    }
 }

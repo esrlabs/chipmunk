@@ -16,6 +16,14 @@ view-controller-search-results{
         -o-transition       : all ease-in-out 100ms;
         transition          : all ease-in-out 100ms;
         background          : @light;
+        div.lv-list {
+            position: absolute;
+            height  : 100%;
+            top     : 0;
+            left    : 0;
+            right   : 0;
+            overflow: hidden;
+        }
         &.list-opened{
             right: 18rem;
         }
