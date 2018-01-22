@@ -8,6 +8,7 @@ import { OnScrollEvent } from './interface.scrollevent';
 const SETTINGS = {
     END_SCROLL_OFFSET   : 100,//px
     BEGIN_SCROLL_OFFSET : 100,//px
+    FILLER_OFFSET       : 0
 };
 
 @Component({
@@ -28,7 +29,7 @@ export class LongList implements AfterViewChecked{
     @Input() onScroll   : EventEmitter<OnScrollEvent>   = new EventEmitter();
 
 
-    private GUID : string = '';
+    private GUID                : string    = '';
 
     /*
     * Internal declaration
@@ -136,7 +137,7 @@ export class LongList implements AfterViewChecked{
         this.state.rows = this.rows.slice(this.state.start, this.state.end);
     }
 
-    calculate(scrollTop : number , force: boolean = false){
+    calculate(scrollTop : number, force: boolean = false){
         if (force || (scrollTop !== this.state.scrollTop && Math.abs(scrollTop - this.state.scrollTop) >= this.row.height)){
             let start               = Math.floor(scrollTop / this.row.height),
                 height              = this.row.height * this.rows.length;
@@ -146,7 +147,7 @@ export class LongList implements AfterViewChecked{
             this.state.start                = this.state.buffer > start ? start : (start - this.state.buffer);
             this.state.distance             = Math.ceil(this.component.height / this.row.height) + this.state.buffer * 2;
             this.state.end                  = this.state.start + this.state.distance;
-            this.component.filler           = height + 'px';
+            this.component.filler           = (height + SETTINGS.FILLER_OFFSET + this.row.height)+ 'px';
             this.state.offset               = this.state.scrollTop - (start < this.state.buffer ? 0 : (this.state.buffer * this.row.height)) + 'px';
             this.component.expectedHeight   = height;
 
@@ -157,10 +158,13 @@ export class LongList implements AfterViewChecked{
         let scrollEvent : OnScrollEvent = {
             scrollHeight        : event.target.scrollHeight,
             scrollTop           : event.target.scrollTop,
-            viewHeight          :this.component.height,
+            viewHeight          : this.component.height,
             isScrolledToBegin   : false,
             isScrolledToEnd     : false
         };
+        if (event.target.scrollTop >= (this.row.height * this.rows.length)){
+            console.log(this.row.height * this.rows.length - event.target.scrollTop);
+        }
         this.calculate(event.target.scrollTop, false);
         this.updateState();
         if (event.target.scrollHeight > this.component.height){
@@ -193,9 +197,11 @@ export class LongList implements AfterViewChecked{
 
     public scrollToIndex(index: number){
         let wrapper = this.wrapper.element.nativeElement;
-        wrapper.scrollTop = this.row.height * index;
-        this.calculate(wrapper.scrollTop);
-        this.updateState();
+        let scrollTop = this.row.height * (index + 1);
+        if (wrapper.scrollTop === scrollTop) {
+            return false;
+        }
+        wrapper.scrollTop = scrollTop;
     }
 
     constructor(private element     : ElementRef,

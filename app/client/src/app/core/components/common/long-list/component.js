@@ -12,6 +12,7 @@ var core_1 = require("@angular/core");
 var SETTINGS = {
     END_SCROLL_OFFSET: 100,
     BEGIN_SCROLL_OFFSET: 100,
+    FILLER_OFFSET: 0
 };
 var LongList = (function () {
     function LongList(element, ref, viewRef, compiler) {
@@ -115,7 +116,7 @@ var LongList = (function () {
             this.state.start = this.state.buffer > start ? start : (start - this.state.buffer);
             this.state.distance = Math.ceil(this.component.height / this.row.height) + this.state.buffer * 2;
             this.state.end = this.state.start + this.state.distance;
-            this.component.filler = height + 'px';
+            this.component.filler = (height + SETTINGS.FILLER_OFFSET + this.row.height) + 'px';
             this.state.offset = this.state.scrollTop - (start < this.state.buffer ? 0 : (this.state.buffer * this.row.height)) + 'px';
             this.component.expectedHeight = height;
         }
@@ -128,6 +129,9 @@ var LongList = (function () {
             isScrolledToBegin: false,
             isScrolledToEnd: false
         };
+        if (event.target.scrollTop >= (this.row.height * this.rows.length)) {
+            console.log(this.row.height * this.rows.length - event.target.scrollTop);
+        }
         this.calculate(event.target.scrollTop, false);
         this.updateState();
         if (event.target.scrollHeight > this.component.height) {
@@ -157,9 +161,11 @@ var LongList = (function () {
     };
     LongList.prototype.scrollToIndex = function (index) {
         var wrapper = this.wrapper.element.nativeElement;
-        wrapper.scrollTop = this.row.height * index;
-        this.calculate(wrapper.scrollTop);
-        this.updateState();
+        var scrollTop = this.row.height * (index + 1);
+        if (wrapper.scrollTop === scrollTop) {
+            return false;
+        }
+        wrapper.scrollTop = scrollTop;
     };
     LongList.prototype.ngAfterViewChecked = function () {
         this.update();
