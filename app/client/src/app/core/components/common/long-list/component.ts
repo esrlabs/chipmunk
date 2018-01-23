@@ -8,7 +8,9 @@ import { OnScrollEvent } from './interface.scrollevent';
 const SETTINGS = {
     END_SCROLL_OFFSET   : 0,//px
     BEGIN_SCROLL_OFFSET : 0,//px
-    FILLER_OFFSET       : 0
+    FILLER_OFFSET       : 100,
+    SCROLL_BAR_OFFSET   : 15,
+    BORDER_TIMEOUT      : 700
 };
 
 @Component({
@@ -37,12 +39,14 @@ export class LongList implements AfterViewChecked{
     private component : {
         node            : HTMLElement,
         height          : number,
+        maxScrollTop    : number,
         expectedHeight  : number,
         filler          : string,
         ref             : ChangeDetectorRef
     } = {
         node            : null,
         height          : 0,
+        maxScrollTop    : 0,
         expectedHeight  : 0,
         filler          : '',
         ref             : null
@@ -57,7 +61,8 @@ export class LongList implements AfterViewChecked{
         offset      : string,
         buffer      : number,
         scrollTop   : number,
-        count       : number
+        count       : number,
+        previousST  : number
     } = {
         rows        : [],
         start       : 0,
@@ -67,7 +72,8 @@ export class LongList implements AfterViewChecked{
         offset      : '',
         buffer      : 10,
         scrollTop   : -1000,
-        count       : -1
+        count       : -1,
+        previousST  : -1
     };
 
     private row : {
@@ -78,6 +84,16 @@ export class LongList implements AfterViewChecked{
         height  : 0,
         node    : null,
         selector: 'li:first-child'
+    };
+
+    private borders : {
+        top     : boolean,
+        bottom  : boolean,
+        timer   : any
+    } = {
+        top     : false,
+        bottom  : false,
+        timer   : -1
     };
 
     forceUpdate(){
@@ -131,10 +147,38 @@ export class LongList implements AfterViewChecked{
 
     updateSize(){
         this.component.height = this.component.node.getBoundingClientRect().height;
+        this.component.maxScrollTop = this.row.height * this.rows.length - this.component.height + SETTINGS.SCROLL_BAR_OFFSET;
     }
 
     updateState(){
         this.state.rows = this.rows.slice(this.state.start, this.state.end);
+    }
+
+    checkBorders(scrollTop: number){
+        if (scrollTop === this.state.previousST) {
+            if (scrollTop === 0 || Math.abs(scrollTop - this.component.maxScrollTop) <= 1){
+                this.borders.timer !== -1 && clearTimeout(this.borders.timer);
+                this.borders.timer = setTimeout(() => {
+                    this.borders.top    = false;
+                    this.borders.bottom = false;
+                    this.borders.timer  = -1;
+                }, SETTINGS.BORDER_TIMEOUT);
+            }
+            if (scrollTop === 0) {
+                this.borders.top    = true;
+                this.borders.bottom = false;
+            } else if (Math.abs(scrollTop - this.component.maxScrollTop) <= 1){
+                this.borders.top    = false;
+                this.borders.bottom = true;
+            }
+        } else {
+            this.borders.top    = false;
+            this.borders.bottom = false;
+        }
+    }
+
+    resetBorders(){
+
     }
 
     calculate(scrollTop : number, force: boolean = false){
@@ -150,11 +194,14 @@ export class LongList implements AfterViewChecked{
             this.component.filler           = (height + SETTINGS.FILLER_OFFSET)+ 'px';
             this.state.offset               = this.state.scrollTop - (start < this.state.buffer ? 0 : (this.state.buffer * this.row.height)) + 'px';
             this.component.expectedHeight   = height + this.row.height;
-
         }
     }
 
     onScrollEvent(event : Event | any){
+        //Correction of bottom scroll
+        if ((event.target.scrollTop + this.component.height) > this.row.height * this.rows.length){
+            event.target.scrollTop = this.component.maxScrollTop;
+        }
         let scrollEvent : OnScrollEvent = {
             scrollHeight        : event.target.scrollHeight,
             scrollTop           : event.target.scrollTop,
@@ -162,6 +209,9 @@ export class LongList implements AfterViewChecked{
             isScrolledToBegin   : false,
             isScrolledToEnd     : false
         };
+        //Check border
+        this.checkBorders(scrollEvent.scrollTop);
+        //Make calculation
         this.calculate(event.target.scrollTop, false);
         this.updateState();
         if (event.target.scrollHeight > this.component.height){
@@ -172,6 +222,7 @@ export class LongList implements AfterViewChecked{
         if (event.target.scrollTop <= SETTINGS.BEGIN_SCROLL_OFFSET){
             scrollEvent.isScrolledToBegin = true;
         }
+        this.state.previousST = scrollEvent.scrollTop;
         this.onScroll.emit(scrollEvent);
     }
 
