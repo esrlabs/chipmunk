@@ -1,8 +1,12 @@
 <div #wrapper [attr.class]="'wrapper ' + cssClass" (scroll)="onScrollEvent($event)" (window:resize)="onResize()">
-    <div class="space-filler" [style.height] = "component.filler"></div>
+    <div class="space-filler" [style.height] = "component.filler">
+
+    </div>
     <ul #ul class="rows" [style.transform] = "'translateY(' + state.offset + ')'">
         <li #li *ngFor="let row of state.rows;">
             <long-list-item [component]="row"></long-list-item>
         </li>
     </ul>
+    <div *ngIf="borders.bottom" [style.top] = "component.filler - 100" class="border-bottom"></div>
+    <div *ngIf="borders.top" class="border-top"></div>
 </div>
