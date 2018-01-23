@@ -12,9 +12,10 @@ var core_1 = require("@angular/core");
 var SETTINGS = {
     END_SCROLL_OFFSET: 0,
     BEGIN_SCROLL_OFFSET: 0,
-    FILLER_OFFSET: 100,
+    FILLER_OFFSET: 10,
     SCROLL_BAR_OFFSET: 15,
-    BORDER_TIMEOUT: 700
+    BORDER_TIMEOUT: 500,
+    BORDER_ATTEMPTS: 5
 };
 var LongList = (function () {
     function LongList(element, ref, viewRef, compiler) {
@@ -60,7 +61,11 @@ var LongList = (function () {
         this.borders = {
             top: false,
             bottom: false,
-            timer: -1
+            bottomCSSClass: '',
+            topCSSClass: '',
+            bottomPosition: '10000px',
+            timer: -1,
+            counter: 0
         };
         this.component.node = element.nativeElement;
         this.component.ref = ref;
@@ -87,7 +92,6 @@ var LongList = (function () {
     LongList.prototype.checkCount = function () {
         if (this.rows.length !== this.state.count && this.state.count !== -1) {
             var wrapper = this.wrapper.element.nativeElement;
-            //wrapper.scrollTop   = wrapper.scrollTop * (this.rows.length / this.state.count);
             this.calculate(wrapper.scrollTop, true);
             this.state.rows.forEach(function (row) {
                 typeof row.forceUpdate === 'function' && row.forceUpdate(row.params);
@@ -110,43 +114,61 @@ var LongList = (function () {
         }
     };
     LongList.prototype.updateSize = function () {
+        var height = this.row.height * this.rows.length;
         this.component.height = this.component.node.getBoundingClientRect().height;
-        this.component.maxScrollTop = this.row.height * this.rows.length - this.component.height + SETTINGS.SCROLL_BAR_OFFSET;
+        this.component.maxScrollTop = height - this.component.height + SETTINGS.SCROLL_BAR_OFFSET;
+        this.borders.bottomPosition = (height - 40) + 'px';
     };
     LongList.prototype.updateState = function () {
         this.state.rows = this.rows.slice(this.state.start, this.state.end);
     };
     LongList.prototype.checkBorders = function (scrollTop) {
-        var _this = this;
         if (scrollTop === this.state.previousST) {
-            if (scrollTop === 0 || Math.abs(scrollTop - this.component.maxScrollTop) <= 1) {
-                this.borders.timer !== -1 && clearTimeout(this.borders.timer);
-                this.borders.timer = setTimeout(function () {
-                    _this.borders.top = false;
-                    _this.borders.bottom = false;
-                    _this.borders.timer = -1;
-                }, SETTINGS.BORDER_TIMEOUT);
-            }
-            if (scrollTop === 0) {
-                this.borders.top = true;
-                this.borders.bottom = false;
-            }
-            else if (Math.abs(scrollTop - this.component.maxScrollTop) <= 1) {
-                this.borders.top = false;
-                this.borders.bottom = true;
+            this.borders.counter += 1;
+            if (this.borders.counter > SETTINGS.BORDER_ATTEMPTS) {
+                this.borders.counter = 0;
+                if (scrollTop === 0 || Math.abs(scrollTop - this.component.maxScrollTop) <= 1) {
+                    this.borders.timer !== -1 && clearTimeout(this.borders.timer);
+                    this.borders.timer = setTimeout(this.offBorders.bind(this), SETTINGS.BORDER_TIMEOUT);
+                }
+                if (scrollTop === 0) {
+                    this.borders.top = true;
+                    this.borders.bottom = false;
+                }
+                else if (Math.abs(scrollTop - this.component.maxScrollTop) <= 1) {
+                    this.borders.top = false;
+                    this.borders.bottom = true;
+                }
             }
         }
         else {
-            this.borders.top = false;
-            this.borders.bottom = false;
+            this.borders.counter = 0;
         }
     };
+    LongList.prototype.onBorders = function () {
+        this.borders.timer !== -1 && clearTimeout(this.borders.timer);
+        this.borders.bottomCSSClass = 'on';
+        this.borders.topCSSClass = 'on';
+        this.borders.timer = setTimeout(this.resetBorders.bind(this), SETTINGS.BORDER_TIMEOUT);
+    };
+    LongList.prototype.offBorders = function () {
+        this.borders.timer !== -1 && clearTimeout(this.borders.timer);
+        this.borders.bottomCSSClass = 'off';
+        this.borders.topCSSClass = 'off';
+        this.borders.timer = setTimeout(this.resetBorders.bind(this), SETTINGS.BORDER_TIMEOUT);
+    };
     LongList.prototype.resetBorders = function () {
+        this.borders.top = false;
+        this.borders.bottom = false;
+        this.borders.bottomCSSClass = '';
+        this.borders.topCSSClass = '';
+        this.borders.timer = -1;
+        this.borders.counter = 0;
     };
     LongList.prototype.calculate = function (scrollTop, force) {
         if (force === void 0) { force = false; }
         if (force || (scrollTop !== this.state.scrollTop && Math.abs(scrollTop - this.state.scrollTop) >= this.row.height)) {
-            var start = Math.floor(scrollTop / this.row.height), height = this.row.height * this.rows.length;
+            var start = Math.floor(scrollTop / this.row.height), height = this.row.height * this.rows.length, rendered = 0, offset = 0;
             this.component.height === 0 && this.updateSize();
             start = start < 0 ? 0 : (start > height ? 0 : start);
             this.state.scrollTop = scrollTop > height ? height : scrollTop;
@@ -154,7 +176,13 @@ var LongList = (function () {
             this.state.distance = Math.ceil(this.component.height / this.row.height) + this.state.buffer * 2;
             this.state.end = this.state.start + this.state.distance;
             this.component.filler = (height + SETTINGS.FILLER_OFFSET) + 'px';
-            this.state.offset = this.state.scrollTop - (start < this.state.buffer ? 0 : (this.state.buffer * this.row.height)) + 'px';
+            offset = this.state.scrollTop - (start < this.state.buffer ? 0 : (this.state.buffer * this.row.height));
+            rendered = (this.state.end > this.rows.length ? this.rows.length : this.state.end) - this.state.start;
+            if (this.row.height * rendered + offset > height) {
+                offset = offset - ((this.row.height * rendered + offset) - height);
+            }
+            this.state.offset = offset + 'px';
+            console.log(rendered);
             this.component.expectedHeight = height + this.row.height;
         }
     };

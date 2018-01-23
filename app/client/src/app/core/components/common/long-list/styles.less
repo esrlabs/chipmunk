@@ -24,6 +24,9 @@ long-list{
             padding     : 0 0.5rem;
             margin      : 0;
             list-style  : none;
+            display     : block;
+            position    : absolute;
+            top         :0;
             li{
                 display             : block;
                 position            : relative;
@@ -40,89 +43,54 @@ long-list{
         .border-top, .border-bottom{
             position: absolute;
             width: ~"calc(100% - 10px)";
-            height: 5rem;
+            height: 80px;
         }
         .border-top{
-            /* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#000000+0,000000+100&0.65+0,0+100 */
-            background: -moz-linear-gradient(top, @scroll-shadow-start 0%, @scroll-shadow-end 100%); /* FF3.6-15 */
-            background: -webkit-linear-gradient(top, @scroll-shadow-start 0%,@scroll-shadow-end 100%); /* Chrome10-25,Safari5.1-6 */
-            background: linear-gradient(to bottom, @scroll-shadow-start 0%,@scroll-shadow-end 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-            filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#a6000000', endColorstr='#00000000',GradientType=0 ); /* IE6-9 */
+            background: -moz-radial-gradient(center, ellipse cover, @scroll-shadow-start 0%, @scroll-shadow-end 71%, @scroll-shadow-end 100%); /* FF3.6-15 */
+            background: -webkit-radial-gradient(center, ellipse cover, @scroll-shadow-start 0%,@scroll-shadow-end 71%,@scroll-shadow-end 100%); /* Chrome10-25,Safari5.1-6 */
+            background: radial-gradient(ellipse at center, @scroll-shadow-start 0%,@scroll-shadow-end 71%,@scroll-shadow-end 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
             top:0;
-            animation			: long-list-border-top 500ms ease-in-out 0ms forwards normal;
-            -webkit-animation	: long-list-border-top 500ms ease-in-out 0ms forwards normal;
-            -moz-animation		: long-list-border-top 500ms ease-in-out 0ms forwards normal;
-            -o-animation		: long-list-border-top 500ms ease-in-out 0ms forwards normal;
+            margin-top: -40px;
+
         }
         .border-bottom{
-            /* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#000000+0,000000+100&0+0,0.65+100 */
-            background: -moz-linear-gradient(top, @scroll-shadow-end 0%, @scroll-shadow-start 100%); /* FF3.6-15 */
-            background: -webkit-linear-gradient(top, @scroll-shadow-end 0%,@scroll-shadow-start 100%); /* Chrome10-25,Safari5.1-6 */
-            background: linear-gradient(to bottom, @scroll-shadow-end 0%,@scroll-shadow-start 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-            filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#00000000', endColorstr='#a6000000',GradientType=0 ); /* IE6-9 */
+            background: -moz-radial-gradient(center, ellipse cover, @scroll-shadow-start 0%, @scroll-shadow-end 71%, @scroll-shadow-end 100%); /* FF3.6-15 */
+            background: -webkit-radial-gradient(center, ellipse cover, @scroll-shadow-start 0%,@scroll-shadow-end 71%,@scroll-shadow-end 100%); /* Chrome10-25,Safari5.1-6 */
+            background: radial-gradient(ellipse at center, @scroll-shadow-start 0%,@scroll-shadow-end 71%,@scroll-shadow-end 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+        }
+        .on{
+            animation			: long-list-border-on 500ms ease-in-out 0ms forwards normal;
+            -webkit-animation	: long-list-border-on 500ms ease-in-out 0ms forwards normal;
+            -moz-animation		: long-list-border-on 500ms ease-in-out 0ms forwards normal;
+            -o-animation		: long-list-border-on 500ms ease-in-out 0ms forwards normal;
+        }
+        .off{
+            animation			: long-list-border-off 200ms ease-in-out 0ms forwards normal;
+            -webkit-animation	: long-list-border-off 200ms ease-in-out 0ms forwards normal;
+            -moz-animation		: long-list-border-off 200ms ease-in-out 0ms forwards normal;
+            -o-animation		: long-list-border-off 200ms ease-in-out 0ms forwards normal;
         }
     }
 
-    @keyframes long-list-border-top {
-        0% {
-            opacity             :0;
-            top                 :-5rem;
-        }
-        100% {
-            top                 :0;
-            opacity             :1;
-        }
+    @keyframes long-list-border-on {
+        0% { opacity:0; } 100% { opacity:1; }
     }
-    @-moz-keyframes long-list-border-top {
-        0% {
-            opacity             :0;
-            top                 :-5rem;
-        }
-        100% {
-            top                 :0;
-            opacity             :1;
-        }
+    @-moz-keyframes long-list-border-on {
+        0% { opacity:0; } 100% { opacity:1; }
     }
-    @-webkit-keyframes long-list-border-top {
-        0% {
-            opacity             :0;
-            top                 :-5rem;
-        }
-        100% {
-            top                 :0;
-            opacity             :1;
-        }
+    @-webkit-keyframes long-list-border-on {
+        0% { opacity:0; } 100% { opacity:1; }
+    }
+
+    @keyframes long-list-border-off {
+        0% { opacity:1; } 100% { opacity:0; }
+    }
+    @-moz-keyframes long-list-border-off {
+        0% { opacity:1; } 100% { opacity:0; }
+    }
+    @-webkit-keyframes long-list-border-off {
+        0% { opacity:1; } 100% { opacity:0; }
     }
 
 
-    @keyframes long-list-border-bottom {
-        0% {
-            opacity             :0;
-            bottom              :-5rem;
-        }
-        100% {
-            bottom              :0;
-            opacity             :1;
-        }
-    }
-    @-moz-keyframes long-list-border-bottom {
-        0% {
-            opacity             :0;
-            bottom              :-5rem;
-        }
-        100% {
-            bottom              :0;
-            opacity             :1;
-        }
-    }
-    @-webkit-keyframes long-list-border-bottom {
-        0% {
-            opacity             :0;
-            bottom              :-5rem;
-        }
-        100% {
-            bottom              :0;
-            opacity             :1;
-        }
-    }
 }
