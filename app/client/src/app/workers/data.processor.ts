@@ -143,23 +143,29 @@ class FragmentReader {
         const processor     = processors.get(filter.mode);
 
         const match         = processors.getMatchString(filter.value, filter.mode);
-        const requestGUID   = Helpers.getRequestGUID(filter.mode, filter.value);
+        const filterGUID    = Helpers.getRequestGUID(filter.mode, filter.value);
         const measure       = Logs.measure('[data.processor][Fragment][filter]: ' + filter.value);
 
         const result        = rows.map((row, position) => {
             //str : string, smth : string, position: number, indexes: Object, fragment: string
-            row.filtered    = filter.value === '' ? true : (processor !== null ? processor( row.str, filter.value, position, indexes, fragment) : true);
-            row.match       = match;
-            row.matchReg    = filter.mode === MODES.REG;
-            row.filters     = {};
-
             if (row.requests === void 0) {
                 row.requests = {};
             }
 
-            if (requestGUID !== '' && filter.value !== '') {
-                row.requests[requestGUID] === void 0 && (row.requests[requestGUID] = row.filtered);
+            if (filterGUID !== '' && filter.value !== '') {
+                if (row.requests[filterGUID] === void 0){
+                    row.filtered                = processor !== null ? processor( row.str, filter.value, position, indexes, fragment) : true;
+                    row.requests[filterGUID]    = row.filtered;
+                } else {
+                    row.filtered                = row.requests[filterGUID];
+                }
+            } else {
+                row.filtered    = true;
             }
+
+            row.match       = match;
+            row.matchReg    = filter.mode === MODES.REG;
+            row.filters     = {};
 
             requests.forEach((request: DataFilter) => {
                 const GUID = Helpers.getRequestGUID(request.mode, request.value);
@@ -326,7 +332,7 @@ class Stream {
     private _addRequest(request: DataFilter){
         const reader        = new FragmentReader();
         const GUID          = Helpers.getRequestGUID(request.mode, request.value);
-        if (request.value !== '' && this._requests[GUID] === void 0) {
+        if (request.value !== '' /*&& this._requests[GUID] === void 0*/) {
             const measure       = Logs.measure('[data.processor][Stream][addRequest]');
             this._requests[GUID]= request;
             this._rows          = reader.filter(this._activeFilter, this._rows, this._indexes, this._source, this._filters, Object.keys(this._requests).map((GUID) => {
