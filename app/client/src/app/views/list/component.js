@@ -20,6 +20,7 @@ var component_1 = require("./item/component");
 var component_2 = require("../../core/components/common/long-list/component");
 var controller_data_1 = require("../../core/modules/controller.data");
 var tools_logs_1 = require("../../core/modules/tools.logs");
+var tools_ansiclear_1 = require("../../core/modules/tools.ansiclear");
 var controller_events_1 = require("../../core/modules/controller.events");
 var controller_config_1 = require("../../core/modules/controller.config");
 var controller_selection_text_1 = require("../../core/modules/controller.selection.text");
@@ -605,8 +606,8 @@ var ViewControllerList = (function (_super) {
         if (GUID === this.viewParams.GUID) {
             if (this.rows instanceof Array && this.rows.length > 0) {
                 var str = this.rows.map(function (row) {
-                    return row.params.original;
-                }), blob = new Blob([str.join('\n\r')], { type: 'text/plain' }), url = URL.createObjectURL(blob);
+                    return tools_ansiclear_1.ANSIClearer(row.params.original);
+                }), blob = new Blob([str.join('\n')], { type: 'text/plain' }), url = URL.createObjectURL(blob);
                 this.exportdata.url = this.sanitizer.bypassSecurityTrustUrl(url);
                 this.exportdata.filename = 'export_' + (new Date()).getTime() + '.txt';
                 this.forceUpdate();
