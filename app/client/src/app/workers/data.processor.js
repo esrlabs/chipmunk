@@ -241,7 +241,7 @@ var Stream = (function () {
         this._source = '';
         this._rest = '';
         this._requests = {};
-        this._activeFilter = { mode: '', value: '' };
+        //this._activeFilter  = { mode: '', value: ''};
     };
     Stream.prototype._create = function (fragment, activeRequests) {
         var measure = tools_logs_js_1.Logs.measure('[data.processor][Stream][create]');

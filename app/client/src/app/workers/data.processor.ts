@@ -271,7 +271,7 @@ class Stream {
         this._source        = '';
         this._rest          = '';
         this._requests      = {};
-        this._activeFilter  = { mode: '', value: ''};
+        //this._activeFilter  = { mode: '', value: ''};
     }
 
     private _create(fragment: string, activeRequests: Array<DataFilter>): Array<DataRow>{
