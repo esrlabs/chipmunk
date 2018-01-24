@@ -214,12 +214,13 @@ var LongList = (function () {
         this.onScroll.emit(scrollEvent);
     };
     LongList.prototype.getScrollState = function () {
+        var nativeElement = this.wrapper.element.nativeElement;
         var scrollEvent = {
-            scrollHeight: this.wrapper.element.nativeElement.scrollHeight,
-            scrollTop: this.wrapper.element.nativeElement.scrollTop,
+            scrollHeight: nativeElement.scrollHeight,
+            scrollTop: nativeElement.scrollTop,
             viewHeight: this.component.height,
-            isScrolledToBegin: false,
-            isScrolledToEnd: false
+            isScrolledToBegin: nativeElement.scrollTop <= SETTINGS.BEGIN_SCROLL_OFFSET,
+            isScrolledToEnd: nativeElement.scrollHeight > this.component.height ? ((nativeElement.scrollTop + this.component.height) >= this.component.expectedHeight) : false
         };
         return scrollEvent;
     };
