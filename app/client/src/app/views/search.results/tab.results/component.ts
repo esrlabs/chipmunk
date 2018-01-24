@@ -402,8 +402,8 @@ export class TabControllerSearchResults extends TabController implements ViewInt
     initRows(rows : Array<DataRow> = null){
         let sources = rows instanceof Array ? rows : [];
         this._rows  = this.convertRows(sources, 0);
-        this.checkLength();
         this.filterRows();
+        this.checkLength();
         rows instanceof Array && this.forceUpdate();
     }
 
@@ -413,8 +413,8 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             rowsFiltered= this.convertFilterRows(rowsClear, true);
         this._rows. push(...rowsClear);
         this.rows.  push(...rowsFiltered);
-        this.checkLength();
         this.updateTitle();
+        this.checkLength();
         this.forceUpdate();
     }
 
@@ -927,7 +927,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
 
     onROW_IS_SELECTED(index : number){
         let _index = this.getIndexInSearchList(index);
-        if (~index && !this.selection.own) {
+        if (~index && !this.selection.own && this.listView !== null && this.listView !== void 0) {
             this.listView.scrollToIndex(_index > SETTINGS.SELECTION_OFFSET ? _index - SETTINGS.SELECTION_OFFSET : _index);
             this.select(_index, false);
         } else {

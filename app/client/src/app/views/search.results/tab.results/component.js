@@ -328,8 +328,8 @@ var TabControllerSearchResults = (function (_super) {
         if (rows === void 0) { rows = null; }
         var sources = rows instanceof Array ? rows : [];
         this._rows = this.convertRows(sources, 0);
-        this.checkLength();
         this.filterRows();
+        this.checkLength();
         rows instanceof Array && this.forceUpdate();
     };
     TabControllerSearchResults.prototype.addRows = function (rows) {
@@ -337,8 +337,8 @@ var TabControllerSearchResults = (function (_super) {
         var sources = rows instanceof Array ? rows : [], rowsClear = this.convertRows(sources, this._rows.length), rowsFiltered = this.convertFilterRows(rowsClear, true);
         (_a = this._rows).push.apply(_a, rowsClear);
         (_b = this.rows).push.apply(_b, rowsFiltered);
-        this.checkLength();
         this.updateTitle();
+        this.checkLength();
         this.forceUpdate();
         var _a, _b;
     };
@@ -812,7 +812,7 @@ var TabControllerSearchResults = (function (_super) {
     };
     TabControllerSearchResults.prototype.onROW_IS_SELECTED = function (index) {
         var _index = this.getIndexInSearchList(index);
-        if (~index && !this.selection.own) {
+        if (~index && !this.selection.own && this.listView !== null && this.listView !== void 0) {
             this.listView.scrollToIndex(_index > SETTINGS.SELECTION_OFFSET ? _index - SETTINGS.SELECTION_OFFSET : _index);
             this.select(_index, false);
         }
