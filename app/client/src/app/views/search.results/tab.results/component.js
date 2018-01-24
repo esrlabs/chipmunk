@@ -606,7 +606,7 @@ var TabControllerSearchResults = (function (_super) {
      * Text selection
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     TabControllerSearchResults.prototype.onTextSelection = function (text) {
-        if (typeof text === 'string') {
+        if (typeof text === 'string' && !~text.search(/[\n\r]/gi)) {
             var index = this.getSelfMarkerIndex();
             text = text.replace(/[\n\r]/gi, '');
             if (text.length > 0) {

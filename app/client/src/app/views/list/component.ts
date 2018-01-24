@@ -390,7 +390,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
     onTextSelection(text: string){
-        if (typeof text === 'string'){
+        if (typeof text === 'string' && !~text.search(/[\n\r]/gi)){
             let index = this.getSelfMarkerIndex();
             text = text.replace(/[\n\r]/gi, '');
             if (text.length > 0){
