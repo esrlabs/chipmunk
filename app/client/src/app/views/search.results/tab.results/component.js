@@ -22,6 +22,7 @@ var controller_events_1 = require("../../../core/modules/controller.events");
 var controller_config_1 = require("../../../core/modules/controller.config");
 var controller_selection_text_1 = require("../../../core/modules/controller.selection.text");
 var class_tab_controller_1 = require("../../../core/components/common/tabs/tab/class.tab.controller");
+var tools_ansiclear_1 = require("../../../core/modules/tools.ansiclear");
 var SETTINGS = {
     SELECTION_OFFSET: 3,
     TEXT_SELECTED_COLOR: 'rgb(0,0,0)',
@@ -763,8 +764,8 @@ var TabControllerSearchResults = (function (_super) {
         if (GUID === this.viewParams.GUID) {
             if (this.rows instanceof Array && this.rows.length > 0) {
                 var str = this.rows.map(function (row) {
-                    return row.params.original;
-                }), blob = new Blob([str.join('\n\r')], { type: 'text/plain' }), url = URL.createObjectURL(blob);
+                    return tools_ansiclear_1.ANSIClearer(row.params.original);
+                }), blob = new Blob([str.join('\n')], { type: 'text/plain' }), url = URL.createObjectURL(blob);
                 this.exportdata.url = this.sanitizer.bypassSecurityTrustUrl(url);
                 this.exportdata.filename = 'export_' + (new Date()).getTime() + '.txt';
                 this.forceUpdate();

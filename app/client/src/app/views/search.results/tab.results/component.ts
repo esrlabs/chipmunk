@@ -22,6 +22,7 @@ import { TabController                          } from '../../../core/components
 
 import { Request                                } from '../tab.requests/request/interface.request';
 import { SimpleListItem                         } from '../../../core/components/common/lists/simple-drop-down/item.interface';
+import { ANSIClearer                            } from "../../../core/modules/tools.ansiclear";
 
 const SETTINGS : {
     SELECTION_OFFSET        : number,
@@ -867,9 +868,9 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         if (GUID === this.viewParams.GUID){
             if (this.rows instanceof Array && this.rows.length > 0){
                 let str     = this.rows.map((row)=>{
-                        return row.params.original;
+                        return ANSIClearer(row.params.original);
                     }),
-                    blob    = new Blob([str.join('\n\r')], {type: 'text/plain'}),
+                    blob    = new Blob([str.join('\n')], {type: 'text/plain'}),
                     url     = URL.createObjectURL(blob);
                 this.exportdata.url         = this.sanitizer.bypassSecurityTrustUrl(url);
                 this.exportdata.filename    = 'export_' + (new Date()).getTime() + '.txt';
