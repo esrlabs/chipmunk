@@ -435,7 +435,12 @@ class StoringManager{
         }
         let content = [];
         files.forEach((fileName) => {
-            content.push(this._getFileContent(fileName));
+            let str = this._getFileContent(fileName);
+            if (typeof str === 'string' && str !== '' && str.length > 0) {
+                content.push(str);
+            } else {
+                logger.info(`File: ${Path.join(pathSettings.LOGS_FOLDER, fileName)} is damaged.`);
+            }
         });
         return content.join('\n');
     }
