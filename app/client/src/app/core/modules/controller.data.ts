@@ -37,7 +37,7 @@ class DataController implements InitiableModule{
     private filters         : Object = {};
     private regExpCache     : Object = {};
     private indexesCache    : Object = {};
-    private worker          : Worker = new Worker('/app/workers/data.processor.loader.js');
+    private worker          : Worker = new Worker('./app/workers/data.processor.loader.js');
 
     constructor(){
         //console.log(DataFilter, Logs);
