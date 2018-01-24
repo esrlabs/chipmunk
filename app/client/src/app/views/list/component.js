@@ -218,8 +218,8 @@ var ViewControllerList = (function (_super) {
         if (rows === void 0) { rows = null; }
         var sources = rows instanceof Array ? rows : controller_data_1.dataController.getRows();
         this._rows = this.convertRows(sources, 0);
-        this.checkLength();
         this.filterRows();
+        this.checkLength();
         rows instanceof Array && this.forceUpdate();
     };
     ViewControllerList.prototype.filterRows = function () {
@@ -664,9 +664,9 @@ var ViewControllerList = (function (_super) {
             (_a = this._rows).push.apply(_a, _rows);
             (_b = this.rows).push.apply(_b, rows);
             this.updateRows();
+            this.checkLength();
             this.forceUpdate();
             this.followByScroll && this.onSHORTCUT_TO_END();
-            this.checkLength();
             this.addClearButton();
             tools_logs_1.Logs.measure(measure);
         }

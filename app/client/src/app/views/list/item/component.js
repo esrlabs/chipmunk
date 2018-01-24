@@ -49,6 +49,7 @@ var ViewControllerListItem = (function () {
         this._markersHash = '';
         this._match = '';
         this._matchReg = true;
+        this._total_rows = -1;
         this.changeDetectorRef = changeDetectorRef;
         this.sanitizer = sanitizer;
     }
@@ -156,6 +157,10 @@ var ViewControllerListItem = (function () {
             this._match = this.match;
             this._matchReg = this.matchReg;
             this.ngOnChanges();
+        }
+        if (this._total_rows !== this.total_rows) {
+            this._total_rows = this.total_rows;
+            this.updateFilledIndex();
         }
         this.changeDetectorRef.detectChanges();
     };
