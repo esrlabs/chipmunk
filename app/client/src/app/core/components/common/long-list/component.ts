@@ -262,12 +262,13 @@ export class LongList implements AfterViewChecked{
     }
 
     getScrollState(){
-        let scrollEvent : OnScrollEvent = {
-            scrollHeight        : this.wrapper.element.nativeElement.scrollHeight,
-            scrollTop           : this.wrapper.element.nativeElement.scrollTop,
+        const nativeElement = this.wrapper.element.nativeElement;
+        const scrollEvent : OnScrollEvent = {
+            scrollHeight        : nativeElement.scrollHeight,
+            scrollTop           : nativeElement.scrollTop,
             viewHeight          : this.component.height,
-            isScrolledToBegin   : false,
-            isScrolledToEnd     : false
+            isScrolledToBegin   : nativeElement.scrollTop <= SETTINGS.BEGIN_SCROLL_OFFSET,
+            isScrolledToEnd     : nativeElement.scrollHeight > this.component.height ? ((nativeElement.scrollTop + this.component.height) >= this.component.expectedHeight) : false
         };
         return scrollEvent;
     }

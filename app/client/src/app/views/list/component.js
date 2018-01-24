@@ -566,6 +566,11 @@ var ViewControllerList = (function (_super) {
         this.updateLineScroll(event);
         controller_events_1.events.trigger(controller_config_1.configuration.sets.EVENTS_VIEWS.LIST_VIEW_FOLLOW_SCROLL_SET, this.viewParams.GUID, this.followByScroll);
     };
+    ViewControllerList.prototype.refreshScrollState = function () {
+        if (this.listView !== void 0 && this.listView !== null) {
+            this.onScroll(this.listView.getScrollState());
+        }
+    };
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * View events listeners
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -640,6 +645,7 @@ var ViewControllerList = (function (_super) {
             this.initRows(event.rows);
             this.updateRows();
             this.removeClearButton();
+            this.refreshScrollState();
             tools_logs_1.Logs.measure(measure);
         }
     };

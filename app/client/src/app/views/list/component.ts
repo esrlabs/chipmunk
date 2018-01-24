@@ -643,6 +643,12 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         Events.trigger(Configuration.sets.EVENTS_VIEWS.LIST_VIEW_FOLLOW_SCROLL_SET, this.viewParams.GUID, this.followByScroll);
     }
 
+    refreshScrollState(){
+        if (this.listView !== void 0 && this.listView !== null) {
+            this.onScroll(this.listView.getScrollState());
+        }
+    }
+
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * View events listeners
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -730,6 +736,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             this.initRows(event.rows);
             this.updateRows();
             this.removeClearButton();
+            this.refreshScrollState();
             Logs.measure(measure);
         }
     }

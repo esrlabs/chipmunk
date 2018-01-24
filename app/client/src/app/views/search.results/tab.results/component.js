@@ -735,6 +735,11 @@ var TabControllerSearchResults = (function (_super) {
         this.updateLineScroll(event);
         controller_events_1.events.trigger(controller_config_1.configuration.sets.EVENTS_VIEWS.LIST_VIEW_FOLLOW_SCROLL_SET, this.viewParams.GUID, this.followByScroll);
     };
+    TabControllerSearchResults.prototype.refreshScrollState = function () {
+        if (this.listView !== void 0 && this.listView !== null) {
+            this.onScroll(this.listView.getScrollState());
+        }
+    };
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * View events listeners
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -783,8 +788,7 @@ var TabControllerSearchResults = (function (_super) {
         }
     };
     TabControllerSearchResults.prototype.onDATA_IS_UPDATED = function (event) {
-        if (event.rows instanceof Array) {
-        }
+        this.refreshScrollState();
     };
     TabControllerSearchResults.prototype.onDATA_IS_MODIFIED = function (event) {
         if (event.rows instanceof Array) {

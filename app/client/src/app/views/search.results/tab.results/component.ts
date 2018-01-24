@@ -15,7 +15,6 @@ import { configuration as Configuration         } from '../../../core/modules/co
 import { ViewInterface                          } from '../../../core/interfaces/interface.view';
 import { DataRow                                } from '../../../core/interfaces/interface.data.row';
 import { EVENT_DATA_IS_UPDATED                  } from '../../../core/interfaces/events/DATA_IS_UPDATE';
-import { EVENT_VIEW_BAR_ADD_FAVORITE_RESPONSE   } from '../../../core/interfaces/events/VIEW_BAR_ADD_FAVORITE_RESPONSE';
 
 import { TextSelection                          } from '../../../core/modules/controller.selection.text';
 import { TabController                          } from '../../../core/components/common/tabs/tab/class.tab.controller';
@@ -835,6 +834,12 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         Events.trigger(Configuration.sets.EVENTS_VIEWS.LIST_VIEW_FOLLOW_SCROLL_SET, this.viewParams.GUID, this.followByScroll);
     }
 
+    refreshScrollState(){
+        if (this.listView !== void 0 && this.listView !== null) {
+            this.onScroll(this.listView.getScrollState());
+        }
+    }
+
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * View events listeners
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -892,9 +897,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
     }
 
     onDATA_IS_UPDATED(event : EVENT_DATA_IS_UPDATED){
-        if (event.rows instanceof Array){
-
-        }
+        this.refreshScrollState();
     }
 
     onDATA_IS_MODIFIED(event : EVENT_DATA_IS_UPDATED){
