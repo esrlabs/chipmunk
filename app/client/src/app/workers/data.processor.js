@@ -240,10 +240,13 @@ var Stream = (function () {
         this._indexes = {};
         this._source = '';
         this._rest = '';
+        this._requests = {};
+        this._activeFilter = { mode: '', value: '' };
     };
     Stream.prototype._create = function (fragment, activeRequests) {
         var measure = tools_logs_js_1.Logs.measure('[data.processor][Stream][create]');
         var reader = new FragmentReader();
+        this._reset();
         var result = reader.getRows(fragment, this._activeFilter, this._filters, activeRequests);
         this._rows = result.rows;
         this._indexes = result.indexes;
