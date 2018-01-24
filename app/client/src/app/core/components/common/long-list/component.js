@@ -182,7 +182,6 @@ var LongList = (function () {
                 offset = offset - ((this.row.height * rendered + offset) - height);
             }
             this.state.offset = offset + 'px';
-            console.log(rendered);
             this.component.expectedHeight = height + this.row.height;
         }
     };

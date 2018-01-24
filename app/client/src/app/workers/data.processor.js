@@ -127,20 +127,28 @@ var FragmentReader = (function () {
         var processors = new Processors();
         var processor = processors.get(filter.mode);
         var match = processors.getMatchString(filter.value, filter.mode);
-        var requestGUID = Helpers.getRequestGUID(filter.mode, filter.value);
+        var filterGUID = Helpers.getRequestGUID(filter.mode, filter.value);
         var measure = tools_logs_js_1.Logs.measure('[data.processor][Fragment][filter]: ' + filter.value);
         var result = rows.map(function (row, position) {
             //str : string, smth : string, position: number, indexes: Object, fragment: string
-            row.filtered = filter.value === '' ? true : (processor !== null ? processor(row.str, filter.value, position, indexes, fragment) : true);
-            row.match = match;
-            row.matchReg = filter.mode === controller_data_search_modes_js_1.MODES.REG;
-            row.filters = {};
             if (row.requests === void 0) {
                 row.requests = {};
             }
-            if (requestGUID !== '' && filter.value !== '') {
-                row.requests[requestGUID] === void 0 && (row.requests[requestGUID] = row.filtered);
+            if (filterGUID !== '' && filter.value !== '') {
+                if (row.requests[filterGUID] === void 0) {
+                    row.filtered = processor !== null ? processor(row.str, filter.value, position, indexes, fragment) : true;
+                    row.requests[filterGUID] = row.filtered;
+                }
+                else {
+                    row.filtered = row.requests[filterGUID];
+                }
             }
+            else {
+                row.filtered = true;
+            }
+            row.match = match;
+            row.matchReg = filter.mode === controller_data_search_modes_js_1.MODES.REG;
+            row.filters = {};
             requests.forEach(function (request) {
                 var GUID = Helpers.getRequestGUID(request.mode, request.value);
                 if (row.requests[GUID] === void 0) {
@@ -283,7 +291,7 @@ var Stream = (function () {
         var _this = this;
         var reader = new FragmentReader();
         var GUID = Helpers.getRequestGUID(request.mode, request.value);
-        if (request.value !== '' && this._requests[GUID] === void 0) {
+        if (request.value !== '' /*&& this._requests[GUID] === void 0*/) {
             var measure = tools_logs_js_1.Logs.measure('[data.processor][Stream][addRequest]');
             this._requests[GUID] = request;
             this._rows = reader.filter(this._activeFilter, this._rows, this._indexes, this._source, this._filters, Object.keys(this._requests).map(function (GUID) {
