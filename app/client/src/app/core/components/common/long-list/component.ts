@@ -228,7 +228,7 @@ export class LongList implements AfterViewChecked{
                 offset = offset - ((this.row.height * rendered + offset) - height);
             }
             this.state.offset               = offset + 'px';
-            this.component.expectedHeight   = height + this.row.height;
+            this.component.expectedHeight   = height;
         }
     }
 
@@ -245,12 +245,12 @@ export class LongList implements AfterViewChecked{
             isScrolledToEnd     : false
         };
         //Check border
-        this.checkBorders(scrollEvent.scrollTop);
+        //this.checkBorders(scrollEvent.scrollTop);
         //Make calculation
         this.calculate(event.target.scrollTop, false);
         this.updateState();
         if (event.target.scrollHeight > this.component.height){
-            if ((event.target.scrollTop + this.component.height) >= this.component.expectedHeight - SETTINGS.END_SCROLL_OFFSET){
+            if ((event.target.scrollTop + this.component.height) >= this.component.expectedHeight){
                 scrollEvent.isScrolledToEnd = true;
             }
         }
