@@ -27,7 +27,7 @@ var DataController = (function () {
         this.filters = {};
         this.regExpCache = {};
         this.indexesCache = {};
-        this.worker = new Worker('/app/workers/data.processor.loader.js');
+        this.worker = new Worker('./app/workers/data.processor.loader.js');
         //console.log(DataFilter, Logs);
     }
     DataController.prototype.bindEvents = function () {
