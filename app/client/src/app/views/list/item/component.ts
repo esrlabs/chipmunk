@@ -54,6 +54,7 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     private _markersHash: string                = '';
     private _match      : string                = '';
     private _matchReg   : boolean               = true;
+    private _total_rows : number                = -1;
 
     ngOnDestroy(){
     }
@@ -172,6 +173,10 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
             this._match         = this.match;
             this._matchReg      = this.matchReg;
             this.ngOnChanges();
+        }
+        if (this._total_rows !== this.total_rows){
+            this._total_rows = this.total_rows;
+            this.updateFilledIndex();
         }
         this.changeDetectorRef.detectChanges();
     }

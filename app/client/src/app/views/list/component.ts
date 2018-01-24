@@ -268,8 +268,8 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     initRows(rows : Array<DataRow> = null){
         let sources = rows instanceof Array ? rows : dataController.getRows();
         this._rows  = this.convertRows(sources, 0);
-        this.checkLength();
         this.filterRows();
+        this.checkLength();
         rows instanceof Array && this.forceUpdate();
     }
 
@@ -758,9 +758,9 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             this._rows.push(..._rows);
             this.rows.push(...rows);
             this.updateRows();
+            this.checkLength();
             this.forceUpdate();
             this.followByScroll && this.onSHORTCUT_TO_END();
-            this.checkLength();
             this.addClearButton();
             Logs.measure(measure);
         }
