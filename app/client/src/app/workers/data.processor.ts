@@ -266,15 +266,19 @@ class Stream {
     private _requests       : Object            = {};
 
     private _reset(){
-        this._rows      = [];
-        this._indexes   = {};
-        this._source    = '';
-        this._rest      = '';
+        this._rows          = [];
+        this._indexes       = {};
+        this._source        = '';
+        this._rest          = '';
+        this._requests      = {};
+        this._activeFilter  = { mode: '', value: ''};
     }
 
     private _create(fragment: string, activeRequests: Array<DataFilter>): Array<DataRow>{
         const measure   = Logs.measure('[data.processor][Stream][create]');
         const reader    = new FragmentReader();
+
+        this._reset();
 
         const result    = reader.getRows(fragment, this._activeFilter, this._filters, activeRequests);
 
