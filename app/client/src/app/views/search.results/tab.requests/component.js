@@ -140,21 +140,21 @@ var TabControllerSearchRequests = (function (_super) {
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Requests stuff
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    TabControllerSearchRequests.prototype.updateSearchResults = function (current) {
-        if (current === void 0) { current = false; }
-        if (!current) {
-            var measure = tools_logs_1.Logs.measure('[view.search.results.requests][updateSearchResults]');
-            this.requests.forEach(function (request) {
-                request.active && controller_data_1.dataController.updateForFilter({
+    TabControllerSearchRequests.prototype.updateSearchResults = function () {
+        var measure = tools_logs_1.Logs.measure('[view.search.results.requests][updateSearchResults]');
+        var active = this.getActiveRequests();
+        if (active.length > 0) {
+            active.forEach(function (request) {
+                controller_data_1.dataController.updateForFilter({
                     mode: request.type,
                     value: request.value
                 });
             });
-            tools_logs_1.Logs.measure(measure);
         }
         else {
             controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED, controller_data_1.dataController.getRows());
         }
+        tools_logs_1.Logs.measure(measure);
     };
     TabControllerSearchRequests.prototype.isExist = function (mode, value) {
         var result = false;
@@ -286,12 +286,11 @@ var TabControllerSearchRequests = (function (_super) {
         this.saveRequests();
         if (this.getActiveRequests().length === 0) {
             controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED, this.getCurrentRequest(), this.getRequests());
-            this.updateSearchResults(true);
         }
         else {
             controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED, this.getActiveRequests(), this.getRequests());
-            this.updateSearchResults();
         }
+        this.updateSearchResults();
     };
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Service stuff

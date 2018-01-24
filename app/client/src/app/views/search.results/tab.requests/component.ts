@@ -145,19 +145,20 @@ export class TabControllerSearchRequests extends TabController implements OnDest
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Requests stuff
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    updateSearchResults(current: boolean = false){
-        if (!current) {
-            let measure = Logs.measure('[view.search.results.requests][updateSearchResults]');
-            this.requests.forEach((request: Request)=>{
-                request.active && dataController.updateForFilter({
+    updateSearchResults(){
+        const measure   = Logs.measure('[view.search.results.requests][updateSearchResults]');
+        const active    = this.getActiveRequests();
+        if (active.length > 0) {
+            active.forEach((request: Request)=>{
+                dataController.updateForFilter({
                     mode    : request.type,
                     value   : request.value
                 });
             });
-            Logs.measure(measure);
         } else {
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED, dataController.getRows());
         }
+        Logs.measure(measure);
     }
 
     isExist(mode: string, value: string){
@@ -299,11 +300,11 @@ export class TabControllerSearchRequests extends TabController implements OnDest
         this.saveRequests();
         if (this.getActiveRequests().length === 0) {
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED, this.getCurrentRequest(), this.getRequests());
-            this.updateSearchResults(true);
         } else {
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED, this.getActiveRequests(), this.getRequests());
-            this.updateSearchResults();
         }
+        this.updateSearchResults();
+
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
