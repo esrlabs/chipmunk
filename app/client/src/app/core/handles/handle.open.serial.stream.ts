@@ -14,7 +14,6 @@ import { APIResponse                    } from '../api/api.response.interface';
 
 import { SerialSedingPackage            } from '../interfaces/interface.serial.send.package';
 import { localSettings, KEYs            } from '../../core/modules/controller.localsettings';
-import set = Reflect.set;
 
 interface IncomeData{
     connection  : string,
