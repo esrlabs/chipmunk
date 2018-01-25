@@ -91,7 +91,7 @@ class Port{
 
     constructor(clientGUID, port, settings){
         this.clients        = [clientGUID];
-        this.GUID           = (require('guid')).raw();
+        this.GUID           = (require('uuid/v1'))();
         this.port           = port;
         this.settings       = settings;
         settings.autoOpen   = false;
@@ -256,7 +256,7 @@ class Port{
 class ServiceSerialStream{
 
     constructor(){
-        this.GUID               = (require('guid')).raw();
+        this.GUID               = (require('uuid/v1'))();
         this.ports              = {};
         this.onClientDisconnect = this.onClientDisconnect.bind(this);
         this.onWriteToSerial    = this.onWriteToSerial.bind(this);

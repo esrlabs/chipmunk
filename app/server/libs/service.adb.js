@@ -175,7 +175,7 @@ class Stream extends EventEmitter {
         this._settings          = this._validateSettings(settings);
         this._process           = new SpawnProcess();
         this._buffer            = new StringTimerBuffer(STREAM_BUFFER_OPTIONS.LENGTH, STREAM_BUFFER_OPTIONS.DURATION);
-        this._GUID              = (require('guid')).raw();
+        this._GUID              = (require('uuid/v1'))();
         this._decoder           = new StringDecoder('utf8');
         this._rest              = '';
         this._onProcessData     = this._onProcessData.bind(this);

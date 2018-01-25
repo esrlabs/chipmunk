@@ -135,7 +135,7 @@ class Stream {
 
     constructor(clientGUID, settings, stdout) {
         this.clientGUID     = clientGUID;
-        this.GUID           = (require('guid')).raw();
+        this.GUID           = (require('uuid/v1'))();
         this.stdout         = stdout;
         this.onData         = this.onData.bind(this);
         this.decoder        = new StringDecoder('utf8');
