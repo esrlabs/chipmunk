@@ -85,7 +85,7 @@ class Port extends Events.EventEmitter {
 
     constructor(port, settings){
         super();
-        this.GUID           = (require('guid')).raw();
+        this.GUID           = (require('uuid/v1'))();
         this.port           = port;
         this.settings       = settings;
         settings.autoOpen   = false;
@@ -414,7 +414,7 @@ class StoringManager{
             this._fileManager.deleteFile(Path.join(pathSettings.LOGS_FOLDER, file));
         });
         this._clearRegister();
-        this._resetCurrent();
+        this._dropCurrent();
     }
 
     getFileContent(fileName){
@@ -525,9 +525,7 @@ class StoringManager{
         if (this._settings === null) {
             return false;
         }
-        if (this._current === null) {
-            this._resetCurrent();
-        }
+        this._resetCurrent();
         let size = this._fileManager.getSize(this._current);
         if (size === -1) {
             //file doesn't exist
@@ -536,6 +534,7 @@ class StoringManager{
             //size of file is too big
             this._updateRegister(-1, (new Date()).getTime(), size);
             logger.info(`Logs file ${this._currentFileName} is more than ${this._settings.maxFileSizeMB * 1024 * 1024} bytes and will be closed.`);
+            this._dropCurrent();
             this._resetCurrent();
             logger.info(`New logs file ${this._currentFileName} is created.`);
         } else {
@@ -563,9 +562,7 @@ class StoringManager{
         if (register === null) {
             register = {};
         }
-        if (this._currentFileName === null) {
-            this._resetCurrent();
-        }
+        this._resetCurrent();
         if (register[this._currentFileName] === void 0) {
             register[this._currentFileName] = {
                 opened: -1,
@@ -583,11 +580,18 @@ class StoringManager{
         this._fileManager.deleteFile(pathSettings.REGISTER_FILE);
     }
 
+    _dropCurrent(){
+        this._currentFileName = null;
+        this._current = null;
+    }
+
     _resetCurrent(){
-        this._currentFileName = this._getFileName();
-        this._current = Path.join(pathSettings.LOGS_FOLDER, this._currentFileName);
-        this._fileManager.save('', this._current);
-        this._updateRegister((new Date()).getTime(), -1, 0);
+        if (this._currentFileName === null || this._current === null) {
+            this._currentFileName = this._getFileName();
+            this._current = Path.join(pathSettings.LOGS_FOLDER, this._currentFileName);
+            this._fileManager.save('', this._current);
+            this._updateRegister((new Date()).getTime(), -1, 0);
+        }
     }
 
 }
