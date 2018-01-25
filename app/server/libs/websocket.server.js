@@ -155,7 +155,7 @@ class WebSocketServer {
     onRequest(request){
         if (this.originIsAllowed(request.origin)){
             if (this.protocolVerification(request)){
-                let GUID = (require('guid')).raw();
+                let GUID = (require('uuid/v1'))();
                 this.connections[GUID] = new Connection(
                     GUID,
                     request.accept(WS_SERVER_SETTINGS.PROTOCOL, request.origin),
