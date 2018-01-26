@@ -13,6 +13,7 @@ import { CommonSimpleTable              } from '../../../table/simple/component'
 import { ButtonFlatText                 } from '../../../buttons/flat-text/component';
 import { DomSanitizer, SafeHtml         } from "@angular/platform-browser";
 import { serializeStringForReg          } from '../../../../../modules/tools.regexp';
+import {SimpleText} from "../../../text/simple/component";
 
 interface SearchMatch{
     request: string,
@@ -26,6 +27,7 @@ interface SearchResults {
 
 const ALL_FILES = Symbol();
 const MAX_LINE_FOR_REQUEST = 100;
+const MAX_FILE_SIZE_TO_OPEN = 50 * 1024 * 1024;
 
 @Component({
     selector    : 'dialog-monitor-manager-logs-tab',
@@ -191,6 +193,9 @@ export class DialogMonitorManagerLogsTab extends TabController implements OnDest
     onOpenAll(){
         this._downloadAllFiles((content: string) => {
             if (content !== null) {
+                if (content.length > MAX_FILE_SIZE_TO_OPEN) {
+                    return this.showMessage('Too big file', `Unfortunately current version of logviewer cannot open this file. It's too big. Size of file is: ${ Math.round(content.length / 1024 / 1024 )} Mb. Maximum supported file size is: ${MAX_FILE_SIZE_TO_OPEN} Mb.`);
+                }
                 Events.trigger(Configuration.sets.SYSTEM_EVENTS.DESCRIPTION_OF_STREAM_UPDATED, 'Compilation from all logs files');
                 Events.trigger(Configuration.sets.SYSTEM_EVENTS.TXT_DATA_COME, content);
             }
@@ -328,6 +333,31 @@ export class DialogMonitorManagerLogsTab extends TabController implements OnDest
             GUID            : GUID
         });
         return GUID;
+    }
+
+    showMessage(title: string, message: string){
+        popupController.open({
+            content : {
+                factory     : null,
+                component   : SimpleText,
+                params      : {
+                    text: message
+                }
+            },
+            title   : title,
+            settings: {
+                move            : true,
+                resize          : true,
+                width           : '20rem',
+                height          : '10rem',
+                close           : true,
+                addCloseHandle  : true,
+                css             : ''
+            },
+            buttons         : [],
+            titlebuttons    : [],
+            GUID            : Symbol()
+        });
     }
 
     downloadFile(file: string, content: string){

@@ -21,7 +21,8 @@ var APICommands = {
     getStateMonitor: 'getStateMonitor',
     dropSettings: 'dropSettings',
     checkUpdates: 'checkUpdates',
-    openDevConsole: 'openDevConsole'
+    openDevConsole: 'openDevConsole',
+    requestFile: 'requestFile'
 };
 exports.APICommands = APICommands;
 function isAPICommandValid(command) {

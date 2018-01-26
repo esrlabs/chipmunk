@@ -20,6 +20,10 @@ const HEADERS = {
     ACCEPT          : 'Accept'
 };
 
+const RESPONSE_HEADERS = {
+    FILE: 'logviewer-file'
+};
+
 class Method{
     private direction : string;
     constructor(direction : string){
@@ -144,14 +148,24 @@ class Request{
     }
     acceptSuccess(){
         this.response = this.httpRequest.responseText;
-        try {
-            this.response = JSON.parse(this.response);
-        } catch (e){ }
-        this.response = this.parser(this.response);
-        if (this.validator(this.response)){
+        if (this.responseHeaders[RESPONSE_HEADERS.FILE] !== void 0){
+            this.response = {
+                code: 0,
+                output: {
+                    file: this.response
+                }
+            };
             this.callback(CALLBACKS.done, this.response);
         } else {
-            this.acceptError(new Error('Not valid responce'));
+            try {
+                this.response = JSON.parse(this.response);
+            } catch (e){ }
+            this.response = this.parser(this.response);
+            if (this.validator(this.response)){
+                this.callback(CALLBACKS.done, this.response);
+            } else {
+                this.acceptError(new Error('Not valid responce'));
+            }
         }
     }
     acceptError(event : Event | Error){

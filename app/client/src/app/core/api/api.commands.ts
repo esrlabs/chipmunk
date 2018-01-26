@@ -20,7 +20,8 @@ const APICommands = {
     getStateMonitor         : 'getStateMonitor',
     dropSettings            : 'dropSettings',
     checkUpdates            : 'checkUpdates',
-    openDevConsole          : 'openDevConsole'
+    openDevConsole          : 'openDevConsole',
+    requestFile             : 'requestFile'
 };
 
 function isAPICommandValid(command: string){

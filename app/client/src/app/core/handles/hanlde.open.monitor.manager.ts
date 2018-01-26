@@ -225,7 +225,11 @@ class OpenMonitorManager implements MenuHandleInterface{
                 if (this.isResponseError(response, error)){
                     return false;
                 }
-                this.onGetFileContent(callback, response, error);
+                if (typeof response.output !== 'object' || response.output === null || typeof response.output.text !== 'string'){
+                    typeof callback === 'function' && callback(null);
+                    return false;
+                }
+                typeof callback === 'function' && callback(response.output.text);
             }
         );
     }
@@ -236,19 +240,36 @@ class OpenMonitorManager implements MenuHandleInterface{
             {},
             (response : APIResponse, error: Error)=>{
                 if (this.isResponseError(response, error)){
+                    typeof callback === 'function' && callback(null);
                     return false;
                 }
-                this.onGetFileContent(callback, response, error);
+                if (typeof response.output !== 'object' || response.output === null || typeof response.output.file !== 'string'){
+                    typeof callback === 'function' && callback(null);
+                    return false;
+                }
+                this.onFileNameIsGotten(response.output.file, callback);
             }
         );
     }
 
-    onGetFileContent(callback: Function, response : APIResponse, error: Error){
-        if (typeof response.output === 'object' && response.output !== null && response.output.text !== void 0){
-            return typeof callback === 'function' && callback(response.output.text);
-        } else {
-            return typeof callback === 'function' && callback(null);
-        }
+    onFileNameIsGotten(filename: string, callback: Function){
+        this.processor.send(
+            APICommands.requestFile,
+            {
+                file: filename
+            },
+            (response : APIResponse, error: Error)=>{
+                if (this.isResponseError(response, error)){
+                    typeof callback === 'function' && callback(null);
+                    return false;
+                }
+                if (typeof response.output !== 'object' || response.output === null || typeof response.output.file !== 'string'){
+                    typeof callback === 'function' && callback(null);
+                    return false;
+                }
+                typeof callback === 'function' && callback(response.output.file);
+            }
+        );
     }
 
     getMatches(reg: boolean, search: Array<string>, callback: Function) {

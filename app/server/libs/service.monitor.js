@@ -3,6 +3,8 @@ const Events        = require('events');
 const Path          = require('path');
 const SerialPort    = require('serialport');
 const FileManager   = require('./tools.filemanager');
+const PathsSettings = require('./tools.settings.paths');
+const pathSettings  = new PathsSettings();
 
 const DEFAULT_SETTINGS = {
     timeoutOnError: 5000,
@@ -29,28 +31,6 @@ class Settings{
         this.path           = typeof settings.path          === 'string' ? (settings.path.trim() !== ''     ? settings.path             : DEFAULT_SETTINGS.path)            : DEFAULT_SETTINGS.path;
     }
 }
-
-class PathsSettings {
-
-    constructor(){
-        this.os                             = require('os');
-        this.ROOT                           = Path.resolve(this.os.homedir() + '/logviewer');
-        this.SETTINGS_FILE                  = '';
-        this.LOGS_ROOT                      = '';
-        this.LOGS_FOLDER                    = '';
-        this.REGISTER_FILE                  = '';
-        this.generate();
-    }
-
-    generate(){
-        this.SETTINGS_FILE                  = Path.resolve(this.ROOT + '/logs/settings.json');
-        this.LOGS_ROOT                      = Path.resolve(this.ROOT + '/logs/');
-        this.LOGS_FOLDER                    = Path.resolve(this.ROOT + '/logs/files/');
-        this.REGISTER_FILE                  = Path.resolve(this.ROOT + '/logs/register.json');
-    }
-}
-
-const pathSettings = new PathsSettings();
 
 class SettingsManager {
 
@@ -87,6 +67,7 @@ class Port extends Events.EventEmitter {
         super();
         this.GUID           = (require('uuid/v1'))();
         this.port           = port;
+        settings.lock       = false;
         this.settings       = settings;
         settings.autoOpen   = false;
         this.instance       = null;
@@ -429,20 +410,25 @@ class StoringManager{
     }
 
     getAllFilesContent(){
-        let files = this._getFileList();
-        if (!(files instanceof Array)) {
-            return new Error(`No any files found.`);
-        }
-        let content = [];
-        files.forEach((fileName) => {
-            let str = this._getFileContent(fileName);
-            if (typeof str === 'string' && str !== '' && str.length > 0) {
-                content.push(str);
-            } else {
-                logger.info(`File: ${Path.join(pathSettings.LOGS_FOLDER, fileName)} is damaged.`);
+        return new Promise((resolve, reject) => {
+            let files = this._getFileList();
+
+            if (!(files instanceof Array)) {
+                return reject(new Error(`No any files found.`));
             }
+            const name = (new Date()).getTime() + '.logs';
+            const destfile = Path.join(pathSettings.DOWNLOADS, name);
+
+            this._fileManager.glueFiles(files.map((file) => {
+                return Path.join(pathSettings.LOGS_FOLDER, file);
+            }), destfile, '\n')
+                .then(() => {
+                    resolve(name);
+                })
+                .catch((error) => {
+                    reject(error);
+                });
         });
-        return content.join('\n');
     }
 
     getMatches(reg, search){
@@ -864,11 +850,17 @@ class Monitor {
         return this._storingManager.getFileContent(fileName);
     }
 
-    getAllFilesContent(){
+    getAllFilesContent(callback){
         if (!this._isReady()) {
-            return this._getInitError();
+            return callback(null, this._getInitError());
         }
-        return this._storingManager.getAllFilesContent();
+        this._storingManager.getAllFilesContent()
+            .then((file) => {
+                callback(file, null);
+            })
+            .catch((error) => {
+                callback(null, error);
+            });
     }
 
     getMatches(reg, search){

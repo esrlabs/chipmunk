@@ -1,3 +1,5 @@
+const PathsSettings = require('./tools.settings.paths');
+const pathSettings  = new PathsSettings();
 
 class FileManager{
 
@@ -29,14 +31,18 @@ class FileManager{
     }
 
     append(str, dest){
-        if (typeof str === 'string' && str.trim() !== '' && typeof dest === 'string' && dest.trim() !== '' && this._fs.existsSync(dest)) {
-            try {
-                this._fs.appendFileSync(dest, str);
-            } catch (error) {
-                this._logger !== null && this._logger.debug(`Error during writting a file "${dest}". Error: ${error.message}.`);
-            }
-        } else {
+        if (typeof str !== 'string') {
             this._logger !== null && this._logger.debug(`file "${dest}" is not found.`);
+            return false;
+        }
+        if (typeof dest !== 'string' || dest.trim() === '' || !this._fs.existsSync(dest)){
+            this._logger !== null && this._logger.debug(`file "${dest}" is not found.`);
+            return false;
+        }
+        try {
+            this._fs.appendFileSync(dest, str);
+        } catch (error) {
+            this._logger !== null && this._logger.debug(`Error during writting a file "${dest}". Error: ${error.message}.`);
         }
     }
 
@@ -52,12 +58,14 @@ class FileManager{
         if (typeof str === 'string' && typeof dest === 'string' && dest.trim() !== '') {
             try {
                 this._fs.writeFileSync(dest, str);
+                return true;
             } catch (error) {
                 this._logger !== null && this._logger.debug(`Error during writting a file "${dest}". Error: ${error.message}.`);
             }
         } else {
             this._logger !== null && this._logger.debug(`file "${dest}" is not found.`);
         }
+        return false;
     }
 
     getSize(dest){
@@ -121,6 +129,55 @@ class FileManager{
             error = err;
         }
         return error;
+    }
+
+    glueFiles(files, dest, delimiter = false) {
+        function next(files, dest, index, delimiter, resolve, reject) {
+            if (files.length <= index) {
+                return resolve();
+            }
+
+            const file = files[index];
+
+            index += 1;
+
+            if (this.isExistsSync(file)) {
+                try {
+                    const writer = this._fs.createWriteStream(dest, { 'flags': 'a' });
+                    const reader = this._fs.createReadStream(file);
+                    writer.on('finish', () => {
+                        writer.removeAllListeners('finish');
+                        if (typeof delimiter === 'string') {
+                            this.append(delimiter, dest);
+                        }
+                        next.call(this, files, dest, index, delimiter, resolve, reject);
+                    });
+                    reader.pipe(writer);
+                } catch (error) {
+                    reject(error);
+                }
+            } else {
+                next.call(this, files, dest, index, delimiter, resolve, reject);
+            }
+        }
+
+        return new Promise((resolve, reject) => {
+            if (!(files instanceof Array) || files.length === 0){
+                return reject(new Error(`No files to glue together.`));
+            }
+            if (typeof dest !== 'string' || dest.trim() === '') {
+                return reject(new Error(`Destination file isn't defined.`));
+            }
+            if (!this.isExistsSync(pathSettings.DOWNLOADS)){
+                this.createFolder(pathSettings.DOWNLOADS);
+            }
+            if (!this.isExistsSync(dest)) {
+                if (!this.save('', dest)){
+                    return reject(new Error(`Cannot create destination file`));
+                }
+            }
+            next.call(this, files, dest, 0, delimiter, resolve, reject);
+        });
     }
 }
 
