@@ -93,8 +93,9 @@ class Port{
         this.clients        = [clientGUID];
         this.GUID           = (require('uuid/v1'))();
         this.port           = port;
-        this.settings       = settings;
         settings.autoOpen   = false;
+        settings.lock       = false;
+        this.settings       = settings;
         this.instance       = null;
         this.ready          = false;
         this.state          = PORT_STATES.LISTENING;

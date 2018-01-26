@@ -95,13 +95,16 @@ class Server {
                 this.getPOSTData(request, (post, error)=>{
                     if (!this.errors.process(error, response)){
                         let processor = new APIProcessor(post, response);
-                        processor.proceed((result, errors)=>{
+                        processor.proceed((result, errors, noResponse = false)=>{
                             if (errors instanceof Array || errors !== null){
                                 (errors instanceof Array ? errors : [errors]).forEach((error)=>{
                                     logger.error(error.message);
                                 });
                                 this.errors.process(Errors.ERRORS.PARSING_COMMAND_ERROR, response, errors);
                             } else {
+                                if (noResponse) {
+                                    return false;
+                                }
                                 let res     = new Response();
                                 res.output  = result;
                                 ResponseSender(res, response);

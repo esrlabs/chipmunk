@@ -174,11 +174,12 @@ class APICommands{
 
     getAllFilesContent(income, response, callback){
         let monitor = require('./service.monitor');
-        let content = monitor.getAllFilesContent();
-        callback(
-            !(content instanceof Error) ? { text: content } : null,
-            content instanceof Error ? content : null
-        );
+        let content = monitor.getAllFilesContent((file, error) => {
+            callback(
+                error === null ? { file: file } : null,
+                error !== null ? error : null
+            );
+        });
     }
 
     getMatches(income, response, callback){
@@ -241,6 +242,24 @@ class APICommands{
         }
         starter.debug();
         callback(true, null)
+    }
+
+    requestFile(income, response, callback){
+
+        if (typeof income.params !== 'object' || income.params === null || typeof income.params.file !== 'string' || income.params.file.trim() === '') {
+            return callback(null, new Error(logger.warning(`Cannot do "requestFile" because file {string} isn't defined.`)));
+        }
+
+        const ServiceDownloadManager    = require('./service.downloadmanager');
+        const serviceDownloadManager    = new ServiceDownloadManager();
+
+        const error = serviceDownloadManager.sendFile(income.params.file, response);
+
+        if (error instanceof Error) {
+            return callback(null, error);
+        }
+
+        //Do not callback, because ServiceDownloadManager will response by itself
     }
 
 };

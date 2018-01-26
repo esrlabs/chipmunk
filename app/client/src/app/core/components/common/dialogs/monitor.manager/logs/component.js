@@ -24,8 +24,10 @@ var class_tab_controller_1 = require("../../../../common/tabs/tab/class.tab.cont
 var component_4 = require("../../../buttons/flat-text/component");
 var platform_browser_1 = require("@angular/platform-browser");
 var tools_regexp_1 = require("../../../../../modules/tools.regexp");
+var component_5 = require("../../../text/simple/component");
 var ALL_FILES = Symbol();
 var MAX_LINE_FOR_REQUEST = 100;
+var MAX_FILE_SIZE_TO_OPEN = 50 * 1024 * 1024;
 var DialogMonitorManagerLogsTab = (function (_super) {
     __extends(DialogMonitorManagerLogsTab, _super);
     function DialogMonitorManagerLogsTab(componentFactoryResolver, viewContainerRef, changeDetectorRef, sanitizer) {
@@ -163,8 +165,12 @@ var DialogMonitorManagerLogsTab = (function (_super) {
         });
     };
     DialogMonitorManagerLogsTab.prototype.onOpenAll = function () {
+        var _this = this;
         this._downloadAllFiles(function (content) {
             if (content !== null) {
+                if (content.length > MAX_FILE_SIZE_TO_OPEN) {
+                    return _this.showMessage('Too big file', "Unfortunately current version of logviewer cannot open this file. It's too big. Size of file is: " + Math.round(content.length / 1024 / 1024) + " Mb. Maximum supported file size is: " + MAX_FILE_SIZE_TO_OPEN + " Mb.");
+                }
                 controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.DESCRIPTION_OF_STREAM_UPDATED, 'Compilation from all logs files');
                 controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.TXT_DATA_COME, content);
             }
@@ -298,6 +304,30 @@ var DialogMonitorManagerLogsTab = (function (_super) {
             GUID: GUID
         });
         return GUID;
+    };
+    DialogMonitorManagerLogsTab.prototype.showMessage = function (title, message) {
+        controller_1.popupController.open({
+            content: {
+                factory: null,
+                component: component_5.SimpleText,
+                params: {
+                    text: message
+                }
+            },
+            title: title,
+            settings: {
+                move: true,
+                resize: true,
+                width: '20rem',
+                height: '10rem',
+                close: true,
+                addCloseHandle: true,
+                css: ''
+            },
+            buttons: [],
+            titlebuttons: [],
+            GUID: Symbol()
+        });
     };
     DialogMonitorManagerLogsTab.prototype.downloadFile = function (file, content) {
         var blob = new Blob([content], { type: 'text/plain' }), url = URL.createObjectURL(blob);

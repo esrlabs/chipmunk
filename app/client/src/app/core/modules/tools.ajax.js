@@ -20,6 +20,9 @@ var HEADERS = {
     CONTENT_TYPE: 'Content-Type',
     ACCEPT: 'Accept'
 };
+var RESPONSE_HEADERS = {
+    FILE: 'logviewer-file'
+};
 var Method = (function () {
     function Method(direction) {
         if (DIRECTIONS[direction] === void 0) {
@@ -145,16 +148,27 @@ var Request = (function () {
     };
     Request.prototype.acceptSuccess = function () {
         this.response = this.httpRequest.responseText;
-        try {
-            this.response = JSON.parse(this.response);
-        }
-        catch (e) { }
-        this.response = this.parser(this.response);
-        if (this.validator(this.response)) {
+        if (this.responseHeaders[RESPONSE_HEADERS.FILE] !== void 0) {
+            this.response = {
+                code: 0,
+                output: {
+                    file: this.response
+                }
+            };
             this.callback(CALLBACKS.done, this.response);
         }
         else {
-            this.acceptError(new Error('Not valid responce'));
+            try {
+                this.response = JSON.parse(this.response);
+            }
+            catch (e) { }
+            this.response = this.parser(this.response);
+            if (this.validator(this.response)) {
+                this.callback(CALLBACKS.done, this.response);
+            }
+            else {
+                this.acceptError(new Error('Not valid responce'));
+            }
         }
     };
     Request.prototype.acceptError = function (event) {

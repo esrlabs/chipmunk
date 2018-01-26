@@ -183,25 +183,42 @@ var OpenMonitorManager = (function () {
             if (_this.isResponseError(response, error)) {
                 return false;
             }
-            _this.onGetFileContent(callback, response, error);
+            if (typeof response.output !== 'object' || response.output === null || typeof response.output.text !== 'string') {
+                typeof callback === 'function' && callback(null);
+                return false;
+            }
+            typeof callback === 'function' && callback(response.output.text);
         });
     };
     OpenMonitorManager.prototype.getAllFilesContent = function (callback) {
         var _this = this;
         this.processor.send(api_commands_1.APICommands.getAllFilesContent, {}, function (response, error) {
             if (_this.isResponseError(response, error)) {
+                typeof callback === 'function' && callback(null);
                 return false;
             }
-            _this.onGetFileContent(callback, response, error);
+            if (typeof response.output !== 'object' || response.output === null || typeof response.output.file !== 'string') {
+                typeof callback === 'function' && callback(null);
+                return false;
+            }
+            _this.onFileNameIsGotten(response.output.file, callback);
         });
     };
-    OpenMonitorManager.prototype.onGetFileContent = function (callback, response, error) {
-        if (typeof response.output === 'object' && response.output !== null && response.output.text !== void 0) {
-            return typeof callback === 'function' && callback(response.output.text);
-        }
-        else {
-            return typeof callback === 'function' && callback(null);
-        }
+    OpenMonitorManager.prototype.onFileNameIsGotten = function (filename, callback) {
+        var _this = this;
+        this.processor.send(api_commands_1.APICommands.requestFile, {
+            file: filename
+        }, function (response, error) {
+            if (_this.isResponseError(response, error)) {
+                typeof callback === 'function' && callback(null);
+                return false;
+            }
+            if (typeof response.output !== 'object' || response.output === null || typeof response.output.file !== 'string') {
+                typeof callback === 'function' && callback(null);
+                return false;
+            }
+            typeof callback === 'function' && callback(response.output.file);
+        });
     };
     OpenMonitorManager.prototype.getMatches = function (reg, search, callback) {
         var _this = this;
