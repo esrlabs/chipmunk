@@ -13,6 +13,9 @@ var component_1 = require("../../checkboxes/simple/component");
 var component_2 = require("../../input/component");
 var defaults_settings_1 = require("./defaults.settings");
 var defaults = new defaults_settings_1.DefaultsPortSettings();
+var STRICTLY_DEFAULTS = {
+    lock: false
+};
 var DialogSerialSettings = (function () {
     function DialogSerialSettings() {
         this.lock = defaults.lock;
@@ -33,7 +36,7 @@ var DialogSerialSettings = (function () {
     }
     DialogSerialSettings.prototype.onProceed = function () {
         this.proceed({
-            lock: this._lock.getValue(),
+            lock: STRICTLY_DEFAULTS.lock,
             baudRate: parseInt(this._baudRate.getValue(), 10),
             dataBits: parseInt(this._dataBits.getValue(), 10),
             stopBits: parseInt(this._stopBits.getValue(), 10),
@@ -105,10 +108,6 @@ __decorate([
     core_1.Input(),
     __metadata("design:type", Function)
 ], DialogSerialSettings.prototype, "cancel", void 0);
-__decorate([
-    core_1.ViewChild('_lock'),
-    __metadata("design:type", component_1.SimpleCheckbox)
-], DialogSerialSettings.prototype, "_lock", void 0);
 __decorate([
     core_1.ViewChild('_baudRate'),
     __metadata("design:type", component_2.CommonInput)
