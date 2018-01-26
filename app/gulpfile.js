@@ -1,22 +1,23 @@
 const TASKS = {
-    BUILD           : 'building',
-    INSTALL_CLIENT  : 'install_client',
-    INSTALL_ELECTRON: 'install_electron',
-    ADD_DEPENDENCIES: 'add_dependencies',
-    BUILD_CLIENT    : 'build_client',
-    COPY_CLIENT     : 'copy_client',
-    COPY_SERVER     : 'copy_server',
-    RESET_CLIENT    : 'reset_client',
-    RESET_SERVER    : 'reset_server',
-    MAKEDIR_CLIENT  : 'makedir_client',
-    MAKEDIR_SERVER  : 'makedir_server',
-    BACKUP_APP_PG   : 'backup_package.json',
-    RESTORE_APP_PG  : 'restore_package.json',
-    CLEANUP         : 'cleanup',
-    CLEAR_APP       : 'clear_app',
-    CLEAR_APP_SERVER: 'clear_app_server',
-    CLEAR_DIST      : 'clear_dist',
-    DEFAULT         : 'default'
+    BUILD               : 'building',
+    INSTALL_CLIENT      : 'install_client',
+    INSTALL_ELECTRON    : 'install_electron',
+    CREATE_PACKAGE_FILE : 'create_package_file',
+    ADD_DEPENDENCIES    : 'add_dependencies',
+    BUILD_CLIENT        : 'build_client',
+    COPY_CLIENT         : 'copy_client',
+    COPY_SERVER         : 'copy_server',
+    RESET_CLIENT        : 'reset_client',
+    RESET_SERVER        : 'reset_server',
+    MAKEDIR_CLIENT      : 'makedir_client',
+    MAKEDIR_SERVER      : 'makedir_server',
+    BACKUP_APP_PG       : 'backup_package.json',
+    RESTORE_APP_PG      : 'restore_package.json',
+    CLEANUP             : 'cleanup',
+    CLEAR_APP           : 'clear_app',
+    CLEAR_APP_SERVER    : 'clear_app_server',
+    CLEAR_DIST          : 'clear_dist',
+    DEFAULT             : 'default'
 };
 
 const PLATFORMS = {
@@ -217,6 +218,18 @@ class BuildingTasks {
         this._createSpawnTask(TASKS.CLEANUP, 'rm', ['-rf', './desktop/package.backup.json']);
     }
 
+    [TASKS.CREATE_PACKAGE_FILE](){
+        gulp.task(TASKS.CREATE_PACKAGE_FILE, (done) => {
+            const FS = require('fs');
+            let _app            = FS.readFileSync('desktop/package.original.json', {encoding: 'utf8'});
+            if (FS.existsSync(_app)) {
+                FS.unlinkSync(_app);
+            }
+            FS.writeFileSync('desktop/package.json', _app, { encoding: 'utf8' });
+            done();
+        });
+    }
+
     [TASKS.ADD_DEPENDENCIES](){
         gulp.task(TASKS.ADD_DEPENDENCIES, (done) => {
             const FS = require('fs');
@@ -284,6 +297,7 @@ class BuildingTasks {
             TASKS.COPY_SERVER,
             TASKS.COPY_CLIENT,
             TASKS.BACKUP_APP_PG,
+            TASKS.CREATE_PACKAGE_FILE,
             TASKS.ADD_DEPENDENCIES,
             TASKS.CLEAR_APP,
             TASKS.CLEAR_APP_SERVER,
