@@ -123,7 +123,7 @@ class SpawnProcess extends EventEmitter {
                 sw.removeAllListeners(sw.EVENTS.done);
                 resolve();
             });
-            sw.execute(this._getAdbAlias(), params, this._getEnv(path)).catch(reject);
+            sw.execute(this._getAdbAlias(), params, this._getEnv(path), 3000).catch(reject);
         })
     }
 

@@ -23,10 +23,12 @@ class SpawnWrapper extends EventEmitter{
         this._onDisconnect  = this._onDisconnect.bind(this);
         this._onExit        = this._onExit.bind(this);
         this._onData        = this._onData.bind(this);
+        this._timeout       = -1;
+        this._timer         = -1;
         this.EVENTS         = EVENTS;
     }
 
-    execute(command, params, env = null){
+    execute(command, params, env = null, timeout = -1){
         env === null && (env = process.env);
         return new Promise((resolve, reject) => {
             if (this._spawn !== null) {
@@ -40,12 +42,29 @@ class SpawnWrapper extends EventEmitter{
                     this._destroy();
                     return reject(new Error(logger.error(`Fail to execute command: ${util.inspect(command)}, params: ${util.inspect(params)}, env: ${util.inspect(env)}`)));
                 }
+                this._setTimeout(timeout);
                 this._bind();
                 resolve();
             } catch (error) {
                 reject(error);
             }
         });
+    }
+
+    _setTimeout(timeout){
+        if (timeout > 0) {
+            this._timeout = timeout;
+            this._timer = setTimeout(this._timeouted.bind(this), timeout);
+        }
+    }
+
+    _clearTimeout(){
+        this._timer !== -1 && clearTimeout(this._timer);
+        this._timer = -1;
+    }
+
+    _timeouted(){
+        this._destroy();
     }
 
     _onError(error, ...args){
@@ -95,6 +114,7 @@ class SpawnWrapper extends EventEmitter{
     }
 
     _destroy() {
+        this._clearTimeout();
         this._unbind();
         this._spawn !== null && this._spawn.kill();
         this._spawn  = null;
