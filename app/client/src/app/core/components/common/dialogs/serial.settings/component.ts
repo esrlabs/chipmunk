@@ -4,6 +4,11 @@ import { CommonInput                } from '../../input/component';
 import { DefaultsPortSettings       } from './defaults.settings';
 
 const defaults = new DefaultsPortSettings();
+
+const STRICTLY_DEFAULTS = {
+    lock: false
+};
+
 @Component({
     selector    : 'dialog-serial-settings',
     templateUrl : './template.html',
@@ -25,7 +30,6 @@ export class DialogSerialSettings {
     @Input() proceed        : Function      = null;
     @Input() cancel         : Function      = null;
 
-    @ViewChild('_lock'       ) _lock        : SimpleCheckbox;
     @ViewChild('_baudRate'   ) _baudRate    : CommonInput;
     @ViewChild('_dataBits'   ) _dataBits    : CommonInput;
     @ViewChild('_stopBits'   ) _stopBits    : CommonInput;
@@ -45,7 +49,7 @@ export class DialogSerialSettings {
 
     onProceed(){
         this.proceed({
-            lock        : this._lock.getValue(),
+            lock        : STRICTLY_DEFAULTS.lock,
             baudRate    : parseInt(this._baudRate.getValue(), 10),
             dataBits    : parseInt(this._dataBits.getValue(), 10),
             stopBits    : parseInt(this._stopBits.getValue(), 10),

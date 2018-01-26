@@ -1,9 +1,11 @@
 <div class="settings">
     <table>
+        <!--
         <tr>
             <td><span>lock</span> Prevent other processes from opening the port, defaults to true. false is not currently supported on windows</td>
             <td><simple-checkbox #_lock [checked]="lock"></simple-checkbox></td>
         </tr>
+        -->
         <tr>
             <td><span>baudRate</span> Custom rates as allowed by hardware is supported. Windows doesn't support custom baud rates.</td>
             <td><div class="input-cover"><common-input  #_baudRate [type]="'number'" [value]="baudRate"></common-input></div></td>
