@@ -235,8 +235,12 @@ var LongList = (function () {
         if (wrapper.scrollTop === scrollTop) {
             return false;
         }
-        wrapper.scrollTo(wrapper.scrollLeft, scrollTop);
-        //wrapper.scrollTop = scrollTop;
+        if (typeof wrapper.scrollTo === 'function') {
+            wrapper.scrollTo(wrapper.scrollLeft, scrollTop);
+        }
+        else {
+            wrapper.scrollTop = scrollTop;
+        }
     };
     LongList.prototype.ngAfterViewChecked = function () {
         this.update();
