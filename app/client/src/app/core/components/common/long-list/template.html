@@ -6,6 +6,6 @@
             <long-list-item [component]="row"></long-list-item>
         </li>
     </ul>
-    <div *ngIf="borders.bottom" [attr.class]="'border-bottom ' + borders.bottomCSSClass" [style.marginTop]="borders.bottomPosition"></div>
-    <div *ngIf="borders.top" [attr.class]="'border-top ' + borders.topCSSClass" class="border-top"></div>
+    <div *ngIf="borders.bottom" [attr.class]="'border-bottom ' + borders.bottomCSSClass" [style.transform]="'translateY(' + borders.bottomPosition + ')'" [style.marginLeft]="borders.left"></div>
+    <div *ngIf="borders.top" [attr.class]="'border-top ' + borders.topCSSClass" [style.marginLeft]="borders.left"></div>
 </div>
