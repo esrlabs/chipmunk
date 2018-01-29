@@ -38,9 +38,9 @@ class DataController implements InitiableModule{
     private regExpCache     : Object = {};
     private indexesCache    : Object = {};
     private worker          : Worker = new Worker('./app/workers/data.processor.loader.js');
+    private workerJobs      : number = 0;
 
     constructor(){
-        //console.log(DataFilter, Logs);
     }
 
     private bindEvents(){
@@ -77,6 +77,20 @@ class DataController implements InitiableModule{
                 Events.trigger(Configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED, response.rows);
                 break;
         }
+
+        this.workerJobs -= 1;
+
+        if (response.command === 'ready') {
+            this.workerJobs = 0;
+        }
+
+        this.workerJobs === 0 && Events.trigger(Configuration.sets.SYSTEM_EVENTS.GLOBAL_PROGRESS_HIDE);
+    }
+
+    private sendWorkerMessage(message: WorkerRequest){
+        this.workerJobs === 0 && Events.trigger(Configuration.sets.SYSTEM_EVENTS.GLOBAL_PROGRESS_SHOW);
+        this.workerJobs += 1;
+        this.worker.postMessage(message);
     }
 
     public init(callback : Function = null){
@@ -98,14 +112,14 @@ class DataController implements InitiableModule{
     }
 
     updateForParsers(){
-        this.worker.postMessage({
+        this.sendWorkerMessage({
             command : WorkerCommands.updateParsers,
             configuration : this.getConfigurationForWorker()
         } as WorkerRequest);
     }
 
     updateForFilter(filter: DataFilter){
-        this.worker.postMessage({
+        this.sendWorkerMessage({
             command         : WorkerCommands.addRequest,
             filter          : filter,
             event           : Configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED,
@@ -114,7 +128,7 @@ class DataController implements InitiableModule{
     }
 
     onREMEMBER_FILTER(){
-        this.worker.postMessage({
+        this.sendWorkerMessage({
             command         : WorkerCommands.addFilter,
             value           : this.dataFilter.value,
             mode            : this.dataFilter.mode,
@@ -123,7 +137,7 @@ class DataController implements InitiableModule{
     }
 
     onFORGET_FILTER(GUID: string){
-        this.worker.postMessage({
+        this.sendWorkerMessage({
             command         : WorkerCommands.removeFilter,
             GUID            : GUID,
             configuration   : this.getConfigurationForWorker()
@@ -131,25 +145,17 @@ class DataController implements InitiableModule{
     }
 
     onSEARCH_REQUEST_CHANGED(dataFilter: DataFilter){
-        this.worker.postMessage({
+        this.sendWorkerMessage({
             command         : WorkerCommands.updateActiveFilter,
             event           : Configuration.sets.SYSTEM_EVENTS.DATA_FILTER_IS_UPDATED,
             eventAfter      : Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_PROCESS_FINISH,
             filter          : dataFilter,
             configuration   : this.getConfigurationForWorker()
         } as WorkerRequest);
-        /*
-        this.getRequestGUID(dataFilter.mode, dataFilter.value);
-        this.dataFilter     = new DataFilter(dataFilter.mode, dataFilter.value);
-        Events.trigger(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_PROCESS_START,   Object.assign({}, this.dataFilter));
-        this.data.rows      = this.filterData(this.data.rows);
-        Events.trigger(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_PROCESS_FINISH,  Object.assign({}, this.dataFilter));
-        Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_FILTER_IS_UPDATED, new EVENT_DATA_IS_UPDATED(this.data.rows));
-        */
     }
 
     onTXT_DATA_COME(data : string){
-        this.worker.postMessage({
+        this.sendWorkerMessage({
             command : WorkerCommands.create,
             str     : data,
             event   : Configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED,
@@ -159,7 +165,7 @@ class DataController implements InitiableModule{
 
     onSTREAM_DATA_UPDATE(data: string){
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_GET_ALL, (requests:Array<any>)=>{
-            this.worker.postMessage({
+            this.sendWorkerMessage({
                 command : WorkerCommands.add,
                 str     : data,
                 requests: requests instanceof Array ? requests.map((request) => {

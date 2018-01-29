@@ -550,3 +550,9 @@ onmessage = function(event: MessageEvent) {
 
 };
 
+(function(){
+    postMessage.call(this, {
+        command: 'ready'
+    } as WorkerResponse);
+}());
+

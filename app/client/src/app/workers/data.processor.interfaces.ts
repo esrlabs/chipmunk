@@ -30,5 +30,6 @@ export interface WorkerResponse {
     event?          : string | symbol,
     rows?           : Array<any>,
     processedRows?  : Array<any>,
-    filter?         : DataFilter
+    filter?         : DataFilter,
+    command?        : string
 }
