@@ -28,7 +28,7 @@ var DataController = (function () {
         this.regExpCache = {};
         this.indexesCache = {};
         this.worker = new Worker('./app/workers/data.processor.loader.js');
-        //console.log(DataFilter, Logs);
+        this.workerJobs = 0;
     }
     DataController.prototype.bindEvents = function () {
         controller_events_1.events.bind(controller_config_1.configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_CHANGED, this.onSEARCH_REQUEST_CHANGED.bind(this));
@@ -63,6 +63,16 @@ var DataController = (function () {
                 controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED, response.rows);
                 break;
         }
+        this.workerJobs -= 1;
+        if (response.command === 'ready') {
+            this.workerJobs = 0;
+        }
+        this.workerJobs === 0 && controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.GLOBAL_PROGRESS_HIDE);
+    };
+    DataController.prototype.sendWorkerMessage = function (message) {
+        this.workerJobs === 0 && controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.GLOBAL_PROGRESS_SHOW);
+        this.workerJobs += 1;
+        this.worker.postMessage(message);
     };
     DataController.prototype.init = function (callback) {
         if (callback === void 0) { callback = null; }
@@ -81,13 +91,13 @@ var DataController = (function () {
         return this.requests[key];
     };
     DataController.prototype.updateForParsers = function () {
-        this.worker.postMessage({
+        this.sendWorkerMessage({
             command: data_processor_interfaces_1.WorkerCommands.updateParsers,
             configuration: this.getConfigurationForWorker()
         });
     };
     DataController.prototype.updateForFilter = function (filter) {
-        this.worker.postMessage({
+        this.sendWorkerMessage({
             command: data_processor_interfaces_1.WorkerCommands.addRequest,
             filter: filter,
             event: controller_config_1.configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED,
@@ -95,7 +105,7 @@ var DataController = (function () {
         });
     };
     DataController.prototype.onREMEMBER_FILTER = function () {
-        this.worker.postMessage({
+        this.sendWorkerMessage({
             command: data_processor_interfaces_1.WorkerCommands.addFilter,
             value: this.dataFilter.value,
             mode: this.dataFilter.mode,
@@ -103,31 +113,23 @@ var DataController = (function () {
         });
     };
     DataController.prototype.onFORGET_FILTER = function (GUID) {
-        this.worker.postMessage({
+        this.sendWorkerMessage({
             command: data_processor_interfaces_1.WorkerCommands.removeFilter,
             GUID: GUID,
             configuration: this.getConfigurationForWorker()
         });
     };
     DataController.prototype.onSEARCH_REQUEST_CHANGED = function (dataFilter) {
-        this.worker.postMessage({
+        this.sendWorkerMessage({
             command: data_processor_interfaces_1.WorkerCommands.updateActiveFilter,
             event: controller_config_1.configuration.sets.SYSTEM_EVENTS.DATA_FILTER_IS_UPDATED,
             eventAfter: controller_config_1.configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_PROCESS_FINISH,
             filter: dataFilter,
             configuration: this.getConfigurationForWorker()
         });
-        /*
-        this.getRequestGUID(dataFilter.mode, dataFilter.value);
-        this.dataFilter     = new DataFilter(dataFilter.mode, dataFilter.value);
-        Events.trigger(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_PROCESS_START,   Object.assign({}, this.dataFilter));
-        this.data.rows      = this.filterData(this.data.rows);
-        Events.trigger(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_PROCESS_FINISH,  Object.assign({}, this.dataFilter));
-        Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_FILTER_IS_UPDATED, new EVENT_DATA_IS_UPDATED(this.data.rows));
-        */
     };
     DataController.prototype.onTXT_DATA_COME = function (data) {
-        this.worker.postMessage({
+        this.sendWorkerMessage({
             command: data_processor_interfaces_1.WorkerCommands.create,
             str: data,
             event: controller_config_1.configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED,
@@ -137,7 +139,7 @@ var DataController = (function () {
     DataController.prototype.onSTREAM_DATA_UPDATE = function (data) {
         var _this = this;
         controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_GET_ALL, function (requests) {
-            _this.worker.postMessage({
+            _this.sendWorkerMessage({
                 command: data_processor_interfaces_1.WorkerCommands.add,
                 str: data,
                 requests: requests instanceof Array ? requests.map(function (request) {
