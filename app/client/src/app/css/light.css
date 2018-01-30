@@ -694,24 +694,6 @@ view-markers-item .remove {
 view-markers-item .remove:hover {
   color: #f01e1e;
 }
-tab-search-requests {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-tab-search-requests ul {
-  position: relative;
-  list-style: none;
-  padding: 0.5rem 0;
-}
-tab-search-requests ul li {
-  position: relative;
-  display: block;
-  padding: 0;
-  margin: 0.25rem 0;
-}
 view-controller-search-results {
   position: absolute;
   width: 100%;
@@ -866,6 +848,24 @@ view-controller-search-results .export-url {
   width: 1px;
   height: 1px;
   opacity: 0.001;
+}
+tab-search-requests {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+tab-search-requests ul {
+  position: relative;
+  list-style: none;
+  padding: 0.5rem 0;
+}
+tab-search-requests ul li {
+  position: relative;
+  display: block;
+  padding: 0;
+  margin: 0.25rem 0;
 }
 view-controller-state-monitor-manager {
   position: absolute;
@@ -1036,6 +1036,13 @@ stream-sender-history-item .remove:hover {
   color: #f01e1e;
   opacity: 1;
 }
+holder {
+  position: absolute;
+  top: 3rem;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
 view {
   position: absolute;
   border: thin dotted rgba(20, 20, 20, 0.1);
@@ -1101,13 +1108,6 @@ view .wrapper .view-border-top {
 }
 view .wrapper .view-border-bottom {
   bottom: 0;
-}
-holder {
-  position: absolute;
-  top: 3rem;
-  bottom: 0;
-  left: 0;
-  right: 0;
 }
 view-bar {
   display: table;
@@ -2570,6 +2570,55 @@ dialog-adblogcatstream-settings .buttons {
   height: 2.5rem;
   bottom: 0;
 }
+dialog-api-settings {
+  position: absolute;
+  display: block;
+  top: 0.5rem;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  right: 0.5rem;
+}
+dialog-api-settings .settings {
+  position: absolute;
+  width: 100%;
+  top: 0;
+  bottom: 2.5rem;
+  overflow: auto;
+}
+dialog-api-settings .settings table {
+  position: relative;
+  width: 100%;
+}
+dialog-api-settings .settings table tr td:first-child {
+  position: relative;
+  width: 100%;
+  font-size: 0.85rem;
+  padding: 0.25rem 0;
+  margin: 0;
+  font-weight: normal;
+  color: #a0a0a0;
+}
+dialog-api-settings .settings table tr td:first-child span {
+  font-weight: bold;
+  color: #1e1e1e;
+}
+dialog-api-settings .settings table tr td:last-child {
+  padding: 0.25rem 0.5rem;
+  margin: 0;
+  position: relative;
+  min-width: 15rem;
+}
+dialog-api-settings .settings table tr .input-cover {
+  position: relative;
+  width: 100%;
+  height: 1.5rem;
+}
+dialog-api-settings .buttons {
+  position: absolute;
+  width: 100%;
+  height: 2.5rem;
+  bottom: 0;
+}
 chart-edit-color-dialog {
   position: absolute;
   top: 0.5rem;
@@ -2811,55 +2860,6 @@ chart-edit-rules-hooks-dialog .chart-errors-wrapper p {
   bottom: 0.5rem;
   width: 100%;
   left: 0;
-}
-dialog-api-settings {
-  position: absolute;
-  display: block;
-  top: 0.5rem;
-  left: 0.5rem;
-  bottom: 0.5rem;
-  right: 0.5rem;
-}
-dialog-api-settings .settings {
-  position: absolute;
-  width: 100%;
-  top: 0;
-  bottom: 2.5rem;
-  overflow: auto;
-}
-dialog-api-settings .settings table {
-  position: relative;
-  width: 100%;
-}
-dialog-api-settings .settings table tr td:first-child {
-  position: relative;
-  width: 100%;
-  font-size: 0.85rem;
-  padding: 0.25rem 0;
-  margin: 0;
-  font-weight: normal;
-  color: #a0a0a0;
-}
-dialog-api-settings .settings table tr td:first-child span {
-  font-weight: bold;
-  color: #1e1e1e;
-}
-dialog-api-settings .settings table tr td:last-child {
-  padding: 0.25rem 0.5rem;
-  margin: 0;
-  position: relative;
-  min-width: 15rem;
-}
-dialog-api-settings .settings table tr .input-cover {
-  position: relative;
-  width: 100%;
-  height: 1.5rem;
-}
-dialog-api-settings .buttons {
-  position: absolute;
-  width: 100%;
-  height: 2.5rem;
-  bottom: 0;
 }
 chart-edit-rules-segments-dialog {
   position: absolute;
@@ -3375,6 +3375,31 @@ dialog-serialports-list .dialog-serialports-list li span {
 dialog-serialports-list .dialog-serialports-list li span:hover {
   opacity: 1;
 }
+shortcuts-list {
+  position: absolute;
+  display: block;
+  top: 0.5rem;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+shortcuts-list .shortcuts-list {
+  position: absolute;
+  width: auto;
+  font-size: 0.85rem;
+}
+shortcuts-list .shortcuts-list .keys {
+  text-align: right;
+  padding-right: 1rem;
+  font-weight: bold;
+  color: #f01e1e;
+}
+shortcuts-list .shortcuts-list .label {
+  text-align: left;
+  padding-left: 2rem;
+}
 dialog-statemonitor-editjson {
   position: absolute;
   top: 0.5rem;
@@ -3425,31 +3450,6 @@ dialog-statemonitor-editjson .buttons {
   text-align: right;
   white-space: nowrap;
   width: 100%;
-}
-shortcuts-list {
-  position: absolute;
-  display: block;
-  top: 0.5rem;
-  left: 0.5rem;
-  bottom: 0.5rem;
-  right: 0.5rem;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-shortcuts-list .shortcuts-list {
-  position: absolute;
-  width: auto;
-  font-size: 0.85rem;
-}
-shortcuts-list .shortcuts-list .keys {
-  text-align: right;
-  padding-right: 1rem;
-  font-weight: bold;
-  color: #f01e1e;
-}
-shortcuts-list .shortcuts-list .label {
-  text-align: left;
-  padding-left: 2rem;
 }
 dialog-statemonitor-indicate-edit {
   position: absolute;

@@ -5,17 +5,10 @@ import { configuration as Configuration } from './controller.config';
 import { DataRow                        } from '../interfaces/interface.data.row';
 import { DataFilter                     } from '../interfaces/interface.data.filter';
 import { MODES                          } from './controller.data.search.modes';
-import { GUID                           } from './tools.guid';
 import { EVENT_DATA_IS_UPDATED          } from '../interfaces/events/DATA_IS_UPDATE';
 import { WorkerCommands, WorkerRequest, WorkerResponse  } from '../../workers/data.processor.interfaces';
+import {ClipboardShortcuts, ClipboardKeysEvent} from "./controller.clipboard.shortcuts";
 
-
-const RegSrcMarks = {
-    BEGIN   : '\u001D',
-    END     : '\u001E',
-    NUMBER  : '\\\u001D\\d+\\\u001E',
-    SELECTOR: /\u001D(\d*)\u001E/gi
-};
 
 class DataController implements InitiableModule{
     private dataFilter  : DataFilter        = new DataFilter();
@@ -29,16 +22,10 @@ class DataController implements InitiableModule{
         rows    : [],
         srcRegs : ''
     };
-    private stream      : {
-        broken  : string
-    } = {
-        broken  : ''
-    };
-    private filters         : Object = {};
-    private regExpCache     : Object = {};
-    private indexesCache    : Object = {};
-    private worker          : Worker = new Worker('./app/workers/data.processor.loader.js');
-    private workerJobs      : number = 0;
+    private worker              : Worker = new Worker('./app/workers/data.processor.loader.js');
+    private workerJobs          : number = 0;
+    private clipboardShortcuts  : ClipboardShortcuts = null;
+
 
     constructor(){
     }
@@ -52,6 +39,7 @@ class DataController implements InitiableModule{
         Events.bind(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_RESET,      this.onSEARCH_REQUEST_RESET.    bind(this));
         Events.bind(Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED,    this.onVIEW_OUTPUT_IS_CLEARED.  bind(this));
         this.worker.addEventListener('message', this.onWorkerMessage.bind(this));
+        this.clipboardShortcuts.onPaste.subscribe(this.onClipboardPaste.bind(this));
     }
 
     private onWorkerMessage(event: MessageEvent) {
@@ -95,6 +83,7 @@ class DataController implements InitiableModule{
 
     public init(callback : Function = null){
         Logs.msg('[controller.data] Initialization.', LogTypes.DEBUG);
+        this.clipboardShortcuts = new ClipboardShortcuts();
         this.bindEvents();
         typeof callback === 'function' && callback();
         Logs.msg('[controller.data] Finished.', LogTypes.DEBUG);
@@ -191,6 +180,12 @@ class DataController implements InitiableModule{
     getConfigurationForWorker(){
         return {
             sets: Configuration.sets
+        }
+    }
+
+    onClipboardPaste(event: ClipboardKeysEvent){
+        if (typeof event.text === 'string' && event.text.trim() !== '') {
+            this.onTXT_DATA_COME(event.text);
         }
     }
 

@@ -6,12 +6,7 @@ var interface_data_filter_1 = require("../interfaces/interface.data.filter");
 var controller_data_search_modes_1 = require("./controller.data.search.modes");
 var DATA_IS_UPDATE_1 = require("../interfaces/events/DATA_IS_UPDATE");
 var data_processor_interfaces_1 = require("../../workers/data.processor.interfaces");
-var RegSrcMarks = {
-    BEGIN: '\u001D',
-    END: '\u001E',
-    NUMBER: '\\\u001D\\d+\\\u001E',
-    SELECTOR: /\u001D(\d*)\u001E/gi
-};
+var controller_clipboard_shortcuts_1 = require("./controller.clipboard.shortcuts");
 var DataController = (function () {
     function DataController() {
         this.dataFilter = new interface_data_filter_1.DataFilter();
@@ -21,14 +16,9 @@ var DataController = (function () {
             rows: [],
             srcRegs: ''
         };
-        this.stream = {
-            broken: ''
-        };
-        this.filters = {};
-        this.regExpCache = {};
-        this.indexesCache = {};
         this.worker = new Worker('./app/workers/data.processor.loader.js');
         this.workerJobs = 0;
+        this.clipboardShortcuts = null;
     }
     DataController.prototype.bindEvents = function () {
         controller_events_1.events.bind(controller_config_1.configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_CHANGED, this.onSEARCH_REQUEST_CHANGED.bind(this));
@@ -39,6 +29,7 @@ var DataController = (function () {
         controller_events_1.events.bind(controller_config_1.configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_RESET, this.onSEARCH_REQUEST_RESET.bind(this));
         controller_events_1.events.bind(controller_config_1.configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED, this.onVIEW_OUTPUT_IS_CLEARED.bind(this));
         this.worker.addEventListener('message', this.onWorkerMessage.bind(this));
+        this.clipboardShortcuts.onPaste.subscribe(this.onClipboardPaste.bind(this));
     };
     DataController.prototype.onWorkerMessage = function (event) {
         var response = event.data;
@@ -77,6 +68,7 @@ var DataController = (function () {
     DataController.prototype.init = function (callback) {
         if (callback === void 0) { callback = null; }
         tools_logs_1.Logs.msg('[controller.data] Initialization.', tools_logs_1.TYPES.DEBUG);
+        this.clipboardShortcuts = new controller_clipboard_shortcuts_1.ClipboardShortcuts();
         this.bindEvents();
         typeof callback === 'function' && callback();
         tools_logs_1.Logs.msg('[controller.data] Finished.', tools_logs_1.TYPES.DEBUG);
@@ -163,6 +155,11 @@ var DataController = (function () {
         return {
             sets: controller_config_1.configuration.sets
         };
+    };
+    DataController.prototype.onClipboardPaste = function (event) {
+        if (typeof event.text === 'string' && event.text.trim() !== '') {
+            this.onTXT_DATA_COME(event.text);
+        }
     };
     return DataController;
 }());
