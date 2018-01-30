@@ -29,7 +29,7 @@ const CONFIGURATION = {
     [TASKS.BUILD_LINUX] : {
         appId           : 'com.logviewer.de',
         productName     : 'LogViewer',
-        copyright       : 'Copyright © 2017 year E.S.R.Labs',
+        copyright       : 'Copyright © 2018 year E.S.R.Labs',
         directories     :{
             output  : 'dist'
         },
@@ -41,7 +41,7 @@ const CONFIGURATION = {
     [TASKS.BUILD_WIN] : {
         appId           : 'com.logviewer.de',
         productName     : 'LogViewer',
-        copyright       : 'Copyright © 2017 year E.S.R.Labs',
+        copyright       : 'Copyright © 2018 year E.S.R.Labs',
         directories     :{
             output  : 'dist'
         },
