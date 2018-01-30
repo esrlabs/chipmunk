@@ -5,7 +5,7 @@
     <p *ngIf="rows.length === 0" class="message-no-data">No Data Is Loaded</p>
     <a #exporturl [attr.href]="exportdata.url" class="export-url" [attr.download]="exportdata.filename"></a>
 </div>
-<div [attr.class]="'lv-manager-wrapper' + ' ' + (requestsListClosed ? 'closed' : 'opened')">
+<div [attr.class]="'lv-manager-wrapper noselect' + ' ' + (requestsListClosed ? 'closed' : 'opened')">
     <div class="lv-manager-trigger-area"  (click)="onRequestListTrigger()">
         <span class="lv-manager-trigger fa fa-angle-double-left"></span>
         <span class="lv-manager-title">Requests List</span>

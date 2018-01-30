@@ -1,4 +1,5 @@
 "use strict";
+var controller_clipboard_shortcuts_1 = require("./controller.clipboard.shortcuts");
 var EVENTS = {
     mousedown: 'mousedown',
     mouseup: 'mouseup'
@@ -15,6 +16,8 @@ var TextSelection = (function () {
                 target.addEventListener(EVENTS.mousedown, this[EVENTS.mousedown]);
                 target.addEventListener(EVENTS.mouseup, this[EVENTS.mouseup]);
                 this.trigger = trigger;
+                controller_clipboard_shortcuts_1.clipboardShortcuts.onCopy.subscribe(this.onCopy.bind(this));
+                controller_clipboard_shortcuts_1.clipboardShortcuts.onPaste.subscribe(this.onPaste.bind(this));
             }
         }
     }
@@ -28,12 +31,39 @@ var TextSelection = (function () {
         this.unbindWindowListener();
         this.inProgress = false;
     };
+    TextSelection.prototype.onCopy = function (event) {
+        var text = typeof event.selection.toString === 'function' ? event.selection.toString() : null;
+        var reg = /\u0001/gi;
+        if (text === null) {
+            return false;
+        }
+        if (!~text.search(/\u0001/gi)) {
+            return false;
+        }
+        var element = document.createElement('P');
+        element.style.opacity = '0.0001';
+        element.style.position = 'absolute';
+        element.style.width = '1px';
+        element.style.height = '1px';
+        element.style.overflow = 'hidden';
+        element.innerHTML = text.replace(/\u0001\d*\u0001/gi, '').replace(/[\n\r]/gi, '</br>');
+        document.body.appendChild(element);
+        var range = document.createRange();
+        range.selectNode(element);
+        event.selection.empty();
+        event.selection.addRange(range);
+        controller_clipboard_shortcuts_1.clipboardShortcuts.doCopy();
+        event.selection.empty();
+        document.body.removeChild(element);
+    };
+    TextSelection.prototype.onPaste = function () {
+    };
     TextSelection.prototype[EVENTS.mousedown] = function (event) {
         this.bindWindowListener();
         this.inProgress = true;
     };
     TextSelection.prototype[EVENTS.mouseup] = function (event) {
-        var selection = window.getSelection(), text = '';
+        var selection = window.getSelection();
         if (typeof selection.toString === 'function') {
             this.trigger.emit(selection.toString());
         }

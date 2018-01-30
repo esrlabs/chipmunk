@@ -20,7 +20,7 @@ class ShortcutController{
     private delayed     : Array<string> = [];
 
     constructor(){
-        window.addEventListener('keypress', this.onKeyPress.bind(this));
+        document.addEventListener('keypress', this.onKeyPress.bind(this));
         this.accept = this.accept.bind(this);
         [   Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_HELP,
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_OPEN_FILE,
