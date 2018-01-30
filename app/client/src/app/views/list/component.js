@@ -79,6 +79,7 @@ var ViewControllerList = (function (_super) {
             inited: false
         };
         _this.markers = []; //Do not bind this <Marker> type, because markers view can be removed
+        _this.markerSelectMode = 'words';
         _this.componentFactoryResolver = componentFactoryResolver;
         _this.viewContainerRef = viewContainerRef;
         _this.changeDetectorRef = changeDetectorRef;
@@ -175,6 +176,7 @@ var ViewControllerList = (function (_super) {
                     visibility: _this.numbers,
                     total_rows: _this._rows.length === 0 ? rows.length : _this._rows.length,
                     markers: _this.markers,
+                    markerSelectMode: _this.markerSelectMode,
                     markersHash: markersHash,
                     regsCache: _this.regsCache
                 },
@@ -252,6 +254,7 @@ var ViewControllerList = (function (_super) {
             row.params.total_rows = _this._rows.length;
             row.params.GUID = _this.viewParams !== null ? _this.viewParams.GUID : null;
             row.params.markers = _this.markers;
+            row.params.markerSelectMode = _this.markerSelectMode;
             row.params.markersHash = markersHash;
             update && row.update(row.params);
             return row;
@@ -263,13 +266,14 @@ var ViewControllerList = (function (_super) {
         var markersHash = this.getMarkersHash();
         this.rows instanceof Array && (this.rows = this.rows.map(function (row) {
             row.params.markers = _this.markers;
+            row.params.markerSelectMode = _this.markerSelectMode;
             row.params.markersHash = markersHash;
             row.update !== null && row.update(row.params);
             return row;
         }));
     };
     ViewControllerList.prototype.getMarkersHash = function () {
-        var hash = '';
+        var hash = this.markerSelectMode;
         this.markers instanceof Array && this.markers.forEach(function (marker) {
             hash += marker.value + marker.foregroundColor + marker.backgroundColor;
         });
@@ -351,6 +355,8 @@ var ViewControllerList = (function (_super) {
                 this.markers.splice(index, 1);
                 this.updateMarkersOnly();
             }
+        }
+        else {
         }
     };
     ViewControllerList.prototype.getSelfMarkerIndex = function () {
@@ -679,8 +685,9 @@ var ViewControllerList = (function (_super) {
         }
         var _a, _b;
     };
-    ViewControllerList.prototype.onMARKERS_UPDATED = function (markers) {
+    ViewControllerList.prototype.onMARKERS_UPDATED = function (markers, markerSelectMode) {
         this.markers = markers;
+        this.markerSelectMode = markerSelectMode;
         this.updateMarkersOnly();
     };
     ViewControllerList.prototype.filterRestore = function () {

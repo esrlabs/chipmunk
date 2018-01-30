@@ -15,7 +15,7 @@ var SETTINGS = {
     FILLER_OFFSET: 16,
     SCROLL_BAR_OFFSET: 15,
     BORDER_TIMEOUT: 1000,
-    BORDER_ATTEMPTS: 5,
+    BORDER_ATTEMPTS: 10,
     SCROLL_TOP_OFFSET: 15
 };
 var LongList = (function () {
@@ -127,7 +127,7 @@ var LongList = (function () {
         this.state.rows = this.rows.slice(this.state.start, this.state.end);
     };
     LongList.prototype.checkBorders = function (scrollTop, scrollLeft) {
-        if (scrollTop === this.state.previousST) {
+        if (scrollTop === this.borders.previousST) {
             this.borders.counter += 1;
             if (this.borders.counter > SETTINGS.BORDER_ATTEMPTS) {
                 this.borders.counter = 0;
@@ -151,6 +151,7 @@ var LongList = (function () {
             this.borders.counter = 0;
         }
         this.borders.left = scrollLeft + 'px';
+        this.borders.previousST = scrollTop;
     };
     LongList.prototype.onBorders = function () {
         this.borders.timer !== -1 && clearTimeout(this.borders.timer);

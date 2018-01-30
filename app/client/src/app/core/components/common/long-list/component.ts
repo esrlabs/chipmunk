@@ -11,7 +11,7 @@ const SETTINGS = {
     FILLER_OFFSET       : 16,
     SCROLL_BAR_OFFSET   : 15,
     BORDER_TIMEOUT      : 1000,
-    BORDER_ATTEMPTS     : 5,
+    BORDER_ATTEMPTS     : 10,
     SCROLL_TOP_OFFSET   : 15
 };
 
@@ -172,7 +172,7 @@ export class LongList implements AfterViewChecked{
     }
 
     checkBorders(scrollTop: number, scrollLeft: number){
-        if (scrollTop === this.state.previousST) {
+        if (scrollTop === this.borders.previousST) {
             this.borders.counter += 1;
             if (this.borders.counter  > SETTINGS.BORDER_ATTEMPTS) {
                 this.borders.counter = 0;
@@ -194,6 +194,7 @@ export class LongList implements AfterViewChecked{
             this.borders.counter = 0;
         }
         this.borders.left = scrollLeft + 'px';
+        this.borders.previousST = scrollTop;
     }
 
     onBorders(){
