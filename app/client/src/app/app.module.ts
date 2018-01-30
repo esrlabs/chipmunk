@@ -15,6 +15,7 @@ import { SerialPorts                        } from './core/services/service.seri
 import { controllerThemes                   } from './core/modules/controller.themes';
 
 import { ShortcutController                 } from './core/modules/controller.shortcut';
+
 import { Updater                            } from './core/modules/controller.updater';
 
 import { MonitorManager                     } from './core/handles/hanlde.open.monitor.manager';

@@ -12,7 +12,7 @@ var ShortcutController = (function () {
         this.timer = null;
         this.listening = true;
         this.delayed = [];
-        window.addEventListener('keypress', this.onKeyPress.bind(this));
+        document.addEventListener('keypress', this.onKeyPress.bind(this));
         this.accept = this.accept.bind(this);
         [controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_HELP,
             controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_OPEN_FILE,
