@@ -14,30 +14,40 @@ const MARKERS = {
     MARKER_RIGHT: '\uAA89'
 };
 
+const INDEX_MARKERS = {
+    MARKER : '\u0001'
+};
+
+const MARKERS_SELECTION_MODE = {
+    WORDS: 'words',
+    LINES: 'lines'
+};
+
 @Component({
   selector      : 'list-view-item',
   templateUrl   : './template.html'
 })
 
 export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnChanges, AfterContentChecked{
-    @Input() GUID       : string                = '';
-    @Input() val        : string                = '';
-    @Input() visibility : boolean               = true;
-    @Input() filtered   : boolean               = false;
-    @Input() match      : string                = '';
-    @Input() matchReg   : boolean               = true;
-    @Input() index      : number                = 0;
-    @Input() total_rows : number                = 0;
-    @Input() selection  : boolean               = false;
-    @Input() bookmarked : boolean               = false;
-    @Input() markersHash: string                = '';
-    @Input() regsCache  : Object                = {};
-    @Input() markers    : Array<{
+    @Input() GUID               : string        = '';
+    @Input() val                : string        = '';
+    @Input() visibility         : boolean       = true;
+    @Input() filtered           : boolean       = false;
+    @Input() match              : string        = '';
+    @Input() matchReg           : boolean       = true;
+    @Input() index              : number        = 0;
+    @Input() total_rows         : number        = 0;
+    @Input() selection          : boolean       = false;
+    @Input() bookmarked         : boolean       = false;
+    @Input() markersHash        : string        = '';
+    @Input() markerSelectMode   : string        = '';
+    @Input() regsCache          : Object        = {};
+    @Input() markers            : Array<{
         value           : string,
         backgroundColor : string,
         foregroundColor : string
     }> = [];//Do not bind this <Marker> type, because markers view can be removed
-    @Input() highlight  : {
+    @Input() highlight          : {
         backgroundColor : string,
         foregroundColor : string
     } = {
@@ -56,6 +66,14 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     private _matchReg   : boolean               = true;
     private _total_rows : number                = -1;
 
+    private _highlight          : {
+        backgroundColor : string,
+        foregroundColor : string
+    } = {
+        backgroundColor : '',
+        foregroundColor : ''
+    };
+
     ngOnDestroy(){
     }
 
@@ -68,12 +86,14 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     updateFilledIndex(){
         let total   = this.total_rows.toString(),
             current = this.index.toString();
-        this.__index = (total.length - current.length > 0 ? ('0'.repeat(total.length - current.length)) : '') + current;
+        this.__index = INDEX_MARKERS.MARKER + (total.length - current.length > 0 ? ('0'.repeat(total.length - current.length)) : '') + current + INDEX_MARKERS.MARKER;
     }
 
     getHTML(){
         let matchMatches    = null;
-        let markersMatches  : Array<{ mark: string, matches: Array<string>, bg: string, fg: string}> = [];
+        let markersMatches  : Array<{ mark: string, matches: Array<string>, bg: string, fg: string, _bg: string, _fg: string}> = [];
+        this._highlight.backgroundColor = this.highlight.backgroundColor;
+        this._highlight.foregroundColor = this.highlight.foregroundColor;
         this.html = serializeHTML(this.val);
         if (typeof this.match === 'string' && this.match !== null && this.match !== ''){
             let reg = null;
@@ -107,26 +127,35 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
                             markersMatches.push({
                                 mark    : mark,
                                 matches : matches,
-                                bg      : marker.backgroundColor,
-                                fg      : marker.foregroundColor
+                                bg      : this.markerSelectMode === MARKERS_SELECTION_MODE.LINES ? 'rgba(250,0,0,1)' : marker.backgroundColor,
+                                fg      : this.markerSelectMode === MARKERS_SELECTION_MODE.LINES ?  'rgba(250,250,250,1)' : marker.foregroundColor,
+                                _bg     : marker.backgroundColor,
+                                _fg     : marker.foregroundColor
                             });
                         }
                     }
                 }
             });
         }
+
         if (matchMatches instanceof Array && matchMatches.length > 0){
             matchMatches.forEach((match)=>{
                 this.html = this.html.replace(MARKERS.MATCH, '<span class="match">' + match + '</span>')
             });
         }
+
         if (markersMatches instanceof Array && markersMatches.length > 0) {
             markersMatches.forEach((marker) => {
                 marker.matches.forEach((match)=>{
                     this.html = this.html.replace(marker.mark, `<span class="marker" style="background-color: ${marker.bg};color:${marker.fg};">${match}</span>`)
                 });
             });
+            if (this.markerSelectMode === MARKERS_SELECTION_MODE.LINES) {
+                this._highlight.backgroundColor = markersMatches[0]._bg;
+                this._highlight.foregroundColor = markersMatches[0]._fg;
+            }
         }
+
         this.html = ANSIReader(this.html);
         this.html = parseHTML(this.html);
     }

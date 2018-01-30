@@ -92,6 +92,7 @@ var TabControllerSearchResults = (function (_super) {
             inited: false
         };
         _this.markers = []; //Do not bind this <Marker> type, because markers view can be removed
+        _this.markerSelectMode = 'words';
         _this.componentFactoryResolver = componentFactoryResolver;
         _this.viewContainerRef = viewContainerRef;
         _this.changeDetectorRef = changeDetectorRef;
@@ -362,6 +363,7 @@ var TabControllerSearchResults = (function (_super) {
                     total_rows: _this._rows.length === 0 ? rows.length : _this._rows.length,
                     markers: _this.markers,
                     markersHash: markersHash,
+                    markerSelectMode: _this.markerSelectMode,
                     regsCache: _this.regsCache,
                     highlight: {
                         foregroundColor: '',
@@ -533,6 +535,7 @@ var TabControllerSearchResults = (function (_super) {
             row.params.GUID = _this.viewParams !== null ? _this.viewParams.GUID : null;
             row.params.bookmarked = _this.bookmarks.indexOf(row.params.index) !== -1;
             row.params.markers = _this.markers;
+            row.params.markerSelectMode = _this.markerSelectMode;
             row.params.markersHash = markersHash;
             update && row.update(row.params);
             return row;
@@ -545,12 +548,13 @@ var TabControllerSearchResults = (function (_super) {
         this.rows instanceof Array && (this.rows = this.rows.map(function (row) {
             row.params.markers = _this.markers;
             row.params.markersHash = markersHash;
+            row.params.markerSelectMode = _this.markerSelectMode;
             row.update !== null && row.update(row.params);
             return row;
         }));
     };
     TabControllerSearchResults.prototype.getMarkersHash = function () {
-        var hash = '';
+        var hash = this.markerSelectMode;
         this.markers instanceof Array && this.markers.forEach(function (marker) {
             hash += marker.value + marker.foregroundColor + marker.backgroundColor;
         });
@@ -799,8 +803,9 @@ var TabControllerSearchResults = (function (_super) {
             tools_logs_1.Logs.measure(measure);
         }
     };
-    TabControllerSearchResults.prototype.onMARKERS_UPDATED = function (markers) {
+    TabControllerSearchResults.prototype.onMARKERS_UPDATED = function (markers, markerSelectMode) {
         this.markers = markers;
+        this.markerSelectMode = markerSelectMode;
         this.updateMarkersOnly();
     };
     TabControllerSearchResults.prototype.getIndexInSearchList = function (index) {

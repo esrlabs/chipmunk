@@ -118,6 +118,8 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         self?           : boolean
     }> = [];//Do not bind this <Marker> type, because markers view can be removed
 
+    private markerSelectMode : string = 'words';
+
     constructor(
         private componentFactoryResolver    : ComponentFactoryResolver,
         private viewContainerRef            : ViewContainerRef,
@@ -215,20 +217,21 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             return {
                 factory : factory,
                 params  : {
-                    GUID        : this.viewParams !== null ? this.viewParams.GUID : null,
-                    val         : this.serializeHTML(row.str),
-                    original    : row.str,
-                    index       : _index,
-                    selection   : this.selection.index === _index ? true : false,
-                    bookmarked  : ~this.bookmarks.indexOf(_index) ? true : false,
-                    filtered    : this.highlight ? filtered : false,
-                    match       : row.match,
-                    matchReg    : row.matchReg,
-                    visibility  : this.numbers,
-                    total_rows  : this._rows.length === 0 ? rows.length : this._rows.length,
-                    markers     : this.markers,
-                    markersHash : markersHash,
-                    regsCache   : this.regsCache
+                    GUID            : this.viewParams !== null ? this.viewParams.GUID : null,
+                    val             : this.serializeHTML(row.str),
+                    original        : row.str,
+                    index           : _index,
+                    selection       : this.selection.index === _index ? true : false,
+                    bookmarked      : ~this.bookmarks.indexOf(_index) ? true : false,
+                    filtered        : this.highlight ? filtered : false,
+                    match           : row.match,
+                    matchReg        : row.matchReg,
+                    visibility      : this.numbers,
+                    total_rows      : this._rows.length === 0 ? rows.length : this._rows.length,
+                    markers         : this.markers,
+                    markerSelectMode: this.markerSelectMode,
+                    markersHash     : markersHash,
+                    regsCache       : this.regsCache
                 },
                 callback: this.onRowInit.bind(this, _index),
                 update  : null,
@@ -298,16 +301,17 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             update = row.params.bookmarked  !== bookmarked  ? (row.update !== null) : update;
             update = row.params.GUID        !== null        ? (row.update !== null) : update;
             update = row.params.filtered    !== filtered    ? (row.update !== null) : update;
-            row.params.selection    = selection;
-            row.params.bookmarked   = bookmarked;
-            row.params.visibility   = this.numbers;
-            row.params.filtered     = this.highlight ? filtered : false;
-            row.params.match        = row.match;
-            row.params.matchReg     = row.matchReg;
-            row.params.total_rows   = this._rows.length;
-            row.params.GUID         = this.viewParams !== null ? this.viewParams.GUID : null;
-            row.params.markers      = this.markers;
-            row.params.markersHash  = markersHash;
+            row.params.selection        = selection;
+            row.params.bookmarked       = bookmarked;
+            row.params.visibility       = this.numbers;
+            row.params.filtered         = this.highlight ? filtered : false;
+            row.params.match            = row.match;
+            row.params.matchReg         = row.matchReg;
+            row.params.total_rows       = this._rows.length;
+            row.params.GUID             = this.viewParams !== null ? this.viewParams.GUID : null;
+            row.params.markers          = this.markers;
+            row.params.markerSelectMode = this.markerSelectMode;
+            row.params.markersHash      = markersHash;
             update && row.update(row.params);
             return row;
         }));
@@ -317,15 +321,16 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     updateMarkersOnly(){
         let markersHash = this.getMarkersHash();
         this.rows instanceof Array && (this.rows = this.rows.map((row)=>{
-            row.params.markers      = this.markers;
-            row.params.markersHash  = markersHash;
+            row.params.markers          = this.markers;
+            row.params.markerSelectMode = this.markerSelectMode;
+            row.params.markersHash      = markersHash;
             row.update !== null && row.update(row.params);
             return row;
         }));
     }
 
     getMarkersHash(){
-        let hash = '';
+        let hash = this.markerSelectMode;
         this.markers instanceof Array && this.markers.forEach((marker)=>{
             hash += marker.value + marker.foregroundColor + marker.backgroundColor;
         });
@@ -410,6 +415,8 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                 this.markers.splice(index, 1);
                 this.updateMarkersOnly();
             }
+        } else {
+
         }
     }
 
@@ -774,8 +781,9 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         }
     }
 
-    onMARKERS_UPDATED(markers: any){
-        this.markers = markers;
+    onMARKERS_UPDATED(markers: any, markerSelectMode: string){
+        this.markers            = markers;
+        this.markerSelectMode   = markerSelectMode;
         this.updateMarkersOnly();
     }
 

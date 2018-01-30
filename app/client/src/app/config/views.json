@@ -86,7 +86,8 @@
     "vertical"    : false,
     "horizontal"  : true,
     "menu"        : [
-      { "icon": "fa-plus", "event" : "MARKS_VIEW_ADD", "hint": "Add new" }
+      { "icon": "fa-plus", "event" : "MARKS_VIEW_ADD", "hint": "Add new" },
+      { "icon": "fa-align-justify", "event" : "MARKS_VIEW_SWITCH_TARGET", "hint": "Mark lines / mark keywords", "active": false }
     ],
     "hide"        : [
       "SILENCE", "DEAFNESS", "FILTER", "FAVORITE"
