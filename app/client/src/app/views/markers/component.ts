@@ -21,6 +21,13 @@ const SETTINGS = {
     LIST_KEY    : 'LIST_KEY'
 };
 
+const MarkerSelectionModeValues = {
+    words: 'words',
+    lines: 'lines'
+};
+
+type MarkerSelectionMode = 'words' | 'lines';
+
 
 @Component({
     selector        : 'view-controller-markers',
@@ -29,8 +36,10 @@ const SETTINGS = {
 
 export class ViewControllerMarkers extends ViewControllerPattern implements ViewInterface, OnInit, OnDestroy {
 
-    public viewParams       : ViewClass         = null;
-    public markers          : Array<Marker>     = [];
+    public viewParams       : ViewClass             = null;
+    public markers          : Array<Marker>         = [];
+    private linesSelection  : boolean               = false;
+    private markerSelectMode: MarkerSelectionMode   = 'words';
 
     ngOnInit(){
         this.viewParams !== null && super.setGUID(this.viewParams.GUID);
@@ -57,6 +66,7 @@ export class ViewControllerMarkers extends ViewControllerPattern implements View
         this.viewContainerRef           = viewContainerRef;
         this.changeDetectorRef          = changeDetectorRef;
         [   Configuration.sets.EVENTS_VIEWS.MARKS_VIEW_ADD,
+            Configuration.sets.EVENTS_VIEWS.MARKS_VIEW_SWITCH_TARGET,
             Configuration.sets.SYSTEM_EVENTS.MARKERS_GET_ALL].forEach((handle: string)=>{
             this['on' + handle] = this['on' + handle].bind(this);
             Events.bind(handle, this['on' + handle]);
@@ -190,13 +200,21 @@ export class ViewControllerMarkers extends ViewControllerPattern implements View
         }
     }
 
+    onMARKS_VIEW_SWITCH_TARGET(GUID: string | symbol){
+        if (this.viewParams.GUID === GUID) {
+            this.linesSelection = !this.linesSelection;
+            this.markerSelectMode = this.linesSelection ? 'lines' : 'words';
+            this.onMarkerChanges();
+        }
+    }
+
     onMARKERS_GET_ALL(callback: Function){
-        typeof callback === 'function' && callback(this.getActiveMarkers());
+        typeof callback === 'function' && callback(this.getActiveMarkers(), this.markerSelectMode);
     }
 
     onMarkerChanges(){
         this.saveMarkers();
-        Events.trigger(Configuration.sets.SYSTEM_EVENTS.MARKERS_UPDATED, this.getActiveMarkers());
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.MARKERS_UPDATED, this.getActiveMarkers(), this.markerSelectMode);
     }
 
     loadMarkers(){
