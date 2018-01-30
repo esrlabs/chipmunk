@@ -1,5 +1,5 @@
-import { EventEmitter       } from '@angular/core';
-import { clipboardShortcuts, ClipboardKeysEvent } from './controller.clipboard.shortcuts';
+import { EventEmitter                           } from '@angular/core';
+import { ClipboardShortcuts, ClipboardKeysEvent } from './controller.clipboard.shortcuts';
 
 const EVENTS = {
     mousedown   : 'mousedown',
@@ -8,8 +8,10 @@ const EVENTS = {
 
 class TextSelection {
 
-    private inProgress  : boolean               = false;
-    private trigger     : EventEmitter<string>  = null;
+    private inProgress          : boolean               = false;
+    private trigger             : EventEmitter<string>  = null;
+    private target              : HTMLElement           = null;
+    private clipboardShortcuts  : ClipboardShortcuts    = new ClipboardShortcuts();
 
     constructor(target: HTMLElement, trigger : EventEmitter<string>){
         if (target){
@@ -20,10 +22,20 @@ class TextSelection {
                 target.addEventListener(EVENTS.mousedown,   this[EVENTS.mousedown]);
                 target.addEventListener(EVENTS.mouseup,     this[EVENTS.mouseup]);
                 this.trigger = trigger;
-                clipboardShortcuts.onCopy.subscribe(this.onCopy.bind(this));
-                clipboardShortcuts.onPaste.subscribe(this.onPaste.bind(this));
+                this.target  = target;
+                this.clipboardShortcuts.onCopy.subscribe(this.onCopy.bind(this));
+                this.clipboardShortcuts.onPaste.subscribe(this.onPaste.bind(this));
             }
         }
+    }
+
+    destroy(){
+        this.clipboardShortcuts.onCopy.unsubscribe();
+        this.clipboardShortcuts.onPaste.unsubscribe();
+        this.clipboardShortcuts.destroy();
+        this.target.removeEventListener(EVENTS.mousedown,   this[EVENTS.mousedown]);
+        this.target.removeEventListener(EVENTS.mouseup,     this[EVENTS.mouseup]);
+        this.unbindWindowListener();
     }
 
     bindWindowListener(){
@@ -64,7 +76,7 @@ class TextSelection {
         event.selection.empty();
         event.selection.addRange(range);
 
-        clipboardShortcuts.doCopy();
+        this.clipboardShortcuts.doCopy();
 
         event.selection.empty();
         document.body.removeChild(element);

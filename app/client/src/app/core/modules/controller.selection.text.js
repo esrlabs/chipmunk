@@ -8,6 +8,8 @@ var TextSelection = (function () {
     function TextSelection(target, trigger) {
         this.inProgress = false;
         this.trigger = null;
+        this.target = null;
+        this.clipboardShortcuts = new controller_clipboard_shortcuts_1.ClipboardShortcuts();
         if (target) {
             if (target.addEventListener !== void 0) {
                 this[EVENTS.mousedown] = this[EVENTS.mousedown].bind(this);
@@ -16,11 +18,20 @@ var TextSelection = (function () {
                 target.addEventListener(EVENTS.mousedown, this[EVENTS.mousedown]);
                 target.addEventListener(EVENTS.mouseup, this[EVENTS.mouseup]);
                 this.trigger = trigger;
-                controller_clipboard_shortcuts_1.clipboardShortcuts.onCopy.subscribe(this.onCopy.bind(this));
-                controller_clipboard_shortcuts_1.clipboardShortcuts.onPaste.subscribe(this.onPaste.bind(this));
+                this.target = target;
+                this.clipboardShortcuts.onCopy.subscribe(this.onCopy.bind(this));
+                this.clipboardShortcuts.onPaste.subscribe(this.onPaste.bind(this));
             }
         }
     }
+    TextSelection.prototype.destroy = function () {
+        this.clipboardShortcuts.onCopy.unsubscribe();
+        this.clipboardShortcuts.onPaste.unsubscribe();
+        this.clipboardShortcuts.destroy();
+        this.target.removeEventListener(EVENTS.mousedown, this[EVENTS.mousedown]);
+        this.target.removeEventListener(EVENTS.mouseup, this[EVENTS.mouseup]);
+        this.unbindWindowListener();
+    };
     TextSelection.prototype.bindWindowListener = function () {
         window.addEventListener(EVENTS.mouseup, this.windowMouseUpListener);
     };
@@ -52,7 +63,7 @@ var TextSelection = (function () {
         range.selectNode(element);
         event.selection.empty();
         event.selection.addRange(range);
-        controller_clipboard_shortcuts_1.clipboardShortcuts.doCopy();
+        this.clipboardShortcuts.doCopy();
         event.selection.empty();
         document.body.removeChild(element);
     };
