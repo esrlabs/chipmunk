@@ -23,6 +23,10 @@ var component_1 = require("../../core/components/common/dialogs/markers.edit/com
 var SETTINGS = {
     LIST_KEY: 'LIST_KEY'
 };
+var MarkerSelectionModeValues = {
+    words: 'words',
+    lines: 'lines'
+};
 var ViewControllerMarkers = (function (_super) {
     __extends(ViewControllerMarkers, _super);
     function ViewControllerMarkers(componentFactoryResolver, viewContainerRef, changeDetectorRef) {
@@ -32,10 +36,13 @@ var ViewControllerMarkers = (function (_super) {
         _this.changeDetectorRef = changeDetectorRef;
         _this.viewParams = null;
         _this.markers = [];
+        _this.linesSelection = false;
+        _this.markerSelectMode = 'words';
         _this.componentFactoryResolver = componentFactoryResolver;
         _this.viewContainerRef = viewContainerRef;
         _this.changeDetectorRef = changeDetectorRef;
         [controller_config_1.configuration.sets.EVENTS_VIEWS.MARKS_VIEW_ADD,
+            controller_config_1.configuration.sets.EVENTS_VIEWS.MARKS_VIEW_SWITCH_TARGET,
             controller_config_1.configuration.sets.SYSTEM_EVENTS.MARKERS_GET_ALL].forEach(function (handle) {
             _this['on' + handle] = _this['on' + handle].bind(_this);
             controller_events_1.events.bind(handle, _this['on' + handle]);
@@ -176,12 +183,19 @@ var ViewControllerMarkers = (function (_super) {
             });
         }
     };
+    ViewControllerMarkers.prototype.onMARKS_VIEW_SWITCH_TARGET = function (GUID) {
+        if (this.viewParams.GUID === GUID) {
+            this.linesSelection = !this.linesSelection;
+            this.markerSelectMode = this.linesSelection ? 'lines' : 'words';
+            this.onMarkerChanges();
+        }
+    };
     ViewControllerMarkers.prototype.onMARKERS_GET_ALL = function (callback) {
-        typeof callback === 'function' && callback(this.getActiveMarkers());
+        typeof callback === 'function' && callback(this.getActiveMarkers(), this.markerSelectMode);
     };
     ViewControllerMarkers.prototype.onMarkerChanges = function () {
         this.saveMarkers();
-        controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.MARKERS_UPDATED, this.getActiveMarkers());
+        controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.MARKERS_UPDATED, this.getActiveMarkers(), this.markerSelectMode);
     };
     ViewControllerMarkers.prototype.loadMarkers = function () {
         var _this = this;

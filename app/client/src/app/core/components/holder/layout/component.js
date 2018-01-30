@@ -12,18 +12,66 @@ var core_1 = require("@angular/core");
 var service_views_1 = require("../../../services/service.views");
 var controller_events_1 = require("../../../modules/controller.events");
 var controller_config_1 = require("../../../modules/controller.config");
+var controller_dragdrop_files_1 = require("../../../modules/controller.dragdrop.files");
+var controller_1 = require("../../common/popup/controller");
+var component_1 = require("../../common/progressbar.circle/component");
 var Holder = (function () {
     function Holder(serviceViews, viewContainerRef) {
         this.serviceViews = serviceViews;
         this.viewContainerRef = viewContainerRef;
         this.views = [];
         this.css = '';
+        this.dragAndDropFiles = null;
+        this.dragAndDropDialogGUID = null;
         this.onVIEWS_COLLECTION_UPDATED();
         controller_events_1.events.bind(controller_config_1.configuration.sets.SYSTEM_EVENTS.VIEWS_COLLECTION_UPDATED, this.onVIEWS_COLLECTION_UPDATED.bind(this));
         window.addEventListener('resize', this.onResize.bind(this));
     }
     Holder.prototype.ngAfterViewInit = function () {
         this.onResize();
+        if (this.viewContainerRef !== null && this.dragAndDropFiles === null) {
+            this.dragAndDropFiles = new controller_dragdrop_files_1.DragAndDropFiles(this.viewContainerRef.element.nativeElement);
+            this.dragAndDropFiles.onStart.subscribe(this.onFileLoadingStart.bind(this));
+            this.dragAndDropFiles.onFinish.subscribe(this.onFileLoadingFinish.bind(this));
+        }
+    };
+    Holder.prototype.onFileLoadingStart = function (event) {
+        if (event.description !== '') {
+            this._showFileLoadingProgress(event.description);
+        }
+    };
+    Holder.prototype.onFileLoadingFinish = function (event) {
+        if (event.content !== '' && event.description !== '') {
+            controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.DESCRIPTION_OF_STREAM_UPDATED, event.description);
+            controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.TXT_DATA_COME, event.content);
+        }
+        this._hideFileLoadingProgress();
+    };
+    Holder.prototype._showFileLoadingProgress = function (description) {
+        this.dragAndDropDialogGUID = Symbol();
+        controller_1.popupController.open({
+            content: {
+                factory: null,
+                component: component_1.ProgressBarCircle,
+                params: {}
+            },
+            title: 'Please, wait... Loading: ' + description,
+            settings: {
+                move: false,
+                resize: false,
+                width: '20rem',
+                height: '10rem',
+                close: false,
+                addCloseHandle: false,
+                css: ''
+            },
+            buttons: [],
+            titlebuttons: [],
+            GUID: this.dragAndDropDialogGUID
+        });
+    };
+    Holder.prototype._hideFileLoadingProgress = function () {
+        controller_1.popupController.close(this.dragAndDropDialogGUID);
     };
     Holder.prototype.onVIEWS_COLLECTION_UPDATED = function () {
         this.views = this.serviceViews.getViews();

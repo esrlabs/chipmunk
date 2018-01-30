@@ -129,6 +129,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         backgroundColor : string,
         self?           : boolean
     }> = [];//Do not bind this <Marker> type, because markers view can be removed
+    private markerSelectMode : string = 'words';
 
     constructor(
         private componentFactoryResolver    : ComponentFactoryResolver,
@@ -426,18 +427,19 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             return {
                 factory : factory,
                 params  : {
-                    GUID        : this.viewParams !== null ? this.viewParams.GUID : null,
-                    val         : row.str,
-                    original    : row.str,
-                    index       : _index,
-                    selection   : this.selection.index === _index ? true : false,
-                    bookmarked  : this.bookmarks.indexOf(index) !== -1,
-                    visibility  : this.numbers,
-                    total_rows  : this._rows.length === 0 ? rows.length : this._rows.length,
-                    markers     : this.markers,
-                    markersHash : markersHash,
-                    regsCache   : this.regsCache,
-                    highlight   : {
+                    GUID            : this.viewParams !== null ? this.viewParams.GUID : null,
+                    val             : row.str,
+                    original        : row.str,
+                    index           : _index,
+                    selection       : this.selection.index === _index ? true : false,
+                    bookmarked      : this.bookmarks.indexOf(index) !== -1,
+                    visibility      : this.numbers,
+                    total_rows      : this._rows.length === 0 ? rows.length : this._rows.length,
+                    markers         : this.markers,
+                    markersHash     : markersHash,
+                    markerSelectMode: this.markerSelectMode,
+                    regsCache       : this.regsCache,
+                    highlight       : {
                         foregroundColor: '',
                         backgroundColor: ''
                     }
@@ -612,13 +614,14 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             let selection   = this.selection.index === row.params.index ? true : false,
                 update      = row.params.selection !== selection ? (row.update !== null) : false;
             update = row.params.GUID !== null ? (row.update !== null) : update;
-            row.params.selection    = selection;
-            row.params.visibility   = this.numbers;
-            row.params.total_rows   = this._rows.length;
-            row.params.GUID         = this.viewParams !== null ? this.viewParams.GUID : null;
-            row.params.bookmarked   = this.bookmarks.indexOf(row.params.index) !== -1;
-            row.params.markers      = this.markers;
-            row.params.markersHash  = markersHash;
+            row.params.selection        = selection;
+            row.params.visibility       = this.numbers;
+            row.params.total_rows       = this._rows.length;
+            row.params.GUID             = this.viewParams !== null ? this.viewParams.GUID : null;
+            row.params.bookmarked       = this.bookmarks.indexOf(row.params.index) !== -1;
+            row.params.markers          = this.markers;
+            row.params.markerSelectMode = this.markerSelectMode;
+            row.params.markersHash      = markersHash;
             update && row.update(row.params);
             return row;
         }));
@@ -628,15 +631,16 @@ export class TabControllerSearchResults extends TabController implements ViewInt
     updateMarkersOnly(){
         let markersHash = this.getMarkersHash();
         this.rows instanceof Array && (this.rows = this.rows.map((row)=>{
-            row.params.markers      = this.markers;
-            row.params.markersHash  = markersHash;
+            row.params.markers          = this.markers;
+            row.params.markersHash      = markersHash;
+            row.params.markerSelectMode = this.markerSelectMode;
             row.update !== null && row.update(row.params);
             return row;
         }));
     }
 
     getMarkersHash(){
-        let hash = '';
+        let hash = this.markerSelectMode;
         this.markers instanceof Array && this.markers.forEach((marker)=>{
             hash += marker.value + marker.foregroundColor + marker.backgroundColor;
         });
@@ -910,8 +914,9 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         }
     }
 
-    onMARKERS_UPDATED(markers: any){
-        this.markers = markers;
+    onMARKERS_UPDATED(markers: any, markerSelectMode: string){
+        this.markers            = markers;
+        this.markerSelectMode   = markerSelectMode;
         this.updateMarkersOnly();
     }
 

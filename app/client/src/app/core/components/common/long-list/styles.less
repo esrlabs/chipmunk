@@ -26,7 +26,7 @@ long-list{
             list-style  : none;
             display     : block;
             position    : absolute;
-            top         :0;
+            top         : 15px;
             li{
                 display             : block;
                 position            : relative;
@@ -44,53 +44,84 @@ long-list{
             position: absolute;
             width: ~"calc(100% - 10px)";
             height: 80px;
+            opacity: 1;
         }
         .border-top{
             background: -moz-radial-gradient(center, ellipse cover, @scroll-shadow-start 0%, @scroll-shadow-end 71%, @scroll-shadow-end 100%); /* FF3.6-15 */
             background: -webkit-radial-gradient(center, ellipse cover, @scroll-shadow-start 0%,@scroll-shadow-end 71%,@scroll-shadow-end 100%); /* Chrome10-25,Safari5.1-6 */
             background: radial-gradient(ellipse at center, @scroll-shadow-start 0%,@scroll-shadow-end 71%,@scroll-shadow-end 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-            top:0;
+            top:20px;
             margin-top: -40px;
-
+            &.on{
+                animation			: long-list-border-top-on 300ms linear 0ms forwards normal;
+                -webkit-animation	: long-list-border-top-on 300ms linear 0ms forwards normal;
+                -moz-animation		: long-list-border-top-on 300ms linear 0ms forwards normal;
+                -o-animation		: long-list-border-top-on 300ms linear 0ms forwards normal;
+            }
+            &.off{
+                animation			: long-list-border-top-off 200ms ease-in-out 0ms forwards normal;
+                -webkit-animation	: long-list-border-top-off 200ms ease-in-out 0ms forwards normal;
+                -moz-animation		: long-list-border-top-off 200ms ease-in-out 0ms forwards normal;
+                -o-animation		: long-list-border-top-off 200ms ease-in-out 0ms forwards normal;
+            }
         }
         .border-bottom{
             background: -moz-radial-gradient(center, ellipse cover, @scroll-shadow-start 0%, @scroll-shadow-end 71%, @scroll-shadow-end 100%); /* FF3.6-15 */
             background: -webkit-radial-gradient(center, ellipse cover, @scroll-shadow-start 0%,@scroll-shadow-end 71%,@scroll-shadow-end 100%); /* Chrome10-25,Safari5.1-6 */
             background: radial-gradient(ellipse at center, @scroll-shadow-start 0%,@scroll-shadow-end 71%,@scroll-shadow-end 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-        }
-        .on{
-            animation			: long-list-border-on 500ms ease-in-out 0ms forwards normal;
-            -webkit-animation	: long-list-border-on 500ms ease-in-out 0ms forwards normal;
-            -moz-animation		: long-list-border-on 500ms ease-in-out 0ms forwards normal;
-            -o-animation		: long-list-border-on 500ms ease-in-out 0ms forwards normal;
-        }
-        .off{
-            animation			: long-list-border-off 200ms ease-in-out 0ms forwards normal;
-            -webkit-animation	: long-list-border-off 200ms ease-in-out 0ms forwards normal;
-            -moz-animation		: long-list-border-off 200ms ease-in-out 0ms forwards normal;
-            -o-animation		: long-list-border-off 200ms ease-in-out 0ms forwards normal;
+            &.on{
+                animation			: long-list-border-bottom-on 300ms linear 0ms forwards normal;
+                -webkit-animation	: long-list-border-bottom-on 300ms linear 0ms forwards normal;
+                -moz-animation		: long-list-border-bottom-on 300ms linear 0ms forwards normal;
+                -o-animation		: long-list-border-bottom-on 300ms linear 0ms forwards normal;
+            }
+            &.off{
+                animation			: long-list-border-bottom-off 200ms ease-in-out 0ms forwards normal;
+                -webkit-animation	: long-list-border-bottom-off 200ms ease-in-out 0ms forwards normal;
+                -moz-animation		: long-list-border-bottom-off 200ms ease-in-out 0ms forwards normal;
+                -o-animation		: long-list-border-bottom-off 200ms ease-in-out 0ms forwards normal;
+            }
         }
     }
 
-    @keyframes long-list-border-on {
-        0% { opacity:0; } 100% { opacity:1; }
+    @keyframes long-list-border-bottom-on {
+        0% { opacity:0; margin-top: 40px;} 100% { opacity:1; margin-top: 0px; }
     }
-    @-moz-keyframes long-list-border-on {
-        0% { opacity:0; } 100% { opacity:1; }
+    @-moz-keyframes long-list-border-bottom-on {
+        0% { opacity:0; margin-top: 40px;} 100% { opacity:1; margin-top: 0px; }
     }
-    @-webkit-keyframes long-list-border-on {
-        0% { opacity:0; } 100% { opacity:1; }
-    }
-
-    @keyframes long-list-border-off {
-        0% { opacity:1; } 100% { opacity:0; }
-    }
-    @-moz-keyframes long-list-border-off {
-        0% { opacity:1; } 100% { opacity:0; }
-    }
-    @-webkit-keyframes long-list-border-off {
-        0% { opacity:1; } 100% { opacity:0; }
+    @-webkit-keyframes long-list-border-bottom-on {
+        0% { opacity:0; margin-top: 40px;} 100% { opacity:1; margin-top: 0px; }
     }
 
+    @keyframes long-list-border-bottom-off {
+        0% { opacity:1; margin-top: 0px;} 100% { opacity:0; margin-top: 40px; }
+    }
+    @-moz-keyframes long-list-border-bottom-off {
+        0% { opacity:1; margin-top: 0px;} 100% { opacity:0; margin-top: 40px; }
+    }
+    @-webkit-keyframes long-list-border-bottom-off {
+        0% { opacity:1; margin-top: 0px;} 100% { opacity:0; margin-top: 40px; }
+    }
+
+    @keyframes long-list-border-top-on {
+        0% { opacity:0; margin-top: -80px;} 100% { opacity:1; margin-top: -40px; }
+    }
+    @-moz-keyframes long-list-border-top-on {
+        0% { opacity:0; margin-top: -80px;} 100% { opacity:1; margin-top: -40px; }
+    }
+    @-webkit-keyframes long-list-border-top-on {
+        0% { opacity:0; margin-top: -80px;} 100% { opacity:1; margin-top: -40px; }
+    }
+
+    @keyframes long-list-border-top-off {
+        0% { opacity:1; margin-top: -40px;} 100% { opacity:0; margin-top: -80px; }
+    }
+    @-moz-keyframes long-list-border-top-off {
+        0% { opacity:1; margin-top: -40px;} 100% { opacity:0; margin-top: -80px; }
+    }
+    @-webkit-keyframes long-list-border-top-off {
+        0% { opacity:1; margin-top: -40px;} 100% { opacity:0; margin-top: -80px; }
+    }
 
 }

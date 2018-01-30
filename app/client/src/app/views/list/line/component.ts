@@ -1,9 +1,8 @@
-import {Component, Input, Output, OnDestroy, OnChanges, AfterContentChecked, EventEmitter, ChangeDetectorRef, ViewChild, ViewContainerRef } from '@angular/core';
+import {Component, Input, OnDestroy, OnChanges, AfterContentChecked, EventEmitter, ChangeDetectorRef, ViewChild, ViewContainerRef } from '@angular/core';
 
-import { ListLineMark                           } from './interface.mark';
-import { OnScrollEvent                          } from '../../../core/components/common/long-list/interface.scrollevent';
-import { events as Events                       } from '../../../core/modules/controller.events';
-import { configuration as Configuration         } from '../../../core/modules/controller.config';
+import { ListLineMark   } from './interface.mark';
+import { OnScrollEvent  } from '../../../core/components/common/long-list/interface.scrollevent';
+import { ANSIClearer    } from '../../../core/modules/tools.ansiclear';
 
 const COLORS = {
     BACKGROUND : 'rgba(0,0,0,1);'
@@ -143,7 +142,7 @@ export class ViewControllerListLine implements OnDestroy, OnChanges, AfterConten
                 if (limit >= this.selection.list.length){
                     if (mark.position > (position - offset) && mark.position < (position + offset)){
                         this.selection.list.push({
-                            html    : mark.str,
+                            html    : ANSIClearer(mark.str),
                             onClick : mark.onClick
                         });
                     }

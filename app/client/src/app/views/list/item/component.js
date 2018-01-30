@@ -20,6 +20,13 @@ var MARKERS = {
     MARKER_LEFT: '\uAA88',
     MARKER_RIGHT: '\uAA89'
 };
+var INDEX_MARKERS = {
+    MARKER: '\u0001'
+};
+var MARKERS_SELECTION_MODE = {
+    WORDS: 'words',
+    LINES: 'lines'
+};
 var ViewControllerListItem = (function () {
     function ViewControllerListItem(changeDetectorRef, sanitizer) {
         this.changeDetectorRef = changeDetectorRef;
@@ -35,6 +42,7 @@ var ViewControllerListItem = (function () {
         this.selection = false;
         this.bookmarked = false;
         this.markersHash = '';
+        this.markerSelectMode = '';
         this.regsCache = {};
         this.markers = []; //Do not bind this <Marker> type, because markers view can be removed
         this.highlight = {
@@ -50,6 +58,10 @@ var ViewControllerListItem = (function () {
         this._match = '';
         this._matchReg = true;
         this._total_rows = -1;
+        this._highlight = {
+            backgroundColor: '',
+            foregroundColor: ''
+        };
         this.changeDetectorRef = changeDetectorRef;
         this.sanitizer = sanitizer;
     }
@@ -57,12 +69,14 @@ var ViewControllerListItem = (function () {
     };
     ViewControllerListItem.prototype.updateFilledIndex = function () {
         var total = this.total_rows.toString(), current = this.index.toString();
-        this.__index = (total.length - current.length > 0 ? ('0'.repeat(total.length - current.length)) : '') + current;
+        this.__index = INDEX_MARKERS.MARKER + (total.length - current.length > 0 ? ('0'.repeat(total.length - current.length)) : '') + current + INDEX_MARKERS.MARKER;
     };
     ViewControllerListItem.prototype.getHTML = function () {
         var _this = this;
         var matchMatches = null;
         var markersMatches = [];
+        this._highlight.backgroundColor = this.highlight.backgroundColor;
+        this._highlight.foregroundColor = this.highlight.foregroundColor;
         this.html = tools_htmlserialize_1.serializeHTML(this.val);
         if (typeof this.match === 'string' && this.match !== null && this.match !== '') {
             var reg = null;
@@ -97,8 +111,10 @@ var ViewControllerListItem = (function () {
                             markersMatches.push({
                                 mark: mark,
                                 matches: matches,
-                                bg: marker.backgroundColor,
-                                fg: marker.foregroundColor
+                                bg: _this.markerSelectMode === MARKERS_SELECTION_MODE.LINES ? 'rgba(250,0,0,1)' : marker.backgroundColor,
+                                fg: _this.markerSelectMode === MARKERS_SELECTION_MODE.LINES ? 'rgba(250,250,250,1)' : marker.foregroundColor,
+                                _bg: marker.backgroundColor,
+                                _fg: marker.foregroundColor
                             });
                         }
                     }
@@ -116,6 +132,10 @@ var ViewControllerListItem = (function () {
                     _this.html = _this.html.replace(marker.mark, "<span class=\"marker\" style=\"background-color: " + marker.bg + ";color:" + marker.fg + ";\">" + match + "</span>");
                 });
             });
+            if (this.markerSelectMode === MARKERS_SELECTION_MODE.LINES) {
+                this._highlight.backgroundColor = markersMatches[0]._bg;
+                this._highlight.foregroundColor = markersMatches[0]._fg;
+            }
         }
         this.html = tools_ansireader_1.ANSIReader(this.html);
         this.html = tools_htmlserialize_1.parseHTML(this.html);
@@ -215,6 +235,10 @@ __decorate([
     core_1.Input(),
     __metadata("design:type", String)
 ], ViewControllerListItem.prototype, "markersHash", void 0);
+__decorate([
+    core_1.Input(),
+    __metadata("design:type", String)
+], ViewControllerListItem.prototype, "markerSelectMode", void 0);
 __decorate([
     core_1.Input(),
     __metadata("design:type", Object)
