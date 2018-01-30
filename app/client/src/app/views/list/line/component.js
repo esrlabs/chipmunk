@@ -9,6 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 var core_1 = require("@angular/core");
+var tools_ansiclear_1 = require("../../../core/modules/tools.ansiclear");
 var COLORS = {
     BACKGROUND: 'rgba(0,0,0,1);'
 };
@@ -112,7 +113,7 @@ var ViewControllerListLine = (function () {
                 if (limit >= _this.selection.list.length) {
                     if (mark.position > (position - offset) && mark.position < (position + offset)) {
                         _this.selection.list.push({
-                            html: mark.str,
+                            html: tools_ansiclear_1.ANSIClearer(mark.str),
                             onClick: mark.onClick
                         });
                     }

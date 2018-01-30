@@ -490,4 +490,9 @@ onmessage = function (event) {
             break;
     }
 };
+(function () {
+    postMessage.call(this, {
+        command: 'ready'
+    });
+}());
 //# sourceMappingURL=data.processor.js.map
