@@ -579,7 +579,11 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     updateLine(){
         if (this.rows.length > 0 && this.highlight && !this.showOnlyBookmarks){
             this.updateLineData();
-            this.line.visible = true;
+            if (this.line.marks.length === 0) {
+                this.line.visible = false;
+            } else {
+                this.line.visible = true;
+            }
         } else {
             this.resetLineData();
             this.line.visible = false;
