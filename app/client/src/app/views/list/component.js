@@ -507,7 +507,12 @@ var ViewControllerList = (function (_super) {
     ViewControllerList.prototype.updateLine = function () {
         if (this.rows.length > 0 && this.highlight && !this.showOnlyBookmarks) {
             this.updateLineData();
-            this.line.visible = true;
+            if (this.line.marks.length === 0) {
+                this.line.visible = false;
+            }
+            else {
+                this.line.visible = true;
+            }
         }
         else {
             this.resetLineData();
