@@ -20,7 +20,7 @@ function copyText(text: string) {
 
     selection.empty();
     selection.addRange(range);
-    
+
     document.execCommand('copy');
 
     document.body.removeChild(element);
