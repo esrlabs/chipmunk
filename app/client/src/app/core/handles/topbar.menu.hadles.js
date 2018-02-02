@@ -80,6 +80,10 @@ var TopBarMenuHandles = (function () {
         var openADBLogcatStream = new handle_open_adblogcat_stream_1.OpenADBLogcatStream();
         openADBLogcatStream.start();
     };
+    TopBarMenuHandles.prototype.setupAndOpenADBLogcatStream = function () {
+        var openADBLogcatStream = new handle_open_adblogcat_stream_1.OpenADBLogcatStream();
+        openADBLogcatStream.setupAndOpen();
+    };
     TopBarMenuHandles.prototype.openTerminalCommand = function () {
         var openTerminalStream = new handle_open_terminal_stream_1.OpenTerminalStream();
         openTerminalStream.start();

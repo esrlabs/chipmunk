@@ -66,7 +66,7 @@ const DEFAULT_STREAM_SETTINGS = {
     tid     : -1,
     pid     : -1,
     path    : '',
-    reset   : true
+    reset   : false
 };
 
 interface LocalLevelsSettings {
@@ -331,6 +331,10 @@ class OpenADBLogcatStream implements MenuHandleInterface{
 
     start(){
         this.openStream();
+    }
+
+    setupAndOpen(){
+        this.showSettings();
     }
 
     openStream(){
