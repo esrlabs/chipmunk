@@ -1,124 +1,14 @@
-const { app, Menu, BrowserWindow } = require('electron');
+const { app, BrowserWindow } = require('electron');
 const path              = require('path');
 const url               = require('url');
 const JSONSLocaltorage  = require('node-localstorage').JSONStorage;
-const electronUpdater   = require("electron-updater");
+const Updater           = require('./electron/application.updater');
+const ApplicationMenu   = require('./electron/application.menu');
 const util              = require('util');
 const logger            = new (require('./server/libs/tools.logger'))('Electron');
 
-const UPDATER_EVENTS = {
-    CHECKING        : 'checking-for-update',
-    AVAILABLE       : 'update-available',
-    NOT_AVAILABLE   : 'update-not-available',
-    PROGRESS        : 'download-progress',
-    DOWNLOADED      : 'update-downloaded',
-    ERROR           : 'error'
-};
-
-class Updater {
-
-    constructor() {
-        this._ServerEmitter         = require('./server/libs/server.events');
-        this._outgoingWSCommands    = require('./server/libs/websocket.commands.processor.js');
-        this._autoUpdater           = electronUpdater.autoUpdater;
-        this._info                  = null;
-        this._autoUpdater.requestHeaders = { "PRIVATE-TOKEN": "a6e41d8cb7e4102cff0763c8ce5adef521098c5c" };
-        process.env.GH_TOKEN = "a6e41d8cb7e4102cff0763c8ce5adef521098c5c";
-        this._autoUpdater.logger = logger;
-        Object.keys(UPDATER_EVENTS).forEach((key) => {
-            this._autoUpdater.on(UPDATER_EVENTS[key], this[UPDATER_EVENTS[key]].bind(this));
-        });
-        logger.info('Updater is created');
-    }
-
-    [UPDATER_EVENTS.CHECKING]() {
-        logger.info('Checking for update...');
-    }
-
-    [UPDATER_EVENTS.AVAILABLE](info) {
-        logger.info('Update available.');
-        this._info = info;
-        this._ServerEmitter.emitter.emit(this._ServerEmitter.EVENTS.SEND_VIA_WS, '*', this._outgoingWSCommands.COMMANDS.UpdateIsAvailable, {
-            info: info
-        });
-    }
-
-    [UPDATER_EVENTS.NOT_AVAILABLE](info) {
-        logger.info(`Update not available. Info: ${util.inspect(info)}.`);
-    }
-
-    [UPDATER_EVENTS.PROGRESS](progressObj) {
-        let log_message = "Download speed: " + progressObj.bytesPerSecond;
-        log_message = log_message + ' - Downloaded ' + parseInt(progressObj.percent) + '%';
-        log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
-        logger.info(log_message);
-        this._ServerEmitter.emitter.emit(this._ServerEmitter.EVENTS.SEND_VIA_WS, '*', this._outgoingWSCommands.COMMANDS.UpdateDownloadProgress, {
-            speed       : progressObj.bytesPerSecond,
-            progress    : progressObj.percent,
-            info        : this._info
-        });
-    }
-
-    [UPDATER_EVENTS.DOWNLOADED]() {
-        logger.info('Update downloaded; will install in 1 seconds');
-        setTimeout(() => {
-            this._autoUpdater.quitAndInstall();
-        }, 1000);
-    }
-
-    [UPDATER_EVENTS.ERROR](error) {
-        logger.info(`Error in auto-updater. Error: ${util.inspect(error)}`);
-    }
-
-    check(){
-        logger.info('Start update checking.');
-        this._autoUpdater.setFeedURL({
-            provider        : "github",
-            owner           : "esrlabs",
-            repo            : "logviewer",
-            token           : "a6e41d8cb7e4102cff0763c8ce5adef521098c5c"
-        });
-        return this._autoUpdater.checkForUpdates();
-    }
-
-    force(cancellationToken){
-        return this._autoUpdater.downloadUpdate(cancellationToken);
-    }
-}
 
 const updater = new Updater();
-
-class ApplicationMenu {
-
-    constructor(){
-        this.menu = Menu;
-    }
-
-    create(){
-        var template = [{
-            label: "Application",
-            submenu: [
-                { label: "About Application", selector: "orderFrontStandardAboutPanel:" },
-                { type: "separator" },
-                { label: "Quit", accelerator: "Command+Q", click: function() { app.quit(); }}
-            ]}, {
-            label: "Edit",
-            submenu: [
-                { label: "Undo", accelerator: "CmdOrCtrl+Z", selector: "undo:" },
-                { label: "Redo", accelerator: "Shift+CmdOrCtrl+Z", selector: "redo:" },
-                { type: "separator" },
-                { label: "Cut", accelerator: "CmdOrCtrl+X", selector: "cut:" },
-                { label: "Copy", accelerator: "CmdOrCtrl+C", selector: "copy:" },
-                { label: "Paste", accelerator: "CmdOrCtrl+V", selector: "paste:" },
-                { label: "Select All", accelerator: "CmdOrCtrl+A", selector: "selectAll:" }
-            ]}
-        ];
-        this.menu.setApplicationMenu(
-            this.menu.buildFromTemplate(template)
-        );
-    }
-
-}
 
 class Starter {
 

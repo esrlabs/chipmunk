@@ -9,10 +9,17 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 var core_1 = require("@angular/core");
+var controller_events_1 = require("../../../../core/modules/controller.events");
+var controller_config_1 = require("../../../../core/modules/controller.config");
 var TopBar = (function () {
     function TopBar() {
+        this.desktop = false;
+        controller_events_1.events.bind(controller_config_1.configuration.sets.SYSTEM_EVENTS.DESKTOP_MODE_NOTIFICATION, this.onDESKTOP_MODE_NOTIFICATION.bind(this));
     }
     TopBar.prototype.ngOnDestroy = function () {
+    };
+    TopBar.prototype.onDESKTOP_MODE_NOTIFICATION = function () {
+        this.desktop = true;
     };
     return TopBar;
 }());
