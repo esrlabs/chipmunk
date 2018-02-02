@@ -4,7 +4,8 @@ const
     CommandProcessor  = require('./websocket.commands.processor'),
     EventEmitter      = require('events').EventEmitter,
     WebSocketEvents   = require('./websocket.events.js'),
-    ServerEmitter     = require('./server.events.js');
+    ServerEmitter     = require('./server.events.js'),
+    DesktopTools      = require('./tools.desktop');
 
 
 const WS_SERVER_SETTINGS= {
@@ -72,7 +73,7 @@ class Connection{
     onClientGUID(clientGUID){
         this.clientGUID = clientGUID;
         this.outgoing.GUIDAccepted(this.clientGUID);
-        logger.verbose('Connection from address (' + this.connection.remoteAddress + ') is set client GUID: ' + this.clientGUID);
+        DesktopTools.isDesktop() && this.outgoing.DesktopModeNotification(this.clientGUID);
     }
 
     doCommand(command, params){

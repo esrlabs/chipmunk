@@ -7,7 +7,7 @@
         <div class="list-wrapper">
             <ul [attr.class]="'list ' + (isOpen ? 'open' : '')">
                 <li *ngFor="let item of items">
-                    <p *ngIf="item.type === 'item'" (click)="onItemClick(item.handle)">
+                    <p *ngIf="item.type === 'item'" (click)="onItemClick(item.handler)">
                         <span class="item-icon fa {{item.icon}}"></span>
                         <span class="item-caption">{{item.caption}}</span>
                     </p>
