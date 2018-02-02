@@ -88,7 +88,7 @@ class Processors {
                 case MODES.TEXT:
                     return filter;
                 case MODES.REG:
-                    return filter.replace(/[^\d\w,\-\+\|@#$_=]/gi, '');
+                    return filter;
                 case MODES.PERIOD:
                     return '';
                 default:
