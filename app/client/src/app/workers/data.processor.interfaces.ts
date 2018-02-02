@@ -12,9 +12,9 @@ export const WorkerCommands = {
 
 export interface WorkerRequest {
     command     : string,
-    event       : string | symbol,
-    eventBefore?: string | symbol,
-    eventAfter? : string | symbol,
+    event       : string | symbol | Array<string>,
+    eventBefore?: string | symbol | Array<string>,
+    eventAfter? : string | symbol | Array<string>,
     str?        : string,
     requests?   : Array<any>,
     value?      : string,
@@ -27,7 +27,7 @@ export interface WorkerRequest {
 }
 
 export interface WorkerResponse {
-    event?          : string | symbol,
+    event?          : string | symbol | Array<string>,
     rows?           : Array<any>,
     processedRows?  : Array<any>,
     filter?         : DataFilter,
