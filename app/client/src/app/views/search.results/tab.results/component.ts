@@ -430,6 +430,8 @@ export class TabControllerSearchResults extends TabController implements ViewInt
                     GUID            : this.viewParams !== null ? this.viewParams.GUID : null,
                     val             : row.str,
                     original        : row.str,
+                    match           : row.match,
+                    matchReg        : row.matchReg,
                     index           : _index,
                     selection       : this.selection.index === _index ? true : false,
                     bookmarked      : this.bookmarks.indexOf(index) !== -1,
@@ -444,9 +446,11 @@ export class TabControllerSearchResults extends TabController implements ViewInt
                         backgroundColor: ''
                     }
                 },
-                requests: row.requests,
-                callback: this.onRowInit.bind(this, _index),
-                update  : null
+                requests    : row.requests,
+                match       : row.match,
+                matchReg    : row.matchReg,
+                callback    : this.onRowInit.bind(this, _index),
+                update      : null
             };
         });
     }
@@ -622,6 +626,8 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             row.params.markers          = this.markers;
             row.params.markerSelectMode = this.markerSelectMode;
             row.params.markersHash      = markersHash;
+            row.params.match            = row.match;
+            row.params.matchReg         = row.matchReg;
             update && row.update(row.params);
             return row;
         }));
