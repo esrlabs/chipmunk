@@ -1,17 +1,18 @@
 {
   "web": [
-    { "icon" : "fa-upload",       "caption" : "Open log file",              "handler": "openLocalFile",        "type": "item" },
-    { "icon" : "fa-plug",         "caption" : "Open stream from serial",    "handler": "openSerialStream",     "type": "item" },
-    { "icon" : "fa-android",      "caption" : "Open stream from ADB logcat","handler": "openADBLogcatStream",  "type": "item" },
-    { "icon" : "fa-terminal",     "caption" : "Terminal command",           "handler": "openTerminalCommand",  "type": "item" },
+    { "icon" : "fa-upload",       "caption" : "Open log file",              "handler": "openLocalFile",                 "type": "item" },
+    { "icon" : "fa-plug",         "caption" : "Open serial port stream",    "handler": "openSerialStream",              "type": "item" },
+    { "icon" : "fa-android",      "caption" : "Open ADB logcat stream",     "handler": "openADBLogcatStream",           "type": "item" },
+    { "icon" : "fa-android",      "caption" : "Setup and open ADB logcat",  "handler": "setupAndOpenADBLogcatStream",   "type": "item" },
+    { "icon" : "fa-terminal",     "caption" : "Terminal command",           "handler": "openTerminalCommand",           "type": "item" },
     { "type" : "line" },
-    { "icon" : "fa-stethoscope",  "caption" : "Monitor manager",            "handler": "openMonitorManager",   "type": "item" },
+    { "icon" : "fa-stethoscope",  "caption" : "Monitor manager",            "handler": "openMonitorManager",            "type": "item" },
     { "type" : "line" },
-    { "icon" : "fa-desktop",      "caption" : "Add view",                   "handler": "addView",              "type": "item" },
+    { "icon" : "fa-desktop",      "caption" : "Add view",                   "handler": "addView",                       "type": "item" },
     { "type" : "line" },
-    { "icon" : "fa-cloud",        "caption" : "Connect to service",         "handler": "connectionSettings",   "type": "item" },
+    { "icon" : "fa-cloud",        "caption" : "Connect to service",         "handler": "connectionSettings",            "type": "item" },
     { "type" : "line" },
-    { "icon" : "fa-paint-brush",  "caption" : "Change color theme",         "handler": "changeThemeSettings",  "type": "item" }
+    { "icon" : "fa-paint-brush",  "caption" : "Change color theme",         "handler": "changeThemeSettings",           "type": "item" }
   ],
   "desktop": [
     {
@@ -37,10 +38,11 @@
     {
       "group": "Sources",
       "items": [
-        { "icon" : "fa-upload",       "caption" : "Open log file",              "handler": "openLocalFile",        "type": "item", "accelerator": "" },
-        { "icon" : "fa-plug",         "caption" : "Open stream from serial",    "handler": "openSerialStream",     "type": "item", "accelerator": "" },
-        { "icon" : "fa-android",      "caption" : "Open stream from ADB logcat","handler": "openADBLogcatStream",  "type": "item", "accelerator": "" },
-        { "icon" : "fa-terminal",     "caption" : "Terminal command",           "handler": "openTerminalCommand",  "type": "item", "accelerator": "" }
+        { "icon" : "fa-upload",       "caption" : "Open log file",              "handler": "openLocalFile",               "type": "item", "accelerator": "" },
+        { "icon" : "fa-plug",         "caption" : "Open serial port stream",    "handler": "openSerialStream",            "type": "item", "accelerator": "" },
+        { "icon" : "fa-android",      "caption" : "Open ADB logcat stream",     "handler": "openADBLogcatStream",         "type": "item", "accelerator": "" },
+        { "icon" : "fa-android",      "caption" : "Setup and open ADB logcat",  "handler": "setupAndOpenADBLogcatStream", "type": "item", "accelerator": "" },
+        { "icon" : "fa-terminal",     "caption" : "Terminal command",           "handler": "openTerminalCommand",         "type": "item", "accelerator": "" }
       ]
     },
     {
