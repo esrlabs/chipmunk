@@ -311,31 +311,6 @@ view-controller-search-results .export-url {
   height: 1px;
   opacity: 0.001;
 }
-view-controller-state-monitor {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-view-controller-state-monitor ul {
-  display: block;
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding: 0;
-  margin: 0;
-  list-style: none;
-  text-align: center;
-}
-view-controller-state-monitor ul li {
-  position: relative;
-  display: inline-block;
-  width: 10rem;
-  height: 7rem;
-  margin: 1rem;
-}
 view-controller-stream-sender {
   position: absolute;
   width: 100%;
@@ -406,6 +381,31 @@ view-controller-stream-sender .history-wrapper .history li {
 view-controller-stream-sender .history-wrapper .history li.selected {
   border: 1px dotted #646464;
 }
+view-controller-state-monitor {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-state-monitor ul {
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  text-align: center;
+}
+view-controller-state-monitor ul li {
+  position: relative;
+  display: inline-block;
+  width: 10rem;
+  height: 7rem;
+  margin: 1rem;
+}
 body {
   margin: 0;
   padding: 0;
@@ -431,40 +431,6 @@ root-holder {
   position: fixed;
   bottom: 0.5rem;
   right: 0.5rem;
-}
-view-controller-chart {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-view-controller-chart .area {
-  fill: steelblue;
-  clip-path: url(#clip);
-}
-view-controller-chart .zoom {
-  cursor: move;
-  fill: none;
-  pointer-events: all;
-}
-view-controller-chart .axis path,
-view-controller-chart .axis line {
-  fill: none;
-  stroke: #000;
-  shape-rendering: crispEdges;
-}
-view-controller-chart .line {
-  fill: none;
-  stroke-width: 1.5px;
-}
-view-controller-chart .label {
-  text-anchor: middle;
-}
-view-controller-chart .label rect {
-  fill: white;
-}
-view-controller-chart .label-key {
-  font-weight: bold;
 }
 view-controller-chart-manager {
   position: absolute;
@@ -501,6 +467,40 @@ view-controller-chart-manager .view-charts-manager-buttons {
 }
 view-controller-chart-manager .view-charts-manager-buttons * {
   font-size: 0.85rem;
+}
+view-controller-chart {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-chart .area {
+  fill: steelblue;
+  clip-path: url(#clip);
+}
+view-controller-chart .zoom {
+  cursor: move;
+  fill: none;
+  pointer-events: all;
+}
+view-controller-chart .axis path,
+view-controller-chart .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+view-controller-chart .line {
+  fill: none;
+  stroke-width: 1.5px;
+}
+view-controller-chart .label {
+  text-anchor: middle;
+}
+view-controller-chart .label rect {
+  fill: white;
+}
+view-controller-chart .label-key {
+  font-weight: bold;
 }
 list-view-item {
   position: relative;
@@ -867,6 +867,72 @@ view-controller-search-results .export-url {
   height: 1px;
   opacity: 0.001;
 }
+stream-sender-history-item {
+  position: relative;
+  display: block;
+  margin: 0 0.5rem;
+  cursor: pointer;
+}
+stream-sender-history-item span {
+  position: relative;
+  display: inline-block;
+  font-size: 0.75rem;
+  height: 1rem;
+  line-height: 1rem;
+}
+stream-sender-history-item .time {
+  color: #282828;
+  min-width: 3rem;
+}
+stream-sender-history-item .usage {
+  color: #646464;
+  min-width: 2rem;
+}
+stream-sender-history-item .value {
+  color: #646464;
+  white-space: nowrap;
+}
+stream-sender-history-item .value.match {
+  color: #f0f0f0;
+  white-space: nowrap;
+}
+stream-sender-history-item .remove {
+  position: absolute;
+  right: 0.5rem;
+  opacity: 0.4;
+}
+stream-sender-history-item .remove:hover {
+  color: #f01e1e;
+  opacity: 1;
+}
+view-controller-state-monitor-manager {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-state-monitor-manager .statemonitor-manager-wrapper {
+  position: absolute;
+  top: 0;
+  bottom: 3rem;
+  width: 100%;
+  padding: 0.5rem;
+  margin: 0;
+  list-style: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+view-controller-state-monitor-manager .statemonitor-manager-wrapper li {
+  list-style: none;
+}
+view-controller-state-monitor-manager .buttons {
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+  height: 3rem;
+  text-align: right;
+  font-size: 0.75rem;
+}
 .monitor-icon-red .icon {
   color: red;
 }
@@ -970,79 +1036,174 @@ view-controller-state-monitor ul li {
   height: 7rem;
   margin: 1rem;
 }
-view-controller-state-monitor-manager {
+holder {
   position: absolute;
-  width: 100%;
-  height: 100%;
+  top: 3rem;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+view {
+  position: absolute;
+  border: thin dotted #323232;
   overflow: hidden;
 }
-view-controller-state-monitor-manager .statemonitor-manager-wrapper {
+view:hover {
+  border-color: #323232;
+  z-index: 10;
+}
+view .wrapper {
   position: absolute;
   top: 0;
-  bottom: 3rem;
-  width: 100%;
-  padding: 0.5rem;
-  margin: 0;
-  list-style: none;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-view-controller-state-monitor-manager .statemonitor-manager-wrapper li {
-  list-style: none;
-}
-view-controller-state-monitor-manager .buttons {
-  position: absolute;
-  width: 100%;
+  left: 0;
+  right: 0;
   bottom: 0;
-  height: 3rem;
-  text-align: right;
-  font-size: 0.75rem;
 }
-stream-sender-history-item {
-  position: relative;
-  display: block;
-  margin: 0 0.5rem;
-  cursor: pointer;
+view .wrapper.dragover {
+  background: #646464;
 }
-stream-sender-history-item span {
-  position: relative;
-  display: inline-block;
-  font-size: 0.75rem;
-  height: 1rem;
-  line-height: 1rem;
-}
-stream-sender-history-item .time {
-  color: #282828;
-  min-width: 3rem;
-}
-stream-sender-history-item .usage {
-  color: #646464;
-  min-width: 2rem;
-}
-stream-sender-history-item .value {
-  color: #646464;
-  white-space: nowrap;
-}
-stream-sender-history-item .value.match {
-  color: #f0f0f0;
-  white-space: nowrap;
-}
-stream-sender-history-item .remove {
-  position: absolute;
-  right: 0.5rem;
+view .wrapper.dragging {
   opacity: 0.4;
 }
-stream-sender-history-item .remove:hover {
-  color: #f01e1e;
-  opacity: 1;
-}
-file-loader input {
-  display: block;
+view .wrapper .view {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 1;
-  overflow: hidden;
+  top: 2rem;
+  bottom: 0;
+  width: 100%;
+}
+view .wrapper .view-border-left,
+view .wrapper .view-border-right,
+view .wrapper .view-border-top,
+view .wrapper .view-border-bottom {
+  position: absolute;
+}
+view .wrapper .view-border-left:hover,
+view .wrapper .view-border-right:hover,
+view .wrapper .view-border-top:hover,
+view .wrapper .view-border-bottom:hover {
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAaUlEQVQoU12PCw2AMAwFbzaGDLCBDXSgAxvYABlgY+RgWxqaLOnn+vqWgBE4+WIFNuCudUk1EZorYCsDF5Aa4OYelAowqCTg0GeodLhZ62yiXL8JTNFTJ9vNv6cG9JvhN68nAYdRaYmeHot9F9X2eFD0AAAAAElFTkSuQmCC) repeat;
+}
+view .wrapper .view-border-left,
+view .wrapper .view-border-right {
+  width: 0.25rem;
+  height: 100%;
+  top: 0;
+  cursor: ew-resize;
+}
+view .wrapper .view-border-top,
+view .wrapper .view-border-bottom {
+  height: 0.25rem;
+  width: 100%;
+  left: 0;
+  cursor: ns-resize;
+}
+view .wrapper .view-border-left {
+  left: 0;
+}
+view .wrapper .view-border-right {
+  right: 0;
+}
+view .wrapper .view-border-top {
+  top: 0;
+}
+view .wrapper .view-border-bottom {
+  bottom: 0;
+}
+view-bar {
+  display: table;
+  position: absolute;
+  width: 100%;
+  top: 0;
+  height: 2rem;
+  max-height: 2rem;
+  box-shadow: none;
+  transition: box-shadow ease-in-out 200ms;
+}
+view-bar * {
+  margin: 0;
+  padding: 0;
+  vertical-align: middle;
+}
+view-bar .left,
+view-bar .middle,
+view-bar .right {
+  position: relative;
+  display: table-cell;
+  height: 2rem;
+  max-height: 2rem;
+}
+view-bar .middle {
+  width: 100%;
+  font-size: 0.75rem;
+  color: #fafafa;
+  padding: 0 1rem;
+  white-space: nowrap;
+}
+view-bar .left,
+view-bar .right {
+  white-space: nowrap;
+  list-style: none;
+}
+view-bar .left li,
+view-bar .right li {
+  position: relative;
+  display: inline-block;
+  height: 2rem;
+  max-height: 2rem;
+  list-style: none;
+}
+view-bar .left li.icon,
+view-bar .right li.icon {
+  width: 2rem;
+}
+view-bar .left li.icon span,
+view-bar .right li.icon span {
+  margin: 0.5rem;
+}
+view-bar .left li.icon:hover,
+view-bar .right li.icon:hover {
+  background: rgba(220, 220, 220, 0.4);
+}
+view-bar .left li.icon.active,
+view-bar .right li.icon.active {
+  background: rgba(220, 220, 220, 0.4);
+}
+view-bar .left li.icon.disable,
+view-bar .right li.icon.disable {
+  opacity: 0.4;
+}
+view-bar .left li.icon.disable:hover,
+view-bar .right li.icon.disable:hover {
+  background: none;
+  text-shadow: none;
+}
+view-bar .left li.icon.disable:hover .fa,
+view-bar .right li.icon.disable:hover .fa {
+  text-shadow: none;
+  color: rgba(250, 250, 250, 0.7);
+}
+view-bar .left li.icon.disable:hover .fa:hover,
+view-bar .right li.icon.disable:hover .fa:hover {
+  text-shadow: none;
+  color: rgba(250, 250, 250, 0.7);
+}
+view-bar .left li.mark,
+view-bar .right li.mark {
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+view-bar .left li.mark span,
+view-bar .right li.mark span {
+  display: block;
+  margin: 0.5rem 0.2rem;
+  border-bottom: thin dotted #dcdcdc;
+}
+view-bar .left li.mark:hover,
+view-bar .right li.mark:hover {
+  background: rgba(220, 220, 220, 0.4);
+}
+view:hover view-bar {
+  box-shadow: none;
 }
 drop-down-menu {
   position: relative;
@@ -1110,6 +1271,14 @@ drop-down-menu .wrapper .list-wrapper-corrector .list-wrapper .list li .line {
   height: 1px;
   border-top: dotted 1px #323232;
   margin: 0.5rem 0.5rem;
+}
+file-loader input {
+  display: block;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0.01;
+  overflow: hidden;
 }
 common-input {
   position: relative;
@@ -1855,175 +2024,6 @@ common-tabs .tabs-content li.src-content-tab {
   bottom: 0;
   overflow: hidden;
 }
-holder {
-  position: absolute;
-  top: 3rem;
-  bottom: 0;
-  left: 0;
-  right: 0;
-}
-view {
-  position: absolute;
-  border: thin dotted #323232;
-  overflow: hidden;
-}
-view:hover {
-  border-color: #323232;
-  z-index: 10;
-}
-view .wrapper {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-}
-view .wrapper.dragover {
-  background: #646464;
-}
-view .wrapper.dragging {
-  opacity: 0.4;
-}
-view .wrapper .view {
-  position: absolute;
-  top: 2rem;
-  bottom: 0;
-  width: 100%;
-}
-view .wrapper .view-border-left,
-view .wrapper .view-border-right,
-view .wrapper .view-border-top,
-view .wrapper .view-border-bottom {
-  position: absolute;
-}
-view .wrapper .view-border-left:hover,
-view .wrapper .view-border-right:hover,
-view .wrapper .view-border-top:hover,
-view .wrapper .view-border-bottom:hover {
-  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAaUlEQVQoU12PCw2AMAwFbzaGDLCBDXSgAxvYABlgY+RgWxqaLOnn+vqWgBE4+WIFNuCudUk1EZorYCsDF5Aa4OYelAowqCTg0GeodLhZ62yiXL8JTNFTJ9vNv6cG9JvhN68nAYdRaYmeHot9F9X2eFD0AAAAAElFTkSuQmCC) repeat;
-}
-view .wrapper .view-border-left,
-view .wrapper .view-border-right {
-  width: 0.25rem;
-  height: 100%;
-  top: 0;
-  cursor: ew-resize;
-}
-view .wrapper .view-border-top,
-view .wrapper .view-border-bottom {
-  height: 0.25rem;
-  width: 100%;
-  left: 0;
-  cursor: ns-resize;
-}
-view .wrapper .view-border-left {
-  left: 0;
-}
-view .wrapper .view-border-right {
-  right: 0;
-}
-view .wrapper .view-border-top {
-  top: 0;
-}
-view .wrapper .view-border-bottom {
-  bottom: 0;
-}
-view-bar {
-  display: table;
-  position: absolute;
-  width: 100%;
-  top: 0;
-  height: 2rem;
-  max-height: 2rem;
-  box-shadow: none;
-  transition: box-shadow ease-in-out 200ms;
-}
-view-bar * {
-  margin: 0;
-  padding: 0;
-  vertical-align: middle;
-}
-view-bar .left,
-view-bar .middle,
-view-bar .right {
-  position: relative;
-  display: table-cell;
-  height: 2rem;
-  max-height: 2rem;
-}
-view-bar .middle {
-  width: 100%;
-  font-size: 0.75rem;
-  color: #fafafa;
-  padding: 0 1rem;
-  white-space: nowrap;
-}
-view-bar .left,
-view-bar .right {
-  white-space: nowrap;
-  list-style: none;
-}
-view-bar .left li,
-view-bar .right li {
-  position: relative;
-  display: inline-block;
-  height: 2rem;
-  max-height: 2rem;
-  list-style: none;
-}
-view-bar .left li.icon,
-view-bar .right li.icon {
-  width: 2rem;
-}
-view-bar .left li.icon span,
-view-bar .right li.icon span {
-  margin: 0.5rem;
-}
-view-bar .left li.icon:hover,
-view-bar .right li.icon:hover {
-  background: rgba(220, 220, 220, 0.4);
-}
-view-bar .left li.icon.active,
-view-bar .right li.icon.active {
-  background: rgba(220, 220, 220, 0.4);
-}
-view-bar .left li.icon.disable,
-view-bar .right li.icon.disable {
-  opacity: 0.4;
-}
-view-bar .left li.icon.disable:hover,
-view-bar .right li.icon.disable:hover {
-  background: none;
-  text-shadow: none;
-}
-view-bar .left li.icon.disable:hover .fa,
-view-bar .right li.icon.disable:hover .fa {
-  text-shadow: none;
-  color: rgba(250, 250, 250, 0.7);
-}
-view-bar .left li.icon.disable:hover .fa:hover,
-view-bar .right li.icon.disable:hover .fa:hover {
-  text-shadow: none;
-  color: rgba(250, 250, 250, 0.7);
-}
-view-bar .left li.mark,
-view-bar .right li.mark {
-  font-size: 0.75rem;
-  cursor: pointer;
-}
-view-bar .left li.mark span,
-view-bar .right li.mark span {
-  display: block;
-  margin: 0.5rem 0.2rem;
-  border-bottom: thin dotted #dcdcdc;
-}
-view-bar .left li.mark:hover,
-view-bar .right li.mark:hover {
-  background: rgba(220, 220, 220, 0.4);
-}
-view:hover view-bar {
-  box-shadow: none;
-}
 top-bar-drop-down-menu {
   position: absolute;
   top: 0;
@@ -2292,48 +2292,6 @@ view-request-item .compact-view .trigger-state {
 view-request-item .compact-view .trigger-state:hover {
   opacity: 1;
 }
-view-controller-state-monitor-item {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  margin: 0.5rem;
-  border: 1px dotted #323232;
-  text-align: center;
-  top: 0;
-  left: 0;
-  cursor: default;
-}
-view-controller-state-monitor-item .indicate {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-view-controller-state-monitor-item .indicate .icon {
-  position: relative;
-  display: block;
-  font-size: 3rem;
-  line-height: 3rem;
-  width: 100%;
-  height: 3rem;
-}
-view-controller-state-monitor-item .indicate .name {
-  position: relative;
-  display: block;
-  font-size: 0.85rem;
-  width: 100%;
-  white-space: nowrap;
-  margin: 0.5rem 0;
-}
-view-controller-state-monitor-item .indicate .label {
-  position: relative;
-  display: block;
-  font-size: 0.75rem;
-  width: 100%;
-  white-space: nowrap;
-  margin: 0.5rem 0;
-}
 view-controller-state-manager-item {
   position: relative;
   width: 100%;
@@ -2441,6 +2399,73 @@ view-controller-state-manager-item .wrapper .icon-button {
 view-controller-state-manager-item .wrapper .icon-button:hover {
   border: thin dotted #323232;
 }
+view-controller-state-monitor-item {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  margin: 0.5rem;
+  border: 1px dotted #323232;
+  text-align: center;
+  top: 0;
+  left: 0;
+  cursor: default;
+}
+view-controller-state-monitor-item .indicate {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-state-monitor-item .indicate .icon {
+  position: relative;
+  display: block;
+  font-size: 3rem;
+  line-height: 3rem;
+  width: 100%;
+  height: 3rem;
+}
+view-controller-state-monitor-item .indicate .name {
+  position: relative;
+  display: block;
+  font-size: 0.85rem;
+  width: 100%;
+  white-space: nowrap;
+  margin: 0.5rem 0;
+}
+view-controller-state-monitor-item .indicate .label {
+  position: relative;
+  display: block;
+  font-size: 0.75rem;
+  width: 100%;
+  white-space: nowrap;
+  margin: 0.5rem 0;
+}
+button-flat-text span {
+  position: relative;
+  display: inline-block;
+  background: #141414;
+  color: #fafafa;
+  margin: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  border: thin dotted #fafafa;
+}
+button-flat-text span:hover {
+  background: #fafafa;
+  color: #141414;
+  border: thin dotted #141414;
+}
+button-flat-text span.disabled {
+  background: #282828;
+  color: #646464;
+  cursor: default;
+}
+button-flat-text span.disabled:hover {
+  background: #282828;
+  color: #646464;
+  border: thin dotted #fafafa;
+}
 simple-checkbox {
   position: relative;
   display: inline-block;
@@ -2492,31 +2517,6 @@ simple-checkbox label span.switcher {
 simple-checkbox label input:checked ~ span.on,
 simple-checkbox label input:checked ~ span.switcher {
   opacity: 1;
-}
-button-flat-text span {
-  position: relative;
-  display: inline-block;
-  background: #141414;
-  color: #fafafa;
-  margin: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  cursor: pointer;
-  border: thin dotted #fafafa;
-}
-button-flat-text span:hover {
-  background: #fafafa;
-  color: #141414;
-  border: thin dotted #141414;
-}
-button-flat-text span.disabled {
-  background: #282828;
-  color: #646464;
-  cursor: default;
-}
-button-flat-text span.disabled:hover {
-  background: #282828;
-  color: #646464;
-  border: thin dotted #fafafa;
 }
 dialog-adblogcatstream-settings {
   position: absolute;
@@ -2622,6 +2622,65 @@ dialog-api-settings .buttons {
   width: 100%;
   height: 2.5rem;
   bottom: 0;
+}
+chart-edit-color-dialog {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  overflow: hidden;
+}
+chart-edit-color-dialog .chart-colors {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  bottom: 4.5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+chart-edit-color-dialog .chart-colors .chart-colors-foreground,
+chart-edit-color-dialog .chart-colors .chart-colors-background {
+  position: absolute;
+  width: 50%;
+  height: 100%;
+  left: 0;
+}
+chart-edit-color-dialog .chart-colors .chart-colors-background {
+  left: 50%;
+}
+chart-edit-color-dialog .chart-hook {
+  position: absolute;
+  top: calc(100% - 4.5rem);
+  width: 100%;
+  height: 2rem;
+}
+chart-edit-color-dialog .chart-hook .chart-color-example {
+  position: relative;
+  height: 2rem;
+  text-align: center;
+}
+chart-edit-color-dialog .chart-hook .chart-color-example p {
+  display: inline-block;
+  margin: 0.25rem;
+  padding: 0.25rem;
+  font-size: 0.85rem;
+  line-height: 0.85rem;
+  text-align: center;
+  border: thin solid #646464;
+  cursor: default;
+}
+chart-edit-color-dialog .chart-hook .chart-value {
+  position: relative;
+  height: 2rem;
+  border: 1px dotted #646464;
+}
+chart-edit-color-dialog .chart-controls {
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+  height: 2.5rem;
+  text-align: right;
 }
 chart-edit-rules-hooks-dialog {
   position: absolute;
@@ -2805,65 +2864,6 @@ chart-edit-rules-hooks-dialog .chart-errors-wrapper p {
   bottom: 0.5rem;
   width: 100%;
   left: 0;
-}
-chart-edit-color-dialog {
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  right: 0.5rem;
-  bottom: 0.5rem;
-  overflow: hidden;
-}
-chart-edit-color-dialog .chart-colors {
-  position: absolute;
-  top: 0;
-  width: 100%;
-  bottom: 4.5rem;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-chart-edit-color-dialog .chart-colors .chart-colors-foreground,
-chart-edit-color-dialog .chart-colors .chart-colors-background {
-  position: absolute;
-  width: 50%;
-  height: 100%;
-  left: 0;
-}
-chart-edit-color-dialog .chart-colors .chart-colors-background {
-  left: 50%;
-}
-chart-edit-color-dialog .chart-hook {
-  position: absolute;
-  top: calc(100% - 4.5rem);
-  width: 100%;
-  height: 2rem;
-}
-chart-edit-color-dialog .chart-hook .chart-color-example {
-  position: relative;
-  height: 2rem;
-  text-align: center;
-}
-chart-edit-color-dialog .chart-hook .chart-color-example p {
-  display: inline-block;
-  margin: 0.25rem;
-  padding: 0.25rem;
-  font-size: 0.85rem;
-  line-height: 0.85rem;
-  text-align: center;
-  border: thin solid #646464;
-  cursor: default;
-}
-chart-edit-color-dialog .chart-hook .chart-value {
-  position: relative;
-  height: 2rem;
-  border: 1px dotted #646464;
-}
-chart-edit-color-dialog .chart-controls {
-  position: absolute;
-  width: 100%;
-  bottom: 0;
-  height: 2.5rem;
-  text-align: right;
 }
 chart-edit-rules-segments-dialog {
   position: absolute;
@@ -3210,19 +3210,6 @@ image-dialog .image-dialog-img {
   background-repeat: no-repeat;
   background-origin: content-box;
 }
-dialog-monitor-manager {
-  position: absolute;
-  display: block;
-  top: 0.5rem;
-  left: 0.5rem;
-  bottom: 0.5rem;
-  right: 0.5rem;
-}
-dialog-monitor-manager .monitor-manager-wrapper {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-}
 markers-edit-dialog {
   position: absolute;
   top: 0.5rem;
@@ -3281,6 +3268,19 @@ markers-edit-dialog .marker-controls {
   bottom: 0;
   height: 2.5rem;
   text-align: right;
+}
+dialog-monitor-manager {
+  position: absolute;
+  display: block;
+  top: 0.5rem;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  right: 0.5rem;
+}
+dialog-monitor-manager .monitor-manager-wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
 }
 dialog-serial-settings {
   position: absolute;
@@ -3899,6 +3899,9 @@ simple-dd-list select {
   color: #fafafa;
   background: #1e1e1e;
 }
+long-list-item {
+  display: none;
+}
 connection-state {
   position: relative;
   display: inline-block;
@@ -3999,9 +4002,6 @@ progress-bar-global .progress-bar-global:after {
   100% {
     transform: rotate(360deg);
   }
-}
-long-list-item {
-  display: none;
 }
 common-simple-table {
   position: absolute;
