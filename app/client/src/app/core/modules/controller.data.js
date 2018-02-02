@@ -28,13 +28,12 @@ var DataController = (function () {
         controller_events_1.events.bind(controller_config_1.configuration.sets.SYSTEM_EVENTS.FORGET_FILTER, this.onFORGET_FILTER.bind(this));
         controller_events_1.events.bind(controller_config_1.configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_RESET, this.onSEARCH_REQUEST_RESET.bind(this));
         controller_events_1.events.bind(controller_config_1.configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED, this.onVIEW_OUTPUT_IS_CLEARED.bind(this));
+        controller_events_1.events.bind(controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_INSERT_EMPTY_LINE, this.onSHORTCUT_INSERT_EMPTY_LINE.bind(this));
         this.worker.addEventListener('message', this.onWorkerMessage.bind(this));
         this.clipboardShortcuts.onPaste.subscribe(this.onClipboardPaste.bind(this));
     };
-    DataController.prototype.onWorkerMessage = function (event) {
-        var response = event.data;
-        (response.rows !== void 0) && (this.data.rows = response.rows);
-        switch (response.event) {
+    DataController.prototype.applyEventFromWorker = function (event, response) {
+        switch (event) {
             case controller_config_1.configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED:
                 controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED, new DATA_IS_UPDATE_1.EVENT_DATA_IS_UPDATED(response.rows));
                 break;
@@ -53,7 +52,19 @@ var DataController = (function () {
             case controller_config_1.configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED:
                 controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED, response.rows);
                 break;
+            default:
+                controller_events_1.events.trigger(event, response.rows);
+                break;
         }
+    };
+    DataController.prototype.onWorkerMessage = function (event) {
+        var _this = this;
+        var response = event.data;
+        var events = response.event instanceof Array ? response.event : (response.event !== void 0 ? [response.event] : []);
+        (response.rows !== void 0) && (this.data.rows = response.rows);
+        events.forEach(function (event) {
+            _this.applyEventFromWorker(event, response);
+        });
         this.workerJobs -= 1;
         if (response.command === 'ready') {
             this.workerJobs = 0;
@@ -128,8 +139,10 @@ var DataController = (function () {
             configuration: this.getConfigurationForWorker()
         });
     };
-    DataController.prototype.onSTREAM_DATA_UPDATE = function (data) {
+    DataController.prototype.onSTREAM_DATA_UPDATE = function (data, events) {
         var _this = this;
+        if (events === void 0) { events = []; }
+        events.push(controller_config_1.configuration.sets.SYSTEM_EVENTS.DATA_IS_MODIFIED);
         controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_GET_ALL, function (requests) {
             _this.sendWorkerMessage({
                 command: data_processor_interfaces_1.WorkerCommands.add,
@@ -140,7 +153,7 @@ var DataController = (function () {
                         value: request.value
                     };
                 }) : [],
-                event: controller_config_1.configuration.sets.SYSTEM_EVENTS.DATA_IS_MODIFIED,
+                event: events,
                 configuration: _this.getConfigurationForWorker()
             });
         });
@@ -160,6 +173,9 @@ var DataController = (function () {
         if (typeof event.text === 'string' && event.text.trim() !== '') {
             this.onTXT_DATA_COME(event.text);
         }
+    };
+    DataController.prototype.onSHORTCUT_INSERT_EMPTY_LINE = function () {
+        this.onSTREAM_DATA_UPDATE(' \n', [controller_config_1.configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_END]);
     };
     return DataController;
 }());
