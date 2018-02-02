@@ -432,40 +432,6 @@ root-holder {
   bottom: 0.5rem;
   right: 0.5rem;
 }
-view-controller-chart {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-view-controller-chart .area {
-  fill: steelblue;
-  clip-path: url(#clip);
-}
-view-controller-chart .zoom {
-  cursor: move;
-  fill: none;
-  pointer-events: all;
-}
-view-controller-chart .axis path,
-view-controller-chart .axis line {
-  fill: none;
-  stroke: #000;
-  shape-rendering: crispEdges;
-}
-view-controller-chart .line {
-  fill: none;
-  stroke-width: 1.5px;
-}
-view-controller-chart .label {
-  text-anchor: middle;
-}
-view-controller-chart .label rect {
-  fill: white;
-}
-view-controller-chart .label-key {
-  font-weight: bold;
-}
 view-controller-chart-manager {
   position: absolute;
   width: 100%;
@@ -501,6 +467,40 @@ view-controller-chart-manager .view-charts-manager-buttons {
 }
 view-controller-chart-manager .view-charts-manager-buttons * {
   font-size: 0.85rem;
+}
+view-controller-chart {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+view-controller-chart .area {
+  fill: steelblue;
+  clip-path: url(#clip);
+}
+view-controller-chart .zoom {
+  cursor: move;
+  fill: none;
+  pointer-events: all;
+}
+view-controller-chart .axis path,
+view-controller-chart .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+view-controller-chart .line {
+  fill: none;
+  stroke-width: 1.5px;
+}
+view-controller-chart .label {
+  text-anchor: middle;
+}
+view-controller-chart .label rect {
+  fill: white;
+}
+view-controller-chart .label-key {
+  font-weight: bold;
 }
 list-view-item {
   position: relative;
@@ -1216,6 +1216,46 @@ view-bar .right li.mark:hover {
 view:hover view-bar {
   box-shadow: none;
 }
+file-loader input {
+  display: block;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0.01;
+  overflow: hidden;
+}
+common-input {
+  position: relative;
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+common-input .input {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+common-input .input input {
+  outline: none;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  font-size: 1rem;
+  color: rgba(250, 250, 250, 0.75);
+  box-sizing: border-box;
+  border: thin dotted rgba(50, 50, 50, 0.001);
+  margin: 0;
+  padding: 0 0.25rem;
+  box-shadow: 0 0 0rem rgba(0, 0, 0, 0.01) inset;
+  background: #282828;
+}
+common-input .input input:focus,
+common-input .input input:hover {
+  border: thin dotted #323232;
+  box-shadow: 0 0 0.15rem rgba(250, 250, 250, 0.4) inset;
+  transition: border, box-shadow ease-in-out 200ms;
+  color: #fafafa;
+}
 drop-down-menu {
   position: relative;
 }
@@ -1282,46 +1322,6 @@ drop-down-menu .wrapper .list-wrapper-corrector .list-wrapper .list li .line {
   height: 1px;
   border-top: dotted 1px #323232;
   margin: 0.5rem 0.5rem;
-}
-file-loader input {
-  display: block;
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0.01;
-  overflow: hidden;
-}
-common-input {
-  position: relative;
-  display: block;
-  height: 100%;
-  width: 100%;
-}
-common-input .input {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-}
-common-input .input input {
-  outline: none;
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  font-size: 1rem;
-  color: rgba(250, 250, 250, 0.75);
-  box-sizing: border-box;
-  border: thin dotted rgba(50, 50, 50, 0.001);
-  margin: 0;
-  padding: 0 0.25rem;
-  box-shadow: 0 0 0rem rgba(0, 0, 0, 0.01) inset;
-  background: #282828;
-}
-common-input .input input:focus,
-common-input .input input:hover {
-  border: thin dotted #323232;
-  box-shadow: 0 0 0.15rem rgba(250, 250, 250, 0.4) inset;
-  transition: border, box-shadow ease-in-out 200ms;
-  color: #fafafa;
 }
 long-list {
   position: absolute;
@@ -1532,148 +1532,6 @@ long-list .wrapper .border-bottom.off {
   100% {
     opacity: 0;
     margin-top: -80px;
-  }
-}
-progressbar-circle .wrapper {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  top: 0;
-  left: 0;
-}
-progressbar-circle .wrapper .label {
-  position: relative;
-  display: block;
-  text-align: center;
-  font-family: 'Roboto Condensed', Verdana, Arial, Helvetica, sans-serif;
-  font-size: 1em;
-  top: 50%;
-  margin-top: -3em;
-  color: #5b6991;
-}
-progressbar-circle .wrapper .particle {
-  position: absolute;
-  width: 2.5em;
-  height: 2.5em;
-  border-radius: 1.25em;
-  top: 50%;
-  left: 50%;
-  margin: -1.25em 0 0 -1.25em;
-  opacity: 0;
-  animation: progressbar-circle-animation 2050ms cubic-bezier(0.65, 0.95, 0.41, 0.13) 0ms infinite normal;
-  -webkit-animation: progressbar-circle-animation 2050ms cubic-bezier(0.65, 0.95, 0.41, 0.13) 0ms infinite normal;
-  -moz-animation: progressbar-circle-animation 2050ms cubic-bezier(0.65, 0.95, 0.41, 0.13) 0ms infinite normal;
-  -o-animation: progressbar-circle-animation 2050ms cubic-bezier(0.65, 0.95, 0.41, 0.13) 0ms infinite normal;
-}
-progressbar-circle .wrapper .particle:after {
-  position: absolute;
-  content: '';
-  width: 4px;
-  height: 4px;
-  border-radius: 2px;
-  background: #a8c873;
-  /*box-shadow      : 0 0 1px rgba(0,0,0,0.4);*/
-  bottom: 0;
-  left: 50%;
-}
-progressbar-circle .wrapper .particle[data-addition-type="0"] {
-  -moz-animation-delay: 0ms;
-  -o-animation-delay: 0ms;
-  -webkit-animation-delay: 0ms;
-  animation-delay: 0ms;
-}
-progressbar-circle .wrapper .particle[data-addition-type="1"] {
-  -moz-animation-delay: 200ms;
-  -o-animation-delay: 200ms;
-  -webkit-animation-delay: 200ms;
-  animation-delay: 200ms;
-}
-progressbar-circle .wrapper .particle[data-addition-type="2"] {
-  -moz-animation-delay: 400ms;
-  -o-animation-delay: 400ms;
-  -webkit-animation-delay: 400ms;
-  animation-delay: 400ms;
-}
-progressbar-circle .wrapper .particle[data-addition-type="3"] {
-  -moz-animation-delay: 600ms;
-  -o-animation-delay: 600ms;
-  -webkit-animation-delay: 600ms;
-  animation-delay: 600ms;
-}
-progressbar-circle .wrapper .particle[data-addition-type="4"] {
-  -moz-animation-delay: 800ms;
-  -o-animation-delay: 800ms;
-  -webkit-animation-delay: 800ms;
-  animation-delay: 800ms;
-}
-progressbar-circle .wrapper .particle[data-addition-type="5"] {
-  -moz-animation-delay: 1000ms;
-  -o-animation-delay: 1000ms;
-  -webkit-animation-delay: 1000ms;
-  animation-delay: 1000ms;
-}
-@keyframes progressbar-circle-animation {
-  0% {
-    -moz-transform: rotateZ(0deg);
-    -ms-transform: rotateZ(0deg);
-    -o-transform: rotateZ(0deg);
-    -webkit-transform: rotateZ(0deg);
-    transform: rotateZ(0deg);
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    -moz-transform: rotateZ(360deg);
-    -ms-transform: rotateZ(360deg);
-    -o-transform: rotateZ(360deg);
-    -webkit-transform: rotateZ(360deg);
-    transform: rotateZ(360deg);
-    opacity: 0;
-  }
-}
-@-moz-keyframes progressbar-circle-animation {
-  0% {
-    -moz-transform: rotateZ(0deg);
-    -ms-transform: rotateZ(0deg);
-    -o-transform: rotateZ(0deg);
-    -webkit-transform: rotateZ(0deg);
-    transform: rotateZ(0deg);
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    -moz-transform: rotateZ(360deg);
-    -ms-transform: rotateZ(360deg);
-    -o-transform: rotateZ(360deg);
-    -webkit-transform: rotateZ(360deg);
-    transform: rotateZ(360deg);
-    opacity: 0;
-  }
-}
-@-webkit-keyframes progressbar-circle-animation {
-  0% {
-    -moz-transform: rotateZ(0deg);
-    -ms-transform: rotateZ(0deg);
-    -o-transform: rotateZ(0deg);
-    -webkit-transform: rotateZ(0deg);
-    transform: rotateZ(0deg);
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    -moz-transform: rotateZ(360deg);
-    -ms-transform: rotateZ(360deg);
-    -o-transform: rotateZ(360deg);
-    -webkit-transform: rotateZ(360deg);
-    transform: rotateZ(360deg);
-    opacity: 0;
   }
 }
 popup {
@@ -1925,6 +1783,148 @@ progressbar-line .wrapper .particle[data-addition-type="5"] {
   }
   100% {
     left: 100%;
+    opacity: 0;
+  }
+}
+progressbar-circle .wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  top: 0;
+  left: 0;
+}
+progressbar-circle .wrapper .label {
+  position: relative;
+  display: block;
+  text-align: center;
+  font-family: 'Roboto Condensed', Verdana, Arial, Helvetica, sans-serif;
+  font-size: 1em;
+  top: 50%;
+  margin-top: -3em;
+  color: #5b6991;
+}
+progressbar-circle .wrapper .particle {
+  position: absolute;
+  width: 2.5em;
+  height: 2.5em;
+  border-radius: 1.25em;
+  top: 50%;
+  left: 50%;
+  margin: -1.25em 0 0 -1.25em;
+  opacity: 0;
+  animation: progressbar-circle-animation 2050ms cubic-bezier(0.65, 0.95, 0.41, 0.13) 0ms infinite normal;
+  -webkit-animation: progressbar-circle-animation 2050ms cubic-bezier(0.65, 0.95, 0.41, 0.13) 0ms infinite normal;
+  -moz-animation: progressbar-circle-animation 2050ms cubic-bezier(0.65, 0.95, 0.41, 0.13) 0ms infinite normal;
+  -o-animation: progressbar-circle-animation 2050ms cubic-bezier(0.65, 0.95, 0.41, 0.13) 0ms infinite normal;
+}
+progressbar-circle .wrapper .particle:after {
+  position: absolute;
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 2px;
+  background: #a8c873;
+  /*box-shadow      : 0 0 1px rgba(0,0,0,0.4);*/
+  bottom: 0;
+  left: 50%;
+}
+progressbar-circle .wrapper .particle[data-addition-type="0"] {
+  -moz-animation-delay: 0ms;
+  -o-animation-delay: 0ms;
+  -webkit-animation-delay: 0ms;
+  animation-delay: 0ms;
+}
+progressbar-circle .wrapper .particle[data-addition-type="1"] {
+  -moz-animation-delay: 200ms;
+  -o-animation-delay: 200ms;
+  -webkit-animation-delay: 200ms;
+  animation-delay: 200ms;
+}
+progressbar-circle .wrapper .particle[data-addition-type="2"] {
+  -moz-animation-delay: 400ms;
+  -o-animation-delay: 400ms;
+  -webkit-animation-delay: 400ms;
+  animation-delay: 400ms;
+}
+progressbar-circle .wrapper .particle[data-addition-type="3"] {
+  -moz-animation-delay: 600ms;
+  -o-animation-delay: 600ms;
+  -webkit-animation-delay: 600ms;
+  animation-delay: 600ms;
+}
+progressbar-circle .wrapper .particle[data-addition-type="4"] {
+  -moz-animation-delay: 800ms;
+  -o-animation-delay: 800ms;
+  -webkit-animation-delay: 800ms;
+  animation-delay: 800ms;
+}
+progressbar-circle .wrapper .particle[data-addition-type="5"] {
+  -moz-animation-delay: 1000ms;
+  -o-animation-delay: 1000ms;
+  -webkit-animation-delay: 1000ms;
+  animation-delay: 1000ms;
+}
+@keyframes progressbar-circle-animation {
+  0% {
+    -moz-transform: rotateZ(0deg);
+    -ms-transform: rotateZ(0deg);
+    -o-transform: rotateZ(0deg);
+    -webkit-transform: rotateZ(0deg);
+    transform: rotateZ(0deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    -moz-transform: rotateZ(360deg);
+    -ms-transform: rotateZ(360deg);
+    -o-transform: rotateZ(360deg);
+    -webkit-transform: rotateZ(360deg);
+    transform: rotateZ(360deg);
+    opacity: 0;
+  }
+}
+@-moz-keyframes progressbar-circle-animation {
+  0% {
+    -moz-transform: rotateZ(0deg);
+    -ms-transform: rotateZ(0deg);
+    -o-transform: rotateZ(0deg);
+    -webkit-transform: rotateZ(0deg);
+    transform: rotateZ(0deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    -moz-transform: rotateZ(360deg);
+    -ms-transform: rotateZ(360deg);
+    -o-transform: rotateZ(360deg);
+    -webkit-transform: rotateZ(360deg);
+    transform: rotateZ(360deg);
+    opacity: 0;
+  }
+}
+@-webkit-keyframes progressbar-circle-animation {
+  0% {
+    -moz-transform: rotateZ(0deg);
+    -ms-transform: rotateZ(0deg);
+    -o-transform: rotateZ(0deg);
+    -webkit-transform: rotateZ(0deg);
+    transform: rotateZ(0deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    -moz-transform: rotateZ(360deg);
+    -ms-transform: rotateZ(360deg);
+    -o-transform: rotateZ(360deg);
+    -webkit-transform: rotateZ(360deg);
+    transform: rotateZ(360deg);
     opacity: 0;
   }
 }
@@ -2458,31 +2458,6 @@ view-controller-state-monitor-item .indicate .label {
   white-space: nowrap;
   margin: 0.5rem 0;
 }
-button-flat-text span {
-  position: relative;
-  display: inline-block;
-  background: #141414;
-  color: #fafafa;
-  margin: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  cursor: pointer;
-  border: thin dotted #fafafa;
-}
-button-flat-text span:hover {
-  background: #fafafa;
-  color: #141414;
-  border: thin dotted #141414;
-}
-button-flat-text span.disabled {
-  background: #282828;
-  color: #646464;
-  cursor: default;
-}
-button-flat-text span.disabled:hover {
-  background: #282828;
-  color: #646464;
-  border: thin dotted #fafafa;
-}
 simple-checkbox {
   position: relative;
   display: inline-block;
@@ -2535,6 +2510,31 @@ simple-checkbox label input:checked ~ span.on,
 simple-checkbox label input:checked ~ span.switcher {
   opacity: 1;
 }
+button-flat-text span {
+  position: relative;
+  display: inline-block;
+  background: #141414;
+  color: #fafafa;
+  margin: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  border: thin dotted #fafafa;
+}
+button-flat-text span:hover {
+  background: #fafafa;
+  color: #141414;
+  border: thin dotted #141414;
+}
+button-flat-text span.disabled {
+  background: #282828;
+  color: #646464;
+  cursor: default;
+}
+button-flat-text span.disabled:hover {
+  background: #282828;
+  color: #646464;
+  border: thin dotted #fafafa;
+}
 dialog-adblogcatstream-settings {
   position: absolute;
   display: block;
@@ -2586,55 +2586,6 @@ dialog-adblogcatstream-settings .settings table tr .input-cover {
   height: 1.5rem;
 }
 dialog-adblogcatstream-settings .buttons {
-  position: absolute;
-  width: 100%;
-  height: 2.5rem;
-  bottom: 0;
-}
-dialog-api-settings {
-  position: absolute;
-  display: block;
-  top: 0.5rem;
-  left: 0.5rem;
-  bottom: 0.5rem;
-  right: 0.5rem;
-}
-dialog-api-settings .settings {
-  position: absolute;
-  width: 100%;
-  top: 0;
-  bottom: 2.5rem;
-  overflow: auto;
-}
-dialog-api-settings .settings table {
-  position: relative;
-  width: 100%;
-}
-dialog-api-settings .settings table tr td:first-child {
-  position: relative;
-  width: 100%;
-  font-size: 0.85rem;
-  padding: 0.25rem 0;
-  margin: 0;
-  font-weight: normal;
-  color: #aaaaaa;
-}
-dialog-api-settings .settings table tr td:first-child span {
-  font-weight: bold;
-  color: #f0f0f0;
-}
-dialog-api-settings .settings table tr td:last-child {
-  padding: 0.25rem 0.5rem;
-  margin: 0;
-  position: relative;
-  min-width: 15rem;
-}
-dialog-api-settings .settings table tr .input-cover {
-  position: relative;
-  width: 100%;
-  height: 1.5rem;
-}
-dialog-api-settings .buttons {
   position: absolute;
   width: 100%;
   height: 2.5rem;
@@ -2698,6 +2649,55 @@ chart-edit-color-dialog .chart-controls {
   bottom: 0;
   height: 2.5rem;
   text-align: right;
+}
+dialog-api-settings {
+  position: absolute;
+  display: block;
+  top: 0.5rem;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  right: 0.5rem;
+}
+dialog-api-settings .settings {
+  position: absolute;
+  width: 100%;
+  top: 0;
+  bottom: 2.5rem;
+  overflow: auto;
+}
+dialog-api-settings .settings table {
+  position: relative;
+  width: 100%;
+}
+dialog-api-settings .settings table tr td:first-child {
+  position: relative;
+  width: 100%;
+  font-size: 0.85rem;
+  padding: 0.25rem 0;
+  margin: 0;
+  font-weight: normal;
+  color: #aaaaaa;
+}
+dialog-api-settings .settings table tr td:first-child span {
+  font-weight: bold;
+  color: #f0f0f0;
+}
+dialog-api-settings .settings table tr td:last-child {
+  padding: 0.25rem 0.5rem;
+  margin: 0;
+  position: relative;
+  min-width: 15rem;
+}
+dialog-api-settings .settings table tr .input-cover {
+  position: relative;
+  width: 100%;
+  height: 1.5rem;
+}
+dialog-api-settings .buttons {
+  position: absolute;
+  width: 100%;
+  height: 2.5rem;
+  bottom: 0;
 }
 chart-edit-rules-hooks-dialog {
   position: absolute;
@@ -3870,6 +3870,22 @@ views-list .views-list li:hover .description {
   box-shadow: 0 0 0.15rem rgba(250, 250, 250, 0.4) inset;
   z-index: 100;
 }
+simple-dd-list {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: block;
+}
+simple-dd-list select {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: block;
+  font-size: 0.85rem;
+  color: #fafafa;
+  background: #1e1e1e;
+}
 simple-list {
   position: relative;
   width: 100%;
@@ -3899,22 +3915,6 @@ simple-list ul li {
 simple-list ul li:hover {
   color: #fafafa;
   background: rgba(80, 80, 80, 0.8);
-}
-simple-dd-list {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  display: block;
-}
-simple-dd-list select {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  display: block;
-  font-size: 0.85rem;
-  color: #fafafa;
-  background: #1e1e1e;
 }
 long-list-item {
   display: none;
@@ -4020,6 +4020,21 @@ progress-bar-global .progress-bar-global:after {
     transform: rotate(360deg);
   }
 }
+simple-text {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+simple-text p {
+  font-size: 0.85rem;
+  color: #f0f0f0;
+  padding: 0.5rem;
+  margin: 0;
+}
 common-simple-table {
   position: absolute;
   display: block;
@@ -4085,21 +4100,6 @@ common-simple-table table tbody tr:hover {
 }
 common-simple-table table tbody tr:hover td {
   color: #f0f0f0;
-}
-simple-text {
-  display: block;
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-}
-simple-text p {
-  font-size: 0.85rem;
-  color: #f0f0f0;
-  padding: 0.5rem;
-  margin: 0;
 }
 dialog-monitor-manager-logs-tab {
   position: absolute;
