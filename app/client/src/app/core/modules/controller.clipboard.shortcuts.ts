@@ -72,7 +72,7 @@ class ClipboardShortcuts {
     }
 
     private onWinPaste(event: ClipboardEvent){
-        return this.onPaste.emit({ event: event, text: event.clipboardData.getData('text') });
+        return !this.silence  ? this.onPaste.emit({ event: event, text: event.clipboardData.getData('text') }) : false;
     }
 
 }
