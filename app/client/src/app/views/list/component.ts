@@ -12,6 +12,8 @@ import { ListLineMark                           } from './line/interface.mark';
 import { dataController                         } from '../../core/modules/controller.data';
 import { Logs, TYPES as LogTypes                } from '../../core/modules/tools.logs';
 import { ANSIClearer                            } from '../../core/modules/tools.ansiclear';
+import { copyText                               } from '../../core/modules/tools.clipboard';
+
 import { events as Events                       } from '../../core/modules/controller.events';
 import { configuration as Configuration         } from '../../core/modules/controller.config';
 
@@ -398,7 +400,6 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     onTextSelection(text: string){
         if (typeof text === 'string' && !~text.search(/[\n\r]/gi)){
             let index = this.getSelfMarkerIndex();
-            text = text.replace(/[\n\r]/gi, '');
             if (text.length > 0){
                 if (~index){
                     this.markers[index].value = text;
@@ -411,6 +412,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                     });
                 }
                 this.updateMarkersOnly();
+                copyText(text);
             } else if (~index) {
                 this.markers.splice(index, 1);
                 this.updateMarkersOnly();
