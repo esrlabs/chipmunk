@@ -13,7 +13,9 @@ const COMMANDS = {
     UpdateDownloadProgress  : 'UpdateDownloadProgress',
     ADBLogcatData           : 'ADBLogcatData',
     TermProcessData         : 'TermProcessData',
-    TermProcessClosed       : 'TermProcessClosed'
+    TermProcessClosed       : 'TermProcessClosed',
+    CallMenuItem            : 'CallMenuItem',
+    DesktopModeNotification : 'DesktopModeNotification'
 };
 
 class IncomeCommandsProcessor {
@@ -139,6 +141,22 @@ class OutgoingCommandsProcessor {
             GUID    : clientGUID,
             command : COMMANDS.TermProcessClosed,
             params  : params
+        });
+    }
+
+    [COMMANDS.CallMenuItem](clientGUID, params){
+        this.sender({
+            GUID    : clientGUID,
+            command : COMMANDS.CallMenuItem,
+            params  : params
+        });
+    }
+
+    [COMMANDS.DesktopModeNotification](clientGUID){
+        this.sender({
+            GUID    : clientGUID,
+            command : COMMANDS.DesktopModeNotification,
+            params  : {}
         });
     }
 

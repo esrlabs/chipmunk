@@ -12,6 +12,7 @@ class ConfigurationSets {
     KEYS_SHORTCUTS      : any;
     VIEW_TRACKER        : any;
     THEMES              : any;
+    MENU                : any;
 }
 
 export { ConfigurationSets };

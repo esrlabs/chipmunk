@@ -12,7 +12,9 @@ var COMMANDS = {
     UpdateDownloadProgress: 'UpdateDownloadProgress',
     ADBLogcatData: 'ADBLogcatData',
     TermProcessData: 'TermProcessData',
-    TermProcessClosed: 'TermProcessClosed'
+    TermProcessClosed: 'TermProcessClosed',
+    CallMenuItem: 'CallMenuItem',
+    DesktopModeNotification: 'DesktopModeNotification'
 };
 exports.COMMANDS = COMMANDS;
 var WSCommands = (function () {
@@ -92,6 +94,14 @@ var WSCommands = (function () {
         if (typeof message.params === 'object' && message.params !== null && typeof message.params.stream === 'string') {
             controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.TERM_PROCESS_CLOSED, message.params);
         }
+    };
+    WSCommands.prototype[COMMANDS.CallMenuItem] = function (message, sender) {
+        if (typeof message.params === 'object' && message.params !== null && typeof message.params.handler === 'string') {
+            controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.MENU_HANDLER_CALL, message.params);
+        }
+    };
+    WSCommands.prototype[COMMANDS.DesktopModeNotification] = function (message, sender) {
+        controller_events_1.events.trigger(controller_config_1.configuration.sets.SYSTEM_EVENTS.DESKTOP_MODE_NOTIFICATION);
     };
     return WSCommands;
 }());

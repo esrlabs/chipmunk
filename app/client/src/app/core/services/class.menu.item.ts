@@ -1,6 +1,6 @@
 export class MenuItem {
     icon?   : string;
     caption?: string;
-    handle? : string | Function | null;
+    handler?: string | Function | null;
     type    : string;
 }
