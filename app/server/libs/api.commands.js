@@ -241,7 +241,7 @@ class APICommands{
             return callback(null, new Error('Electron is available only for desktop versions.'))
         }
         starter.debug();
-        callback(true, null)
+        callback(true, null);
     }
 
     requestFile(income, response, callback){

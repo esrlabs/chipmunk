@@ -12,10 +12,11 @@
     "VIEW_STATEMONITOR" : "view.statemonitor.json",
     "LOGS"              : "logs.json",
     "VIEW_TRACKER"      : "view.tracker.data.json",
-    "THEMES"            : "themes.json"
+    "THEMES"            : "themes.json",
+    "MENU"              : "menu.json"
   },
   "ORDERING" : [
-    ["SYSTEM", "SYSTEM_EVENTS", "EVENTS_TOOLBAR", "VIEWS", "VIEWS_DEFAULTS", "EVENTS_SHORTCUTS", "EVENTS_VIEWS", "LOGS", "KEYS_SHORTCUTS", "VIEW_TRACKER", "THEMES"],
+    ["SYSTEM", "SYSTEM_EVENTS", "EVENTS_TOOLBAR", "VIEWS", "VIEWS_DEFAULTS", "EVENTS_SHORTCUTS", "EVENTS_VIEWS", "LOGS", "KEYS_SHORTCUTS", "VIEW_TRACKER", "THEMES", "MENU"],
     "CORE_TOP_BAR",
     ["VIEW_STATEMONITOR"]
   ]
