@@ -21,6 +21,7 @@ var component_2 = require("../../core/components/common/long-list/component");
 var controller_data_1 = require("../../core/modules/controller.data");
 var tools_logs_1 = require("../../core/modules/tools.logs");
 var tools_ansiclear_1 = require("../../core/modules/tools.ansiclear");
+var tools_clipboard_1 = require("../../core/modules/tools.clipboard");
 var controller_events_1 = require("../../core/modules/controller.events");
 var controller_config_1 = require("../../core/modules/controller.config");
 var controller_selection_text_1 = require("../../core/modules/controller.selection.text");
@@ -336,7 +337,6 @@ var ViewControllerList = (function (_super) {
     ViewControllerList.prototype.onTextSelection = function (text) {
         if (typeof text === 'string' && !~text.search(/[\n\r]/gi)) {
             var index = this.getSelfMarkerIndex();
-            text = text.replace(/[\n\r]/gi, '');
             if (text.length > 0) {
                 if (~index) {
                     this.markers[index].value = text;
@@ -350,6 +350,7 @@ var ViewControllerList = (function (_super) {
                     });
                 }
                 this.updateMarkersOnly();
+                tools_clipboard_1.copyText(text);
             }
             else if (~index) {
                 this.markers.splice(index, 1);
@@ -507,7 +508,12 @@ var ViewControllerList = (function (_super) {
     ViewControllerList.prototype.updateLine = function () {
         if (this.rows.length > 0 && this.highlight && !this.showOnlyBookmarks) {
             this.updateLineData();
-            this.line.visible = true;
+            if (this.line.marks.length === 0) {
+                this.line.visible = false;
+            }
+            else {
+                this.line.visible = true;
+            }
         }
         else {
             this.resetLineData();

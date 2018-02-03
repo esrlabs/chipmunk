@@ -79,7 +79,7 @@ var Processors = (function () {
                 case controller_data_search_modes_js_1.MODES.TEXT:
                     return filter;
                 case controller_data_search_modes_js_1.MODES.REG:
-                    return filter.replace(/[^\d\w,\-\+\|@#$_=]/gi, '');
+                    return filter;
                 case controller_data_search_modes_js_1.MODES.PERIOD:
                     return '';
                 default:

@@ -19,16 +19,28 @@ list-view-item{
             background  : @list-hover-background;
         }
         .number{
-            position            : relative;
+            position            : sticky;
             display             : inline-block;
             margin              : 0 0.5rem 0 0;
             font-size           : 0.65rem;
             color               : @soft-dark;
             padding             : 0 0.2rem;
             border              : none;
-            background          : @list-hover-background;
+            background          : @list-number-background;
             line-height         : 1rem;
             cursor              : pointer;
+            left                : 0.5rem;
+            z-index             : 10;
+            &:after{
+                content         : '';
+                position        : absolute;
+                height          : 100%;
+                width           : 0.5rem;
+                top             : 0;
+                left            : -0.5rem;
+                background      : @light;
+
+            }
             &.hide{
                 display: none;
             }

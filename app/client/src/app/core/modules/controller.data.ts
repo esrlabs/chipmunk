@@ -31,21 +31,22 @@ class DataController implements InitiableModule{
     }
 
     private bindEvents(){
-        Events.bind(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_CHANGED,    this.onSEARCH_REQUEST_CHANGED.  bind(this));
-        Events.bind(Configuration.sets.SYSTEM_EVENTS.TXT_DATA_COME,             this.onTXT_DATA_COME.           bind(this));
-        Events.bind(Configuration.sets.SYSTEM_EVENTS.STREAM_DATA_UPDATE,        this.onSTREAM_DATA_UPDATE.      bind(this));
-        Events.bind(Configuration.sets.SYSTEM_EVENTS.REMEMBER_FILTER,           this.onREMEMBER_FILTER.         bind(this));
-        Events.bind(Configuration.sets.SYSTEM_EVENTS.FORGET_FILTER,             this.onFORGET_FILTER.           bind(this));
-        Events.bind(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_RESET,      this.onSEARCH_REQUEST_RESET.    bind(this));
-        Events.bind(Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED,    this.onVIEW_OUTPUT_IS_CLEARED.  bind(this));
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_CHANGED,        this.onSEARCH_REQUEST_CHANGED.      bind(this));
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.TXT_DATA_COME,                 this.onTXT_DATA_COME.               bind(this));
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.STREAM_DATA_UPDATE,            this.onSTREAM_DATA_UPDATE.          bind(this));
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.REMEMBER_FILTER,               this.onREMEMBER_FILTER.             bind(this));
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.FORGET_FILTER,                 this.onFORGET_FILTER.               bind(this));
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_RESET,          this.onSEARCH_REQUEST_RESET.        bind(this));
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED,        this.onVIEW_OUTPUT_IS_CLEARED.      bind(this));
+        Events.bind(Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_INSERT_EMPTY_LINE, this.onSHORTCUT_INSERT_EMPTY_LINE.  bind(this));
+
+
         this.worker.addEventListener('message', this.onWorkerMessage.bind(this));
         this.clipboardShortcuts.onPaste.subscribe(this.onClipboardPaste.bind(this));
     }
 
-    private onWorkerMessage(event: MessageEvent) {
-        let response = event.data as WorkerResponse;
-        (response.rows !== void 0) && (this.data.rows = response.rows);
-        switch (response.event){
+    private applyEventFromWorker(event: String | symbol, response: WorkerResponse){
+        switch (event){
             case Configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED:
                 Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED, new EVENT_DATA_IS_UPDATED(response.rows));
                 break;
@@ -64,7 +65,21 @@ class DataController implements InitiableModule{
             case Configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED:
                 Events.trigger(Configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED, response.rows);
                 break;
+            default:
+                Events.trigger(event as string, response.rows);
+                break;
         }
+    }
+
+    private onWorkerMessage(event: MessageEvent) {
+        let response    = event.data as WorkerResponse;
+        let events      = response.event instanceof Array ? response.event : (response.event !== void 0 ? [response.event] : []);
+        (response.rows !== void 0) && (this.data.rows = response.rows);
+
+        events.forEach((event) => {
+            this.applyEventFromWorker(event, response);
+        });
+
 
         this.workerJobs -= 1;
 
@@ -152,7 +167,8 @@ class DataController implements InitiableModule{
         } as WorkerRequest);
     }
 
-    onSTREAM_DATA_UPDATE(data: string){
+    onSTREAM_DATA_UPDATE(data: string, events: Array<string> = []){
+        events.push(Configuration.sets.SYSTEM_EVENTS.DATA_IS_MODIFIED);
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_GET_ALL, (requests:Array<any>)=>{
             this.sendWorkerMessage({
                 command : WorkerCommands.add,
@@ -163,7 +179,7 @@ class DataController implements InitiableModule{
                         value   : request.value
                     }
                 }) : [],
-                event   : Configuration.sets.SYSTEM_EVENTS.DATA_IS_MODIFIED,
+                event   : events,
                 configuration : this.getConfigurationForWorker()
             } as WorkerRequest);
         });
@@ -187,6 +203,10 @@ class DataController implements InitiableModule{
         if (typeof event.text === 'string' && event.text.trim() !== '') {
             this.onTXT_DATA_COME(event.text);
         }
+    }
+
+    onSHORTCUT_INSERT_EMPTY_LINE(){
+        this.onSTREAM_DATA_UPDATE(' \n', [Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_END]);
     }
 
 }

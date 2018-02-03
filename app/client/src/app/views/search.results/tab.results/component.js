@@ -356,6 +356,8 @@ var TabControllerSearchResults = (function (_super) {
                     GUID: _this.viewParams !== null ? _this.viewParams.GUID : null,
                     val: row.str,
                     original: row.str,
+                    match: row.match,
+                    matchReg: row.matchReg,
                     index: _index,
                     selection: _this.selection.index === _index ? true : false,
                     bookmarked: _this.bookmarks.indexOf(index) !== -1,
@@ -371,6 +373,8 @@ var TabControllerSearchResults = (function (_super) {
                     }
                 },
                 requests: row.requests,
+                match: row.match,
+                matchReg: row.matchReg,
                 callback: _this.onRowInit.bind(_this, _index),
                 update: null
             };
@@ -537,6 +541,8 @@ var TabControllerSearchResults = (function (_super) {
             row.params.markers = _this.markers;
             row.params.markerSelectMode = _this.markerSelectMode;
             row.params.markersHash = markersHash;
+            row.params.match = row.match;
+            row.params.matchReg = row.matchReg;
             update && row.update(row.params);
             return row;
         }));

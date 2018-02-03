@@ -42,7 +42,7 @@ var DEFAULT_STREAM_SETTINGS = {
     tid: -1,
     pid: -1,
     path: '',
-    reset: true
+    reset: false
 };
 var SettingsController = (function () {
     function SettingsController() {
@@ -256,6 +256,9 @@ var OpenADBLogcatStream = (function () {
     }
     OpenADBLogcatStream.prototype.start = function () {
         this.openStream();
+    };
+    OpenADBLogcatStream.prototype.setupAndOpen = function () {
+        this.showSettings();
     };
     OpenADBLogcatStream.prototype.openStream = function () {
         this.showProgress(_('Please wait... Opening...'));
