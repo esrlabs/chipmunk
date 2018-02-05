@@ -14,8 +14,14 @@
                 width   : 2rem;
                 height  : 2rem;
                 opacity : 0.4;
+                span:hover{
+                    text-shadow: 0 0 1rem @menu-hover-color;
+                }
                 &.active{
-                    opacity: 1;
+                    opacity : 1;
+                    span{
+                        color   : @menu-hover-color;
+                    }
                 }
             }
         }
