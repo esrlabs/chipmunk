@@ -13,7 +13,9 @@ const COMMANDS = {
     UpdateDownloadProgress  : 'UpdateDownloadProgress',
     ADBLogcatData           : 'ADBLogcatData',
     TermProcessData         : 'TermProcessData',
-    TermProcessClosed       : 'TermProcessClosed'
+    TermProcessClosed       : 'TermProcessClosed',
+    CallMenuItem            : 'CallMenuItem',
+    DesktopModeNotification : 'DesktopModeNotification'
 };
 
 class WSCommands{
@@ -103,6 +105,16 @@ class WSCommands{
         if (typeof message.params === 'object' && message.params !== null && typeof message.params.stream === 'string'){
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.TERM_PROCESS_CLOSED, message.params);
         }
+    }
+
+    [COMMANDS.CallMenuItem              ](message : WSCommandMessage, sender: Function){
+        if (typeof message.params === 'object' && message.params !== null && typeof message.params.handler === 'string'){
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.MENU_HANDLER_CALL, message.params);
+        }
+    }
+
+    [COMMANDS.DesktopModeNotification   ](message : WSCommandMessage, sender: Function){
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.DESKTOP_MODE_NOTIFICATION);
     }
 
 }

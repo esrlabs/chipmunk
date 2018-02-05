@@ -1,7 +1,7 @@
 <div [attr.class]="'top-bar'">
-    <div class="top-tool-bar-wrapper">
+    <div [attr.class]="'top-tool-bar-wrapper ' + (desktop ? 'desktop' : '')">
         <topbar-search-request></topbar-search-request>
         <topbar-space-holder></topbar-space-holder>
     </div>
-    <top-bar-drop-down-menu></top-bar-drop-down-menu>
+    <top-bar-drop-down-menu *ngIf="!desktop"></top-bar-drop-down-menu>
 </div>

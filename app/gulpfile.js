@@ -1,23 +1,33 @@
 const TASKS = {
-    BUILD               : 'building',
-    INSTALL_CLIENT      : 'install_client',
-    INSTALL_ELECTRON    : 'install_electron',
-    CREATE_PACKAGE_FILE : 'create_package_file',
-    ADD_DEPENDENCIES    : 'add_dependencies',
-    BUILD_CLIENT        : 'build_client',
-    COPY_CLIENT         : 'copy_client',
-    COPY_SERVER         : 'copy_server',
-    RESET_CLIENT        : 'reset_client',
-    RESET_SERVER        : 'reset_server',
-    MAKEDIR_CLIENT      : 'makedir_client',
-    MAKEDIR_SERVER      : 'makedir_server',
-    BACKUP_APP_PG       : 'backup_package.json',
-    RESTORE_APP_PG      : 'restore_package.json',
-    CLEANUP             : 'cleanup',
-    CLEAR_APP           : 'clear_app',
-    CLEAR_APP_SERVER    : 'clear_app_server',
-    CLEAR_DIST          : 'clear_dist',
-    DEFAULT             : 'default'
+    BUILD                       : 'building',
+    INSTALL_CLIENT              : 'install_client',
+    INSTALL_SERVER              : 'install_server',
+    INSTALL_ELECTRON            : 'install_electron',
+    CREATE_PACKAGE_FILE         : 'create_package_file',
+    ADD_DEPENDENCIES            : 'add_dependencies',
+    BUILD_CLIENT                : 'build_client',
+    COPY_CLIENT                 : 'copy_client',
+    COPY_SERVER                 : 'copy_server',
+    RESET_CLIENT                : 'reset_client',
+    RESET_SERVER                : 'reset_server',
+    MAKEDIR_CLIENT              : 'makedir_client',
+    MAKEDIR_SERVER              : 'makedir_server',
+    BACKUP_APP_PG               : 'backup_package.json',
+    RESTORE_APP_PG              : 'restore_package.json',
+    CLEANUP                     : 'cleanup',
+    CLEAR_APP                   : 'clear_app',
+    CLEAR_APP_SERVER            : 'clear_app_server',
+    CLEAR_DIST                  : 'clear_dist',
+    DEFAULT                     : 'default',
+    //Cleanup from built and compiled files
+    REMOVE_COMPILED_JS_FILES    : 'remove_compiled_js_files',
+    REMOVE_JS_MAPS_FILES        : 'remove_js_maps_files',
+    REMOVE_COMPILED_CSS_FILES   : 'remove_compiled_css_files',
+    REMOVE_BUILDS               : 'remove_builds',
+    //Cleanup node_modules
+    REMOVE_MODULES_CLIENT       : 'remove_modules_of_client',
+    REMOVE_MODULES_SERVER       : 'remove_modules_of_server',
+
 };
 
 const PLATFORMS = {
@@ -96,10 +106,10 @@ const SCRIPTS = {
 
 const SETTINGS = {
     publish : { key: ['-p', '--publish'],   value: false },
-    build   : { key: ['-b', '--build'],     value: false }
+    build   : { key: ['-b', '--build'],     value: false },
+    clean   : { key: ['-c', '--clean'],     value: false },
+    install : { key: ['-i', '--install'],   value: false },
 };
-
-
 
 const gulp      = require('gulp');
 const spawn     = require('child_process').spawn;
@@ -131,6 +141,9 @@ class BuildingTasks {
     }
 
     _validateSettings(){
+        if (this._settings.clean || this._settings.install) {
+            return true;
+        }
         if ((!this._settings.publish && !this._settings.build) || (this._settings.publish && this._settings.build)){
             console.log('Please run gulp script with flag --publish or --build');
             throw new Error('Please run gulp script with flag --publish or --build');
@@ -192,6 +205,10 @@ class BuildingTasks {
 
     [TASKS.INSTALL_CLIENT](){
         this._createSpawnTask(TASKS.INSTALL_CLIENT, this._npm, ['install'], { cwd: './client' });
+    }
+
+    [TASKS.INSTALL_SERVER](){
+        this._createSpawnTask(TASKS.INSTALL_SERVER, this._npm, ['install'], { cwd: './server' });
     }
 
     [TASKS.BUILD_CLIENT](){
@@ -258,6 +275,31 @@ class BuildingTasks {
         this._createSpawnTask(TASKS.BUILD, this._npm, ['run', this._settings.publish ? 'publish' : 'build'], { cwd: './desktop' });
     }
 
+    [TASKS.REMOVE_BUILDS](){
+        this._createSpawnTask(TASKS.REMOVE_BUILDS, 'rm', ['-rf', './client/build']);
+    }
+
+    [TASKS.REMOVE_COMPILED_JS_FILES](){
+        this._createSpawnTask(TASKS.REMOVE_COMPILED_JS_FILES, 'find', ['./client/src/app', '-name', '\*.js', '-delete'], { cwd: '.' });
+        //find ./client/src/app -name '*.js' -delete
+    }
+
+    [TASKS.REMOVE_JS_MAPS_FILES](){
+        this._createSpawnTask(TASKS.REMOVE_JS_MAPS_FILES, 'find', ['./client/src/app', '-name', '\*.js.map', '-delete'], { cwd: '.' });
+    }
+
+    [TASKS.REMOVE_COMPILED_CSS_FILES](){
+        this._createSpawnTask(TASKS.REMOVE_COMPILED_CSS_FILES, 'find', ['./client/src/app', '-name', '\*.css', '-delete'], { cwd: '.' });
+    }
+
+    [TASKS.REMOVE_MODULES_CLIENT](){
+        this._createSpawnTask(TASKS.REMOVE_MODULES_CLIENT, 'rm', ['-rf', './client/node_modules']);
+    }
+
+    [TASKS.REMOVE_MODULES_SERVER](){
+        this._createSpawnTask(TASKS.REMOVE_MODULES_SERVER, 'rm', ['-rf', './server/node_modules']);
+    }
+
     _onOutput(task, data){
         var message = this._decoder.write(data);
         console.log(`[${task}]: ${message.trim()}`);
@@ -285,6 +327,29 @@ class BuildingTasks {
         this._getTasks().forEach((task) => {
             this[task]();
         });
+        if (this._settings.clean) {
+            return gulp.task(TASKS.DEFAULT, gulp.series(
+                TASKS.REMOVE_BUILDS,
+                TASKS.REMOVE_COMPILED_JS_FILES,
+                TASKS.REMOVE_JS_MAPS_FILES,
+                TASKS.REMOVE_COMPILED_CSS_FILES,
+                TASKS.RESET_SERVER,
+                TASKS.RESET_CLIENT,
+                TASKS.CLEAR_DIST,
+                TASKS.CLEAR_APP,
+                TASKS.REMOVE_MODULES_CLIENT,
+                TASKS.REMOVE_MODULES_SERVER,
+                TASKS.CLEANUP
+            ));
+        }
+
+        if (this._settings.install){
+            return gulp.task(TASKS.DEFAULT, gulp.series(
+                TASKS.INSTALL_CLIENT,
+                TASKS.INSTALL_SERVER
+            ));
+        }
+
         this._isPlatformAvailable();
         gulp.task(TASKS.DEFAULT, gulp.series(
             TASKS.RESET_SERVER,
