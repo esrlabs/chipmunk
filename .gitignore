@@ -48,3 +48,10 @@ client/src/app/css/dark.css
 app/client/src/app/css/light.css
 app/client/src/app/css/dark.css
 
+.idea/
+app/client/build/
+app/desktop/client/
+app/desktop/dist/
+app/desktop/server/
+app/desktop/package-lock.json
+git.token.txt

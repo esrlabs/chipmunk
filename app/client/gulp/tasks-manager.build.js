@@ -43,7 +43,7 @@ class BuildingTasks {
     }
 
     _createNPMTasks(){
-        this._createSpawnTask(TASKS.NPM, this._npm, ['install', '--production'], { cwd: './build' })
+        this._createSpawnTask(TASKS.NPM, this._npm, ['install', '--production'], { cwd: `./${PATHS.OUT.BASE}` })
     }
 
     _createSpawnTask(task, ...args){
