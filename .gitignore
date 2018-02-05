@@ -43,10 +43,10 @@ desktop/server
 desktop/client
 desktop/dist
 client/build
-client/src/app/css/light.css
-client/src/app/css/dark.css
-app/client/src/app/css/light.css
-app/client/src/app/css/dark.css
+client/src/app/**/*.css
+client/src/app/**/*.js
+client/src/app/**/*.js.map
+**/package-lock.json
 
 .idea/
 app/client/build/
