@@ -25,7 +25,7 @@ const TASKS = {
     REMOVE_COMPILED_CSS_FILES   : 'remove_compiled_css_files',
     REMOVE_BUILDS               : 'remove_builds',
     //Cleanup node_modules
-    REMOVE_MODULES_CLINET       : 'remove_modules_of_client',
+    REMOVE_MODULES_CLIENT       : 'remove_modules_of_client',
     REMOVE_MODULES_SERVER       : 'remove_modules_of_server',
 
 };
@@ -280,19 +280,20 @@ class BuildingTasks {
     }
 
     [TASKS.REMOVE_COMPILED_JS_FILES](){
-        this._createSpawnTask(TASKS.REMOVE_COMPILED_JS_FILES, 'find', ['./client/src/app', '-name', "'*.js'", '-delete']);
+        this._createSpawnTask(TASKS.REMOVE_COMPILED_JS_FILES, 'find', ['./client/src/app', '-name', '\*.js', '-delete'], { cwd: '.' });
+        //find ./client/src/app -name '*.js' -delete
     }
 
     [TASKS.REMOVE_JS_MAPS_FILES](){
-        this._createSpawnTask(TASKS.REMOVE_JS_MAPS_FILES, 'find', ['./client/src/app', '-name', "'*.js.map'", '-delete']);
+        this._createSpawnTask(TASKS.REMOVE_JS_MAPS_FILES, 'find', ['./client/src/app', '-name', '\*.js.map', '-delete'], { cwd: '.' });
     }
 
     [TASKS.REMOVE_COMPILED_CSS_FILES](){
-        this._createSpawnTask(TASKS.REMOVE_COMPILED_CSS_FILES, 'find', ['./client/src/app', '-name', "'*.css'", '-delete']);
+        this._createSpawnTask(TASKS.REMOVE_COMPILED_CSS_FILES, 'find', ['./client/src/app', '-name', "'*.css'", '-delete'], { cwd: '.' });
     }
 
-    [TASKS.REMOVE_MODULES_CLINET](){
-        this._createSpawnTask(TASKS.REMOVE_MODULES_CLINET, 'rm', ['-rf', './client/node_modules']);
+    [TASKS.REMOVE_MODULES_CLIENT](){
+        this._createSpawnTask(TASKS.REMOVE_MODULES_CLIENT, 'rm', ['-rf', './client/node_modules']);
     }
 
     [TASKS.REMOVE_MODULES_SERVER](){
@@ -336,8 +337,8 @@ class BuildingTasks {
                 TASKS.RESET_CLIENT,
                 TASKS.CLEAR_DIST,
                 TASKS.CLEAR_APP,
-                TASKS.REMOVE_MODULES_CLINET,
-                TASKS.REMOVE_MODULES_CLINET,
+                TASKS.REMOVE_MODULES_CLIENT,
+                TASKS.REMOVE_MODULES_SERVER,
                 TASKS.CLEANUP
             ));
         }
