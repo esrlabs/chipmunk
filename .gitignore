@@ -42,10 +42,10 @@ Thumbs.db
 desktop/server
 desktop/client
 desktop/dist
-client/build
-client/src/app/**/*.css
-client/src/app/**/*.js
-client/src/app/**/*.js.map
+app/client/build
+app/client/src/app/**/*.css
+app/client/src/app/**/*.js
+app/client/src/app/**/*.js.map
 **/package-lock.json
 
 .idea/
