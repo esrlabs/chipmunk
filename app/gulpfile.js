@@ -289,7 +289,7 @@ class BuildingTasks {
     }
 
     [TASKS.REMOVE_COMPILED_CSS_FILES](){
-        this._createSpawnTask(TASKS.REMOVE_COMPILED_CSS_FILES, 'find', ['./client/src/app', '-name', "'*.css'", '-delete'], { cwd: '.' });
+        this._createSpawnTask(TASKS.REMOVE_COMPILED_CSS_FILES, 'find', ['./client/src/app', '-name', '\*.css', '-delete'], { cwd: '.' });
     }
 
     [TASKS.REMOVE_MODULES_CLIENT](){
