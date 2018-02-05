@@ -1,9 +1,19 @@
 <div class="marker-colors">
     <div class="marker-colors-foreground">
-        <colors-canvas-dialog [callback]="onForegroundColorSelected"></colors-canvas-dialog>
+        <div class="simple">
+            <colors-predefined-dialog [callback]="onForegroundColorSelected"></colors-predefined-dialog>
+        </div>
+        <div class="full">
+            <colors-canvas-dialog [callback]="onForegroundColorSelected"></colors-canvas-dialog>
+        </div>
     </div>
     <div class="marker-colors-background">
-        <colors-canvas-dialog [callback]="onBackgroundColorSelected"></colors-canvas-dialog>
+        <div class="simple">
+            <colors-predefined-dialog [callback]="onBackgroundColorSelected"></colors-predefined-dialog>
+        </div>
+        <div class="full">
+            <colors-canvas-dialog [callback]="onBackgroundColorSelected"></colors-canvas-dialog>
+        </div>
     </div>
 </div>
 
