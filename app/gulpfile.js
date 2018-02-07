@@ -36,25 +36,34 @@ const PLATFORMS = {
     WIN32     : 'win32'
 };
 
+const GIT_TOKEN = "a6e41d8cb7e4102cff0763c8ce5adef521098c5c";
+
 const CONFIGURATION = {
     COMMON              : {
         appId           : 'com.logviewer.de',
         productName     : 'LogViewer',
-        copyright       : 'Copyright © 2017 year E.S.R.Labs',
+        copyright       : 'Copyright © 2018 year E.S.R.Labs',
         directories     :{
             output  : 'dist'
         },
         publish: [{
             provider        : "github",
             owner           : "esrlabs",
-            repo            : "logviewer"
+            repo            : "logviewer",
+            private         : true,
+            token           : GIT_TOKEN
         }],
         npmRebuild      : true
     },
     [PLATFORMS.DARWIN]  : {
         mac: {
             category: "public.app-category.developer-tools",
-            icon: './build/mac/icon.icns'
+            icon: './build/mac/icon.icns',
+            target: [
+                {
+                    "target": "dmg"
+                }
+            ]
         }
     },
     [PLATFORMS.LINUX] : {
@@ -125,7 +134,7 @@ class BuildingTasks {
         this._validateSettings();
         this._detectNPM();
         process.env.FORCE_COLOR = true;
-        process.env.GH_TOKEN    = "a6e41d8cb7e4102cff0763c8ce5adef521098c5c";
+        process.env.GH_TOKEN    = GIT_TOKEN;
     }
 
     _parseCommandKeys() {
