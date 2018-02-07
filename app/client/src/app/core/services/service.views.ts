@@ -359,54 +359,7 @@ class Calculator{
 @Injectable()
 
 export class ServiceViews{
-    /*
-     public data: Array<any> = [
-     {
-     id          : 'view_1',
-     GUID        : GUID.generate(),
-     name        : 'View #1',
-     description : 'List of logs records',
-     weight      : 0.5,
-     vertical    : false,
-     horizontal  : true,
-     favorites   : [],
-     menu        : [
-     //{ icon : 'fa-angle-double-left'},
-     //{ icon : 'fa-angle-double-right'},
-     ],
-     controller  : 'ViewControllerList',
-     size        : {
-     width   : '100%',
-     height  : '50%'
-     },
-     position    : {
-     top     : 0,
-     left    : 0
-     }
-     },
-     {
-     id          : 'view_2',
-     GUID        : GUID.generate(),
-     name        : 'View #2',
-     description : 'Events tracker',
-     weight      : 0.5,
-     vertical    : false,
-     horizontal  : true,
-     favorites   : [],
-     menu        : [
-     ],
-     controller  : 'ViewControllerChart',
-     size        : {
-     width   : '100%',
-     height  : '50%'
-     },
-     position    : {
-     top     : '50%',
-     left    : 0
-     }
-     },
-     ];
-     */
+
     private loader      : DefaultsLoader    = new DefaultsLoader();
     private calculator  : Calculator        = new Calculator();
     private defaults    : Array<any>        = null;
