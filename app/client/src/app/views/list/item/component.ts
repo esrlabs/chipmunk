@@ -123,15 +123,26 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
                     if (this.regsCache[marker.value] !== null){
                         matches = this.html.match(this.regsCache[marker.value]);
                         if (matches instanceof Array && matches.length > 0){
-                            this.html = this.html.replace(this.regsCache[marker.value], mark);
-                            markersMatches.push({
-                                mark    : mark,
-                                matches : matches,
-                                bg      : this.markerSelectMode === MARKERS_SELECTION_MODE.LINES ? 'rgba(250,0,0,1)' : marker.backgroundColor,
-                                fg      : this.markerSelectMode === MARKERS_SELECTION_MODE.LINES ?  'rgba(250,250,250,1)' : marker.foregroundColor,
-                                _bg     : marker.backgroundColor,
-                                _fg     : marker.foregroundColor
-                            });
+                            if (this.markerSelectMode !== MARKERS_SELECTION_MODE.LINES) {
+                                this.html = this.html.replace(this.regsCache[marker.value], mark);
+                                markersMatches.push({
+                                    mark    : mark,
+                                    matches : matches,
+                                    bg      : this.markerSelectMode === MARKERS_SELECTION_MODE.LINES ? 'rgba(250,0,0,1)' : marker.backgroundColor,
+                                    fg      : this.markerSelectMode === MARKERS_SELECTION_MODE.LINES ?  'rgba(250,250,250,1)' : marker.foregroundColor,
+                                    _bg     : marker.backgroundColor,
+                                    _fg     : marker.foregroundColor
+                                });
+                            } else {
+                                markersMatches.push({
+                                    mark    : '',
+                                    matches : [],
+                                    bg      : '',
+                                    fg      : '',
+                                    _bg     : marker.backgroundColor,
+                                    _fg     : marker.foregroundColor
+                                });
+                            }
                         }
                     }
                 }
@@ -145,14 +156,15 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
         }
 
         if (markersMatches instanceof Array && markersMatches.length > 0) {
-            markersMatches.forEach((marker) => {
-                marker.matches.forEach((match)=>{
-                    this.html = this.html.replace(marker.mark, `<span class="marker" style="background-color: ${marker.bg};color:${marker.fg};">${match}</span>`)
-                });
-            });
             if (this.markerSelectMode === MARKERS_SELECTION_MODE.LINES) {
                 this._highlight.backgroundColor = markersMatches[0]._bg;
                 this._highlight.foregroundColor = markersMatches[0]._fg;
+            } else {
+                markersMatches.forEach((marker) => {
+                    marker.matches.forEach((match)=>{
+                        this.html = this.html.replace(marker.mark, `<span class="marker" style="background-color: ${marker.bg};color:${marker.fg};">${match}</span>`)
+                    });
+                });
             }
         }
 
