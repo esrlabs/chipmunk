@@ -14,7 +14,7 @@
       { "icon": "fa-floppy-o",          "event" : "LIST_VIEW_EXPORT_TO_FILE",         "hint": "export data to file"                             }
     ],
     "hide"        : [
-      "SILENCE", "DEAFNESS", "FILTER"
+      "SILENCE", "DEAFNESS", "FILTER", "CLOSE"
     ],
     "controller"  : "ViewControllerList"
   },

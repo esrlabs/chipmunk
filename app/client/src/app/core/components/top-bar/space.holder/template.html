@@ -1,7 +1,3 @@
-<div class="space-holder">
-    <div class="shortcuts-holder">
-        <ul class="shortcuts">
-            <li class="icon icon-3x3" *ngFor="let shortcut of shortcuts"><span class="fa {{shortcut.icon}}" title="{{shortcut.caption}}" (click)="shortcut.handle($event)"></span></li>
-        </ul>
-    </div>
-</div>
+<ul class="shortcuts">
+    <li class="icon icon-2-5x2-5" *ngFor="let shortcut of shortcuts"><span class="fa {{shortcut.icon}}" title="{{shortcut.caption}}" (click)="shortcut.handle($event)"></span></li>
+</ul>
