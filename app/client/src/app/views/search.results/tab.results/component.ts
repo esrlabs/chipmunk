@@ -483,7 +483,14 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         let map     = {},
             i       = 0,
             result  = [],
-            measure = Logs.measure('[search.results/tab.results][getRowsByRequestsActive]');
+            measure = Logs.measure('[search.results/tab.results][getRowsByRequestsActive]'),
+            match   : {
+                match: string,
+                isReg: boolean
+            } = {
+                match:'',
+                isReg: false
+            };
         if (requests.length > 0){
             if (!adding) {
                 requests.forEach((request: Request) => {
@@ -502,6 +509,8 @@ export class TabControllerSearchResults extends TabController implements ViewInt
                             row.requests[request.GUID] && (filtered = true);
                             row.requests[request.GUID] && (highlight.foregroundColor = request.foregroundColor);
                             row.requests[request.GUID] && (highlight.backgroundColor = request.backgroundColor);
+                            match.match = request.value;
+                            match.isReg = request.type === 'reg';
                         }
                         row.requests[request.GUID] && (request.count += 1);
                     });
@@ -509,6 +518,8 @@ export class TabControllerSearchResults extends TabController implements ViewInt
                     row.index               = index;
                     row.update !== null && row.update(row.params);
                     if (filtered){
+                        row.params.matchReg = match.isReg;
+                        row.params.match    = match.match;
                         map[index] = i;
                         i += 1;
                     }
