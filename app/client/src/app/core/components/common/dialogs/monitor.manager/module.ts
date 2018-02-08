@@ -6,8 +6,6 @@ import { DialogMonitorManagerSettingTab         } from './settings/component';
 import { DialogMonitorManagerLogsTab            } from './logs/component';
 import { Components as ComponentsCommmon        } from '../../../common/components';
 
-
-
 @NgModule({
     entryComponents : [ DialogMonitorManager, DialogMonitorManagerSettingTab, DialogMonitorManagerLogsTab ],
     imports         : [ CommonModule, ComponentsCommmon ],

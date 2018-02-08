@@ -13,6 +13,7 @@ class ConfigurationSets {
     VIEW_TRACKER        : any;
     THEMES              : any;
     MENU                : any;
+    SETTINGS            : any;
 }
 
 export { ConfigurationSets };

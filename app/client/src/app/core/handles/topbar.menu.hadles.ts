@@ -10,6 +10,7 @@ import { OpenSerialStream               } from '../handles/handle.open.serial.st
 import { OpenADBLogcatStream            } from '../handles/handle.open.adblogcat.stream';
 import { OpenTerminalStream             } from '../handles/handle.open.terminal.stream';
 import { MonitorManager                 } from '../handles/hanlde.open.monitor.manager';
+import { ApplicationSettingsManager     } from '../handles/hanlde.settings.manager';
 import { UpdateChecks                   } from '../handles/handle.update.checks';
 import { DeveloperConsole               } from '../handles/handle.developer.console';
 
@@ -132,6 +133,10 @@ class TopBarMenuHandles{
     openDevConsole(){
         let developerConsole = new DeveloperConsole();
         developerConsole.start();
+    }
+
+    openApplicationSettings(){
+        ApplicationSettingsManager.start();
     }
 
 }

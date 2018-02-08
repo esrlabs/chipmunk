@@ -15,13 +15,14 @@ import { ViewStateMonitorModule                 } from '../../../views/statemoni
 import { ViewStreamSenderModule                 } from '../../../views/streamsender/module';
 import { ViewMarkersModule                      } from '../../../views/markers/module';
 import { DialogMonitorManagerModule             } from '../../components/common/dialogs/monitor.manager/module';
+import { DialogSettingsModule                   } from '../../components/common/dialogs/app.settings/module';
 
 
 @NgModule({
     entryComponents : [  ],
     imports         : [ CommonModule, ComponentsCommmon ],
     declarations    : [ Holder, View, ViewBar, DynamicComponent ],
-    exports         : [ Holder, View, ViewBar, ViewListModule, ViewSearchResultsModule, ViewChartModule, ViewStateMonitorModule, ViewStreamSenderModule, ViewMarkersModule, DialogMonitorManagerModule ]
+    exports         : [ Holder, View, ViewBar, ViewListModule, ViewSearchResultsModule, ViewChartModule, ViewStateMonitorModule, ViewStreamSenderModule, ViewMarkersModule, DialogMonitorManagerModule, DialogSettingsModule ]
 })
 
 export class HolderModule {
