@@ -1,5 +1,4 @@
 class ConfigurationSets {
-    SYSTEM              : any;
     SYSTEM_EVENTS       : any;
     CORE_TOP_BAR        : any;
     EVENTS_TOOLBAR      : any;
