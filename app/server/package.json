@@ -9,7 +9,7 @@
   "author": "Dmitry Astafyev (E.S.R.Labs)",
   "license": "ISC",
   "dependencies": {
-    "serialport": "latest",
+    "serialport": "6.0.4",
     "uuid": "latest",
     "websocket": "latest"
   }

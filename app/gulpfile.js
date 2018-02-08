@@ -81,8 +81,8 @@ const CONFIGURATION = {
 
 const PLATFORMS_DEPS = {
     COMMON              : {
-        "electron"          : "latest",
-        "electron-builder"  : "latest"
+        "electron"          : "1.6.16",
+        "electron-builder"  : "19.53.5"
     },
     [PLATFORMS.DARWIN]  : {
     },
