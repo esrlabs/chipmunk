@@ -682,6 +682,10 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         }
     }
 
+    resetBookmarks(){
+        this.bookmarks = [];
+    }
+
     onOwnSelected(index : number){
         this.select(index, true);
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.ROW_IS_SELECTED, index);
@@ -918,6 +922,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
     }
 
     onDATA_IS_UPDATED(event : EVENT_DATA_IS_UPDATED){
+        this.resetBookmarks();
         this.refreshScrollState();
     }
 
