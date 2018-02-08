@@ -389,6 +389,14 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         this.updateRows();
     }
 
+    resetBookmarks(){
+        this.bookmarks.splice(0).forEach((index: number) => {
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED, index);
+        });
+        Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_BAR_DISABLE_BUTTON, this.viewParams.GUID, 'LIST_VIEW_ONLY_BOOKMARKS_TRIGGER');
+        this.bookmarks = [];
+    }
+
     serializeHTML(html: string){
         return html.replace(/</gi, '&lt').replace(/>/gi, '&gt');
     }
@@ -746,6 +754,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     onDATA_IS_UPDATED(event : EVENT_DATA_IS_UPDATED){
         if (event.rows instanceof Array){
             let measure = Logs.measure('[view.list][onDATA_IS_UPDATED]');
+            this.resetBookmarks();
             this.initRows(event.rows);
             this.updateRows();
             this.removeClearButton();
