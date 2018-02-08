@@ -1,4 +1,5 @@
 {
+  "version": "08.02.2018",
   "visual": {
     "prevent_ascii_colors_always": false,
     "prevent_ascii_colors_on_highlight": true

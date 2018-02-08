@@ -19,6 +19,7 @@ import { locale             } from './modules/tools.localization';
 import { Logs               } from './modules/tools.logs';
 import { events             } from './modules/controller.events';
 import { dataController     } from './modules/controller.data';
+import { versionController  } from './modules/controller.version';
 
 /*
 * @description Section #2: name (aliases) of tasks
@@ -27,6 +28,7 @@ const TASKS = {
     LOGS    : Symbol(),
     LOCALE  : Symbol(),
     CONFIG  : Symbol(),
+    VERSION : Symbol(),
     EVENTS  : Symbol(),
     DATA    : Symbol()
 };
@@ -38,6 +40,7 @@ const RUNNERS = {
     [TASKS.LOGS]    : Logs,
     [TASKS.LOCALE]  : locale,
     [TASKS.CONFIG]  : configuration,
+    [TASKS.VERSION] : versionController,
     [TASKS.EVENTS]  : events,
     [TASKS.DATA]    : dataController
 };
@@ -47,7 +50,9 @@ const RUNNERS = {
 * */
 const ORDERING = [
     [TASKS.LOGS],
-    [TASKS.CONFIG, TASKS.LOCALE],
+    [TASKS.CONFIG],
+    [TASKS.VERSION],
+    [TASKS.LOCALE],
     [TASKS.EVENTS],
     [TASKS.DATA]
 ];
