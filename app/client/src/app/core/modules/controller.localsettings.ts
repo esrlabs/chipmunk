@@ -1,5 +1,5 @@
-import { Logs, TYPES as LogTypes    } from './tools.logs.js';
-import { merge                      } from './tools.objects.merge.js';
+import { Logs, TYPES as LogTypes        } from './tools.logs.js';
+import { merge                          } from './tools.objects.merge.js';
 
 const SETTINGS = {
     KEY : 'logviewer.localstare'

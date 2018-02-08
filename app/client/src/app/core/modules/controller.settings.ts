@@ -17,8 +17,9 @@ interface IServerSetting {
 }
 
 interface ISettings {
-    visual: IVisualSettings,
-    server: IServerSetting
+    version : string,
+    visual  : IVisualSettings,
+    server  : IServerSetting
 }
 
 class ControllerSettings{
