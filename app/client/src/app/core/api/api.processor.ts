@@ -5,37 +5,24 @@ import { events as Events                       } from '../modules/controller.ev
 import { configuration as Configuration         } from '../modules/controller.config';
 import { Logs, TYPES                            } from '../modules/tools.logs';
 import { APIResponse                            } from './api.response.interface';
-import { localSettings, KEYs                    } from '../modules/controller.localsettings';
-import { SET_KEYS                               } from '../interfaces/interface.configuration.sets.system';
+import { settings, IServerSetting               } from '../modules/controller.settings';
 
 class SettingsLoader{
     load(){
-        let local = localSettings.get();
-        if (local[KEYs.api] !== null){
-            return local[KEYs.api];
-        } else {
-            let settings = {};
-            Object.keys(SET_KEYS).forEach((key)=>{
-                settings[SET_KEYS[key]] =  Configuration.sets.SYSTEM[SET_KEYS[key]];
-            });
-            localSettings.set( {
-                [KEYs.api] : settings
-            });
-            return settings;
-        }
+        const _settings = settings.get();
+        return _settings.server;
     }
-    save(settings: any){
-        localSettings.set( {
-            [KEYs.api] : settings
-        });
+    save(serverSettings: IServerSetting){
+        let _settings = settings.get();
+        _settings.server = serverSettings;
+        settings.set(_settings);
     }
 }
-
 
 class APIProcessor{
     private GUID        : string = null;
     private loader      : SettingsLoader;
-    private settings    : any;
+    private settings    : IServerSetting = null;
 
     constructor(){
     }
@@ -51,9 +38,6 @@ class APIProcessor{
     onWS_SETTINGS_CHANGED(settings: any){
         let isValid = true;
         if (typeof settings === 'object' && settings !== void 0) {
-            Object.keys(SET_KEYS).forEach((key)=>{
-                settings[key] === void 0 && (isValid = false);
-            });
             if (isValid){
                 this.loader.save(settings);
                 this.settings = this.loader.load();
@@ -85,7 +69,7 @@ class APIProcessor{
         if (this.GUID !== null){
             if (isAPICommandValid(command)){
                 let request = new Request({
-                    url         : this.settings[SET_KEYS.API_URL],
+                    url         : this.settings.API_URL,
                     method      : new Method(DIRECTIONS.POST),
                     validator   : this.validator,
                     post        : {
