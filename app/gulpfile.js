@@ -169,6 +169,8 @@ class BuildingTasks {
     _isPlatformAvailable(){
         if (PLATFORMS_DEPS[process.platform] === void 0 || CONFIGURATION[process.platform] === void 0){
             throw new Error(`Cannot find devDependencies or build configuration for current platform: ${process.platform}`);
+        } else {
+            console.log(`Current platform is: ${process.platform}.`);
         }
     }
 
