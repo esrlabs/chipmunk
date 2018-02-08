@@ -5,19 +5,19 @@
         </tr>
         <tr>
             <td><span>API Service</span> Define address of API service.</td>
-            <td><div class="input-cover"><common-input  #_serverAPI [type]="'text'" [value]="serverAPI"></common-input></div></td>
+            <td><div class="input-cover"><common-input  #_API_URL [type]="'text'" [value]="server.API_URL"></common-input></div></td>
         </tr>
         <tr>
             <td><span>Run-time service.</span> Define address of run-time service (web socket server).</td>
-            <td><div class="input-cover"><common-input  #_serverWS [type]="'text'" [value]="serverWS"></common-input></div></td>
+            <td><div class="input-cover"><common-input  #_WS_URL [type]="'text'" [value]="server.WS_URL"></common-input></div></td>
         </tr>
         <tr>
             <td><span>WS Protocol.</span> Define protocol of web socket service. In most cases better to leave default value.</td>
-            <td><div class="input-cover"><common-input  #_serverWSProtocol [type]="'text'" [value]="serverWSProtocol"></common-input></div></td>
+            <td><div class="input-cover"><common-input  #_WS_PROTOCOL [type]="'text'" [value]="server.WS_PROTOCOL"></common-input></div></td>
         </tr>
         <tr>
             <td><span>Reconnection timeout.</span> Define reconnection timeout for web socket service.</td>
-            <td><div class="input-cover"><common-input  #_serverWSTimeout [type]="'number'" [value]="serverWSTimeout"></common-input></div></td>
+            <td><div class="input-cover"><common-input  #_WS_RECONNECTION_TIMEOUT [type]="'number'" [value]="server.WS_RECONNECTION_TIMEOUT"></common-input></div></td>
         </tr>
         <tr>
             <td><span>Current state.</span> Current connection state.</td>

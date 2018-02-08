@@ -2,8 +2,10 @@ import { Component, Input, AfterContentInit, OnInit, EventEmitter, ComponentFact
 
 import { Tab                            } from '../../tabs/interface.tab';
 import { DialogVisualSettingTab         } from './visual/component';
-import { settings, Visual               } from '../../../../modules/controller.settings';
-import set = Reflect.set;
+import { DialogAPISettings              } from '../api.settings/component';
+import {IServerSetting, settings} from '../../../../modules/controller.settings';
+import {configuration as Configuration} from "../../../../modules/controller.config";
+import {events as Events} from "../../../../modules/controller.events";
 
 interface Register {
     getData: Function,
@@ -35,25 +37,48 @@ export class DialogSettingsManager implements OnInit{
     }
 
     initTabs(){
-        let emitterResultsSelect    = new EventEmitter<any>(),
-            emitterResultsDeselect  = new EventEmitter<any>(),
-            emitterResultsResize    = new EventEmitter<any>();
+        let emitterVisualSelect    = new EventEmitter<any>(),
+            emitterVisualDeselect  = new EventEmitter<any>(),
+            emitterVisualResize    = new EventEmitter<any>();
+        let emitterServerSelect    = new EventEmitter<any>(),
+            emitterServerDeselect  = new EventEmitter<any>(),
+            emitterServerResize    = new EventEmitter<any>();
         this.tabs.push({
             id          : Symbol(),
             label       : 'Settings',
-            onSelect    : emitterResultsSelect,
-            onDeselect  : emitterResultsDeselect,
-            onResize    : emitterResultsResize,
+            onSelect    : emitterVisualSelect,
+            onDeselect  : emitterVisualDeselect,
+            onResize    : emitterVisualResize,
             factory     : this.componentFactoryResolver.resolveComponentFactory(DialogVisualSettingTab),
             params      : {
                 visual      : this.getSettings('visual'),
                 register    : this.onRegister.bind(this),
-                onSelect    : emitterResultsSelect,
-                onDeselect  : emitterResultsDeselect,
-                onResize    : emitterResultsResize
+                onSelect    : emitterVisualSelect,
+                onDeselect  : emitterVisualDeselect,
+                onResize    : emitterVisualResize,
             },
             update      : null,
             active      : true
+        });
+        this.tabs.push({
+            id          : Symbol(),
+            label       : 'API & Service',
+            onSelect    : emitterServerSelect,
+            onDeselect  : emitterServerDeselect,
+            onResize    : emitterServerResize,
+            factory     : this.componentFactoryResolver.resolveComponentFactory(DialogAPISettings),
+            params      : {
+                server      : this.getSettings('server'),
+                register    : this.onRegister.bind(this),
+                onSelect    : emitterServerSelect,
+                onDeselect  : emitterServerDeselect,
+                onResize    : emitterServerResize,
+                proceed     : function (serverSettings : IServerSetting) {
+                    Events.trigger(Configuration.sets.SYSTEM_EVENTS.WS_SETTINGS_CHANGED, serverSettings);
+                }.bind(this),
+            },
+            update      : null,
+            active      : false
         });
     }
 

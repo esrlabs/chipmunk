@@ -4,7 +4,7 @@ import {
 } from '@angular/core';
 import { SimpleCheckbox     } from '../../../checkboxes/simple/component';
 import { TabController      } from '../../../../common/tabs/tab/class.tab.controller';
-import { Visual             } from '../../../../../modules/controller.settings';
+import { IVisualSettings    } from '../../../../../modules/controller.settings';
 
 
 @Component({
@@ -14,14 +14,14 @@ import { Visual             } from '../../../../../modules/controller.settings';
 
 export class DialogVisualSettingTab extends TabController implements OnDestroy, AfterContentInit, OnInit{
 
-    @Input() visual     : Visual = {
+    @Input() visual     : IVisualSettings = {
         prevent_ascii_colors_always         : false,
         prevent_ascii_colors_on_highlight   : true
     };
 
     @Input() register   : Function = null;
 
-    @Output() getData() : Visual {
+    @Output() getData() : IVisualSettings {
         return {
             prevent_ascii_colors_always         : this._prevent_ascii_colors_always.getValue(),
             prevent_ascii_colors_on_highlight   : this._prevent_ascii_colors_on_highlight.getValue()
