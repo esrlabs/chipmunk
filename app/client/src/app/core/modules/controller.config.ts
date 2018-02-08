@@ -7,7 +7,8 @@ import { ConfigurationSets          } from '../interfaces/interface.configuratio
 
 const ALIASES = {
     SETS        : 'SETS',
-    ORDERING    : 'ORDERING'
+    ORDERING    : 'ORDERING',
+    NO_CACHE    : 'NO_CACHE'
 };
 
 const SETTINGS = {
@@ -28,7 +29,7 @@ class ConfigurationController implements InitiableModule{
     public init(callback : Function = null){
         Logs.msg('[controller.config] Start loading configuration.', LogTypes.LOADING);
         (new Request({
-            url         : SETTINGS.PATH + SETTINGS.REGISTER,
+            url         : SETTINGS.PATH + SETTINGS.REGISTER + this.getStampForURL(),
             method      : new Method(DIRECTIONS.GET),
             validator   : this.validator
         })).then((response : Object)=>{
@@ -49,6 +50,10 @@ class ConfigurationController implements InitiableModule{
             throw new Error('Can not load register of configuration. Error: ' + message);
         });
         this.callback = typeof callback === 'function' ? callback : function () {};
+    }
+
+    private getStampForURL(){
+        return '?stamp=' + (new Date()).getTime();
     }
 
     private parser(response : any){
@@ -77,7 +82,7 @@ class ConfigurationController implements InitiableModule{
     private getPromise(source : string){
         return new Promise((resolve, reject) => {
             let request = new Request({
-                url         : SETTINGS.PATH + this.register[ALIASES.SETS][source],
+                url         : SETTINGS.PATH + this.register[ALIASES.SETS][source] + (~this.register[ALIASES.NO_CACHE].indexOf(source) ? this.getStampForURL() : ''),
                 method      : new Method(DIRECTIONS.GET),
                 validator   : this.validator,
                 parser      : this.parser

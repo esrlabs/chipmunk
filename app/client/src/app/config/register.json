@@ -15,6 +15,7 @@
     "MENU"              : "menu.json",
     "SETTINGS"          : "settings.json"
   },
+  "NO_CACHE" : ["SETTINGS"],
   "ORDERING" : [
     ["SYSTEM_EVENTS", "EVENTS_TOOLBAR", "VIEWS", "VIEWS_DEFAULTS", "EVENTS_SHORTCUTS", "EVENTS_VIEWS", "LOGS", "KEYS_SHORTCUTS", "VIEW_TRACKER", "THEMES", "MENU", "SETTINGS"],
     "CORE_TOP_BAR",
