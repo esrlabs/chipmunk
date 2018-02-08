@@ -4,7 +4,9 @@ import {DomSanitizer, SafeHtml} from '@angular/platform-browser';
 import { ListItemInterface                          } from './interface';
 import { events as Events                           } from '../../../core/modules/controller.events';
 import { configuration as Configuration             } from '../../../core/modules/controller.config';
+import { settings as Settings                       } from '../../../core/modules/controller.settings';
 import { ANSIReader                                 } from '../../../core/modules/tools.ansireader';
+import { ANSIClearer                                } from '../../../core/modules/tools.ansiclear';
 import { serializeHTML, parseHTML                   } from '../../../core/modules/tools.htmlserialize';
 import { serializeStringForReg, safelyCreateRegExp  } from '../../../core/modules/tools.regexp';
 
@@ -90,6 +92,7 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     }
 
     getHTML(){
+        const settings      = Settings.get();
         let matchMatches    = null;
         let markersMatches  : Array<{ mark: string, matches: Array<string>, bg: string, fg: string, _bg: string, _fg: string}> = [];
         this._highlight.backgroundColor = this.highlight.backgroundColor;
@@ -123,15 +126,26 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
                     if (this.regsCache[marker.value] !== null){
                         matches = this.html.match(this.regsCache[marker.value]);
                         if (matches instanceof Array && matches.length > 0){
-                            this.html = this.html.replace(this.regsCache[marker.value], mark);
-                            markersMatches.push({
-                                mark    : mark,
-                                matches : matches,
-                                bg      : this.markerSelectMode === MARKERS_SELECTION_MODE.LINES ? 'rgba(250,0,0,1)' : marker.backgroundColor,
-                                fg      : this.markerSelectMode === MARKERS_SELECTION_MODE.LINES ?  'rgba(250,250,250,1)' : marker.foregroundColor,
-                                _bg     : marker.backgroundColor,
-                                _fg     : marker.foregroundColor
-                            });
+                            if (this.markerSelectMode !== MARKERS_SELECTION_MODE.LINES) {
+                                this.html = this.html.replace(this.regsCache[marker.value], mark);
+                                markersMatches.push({
+                                    mark    : mark,
+                                    matches : matches,
+                                    bg      : this.markerSelectMode === MARKERS_SELECTION_MODE.LINES ? 'rgba(250,0,0,1)' : marker.backgroundColor,
+                                    fg      : this.markerSelectMode === MARKERS_SELECTION_MODE.LINES ?  'rgba(250,250,250,1)' : marker.foregroundColor,
+                                    _bg     : marker.backgroundColor,
+                                    _fg     : marker.foregroundColor
+                                });
+                            } else {
+                                markersMatches.push({
+                                    mark    : '',
+                                    matches : [],
+                                    bg      : '',
+                                    fg      : '',
+                                    _bg     : marker.backgroundColor,
+                                    _fg     : marker.foregroundColor
+                                });
+                            }
                         }
                     }
                 }
@@ -145,18 +159,26 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
         }
 
         if (markersMatches instanceof Array && markersMatches.length > 0) {
-            markersMatches.forEach((marker) => {
-                marker.matches.forEach((match)=>{
-                    this.html = this.html.replace(marker.mark, `<span class="marker" style="background-color: ${marker.bg};color:${marker.fg};">${match}</span>`)
-                });
-            });
             if (this.markerSelectMode === MARKERS_SELECTION_MODE.LINES) {
                 this._highlight.backgroundColor = markersMatches[0]._bg;
                 this._highlight.foregroundColor = markersMatches[0]._fg;
+            } else {
+                markersMatches.forEach((marker) => {
+                    marker.matches.forEach((match)=>{
+                        this.html = this.html.replace(marker.mark, `<span class="marker" style="background-color: ${marker.bg};color:${marker.fg};">${match}</span>`)
+                    });
+                });
             }
         }
 
-        this.html = ANSIReader(this.html);
+        if (settings.visual.prevent_ascii_colors_always){
+            this.html = ANSIClearer(this.html);
+        } else if (settings.visual.prevent_ascii_colors_on_highlight &&
+            ((markersMatches instanceof Array && markersMatches.length > 0) || (matchMatches instanceof Array && matchMatches.length > 0))) {
+            this.html = ANSIClearer(this.html);
+        } else {
+            this.html = ANSIReader(this.html);
+        }
         this.html = parseHTML(this.html);
     }
 

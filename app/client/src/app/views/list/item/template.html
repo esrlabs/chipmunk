@@ -1,7 +1,7 @@
 <p *ngIf="_highlight.foregroundColor === '' && _highlight.backgroundColor === ''"
    (click)="onSelect($event)"
    [attr.class]="(selection ? 'selected' : '') + ' ' + (bookmarked ? 'bookmarked' : '') + ' ' + (filtered ? 'filtered' : '')">
-    <span (click)="onFavorite($event)" [attr.class]="'font-system number noselect' + (!visibility ? ' hide' : '')">{{__index}}</span>
+    <span (click)="onFavorite($event)" [attr.class]="'font-system number noselect' + (!visibility ? ' hide' : '')">{{(visibility ? __index : '')}}</span>
     <span class="item font-system" [innerHTML]="safeHTML"></span>
 </p>
 <p *ngIf="_highlight.foregroundColor !== '' || _highlight.backgroundColor !== ''"
@@ -9,7 +9,7 @@
    [style.color]="_highlight.foregroundColor"
    [style.background]="_highlight.backgroundColor"
    [attr.class]="(selection ? 'selected' : '') + ' ' + (bookmarked ? 'bookmarked' : '') + ' ' + (filtered ? 'filtered' : '')">
-    <span (click)="onFavorite($event)" [attr.class]="'font-system number noselect' + (!visibility ? ' hide' : '')">{{__index}}</span>
+    <span (click)="onFavorite($event)" [attr.class]="'font-system number noselect' + (!visibility ? ' hide' : '')">{{(visibility ? __index : '')}}</span>
     <span class="item font-system"
           [style.color]="_highlight.foregroundColor"
           [style.background]="_highlight.backgroundColor"

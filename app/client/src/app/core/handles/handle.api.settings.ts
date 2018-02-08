@@ -1,12 +1,20 @@
-import { MenuHandleInterface            } from './handle.interface';
 import { popupController                } from '../components/common/popup/controller';
-import { ProgressBarCircle              } from '../components/common/progressbar.circle/component';
 import { DialogAPISettings              } from '../components/common/dialogs/api.settings/component';
-import { SettingsLoader                 } from '../ws/ws.connector';
-import { SET_KEYS                       } from '../interfaces/interface.configuration.sets.system';
-
 import { events as Events               } from '../modules/controller.events';
 import { configuration as Configuration } from '../modules/controller.config';
+import { IServerSetting, settings       } from "../modules/controller.settings";
+
+class SettingsLoader{
+    load(){
+        const _settings = settings.get();
+        return _settings.server;
+    }
+    save(serverSettings: IServerSetting){
+        let _settings = settings.get();
+        _settings.server = serverSettings;
+        settings.set(_settings);
+    }
+}
 
 class APISettings{
 
@@ -24,14 +32,11 @@ class APISettings{
                 factory     : null,
                 component   : DialogAPISettings,
                 params      : {
-                    serverAPI           : this.settings[SET_KEYS.API_URL],
-                    serverWS            : this.settings[SET_KEYS.WS_URL],
-                    serverWSProtocol    : this.settings[SET_KEYS.WS_PROTOCOL],
-                    serverWSTimeout     : this.settings[SET_KEYS.WS_RECONNECTION_TIMEOUT],
-                    proceed             : function (params : any) {
-                        Events.trigger(Configuration.sets.SYSTEM_EVENTS.WS_SETTINGS_CHANGED, params)
+                    server          : this.settings,
+                    proceed         : function (serverSettings : IServerSetting) {
+                        Events.trigger(Configuration.sets.SYSTEM_EVENTS.WS_SETTINGS_CHANGED, serverSettings);
                     }.bind(this),
-                    cancel              : ()=>{},
+                    cancel          : ()=>{},
                 }
             },
             title   : _('Connection to remote service'),

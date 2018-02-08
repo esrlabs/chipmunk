@@ -12,7 +12,8 @@
     { "type" : "line" },
     { "icon" : "fa-cloud",        "caption" : "Connect to service",         "handler": "connectionSettings",            "type": "item" },
     { "type" : "line" },
-    { "icon" : "fa-paint-brush",  "caption" : "Change color theme",         "handler": "changeThemeSettings",           "type": "item" }
+    { "icon" : "fa-paint-brush",  "caption" : "Change color theme",         "handler": "changeThemeSettings",           "type": "item" },
+    { "icon" : "fa-gear",         "caption" : "Settings",                   "handler": "openApplicationSettings",       "type": "item" }
   ],
   "desktop": [
     {
@@ -54,8 +55,9 @@
     {
       "group": "View",
       "items": [
-        { "icon" : "fa-desktop",      "caption" : "Add view",                   "handler": "addView",              "type": "item", "accelerator": "" },
-        { "icon" : "fa-paint-brush",  "caption" : "Change color theme",         "handler": "changeThemeSettings",  "type": "item", "accelerator": "" }
+        { "icon" : "fa-desktop",      "caption" : "Add view",                   "handler": "addView",                 "type": "item", "accelerator": "" },
+        { "icon" : "fa-paint-brush",  "caption" : "Change color theme",         "handler": "changeThemeSettings",     "type": "item", "accelerator": "" },
+        { "icon" : "fa-gear",         "caption" : "Settings",                   "handler": "openApplicationSettings", "type": "item", "accelerator": "" }
       ]
     },
     {
