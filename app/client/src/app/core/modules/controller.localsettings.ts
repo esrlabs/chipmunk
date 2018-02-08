@@ -16,7 +16,8 @@ const KEYs = {
     view_charts         : 'view_charts',
     serial_ports        : 'serial_ports',
     themes              : 'themes',
-    adblogccat_stream   : 'adblogccat_stream'
+    adblogccat_stream   : 'adblogccat_stream',
+    settings            : 'settings'
 };
 
 class ControllerLocalSettings{
