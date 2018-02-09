@@ -8,7 +8,6 @@ const SETTINGS = {
 const KEYs = {
     views               : 'views',
     shortcuts           : 'shortcuts',
-    api                 : 'api',
     view_serialsender   : 'view_serialsender',
     view_markers        : 'view_markers',
     view_statemonitor   : 'view_statemonitor',
