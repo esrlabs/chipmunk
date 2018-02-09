@@ -1,11 +1,10 @@
 /*global _*/
 import { Component, ChangeDetectorRef, AfterContentInit, ViewChild, ViewContainerRef } from '@angular/core';
-import { events as Events               } from '../../../modules/controller.events';
-import { configuration as Configuration } from '../../../modules/controller.config';
-import { MODES                          } from '../../../modules/controller.data.search.modes';
-import { DataFilter                     } from '../../../interfaces/interface.data.filter';
-import { CommonInput                    } from '../../common/input/component';
-import {dataController} from "../../../modules/controller.data";
+import { events as Events               } from '../../../core/modules/controller.events';
+import { configuration as Configuration } from '../../../core/modules/controller.config';
+import { MODES                          } from '../../../core/modules/controller.data.search.modes';
+import { DataFilter                     } from '../../../core/interfaces/interface.data.filter';
+import { CommonInput                    } from '../../../core/components/common/input/component';
 
 const SETTINGS = {
     TYPING_DELAY : 300 //ms

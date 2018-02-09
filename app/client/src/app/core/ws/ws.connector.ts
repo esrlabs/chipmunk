@@ -2,11 +2,10 @@ import { events as Events               } from '../modules/controller.events';
 import { configuration as Configuration } from '../modules/controller.config';
 import { GUID as GUIDGenerator          } from '../modules/tools.guid';
 import { Logs, TYPES                    } from '../modules/tools.logs';
-import { localSettings, KEYs            } from '../modules/controller.localsettings';
 import { WSClientProcessor              } from '../ws/ws.processor';
 import { WSCommandMessage               } from '../ws/ws.message.interface';
 import { COMMANDS                       } from '../ws/ws.commands';
-import { SET_KEYS                       } from '../interfaces/interface.configuration.sets.system';
+import { IServerSetting, settings       } from "../modules/controller.settings";
 
 
 const WS_EVENTS = {
@@ -22,24 +21,13 @@ interface WebSocketMessageEvent {
 
 class SettingsLoader{
     load(){
-        let local = localSettings.get();
-        if (local[KEYs.api] !== null){
-            return local[KEYs.api];
-        } else {
-            let settings = {};
-            Object.keys(SET_KEYS).forEach((key)=>{
-               settings[SET_KEYS[key]] =  Configuration.sets.SYSTEM[SET_KEYS[key]];
-            });
-            localSettings.set( {
-                [KEYs.api] : settings
-            });
-            return settings;
-        }
+        const _settings = settings.get();
+        return _settings.server;
     }
-    save(settings: any){
-        localSettings.set( {
-            [KEYs.api] : settings
-        });
+    save(serverSettings: IServerSetting){
+        let _settings = settings.get();
+        _settings.server = serverSettings;
+        settings.set(_settings);
     }
 }
 
@@ -49,7 +37,7 @@ class WebSocketConnector {
     private processor   : WSClientProcessor = null;
     private SysEvents   : Array<string>     = [];
     private loader      : SettingsLoader    = new SettingsLoader();
-    private settings    : any               = {};
+    private settings    : IServerSetting    = null;
     private connected   : boolean           = false;
 
     constructor(){
@@ -69,12 +57,9 @@ class WebSocketConnector {
         typeof callback === 'function' && callback(this.connected);
     }
 
-    onWS_SETTINGS_CHANGED(settings: any){
+    onWS_SETTINGS_CHANGED(settings: IServerSetting){
         let isValid = true;
         if (typeof settings === 'object' && settings !== void 0) {
-            Object.keys(SET_KEYS).forEach((key)=>{
-                settings[key] === void 0 && (isValid = false);
-            });
             if (isValid){
                 this.loader.save(settings);
                 this.settings = this.loader.load();
@@ -107,10 +92,10 @@ class WebSocketConnector {
 
     connect(){
         if (!this.connected){
-            Logs.msg(_('Attempt to connect to WS server: ') + this.settings[SET_KEYS.WS_URL], TYPES.LOG);
+            Logs.msg(_('Attempt to connect to WS server: ') + this.settings.WS_URL, TYPES.LOG);
             this.client = new WebSocket(
-                this.settings[SET_KEYS.WS_URL],
-                this.settings[SET_KEYS.WS_PROTOCOL]
+                this.settings.WS_URL,
+                this.settings.WS_PROTOCOL
             );
             this.addOriginalListeners();
             this.bind();
@@ -154,9 +139,9 @@ class WebSocketConnector {
     }
 
     reconnection(){
-        Logs.msg(_('Attempt to reconnect will be done in ') + (this.settings[SET_KEYS.WS_RECONNECTION_TIMEOUT] / 1000) + ' sec.', TYPES.LOG);
+        Logs.msg(_('Attempt to reconnect will be done in ') + (this.settings.WS_RECONNECTION_TIMEOUT / 1000) + ' sec.', TYPES.LOG);
         this.destroy();
-        setTimeout(this.connect.bind(this), this.settings[SET_KEYS.WS_RECONNECTION_TIMEOUT]);
+        setTimeout(this.connect.bind(this), this.settings.WS_RECONNECTION_TIMEOUT);
     }
 
     [WS_EVENTS.message](event: WebSocketMessageEvent){
@@ -201,4 +186,4 @@ class WebSocketConnector {
 
 }
 
-export { WebSocketConnector, SettingsLoader, SET_KEYS};
+export { WebSocketConnector };

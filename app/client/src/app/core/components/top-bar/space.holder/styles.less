@@ -1,41 +1,41 @@
 topbar-space-holder{
-    .space-holder{
-        position    : relative;
-        display     : table;
+    position: absolute;
+    display : block;
+    top     : 2.5rem;
+    left    : 0;
+    width   : 100%;
+    height  : 100%;
+    &.desktop{
+        top:0;
+    }
+    ul.shortcuts{
+        display     : block;
+        position    : absolute;
         width       : 100%;
         height      : 100%;
-        .shortcuts-holder{
-            display         : table-cell;
-            position        : relative;
-            width           : 100%;
-            list-style      : none;
-            padding         : 0;
-            margin          : 0;
-            vertical-align  : middle;
-            .shortcuts{
-                display     : block;
-                position    : relative;
-                width       : 100%;
-                list-style  : none;
-                padding     : 0;
-                margin      : 0;
-                white-space : nowrap;
-                li{
-                    position    : relative;
-                    display     : inline-block;
-                    width       : 3rem;
-                    height      : 3rem;
-                    margin      : 0;
-                    padding     : 0;
-                    &:hover{
-                    }
-                }
+        list-style  : none;
+        padding     : 0;
+        margin      : 0;
+        li{
+            position    : relative;
+            display     : inline-block;
+            width       : 2.5rem;
+            height      : 2.5rem;
+            margin      : 0!important;
+            padding     : 0!important;
+            span.fa{
+                display : block;
+                margin  : 0;
+                position: absolute;
+                top     : 0.6rem;
+                left    : 0.7rem;
+            }
+            &:hover{
             }
         }
     }
 
     .shortcuts{
         position: relative;
-
     }
 }

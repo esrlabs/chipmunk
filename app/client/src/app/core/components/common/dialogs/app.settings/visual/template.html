@@ -1,0 +1,15 @@
+<div class="wrapper">
+    <table>
+        <tr>
+            <td class="table-title" colspan="2"><span>Highlighting and ASCII colors</span></td>
+        </tr>
+        <tr>
+            <td><span>Prevent ASCII</span> Prevent any ASCII colors from data's source</td>
+            <td><div class="input-cover"><simple-checkbox #_prevent_ascii_colors_always [checked]="visual.prevent_ascii_colors_always"></simple-checkbox></div></td>
+        </tr>
+        <tr>
+            <td><span>Partly prevent ASCII</span> Prevent any ASCII colors from data's source only if row has some markers or matches</td>
+            <td><div class="input-cover"><simple-checkbox #_prevent_ascii_colors_on_highlight [checked]="visual.prevent_ascii_colors_on_highlight"></simple-checkbox></div></td>
+        </tr>
+    </table>
+</div>

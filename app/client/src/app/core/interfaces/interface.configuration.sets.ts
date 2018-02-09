@@ -1,5 +1,4 @@
 class ConfigurationSets {
-    SYSTEM              : any;
     SYSTEM_EVENTS       : any;
     CORE_TOP_BAR        : any;
     EVENTS_TOOLBAR      : any;
@@ -13,6 +12,7 @@ class ConfigurationSets {
     VIEW_TRACKER        : any;
     THEMES              : any;
     MENU                : any;
+    SETTINGS            : any;
 }
 
 export { ConfigurationSets };

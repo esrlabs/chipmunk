@@ -1,5 +1,5 @@
-import { Logs, TYPES as LogTypes    } from './tools.logs.js';
-import { merge                      } from './tools.objects.merge.js';
+import { Logs, TYPES as LogTypes        } from './tools.logs.js';
+import { merge                          } from './tools.objects.merge.js';
 
 const SETTINGS = {
     KEY : 'logviewer.localstare'
@@ -16,7 +16,8 @@ const KEYs = {
     view_charts         : 'view_charts',
     serial_ports        : 'serial_ports',
     themes              : 'themes',
-    adblogccat_stream   : 'adblogccat_stream'
+    adblogccat_stream   : 'adblogccat_stream',
+    settings            : 'settings'
 };
 
 class ControllerLocalSettings{
