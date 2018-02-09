@@ -1,13 +1,14 @@
-import {Component, Input, Output, ViewChild, AfterContentInit } from '@angular/core';
+import {Component, Input, Output, ViewChild, AfterContentInit, OnDestroy, OnInit } from '@angular/core';
 import { CommonInput                } from '../../input/component';
 import {IServerSetting, IVisualSettings} from '../../../../modules/controller.settings';
+import {TabController} from "../../tabs/tab/class.tab.controller";
 
 @Component({
     selector    : 'dialog-api-settings',
     templateUrl : './template.html',
 })
 
-export class DialogAPISettings implements AfterContentInit{
+export class DialogAPISettings extends TabController implements OnDestroy, AfterContentInit, OnInit{
     @Input() server             : IServerSetting    = null;
     @Input() proceed            : Function          = null;
     @Input() cancel             : Function          = null;
@@ -30,17 +31,35 @@ export class DialogAPISettings implements AfterContentInit{
     @ViewChild('_WS_RECONNECTION_TIMEOUT'   ) _WS_RECONNECTION_TIMEOUT  : CommonInput;
 
     constructor() {
+        super();
         this.onProceed = this.onProceed.bind(this);
+        this.onTabSelected              = this.onTabSelected.           bind(this);
+        this.onTabDeselected            = this.onTabDeselected.         bind(this);
+    }
+
+    onTabSelected(){
+        this.register({
+            getData: this.getData.bind(this),
+            section: 'server'
+        });
+    }
+
+    onTabDeselected(){
+
+    }
+
+    ngOnInit(){
+        this.onSelect   .subscribe(this.onTabSelected);
+        this.onDeselect .subscribe(this.onTabDeselected);
+    }
+
+    ngOnDestroy(){
+        this.onSelect.      unsubscribe();
+        this.onDeselect.    unsubscribe();
     }
 
     ngAfterContentInit(){
-        if (this.register !== null && !this.registered) {
-            this.register({
-                getData: this.getData.bind(this),
-                section: 'server'
-            });
-            this.registered = true;
-        }
+
     }
 
     onProceed(){
