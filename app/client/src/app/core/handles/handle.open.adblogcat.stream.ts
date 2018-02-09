@@ -11,6 +11,7 @@ import { APICommands                    } from '../api/api.commands';
 import { APIResponse                    } from '../api/api.response.interface';
 import { DialogADBLogcatStreamSettings  } from '../components/common/dialogs/adblogcat.settings/component';
 import { DialogMessage                  } from '../components/common/dialogs/dialog-message/component';
+import { ANSIClearer                    } from '../modules/tools.ansiclear';
 
 
 import { localSettings, KEYs            } from '../../core/modules/controller.localsettings';
@@ -374,7 +375,7 @@ class OpenADBLogcatStream implements MenuHandleInterface{
 
     outputToString(output: any){
         if (typeof output === 'string') {
-            return output;
+            return ANSIClearer(output);
         } else if (typeof output === 'number'){
             return output.toString();
         } else if (typeof output === 'object'){
