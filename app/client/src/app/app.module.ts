@@ -12,6 +12,7 @@ import { WebSocketConnector                 } from './core/ws/ws.connector';
 import { APIProcessor                       } from './core/api/api.processor';
 
 import { SerialPorts                        } from './core/services/service.serialports';
+import { ADBLogcat                          } from './core/services/service.adblogcat';
 import { controllerThemes                   } from './core/modules/controller.themes';
 
 import { ShortcutController                 } from './core/modules/controller.shortcut';
@@ -30,6 +31,7 @@ export class AppModule {
     private wsConnector         : WebSocketConnector    = null;
     private shortcutController  : ShortcutController    = new ShortcutController();
     private serialPorts         : SerialPorts           = new SerialPorts();
+    private adbLogcat           : ADBLogcat             = new ADBLogcat();
     private updater             : Updater               = new Updater();
 
     constructor(){
