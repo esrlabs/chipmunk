@@ -154,7 +154,11 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
 
         if (matchMatches instanceof Array && matchMatches.length > 0){
             matchMatches.forEach((match)=>{
-                this.html = this.html.replace(MARKERS.MATCH, '<span class="match">' + match + '</span>')
+                if (this.markerSelectMode === MARKERS_SELECTION_MODE.LINES && (this._highlight.backgroundColor !== '' || this._highlight.foregroundColor !== '') ) {
+                    this.html = this.html.replace(MARKERS.MATCH, match);
+                } else {
+                    this.html = this.html.replace(MARKERS.MATCH, `<span class="match">${match}</span>`);
+                }
             });
         }
 
@@ -162,13 +166,15 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
             if (this.markerSelectMode === MARKERS_SELECTION_MODE.LINES) {
                 this._highlight.backgroundColor = markersMatches[0]._bg;
                 this._highlight.foregroundColor = markersMatches[0]._fg;
-            } else {
-                markersMatches.forEach((marker) => {
-                    marker.matches.forEach((match)=>{
-                        this.html = this.html.replace(marker.mark, `<span class="marker" style="background-color: ${marker.bg};color:${marker.fg};">${match}</span>`)
-                    });
-                });
             }
+            markersMatches.forEach((marker) => {
+                marker.matches.forEach((match)=>{
+                    this.html = this.html.replace(marker.mark,
+                        this.markerSelectMode === MARKERS_SELECTION_MODE.LINES ?
+                            match : `<span class="marker" style="background-color: ${marker.bg};color:${marker.fg};">${match}</span>`
+                    );
+                });
+            });
         }
 
         if (settings.visual.prevent_ascii_colors_always){
