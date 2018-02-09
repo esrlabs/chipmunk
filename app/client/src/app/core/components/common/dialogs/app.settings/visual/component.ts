@@ -62,7 +62,10 @@ export class DialogVisualSettingTab extends TabController implements OnDestroy, 
     }
 
     onTabSelected(){
-
+        this.register({
+            getData: this.getData.bind(this),
+            section: 'visual'
+        });
     }
 
     onTabDeselected(){

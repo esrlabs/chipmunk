@@ -180,7 +180,12 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
         if (settings.visual.prevent_ascii_colors_always){
             this.html = ANSIClearer(this.html);
         } else if (settings.visual.prevent_ascii_colors_on_highlight &&
-            ((markersMatches instanceof Array && markersMatches.length > 0) || (matchMatches instanceof Array && matchMatches.length > 0))) {
+            (
+                (markersMatches instanceof Array && markersMatches.length > 0) ||
+                (matchMatches instanceof Array && matchMatches.length > 0) ||
+                (this._highlight.backgroundColor !== '')
+            )
+        ) {
             this.html = ANSIClearer(this.html);
         } else {
             this.html = ANSIReader(this.html);
