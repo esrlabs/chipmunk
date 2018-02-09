@@ -361,6 +361,11 @@ class Stream extends EventEmitter {
         )
             .then(() => {
                 this._bindProcess();
+            })
+            .catch((error) => {
+                return Promise.reject(
+                    new Error(`Unable to run ADB logcat within: path = ${this._settings.path}. Please be sure ADB is installed and if it's installed into custom folder, define path to it.`)
+                );
             });
     }
 
