@@ -136,7 +136,7 @@ export class LongList implements AfterViewChecked{
     checkCount(){
         if (this.rows.length !== this.state.count && this.state.count !== -1){
             let wrapper         = this.wrapper.element.nativeElement;
-            this.calculate(wrapper.scrollTop, true);
+            this.calculate(wrapper.scrollTop, true, true);
             this.state.rows.forEach((row)=>{
                 typeof row.forceUpdate === 'function' && row.forceUpdate(row.params);
             });
@@ -222,8 +222,8 @@ export class LongList implements AfterViewChecked{
         this.borders.counter        = 0;
     }
 
-    calculate(scrollTop : number, force: boolean = false){
-        if (force || (scrollTop !== this.state.scrollTop && Math.abs(scrollTop - this.state.scrollTop) >= this.row.height)){
+    calculate(scrollTop : number, force: boolean = false, noOffsetChange: boolean = false){
+        if (force || (scrollTop !== this.state.scrollTop /*&& Math.abs(scrollTop - this.state.scrollTop) >= this.row.height*/)){
             let start               = Math.floor((scrollTop - SETTINGS.SCROLL_TOP_OFFSET) / this.row.height),
                 height              = this.row.height * this.rows.length,
                 rendered            = 0,
@@ -235,12 +235,14 @@ export class LongList implements AfterViewChecked{
             this.state.distance             = Math.ceil(this.component.height / this.row.height) + this.state.buffer * 2;
             this.state.end                  = this.state.start + this.state.distance;
             this.component.filler           = (height + SETTINGS.FILLER_OFFSET)+ 'px';
-            offset                          = this.state.scrollTop - (start < this.state.buffer ? 0 : (this.state.buffer * this.row.height));
-            rendered                        = (this.state.end > this.rows.length ? this.rows.length : this.state.end) - this.state.start;
-            if (this.row.height * rendered + offset > height){
-                offset = offset - ((this.row.height * rendered + offset) - height);
+            if (!noOffsetChange){
+                offset                          = this.state.scrollTop - (start < this.state.buffer ? 0 : (this.state.buffer * this.row.height));
+                rendered                        = (this.state.end > this.rows.length ? this.rows.length : this.state.end) - this.state.start;
+                if (this.row.height * rendered + offset > height){
+                    offset = offset - ((this.row.height * rendered + offset) - height);
+                }
+                this.state.offset               = offset - SETTINGS.SCROLL_TOP_OFFSET + 'px';
             }
-            this.state.offset               = offset - SETTINGS.SCROLL_TOP_OFFSET + 'px';
             this.component.expectedHeight   = height;
         }
     }
