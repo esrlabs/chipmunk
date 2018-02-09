@@ -1,5 +1,8 @@
 {
-  "version": "08.02.2018",
+  "version": "10.02.2018",
+  "drop_rules": [
+    "api"
+  ],
   "visual": {
     "prevent_ascii_colors_always": false,
     "prevent_ascii_colors_on_highlight": true

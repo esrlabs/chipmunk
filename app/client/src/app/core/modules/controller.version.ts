@@ -1,6 +1,8 @@
 import { ISettings } from './controller.settings';
 
 const VERSION_ALIAS = 'version';
+const DROP_SETTINGS_ALIAS = 'drop_rules';
+const STORAGE_ALIAS = 'logviewer.localstare';
 
 class VersionController {
 
@@ -34,11 +36,43 @@ class VersionController {
         return this.getVersion() === settings[VERSION_ALIAS];
     }
 
+    private getCurrentStorage(){
+        if (typeof window === 'undefined') {
+            return null;
+        }
+        let result = window.localStorage.getItem(STORAGE_ALIAS);
+        if (typeof result === 'string'){
+            try {
+                result = JSON.parse(result);
+            } catch (e) {
+                result = null;
+            }
+        } else if (typeof result !== 'object'){
+            result = null;
+        }
+        return result;
+    }
+
+    private setCurrentStorage(storage: Object){
+        if (typeof window !== 'undefined'){
+            window.localStorage.setItem(STORAGE_ALIAS, JSON.stringify(storage));
+        }
+    }
+
     reset(){
         if (typeof window === 'undefined') {
             return null;
         }
-        return window.localStorage.clear();
+        let storage         = this.getCurrentStorage();
+        let dropSettings    = this.getSettings()[DROP_SETTINGS_ALIAS];
+        if (storage !== null && dropSettings instanceof Array){
+            dropSettings.forEach((section: string) => {
+                storage[section] = null;
+            });
+            this.setCurrentStorage(storage);
+            return true;
+        }
+        return false;
     }
 
     save(){
