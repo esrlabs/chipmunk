@@ -37,7 +37,7 @@ class RegExpStorage{
     private regs: {[key: string] : RegExp } = {};
 
     private prepareRegStr(reg: string){
-        return reg.replace(REGEXPS.SLASH, '\\\\');
+        return reg.replace(REGEXPS.SLASH, '\\');
     }
 
     public get(reg: string): RegExp | null {
@@ -47,8 +47,13 @@ class RegExpStorage{
         if (this.regs[reg] !== void 0) {
             return this.regs[reg];
         }
-        let regExp = new RegExp(`(${this.prepareRegStr(reg)}).*${MARKERS.NUMBER}\\d*${MARKERS.NUMBER}`, 'gi');
-        this.regs[reg] = regExp;
+        let regExp;
+        try{
+            regExp = new RegExp(`(${this.prepareRegStr(reg)}).*${MARKERS.NUMBER}\\d*${MARKERS.NUMBER}`, 'gi');
+            this.regs[reg] = regExp;
+        } catch (error) {
+            regExp = null;
+        }
         return regExp;
     }
 }
