@@ -1,35 +1,36 @@
 import { DataFilter } from '../core/interfaces/interface.data.filter.js';
 
-export const WorkerCommands = {
+export type TFilters            = { [key: string]       : DataFilter  };
+export type TRequests           = { [key: string]       : DataFilter  };
+export type TFilterHashes       = { [key: string]       : number      };
+export type TMatches            = { [position: number]  : number      };
+export type TRequestsMatches    = { [key: string]       : TMatches    };
+export type TFiltersMatches     = { [key: string]       : TMatches    };
+
+export const WORKER_COMMANDS = {
     create              : 'create',
     add                 : 'add',
-    addFilter           : 'addFilter',
-    addRequest          : 'addRequest',
-    removeFilter        : 'removeFilter',
-    updateActiveFilter  : 'updateActiveFilter',
-    updateParsers       : 'updateParsers'
+    apply               : 'apply',
+    applyTo             : 'applyTo',
+    filter              : 'filter',
+    filters             : 'filters',
+    requests            : 'requests'
 };
 
-export interface WorkerRequest {
+export interface IWorkerRequest {
+    sequenceID? : number,
     command     : string,
-    event       : string | symbol | Array<string>,
-    eventBefore?: string | symbol | Array<string>,
-    eventAfter? : string | symbol | Array<string>,
     str?        : string,
-    requests?   : Array<any>,
-    value?      : string,
-    mode?       : string,
-    GUID?       : string,
     filter?     : DataFilter,
-    rows?       : Array<any>,
-    offset?     : number,
-    configuration: any
+    filters?    : TFilters,
+    requests?   : TRequests
 }
 
-export interface WorkerResponse {
-    event?          : string | symbol | Array<string>,
-    rows?           : Array<any>,
-    processedRows?  : Array<any>,
-    filter?         : DataFilter,
-    command?        : string
+
+export interface IWorkerResponse {
+    sequenceID  : number,
+    message?    : string,
+    filter?     : TMatches,
+    filters?    : TFiltersMatches,
+    requests?   : TRequestsMatches
 }
