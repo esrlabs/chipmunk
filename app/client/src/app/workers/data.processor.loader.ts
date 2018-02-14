@@ -10,11 +10,9 @@ require = System.amdRequire;
 
 var modules = {
     '../core/interfaces/interface.data.filter.js': true,
-    '../core/modules/tools.logs.js': true,
-    '../core/modules/parsers/controller.data.parsers.js': true,
     '../core/modules/controller.data.search.modes.js': true,
-    '../core/modules/tools.guid.js': true,
     '../workers/data.processor.interfaces.js': true,
+    '../workers/data.processor.strings.js': true
 };
 
 Object.keys(modules).forEach(function(url: string) {
@@ -23,5 +21,7 @@ Object.keys(modules).forEach(function(url: string) {
         if (Object.keys(modules).length === 0) {
             importScripts('./data.processor.js');
         }
+    }).catch((error: Error) => {
+        console.log(error);
     });
 }.bind(this));
