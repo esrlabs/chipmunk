@@ -7,7 +7,7 @@ import { configuration as Configuration             } from '../../../core/module
 import { settings as Settings                       } from '../../../core/modules/controller.settings';
 import { ANSIReader                                 } from '../../../core/modules/tools.ansireader';
 import { ANSIClearer                                } from '../../../core/modules/tools.ansiclear';
-import { serializeHTML, parseHTML                   } from '../../../core/modules/tools.htmlserialize';
+import { serializeHTML, parseHTML, parseRegExp      } from '../../../core/modules/tools.htmlserialize';
 import { serializeStringForReg, safelyCreateRegExp  } from '../../../core/modules/tools.regexp';
 
 const MARKERS = {
@@ -99,14 +99,15 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
         this._highlight.foregroundColor = this.highlight.foregroundColor;
         this.html = serializeHTML(this.val);
         if (typeof this.match === 'string' && this.match !== null && this.match !== ''){
-            let reg = null;
+            let reg     = null;
+            let match   = parseRegExp(this.match);
             if (!this.matchReg) {
-                this.match = serializeStringForReg(this.match);
-                this.regsCache[this.match + '_noReg'] === void 0 && (this.regsCache[this.match + '_noReg'] = safelyCreateRegExp(serializeHTML(this.match), 'g'));
-                reg = this.regsCache[this.match + '_noReg'];
+                match = serializeStringForReg(parseRegExp(match));
+                this.regsCache[match + '_noReg'] === void 0 && (this.regsCache[match + '_noReg'] = safelyCreateRegExp(serializeHTML(match), 'g'));
+                reg = this.regsCache[match + '_noReg'];
             } else {
-                this.regsCache[this.match] === void 0 && (this.regsCache[this.match] = safelyCreateRegExp(serializeHTML(this.match), 'gi'));
-                reg = this.regsCache[this.match];
+                this.regsCache[match] === void 0 && (this.regsCache[match] = safelyCreateRegExp(serializeHTML(match), 'gi'));
+                reg = this.regsCache[match];
             }
             this.regsCache[MARKERS.MATCH] === void 0 && (this.regsCache[MARKERS.MATCH] = safelyCreateRegExp(MARKERS.MATCH, 'gi'));
             if (reg !== null) {

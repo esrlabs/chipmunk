@@ -20,4 +20,9 @@ const parseHTML = function(str : string){
     });
     return str;
 };
-export { serializeHTML, parseHTML };
+const parseRegExp = function(str: string){
+    return str
+        .replace(/\s/gi, '\uAA80')
+        .replace(/\\s/gi, '[\uAA80]');
+};
+export { serializeHTML, parseHTML, parseRegExp };

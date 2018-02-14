@@ -35,8 +35,8 @@ function safelyCreateRegExp(strRegExp: string, parameters: string = 'gi'){
     if (safelyCreateRegExpCache[strRegExp] !== void 0) {
         return safelyCreateRegExpCache[strRegExp];
     }
-
     if (isValidRegExp(strRegExp, parameters)) {
+        strRegExp = strRegExp.replace(/\\/gi, '\\');
         safelyCreateRegExpCache[strRegExp] = new RegExp(strRegExp, parameters);
     } else if (isValidRegExp(serializeStringForReg(strRegExp), parameters)) {
         safelyCreateRegExpCache[strRegExp] = new RegExp(serializeStringForReg(strRegExp), parameters);

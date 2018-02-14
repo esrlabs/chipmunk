@@ -520,6 +520,8 @@ export class TabControllerSearchResults extends TabController implements ViewInt
                     if (filtered){
                         row.params.matchReg = match.isReg;
                         row.params.match    = match.match;
+                        row.matchReg        = match.isReg;
+                        row.match           = match.match;
                         map[index] = i;
                         i += 1;
                     }
