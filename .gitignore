@@ -55,3 +55,4 @@ app/desktop/dist/
 app/desktop/server/
 app/desktop/package-lock.json
 git.token.txt
+vim-markdown-preview.html
