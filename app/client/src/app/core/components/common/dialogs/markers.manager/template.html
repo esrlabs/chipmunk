@@ -1,0 +1,14 @@
+<ul class="markers-list noselect">
+    <li *ngFor="let marker of markers;"><dialog-markers-item
+            [onChange]="marker.onChange"
+            [onChangeColor]="marker.onChangeColor"
+            [onRemove]="marker.onRemove"
+            [onChangeState]="marker.onChangeState"
+            [value]="marker.value"
+            [active]="marker.active"
+            [backgroundColor]="marker.backgroundColor"
+            [foregroundColor]="marker.foregroundColor"></dialog-markers-item></li>
+</ul>
+<div class="markers-list-buttons">
+    <button-flat-text [caption]="'Add'" [handle]="onAddMarker"></button-flat-text>
+</div>

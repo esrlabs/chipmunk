@@ -17,6 +17,7 @@ import { DeveloperConsole               } from '../handles/handle.developer.cons
 import { AddView                        } from '../handles/handle.add.view';
 import { APISettings                    } from '../handles/handle.api.settings';
 import { controllerThemes               } from '../modules/controller.themes';
+import { OpenMarkersManager             } from '../handles/handle.open.markers.manager';
 
 
 class TopBarMenuHandles{
@@ -137,6 +138,11 @@ class TopBarMenuHandles{
 
     openApplicationSettings(){
         ApplicationSettingsManager.start();
+    }
+
+    openMarkersManager(){
+        let openMarkersManager = new OpenMarkersManager();
+        openMarkersManager.start();
     }
 
 }
