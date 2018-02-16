@@ -10,6 +10,8 @@ export class SimpleCheckbox {
     @Input() checked    : boolean   = false;
     @Input() onChange   : Function  = null;
 
+    private disabled    : boolean   = false;
+
     @ViewChild ('input', { read: ViewContainerRef}) input: ViewContainerRef;
 
     constructor(private changeDetectorRef : ChangeDetectorRef){
@@ -31,6 +33,16 @@ export class SimpleCheckbox {
     @Output() setValue(value: boolean){
         this.checked                                = value;
         this.input.element.nativeElement.checked    = value;
+        this.forceUpdate();
+    }
+
+    @Output() disable(){
+        this.disabled = true;
+        this.forceUpdate();
+    }
+
+    @Output() enable(){
+        this.disabled = false;
         this.forceUpdate();
     }
 }
