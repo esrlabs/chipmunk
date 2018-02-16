@@ -7,5 +7,6 @@
             (change)="onChange($event)"
             type="{{type}}"
             value="{{value}}"
-            placeholder="{{placeholder}}"/>
+            placeholder="{{placeholder}}"
+           [attr.disabled]="disabled?'':null"/>
 </div>
