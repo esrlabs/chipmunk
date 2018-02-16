@@ -42,7 +42,6 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     @Input() selection          : boolean       = false;
     @Input() bookmarked         : boolean       = false;
     @Input() markersHash        : string        = '';
-    @Input() markerSelectMode   : string        = '';
     @Input() regsCache          : Object        = {};
     @Input() markers            : Array<{
         value           : string,
@@ -60,13 +59,14 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     @Output() selected  : EventEmitter<number>  = new EventEmitter();
     @Output() bookmark  : EventEmitter<number>  = new EventEmitter();
 
-    __index             : string                = '';
-    public html         : string                = null;
-    public safeHTML     : SafeHtml              = null;
-    private _markersHash: string                = '';
-    private _match      : string                = '';
-    private _matchReg   : boolean               = true;
-    private _total_rows : number                = -1;
+    __index                 : string                = '';
+    public html             : string                = null;
+    public safeHTML         : SafeHtml              = null;
+    private _markersHash    : string                = '';
+    private _highlightHash  : string                = '';
+    private _match          : string                = '';
+    private _matchReg       : boolean               = true;
+    private _total_rows     : number                = -1;
 
     private _highlight          : {
         backgroundColor : string,
@@ -77,12 +77,20 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     };
 
     ngOnDestroy(){
+        Events.unbind(Configuration.sets.SYSTEM_EVENTS.VISUAL_SETTINGS_IS_UPDATED, this.onVISUAL_SETTINGS_IS_UPDATED);
     }
 
     constructor(private changeDetectorRef   : ChangeDetectorRef,
                 private sanitizer           : DomSanitizer){
-        this.changeDetectorRef  = changeDetectorRef;
-        this.sanitizer          = sanitizer;
+        this.changeDetectorRef              = changeDetectorRef;
+        this.sanitizer                      = sanitizer;
+        this.onVISUAL_SETTINGS_IS_UPDATED   = this.onVISUAL_SETTINGS_IS_UPDATED.bind(this);
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.VISUAL_SETTINGS_IS_UPDATED, this.onVISUAL_SETTINGS_IS_UPDATED);
+    }
+
+    onVISUAL_SETTINGS_IS_UPDATED(){
+        this.ngOnChanges();
+        this.changeDetectorRef.detectChanges();
     }
 
     updateFilledIndex(){
@@ -94,7 +102,7 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     getHTML(){
         const settings      = Settings.get();
         let matchMatches    = null;
-        let markersMatches  : Array<{ mark: string, matches: Array<string>, bg: string, fg: string, _bg: string, _fg: string}> = [];
+        let markersMatches  : Array<{ mark: string, matches: Array<string>, bg: string, fg: string}> = [];
         this._highlight.backgroundColor = this.highlight.backgroundColor;
         this._highlight.foregroundColor = this.highlight.foregroundColor;
         this.html = serializeHTML(this.val);
@@ -127,26 +135,13 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
                     if (this.regsCache[marker.value] !== null){
                         matches = this.html.match(this.regsCache[marker.value]);
                         if (matches instanceof Array && matches.length > 0){
-                            if (this.markerSelectMode !== MARKERS_SELECTION_MODE.LINES) {
-                                this.html = this.html.replace(this.regsCache[marker.value], mark);
-                                markersMatches.push({
-                                    mark    : mark,
-                                    matches : matches,
-                                    bg      : this.markerSelectMode === MARKERS_SELECTION_MODE.LINES ? 'rgba(250,0,0,1)' : marker.backgroundColor,
-                                    fg      : this.markerSelectMode === MARKERS_SELECTION_MODE.LINES ?  'rgba(250,250,250,1)' : marker.foregroundColor,
-                                    _bg     : marker.backgroundColor,
-                                    _fg     : marker.foregroundColor
-                                });
-                            } else {
-                                markersMatches.push({
-                                    mark    : '',
-                                    matches : [],
-                                    bg      : '',
-                                    fg      : '',
-                                    _bg     : marker.backgroundColor,
-                                    _fg     : marker.foregroundColor
-                                });
-                            }
+                            this.html = this.html.replace(this.regsCache[marker.value], mark);
+                            markersMatches.push({
+                                mark    : mark,
+                                matches : matches,
+                                bg      : marker.backgroundColor,
+                                fg      : marker.foregroundColor
+                            });
                         }
                     }
                 }
@@ -155,7 +150,7 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
 
         if (matchMatches instanceof Array && matchMatches.length > 0){
             matchMatches.forEach((match)=>{
-                if (this.markerSelectMode === MARKERS_SELECTION_MODE.LINES && (this._highlight.backgroundColor !== '' || this._highlight.foregroundColor !== '') ) {
+                if (settings.visual.do_not_highlight_matches_in_requests && (this._highlight.backgroundColor !== '' || this._highlight.foregroundColor !== '') ) {
                     this.html = this.html.replace(MARKERS.MATCH, match);
                 } else {
                     this.html = this.html.replace(MARKERS.MATCH, `<span class="match">${match}</span>`);
@@ -164,16 +159,9 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
         }
 
         if (markersMatches instanceof Array && markersMatches.length > 0) {
-            if (this.markerSelectMode === MARKERS_SELECTION_MODE.LINES) {
-                this._highlight.backgroundColor = markersMatches[0]._bg;
-                this._highlight.foregroundColor = markersMatches[0]._fg;
-            }
             markersMatches.forEach((marker) => {
                 marker.matches.forEach((match)=>{
-                    this.html = this.html.replace(marker.mark,
-                        this.markerSelectMode === MARKERS_SELECTION_MODE.LINES ?
-                            match : `<span class="marker" style="background-color: ${marker.bg};color:${marker.fg};">${match}</span>`
-                    );
+                    this.html = this.html.replace(marker.mark, `<span class="marker" style="background-color: ${marker.bg};color:${marker.fg};">${match}</span>`);
                 });
             });
         }
@@ -231,16 +219,23 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
         Object.keys(params).forEach((key)=>{
             this[key] !== void 0 && (this[key] = params[key]);
         });
+        const highlightHash = this.highlight.foregroundColor + this.highlight.backgroundColor;
+        let force = false;
+        if (this._highlightHash !== highlightHash){
+            this._highlightHash = highlightHash;
+            force = true;
+        }
         if (this._markersHash !== this.markersHash || this._match !== this.match || this._matchReg !== this.matchReg){
             this._markersHash   = this.markersHash;
             this._match         = this.match;
             this._matchReg      = this.matchReg;
-            this.ngOnChanges();
+            force = true;
         }
         if (this._total_rows !== this.total_rows){
             this._total_rows = this.total_rows;
             this.updateFilledIndex();
         }
+        force && this.ngOnChanges();
         this.changeDetectorRef.detectChanges();
     }
 

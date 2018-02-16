@@ -22,6 +22,7 @@ import { TabController                          } from '../../../core/components
 import { Request                                } from '../tab.requests/request/interface.request';
 import { SimpleListItem                         } from '../../../core/components/common/lists/simple-drop-down/item.interface';
 import { ANSIClearer                            } from "../../../core/modules/tools.ansiclear";
+import { settings as Settings                   } from '../../../core/modules/controller.settings';
 
 const SETTINGS : {
     SELECTION_OFFSET        : number,
@@ -98,6 +99,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
     private filterMode          : string                        = FILTER_MODES.ACTIVE_AND_PASSIVE;
     private onOffLabel          : string                        = ON_OFF.OFF;
     private onOffCache          : Object                        = {};
+    private shareHighlightHash  : number                        = -1;
 
     private conditions          : Array<SimpleListItem>         = [
         { caption: 'Active from Passive',   value: FILTER_MODES.ACTIVE_FROM_PASSIVE     },
@@ -129,7 +131,6 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         backgroundColor : string,
         self?           : boolean
     }> = [];//Do not bind this <Marker> type, because markers view can be removed
-    private markerSelectMode : string = 'words';
 
     constructor(
         private componentFactoryResolver    : ComponentFactoryResolver,
@@ -167,7 +168,8 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             Configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED,
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED,
-            Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED].forEach((handle: string)=>{
+            Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED,
+            Configuration.sets.SYSTEM_EVENTS.HIGHLIGHT_SEARCH_REQUESTS_TRIGGER].forEach((handle: string)=>{
             this['on' + handle] = this['on' + handle].bind(this);
             Events.bind(handle, this['on' + handle]);
         });
@@ -202,7 +204,8 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             Configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED,
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED,
-            Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED].forEach((handle: string)=>{
+            Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED,
+            Configuration.sets.SYSTEM_EVENTS.HIGHLIGHT_SEARCH_REQUESTS_TRIGGER].forEach((handle: string)=>{
             Events.unbind(handle, this['on' + handle]);
         });
         this.onScrollSubscription.  unsubscribe();
@@ -439,7 +442,6 @@ export class TabControllerSearchResults extends TabController implements ViewInt
                     total_rows      : this._rows.length === 0 ? rows.length : this._rows.length,
                     markers         : this.markers,
                     markersHash     : markersHash,
-                    markerSelectMode: this.markerSelectMode,
                     regsCache       : this.regsCache,
                     highlight       : {
                         foregroundColor: '',
@@ -616,8 +618,39 @@ export class TabControllerSearchResults extends TabController implements ViewInt
                 break;
         }
         this.synchCounting();
+        this.shareHighlightState();
         Logs.measure(measure);
         return result;
+    }
+
+    shareHighlightState(force: boolean = false){
+        if (!force && this.rows.length === this.shareHighlightHash) {
+            return false;
+        }
+        this.shareHighlightHash = this.rows.length;
+        let settings = Settings.get();
+        let results: {[key: number]: any} = {};
+        if (settings.visual.highlight_search_requests) {
+            this.rows.forEach((row)=>{
+                let _row: any = {
+                    foregroundColor: '',
+                    backgroundColor: ''
+                };
+                if (row.params.highlight.foregroundColor !== '' || row.params.highlight.backgroundColor !== ''){
+                    _row.foregroundColor = row.params.highlight.foregroundColor;
+                    _row.backgroundColor = row.params.highlight.backgroundColor;
+                    results[row.params.index] = _row;
+                }
+            });
+        }
+        Events.trigger(Configuration.sets.EVENTS_VIEWS.HIGHLIGHT_SEARCH_REQUESTS_DATA, results);
+    }
+
+    onHIGHLIGHT_SEARCH_REQUESTS_TRIGGER(){
+        let settings = Settings.get();
+        settings.visual.highlight_search_requests = !settings.visual.highlight_search_requests;
+        Settings.set(settings);
+        this.shareHighlightState(true);
     }
 
     filterRows(){
@@ -637,7 +670,6 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             row.params.GUID             = this.viewParams !== null ? this.viewParams.GUID : null;
             row.params.bookmarked       = this.bookmarks.indexOf(row.params.index) !== -1;
             row.params.markers          = this.markers;
-            row.params.markerSelectMode = this.markerSelectMode;
             row.params.markersHash      = markersHash;
             row.params.match            = row.match;
             row.params.matchReg         = row.matchReg;
@@ -652,14 +684,13 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         this.rows instanceof Array && (this.rows = this.rows.map((row)=>{
             row.params.markers          = this.markers;
             row.params.markersHash      = markersHash;
-            row.params.markerSelectMode = this.markerSelectMode;
             row.update !== null && row.update(row.params);
             return row;
         }));
     }
 
     getMarkersHash(){
-        let hash = this.markerSelectMode;
+        let hash = '';
         this.markers instanceof Array && this.markers.forEach((marker)=>{
             hash += marker.value + marker.foregroundColor + marker.backgroundColor;
         });
@@ -719,6 +750,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             request.count = 0;
         });
     }
+
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Text selection
@@ -806,37 +838,15 @@ export class TabControllerSearchResults extends TabController implements ViewInt
      * Clear view functionality
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-    addClearButton(){
-        if (!this.clearFunctionality.inited){
-            Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_BAR_ADD_BUTTON, this.viewParams.GUID, {
-                action  : this.clearOutput.bind(this),
-                hint    : _('Clear output'),
-                icon    : 'fa-eraser',
-                GUID    : this.clearFunctionality.button
-            }, false);
-            this.clearFunctionality.inited = true;
-        }
-    }
-
-    removeClearButton(){
-        if (this.clearFunctionality.inited){
-            Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_BAR_REMOVE_BUTTON, this.viewParams.GUID, this.clearFunctionality.button);
-            this.clearFunctionality.inited = false;
-        }
-    }
-
-    clearOutput(silence: boolean = false){
+    clearOutput(){
         this.rows       = [];
         this.rowsCount  = 0;
         this.resetCounts();
-        !silence && Events.trigger(Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED, this.viewParams.GUID);
         this.forceUpdate();
     }
 
     onVIEW_OUTPUT_IS_CLEARED(GUID: string | symbol){
-        if (this.viewParams.GUID !== GUID){
-            this.clearOutput(true);
-        }
+        this.clearOutput();
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -881,10 +891,8 @@ export class TabControllerSearchResults extends TabController implements ViewInt
     }
 
     onLIST_VIEW_NUMERIC_TRIGGER(GUID: string | symbol){
-        if (GUID === this.viewParams.GUID){
-            this.numbers = !this.numbers;
-            this.updateRows();
-        }
+        this.numbers = !this.numbers;
+        this.updateRows();
     }
 
     onLIST_VIEW_HIGHLIGHT_TRIGGER(GUID: string | symbol){
@@ -933,14 +941,12 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             let measure = Logs.measure('[search.results/tab.results][onDATA_IS_MODIFIED]');
             this.addRows(event.rows);
             this.followByScroll && this.onSHORTCUT_TO_END();
-            this.addClearButton();
             Logs.measure(measure);
         }
     }
 
-    onMARKERS_UPDATED(markers: any, markerSelectMode: string){
+    onMARKERS_UPDATED(markers: any){
         this.markers            = markers;
-        this.markerSelectMode   = markerSelectMode;
         this.updateMarkersOnly();
     }
 

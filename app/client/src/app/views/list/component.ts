@@ -25,6 +25,7 @@ import { EVENT_VIEW_BAR_ADD_FAVORITE_RESPONSE   } from '../../core/interfaces/ev
 import { ViewClass                              } from '../../core/services/class.view';
 
 import { TextSelection                          } from '../../core/modules/controller.selection.text';
+import { settings as Settings                   } from '../../core/modules/controller.settings';
 
 const SETTINGS : {
     SELECTION_OFFSET        : number,
@@ -84,7 +85,8 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     private textSelection           : TextSelection                 = null;
     private textSelectionTrigger    : EventEmitter<string>          = new EventEmitter();
     private regsCache               : Object                        = {};
-    private lastBookmarkOperation   : number                       = null;
+    private lastBookmarkOperation   : number                        = null;
+    private highlightCache          : { [key: number]: any }        = {};
     private selection : {
         own     : boolean,
         index   : number
@@ -120,8 +122,6 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         self?           : boolean
     }> = [];//Do not bind this <Marker> type, because markers view can be removed
 
-    private markerSelectMode : string = 'words';
-
     constructor(
         private componentFactoryResolver    : ComponentFactoryResolver,
         private viewContainerRef            : ViewContainerRef,
@@ -153,7 +153,9 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_NEXT_IN_SEARCH,
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED,
-            Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED].forEach((handle: string)=>{
+            Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED,
+            Configuration.sets.EVENTS_VIEWS.MARKS_VIEW_SWITCH_TARGET,
+            Configuration.sets.EVENTS_VIEWS.HIGHLIGHT_SEARCH_REQUESTS_DATA].forEach((handle: string)=>{
             this['on' + handle] = this['on' + handle].bind(this);
             Events.bind(handle, this['on' + handle]);
         });
@@ -173,6 +175,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     ngOnInit(){
         this.viewParams !== null && super.setGUID(this.viewParams.GUID);
         this.textSelection === null && (this.textSelection = new TextSelection(this.viewContainerRef.element.nativeElement, this.textSelectionTrigger));
+        this.setDefaultStateOfButtons();
     }
 
     ngOnDestroy(){
@@ -193,7 +196,9 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_NEXT_IN_SEARCH,
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED,
-            Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED].forEach((handle: string)=>{
+            Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED,
+            Configuration.sets.EVENTS_VIEWS.MARKS_VIEW_SWITCH_TARGET,
+            Configuration.sets.EVENTS_VIEWS.HIGHLIGHT_SEARCH_REQUESTS_DATA].forEach((handle: string)=>{
             Events.unbind(handle, this['on' + handle]);
         });
         this.onScrollSubscription.  unsubscribe();
@@ -215,7 +220,14 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         return rows.map((row, index)=>{
             let factory     = this.componentFactoryResolver.resolveComponentFactory(ViewControllerListItem),
                 _index      = index + offset,
+                highlight   = {
+                    backgroundColor: '',
+                    foregroundColor: ''
+                },
                 filtered    = allSelected ? false : (this.viewParams !== null ? (row.filters[this.viewParams.GUID] !== void 0 ? row.filters[this.viewParams.GUID] : row.filtered) : row.filtered);
+            if (this.highlightCache[_index] !== void 0) {
+                highlight = this.highlightCache[_index];
+            }
             return {
                 factory : factory,
                 params  : {
@@ -231,9 +243,9 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                     visibility      : this.numbers,
                     total_rows      : this._rows.length === 0 ? rows.length : this._rows.length,
                     markers         : this.markers,
-                    markerSelectMode: this.markerSelectMode,
                     markersHash     : markersHash,
-                    regsCache       : this.regsCache
+                    regsCache       : this.regsCache,
+                    highlight       : highlight
                 },
                 callback: this.onRowInit.bind(this, _index),
                 update  : null,
@@ -312,7 +324,6 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             row.params.total_rows       = this._rows.length;
             row.params.GUID             = this.viewParams !== null ? this.viewParams.GUID : null;
             row.params.markers          = this.markers;
-            row.params.markerSelectMode = this.markerSelectMode;
             row.params.markersHash      = markersHash;
             update && row.update(row.params);
             return row;
@@ -324,7 +335,6 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         let markersHash = this.getMarkersHash();
         this.rows instanceof Array && (this.rows = this.rows.map((row)=>{
             row.params.markers          = this.markers;
-            row.params.markerSelectMode = this.markerSelectMode;
             row.params.markersHash      = markersHash;
             row.update !== null && row.update(row.params);
             return row;
@@ -332,7 +342,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     }
 
     getMarkersHash(){
-        let hash = this.markerSelectMode;
+        let hash = '';
         this.markers instanceof Array && this.markers.forEach((marker)=>{
             hash += marker.value + marker.foregroundColor + marker.backgroundColor;
         });
@@ -436,6 +446,22 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             marker.self !== void 0 && (result = index);
         });
         return result;
+    }
+
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+     * Bar's buttons
+     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+    setDefaultStateOfButtons(){
+        let settings = Settings.get();
+        Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_BAR_UPDATE_BUTTON, this.viewParams.GUID, {
+            GUID    : 'MARKS_VIEW_SWITCH_TARGET',
+            active  : !settings.visual.do_not_highlight_matches_in_requests
+        });
+        Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_BAR_UPDATE_BUTTON, this.viewParams.GUID, {
+            GUID    : 'HIGHLIGHT_SEARCH_REQUESTS_TRIGGER',
+            active  : settings.visual.highlight_search_requests
+        });
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -689,10 +715,8 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     }
 
     onLIST_VIEW_NUMERIC_TRIGGER(GUID: string | symbol){
-        if (GUID === this.viewParams.GUID){
-            this.numbers = !this.numbers;
-            this.updateRows();
-        }
+        this.numbers = !this.numbers;
+        this.updateRows();
     }
 
     onLIST_VIEW_ONLY_BOOKMARKS_TRIGGER(GUID: string | symbol){
@@ -796,9 +820,8 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         }
     }
 
-    onMARKERS_UPDATED(markers: any, markerSelectMode: string){
+    onMARKERS_UPDATED(markers: any){
         this.markers            = markers;
-        this.markerSelectMode   = markerSelectMode;
         this.updateMarkersOnly();
     }
 
@@ -854,4 +877,37 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             this.updateLineScroll();
         }
     }
+
+    onMARKS_VIEW_SWITCH_TARGET(GUID: string | symbol){
+        if (this.viewParams.GUID === GUID) {
+            let settings = Settings.get();
+            settings.visual.do_not_highlight_matches_in_requests = !settings.visual.do_not_highlight_matches_in_requests;
+            Settings.set(settings);
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.VISUAL_SETTINGS_IS_UPDATED);
+        }
+    }
+
+    onHIGHLIGHT_SEARCH_REQUESTS_DATA(rows: {[key: number]: any}){
+        this.highlightCache = rows;
+        this.updateSearchRequestHighlight();
+    }
+
+    updateSearchRequestHighlight(){
+        this.rows instanceof Array && (this.rows = this.rows.map((row)=>{
+            if (!row.params.filtered){
+                if (this.highlightCache[row.params.index] !== void 0) {
+                    row.params.highlight = this.highlightCache[row.params.index];
+                } else {
+                    row.params.highlight = {
+                        backgroundColor:'',
+                        foregroundColor:''
+                    };
+                }
+                row.update !== null && row.update(row.params);
+            }
+            return row;
+        }));
+        this.forceUpdate();
+    }
+
 }
