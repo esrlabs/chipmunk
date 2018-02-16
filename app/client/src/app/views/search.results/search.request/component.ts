@@ -74,6 +74,8 @@ export class TopBarSearchRequest implements AfterContentInit{
             this.delayTimer = setTimeout(this.trigger_SEARCH_REQUEST_CHANGED.bind(this, event), SETTINGS.TYPING_DELAY);
         } else if (event.keyCode === 13) {
             this.trigger_SEARCH_REQUEST_CHANGED(event);
+        } else {
+            this.lastRequest = null;
         }
     }
 
