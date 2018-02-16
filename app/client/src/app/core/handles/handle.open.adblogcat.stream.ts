@@ -15,6 +15,7 @@ import { ANSIClearer                    } from '../modules/tools.ansiclear';
 
 
 import { localSettings, KEYs            } from '../../core/modules/controller.localsettings';
+import set = Reflect.set;
 
 interface Entry {
     date    : number,
@@ -67,6 +68,7 @@ const DEFAULT_STREAM_SETTINGS = {
     tid     : -1,
     pid     : -1,
     path    : '',
+    custom  : '',
     reset   : false
 };
 
@@ -85,6 +87,7 @@ interface LocalSettings {
     tid     : number,
     pid     : number,
     path    : string,
+    custom  : string,
     reset   : boolean
 }
 
@@ -93,6 +96,7 @@ interface LogcatStreamSettings {
     tid     : string,
     tags    : Array<string>,
     path    : string,
+    custom  : string,
     reset   : boolean
 }
 
@@ -140,8 +144,9 @@ class SettingsController{
             pid     : settings.pid > 0 ? settings.pid.toString() : '',
             tid     : settings.tid > 0 ? settings.tid.toString() : '',
             tags    : tags.length === 7 ? null : tags,
-            path    : settings.path,
-            reset   : settings.reset
+            path    : settings.path !== void 0 ? settings.path : '',
+            reset   : settings.reset !== void 0 ? settings.reset : false,
+            custom  : settings.custom !== void 0 ? settings.custom : ''
         }
     }
 }
@@ -244,6 +249,7 @@ class LogcatStream {
         params.pid      = settings.pid;
         params.path     = settings.path;
         params.reset    = settings.reset;
+        params.custom   = settings.custom;
         params.proceed  = this.onApplySettings.bind(this, GUID);
         params.cancel   = this.onCancelSettings.bind(this, GUID);
         popupController.open({
@@ -321,7 +327,6 @@ class LogcatStream {
 }
 
 class OpenADBLogcatStream implements MenuHandleInterface{
-    private GUID            : symbol                = Symbol();
     private progressGUID    : symbol                = Symbol();
     private processor       : any                   = APIProcessor;
     private listening       : boolean               = false;
@@ -478,6 +483,7 @@ class OpenADBLogcatStream implements MenuHandleInterface{
         params.pid      = settings.pid;
         params.path     = settings.path;
         params.reset    = settings.reset;
+        params.custom   = settings.custom;
         params.proceed  = this.onApplySettings.bind(this, GUID);
         params.cancel   = this.onCancelSettings.bind(this, GUID);
         popupController.open({
