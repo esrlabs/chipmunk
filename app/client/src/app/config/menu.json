@@ -1,19 +1,20 @@
 {
   "web": [
-    { "icon" : "fa-upload",       "caption" : "Open log file",              "handler": "openLocalFile",                 "type": "item" },
-    { "icon" : "fa-plug",         "caption" : "Open serial port stream",    "handler": "openSerialStream",              "type": "item" },
-    { "icon" : "fa-android",      "caption" : "Open ADB logcat stream",     "handler": "openADBLogcatStream",           "type": "item" },
-    { "icon" : "fa-android",      "caption" : "Setup and open ADB logcat",  "handler": "setupAndOpenADBLogcatStream",   "type": "item" },
-    { "icon" : "fa-terminal",     "caption" : "Terminal command",           "handler": "openTerminalCommand",           "type": "item" },
+    { "icon" : "fa-upload",           "caption" : "Open log file",              "handler": "openLocalFile",                 "type": "item" },
+    { "icon" : "fa-plug",             "caption" : "Open serial port stream",    "handler": "openSerialStream",              "type": "item" },
+    { "icon" : "fa-android",          "caption" : "Open ADB logcat stream",     "handler": "openADBLogcatStream",           "type": "item" },
+    { "icon" : "fa-android",          "caption" : "Setup and open ADB logcat",  "handler": "setupAndOpenADBLogcatStream",   "type": "item" },
+    { "icon" : "fa-terminal",         "caption" : "Terminal command",           "handler": "openTerminalCommand",           "type": "item" },
     { "type" : "line" },
-    { "icon" : "fa-stethoscope",  "caption" : "Monitor manager",            "handler": "openMonitorManager",            "type": "item" },
+    { "icon" : "fa-stethoscope",      "caption" : "Monitor manager",            "handler": "openMonitorManager",            "type": "item" },
+    { "icon" : "fa-pencil-square-o",  "caption" : "Markers",                    "handler": "openMarkersManager",            "type": "item" },
     { "type" : "line" },
-    { "icon" : "fa-desktop",      "caption" : "Add view",                   "handler": "addView",                       "type": "item" },
+    { "icon" : "fa-desktop",          "caption" : "Add view",                   "handler": "addView",                       "type": "item" },
     { "type" : "line" },
-    { "icon" : "fa-cloud",        "caption" : "Connect to service",         "handler": "connectionSettings",            "type": "item" },
+    { "icon" : "fa-cloud",            "caption" : "Connect to service",         "handler": "connectionSettings",            "type": "item" },
     { "type" : "line" },
-    { "icon" : "fa-paint-brush",  "caption" : "Change color theme",         "handler": "changeThemeSettings",           "type": "item" },
-    { "icon" : "fa-gear",         "caption" : "Settings",                   "handler": "openApplicationSettings",       "type": "item" }
+    { "icon" : "fa-paint-brush",      "caption" : "Change color theme",         "handler": "changeThemeSettings",           "type": "item" },
+    { "icon" : "fa-gear",             "caption" : "Settings",                   "handler": "openApplicationSettings",       "type": "item" }
   ],
   "desktop": [
     {
@@ -55,9 +56,10 @@
     {
       "group": "View",
       "items": [
-        { "icon" : "fa-desktop",      "caption" : "Add view",                   "handler": "addView",                 "type": "item", "accelerator": "" },
-        { "icon" : "fa-paint-brush",  "caption" : "Change color theme",         "handler": "changeThemeSettings",     "type": "item", "accelerator": "" },
-        { "icon" : "fa-gear",         "caption" : "Settings",                   "handler": "openApplicationSettings", "type": "item", "accelerator": "" }
+        { "icon" : "fa-pencil-square-o",  "caption" : "Markers",                    "handler": "openMarkersManager",      "type": "item", "accelerator": "" },
+        { "icon" : "fa-desktop",          "caption" : "Add view",                   "handler": "addView",                 "type": "item", "accelerator": "" },
+        { "icon" : "fa-paint-brush",      "caption" : "Change color theme",         "handler": "changeThemeSettings",     "type": "item", "accelerator": "" },
+        { "icon" : "fa-gear",             "caption" : "Settings",                   "handler": "openApplicationSettings", "type": "item", "accelerator": "" }
       ]
     },
     {
