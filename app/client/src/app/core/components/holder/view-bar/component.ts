@@ -23,6 +23,7 @@ export class ViewBar implements OnDestroy, AfterContentInit{
     constructor(private changeDetectorRef : ChangeDetectorRef){
         [   Configuration.sets.SYSTEM_EVENTS.VIEW_BAR_ADD_FAVORITE_RESPONSE,
             Configuration.sets.EVENTS_VIEWS.VIEW_BAR_ADD_BUTTON,
+            Configuration.sets.EVENTS_VIEWS.VIEW_BAR_UPDATE_BUTTON,
             Configuration.sets.EVENTS_VIEWS.VIEW_BAR_REMOVE_BUTTON,
             Configuration.sets.EVENTS_VIEWS.VIEW_BAR_ENABLE_BUTTON,
             Configuration.sets.EVENTS_VIEWS.VIEW_BAR_DISABLE_BUTTON].forEach((handle: string)=>{
@@ -34,6 +35,7 @@ export class ViewBar implements OnDestroy, AfterContentInit{
     ngOnDestroy(){
         [   Configuration.sets.SYSTEM_EVENTS.VIEW_BAR_ADD_FAVORITE_RESPONSE,
             Configuration.sets.EVENTS_VIEWS.VIEW_BAR_ADD_BUTTON,
+            Configuration.sets.EVENTS_VIEWS.VIEW_BAR_UPDATE_BUTTON,
             Configuration.sets.EVENTS_VIEWS.VIEW_BAR_REMOVE_BUTTON,
             Configuration.sets.EVENTS_VIEWS.VIEW_BAR_ENABLE_BUTTON,
             Configuration.sets.EVENTS_VIEWS.VIEW_BAR_DISABLE_BUTTON].forEach((handle: string)=>{
@@ -77,12 +79,33 @@ export class ViewBar implements OnDestroy, AfterContentInit{
     }
 
     onVIEW_BAR_ADD_BUTTON(GUID: string, button: Object, last: boolean = false, callback?: Function){
+        if (this.viewParams === null) {
+            return false;
+        }
         if (this.viewParams.GUID === GUID){
             button['GUID'] = button['GUID'] !== void 0 ? button['GUID'] : Symbol();
             if (last){
                 this.menu.splice(this.menu.length - 1, 0, button);
             } else {
                 this.menu.unshift(button);
+            }
+            typeof callback === 'function' && callback(button['GUID']);
+        } else {
+            typeof callback === 'function' && callback();
+        }
+        this.forceUpdate();
+    }
+
+    onVIEW_BAR_UPDATE_BUTTON(GUID: string, button: Object, callback?: Function){
+        if (this.viewParams === null) {
+            return false;
+        }
+        if (this.viewParams.GUID === GUID){
+            const index = this.getButtonIndexByGUID(button['GUID']);
+            if (~index){
+                Object.keys(button).forEach((key: string) => {
+                    this.menu[index][key] = button[key];
+                });
             }
             typeof callback === 'function' && callback(button['GUID']);
         } else {
