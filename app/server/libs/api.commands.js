@@ -73,6 +73,17 @@ class APICommands{
         callback(true, null);
     }
 
+    tryLogcatStream(income, response, callback){
+        let ADBStream = require('./service.adb');
+        ADBStream.try(income.GUID, income.params.settings, (streamGUID, error) => {
+            if (error === null){
+                callback(streamGUID, null);
+            } else {
+                callback(null, error);
+            }
+        });
+    }
+
     //Process stream
     openProcessStream(income, response, callback){
         let Stream = require('./service.process');

@@ -42,10 +42,28 @@
             <td><span>TID</span> To do not use filter, set "-1"</td>
             <td><div class="input-cover"><common-input  #_tid [type]="'number'" [value]="tid"></common-input></div></td>
         </tr>
+    </table>
+    <table>
+        <tr>
+            <td class="table-title" colspan="2"><span>Customization</span> Default path and custom parameters</td>
+        </tr>
         <tr>
             <td><span>PATH</span> Define path to adb SDK or leave it empty and let LogViewer detect it automatically.</td>
-            <td><div class="input-cover"><common-input  #_path [type]="'text'" [value]="path"></common-input></div></td>
+            <td class="min-width-20"><div class="input-cover"><common-input  #_path [type]="'text'" [value]="path"></common-input></div></td>
         </tr>
+        <tr>
+            <td><span>CUSTOM</span> Define define custom parameters for logcat</td>
+            <td class="min-width-20"><div class="input-cover"><common-input  #_custom [type]="'text'" [value]="custom" [handles]="{ onKeyUp: onCustomChange }"></common-input></div></td>
+        </tr>
+        <tr>
+            <td class="controls" colspan="2">
+                <div class="buttons">
+                    <button-flat-text [caption]="'Test PATH / CUSTOM'" [handle]="onTest"></button-flat-text>
+                </div>
+            </td>
+        </tr>
+    </table>
+    <table>
         <tr>
             <td class="table-title" colspan="2"><span>Other</span> Other settings of stream</td>
         </tr>
