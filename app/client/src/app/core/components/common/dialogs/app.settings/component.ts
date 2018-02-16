@@ -98,6 +98,11 @@ export class DialogSettingsManager implements OnInit{
         if (_settings[this.section] !== void 0) {
             _settings[this.section] = this.getData();
             settings.set(_settings);
+            switch (this.section){
+                case 'visual':
+                    Events.trigger(Configuration.sets.SYSTEM_EVENTS.VISUAL_SETTINGS_IS_UPDATED);
+                    break;
+            }
         }
     }
 

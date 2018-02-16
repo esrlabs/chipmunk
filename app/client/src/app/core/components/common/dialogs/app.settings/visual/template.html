@@ -11,5 +11,16 @@
             <td><span>Partly prevent ASCII</span> Prevent any ASCII colors from data's source only if row has some markers or matches</td>
             <td><div class="input-cover"><simple-checkbox #_prevent_ascii_colors_on_highlight [checked]="visual.prevent_ascii_colors_on_highlight"></simple-checkbox></div></td>
         </tr>
+        <tr>
+            <td class="table-title" colspan="2"><span>Search requests (filters)</span></td>
+        </tr>
+        <tr>
+            <td><span>Keywords</span> Do not highlight keywords in filtered rows. Do not affect on currect (active) search request.</td>
+            <td><div class="input-cover"><simple-checkbox #_do_not_highlight_matches_in_requests [checked]="visual.do_not_highlight_matches_in_requests"></simple-checkbox></div></td>
+        </tr>
+        <tr>
+            <td><span>Search requests</span> Highlight search requests (filters) in main view</td>
+            <td><div class="input-cover"><simple-checkbox #_highlight_search_requests [checked]="visual.highlight_search_requests"></simple-checkbox></div></td>
+        </tr>
     </table>
 </div>
