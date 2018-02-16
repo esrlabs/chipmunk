@@ -24,6 +24,8 @@ export class CommonInput {
 
     @ViewChild ('input', { read: ViewContainerRef}) input: ViewContainerRef;
 
+    private disabled: boolean   = false;
+
     constructor(private changeDetectorRef : ChangeDetectorRef) {
     }
 
@@ -45,8 +47,18 @@ export class CommonInput {
         this.changeDetectorRef.detectChanges();
     }
 
+    @Output() disable(){
+        this.disabled = true;
+        this.forceUpdate();
+    }
+
+    @Output() enable(){
+        this.disabled = false;
+        this.forceUpdate();
+    }
+
     handle(name: string, event: Event){
-        typeof this.handles[name] === 'function' && this.handles[name](event);
+        typeof this.handles[name] === 'function' && this.handles[name](event, this.input.element.nativeElement.value);
     }
 
     onFocus(event: Event){
