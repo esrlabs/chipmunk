@@ -21,6 +21,8 @@ const OPTIONS = {
     MINIMAL_RESTART_DELAY : 2000 //ms
 };
 
+const DEFAULT_PARAMS = ['-b', 'all', '-v', 'color'];
+
 class SpawnProcess extends EventEmitter {
 
     constructor() {
@@ -127,7 +129,16 @@ class SpawnProcess extends EventEmitter {
         })
     }
 
-    start(path, reset = false) {
+    _validateCustom(custom){
+        let results = [];
+        if (typeof custom === 'string'){
+            custom = custom.replace(/^\s*?adb\s*/gi, '').replace(/^\s*?logcat\s*/gi, '');
+            results = custom.split(' ');
+        }
+        return results;
+    }
+
+    start(path, reset = false, custom = null) {
         this._started = null;
         reset = typeof reset === 'boolean' ? reset : false;
         return new Promise((resolve, reject) => {
@@ -141,9 +152,16 @@ class SpawnProcess extends EventEmitter {
 
             Promise.all(steps)
                 .then(() => {
+                    let params = ['logcat'];
+                    if (typeof custom !== '') {
+                        const _params = this._validateCustom(custom);
+                        params.push(..._params);
+                    } else {
+                        params.push(DEFAULT_PARAMS);
+                    }
                     this._stream = new SpawnWrapper();
                     this._bind();
-                    this._stream.execute(this._getAdbAlias(), ['logcat', '-b', 'all', '-v', 'color'], this._getEnv(path))
+                    this._stream.execute(this._getAdbAlias(), params, this._getEnv(path))
                         .then(() => {
                             this._started = (new Date()).getTime();
                             resolve();
@@ -344,7 +362,8 @@ class Stream extends EventEmitter {
             tid     : typeof settings.tid === 'string' ? (settings.tid.trim() !== '' ? settings.tid : null) : null,
             tags    : settings.tags instanceof Array ? settings.tags : null,
             path    : typeof settings.path === 'string' ? settings.path : '',
-            reset   : typeof settings.reset === 'boolean' ? settings.reset : false
+            reset   : typeof settings.reset === 'boolean' ? settings.reset : false,
+            custom  : typeof settings.custom === 'string' ? settings.custom : '',
         };
         _settings.tags instanceof Array && (_settings.tags = _settings.tags.filter((tag) => {
             return typeof tag === 'string' ? (tag.trim() !== '') : false;
@@ -357,7 +376,8 @@ class Stream extends EventEmitter {
     open() {
         return this._process.start(
             this._settings !== null ? (typeof this._settings === 'object' ? this._settings.path   : null) : null,
-            this._settings !== null ? (typeof this._settings === 'object' ? this._settings.reset  : null) : null
+            this._settings !== null ? (typeof this._settings === 'object' ? this._settings.reset  : null) : null,
+            this._settings !== null ? (typeof this._settings === 'object' ? this._settings.custom   : null) : null
         )
             .then(() => {
                 this._bindProcess();
@@ -465,6 +485,16 @@ class ADBStream {
 
     close(clientGUID){
         this._onStreamClose(clientGUID);
+    }
+
+    try(clientGUID, settings, callback){
+        this.open(clientGUID, settings, (result, error) => {
+            if (error === null) {
+                this.close(clientGUID);
+                return callback(true, null);
+            }
+            callback(false, error);
+        });
     }
 
 

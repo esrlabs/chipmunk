@@ -5,6 +5,12 @@ dialog-adblogcatstream-settings{
     left        : 0.5rem;
     bottom      : 0.5rem;
     right       : 0.5rem;
+    .buttons{
+        position: absolute;
+        width   : 100%;
+        height  : 2.5rem;
+        bottom  : 0;
+    }
     .settings{
         position: absolute;
         width   : 100%;
@@ -26,7 +32,7 @@ dialog-adblogcatstream-settings{
                     span:first-child{
                         font-weight : bold;
                     }
-                    span{
+                    span:not(button-flat-text span){
                         color       : @text-passive-normal
                     }
                 }
@@ -41,6 +47,17 @@ dialog-adblogcatstream-settings{
                     margin          : 0;
                     border-bottom   : thin dotted @dark;
                 }
+                td.min-width-20{
+                    min-width: 20rem;
+                }
+                td.controls{
+                    height: 2.5rem;
+                    .buttons{
+                        width: auto;
+                        left:0;
+                        right: 0.25rem;
+                    }
+                }
                 .input-cover{
                     position: relative;
                     width   : 100%;
@@ -49,10 +66,5 @@ dialog-adblogcatstream-settings{
             }
         }
     }
-    .buttons{
-        position: absolute;
-        width   : 100%;
-        height  : 2.5rem;
-        bottom  : 0;
-    }
+
 }
