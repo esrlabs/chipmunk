@@ -253,6 +253,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             request['onChange']         = this.onRequestChange.bind(this, request.GUID);
             return request;
         });
+        this.checkOnOffMode();
         this.forceUpdate();
     }
 
@@ -273,6 +274,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
     onChangeState(GUID: string, active: boolean){
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED_OUTSIDE, this._requests.map((request)=>{
             GUID === request.GUID && (request.active = active);
+            this.checkOnOffMode();
             return this.clearHandles(
                 Object.assign({}, request)
             );
@@ -345,8 +347,17 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         }));
     }
 
-    onOffOn(){
-        this.onOffLabel = this.onOffLabel === ON_OFF.ON ? ON_OFF.OFF : ON_OFF.ON;
+    checkOnOffMode(){
+        if (this.requests.length === 0) {
+            this.onOffLabel = ON_OFF.ON;
+        } else {
+            this.onOffLabel = ON_OFF.OFF;
+        }
+        //this.onOffOn(null, true);
+    }
+
+    onOffOn(event: MouseEvent, noChange: boolean = false){
+        !noChange && (this.onOffLabel = this.onOffLabel === ON_OFF.ON ? ON_OFF.OFF : ON_OFF.ON);
         switch (this.onOffLabel){
             case ON_OFF.OFF:
                 Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED_OUTSIDE, this._requests.map((request)=>{
@@ -728,10 +739,6 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         this.selection.own   = own;
         this.selection.index = index;
         this.updateRows();
-    }
-
-    serializeHTML(html: string){
-        return html.replace(/</gi, '&lt').replace(/>/gi, '&gt');
     }
 
     synchCounting(){
