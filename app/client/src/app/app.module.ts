@@ -16,6 +16,7 @@ import { ADBLogcat                          } from './core/services/service.adbl
 import { controllerThemes                   } from './core/modules/controller.themes';
 
 import { ShortcutController                 } from './core/modules/controller.shortcut';
+import { MarkersController                  } from './core/modules/controller.markers';
 
 import { Updater                            } from './core/modules/controller.updater';
 
@@ -33,6 +34,7 @@ export class AppModule {
     private serialPorts         : SerialPorts           = new SerialPorts();
     private adbLogcat           : ADBLogcat             = new ADBLogcat();
     private updater             : Updater               = new Updater();
+    private markersController   : MarkersController     = new MarkersController();
 
     constructor(){
         //Init others
@@ -40,6 +42,7 @@ export class AppModule {
         //Init communication
         APIProcessor.init();
         controllerThemes.init();
+        this.markersController.init();
         this.wsConnector = new WebSocketConnector();
         this.wsConnector.connect();
     }

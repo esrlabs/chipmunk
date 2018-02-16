@@ -57,6 +57,7 @@ import { CommonTabModule                } from './tabs/module';
 
 import { CommonSimpleTable              } from './table/simple/component';
 
+
 @NgModule({
     entryComponents : [ CommonSimpleTable, Popup, FileLoader, ProgressBarCircle, DialogTerminalStreamOpen, DialogADBLogcatStreamSettings, DialogUpdate, DialogThemesList, DialogSerialPortsList, ProgressBarLine, ProgressBarProgress, DialogMessage, DialogStatemonitorIndicateEdit, StateMonitorStateEditIconsDialog, StateMonitorStateEditDialog, ImageDialog, DialogA, ButtonFlatText, SimpleText, SimpleList, SimpleDropDownList, DialogSerialSettings, SimpleCheckbox, ViewsList, ShortcutsList, DialogAPISettings, ColorsDialog, ColorsPredefinedDialog, ColorsCanvasDialog, ProgressBarGlobal, ConnectionState, ChartEditTypeDialog, ChartEditRulesSegmentsDialog, ChartEditRulesHooksDialog, ChartEditColorDialog, MarkersEditDialog, DialogStatemonitorEditJSON ],
     imports         : [ CommonModule, FormsModule  ],

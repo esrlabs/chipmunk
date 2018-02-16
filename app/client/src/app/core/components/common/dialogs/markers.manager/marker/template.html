@@ -1,0 +1,1 @@
+<span [attr.class]="'trigger' + (active ? ' active': '')" (click)="onClickTrigger()"></span><span class="value" (click)="onClickTriggerSafe()" (dblclick)="onClickEdit()" [style.backgroundColor]="backgroundColor" [style.color]="foregroundColor">{{value}}</span><span class="fa fa-close remove" (click)="onClickRemove()"></span>

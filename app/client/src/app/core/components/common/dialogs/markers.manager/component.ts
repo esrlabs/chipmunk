@@ -1,44 +1,34 @@
 import {Component, OnInit, ComponentFactoryResolver, ViewContainerRef, ChangeDetectorRef, ViewChild, EventEmitter, OnDestroy } from '@angular/core';
 
-import { ViewControllerPattern                  } from '../controller.pattern';
 
-import { events as Events                       } from '../../core/modules/controller.events';
-import { configuration as Configuration         } from '../../core/modules/controller.config';
+import { events as Events                       } from '../../../../../core/modules/controller.events';
+import { configuration as Configuration         } from '../../../../../core/modules/controller.config';
 
-import { ViewInterface                          } from '../../core/interfaces/interface.view';
+import { GUID                                   } from '../../../../../core/modules/tools.guid';
 
-import { ViewClass                              } from '../../core/services/class.view';
-
-import { localSettings, KEYs                    } from '../../core/modules/controller.localsettings';
+import { localSettings, KEYs                    } from '../../../../../core/modules/controller.localsettings';
 
 import { Marker                                 } from './marker/interface.marker';
-import { popupController                        } from '../../core/components/common/popup/controller';
-import { MarkersEditDialog                      } from '../../core/components/common/dialogs/markers.edit/component';
+import { popupController                        } from '../../../../../core/components/common/popup/controller';
+import { MarkersEditDialog                      } from '../../../../../core/components/common/dialogs/markers.edit/component';
 
 const SETTINGS = {
     LIST_KEY    : 'LIST_KEY'
 };
 
 @Component({
-    selector        : 'view-controller-markers',
+    selector        : 'dialog-markers-manager',
     templateUrl     : './template.html'
 })
 
-export class ViewControllerMarkers extends ViewControllerPattern implements ViewInterface, OnInit, OnDestroy {
+export class DialogMarkersManager implements OnInit, OnDestroy {
 
-    public viewParams       : ViewClass             = null;
-    public markers          : Array<Marker>         = [];
+    public markers: Array<Marker> = [];
 
     ngOnInit(){
-        this.viewParams !== null && super.setGUID(this.viewParams.GUID);
     }
 
     ngOnDestroy(){
-        [   Configuration.sets.EVENTS_VIEWS.MARKS_VIEW_ADD,
-            Configuration.sets.SYSTEM_EVENTS.MARKERS_GET_ALL,
-            Configuration.sets.SYSTEM_EVENTS.MARKERS_CHANGED].forEach((handle: string)=>{
-            Events.unbind(handle, this['on' + handle]);
-        });
     }
 
     forceUpdate(){
@@ -50,16 +40,10 @@ export class ViewControllerMarkers extends ViewControllerPattern implements View
         private viewContainerRef            : ViewContainerRef,
         private changeDetectorRef           : ChangeDetectorRef
     ){
-        super();
         this.componentFactoryResolver   = componentFactoryResolver;
         this.viewContainerRef           = viewContainerRef;
         this.changeDetectorRef          = changeDetectorRef;
-        [   Configuration.sets.EVENTS_VIEWS.MARKS_VIEW_ADD,
-            Configuration.sets.SYSTEM_EVENTS.MARKERS_GET_ALL,
-            Configuration.sets.SYSTEM_EVENTS.MARKERS_CHANGED].forEach((handle: string)=>{
-            this['on' + handle] = this['on' + handle].bind(this);
-            Events.bind(handle, this['on' + handle]);
-        });
+        this.onAddMarker = this.onAddMarker.bind(this);
         this.loadMarkers();
         this.onMarkerChanges();
     }
@@ -146,62 +130,50 @@ export class ViewControllerMarkers extends ViewControllerPattern implements View
             });
     }
 
-    onMARKS_VIEW_ADD(GUID: string | symbol){
-        if (this.viewParams.GUID === GUID){
-            let popup = Symbol();
-            popupController.open({
-                content : {
-                    factory     : null,
-                    component   : MarkersEditDialog,
-                    params      : {
-                        callback    : function(marker: Object){
-                            if (!~this.getMarkerIndexByHook(marker['hook'])){
-                                this.markers.push(this.initMarker({
-                                    foregroundColor : marker['foregroundColor'],
-                                    backgroundColor : marker['backgroundColor'],
-                                    value           : marker['hook'],
-                                    active          : true
-                                }));
-                            } else {
-                                this.markers[this.getMarkerIndexByHook(marker['hook'])].foregroundColor = marker['foregroundColor'];
-                                this.markers[this.getMarkerIndexByHook(marker['hook'])].backgroundColor = marker['backgroundColor'];
-                            }
-                            this.onMarkerChanges();
-                            this.forceUpdate();
-                            popupController.close(popup);
-                        }.bind(this)
-                    }
-                },
-                title   : _('Add marker'),
-                settings: {
-                    move            : true,
-                    resize          : true,
-                    width           : '40rem',
-                    height          : '25rem',
-                    close           : true,
-                    addCloseHandle  : true,
-                    css             : ''
-                },
-                buttons         : [],
-                titlebuttons    : [],
-                GUID            : popup
-            });
-        }
-    }
-
-    onMARKERS_GET_ALL(callback: Function){
-        typeof callback === 'function' && callback(this.getActiveMarkers());
-    }
-
-    onMARKERS_CHANGED(markers: Array<Marker>){
-        this.markers = markers.map((marker: Marker)=>{
-            return this.initMarker(marker);
+    onAddMarker(){
+        let popup = Symbol();
+        popupController.open({
+            content : {
+                factory     : null,
+                component   : MarkersEditDialog,
+                params      : {
+                    callback    : function(marker: Object){
+                        if (!~this.getMarkerIndexByHook(marker['hook'])){
+                            this.markers.push(this.initMarker({
+                                foregroundColor : marker['foregroundColor'],
+                                backgroundColor : marker['backgroundColor'],
+                                value           : marker['hook'],
+                                active          : true
+                            }));
+                        } else {
+                            this.markers[this.getMarkerIndexByHook(marker['hook'])].foregroundColor = marker['foregroundColor'];
+                            this.markers[this.getMarkerIndexByHook(marker['hook'])].backgroundColor = marker['backgroundColor'];
+                        }
+                        this.onMarkerChanges();
+                        this.forceUpdate();
+                        popupController.close(popup);
+                    }.bind(this)
+                }
+            },
+            title   : _('Add marker'),
+            settings: {
+                move            : true,
+                resize          : true,
+                width           : '40rem',
+                height          : '25rem',
+                close           : true,
+                addCloseHandle  : true,
+                css             : ''
+            },
+            buttons         : [],
+            titlebuttons    : [],
+            GUID            : popup
         });
-        this.forceUpdate();
     }
 
     onMarkerChanges(){
         this.saveMarkers();
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.MARKERS_CHANGED, this.markers);
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.MARKERS_UPDATED, this.getActiveMarkers());
     }
 
@@ -228,10 +200,5 @@ export class ViewControllerMarkers extends ViewControllerPattern implements View
             }
         });
     }
-
-    /*
-    *                 backgroundColor : this.backgroundColor,
-      : this.
-    * */
 
 }
