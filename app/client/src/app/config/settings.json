@@ -1,11 +1,13 @@
 {
-  "version": "10.02.2018",
+  "version": "15.02.2018.01",
   "drop_rules": [
-    "api"
+    "visual"
   ],
   "visual": {
     "prevent_ascii_colors_always": false,
-    "prevent_ascii_colors_on_highlight": true
+    "prevent_ascii_colors_on_highlight": true,
+    "do_not_highlight_matches_in_requests": false,
+    "highlight_search_requests": false
   },
   "server":{
     "API_URL"                 : "http://127.0.0.1:8082/API",
