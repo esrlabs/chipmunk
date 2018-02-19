@@ -31,6 +31,7 @@ class StaticTopBarButtonsStorage{
             });
         }
     }
+
 }
 
 let staticTopBarButtonsStorage = new StaticTopBarButtonsStorage();
