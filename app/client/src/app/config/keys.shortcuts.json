@@ -6,6 +6,6 @@
   "SHORTCUT_NEXT_IN_SEARCH"         : { "keys" : [ { "key": "n" }],                 "action": "Next in search results"                      },
   "SHORTCUT_OPEN_FILE"              : { "keys" : [ { "key": "o" }],                 "action": "Open file"                                   },
   "SHORTCUT_TERMINAL_COMMAND"       : { "keys" : [ { "key": "t" }],                 "action": "Terminal command"                            },
-  "SHORTCUT_INSERT_EMPTY_LINE"      : { "keys" : [ { "key": "Enter" }],            "action": "Insert empty line"                           },
+  "SHORTCUT_INSERT_EMPTY_LINE"      : { "keys" : [ { "key": "Enter" }],             "action": "Insert empty line"                           },
   "SHORTCUT_HELP"                   : { "keys" : [ { "key": "?" }],                 "action": "Show shortcuts help"                         }
 }
