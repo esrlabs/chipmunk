@@ -6,6 +6,7 @@ import { staticTopBarButtonsStorage, StaticTopBarButtonsStorage } from './servic
 
 import { events as Events                                       } from '../modules/controller.events';
 import { configuration                                          } from '../modules/controller.config';
+import { topbarMenuHandles                                      } from '../handles/topbar.menu.hadles';
 
 @Injectable()
 
@@ -19,6 +20,7 @@ export class ServiceTopBarButtons implements OnDestroy{
         Events.bind(configuration.sets.EVENTS_TOOLBAR.ADD_BUTTON,       this.addButton);
         Events.bind(configuration.sets.EVENTS_TOOLBAR.REMOVE_BUTTON,    this.removeButton);
         Events.bind(configuration.sets.EVENTS_TOOLBAR.UPDATE_BUTTON,    this.updateButton);
+        this._loadStaticButtons();
     }
 
     ngOnDestroy(){
@@ -41,5 +43,19 @@ export class ServiceTopBarButtons implements OnDestroy{
 
     updateButton(button: ToolBarButton){
         this.storage.updateButton(button);
+    }
+
+    _loadStaticButtons(){
+        configuration.sets.MENU.bar !== void 0 && configuration.sets.MENU.bar.forEach((button: any) => {
+            if (typeof topbarMenuHandles[button.handler] === 'function') {
+                this.storage.addButton({
+                    id      : button.guid !== void 0 ? button.guid : Symbol(),
+                    icon    : button.icon !== void 0 ? button.icon : '',
+                    caption : button.icon !== void 0 ? button.icon : '',
+                    handle  : topbarMenuHandles[button.handler],
+                    enable  : button.enable !== void 0 ? button.enable : true
+                });
+            }
+        });
     }
 }

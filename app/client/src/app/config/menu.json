@@ -1,4 +1,7 @@
 {
+  "bar": [
+    { "icon" : "fa-folder-open-o",    "caption" : "Open log file",              "handler": "openLocalFile",                 "type": "item" }
+  ],
   "web": [
     { "icon" : "fa-upload",           "caption" : "Open log file",              "handler": "openLocalFile",                 "type": "item" },
     { "icon" : "fa-plug",             "caption" : "Open serial port stream",    "handler": "openSerialStream",              "type": "item" },
@@ -40,7 +43,6 @@
     {
       "group": "Sources",
       "items": [
-        { "icon" : "fa-upload",       "caption" : "Open log file",              "handler": "openLocalFile",               "type": "item", "accelerator": "" },
         { "icon" : "fa-plug",         "caption" : "Open serial port stream",    "handler": "openSerialStream",            "type": "item", "accelerator": "" },
         { "icon" : "fa-android",      "caption" : "Open ADB logcat stream",     "handler": "openADBLogcatStream",         "type": "item", "accelerator": "" },
         { "icon" : "fa-android",      "caption" : "Setup and open ADB logcat",  "handler": "setupAndOpenADBLogcatStream", "type": "item", "accelerator": "" },
