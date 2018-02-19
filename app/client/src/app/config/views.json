@@ -32,7 +32,7 @@
       { "icon": "fa-floppy-o",          "event" : "LIST_VIEW_EXPORT_TO_FILE",         "hint": "export data to file"                             }
     ],
     "hide"        : [
-      "SILENCE", "DEAFNESS", "FILTER", "FAVORITE"
+      "SILENCE", "DEAFNESS", "FILTER", "FAVORITE", "CLOSE"
     ],
     "controller"  : "ViewControllerSearchResults"
   },
