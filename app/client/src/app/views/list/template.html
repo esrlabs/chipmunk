@@ -1,6 +1,6 @@
 <div class="lv-wrapper" *ngIf="rows.length > 0">
     <div [attr.class]="'lv-list' + (!line.visible ? ' no-line' : '')" class="lv-list">
-        <long-list #list [rows]="rows" [onScroll]="onScrollSubscription"></long-list>
+        <long-list #list [rows]="rows" [onScroll]="onScrollSubscription" [maxWidthRow]="maxWidthRow"></long-list>
     </div>
     <div *ngIf="line.visible" class="lv-line">
         <list-view-line

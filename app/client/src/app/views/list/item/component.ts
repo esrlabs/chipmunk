@@ -17,7 +17,7 @@ const MARKERS = {
 };
 
 const INDEX_MARKERS = {
-    MARKER : '\u0001'
+    MARKER : '\u0020'
 };
 
 const MARKERS_SELECTION_MODE = {
@@ -215,12 +215,12 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
         this.bookmark.emit(this.index);
     }
 
-    update(params : ListItemInterface){
+    update(params : any){
+        let force = params.val !== void 0 ? (this.val !== params.val ? true : false) : false;
         Object.keys(params).forEach((key)=>{
             this[key] !== void 0 && (this[key] = params[key]);
         });
         const highlightHash = this.highlight.foregroundColor + this.highlight.backgroundColor;
-        let force = false;
         if (this._highlightHash !== highlightHash){
             this._highlightHash = highlightHash;
             force = true;

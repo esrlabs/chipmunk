@@ -1,6 +1,6 @@
 <div [attr.class]="'lv-list-wrapper' + ' ' + (requestsListClosed ? 'list-closed' : 'list-opened')">
     <div *ngIf="rows.length > 0" [attr.class]="'lv-list'">
-        <long-list #list [rows]="rows" [onScroll]="onScrollSubscription"></long-list>
+        <long-list #list [rows]="rows" [onScroll]="onScrollSubscription" [maxWidthRow]="maxWidthRow"></long-list>
     </div>
     <p *ngIf="rows.length === 0" class="message-no-data">No Data Is Loaded</p>
     <a #exporturl [attr.href]="exportdata.url" class="export-url" [attr.download]="exportdata.filename"></a>
