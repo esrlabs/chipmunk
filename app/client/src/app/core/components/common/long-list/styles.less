@@ -39,6 +39,16 @@ long-list{
                     display: block;
                 }
             }
+            .max-width-row{
+                display             : block;
+                position            : relative;
+                white-space         : nowrap;
+                list-style          : none;
+                padding             : 0;
+                margin              : 0;
+                height              : 0px;
+                overflow            : hidden;
+            }
         }
         .border-top, .border-bottom{
             position: absolute;
@@ -83,6 +93,7 @@ long-list{
             }
         }
     }
+
 
     @keyframes long-list-border-bottom-on {
         0% { opacity:0; margin-top: 40px;} 100% { opacity:1; margin-top: 0px; }

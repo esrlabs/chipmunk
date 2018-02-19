@@ -75,6 +75,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
 
     private _rows                   : Array<any>                    = [];
     private rows                    : Array<any>                    = [];
+    private maxWidthRow             : any                           = null;
     private rowsCount               : number                        = 0;
     private bookmarks               : Array<number>                 = [];
     private numbers                 : boolean                       = true;
@@ -288,7 +289,59 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         this._rows  = this.convertRows(sources, 0);
         this.filterRows();
         this.checkLength();
+        this.setMaxWidthRow();
         rows instanceof Array && this.forceUpdate();
+    }
+
+    setMaxWidthRow(){
+        let _row    = '';
+        let _rowOrg = '';
+        this.rows.forEach((row: any) => {
+            if (_row.length < row.params.original.length) {
+                _row = row.params.val;
+                _rowOrg = row.params.original;
+            }
+        });
+        if (_row !== '' && (this.maxWidthRow === null || this.maxWidthRow.params.original.length < _rowOrg.length || this.maxWidthRow.count !== this.rows.length)){
+            const params = {
+                GUID            : this.viewParams !== null ? this.viewParams.GUID : null,
+                val             : _row,
+                original        : _rowOrg,
+                index           : 0,
+                selection       : false,
+                bookmarked      : false,
+                filtered        : false,
+                match           : '',
+                matchReg        : false,
+                visibility      : true,
+                total_rows      : 0,
+                markers         : [] as Array<any>,
+                markersHash     : '',
+                regsCache       : {},
+                highlight       : {
+                    backgroundColor:'',
+                    foregroundColor:''
+                }
+            };
+            if (this.maxWidthRow !== null && this.maxWidthRow.update !== null) {
+                this.maxWidthRow.update(params);
+            } else {
+                const factory = this.componentFactoryResolver.resolveComponentFactory(ViewControllerListItem);
+                this.maxWidthRow = {
+                    factory : factory,
+                    params  : params,
+                    callback        : (instance : ListItemInterface) => {
+                        this.maxWidthRow.update = instance.update.bind(instance);
+                    },
+                    update          : null,
+                    filtered        : true,
+                    filters         : {},
+                    match           : '',
+                    matchReg        : false
+                };
+            }
+            this.maxWidthRow.count = this.rows.length;
+        }
     }
 
     filterRows(){
