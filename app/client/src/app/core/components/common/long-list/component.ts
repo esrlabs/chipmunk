@@ -28,12 +28,10 @@ export class LongList implements AfterViewChecked{
     /*
     * Incomes declaration
     * */
-    @Input() rows       : Array<any>                    = [];
-    @Input() cssClass   : string                        = '';
-    @Input() onScroll   : EventEmitter<OnScrollEvent>   = new EventEmitter();
-
-
-    private GUID                : string    = '';
+    @Input() rows           : Array<any>                    = [];
+    @Input() maxWidthRow?   : any                           = null;
+    @Input() cssClass       : string                        = '';
+    @Input() onScroll       : EventEmitter<OnScrollEvent>   = new EventEmitter();
 
     /*
     * Internal declaration
