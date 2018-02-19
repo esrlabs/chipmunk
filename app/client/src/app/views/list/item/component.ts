@@ -172,7 +172,8 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
             (
                 (markersMatches instanceof Array && markersMatches.length > 0) ||
                 (matchMatches instanceof Array && matchMatches.length > 0) ||
-                (this._highlight.backgroundColor !== '')
+                (this._highlight.backgroundColor !== '') ||
+                (this.selection)
             )
         ) {
             this.html = ANSIClearer(this.html);
@@ -216,7 +217,12 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     }
 
     update(params : any){
-        let force = params.val !== void 0 ? (this.val !== params.val ? true : false) : false;
+        let force = false;
+        ['val', 'selection'].forEach((key) => {
+            if (params[key] !== void 0 && params[key] !== this[key]) {
+                force = true;
+            }
+        });
         Object.keys(params).forEach((key)=>{
             this[key] !== void 0 && (this[key] = params[key]);
         });
