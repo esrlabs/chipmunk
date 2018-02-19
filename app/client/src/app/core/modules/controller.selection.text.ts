@@ -53,13 +53,14 @@ class TextSelection {
 
     onCopy(event: ClipboardKeysEvent) {
         const text  = typeof event.selection.toString === 'function' ? event.selection.toString() : null;
-        const reg   = /\u0001/gi;
+        const reg   = /\u0020/gi;
+        const searchReg = /^\d*\u0020/gim;
 
         if (text === null) {
             return false;
         }
 
-        if (!~text.search(/\u0001/gi)){
+        if (!~text.search(searchReg)){
             return false;
         }
 
@@ -69,7 +70,7 @@ class TextSelection {
         element.style.width     = '1px';
         element.style.height    = '1px';
         element.style.overflow  = 'hidden';
-        element.innerHTML       = text.replace(/\u0001\d*\u0001/gi, '').replace(/[\n\r]/gi, '</br>');
+        element.innerHTML       = text.replace(searchReg, '').replace(/[\n\r]/gi, '</br>');
         document.body.appendChild(element);
         const range             = document.createRange();
         range.selectNode(element);
