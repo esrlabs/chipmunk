@@ -120,6 +120,9 @@ class DataController implements InitiableModule{
             this.stream !== null && this.stream.add(data, requests)
                 .then((rows: Array<DataRow>) => {
                     Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_IS_MODIFIED, new EVENT_DATA_IS_UPDATED(rows));
+                    events.forEach((event)=>{
+                        Events.trigger(event);
+                    });
                 });
         });
     }
