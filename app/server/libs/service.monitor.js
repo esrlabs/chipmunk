@@ -464,7 +464,7 @@ class StoringManager{
             typeof content === 'string' && search.forEach((search) => {
                 let request = reg ? search : serializeReg(search);
                 let regExp  = new RegExp(request, 'gi');
-                let lines   = content.split(/[\n\r]/gi);
+                let lines   = content.split(/\r?\n|\r/gi);
                 let total   = -1;
                 let indexes = {};
                 lines.forEach((line, index) => {

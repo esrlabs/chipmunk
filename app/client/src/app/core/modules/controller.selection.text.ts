@@ -70,7 +70,7 @@ class TextSelection {
         element.style.width     = '1px';
         element.style.height    = '1px';
         element.style.overflow  = 'hidden';
-        element.innerHTML       = text.replace(searchReg, '').replace(/[\n\r]/gi, '</br>');
+        element.innerHTML       = text.replace(searchReg, '').replace(/\r?\n|\r/gi, '</br>');
         document.body.appendChild(element);
         const range             = document.createRange();
         range.selectNode(element);

@@ -257,7 +257,7 @@ class Stream extends EventEmitter {
         //Add rest from previous
         str = this._rest + str;
         //Split messages
-        let entries = str.split(/[\n\r]/gi);
+        let entries = str.split(/\r?\n|\r/gi);
         //Exclude rest (not finished message)
         if (str.search(/\n$/gi) === -1){
             this._rest = entries[entries.length - 1];
