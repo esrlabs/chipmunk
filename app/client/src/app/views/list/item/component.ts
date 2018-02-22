@@ -218,7 +218,7 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
 
     update(params : any){
         let force = false;
-        ['val', 'selection'].forEach((key) => {
+        ['val', 'selection', 'highlight'].forEach((key) => {
             if (params[key] !== void 0 && params[key] !== this[key]) {
                 force = true;
             }
