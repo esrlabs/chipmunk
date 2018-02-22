@@ -1,5 +1,4 @@
-<div #wrapper [attr.class]="'wrapper ' + cssClass" (scroll)="onScrollEvent($event)" (window:resize)="onResize()">
-
+<div #wrapper [attr.class]="'wrapper ' + cssClass" (scroll)="onScrollEvent($event)" (window:resize)="onResize()" tabindex="0">
     <div class="space-filler" [style.height] = "component.filler">
     </div>
     <ul #ul class="rows" [style.transform] = "'translateY(' + state.offset + ')'">
