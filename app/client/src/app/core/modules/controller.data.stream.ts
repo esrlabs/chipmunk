@@ -85,7 +85,9 @@ class Stream {
             fragment: fragment
         };
 
-        let rows = typeof fragment === 'string' ? fragment.split(/[\r\n]/gi) : null;
+        fragment = typeof fragment === 'string' ? fragment.replace(/\r?\n|\r/gi, '\n') : fragment;
+
+        let rows = typeof fragment === 'string' ? fragment.split(/\n/gi) : null;
 
         if (!(rows instanceof Array) || rows.length === 0) {
             return result;
