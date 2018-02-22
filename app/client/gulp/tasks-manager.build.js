@@ -46,9 +46,9 @@ class BuildingTasks {
         this._createSpawnTask(TASKS.NPM, this._npm, ['install', '--production'], { cwd: `./${PATHS.OUT.BASE}` })
     }
 
-    _createSpawnTask(task, ...args){
+    _createSpawnTask(task, cmd, args = [], opts = {}){
         gulp.task(task, (done) => {
-            this._attachProcess(spawn(...args, { env: process.env }), task, done);
+            this._attachProcess(spawn(cmd, args, Object.assign(opts, { env: process.env })), task, done);
         });
     }
 
