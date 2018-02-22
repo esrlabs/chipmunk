@@ -1,9 +1,9 @@
-import {ChangeDetectorRef, Component} from '@angular/core';
-import { ServiceTopBarMenuItems } from '../../../services/service.topbar.menu';
-import { topbarMenuHandles      } from '../../../handles/topbar.menu.hadles';
-import { MenuItem               } from '../../../services/class.menu.item';
-import {events as Events} from "../../../modules/controller.events";
-import {configuration as Configuration} from "../../../modules/controller.config";
+import { ChangeDetectorRef, Component   } from '@angular/core';
+import { ServiceTopBarMenuItems         } from '../../../services/service.topbar.menu';
+import { topbarMenuHandles              } from '../../../handles/topbar.menu.hadles';
+import { MenuItem                       } from '../../../services/class.menu.item';
+import { events as Events               } from "../../../modules/controller.events";
+import { configuration as Configuration } from "../../../modules/controller.config";
 
 interface MenuHandlerCall {
     handler: string
