@@ -23,6 +23,7 @@ import { Request                                } from '../tab.requests/request/
 import { SimpleListItem                         } from '../../../core/components/common/lists/simple-drop-down/item.interface';
 import { ANSIClearer                            } from "../../../core/modules/tools.ansiclear";
 import { settings as Settings                   } from '../../../core/modules/controller.settings';
+import { viewsParameters                        } from '../../../core/services/service.views.parameters';
 
 const SETTINGS : {
     SELECTION_OFFSET        : number,
@@ -86,7 +87,6 @@ export class TabControllerSearchResults extends TabController implements ViewInt
     private rows                : Array<any>                    = [];
     private maxWidthRow         : any                           = null;
     private rowsCount           : number                        = 0;
-    private numbers             : boolean                       = true;
     private followByScroll      : boolean                       = true;
     private highlight           : boolean                       = true;
     private onScrollSubscription: EventEmitter<OnScrollEvent>   = new EventEmitter();
@@ -146,11 +146,12 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         this.onDeselectAll              = this.onDeselectAll.       bind(this);
         this.onInvert                   = this.onInvert.            bind(this);
         this.onOffOn                    = this.onOffOn.             bind(this);
+        this.onNumbersChange            = this.onNumbersChange.     bind(this);
+
         [   Configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED,
             Configuration.sets.SYSTEM_EVENTS.ROW_IS_SELECTED,
             Configuration.sets.SYSTEM_EVENTS.DATA_IS_MODIFIED,
             Configuration.sets.SYSTEM_EVENTS.MARKERS_UPDATED,
-            Configuration.sets.EVENTS_VIEWS.LIST_VIEW_NUMERIC_TRIGGER,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_FOLLOW_SCROLL_TRIGGER,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_HIGHLIGHT_TRIGGER,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_EXPORT_TO_FILE,
@@ -166,9 +167,10 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             this['on' + handle] = this['on' + handle].bind(this);
             Events.bind(handle, this['on' + handle]);
         });
-        this.onScrollSubscription.  subscribe(this.onScroll);
-        this.line.scrollTo.         subscribe(this.onScrollByLine);
-        this.textSelectionTrigger.  subscribe(this.onTextSelection);
+        this.onScrollSubscription.      subscribe(this.onScroll);
+        this.line.scrollTo.             subscribe(this.onScrollByLine);
+        this.textSelectionTrigger.      subscribe(this.onTextSelection);
+        viewsParameters.onNumbersChange.subscribe(this.onNumbersChange);
         this.initRequests();
         this.initRows();
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.MARKERS_GET_ALL, this.onMARKERS_UPDATED.bind(this));
@@ -186,7 +188,6 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             Configuration.sets.SYSTEM_EVENTS.ROW_IS_SELECTED,
             Configuration.sets.SYSTEM_EVENTS.DATA_IS_MODIFIED,
             Configuration.sets.SYSTEM_EVENTS.MARKERS_UPDATED,
-            Configuration.sets.EVENTS_VIEWS.LIST_VIEW_NUMERIC_TRIGGER,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_FOLLOW_SCROLL_TRIGGER,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_HIGHLIGHT_TRIGGER,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_EXPORT_TO_FILE,
@@ -201,11 +202,12 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             Configuration.sets.SYSTEM_EVENTS.HIGHLIGHT_SEARCH_REQUESTS_TRIGGER].forEach((handle: string)=>{
             Events.unbind(handle, this['on' + handle]);
         });
-        this.onScrollSubscription.  unsubscribe();
-        this.line.scrollTo.         unsubscribe();
-        this.onSelect.              unsubscribe();
-        this.onDeselect.            unsubscribe();
-        this.onResize.              unsubscribe();
+        this.onScrollSubscription.      unsubscribe();
+        this.line.scrollTo.             unsubscribe();
+        this.onSelect.                  unsubscribe();
+        this.onDeselect.                unsubscribe();
+        this.onResize.                  unsubscribe();
+        viewsParameters.onNumbersChange.unsubscribe();
     }
 
     ngAfterViewChecked(){
@@ -421,6 +423,9 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             rowsFiltered= this.convertFilterRows(rowsClear, true);
         this._rows. push(...rowsClear);
         this.rows.  push(...rowsFiltered);
+        this.synchCounting();
+        this.shareHighlightState();
+        this.setMaxWidthRow();
         this.updateTitle();
         this.checkLength();
         this.forceUpdate();
@@ -442,7 +447,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
                     index           : _index,
                     selection       : this.selection.index === _index ? true : false,
                     bookmarked      : this.bookmarks.indexOf(index) !== -1,
-                    visibility      : this.numbers,
+                    visibility      : viewsParameters.numbers,
                     total_rows      : this._rows.length === 0 ? rows.length : this._rows.length,
                     markers         : this.markers,
                     markersHash     : markersHash,
@@ -462,13 +467,13 @@ export class TabControllerSearchResults extends TabController implements ViewInt
     }
 
     checkLength(){
-        if (this.rows instanceof Array){
-            if (this.rows.length.toString().length !== this.rowsCount.toString().length){
+        if (this._rows instanceof Array){
+            if (this._rows.length.toString().length !== this.rowsCount.toString().length){
                 this.rows.forEach((row)=>{
                     row.params.total_rows = this._rows.length;
                     typeof row.update === 'function' && row.update({total_rows  : this._rows.length});
                 });
-                this.rowsCount = this.rows.length;
+                this.rowsCount = this._rows.length;
             }
         }
     }
@@ -572,7 +577,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
                         row.requests[request.GUID] && (request.count += 1);
                     });
                     row.params.highlight    = highlight;
-                    row.index               = index;
+                    //row.index               = row.index !== void 0 ? row.index : index;
                     row.update !== null && row.update(row.params);
                     if (filtered){
                         row.params.matchReg = match.isReg;
@@ -672,9 +677,6 @@ export class TabControllerSearchResults extends TabController implements ViewInt
                 result = this.getRowsByRequestsPassive(rows, passive, {}, adding).rows;
                 break;
         }
-        this.synchCounting();
-        this.shareHighlightState();
-        this.setMaxWidthRow();
         Logs.measure(measure);
         return result;
     }
@@ -700,6 +702,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
             });
         }
         Events.trigger(Configuration.sets.EVENTS_VIEWS.HIGHLIGHT_SEARCH_REQUESTS_DATA, results);
+        console.log('ts: ' + Object.keys(results).length);
     }
 
     onHIGHLIGHT_SEARCH_REQUESTS_TRIGGER(){
@@ -711,6 +714,9 @@ export class TabControllerSearchResults extends TabController implements ViewInt
 
     filterRows(){
         this.rows = this.convertFilterRows(this._rows, false);
+        this.synchCounting();
+        this.shareHighlightState();
+        this.setMaxWidthRow();
         this.updateTitle();
     }
 
@@ -721,7 +727,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
                 update      = row.params.selection !== selection ? (row.update !== null) : false;
             update = row.params.GUID !== null ? (row.update !== null) : update;
             row.params.selection        = selection;
-            row.params.visibility       = this.numbers;
+            row.params.visibility       = viewsParameters.numbers;
             row.params.total_rows       = this._rows.length;
             row.params.GUID             = this.viewParams !== null ? this.viewParams.GUID : null;
             row.params.bookmarked       = this.bookmarks.indexOf(row.params.index) !== -1;
@@ -809,9 +815,9 @@ export class TabControllerSearchResults extends TabController implements ViewInt
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
     onTextSelection(text: string){
-        if (typeof text === 'string' && !~text.search(/[\n\r]/gi)){
+        if (typeof text === 'string' && !~text.search(/\r?\n|\r/gi)){
             let index = this.getSelfMarkerIndex();
-            text = text.replace(/[\n\r]/gi, '');
+            text = text.replace(/\r?\n|\r/gi, '');
             if (text.length > 0){
                 if (~index){
                     this.markers[index].value = text;
@@ -942,8 +948,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         }
     }
 
-    onLIST_VIEW_NUMERIC_TRIGGER(GUID: string | symbol){
-        this.numbers = !this.numbers;
+    onNumbersChange(state: boolean){
         this.updateRows();
     }
 
@@ -1007,7 +1012,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
         let result = -1;
         if (this.rows instanceof Array){
             for(let i = this.rows.length - 1; i >= 0; i -= 1){
-                if (this.rows[i].index === index) {
+                if (this.rows[i].params.index === index) {
                     result = i;
                     break;
                 }
@@ -1018,7 +1023,7 @@ export class TabControllerSearchResults extends TabController implements ViewInt
 
     onROW_IS_SELECTED(index : number){
         let _index = this.getIndexInSearchList(index);
-        if (~index && !this.selection.own && this.listView !== null && this.listView !== void 0) {
+        if (~_index && !this.selection.own && this.listView !== null && this.listView !== void 0) {
             this.listView.scrollToIndex(_index > SETTINGS.SELECTION_OFFSET ? _index - SETTINGS.SELECTION_OFFSET : _index);
             this.select(_index, false);
         } else {
