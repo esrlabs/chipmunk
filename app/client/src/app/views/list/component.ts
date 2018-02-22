@@ -26,6 +26,7 @@ import { ViewClass                              } from '../../core/services/clas
 
 import { TextSelection                          } from '../../core/modules/controller.selection.text';
 import { settings as Settings                   } from '../../core/modules/controller.settings';
+import { viewsParameters                        } from '../../core/services/service.views.parameters';
 
 const SETTINGS : {
     SELECTION_OFFSET        : number,
@@ -78,7 +79,6 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     private maxWidthRow             : any                           = null;
     private rowsCount               : number                        = 0;
     private bookmarks               : Array<number>                 = [];
-    private numbers                 : boolean                       = true;
     private followByScroll          : boolean                       = true;
     private showOnlyBookmarks       : boolean                       = false;
     private highlight               : boolean                       = true;
@@ -133,16 +133,16 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         this.componentFactoryResolver   = componentFactoryResolver;
         this.viewContainerRef           = viewContainerRef;
         this.changeDetectorRef          = changeDetectorRef;
-        this.onScroll                   = this.onScroll.bind(this);
-        this.onScrollByLine             = this.onScrollByLine.bind(this);
-        this.onTextSelection            = this.onTextSelection.bind(this);
+        this.onScroll                   = this.onScroll.        bind(this);
+        this.onScrollByLine             = this.onScrollByLine.  bind(this);
+        this.onTextSelection            = this.onTextSelection. bind(this);
+        this.onNumbersChange            = this.onNumbersChange. bind(this);
 
         [   Configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED,
             Configuration.sets.SYSTEM_EVENTS.ROW_IS_SELECTED,
             Configuration.sets.SYSTEM_EVENTS.DATA_FILTER_IS_UPDATED,
             Configuration.sets.SYSTEM_EVENTS.DATA_IS_MODIFIED,
             Configuration.sets.SYSTEM_EVENTS.MARKERS_UPDATED,
-            Configuration.sets.EVENTS_VIEWS.LIST_VIEW_NUMERIC_TRIGGER,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_FOLLOW_SCROLL_TRIGGER,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_ONLY_BOOKMARKS_TRIGGER,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_HIGHLIGHT_TRIGGER,
@@ -166,9 +166,10 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         super.getEmitters().favoriteGOTO.   subscribe(this.onFavoriteGOTO.      bind(this));
         super.getEmitters().resize.         subscribe(this.resizeOnREMOVE_VIEW. bind(this));
 
-        this.onScrollSubscription.  subscribe(this.onScroll);
-        this.line.scrollTo.         subscribe(this.onScrollByLine);
-        this.textSelectionTrigger.  subscribe(this.onTextSelection);
+        this.onScrollSubscription.      subscribe(this.onScroll);
+        this.line.scrollTo.             subscribe(this.onScrollByLine);
+        this.textSelectionTrigger.      subscribe(this.onTextSelection);
+        viewsParameters.onNumbersChange.subscribe(this.onNumbersChange);
         this.initRows();
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.MARKERS_GET_ALL, this.onMARKERS_UPDATED.bind(this));
     }
@@ -185,7 +186,6 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             Configuration.sets.SYSTEM_EVENTS.DATA_FILTER_IS_UPDATED,
             Configuration.sets.SYSTEM_EVENTS.DATA_IS_MODIFIED,
             Configuration.sets.SYSTEM_EVENTS.MARKERS_UPDATED,
-            Configuration.sets.EVENTS_VIEWS.LIST_VIEW_NUMERIC_TRIGGER,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_FOLLOW_SCROLL_TRIGGER,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_ONLY_BOOKMARKS_TRIGGER,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_HIGHLIGHT_TRIGGER,
@@ -202,8 +202,9 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             Configuration.sets.EVENTS_VIEWS.HIGHLIGHT_SEARCH_REQUESTS_DATA].forEach((handle: string)=>{
             Events.unbind(handle, this['on' + handle]);
         });
-        this.onScrollSubscription.  unsubscribe();
-        this.line.scrollTo.         unsubscribe();
+        this.onScrollSubscription.      unsubscribe();
+        this.line.scrollTo.             unsubscribe();
+        viewsParameters.onNumbersChange.unsubscribe();
     }
 
     ngAfterViewChecked(){
@@ -241,7 +242,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                     filtered        : this.highlight ? filtered : false,
                     match           : row.match,
                     matchReg        : row.matchReg,
-                    visibility      : this.numbers,
+                    visibility      : viewsParameters.numbers,
                     total_rows      : this._rows.length === 0 ? rows.length : this._rows.length,
                     markers         : this.markers,
                     markersHash     : markersHash,
@@ -370,7 +371,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             update = row.params.filtered    !== filtered    ? (row.update !== null) : update;
             row.params.selection        = selection;
             row.params.bookmarked       = bookmarked;
-            row.params.visibility       = this.numbers;
+            row.params.visibility       = viewsParameters.numbers;
             row.params.filtered         = this.highlight ? filtered : false;
             row.params.match            = row.match;
             row.params.matchReg         = row.matchReg;
@@ -469,7 +470,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
     onTextSelection(text: string){
-        if (typeof text === 'string' && !~text.search(/[\n\r]/gi)){
+        if (typeof text === 'string' && !~text.search(/\r?\n|\r/gi)){
             let index = this.getSelfMarkerIndex();
             if (text.length > 0){
                 if (~index){
@@ -649,12 +650,21 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     updateLineData(){
         this.resetLineData();
         this.rows.forEach((row, index)=>{
-            row.params.filtered && this.line.marks.push({
-                position: index,
-                color   : 'red',
-                str     : row.params.val,
-                onClick : this.onROW_IS_SELECTED.bind(this, index)
-            });
+            if (row.params.filtered) {
+                this.line.marks.push({
+                    position: index,
+                    color   : 'red',
+                    str     : row.params.val,
+                    onClick : this.onROW_IS_SELECTED.bind(this, index)
+                });
+            } else if (row.params.highlight.backgroundColor !== '') {
+                this.line.marks.push({
+                    position: index,
+                    color   : row.params.highlight.backgroundColor,
+                    str     : row.params.val,
+                    onClick : this.onROW_IS_SELECTED.bind(this, index)
+                });
+            }
         });
         this.line.count     = this.rows.length;
         this.line.scroll    = this.listView.getScrollState();
@@ -767,8 +777,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         }
     }
 
-    onLIST_VIEW_NUMERIC_TRIGGER(GUID: string | symbol){
-        this.numbers = !this.numbers;
+    onNumbersChange(state: boolean){
         this.updateRows();
     }
 
@@ -837,6 +846,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             this.removeClearButton();
             this.refreshScrollState();
             Logs.measure(measure);
+            console.log('lv');
         }
     }
 

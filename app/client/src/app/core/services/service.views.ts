@@ -2,8 +2,6 @@
 import {EventEmitter, Injectable} from "@angular/core";
 
 import { ViewClass                      } from './class.view';
-import { ViewSizeClass                  } from '../services/class.view.size';
-import { ViewPositionClass              } from '../services/class.view.position';
 import { GUID                           } from '../modules/tools.guid';
 
 import { events as Events               } from '../modules/controller.events';
