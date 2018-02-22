@@ -6,6 +6,9 @@
         #canvas></canvas>
 <div *ngIf="selection.list.length > 0" [style.top]="selection.top" [attr.class]="'ln-navigation-wrapper' + (pin ? ' pinned' : '')">
     <ul [attr.class]="'ln-navigation'" (mouseleave)="onMouseLeave($event)">
-        <li *ngFor="let item of selection.list;" class="font-system" [innerHTML]="item.html" (click)="item.onClick()"></li>
+        <li *ngFor="let item of selection.list;" (click)="item.onClick()">
+            <span class="fa fa-arrow-circle-right" [style.color]="item.color"></span>
+            <p class="font-system" [innerHTML]="item.html"></p>
+        </li>
     </ul>
 </div>

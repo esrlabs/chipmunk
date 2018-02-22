@@ -4,10 +4,6 @@ import { ListLineMark   } from './interface.mark';
 import { OnScrollEvent  } from '../../../core/components/common/long-list/interface.scrollevent';
 import { ANSIClearer    } from '../../../core/modules/tools.ansiclear';
 
-const COLORS = {
-    BACKGROUND : 'rgba(0,0,0,1);'
-};
-
 const MODES = {
     SCROLL : Symbol(),
     REVIEW : Symbol()
@@ -15,6 +11,7 @@ const MODES = {
 
 interface SelectionItem{
     html    : string,
+    color   : string,
     onClick : Function
 }
 
@@ -143,6 +140,7 @@ export class ViewControllerListLine implements OnDestroy, OnChanges, AfterConten
                     if (mark.position > (position - offset) && mark.position < (position + offset)){
                         this.selection.list.push({
                             html    : ANSIClearer(mark.str),
+                            color   : mark.color,
                             onClick : mark.onClick
                         });
                     }
