@@ -38,7 +38,7 @@ class Journal {
     }
 
     isConfirmed(income: string): boolean{
-        let _income = income.replace(/[\n\r]/gi,'');
+        let _income = income.replace(/\r?\n|\r/gi,'');
         if (~_income.indexOf(this.buffer)){
             return true;
         } else {

@@ -3,8 +3,8 @@ const MARKERS = {
 };
 
 const REGEXPS = {
-    CARRETS: /[\n\r]/gi,
-    CLOSE_CARRET: /[\n\r]$/gi,
+    CARRETS: /\r?\n|\r/gi,
+    CLOSE_CARRET: /(\r?\n|\r)$/gi,
     SLASH: /\\/gi,
     NUMBER: /\u0002(\d*)\u0002/gi,
     SERIALIZATION: [

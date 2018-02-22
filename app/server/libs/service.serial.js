@@ -54,7 +54,7 @@ class PortWriter {
 
     next(buffer){
         if (typeof buffer === 'string' && buffer.length > 0){
-            buffer = buffer.replace(/[\n\r]/gi, '');
+            buffer = buffer.replace(/\r?\n|\r/gi, '');
             let bufferIn    = buffer.substr(0,this.size),
                 bufferOut   = buffer.substr(this.size, buffer.length);
             setTimeout(()=>{
