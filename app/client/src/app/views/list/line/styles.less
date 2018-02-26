@@ -7,7 +7,6 @@ list-view-line{
         display : block;
         position: absolute;
         right   : 0.15rem;
-        z-index : 100;
         opacity : 1;
         &.pinned:after{
             position    : fixed;
@@ -27,6 +26,7 @@ list-view-line{
             max-width   : 90%;
             overflow    : hidden;
             box-shadow  : @shadow-line;
+            z-index     : 100;
             li{
                 position    : relative;
                 padding     : 0;
