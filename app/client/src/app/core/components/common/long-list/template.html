@@ -1,7 +1,7 @@
 <div #wrapper [attr.class]="'wrapper ' + cssClass" (scroll)="onScrollEvent($event)" (window:resize)="onResize()" tabindex="0">
     <div class="space-filler" [style.height] = "component.filler">
     </div>
-    <ul #ul class="rows" [style.transform] = "'translateY(' + state.offset + ')'">
+    <ul #ul class="rows" [style.marginTop] = "state.offset">
         <li *ngIf="maxWidthRow !== null" class="max-width-row">
             <long-list-item [component]="maxWidthRow"></long-list-item>
         </li>
