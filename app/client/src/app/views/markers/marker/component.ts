@@ -1,13 +1,7 @@
 import {Component, OnInit, ComponentFactoryResolver, ViewContainerRef, ChangeDetectorRef, ViewChild, EventEmitter, Input, OnDestroy, AfterViewInit } from '@angular/core';
 
 import { popupController                        } from '../../../core/components/common/popup/controller';
-import { ColorsDialog                           } from '../../../core/components/common/dialogs/colors/component';
 import { MarkersEditDialog                      } from '../../../core/components/common/dialogs/markers.edit/component';
-
-import { events as Events                       } from '../../../core/modules/controller.events';
-import { configuration as Configuration         } from '../../../core/modules/controller.config';
-
-import { GUID                                   } from '../../../core/modules/tools.guid';
 
 @Component({
     selector        : 'view-markers-item',
@@ -93,7 +87,7 @@ export class ViewMarkersItem implements OnInit, OnDestroy, AfterViewInit {
                 move            : true,
                 resize          : true,
                 width           : '40rem',
-                height          : '25rem',
+                height          : '27rem',
                 close           : true,
                 addCloseHandle  : true,
                 css             : ''
