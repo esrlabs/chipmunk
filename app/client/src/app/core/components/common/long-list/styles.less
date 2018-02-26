@@ -27,6 +27,7 @@ long-list{
             display     : block;
             position    : absolute;
             top         : 15px;
+            min-width   : ~"calc(100% - 2rem)";
             li{
                 display             : block;
                 position            : relative;
@@ -46,8 +47,8 @@ long-list{
                 list-style          : none;
                 padding             : 0;
                 margin              : 0;
-                height              : 0px;
-                overflow            : hidden;
+                height              : 0;
+                opacity             : 0.01;
             }
         }
         .border-top, .border-bottom{
