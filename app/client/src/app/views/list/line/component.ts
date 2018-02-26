@@ -99,7 +99,7 @@ export class ViewControllerListLine implements OnDestroy, OnChanges, AfterConten
                 top       = this.scroll.scrollTop * rate;
             height      = height < minHeight ? minHeight : height;
             top         = top > this.getHeight(this.scroll.viewHeight) - height ? this.getHeight(this.scroll.viewHeight) - height : top;
-            this.context.fillStyle = 'rgba(0,0,255,0.4)';
+            this.context.fillStyle = 'rgba(255,255,255,1)';
             this.context.fillRect(0, top, this.size.width, height);
         }
     }
@@ -177,7 +177,6 @@ export class ViewControllerListLine implements OnDestroy, OnChanges, AfterConten
     }
 
     onScroll(event: MouseEvent){
-        console.log(event);
     }
 
     forceUpdate(){
