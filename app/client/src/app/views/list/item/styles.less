@@ -27,9 +27,6 @@ list-view-item{
             display     : inline-block;
             min-width   : 100%;
         }
-        &:hover{
-            background  : @list-hover-background;
-        }
         .number{
             position            : relative;
             display             : inline-block;
@@ -97,6 +94,11 @@ list-view-item{
                     color       : @soft-green;
                 }
             }
+        }
+    }
+    &:hover{
+        span.filler{
+            background  : @list-hover-background;
         }
     }
 }

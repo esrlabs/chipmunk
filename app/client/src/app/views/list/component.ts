@@ -1,4 +1,4 @@
-import {Component, OnInit, ComponentFactoryResolver, ViewContainerRef, ChangeDetectorRef, ViewChild, OnDestroy, EventEmitter, AfterViewChecked } from '@angular/core';
+import {Component, OnInit, ComponentFactoryResolver, ViewContainerRef, ChangeDetectorRef, ViewChild, OnDestroy, EventEmitter, AfterViewChecked, AfterViewInit } from '@angular/core';
 import {DomSanitizer                            } from '@angular/platform-browser';
 
 import { ViewControllerPattern                  } from '../controller.pattern';
@@ -28,6 +28,11 @@ import { TextSelection                          } from '../../core/modules/contr
 import { settings as Settings                   } from '../../core/modules/controller.settings';
 import { viewsParameters                        } from '../../core/services/service.views.parameters';
 
+import { DragAndDropFiles, DragDropFileEvent    } from '../../core/modules/controller.dragdrop.files';
+import {popupController} from "../../core/components/common/popup/controller";
+import {ProgressBarCircle} from "../../core/components/common/progressbar.circle/component";
+
+
 const SETTINGS : {
     SELECTION_OFFSET        : number,
     TEXT_SELECTED_COLOR     : string,
@@ -43,7 +48,7 @@ const SETTINGS : {
     templateUrl     : './template.html',
 })
 
-export class ViewControllerList extends ViewControllerPattern implements ViewInterface, OnInit, OnDestroy, AfterViewChecked {
+export class ViewControllerList extends ViewControllerPattern implements ViewInterface, OnInit, OnDestroy, AfterViewChecked, AfterViewInit {
 
     public viewParams       : ViewClass = null;
     public exportdata       : {
@@ -88,6 +93,10 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     private regsCache               : Object                        = {};
     private lastBookmarkOperation   : number                        = null;
     private highlightCache          : { [key: number]: any }        = {};
+
+    private dragAndDropFiles        : DragAndDropFiles  = null;
+    private dragAndDropDialogGUID   : symbol            = null;
+
     private selection : {
         own     : boolean,
         index   : number
@@ -216,6 +225,64 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         }
     }
 
+    ngAfterViewInit(){
+        if (this.viewContainerRef !== null && this.dragAndDropFiles === null) {
+            this.dragAndDropFiles = new DragAndDropFiles(this.viewContainerRef.element.nativeElement);
+            this.dragAndDropFiles.onStart.subscribe(this.onFileLoadingStart.bind(this));
+            this.dragAndDropFiles.onFinish.subscribe(this.onFileLoadingFinish.bind(this));
+        }
+    }
+
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    * Drag & drop files
+    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+    onFileLoadingStart(event: DragDropFileEvent){
+        if (event.description !== '') {
+            this._showFileLoadingProgress(event.description);
+        }
+    }
+
+    onFileLoadingFinish(event: DragDropFileEvent){
+        if (event.content !== '' && event.description !== '') {
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.DESCRIPTION_OF_STREAM_UPDATED, event.description);
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.TXT_DATA_COME, event.content);
+        }
+        this._hideFileLoadingProgress();
+    }
+
+    _showFileLoadingProgress(description: string){
+        this.dragAndDropDialogGUID = Symbol();
+        popupController.open({
+            content : {
+                factory     : null,
+                component   : ProgressBarCircle,
+                params      : {}
+            },
+            title   : 'Please, wait... Loading: ' + description,
+            settings: {
+                move            : false,
+                resize          : false,
+                width           : '20rem',
+                height          : '10rem',
+                close           : false,
+                addCloseHandle  : false,
+                css             : ''
+            },
+            buttons         : [],
+            titlebuttons    : [],
+            GUID            : this.dragAndDropDialogGUID
+        });
+    }
+
+    _hideFileLoadingProgress(){
+        popupController.close(this.dragAndDropDialogGUID);
+    }
+
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    * List functionality
+    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
     convertRows(rows: Array<DataRow>, offset: number = 0){
         let allSelected = this.isAllFiltered(),
             markersHash = this.getMarkersHash();
@@ -290,7 +357,6 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         this._rows  = this.convertRows(sources, 0);
         this.filterRows();
         this.checkLength();
-        this.setMaxWidthRow();
         rows instanceof Array && this.forceUpdate();
     }
 
@@ -326,6 +392,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             };
             if (this.maxWidthRow !== null && this.maxWidthRow.update !== null) {
                 this.maxWidthRow.update(params);
+                this.forceUpdate();
             } else {
                 const factory = this.componentFactoryResolver.resolveComponentFactory(ViewControllerListItem);
                 this.maxWidthRow = {
@@ -340,6 +407,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                     match           : '',
                     matchReg        : false
                 };
+                this.forceUpdate();
             }
             this.maxWidthRow.count = this.rows.length;
         }
@@ -382,6 +450,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             update && row.update(row.params);
             return row;
         }));
+        this.setMaxWidthRow();
         this.forceUpdate();
     }
 
@@ -846,7 +915,6 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             this.removeClearButton();
             this.refreshScrollState();
             Logs.measure(measure);
-            console.log('lv');
         }
     }
 
@@ -863,6 +931,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             this.filterRows();
             this.updateRows();
             this.resetSearchNavigation();
+            this.updateSearchRequestHighlight();
             Logs.measure(measure);
         }
     }
@@ -967,6 +1036,15 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                     };
                 }
                 row.update !== null && row.update(row.params);
+            } else {
+                const hasHighlight = row.params.highlight.backgroundColor !== '' ? true : (row.params.highlight.foregroundColor !== '' ? true : false);
+                row.params.highlight = {
+                    backgroundColor:'',
+                    foregroundColor:''
+                };
+                if (hasHighlight){
+                    row.update !== null && row.update(row.params);
+                }
             }
             return row;
         }));
