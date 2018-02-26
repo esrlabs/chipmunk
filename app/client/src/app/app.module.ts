@@ -24,6 +24,9 @@ import { MonitorManager                     } from './core/handles/hanlde.open.m
 
 import { viewsParameters                    } from './core/services/service.views.parameters';
 
+import { serviceRequests                    } from './core/services/service.requests';
+
+
 @NgModule({
     imports:      [ BrowserModule, ComponentsCommmon, TopBarModule, HolderModule ],
     declarations: [ Layout, RootHolder ],
@@ -45,6 +48,7 @@ export class AppModule {
         APIProcessor.init();
         controllerThemes.init();
         viewsParameters.init();
+        serviceRequests.init();
         this.markersController.init();
         this.wsConnector = new WebSocketConnector();
         this.wsConnector.connect();
