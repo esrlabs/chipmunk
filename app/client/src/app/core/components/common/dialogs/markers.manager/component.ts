@@ -160,7 +160,7 @@ export class DialogMarkersManager implements OnInit, OnDestroy {
                 move            : true,
                 resize          : true,
                 width           : '40rem',
-                height          : '25rem',
+                height          : '27rem',
                 close           : true,
                 addCloseHandle  : true,
                 css             : ''

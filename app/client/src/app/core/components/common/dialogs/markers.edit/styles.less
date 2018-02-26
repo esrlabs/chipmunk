@@ -9,7 +9,7 @@ markers-edit-dialog{
         position    : absolute;
         top         :0;
         width       : 100%;
-        bottom      : 6.5rem;
+        bottom      : 9rem;
         overflow-x  : hidden;
         overflow-y  : auto;
         .marker-colors-foreground,
@@ -18,31 +18,42 @@ markers-edit-dialog{
             width   : 50%;
             height  : 100%;
             left    : 0;
-            .simple{
-                position: absolute;
-                top:0;
-                width: 100%;
-                height: 6rem;
-                left:0;
-                overflow-x:hidden;
-                overflow-y:auto;
+            .switcher-area{
+                position    : absolute;
+                top         : 0;
+                width       : 100%;
+                height      : 2rem;
+                left        : 0;
+                overflow-x  : hidden;
+                overflow-y  : auto;
+                text-align  : center;
+                simple-checkbox span.on, simple-checkbox span.off, simple-checkbox span.switcher{
+                    width: 6rem;
+                }
             }
-            .full{
-                position: absolute;
-                top:6rem;
-                height: ~"calc(100% - 6rem)";
-                overflow: hidden;
-                width: 100%;
-                left:0;
+            .colors{
+                position    : absolute;
+                top         : 2rem;
+                height      : ~"calc(100% - 2rem)";
+                overflow    : hidden;
+                width       : 100%;
+                left        : 0;
             }
         }
         .marker-colors-background{
             left: 50%;
         }
     }
+    .marker-settings{
+        position    : absolute;
+        top         : ~"calc(100% - 9rem)";
+        width       : 100%;
+        height      : 2rem;
+        font-size   : 0.85rem;
+    }
     .marker-hook{
         position    : absolute;
-        top         : ~"calc(100% - 6.5rem)";
+        top         : ~"calc(100% - 7rem)";
         width       : 100%;
         height      : 4rem;
         .marker-color-example{
@@ -62,8 +73,27 @@ markers-edit-dialog{
         }
         .marker-value{
             position: relative;
-            height  : 2rem;
-            border  : 1px dotted @grey;
+            height  : 1.4rem;
+            .marker-value-value{
+                position: absolute;
+                top     :0;
+                left    :0;
+                right   : 10rem;
+                height  : 100%;
+                overflow: hidden;
+                border  : 1px dotted @grey;
+           }
+            .marker-value-type{
+                position: absolute;
+                right   : 0;
+                width   : 9.5rem;
+                top     :0;
+                height  : 100%;
+                overflow: hidden;
+                simple-checkbox span.on, simple-checkbox span.off, simple-checkbox span.switcher{
+                    width: 4.5rem;
+                }
+            }
         }
     }
     .marker-controls{
