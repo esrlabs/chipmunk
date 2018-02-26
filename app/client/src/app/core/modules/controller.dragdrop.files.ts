@@ -42,7 +42,6 @@ class DragAndDropFiles{
     }
 
     _onDrop(event: DragEvent){
-        event.preventDefault();
 
         if (this._content !== '') {
             return false;
@@ -67,6 +66,8 @@ class DragAndDropFiles{
         if (files.length === 0) {
             return false;
         }
+
+        event.preventDefault();
 
         const description =  files.map((file: File) => {
             return file.name;
