@@ -291,8 +291,8 @@ export class View implements AfterViewInit, AfterContentInit, OnDestroy{
 
     onDragOver(event: DragEvent){
         this.dragover = true;
-        event.preventDefault();
-        event.stopPropagation();
+        //event.preventDefault();
+        //event.stopPropagation();
     }
 
     onDragLeave(event: DragEvent){
@@ -310,8 +310,8 @@ export class View implements AfterViewInit, AfterContentInit, OnDestroy{
 
     onDragStart(event: DragEvent){
         if (!this.dragable){
-            event.preventDefault();
-            event.stopPropagation();
+            //event.preventDefault();
+            //event.stopPropagation();
         } else {
             event.dataTransfer.setData('text/plain', this.params.GUID);
         }

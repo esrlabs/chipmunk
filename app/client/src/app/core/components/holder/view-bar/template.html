@@ -4,7 +4,10 @@
         <li *ngIf="favorite.icon === null" class="mark" (click)="onSelectFavorite(favorite)"><span>{{favorite.mark}}</span></li>
     </ng-container>
 </ul>
-<div class="middle" (mousedown)="onMouseDown($event)" (mouseup)="onMouseUp($event)">{{description}}</div>
+<div [attr.class]="'middle' + (middleComponent !== null ? ' component' : '')" (mousedown)="onMouseDown($event)" (mouseup)="onMouseUp($event)">
+    <span *ngIf="middleComponent === null">{{description}}</span>
+    <span #middle></span>
+</div>
 <ul class="right">
     <li *ngFor="let item of menu; let i = index" [attr.class]="'icon' + (item.active ? ' active' : '') + (item.disable ? ' disable' : '')" (click)="onMenuItemClick(i)" [attr.title]="item.hint"><span [attr.class]="'fa ' + item.icon"></span></li>
 </ul>

@@ -1,6 +1,46 @@
-<div class="srv-toolbar">
-    <topbar-search-request></topbar-search-request>
+<div [attr.class]="'lv-list-wrapper' + ' ' + (requestsListClosed ? 'list-closed' : 'list-opened')">
+    <div *ngIf="rows.length > 0" [attr.class]="'lv-list'">
+        <long-list #list [rows]="rows" [onScroll]="onScrollSubscription" [maxWidthRow]="maxWidthRow"></long-list>
+    </div>
+    <p *ngIf="rows.length === 0" class="message-no-data">No Data Is Loaded</p>
+    <a #exporturl [attr.href]="exportdata.url" class="export-url" [attr.download]="exportdata.filename"></a>
 </div>
-<div class="srv-wrapper">
-    <common-tabs [tabs]="tabs" [onResize]="onResize"></common-tabs>
+<div [attr.class]="'lv-manager-wrapper noselect' + ' ' + (requestsListClosed ? 'closed' : 'opened')">
+    <div class="lv-manager-trigger-area"  (click)="onRequestListTrigger()">
+        <span class="lv-manager-trigger fa fa-angle-double-left"></span>
+        <span class="lv-manager-title">Requests List</span>
+    </div>
+    <div class="lv-manager-conditions-area">
+        <div class="wrapper">
+            <simple-dd-list [items]="conditions" [css]="'drop-down-list'" [onChange]="onConditionChanged" [defaults]="filterMode"></simple-dd-list>
+        </div>
+    </div>
+    <div class="lv-manager-fast-actions-area">
+        <button-flat-text [caption]="onOffLabel" [handle]="onOffOn"></button-flat-text>
+        <button-flat-text [caption]="'Deselect'" [handle]="onDeselectAll"></button-flat-text>
+        <button-flat-text [caption]="'Select'" [handle]="onSelectAll"></button-flat-text>
+        <button-flat-text [caption]="'Invert'" [handle]="onInvert"></button-flat-text>
+    </div>
+    <ul class="lv-manager-list">
+       <li *ngFor="let request of _requests; let i = index;" draggable="true"
+           (dragover)="onRequestDragOver($event, i)"
+           (dragleave)="onRequestLeave($event, i)"
+           (dragstart)="onRequestDragStart($event, i)"
+           (dragend)="onRequestDragEnd($event, i)">
+           <span *ngIf="request.isDragOver && i < (_requests.length - 1)" class="lv-dp-placeholder"></span>
+           <view-request-item [attr.class]="reordering.dragged === i ? 'lv-dp-dragged': ''"
+                              [onChangeState]="request.onChangeState"
+                              [onChange]="request.onChange"
+                              [onChangeColor]="request.onChangeColor"
+                              [onRemove]="request.onRemove"
+                              [count]="request.count"
+                              [value]="request.value"
+                              [active]="request.active"
+                              [passive]="request.passive"
+                              [type]="request.type"
+                              [backgroundColor]="request.backgroundColor"
+                              [foregroundColor]="request.foregroundColor"></view-request-item>
+           <span *ngIf="request.isDragOver && i === (_requests.length - 1)" class="lv-dp-placeholder"></span>
+       </li>
+    </ul>
 </div>
