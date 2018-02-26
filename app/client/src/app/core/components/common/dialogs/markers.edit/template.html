@@ -1,20 +1,34 @@
 <div class="marker-colors">
     <div class="marker-colors-foreground">
-        <div class="simple">
-            <colors-predefined-dialog [callback]="onForegroundColorSelected"></colors-predefined-dialog>
+        <div class="switcher-area">
+            <simple-checkbox [onChange]="onSwitchForeground" [on]="'RGB'" [off]="'Predefined'"></simple-checkbox>
         </div>
-        <div class="full">
-            <colors-canvas-dialog [callback]="onForegroundColorSelected"></colors-canvas-dialog>
+        <div class="colors">
+            <colors-predefined-dialog *ngIf="!foregroundRGB" [callback]="onForegroundColorSelected" [colors]="colors"></colors-predefined-dialog>
+            <colors-canvas-dialog *ngIf="foregroundRGB" [callback]="onForegroundColorSelected"></colors-canvas-dialog>
         </div>
     </div>
     <div class="marker-colors-background">
-        <div class="simple">
-            <colors-predefined-dialog [callback]="onBackgroundColorSelected"></colors-predefined-dialog>
+        <div class="switcher-area">
+            <simple-checkbox [onChange]="onSwitchBackground" [on]="'RGB'" [off]="'Predefined'"></simple-checkbox>
         </div>
-        <div class="full">
-            <colors-canvas-dialog [callback]="onBackgroundColorSelected"></colors-canvas-dialog>
+        <div class="colors">
+            <colors-predefined-dialog *ngIf="!backgroundRGB" [callback]="onBackgroundColorSelected" [colors]="colors"></colors-predefined-dialog>
+            <colors-canvas-dialog *ngIf="backgroundRGB" [callback]="onBackgroundColorSelected"></colors-canvas-dialog>
         </div>
     </div>
+</div>
+<div class="marker-settings">
+    <table>
+        <tr>
+            <td>
+                Atomically define opposite color based on the best contrast
+            </td>
+            <td>
+                <simple-checkbox [onChange]="onColorAutoGenerationChange" [checked]="generateColor" [on]="'ON'" [off]="'OFF'"></simple-checkbox>
+            </td>
+        </tr>
+    </table>
 </div>
 
 <div class="marker-hook">
@@ -22,7 +36,12 @@
         <p [style.backgroundColor]="backgroundColor" [style.color]="foregroundColor">This is an example</p>
     </div>
     <div class="marker-value">
-        <common-input #_hook (onEnter)="onApply()" [value]="hook" [type]="'text'" [placeholder]="'Type key-phrase'"></common-input>
+        <div class="marker-value-value">
+            <common-input #_hook (onEnter)="onApply()" [value]="hook" [type]="'text'" [placeholder]="'Type key-phrase'"></common-input>
+        </div>
+        <div class="marker-value-type">
+            <simple-checkbox [onChange]="onTypeChange" [checked]="isRegExp" [on]="'RegExp'" [off]="'Text'"></simple-checkbox>
+        </div>
     </div>
 </div>
 <div class="marker-controls">
