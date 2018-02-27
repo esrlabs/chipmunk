@@ -68,7 +68,7 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         filename    : ''
     };
 
-    public line : {
+    public line             : {
         visible         : boolean,
         marks           : Array<ListLineMark>,
         count           : number,
@@ -89,24 +89,25 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     @ViewChild(LongList) listView: LongList;
     @ViewChild ('exporturl', { read: ViewContainerRef}) exportURLNode: ViewContainerRef;
 
-    private _rows               : Array<any>                    = [];
-    private rows                : Array<any>                    = [];
-    private maxWidthRow         : any                           = null;
-    private rowsCount           : number                        = 0;
-    private followByScroll      : boolean                       = true;
-    private highlight           : boolean                       = true;
-    private onScrollSubscription: EventEmitter<OnScrollEvent>   = new EventEmitter();
-    private textSelection       : TextSelection                 = null;
-    private textSelectionTrigger: EventEmitter<string>          = new EventEmitter();
-    private regsCache           : Object                        = {};
-    private requests            : Array<Request>                = [];
-    private _requests           : Array<Request>                = [];
-    private bookmarks           : Array<number>                 = [];
-    private requestsListClosed  : boolean                       = true;
-    private filterMode          : string                        = FILTER_MODES.ACTIVE_AND_PASSIVE;
-    private onOffLabel          : string                        = ON_OFF.OFF;
-    private onOffCache          : Object                        = {};
-    private shareHighlightHash  : number                        = -1;
+    private _rows                   : Array<any>                    = [];
+    private rows                    : Array<any>                    = [];
+    private maxWidthRow             : any                           = null;
+    private rowsCount               : number                        = 0;
+    private followByScroll          : boolean                       = true;
+    private highlight               : boolean                       = true;
+    private onScrollSubscription    : EventEmitter<OnScrollEvent>   = new EventEmitter();
+    private textSelection           : TextSelection                 = null;
+    private textSelectionTrigger    : EventEmitter<string>          = new EventEmitter();
+    private regsCache               : Object                        = {};
+    private requests                : Array<Request>                = [];
+    private _requests               : Array<Request>                = [];
+    private bookmarks               : Array<number>                 = [];
+    private requestsListClosed      : boolean                       = true;
+    private filterMode              : string                        = FILTER_MODES.ACTIVE_AND_PASSIVE;
+    private onOffLabel              : string                        = ON_OFF.OFF;
+    private onOffCache              : Object                        = {};
+    private shareHighlightHash      : string                        = '';
+    private lastBookmarkOperation   : number                        = null;
 
     private conditions          : Array<SimpleListItem>         = [
         { caption: 'Active from Passive',   value: FILTER_MODES.ACTIVE_FROM_PASSIVE     },
@@ -114,9 +115,8 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         { caption: 'Only Active',           value: FILTER_MODES.ONLY_ACTIVE             },
         { caption: 'Only Passive',          value: FILTER_MODES.ONLY_PASSIVE            }
     ];
-    private lastBookmarkOperation   : number                       = null;
 
-    private selection : {
+    private selection   : {
         own     : boolean,
         index   : number
     } = {
@@ -124,14 +124,14 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         index   : -1
     };
 
-    private markers : Array<{
+    private markers     : Array<{
         value           : string,
         foregroundColor : string,
         backgroundColor : string,
         self?           : boolean
     }> = [];//Do not bind this <Marker> type, because markers view can be removed
 
-    private reordering : {
+    private reordering  : {
         dragged: number,
         dest: number,
         hash: string
@@ -271,10 +271,11 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     onREQUESTS_HISTORY_UPDATED(requests: Array<Request>, _requests: Array<Request>){
         this.requests   = requests;
         this._requests  = _requests.map((request)=>{
-            request['onChangeState']    = this.onChangeState.bind(this, request.GUID);
-            request['onChangeColor']    = this.onRequestColorChange.bind(this, request.GUID);
-            request['onRemove']         = this.onRequestRemove.bind(this, request.GUID);
-            request['onChange']         = this.onRequestChange.bind(this, request.GUID);
+            request['onChangeState']        = this.onChangeState.bind(this, request.GUID);
+            request['onChangeColor']        = this.onRequestColorChange.bind(this, request.GUID);
+            request['onRemove']             = this.onRequestRemove.bind(this, request.GUID);
+            request['onChange']             = this.onRequestChange.bind(this, request.GUID);
+            request['onChangeVisibility']   = this.onChangeVisibility.bind(this, request.GUID);
             return request;
         });
         this.checkOnOffMode();
@@ -292,6 +293,7 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         delete request['onChangeColor'];
         delete request['onRemove'];
         delete request['onChange'];
+        delete request['onChangeVisibility'];
         return request;
     }
 
@@ -303,6 +305,16 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
                 Object.assign({}, request)
             );
         }));
+    }
+
+    onChangeVisibility(GUID: string, visibility: boolean){
+        serviceRequests.updateRequests(this._requests.map((request)=>{
+            GUID === request.GUID && (request.visibility = visibility);
+            return this.clearHandles(
+                Object.assign({}, request)
+            );
+        }), true);
+        this.updateVisibility();
     }
 
     onRequestColorChange(GUID: string, foregroundColor: string, backgroundColor: string){
@@ -346,29 +358,32 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     onSelectAll(){
         serviceRequests.updateRequests(this._requests.map((request)=>{
-            request.active = true;
+            request.visibility = true;
             return this.clearHandles(
                 Object.assign({}, request)
             );
-        }));
+        }), true);
+        this.updateVisibility();
     }
 
     onDeselectAll(){
         serviceRequests.updateRequests(this._requests.map((request)=>{
-            request.active = false;
+            request.visibility = false;
             return this.clearHandles(
                 Object.assign({}, request)
             );
-        }));
+        }), true);
+        this.updateVisibility();
     }
 
     onInvert(){
         serviceRequests.updateRequests(this._requests.map((request)=>{
-            request.active = !request.active;
+            request.visibility = !request.visibility;
             return this.clearHandles(
                 Object.assign({}, request)
             );
-        }));
+        }), true);
+        this.updateVisibility();
     }
 
     checkOnOffMode(){
@@ -377,7 +392,6 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         } else {
             this.onOffLabel = ON_OFF.OFF;
         }
-        //this.onOffOn(null, true);
     }
 
     onOffOn(event: MouseEvent, noChange: boolean = false){
@@ -385,15 +399,16 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         switch (this.onOffLabel){
             case ON_OFF.OFF:
                 serviceRequests.updateRequests(this._requests.map((request)=>{
-                    request.active = this.onOffCache[request.GUID] !== void 0 ? this.onOffCache[request.GUID] : true;
+                    request.visibility = this.onOffCache[request.GUID] !== void 0 ? this.onOffCache[request.GUID] : true;
                     return this.clearHandles(
                         Object.assign({}, request)
                     );
-                }));
+                }), true);
+                this.updateVisibility();
                 break;
             case ON_OFF.ON:
                 this._requests.forEach((request)=>{
-                    this.onOffCache[request.GUID] = request.active;
+                    this.onOffCache[request.GUID] = request.visibility;
                 });
                 this.onDeselectAll();
                 break;
@@ -457,6 +472,7 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         this.setMaxWidthRow();
         this.updateTitle();
         this.checkLength();
+        this.updateVisibility();
         this.forceUpdate();
     }
 
@@ -681,23 +697,19 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     convertFilterRows (rows: Array<any>, adding: boolean = false) {
         let active  : Array<Request>    = this.getActiveFilters(),
             passive : Array<Request>    = this.getPassiveFilters(),
-            _active : any               = [],
-            _passive: any               = [],
-            _rows   : any               = [],
             result  : any               = [],
             measure                     = Logs.measure('[search.results/tab.results][convertFilterRows]');
         switch (this.filterMode){
             case FILTER_MODES.ACTIVE_FROM_PASSIVE:
-                _rows   = this.getRowsByRequestsPassive(rows, passive, {}, adding).rows;
-                result  = this.getRowsByRequestsActive(_rows, active, {}, adding).rows;
+                let _rows   = this.getRowsByRequestsPassive(rows, passive, {}, adding).rows;
+                result      = this.getRowsByRequestsActive(_rows, active, {}, adding).rows;
                 break;
             case FILTER_MODES.ACTIVE_AND_PASSIVE:
-                _active     = this.getRowsByRequestsActive  (rows, active, {}, adding);
-                _passive    = this.getRowsByRequestsPassive (rows, passive, _active.map, adding);
-                _rows       = rows.filter((row, index)=>{
+                let _active = this.getRowsByRequestsActive  (rows, active, {}, adding);
+                let _passive= this.getRowsByRequestsPassive (rows, passive, _active.map, adding);
+                result      = rows.filter((row, index)=>{
                     return this.bookmarks.indexOf(index) !== -1 ? true : (_active.map[index] !== void 0 ? true : (_passive.map[index] !== void 0));
                 });
-                result = _rows;
                 break;
             case FILTER_MODES.ONLY_ACTIVE:
                 result = this.getRowsByRequestsActive (rows, active, {}, adding).rows;
@@ -710,27 +722,45 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         return result;
     }
 
+    getHighlightHash(){
+        return this.rows.length + '/' + Object.keys(this._requests).length + '/' + Object.keys(this.requests).length + '/' + serviceRequests.getCurrentRequest().length;
+    }
+
     shareHighlightState(force: boolean = false){
-        if (!force && this.rows.length === this.shareHighlightHash && !this.isOrderingChanged()) {
+        const hash = this.getHighlightHash();
+        if (!force && hash === this.shareHighlightHash && !this.isOrderingChanged()) {
             return false;
         }
+        const measure = Logs.measure('[search.results/tab.results][shareHighlightState]');
         this.setOrderingHash();
-        this.shareHighlightHash = this.rows.length;
+        this.shareHighlightHash = hash;
         let settings = Settings.get();
         let results: {[key: number]: any} = {};
         if (settings.visual.highlight_search_requests) {
-            this.rows.forEach((row)=>{
-                let _row: any = {
+            this._rows.forEach((row)=>{
+                let highlight: any = {
                     foregroundColor: '',
                     backgroundColor: ''
                 };
-                if (row.params.highlight.foregroundColor !== '' || row.params.highlight.backgroundColor !== ''){
-                    _row.foregroundColor = row.params.highlight.foregroundColor;
-                    _row.backgroundColor = row.params.highlight.backgroundColor;
-                    results[row.params.index] = _row;
+                for(let i = 0, max = this._requests.length - 1; i <= max; i += 1) {
+                    const GUID = this._requests[i].GUID;
+                    if (row.requests[GUID] === true){
+                        highlight.foregroundColor = this._requests[i].foregroundColor;
+                        highlight.backgroundColor = this._requests[i].backgroundColor;
+                        results[row.params.index] = highlight;
+                        break;
+                    }
                 }
+                /*
+                if (row.params.highlight.foregroundColor !== '' || row.params.highlight.backgroundColor !== ''){
+                    highlight.foregroundColor = row.params.highlight.foregroundColor;
+                    highlight.backgroundColor = row.params.highlight.backgroundColor;
+                    results[row.params.index] = highlight;
+                }
+                */
             });
         }
+        Logs.measure(measure);
         Events.trigger(Configuration.sets.EVENTS_VIEWS.HIGHLIGHT_SEARCH_REQUESTS_DATA, results);
     }
 
@@ -747,6 +777,7 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         this.shareHighlightState();
         this.setMaxWidthRow();
         this.updateTitle();
+        this.updateVisibility();
     }
 
     updateRows(){
@@ -838,6 +869,141 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         });
     }
 
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    * Visibility
+    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    getHidden(){
+        const results = {};
+        this._requests.forEach((request: Request) => {
+            if (!request.visibility){
+                results[request.GUID] = true;
+            }
+        });
+        return results;
+    }
+
+    updateVisibility(){
+        const measure = Logs.measure('[search.results/tab.results][updateVisibility]');
+        if (serviceRequests.getVisibleActiveRequests().length === 0){
+            const current = serviceRequests.getCurrentRequest();
+            if (current.length === 0) {
+                this.rows = this._rows.filter((row: any, index: number)=>{
+                    if (~this.bookmarks.indexOf(index)) {
+                        row.params.highlight = {
+                            backgroundColor: '',
+                            foregroundColor: ''
+                        };
+                        row.params.match = '';
+                        row.params.matchReg = false;
+                        row.update !== null && row.update(row.params);
+                        return true;
+                    }
+                    return false;
+                });
+            } else {
+                this.rows = this._rows.filter((row: any, index: number)=>{
+                    if (~this.bookmarks.indexOf(index) || (row.requests[current[0].GUID] !== void 0 && row.requests[current[0].GUID] === true)) {
+                        row.params.highlight = {
+                            backgroundColor: '',
+                            foregroundColor: ''
+                        };
+                        row.params.match = current[0].value;
+                        row.params.matchReg = current[0].type === MODES.REG;
+                        row.update !== null && row.update(row.params);
+                        return true;
+                    }
+                    return false;
+                });
+            }
+        } else {
+            const hidden = this.getHidden();
+            const active = serviceRequests.getActiveRequests();
+            this.rows = this._rows.filter((row: any, index: number)=>{
+
+                if (~this.bookmarks.indexOf(index)){
+                    return true;
+                }
+
+                let isIn: boolean = false;
+                let before: boolean = false;
+                let after: boolean = false;
+                let beforeRequest: Request = null;
+                let afterRequest: Request = null;
+
+                active.forEach((request: Request) => {
+                    const GUID = request.GUID;
+                    if (!isIn && row.requests[GUID] === true && hidden[GUID] === void 0 && beforeRequest === null){
+                        before = true;
+                        beforeRequest = request;
+                    }
+                    if (row.requests[GUID] === true && hidden[GUID] !== void 0) {
+                        isIn = true;
+                    }
+                    if (isIn && row.requests[GUID] === true && hidden[GUID] === void 0 && afterRequest === null){
+                        after = true;
+                        afterRequest = request;
+                    }
+                });
+
+                //Row isn't filtered at all
+                if (!isIn && !before && !after){
+                    return false;
+                }
+
+                //Row filtered, but all filters are visible
+                if (!isIn && (before || after)){
+                    if (before) {
+                        row.params.highlight = {
+                            backgroundColor: beforeRequest.backgroundColor,
+                            foregroundColor: beforeRequest.foregroundColor
+                        };
+                        row.params.match = beforeRequest.value;
+                        row.params.matchReg = beforeRequest.type === MODES.REG;
+                    } else {
+                        row.params.highlight = {
+                            backgroundColor: afterRequest.backgroundColor,
+                            foregroundColor: afterRequest.foregroundColor
+                        };
+                        row.params.match = afterRequest.value;
+                        row.params.matchReg = afterRequest.type === MODES.REG;
+                    }
+                    row.update !== null && row.update(row.params);
+                    return true;
+                }
+
+                //Row filtered, but filter isn't visible
+                if (isIn && !before && !after){
+                    return false;
+                }
+
+                //Row filtered and filter isn't visible, but it has filter before
+                if (isIn && before){
+                    row.params.highlight = {
+                        backgroundColor: beforeRequest.backgroundColor,
+                        foregroundColor: beforeRequest.foregroundColor
+                    };
+                    row.params.match = beforeRequest.value;
+                    row.params.matchReg = beforeRequest.type === MODES.REG;
+                    row.update !== null && row.update(row.params);
+                    return true;
+                }
+
+                //Row filtered and filter isn't visible, but it has filter after (and don't have before)
+                if (isIn && !before && after){
+                    row.params.highlight = {
+                        backgroundColor: afterRequest.backgroundColor,
+                        foregroundColor: afterRequest.foregroundColor
+                    };
+                    row.params.match = afterRequest.value;
+                    row.params.matchReg = afterRequest.type === MODES.REG;
+                    row.update !== null && row.update(row.params);
+                    return true;
+                }
+            });
+        }
+        this.checkLength();
+        Logs.measure(measure);
+    }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Text selection

@@ -27,20 +27,22 @@
            (dragleave)="onRequestLeave($event, i)"
            (dragstart)="onRequestDragStart($event, i)"
            (dragend)="onRequestDragEnd($event, i)">
-           <span *ngIf="request.isDragOver && i < (_requests.length - 1)" class="lv-dp-placeholder"></span>
+           <span *ngIf="request.isDragOver && i < reordering.dragged" class="lv-dp-placeholder"></span>
            <view-request-item [attr.class]="reordering.dragged === i ? 'lv-dp-dragged': ''"
                               [onChangeState]="request.onChangeState"
                               [onChange]="request.onChange"
                               [onChangeColor]="request.onChangeColor"
+                              [onChangeVisibility]="request.onChangeVisibility"
                               [onRemove]="request.onRemove"
                               [count]="request.count"
                               [value]="request.value"
                               [active]="request.active"
                               [passive]="request.passive"
                               [type]="request.type"
+                              [visibility]="request.visibility"
                               [backgroundColor]="request.backgroundColor"
                               [foregroundColor]="request.foregroundColor"></view-request-item>
-           <span *ngIf="request.isDragOver && i === (_requests.length - 1)" class="lv-dp-placeholder"></span>
+           <span *ngIf="request.isDragOver &&  i > reordering.dragged" class="lv-dp-placeholder"></span>
        </li>
     </ul>
 </div>
