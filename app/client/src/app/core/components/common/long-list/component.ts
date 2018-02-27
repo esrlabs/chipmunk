@@ -10,7 +10,7 @@ const SETTINGS = {
     BEGIN_SCROLL_OFFSET : 0,//px
     FILLER_OFFSET       : 16,
     SCROLL_BAR_OFFSET   : 15,
-    BORDER_TIMEOUT      : 1000,
+    BORDER_TIMEOUT      : 500,
     BORDER_ATTEMPTS     : 10,
     SCROLL_TOP_OFFSET   : 15
 };
@@ -109,6 +109,8 @@ export class LongList implements AfterViewChecked{
         left            : '0px',
         previousST      : 0
     };
+
+    private previousSL: number = -1;
 
     forceUpdate(){
         this.component.ref.detectChanges();
@@ -245,7 +247,9 @@ export class LongList implements AfterViewChecked{
         }
     }
 
-    onScrollEvent(event : Event | any){
+    onScrollEvent(event : Event | any) {
+        const horizontalScroll = (event.target.scrollLeft !== this.previousSL);
+        this.previousSL = event.target.scrollLeft;
         //Correction of bottom scroll
         if ((event.target.scrollTop + this.component.height ) > this.row.height * this.rows.length && event.target.scrollTop > this.state.previousST){
             event.target.scrollTop = this.component.maxScrollTop;
@@ -267,7 +271,7 @@ export class LongList implements AfterViewChecked{
             isScrolledToEnd     : false
         };
         //Check border
-        this.checkBorders(scrollEvent.scrollTop, event.target.scrollLeft);
+        !horizontalScroll && this.checkBorders(scrollEvent.scrollTop, event.target.scrollLeft);
         //Make calculation
         this.calculate(event.target.scrollTop, false);
         this.updateState();
