@@ -743,12 +743,14 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
                     backgroundColor: ''
                 };
                 for(let i = 0, max = this._requests.length - 1; i <= max; i += 1) {
-                    const GUID = this._requests[i].GUID;
-                    if (row.requests[GUID] === true){
-                        highlight.foregroundColor = this._requests[i].foregroundColor;
-                        highlight.backgroundColor = this._requests[i].backgroundColor;
-                        results[row.params.index] = highlight;
-                        break;
+                    if (this._requests[i].active){
+                        const GUID = this._requests[i].GUID;
+                        if (row.requests[GUID] === true){
+                            highlight.foregroundColor = this._requests[i].foregroundColor;
+                            highlight.backgroundColor = this._requests[i].backgroundColor;
+                            results[row.params.index] = highlight;
+                            break;
+                        }
                     }
                 }
                 /*
