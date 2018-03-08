@@ -1,0 +1,20 @@
+{
+  "name"          : "logviewer",
+  "version"       : "0.10.1",
+  "description"   : "LogViewer",
+  "main"          : "electron.js",
+  "scripts"       : {
+  },
+  "keywords"      : ["logs", "logviewer"],
+  "author"        : "Dmitry Astafyev",
+  "license"       : "MIT",
+  "dependencies"  : {
+  },
+  "devDependencies": {
+  },
+  "repository"    : {
+    "type"      : "git",
+    "url"       : "https://github.com/esrlabs/logviewer.git"
+  },
+  "copyright"     : ""
+}

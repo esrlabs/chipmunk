@@ -1,14 +1,18 @@
 const { app, BrowserWindow } = require('electron');
 const path              = require('path');
 const url               = require('url');
-const JSONSLocaltorage  = require('node-localstorage').JSONStorage;
 const Updater           = require('./electron/application.updater');
 const ApplicationMenu   = require('./electron/application.menu');
-const util              = require('util');
+const ApplicationStorage= require('./electron/application.storage');
 const logger            = new (require('./server/libs/tools.logger'))('Electron');
+const updater           = new Updater();
+const STORAGE_KEYS      = require('./electron/application.storage.keys');
 
-
-const updater = new Updater();
+const ELECTRON_EVENTS = {
+    READY: 'ready',
+    WINDOW_ALL_CLOSED: 'window-all-closed',
+    ACTIVATE: 'activate'
+};
 
 class Starter {
 
@@ -16,28 +20,25 @@ class Starter {
         this._app               = app;
         this._window            = null;
         this._ready             = false;
-        this._storageLocaltion  = this._app.getPath('userData');
-        this._storage           = new JSONSLocaltorage(this._storageLocaltion);
+        this._storage           = new ApplicationStorage();
         this._version           = this._app.getVersion();
         this._menu              = new ApplicationMenu();
-        this._app.on('ready',               this._onReady.bind(this));
-        this._app.on('window-all-closed',   this._onWindowAllClosed.bind(this));
-        this._app.on('activate',            this._onActivate.bind(this));
+        //Bind electron events
+        Object.keys(ELECTRON_EVENTS).forEach((key) => {
+            if (this[ELECTRON_EVENTS[key]] !== void 0){
+                this[ELECTRON_EVENTS[key]] = this[ELECTRON_EVENTS[key]].bind(this);
+                this._app.on(ELECTRON_EVENTS[key], this[ELECTRON_EVENTS[key]]);
+            }
+        });
     }
 
     _getWindowState(){
-        let state = {};
-        try{
-            state = this._storage.getItem('windowState');
-        } catch (e){
-            state = {};
-        }
-        return state === null ? {} : state;
+        return this._storage.get(STORAGE_KEYS.WINDOW_STATE);
     }
 
     // initialization and is ready to create browser windows.
     // Some APIs can only be used after this event occurs.
-    _onReady(){
+    [ELECTRON_EVENTS.READY](){
         this._create();
         this._menu.create();
         //updater.check();
@@ -45,7 +46,7 @@ class Starter {
     }
 
     // Quit when all windows are closed.
-    _onWindowAllClosed(){
+    [ELECTRON_EVENTS.WINDOW_ALL_CLOSED](){
         // On OS X it is common for applications and their menu bar
         // to stay active until the user quits explicitly with Cmd + Q
         if (process.platform !== 'darwin') {
@@ -53,7 +54,7 @@ class Starter {
         }
     }
 
-    _onActivate(){
+    [ELECTRON_EVENTS.ACTIVATE](){
         // On OS X it's common to re-create a window in the app when the
         // dock icon is clicked and there are no other windows open.
         this._ready && this._create();
@@ -61,14 +62,28 @@ class Starter {
 
     _create(){
         if (this._window === null) {
-            this._createClient();
+            this._initClient();
             this._createServer();
             //this.debug();
         }
     }
 
-    _createClient(){
-        let state = this._getWindowState();
+    _initClient(){
+        this._getWindowState()
+            .then((state) => {
+                if (typeof state !== 'object' || state === null) {
+                    state = {};
+                }
+                this._createClient(state);
+            })
+            .catch((error) => {
+                logger.error(`State getting error.`);
+                logger.error(error);
+                this._createClient({});
+            });
+    }
+
+    _createClient(state){
         // Create the browser window.
         this._window = new BrowserWindow({
             title   : `LogViewer@${this._version}`,
@@ -102,7 +117,7 @@ class Starter {
             // only update bounds if the window isn’t currently maximized
             state.bounds = this._window.getBounds();
         }
-        this._storage.setItem('windowState', state);
+        this._storage.set(STORAGE_KEYS.WINDOW_STATE, state);
     }
 
     _createServer(){
