@@ -36,32 +36,33 @@ const PLATFORMS = {
     WIN32     : 'win32'
 };
 
-const GIT_TOKEN = "a6e41d8cb7e4102cff0763c8ce5adef521098c5c";
+const DEFAULT_DESKTOP_PACKAGE = require('./build.json');
 
 const CONFIGURATION = {
     COMMON              : {
         appId           : 'com.logviewer.de',
-        productName     : 'LogViewer',
-        copyright       : 'Copyright © 2018 year E.S.R.Labs',
+        productName     : '',                //Generated: see _getNameOfApplication
+        copyright       : `Copyright © ${(new Date()).getFullYear()} year E.S.R.Labs`,
         directories     :{
             output  : 'dist'
         },
         publish: [{
             provider        : "github",
             owner           : "esrlabs",
-            repo            : "logviewer",
-            private         : true,
-            token           : GIT_TOKEN
+            repo            : "logviewer"
         }],
         npmRebuild      : true
     },
     [PLATFORMS.DARWIN]  : {
         mac: {
             category: "public.app-category.developer-tools",
-            icon: './build/mac/icon.icns',
-            target: [
+            icon    : './build/mac/icon.icns',
+            target  : [
                 {
                     "target": "dmg"
+                },
+                {
+                    "target": "zip"
                 }
             ]
         }
@@ -81,8 +82,21 @@ const CONFIGURATION = {
 
 const PLATFORMS_DEPS = {
     COMMON              : {
-        "electron"          : "1.6.16",
-        "electron-builder"  : "19.53.5"
+        "electron-json-storage" : "4.0.2",
+        "electron-updater"      : "2.21.0"
+    },
+    [PLATFORMS.DARWIN]  : {
+    },
+    [PLATFORMS.LINUX]   : {
+    },
+    [PLATFORMS.WIN32]   : {
+    }
+};
+
+const PLATFORMS_DEV_DEPS = {
+    COMMON              : {
+        "electron"          : "1.8.3",
+        "electron-builder"  : "20.3.1"
     },
     [PLATFORMS.DARWIN]  : {
     },
@@ -118,10 +132,12 @@ const SETTINGS = {
     build   : { key: ['-b', '--build'],     value: false },
     clean   : { key: ['-c', '--clean'],     value: false },
     install : { key: ['-i', '--install'],   value: false },
+    package : { key: ['-p', '--package'],   value: false },
 };
 
 const gulp      = require('gulp');
 const spawn     = require('child_process').spawn;
+const os        = require('os');
 
 class BuildingTasks {
 
@@ -134,7 +150,6 @@ class BuildingTasks {
         this._validateSettings();
         this._detectNPM();
         process.env.FORCE_COLOR = true;
-        process.env.GH_TOKEN    = GIT_TOKEN;
     }
 
     _parseCommandKeys() {
@@ -150,7 +165,7 @@ class BuildingTasks {
     }
 
     _validateSettings(){
-        if (this._settings.clean || this._settings.install) {
+        if (this._settings.clean || this._settings.install || this._settings.package) {
             return true;
         }
         if ((!this._settings.publish && !this._settings.build) || (this._settings.publish && this._settings.build)){
@@ -167,7 +182,7 @@ class BuildingTasks {
     }
 
     _isPlatformAvailable(){
-        if (PLATFORMS_DEPS[process.platform] === void 0 || CONFIGURATION[process.platform] === void 0){
+        if (PLATFORMS_DEPS[process.platform] === void 0 || PLATFORMS_DEV_DEPS[process.platform] === void 0 || CONFIGURATION[process.platform] === void 0){
             throw new Error(`Cannot find devDependencies or build configuration for current platform: ${process.platform}`);
         } else {
             console.log(`Current platform is: ${process.platform}.`);
@@ -178,12 +193,27 @@ class BuildingTasks {
         return Object.assign(PLATFORMS_DEPS.COMMON, PLATFORMS_DEPS[process.platform]);
     }
 
+    _getDevDepsForPlatform(){
+        return Object.assign(PLATFORMS_DEV_DEPS.COMMON, PLATFORMS_DEV_DEPS[process.platform]);
+    }
+
     _getBuildConfiguration(){
-        return Object.assign(CONFIGURATION.COMMON, CONFIGURATION[process.platform]);
+        let configuration = Object.assign(CONFIGURATION.COMMON, CONFIGURATION[process.platform]);
+        configuration.productName = this._getNameOfApplication();
+        configuration.copyright = this._getCopyrights();
+        return configuration;
     }
 
     _getScriptsForPlatform(){
         return Object.assign(SCRIPTS.COMMON, SCRIPTS[process.platform]);
+    }
+
+    _getNameOfApplication(){
+        return `${DEFAULT_DESKTOP_PACKAGE.name}.${os.platform()}.${os.release()}`;
+    }
+
+    _getCopyrights(){
+        return `Copyright © ${(new Date()).getFullYear()} year E.S.R.Labs`;
     }
 
     [TASKS.CLEAR_APP](){
@@ -249,11 +279,12 @@ class BuildingTasks {
     [TASKS.CREATE_PACKAGE_FILE](){
         gulp.task(TASKS.CREATE_PACKAGE_FILE, (done) => {
             const FS = require('fs');
-            let _app            = FS.readFileSync('desktop/package.original.json', {encoding: 'utf8'});
-            if (FS.existsSync(_app)) {
-                FS.unlinkSync(_app);
+            const target = 'desktop/package.json';
+            if (FS.existsSync(target)) {
+                FS.unlinkSync(target);
             }
-            FS.writeFileSync('desktop/package.json', _app, { encoding: 'utf8' });
+            DEFAULT_DESKTOP_PACKAGE.copyright = this._getCopyrights();
+            FS.writeFileSync(target, JSON.stringify(DEFAULT_DESKTOP_PACKAGE), { encoding: 'utf8' });
             done();
         });
     }
@@ -263,11 +294,13 @@ class BuildingTasks {
             const FS = require('fs');
             let _app            = FS.readFileSync('desktop/package.json', {encoding: 'utf8'});
             let _server         = FS.readFileSync('desktop/server/package.json', {encoding: 'utf8'});
-            let devDependencies = this._getDepsForPlatform();
+            let dependencies    = this._getDepsForPlatform();
+            let devDependencies = this._getDevDepsForPlatform();
             let buildConfig     = this._getBuildConfiguration();
             let scripts         = this._getScriptsForPlatform();
             _app    = JSON.parse(_app);
             _server = JSON.parse(_server);
+            _app.dependencies       = Object.assign(_app.dependencies       !== void 0 ? _app.dependencies      : {}, dependencies);
             _app.dependencies       = Object.assign(_app.dependencies       !== void 0 ? _app.dependencies      : {}, _server.dependencies !== void 0 ? _server.dependencies : {});
             _app.devDependencies    = Object.assign(_app.devDependencies    !== void 0 ? _app.devDependencies   : {}, devDependencies);
             _app.build              = Object.assign(_app.build              !== void 0 ? _app.build             : {}, buildConfig);
@@ -358,6 +391,13 @@ class BuildingTasks {
             return gulp.task(TASKS.DEFAULT, gulp.series(
                 TASKS.INSTALL_CLIENT,
                 TASKS.INSTALL_SERVER
+            ));
+        }
+
+        if (this._settings.package){
+            return gulp.task(TASKS.DEFAULT, gulp.series(
+                TASKS.CREATE_PACKAGE_FILE,
+                TASKS.ADD_DEPENDENCIES
             ));
         }
 

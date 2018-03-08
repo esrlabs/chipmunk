@@ -11,7 +11,6 @@ const UPDATER_EVENTS = {
     ERROR           : 'error'
 };
 
-const GIT_TOKEN = "a6e41d8cb7e4102cff0763c8ce5adef521098c5c";
 
 class Updater {
 
@@ -20,8 +19,6 @@ class Updater {
         this._outgoingWSCommands            = require('../server/libs/websocket.commands.processor.js');
         this._autoUpdater                   = electronUpdater.autoUpdater;
         this._info                          = null;
-        this._autoUpdater.requestHeaders    = { "PRIVATE-TOKEN": GIT_TOKEN };
-        process.env.GH_TOKEN                = GIT_TOKEN;
         this._autoUpdater.logger            = logger;
         Object.keys(UPDATER_EVENTS).forEach((key) => {
             this._autoUpdater.on(UPDATER_EVENTS[key], this[UPDATER_EVENTS[key]].bind(this));
@@ -73,9 +70,7 @@ class Updater {
         this._autoUpdater.setFeedURL({
             provider        : "github",
             owner           : "esrlabs",
-            repo            : "logviewer",
-            token           : GIT_TOKEN,
-            private         : true
+            repo            : "logviewer"
         });
         return this._autoUpdater.checkForUpdates();
     }

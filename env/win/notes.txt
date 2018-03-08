@@ -1,0 +1,7 @@
+Mast be installed:
+- node
+- npm
+
+Good to have:
+npm install --global --production windows-build-tools
+npm install --global node-gyp
