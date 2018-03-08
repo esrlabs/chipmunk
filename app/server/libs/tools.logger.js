@@ -18,42 +18,24 @@ const COLORS = {
 
 const FileManager = require('./tools.filemanager');
 const Path = require('path');
-
-class PathsSettings {
-
-    constructor(){
-        this.os                             = require('os');
-        this.ROOT                           = Path.resolve(this.os.homedir() + '/logviewer');
-        this.LOGS_FILE                      = '';
-        this.generate();
-    }
-
-    generate(){
-        this.LOGS_FILE                      = Path.resolve(this.ROOT + '/service.log');
-    }
-}
+const util = require('util');
+const getApplicationStoragePath = require('./tools.storage.folder');
 
 class Logger {
 
     constructor(signature, noFSRecording){
         this.signature      = signature;
         this._fileManager   = new FileManager(true);
-        this._paths         = new PathsSettings();
+        this._path          = Path.resolve(getApplicationStoragePath() + '/service.log');
         this._FSReady       = false;
         this._noFSRecording = typeof noFSRecording === 'boolean' ? noFSRecording : false;
         this._initFSStorage();
     }
 
-    _checkFolders(){
-        let error = null;
-        error = error !== null ? error : this._fileManager.createFolder(this._paths.ROOT);
-        return error;
-    }
-
     _initFSStorage(){
-        if (this._checkFolders() === null || this._noFSRecording) {
-            if (!this._fileManager.isExistsSync(this._paths.LOGS_FILE)){
-                this._fileManager.save('', this._paths.LOGS_FILE);
+        if (!this._noFSRecording) {
+            if (!this._fileManager.isExistsSync(this._path)){
+                this._fileManager.save('', this._path);
             }
             this._FSReady = true;
         } else {
@@ -62,39 +44,40 @@ class Logger {
     }
 
     _writeFS(message){
-        this._FSReady && this._fileManager.append(message, this._paths.LOGS_FILE);
+        console.log(this._FSReady);
+        this._FSReady && this._fileManager.append(message, this._path);
     }
 
     debug(message){
-        return this._log(this._setColor(COLORS.GREEN, LEVELS.DEBUG), message);
+        return this ? this._log(this._setColor(COLORS.GREEN, LEVELS.DEBUG), message) : '';
     }
 
     verbose(message){
-        return this._log(this._setColor(COLORS.DARK_GRAY, LEVELS.VERBOSE), message);
+        return this ? this._log(this._setColor(COLORS.DARK_GRAY, LEVELS.VERBOSE), message) : '';
     }
 
     info(message){
-        return this._log(this._setColor(COLORS.LIGHT_GRAY, LEVELS.INFO), message);
+        return this ? this._log(this._setColor(COLORS.LIGHT_GRAY, LEVELS.INFO), message) : '';
     }
 
     warning(message){
-        return this._log(this._setColor(COLORS.YELLOW, LEVELS.WARNING), message);
+        return this ? this._log(this._setColor(COLORS.YELLOW, LEVELS.WARNING), message) : '';
     }
 
     error(message){
-        return this._log(this._setColor(COLORS.RED, LEVELS.ERROR), message);
+        return this ? this._log(this._setColor(COLORS.RED, LEVELS.ERROR), message) : '';
     }
 
     warn(message){
-        return this.warning(message);
+        return this ? this.warning(message) : '';
     }
 
     silly(message){
-        return this.verbose(message);
+        return this ? this.verbose(message) : '';
     }
 
     log(message){
-        return this.info(message);
+        return this ? this.info(message) : '';
     }
 
     _setColor(color, message){
@@ -110,6 +93,15 @@ class Logger {
     }
 
     _log(level, message){
+        if (typeof message !== 'string') {
+            const messageType = (typeof message);
+            try {
+                message = util.inspect(message);
+            } catch (e) {
+                message = 'cannot parse message'
+            }
+            message = `<${messageType}> ${message}`;
+        }
         message = `[${this.signature}][${level}]: ${message}`;
         console.log(`[${this._getTimeMark()}]${message}`);
         this._writeFS(`[${this._getTimeMark()}]${message}\n`);
