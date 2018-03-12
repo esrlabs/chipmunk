@@ -3,8 +3,7 @@ const Events        = require('events');
 const Path          = require('path');
 const SerialPort    = require('serialport');
 const FileManager   = require('./tools.filemanager');
-const PathsSettings = require('./tools.settings.paths');
-const pathSettings  = new PathsSettings();
+const pathSettings  = require('./tools.settings.paths');
 
 const DEFAULT_SETTINGS = {
     timeoutOnError: 5000,

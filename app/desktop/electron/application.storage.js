@@ -1,13 +1,11 @@
 const ElectronStorage   = require('electron-json-storage');
-const os                = require('os');
-const Path                = require('path');
 const logger            = new (require('../server/libs/tools.logger'))('application.storage');
-const getApplicationStoragePath = require('../server/libs/tools.storage.folder');
+const pathSettings      = require('../server/libs/tools.settings.paths');
 
 class ApplicationStorage {
 
     constructor(path = ''){
-        this._storageLocaltion  = path === '' ? getApplicationStoragePath() : path;
+        this._storageLocaltion  = path === '' ? pathSettings.ROOT : path;
         ElectronStorage.setDataPath(this._storageLocaltion);
         logger.debug(`Setup path for storage to: ${this._storageLocaltion}`);
     }
