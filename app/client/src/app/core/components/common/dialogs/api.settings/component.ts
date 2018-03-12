@@ -49,13 +49,13 @@ export class DialogAPISettings extends TabController implements OnDestroy, After
     }
 
     ngOnInit(){
-        this.onSelect   .subscribe(this.onTabSelected);
-        this.onDeselect .subscribe(this.onTabDeselected);
+        this.onSelect   !== null && this.onSelect   .subscribe(this.onTabSelected);
+        this.onDeselect !== null && this.onDeselect .subscribe(this.onTabDeselected);
     }
 
     ngOnDestroy(){
-        this.onSelect.      unsubscribe();
-        this.onDeselect.    unsubscribe();
+        this.onSelect   !== null && this.onSelect.      unsubscribe();
+        this.onDeselect !== null && this.onDeselect.    unsubscribe();
     }
 
     ngAfterContentInit(){
