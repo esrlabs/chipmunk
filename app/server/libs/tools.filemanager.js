@@ -1,6 +1,3 @@
-const PathsSettings = require('./tools.settings.paths');
-const pathSettings  = new PathsSettings();
-
 class FileManager{
 
     constructor(noLogs = false){
@@ -162,6 +159,7 @@ class FileManager{
         }
 
         return new Promise((resolve, reject) => {
+            const pathSettings = require('./tools.settings.paths');
             if (!(files instanceof Array) || files.length === 0){
                 return reject(new Error(`No files to glue together.`));
             }

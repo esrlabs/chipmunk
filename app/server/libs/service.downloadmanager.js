@@ -4,8 +4,7 @@ const Path          = require('path');
 const util          = require('util');
 const FS            = require('fs');
 const FileManager   = require('./tools.filemanager');
-const PathsSettings = require('./tools.settings.paths');
-const pathSettings  = new PathsSettings();
+const pathSettings  = require('./tools.settings.paths');
 
 class ServiceDownloadManager{
 

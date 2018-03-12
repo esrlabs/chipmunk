@@ -19,14 +19,14 @@ const COLORS = {
 const FileManager = require('./tools.filemanager');
 const Path = require('path');
 const util = require('util');
-const getApplicationStoragePath = require('./tools.storage.folder');
+const pathSettings = require('./tools.settings.paths');
 
 class Logger {
 
     constructor(signature, noFSRecording){
         this.signature      = signature;
         this._fileManager   = new FileManager(true);
-        this._path          = Path.resolve(getApplicationStoragePath() + '/service.log');
+        this._path          = pathSettings.LOGVIEWER_LOGS;
         this._FSReady       = false;
         this._noFSRecording = typeof noFSRecording === 'boolean' ? noFSRecording : false;
         this._initFSStorage();
