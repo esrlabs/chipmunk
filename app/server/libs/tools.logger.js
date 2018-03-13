@@ -44,7 +44,6 @@ class Logger {
     }
 
     _writeFS(message){
-        console.log(this._FSReady);
         this._FSReady && this._fileManager.append(message, this._path);
     }
 
