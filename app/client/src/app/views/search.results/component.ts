@@ -95,6 +95,7 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     private rowsCount               : number                        = 0;
     private followByScroll          : boolean                       = true;
     private highlight               : boolean                       = true;
+    private activeSearchResults     : boolean                       = true;
     private onScrollSubscription    : EventEmitter<OnScrollEvent>   = new EventEmitter();
     private textSelection           : TextSelection                 = null;
     private textSelectionTrigger    : EventEmitter<string>          = new EventEmitter();
@@ -179,7 +180,8 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED,
             Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED,
-            Configuration.sets.SYSTEM_EVENTS.HIGHLIGHT_SEARCH_REQUESTS_TRIGGER].forEach((handle: string)=>{
+            Configuration.sets.SYSTEM_EVENTS.HIGHLIGHT_SEARCH_REQUESTS_TRIGGER,
+            Configuration.sets.SYSTEM_EVENTS.VISUAL_SETTINGS_IS_UPDATED].forEach((handle: string)=>{
             this['on' + handle] = this['on' + handle].bind(this);
             Events.bind(handle, this['on' + handle]);
         });
@@ -196,6 +198,7 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         this.textSelection === null && (this.textSelection = new TextSelection(this.viewContainerRef.element.nativeElement, this.textSelectionTrigger));
         this.initRequests();
         this.initRows();
+        this.activeResultsUpdateSettings();
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.MARKERS_GET_ALL, this.onMARKERS_UPDATED.bind(this));
     }
 
@@ -215,7 +218,8 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED,
             Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED,
-            Configuration.sets.SYSTEM_EVENTS.HIGHLIGHT_SEARCH_REQUESTS_TRIGGER].forEach((handle: string)=>{
+            Configuration.sets.SYSTEM_EVENTS.HIGHLIGHT_SEARCH_REQUESTS_TRIGGER,
+            Configuration.sets.SYSTEM_EVENTS.VISUAL_SETTINGS_IS_UPDATED].forEach((handle: string)=>{
             Events.unbind(handle, this['on' + handle]);
         });
         this.onScrollSubscription.      unsubscribe();
@@ -416,6 +420,24 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    * Active results including
+    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    activeResultsUpdateSettings(){
+        let settings = Settings.get();
+        this.activeSearchResults = settings.visual.show_active_search_results_always;
+    }
+
+    onVISUAL_SETTINGS_IS_UPDATED(){
+        let settings = Settings.get();
+        if (this.activeSearchResults !== settings.visual.show_active_search_results_always){
+            this.activeResultsUpdateSettings();
+            this.filterRows();
+            this.forceUpdate();
+        }
+    }
+
+
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Tab functions
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     onTabSelected(){
@@ -506,6 +528,7 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
                 match       : row.match,
                 matchReg    : row.matchReg,
                 callback    : this.onRowInit.bind(this, _index),
+                filtered    : row.filtered !== void 0 ? row.filtered : false,
                 update      : null
             };
         });
@@ -606,11 +629,14 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
             }
             result = rows.filter((row, index)=>{
                 if (exp[index] === void 0){
-                    let filtered    = this.bookmarks.indexOf(index) !== -1,
+                    let filtered    = false,
                         highlight   = {
                             foregroundColor: '',
                             backgroundColor: ''
                         };
+                    if ((this.activeSearchResults && row.filtered) || this.bookmarks.indexOf(index) !== -1){
+                        filtered = true;
+                    }
                     requests.forEach((request: Request)=>{
                         if (!filtered){
                             row.requests[request.GUID] && (filtered = true);
@@ -622,7 +648,6 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
                         row.requests[request.GUID] && (request.count += 1);
                     });
                     row.params.highlight    = highlight;
-                    //row.index               = row.index !== void 0 ? row.index : index;
                     row.update !== null && row.update(row.params);
                     if (filtered){
                         row.params.matchReg = match.isReg;
@@ -631,6 +656,11 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
                         row.match           = match.match;
                         map[index] = i;
                         i += 1;
+                    }
+                    if (this.activeSearchResults && row.filtered){
+                        row.params.active = true;
+                    } else {
+                        row.params.active = false;
                     }
                     return filtered;
                 } else {
@@ -663,6 +693,9 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
                             foregroundColor: '',
                             backgroundColor: ''
                         };
+                    if ((this.activeSearchResults && row.filtered) || this.bookmarks.indexOf(index) !== -1){
+                        filtered = true;
+                    }
                     requests.forEach((request: Request)=>{
                         if (!filtered){
                             !row.requests[request.GUID] && (filtered = true);
@@ -680,6 +713,11 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
                     if (filtered){
                         map[index] = i;
                         i += 1;
+                    }
+                    if (this.activeSearchResults && row.filtered){
+                        row.params.active = true;
+                    } else {
+                        row.params.active = false;
                     }
                     return filtered;
                 } else {
@@ -708,7 +746,8 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
                 let _active = this.getRowsByRequestsActive  (rows, active, {}, adding);
                 let _passive= this.getRowsByRequestsPassive (rows, passive, _active.map, adding);
                 result      = rows.filter((row, index)=>{
-                    return this.bookmarks.indexOf(index) !== -1 ? true : (_active.map[index] !== void 0 ? true : (_passive.map[index] !== void 0));
+                    let filtered = this.activeSearchResults && row.filtered;
+                    return filtered ? true : (this.bookmarks.indexOf(index) !== -1 ? true : (_active.map[index] !== void 0 ? true : (_passive.map[index] !== void 0)));
                 });
                 break;
             case FILTER_MODES.ONLY_ACTIVE:
@@ -753,13 +792,6 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
                         }
                     }
                 }
-                /*
-                if (row.params.highlight.foregroundColor !== '' || row.params.highlight.backgroundColor !== ''){
-                    highlight.foregroundColor = row.params.highlight.foregroundColor;
-                    highlight.backgroundColor = row.params.highlight.backgroundColor;
-                    results[row.params.index] = highlight;
-                }
-                */
             });
         }
         Logs.measure(measure);
@@ -922,7 +954,7 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
             const active = serviceRequests.getActiveRequests();
             this.rows = this._rows.filter((row: any, index: number)=>{
 
-                if (~this.bookmarks.indexOf(index)){
+                if (~this.bookmarks.indexOf(index) || (this.activeSearchResults && row.filtered)){
                     return true;
                 }
 
