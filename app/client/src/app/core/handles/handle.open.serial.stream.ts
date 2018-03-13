@@ -15,6 +15,9 @@ import { APIResponse                    } from '../api/api.response.interface';
 import { SerialSedingPackage            } from '../interfaces/interface.serial.send.package';
 import { localSettings, KEYs            } from '../../core/modules/controller.localsettings';
 
+import { ExtraButton, BarAPI            } from '../../views/search.results/search.request/interface.extrabutton';
+import { GUID                           } from '../../core/modules/tools.guid';
+
 interface IncomeData{
     connection  : string,
     data        : string
@@ -79,11 +82,91 @@ class SettingsController{
     }
 }
 
+class SerialSender{
+
+    private ID: symbol = Symbol();
+    private barAPI : BarAPI = null;
+    private message: string = '';
+    private packageGUID: string = null;
+    private history: Array<string> = [];
+    private historyCursor: number = -1;
+
+    constructor(){
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.DATA_TO_SERIAL_SENT, this.onDATA_TO_SERIAL_SENT.bind(this));
+    }
+
+    addButton(){
+        Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_SEARCH_RESULTS_BUTTON_ADD, {
+            id          : this.ID,
+            title       : 'Send data to port',
+            icon        : 'fa-keyboard-o',
+            active      : false,
+            onKeyUp     : this.onKeyUp.bind(this),
+            onEnter     : this.onEnter.bind(this),
+            placeholder : 'type command for serial port'
+        } as ExtraButton, (api: BarAPI) => {
+            this.barAPI = api;
+        });
+
+    }
+
+    removeButton(){
+        Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_SEARCH_RESULTS_BUTTON_REMOVE, this.ID);
+        this.barAPI = null;
+    }
+
+    onKeyUp(event: KeyboardEvent, value: string){
+        if (this.barAPI === null || this.history.length === 0){
+            return false;
+        }
+        switch (event.keyCode){
+            case 38:
+                this.historyCursor += 1;
+                if (this.historyCursor > (this.history.length - 1)) {
+                    this.historyCursor = this.history.length - 1;
+                }
+                this.barAPI.setValue(this.history[this.historyCursor]);
+                break;
+            case 40:
+                this.historyCursor -= 1;
+                if (this.historyCursor < 0) {
+                    this.historyCursor = 0;
+                }
+                this.barAPI.setValue(this.history[this.historyCursor]);
+                break;
+        }
+    }
+
+    onEnter(event: KeyboardEvent, value: string){
+        this.message = value;
+        this.send();
+    }
+
+    send(){
+        this.barAPI !== null && this.barAPI.showProgress();
+        this.packageGUID = GUID.generate();
+        this.history.unshift(this.message);
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.READY_TO_SEND_DATA_TO_SERIAL, {
+            packageGUID : this.packageGUID,
+            buffer      : this.message + '\n\r' + ' ',
+        } as SerialSedingPackage);
+    }
+
+    onDATA_TO_SERIAL_SENT(params: any){
+        if (params.packageGUID === this.packageGUID){
+            this.barAPI !== null && this.barAPI.hideProgress();
+            this.packageGUID = null;
+            this.barAPI.setValue('');
+        }
+    }
+}
+
 class SerialStream{
     private connection  : string            = null;
     private port        : string            = null;
     private state       : symbol            = STREAM_STATE.WORKING;
     private buffer      : string            = '';
+    private sender      : SerialSender      = new SerialSender();
     private buttons     = {
         STOP        : Symbol(),
         PLAYPAUSE   : Symbol()
@@ -99,13 +182,13 @@ class SerialStream{
         this.onReadyToSendData  = this.onReadyToSendData.bind(this);
         this.onLostConnection   = this.onLostConnection.bind(this);
         this.addButtonsInToolBar();
+        this.sender.addButton();
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.DESCRIPTION_OF_STREAM_UPDATED,  this.port);
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.TXT_DATA_COME,                  '');
         Events.bind(Configuration.sets.SYSTEM_EVENTS.SERIAL_DATA_COME,                  this.onData);
         Events.bind(Configuration.sets.SYSTEM_EVENTS.TXT_DATA_COME,                     this.onStreamReset);
         Events.bind(Configuration.sets.SYSTEM_EVENTS.READY_TO_SEND_DATA_TO_SERIAL,      this.onReadyToSendData);
         Events.bind(Configuration.sets.SYSTEM_EVENTS.WS_DISCONNECTED,                   this.onLostConnection);
-
     }
 
     addButtonsInToolBar(){
@@ -127,6 +210,7 @@ class SerialStream{
         });
         //Reset titles
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.DESCRIPTION_OF_STREAM_UPDATED, _('No active stream or file opened'));
+        this.sender.removeButton();
     }
 
     onStreamReset(){
