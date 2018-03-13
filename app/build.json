@@ -1,6 +1,6 @@
 {
   "name"          : "logviewer",
-  "version"       : "0.11.0",
+  "version"       : "0.11.1",
   "description"   : "LogViewer",
   "main"          : "electron.js",
   "scripts"       : {
