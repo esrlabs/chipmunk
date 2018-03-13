@@ -79,7 +79,7 @@ export class MarkersEditDialog {
 
     onForegroundColorSelected(color: string){
         this.foregroundColor = color;
-        this.generateColor && (this.backgroundColor = this.getGeneratedColor(color));
+        //this.generateColor && (this.backgroundColor = this.getGeneratedColor(color));
         this.forceUpdate();
     }
 
