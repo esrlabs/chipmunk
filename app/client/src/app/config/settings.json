@@ -1,5 +1,5 @@
 {
-  "version": "15.02.2018.01",
+  "version": "12.03.2018",
   "drop_rules": [
     "visual"
   ],
@@ -7,7 +7,8 @@
     "prevent_ascii_colors_always": false,
     "prevent_ascii_colors_on_highlight": true,
     "do_not_highlight_matches_in_requests": false,
-    "highlight_search_requests": false
+    "highlight_search_requests": false,
+    "show_active_search_results_always": true
   },
   "server":{
     "API_URL"                 : "http://127.0.0.1:8082/API",

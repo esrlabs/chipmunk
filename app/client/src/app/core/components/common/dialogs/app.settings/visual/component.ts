@@ -18,7 +18,8 @@ export class DialogVisualSettingTab extends TabController implements OnDestroy, 
         prevent_ascii_colors_always         : false,
         prevent_ascii_colors_on_highlight   : true,
         do_not_highlight_matches_in_requests: false,
-        highlight_search_requests           : false
+        highlight_search_requests           : false,
+        show_active_search_results_always   : false
     };
 
     @Input() register   : Function = null;
@@ -28,7 +29,8 @@ export class DialogVisualSettingTab extends TabController implements OnDestroy, 
             prevent_ascii_colors_always         : this._prevent_ascii_colors_always.getValue(),
             prevent_ascii_colors_on_highlight   : this._prevent_ascii_colors_on_highlight.getValue(),
             do_not_highlight_matches_in_requests: this._do_not_highlight_matches_in_requests.getValue(),
-            highlight_search_requests           : this._highlight_search_requests.getValue()
+            highlight_search_requests           : this._highlight_search_requests.getValue(),
+            show_active_search_results_always   : this._show_active_search_results_always.getValue(),
         };
     };
 
@@ -38,6 +40,7 @@ export class DialogVisualSettingTab extends TabController implements OnDestroy, 
     @ViewChild('_prevent_ascii_colors_on_highlight'     ) _prevent_ascii_colors_on_highlight        : SimpleCheckbox;
     @ViewChild('_do_not_highlight_matches_in_requests'  ) _do_not_highlight_matches_in_requests     : SimpleCheckbox;
     @ViewChild('_highlight_search_requests'             ) _highlight_search_requests                : SimpleCheckbox;
+    @ViewChild('_show_active_search_results_always'     ) _show_active_search_results_always        : SimpleCheckbox;
 
     constructor(private componentFactoryResolver    : ComponentFactoryResolver,
                 private viewContainerRef            : ViewContainerRef,
