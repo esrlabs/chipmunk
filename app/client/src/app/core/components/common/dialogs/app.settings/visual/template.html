@@ -22,5 +22,9 @@
             <td><span>Search requests</span> Highlight search requests (filters) in main view</td>
             <td><div class="input-cover"><simple-checkbox #_highlight_search_requests [checked]="visual.highlight_search_requests"></simple-checkbox></div></td>
         </tr>
+        <tr>
+            <td><span>Active results</span> Always put results of active search request into search view. In opposite case results will be shown only if all search terms are inactive or invisible.</td>
+            <td><div class="input-cover"><simple-checkbox #_show_active_search_results_always [checked]="visual.show_active_search_results_always"></simple-checkbox></div></td>
+        </tr>
     </table>
 </div>
