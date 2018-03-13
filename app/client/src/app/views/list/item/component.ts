@@ -41,6 +41,7 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     @Input() total_rows         : number        = 0;
     @Input() selection          : boolean       = false;
     @Input() bookmarked         : boolean       = false;
+    @Input() active             : boolean       = false;
     @Input() markersHash        : string        = '';
     @Input() regsCache          : Object        = {};
     @Input() markers            : Array<{

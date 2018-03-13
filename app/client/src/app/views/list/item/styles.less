@@ -40,6 +40,10 @@ list-view-item{
             cursor              : pointer;
             left                : 0.5rem;
             /*z-index             : 10;*/
+            &.active{
+                font-weight     : bold;
+                color           : @dark;
+            }
             &:after{
                 content     : '';
                 position    : absolute;
@@ -56,7 +60,12 @@ list-view-item{
                 color       : @grey;
                 background  : @light;
                 line-height: 1rem!important;
+                &.active{
+                    font-weight : normal;
+                    color       : @dark;
+                }
             }
+
         }
         .item{
             position        : relative;
