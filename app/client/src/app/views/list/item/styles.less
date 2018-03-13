@@ -2,6 +2,7 @@ list-view-item{
     position    : relative;
     display     : block;
     cursor      : text;
+    height      : 1rem;
     p{
         margin      : 0;
         padding     : 0;
@@ -10,7 +11,8 @@ list-view-item{
         min-width   : 100%;
         box-sizing  : border-box;
         position    : relative;
-        top:0;
+        top         :0;
+        overflow    : hidden;
         span.filler{
             position    : absolute;
             display     : block;
@@ -36,7 +38,7 @@ list-view-item{
             padding             : 0 0.2rem;
             border              : none;
             background          : @list-number-background;
-            line-height         : 1rem;
+            line-height         : 1.3rem;
             cursor              : pointer;
             left                : 0.5rem;
             /*z-index             : 10;*/
@@ -59,7 +61,7 @@ list-view-item{
                 font        : normal normal normal 10px/1 FontAwesome!important;
                 color       : @grey;
                 background  : @light;
-                line-height: 1rem!important;
+                line-height: 1.2rem!important;
                 &.active{
                     font-weight : normal;
                     color       : @dark;
@@ -88,11 +90,12 @@ list-view-item{
                 color   : @green;
             }
         }
-        span.match{
+        span.match, span.marker{
             position: relative;
             display: inline-block;
             background: @soft-red;
             color:@white;
+            line-height: 1.3rem;
         }
         &.bookmarked{
             .number{
