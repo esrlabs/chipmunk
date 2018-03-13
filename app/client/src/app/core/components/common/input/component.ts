@@ -34,8 +34,8 @@ export class CommonInput {
     }
 
     @Output() setValue(value: string){
-        //this.input.element.nativeElement.value  = value;
-        //this.value                              = value;
+        this.input.element.nativeElement.value  = value;
+        //this.value = value;
         this.forceUpdate();
     }
 
