@@ -11,4 +11,9 @@ interface Request{
     isDragOver?     : boolean
 }
 
-export { Request };
+interface Preset {
+    name    : string,
+    requests: Array<Request>
+}
+
+export { Request, Preset };

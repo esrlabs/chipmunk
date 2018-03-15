@@ -1,0 +1,44 @@
+<div class="spm-main-area">
+    <div class="spm-presets-list">
+        <p class="spm-title">Available presets</p>
+        <div class="spm-list">
+            <ul *ngIf="presets.length > 0" class="presets-list">
+                <li [attr.class]="'preset-item' + (selected === i ? ' selected' : '')" *ngFor="let preset of presets; let i = index;">
+                    <span class="preset-name" (click)="onSelect($event, i)">{{preset.name}}</span>
+                    <span *ngIf="i > 0" class="fa fa-trash-o preset-remove" (click)="onRemove($event, i)"></span>
+                </li>
+            </ul>
+            <p class="spm-info" *ngIf="presets.length === 0">No presets are saved</p>
+        </div>
+    </div>
+    <div class="spm-current-request">
+        <p class="spm-title">Requests</p>
+        <ul class="requests-list">
+            <li *ngFor="let request of requests; let i = index;">
+                <span class="value" [style.backgroundColor]="request.backgroundColor" [style.color]="request.foregroundColor">{{request.value}}</span>
+                <span class="state">{{request.passive ? '[passive]' : '[active] '}}</span>
+            </li>
+        </ul>
+    </div>
+</div>
+<div class="spm-controls-area">
+    <div class="spm-new-preset">
+        <div class="spm-new-input">
+            <div class="spm-new-input-wrapper">
+                <common-input #nameInput [placeholder]="'Type name of new preset'" [type]="'text'"></common-input>
+            </div>
+        </div>
+        <div class="spm-new-buttons">
+            <button-flat-text [caption]="'Add New'" [handle]="onNew"></button-flat-text>
+            <button-flat-text [caption]="'Save As'" [handle]="onSaveAs"></button-flat-text>
+        </div>
+    </div>
+    <div class="spm-common-buttons">
+        <button-flat-text [caption]="'Export'" [handle]="onExport"></button-flat-text>
+        <button-flat-text [caption]="'Import'" [handle]="onImportFromFile"></button-flat-text>
+        <button-flat-text [caption]="'Import by url'" [handle]="onImportByURL"></button-flat-text>
+        <button-flat-text [caption]="'Apply'" [handle]="onApply"></button-flat-text>
+    </div>
+</div>
+<a #exporturl [attr.href]="exportdata.url" class="export-url" [attr.download]="exportdata.filename"></a>
+

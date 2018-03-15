@@ -1,6 +1,6 @@
 import { configuration as Configuration } from '../modules/controller.config';
 import { events as Events               } from '../modules/controller.events';
-import { Request                        } from './interface.request';
+import { Request, Preset                } from './interface.request';
 import { EVENT_DATA_IS_UPDATED          } from '../interfaces/events/DATA_IS_UPDATE';
 import { Logs, TYPES as LogTypes        } from '../modules/tools.logs';
 import { DataFilter                     } from '../interfaces/interface.data.filter';
@@ -9,14 +9,49 @@ import { localSettings, KEYs            } from '../modules/controller.localsetti
 const SETTINGS = {
     FOREGROUND_COLOR    : '',
     BACKGROUND_COLOR    : '',
-    LIST_KEY            : 'ListOfRequests'
+    LIST_KEY            : 'ListOfRequests',
+    PRESETS             : 'SearchPresets'
 };
+
+class PresetsManager {
+
+    private presets: Array<Preset> = [];
+
+    constructor(){
+        this.loadPresets();
+    }
+
+    private loadPresets(){
+        let settings = localSettings.get();
+        if (settings !== null && settings[KEYs.view_searchrequests] !== void 0 && settings[KEYs.view_searchrequests] !== null && settings[KEYs.view_searchrequests][SETTINGS.PRESETS] instanceof Array){
+            this.presets = settings[KEYs.view_searchrequests][SETTINGS.PRESETS].filter((request : any)=>{ return true; });
+        }
+    }
+
+    private savePresets(){
+        localSettings.set({
+            [KEYs.view_searchrequests] : {
+                [SETTINGS.PRESETS] : this.presets
+            }
+        });
+    }
+
+    public getPresets(){
+        return this.presets instanceof Array ? this.presets.slice() : this.presets;
+    }
+
+    public setPresets(presets: Array<Preset>){
+        this.presets = presets;
+        this.savePresets();
+    }
+}
 
 class ServiceRequests {
 
     private requests        : Array<Request>    = [];
     private currentRequest  : Request           = null;
     private dataController  : any               = null;
+    private presetManager   : PresetsManager    = new PresetsManager();
 
     constructor( ) {
 
@@ -256,6 +291,17 @@ class ServiceRequests {
 
     }
 
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+     * Presets manager
+     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+    public getPresets(){
+        return this.presetManager.getPresets();
+    }
+
+    public setPresets(presets: Array<Preset>){
+        this.presetManager.setPresets(presets);
+    }
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Service stuff
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
