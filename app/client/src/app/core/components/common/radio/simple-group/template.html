@@ -1,0 +1,3 @@
+<ul class="simple-radio-group">
+    <li *ngFor="let button of buttons; let i = index;" [attr.class]="'simple-radio-button' + (selected === i ? ' selected' : '')" (click)="onChange($event, i)">{{button.caption}}</li>
+</ul>

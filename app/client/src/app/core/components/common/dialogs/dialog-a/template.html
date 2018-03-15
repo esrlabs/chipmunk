@@ -4,10 +4,10 @@
             <p>{{caption}}</p>
         </div>
         <div class="fields">
-            <common-input [type]="type" [value]="value" [placeholder]="placeholder"></common-input>
+            <common-input #input [type]="type" [value]="value" [placeholder]="placeholder"></common-input>
         </div>
     </div>
     <div class="buttons">
-        <button-flat-text *ngFor="let button of buttons;" [handle]="button.handle" [caption]="button.caption"></button-flat-text>
+        <button-flat-text *ngFor="let button of buttons;" [handle]="onButtonClick.bind(this, button.handle)" [caption]="button.caption"></button-flat-text>
     </div>
 </div>

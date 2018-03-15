@@ -1,0 +1,45 @@
+simple-radio-group{
+    position    : relative;
+    display     : block;
+    width       : auto;
+    height      : auto;
+    overflow    : hidden;
+    .simple-radio-group{
+        position: relative;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        text-align: center;
+        .simple-radio-button{
+            position    : relative;
+            display     : inline-block;
+            padding     : 0.2rem 0.5rem;
+            margin      : 0.2rem 0.5rem;
+            white-space : nowrap;
+            cursor      : pointer;
+            border      : @button-flat-passive-border;
+            background  : @button-flat-passive-background;
+            color       : @button-flat-passive-color;
+            &.selected{
+                background  : @button-flat-active-background;
+                color       : @button-flat-active-color;
+                border      : @button-flat-active-border;
+            }
+            &:hover{
+                background  : @button-flat-active-background;
+                color       : @button-flat-active-color;
+                border      : @button-flat-active-border;
+            }
+            &.disabled{
+                background  : @light-grey;
+                color       : @grey;
+                cursor      : default;
+            }
+            &.disabled:hover{
+                background  : @light-grey;
+                color       : @grey;
+                border      : @button-flat-passive-border;
+            }
+        }
+    }
+}
