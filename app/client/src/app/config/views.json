@@ -28,8 +28,10 @@
     "vertical"    : false,
     "horizontal"  : true,
     "menu"        : [
-      { "icon": "fa-angle-double-down", "event" : "LIST_VIEW_FOLLOW_SCROLL_TRIGGER",  "hint": "auto scroll down: on/off",       "active": true, "listen" : "LIST_VIEW_FOLLOW_SCROLL_SET" },
-      { "icon": "fa-floppy-o",          "event" : "LIST_VIEW_EXPORT_TO_FILE",         "hint": "export data to file"                             }
+      { "icon": "fa-angle-double-down", "event" : "LIST_VIEW_FOLLOW_SCROLL_TRIGGER",  "hint": "auto scroll down: on/off", "active": true, "listen" : "LIST_VIEW_FOLLOW_SCROLL_SET" },
+      { "icon": "fa-floppy-o",          "event" : "LIST_VIEW_EXPORT_TO_FILE",         "hint": "export data to file" },
+      { "icon": "fa-filter",            "event" : "SEARCH_VIEW_MANAGE_PRESETS",       "hint": "manage presents of filters"  }
+
     ],
     "hide"        : [
       "SILENCE", "DEAFNESS", "FILTER", "FAVORITE", "CLOSE"
