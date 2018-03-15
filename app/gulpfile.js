@@ -209,7 +209,8 @@ class BuildingTasks {
     }
 
     _getNameOfApplication(){
-        return `${DEFAULT_DESKTOP_PACKAGE.name}.${os.platform()}.${os.release()}`;
+        //return `${DEFAULT_DESKTOP_PACKAGE.name}.${os.platform()}.${os.release()}`;
+        return `${DEFAULT_DESKTOP_PACKAGE.name}`;
     }
 
     _getCopyrights(){
