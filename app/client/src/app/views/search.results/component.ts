@@ -28,6 +28,8 @@ import { ViewControllerPattern                  } from "../controller.pattern";
 import { ViewClass                              } from "../../core/services/class.view";
 import { TopBarSearchRequest                    } from "./search.request/component";
 import { MODES                                  } from '../../core/modules/controller.data.search.modes';
+import { popupController                        } from "../../core/components/common/popup/controller";
+import { DialogSearchRequestsPresets            } from '../../core/components/common/dialogs/seach.requests.presets/component';
 
 const SETTINGS : {
     SELECTION_OFFSET        : number,
@@ -104,7 +106,7 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     private _requests               : Array<Request>                = [];
     private bookmarks               : Array<number>                 = [];
     private requestsListClosed      : boolean                       = true;
-    private filterMode              : string                        = FILTER_MODES.ACTIVE_AND_PASSIVE;
+    private filterMode              : string                        = FILTER_MODES.ACTIVE_FROM_PASSIVE;
     private onOffLabel              : string                        = ON_OFF.OFF;
     private onOffCache              : Object                        = {};
     private shareHighlightHash      : string                        = '';
@@ -181,7 +183,8 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED,
             Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED,
             Configuration.sets.SYSTEM_EVENTS.HIGHLIGHT_SEARCH_REQUESTS_TRIGGER,
-            Configuration.sets.SYSTEM_EVENTS.VISUAL_SETTINGS_IS_UPDATED].forEach((handle: string)=>{
+            Configuration.sets.SYSTEM_EVENTS.VISUAL_SETTINGS_IS_UPDATED,
+            Configuration.sets.EVENTS_VIEWS.SEARCH_VIEW_MANAGE_PRESETS].forEach((handle: string)=>{
             this['on' + handle] = this['on' + handle].bind(this);
             Events.bind(handle, this['on' + handle]);
         });
@@ -219,7 +222,8 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED,
             Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED,
             Configuration.sets.SYSTEM_EVENTS.HIGHLIGHT_SEARCH_REQUESTS_TRIGGER,
-            Configuration.sets.SYSTEM_EVENTS.VISUAL_SETTINGS_IS_UPDATED].forEach((handle: string)=>{
+            Configuration.sets.SYSTEM_EVENTS.VISUAL_SETTINGS_IS_UPDATED,
+            Configuration.sets.EVENTS_VIEWS.SEARCH_VIEW_MANAGE_PRESETS].forEach((handle: string)=>{
             Events.unbind(handle, this['on' + handle]);
         });
         this.onScrollSubscription.      unsubscribe();
@@ -1307,8 +1311,8 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     }
 
     onRequestDragEnd(event: DragEvent, index: number){
-        const draggedIndex = this.reordering.dragged;
-        const destIndex = this.reordering.dest;
+        let draggedIndex = this.reordering.dragged;
+        let destIndex = this.reordering.dest;
         const dragged = this._requests[draggedIndex];
         const dest = this._requests[destIndex];
 
@@ -1323,15 +1327,10 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
             return false;
         }
 
-        this._requests = this._requests.map((request: Request, index: number) => {
-            if (index === draggedIndex) {
-                return dest;
-            }
-            if (index === destIndex){
-                return dragged;
-            }
-            return request;
-        });
+        //Remove dragged
+        this._requests.splice(draggedIndex, 1);
+        //Insert dragged into new position
+        this._requests.splice(destIndex, 0, dragged);
 
         serviceRequests.updateRequests(this._requests.map((request)=>{
             return this.clearHandles(
@@ -1354,5 +1353,40 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
 
     isOrderingChanged(): boolean {
         return this.reordering.hash !== this.getCurrentOrderingHash();
+    }
+
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+     * Presets manage
+     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    onSEARCH_VIEW_MANAGE_PRESETS(GUID: string | symbol){
+        if (GUID !== this.viewParams.GUID){
+            return false;
+        }
+        let popupGUID = Symbol();
+        popupController.open({
+            content : {
+                factory     : null,
+                component   : DialogSearchRequestsPresets,
+                params      : {
+                    popupGUID   : popupGUID,
+                    close       : () => {
+                        popupController.close(popupGUID);
+                    }
+                }
+            },
+            title   : _('Manage Presets Filters'),
+            settings: {
+                move            : true,
+                resize          : true,
+                width           : '30rem',
+                height          : '20rem',
+                close           : true,
+                addCloseHandle  : true,
+                css             : ''
+            },
+            buttons         : [],
+            titlebuttons    : [],
+            GUID            : popupGUID
+        });
     }
 }
