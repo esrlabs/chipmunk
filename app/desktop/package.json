@@ -1,6 +1,6 @@
 {
   "name": "logviewer",
-  "version": "0.8.0",
+  "version": "0.11.1",
   "description": "LogViewer",
   "main": "electron.js",
   "scripts": {
@@ -16,7 +16,7 @@
   "author": "Dmitry Astafyev",
   "license": "MIT",
   "dependencies": {
-    "node-localstorage": "1.3.0",
+    "electron-json-storage": "4.0.2",
     "electron-updater": "2.21.0",
     "serialport": "6.1.1",
     "uuid": "3.2.1",
@@ -30,9 +30,10 @@
     "type": "git",
     "url": "https://github.com/esrlabs/logviewer.git"
   },
+  "copyright": "Copyright © 2018 year E.S.R.Labs",
   "build": {
     "appId": "com.logviewer.de",
-    "productName": "LogViewer",
+    "productName": "logviewer.darwin.17.4.0",
     "copyright": "Copyright © 2018 year E.S.R.Labs",
     "directories": {
       "output": "dist"
@@ -41,8 +42,7 @@
       {
         "provider": "github",
         "owner": "esrlabs",
-        "repo": "logviewer",
-        "vPrefixedTagName": false
+        "repo": "logviewer"
       }
     ],
     "npmRebuild": true,
@@ -51,10 +51,10 @@
       "icon": "./build/mac/icon.icns",
       "target": [
         {
-          "target": [
-            "dmg",
-            "zip"
-          ]
+          "target": "dmg"
+        },
+        {
+          "target": "zip"
         }
       ]
     }
