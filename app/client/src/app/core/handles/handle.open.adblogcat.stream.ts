@@ -55,46 +55,25 @@ const ERRORS = {
     ADB_SPAWN_01: 'ADB_SPAWN_01'
 };
 
-const DEFAULT_STREAM_SETTINGS = {
-    levels : {
-        V: true,
-        I: true,
-        F: true,
-        W: true,
-        E: true,
-        D: true,
-        S: true
-    },
-    tid     : -1,
-    pid     : -1,
+interface ADBFilter{
+    value: string,
+    level: string
+}
+
+const DEFAULT_STREAM_SETTINGS : {
+    filters : Array<ADBFilter>,
+    path    : string,
+    custom  : string,
+    reset   : boolean
+} = {
+    filters : [],
     path    : '',
     custom  : '',
     reset   : false
 };
 
-interface LocalLevelsSettings {
-    V: boolean,
-    I: boolean,
-    W: boolean,
-    E: boolean,
-    D: boolean,
-    S: boolean,
-    F: boolean,
-}
-
-interface LocalSettings {
-    levels  : LocalLevelsSettings,
-    tid     : number,
-    pid     : number,
-    path    : string,
-    custom  : string,
-    reset   : boolean
-}
-
 interface LogcatStreamSettings {
-    pid     : string,
-    tid     : string,
-    tags    : Array<string>,
+    filters : Array<ADBFilter>,
     path    : string,
     custom  : string,
     reset   : boolean
@@ -102,11 +81,11 @@ interface LogcatStreamSettings {
 
 class SettingsController{
 
-    defaults(): LocalSettings{
+    defaults(): LogcatStreamSettings{
         return Object.assign({}, DEFAULT_STREAM_SETTINGS);
     }
 
-    load(): LocalSettings{
+    load(): LogcatStreamSettings{
         let settings = localSettings.get();
         if (settings !== null && settings[KEYs.adblogccat_stream] !== void 0 && settings[KEYs.adblogccat_stream] !== null){
             return Object.assign({}, this.verify(settings[KEYs.adblogccat_stream], this.defaults()));
@@ -115,7 +94,7 @@ class SettingsController{
         }
     }
 
-    save(settings: LocalSettings){
+    save(settings: LogcatStreamSettings){
         if (typeof settings === 'object' && settings !== null){
             localSettings.set({
                 [KEYs.adblogccat_stream] : settings
@@ -135,15 +114,9 @@ class SettingsController{
         return settings;
     }
 
-    convert(settings: LocalSettings): LogcatStreamSettings {
-        let tags: Array<string> = [];
-        ['V', 'I', 'E', 'D', 'F', 'S', 'W'].forEach((key)=>{
-            settings.levels[key] && tags.push(key);
-        });
+    convert(settings: LogcatStreamSettings): LogcatStreamSettings {
         return {
-            pid     : settings.pid > 0 ? settings.pid.toString() : '',
-            tid     : settings.tid > 0 ? settings.tid.toString() : '',
-            tags    : tags.length === 7 ? null : tags,
+            filters : settings.filters !== void 0 ? settings.filters : [],
             path    : settings.path !== void 0 ? settings.path : '',
             reset   : settings.reset !== void 0 ? settings.reset : false,
             custom  : settings.custom !== void 0 ? settings.custom : ''
@@ -244,9 +217,8 @@ class LogcatStream {
     onSettings(){
         let GUID        = Symbol();
         let settings    = this.Settings.load();
-        let params      = Object.assign({}, settings.levels) as any;
-        params.tid      = settings.tid;
-        params.pid      = settings.pid;
+        let params      = Object.assign({}, settings) as any;
+        params.filters  = settings.filters;
         params.path     = settings.path;
         params.reset    = settings.reset;
         params.custom   = settings.custom;
@@ -274,7 +246,7 @@ class LogcatStream {
         });
     }
 
-    onApplySettings(GUID: symbol, settings: LocalSettings){
+    onApplySettings(GUID: symbol, settings: LogcatStreamSettings){
         this.Settings.save(settings);
         this.applySettings(this.Settings.convert(settings));
         this.hidePopup(GUID);
@@ -341,6 +313,10 @@ class OpenADBLogcatStream implements MenuHandleInterface{
 
     setupAndOpen(){
         this.showSettings();
+    }
+
+    setupSettings(){
+        this.showSettings(true);
     }
 
     openStream(){
@@ -475,16 +451,15 @@ class OpenADBLogcatStream implements MenuHandleInterface{
         });
     }
 
-    showSettings(){
+    showSettings(onlySave: boolean = false){
         let GUID        = Symbol();
         let settings    = this.Settings.load();
-        let params      = Object.assign({}, settings.levels) as any;
-        params.tid      = settings.tid;
-        params.pid      = settings.pid;
+        let params      = Object.assign({}, settings) as any;
+        params.filters  = settings.filters;
         params.path     = settings.path;
         params.reset    = settings.reset;
         params.custom   = settings.custom;
-        params.proceed  = this.onApplySettings.bind(this, GUID);
+        params.proceed  = onlySave ? this.onSaveSettings.bind(this, GUID) : this.onApplySettings.bind(this, GUID);
         params.cancel   = this.onCancelSettings.bind(this, GUID);
         popupController.open({
             content : {
@@ -508,7 +483,12 @@ class OpenADBLogcatStream implements MenuHandleInterface{
         });
     }
 
-    onApplySettings(GUID: symbol, settings: LocalSettings){
+    onSaveSettings(GUID: symbol, settings: LogcatStreamSettings){
+        this.Settings.save(settings);
+        this.hidePopup(GUID);
+    }
+
+    onApplySettings(GUID: symbol, settings: LogcatStreamSettings){
         this.Settings.save(settings);
         this.openStream();
         this.hidePopup(GUID);
