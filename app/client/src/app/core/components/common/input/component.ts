@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, Output, ViewChild, ViewContainerRef, ChangeDetectorRef} from '@angular/core';
+import {Component, EventEmitter, Input, Output, ViewChild, ViewContainerRef, ChangeDetectorRef, AfterViewChecked} from '@angular/core';
 import { configuration as Configuration } from '../../../modules/controller.config';
 import { events as Events               } from '../../../modules/controller.events';
 
@@ -14,19 +14,28 @@ const EVENTS = {
     selector    : 'common-input',
     templateUrl : './template.html',
 })
-export class CommonInput {
-    @Input() value          : string = '';
-    @Input() type           : string = 'text';
-    @Input() placeholder    : string = '';
-    @Input() handles        : Object = {};
+export class CommonInput implements AfterViewChecked {
+    @Input() value          : string    = '';
+    @Input() type           : string    = 'text';
+    @Input() placeholder    : string    = '';
+    @Input() handles        : Object    = {};
+    @Input() autoFocus      : boolean   = false;
 
     @Output() onEnter       : EventEmitter<any> = new EventEmitter();
 
     @ViewChild ('input', { read: ViewContainerRef}) input: ViewContainerRef;
 
     private disabled: boolean   = false;
+    private focused: boolean   = false;
 
     constructor(private changeDetectorRef : ChangeDetectorRef) {
+    }
+
+    ngAfterViewChecked(){
+        if (!this.focused && this.autoFocus && this.input !== null){
+            this.input.element.nativeElement.focus();
+            this.focused = true;
+        }
     }
 
     @Output() getValue(){

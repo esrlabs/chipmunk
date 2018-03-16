@@ -99,6 +99,11 @@ class TopBarMenuHandles{
         openADBLogcatStream.setupAndOpen();
     }
 
+    setupADBLogcatStream(){
+        let openADBLogcatStream = new OpenADBLogcatStream();
+        openADBLogcatStream.setupSettings();
+    }
+
     openTerminalCommand(){
         let openTerminalStream = new OpenTerminalStream();
         openTerminalStream.start();

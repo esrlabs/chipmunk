@@ -1,83 +1,85 @@
-import {Component, Input, ViewChild } from '@angular/core';
-import { SimpleCheckbox             } from '../../checkboxes/simple/component';
-import { CommonInput                } from '../../input/component';
-import {APICommands} from "../../../../api/api.commands";
-import {SimpleText} from "../../text/simple/component";
-import {ProgressBarCircle} from "../../progressbar.circle/component";
-import {popupController} from "../../popup/controller";
-import {APIProcessor} from "../../../../api/api.processor";
-import {APIResponse} from "../../../../api/api.response.interface";
+import { Component, Input, ViewChild, ViewContainerRef, AfterViewChecked, ChangeDetectorRef } from '@angular/core';
+import { DomSanitizer } from '@angular/platform-browser';
+import { SimpleCheckbox } from '../../checkboxes/simple/component';
+import { CommonInput } from '../../input/component';
+import { APICommands } from "../../../../api/api.commands";
+import { SimpleText } from "../../text/simple/component";
+import { ProgressBarCircle } from "../../progressbar.circle/component";
+import { popupController } from "../../popup/controller";
+import { APIProcessor } from "../../../../api/api.processor";
+import { APIResponse } from "../../../../api/api.response.interface";
+import { SimpleListItem } from '../../lists/simple-drop-down/item.interface';
+import {fileLoaderController} from "../../fileloader/controller";
+
 @Component({
     selector    : 'dialog-adblogcatstream-settings',
     templateUrl : './template.html',
 })
 
-export class DialogADBLogcatStreamSettings {
-    @Input() V          : boolean       = true;
-    @Input() I          : boolean       = true;
-    @Input() D          : boolean       = true;
-    @Input() W          : boolean       = true;
-    @Input() E          : boolean       = true;
-    @Input() S          : boolean       = true;
-    @Input() F          : boolean       = true;
-    @Input() tid        : number        = -1;
-    @Input() pid        : number        = -1;
+export class DialogADBLogcatStreamSettings implements AfterViewChecked{
+
+    private _levels: Array<SimpleListItem> = [
+        { caption: 'V', value: 'V' },
+        { caption: 'I', value: 'I' },
+        { caption: 'E', value: 'E' },
+        { caption: 'D', value: 'D' },
+        { caption: 'F', value: 'F' },
+        { caption: 'S', value: 'S' },
+        { caption: 'W', value: 'W' }
+    ];
+
+    @Input() filters    : Array<any>    = [];
     @Input() path       : string        = '';
     @Input() custom     : string        = '';
     @Input() reset      : boolean       = false;
     @Input() proceed    : Function      = null;
     @Input() cancel     : Function      = null;
 
-    @ViewChild('_level_V'       ) _level_V  : SimpleCheckbox;
-    @ViewChild('_level_I'       ) _level_I  : SimpleCheckbox;
-    @ViewChild('_level_D'       ) _level_D  : SimpleCheckbox;
-    @ViewChild('_level_W'       ) _level_W  : SimpleCheckbox;
-    @ViewChild('_level_E'       ) _level_E  : SimpleCheckbox;
-    @ViewChild('_level_S'       ) _level_S  : SimpleCheckbox;
-    @ViewChild('_level_F'       ) _level_F  : SimpleCheckbox;
-    @ViewChild('_tid'           ) _tid      : CommonInput;
-    @ViewChild('_pid'           ) _pid      : CommonInput;
-    @ViewChild('_path'          ) _path     : CommonInput;
-    @ViewChild('_custom'        ) _custom     : CommonInput;
-    @ViewChild('_reset'         ) _reset    : SimpleCheckbox;
+    @ViewChild('_path'          ) _path             : CommonInput;
+    @ViewChild('_custom'        ) _custom           : CommonInput;
+    @ViewChild('_reset'         ) _reset            : SimpleCheckbox;
+    @ViewChild('newFilter'      ) newFilterInput    : CommonInput;
+    @ViewChild ('exporturl', { read: ViewContainerRef}) exportURLNode: ViewContainerRef;
+
 
     private progressGUID    : symbol    = Symbol();
     private processor       : any       = APIProcessor;
+    private waitPopupGUID   : symbol    = Symbol();
+    public exportdata       : {
+        url         : any,
+        filename    : string
+    } = {
+        url         : null,
+        filename    : ''
+    };
 
-    constructor() {
+    constructor(private changeDetectorRef   : ChangeDetectorRef,
+                private sanitizer: DomSanitizer) {
         this.onTest = this.onTest.bind(this);
         this.onProceed = this.onProceed.bind(this);
         this.onCustomChange = this.onCustomChange.bind(this);
+        this.convertFilters();
+    }
+
+    ngAfterViewChecked(){
+        if (this.exportdata.url !== null && this.exportURLNode !== null){
+            this.exportURLNode.element.nativeElement.click();
+            this.exportdata.url         = null;
+            this.exportdata.filename    = '';
+        }
+    }
+
+    forceUpdate(){
+        this.changeDetectorRef.detectChanges();
     }
 
     getSettings(){
-        let levels = {};
-        ['V', 'I', 'E', 'D', 'F', 'S', 'W'].forEach((key)=>{
-            levels[key] = this['_level_' + key].getValue();
-        });
         return {
-            levels : levels,
-            tid    : parseInt(this._tid.getValue(), 10),
-            pid    : parseInt(this._pid.getValue(), 10),
+            filters: this.serializeFilters(),
             path   : this._path.getValue(),
             reset  : this._reset.getValue(),
             custom : this._custom.getValue()
         };
-    }
-
-    convert(settings: any) {
-        let tags: Array<string> = [];
-        ['V', 'I', 'E', 'D', 'F', 'S', 'W'].forEach((key)=>{
-            settings.levels[key] && tags.push(key);
-        });
-        return {
-            pid     : settings.pid > 0 ? settings.pid.toString() : '',
-            tid     : settings.tid > 0 ? settings.tid.toString() : '',
-            tags    : tags.length === 7 ? null : tags,
-            path    : settings.path !== void 0 ? settings.path : '',
-            reset   : settings.reset !== void 0 ? settings.reset : false,
-            custom  : settings.custom !== void 0 ? settings.custom : ''
-        }
     }
 
     onProceed(){
@@ -85,38 +87,16 @@ export class DialogADBLogcatStreamSettings {
     }
 
     onCustomChange(event: KeyboardEvent, value: string){
-        /*
-        if (value !== ''){
-            this.disableControls();
-        } else {
-            this.enableControls();
-        }
-        */
-    }
 
-    enableControls(){
-        ['V', 'I', 'E', 'D', 'F', 'S', 'W'].forEach((key)=>{
-            this['_level_' + key].enable();
-        });
-        this._pid.enable();
-        this._tid.enable();
-    }
-
-    disableControls(){
-        ['V', 'I', 'E', 'D', 'F', 'S', 'W'].forEach((key)=>{
-            this['_level_' + key].disable();
-        });
-        this._pid.disable();
-        this._tid.disable();
     }
 
     onTest(){
         this.showProgress(_('Please wait... Opening...'));
-        let settings = this.getSettings()
+        let settings = this.getSettings();
         this.processor.send(
             APICommands.tryLogcatStream,
             {
-                settings : this.convert(settings)
+                settings : settings
             },
             this.onTestDone.bind(this)
         );
@@ -182,6 +162,143 @@ export class DialogADBLogcatStreamSettings {
             buttons         : [],
             titlebuttons    : [],
             GUID            : this.progressGUID
+        });
+    }
+
+    convertFilters(){
+        this.filters = this.filters.map((filter) => {
+            return {
+                value: filter.value,
+                level: filter.level,
+                edit: false
+            };
+        });
+    }
+
+    serializeFilters(){
+        return this.filters.map((filter) => {
+            return {
+                value: filter.value,
+                level: filter.level
+            }
+        });
+    }
+
+    onStartEditFilter(index: number){
+        this.filters[index].edit = true;
+    }
+
+    onEndEditFilter(index: number, event:MouseEvent, value: string){
+        this.filters[index].value = value;
+        this.filters[index].edit = false;
+    }
+
+    onLevelChange(index: number, level: string){
+        this.filters[index].level = level;
+    }
+
+    onFilterRemove(index: number){
+        this.filters.splice(index, 1);
+    }
+
+    onNewFilter(){
+        const value = this.newFilterInput.getValue();
+        this.newFilterInput.setValue('');
+        if (value.trim() === ''){
+            return false;
+        }
+        this.filters.push({
+            value: value,
+            level: 'V',
+            edit: false
+        });
+    }
+
+    onExportFilters(){
+        if (this.filters.length === 0) {
+            return false;
+        }
+        let str     = JSON.stringify(this.filters),
+            blob    = new Blob([str], {type: 'text/plain'}),
+            url     = URL.createObjectURL(blob);
+        this.exportdata.url         = this.sanitizer.bypassSecurityTrustUrl(url);
+        this.exportdata.filename    = 'filters_adb_logcat_' + (new Date()).getTime() + '.json';
+        this.forceUpdate();
+    }
+
+    onImportFilters(){
+        let started = false;
+        fileLoaderController.open(Symbol(), {
+            load    : (data : string, files: Array<File>)=>{
+                popupController.close(this.waitPopupGUID);
+                let filters = this.validateFilters(data);
+                if (filters !== null){
+                    this.filters = filters;
+                }
+            },
+            error   :(event : Event)=>{
+
+            },
+            reading :(file : File)=>{
+                if (!started){
+                    this.showWaitPopup();
+                    started = true;
+                }
+            }
+        });
+    }
+
+    validateFilters(filters: any){
+        let result = null;
+        try {
+            filters = JSON.parse(filters);
+        } catch (e){
+            filters = null;
+        }
+        if (filters instanceof Array){
+            let valid = true;
+            filters.forEach((filter) => {
+                if (!valid){
+                    return false;
+                }
+                if (typeof filter !== 'object' || filter === null) {
+                    valid = false;
+                } else if (typeof filter.value !== 'string' || filter.value.trim() === ''){
+                    valid = false;
+                }else if (typeof filter.level !== 'string' || filter.level.trim() === ''){
+                    valid = false;
+                }
+            });
+            if (valid) {
+                result = filters;
+            }
+        }
+        return result;
+    }
+
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    * Dialogs
+    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    showWaitPopup(){
+        popupController.open({
+            content : {
+                factory     : null,
+                component   : ProgressBarCircle,
+                params      : {}
+            },
+            title   : 'Please, wait...',
+            settings: {
+                move            : false,
+                resize          : false,
+                width           : '20rem',
+                height          : '10rem',
+                close           : false,
+                addCloseHandle  : false,
+                css             : ''
+            },
+            buttons         : [],
+            titlebuttons    : [],
+            GUID            : this.waitPopupGUID
         });
     }
 
