@@ -1,46 +1,41 @@
 <div class="settings">
     <table>
         <tr>
-            <td class="table-title" colspan="2"><span>Level</span> Select types of messages, which should be shown</td>
+            <td class="table-title" colspan="2"><span>Filter</span> Define filter for ADB logcat stream </td>
         </tr>
         <tr>
-            <td><span>V</span> Verbose (lowest priority)</td>
-            <td><simple-checkbox #_level_V [checked]="V"></simple-checkbox></td>
-        </tr>
-        <tr>
-            <td><span>D</span> Debug</td>
-            <td><simple-checkbox #_level_D [checked]="D"></simple-checkbox></td>
-        </tr>
-        <tr>
-            <td><span>I</span> Info</td>
-            <td><simple-checkbox #_level_I [checked]="I"></simple-checkbox></td>
-        </tr>
-        <tr>
-            <td><span>W</span> Warning</td>
-            <td><simple-checkbox #_level_W [checked]="W"></simple-checkbox></td>
-        </tr>
-        <tr>
-            <td><span>E</span> Error</td>
-            <td><simple-checkbox #_level_E [checked]="E"></simple-checkbox></td>
-        </tr>
-        <tr>
-            <td><span>F</span> Fatal</td>
-            <td><simple-checkbox #_level_F [checked]="F"></simple-checkbox></td>
-        </tr>
-        <tr>
-            <td><span>S</span> Silent (highest priority, on which nothing is ever printed)</td>
-            <td><simple-checkbox #_level_S [checked]="S"></simple-checkbox></td>
-        </tr>
-        <tr>
-            <td class="table-title" colspan="2"><span>Filters</span> Define filters by IDs</td>
-        </tr>
-        <tr>
-            <td><span>PID</span> To do not use filter, set "-1"</td>
-            <td><div class="input-cover"><common-input  #_pid [type]="'number'" [value]="pid"></common-input></div></td>
-        </tr>
-        <tr>
-            <td><span>TID</span> To do not use filter, set "-1"</td>
-            <td><div class="input-cover"><common-input  #_tid [type]="'number'" [value]="tid"></common-input></div></td>
+            <td colspan="2">
+                <div class="filters-list-area">
+                    <div class="filters-list-wrapper">
+                        <ul class="filters-list">
+                            <li class="filter-item" *ngFor="let filter of filters; let i = index;">
+                                <div *ngIf="!filter.edit" class="fi-value" (click)="onStartEditFilter(i)">
+                                    <span>{{filter.value}}</span>
+                                </div>
+                                <div *ngIf="filter.edit" class="fi-value">
+                                    <common-input [autoFocus]="true" [type]="text" [value]="filter.value" [handles]="{ onBlur: onEndEditFilter.bind(this, i)}"></common-input>
+                                </div>
+                                <div class="fi-level">
+                                    <simple-dd-list [items]="_levels" [onChange]="onLevelChange.bind(this,i)" [defaults]="filter.level"></simple-dd-list>
+                                </div>
+                                <div class="fi-buttons">
+                                    <span class="fa fa-trash-o fi-remove" (click)="onFilterRemove(i)"></span>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="filters-controlls">
+                        <div class="fi-new">
+                            <common-input #newFilter [type]="text" [placeholder]="'Type component name to add new filter'"></common-input>
+                        </div>
+                        <div class="fi-new-buttons">
+                            <button-flat-text [caption]="'Add'" (click)="onNewFilter()"></button-flat-text>
+                            <button-flat-text [caption]="'Export'" (click)="onExportFilters()"></button-flat-text>
+                            <button-flat-text [caption]="'Import'" (click)="onImportFilters()"></button-flat-text>
+                        </div>
+                    </div>
+                </div>
+            </td>
         </tr>
     </table>
     <table>
@@ -77,3 +72,4 @@
     <button-flat-text [caption]="'Apply'" [handle]="onProceed"></button-flat-text>
     <button-flat-text [caption]="'Cancel'" [handle]="cancel"></button-flat-text>
 </div>
+<a #exporturl [attr.href]="exportdata.url" class="export-url" [attr.download]="exportdata.filename"></a>

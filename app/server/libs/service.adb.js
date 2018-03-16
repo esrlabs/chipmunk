@@ -138,7 +138,7 @@ class SpawnProcess extends EventEmitter {
         return results;
     }
 
-    start(path, reset = false, custom = null) {
+    start(path, reset = false, custom = null, filters = null) {
         this._started = null;
         reset = typeof reset === 'boolean' ? reset : false;
         return new Promise((resolve, reject) => {
@@ -152,13 +152,24 @@ class SpawnProcess extends EventEmitter {
 
             Promise.all(steps)
                 .then(() => {
-                    let params = ['logcat'];
-                    if (typeof custom !== '') {
+                    let params = [];
+                    if (typeof custom === 'string' && custom.trim() !== '') {
                         const _params = this._validateCustom(custom);
                         params.push(..._params);
-                    } else {
-                        params.push(DEFAULT_PARAMS);
+                    } else if (!(filters instanceof Array) || filters.length === 0) {
+                        params.push(...DEFAULT_PARAMS);
                     }
+                    (filters instanceof Array) && filters.forEach((filter) => {
+                        if (typeof filter === 'object' && filter !== null &&
+                            typeof filter.value === 'string' && filter.value.trim() !== '' &&
+                            typeof filter.level === 'string' && filter.level.trim() !== ''){
+                            params.unshift(`${filter.value}:${filter.level}`);
+                        }
+                    });
+                    params.unshift('logcat');
+
+                    logger.debug(`ADB Process will be started with "${this._getAdbAlias() + ' ' + params.join(' ')}"`);
+
                     this._stream = new SpawnWrapper();
                     this._bind();
                     this._stream.execute(this._getAdbAlias(), params, this._getEnv(path))
@@ -275,67 +286,13 @@ class Stream extends EventEmitter {
         }).filter((str) => {
             return str !== null;
         });
-        //Filter message
-        entries = entries.filter((entry) => {
-            return this._filter(entry);
-        });
         return entries;
     }
 
     _parseStr(str){
-        const infoReg   = /\d{2}-\d{2}\s*\d{2}:\d{2}:\d{2}\.\d{3}\s*\d{1,}\s*\d{1,}\s*\w{1}/gi;
-        const original  = str;
-        let result      = {
-            date    : '',
-            pid     : '',
-            tid     : '',
-            tag     : '',
-            message : '',
-            original: original
+        return {
+            original: str
         };
-
-        let match   = str.match(infoReg);
-        let info    = null;
-        let infoOrg = null;
-
-        if (match instanceof Array && match.length > 0) {
-            info    = match[0];
-            infoOrg = info;
-        } else {
-            return result;
-        }
-
-        const date      = /^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/gi;
-        const spaces    = /^[\s]*/gi;
-        const pid       = /^[\d]*/gi;
-        const tid       = /^[\d]*/gi;
-        const tag       = /^\w/gi;
-
-        match = info.match(date);
-        match instanceof Array && (match.length === 1 && (result.date = match[0]));
-        info = info.replace(date, '').replace(spaces, '');
-        match = info.match(pid);
-        match instanceof Array && (match.length === 1 && (result.pid = match[0]));
-        info = info.replace(pid, '').replace(spaces, '');
-        match = info.match(tid);
-        match instanceof Array && (match.length === 1 && (result.tid = match[0]));
-        info = info.replace(tid, '').replace(spaces, '');
-        match = info.match(tag);
-        match instanceof Array && (match.length === 1 && (result.tag = match[0]));
-        info = info.replace(tag, '').replace(spaces, '');
-        result.message = str.replace(infoOrg, '');
-
-        return result;
-    }
-
-    _filter(entry) {
-        let result = true;
-        this._settings.pid   !== null && (this._settings.pid != entry.pid && (result = false));
-        this._settings.tid   !== null && (this._settings.tid != entry.tid && (result = false));
-        if (this._settings.tags !== null && typeof entry.tag === 'string' && entry.tag.trim() !== '') {
-            this._settings.tags.indexOf(entry.tag.toLowerCase()) === -1 && (result = false);
-        }
-        return result;
     }
 
     _decode(message){
@@ -358,26 +315,21 @@ class Stream extends EventEmitter {
     _validateSettings(settings){
         settings = typeof settings === 'object' ? (settings !== null ? settings : {}) : {};
         let _settings = {
-            pid     : typeof settings.pid === 'string' ? (settings.pid.trim() !== '' ? settings.pid : null) : null,
-            tid     : typeof settings.tid === 'string' ? (settings.tid.trim() !== '' ? settings.tid : null) : null,
-            tags    : settings.tags instanceof Array ? settings.tags : null,
+            filters : settings.filters instanceof Array ? settings.filters : [],
             path    : typeof settings.path === 'string' ? settings.path : '',
             reset   : typeof settings.reset === 'boolean' ? settings.reset : false,
             custom  : typeof settings.custom === 'string' ? settings.custom : '',
         };
-        _settings.tags instanceof Array && (_settings.tags = _settings.tags.filter((tag) => {
-            return typeof tag === 'string' ? (tag.trim() !== '') : false;
-        }).map((tag)=>{
-            return tag.toLowerCase();
-        }));
+
         return _settings;
     }
 
     open() {
         return this._process.start(
-            this._settings !== null ? (typeof this._settings === 'object' ? this._settings.path   : null) : null,
-            this._settings !== null ? (typeof this._settings === 'object' ? this._settings.reset  : null) : null,
-            this._settings !== null ? (typeof this._settings === 'object' ? this._settings.custom   : null) : null
+            this._settings !== null ? (typeof this._settings === 'object' ? this._settings.path     : null) : null,
+            this._settings !== null ? (typeof this._settings === 'object' ? this._settings.reset    : null) : null,
+            this._settings !== null ? (typeof this._settings === 'object' ? this._settings.custom   : null) : null,
+            this._settings !== null ? (typeof this._settings === 'object' ? this._settings.filters  : null) : null
         )
             .then(() => {
                 this._bindProcess();
