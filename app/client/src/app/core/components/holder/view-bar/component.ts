@@ -109,6 +109,9 @@ export class ViewBar implements OnDestroy, AfterContentInit{
     }
 
     onVIEW_BAR_INJECT_COMPONENT(GUID: string, component: {component: any, inputs: any, params : Object }, callback?: Function){
+        if (this.viewParams === null) {
+            return false;
+        }
         if (this.viewParams.GUID === GUID){
             this.injectComponent(component);
             typeof callback === 'function' && callback(true);
@@ -119,6 +122,9 @@ export class ViewBar implements OnDestroy, AfterContentInit{
     }
 
     onVIEW_BAR_ADD_FAVORITE_RESPONSE(params : EVENT_VIEW_BAR_ADD_FAVORITE_RESPONSE){
+        if (this.viewParams === null) {
+            return false;
+        }
         if (this.viewParams.GUID === params.GUID){
             if (this.isFavorite(params.index)){
                 this.removeFavorite(params.index);
@@ -166,6 +172,9 @@ export class ViewBar implements OnDestroy, AfterContentInit{
     }
 
     onVIEW_BAR_REMOVE_BUTTON(GUID: string, buttonGUID: symbol, callback?: Function){
+        if (this.viewParams === null) {
+            return false;
+        }
         if (this.viewParams.GUID === GUID){
             let index = this.getButtonIndexByGUID(buttonGUID);
             ~index && this.menu.splice(index, 1);
@@ -174,6 +183,9 @@ export class ViewBar implements OnDestroy, AfterContentInit{
     }
 
     onVIEW_BAR_ENABLE_BUTTON(GUID: string, buttonGUID: symbol){
+        if (this.viewParams === null) {
+            return false;
+        }
         if (this.viewParams.GUID === GUID){
             let index = this.getButtonIndexByGUID(buttonGUID);
             ~index && (this.menu[index]['disable'] = false);
@@ -182,6 +194,9 @@ export class ViewBar implements OnDestroy, AfterContentInit{
     }
 
     onVIEW_BAR_DISABLE_BUTTON(GUID: string, buttonGUID: symbol){
+        if (this.viewParams === null) {
+            return false;
+        }
         if (this.viewParams.GUID === GUID){
             let index = this.getButtonIndexByGUID(buttonGUID);
             ~index && (this.menu[index]['disable'] = true);
