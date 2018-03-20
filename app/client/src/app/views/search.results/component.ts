@@ -16,7 +16,7 @@ import { ViewInterface                          } from '../../core/interfaces/in
 import { DataRow                                } from '../../core/interfaces/interface.data.row';
 import { EVENT_DATA_IS_UPDATED                  } from '../../core/interfaces/events/DATA_IS_UPDATE';
 
-import { TextSelection                          } from '../../core/modules/controller.selection.text';
+import { TextSelection, TSelectionEvent         } from '../../core/modules/controller.selection.text';
 
 import { Request                                } from '../../core/services/interface.request';
 import { SimpleListItem                         } from '../../core/components/common/lists/simple-drop-down/item.interface';
@@ -30,6 +30,11 @@ import { TopBarSearchRequest                    } from "./search.request/compone
 import { MODES                                  } from '../../core/modules/controller.data.search.modes';
 import { popupController                        } from "../../core/components/common/popup/controller";
 import { DialogSearchRequestsPresets            } from '../../core/components/common/dialogs/seach.requests.presets/component';
+
+interface ISelectedMarker {
+    index: string,
+    value: string
+};
 
 const SETTINGS : {
     SELECTION_OFFSET        : number,
@@ -100,7 +105,7 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     private activeSearchResults     : boolean                       = true;
     private onScrollSubscription    : EventEmitter<OnScrollEvent>   = new EventEmitter();
     private textSelection           : TextSelection                 = null;
-    private textSelectionTrigger    : EventEmitter<string>          = new EventEmitter();
+    private textSelectionTrigger    : EventEmitter<TSelectionEvent> = new EventEmitter();
     private regsCache               : Object                        = {};
     private requests                : Array<Request>                = [];
     private _requests               : Array<Request>                = [];
@@ -839,12 +844,12 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         this.forceUpdate();
     }
 
-    updateMarkersOnly(){
+    updateMarkersOnly(selectedMarker?: ISelectedMarker){
         let markersHash = this.getMarkersHash();
         this.rows instanceof Array && (this.rows = this.rows.map((row)=>{
             row.params.markers          = this.markers;
             row.params.markersHash      = markersHash;
-            row.update !== null && row.update(row.params);
+            row.update !== null && row.update(row.params, selectedMarker);
             return row;
         }));
     }
@@ -1047,22 +1052,26 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
      * Text selection
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-    onTextSelection(text: string){
-        if (typeof text === 'string' && !~text.search(/\r?\n|\r/gi)){
+    onTextSelection(event: TSelectionEvent){
+        if (typeof event.text === 'string' && !~event.text.search(/\r?\n|\r/gi)){
             let index = this.getSelfMarkerIndex();
-            text = text.replace(/\r?\n|\r/gi, '');
-            if (text.length > 0){
+            let itemIndex = this.getSelectedItemID(event.focusNode as HTMLElement);
+            if (event.text.length > 0){
                 if (~index){
-                    this.markers[index].value = text;
+                    this.markers[index].value = event.text;
                 } else {
                     this.markers.push({
-                        value           : text,
+                        value           : event.text,
                         backgroundColor : SETTINGS.TEXT_SELECTED_BACKGROUND,
                         foregroundColor : SETTINGS.TEXT_SELECTED_COLOR,
                         self            : true
                     });
                 }
-                this.updateMarkersOnly();
+                this.updateMarkersOnly({
+                    index: itemIndex,
+                    value: event.text
+                });
+                //copyText(event.text);
             } else if (~index) {
                 this.markers.splice(index, 1);
                 this.updateMarkersOnly();
@@ -1076,6 +1085,24 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
             marker.self !== void 0 && (result = index);
         });
         return result;
+    }
+
+    getSelectedItemID(node: HTMLElement): string {
+        if (typeof node === 'object' && node !== null && typeof node.nodeName === 'string') {
+            if (node.nodeName === 'body'){
+                return null;
+            }
+            if (typeof node.getAttribute === 'function') {
+                let attr = node.getAttribute('data-vv-item-index');
+                if (typeof attr === 'string' && attr.trim() !== ''){
+                    return attr;
+                }
+            }
+            if (node.parentNode !== void 0 && node.parentNode !== null){
+                return this.getSelectedItemID(node.parentNode as HTMLElement);
+            }
+        }
+        return null;
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
