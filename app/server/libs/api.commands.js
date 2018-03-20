@@ -44,6 +44,37 @@ class APICommands{
         }
     }
 
+    //Telnet
+    openTelnetStream(income, response, callback){
+        if (typeof income.params.settings === 'object' && income.params.settings !== null){
+            let Telnet = require('./service.telnet.js');
+            Telnet.open(income.GUID, income.params.settings, (GUID, error)=>{
+                if (error === null){
+                    callback(GUID, null);
+                } else {
+                    callback(null, error);
+                }
+            });
+        } else {
+            callback(null, new Error(logger.warning('Not defined [settings].')))
+        }
+    }
+
+    closeTelnetStream(income, response, callback){
+        if (typeof income.params.connection === 'string'){
+            let Telnet = require('./service.telnet.js');
+            Telnet.close(income.GUID, income.params.connection, (error)=>{
+                if (error === null){
+                    callback(true, null);
+                } else {
+                    callback(null, error);
+                }
+            });
+        } else {
+            callback(null, new Error(logger.warning('Not defined [connection].')))
+        }
+    }
+
     //Logcat stream
     openLogcatStream(income, response, callback){
         let ADBStream = require('./service.adb');

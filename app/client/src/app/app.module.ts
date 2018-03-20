@@ -13,6 +13,9 @@ import { APIProcessor                       } from './core/api/api.processor';
 
 import { SerialPorts                        } from './core/services/service.serialports';
 import { ADBLogcat                          } from './core/services/service.adblogcat';
+import { Telnet                             } from './core/services/service.telnet';
+import { Terminal                           } from './core/services/service.terminal';
+
 import { controllerThemes                   } from './core/modules/controller.themes';
 
 import { ShortcutController                 } from './core/modules/controller.shortcut';
@@ -38,6 +41,8 @@ export class AppModule {
     private shortcutController  : ShortcutController    = new ShortcutController();
     private serialPorts         : SerialPorts           = new SerialPorts();
     private adbLogcat           : ADBLogcat             = new ADBLogcat();
+    private telnet              : Telnet                = new Telnet();
+    private terminal            : Terminal              = new Terminal();
     private updater             : Updater               = new Updater();
     private markersController   : MarkersController     = new MarkersController();
 

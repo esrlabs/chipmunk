@@ -22,7 +22,9 @@ const APICommands = {
     dropSettings            : 'dropSettings',
     checkUpdates            : 'checkUpdates',
     openDevConsole          : 'openDevConsole',
-    requestFile             : 'requestFile'
+    requestFile             : 'requestFile',
+    openTelnetStream        : 'openTelnetStream',
+    closeTelnetStream       : 'closeTelnetStream'
 };
 
 function isAPICommandValid(command: string){

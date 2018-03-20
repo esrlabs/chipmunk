@@ -4,6 +4,7 @@ module.exports = {
     EVENTS  : {
         'SEND_VIA_WS'               : Symbol(),
         'CLIENT_IS_DISCONNECTED'    : Symbol(),
-        'WRITE_TO_SERIAL'           : Symbol()
+        'WRITE_TO_SERIAL'           : Symbol(),
+        'WRITE_TO_TELNET'           : Symbol()
     }
 }
