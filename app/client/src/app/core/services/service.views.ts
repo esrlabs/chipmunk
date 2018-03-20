@@ -11,6 +11,15 @@ import { Logs, TYPES as LogTypes        } from '../modules/tools.logs';
 import { RESIZE_MODES                   } from '../consts/consts.resize.modes';
 import { VIEW_RESIZE                    } from '../interfaces/events/VIEW_RESIZE';
 
+const MINIMAL = {
+    HEIGHT: 10,
+    WIDTH: 10
+};
+
+const MAXIMAL = {
+    HEIGHT: 90,
+    WIDTH: 90
+};
 
 class DefaultsLoader{
 
@@ -83,8 +92,8 @@ interface ViewState{
 }
 
 class Calculator{
-    public width        : number = -1;
-    public height       : number = -1;
+    public width        : number = 1;
+    public height       : number = 1;
     public rows         : number = -1;
     public columns      : number = -1;
     public _columns     : number = -1;
@@ -107,8 +116,8 @@ class Calculator{
     }
 
     onHolderResize(size: any, sizeGetter: Function){
-        this.height     = size.height;
-        this.width      = size.width;
+        this.height     = size.height > 0 ? size.height : 1;
+        this.width      = size.width > 0 ? size.width : 1;
         typeof sizeGetter === 'function' && (this.sizeGetter = sizeGetter);
         this.isSizeValid() && this.emitter.emit();
     }
@@ -142,12 +151,12 @@ class Calculator{
 
     percentX(px: number){
         this.recheckSize();
-        return (100 / this.width) * px;
+        return this.width > 0 ? ((100 / this.width) * px) : 0 ;
     }
 
     percentY(px: number){
         this.recheckSize();
-        return (100 / this.height) * px;
+        return this.height > 0 ? ((100 / this.height) * px) : 0;
     }
 
     recalculateBasic(views: Array<ViewClass>){
@@ -227,12 +236,12 @@ class Calculator{
                 let height  = parseFloat(view.size.height as string),
                     top     = -1;
                 if (view.row < row){
-                    view.size.height    = (height   - this.percentY(dY)) + '%';
+                    view.size.height    = this.getSafelyHeight(height - this.percentY(dY)) + '%';
                 }
                 if (view.row === row){
                     top                 = parseFloat(view.position.top as string);
-                    view.position.top   = (top      - this.percentY(dY)) + '%';
-                    view.size.height    = (height   + this.percentY(dY)) + '%';
+                    view.position.top   = this.getSafelyTop(top - this.percentY(dY)) + '%';
+                    view.size.height    = this.getSafelyHeight(height + this.percentY(dY)) + '%';
                 }
             }
             return this.updateState(view, state);
@@ -246,12 +255,12 @@ class Calculator{
                 let height  = parseFloat(view.size.height as string),
                     top     = -1;
                 if (view.row === row){
-                    view.size.height    = (height   - this.percentY(dY)) + '%';
+                    view.size.height    = this.getSafelyHeight(height - this.percentY(dY)) + '%';
                 }
                 if (view.row > row){
                     top                 = parseFloat(view.position.top as string);
-                    view.size.height    = (height   + this.percentY(dY)) + '%';
-                    view.position.top   = (top      - this.percentY(dY)) + '%';
+                    view.size.height    = this.getSafelyHeight(height + this.percentY(dY)) + '%';
+                    view.position.top   = this.getSafelyTop(top - this.percentY(dY)) + '%';
                 }
             }
             return this.updateState(view, state);
@@ -264,12 +273,12 @@ class Calculator{
                 if (view.column === column){
                     width               = parseFloat(view.size.width as string);
                     left                = parseFloat(view.position.left as string);
-                    view.size.width     = (width    + this.percentX(dX)) + '%';
-                    view.position.left  = (left     - this.percentX(dX)) + '%';
+                    view.size.width     = this.getSafelyWidth(width + this.percentX(dX)) + '%';
+                    view.position.left  = this.getSafelyLeft(left - this.percentX(dX)) + '%';
                 }
                 if (view.column < column){
                     width               = parseFloat(view.size.width as string);
-                    view.size.width     = (width    -  this.percentX(dX)) + '%';
+                    view.size.width     = this.getSafelyWidth(width -  this.percentX(dX)) + '%';
                 }
             };
             let width   = -1,
@@ -295,13 +304,13 @@ class Calculator{
             function apply(){
                 if (view.column === column){
                     width               = parseFloat(view.size.width as string);
-                    view.size.width     = (width    - this.percentX(dX)) + '%';
+                    view.size.width     = this.getSafelyWidth(width    - this.percentX(dX)) + '%';
                 }
                 if (view.column > column){
                     width               = parseFloat(view.size.width as string);
                     left                = parseFloat(view.position.left as string);
-                    view.size.width     = (width    + this.percentX(dX)) + '%';
-                    view.position.left  = (left     - this.percentX(dX)) + '%';
+                    view.size.width     = this.getSafelyWidth(width + this.percentX(dX)) + '%';
+                    view.position.left  = this.getSafelyLeft(left - this.percentX(dX)) + '%';
                 }
             };
             let width   = -1,
@@ -322,6 +331,21 @@ class Calculator{
         });
     }
 
+    getSafelyHeight(height: number){
+        return height < MINIMAL.HEIGHT ? MINIMAL.HEIGHT : (height > MAXIMAL.HEIGHT ? MAXIMAL.HEIGHT : height);
+    }
+
+    getSafelyWidth(width: number){
+        return width < MINIMAL.WIDTH ? MINIMAL.WIDTH : (width > MAXIMAL.WIDTH ? MAXIMAL.WIDTH : width);
+    }
+
+    getSafelyTop(top: number){
+        return top < 0 ? 0 : (top > 100 ? 100 : top);
+    }
+
+    getSafelyLeft(left: number){
+        return left < 0 ? 0 : (left > 100 ? 100 : left);
+    }
 
     resize(views: Array<ViewClass>, target: ViewClass, event: VIEW_RESIZE){
         switch (event.mode){
