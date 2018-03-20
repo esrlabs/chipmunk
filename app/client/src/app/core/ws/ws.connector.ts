@@ -41,7 +41,7 @@ class WebSocketConnector {
     private connected   : boolean           = false;
 
     constructor(){
-        this.SysEvents = [Configuration.sets.SYSTEM_EVENTS.SEND_DATA_TO_SERIAL];
+        this.SysEvents = [Configuration.sets.SYSTEM_EVENTS.SEND_DATA_TO_SERIAL, Configuration.sets.SYSTEM_EVENTS.SEND_DATA_TO_TELNET];
         this.processor = new WSClientProcessor(this.GUID);
         this.settings  = this.loader.load();
         this.SysEvents.forEach((event)=>{
@@ -179,6 +179,14 @@ class WebSocketConnector {
     onSEND_DATA_TO_SERIAL(params: any){
         this.processor.proceed({
             command : COMMANDS.WriteToSerial,
+            params  : params,
+            GUID    : this.GUID
+        }, this.sendMessage.bind(this));
+    }
+
+    onSEND_DATA_TO_TELNET(params: any){
+        this.processor.proceed({
+            command : COMMANDS.WriteToTelnet,
             params  : params,
             GUID    : this.GUID
         }, this.sendMessage.bind(this));

@@ -15,7 +15,11 @@ const COMMANDS = {
     TermProcessData         : 'TermProcessData',
     TermProcessClosed       : 'TermProcessClosed',
     CallMenuItem            : 'CallMenuItem',
-    DesktopModeNotification : 'DesktopModeNotification'
+    DesktopModeNotification : 'DesktopModeNotification',
+    WriteToTelnet           : 'WriteToTelnet',
+    ResultWrittenToTelnet   : 'ResultWrittenToTelnet',
+    TelnetData              : 'TelnetData',
+    TelnetClosed            : 'TelnetClosed'
 };
 
 class WSCommands{
@@ -55,6 +59,14 @@ class WSCommands{
         });
     }
 
+    [COMMANDS.WriteToTelnet             ](message : WSCommandMessage, sender: Function){
+        sender({
+            GUID    : this.GUID,
+            command : COMMANDS.WriteToTelnet,
+            params  : message.params
+        });
+    }
+
     //INCOME
     [COMMANDS.GUIDAccepted              ](message : WSCommandMessage, sender: Function){
         if (this.GUID === message.GUID){
@@ -71,9 +83,27 @@ class WSCommands{
         }
     }
 
+    [COMMANDS.TelnetData                ](message : WSCommandMessage, sender: Function){
+        if (typeof message.params === 'object' && message.params !== null && typeof message.params.connection === 'string' && typeof message.params.data === 'string'){
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.TELNET_DATA_COME, message.params);
+        }
+    }
+
+    [COMMANDS.TelnetClosed              ](message : WSCommandMessage, sender: Function){
+        if (typeof message.params === 'object' && message.params !== null && typeof message.params.connection === 'string'){
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.TELNET_CONNECTION_CLOSED, message.params);
+        }
+    }
+
     [COMMANDS.ResultWrittenToSerial     ](message : WSCommandMessage, sender: Function){
         if (typeof message.params === 'object' && message.params !== null && typeof message.params.serialGUID === 'string' && typeof message.params.packageGUID === 'string'){
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_TO_SERIAL_SENT, message.params);
+        }
+    }
+
+    [COMMANDS.ResultWrittenToTelnet     ](message : WSCommandMessage, sender: Function){
+        if (typeof message.params === 'object' && message.params !== null && typeof message.params.streamGUID === 'string' && typeof message.params.packageGUID === 'string'){
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_TO_TELNET_SENT, message.params);
         }
     }
 

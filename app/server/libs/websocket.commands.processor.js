@@ -7,8 +7,12 @@ const COMMANDS = {
     greeting                : 'greeting',
     GUIDAccepted            : 'GUIDAccepted',
     SerialData              : 'SerialData',
+    TelnetData              : 'TelnetData',
+    TelnetClosed            : 'TelnetClosed',
     WriteToSerial           : 'WriteToSerial',
+    WriteToTelnet           : 'WriteToTelnet',
     ResultWrittenToSerial   : 'ResultWrittenToSerial',
+    ResultWrittenToTelnet   : 'ResultWrittenToTelnet',
     UpdateIsAvailable       : 'UpdateIsAvailable',
     UpdateDownloadProgress  : 'UpdateDownloadProgress',
     ADBLogcatData           : 'ADBLogcatData',
@@ -59,6 +63,11 @@ class IncomeCommandsProcessor {
         ServerEmitter.emitter.emit(ServerEmitter.EVENTS.WRITE_TO_SERIAL, this.GUID, message.params);
     }
 
+    [COMMANDS.WriteToTelnet ](message){
+        logger.info('[' + this.GUID + ']:: Attempt to write into telnet: ' + message.GUID);
+        ServerEmitter.emitter.emit(ServerEmitter.EVENTS.WRITE_TO_TELNET, this.GUID, message.params);
+    }
+
 }
 
 class OutgoingCommandsProcessor {
@@ -96,10 +105,34 @@ class OutgoingCommandsProcessor {
         });
     }
 
+    [COMMANDS.TelnetData](clientGUID, params){
+        this.sender({
+            GUID    : clientGUID,
+            command : COMMANDS.TelnetData,
+            params  : params
+        });
+    }
+
+    [COMMANDS.TelnetClosed](clientGUID, params){
+        this.sender({
+            GUID    : clientGUID,
+            command : COMMANDS.TelnetClosed,
+            params  : params
+        });
+    }
+
     [COMMANDS.ResultWrittenToSerial](clientGUID, params){
         this.sender({
             GUID    : clientGUID,
             command : COMMANDS.ResultWrittenToSerial,
+            params  : params
+        });
+    }
+
+    [COMMANDS.ResultWrittenToTelnet](clientGUID, params){
+        this.sender({
+            GUID    : clientGUID,
+            command : COMMANDS.ResultWrittenToTelnet,
             params  : params
         });
     }

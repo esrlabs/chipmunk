@@ -5,6 +5,7 @@
   "web": [
     { "icon" : "fa-upload",           "caption" : "Open log file",              "handler": "openLocalFile",                 "type": "item" },
     { "icon" : "fa-plug",             "caption" : "Open serial port stream",    "handler": "openSerialStream",              "type": "item" },
+    { "icon" : "fa-desktop",          "caption" : "Open telnet stream",         "handler": "openTelnetStream",              "type": "item" },
     { "icon" : "fa-android",          "caption" : "Open ADB logcat stream",     "handler": "openADBLogcatStream",           "type": "item" },
     { "icon" : "fa-android",          "caption" : "Settings ADB logcat",        "handler": "setupADBLogcatStream",          "type": "item" },
     { "icon" : "fa-terminal",         "caption" : "Terminal command",           "handler": "openTerminalCommand",           "type": "item" },
@@ -44,6 +45,7 @@
       "group": "Sources",
       "items": [
         { "icon" : "fa-plug",         "caption" : "Open serial port stream",    "handler": "openSerialStream",            "type": "item", "accelerator": "" },
+        { "icon" : "fa-desktop",      "caption" : "Open telnet stream",         "handler": "openTelnetStream",            "type": "item", "accelerator": "" },
         { "icon" : "fa-android",      "caption" : "Open ADB logcat stream",     "handler": "openADBLogcatStream",         "type": "item", "accelerator": "" },
         { "icon" : "fa-android",      "caption" : "Settings ADB logcat",        "handler": "setupADBLogcatStream",        "type": "item", "accelerator": "" },
         { "icon" : "fa-terminal",     "caption" : "Terminal command",           "handler": "openTerminalCommand",         "type": "item", "accelerator": "" }
