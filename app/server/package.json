@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "serialport": "6.1.1",
+    "telnet-client": "^0.15.5",
     "uuid": "3.2.1",
     "websocket": "1.0.25"
   }

@@ -7,6 +7,7 @@ import { configuration as Configuration } from '../modules/controller.config';
 
 import { OpenRemoteFileStream           } from '../handles/handle.open.remote.file.stream';
 import { OpenSerialStream               } from '../handles/handle.open.serial.stream';
+import { OpenTelnetStream               } from '../handles/handle.open.telnet.stream';
 import { OpenADBLogcatStream            } from '../handles/handle.open.adblogcat.stream';
 import { OpenTerminalStream             } from '../handles/handle.open.terminal.stream';
 import { MonitorManager                 } from '../handles/hanlde.open.monitor.manager';
@@ -87,6 +88,11 @@ class TopBarMenuHandles{
     openSerialStream(){
         let openSerialStream = new OpenSerialStream();
         openSerialStream.start();
+    }
+
+    openTelnetStream(){
+        let openTelnetStream = new OpenTelnetStream();
+        openTelnetStream.start();
     }
 
     openADBLogcatStream(){
