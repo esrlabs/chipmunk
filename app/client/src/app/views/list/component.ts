@@ -24,14 +24,18 @@ import { EVENT_VIEW_BAR_ADD_FAVORITE_RESPONSE   } from '../../core/interfaces/ev
 
 import { ViewClass                              } from '../../core/services/class.view';
 
-import { TextSelection                          } from '../../core/modules/controller.selection.text';
+import { TextSelection, TSelectionEvent         } from '../../core/modules/controller.selection.text';
 import { settings as Settings                   } from '../../core/modules/controller.settings';
 import { viewsParameters                        } from '../../core/services/service.views.parameters';
 
 import { DragAndDropFiles, DragDropFileEvent    } from '../../core/modules/controller.dragdrop.files';
-import {popupController} from "../../core/components/common/popup/controller";
-import {ProgressBarCircle} from "../../core/components/common/progressbar.circle/component";
+import { popupController                        } from "../../core/components/common/popup/controller";
+import { ProgressBarCircle                      } from "../../core/components/common/progressbar.circle/component";
 
+interface ISelectedMarker {
+    index: string,
+    value: string
+};
 
 const SETTINGS : {
     SELECTION_OFFSET        : number,
@@ -89,7 +93,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     private highlight               : boolean                       = true;
     private onScrollSubscription    : EventEmitter<OnScrollEvent>   = new EventEmitter();
     private textSelection           : TextSelection                 = null;
-    private textSelectionTrigger    : EventEmitter<string>          = new EventEmitter();
+    private textSelectionTrigger    : EventEmitter<TSelectionEvent> = new EventEmitter();
     private regsCache               : Object                        = {};
     private lastBookmarkOperation   : number                        = null;
     private highlightCache          : { [key: number]: any }        = {};
@@ -454,12 +458,12 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         this.forceUpdate();
     }
 
-    updateMarkersOnly(){
+    updateMarkersOnly(selectedMarker?: ISelectedMarker){
         let markersHash = this.getMarkersHash();
         this.rows instanceof Array && (this.rows = this.rows.map((row)=>{
             row.params.markers          = this.markers;
             row.params.markersHash      = markersHash;
-            row.update !== null && row.update(row.params);
+            row.update !== null && row.update(row.params, selectedMarker);
             return row;
         }));
     }
@@ -538,28 +542,30 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
      * Text selection
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-    onTextSelection(text: string){
-        if (typeof text === 'string' && !~text.search(/\r?\n|\r/gi)){
+    onTextSelection(event: TSelectionEvent){
+        if (typeof event.text === 'string' && !~event.text.search(/\r?\n|\r/gi)){
             let index = this.getSelfMarkerIndex();
-            if (text.length > 0){
+            let itemIndex = this.getSelectedItemID(event.focusNode as HTMLElement);
+            if (event.text.length > 0){
                 if (~index){
-                    this.markers[index].value = text;
+                    this.markers[index].value = event.text;
                 } else {
                     this.markers.push({
-                        value           : text,
+                        value           : event.text,
                         backgroundColor : SETTINGS.TEXT_SELECTED_BACKGROUND,
                         foregroundColor : SETTINGS.TEXT_SELECTED_COLOR,
                         self            : true
                     });
                 }
-                this.updateMarkersOnly();
-                copyText(text);
+                this.updateMarkersOnly({
+                    index: itemIndex,
+                    value: event.text
+                });
+                //copyText(event.text);
             } else if (~index) {
                 this.markers.splice(index, 1);
                 this.updateMarkersOnly();
             }
-        } else {
-
         }
     }
 
@@ -569,6 +575,24 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             marker.self !== void 0 && (result = index);
         });
         return result;
+    }
+
+    getSelectedItemID(node: HTMLElement): string {
+        if (typeof node === 'object' && node !== null && typeof node.nodeName === 'string') {
+            if (node.nodeName === 'body'){
+                return null;
+            }
+            if (typeof node.getAttribute === 'function') {
+                let attr = node.getAttribute('data-vv-item-index');
+                if (typeof attr === 'string' && attr.trim() !== ''){
+                    return attr;
+                }
+            }
+            if (node.parentNode !== void 0 && node.parentNode !== null){
+                return this.getSelectedItemID(node.parentNode as HTMLElement);
+            }
+        }
+        return null;
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
