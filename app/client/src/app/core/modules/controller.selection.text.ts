@@ -6,14 +6,16 @@ const EVENTS = {
     mouseup     : 'mouseup'
 };
 
+type TSelectionEvent = { text: string, focusNode: HTMLElement | Node};
+
 class TextSelection {
 
-    private inProgress          : boolean               = false;
-    private trigger             : EventEmitter<string>  = null;
-    private target              : HTMLElement           = null;
-    private clipboardShortcuts  : ClipboardShortcuts    = new ClipboardShortcuts();
+    private inProgress          : boolean                           = false;
+    private trigger             : EventEmitter<TSelectionEvent>     = null;
+    private target              : HTMLElement                       = null;
+    private clipboardShortcuts  : ClipboardShortcuts                = new ClipboardShortcuts();
 
-    constructor(target: HTMLElement, trigger : EventEmitter<string>){
+    constructor(target: HTMLElement, trigger : EventEmitter<TSelectionEvent>){
         if (target){
             if (target.addEventListener !== void 0){
                 this[EVENTS.mousedown   ] = this[EVENTS.mousedown   ].bind(this);
@@ -95,10 +97,10 @@ class TextSelection {
     [EVENTS.mouseup] (event: MouseEvent){
         let selection = window.getSelection();
         if (typeof selection.toString === 'function'){
-            this.trigger.emit(selection.toString());
+            this.trigger.emit({ text: selection.toString(), focusNode: selection.focusNode });
         }
     }
 
 }
 
-export { TextSelection };
+export { TextSelection, TSelectionEvent };

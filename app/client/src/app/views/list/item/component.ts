@@ -1,4 +1,4 @@
-import {Component, Input, Output, OnDestroy, OnChanges, AfterContentChecked, EventEmitter, ChangeDetectorRef} from '@angular/core';
+import {Component, Input, Output, OnDestroy, OnChanges, AfterContentChecked, EventEmitter, ChangeDetectorRef, ViewChild, ViewContainerRef, AfterViewChecked } from '@angular/core';
 import {DomSanitizer, SafeHtml} from '@angular/platform-browser';
 
 import { ListItemInterface                          } from './interface';
@@ -25,12 +25,19 @@ const MARKERS_SELECTION_MODE = {
     LINES: 'lines'
 };
 
+const DATA_ATTRS = {
+    MARKER_ID: 'data-marker-id'
+};
+
 @Component({
   selector      : 'list-view-item',
   templateUrl   : './template.html'
 })
 
-export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnChanges, AfterContentChecked{
+export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnChanges, AfterContentChecked, AfterViewChecked{
+
+    @ViewChild ('paragraph', { read: ViewContainerRef}) paragraph: ViewContainerRef;
+
     @Input() GUID               : string        = '';
     @Input() val                : string        = '';
     @Input() visibility         : boolean       = true;
@@ -60,7 +67,7 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     @Output() selected  : EventEmitter<number>  = new EventEmitter();
     @Output() bookmark  : EventEmitter<number>  = new EventEmitter();
 
-    __index                 : string                = '';
+    private __index         : string                = '';
     public html             : string                = null;
     public safeHTML         : SafeHtml              = null;
     private _markersHash    : string                = '';
@@ -68,6 +75,7 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     private _match          : string                = '';
     private _matchReg       : boolean               = true;
     private _total_rows     : number                = -1;
+    private _selectionTask  : string                = null;
 
     private _highlight          : {
         backgroundColor : string,
@@ -103,7 +111,7 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     getHTML(){
         const settings      = Settings.get();
         let matchMatches    = null;
-        let markersMatches  : Array<{ mark: string, matches: Array<string>, bg: string, fg: string}> = [];
+        let markersMatches  : Array<{ mark: string, matches: Array<string>, bg: string, fg: string, index: number}> = [];
         this._highlight.backgroundColor = this.highlight.backgroundColor;
         this._highlight.foregroundColor = this.highlight.foregroundColor;
         this.html = serializeHTML(this.val);
@@ -141,7 +149,8 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
                                 mark    : mark,
                                 matches : matches,
                                 bg      : marker.backgroundColor,
-                                fg      : marker.foregroundColor
+                                fg      : marker.foregroundColor,
+                                index   : index
                             });
                         }
                     }
@@ -162,7 +171,7 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
         if (markersMatches instanceof Array && markersMatches.length > 0) {
             markersMatches.forEach((marker) => {
                 marker.matches.forEach((match)=>{
-                    this.html = this.html.replace(marker.mark, `<span class="marker" style="background-color: ${marker.bg};color:${marker.fg};">${match}</span>`);
+                    this.html = this.html.replace(marker.mark, `<span ${DATA_ATTRS.MARKER_ID}="${marker.index}" class="marker" style="background-color: ${marker.bg};color:${marker.fg};">${match}</span>`);
                 });
             });
         }
@@ -202,6 +211,16 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
         this.safeHTML === null && this.ngOnChanges();
     }
 
+    ngAfterViewChecked(){
+        if (this._selectionTask !== null) {
+            /*
+            * D.Astafyev: I very don't like solution with timer, and have to find a way to escape from it
+            * */
+            setTimeout(this.selectMarker.bind(this, this._selectionTask), 100);
+            this._selectionTask = null;
+        }
+    }
+
     ngOnChanges(){
         this.getHTML();
         this.convert();
@@ -217,7 +236,7 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
         this.bookmark.emit(this.index);
     }
 
-    update(params : any){
+    update(params : any, selectedMarker? : { index: string, value: string}){
         let force = false;
         ['val', 'selection', 'highlight'].forEach((key) => {
             if (params[key] !== void 0 && params[key] !== this[key]) {
@@ -244,6 +263,33 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
         }
         force && this.ngOnChanges();
         this.changeDetectorRef.detectChanges();
+        if (selectedMarker !== void 0 && parseInt(selectedMarker.index) === this.index){
+            this._selectionTask = selectedMarker.value;
+        }
+    }
+
+    selectMarker(value: string){
+        if (typeof value !== 'string' || value === ''){
+            return false;
+        }
+        let markerIndex = -1;
+        this.markers.forEach((marker: any, index) => {
+            if (!~markerIndex && marker.value === value){
+                markerIndex = index;
+            }
+        });
+        if (!~markerIndex){
+            return false;
+        }
+        const targetNode = this.paragraph.element.nativeElement.querySelector(`*[${DATA_ATTRS.MARKER_ID}="${markerIndex}"]`);
+        if (targetNode === null) {
+            return false;
+        }
+        const range = document.createRange();
+        const selection = window.getSelection();
+        selection.empty();
+        range.selectNode(targetNode);
+        selection.addRange(range);
     }
 
     onFavorite(){
