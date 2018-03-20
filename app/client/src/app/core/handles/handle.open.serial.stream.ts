@@ -125,14 +125,14 @@ class SerialSender{
                 if (this.historyCursor > (this.history.length - 1)) {
                     this.historyCursor = this.history.length - 1;
                 }
-                this.barAPI.setValue(this.history[this.historyCursor]);
+                this.history[this.historyCursor] !== void 0 && this.barAPI.setValue(this.history[this.historyCursor]);
                 break;
             case 40:
                 this.historyCursor -= 1;
                 if (this.historyCursor < 0) {
                     this.historyCursor = 0;
                 }
-                this.barAPI.setValue(this.history[this.historyCursor]);
+                this.history[this.historyCursor] !== void 0 && this.barAPI.setValue(this.history[this.historyCursor]);
                 break;
         }
     }

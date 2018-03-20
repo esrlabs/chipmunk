@@ -1,7 +1,7 @@
 {
-  "version": "12.03.2018",
+  "version": "20.03.2018",
   "drop_rules": [
-    "visual"
+    "views"
   ],
   "visual": {
     "prevent_ascii_colors_always": false,

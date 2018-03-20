@@ -14,6 +14,8 @@ const KEYs = {
     view_searchrequests : 'view_searchrequests',
     view_charts         : 'view_charts',
     serial_ports        : 'serial_ports',
+    telnet              : 'telnet',
+    terminal            : 'terminal',
     themes              : 'themes',
     adblogccat_stream   : 'adblogccat_stream',
     settings            : 'settings'
