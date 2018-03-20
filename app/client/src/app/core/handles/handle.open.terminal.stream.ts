@@ -312,7 +312,7 @@ class OpenTerminalStream implements MenuHandleInterface{
                 move            : true,
                 resize          : true,
                 width           : '40rem',
-                height          : '35rem',
+                height          : '20rem',
                 close           : true,
                 addCloseHandle  : true,
                 css             : ''
