@@ -2,11 +2,11 @@
 export class DefaultsTelnetSettings {
     host                : string        = '';
     port                : number        = 23;
-    timeout             : number        = 30000;
+    timeout             : number        = 0;
     shellPrompt         : string        = '';
-    loginPrompt         : string        = '';
-    passwordPrompt      : string        = '';
-    failedLoginMatch    : string        = '';
+    loginPrompt         : string        = 'login:';
+    passwordPrompt      : string        = 'Password:';
+    failedLoginMatch    : string        = 'bad login or password';
     initialLFCR         : boolean       = false;
     username            : string        = 'root';
     password            : string        = 'guest';
