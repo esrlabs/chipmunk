@@ -57,6 +57,7 @@ export class DialogTelnetSettings {
     @ViewChild('_maxBufferLength'       ) _maxBufferLength      : CommonInput;
     @ViewChild('_debug'                 ) _debug                : SimpleCheckbox;
 
+    private _showExtra: boolean = false;
 
 
     constructor() {
@@ -86,6 +87,10 @@ export class DialogTelnetSettings {
             maxBufferLength     : parseInt(this._maxBufferLength.getValue(), 10),
             debug               : this._debug.getValue()
         });
+    }
+
+    onShowHideExtra(){
+        this._showExtra = !this._showExtra;
     }
 
 }

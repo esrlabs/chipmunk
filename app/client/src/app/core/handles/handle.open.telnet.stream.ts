@@ -18,6 +18,8 @@ import { localSettings, KEYs            } from '../../core/modules/controller.lo
 import { ExtraButton, BarAPI            } from '../../views/search.results/search.request/interface.extrabutton';
 import { GUID                           } from '../../core/modules/tools.guid';
 
+import { DefaultsTelnetSettings         } from '../components/common/dialogs/telnet.settings/defaults.settings';
+
 interface IncomeData{
     connection  : string,
     data        : string
@@ -41,28 +43,7 @@ const BUTTONS_CAPTIONS = {
     PAUSE   : 'pause stream',
 };
 
-const DEFAULT_TELNET_SETTINGS = {
-    host                : '127.0.0.1',
-    port                : 23,
-    timeout             : 30000,
-    shellPrompt         : '',
-    loginPrompt         : '',
-    passwordPrompt      : '',
-    failedLoginMatch    : '',
-    initialLFCR         : false,
-    username            : 'root',
-    password            : 'guest',
-    irs                 : '\r\n',
-    ors                 : '\n',
-    echoLines           : 1,
-    stripShellPrompt    : true,
-    pageSeparator       : '---- More',
-    negotiationMandatory: true,
-    execTimeout         : 2000,
-    sendTimeout         : 2000,
-    maxBufferLength     : 1 * 1024 * 1024,
-    debug               : false
-};
+const DEFAULT_TELNET_SETTINGS = new DefaultsTelnetSettings();
 
 class SettingsController{
 
