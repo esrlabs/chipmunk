@@ -57,6 +57,7 @@ class Connection extends EventEmitter{
         this.settings       = settings;
         this.connection     = null;
         this.ready          = false;
+        this.connected      = false;
         this.buffer         = '';
         this.openCallback   = null;
         //Bind methods
@@ -154,6 +155,7 @@ class Connection extends EventEmitter{
     }
 
     ['on' + TELNET_EVENTS.connect](...args){
+        this.connected = true;
         logger.debug('[session: ' + this.GUID + ']:: [connect] event. Telnet connection: ' + this.alias + ' is connected. ');
     }
 
@@ -173,7 +175,7 @@ class Connection extends EventEmitter{
             this.clients.forEach((clientGUID)=>{
                 ServerEmitter.emitter.emit(ServerEmitter.EVENTS.SEND_VIA_WS, clientGUID, outgoingWSCommands.COMMANDS.TelnetData, {
                     connection  : this.GUID,
-                    data        : data.toString('utf8')
+                    data        : typeof data === 'string' ? data : data.toString('utf8')
                 });
             });
         } catch (e){
@@ -188,10 +190,15 @@ class Connection extends EventEmitter{
         });
     }
 
-    ['on' + TELNET_EVENTS.failedlogin](...args){
-        this.close(() => {
-            this.onOpenCallback(new Error(logger.debug('[session: ' + this.GUID + ']:: [failedlogin] event. Telnet connection: ' + this.alias + ' fail to login.')));
-        });
+    ['on' + TELNET_EVENTS.failedlogin](message){
+        if (this.settings.username === '' && this.settings.password === '') {
+            this['on' + TELNET_EVENTS.ready]();
+            typeof message === 'string' && this['on' + TELNET_EVENTS.data](message);
+        } else {
+            this.close(() => {
+                this.onOpenCallback(new Error(logger.debug('[session: ' + this.GUID + ']:: [failedlogin] event. Telnet connection: ' + this.alias + ' fail to login.')));
+            });
+        }
     }
 
     ['on' + TELNET_EVENTS.error](error){
@@ -237,7 +244,7 @@ class ServiceTelnetStream{
                 delete settings[key];
             }
             if (typeof settings[key] === 'string' && settings[key] === ''){
-                delete settings[key];
+                //delete settings[key];
             }
         });
         return settings;
