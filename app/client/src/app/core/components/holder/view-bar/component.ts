@@ -240,11 +240,11 @@ export class ViewBar implements OnDestroy, AfterContentInit{
     }
 
     onMouseDown(event: MouseEvent){
-        Events.trigger(Configuration.sets.SYSTEM_EVENTS.VIEW_BAR_DESCRIPTION_MOUSEDOWN, this.viewParams.GUID);
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.VIEW_BAR_DRAGGING_HOOK_MOUSEDOWN, this.viewParams.GUID);
     }
 
     onMouseUp(event: MouseEvent){
-        Events.trigger(Configuration.sets.SYSTEM_EVENTS.VIEW_BAR_DESCRIPTION_MOUSEUP, this.viewParams.GUID);
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.VIEW_BAR_DRAGGING_HOOK_MOUSEUP, this.viewParams.GUID);
     }
 
 }

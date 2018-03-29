@@ -31,6 +31,8 @@ import { MODES                                  } from '../../core/modules/contr
 import { popupController                        } from "../../core/components/common/popup/controller";
 import { DialogSearchRequestsPresets            } from '../../core/components/common/dialogs/seach.requests.presets/component';
 
+import { EContextMenuItemTypes, IContextMenuItem, IContextMenuEvent } from '../../core/components/context-menu/interfaces';
+
 interface ISelectedMarker {
     index: string,
     value: string
@@ -354,6 +356,28 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
                 request.passive         = passive;
                 request.foregroundColor = foregroundColor;
                 request.backgroundColor = backgroundColor;
+            }
+            return this.clearHandles(
+                Object.assign({}, request)
+            );
+        }));
+    }
+
+    onRequestActivePassiveChange(GUID: string){
+        serviceRequests.updateRequests(this._requests.map((request)=>{
+            if (GUID === request.GUID) {
+                request.passive = !request.passive;
+            }
+            return this.clearHandles(
+                Object.assign({}, request)
+            );
+        }));
+    }
+
+    onRequestVisibilityChange(GUID: string){
+        serviceRequests.updateRequests(this._requests.map((request)=>{
+            if (GUID === request.GUID) {
+                request.visibility = !request.visibility;
             }
             return this.clearHandles(
                 Object.assign({}, request)
@@ -826,7 +850,7 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     updateRows(){
         let markersHash = this.getMarkersHash();
         this.rows instanceof Array && (this.rows = this.rows.map((row, index)=>{
-            let selection   = this.selection.index === row.params.index ? true : false,
+            let selection   = this.selection.index === index ? true : false,
                 update      = row.params.selection !== selection ? (row.update !== null) : false;
             update = row.params.GUID !== null ? (row.update !== null) : update;
             row.params.selection        = selection;
@@ -885,7 +909,8 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     }
 
     onOwnSelected(index : number){
-        this.select(index, true);
+        let _index = this.getIndexInSearchList(index);
+        ~_index && this.select(_index, true);
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.ROW_IS_SELECTED, index);
     }
 
@@ -1309,7 +1334,15 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
      * Drag & drop requests
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+    onDragInitialized(event: MouseEvent, index: number){
+        this._requests.forEach((request, i) => {
+            request.dragInitialized = (i === index);
+        });
+    }
+
     onRequestDragOver(event: DragEvent, index: number){
+        event.preventDefault();
+        event.stopPropagation();
         if (!~this.reordering.dragged){
             return false;
         }
@@ -1331,10 +1364,17 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     }
 
     onRequestLeave(event: DragEvent, index: number){
+        console.log(event);
     }
 
     onRequestDragStart(event: DragEvent, index: number){
+        if (this._requests[index] === void 0 || !this._requests[index].dragInitialized) {
+            event.preventDefault();
+            event.stopPropagation();
+            return false;
+        }
         this.reordering.dragged = index;
+        event.dataTransfer.setData('text/plain', 'search requests reordering');
     }
 
     onRequestDragEnd(event: DragEvent, index: number){
@@ -1380,6 +1420,53 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
 
     isOrderingChanged(): boolean {
         return this.reordering.hash !== this.getCurrentOrderingHash();
+    }
+
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    * Context menu
+    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    onContextMenu(event: MouseEvent, index: number){
+        let request = this._requests[index] !== void 0 ? this._requests[index] : null;
+        if (request === null) {
+            return;
+        }
+        let contextEvent = {x: event.pageX,
+            y: event.pageY,
+            items: [
+                {
+                    caption : request.visibility ? 'Hide results of request' : 'Show results of request',
+                    type    : EContextMenuItemTypes.item,
+                    handler : this.onChangeVisibility.bind(this, request.GUID, !request.visibility)
+                },
+                {
+                    caption : request.active ? 'Deactivate request' : 'Activate request',
+                    type    : EContextMenuItemTypes.item,
+                    handler : this.onChangeState.bind(this, request.GUID, !request.active)
+                },
+                {
+                    caption : request.passive ? 'Switch to [Active]' : 'Switch to [Passive]',
+                    type    : EContextMenuItemTypes.item,
+                    handler : this.onRequestActivePassiveChange.bind(this, request.GUID)
+                },
+                { type: EContextMenuItemTypes.divider },
+                {
+                    caption : 'Remove request',
+                    type    : EContextMenuItemTypes.item,
+                    handler : this.onRequestRemove.bind(this, request.GUID)
+                }
+            ]} as IContextMenuEvent;
+
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.CONTEXT_MENU_CALL, contextEvent);
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+    }
+
+    onContextMenuMouseDown(event: MouseEvent, index: number){
+        if (window.oncontextmenu !== void 0) {
+            return true;
+        }
+        event.which === 3 && this.onContextMenu(event, index);
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *

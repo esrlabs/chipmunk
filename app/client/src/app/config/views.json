@@ -11,12 +11,10 @@
       { "icon": "fa-angle-double-down", "event" : "LIST_VIEW_FOLLOW_SCROLL_TRIGGER",  "hint": "auto scroll down: on/off",       "active": true, "listen" : "LIST_VIEW_FOLLOW_SCROLL_SET" },
       { "icon": "fa-book",              "event" : "LIST_VIEW_ONLY_BOOKMARKS_TRIGGER", "hint": "show/hide only bookmarks",       "active": false, "disable": true, "GUID": "LIST_VIEW_ONLY_BOOKMARKS_TRIGGER" },
       { "icon": "fa-outdent",           "event" : "LIST_VIEW_HIGHLIGHT_TRIGGER",      "hint": "on/off highlighting of results", "active": true  },
-      { "icon": "fa-floppy-o",          "event" : "LIST_VIEW_EXPORT_TO_FILE",         "hint": "export data to file"                             },
-      { "GUID": "MARKS_VIEW_SWITCH_TARGET", "icon": "fa-tag",               "event" : "MARKS_VIEW_SWITCH_TARGET",         "hint": "Mark lines / mark keywords", "active": true  },
-      { "GUID": "HIGHLIGHT_SEARCH_REQUESTS_TRIGGER", "icon": "fa-align-justify",     "event" : "HIGHLIGHT_SEARCH_REQUESTS_TRIGGER","hint": "On/Off highlighting of search requests", "active": true  }
+      { "icon": "fa-floppy-o",          "event" : "LIST_VIEW_EXPORT_TO_FILE",         "hint": "export data to file"                             }
     ],
     "hide"        : [
-      "SILENCE", "DEAFNESS", "FILTER", "CLOSE"
+      "SILENCE", "DEAFNESS", "FILTER", "FAVORITE", "CLOSE"
     ],
     "controller"  : "ViewControllerList"
   },

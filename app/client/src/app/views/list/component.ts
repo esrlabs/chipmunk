@@ -713,15 +713,9 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         this.searchNavigation.current = this.getFirstSearchNavigation();
         if (this.searchNavigation.current > 0 && this.searchNavigation.current < this.rows.length){
             this.onROW_IS_SELECTED(this.searchNavigation.current);
-        } else {
-            this.searchNavigation.current = -1;
-        }
-    }
-
-    updateSearchNavigation(){
-        if(this.highlight && this.line.marks.length > 0){
             this.addButtonsSearchNavigation();
         } else {
+            this.searchNavigation.current = -1;
             this.removeButtonsSearchNavigation();
         }
     }
@@ -831,7 +825,6 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         this.changeDetectorRef.detectChanges();
         if (this.listView !== void 0 && this.listView !== null && this.listView.update !== void 0){
             this.updateLine();
-            this.updateSearchNavigation();
             this.listView.update(forceRecalculation);
         }
     }
@@ -938,6 +931,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             this.updateRows();
             this.removeClearButton();
             this.refreshScrollState();
+            this.resetSearchNavigation();
             Logs.measure(measure);
         }
     }
@@ -1000,6 +994,9 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     }
 
     onROW_IS_SELECTED(index : number){
+        if (index >= this._rows.length){
+            return false;
+        }
         let _index = this.correctIndex(index);
         if (!this.selection.own && !super.getState().deafness){
             this.listView.scrollToIndex(_index > SETTINGS.SELECTION_OFFSET ? _index - SETTINGS.SELECTION_OFFSET : _index);

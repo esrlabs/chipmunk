@@ -8,7 +8,8 @@ interface Request{
     passive         : boolean,
     count           : number,
     visibility      : boolean,
-    isDragOver?     : boolean
+    isDragOver?     : boolean,
+    dragInitialized?: boolean
 }
 
 interface Preset {

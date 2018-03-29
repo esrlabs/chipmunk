@@ -1,7 +1,8 @@
 view{
-    position: absolute;
-    border  : thin dotted @view-passive-border;
-    overflow: hidden;
+    position    : absolute;
+    border      : thin dotted @view-passive-border;
+    overflow    : hidden;
+    background  : @light;
     &:hover{
         border-color: @view-hover-border;
         z-index: 10;
@@ -12,12 +13,6 @@ view{
         left    : 0;
         right   : 0;
         bottom  : 0;
-        &.dragover{
-            background  : @view-dragover;
-        }
-        &.dragging{
-            opacity: 0.4;
-        }
         .view{
             position    : absolute;
             top         : 2rem;
@@ -59,6 +54,20 @@ view{
         }
         .view-border-bottom{
             bottom  : 0;
+        }
+        .drag-target-wrapper{
+            position: absolute;
+            top:0;
+            left:0;
+            right: 0;
+            bottom: 0;
+            background: @white-opacity-0-5;
+            &.dragover{
+                background  : @view-dragover;
+            }
+            &.dragging{
+                opacity: 0.4;
+            }
         }
     }
 }
