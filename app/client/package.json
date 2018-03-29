@@ -37,9 +37,9 @@
     "@angular/router": "~4.0.0",
     "angular-in-memory-web-api": "~0.3.0",
     "core-js": "^2.4.1",
-    "rxjs": "5.0.1",
-    "systemjs": "0.19.40",
-    "zone.js": "^0.8.4"
+    "rxjs": "^5.5.8",
+    "systemjs": "^0.21.0",
+    "zone.js": "^0.8.20"
   },
   "devDependencies": {
     "@types/jasmine": "2.5.36",
@@ -61,7 +61,7 @@
     "protractor": "~4.0.14",
     "rimraf": "^2.5.4",
     "tslint": "^3.15.1",
-    "typescript": "~2.1.0"
+    "typescript": "~2.8.1"
   },
   "repository": {}
 }
