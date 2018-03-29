@@ -1,6 +1,6 @@
 {
   "name"          : "logviewer",
-  "version"       : "0.15.0",
+  "version"       : "0.15.1",
   "description"   : "LogViewer",
   "main"          : "electron.js",
   "scripts"       : {
@@ -13,8 +13,8 @@
   "devDependencies": {
   },
   "repository"    : {
-    "type"      : "git",
-    "url"       : "https://github.com/esrlabs/logviewer.git"
+    "type"        : "git",
+    "url"         : "https://github.com/esrlabs/logviewer.git"
   },
   "copyright"     : ""
 }
