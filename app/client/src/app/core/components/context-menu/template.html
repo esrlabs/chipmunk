@@ -1,0 +1,7 @@
+<div [attr.class]="'context-menu'" [style.top]="_y + 'px'" [style.left]="_x + 'px'">
+    <ul *ngIf="_items !== null">
+        <li *ngFor="let item of _items; let i = index;"
+            (click)="onMenuItemClick($event, item.handler)"
+            [attr.class]="item.type === 'divider' ? 'divider' : ''">{{item.caption}}</li>
+    </ul>
+</div>
