@@ -2,11 +2,22 @@ declare var importScripts: any;
 
 importScripts('../../node_modules/zone.js/dist/zone.js');
 importScripts('../../node_modules/systemjs/dist/system.src.js');
-importScripts('../../node_modules/systemjs/dist/system-polyfills.js');
 importScripts('../../systemjs.config.js');
 
 declare var System: any;
 require = System.amdRequire;
+
+/*
+* This is hack for typescript version > 2.1.6. Newest versions are added
+* code into each module:
+* Object.defineProperty(exports, "__esModule", { value: true });
+* variable exports for sure isn't defined. So, it makes an error.
+* Oldest version of TS doesn't do it.
+* */
+//Hack: start =============================================
+declare var exports : any;
+var exports: any = {};
+//Hack: end ===============================================
 
 var modules = {
     '../core/interfaces/interface.data.filter.js': true,
