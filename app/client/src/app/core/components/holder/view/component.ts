@@ -20,9 +20,10 @@ export class View implements AfterViewInit, AfterContentInit, OnDestroy{
         x : -1,
         y : -1
     };
-    private dragable: boolean = false;
-    public dragover : boolean = false;
-    public dragging : boolean = false;
+    private draggable   : boolean = false;
+    private dragover    : boolean = false;
+    private dragging    : boolean = false;
+    private dragprocess : boolean = false;
 
     @Input() params : ViewClass = null;
 
@@ -31,8 +32,9 @@ export class View implements AfterViewInit, AfterContentInit, OnDestroy{
     constructor(private changeDetectorRef: ChangeDetectorRef){
         this.onMouseMoveWindow              = this.onMouseMoveWindow.           bind(this);
         this.onMouseUpWindow                = this.onMouseUpWindow.             bind(this);
-        [   Configuration.sets.SYSTEM_EVENTS.VIEW_BAR_DESCRIPTION_MOUSEDOWN,
-            Configuration.sets.SYSTEM_EVENTS.VIEW_BAR_DESCRIPTION_MOUSEUP].forEach((handle: string)=>{
+        this.onDragFinished                 = this.onDragFinished.              bind(this);
+        [   Configuration.sets.SYSTEM_EVENTS.VIEW_BAR_DRAGGING_HOOK_MOUSEDOWN,
+            Configuration.sets.SYSTEM_EVENTS.VIEW_BAR_DRAGGING_HOOK_MOUSEUP].forEach((handle: string)=>{
             this['on' + handle] = this['on' + handle].bind(this);
             Events.bind(handle, this['on' + handle]);
         });
@@ -49,8 +51,8 @@ export class View implements AfterViewInit, AfterContentInit, OnDestroy{
     }
 
     ngOnDestroy() {
-        [   Configuration.sets.SYSTEM_EVENTS.VIEW_BAR_DESCRIPTION_MOUSEDOWN,
-            Configuration.sets.SYSTEM_EVENTS.VIEW_BAR_DESCRIPTION_MOUSEUP].forEach((handle: string)=>{
+        [   Configuration.sets.SYSTEM_EVENTS.VIEW_BAR_DRAGGING_HOOK_MOUSEDOWN,
+            Configuration.sets.SYSTEM_EVENTS.VIEW_BAR_DRAGGING_HOOK_MOUSEUP].forEach((handle: string)=>{
             Events.unbind(handle, this['on' + handle]);
         });
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.FORGET_FILTER, this.params.GUID);
@@ -291,8 +293,8 @@ export class View implements AfterViewInit, AfterContentInit, OnDestroy{
 
     onDragOver(event: DragEvent){
         this.dragover = true;
-        //event.preventDefault();
-        //event.stopPropagation();
+        event.preventDefault();
+        event.stopPropagation();
     }
 
     onDragLeave(event: DragEvent){
@@ -305,13 +307,16 @@ export class View implements AfterViewInit, AfterContentInit, OnDestroy{
 
     onDragEnd(event: DragEvent){
         this.dragging = false;
-        this.dragable = false;
+        this.draggable = false;
     }
 
     onDragStart(event: DragEvent){
-        if (!this.dragable){
-            //event.preventDefault();
-            //event.stopPropagation();
+        if (!this.dragprocess) {
+            return;
+        }
+        if (!this.draggable){
+            event.preventDefault();
+            event.stopPropagation();
         } else {
             event.dataTransfer.setData('text/plain', this.params.GUID);
         }
@@ -322,14 +327,33 @@ export class View implements AfterViewInit, AfterContentInit, OnDestroy{
         if (GUID !== this.params.GUID){
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.VIEW_SWITCH_POSITION_BETWEEN, GUID, this.params.GUID);
         }
-        this.dragover = false;
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.VIEW_BAR_DRAGGING_HOOK_MOUSEUP, this.params.GUID);
     }
 
-    onVIEW_BAR_DESCRIPTION_MOUSEDOWN(GUID: string){
-        this.dragable = (GUID === this.params.GUID);
+    attachDragEndHandles(){
+        window.addEventListener('mouseup',      this.onDragFinished);
     }
 
-    onVIEW_BAR_DESCRIPTION_MOUSEUP(GUID: string){
-        this.dragable = false;
+    dettachDragEndHandles(){
+        window.removeEventListener('mouseup',   this.onDragFinished);
+    }
+
+    onDragFinished(event: MouseEvent){
+        this.dragover       = false;
+        this.draggable      = false;
+        this.dragprocess    = false;
+        this.dettachDragEndHandles();
+    }
+
+    onVIEW_BAR_DRAGGING_HOOK_MOUSEDOWN(GUID: string){
+        this.attachDragEndHandles();
+        this.draggable      = (GUID === this.params.GUID);
+        this.dragprocess    = true;
+    }
+
+    onVIEW_BAR_DRAGGING_HOOK_MOUSEUP(GUID: string){
+        this.draggable      = false;
+        this.dragprocess    = false;
+        this.onDragFinished(null);
     }
 }

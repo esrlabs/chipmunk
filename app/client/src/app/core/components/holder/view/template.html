@@ -1,21 +1,24 @@
-<div [attr.class]   ="'wrapper ' + (dragover ? 'dragover' : '') + (dragging ? 'dragging' : '') "
-
-     (dragover)     ="onDragOver($event)"
-     (dragleave)    ="onDragLeave($event)"
-     (drag)         ="onDrag($event)"
-     (dragend)      ="onDragEnd($event)"
-     (dragstart)    ="onDragStart($event)"
-     (drop)         ="onDrop($event)">
-    <view-bar draggable         ="true"
+<div [attr.class]       ="'wrapper'"
+     [attr.draggable]   ="draggable"
+     (dragstart)        ="onDragStart($event)"
+>
+    <view-bar
               [menu]            ="params.menu"
               [favorites]       ="params.favorites"
               [description]     ="params.description"
               [viewParams]      ="params"></view-bar>
-    <div class="view" draggable="false">
+    <div class="view">
         <dynamic-component [viewController]="viewController"></dynamic-component>
     </div>
     <div class="view-border-left" (mousedown)="onMouseDownL($event)"></div>
     <div class="view-border-right" (mousedown)="onMouseDownR($event)"></div>
     <div class="view-border-top" (mousedown)="onMouseDownT($event)"></div>
     <div class="view-border-bottom" (mousedown)="onMouseDownB($event)"></div>
+    <div *ngIf="dragprocess"
+         [attr.class]       ="'drag-target-wrapper ' + (dragover ? 'dragover' : '') + (dragging ? 'dragging' : '') "
+         (dragover)         ="onDragOver($event)"
+         (dragleave)        ="onDragLeave($event)"
+         (drag)             ="onDrag($event)"
+         (dragend)          ="onDragEnd($event)"
+         (drop)             ="onDrop($event)"></div>
 </div>

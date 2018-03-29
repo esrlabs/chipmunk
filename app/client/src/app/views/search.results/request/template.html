@@ -1,8 +1,7 @@
-<p class="compact-view" draggable="true">
+<p class="compact-view">
     <span [attr.class]="'trigger compact' + (active ? ' active': '')" (click)="onClickTrigger()"></span>
     <span class="value" (click)="onClickTriggerSafe()" (dblclick)="onClickEdit()">{{count > 0 ? ('(' + count + ') ') : ''}} {{value}}</span>
     <span class="trigger-state" (click)="onClickTriggerState()">{{passive ? '[P]' : '[A]'}}</span>
     <span class="fa fa-paint-brush color" (click)="onClickEdit()" [style.color]="backgroundColor !== '' ? backgroundColor : foregroundColor"></span>
     <span [attr.class]="'fa visibility ' + (visibility ? 'fa-eye' : 'fa-eye-slash')" (click)="onClickVisibility()"></span>
-    <span class="fa fa-close remove" (click)="onClickRemove()"></span>
 </p>
