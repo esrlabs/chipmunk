@@ -22,7 +22,9 @@
         <button-flat-text [caption]="'Invert'" [handle]="onInvert"></button-flat-text>
     </div>
     <ul class="lv-manager-list">
-       <li *ngFor="let request of _requests; let i = index;" draggable="true"
+       <li *ngFor="let request of _requests; let i = index;" [attr.draggable]="request.dragInitialized"
+           (mousedown)="onContextMenuMouseDown($event, i)"
+           (contextmenu)="onContextMenu($event, i)"
            (dragover)="onRequestDragOver($event, i)"
            (dragleave)="onRequestLeave($event, i)"
            (dragstart)="onRequestDragStart($event, i)"
@@ -42,6 +44,7 @@
                               [visibility]="request.visibility"
                               [backgroundColor]="request.backgroundColor"
                               [foregroundColor]="request.foregroundColor"></view-request-item>
+           <span class="lv-dragstart-placeholder fa fa-align-justify" (mousedown)="onDragInitialized($event, i)"></span>
            <span *ngIf="request.isDragOver &&  i > reordering.dragged" class="lv-dp-placeholder"></span>
        </li>
     </ul>

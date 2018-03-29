@@ -40,7 +40,6 @@ list-view-item{
             background          : @list-number-background;
             line-height         : 1.3rem;
             cursor              : pointer;
-            left                : 0.5rem;
             /*z-index             : 10;*/
             &.active{
                 font-weight     : bold;
@@ -49,7 +48,7 @@ list-view-item{
             &:after{
                 content     : '';
                 position    : absolute;
-                height      : 1rem;
+                height      : 1.3rem;
                 width       : 0.5rem;
                 top         : -0.1rem;
                 left        : -0.5rem;
@@ -75,7 +74,10 @@ list-view-item{
             line-height     : 1rem;
         }
         &.selected{
-            background      : @list-hover-background;
+            .number{
+                background: @dark;
+                color:@light;
+            }
         }
         &.filtered{
             span.filler{

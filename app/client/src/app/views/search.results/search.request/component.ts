@@ -142,7 +142,11 @@ export class TopBarSearchRequest implements AfterContentInit{
     }
 
     onSEARCH_REQUEST_CHANGED(event: DataFilter){
-        this.lastRequest = Object.assign({}, event);
+        if (event.value === '') {
+            this.lastRequest = null;
+        } else {
+            this.lastRequest = Object.assign({}, event);
+        }
     }
 
     resetInput(){

@@ -27,6 +27,9 @@ view-controller-search-results{
         &.list-opened{
             right: 18rem;
         }
+        long-list .wrapper .rows{
+            padding: 0;
+        }
     }
     .lv-manager-wrapper{
         position            : absolute;
@@ -97,7 +100,12 @@ view-controller-search-results{
             padding     : 0.25rem 0 0 0;
             margin      : 0;
             li{
-                -webkit-user-drag: element;
+                -webkit-user-drag   : element;
+                position            : relative;
+                overflow: hidden;
+                view-request-item{
+                    padding-right: 1rem;
+                }
                 .lv-dp-placeholder{
                     position    : relative;
                     display     : block;
@@ -109,6 +117,19 @@ view-controller-search-results{
                 }
                 .lv-dp-dragged{
                     opacity: 0.4;
+                }
+                .lv-dragstart-placeholder{
+                    position: absolute;
+                    width: 1rem;
+                    height: 1rem;
+                    font-size: 0.8rem;
+                    min-width: 1rem;
+                    min-height: 1rem;
+                    cursor: move;
+                    color:@grey;
+                    top: 0;
+                    right: 0;
+                    padding: 0.45rem 0.1rem 0 0;
                 }
             }
         }
