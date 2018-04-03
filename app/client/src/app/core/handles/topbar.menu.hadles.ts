@@ -19,6 +19,7 @@ import { AddView                        } from '../handles/handle.add.view';
 import { APISettings                    } from '../handles/handle.api.settings';
 import { controllerThemes               } from '../modules/controller.themes';
 import { OpenMarkersManager             } from '../handles/handle.open.markers.manager';
+import { BugReport                      } from '../handles/handle.bug.report';
 
 
 class TopBarMenuHandles{
@@ -154,6 +155,11 @@ class TopBarMenuHandles{
     openMarkersManager(){
         let openMarkersManager = new OpenMarkersManager();
         openMarkersManager.start();
+    }
+
+    openBugReportDialog(){
+        let bugReport = new BugReport();
+        bugReport.start();
     }
 
 }
