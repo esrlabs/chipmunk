@@ -550,7 +550,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                 if (~index){
                     this.markers[index].value = event.text;
                 } else {
-                    this.markers.push({
+                    this.markers.unshift({
                         value           : event.text,
                         backgroundColor : SETTINGS.TEXT_SELECTED_BACKGROUND,
                         foregroundColor : SETTINGS.TEXT_SELECTED_COLOR,
