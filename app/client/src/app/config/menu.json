@@ -18,7 +18,9 @@
     { "icon" : "fa-cloud",            "caption" : "Connect to service",         "handler": "connectionSettings",            "type": "item" },
     { "type" : "line" },
     { "icon" : "fa-paint-brush",      "caption" : "Change color theme",         "handler": "changeThemeSettings",           "type": "item" },
-    { "icon" : "fa-gear",             "caption" : "Settings",                   "handler": "openApplicationSettings",       "type": "item" }
+    { "icon" : "fa-gear",             "caption" : "Settings",                   "handler": "openApplicationSettings",       "type": "item" },
+    { "type" : "line" },
+    { "icon" : "fa-bug",              "caption" : "Create Bug Report",          "handler": "openBugReportDialog",           "type": "item" }
   ],
   "desktop": [
     {
@@ -71,7 +73,8 @@
       "items": [
         { "icon" : "fa-cloud",        "caption" : "Connect to service",         "handler": "connectionSettings",   "type": "item", "accelerator": "" },
         { "icon" : "fa-refresh",      "caption" : "Check updates",              "handler": "checkUpdates",         "type": "item", "accelerator": "" },
-        { "icon" : "fa-wrench",       "caption" : "Developer console",          "handler": "openDevConsole",       "type": "item", "accelerator": "" }
+        { "icon" : "fa-wrench",       "caption" : "Developer console",          "handler": "openDevConsole",       "type": "item", "accelerator": "" },
+        { "icon" : "fa-bug",          "caption" : "Create Bug Report",          "handler": "openBugReportDialog",  "type": "item", "accelerator": "" }
       ]
     }
   ]

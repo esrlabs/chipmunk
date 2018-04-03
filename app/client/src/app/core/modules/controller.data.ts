@@ -145,6 +145,15 @@ class DataController implements InitiableModule{
         this.onSTREAM_DATA_UPDATE(' \n', [Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_END]);
     }
 
+    getSnapshot(){
+        return {
+            filter: this.dataFilter,
+            rows: this.stream.getRows(),
+            filters: this.stream.getFilters(),
+            requests: this.stream.getRequests()
+        };
+    }
+
 }
 
 let dataController = new DataController();
