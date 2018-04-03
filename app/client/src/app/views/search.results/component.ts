@@ -386,8 +386,9 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         }));
     }
 
-    onConditionChanged(filterMdoe: string){
-        this.filterMode = filterMdoe;
+    onConditionChanged(filterMode: string){
+        this.resultsMap = {};
+        this.filterMode = filterMode;
         this.filterRows();
     }
 
@@ -647,16 +648,16 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         let map     = {},
             i       = 0,
             result  = [],
-            measure = Logs.measure('[search.results/tab.results][getRowsByRequestsActive]'),
-            match   : {
-                match: string,
-                isReg: boolean
-            } = {
-                match:'',
-                isReg: false
-            };
+            measure = Logs.measure('[search.results/tab.results][getRowsByRequestsActive]');
         if (requests.length > 0){
             result = rows.filter((row, index)=>{
+                let match   : {
+                    match: string,
+                    isReg: boolean
+                } = {
+                    match:'',
+                    isReg: false
+                };
                 if (exp[index] === void 0){
                     let filtered    = false,
                         highlight   = {
@@ -665,6 +666,8 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
                         };
                     if ((this.activeSearchResults && row.filtered) || this.bookmarks.indexOf(index) !== -1){
                         filtered = true;
+                        match.match = row.match;
+                        match.isReg = row.matchReg;
                     }
                     requests.forEach((request: Request)=>{
                         if (!filtered){
@@ -782,7 +785,6 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
                 result = this.getRowsByRequestsPassive(rows, passive, {}).rows;
                 break;
         }
-        this.resultsMap = {};
         result.forEach((row: any) => {
             this.resultsMap[row.params.index] = true;
         });

@@ -675,7 +675,10 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             current = this.getLastSearchNavigation();
         }
         this.searchNavigation.current = current;
-        ~this.searchNavigation.current && this.onROW_IS_SELECTED(this.searchNavigation.current);
+        if (~this.searchNavigation.current){
+            this.onROW_IS_SELECTED(this.searchNavigation.current, true);
+            !super.getState().silence && Events.trigger(Configuration.sets.SYSTEM_EVENTS.ROW_IS_SELECTED, this.searchNavigation.current);
+        }
     }
 
     nextSearchNavigation(){
@@ -690,7 +693,9 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             current = this.getFirstSearchNavigation();
         }
         this.searchNavigation.current = current;
-        ~this.searchNavigation.current && this.onROW_IS_SELECTED(this.searchNavigation.current);
+        if (~this.searchNavigation.current){
+            this.onROW_IS_SELECTED(this.searchNavigation.current, true);
+        }
     }
 
     nextAfterSearchNavigation(after: number){
@@ -711,8 +716,8 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
 
     resetSearchNavigation(){
         this.searchNavigation.current = this.getFirstSearchNavigation();
-        if (this.searchNavigation.current > 0 && this.searchNavigation.current < this.rows.length){
-            this.onROW_IS_SELECTED(this.searchNavigation.current);
+        if (this.searchNavigation.current >= 0 && this.searchNavigation.current <= this.rows.length - 1){
+            this.onROW_IS_SELECTED(this.searchNavigation.current, true);
             this.addButtonsSearchNavigation();
         } else {
             this.searchNavigation.current = -1;
@@ -742,14 +747,14 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                     position: index,
                     color   : 'red',
                     str     : row.params.val,
-                    onClick : this.onROW_IS_SELECTED.bind(this, index)
+                    onClick : this.onROW_IS_SELECTED.bind(this, index, true)
                 });
             } else if (row.params.highlight.backgroundColor !== '') {
                 this.line.marks.push({
                     position: index,
                     color   : row.params.highlight.backgroundColor,
                     str     : row.params.val,
-                    onClick : this.onROW_IS_SELECTED.bind(this, index)
+                    onClick : this.onROW_IS_SELECTED.bind(this, index, true)
                 });
             }
         });
@@ -993,7 +998,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         return _index;
     }
 
-    onROW_IS_SELECTED(index : number){
+    onROW_IS_SELECTED(index : number, callEvent: boolean = false){
         if (index >= this._rows.length){
             return false;
         }
@@ -1001,6 +1006,9 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         if (!this.selection.own && !super.getState().deafness){
             this.listView.scrollToIndex(_index > SETTINGS.SELECTION_OFFSET ? _index - SETTINGS.SELECTION_OFFSET : _index);
             this.select(index, false);
+            if (callEvent){
+                !super.getState().silence && Events.trigger(Configuration.sets.SYSTEM_EVENTS.ROW_IS_SELECTED, index);
+            }
         } else {
             this.selection.own = false;
         }
