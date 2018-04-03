@@ -490,6 +490,14 @@ class Stream {
         return this._rows;
     }
 
+    public getFilters() : Object{
+        return this._filters;
+    }
+
+    public getRequests() : Object{
+        return this._requests;
+    }
+
 }
 
 export { Stream }
