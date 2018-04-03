@@ -115,25 +115,6 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
         this._highlight.backgroundColor = this.highlight.backgroundColor;
         this._highlight.foregroundColor = this.highlight.foregroundColor;
         this.html = serializeHTML(this.val);
-        if (typeof this.match === 'string' && this.match !== null && this.match !== ''){
-            let reg     = null;
-            let match   = parseRegExp(this.match);
-            if (!this.matchReg) {
-                match = serializeStringForReg(parseRegExp(match));
-                this.regsCache[match + '_noReg'] === void 0 && (this.regsCache[match + '_noReg'] = safelyCreateRegExp(serializeHTML(match), 'g'));
-                reg = this.regsCache[match + '_noReg'];
-            } else {
-                this.regsCache[match] === void 0 && (this.regsCache[match] = safelyCreateRegExp(serializeHTML(match), 'gi'));
-                reg = this.regsCache[match];
-            }
-            this.regsCache[MARKERS.MATCH] === void 0 && (this.regsCache[MARKERS.MATCH] = safelyCreateRegExp(MARKERS.MATCH, 'gi'));
-            if (reg !== null) {
-                matchMatches = this.html.match(reg);
-                if (matchMatches instanceof Array && matchMatches.length > 0){
-                    this.html = this.html.replace(reg, MARKERS.MATCH);
-                }
-            }
-        }
         if (this.markers instanceof Array){
             this.markers.forEach((marker, index)=>{
                 if (marker.value.length > 0) {
@@ -156,6 +137,26 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
                     }
                 }
             });
+        }
+
+        if (typeof this.match === 'string' && this.match !== null && this.match !== ''){
+            let reg     = null;
+            let match   = parseRegExp(this.match);
+            if (!this.matchReg) {
+                match = serializeStringForReg(parseRegExp(match));
+                this.regsCache[match + '_noReg'] === void 0 && (this.regsCache[match + '_noReg'] = safelyCreateRegExp(serializeHTML(match), 'g'));
+                reg = this.regsCache[match + '_noReg'];
+            } else {
+                this.regsCache[match] === void 0 && (this.regsCache[match] = safelyCreateRegExp(serializeHTML(match), 'gi'));
+                reg = this.regsCache[match];
+            }
+            this.regsCache[MARKERS.MATCH] === void 0 && (this.regsCache[MARKERS.MATCH] = safelyCreateRegExp(MARKERS.MATCH, 'gi'));
+            if (reg !== null) {
+                matchMatches = this.html.match(reg);
+                if (matchMatches instanceof Array && matchMatches.length > 0){
+                    this.html = this.html.replace(reg, MARKERS.MATCH);
+                }
+            }
         }
 
         if (matchMatches instanceof Array && matchMatches.length > 0){
