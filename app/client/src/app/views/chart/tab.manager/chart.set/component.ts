@@ -1,23 +1,12 @@
 import {Component, ComponentFactoryResolver, ViewContainerRef, ChangeDetectorRef, ViewChild, OnInit, AfterViewChecked, OnDestroy, Input } from '@angular/core';
 
-import { dataController                         } from '../../../../core/modules/controller.data';
-import { Logs, TYPES as LogTypes                } from '../../../../core/modules/tools.logs';
 import { events as Events                       } from '../../../../core/modules/controller.events';
-import { configuration as Configuration         } from '../../../../core/modules/controller.config';
-import { GUID                                   } from '../../../../core/modules/tools.guid';
-
-import { ViewInterface                          } from '../../../../core/interfaces/interface.view';
-import { DataRow                                } from '../../../../core/interfaces/interface.data.row';
-import { EVENT_DATA_IS_UPDATED                  } from '../../../../core/interfaces/events/DATA_IS_UPDATE';
-
-import { ViewClass                              } from '../../../../core/services/class.view';
-import { ViewSizeClassInt as Size                                       } from '../../../../core/services/class.view.size';
 
 import { Manager                                                        } from '../../../../core/modules/parsers/controller.data.parsers.tracker.manager';
 import { ParserClass, ParserData, ParserDataIndex, ParsedResultIndexes  } from '../../../../core/modules/parsers/controller.data.parsers.tracker.inerfaces';
 
 import { popupController                        } from '../../../../core/components/common/popup/controller';
-import { ChartEditColorDialog                   } from '../../../../core/components/common/dialogs/charts.edit.colors/component';
+import { MarkersEditDialog                      } from '../../../../core/components/common/dialogs/markers.edit/component';
 import { ChartEditRulesHooksDialog              } from '../../../../core/components/common/dialogs/charts.edit.rules.hooks/component';
 import { ChartEditRulesSegmentsDialog           } from '../../../../core/components/common/dialogs/charts.edit.rules.segments/component';
 
@@ -100,11 +89,13 @@ export class ViewControllerTabChartManagerSet implements OnInit, AfterViewChecke
         popupController.open({
             content : {
                 factory     : null,
-                component   : ChartEditColorDialog,
+                component   : MarkersEditDialog,
                 params      : {
                     hook                : this.GUID,
                     foregroundColor     : this.set.textColor,
                     backgroundColor     : this.set.lineColor,
+                    noTypeChoose        : true,
+                    noHook              : true,
                     callback            : function(request: Object){
                         this.set.textColor = request['foregroundColor'];
                         this.set.lineColor = request['backgroundColor'];

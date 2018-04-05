@@ -1,13 +1,10 @@
-import { Timestamp  } from './controller.data.parsers.timestamp.js';
-import { Parser     } from './controller.data.parsers.tracker.js'
+import { Parser as Tracker  } from './controller.data.parsers.tracker.js'
 
 class Parsers {
     private parsers : {
-        timestamp   : any,
         tracks      : any,
     } = {
-        timestamp   : new Timestamp(),
-        tracks      : new Parser()
+        tracks      : new Tracker()
     };
 
     constructor(){

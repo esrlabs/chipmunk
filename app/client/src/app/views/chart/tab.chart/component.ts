@@ -190,51 +190,34 @@ export class ViewControllerTabChart extends TabController implements ViewInterfa
 
     onSelectChart(datetime : Date){
         if (this._rows instanceof Array){
-            let cursor      = datetime.getTime(),
-                position    = -1;
-            try{
-                this._rows.forEach((row, index)=>{
-                    if (row.parsed.timestamp instanceof Array && row.parsed.timestamp.length > 0){
-                        let timestamp = row.parsed.timestamp[0].timestamp;
-                        if (timestamp >= cursor){
-                            position = index;
-                            throw Error('found');
-                        }
-                    }
-                });
-            } catch (e){ }
-            ~position && Events.trigger(Configuration.sets.SYSTEM_EVENTS.ROW_IS_SELECTED, position, this.viewParams.GUID);
+            const position = datetime.getTime();
+            if (position >= 0 && position <= this._rows.length - 1){
+                Events.trigger(Configuration.sets.SYSTEM_EVENTS.ROW_IS_SELECTED, position, this.viewParams.GUID);
+            }
         }
     }
 
     parseData(source : Array<DataRow>, dest: RowsData){
-        let timestamp               = -1,
-            POSTPONE_WRONG_DATES    = false;
-        source.map((row: DataRow)=>{
-            if (row.parsed !== void 0 && row.parsed.timestamp instanceof Array && row.parsed.timestamp.length > 0){
-                if (POSTPONE_WRONG_DATES || timestamp <= row.parsed.timestamp[0].timestamp){
-                    timestamp = row.parsed.timestamp[0].timestamp;
-                    Object.keys(this.sets).forEach((GUID)=>{
-                        if (this.sets[GUID].active && row.parsed.tracks !== null && typeof row.parsed.tracks === 'object' &&
-                            row.parsed.tracks[GUID] instanceof Array && row.parsed.tracks[GUID].length > 0){
-                            dest.data[GUID] === void 0 && (dest.data[GUID] = []);
-                            row.parsed.tracks[GUID].forEach((index: ParsedResultIndexes)=>{
-                                dest.data[GUID].push({
-                                    datetime    : row.parsed.timestamp[0].datetime,
-                                    value       : index.index,
-                                    key         : index.label
-                                });
-                                dest.end                                = row.parsed.timestamp[0].datetime;
-                                dest.start === null     && (dest.start  = row.parsed.timestamp[0].datetime);
-                                dest.min > index.index  && (dest.min    = index.index);
-                                dest.max < index.index  && (dest.max    = index.index);
+        source.map((row: DataRow, index)=>{
+            if (row.parsed !== void 0){
+                const datetime = new Date(index);
+                Object.keys(this.sets).forEach((GUID)=>{
+                    if (this.sets[GUID].active && row.parsed.tracks !== null && typeof row.parsed.tracks === 'object' &&
+                        row.parsed.tracks[GUID] instanceof Array && row.parsed.tracks[GUID].length > 0){
+                        dest.data[GUID] === void 0 && (dest.data[GUID] = []);
+                        row.parsed.tracks[GUID].forEach((index: ParsedResultIndexes)=>{
+                            dest.data[GUID].push({
+                                datetime    : datetime,
+                                value       : index.index,
+                                key         : index.label
                             });
-                        }
-                    });
-                } else {
-                    // Do not any log here on production. Logs here has a huge influence on performance.
-                    //Logs.msg('Ignored', LogTypes.DEBUG);
-                }
+                            dest.end                                = datetime;
+                            dest.start === null     && (dest.start  = datetime);
+                            dest.min > index.index  && (dest.min    = index.index);
+                            dest.max < index.index  && (dest.max    = index.index);
+                        });
+                    }
+                });
             }
         });
         dest.textColors = {};
@@ -302,15 +285,15 @@ export class ViewControllerTabChart extends TabController implements ViewInterfa
     getTimestampByIndex(index: number, offset: symbol):Date{
         let result = null;
         if (index >= 0 && index <= this._rows.length - 1){
-            if(this._rows[index].parsed.timestamp instanceof Array && this._rows[index].parsed.timestamp.length > 0){
-                return this._rows[index].parsed.timestamp[0].datetime;
-            }
+            return new Date(index);
+            /*
             switch (offset){
                 case OFFSET_DIRECTION.LEFT:
                     return this.getTimestampByIndex(index - 1, offset);
                 case OFFSET_DIRECTION.RIGHT:
                     return this.getTimestampByIndex(index + 1, offset);
             }
+            */
         } else {
             
         }
