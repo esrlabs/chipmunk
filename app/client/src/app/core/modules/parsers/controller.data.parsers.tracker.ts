@@ -29,74 +29,56 @@ class Parser implements ParserClass{
 
         let segments    : Array<string>                 = [],
             values      : Array<string>                 = [],
-            result      : Array<ParsedResultIndexes>    = [],
-            key                                         = null;
+            result      : Array<ParsedResultIndexes>    = [];
 
         //Step 0. Get segments
         segments = apply(str, data.segments, segments);
 
-        //Check cache
-        key     = generator.getKey(GUID, segments);
-        result  = generator.load(key);
+        //Step 1. Get values from segments
+        segments.forEach((segment: string)=>{
+            apply(segment, data.values, values);
+        });
 
-        if (result === null){
-            result = [];
-            //Step 1. Get values from segments
-            segments.forEach((segment: string)=>{
-                apply(segment, data.values, values);
+        //Step 2. Clean up values
+        values = values.map((value: string)=>{
+            data.clearing.forEach((parserRegStr: string)=>{
+                value = value.replace(generator.getRegExp(parserRegStr), '');
             });
+            return value;
+        });
 
-            //Step 2. Clean up values
-            values = values.map((value: string)=>{
-                data.clearing.forEach((parserRegStr: string)=>{
-                    value = value.replace(generator.getRegExp(parserRegStr), '');
-                });
-                return value;
-            });
-
-            //Step 3. Convert
-            result = values.map((value: string)=>{
-                if (data.indexes[value] !== void 0){
-                    return {
-                        index: data.indexes[value].index,
-                        label: data.indexes[value].label
-                    }
-                } else {
-                    return null;
+        //Step 3. Convert
+        result = values.map((value: string)=>{
+            if (data.indexes[value] !== void 0){
+                return {
+                    index: data.indexes[value].index,
+                    label: data.indexes[value].label
                 }
-            }).filter(item => item !== null);
-
-            //Step 4. Save cache
-            result.length > 0 && generator.save(key, result);
-        }
+            } else {
+                return null;
+            }
+        }).filter(item => item !== null);
 
         return result;
     }
 
     parseKeysType(str: string, data: ParserData, GUID: string): Array<ParsedResultIndexes>{
         let result : Array<ParsedResultIndexes> = [],
-            actual : boolean                    = false,
-            key    : string                     = '';
+            actual : boolean                    = false;
         data.tests.forEach((test: string)=>{
             let reg = generator.getRegExp(test);
             !actual && (actual = reg.test(str));
         });
 
         if (actual){
-            key     = generator.getKey(GUID, [str]);
-            result  = generator.load(key);
-            if (result === null){
-                result = [];
-                Object.keys(data.indexes).forEach((key: string)=>{
-                    if (typeof data.indexes[key].value === 'string'){
-                        ~str.indexOf(data.indexes[key].value) && result.push({
-                            index: data.indexes[key].index,
-                            label: data.indexes[key].label
-                        });
-                    }
-                });
-                result.length > 0 && generator.save(key, result);
-            }
+            Object.keys(data.indexes).forEach((key: string)=>{
+                if (typeof data.indexes[key].value === 'string'){
+                    ~str.indexOf(data.indexes[key].value) && result.push({
+                        index: data.indexes[key].index,
+                        label: data.indexes[key].label
+                    });
+                }
+            });
         }
         return result;
     }

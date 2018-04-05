@@ -31,15 +31,15 @@
     </table>
 </div>
 
-<div class="marker-hook">
+<div [attr.class]="'marker-hook ' + (noHook ? 'no-hook' : '')">
     <div class="marker-color-example">
         <p [style.backgroundColor]="backgroundColor" [style.color]="foregroundColor">This is an example</p>
     </div>
-    <div class="marker-value">
-        <div class="marker-value-value">
+    <div class="marker-value" *ngIf="!noHook">
+        <div [attr.class]="'marker-value-value ' + (noTypeChoose ? 'no-type-choose' : '')">
             <common-input #_hook (onEnter)="onApply()" [value]="hook" [type]="'text'" [placeholder]="'Type key-phrase'"></common-input>
         </div>
-        <div class="marker-value-type">
+        <div class="marker-value-type" *ngIf="!noTypeChoose">
             <simple-checkbox [onChange]="onTypeChange" [checked]="isRegExp" [on]="'RegExp'" [off]="'Text'"></simple-checkbox>
         </div>
     </div>
