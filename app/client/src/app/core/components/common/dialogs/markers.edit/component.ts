@@ -52,7 +52,8 @@ export class MarkersEditDialog {
     @Input() foregroundColor    : string        = 'rgb(50,250,50)';
     @Input() backgroundColor    : string        = 'rgb(250,250,250)';
     @Input() isRegExp           : boolean       = true;
-
+    @Input() noTypeChoose       : boolean       = false;
+    @Input() noHook             : boolean       = false;
 
     @ViewChild('_hook'          ) _hook         : CommonInput;
 
@@ -94,8 +95,8 @@ export class MarkersEditDialog {
     }
 
     onApply(){
-        this.hook = this._hook.getValue();
-        if (this.hook.trim() !== ''){
+        this.hook = !this.noHook ? this._hook.getValue() : '';
+        if (this.hook.trim() !== '' || this.noHook){
             typeof this.callback === 'function' && this.callback({
                 hook            : this.hook,
                 backgroundColor : this.backgroundColor,

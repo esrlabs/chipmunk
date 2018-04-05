@@ -73,7 +73,7 @@ markers-edit-dialog{
         }
         .marker-value{
             position: relative;
-            height  : 1.4rem;
+            height  : 1.5rem;
             .marker-value-value{
                 position: absolute;
                 top     :0;
@@ -82,6 +82,9 @@ markers-edit-dialog{
                 height  : 100%;
                 overflow: hidden;
                 border  : 1px dotted @grey;
+                &.no-type-choose{
+                    right: 0;
+                }
            }
             .marker-value-type{
                 position: absolute;
@@ -94,6 +97,9 @@ markers-edit-dialog{
                     width: 4.5rem;
                 }
             }
+        }
+        &.no-hook{
+            height: 2.5rem;
         }
     }
     .marker-controls{

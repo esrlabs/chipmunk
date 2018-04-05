@@ -2,8 +2,6 @@ import { configuration          } from '../../../core/modules/controller.config.
 import { events as Events       } from '../../../core/modules/controller.events.js';
 import { localSettings, KEYs    } from '../../../core/modules/controller.localsettings.js';
 
-declare var Configuration: any;//We need global one to support worker
-
 const
     DEFAULTS = {
         LINE_COLOR: 'rgb(20,20,20)',
@@ -21,17 +19,13 @@ class Manager{
         let settings = localSettings.get();
         if (settings[KEYs.view_charts] !== void 0 && settings[KEYs.view_charts] !== null && settings[KEYs.view_charts][SETTINGS.SETs] !== void 0){
             return Object.assign({}, settings[KEYs.view_charts][SETTINGS.SETs]);
-        } else if (Object.keys(configuration.sets).length > 0) {
-            return Object.assign({}, configuration.sets.VIEW_TRACKER.sets);
-        } else if (typeof Configuration !== 'undefined'){
-            return Object.assign({}, Configuration.sets.VIEW_TRACKER.sets);
         } else {
-            return null;
+            return {};
         }
     }
 
     save(sets: any, needParsing : boolean = true){
-        localSettings.reset(KEYs.view_charts, 'update');
+        //localSettings.reset(KEYs.view_charts, 'update');
         localSettings.set({
             [KEYs.view_charts] : {
                 [SETTINGS.SETs] : sets
