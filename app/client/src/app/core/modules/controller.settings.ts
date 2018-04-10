@@ -12,6 +12,10 @@ interface IVisualSettings {
     show_active_search_results_always   : boolean
 }
 
+interface IOutputSettings {
+    remove_empty_rows_from_stream: boolean
+}
+
 interface IServerSetting {
     API_URL                 : string,
     WS_URL                  : string,
@@ -22,6 +26,7 @@ interface IServerSetting {
 interface ISettings {
     version : string,
     visual  : IVisualSettings,
+    output  : IOutputSettings,
     server  : IServerSetting
 }
 
@@ -47,8 +52,28 @@ class ControllerSettings{
         }
     }
 
+    checkVersion(){
+        if (this.storage === null){
+            return;
+        }
+        if (typeof Configuration.sets.SETTINGS !== 'object' || Configuration.sets.SETTINGS === null || Object.keys(Configuration.sets.SETTINGS).length === 0) {
+            return;
+        }
+        if (this.storage.version === Configuration.sets.SETTINGS.version){
+            return;
+        }
+        if (Configuration.sets.SETTINGS.drop_rules instanceof Array){
+            Configuration.sets.SETTINGS.drop_rules.forEach((section: string)=>{
+                this.storage[section] = null;
+            });
+            this.storage.version = Configuration.sets.SETTINGS.version;
+            this.save();
+        }
+    }
+
     get(){
         this.storage === null && this.load();
+        this.checkVersion();
         return Object.assign({}, this.storage);
     }
 
@@ -70,4 +95,4 @@ class ControllerSettings{
 
 let settings = new ControllerSettings();
 
-export { settings, ISettings, IVisualSettings, IServerSetting };
+export { settings, ISettings, IVisualSettings, IOutputSettings, IServerSetting };

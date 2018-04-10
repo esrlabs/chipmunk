@@ -2,6 +2,7 @@ import { Component, Input, AfterContentInit, OnInit, EventEmitter, ComponentFact
 
 import { Tab                            } from '../../tabs/interface.tab';
 import { DialogVisualSettingTab         } from './visual/component';
+import { DialogOutputSettingTab         } from './output/component';
 import { DialogAPISettings              } from '../api.settings/component';
 import {IServerSetting, settings} from '../../../../modules/controller.settings';
 import {configuration as Configuration} from "../../../../modules/controller.config";
@@ -40,6 +41,9 @@ export class DialogSettingsManager implements OnInit{
         let emitterVisualSelect    = new EventEmitter<any>(),
             emitterVisualDeselect  = new EventEmitter<any>(),
             emitterVisualResize    = new EventEmitter<any>();
+        let emitterOutputSelect    = new EventEmitter<any>(),
+            emitterOutputDeselect  = new EventEmitter<any>(),
+            emitterOutputResize    = new EventEmitter<any>();
         let emitterServerSelect    = new EventEmitter<any>(),
             emitterServerDeselect  = new EventEmitter<any>(),
             emitterServerResize    = new EventEmitter<any>();
@@ -52,6 +56,7 @@ export class DialogSettingsManager implements OnInit{
             factory     : this.componentFactoryResolver.resolveComponentFactory(DialogVisualSettingTab),
             params      : {
                 visual      : this.getSettings('visual'),
+                active      : true,
                 register    : this.onRegister.bind(this),
                 onSelect    : emitterVisualSelect,
                 onDeselect  : emitterVisualDeselect,
@@ -62,6 +67,24 @@ export class DialogSettingsManager implements OnInit{
         });
         this.tabs.push({
             id          : Symbol(),
+            label       : 'Output',
+            onSelect    : emitterOutputSelect,
+            onDeselect  : emitterOutputDeselect,
+            onResize    : emitterOutputResize,
+            factory     : this.componentFactoryResolver.resolveComponentFactory(DialogOutputSettingTab),
+            params      : {
+                output      : this.getSettings('output'),
+                active      : false,
+                register    : this.onRegister.bind(this),
+                onSelect    : emitterOutputSelect,
+                onDeselect  : emitterOutputDeselect,
+                onResize    : emitterOutputResize,
+            },
+            update      : null,
+            active      : false
+        });
+        this.tabs.push({
+            id          : Symbol(),
             label       : 'API & Service',
             onSelect    : emitterServerSelect,
             onDeselect  : emitterServerDeselect,
@@ -69,6 +92,7 @@ export class DialogSettingsManager implements OnInit{
             factory     : this.componentFactoryResolver.resolveComponentFactory(DialogAPISettings),
             params      : {
                 server      : this.getSettings('server'),
+                active      : false,
                 register    : this.onRegister.bind(this),
                 onSelect    : emitterServerSelect,
                 onDeselect  : emitterServerDeselect,
