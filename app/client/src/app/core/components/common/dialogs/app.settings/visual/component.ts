@@ -21,7 +21,7 @@ export class DialogVisualSettingTab extends TabController implements OnDestroy, 
         highlight_search_requests           : false,
         show_active_search_results_always   : false
     };
-
+    @Input() active     : boolean   = false;
     @Input() register   : Function = null;
 
     @Output() getData() : IVisualSettings {
@@ -61,7 +61,7 @@ export class DialogVisualSettingTab extends TabController implements OnDestroy, 
     }
 
     ngAfterContentInit(){
-        if (this.register !== null && !this.registered) {
+        if (this.register !== null && !this.registered && this.active) {
             this.register({
                 getData: this.getData.bind(this),
                 section: 'visual'

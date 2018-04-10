@@ -13,6 +13,7 @@ export class DialogAPISettings extends TabController implements OnDestroy, After
     @Input() proceed            : Function          = null;
     @Input() cancel             : Function          = null;
     @Input() register           : Function          = null;
+    @Input() active             : boolean           = false;
 
     @Output() getData() : IServerSetting {
         return {
