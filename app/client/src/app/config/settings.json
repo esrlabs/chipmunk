@@ -1,7 +1,7 @@
 {
-  "version": "20.03.2018",
+  "version": "12.04.2018",
   "drop_rules": [
-    "views"
+    "output"
   ],
   "visual": {
     "prevent_ascii_colors_always": false,
@@ -9,6 +9,9 @@
     "do_not_highlight_matches_in_requests": false,
     "highlight_search_requests": false,
     "show_active_search_results_always": true
+  },
+  "output":{
+    "remove_empty_rows_from_stream": true
   },
   "server":{
     "API_URL"                 : "http://127.0.0.1:8082/API",
