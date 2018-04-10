@@ -5,6 +5,7 @@ import { Parsers                                            } from './parsers/co
 import { MODES                                              } from './controller.data.search.modes';
 import { IWorkerResponse, TFiltersMatches, TRequestsMatches } from '../../workers/data.processor.interfaces.js';
 import { WorkerController                                   } from './controller.data.worker';
+import {IOutputSettings, ISettings, settings as Settings} from '../modules/controller.settings';
 
 type TFilters       = {[key: string] : DataFilter   };
 type TRequests      = {[key: string] : DataFilter   };
@@ -66,6 +67,27 @@ class Stream {
     private _filtersHash    : FilterHashes      = new FilterHashes();
     private _requestsHash   : FilterHashes      = new FilterHashes();
     private _worker         : WorkerController  = new WorkerController();
+    private _settings       : ISettings | null  = null;
+
+    constructor(){
+    }
+
+    private _getDefaultOutputSettings(): IOutputSettings{
+        return {
+            remove_empty_rows_from_stream: true
+        }
+    }
+
+    private _getOutputSettings(): IOutputSettings {
+        if (typeof this._settings !== 'object' || this._settings === null){
+            this._settings = Settings.get();
+        }
+        if (this._settings.output === void 0 || this._settings.output === null){
+            this._settings = null;
+            return this._getDefaultOutputSettings();
+        }
+        return this._settings.output;
+    }
 
     private _reset(){
         this._rows          = [];
@@ -79,32 +101,41 @@ class Stream {
     private _getRows(fragment: string) : { rows: Array<DataRow>, rest: string, fragment: string} {
         const parsers = new Parsers();
         const measure = Logs.measure('[data.processor][Stream][_getRows]');
+
+        const outputSettings = this._getOutputSettings();
+
         let result = {
             rows    : [] as Array<DataRow>,
             rest    : '',
-            fragment: fragment
+            fragment: ''
         };
 
         fragment = typeof fragment === 'string' ? fragment.replace(/\r?\n|\r/gi, '\n') : fragment;
 
         let rows = typeof fragment === 'string' ? fragment.split(/\n/gi) : null;
 
+        //Remove empty stuff
+        if (outputSettings.remove_empty_rows_from_stream){
+            rows instanceof Array && (rows = rows.filter((str)=>{ return str !== ''; }));
+        }
+
         if (!(rows instanceof Array) || rows.length === 0) {
             return result;
         }
+
 
         //Check current package for broken line
         if (!~fragment.search(/.(\n|\n\r|\r|\r\n)$/gi)){
             rows[rows.length - 1] !== '' && (result.rest  = rows[rows.length - 1]);
             rows[rows.length - 1] !== '' && Logs.msg('Broken line is found. Line excluded from current package and waiting for a next package.', LogTypes.DEBUG);
             rows.splice(rows.length - 1, 1);
-            result.fragment = rows.join('\n');
         }
 
         if (rows.length > 0 && rows[rows.length - 1].length === 0){
             rows.splice(rows.length - 1, 1);
-            result.fragment = rows.join('\n');
         }
+
+        result.fragment = rows.join('\n');
 
         if (rows.length === 0) {
             return result;
