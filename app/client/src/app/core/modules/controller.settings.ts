@@ -30,6 +30,8 @@ interface ISettings {
     server  : IServerSetting
 }
 
+const CHECK_DEFAULTS = ['visual', 'output'];
+
 class ControllerSettings{
     private storage : ISettings = null;
 
@@ -71,10 +73,28 @@ class ControllerSettings{
         }
     }
 
+    checkForDefaults(storage: any){
+        if (storage === null){
+            return storage;
+        }
+        if (typeof Configuration.sets.SETTINGS !== 'object' || Configuration.sets.SETTINGS === null || Object.keys(Configuration.sets.SETTINGS).length === 0) {
+            return storage;
+        }
+        CHECK_DEFAULTS.forEach((alias: string)=>{
+            if (Configuration.sets.SETTINGS[alias] === void 0 || typeof Configuration.sets.SETTINGS[alias] !== 'object' || Configuration.sets.SETTINGS[alias] === null){
+                return;
+            }
+            if (storage[alias] === void 0 || storage[alias] === null){
+                storage[alias] = Object.assign({}, Configuration.sets.SETTINGS[alias]);
+            }
+        });
+        return storage;
+    }
+
     get(){
         this.storage === null && this.load();
         this.checkVersion();
-        return Object.assign({}, this.storage);
+        return Object.assign({}, this.checkForDefaults(this.storage));
     }
 
     set(data : Object){
