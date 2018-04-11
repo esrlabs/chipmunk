@@ -114,7 +114,7 @@ export class DialogSettingsManager implements OnInit{
 
     getSettings(section: string){
         const _settings = settings.get();
-        return _settings[section];
+        return typeof _settings[section] === 'object' ? (_settings[section] !== null ? _settings[section] : {}) : {};
     }
 
     save(){
