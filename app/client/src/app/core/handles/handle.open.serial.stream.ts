@@ -56,6 +56,8 @@ const DEFAULT_PORT_SETTINGS = {
     vtransmit      : 50
 };
 
+const MAX_HISTORY_COMMANDS = 50;
+
 class SettingsController{
 
     defaults(){
@@ -80,19 +82,40 @@ class SettingsController{
             });
         }
     }
+
+    loadHistory(){
+        let settings = localSettings.get();
+        if (settings !== null && typeof settings[KEYs.serial_history_cmds] === 'object' && settings[KEYs.serial_history_cmds] !== null && settings[KEYs.serial_history_cmds].history instanceof Array){
+            return settings[KEYs.serial_history_cmds].history;
+        } else {
+            return [];
+        }
+    }
+
+    saveHistory(history: Array<string>){
+        if (history instanceof Array){
+            localSettings.set({
+                [KEYs.serial_history_cmds] : {
+                    history : history
+                }
+            });
+        }
+    }
 }
 
 class SerialSender{
 
-    private ID: symbol = Symbol();
-    private barAPI : BarAPI = null;
-    private message: string = '';
-    private packageGUID: string = null;
-    private history: Array<string> = [];
-    private historyCursor: number = -1;
+    private ID              : symbol                = Symbol();
+    private barAPI          : BarAPI                = null;
+    private message         : string                = '';
+    private packageGUID     : string                = null;
+    private Settings        : SettingsController    = new SettingsController();
+    private history         : Array<string>         = [];
+    private historyCursor   : number                = -1;
 
     constructor(){
         Events.bind(Configuration.sets.SYSTEM_EVENTS.DATA_TO_SERIAL_SENT, this.onDATA_TO_SERIAL_SENT.bind(this));
+        this.history = this.Settings.loadHistory();
     }
 
     addButton(){
@@ -134,6 +157,8 @@ class SerialSender{
                 }
                 this.history[this.historyCursor] !== void 0 && this.barAPI.setValue(this.history[this.historyCursor]);
                 break;
+            default:
+                this.resetHistoryCursor();
         }
     }
 
@@ -145,7 +170,7 @@ class SerialSender{
     send(){
         this.barAPI !== null && this.barAPI.showProgress();
         this.packageGUID = GUID.generate();
-        this.history.unshift(this.message);
+        this.saveHistoryCommand(this.message);
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.READY_TO_SEND_DATA_TO_SERIAL, {
             packageGUID : this.packageGUID,
             buffer      : this.message + '\n\r' + ' ',
@@ -158,6 +183,23 @@ class SerialSender{
             this.packageGUID = null;
             this.barAPI.setValue('');
         }
+    }
+
+    resetHistoryCursor(){
+        this.historyCursor = -1;
+    }
+
+    saveHistoryCommand(command: string){
+        if (typeof command !== 'string' || command.trim() === ''){
+            return false;
+        }
+        if (this.history.length > 0 && this.history[0] === command){
+            return false;
+        }
+        this.history.unshift(command);
+        this.history.length > MAX_HISTORY_COMMANDS && this.history.splice(this.history.length - 1, 1);
+        this.Settings.saveHistory(this.history);
+        this.resetHistoryCursor();
     }
 }
 

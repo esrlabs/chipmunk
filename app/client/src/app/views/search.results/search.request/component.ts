@@ -215,6 +215,7 @@ export class TopBarSearchRequest implements AfterContentInit{
         } else {
             this.placeholder = DEFAULTS.PLACEHOLDER;
         }
+        this.input.setFocus();
         this.progressHide(id);
         this.resetInput();
         this.forceUpdate();

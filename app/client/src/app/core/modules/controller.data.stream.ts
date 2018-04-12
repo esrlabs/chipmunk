@@ -127,10 +127,12 @@ class Stream {
 
 
         //Check current package for broken line
-        if (!~fragment.search(/.(\n|\n\r|\r|\r\n)$/gi)){
-            rows[rows.length - 1] !== '' && (result.rest  = rows[rows.length - 1]);
-            rows[rows.length - 1] !== '' && Logs.msg('Broken line is found. Line excluded from current package and waiting for a next package.', LogTypes.DEBUG);
-            rows.splice(rows.length - 1, 1);
+        if (!~fragment.search(/(\n|\n\r|\r|\r\n)$/gi)){
+            if (rows.length > 0 && rows[rows.length - 1] !== '') {
+                result.rest  = rows[rows.length - 1];
+                Logs.msg('Broken line is found. Line excluded from current package and waiting for a next package.', LogTypes.DEBUG);
+                rows.splice(rows.length - 1, 1);
+            }
         }
 
         if (rows.length > 0 && rows[rows.length - 1].length === 0){

@@ -18,7 +18,8 @@ const KEYs = {
     terminal            : 'terminal',
     themes              : 'themes',
     adblogccat_stream   : 'adblogccat_stream',
-    settings            : 'settings'
+    settings            : 'settings',
+    serial_history_cmds : 'serial_history_cmds'
 };
 
 class ControllerLocalSettings{
