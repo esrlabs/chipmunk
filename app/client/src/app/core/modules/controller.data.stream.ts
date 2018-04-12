@@ -5,7 +5,7 @@ import { Parsers                                            } from './parsers/co
 import { MODES                                              } from './controller.data.search.modes';
 import { IWorkerResponse, TFiltersMatches, TRequestsMatches } from '../../workers/data.processor.interfaces.js';
 import { WorkerController                                   } from './controller.data.worker';
-import {IOutputSettings, ISettings, settings as Settings} from '../modules/controller.settings';
+import { IOutputSettings, ISettings, settings as Settings   } from '../modules/controller.settings';
 
 type TFilters       = {[key: string] : DataFilter   };
 type TRequests      = {[key: string] : DataFilter   };
@@ -531,6 +531,10 @@ class Stream {
 
     public getRequests() : Object{
         return this._requests;
+    }
+
+    public getBuffer(): string {
+        return this._rest;
     }
 
 }
