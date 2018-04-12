@@ -10,8 +10,8 @@ view-controller-list{
         overflow: hidden;
         div.lv-list{
             position    : absolute;
-            height      : 100%;
-            top         : 0;
+            top         : 1.5rem;
+            bottom      : 0;
             left        : 1rem;
             right       : 0;
             overflow    : hidden;
@@ -20,6 +20,20 @@ view-controller-list{
             }
             long-list .wrapper .rows{
                 padding: 0;
+            }
+        }
+        div.lv-buffer{
+            position    : absolute;
+            height      : 1.5rem;
+            top         : 0;
+            left        : 0;
+            right       : 0;
+            overflow    : hidden;
+            p{
+                margin: 0;
+                padding: 0.25rem 0.5rem;
+                font-size: 0.8rem;
+                color: @soft-grey;
             }
         }
         div.lv-line{
