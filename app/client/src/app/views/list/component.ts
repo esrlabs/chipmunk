@@ -38,13 +38,15 @@ interface ISelectedMarker {
 };
 
 const SETTINGS : {
-    SELECTION_OFFSET        : number,
-    TEXT_SELECTED_COLOR     : string,
-    TEXT_SELECTED_BACKGROUND:string
+    SELECTION_OFFSET            : number,
+    TEXT_SELECTED_COLOR         : string,
+    TEXT_SELECTED_BACKGROUND    : string,
+    BUFFER_MESSAGE_PLACEHOLDER  : string
 } = {
-    SELECTION_OFFSET        : 3,
-    TEXT_SELECTED_COLOR     : 'rgb(0,0,0)',
-    TEXT_SELECTED_BACKGROUND: 'rgb(150,150,250)'
+    SELECTION_OFFSET            : 3,
+    TEXT_SELECTED_COLOR         : 'rgb(0,0,0)',
+    TEXT_SELECTED_BACKGROUND    : 'rgb(150,150,250)',
+    BUFFER_MESSAGE_PLACEHOLDER  : 'no data ...'
 };
 
 @Component({
@@ -97,7 +99,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     private regsCache               : Object                        = {};
     private lastBookmarkOperation   : number                        = null;
     private highlightCache          : { [key: number]: any }        = {};
-
+    private buffer                  : string                        = SETTINGS.BUFFER_MESSAGE_PLACEHOLDER;
     private dragAndDropFiles        : DragAndDropFiles  = null;
     private dragAndDropDialogGUID   : symbol            = null;
 
@@ -168,6 +170,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED,
             Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED,
+            Configuration.sets.SYSTEM_EVENTS.DATA_BUFFER_IS_UPDATED,
             Configuration.sets.EVENTS_VIEWS.MARKS_VIEW_SWITCH_TARGET,
             Configuration.sets.EVENTS_VIEWS.HIGHLIGHT_SEARCH_REQUESTS_DATA].forEach((handle: string)=>{
             this['on' + handle] = this['on' + handle].bind(this);
@@ -210,6 +213,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_NEXT_IN_SEARCH,
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED,
             Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED,
+            Configuration.sets.SYSTEM_EVENTS.DATA_BUFFER_IS_UPDATED,
             Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED,
             Configuration.sets.EVENTS_VIEWS.MARKS_VIEW_SWITCH_TARGET,
             Configuration.sets.EVENTS_VIEWS.HIGHLIGHT_SEARCH_REQUESTS_DATA].forEach((handle: string)=>{
@@ -235,6 +239,20 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             this.dragAndDropFiles.onStart.subscribe(this.onFileLoadingStart.bind(this));
             this.dragAndDropFiles.onFinish.subscribe(this.onFileLoadingFinish.bind(this));
         }
+    }
+
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    * Stream buffer
+    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    resetDataBuffer(){
+        this.buffer = SETTINGS.BUFFER_MESSAGE_PLACEHOLDER;
+    }
+
+    onDATA_BUFFER_IS_UPDATED(buffer: string){
+        if (typeof buffer !== 'string' || buffer.trim() === ''){
+            return this.resetDataBuffer();
+        }
+        this.buffer = buffer;
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
