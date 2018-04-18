@@ -2,7 +2,8 @@ const logger            = new (require('./tools.logger'))('ServiceSerialStream')
 
 const
     SerialPort          = require('serialport'),
-    ServerEmitter       = require('./server.events');
+    ServerEmitter       = require('./server.events'),
+    StringTimerBuffer   = require('./tools.buffers').StringTimerBuffer;
 
 const PORT_EVENTS = {
     open    : 'open',
@@ -18,6 +19,11 @@ const PORT_STATES = {
 const WRITER_STATES = {
     READY       : Symbol('READY'),
     WRITING     : Symbol('WRITING')
+};
+
+const STREAM_BUFFER_OPTIONS = {
+  LENGTH      : 300000,
+  DURATION    : 200 //ms. If duration between on Data event less than here, data will be included into one package
 };
 
 class PortWriter {
@@ -103,6 +109,25 @@ class Port{
         this.tasks          = [];
         this.taskID         = 0;
         this.writer         = null;
+        this._buffer        = new StringTimerBuffer(STREAM_BUFFER_OPTIONS.LENGTH, STREAM_BUFFER_OPTIONS.DURATION);
+        this._onBuffer          = this._onBuffer.bind(this);
+        this._bindBuffer();
+    }
+
+    _bindBuffer(){
+        this._buffer.on(this._buffer.EVENTS.timer, this._onBuffer);
+    }
+
+    _unbindBuffer(){
+        this._buffer.removeAllListeners(this._buffer.EVENTS.timer);
+    }
+
+    _onBuffer(str){
+        if (this.state === PORT_STATES.LISTENING){
+            this.triggerData(str);
+        } else {
+            this.buffer += str;
+        }
     }
 
     addClient(clientGUID){
@@ -129,6 +154,7 @@ class Port{
                     this.writer = new PortWriter(this.instance, this.settings);
                     logger.debug('[session: ' + this.GUID + ']:: Port is opened: ' + this.port);
                     callback(this.GUID, null);
+                    //this.emulate();
                 }
             });
             //Attach events
@@ -150,6 +176,7 @@ class Port{
         if (this.ready) {
             this.ready = false;
             this.instance.close(callback);
+            this._unbindBuffer();
             logger.debug('[session: ' + this.GUID + ']:: Port is closed: ' + this.port);
         } else {
             callback();
@@ -216,7 +243,7 @@ class Port{
         switch (this.state){
             case PORT_STATES.LISTENING:
                 if (this.buffer !== ''){
-                    this.triggerDate(this.buffer);
+                    this.triggerData(this.buffer);
                     this.buffer = '';
                 }
                 break;
@@ -226,7 +253,7 @@ class Port{
         }
     }
 
-    triggerDate(str){
+    triggerData(str){
         let outgoingWSCommands = require('./websocket.commands.processor.js');
         this.clients.forEach((clientGUID)=>{
             ServerEmitter.emitter.emit(ServerEmitter.EVENTS.SEND_VIA_WS, clientGUID, outgoingWSCommands.COMMANDS.SerialData, {
@@ -242,15 +269,25 @@ class Port{
 
     ['on' + PORT_EVENTS.error](error){
         this.ready = false;
-
     }
 
     ['on' + PORT_EVENTS.data](data){
-        if (this.state === PORT_STATES.LISTENING){
-            this.triggerDate(data.toString('utf8'));
-        } else {
-            this.buffer += data.toString('utf8');
+        this._buffer.add(data.toString('utf8'));
+    }
+
+    emulate(){
+      setTimeout(()=>{
+        let str = '';
+        for (let i = Math.random()* 255; i >=0; i -= 1){
+          str += Math.round(Math.random() * 100) + ' ';
         }
+        if (Math.random() > 0.3){
+          str += '\n';
+        }
+        let buffer = Buffer.from(str, 'utf8');
+        this['on' + PORT_EVENTS.data](buffer);
+        this.emulate();
+      }, Math.random()*500)
     }
 }
 
