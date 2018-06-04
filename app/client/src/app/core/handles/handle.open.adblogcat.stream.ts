@@ -11,6 +11,7 @@ import { APICommands                    } from '../api/api.commands';
 import { APIResponse                    } from '../api/api.response.interface';
 import { DialogADBLogcatStreamSettings  } from '../components/common/dialogs/adblogcat.settings/component';
 import { DialogMessage                  } from '../components/common/dialogs/dialog-message/component';
+import { DialogMessageList              } from '../components/common/dialogs/dialog-message-list/component';
 import { ANSIClearer                    } from '../modules/tools.ansiclear';
 
 
@@ -73,10 +74,19 @@ const DEFAULT_STREAM_SETTINGS : {
 };
 
 interface LogcatStreamSettings {
-    filters : Array<ADBFilter>,
-    path    : string,
-    custom  : string,
-    reset   : boolean
+    filters     : Array<ADBFilter>,
+    path        : string,
+    custom      : string,
+    reset       : boolean,
+    deviceID?   : string
+}
+
+interface DeviceDescription {
+    ID: string,
+    model: string,
+    device: string,
+    usb: string,
+    product: string
 }
 
 class SettingsController{
@@ -115,12 +125,16 @@ class SettingsController{
     }
 
     convert(settings: LogcatStreamSettings): LogcatStreamSettings {
-        return {
+        const _settings = {
             filters : settings.filters !== void 0 ? settings.filters : [],
             path    : settings.path !== void 0 ? settings.path : '',
             reset   : settings.reset !== void 0 ? settings.reset : false,
-            custom  : settings.custom !== void 0 ? settings.custom : ''
+            custom  : settings.custom !== void 0 ? settings.custom : '',
+        } as LogcatStreamSettings;
+        if (typeof settings.deviceID === 'string' && settings.deviceID.trim() !== ''){
+            _settings.deviceID = settings.deviceID;
         }
+        return _settings;
     }
 }
 
@@ -303,11 +317,18 @@ class OpenADBLogcatStream implements MenuHandleInterface{
     private processor       : any                   = APIProcessor;
     private listening       : boolean               = false;
     private Settings        : SettingsController    = new SettingsController();
+    private activeDevice    : string | null         = null;
 
     constructor(){
+
+    }
+
+    setActiveDevice(deviceID: string){
+        this.activeDevice = deviceID;
     }
 
     start(){
+        this.setActiveDevice(null);
         this.openStream();
     }
 
@@ -319,13 +340,52 @@ class OpenADBLogcatStream implements MenuHandleInterface{
         this.showSettings(true);
     }
 
-    openStream(){
+    getDevicesList(): Promise<Array<DeviceDescription>> {
+        return new Promise((resolve, reject) => {
+            let settings = this.Settings.load();
+            this.processor.send(
+                APICommands.getADBDevicesList,
+                {
+                    settings : this.Settings.convert(settings)
+                },
+                (devices: APIResponse) => {
+                    if (devices.code !== 0 || !(devices.output instanceof Array)){
+                        return reject(new Error(`Cannot get devices list. Please try again.`));
+                    }
+                    resolve(devices.output);
+                }
+            );
+        });
+    }
+
+    openStream(deviceID?: string){
+        if (typeof deviceID === 'string' && deviceID.trim() !== ''){
+            this.setActiveDevice(deviceID);
+        }
+        if (this.activeDevice === null) {
+            return this.getDevicesList()
+                .then((devices: Array<DeviceDescription>) => {
+                    if (devices.length === 0) {
+                        return this.showMessage('No devices', 'No connected / authorized devices found');
+                    }
+                    if (devices.length > 1){
+                        return this.showDevicesList(devices);
+                    }
+                    this.setActiveDevice(devices[0].ID);
+                    this.openStream();
+                })
+                .catch((error) => {
+                    this.showMessage('Error', error.message);
+                });
+        }
         this.showProgress(_('Please wait... Opening...'));
         let settings = this.Settings.load();
         this.processor.send(
             APICommands.openLogcatStream,
             {
-                settings : this.Settings.convert(settings)
+                settings : this.Settings.convert(Object.assign({
+                    deviceID: this.activeDevice
+                }, settings))
             },
             this.onStreamOpened.bind(this)
         );
@@ -386,6 +446,41 @@ class OpenADBLogcatStream implements MenuHandleInterface{
             buttons         : [],
             titlebuttons    : [],
             GUID            : Symbol()
+        });
+    }
+
+    showDevicesList(devices: Array<DeviceDescription>){
+        const popupGUID = Symbol();
+        popupController.open({
+            content : {
+                factory     : null,
+                component   : DialogMessageList,
+                params      : {
+                    message: `Several devices are detected. Please choose to connect.`,
+                    list: devices.map((device: DeviceDescription) => {
+                        return {
+                            caption: `device: ${device.device}; model: ${device.model}; product: ${device.product}; usb: ${device.usb}`,
+                            handle: () => {
+                                popupController.close(popupGUID);
+                                this.openStream(device.ID);
+                            }
+                        }
+                    })
+                }
+            },
+            title   : 'Devices list',
+            settings: {
+                move            : true,
+                resize          : true,
+                width           : '50rem',
+                height          : '15rem',
+                close           : true,
+                addCloseHandle  : true,
+                css             : ''
+            },
+            buttons         : [],
+            titlebuttons    : [],
+            GUID            : popupGUID
         });
     }
 

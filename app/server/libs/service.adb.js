@@ -23,6 +23,91 @@ const OPTIONS = {
 
 const DEFAULT_PARAMS = ['-b', 'all', '-v', 'color'];
 
+class ADBManager {
+
+    constructor(){
+
+    }
+
+    _getAdbAlias(){
+        let adbAlias = 'adb';
+        if (process.platform === PLATFORMS.WIN32) {
+            adbAlias = 'adb.exe';
+        }
+        return adbAlias;
+    }
+
+    _getPath(path){
+        if (typeof path !== 'string' || path.trim() === ''){
+            path = process.env.PATH;
+            if (~path.indexOf('/usr/bin') !== -1 || ~path.indexOf('/usr/sbin') !== -1){
+                //Linux & darwin patch
+                path.indexOf('/usr/local/bin'  ) === -1 && (path = '/usr/local/bin:' + path);
+                path.indexOf('/usr/local/sbin' ) === -1 && (path = '/usr/local/sbin:' + path);
+            }
+            return path;
+        } else {
+            return path + ':' + process.env.PATH;
+        }
+    }
+
+    _getEnv(path) {
+        return Object.assign(process.env, {
+            PATH: this._getPath(path)
+        });
+    }
+
+    getListOfDevices(path){
+        return new Promise((resolve, reject) => {
+            let sw = new SpawnWrapper(true);
+            sw.on(sw.EVENTS.done, (output) => {
+                sw.removeAllListeners(sw.EVENTS.done);
+                if (typeof output !== 'string') {
+                    return resolve([]);
+                }
+                let devices = output.match(/^[\w\d-_]{1,}\s{2,}.*device\:[\w\d-_]{1,}/gmi);
+                if (devices === null || devices.length === 0) {
+                    return resolve([]);
+                }
+                devices = devices.map((str) => {
+                    let pair = str.split(/\s{2,}/gi);
+                    if (pair.length !== 2) {
+                        return null;
+                    }
+                    const desc = {
+                        ID: pair[0],
+                        model: '',
+                        device: '',
+                        product: '',
+                        usb: ''
+                    };
+                    [
+                        { target: 'usb', reg: /device usb\:[\w\d-_]*/gi},
+                        { target: 'product', reg: /product\:[\w\d-_]*/gi},
+                        { target: 'model', reg: /model\:[\w\d-_]*/gi},
+                        { target: 'device', reg: /device\:[\w\d-_]*/gi}
+                    ].forEach((preset) => {
+                        const matches = pair[1].match(preset.reg);
+                        if (matches === null || matches.length !== 1){
+                            return;
+                        }
+                        const value = matches[0].split(':');
+                        if (value.length !== 2){
+                            return;
+                        }
+                        desc[preset.target] = value[1];
+                    });
+                    return desc;
+                }).filter((item) => {
+                    return item !== null;
+                });
+                resolve(devices);
+            });
+            sw.execute(this._getAdbAlias(), ['devices', '-l'], this._getEnv(path), 3000).catch(reject);
+        });
+    }
+}
+
 class SpawnProcess extends EventEmitter {
 
     constructor() {
@@ -126,7 +211,7 @@ class SpawnProcess extends EventEmitter {
                 resolve();
             });
             sw.execute(this._getAdbAlias(), params, this._getEnv(path), 3000).catch(reject);
-        })
+        });
     }
 
     _validateCustom(custom){
@@ -138,7 +223,7 @@ class SpawnProcess extends EventEmitter {
         return results;
     }
 
-    start(path, reset = false, custom = null, filters = null) {
+    start(path, reset = false, custom = null, filters = null, deviceID = null) {
         this._started = null;
         reset = typeof reset === 'boolean' ? reset : false;
         return new Promise((resolve, reject) => {
@@ -167,9 +252,10 @@ class SpawnProcess extends EventEmitter {
                         }
                     });
                     params.unshift('logcat');
-
+                    if (deviceID !== null) {
+                        params.unshift(...['-s', deviceID]);
+                    }
                     logger.debug(`ADB Process will be started with "${this._getAdbAlias() + ' ' + params.join(' ')}"`);
-
                     this._stream = new SpawnWrapper();
                     this._bind();
                     this._stream.execute(this._getAdbAlias(), params, this._getEnv(path))
@@ -319,17 +405,20 @@ class Stream extends EventEmitter {
             path    : typeof settings.path === 'string' ? settings.path : '',
             reset   : typeof settings.reset === 'boolean' ? settings.reset : false,
             custom  : typeof settings.custom === 'string' ? settings.custom : '',
+            deviceID: typeof settings.deviceID === 'string' ? settings.deviceID : null,
         };
 
         return _settings;
     }
 
     open() {
+        console.log(this._settings);
         return this._process.start(
             this._settings !== null ? (typeof this._settings === 'object' ? this._settings.path     : null) : null,
             this._settings !== null ? (typeof this._settings === 'object' ? this._settings.reset    : null) : null,
             this._settings !== null ? (typeof this._settings === 'object' ? this._settings.custom   : null) : null,
-            this._settings !== null ? (typeof this._settings === 'object' ? this._settings.filters  : null) : null
+            this._settings !== null ? (typeof this._settings === 'object' ? this._settings.filters  : null) : null,
+            this._settings !== null ? (typeof this._settings === 'object' ? this._settings.deviceID : null) : null,
         )
             .then(() => {
                 this._bindProcess();
@@ -359,6 +448,7 @@ class ADBStream {
 
     constructor(){
         this._streams               = {};
+        this._manager               = new ADBManager();
         this._onClientDisconnect    = this._onClientDisconnect.bind(this);
         this._onStreamClose         = this._onStreamClose.bind(this);
         this._onStreamData          = this._onStreamData.bind(this);
@@ -433,6 +523,16 @@ class ADBStream {
         this._streams[clientGUID].setSettings(settings);
         logger.debug(`settings of client ${clientGUID} was updated.`);
         callback(true, null);
+    }
+
+    getDevicesList(clientGUID, settings, callback){
+        this._manager.getListOfDevices(settings !== null ? (typeof settings === 'object' ? settings.path : null) : null)
+            .then((devices) => {
+                callback(devices, null);
+            })
+            .catch((e)=>{
+                callback(null, e);
+            });
     }
 
     close(clientGUID){
