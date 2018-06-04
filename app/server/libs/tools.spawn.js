@@ -18,13 +18,14 @@ const WRAPPER_EVENTS = {
 
 
 const logger        = new (require('./tools.logger'))('SpawnWrapper');
+const StringDecoder = require('string_decoder').StringDecoder;
 const util          = require('util');
 const spawn         = require('child_process').spawn;
 const EventEmitter  = require('events').EventEmitter;
 
 class SpawnWrapper extends EventEmitter{
 
-    constructor(){
+    constructor(output = false){
         super();
         this._spawn         = null;
         this._destroy       = this._destroy.bind(this);
@@ -35,6 +36,8 @@ class SpawnWrapper extends EventEmitter{
         this._onData        = this._onData.bind(this);
         this._timeout       = -1;
         this._timer         = -1;
+        this._output        = output ? '' : null;
+        this._decoder       = new StringDecoder('utf8');
         this.EVENTS         = WRAPPER_EVENTS;
     }
 
@@ -96,7 +99,19 @@ class SpawnWrapper extends EventEmitter{
     }
 
     _onData(...args){
+        if (this._output !== null){
+            const out = this._decode(...args);
+            out !== null && (this._output += out);
+        }
         this.emit(this.EVENTS.data, ...args);
+    }
+
+    _decode(message){
+        try {
+            return this._decoder.write(message);
+        } catch (error){
+            return null;
+        }
     }
 
     _bind(){
@@ -126,7 +141,7 @@ class SpawnWrapper extends EventEmitter{
         this._unbind();
         this._spawn !== null && this._spawn.kill();
         this._spawn  = null;
-        this.emit(this.EVENTS.done);
+        this.emit(this.EVENTS.done, this._output);
     }
 
     kill(){

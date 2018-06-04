@@ -115,6 +115,17 @@ class APICommands{
         });
     }
 
+    getADBDevicesList(income, response, callback){
+        let ADBStream = require('./service.adb');
+        ADBStream.getDevicesList(income.GUID, income.params.settings, (devices, error) => {
+            if (error === null){
+                callback(devices, null);
+            } else {
+                callback(null, error);
+            }
+        });
+    }
+
     //Process stream
     openProcessStream(income, response, callback){
         let Stream = require('./service.process');

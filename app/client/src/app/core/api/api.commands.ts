@@ -7,6 +7,7 @@ const APICommands = {
     setSettingsLogcatStream : 'setSettingsLogcatStream',
     closeLogcatStream       : 'closeLogcatStream',
     tryLogcatStream         : 'tryLogcatStream',
+    getADBDevicesList       : 'getADBDevicesList',
     openProcessStream       : 'openProcessStream',
     closeProcessStream      : 'closeProcessStream',
     setSettingsOfMonitor    : 'setSettingsOfMonitor',
