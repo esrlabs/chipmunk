@@ -412,7 +412,6 @@ class Stream extends EventEmitter {
     }
 
     open() {
-        console.log(this._settings);
         return this._process.start(
             this._settings !== null ? (typeof this._settings === 'object' ? this._settings.path     : null) : null,
             this._settings !== null ? (typeof this._settings === 'object' ? this._settings.reset    : null) : null,
