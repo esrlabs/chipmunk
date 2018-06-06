@@ -9,8 +9,31 @@ class APICommands{
     //Serial port stream
     serialPortsList(income, response, callback){
         let Serial = require('./service.serial.js');
-        Serial.getListPorts((result)=>{
-            callback(result, null);
+        Serial.getListPorts((ports, error)=>{
+            if (error instanceof Error) {
+                return callback(null, error);
+            }
+            callback(ports, null);
+        });
+    }
+
+    scanPorts(income, response, callback){
+        let Serial = require('./service.serial.js');
+        Serial.scanPorts(income.GUID, (ports, error)=>{
+            if (error instanceof Error) {
+                return callback(null, error);
+            }
+            callback(ports, null);
+        });
+    }
+
+    stopScanPorts(income, response, callback){
+        let Serial = require('./service.serial.js');
+        Serial.stopScanPorts(income.GUID, (status, error)=>{
+            if (error instanceof Error) {
+                return callback(null, error);
+            }
+            callback(status, null);
         });
     }
 
