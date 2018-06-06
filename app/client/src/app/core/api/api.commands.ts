@@ -1,6 +1,8 @@
 const APICommands = {
     OPEN_FILE_STREAM        : 'openFileStream',
     serialPortsList         : 'serialPortsList',
+    scanPorts               : 'scanPorts',
+    stopScanPorts           : 'stopScanPorts',
     openSerialPort          : 'openSerialPort',
     closeSerialStream       : 'closeSerialStream',
     openLogcatStream        : 'openLogcatStream',

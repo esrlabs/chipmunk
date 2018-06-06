@@ -7,6 +7,8 @@ const COMMANDS = {
     greeting                : 'greeting',
     GUIDAccepted            : 'GUIDAccepted',
     SerialData              : 'SerialData',
+    SerialScanResults       : 'SerialScanResults',
+    SerialScanFinished      : 'SerialScanFinished',
     WriteToSerial           : 'WriteToSerial',
     ResultWrittenToSerial   : 'ResultWrittenToSerial',
     UpdateIsAvailable       : 'UpdateIsAvailable',
@@ -80,6 +82,18 @@ class WSCommands{
     [COMMANDS.SerialData                ](message : WSCommandMessage, sender: Function){
         if (typeof message.params === 'object' && message.params !== null && typeof message.params.connection === 'string' && typeof message.params.data === 'string'){
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.SERIAL_DATA_COME, message.params);
+        }
+    }
+
+    [COMMANDS.SerialScanResults         ](message : WSCommandMessage, sender: Function){
+        if (typeof message.params === 'object' && message.params !== null && typeof message.params.statistic !== 'undefined'){
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.SERIAL_SCAN_STATISTIC_COME, message.params.statistic);
+        }
+    }
+
+    [COMMANDS.SerialScanFinished         ](message : WSCommandMessage, sender: Function){
+        if (typeof message.params === 'object' && message.params !== null && typeof message.params.statistic !== 'undefined'){
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.SERIAL_SCAN_FINISHED, message.params.statistic);
         }
     }
 
