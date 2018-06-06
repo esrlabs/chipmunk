@@ -4,6 +4,7 @@ const
     SerialPort          = require('serialport'),
     ServerEmitter       = require('./server.events'),
     StringTimerBuffer   = require('./tools.buffers').StringTimerBuffer;
+    EventEmitter        = require('events');
 
 const PORT_EVENTS = {
     open    : 'open',
@@ -11,10 +12,32 @@ const PORT_EVENTS = {
     error   : 'error',
 };
 
+const DEFAULT_PORT_SETTINGS = {
+    lock           : false,
+    baudRate       : 921600,
+    dataBits       :  8,
+    stopBits       : 1,
+    rtscts         : false,
+    xon            : false,
+    xoff           : false,
+    xany           : false,
+    bufferSize     : 65536,
+    vmin           : 1,
+    vtime          : 0,
+    vtransmit      : 50
+};
+
 const PORT_STATES = {
     LISTENING   : Symbol(),
     WRITING     : Symbol()
 };
+
+const PORTS_SCANNER_EVENTS = {
+    data: Symbol(),
+    close: Symbol()
+};
+
+const PORTS_SCANNER_DURATION = 1000 * 60 * 1;
 
 const WRITER_STATES = {
     READY       : Symbol('READY'),
@@ -93,9 +116,10 @@ class PortWriter {
     }
 }
 
-class Port{
+class Port extends EventEmitter{
 
-    constructor(clientGUID, port, settings){
+    constructor(clientGUID, port, settings, silence = false){
+        super();
         this.clients        = [clientGUID];
         this.GUID           = (require('uuid/v1'))();
         this.port           = port;
@@ -110,7 +134,8 @@ class Port{
         this.taskID         = 0;
         this.writer         = null;
         this._buffer        = new StringTimerBuffer(STREAM_BUFFER_OPTIONS.LENGTH, STREAM_BUFFER_OPTIONS.DURATION);
-        this._onBuffer          = this._onBuffer.bind(this);
+        this._onBuffer      = this._onBuffer.bind(this);
+        this._silence       = silence;
         this._bindBuffer();
     }
 
@@ -264,15 +289,17 @@ class Port{
     }
 
     ['on' + PORT_EVENTS.open](){
-
+        this.emit(PORT_EVENTS.open);
     }
 
     ['on' + PORT_EVENTS.error](error){
         this.ready = false;
+        this.emit(PORT_EVENTS.error, error);
     }
 
     ['on' + PORT_EVENTS.data](data){
-        this._buffer.add(data.toString('utf8'));
+        !this._silence && this._buffer.add(data.toString('utf8'));
+        this.emit(PORT_EVENTS.data, data);
     }
 
     emulate(){
@@ -287,17 +314,120 @@ class Port{
         let buffer = Buffer.from(str, 'utf8');
         this['on' + PORT_EVENTS.data](buffer);
         this.emulate();
-      }, Math.random()*500)
+      }, Math.random() * 500)
+    }
+}
+
+class PortsScanner extends EventEmitter {
+
+    constructor(clientGUID, ports){
+        super();
+        this._clientGUID = clientGUID;
+        this._listenedPorts = null;
+        this._ports = ports;
+        this._closeTimer = -1;
+        this._statistic = {};
+        ports.forEach((port) => {
+            this._statistic[port.comName] = 0;
+        });
+    }
+
+    _emulate(){
+        if (this._listenedPorts === null) {
+            return;
+        }
+        this[PORT_EVENTS.data](null, this._ports[Math.floor(Math.random() * (this._ports.length - 1))].comName, Buffer.from('tést'));
+        setTimeout(this._emulate.bind(this), 1000);
+    }
+
+    start(){
+        this._listenedPorts = this._ports.map((port, key) => {
+            const instance = new Port(key, port.comName, Object.assign({}, DEFAULT_PORT_SETTINGS));
+            instance.on(PORT_EVENTS.open,   this[PORT_EVENTS.open].bind(this, instance, port.comName));
+            instance.on(PORT_EVENTS.error,  this[PORT_EVENTS.error].bind(this, instance, port.comName));
+            instance.on(PORT_EVENTS.data,   this[PORT_EVENTS.data].bind(this, instance, port.comName));
+            instance.open(()=>{
+                logger.debug(`[client: ${this._clientGUID}]:: Scanning port: ${port.comName}.`);
+            });
+            return instance;
+        });
+        this._closeTimer = setTimeout(this.stop.bind(this), PORTS_SCANNER_DURATION);
+        //this._emulate();
+        logger.debug('[client: ' + this._clientGUID + ']:: Scanning is started.');
+    }
+
+    stop(){
+        clearTimeout(this._closeTimer);
+        return new Promise((resolve, reject) => {
+            if (this._listenedPorts === null) {
+                return resolve();
+            }
+            Promise.all(this._listenedPorts.map((instance) => {
+                return new Promise((resolve, reject) => {
+                    [PORT_EVENTS.open, PORT_EVENTS.error, PORT_EVENTS.data].forEach((event) => {
+                        instance.removeAllListeners(event);
+                    });
+                    instance.close(resolve);
+                });
+            })).then(()=>{
+                this._close();
+                logger.debug('[client: ' + this._clientGUID + ']:: Scanning is stopped.');
+                resolve();
+            }).catch((e)=>{
+                this._close();
+                reject(e);
+            });
+        });
+    }
+
+    _close(){
+        this._listenedPorts = null;
+        this._sendFinishNotification();
+        this.emit(PORTS_SCANNER_EVENTS.close);
+    }
+
+    _sendStatistic(){
+        let outgoingWSCommands = require('./websocket.commands.processor.js');
+        ServerEmitter.emitter.emit(ServerEmitter.EVENTS.SEND_VIA_WS, this._clientGUID, outgoingWSCommands.COMMANDS.SerialScanResults, {
+            connection  : this.GUID,
+            statistic   : this._statistic
+        });
+    }
+
+    _sendFinishNotification(){
+        let outgoingWSCommands = require('./websocket.commands.processor.js');
+        ServerEmitter.emitter.emit(ServerEmitter.EVENTS.SEND_VIA_WS, this._clientGUID, outgoingWSCommands.COMMANDS.SerialScanFinished, {
+            connection  : this.GUID,
+            statistic   : this._statistic
+        });
+    }
+
+    [PORT_EVENTS.open](instance, comName){
+
+    }
+
+    [PORT_EVENTS.error](instance, comName){
+
+    }
+
+    [PORT_EVENTS.data](instance, comName, buffer){
+        if (typeof buffer === 'undefined' || buffer === null || buffer.length === void 0){
+            return;
+        }
+        this._statistic[comName] += buffer.length;
+        this._sendStatistic();
+        this.emit(PORTS_SCANNER_EVENTS.data, Object.assign({}, this._statistic));
     }
 }
 
 class ServiceSerialStream{
 
     constructor(){
-        this.GUID               = (require('uuid/v1'))();
-        this.ports              = {};
-        this.onClientDisconnect = this.onClientDisconnect.bind(this);
-        this.onWriteToSerial    = this.onWriteToSerial.bind(this);
+        this.GUID                   = (require('uuid/v1'))();
+        this.ports                  = {};
+        this.onClientDisconnect     = this.onClientDisconnect.bind(this);
+        this.onWriteToSerial        = this.onWriteToSerial.bind(this);
+        this._scanneres             = {};
         ServerEmitter.emitter.on(ServerEmitter.EVENTS.CLIENT_IS_DISCONNECTED,   this.onClientDisconnect );
         ServerEmitter.emitter.on(ServerEmitter.EVENTS.WRITE_TO_SERIAL,          this.onWriteToSerial    );
     }
@@ -308,31 +438,106 @@ class ServiceSerialStream{
                 logger.debug('[session: ' + this.GUID + ']:: Getting list of ports...');
                 ports.forEach((port) => {
                     logger.debug('[session: ' + this.GUID + ']:: '+
-                        'comName: '         + (port.comName         === 'string' ? port.comName         : '[no data]') +
-                        '; pnpId: '         + (port.pnpId           === 'string' ? port.pnpId           : '[no data]') +
-                        '; manufacturer: '  + (port.manufacturer    === 'string' ? port.manufacturer    : '[no data]'));
+                        'comName: '         + (typeof port.comName      === 'string' ? port.comName       : (typeof port.comName      === 'number' ? port.comName       : '[no data]')) +
+                        '; pnpId: '         + (typeof port.pnpId        === 'string' ? port.pnpId         : (typeof port.pnpId        === 'number' ? port.pnpId         : '[no data]')) +
+                        '; manufacturer: '  + (typeof port.manufacturer === 'string' ? port.manufacturer  : (typeof port.manufacturer === 'number' ? port.manufacturer  : '[no data]')));
                 });
-                callback(ports);
+                callback(ports, null);
             } else {
                 logger.error('[session: ' + this.GUID + ']:: Error during getting list of ports: ' + error.message);
-                callback(error);
+                callback(null, error);
             }
         });
 
     }
 
+    _getPortScanner(clientGUID){
+        return this._scanneres[clientGUID] !== void 0 ? this._scanneres[clientGUID] : null;
+    }
+
+    _setPortScanner(clientGUID, scanner){
+        if (this._scanneres[clientGUID] !== void 0){
+            return false;
+        }
+        this._scanneres[clientGUID] = scanner;
+    }
+
+    _removePortScanner(clientGUID){
+        delete this._scanneres[clientGUID];
+    }
+
+    _stopScannerOfClient(clientGUID){
+        return new Promise((resolve, reject) => {
+            const scanner = this._getPortScanner(clientGUID);
+            if (scanner === null) {
+                return resolve();
+            }
+            scanner.stop()
+                .then(() => {
+                    this._removePortScanner(clientGUID);
+                    resolve();
+                })
+                .catch((e)=>{
+                    logger.debug(`[session: ${this.GUID}]:: Error during stopping scanning of ports: ${e.message}`);
+                    this._removePortScanner(clientGUID);
+                    reject(e);
+                });
+        });
+    }
+
+    scanPorts(clientGUID, callback){
+        if (this._getPortScanner(clientGUID) !== null) {
+            return callback(null, new Error(`Ports are already listened.`));
+        }
+        this.getListPorts((ports, error) => {
+            if (error instanceof Error) {
+                return callback(null, error);
+            }
+            if (!(ports instanceof Array) || ports.length === 0) {
+                return callback(null, new Error(`No ports found.`));
+            }
+            const scanner = new PortsScanner(clientGUID, ports);
+            scanner.on(PORTS_SCANNER_EVENTS.close, this._portScannerClosed.bind(this, scanner, clientGUID));
+            this._setPortScanner(clientGUID, scanner);
+            scanner.start();
+            callback(ports, null);
+        });
+    }
+
+    stopScanPorts(clientGUID, callback){
+        this._stopScannerOfClient(clientGUID)
+            .then(() => {
+                callback(true, null);
+            })
+            .catch((e)=>{
+                callback(null, e);
+            });
+    }
+
+    _portScannerClosed(scanner, clientGUID){
+        scanner.removeAllListeners(PORTS_SCANNER_EVENTS.close);
+        this._removePortScanner(clientGUID);
+    }
+
     open(clientGUID, port, settings, callback){
         let _port = this.getPortOfPort(port);
         if (_port === null) {
-            let instance = new Port(clientGUID, port, settings);
-            instance.open((GUID, error)=>{
-                if (error === null){
-                    this.ports[GUID] = instance;
-                    callback(GUID, null);
-                } else {
-                    callback(null, error);
-                }
-            });
+            this._stopScannerOfClient(clientGUID)
+                .then(() => {
+                    let instance = new Port(clientGUID, port, settings);
+                    instance.open((GUID, error)=>{
+                        if (error === null){
+                            this.ports[GUID] = instance;
+                            callback(GUID, null);
+                        } else {
+                            callback(null, error);
+                        }
+                    });
+                })
+                .catch((e)=>{
+                    callback(null, e);
+                });
+
         } else {
             _port.addClient(clientGUID);
             callback(_port.GUID, null);
@@ -393,6 +598,7 @@ class ServiceSerialStream{
 
     onClientDisconnect(connection, clientGUID){
         this.closePortsOfClient(clientGUID);
+        this._stopScannerOfClient(clientGUID);
     }
 
     onWriteToSerial(connection, params){

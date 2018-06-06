@@ -7,6 +7,8 @@ const COMMANDS = {
     greeting                : 'greeting',
     GUIDAccepted            : 'GUIDAccepted',
     SerialData              : 'SerialData',
+    SerialScanResults       : 'SerialScanResults',
+    SerialScanFinished      : 'SerialScanFinished',
     TelnetData              : 'TelnetData',
     TelnetClosed            : 'TelnetClosed',
     WriteToSerial           : 'WriteToSerial',
@@ -101,6 +103,22 @@ class OutgoingCommandsProcessor {
         this.sender({
             GUID    : clientGUID,
             command : COMMANDS.SerialData,
+            params  : params
+        });
+    }
+
+    [COMMANDS.SerialScanResults](clientGUID, params){
+        this.sender({
+            GUID    : clientGUID,
+            command : COMMANDS.SerialScanResults,
+            params  : params
+        });
+    }
+
+    [COMMANDS.SerialScanFinished](clientGUID, params){
+        this.sender({
+            GUID    : clientGUID,
+            command : COMMANDS.SerialScanFinished,
             params  : params
         });
     }

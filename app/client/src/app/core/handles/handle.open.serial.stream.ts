@@ -468,8 +468,8 @@ class OpenSerialStream implements MenuHandleInterface{
             settings: {
                 move            : true,
                 resize          : true,
-                width           : '20rem',
-                height          : '10rem',
+                width           : '25rem',
+                height          : '15rem',
                 close           : true,
                 addCloseHandle  : true,
                 css             : ''
