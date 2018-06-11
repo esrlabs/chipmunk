@@ -271,7 +271,7 @@ export class DialogSearchRequestsPresets implements AfterViewChecked {
                 factory     : null,
                 component   : DialogMessageList,
                 params      : {
-                    message: `Select preset, which should be overwritten, but current requests`,
+                    message: `Select preset, which should be overwritten by current requests`,
                     list   : this.presets.map((preset: Preset, index: number) => {
                         if (index === 0) {
                             return null;
