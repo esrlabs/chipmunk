@@ -48,10 +48,6 @@ class Updater {
 
     private UPDATE_IS_NOT_AVAILABLE(){
         this.info = null;
-        Events.trigger(Configuration.sets.SYSTEM_EVENTS.CREATE_NOTIFICATION, {
-            caption: 'Update',
-            message: 'No updates are available.'
-        });
     }
 
     private requestUpdate(){
