@@ -5,6 +5,8 @@ import { Holder                                 } from '../../components/holder/
 import { View                                   } from '../../components/holder/view/component';
 import { ViewBar                                } from '../../components/holder/view-bar/component';
 import { ContextMenu                            } from '../../components/context-menu/component';
+import { Notifications                          } from '../../components/notifications/component';
+
 import { Components as ComponentsCommmon        } from '../../components/common/components';
 
 import { DynamicComponent                       } from '../../../views/controllers';
@@ -23,8 +25,8 @@ import { DialogMarkersManagerModule             } from '../../components/common/
 @NgModule({
     entryComponents : [  ],
     imports         : [ CommonModule, ComponentsCommmon ],
-    declarations    : [ Holder, View, ViewBar, ContextMenu, DynamicComponent ],
-    exports         : [ Holder, View, ViewBar, ContextMenu, ViewListModule, ViewSearchResultsModule, ViewChartModule, ViewStateMonitorModule, ViewStreamSenderModule, ViewMarkersModule, DialogMonitorManagerModule, DialogSettingsModule, DialogMarkersManagerModule ]
+    declarations    : [ Holder, View, ViewBar, ContextMenu, Notifications, DynamicComponent ],
+    exports         : [ Holder, View, ViewBar, ContextMenu, Notifications, ViewListModule, ViewSearchResultsModule, ViewChartModule, ViewStateMonitorModule, ViewStreamSenderModule, ViewMarkersModule, DialogMonitorManagerModule, DialogSettingsModule, DialogMarkersManagerModule ]
 })
 
 export class HolderModule {

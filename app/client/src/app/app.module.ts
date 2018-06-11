@@ -29,7 +29,6 @@ import { viewsParameters                    } from './core/services/service.view
 
 import { serviceRequests                    } from './core/services/service.requests';
 
-
 @NgModule({
     imports:      [ BrowserModule, ComponentsCommmon, TopBarModule, HolderModule ],
     declarations: [ Layout, RootHolder ],
@@ -54,6 +53,7 @@ export class AppModule {
         controllerThemes.init();
         viewsParameters.init();
         serviceRequests.init();
+
         this.markersController.init();
         this.wsConnector = new WebSocketConnector();
         this.wsConnector.connect();

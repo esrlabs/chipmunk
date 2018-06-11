@@ -3,10 +3,11 @@ import { Component, Input, AfterContentInit, OnInit, EventEmitter, ComponentFact
 import { Tab                            } from '../../tabs/interface.tab';
 import { DialogVisualSettingTab         } from './visual/component';
 import { DialogOutputSettingTab         } from './output/component';
+import { DialogSettingsManagerImporter  } from './importer/component';
 import { DialogAPISettings              } from '../api.settings/component';
-import {IServerSetting, settings} from '../../../../modules/controller.settings';
-import {configuration as Configuration} from "../../../../modules/controller.config";
-import {events as Events} from "../../../../modules/controller.events";
+import { IServerSetting, settings       } from '../../../../modules/controller.settings';
+import { configuration as Configuration } from "../../../../modules/controller.config";
+import { events as Events               } from "../../../../modules/controller.events";
 
 interface Register {
     getData: Function,
@@ -38,15 +39,18 @@ export class DialogSettingsManager implements OnInit{
     }
 
     initTabs(){
-        let emitterVisualSelect    = new EventEmitter<any>(),
-            emitterVisualDeselect  = new EventEmitter<any>(),
-            emitterVisualResize    = new EventEmitter<any>();
-        let emitterOutputSelect    = new EventEmitter<any>(),
-            emitterOutputDeselect  = new EventEmitter<any>(),
-            emitterOutputResize    = new EventEmitter<any>();
-        let emitterServerSelect    = new EventEmitter<any>(),
-            emitterServerDeselect  = new EventEmitter<any>(),
-            emitterServerResize    = new EventEmitter<any>();
+        let emitterVisualSelect     = new EventEmitter<any>(),
+            emitterVisualDeselect   = new EventEmitter<any>(),
+            emitterVisualResize     = new EventEmitter<any>();
+        let emitterOutputSelect     = new EventEmitter<any>(),
+            emitterOutputDeselect   = new EventEmitter<any>(),
+            emitterOutputResize     = new EventEmitter<any>();
+        let emitterServerSelect     = new EventEmitter<any>(),
+            emitterServerDeselect   = new EventEmitter<any>(),
+            emitterServerResize     = new EventEmitter<any>();
+        let emitterImporterSelect   = new EventEmitter<any>(),
+            emitterImporterDeselect = new EventEmitter<any>(),
+            emitterImporterResize   = new EventEmitter<any>();
         this.tabs.push({
             id          : Symbol(),
             label       : 'Settings',
@@ -97,6 +101,27 @@ export class DialogSettingsManager implements OnInit{
                 onSelect    : emitterServerSelect,
                 onDeselect  : emitterServerDeselect,
                 onResize    : emitterServerResize,
+                proceed     : function (serverSettings : IServerSetting) {
+                    Events.trigger(Configuration.sets.SYSTEM_EVENTS.WS_SETTINGS_CHANGED, serverSettings);
+                }.bind(this),
+            },
+            update      : null,
+            active      : false
+        });
+        this.tabs.push({
+            id          : Symbol(),
+            label       : 'Backup, restore, drop',
+            onSelect    : emitterImporterSelect,
+            onDeselect  : emitterImporterDeselect,
+            onResize    : emitterImporterResize,
+            factory     : this.componentFactoryResolver.resolveComponentFactory(DialogSettingsManagerImporter),
+            params      : {
+                server      : this.getSettings('server'),
+                active      : false,
+                register    : this.onRegister.bind(this),
+                onSelect    : emitterImporterSelect,
+                onDeselect  : emitterImporterDeselect,
+                onResize    : emitterImporterResize,
                 proceed     : function (serverSettings : IServerSetting) {
                     Events.trigger(Configuration.sets.SYSTEM_EVENTS.WS_SETTINGS_CHANGED, serverSettings);
                 }.bind(this),
