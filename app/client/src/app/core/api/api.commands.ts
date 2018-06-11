@@ -24,6 +24,7 @@ const APICommands = {
     getStateMonitor         : 'getStateMonitor',
     dropSettings            : 'dropSettings',
     checkUpdates            : 'checkUpdates',
+    isUpdateAvailable       : 'isUpdateAvailable',
     openDevConsole          : 'openDevConsole',
     requestFile             : 'requestFile',
     openTelnetStream        : 'openTelnetStream',
