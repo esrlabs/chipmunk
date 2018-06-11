@@ -1,0 +1,90 @@
+dialog-settings-importer{
+    position    : absolute;
+    display     : block;
+    top         : 0rem;
+    left        : 0rem;
+    right       : 0rem;
+    bottom      : 0rem;
+    overflow    : hidden;
+    .dialog-settings-importer{
+        position    : absolute;
+        top         : 0.5rem;
+        left        : 0.5rem;
+        right       : 0.5rem;
+        bottom      : 0.5rem;
+        overflow-x  : hidden;
+        overflow-y  : auto;
+        .section{
+            position: relative;
+            .section-title{
+                margin: 0;
+                padding: 0;
+                font-size: 1rem;
+                color:@dark;
+            }
+            .section-subtitle{
+                margin: 0;
+                padding: 0;
+                font-size: 0.85rem;
+                color:@soft-grey;
+                &.attention{
+                    color:@soft-red;
+                }
+            }
+        }
+        .buttons-area{
+            text-align: right;
+        }
+        ul.list-of-settings{
+            position: relative;
+            display: block;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            li.list-of-settings-item{
+                position: relative;
+                display: block;
+                list-style: none;
+                padding: 0.25rem 0;
+                margin: 0;
+                white-space: nowrap;
+                .list-of-settings-item-checkbox{
+                    position: relative;
+                    display: inline-block;
+                    width: 8rem;
+                    & simple-checkbox{
+                        font-size: 0.9rem;
+                    }
+                    & simple-checkbox label span.on,
+                    & simple-checkbox label span.off,
+                    & simple-checkbox label span.switcher{
+                        width: 3.5rem;
+                    }
+                }
+                .list-of-settings-item-description-area{
+                    position: relative;
+                    display: inline-block;
+                    width: ~"calc(100% - 8rem)";
+                    white-space: normal;
+                    opacity: 0.4;
+                    &.selected{
+                        opacity: 1;
+                    }
+                    .list-of-settings-item-caption{
+                        margin: 0;
+                        padding: 0;
+                        font-size: 0.9rem;
+                        color:@dark;
+                    }
+                    .list-of-settings-item-description{
+                        margin: 0;
+                        padding: 0;
+                        font-size: 0.85rem;
+                        color:@soft-grey;
+                    }
+                }
+            }
+        }
+
+    }
+}
