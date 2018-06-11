@@ -1,0 +1,154 @@
+notifications{
+    position: fixed;
+    z-index: 1000;
+    bottom: 0;
+    right: 0;
+    .notifications-holder{
+        position: relative;
+        margin: 1rem;
+        .notifications-container{
+            position: relative;
+            display: block;
+            padding: 0;
+            margin: 0;
+            list-style: none;
+            .notifications-item{
+                position: relative;
+                display: block;
+                width: 15rem;
+                height: auto;
+                list-style: none;
+                padding: 0;
+                margin: 0.5rem 0;
+                box-shadow: 0.1rem 0.1rem 0.5rem @black-opacity-0-4;
+                background: @light-blue;
+                border: thin solid @soft-grey;
+                &.opening{
+                    animation			: notification-show-animation 500ms ease-in-out 0ms normal forwards;
+                    -webkit-animation	: notification-show-animation 500ms ease-in-out 0ms normal forwards;
+                    -moz-animation		: notification-show-animation 500ms ease-in-out 0ms normal forwards;
+                    -o-animation		: notification-show-animation 500ms ease-in-out 0ms normal forwards;
+                }
+                &.closing{
+                    animation			: notification-hide-animation 350ms linear 0ms normal forwards;
+                    -webkit-animation	: notification-hide-animation 350ms linear 0ms normal forwards;
+                    -moz-animation		: notification-hide-animation 350ms linear 0ms normal forwards;
+                    -o-animation		: notification-hide-animation 350ms linear 0ms normal forwards;
+                }
+                & *{
+                    font-size: 0.9rem;
+                }
+                .notification-caption{
+                    padding: 0.2rem 0.3rem;
+                    margin: 0;
+                    background: @dark-blue;
+                    cursor: default;
+
+                }
+                .notification-message{
+                    padding: 0.2rem 0.3rem;
+                    margin: 0;
+                    font-size: 0.85rem;
+                    cursor: default;
+
+                }
+                .notification-buttons{
+                    position: relative;
+                    text-align: right;
+                    .notification-button{
+                        position    : relative;
+                        display     : inline-block;
+                        background  : @dark-blue;
+                        color       : @button-flat-passive-color;
+                        margin      : 0.25rem;
+                        padding     : 0.25rem 0.5rem;
+                        font-size   : 0.85rem;
+                        cursor      : pointer;
+                        border      : thin solid @soft-grey;
+                        &:hover{
+                            background  : @dark-blue;
+                            border      : thin solid @soft-dark;
+                        }
+                    }
+                }
+                .notification-close-button{
+                    position: absolute;
+                    display: block;
+                    width: 0.75rem;
+                    height: 0.75rem;
+                    right: 0.25rem;
+                    top: 0.25rem;
+                    opacity: 0.4;
+                    cursor: pointer;
+                    &:hover{
+                        opacity: 1;
+                    }
+                }
+            }
+        }
+    }
+}
+
+@keyframes notification-show-animation {
+    0% {
+        transform   : translateX(15rem);
+        opacity     :0;
+    }
+    100% {
+        transform   : translateX(0rem);
+        opacity     :1;
+    }
+}
+@-moz-keyframes notification-show-animation {
+    0% {
+        transform   : translateX(15rem);
+        opacity     :0;
+    }
+    100% {
+        transform   : translateX(0rem);
+        opacity     :1;
+    }
+}
+@-webkit-keyframes notification-show-animation {
+    0% {
+        transform   : translateX(15rem);
+        opacity     :0;
+    }
+    100% {
+        transform   : translateX(0rem);
+        opacity     :1;
+    }
+}
+
+@keyframes notification-hide-animation {
+    0% {
+        transform   : translateX(0rem);
+        opacity     :1;
+    }
+    100% {
+        transform   : translateX(15rem);
+        opacity     :0;
+    }
+}
+@-moz-keyframes notification-hide-animation {
+    0% {
+        transform   : translateX(0rem);
+        opacity     :1;
+    }
+    100% {
+        transform   : translateX(15rem);
+        opacity     :0;
+    }
+}
+@-webkit-keyframes notification-hide-animation {
+    0% {
+        transform   : translateX(0rem);
+        opacity     :1;
+    }
+    100% {
+        transform   : translateX(15rem);
+        opacity     :0;
+    }
+}
+
+
