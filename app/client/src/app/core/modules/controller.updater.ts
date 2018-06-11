@@ -2,6 +2,11 @@ import { events as Events               } from './controller.events';
 import { configuration as Configuration } from './controller.config';
 import { popupController                } from '../components/common/popup/controller';
 import { DialogUpdate                   } from '../components/common/dialogs/update/component';
+import { DialogSettingsAutoExport       } from '../components/common/dialogs/app.settings/importer/auto.export/component';
+import { APIResponse                    } from "../api/api.response.interface";
+import { APICommands                    } from "../api/api.commands";
+import { APIProcessor                   } from "../api/api.processor";
+import {ProgressBarCircle               } from "../components/common/progressbar.circle/component";
 
 interface UpdateInfo{
     info    : any
@@ -14,24 +19,122 @@ interface DownloadProgressState {
 }
 
 class Updater {
-    private dialogGUID : symbol = null;
 
-    private info  : UpdateInfo              = null;
-    private state : DownloadProgressState   = null;
+    private dialogGUID  : symbol = null;
+    private processor   : any = APIProcessor;
+    private info        : UpdateInfo              = null;
+    private state       : DownloadProgressState   = null;
 
     constructor() {
-        Events.bind(Configuration.sets.SYSTEM_EVENTS.UPDATE_IS_AVAILABLE,       this.UPDATE_IS_AVAILABLE.bind(this));
-        Events.bind(Configuration.sets.SYSTEM_EVENTS.UPDATE_DOWNLOAD_PROGRESS,  this.UPDATE_DOWNLOAD_PROGRESS.bind(this));
+        this.API_IS_READY_TO_USE        = this.API_IS_READY_TO_USE.bind(this);
+        this.UPDATE_DOWNLOAD_PROGRESS   = this.UPDATE_DOWNLOAD_PROGRESS.bind(this);
+        this.UPDATE_IS_NOT_AVAILABLE    = this.UPDATE_IS_NOT_AVAILABLE.bind(this);
+        this.UPDATE_IS_AVAILABLE        = this.UPDATE_IS_AVAILABLE.bind(this);
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.API_IS_READY_TO_USE,       this.API_IS_READY_TO_USE);
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.UPDATE_IS_AVAILABLE,       this.UPDATE_IS_AVAILABLE);
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.UPDATE_DOWNLOAD_PROGRESS,  this.UPDATE_DOWNLOAD_PROGRESS);
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.UPDATE_IS_NOT_AVAILABLE,   this.UPDATE_IS_NOT_AVAILABLE);
     }
 
-    UPDATE_IS_AVAILABLE(info: UpdateInfo){
+    private API_IS_READY_TO_USE(){
+        this.processor.send(
+            APICommands.isUpdateAvailable,
+            {},
+            (response : APIResponse, error: Error) => {
+                console.log(response);
+            }
+        );
+    }
+
+    private UPDATE_IS_NOT_AVAILABLE(){
+        this.info = null;
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.CREATE_NOTIFICATION, {
+            caption: 'Update',
+            message: 'No updates are available.'
+        });
+    }
+
+    private requestUpdate(){
+        const guid = Symbol();
+        popupController.open({
+            content : {
+                factory     : null,
+                component   : DialogSettingsAutoExport,
+                params      : {
+                    onFinish:()=>{
+                        popupController.close(guid);
+                        const progressGUID = this.showProgress();
+                        this.processor.send(
+                            APICommands.checkUpdates,
+                            {},
+                            (response : APIResponse, error: Error) => {
+                                popupController.close(progressGUID);
+                                this.openDialog();
+                            }
+                        );
+                    }
+                }
+            },
+            title   : 'Saving current settings...',
+            settings: {
+                move            : false,
+                resize          : false,
+                width           : '20rem',
+                height          : '10rem',
+                close           : false,
+                addCloseHandle  : false,
+                css             : ''
+            },
+            buttons         : [],
+            titlebuttons    : [],
+            GUID            : guid
+        });
+    }
+
+    private UPDATE_IS_AVAILABLE(info: UpdateInfo){
+        if (this.info !== null) {
+            return;
+        }
         this.info = info;
-        this.openDialog();
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.CREATE_NOTIFICATION, {
+            caption: 'Update',
+            message: 'New version is available. Do you want install it?',
+            buttons: [{ caption: 'Install', handler: ()=>{
+                this.requestUpdate();
+            }}, { caption: 'Later', handler: ()=>{
+                this.info = null;
+            }}]
+        });
     }
 
-    UPDATE_DOWNLOAD_PROGRESS(state: DownloadProgressState){
+    private UPDATE_DOWNLOAD_PROGRESS(state: DownloadProgressState){
         this.state = state;
         this.openDialog();
+    }
+
+    showProgress(){
+        const progressGUID = Symbol();
+        popupController.open({
+            content : {
+                factory     : null,
+                component   : ProgressBarCircle,
+                params      : {}
+            },
+            title   : 'Checking for updates...',
+            settings: {
+                move            : false,
+                resize          : false,
+                width           : '20rem',
+                height          : '10rem',
+                close           : false,
+                addCloseHandle  : false,
+                css             : ''
+            },
+            buttons         : [],
+            titlebuttons    : [],
+            GUID            : progressGUID
+        });
+        return progressGUID;
     }
 
     openDialog(){
