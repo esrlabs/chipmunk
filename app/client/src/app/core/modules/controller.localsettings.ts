@@ -94,7 +94,7 @@ class ControllerLocalSettings{
 
     reset(key: string, reason: string){
         if (this.storage[key] !== void 0 && typeof reason === 'string' && reason.trim() !== ''){
-            this.storage[key] = {};
+            this.storage[key] = null;
             Logs.msg('Property [' + key + '] was reset by reason: ' + reason, LogTypes.WARNING);
         } else {
             Logs.msg('Property cannot be reset without defined reason.', LogTypes.WARNING);
