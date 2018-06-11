@@ -16,6 +16,7 @@ const COMMANDS = {
     ResultWrittenToSerial   : 'ResultWrittenToSerial',
     ResultWrittenToTelnet   : 'ResultWrittenToTelnet',
     UpdateIsAvailable       : 'UpdateIsAvailable',
+    UpdateIsNotAvailable    : 'UpdateIsNotAvailable',
     UpdateDownloadProgress  : 'UpdateDownloadProgress',
     ADBLogcatData           : 'ADBLogcatData',
     TermProcessData         : 'TermProcessData',
@@ -159,6 +160,14 @@ class OutgoingCommandsProcessor {
         this.sender({
             GUID    : clientGUID,
             command : COMMANDS.UpdateIsAvailable,
+            params  : params
+        });
+    }
+
+    [COMMANDS.UpdateIsNotAvailable](clientGUID, params){
+        this.sender({
+            GUID    : clientGUID,
+            command : COMMANDS.UpdateIsNotAvailable,
             params  : params
         });
     }
