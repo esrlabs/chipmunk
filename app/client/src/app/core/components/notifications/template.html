@@ -1,0 +1,15 @@
+<div [attr.class]="'notifications-holder'">
+    <ul [attr.class]="'notifications-container'" *ngIf="_notifications.length > 0">
+        <li *ngFor="let notification of _notifications; let i = index;"
+            [attr.class]="'notifications-item ' + (notification._closing ? 'closing' : 'opening')">
+            <p class="notification-caption">{{notification.caption}}</p>
+            <span *ngIf="notification.closable" class="fa fa-remove notification-close-button" (click)="_close(notification.id)"></span>
+            <p class="notification-message">{{notification.message}}</p>
+            <div *ngIf="notification.buttons.length > 0" class="notification-buttons">
+                <span   *ngFor="let button of  notification.buttons; let i = index;"
+                        (click)="button.handler()"
+                        class="notification-button">{{button.caption}}</span>
+            </div>
+        </li>
+    </ul>
+</div>
