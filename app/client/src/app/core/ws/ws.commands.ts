@@ -130,7 +130,7 @@ class WSCommands{
 
     [COMMANDS.UpdateIsNotAvailable      ](message : WSCommandMessage, sender: Function){
         if (typeof message.params === 'object' && message.params !== null){
-            Events.trigger(Configuration.sets.SYSTEM_EVENTS.UPDATE_IS_AVAILABLE, message.params);
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.UPDATE_IS_NOT_AVAILABLE, message.params);
         }
     }
 
