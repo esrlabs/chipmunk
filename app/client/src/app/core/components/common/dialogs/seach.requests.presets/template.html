@@ -30,14 +30,14 @@
         </div>
         <div class="spm-new-buttons">
             <button-flat-text [caption]="'Add New'" [handle]="onNew"></button-flat-text>
-            <button-flat-text [caption]="'Save As'" [handle]="onSaveAs"></button-flat-text>
+            <button-flat-text [caption]="'Save As'" [handle]="onSaveAs" [enabled]="getClearedPresets().length > 0"></button-flat-text>
         </div>
     </div>
     <div class="spm-common-buttons">
         <button-flat-text [caption]="'Export'" [handle]="onExport"></button-flat-text>
         <button-flat-text [caption]="'Import'" [handle]="onImportFromFile"></button-flat-text>
         <button-flat-text [caption]="'Import by url'" [handle]="onImportByURL"></button-flat-text>
-        <button-flat-text [caption]="'Apply'" [handle]="onApply"></button-flat-text>
+        <button-flat-text [caption]="'Apply'" [handle]="onApply" [enabled]="selected > 0"></button-flat-text>
     </div>
 </div>
 <a #exporturl [attr.href]="exportdata.url" class="export-url" [attr.download]="exportdata.filename"></a>
