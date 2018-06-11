@@ -23,6 +23,11 @@ class Updater {
         Object.keys(UPDATER_EVENTS).forEach((key) => {
             this._autoUpdater.on(UPDATER_EVENTS[key], this[UPDATER_EVENTS[key]].bind(this));
         });
+        this._autoUpdater.setFeedURL({
+            provider        : "github",
+            owner           : "esrlabs",
+            repo            : "logviewer"
+        });
         logger.info('Updater is created');
     }
 
@@ -40,6 +45,7 @@ class Updater {
 
     [UPDATER_EVENTS.NOT_AVAILABLE](info) {
         logger.info(`Update not available. Info: ${util.inspect(info)}.`);
+        this._ServerEmitter.emitter.emit(this._ServerEmitter.EVENTS.SEND_VIA_WS, '*', this._outgoingWSCommands.COMMANDS.UpdateIsNotAvailable, { });
     }
 
     [UPDATER_EVENTS.PROGRESS](progressObj) {
@@ -67,11 +73,12 @@ class Updater {
 
     check(){
         logger.info('Start update checking.');
-        this._autoUpdater.setFeedURL({
-            provider        : "github",
-            owner           : "esrlabs",
-            repo            : "logviewer"
-        });
+        this._autoUpdater.autoDownload = true;
+        return this._autoUpdater.checkForUpdates();
+    }
+
+    isUpdateAvailable(){
+        this._autoUpdater.autoDownload = false;
         return this._autoUpdater.checkForUpdates();
     }
 
