@@ -306,6 +306,25 @@ class APICommands{
         });
     }
 
+    isUpdateAvailable(income, response, callback){
+        let updater = null;
+        try{
+            updater = require('../../electron').updater;
+        }catch (error){
+            updater = null;
+        }
+        if (updater === null || updater === void 0) {
+            return callback(null, new Error('Updater is available only for desktop versions.'))
+        }
+        updater.isUpdateAvailable().then((result) => {
+            callback({
+                res: result
+            }, null);
+        }).catch((error)=>{
+            callback(null, error);
+        });
+    }
+
     openDevConsole(income, response, callback){
         let starter = null;
         try{
