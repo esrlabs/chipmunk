@@ -1273,7 +1273,7 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
                 let str     = this.rows.map((row)=>{
                         return ANSIClearer(row.params.original);
                     }),
-                    blob    = new Blob([str.join('\n')], {type: 'text/plain'}),
+                    blob    = new Blob([str.join('\n')], { type: 'text/plain; charset=ASCII' }),
                     url     = URL.createObjectURL(blob);
                 this.exportdata.url         = this.sanitizer.bypassSecurityTrustUrl(url);
                 this.exportdata.filename    = 'export_' + (new Date()).getTime() + '.txt';

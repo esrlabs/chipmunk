@@ -361,7 +361,7 @@ export class DialogMonitorManagerLogsTab extends TabController implements OnDest
     }
 
     downloadFile(file: string, content: string){
-        let blob    = new Blob([content], {type: 'text/plain'}),
+        let blob    = new Blob([content], { type: 'text/plain; charset=ASCII' }),
             url     = URL.createObjectURL(blob);
         this.exportdata.url         = this.sanitizer.bypassSecurityTrustUrl(url);
         this.exportdata.filename    = file;
