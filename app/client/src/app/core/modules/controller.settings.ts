@@ -5,11 +5,12 @@ import { merge                          } from './tools.objects.merge.js';
 
 
 interface IVisualSettings {
-    prevent_ascii_colors_always         : boolean,
-    prevent_ascii_colors_on_highlight   : boolean,
-    do_not_highlight_matches_in_requests: boolean,
-    highlight_search_requests           : boolean,
-    show_active_search_results_always   : boolean
+    prevent_ascii_colors_always                 : boolean,
+    prevent_ascii_colors_on_highlight           : boolean,
+    do_not_highlight_matches_in_requests        : boolean,
+    highlight_search_requests                   : boolean,
+    show_active_search_results_always           : boolean,
+    make_filters_active_after_search_is_cleared : boolean
 }
 
 interface IOutputSettings {
