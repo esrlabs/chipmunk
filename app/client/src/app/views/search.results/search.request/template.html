@@ -4,6 +4,7 @@
         <div *ngIf="getActiveExtraButton() === null" [attr.class]="'icon icon-2x2 ' + (mode === 'reg' ? 'active' : '')" (click)="onModeReg()" title="Turn on/off regular expression"><span class="fa fa-free-code-camp"></span></div>
         <div *ngIf="getActiveExtraButton() === null" [attr.class]="'icon icon-2x2 ' + (autoplay ? 'active' : '')" (click)="onAutoPlay()"><span class="fa fa-play" title="Automatically apply filter (without ENTER): on/off"></span></div>
         <div *ngIf="getActiveExtraButton() === null" [attr.class]="'icon icon-2x2 ' + (lastRequest !== null ? 'active' : '')" (click)="onAddRequest()"><span class="fa fa-plus" title="Save filter"></span></div>
+        <div *ngIf="getActiveExtraButton() === null" [attr.class]="'icon icon-2x2 ' + (lastRequest !== null ? 'active' : '')" (click)="onDropRequest()"><span class="fa fa-times-circle-o" title="Drop filter"></span></div>
         <div *ngFor="let button of extraButtons; let i = index;"
              [attr.class]="'icon icon-2x2 '+ (button.active ? 'active' : '')"
              (click)="onExtraButtonClick($event, button.id)"><span [attr.class]="'fa ' + button.icon" [attr.title]="button.title"></span>

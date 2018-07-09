@@ -26,5 +26,9 @@
             <td><span>Active results</span> Always put results of active search request into search view. In opposite case results will be shown only if all search terms are inactive or invisible.</td>
             <td><div class="input-cover"><simple-checkbox #_show_active_search_results_always [checked]="visual.show_active_search_results_always"></simple-checkbox></div></td>
         </tr>
+        <tr>
+            <td><span>Activate filters</span> After search request is cleared (removed) presets of filters will be activated automaticaly</td>
+            <td><div class="input-cover"><simple-checkbox #_make_filters_active_after_search_is_cleared [checked]="visual.make_filters_active_after_search_is_cleared"></simple-checkbox></div></td>
+        </tr>
     </table>
 </div>
