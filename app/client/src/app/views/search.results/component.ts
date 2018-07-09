@@ -32,6 +32,7 @@ import { popupController                        } from "../../core/components/co
 import { DialogSearchRequestsPresets            } from '../../core/components/common/dialogs/seach.requests.presets/component';
 
 import { EContextMenuItemTypes, IContextMenuItem, IContextMenuEvent } from '../../core/components/context-menu/interfaces';
+import {DataFilter} from "../../core/interfaces/interface.data.filter";
 
 interface ISelectedMarker {
     index: string,
@@ -98,27 +99,28 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     @ViewChild(LongList) listView: LongList;
     @ViewChild ('exporturl', { read: ViewContainerRef}) exportURLNode: ViewContainerRef;
 
-    private _rows                   : Array<any>                    = [];
-    private rows                    : Array<any>                    = [];
-    private maxWidthRow             : any                           = null;
-    private rowsCount               : number                        = 0;
-    private followByScroll          : boolean                       = true;
-    private highlight               : boolean                       = true;
-    private activeSearchResults     : boolean                       = true;
-    private resultsMap              : {[key:number]: boolean}       = {};
-    private onScrollSubscription    : EventEmitter<OnScrollEvent>   = new EventEmitter();
-    private textSelection           : TextSelection                 = null;
-    private textSelectionTrigger    : EventEmitter<TSelectionEvent> = new EventEmitter();
-    private regsCache               : Object                        = {};
-    private requests                : Array<Request>                = [];
-    private _requests               : Array<Request>                = [];
-    private bookmarks               : Array<number>                 = [];
-    private requestsListClosed      : boolean                       = true;
-    private filterMode              : string                        = FILTER_MODES.ACTIVE_AND_PASSIVE;
-    private onOffLabel              : string                        = ON_OFF.OFF;
-    private onOffCache              : Object                        = {};
-    private shareHighlightHash      : string                        = '';
-    private lastBookmarkOperation   : number                        = null;
+    private _rows                       : Array<any>                    = [];
+    private rows                        : Array<any>                    = [];
+    private maxWidthRow                 : any                           = null;
+    private rowsCount                   : number                        = 0;
+    private followByScroll              : boolean                       = true;
+    private highlight                   : boolean                       = true;
+    private activeSearchResults         : boolean                       = true;
+    private resultsMap                  : {[key:number]: boolean}       = {};
+    private onScrollSubscription        : EventEmitter<OnScrollEvent>   = new EventEmitter();
+    private textSelection               : TextSelection                 = null;
+    private textSelectionTrigger        : EventEmitter<TSelectionEvent> = new EventEmitter();
+    private regsCache                   : Object                        = {};
+    private requests                    : Array<Request>                = [];
+    private _requests                   : Array<Request>                = [];
+    private bookmarks                   :    Array<number>                 = [];
+    private requestsListClosed          : boolean                       = true;
+    private filterMode                  : string                        = FILTER_MODES.ACTIVE_AND_PASSIVE;
+    private onOffLabel                  : string                        = ON_OFF.OFF;
+    private onOffCache                  : Object                        = {};
+    private shareHighlightHash          : string                        = '';
+    private lastBookmarkOperation       : number                        = null;
+    private highlight_search_requests   : boolean                       = false;
 
     private conditions          : Array<SimpleListItem>         = [
         { caption: 'Active from Passive',   value: FILTER_MODES.ACTIVE_FROM_PASSIVE     },
@@ -192,6 +194,7 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
             Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED,
             Configuration.sets.SYSTEM_EVENTS.HIGHLIGHT_SEARCH_REQUESTS_TRIGGER,
             Configuration.sets.SYSTEM_EVENTS.VISUAL_SETTINGS_IS_UPDATED,
+            Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_CHANGED,
             Configuration.sets.EVENTS_VIEWS.SEARCH_VIEW_MANAGE_PRESETS].forEach((handle: string)=>{
             this['on' + handle] = this['on' + handle].bind(this);
             Events.bind(handle, this['on' + handle]);
@@ -231,6 +234,7 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
             Configuration.sets.SYSTEM_EVENTS.VIEW_OUTPUT_IS_CLEARED,
             Configuration.sets.SYSTEM_EVENTS.HIGHLIGHT_SEARCH_REQUESTS_TRIGGER,
             Configuration.sets.SYSTEM_EVENTS.VISUAL_SETTINGS_IS_UPDATED,
+            Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_CHANGED,
             Configuration.sets.EVENTS_VIEWS.SEARCH_VIEW_MANAGE_PRESETS].forEach((handle: string)=>{
             Events.unbind(handle, this['on' + handle]);
         });
@@ -284,6 +288,15 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         }
     }
 
+    onSEARCH_REQUEST_CHANGED(event: DataFilter){
+        if (event.value !== '') {
+            this.forceOnOffToOn();
+        } else {
+            let settings = Settings.get();
+            settings.visual.make_filters_active_after_search_is_cleared && this.forceOnOffToOff();
+        }
+    }
+
     onREQUESTS_HISTORY_UPDATED(requests: Array<Request>, _requests: Array<Request>){
         this.requests   = requests;
         this._requests  = _requests.map((request)=>{
@@ -330,6 +343,7 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
                 Object.assign({}, request)
             );
         }), true);
+        this.onOffToDefault();
         this.updateVisibility();
     }
 
@@ -433,8 +447,28 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         }
     }
 
+    onOffToDefault(){
+        if (this.onOffLabel === ON_OFF.ON) {
+            this.onOffLabel = ON_OFF.OFF;
+        }
+    }
+
+    forceOnOffToOn(){
+        if (this.onOffLabel !== ON_OFF.OFF) {
+            return;
+        }
+        this.onOffOn(null, false);
+    }
+
+    forceOnOffToOff() {
+        if (this.onOffLabel !== ON_OFF.ON) {
+            return;
+        }
+        this.onOffOn(null, false);
+    }
+
     onOffOn(event: MouseEvent, noChange: boolean = false){
-        !noChange && (this.onOffLabel = this.onOffLabel === ON_OFF.ON ? ON_OFF.OFF : ON_OFF.ON);
+        !noChange && (this.onOffLabel = (this.onOffLabel === ON_OFF.ON ? ON_OFF.OFF : ON_OFF.ON));
         switch (this.onOffLabel){
             case ON_OFF.OFF:
                 serviceRequests.updateRequests(this._requests.map((request)=>{
@@ -455,16 +489,21 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-    * Active results including
+    * Active results including; share highlighting in main view
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     activeResultsUpdateSettings(){
         let settings = Settings.get();
         this.activeSearchResults = settings.visual.show_active_search_results_always;
+        this.highlight_search_requests = settings.visual.highlight_search_requests;
     }
 
     onVISUAL_SETTINGS_IS_UPDATED(){
         let settings = Settings.get();
-        if (this.activeSearchResults !== settings.visual.show_active_search_results_always){
+        if (this.highlight_search_requests !== settings.visual.highlight_search_requests){
+            this.shareHighlightState(true);
+        }
+        if (this.activeSearchResults !== settings.visual.show_active_search_results_always ||
+            this.highlight_search_requests !== settings.visual.highlight_search_requests){
             this.activeResultsUpdateSettings();
             this.filterRows();
             this.forceUpdate();

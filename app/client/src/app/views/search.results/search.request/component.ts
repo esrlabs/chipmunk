@@ -126,6 +126,11 @@ export class TopBarSearchRequest implements AfterContentInit{
         this.lastRequest = null;
     }
 
+    onDropRequest(){
+        this.resetInput();
+        this.triggerSearchRequest();
+    }
+
     onSEARCH_REQUEST_PROCESS_START(){
         this.inprogress = true;
         this.forceUpdate();
