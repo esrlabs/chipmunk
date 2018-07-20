@@ -1,0 +1,8 @@
+<div class="lv-full-line-com">
+    <div class="lv-full-line-com-textarea font-system">
+        <textarea #textarea (contextmenu)="onContextMenu($event)" readonly>{{str}}</textarea>
+    </div>
+    <div class="lv-full-line-com-back" *ngIf="results !== ''">
+        <span class="icon-button icon fa fa-mail-reply" (click)="onBackToString()"></span>
+    </div>
+</div>

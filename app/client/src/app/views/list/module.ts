@@ -4,6 +4,8 @@ import { CommonModule                           } from '@angular/common';
 import { ViewControllerList                     } from './component';
 import { ViewControllerListItem                 } from './item/component';
 import { ViewControllerListLine                 } from './line/component';
+import { ViewControllerListFullLine             } from './full-line/component';
+
 import { Components as ComponentsCommmon        } from '../../core/components/common/components';
 
 
@@ -11,8 +13,8 @@ import { Components as ComponentsCommmon        } from '../../core/components/co
 @NgModule({
     entryComponents : [ ViewControllerListItem ],
     imports         : [ CommonModule, ComponentsCommmon ],
-    declarations    : [ ViewControllerList, ViewControllerListItem, ViewControllerListLine ],
-    exports         : [ ViewControllerList, ViewControllerListItem, ViewControllerListLine ]
+    declarations    : [ ViewControllerList, ViewControllerListItem, ViewControllerListLine, ViewControllerListFullLine ],
+    exports         : [ ViewControllerList, ViewControllerListItem, ViewControllerListLine, ViewControllerListFullLine ]
 })
 
 export class ViewListModule {
