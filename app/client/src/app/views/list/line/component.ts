@@ -54,13 +54,19 @@ export class ViewControllerListLine implements OnDestroy, OnChanges, AfterConten
     private needToBeUpdated : boolean   = false;
 
     ngOnDestroy(){
-
+        document.removeEventListener('mouseout', this.onDocumentMouseOut);
     }
 
     constructor(private changeDetectorRef   : ChangeDetectorRef,
                 private viewContainerRef    : ViewContainerRef){
         this.changeDetectorRef  = changeDetectorRef;
         this.viewContainerRef   = viewContainerRef;
+        this.onDocumentMouseOut = this.onDocumentMouseOut.bind(this);
+        document.addEventListener('mouseout', this.onDocumentMouseOut);
+    }
+
+    onDocumentMouseOut(){
+        this.onMouseLeave();
     }
 
     resize(soft: boolean = false){
