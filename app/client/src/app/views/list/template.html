@@ -1,11 +1,11 @@
-<div class="lv-wrapper" *ngIf="rows.length > 0">
-    <div [attr.class]="'lv-list' + (!line.visible ? ' no-line' : '') + (buffer === '' ? ' no-buffer' : '')" class="lv-list">
+<div [attr.class]="'lv-wrapper ' + (fullLineView ? 'full-line-on' : '')" *ngIf="rows.length > 0">
+    <div [attr.class]="'lv-list' + (!line.visible ? ' no-line ' : '') + (buffer === '' ? ' no-buffer ' : '')">
         <long-list #list [rows]="rows" [onScroll]="onScrollSubscription" [maxWidthRow]="maxWidthRow"></long-list>
     </div>
     <div class="lv-buffer" *ngIf="buffer !== ''">
         <p>Pending: {{buffer}}</p>
     </div>
-    <div *ngIf="line.visible" class="lv-line">
+    <div *ngIf="line.visible" [attr.class]="'lv-line'">
         <list-view-line
                 [count]="line.count"
                 [marks]="line.marks"
@@ -15,6 +15,11 @@
                 [scrollTo]="line.scrollTo"
         ></list-view-line>
     </div>
+</div>
+<div *ngIf="fullLineView" [attr.class]="'lv-full-line '">
+    <list-view-full-line
+            [value]="selection.str"
+    ></list-view-full-line>
 </div>
 <p *ngIf="rows.length === 0" class="message-no-data">No Data Is Loaded</p>
 <a #exporturl [attr.href]="exportdata.url" class="export-url" [attr.download]="exportdata.filename"></a>

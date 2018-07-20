@@ -5,9 +5,14 @@ view-controller-list{
     overflow: hidden;
     div.lv-wrapper{
         position: absolute;
-        width   : 100%;
-        height  : 100%;
+        top:0;
+        left:0;
+        bottom: 0;
+        right: 0;
         overflow: hidden;
+        &.full-line-on{
+            bottom: 10rem;
+        }
         div.lv-list{
             position    : absolute;
             top         : 1.5rem;
@@ -24,6 +29,7 @@ view-controller-list{
             long-list .wrapper .rows{
                 padding: 0;
             }
+
         }
         div.lv-buffer{
             position    : absolute;
@@ -47,6 +53,7 @@ view-controller-list{
             width       : 1rem;
             overflow    : hidden;
         }
+
     }
     .export-url{
         position: absolute;
@@ -56,5 +63,13 @@ view-controller-list{
         width   : 1px;
         height  : 1px;
         opacity : 0.001;
+    }
+    & div.lv-full-line{
+        position: absolute;
+        bottom: 0;
+        left: 0rem;
+        right: 0;
+        height: 10rem;
+        overflow: hidden;
     }
 }
