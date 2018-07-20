@@ -82,7 +82,7 @@ export class ViewControllerStateMonitorItem implements OnDestroy, OnChanges, Aft
         state.icon !== void 0 && (this.state.icon  = state.icon);
         state.label!== void 0 && (this.state.label = state.label);
         state.color!== void 0 && (this.state.color = state.color);
-        if (typeof state.offInTimeout === 'number'){
+        if (typeof state.offInTimeout === 'number' && state.offInTimeout > 0){
             setTimeout(()=>{
                 this.state = null;
                 this.updateDefaultState();
