@@ -19,7 +19,7 @@ export class StateMonitorStateEditDialog implements AfterContentChecked{
     @Input() indicate           : Indicate      = null;
 
     private _inited             : boolean       = false;
-    private _color              : string        = 'rgb(30,30,30)';
+    private _color              : string        = '';
     private _css                : string        = '';
     private _icon               : string        = '';
     private _label              : string        = '';
