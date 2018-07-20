@@ -101,15 +101,18 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     private highlightCache          : { [key: number]: any }        = {};
     private buffer                  : string                        = '';
     private bufferVisibilityTimeout : number                        = -1;
-    private dragAndDropFiles        : DragAndDropFiles  = null;
-    private dragAndDropDialogGUID   : symbol            = null;
+    private dragAndDropFiles        : DragAndDropFiles              = null;
+    private dragAndDropDialogGUID   : symbol                        = null;
+    private fullLineView            : boolean                       = false;
 
     private selection : {
         own     : boolean,
-        index   : number
+        index   : number,
+        str     : string,
     } = {
         own     : false,
-        index   : -1
+        index   : -1,
+        str     : '',
     };
 
     private searchNavigation : {
@@ -162,6 +165,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_FOLLOW_SCROLL_TRIGGER,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_ONLY_BOOKMARKS_TRIGGER,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_HIGHLIGHT_TRIGGER,
+            Configuration.sets.EVENTS_VIEWS.LIST_VIEW_SHOW_FULL_LINE,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_EXPORT_TO_FILE,
             Configuration.sets.SYSTEM_EVENTS.VIEW_FORCE_UPDATE_CONTENT,
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_BEGIN,
@@ -207,6 +211,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_ONLY_BOOKMARKS_TRIGGER,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_HIGHLIGHT_TRIGGER,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_EXPORT_TO_FILE,
+            Configuration.sets.EVENTS_VIEWS.LIST_VIEW_SHOW_FULL_LINE,
             Configuration.sets.SYSTEM_EVENTS.VIEW_FORCE_UPDATE_CONTENT,
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_BEGIN,
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_END,
@@ -512,6 +517,11 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     select(index: number = -1, own: boolean = false){
         this.selection.own   = own;
         this.selection.index = index;
+        if (index === -1) {
+            this.selection.str = '';
+        } else {
+            this.selection.str = ANSIClearer(this._rows[index].params.original);
+        }
         this.nextAfterSearchNavigation(index);
         this.updateRows();
     }
@@ -875,6 +885,11 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * View events listeners
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+    onLIST_VIEW_SHOW_FULL_LINE(){
+        this.fullLineView = !this.fullLineView;
+        this.forceUpdate(false);
+    }
 
     resizeOnREMOVE_VIEW(){
         this.listView !== void 0 && this.listView.forceCalculation();
