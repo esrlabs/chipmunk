@@ -77,7 +77,7 @@ export class StateMonitorStateEditDialog implements AfterContentChecked{
             } else {
                 this._reset = false;
             }
-            if (typeof this.state.offInTimeout === 'number'){
+            if (typeof this.state.offInTimeout === 'number' && this.state.offInTimeout > 0){
                 this._itSelfResetTimeout = this.state.offInTimeout;
             } else {
                 this._itSelfResetTimeout = 0;
