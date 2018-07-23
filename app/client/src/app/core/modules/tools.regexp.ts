@@ -12,13 +12,14 @@ function isValidRegExp(strRegExp: string, parameters: string = 'gi'){
     if (typeof strRegExp !== 'string') {
         return false;
     }
-    if (isValidRegExpCache[strRegExp] !== void 0) {
-        return isValidRegExpCache[strRegExp];
+    const key = `__${strRegExp}__`;
+    if (isValidRegExpCache[key] !== void 0) {
+        return isValidRegExpCache[key];
     }
     try {
         let regExp = new RegExp(strRegExp, parameters);
         if (regExp instanceof RegExp) {
-            isValidRegExpCache[strRegExp] = true;
+            isValidRegExpCache[key] = true;
             return true;
         }
     } catch (error){
@@ -32,18 +33,19 @@ function safelyCreateRegExp(strRegExp: string, parameters: string = 'gi'){
     if (typeof strRegExp !== 'string') {
         return null;
     }
-    if (safelyCreateRegExpCache[strRegExp] !== void 0) {
-        return safelyCreateRegExpCache[strRegExp];
+    const key = `__${strRegExp}__`;
+    if (safelyCreateRegExpCache[key] !== void 0) {
+        return safelyCreateRegExpCache[key];
     }
     if (isValidRegExp(strRegExp, parameters)) {
         strRegExp = strRegExp.replace(/\\/gi, '\\');
-        safelyCreateRegExpCache[strRegExp] = new RegExp(strRegExp, parameters);
+        safelyCreateRegExpCache[key] = new RegExp(strRegExp, parameters);
     } else if (isValidRegExp(serializeStringForReg(strRegExp), parameters)) {
-        safelyCreateRegExpCache[strRegExp] = new RegExp(serializeStringForReg(strRegExp), parameters);
+        safelyCreateRegExpCache[key] = new RegExp(serializeStringForReg(strRegExp), parameters);
     } else {
-        safelyCreateRegExpCache[strRegExp] = new RegExp('','');
+        safelyCreateRegExpCache[key] = new RegExp('','');
     }
-    return safelyCreateRegExpCache[strRegExp];
+    return safelyCreateRegExpCache[key];
 }
 
 export { serializeStringForReg, isValidRegExp, safelyCreateRegExp };

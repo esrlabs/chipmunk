@@ -44,13 +44,14 @@ class RegExpStorage{
         if (typeof reg !== 'string' || reg === '') {
             return null;
         }
-        if (this.regs[reg] !== void 0) {
-            return this.regs[reg];
+        const key = `__${reg}__`;
+        if (this.regs[key] !== void 0) {
+            return this.regs[key];
         }
         let regExp;
         try{
             regExp = new RegExp(`(${this.prepareRegStr(reg)}).*${MARKERS.NUMBER}\\d*${MARKERS.NUMBER}`, 'gi');
-            this.regs[reg] = regExp;
+            this.regs[key] = regExp;
         } catch (error) {
             regExp = null;
         }
@@ -73,9 +74,10 @@ class FragmentResultsCache{
     }
 
     public get(key: string, length: number) : SearchResults | null {
-        const data = this.results[key] !== void 0 ? this.results[key] : null;
+        const _key = `__${key}__`;
+        const data = this.results[_key] !== void 0 ? this.results[_key] : null;
         if (data !== null && data.length !== length) {
-            delete this.results[key];
+            delete this.results[_key];
             return null;
         } else if (data !== null) {
             return data.results;
@@ -85,14 +87,15 @@ class FragmentResultsCache{
     }
 
     public set(key: string, results: SearchResults, length: number){
-        if (this.results[key] !== void 0) {
-            return (this.results[key] = {
+        const _key = `__${key}__`;
+        if (this.results[_key] !== void 0) {
+            return (this.results[_key] = {
                 length : length,
                 results: results
             });
         }
         this.clear();
-        this.results[key] = {
+        this.results[_key] = {
             length : length,
             results: results
         };
