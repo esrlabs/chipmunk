@@ -1,4 +1,5 @@
 <div class="input">
+    <span #inputmeasure class="input-highlight-measure">{{this._value}}</span>
     <input #input
             (focus)="onFocus($event)"
             (blur)="onBlur($event)"
@@ -9,4 +10,5 @@
             value="{{value}}"
             placeholder="{{placeholder}}"
            [attr.disabled]="disabled?'':null"/>
+    <span class="input-highlight" *ngIf="highlight !== ''" [style.marginLeft]="highlightOffset + 'px'" [innerHTML]="highlight"></span>
 </div>

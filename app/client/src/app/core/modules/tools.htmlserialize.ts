@@ -20,9 +20,17 @@ const parseHTML = function(str : string){
     });
     return str;
 };
+
+const clearHTML = function(str : string){
+    MAP.forEach((data) => {
+        str = str.replace(data.regIn, data.output);
+    });
+    return str;
+};
+
 const parseRegExp = function(str: string){
     return str
         .replace(/\s/gi, '\uAA80')
         .replace(/\\s/gi, '[\uAA80]');
 };
-export { serializeHTML, parseHTML, parseRegExp };
+export { serializeHTML, parseHTML, parseRegExp, clearHTML };
