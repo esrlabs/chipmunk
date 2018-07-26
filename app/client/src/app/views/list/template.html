@@ -18,6 +18,7 @@
 </div>
 <div *ngIf="fullLineView" [attr.class]="'lv-full-line '">
     <list-view-full-line
+            #fulllinecomponent
             [value]="selection.str"
     ></list-view-full-line>
 </div>
