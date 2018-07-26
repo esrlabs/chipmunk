@@ -1,5 +1,5 @@
 <div class="request">
-    <common-input #input [type]="type" [value]="value" [placeholder]="placeholder" [handles]="handles"></common-input>
+    <common-input #input [type]="type" [value]="value" [placeholder]="placeholder" [handles]="handles" [preventUpDown]="true"></common-input>
     <div class="buttons">
         <div *ngIf="getActiveExtraButton() === null" [attr.class]="'icon icon-2x2 ' + (mode === 'reg' ? 'active' : '')" (click)="onModeReg()" title="Turn on/off regular expression"><span class="fa fa-free-code-camp"></span></div>
         <div *ngIf="getActiveExtraButton() === null" [attr.class]="'icon icon-2x2 ' + (autoplay ? 'active' : '')" (click)="onAutoPlay()"><span class="fa fa-play" title="Automatically apply filter (without ENTER): on/off"></span></div>
@@ -11,4 +11,13 @@
         </div>
     </div>
     <div class="progress" *ngIf="inprogress"><progressbar-line></progressbar-line></div>
+    <div class="history-popup-wrapper" *ngIf="historyOffers.length > 1" [style.marginLeft]="historyPopupOffset + 'px'">
+        <ul class="history-popup">
+            <li *ngFor="let item of historyOffers; let i = index;"
+                [attr.class]="historySelected === i ? 'selected' : ''"
+                (click)="onHistoryItemSelect(i)"><span>{{item.input}}</span><span>{{item.rest}}</span></li>
+        </ul>
+        <span class="history-drop-history" (click)="onDropHistory()">Drop</span>
+    </div>
+
 </div>
