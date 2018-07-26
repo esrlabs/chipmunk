@@ -1,4 +1,4 @@
-import {Component, Input, OnDestroy, OnChanges, AfterContentChecked, ChangeDetectorRef, ViewChild, ViewContainerRef } from '@angular/core';
+import {Component, Input, Output, OnDestroy, OnChanges, AfterContentChecked, ChangeDetectorRef, ViewChild, ViewContainerRef } from '@angular/core';
 
 import {EContextMenuItemTypes, IContextMenuEvent} from "../../../core/components/context-menu/interfaces";
 import {configuration as Configuration} from "../../../core/modules/controller.config";
@@ -59,6 +59,17 @@ export class ViewControllerListFullLine implements OnDestroy, OnChanges, AfterCo
         this.results = '';
     }
 
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    * Public methods
+    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    hideResults(){
+        this.onBackToString();
+    }
+
+    setValue(value: string){
+        this.str = value;
+        this.results = '';
+    }
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     * Context menu
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */

@@ -31,6 +31,7 @@ import { viewsParameters                        } from '../../core/services/serv
 import { DragAndDropFiles, DragDropFileEvent    } from '../../core/modules/controller.dragdrop.files';
 import { popupController                        } from "../../core/components/common/popup/controller";
 import { ProgressBarCircle                      } from "../../core/components/common/progressbar.circle/component";
+import { ViewControllerListFullLine             } from "./full-line/component";
 
 interface ISelectedMarker {
     index: string,
@@ -83,6 +84,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     };
 
     @ViewChild(LongList) listView: LongList;
+    @ViewChild('fulllinecomponent') fullLineComponent : ViewControllerListFullLine;
     @ViewChild ('exporturl', { read: ViewContainerRef}) exportURLNode: ViewContainerRef;
 
     private _rows                   : Array<any>                    = [];
@@ -518,8 +520,10 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         this.selection.own   = own;
         this.selection.index = index;
         if (index === -1) {
+            this.hideResultFullLine();
             this.selection.str = '';
         } else {
+            this.hideResultFullLine();
             this.selection.str = ANSIClearer(this._rows[index].params.original);
         }
         this.nextAfterSearchNavigation(index);
@@ -883,13 +887,32 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-     * View events listeners
-     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
+    * Fullline
+    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     onLIST_VIEW_SHOW_FULL_LINE(){
         this.fullLineView = !this.fullLineView;
         this.forceUpdate(false);
     }
+
+    hideResultFullLine(){
+        if (this.fullLineComponent === null || this.fullLineComponent === void 0) {
+            return;
+        }
+        this.fullLineComponent.hideResults();
+    }
+
+    resetFullLine(){
+        if (this.fullLineComponent === null || this.fullLineComponent === void 0) {
+            return;
+        }
+        this.selection.str = '';
+        this.selection.index = -1;
+        this.fullLineComponent.setValue('');
+    }
+
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+     * View events listeners
+     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
     resizeOnREMOVE_VIEW(){
         this.listView !== void 0 && this.listView.forceCalculation();
@@ -968,6 +991,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     onDATA_IS_UPDATED(event : EVENT_DATA_IS_UPDATED){
         if (event.rows instanceof Array){
             let measure = Logs.measure('[view.list][onDATA_IS_UPDATED]');
+            this.resetFullLine();
             this.resetBookmarks();
             this.initRows(event.rows);
             this.updateRows();
