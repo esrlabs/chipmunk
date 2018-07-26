@@ -111,7 +111,6 @@ class SerialSender{
     private packageGUID     : string                = null;
     private Settings        : SettingsController    = new SettingsController();
     private history         : Array<string>         = [];
-    private historyCursor   : number                = -1;
 
     constructor(){
         Events.bind(Configuration.sets.SYSTEM_EVENTS.DATA_TO_SERIAL_SENT, this.onDATA_TO_SERIAL_SENT.bind(this));
@@ -120,15 +119,17 @@ class SerialSender{
 
     addButton(){
         Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_SEARCH_RESULTS_BUTTON_ADD, {
-            id          : this.ID,
-            title       : 'Send data to port',
-            icon        : 'fa-keyboard-o',
-            active      : false,
-            onKeyUp     : this.onKeyUp.bind(this),
-            onEnter     : this.onEnter.bind(this),
-            placeholder : 'type command for serial port'
+            id              : this.ID,
+            title           : 'Send data to port',
+            icon            : 'fa-keyboard-o',
+            active          : false,
+            onKeyUp         : this.onKeyUp.bind(this),
+            onEnter         : this.onEnter.bind(this),
+            onDropHistory   : this.onDropHistory.bind(this),
+            placeholder     : 'type command for serial port'
         } as ExtraButton, (api: BarAPI) => {
             this.barAPI = api;
+            this.barAPI.setHistory(this.history);
         });
 
     }
@@ -139,32 +140,17 @@ class SerialSender{
     }
 
     onKeyUp(event: KeyboardEvent, value: string){
-        if (this.barAPI === null || this.history.length === 0){
-            return false;
-        }
-        switch (event.keyCode){
-            case 38:
-                this.historyCursor += 1;
-                if (this.historyCursor > (this.history.length - 1)) {
-                    this.historyCursor = this.history.length - 1;
-                }
-                this.history[this.historyCursor] !== void 0 && this.barAPI.setValue(this.history[this.historyCursor]);
-                break;
-            case 40:
-                this.historyCursor -= 1;
-                if (this.historyCursor < 0) {
-                    this.historyCursor = 0;
-                }
-                this.history[this.historyCursor] !== void 0 && this.barAPI.setValue(this.history[this.historyCursor]);
-                break;
-            default:
-                this.resetHistoryCursor();
-        }
+
     }
 
     onEnter(event: KeyboardEvent, value: string){
         this.message = value;
         this.send();
+    }
+
+    onDropHistory(){
+        this.history = [];
+        this.Settings.saveHistory(this.history);
     }
 
     send(){
@@ -185,21 +171,20 @@ class SerialSender{
         }
     }
 
-    resetHistoryCursor(){
-        this.historyCursor = -1;
-    }
-
     saveHistoryCommand(command: string){
         if (typeof command !== 'string' || command.trim() === ''){
             return false;
         }
-        if (this.history.length > 0 && this.history[0] === command){
+        if (this.history.indexOf(command) !== -1){
+            return false;
+        }
+        if (command.trim() === '') {
             return false;
         }
         this.history.unshift(command);
         this.history.length > MAX_HISTORY_COMMANDS && this.history.splice(this.history.length - 1, 1);
         this.Settings.saveHistory(this.history);
-        this.resetHistoryCursor();
+        this.barAPI !== null && this.barAPI.setHistory(this.history);
     }
 }
 
