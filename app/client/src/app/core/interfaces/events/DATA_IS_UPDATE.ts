@@ -2,8 +2,10 @@ import { DataRow } from '../interface.data.row';
 
 class DATA_IS_UPDATED {
     rows : Array<DataRow> = [];
-    constructor(rows : Array<DataRow>){
+    bookmarks: Array<number> = [];
+    constructor(rows : Array<DataRow>, bookmarks: Array<number> = []){
         this.rows = rows;
+        this.bookmarks = bookmarks;
     }
 }
 

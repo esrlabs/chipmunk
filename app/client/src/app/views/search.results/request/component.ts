@@ -23,6 +23,7 @@ export class ViewRequestItem implements OnInit, OnDestroy, AfterViewInit {
     @Input() onChangeVisibility : Function      = null;
     @Input() passive            : boolean       = true;
     @Input() visibility         : boolean       = true;
+    @Input() isTemporary        : boolean       = true;
 
     private isDblClick      : boolean       = false;
 

@@ -12,7 +12,6 @@ import { ListLineMark                           } from './line/interface.mark';
 import { dataController                         } from '../../core/modules/controller.data';
 import { Logs, TYPES as LogTypes                } from '../../core/modules/tools.logs';
 import { ANSIClearer                            } from '../../core/modules/tools.ansiclear';
-import { copyText                               } from '../../core/modules/tools.clipboard';
 
 import { events as Events                       } from '../../core/modules/controller.events';
 import { configuration as Configuration         } from '../../core/modules/controller.config';
@@ -32,6 +31,10 @@ import { DragAndDropFiles, DragDropFileEvent    } from '../../core/modules/contr
 import { popupController                        } from "../../core/components/common/popup/controller";
 import { ProgressBarCircle                      } from "../../core/components/common/progressbar.circle/component";
 import { ViewControllerListFullLine             } from "./full-line/component";
+import { DialogSaveLogs                         } from "../../core/components/common/dialogs/dialog-save-logs/component";
+
+import { timestampToDDMMYYYYhhmmSSsss           } from "../../core/modules/tools.date";
+import { versionController                      } from "../../core/modules/controller.version";
 
 interface ISelectedMarker {
     index: string,
@@ -544,15 +547,15 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         }
     }
 
-    toggleBookmark(index : number) {
+    toggleBookmark(index : number, silence: boolean = false) {
         if(~this.bookmarks.indexOf(index)){
             this.bookmarks.splice(this.bookmarks.indexOf(index),1);
             this.lastBookmarkOperation = -index;
-            Events.trigger(Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED, index);
+            !silence && Events.trigger(Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_REMOVED, index);
         } else {
             this.bookmarks.push(index);
             this.lastBookmarkOperation = +index;
-            Events.trigger(Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED, index);
+            !silence && Events.trigger(Configuration.sets.SYSTEM_EVENTS.BOOKMARK_IS_CREATED, index);
         }
         if (this.bookmarks.length > 0){
             Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_BAR_ENABLE_BUTTON,  this.viewParams.GUID, 'LIST_VIEW_ONLY_BOOKMARKS_TRIGGER');
@@ -568,6 +571,12 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         });
         Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_BAR_DISABLE_BUTTON, this.viewParams.GUID, 'LIST_VIEW_ONLY_BOOKMARKS_TRIGGER');
         this.bookmarks = [];
+    }
+
+    applyBookmarks(bookmarks: Array<number> = []){
+        bookmarks.forEach((index: number) => {
+            this.toggleBookmark(index, true);
+        });
     }
 
     serializeHTML(html: string){
@@ -597,7 +606,6 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                     index: itemIndex,
                     value: event.text
                 });
-                //copyText(event.text);
             } else if (~index) {
                 this.markers.splice(index, 1);
                 this.updateMarkersOnly();
@@ -952,16 +960,75 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     onLIST_VIEW_EXPORT_TO_FILE(GUID: string | symbol){
         if (GUID === this.viewParams.GUID){
             if (this.rows instanceof Array && this.rows.length > 0){
-                let str     = this.rows.map((row)=>{
-                        return ANSIClearer(row.params.original);
-                    }),
-                    blob    = new Blob([str.join('\n')], { type: 'text/plain; charset=ASCII' }),
-                    url     = URL.createObjectURL(blob);
-                this.exportdata.url         = this.sanitizer.bypassSecurityTrustUrl(url);
-                this.exportdata.filename    = 'export_' + (new Date()).getTime() + '.txt';
-                this.forceUpdate();
+                const GUID = Symbol();
+                popupController.open({
+                    content : {
+                        factory     : null,
+                        component   : DialogSaveLogs,
+                        params      : {
+                            message : `Take in account, you also can include your search requests into log file and your bookmarks.`,
+                            filename: versionController.isWebInstance() ? this.saveGetFileName('export') : '',
+                            buttons : [
+                                {
+                                    caption: 'Save',
+                                    handle: (params: { filename: string | null, bookmarks: boolean, filters: boolean}) => {
+                                        popupController.close(GUID);
+                                        this.saveLogs(params);
+                                    }
+                                },
+                                {
+                                    caption: 'Cancel',
+                                    handle: () => {
+                                        popupController.close(GUID);
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    title   : `Saving data (${this.rows.length} rows in logs)`,
+                    settings: {
+                        move            : true,
+                        resize          : true,
+                        width           : '30rem',
+                        height          : '25rem',
+                        close           : true,
+                        addCloseHandle  : false,
+                        css             : ''
+                    },
+                    buttons         : [],
+                    titlebuttons    : [],
+                    GUID            : GUID
+                });
             }
         }
+    }
+
+    saveGetFileName(prefix: string, rest: string = '', ext: string = 'txt'){
+        return `${prefix}_${timestampToDDMMYYYYhhmmSSsss((new Date()).getTime()).replace(/[\.\s]/gi, '_')}${rest !== '' ? '_' : ''}${rest}.${ext}`;
+    }
+
+    saveLogs(params: { filename: string | null, bookmarks: boolean, filters: boolean}){
+        let extraContent = '';
+        if (params.filters) {
+            const requests = dataController.getCurrentRequestsRecord();
+            if (requests !== null) {
+                extraContent += ('\n' + requests);
+            }
+        }
+        if (params.bookmarks) {
+            const bookmarks = dataController.getBookmarksInjectionRecord(this.bookmarks);
+            if (bookmarks !== null) {
+                extraContent += ('\n' + bookmarks);
+            }
+        }
+        let str     = this.rows.map((row)=>{
+                return ANSIClearer(row.params.original);
+            }),
+            blob    = new Blob([str.join('\n') + extraContent], { type: 'text/plain; charset=ASCII' }),
+            url     = URL.createObjectURL(blob);
+        this.exportdata.url         = this.sanitizer.bypassSecurityTrustUrl(url);
+        this.exportdata.filename    = typeof params.filename === 'string' ? (params.filename.trim() === '' ? this.saveGetFileName('export') : params.filename) :  this.saveGetFileName('export');
+        this.forceUpdate();
     }
 
     onSHORTCUT_TO_END(){
@@ -998,6 +1065,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             this.removeClearButton();
             this.refreshScrollState();
             this.resetSearchNavigation();
+            this.applyBookmarks(event.bookmarks);
             Logs.measure(measure);
         }
     }

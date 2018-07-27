@@ -952,6 +952,10 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         this.bookmarks = [];
     }
 
+    applyBookmarks(bookmarks: Array<number> = []){
+        this.bookmarks = bookmarks;
+    }
+
     onOwnSelected(index : number){
         let _index = this.getIndexInSearchList(index);
         ~_index && this.select(_index, true);
@@ -1337,6 +1341,7 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         this.resetHighlightHash();
         this.resetBookmarks();
         this.refreshScrollState();
+        this.applyBookmarks(event.bookmarks);
         this.resultsMap = {};
     }
 
@@ -1516,7 +1521,16 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
                     handler : this.onRequestRemove.bind(this, request.GUID)
                 }
             ]} as IContextMenuEvent;
-
+        if (serviceRequests.hasTemporaryRequests()) {
+            contextEvent.items.push(...[
+                { type: EContextMenuItemTypes.divider },
+                {
+                    caption : 'Remove all temporary',
+                    type    : EContextMenuItemTypes.item,
+                    handler : this.onRemoveAllTemporary.bind(this, request.GUID)
+                }
+            ]);
+        }
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.CONTEXT_MENU_CALL, contextEvent);
         event.preventDefault();
         event.stopPropagation();
@@ -1528,6 +1542,10 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
             return true;
         }
         event.which === 3 && this.onContextMenu(event, index);
+    }
+
+    onRemoveAllTemporary(){
+        serviceRequests.removeAllTemporary(false);
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *

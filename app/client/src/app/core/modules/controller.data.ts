@@ -8,6 +8,24 @@ import { MODES                                  } from './controller.data.search
 import { EVENT_DATA_IS_UPDATED                  } from '../interfaces/events/DATA_IS_UPDATE';
 import { ClipboardShortcuts, ClipboardKeysEvent } from "./controller.clipboard.shortcuts";
 import { Stream                                 } from './controller.data.stream';
+import { serviceRequests                        } from "../services/service.requests";
+import { popupController                        } from "../../core/components/common/popup/controller";
+import { DialogMessage                          } from "../../core/components/common/dialogs/dialog-message/component";
+import {ProgressBarCircle} from "../components/common/progressbar.circle/component";
+
+const CURRENT_REQUESTS_INJECTION_MARK = {
+    start: '__logviewer_filters_injection__start__',
+    end: '__logviewer_filters_injection__end__'
+};
+
+const BOOKMARKS_INJECTION_MARK = {
+    start: '__logviewer_bookmarks_injection__start__',
+    end: '__logviewer_bookmarks_injection__end__'
+};
+
+const REQUEST_INJECTION_EXTRACTOR = /__logviewer_filters_injection__start__.*__logviewer_filters_injection__end__/gi;
+const BOOKMARKS_INJECTION_EXTRACTOR = /__logviewer_bookmarks_injection__start__.*__logviewer_bookmarks_injection__end__/gi;
+
 class DataController implements InitiableModule{
     private stream      : Stream        = null;
     private dataFilter  : DataFilter    = new DataFilter();
@@ -45,6 +63,73 @@ class DataController implements InitiableModule{
 
     public getRows(){
         return this.stream !== null ? this.stream.getRows() : [];
+    }
+
+    public getCurrentRequestsRecord(): string | null{
+        const requests = serviceRequests.convertActiveRequests();
+        if (requests === null) {
+            return null;
+        }
+        return `${CURRENT_REQUESTS_INJECTION_MARK.start}${requests}${CURRENT_REQUESTS_INJECTION_MARK.end}`;
+    }
+
+    public getBookmarksInjectionRecord(bookmarks: Array<number>): string | null {
+        if (!(bookmarks instanceof Array)) {
+            return null;
+        }
+        if (bookmarks.length === 0) {
+            return null;
+        }
+        let _bookmarks;
+        try {
+            _bookmarks =  btoa(JSON.stringify(bookmarks));
+        } catch (e) {
+            return null;
+        }
+        return `${BOOKMARKS_INJECTION_MARK.start}${_bookmarks}${BOOKMARKS_INJECTION_MARK.end}`;
+    }
+
+    extractInjectedFilters(text: string): Array<any> | null {
+        if (typeof text !== 'string') {
+            return null;
+        }
+        const match = text.match(REQUEST_INJECTION_EXTRACTOR);
+        if (match === null || match.length > 1) {
+            return null;
+        }
+        let requests: any = match[0].replace(CURRENT_REQUESTS_INJECTION_MARK.start, '').replace(CURRENT_REQUESTS_INJECTION_MARK.end, '');
+        try {
+            requests = JSON.parse(atob(requests));
+        } catch (e) {
+            return null;
+        }
+        return requests instanceof Array ? requests : null;
+    }
+
+    extractInjectedBookmarks(text: string): Array<any> | null {
+        if (typeof text !== 'string') {
+            return null;
+        }
+        const match = text.match(BOOKMARKS_INJECTION_EXTRACTOR);
+        if (match === null || match.length > 1) {
+            return null;
+        }
+        let bookmarks: any = match[0].replace(BOOKMARKS_INJECTION_MARK.start, '').replace(BOOKMARKS_INJECTION_MARK.end, '');
+        try {
+            bookmarks = JSON.parse(atob(bookmarks));
+        } catch (e) {
+            return null;
+        }
+        return bookmarks instanceof Array ? bookmarks : null;
+    }
+
+    clearFromInjections(text: string): string {
+        if (typeof text !== 'string') {
+            return '';
+        }
+        return text
+            .replace(REQUEST_INJECTION_EXTRACTOR, '')
+            .replace(BOOKMARKS_INJECTION_EXTRACTOR, '');
     }
 
     getRequestGUID(mode: string, value: string){
@@ -94,6 +179,65 @@ class DataController implements InitiableModule{
     }
 
     onTXT_DATA_COME(data : string){
+        const injectedRequests = this.extractInjectedFilters(data);
+        const injectedBookmarks = this.extractInjectedBookmarks(data);
+        const GUID = Symbol();
+        data = this.clearFromInjections(data);
+        if (injectedRequests !== null) {
+            popupController.open({
+                content : {
+                    factory     : null,
+                    component   : DialogMessage,
+                    params      : {
+                        message : `This file includes ${injectedRequests.length} filter(s). Do you want to activate these filters? You will not lost your current filters, but it will be deactivated. ${injectedBookmarks !== null ? 'Also this file has bookmarks. It will be activated automatically.' : ''}`,
+                        buttons : [
+                            {
+                                caption: 'Yes, open with filters',
+                                handle: () => {
+                                    popupController.close(GUID);
+                                    //Remove previous temporary requests
+                                    serviceRequests.removeAllTemporary(false);
+                                    //Add new temporary requests
+                                    serviceRequests.addTemporaryRequests(injectedRequests, false);
+                                    this.openTextData(data, injectedBookmarks);
+                                }
+                            },
+                            {
+                                caption: 'No, open just logs',
+                                handle: () => {
+                                    popupController.close(GUID);
+                                    this.openTextData(data, injectedBookmarks);
+                                }
+                            },
+                            {
+                                caption: 'Do not open',
+                                handle: () => {
+                                    popupController.close(GUID);
+                                }
+                            }
+                        ]
+                    }
+                },
+                title   : `Injected filters`,
+                settings: {
+                    move            : true,
+                    resize          : true,
+                    width           : '30rem',
+                    height          : '12rem',
+                    close           : true,
+                    addCloseHandle  : false,
+                    css             : ''
+                },
+                buttons         : [],
+                titlebuttons    : [],
+                GUID            : GUID
+            });
+        } else {
+            this.openTextData(data);
+        }
+    }
+
+    openTextData(data : string, bookmarks: Array<number> = []){
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_GET_ALL, (requests: Array<any>)=>{
             requests = requests instanceof Array ? requests.map((request) => {
                 return {
@@ -103,11 +247,10 @@ class DataController implements InitiableModule{
             }) : [];
             this.stream !== null && this.stream.create(data, requests)
                 .then((rows: Array<DataRow>) => {
-                    Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED, new EVENT_DATA_IS_UPDATED(rows));
+                    Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED, new EVENT_DATA_IS_UPDATED(rows, bookmarks instanceof Array ? bookmarks : []));
                     Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_BUFFER_IS_UPDATED, this.stream.getBuffer());
                 });
         });
-
     }
 
     onSTREAM_DATA_UPDATE(data: string, events: Array<string> = []){
