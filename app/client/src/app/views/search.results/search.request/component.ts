@@ -126,7 +126,7 @@ export class TopBarSearchRequest implements AfterContentInit{
     }
 
     onLeftArrow(){
-        if (this.historyOffers.length <= 1) {
+        if (this.historyOffers.length === 0) {
             return;
         }
         this.historyOffers = [];
@@ -135,7 +135,7 @@ export class TopBarSearchRequest implements AfterContentInit{
     }
 
     onRightArrow(){
-        if (this.historyOffers.length <= 1) {
+        if (this.historyOffers.length === 0) {
             return;
         }
         const value = this.input.getValue();
@@ -174,6 +174,13 @@ export class TopBarSearchRequest implements AfterContentInit{
     onChange(event: Event){
     }
 
+    setInputFocus(){
+        if (this.input === null || this.input === void 0) {
+            return;
+        }
+        this.input.setFocus();
+    }
+
     trigger_SEARCH_REQUEST_CHANGED(event: KeyboardEvent){
         let input: any = event.target;
         this.value = input.value;
@@ -193,11 +200,13 @@ export class TopBarSearchRequest implements AfterContentInit{
         if (this.value !== '') {
             this.triggerSearchRequest();
         }
+        this.setInputFocus();
     }
 
     onAutoPlay(){
         this.autoplay = !this.autoplay;
         this.historyDrop();
+        this.setInputFocus();
     }
 
     onAddRequest(){
@@ -223,6 +232,7 @@ export class TopBarSearchRequest implements AfterContentInit{
     onSEARCH_REQUEST_RESET(){
         this.value = '';
         this.forceUpdate();
+        this.setInputFocus();
     }
 
     onSEARCH_REQUEST_CHANGED(event: DataFilter){

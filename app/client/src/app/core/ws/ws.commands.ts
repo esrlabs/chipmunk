@@ -2,6 +2,7 @@ import { events as Events               } from '../modules/controller.events';
 import { configuration as Configuration } from '../modules/controller.config';
 import { WSCommandMessage               } from './ws.message.interface';
 import { Logs, TYPES                    } from '../modules/tools.logs';
+import { versionController              } from "../modules/controller.version";
 
 const COMMANDS = {
     greeting                : 'greeting',
@@ -166,6 +167,7 @@ class WSCommands{
 
     [COMMANDS.DesktopModeNotification   ](message : WSCommandMessage, sender: Function){
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.DESKTOP_MODE_NOTIFICATION);
+        versionController.setAsDesktop();
     }
 
 }

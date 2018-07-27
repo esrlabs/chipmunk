@@ -1,0 +1,29 @@
+<div class="dialog-save-logs">
+    <div class="content">
+        <div class="caption">
+            <p>{{message}}</p>
+        </div>
+        <p>Settings of export:</p>
+        <table>
+            <tr *ngIf="filename !== ''">
+                <td>File name</td>
+                <td>
+                    <div class="fields">
+                        <common-input #input [type]="'text'" [value]="filename" [placeholder]="'Input file name'"></common-input>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>Active search requests</td>
+                <td><simple-checkbox #filters [on]="'included'" [off]="'excluded'"></simple-checkbox></td>
+            </tr>
+            <tr>
+                <td>Bookmarks</td>
+                <td><simple-checkbox #bookmarks [on]="'included'" [off]="'excluded'"></simple-checkbox></td>
+            </tr>
+        </table>
+    </div>
+    <div class="buttons">
+        <button-flat-text *ngFor="let button of buttons;" [handle]="onButtonClick.bind(this, button.handle)" [caption]="button.caption"></button-flat-text>
+    </div>
+</div>
