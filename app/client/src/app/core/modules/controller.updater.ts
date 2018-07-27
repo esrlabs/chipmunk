@@ -6,7 +6,8 @@ import { DialogSettingsAutoExport       } from '../components/common/dialogs/app
 import { APIResponse                    } from "../api/api.response.interface";
 import { APICommands                    } from "../api/api.commands";
 import { APIProcessor                   } from "../api/api.processor";
-import {ProgressBarCircle               } from "../components/common/progressbar.circle/component";
+import { ProgressBarCircle              } from "../components/common/progressbar.circle/component";
+import { versionController              } from "./controller.version";
 
 interface UpdateInfo{
     info    : any
@@ -41,7 +42,11 @@ class Updater {
             APICommands.isUpdateAvailable,
             {},
             (response : APIResponse, error: Error) => {
-                console.log(response);
+                if (response.code === 10003) {
+                    versionController.setAsWeb();
+                } else {
+                    versionController.setAsDesktop();
+                }
             }
         );
     }

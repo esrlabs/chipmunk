@@ -9,7 +9,8 @@ interface Request{
     count           : number,
     visibility      : boolean,
     isDragOver?     : boolean,
-    dragInitialized?: boolean
+    dragInitialized?: boolean,
+    isTemporary?    : boolean
 }
 
 interface Preset {

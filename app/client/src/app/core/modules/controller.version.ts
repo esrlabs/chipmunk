@@ -7,6 +7,7 @@ const STORAGE_ALIAS = 'logviewer.localstare';
 class VersionController {
 
     private configuration: any = null;
+    private _isWebInstance: boolean = true;
 
     init(callback: Function){
         this.configuration = require('./controller.config').configuration;
@@ -84,6 +85,18 @@ class VersionController {
             return null;
         }
         window.localStorage.setItem(VERSION_ALIAS, settings[VERSION_ALIAS]);
+    }
+
+    public setAsDesktop(){
+        this._isWebInstance = false;
+    }
+
+    public setAsWeb(){
+        this._isWebInstance = true;
+    }
+
+    public isWebInstance(){
+        return this._isWebInstance;
     }
 
 }

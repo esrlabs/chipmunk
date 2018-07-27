@@ -103,7 +103,8 @@ class ServiceRequests {
                 active          : true,
                 passive         : false,
                 count           : 0,
-                visibility      : true
+                visibility      : true,
+                isTemporary     : false
             });
         } else {
             this.currentRequest = null;
@@ -122,7 +123,9 @@ class ServiceRequests {
                 active          : true,
                 passive         : false,
                 count           : 0,
-                visibility      : true
+                visibility      : true,
+                isTemporary     : false
+
             }));
             this.onRequestsChanges();
         }
@@ -148,6 +151,63 @@ class ServiceRequests {
 
     private onREQUESTS_HISTORY_UPDATED_OUTSIDE(requests: Array<Request>){
         this.updateRequests(requests);
+    }
+
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    * Temporary requests
+    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    public deactivateAllCurrentRequests(silence: boolean = true){
+        this.requests = this.requests.map((request: Request) =>{
+            if (request.isTemporary === void 0 || !request.isTemporary){
+                request.active = false;
+            }
+           return request;
+        });
+        if (silence){
+            this.saveRequests();
+        } else {
+            this.onRequestsChanges();
+        }
+    }
+
+    public addTemporaryRequests(requests: Array<Request>, silence: boolean = true){
+        if (!(requests instanceof Array) || requests.length === 0) {
+            return;
+        }
+        requests = requests.map((request: Request) => {
+           request.isTemporary = true;
+           request.active = true;
+           request.visibility = true;
+           return request;
+        });
+        this.requests.push(...requests);
+        this.deactivateAllCurrentRequests();
+        if (silence){
+            this.saveRequests();
+        } else {
+            this.onRequestsChanges();
+        }
+    }
+
+    public removeAllTemporary(silence: boolean = true){
+        this.requests = this.requests.filter((request: Request) =>{
+            return request.isTemporary === void 0 ? true : !request.isTemporary;
+        });
+        if (silence){
+            this.saveRequests();
+        } else {
+            this.onRequestsChanges();
+        }
+    }
+
+    public hasTemporaryRequests(): boolean{
+        let result = false;
+        this.requests.forEach((request: Request) => {
+           if (request.isTemporary) {
+               result = true;
+           }
+        });
+        return result;
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -192,8 +252,8 @@ class ServiceRequests {
             type            : request.type,
             passive         : request.passive,
             count           : request.count !== void 0 ? request.count : 0,
-            visibility      : request.visibility !== void 0 ? request.visibility : true
-
+            visibility      : request.visibility !== void 0 ? request.visibility : true,
+            isTemporary     : request.isTemporary !== void 0 ? request.isTemporary : false
         }
     }
 
@@ -229,7 +289,8 @@ class ServiceRequests {
                     type            : request.type,
                     foregroundColor : request.foregroundColor,
                     backgroundColor : request.backgroundColor,
-                    visibility      : request.visibility !== void 0 ? request.visibility : true
+                    visibility      : request.visibility !== void 0 ? request.visibility : true,
+                    isTemporary     : request.isTemporary !== void 0 ? request.isTemporary : false,
                 } as Request
             });
     }
@@ -247,7 +308,8 @@ class ServiceRequests {
                     type            : request.type,
                     foregroundColor : request.foregroundColor,
                     backgroundColor : request.backgroundColor,
-                    visibility      : request.visibility !== void 0 ? request.visibility : true
+                    visibility      : request.visibility !== void 0 ? request.visibility : true,
+                    isTemporary     : request.isTemporary !== void 0 ? request.isTemporary : false,
                 } as Request
             });
     }
@@ -260,7 +322,8 @@ class ServiceRequests {
             type            : this.currentRequest.type,
             foregroundColor : this.currentRequest.foregroundColor,
             backgroundColor : this.currentRequest.backgroundColor,
-            visibility      : this.currentRequest.visibility !== void 0 ? this.currentRequest.visibility : true
+            visibility      : this.currentRequest.visibility !== void 0 ? this.currentRequest.visibility : true,
+            isTemporary     : this.currentRequest.isTemporary !== void 0 ? this.currentRequest.isTemporary : false,
         } as Request] : [];
     }
 
@@ -275,18 +338,37 @@ class ServiceRequests {
                 backgroundColor : request.backgroundColor,
                 active          : request.active,
                 count           : request.count !== void 0 ? request.count : 0,
-                visibility      : request.visibility !== void 0 ? request.visibility : true
+                visibility      : request.visibility !== void 0 ? request.visibility : true,
+                isTemporary     : request.isTemporary !== void 0 ? request.isTemporary : false
             }
         });
     }
 
+    public convertActiveRequests(): string | null {
+        let requests = this.getActiveRequests();
+        if (requests.length === 0) {
+            return null;
+        }
+        try {
+            return btoa(JSON.stringify(requests));
+        } catch (e) {
+            return null;
+        }
+    }
+
     private onRequestsChanges(){
         this.saveRequests();
-        if (this.getVisibleActiveRequests().length === 0) {
+        if (this.getCurrentRequest().length !== 0){
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED, this.getCurrentRequest(), this.getRequests());
         } else {
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED, this.getActiveRequests(), this.getRequests());
         }
+        /*
+        if (this.getVisibleActiveRequests().length === 0) {
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED, this.getCurrentRequest(), this.getRequests());
+        } else {
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED, this.getActiveRequests(), this.getRequests());
+        }*/
         this.updateSearchResults();
 
     }
@@ -302,11 +384,14 @@ class ServiceRequests {
     public setPresets(presets: Array<Preset>){
         this.presetManager.setPresets(presets);
     }
+
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Service stuff
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     private getSerializedRequests(){
-        return this.requests.map((request)=>{
+        return this.requests.filter((request: Request) => {
+            return request.isTemporary === void 0 ? true : (request.isTemporary ? false : true);
+        }).map((request)=>{
             return {
                 value           : request.value,
                 type            : request.type,

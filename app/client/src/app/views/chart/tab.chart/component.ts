@@ -9,9 +9,7 @@ import { GUID                                   } from '../../../core/modules/to
 import { ViewInterface                          } from '../../../core/interfaces/interface.view';
 import { DataRow                                } from '../../../core/interfaces/interface.data.row';
 import { EVENT_DATA_IS_UPDATED                  } from '../../../core/interfaces/events/DATA_IS_UPDATE';
-import { EVENT_VIEW_BAR_ADD_FAVORITE_RESPONSE   } from '../../../core/interfaces/events/VIEW_BAR_ADD_FAVORITE_RESPONSE';
 
-import { ViewClass                              } from '../../../core/services/class.view';
 import { ViewSizeClassInt as Size               } from '../../../core/services/class.view.size';
 
 import { D3Controller                           } from './D3.series';
@@ -79,7 +77,7 @@ export class ViewControllerTabChart extends TabController implements ViewInterfa
         if (this.active){
             this.onWindowResize();
             if (this.D3 === null && this._rows.length === 0){
-                this.onDATA_IS_UPDATED({ rows : dataController.getRows() }, false);
+                this.onDATA_IS_UPDATED({ rows : dataController.getRows(), bookmarks: [] }, false);
             }
             if (this.D3 === null && this.svg !== void 0){
                 this.initD3Controller();
@@ -275,7 +273,7 @@ export class ViewControllerTabChart extends TabController implements ViewInterfa
     onCHART_VIEW_CHARTS_UPDATED(needsParsing: boolean = true){
         this.loadSets();
         needsParsing && dataController.updateForParsers();
-        this.onDATA_IS_UPDATED({ rows : dataController.getRows() }, true);
+        this.onDATA_IS_UPDATED({ rows : dataController.getRows(), bookmarks: [] }, true);
     }
 
     onCHART_VIEW_CHARTS_STYLE_UPDATED(){
