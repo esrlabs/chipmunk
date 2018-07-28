@@ -32,6 +32,7 @@ export class ViewBar implements OnDestroy, AfterContentInit{
             Configuration.sets.EVENTS_VIEWS.VIEW_BAR_UPDATE_BUTTON,
             Configuration.sets.EVENTS_VIEWS.VIEW_BAR_REMOVE_BUTTON,
             Configuration.sets.EVENTS_VIEWS.VIEW_BAR_ENABLE_BUTTON,
+            Configuration.sets.EVENTS_VIEWS.VIEW_BAR_TOGGLE_BUTTON,
             Configuration.sets.EVENTS_VIEWS.VIEW_BAR_DISABLE_BUTTON].forEach((handle: string)=>{
             this['on' + handle] = this['on' + handle].bind(this);
             Events.bind(handle, this['on' + handle]);
@@ -45,6 +46,7 @@ export class ViewBar implements OnDestroy, AfterContentInit{
             Configuration.sets.EVENTS_VIEWS.VIEW_BAR_UPDATE_BUTTON,
             Configuration.sets.EVENTS_VIEWS.VIEW_BAR_REMOVE_BUTTON,
             Configuration.sets.EVENTS_VIEWS.VIEW_BAR_ENABLE_BUTTON,
+            Configuration.sets.EVENTS_VIEWS.VIEW_BAR_TOGGLE_BUTTON,
             Configuration.sets.EVENTS_VIEWS.VIEW_BAR_DISABLE_BUTTON].forEach((handle: string)=>{
             Events.unbind(handle, this['on' + handle]);
         });
@@ -200,6 +202,20 @@ export class ViewBar implements OnDestroy, AfterContentInit{
         if (this.viewParams.GUID === GUID){
             let index = this.getButtonIndexByGUID(buttonGUID);
             ~index && (this.menu[index]['disable'] = true);
+        }
+        this.forceUpdate();
+    }
+
+    onVIEW_BAR_TOGGLE_BUTTON(GUID: string, buttonGUID: symbol){
+        if (this.viewParams === null) {
+            return false;
+        }
+        if (this.viewParams.GUID === GUID){
+            let index = this.getButtonIndexByGUID(buttonGUID);
+            if (typeof this.menu[index]['active'] !== 'boolean') {
+                return;
+            }
+            ~index && (this.menu[index]['active'] = !this.menu[index]['active']);
         }
         this.forceUpdate();
     }
