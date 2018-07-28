@@ -11,7 +11,7 @@
       { "icon": "fa-angle-double-down", "event" : "LIST_VIEW_FOLLOW_SCROLL_TRIGGER",  "hint": "auto scroll down: on/off",       "active": true, "listen" : "LIST_VIEW_FOLLOW_SCROLL_SET" },
       { "icon": "fa-book",              "event" : "LIST_VIEW_ONLY_BOOKMARKS_TRIGGER", "hint": "show/hide only bookmarks",       "active": false, "disable": true, "GUID": "LIST_VIEW_ONLY_BOOKMARKS_TRIGGER" },
       { "icon": "fa-outdent",           "event" : "LIST_VIEW_HIGHLIGHT_TRIGGER",      "hint": "on/off highlighting of results", "active": true  },
-      { "icon": "fa-wpforms",           "event" : "LIST_VIEW_SHOW_FULL_LINE",         "hint": "on/off full line inspecting",    "active": false },
+      { "icon": "fa-wpforms",           "event" : "LIST_VIEW_SHOW_FULL_LINE",         "hint": "on/off full line inspecting",    "active": false, "GUID": "LIST_VIEW_FULLLINE_TRIGGER" },
       { "icon": "fa-floppy-o",          "event" : "LIST_VIEW_EXPORT_TO_FILE",         "hint": "export data to file"                             }
     ],
     "hide"        : [

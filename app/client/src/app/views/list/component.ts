@@ -161,6 +161,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         this.onScrollByLine             = this.onScrollByLine.  bind(this);
         this.onTextSelection            = this.onTextSelection. bind(this);
         this.onNumbersChange            = this.onNumbersChange. bind(this);
+        this.onCloseFullLine            = this.onCloseFullLine. bind(this);
 
         [   Configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED,
             Configuration.sets.SYSTEM_EVENTS.ROW_IS_SELECTED,
@@ -523,10 +524,8 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         this.selection.own   = own;
         this.selection.index = index;
         if (index === -1) {
-            this.hideResultFullLine();
             this.selection.str = '';
         } else {
-            this.hideResultFullLine();
             this.selection.str = ANSIClearer(this._rows[index].params.original);
         }
         this.nextAfterSearchNavigation(index);
@@ -902,11 +901,9 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         this.forceUpdate(false);
     }
 
-    hideResultFullLine(){
-        if (this.fullLineComponent === null || this.fullLineComponent === void 0) {
-            return;
-        }
-        this.fullLineComponent.hideResults();
+    onCloseFullLine(){
+        this.onLIST_VIEW_SHOW_FULL_LINE();
+        Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_BAR_TOGGLE_BUTTON,  this.viewParams.GUID, 'LIST_VIEW_FULLLINE_TRIGGER');
     }
 
     resetFullLine(){
