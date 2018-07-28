@@ -20,6 +20,7 @@
     <list-view-full-line
             #fulllinecomponent
             [value]="selection.str"
+            [closeHandler]="onCloseFullLine"
     ></list-view-full-line>
 </div>
 <p *ngIf="rows.length === 0" class="message-no-data">No Data Is Loaded</p>
