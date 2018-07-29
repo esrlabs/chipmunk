@@ -11,7 +11,7 @@ search-requests-presets{
         top:0;
         left:0;
         right: 0;
-        bottom: 6rem;
+        bottom: 3rem;
         overflow: hidden;
         border-bottom: thin dotted @grey;
         .spm-title{
@@ -43,7 +43,7 @@ search-requests-presets{
             }
             .spm-list{
                 position: absolute;
-                top:2rem;
+                top:0;
                 bottom: 0;
                 width: ~"calc(100% - 1rem)";
                 overflow: hidden;
@@ -76,12 +76,24 @@ search-requests-presets{
                         .preset-name{
                             position: absolute;
                             left: 0.5rem;
-                            right: 2rem;
+                            right: 3.5rem;
                             height: 100%;
                             top:0;
                             text-overflow: ellipsis;
                             white-space: nowrap;
                             overflow: hidden;
+                        }
+                        .preset-rename{
+                            position: absolute;
+                            height: 100%;
+                            width: 1.5rem;
+                            right: 1.5rem;
+                            top:0.25rem;
+                            cursor: pointer;
+                            &:hover{
+                                color: @soft-red;
+                                text-shadow: 0 0 0.5rem @white;
+                            }
                         }
                         .preset-remove{
                             position: absolute;
@@ -107,7 +119,7 @@ search-requests-presets{
             overflow: hidden;
             .requests-list{
                 position: absolute;
-                top:2rem;
+                top:0;
                 bottom: 0;
                 width: ~"calc(100% - 1rem)";
                 list-style: none;
@@ -127,7 +139,7 @@ search-requests-presets{
                         display: block;
                         top:0;
                         left:0;
-                        right: 4rem;
+                        right: 6rem;
                         height: 100%;
                         overflow    :hidden;
                         text-overflow: ellipsis;
@@ -138,9 +150,21 @@ search-requests-presets{
                         position: absolute;
                         display: block;
                         width: 3rem;
-                        right: 0;
+                        right: 2rem;
                         top:0;
                         height: 100%;
+                    }
+                    .preset-remove{
+                        position: absolute;
+                        height: 100%;
+                        width: 1.5rem;
+                        right: 0;
+                        top:0.25rem;
+                        cursor: pointer;
+                        &:hover{
+                            color: @soft-red;
+                            text-shadow: 0 0 0.5rem @white;
+                        }
                     }
                 }
             }
@@ -149,47 +173,15 @@ search-requests-presets{
     .spm-controls-area{
         position: absolute;
         bottom: 0;
-        height: 5.5rem;
+        height: 2.5rem;
         left:0;
         right: 0;
         overflow: hidden;
-        .spm-new-preset{
-            position: absolute;
-            height: 2.5rem;
-            width: 100%;
-            top:0;
-            overflow: hidden;
-            .spm-new-input{
-                position: absolute;
-                top:0;
-                left:0;
-                right: 11.5rem;
-                bottom: 0;
-                overflow: hidden;
-                .spm-new-input-wrapper{
-                    position: absolute;
-                    top:0.25rem;
-                    left:0rem;
-                    right: 0.25rem;
-                    bottom: 0.25rem;
-                    overflow: hidden;
-                }
-            }
-            .spm-new-buttons{
-                position: absolute;
-                top:0;
-                right: 0;
-                bottom: 0;
-                width: 14rem;
-                overflow: hidden;
-                text-align: right;
-            }
-        }
         .spm-common-buttons{
             position: absolute;
             height: 2.5rem;
             width: 100%;
-            top:3rem;
+            top:0;
             overflow: hidden;
             text-align: right;
         }

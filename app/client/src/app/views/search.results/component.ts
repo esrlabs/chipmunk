@@ -32,7 +32,7 @@ import { popupController                        } from "../../core/components/co
 import { DialogSearchRequestsPresets            } from '../../core/components/common/dialogs/seach.requests.presets/component';
 
 import { EContextMenuItemTypes, IContextMenuItem, IContextMenuEvent } from '../../core/components/context-menu/interfaces';
-import {DataFilter} from "../../core/interfaces/interface.data.filter";
+import { DataFilter                             } from "../../core/interfaces/interface.data.filter";
 
 interface ISelectedMarker {
     index: string,
@@ -1571,9 +1571,9 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
             settings: {
                 move            : true,
                 resize          : true,
-                width           : '30rem',
+                width           : '40rem',
                 height          : '20rem',
-                close           : true,
+                close           : false,
                 addCloseHandle  : true,
                 css             : ''
             },
