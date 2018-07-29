@@ -6,10 +6,13 @@ import { CommonInput                                } from "../../input/componen
 import { DialogMessage                              } from "../dialog-message/component";
 import { DialogMessageList                          } from "../dialog-message-list/component";
 import { popupController                            } from "../../popup/controller";
-import { fileLoaderController                       } from '../../../../components/common/fileloader/controller';
+import { fileLoaderController                       } from "../../fileloader/controller";
 import { ProgressBarCircle                          } from "../../progressbar.circle/component";
 import { DIRECTIONS, Method, Request as AJAXRequest } from "../../../../modules/tools.ajax";
 import { DialogA                                    } from "../dialog-a/component";
+import { EContextMenuItemTypes, IContextMenuItem, IContextMenuEvent } from '../../../context-menu/interfaces';
+import {events as Events} from "../../../../modules/controller.events";
+import {configuration as Configuration} from "../../../../modules/controller.config";
 
 @Component({
     selector    : 'search-requests-presets',
@@ -19,14 +22,14 @@ import { DialogA                                    } from "../dialog-a/componen
 export class DialogSearchRequestsPresets implements AfterViewChecked {
     @Input() close: Function = null;
 
-    @ViewChild('nameInput' ) nameInput : CommonInput;
     @ViewChild ('exporturl', { read: ViewContainerRef}) exportURLNode: ViewContainerRef;
 
     private requests: Array<Request> = [];
     private presets: Array<Preset> = [];
     private current: Array<Request> = [];
-    private selected: number = -1;
+    private selected: number = 0;
     private waitPopupGUID: symbol = Symbol();
+    private changes: boolean = false;
     public exportdata       : {
         url         : any,
         filename    : string
@@ -38,18 +41,16 @@ export class DialogSearchRequestsPresets implements AfterViewChecked {
     constructor(private changeDetectorRef   : ChangeDetectorRef,
                 private sanitizer           : DomSanitizer) {
         this.changeDetectorRef = changeDetectorRef;
-        this.requests = this.safelySetArrayValue(serviceRequests.getRequests());
-        this.current = this.safelySetArrayValue(serviceRequests.getRequests());
+        this.requests = this.serializeRequests(serviceRequests.getRequests());
+        this.current = this.serializeRequests(serviceRequests.getRequests());
         this.presets = this.safelySetArrayValue(serviceRequests.getPresets());
         this.addCurrentPreset();
         this.onRemove = this.onRemove.bind(this);
         this.onSelect = this.onSelect.bind(this);
-        this.onNew = this.onNew.bind(this);
-        this.onSaveAs = this.onSaveAs.bind(this);
         this.onExport = this.onExport.bind(this);
         this.onImportFromFile = this.onImportFromFile.bind(this);
         this.onImportByURL = this.onImportByURL.bind(this);
-        this.onApply = this.onApply.bind(this);
+        this.onCloseEditor = this.onCloseEditor.bind(this);
     }
 
     ngAfterViewChecked(){
@@ -73,12 +74,18 @@ export class DialogSearchRequestsPresets implements AfterViewChecked {
     }
 
     safelySetArrayValue(value: any){
-        return value instanceof Array ? value : [];
+        return value instanceof Array ? value.slice() : [];
+    }
+
+    serializeRequests(requests: Array<Request>){
+        return requests instanceof Array ? requests.map((request: Request) => {
+            return Object.assign({}, request)
+        }) : [];
     }
 
     resetListsSelection(){
-        this.selected = -1;
-        this.requests = this.current;
+        this.selected = 0;
+        this.requests = this.serializeRequests(this.current);
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -86,12 +93,6 @@ export class DialogSearchRequestsPresets implements AfterViewChecked {
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     getClearedPresets(){
         return this.presets.filter((preset, index) => { return index !== 0; });
-    }
-
-    overwritePreset(index: number, callback?: Function){
-        this.presets[index].requests = this.requests;
-        this.savePresets();
-        typeof callback === 'function' && callback();
     }
 
     savePresets(){
@@ -161,7 +162,7 @@ export class DialogSearchRequestsPresets implements AfterViewChecked {
     addCurrentPreset(){
         this.presets.unshift({
             name: _('Current Requests'),
-            requests: this.current
+            requests: this.serializeRequests(this.current)
         });
     }
 
@@ -197,93 +198,58 @@ export class DialogSearchRequestsPresets implements AfterViewChecked {
 
     onSelect(event: MouseEvent, index: number){
         this.selected = index;
-        this.requests = this.presets[index].requests;
+        this.requests = this.serializeRequests(this.presets[index].requests);
     }
 
     onRemove(event: MouseEvent, index: number){
         if (index === 0) {
             return false;
         }
-        let guid = Symbol();
-        popupController.open({
-            content : {
-                factory     : null,
-                component   : DialogMessage,
-                params      : {
-                    message: `Please, confirm removing "${this.presets[index].name}" preset. If you are not sure, you can export your presets to file before.`,
-                    buttons: [
-                        {
-                            caption: 'Yes, remove',
-                            handle : () => {
-                                this.presets.splice(index, 1);
-                                this.savePresets();
-                                this.resetListsSelection();
-                                popupController.close(guid);
-                            }
-                        },
-                        {
-                            caption: 'No, keep it',
-                            handle : ()=>{
-                                popupController.close(guid);
-                            }
-                        }
-                    ]
-                }
-            },
-            title   : 'Confirmation',
-            settings: {
-                move            : true,
-                resize          : true,
-                width           : '30rem',
-                height          : '15rem',
-                close           : true,
-                addCloseHandle  : true,
-                css             : ''
-            },
-            buttons         : [],
-            titlebuttons    : [],
-            GUID            : guid
-        });
+        this.presets.splice(index, 1);
+        this.changes = true;
+        this.resetListsSelection();
     }
 
-    onNew(){
-        const name = this.nameInput.getValue().trim();
-        if (name === '') {
-            return this.nameInput.setValue('');
+    onRemoveRequest(event: MouseEvent, index: number){
+        if (this.selected === -1) {
+            return;
         }
-        if (this.isPresetExist(name)){
-            return this.nameInput.setValue('');
+        if (this.presets[this.selected] === void 0) {
+            return;
         }
-        if (this.requests.length === 0) {
+        this.presets[this.selected].requests.splice(index, 1);
+        if (this.presets[this.selected].requests.length === 0) {
+            this.presets.splice(this.selected, 1);
+            this.resetListsSelection();
+        } else {
+            this.requests = this.serializeRequests(this.presets[this.selected].requests);
+        }
+        this.changes = true;
+    }
+
+    onRename(event: MouseEvent, index: number){
+        if (index === 0 || this.presets[index] === void 0) {
             return false;
         }
-        this.presets.push({
-            name: name,
-            requests: this.requests
-        });
-        this.savePresets();
-    }
-
-    onSaveAs(){
         let guid = Symbol();
         popupController.open({
             content : {
                 factory     : null,
-                component   : DialogMessageList,
+                component   : DialogA,
                 params      : {
-                    message: `Select preset, which should be overwritten by current requests`,
-                    list   : this.presets.map((preset: Preset, index: number) => {
-                        if (index === 0) {
-                            return null;
-                        }
-                        return {
-                            caption: preset.name,
-                            handle: this.overwritePreset.bind(this, index, () => {
-                                popupController.close(guid);
-                            })
-                        }
-                    }).filter((item) => { return item !== null; } ),
+                    caption: `Define new name of preset: "${this.presets[index].name}".`,
+                    value  : this.presets[index].name,
                     buttons: [
+                        {
+                            caption: 'Rename',
+                            handle : (name: string) => {
+                                popupController.close(guid);
+                                if (name.trim() === ''){
+                                }
+                                this.presets[index].name = name;
+                                this.changes = true;
+                            }
+                        },
                         {
                             caption: 'Cancel',
                             handle : ()=>{
@@ -293,12 +259,12 @@ export class DialogSearchRequestsPresets implements AfterViewChecked {
                     ]
                 }
             },
-            title   : 'Confirmation',
+            title   : 'Rename of preset',
             settings: {
                 move            : true,
-                resize          : true,
+                resize          : false,
                 width           : '30rem',
-                height          : '15rem',
+                height          : '12rem',
                 close           : true,
                 addCloseHandle  : true,
                 css             : ''
@@ -306,6 +272,15 @@ export class DialogSearchRequestsPresets implements AfterViewChecked {
             buttons         : [],
             titlebuttons    : [],
             GUID            : guid
+        });
+    }
+
+    onSelectPreset(event: MouseEvent, index: number){
+        this.getCloseConfirmation(() => {
+            if (index > 0 && this.presets[index] !== void 0) {
+                serviceRequests.updateRequests(this.presets[index].requests);
+            }
+            typeof this.close === 'function' && this.close();
         });
     }
 
@@ -330,7 +305,7 @@ export class DialogSearchRequestsPresets implements AfterViewChecked {
                 if (presets !== null){
                     this.presets = presets;
                     this.addCurrentPreset();
-                    this.savePresets();
+                    this.changes = true;
                 }
             },
             error   :(event : Event)=>{
@@ -387,14 +362,133 @@ export class DialogSearchRequestsPresets implements AfterViewChecked {
             titlebuttons    : [],
             GUID            : guid
         });
-        /*
-
-        */
     }
 
-    onApply(){
-        serviceRequests.updateRequests(this.requests);
-        typeof this.close === 'function' && this.close();
+    onCloseEditor(){
+        this.getCloseConfirmation(() => {
+            typeof this.close === 'function' && this.close();
+        });
+    }
+
+    getCloseConfirmation(callback: Function){
+        if (this.changes) {
+            let guid = Symbol();
+            popupController.open({
+                content : {
+                    factory     : null,
+                    component   : DialogMessage,
+                    params      : {
+                        message: `Collection of preset was changed. Do you want to save changes?`,
+                        buttons: [
+                            {
+                                caption: 'Yes, save',
+                                handle : () => {
+                                    this.savePresets();
+                                    popupController.close(guid);
+                                    callback();
+                                }
+                            },
+                            {
+                                caption: 'No, keep it',
+                                handle : ()=>{
+                                    popupController.close(guid);
+                                    callback();
+                                }
+                            }
+                        ]
+                    }
+                },
+                title   : 'Confirmation',
+                settings: {
+                    move            : true,
+                    resize          : true,
+                    width           : '30rem',
+                    height          : '12rem',
+                    close           : true,
+                    addCloseHandle  : true,
+                    css             : ''
+                },
+                buttons         : [],
+                titlebuttons    : [],
+                GUID            : guid
+            });
+        } else {
+            callback();
+        }
+    }
+
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    * Context menu
+    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    isPresetNameExist(name: string): boolean {
+        let result = false;
+        this.presets.forEach((preset: Preset) => {
+            if (preset.name === name) {
+                result = true;
+            }
+        });
+        return result;
+    }
+
+    getNewPresetName(basename: string){
+        if (!this.isPresetExist(basename)) {
+            return basename;
+        }
+        let index = 0;
+        do {
+            index += 1;
+        } while (this.isPresetExist(`${basename} ${index}`));
+        return `${basename} ${index}`;
+    }
+
+    onContextMenuPreset(event: MouseEvent, index: number){
+        if (index < 0 || this.presets[index] === void 0) {
+            return false;
+        }
+        let contextEvent = {x: event.pageX,
+            y: event.pageY,
+            items: [
+                {
+                    caption : index > 0 ? 'Duplicate' : 'Create new preset',
+                    type    : EContextMenuItemTypes.item,
+                    handler : () => {
+                        let name;
+                        if (index === 0) {
+                            name = this.getNewPresetName('New preset');
+                        } else {
+                            name = this.getNewPresetName(this.presets[index].name);
+                        }
+                        this.presets.push({
+                            name: name,
+                            requests: this.presets[index].requests.slice()
+                        });
+                        this.changes = true;
+                    }
+                }
+            ]} as IContextMenuEvent;
+        if (index !== 0) {
+            contextEvent.items.push(...[
+                { type: EContextMenuItemTypes.divider },
+                {
+                    caption : 'Change name',
+                    type    : EContextMenuItemTypes.item,
+                    handler : () => {
+                        this.onRename(null, index);
+                    }
+                },
+                {
+                    caption : 'Delete preset',
+                    type    : EContextMenuItemTypes.item,
+                    handler : () => {
+                        this.onRemove(null, index);
+                    }
+                }
+            ]);
+        }
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.CONTEXT_MENU_CALL, contextEvent);
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -417,7 +511,7 @@ export class DialogSearchRequestsPresets implements AfterViewChecked {
             if (presets !== null){
                 this.presets = presets;
                 this.addCurrentPreset();
-                this.savePresets();
+                this.changes = true;
             }
         }).catch((error : Error)=>{
             popupController.close(this.waitPopupGUID);
