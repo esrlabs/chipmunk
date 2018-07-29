@@ -36,12 +36,23 @@ class PresetsManager {
         });
     }
 
+    private serializePresets(presets: Array<Preset>){
+        return presets instanceof Array ? presets.map((preset: Preset) =>{
+            return {
+                name: preset.name,
+                requests: preset.requests instanceof Array ? preset.requests.map((request: Request) => {
+                    return Object.assign({}, request)
+                }) : []
+            }
+        }) : [];
+    }
+
     public getPresets(){
-        return this.presets instanceof Array ? this.presets.slice() : this.presets;
+        return this.serializePresets(this.presets);
     }
 
     public setPresets(presets: Array<Preset>){
-        this.presets = presets;
+        this.presets = this.serializePresets(presets);
         this.savePresets();
     }
 }
