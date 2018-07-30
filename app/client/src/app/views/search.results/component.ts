@@ -1544,6 +1544,61 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         event.which === 3 && this.onContextMenu(event, index);
     }
 
+    onListContextMenu(event: MouseEvent) {
+        let contextEvent = {x: event.pageX,
+            y: event.pageY,
+            items: [
+                {
+                    caption : 'Activate all',
+                    type    : EContextMenuItemTypes.item,
+                    handler : () => {
+                        serviceRequests.activateAllCurrentRequests(false);
+                    }
+                },
+                {
+                    caption : 'Deactivate all',
+                    type    : EContextMenuItemTypes.item,
+                    handler : () => {
+                        serviceRequests.deactivateAllCurrentRequests(false);
+                    }
+                },
+                { type: EContextMenuItemTypes.divider },
+                {
+                    caption : 'Visible all',
+                    type    : EContextMenuItemTypes.item,
+                    handler : () => {
+                        serviceRequests.showAllCurrentRequests(false);
+                    }
+                },
+                {
+                    caption : 'Invisible all',
+                    type    : EContextMenuItemTypes.item,
+                    handler : () => {
+                        serviceRequests.hideAllCurrentRequests(false);
+                    }
+                },
+                { type: EContextMenuItemTypes.divider },
+                {
+                    caption : 'Activate and visible all',
+                    type    : EContextMenuItemTypes.item,
+                    handler : () => {
+                        serviceRequests.setToAllCurrentRequests({ active: true, visibility: true }, false);
+                    }
+                },
+                {
+                    caption : 'Deactivate and invisible all',
+                    type    : EContextMenuItemTypes.item,
+                    handler : () => {
+                        serviceRequests.setToAllCurrentRequests({ active: false, visibility: false }, false);
+                    }
+                }
+            ]} as IContextMenuEvent;
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.CONTEXT_MENU_CALL, contextEvent);
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+    }
+
     onRemoveAllTemporary(){
         serviceRequests.removeAllTemporary(false);
     }
