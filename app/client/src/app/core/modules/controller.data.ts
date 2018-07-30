@@ -238,6 +238,9 @@ class DataController implements InitiableModule{
     }
 
     openTextData(data : string, bookmarks: Array<number> = []){
+        if (!~data.search(/(\n|\n\r|\r|\r\n)$/gi)){
+            data += '\n';
+        }
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_GET_ALL, (requests: Array<any>)=>{
             requests = requests instanceof Array ? requests.map((request) => {
                 return {
