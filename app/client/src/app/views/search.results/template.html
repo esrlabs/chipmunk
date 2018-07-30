@@ -6,7 +6,7 @@
     <a #exporturl [attr.href]="exportdata.url" class="export-url" [attr.download]="exportdata.filename"></a>
 </div>
 <div [attr.class]="'lv-manager-wrapper noselect' + ' ' + (requestsListClosed ? 'closed' : 'opened')">
-    <div class="lv-manager-trigger-area"  (click)="onRequestListTrigger()">
+    <div class="lv-manager-trigger-area"  (click)="onRequestListTrigger()" (contextmenu)="onListContextMenu($event)">
         <span class="lv-manager-trigger fa fa-angle-double-left"></span>
         <span class="lv-manager-title">Requests List</span>
     </div>
@@ -21,7 +21,8 @@
         <button-flat-text [caption]="'Select'" [handle]="onSelectAll"></button-flat-text>
         <button-flat-text [caption]="'Invert'" [handle]="onInvert"></button-flat-text>
     </div>
-    <ul class="lv-manager-list">
+    <ul class="lv-manager-list"
+        (contextmenu)="onListContextMenu($event)">
        <li *ngFor="let request of _requests; let i = index;" [attr.draggable]="request.dragInitialized"
            (mousedown)="onContextMenuMouseDown($event, i)"
            (contextmenu)="onContextMenu($event, i)"
