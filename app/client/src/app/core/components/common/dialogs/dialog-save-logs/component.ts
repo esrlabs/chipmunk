@@ -23,7 +23,7 @@ export class DialogSaveLogs {
 
     onButtonClick(handle: Function){
         typeof handle === 'function' && handle({
-            filename: this.input !== null ? this.input.getValue() : null,
+            filename: this.input !== null ? (this.input !== void 0 ? this.input.getValue() : null) : null,
             bookmarks: this.bookmarks.getValue(),
             filters: this.filters.getValue()
         });
