@@ -338,7 +338,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                 factory : factory,
                 params  : {
                     GUID            : this.viewParams !== null ? this.viewParams.GUID : null,
-                    val             : this.serializeHTML(row.str),
+                    val             : row.str,
                     original        : row.str,
                     index           : _index,
                     selection       : this.selection.index === _index ? true : false,
@@ -578,9 +578,6 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         });
     }
 
-    serializeHTML(html: string){
-        return html.replace(/</gi, '&lt').replace(/>/gi, '&gt');
-    }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Text selection
@@ -588,14 +585,15 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
 
     onTextSelection(event: TSelectionEvent){
         if (typeof event.text === 'string' && !~event.text.search(/\r?\n|\r/gi)){
+            const selection = event.text.replace(/^\d*\u0020[\s\t]*/gi, '');
             let index = this.getSelfMarkerIndex();
             let itemIndex = this.getSelectedItemID(event.focusNode as HTMLElement);
-            if (event.text.length > 0){
+            if (selection.length > 0){
                 if (~index){
-                    this.markers[index].value = event.text;
+                    this.markers[index].value = selection;
                 } else {
                     this.markers.unshift({
-                        value           : event.text,
+                        value           : selection,
                         backgroundColor : SETTINGS.TEXT_SELECTED_BACKGROUND,
                         foregroundColor : SETTINGS.TEXT_SELECTED_COLOR,
                         self            : true
@@ -603,7 +601,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                 }
                 this.updateMarkersOnly({
                     index: itemIndex,
-                    value: event.text
+                    value: selection
                 });
             } else if (~index) {
                 this.markers.splice(index, 1);
