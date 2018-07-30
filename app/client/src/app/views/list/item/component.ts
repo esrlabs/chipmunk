@@ -124,9 +124,9 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
                     this.regsCache[markerKey]   === void 0 && (this.regsCache[markerKey]    = safelyCreateRegExp(serializeHTML(serializeStringForReg(marker.value)), 'gi'));
                     this.regsCache[mark]        === void 0 && (this.regsCache[mark]         = safelyCreateRegExp(serializeHTML(serializeStringForReg(mark)), 'gi'));
                     if (this.regsCache[markerKey] !== null){
-                        matches = this.html.match(this.regsCache[marker.value]);
+                        matches = this.html.match(this.regsCache[markerKey]);
                         if (matches instanceof Array && matches.length > 0){
-                            this.html = this.html.replace(this.regsCache[marker.value], mark);
+                            this.html = this.html.replace(this.regsCache[markerKey], mark);
                             markersMatches.push({
                                 mark    : mark,
                                 matches : matches,
