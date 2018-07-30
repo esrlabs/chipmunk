@@ -165,14 +165,32 @@ class ServiceRequests {
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-    * Temporary requests
+    * Group manipulations
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     public deactivateAllCurrentRequests(silence: boolean = true){
+        this.setToAllCurrentRequests({ active: false}, silence);
+    }
+
+    public activateAllCurrentRequests(silence: boolean = true){
+        this.setToAllCurrentRequests({ active: true}, silence);
+    }
+
+    public hideAllCurrentRequests(silence: boolean = true){
+        this.setToAllCurrentRequests({ visibility: false}, silence);
+    }
+
+    public showAllCurrentRequests(silence: boolean = true){
+        this.setToAllCurrentRequests({ visibility: true}, silence);
+    }
+
+    public setToAllCurrentRequests(params: any, silence: boolean = true){
         this.requests = this.requests.map((request: Request) =>{
             if (request.isTemporary === void 0 || !request.isTemporary){
-                request.active = false;
+                Object.keys(params).forEach((key: string) => {
+                    request[key] = params[key];
+                });
             }
-           return request;
+            return request;
         });
         if (silence){
             this.saveRequests();
@@ -181,6 +199,9 @@ class ServiceRequests {
         }
     }
 
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    * Temporary requests
+    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     public addTemporaryRequests(requests: Array<Request>, silence: boolean = true){
         if (!(requests instanceof Array) || requests.length === 0) {
             return;
@@ -374,12 +395,6 @@ class ServiceRequests {
         } else {
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED, this.getActiveRequests(), this.getRequests());
         }
-        /*
-        if (this.getVisibleActiveRequests().length === 0) {
-            Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED, this.getCurrentRequest(), this.getRequests());
-        } else {
-            Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED, this.getActiveRequests(), this.getRequests());
-        }*/
         this.updateSearchResults();
 
     }
