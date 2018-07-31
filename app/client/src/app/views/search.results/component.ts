@@ -154,6 +154,14 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         hash: ''
     };
 
+    private searchNavigation : {
+        prev    : symbol,
+        next    : symbol
+    } = {
+        prev    : Symbol(),
+        next    : Symbol()
+    };
+
     constructor(
         private componentFactoryResolver    : ComponentFactoryResolver,
         private viewContainerRef            : ViewContainerRef,
@@ -195,7 +203,9 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
             Configuration.sets.SYSTEM_EVENTS.HIGHLIGHT_SEARCH_REQUESTS_TRIGGER,
             Configuration.sets.SYSTEM_EVENTS.VISUAL_SETTINGS_IS_UPDATED,
             Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_CHANGED,
-            Configuration.sets.EVENTS_VIEWS.SEARCH_VIEW_MANAGE_PRESETS].forEach((handle: string)=>{
+            Configuration.sets.EVENTS_VIEWS.SEARCH_VIEW_MANAGE_PRESETS,
+            Configuration.sets.EVENTS_VIEWS.SEARCH_RESULT_NAVIGATION_SHOW,
+            Configuration.sets.EVENTS_VIEWS.SEARCH_RESULT_NAVIGATION_HIDE].forEach((handle: string)=>{
             this['on' + handle] = this['on' + handle].bind(this);
             Events.bind(handle, this['on' + handle]);
         });
@@ -235,7 +245,9 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
             Configuration.sets.SYSTEM_EVENTS.HIGHLIGHT_SEARCH_REQUESTS_TRIGGER,
             Configuration.sets.SYSTEM_EVENTS.VISUAL_SETTINGS_IS_UPDATED,
             Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_CHANGED,
-            Configuration.sets.EVENTS_VIEWS.SEARCH_VIEW_MANAGE_PRESETS].forEach((handle: string)=>{
+            Configuration.sets.EVENTS_VIEWS.SEARCH_VIEW_MANAGE_PRESETS,
+            Configuration.sets.EVENTS_VIEWS.SEARCH_RESULT_NAVIGATION_SHOW,
+            Configuration.sets.EVENTS_VIEWS.SEARCH_RESULT_NAVIGATION_HIDE].forEach((handle: string)=>{
             Events.unbind(handle, this['on' + handle]);
         });
         this.onScrollSubscription.      unsubscribe();
@@ -1637,4 +1649,36 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
             GUID            : popupGUID
         });
     }
+
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+     * Navigation
+     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    onSEARCH_RESULT_NAVIGATION_SHOW(){
+        Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_BAR_ADD_BUTTON, this.viewParams.GUID, {
+            action  : this.previousSearchNavigation.bind(this),
+            hint    : _('previous'),
+            icon    : 'fa-chevron-up',
+            GUID    : this.searchNavigation.prev
+        }, false);
+        Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_BAR_ADD_BUTTON, this.viewParams.GUID, {
+            action  : this.nextSearchNavigation.bind(this),
+            hint    : _('next'),
+            icon    : 'fa-chevron-down',
+            GUID    : this.searchNavigation.next
+        }, false);
+    }
+
+    onSEARCH_RESULT_NAVIGATION_HIDE(){
+        Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_BAR_REMOVE_BUTTON, this.viewParams.GUID, this.searchNavigation.next);
+        Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_BAR_REMOVE_BUTTON, this.viewParams.GUID, this.searchNavigation.prev);
+    }
+
+    previousSearchNavigation(){
+        Events.trigger(Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_PREV_IN_SEARCH);
+    }
+
+    nextSearchNavigation(){
+        Events.trigger(Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_NEXT_IN_SEARCH);
+    }
+
 }

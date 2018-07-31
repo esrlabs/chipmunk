@@ -658,6 +658,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
 
     addButtonsSearchNavigation(){
         if (!this.searchNavigation.inited){
+            /*
             Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_BAR_ADD_BUTTON, this.viewParams.GUID, {
                 action  : this.previousSearchNavigation.bind(this),
                 hint    : _('previous'),
@@ -669,16 +670,20 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                 hint    : _('next'),
                 icon    : 'fa-chevron-down',
                 GUID    : this.searchNavigation.next
-            }, false);
+            }, false);*/
             this.searchNavigation.inited = true;
+            Events.trigger(Configuration.sets.EVENTS_VIEWS.SEARCH_RESULT_NAVIGATION_SHOW);
         }
     }
 
     removeButtonsSearchNavigation(){
         if (this.searchNavigation.inited){
+            /*
             Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_BAR_REMOVE_BUTTON, this.viewParams.GUID, this.searchNavigation.next);
             Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_BAR_REMOVE_BUTTON, this.viewParams.GUID, this.searchNavigation.prev);
+            */
             this.searchNavigation.inited = false;
+            Events.trigger(Configuration.sets.EVENTS_VIEWS.SEARCH_RESULT_NAVIGATION_HIDE);
         }
     }
 
