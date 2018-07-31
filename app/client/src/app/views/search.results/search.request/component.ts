@@ -129,9 +129,7 @@ export class TopBarSearchRequest implements AfterContentInit{
         if (this.historyOffers.length === 0) {
             return;
         }
-        this.historyOffers = [];
-        this.historySelected = 0;
-        this.input.setHighlight('');
+        this.historyDrop();
     }
 
     onRightArrow(){
@@ -157,6 +155,7 @@ export class TopBarSearchRequest implements AfterContentInit{
                 ~this.delayTimer && clearTimeout(this.delayTimer);
                 this.delayTimer = setTimeout(this.trigger_SEARCH_REQUEST_CHANGED.bind(this, event), SETTINGS.TYPING_DELAY);
             } else if (event.keyCode === 13) {
+                this.historyDrop();
                 this.trigger_SEARCH_REQUEST_CHANGED(event);
             } else {
                 this.lastRequest = null;
@@ -164,6 +163,7 @@ export class TopBarSearchRequest implements AfterContentInit{
             }
         } else {
             if (event.keyCode === 13) {
+                this.historyDrop();
                 return extraButton.onEnter(event, this.input.getValue());
             }
             extraButton.onKeyUp(event, this.input.getValue());
