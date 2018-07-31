@@ -340,11 +340,11 @@ class Calculator{
     }
 
     getSafelyTop(top: number){
-        return top < 0 ? 0 : (top > 100 ? 100 : top);
+        return top < 10 ? 10 : (top > 90 ? 90 : top);
     }
 
     getSafelyLeft(left: number){
-        return left < 0 ? 0 : (left > 100 ? 100 : left);
+        return left < 10 ? 10 : (left > 90 ? 90 : left);
     }
 
     resize(views: Array<ViewClass>, target: ViewClass, event: VIEW_RESIZE){
@@ -412,11 +412,33 @@ export class ServiceViews{
 
     onADD_VIEW(ID: string){
         let view = this.getDefaultView(ID);
+        if (this.current.length === 4) {
+            return Events.trigger(Configuration.sets.SYSTEM_EVENTS.CREATE_NOTIFICATION, {
+                caption: 'Maximum views are used',
+                message: 'Current version of logviewer supports only 4 views in meantime.'
+            });
+        }
+        if (this.isViewActive(ID)){
+            return Events.trigger(Configuration.sets.SYSTEM_EVENTS.CREATE_NOTIFICATION, {
+                caption: 'View is active',
+                message: 'This view is already exist on viewport.'
+            });
+        }
         if (view !== null){
             this.current.push(view);
             this.addRefreshHandles();
             this.refreshViews();
         }
+    }
+
+    isViewActive(ID: string){
+        let result = false;
+        this.current.forEach((view: ViewClass) => {
+           if (view.id === ID) {
+               result = true;
+           }
+        });
+        return result;
     }
 
     refreshViews(){

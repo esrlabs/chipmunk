@@ -4,6 +4,7 @@ import { ProgressBarCircle              } from '../components/common/progressbar
 
 import { events as Events               } from '../modules/controller.events';
 import { configuration as Configuration } from '../modules/controller.config';
+import { localSettings                  } from "../modules/controller.localsettings";
 
 import { OpenRemoteFileStream           } from '../handles/handle.open.remote.file.stream';
 import { OpenSerialStream               } from '../handles/handle.open.serial.stream';
@@ -132,6 +133,11 @@ class TopBarMenuHandles{
     addView(){
         let addView = new AddView();
         addView.start();
+    }
+
+    resetViewsSettings(){
+        localSettings.reset('views', 'Initialized by user');
+        location.reload();
     }
 
     openProgressBar(){

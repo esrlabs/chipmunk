@@ -14,6 +14,7 @@
     { "icon" : "fa-pencil-square-o",  "caption" : "Markers",                    "handler": "openMarkersManager",            "type": "item" },
     { "type" : "line" },
     { "icon" : "fa-desktop",          "caption" : "Add view",                   "handler": "addView",                       "type": "item" },
+    { "icon" : "fa-refresh",          "caption" : "Reset views settings",       "handler": "resetViewsSettings",            "type": "item" },
     { "type" : "line" },
     { "icon" : "fa-cloud",            "caption" : "Connect to service",         "handler": "connectionSettings",            "type": "item" },
     { "type" : "line" },
@@ -73,8 +74,10 @@
     {
       "group": "View",
       "items": [
-        { "icon" : "fa-pencil-square-o",  "caption" : "Markers",            "handler": "openMarkersManager",      "type": "item", "accelerator": "" },
-        { "icon" : "fa-desktop",          "caption" : "Add view",           "handler": "addView",                 "type": "item", "accelerator": "" }
+        { "icon" : "fa-pencil-square-o",  "caption" : "Markers",              "handler": "openMarkersManager",      "type": "item", "accelerator": "" },
+        { "icon" : "fa-desktop",          "caption" : "Add view",             "handler": "addView",                 "type": "item", "accelerator": "" },
+        { "type" : "line" },
+        { "icon" : "fa-refresh",          "caption" : "Reset views settings", "handler": "resetViewsSettings",      "type": "item", "accelerator": "" }
       ]
     },
     {
