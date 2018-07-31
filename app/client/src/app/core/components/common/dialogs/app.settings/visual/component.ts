@@ -20,7 +20,8 @@ export class DialogVisualSettingTab extends TabController implements OnDestroy, 
         do_not_highlight_matches_in_requests        : false,
         highlight_search_requests                   : false,
         show_active_search_results_always           : false,
-        make_filters_active_after_search_is_cleared : false
+        make_filters_active_after_search_is_cleared : false,
+        use_autobottom_scroll                       : false
     };
     @Input() active     : boolean   = false;
     @Input() register   : Function = null;
@@ -33,6 +34,7 @@ export class DialogVisualSettingTab extends TabController implements OnDestroy, 
             highlight_search_requests                       : this._highlight_search_requests.getValue(),
             show_active_search_results_always               : this._show_active_search_results_always.getValue(),
             make_filters_active_after_search_is_cleared     : this._make_filters_active_after_search_is_cleared.getValue(),
+            use_autobottom_scroll                           : this._use_autobottom_scroll.getValue()
         };
     };
 
@@ -44,6 +46,8 @@ export class DialogVisualSettingTab extends TabController implements OnDestroy, 
     @ViewChild('_highlight_search_requests'                     ) _highlight_search_requests                    : SimpleCheckbox;
     @ViewChild('_show_active_search_results_always'             ) _show_active_search_results_always            : SimpleCheckbox;
     @ViewChild('_make_filters_active_after_search_is_cleared'   ) _make_filters_active_after_search_is_cleared  : SimpleCheckbox;
+    @ViewChild('_use_autobottom_scroll'                         ) _use_autobottom_scroll                        : SimpleCheckbox;
+
 
     constructor(private componentFactoryResolver    : ComponentFactoryResolver,
                 private viewContainerRef            : ViewContainerRef,
