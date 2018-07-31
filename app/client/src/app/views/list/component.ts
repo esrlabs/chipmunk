@@ -528,7 +528,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         } else {
             this.selection.str = ANSIClearer(this._rows[index].params.original);
         }
-        this.nextAfterSearchNavigation(index);
+        //this.nextAfterSearchNavigation(index);
         this.updateRows();
     }
 
@@ -710,9 +710,10 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     }
 
     previousSearchNavigation(){
+        const position = this.searchNavigation.current > this.selection.index ? this.selection.index : this.searchNavigation.current;
         let current = this.searchNavigation.current;
         for(let i = this.rows.length - 1; i >= 0; i -= 1){
-            if (this.rows[i].params.filtered && i < this.searchNavigation.current){
+            if (this.rows[i].params.filtered && i < position){
                 current = i;
                 break;
             }
@@ -728,9 +729,10 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     }
 
     nextSearchNavigation(){
+        const position = this.searchNavigation.current < this.selection.index ? this.selection.index : this.searchNavigation.current;
         let current = this.searchNavigation.current;
         for(let i = 0; i <= this.rows.length - 1; i += 1){
-            if (this.rows[i].params.filtered && i > this.searchNavigation.current){
+            if (this.rows[i].params.filtered && i > position){
                 current = i;
                 break;
             }
@@ -743,7 +745,8 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             this.onROW_IS_SELECTED(this.searchNavigation.current, true);
         }
     }
-
+    /*
+    //This method is deprecated.
     nextAfterSearchNavigation(after: number){
         if (this.highlight && this.line.marks.length > 0){
             let current = -1;
@@ -758,7 +761,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             }
             this.searchNavigation.current = current;
         }
-    }
+    }*/
 
     resetSearchNavigation(){
         this.searchNavigation.current = this.getFirstSearchNavigation();
