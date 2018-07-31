@@ -884,6 +884,10 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     }
 
     onScroll(event: OnScrollEvent){
+        let settings = Settings.get();
+        if (!settings.visual.use_autobottom_scroll) {
+            return;
+        }
         if (event.isScrolledToEnd){
             this.followByScroll = true;
         } else {
