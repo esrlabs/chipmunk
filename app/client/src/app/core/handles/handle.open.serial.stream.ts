@@ -390,7 +390,7 @@ class OpenSerialStream implements MenuHandleInterface{
                 this.showMessage(_('Error'), _('Server returned failed result. Code of error: ') + response.code + _('. Addition data: ') + this.outputToString(response.output));
             }
         } else {
-            this.showMessage(_('Error'), error.message);
+            this.showMessage(_('Error'), `Fail to open serial port due error: "${error.message}". Try to open it with different settings, for example, change "baudRate".`);
         }
     }
 
