@@ -375,7 +375,7 @@ class OpenADBLogcatStream implements MenuHandleInterface{
                     this.openStream();
                 })
                 .catch((error) => {
-                    this.showMessage('Error', error.message);
+                    this.showMessage('Error', `Fail to start ADB logcat due error: ${error.message}. Be sure ADB is installed. Aslo check you can check settings on ADB and check paths to ADB SDK.`);
                 });
         }
         this.showProgress(_('Please wait... Opening...'));
@@ -402,11 +402,14 @@ class OpenADBLogcatStream implements MenuHandleInterface{
                 if (~response.output.indexOf(ERRORS.ADB_SPAWN_01)){
                     this.showPromptToSettings();
                 } else {
-                    this.showMessage(_('Error'), _('Server returned failed result. Code of error: ') + response.code + _('. Addition data: ') + this.outputToString(response.output));
+                    this.showMessage(_('Error'), _('Server returned failed result. Code of error: ')
+                        + response.code + _('. Addition data: ')
+                        + this.outputToString(response.output)
+                        + ' Be sure ADB is installed. Aslo check you can check settings on ADB and check paths to ADB SDK.');
                 }
             }
         } else {
-            this.showMessage(_('Error'), error.message);
+            this.showMessage('Error', `Fail to start ADB logcat due error: ${error.message}. Be sure ADB is installed. Aslo check you can check settings on ADB and check paths to ADB SDK.`);
         }
     }
 
