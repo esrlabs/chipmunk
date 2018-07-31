@@ -1,4 +1,4 @@
-import {Component, Input, OnInit, EventEmitter, Output, ViewContainerRef, ViewChild} from '@angular/core';
+import {Component, Input, OnInit, EventEmitter, Output, ViewContainerRef, ViewChild, OnDestroy} from '@angular/core';
 import { Parameters         } from './interface';
 
 const Directions = {
@@ -27,7 +27,7 @@ interface Size{
     templateUrl : './template.html',
 })
 
-export class Popup implements OnInit{
+export class Popup implements OnInit, OnDestroy{
     @Input()    parameters  : Parameters;
     @Output()   closer      : EventEmitter<any> = new EventEmitter();
 
@@ -60,16 +60,35 @@ export class Popup implements OnInit{
     };
 
     constructor(private viewContainerRef : ViewContainerRef) {
-        window.addEventListener('mousemove',    this.onMove.bind(this));
-        window.addEventListener('mouseup',      this.onMouseUp.bind(this));
+        this.onMove = this.onMove.bind(this);
+        this.onMouseUp = this.onMouseUp.bind(this);
+        this.onKeyPress = this.onKeyPress.bind(this);
+    }
+
+    ngOnDestroy(){
+        window.removeEventListener('mousemove',     this.onMove);
+        window.removeEventListener('mouseup',       this.onMouseUp);
+        document.removeEventListener('keyup',       this.onKeyPress);
     }
 
     ngOnInit(){
+        window.addEventListener('mousemove',    this.onMove);
+        window.addEventListener('mouseup',      this.onMouseUp);
+        document.addEventListener('keyup',      this.onKeyPress);
         this.validateSettings();
         this.validateTitleButtons();
         this.validateButtons();
         this.defaultPosition();
         this.attachContent();
+    }
+
+    onKeyPress(event: KeyboardEvent){
+        if (!this.parameters.settings.close) {
+            return;
+        }
+        if (event.keyCode == 27){
+            this.close();
+        }
     }
 
     validateSetting(setting : string){
