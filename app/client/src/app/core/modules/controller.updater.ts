@@ -97,9 +97,10 @@ class Updater {
             return;
         }
         this.info = info;
+        const version = typeof info === 'object' ? (info !== null ? (info.info !== void 0 ? (typeof info.info.version === 'string' ? info.info.version : null) : null) : null) : null
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.CREATE_NOTIFICATION, {
             caption: 'Update',
-            message: 'New version is available. Do you want install it?',
+            message: `New version${version !== null ? ` (${version}) ` : ' '}is available. Do you want install it?`,
             buttons: [{ caption: 'Install', handler: ()=>{
                 this.requestUpdate();
             }}, { caption: 'Later', handler: ()=>{
