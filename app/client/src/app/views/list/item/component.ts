@@ -9,6 +9,8 @@ import { ANSIReader                                 } from '../../../core/module
 import { ANSIClearer                                } from '../../../core/modules/tools.ansiclear';
 import { serializeHTML, parseHTML, parseRegExp      } from '../../../core/modules/tools.htmlserialize';
 import { serializeStringForReg, safelyCreateRegExp  } from '../../../core/modules/tools.regexp';
+import { EContextMenuItemTypes, IContextMenuEvent   } from "../../../core/components/context-menu/interfaces";
+import { copyText                                   } from '../../../core/modules/tools.clipboard';
 
 const MARKERS = {
     MATCH       : '\uAA86!\uAA87',
@@ -299,5 +301,49 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
         this.bookmarked = !this.bookmarked;
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.VIEW_BAR_ADD_FAVORITE_RESPONSE, { GUID: this.GUID, index: this.index });
         this.bookmark.emit(this.index);
+    }
+
+    onContextMenu(event: MouseEvent) {
+        let contextEvent = {x: event.pageX,
+            y: event.pageY,
+            items: [
+                {
+                    caption : 'Copy whole line',
+                    type    : EContextMenuItemTypes.item,
+                    handler : () => {
+                        copyText(ANSIClearer(this.val));
+                    }
+                },
+                { type: EContextMenuItemTypes.divider },
+                {
+                    caption : 'Select line',
+                    type    : EContextMenuItemTypes.item,
+                    handler : () => {
+                        this.onSelect(null);
+                    }
+                },
+                {
+                    caption : this.bookmarked ? 'Unbookmark' : 'Bookmark',
+                    type    : EContextMenuItemTypes.item,
+                    handler : () => {
+                        this.onFavorite();
+                    }
+                }
+            ]} as IContextMenuEvent;
+        const selection = window.getSelection();
+        const selectedTest = selection.toString();
+        if (selectedTest.trim() !== '') {
+            contextEvent.items.unshift({
+                caption : 'Copy selection',
+                type    : EContextMenuItemTypes.item,
+                handler : () => {
+                    copyText(ANSIClearer(selectedTest));
+                }
+            });
+        }
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.CONTEXT_MENU_CALL, contextEvent);
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
     }
 }
