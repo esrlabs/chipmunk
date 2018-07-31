@@ -26,9 +26,30 @@
     {
       "group": "Application",
       "items": [
-        { "icon" : "",  "caption" : "About", "selector": "orderFrontStandardAboutPanel:",   "type": "item", "accelerator": "" },
+        { "icon" : "",                "caption" : "About",                "selector": "orderFrontStandardAboutPanel:",    "type": "item", "accelerator": "" },
         { "type" : "line" },
-        { "icon" : "",  "caption" : "Quit", "click": "exit",   "type": "item", "accelerator": "Command+Q" }
+        { "icon" : "fa-cloud",        "caption" : "Connect to service",   "handler": "connectionSettings",                "type": "item", "accelerator": "" },
+        { "type" : "line" },
+        { "icon" : "fa-gear",         "caption" : "Settings",             "handler": "openApplicationSettings",           "type": "item", "accelerator": "CmdOrCtrl+S" },
+        { "icon" : "fa-paint-brush",  "caption" : "Change color theme",   "handler": "changeThemeSettings",               "type": "item", "accelerator": "" },
+        { "type" : "line" },
+        { "icon" : "fa-refresh",      "caption" : "Check updates",        "handler": "checkUpdates",                      "type": "item", "accelerator": "" },
+        { "type" : "line" },
+        { "icon" : "",                "caption" : "Quit", "click": "exit",   "type": "item", "accelerator": "Command+Q" }
+      ]
+    },
+    {
+      "group": "File / Sources",
+      "items": [
+        { "icon" : "",  "caption" : "Open local file", "handler": "openLocalFile",   "type": "item", "accelerator": "CmdOrCtrl+O" },
+        { "type" : "line" },
+        { "icon" : "fa-plug",         "caption" : "Serial port stream",     "handler": "openSerialStream",            "type": "item", "accelerator": "" },
+        { "icon" : "fa-desktop",      "caption" : "Telnet stream",          "handler": "openTelnetStream",            "type": "item", "accelerator": "" },
+        { "icon" : "fa-android",      "caption" : "ADB logcat stream",      "handler": "openADBLogcatStream",         "type": "item", "accelerator": "" },
+        { "type" : "line" },
+        { "icon" : "fa-terminal",     "caption" : "Terminal command",       "handler": "openTerminalCommand",         "type": "item", "accelerator": "" },
+        { "type" : "line" },
+        { "icon" : "fa-android",      "caption" : "Settings ADB",           "handler": "setupADBLogcatStream",        "type": "item", "accelerator": "" }
       ]
     },
     {
@@ -44,35 +65,22 @@
       ]
     },
     {
-      "group": "Sources",
-      "items": [
-        { "icon" : "fa-plug",         "caption" : "Open serial port stream",    "handler": "openSerialStream",            "type": "item", "accelerator": "" },
-        { "icon" : "fa-desktop",      "caption" : "Open telnet stream",         "handler": "openTelnetStream",            "type": "item", "accelerator": "" },
-        { "icon" : "fa-android",      "caption" : "Open ADB logcat stream",     "handler": "openADBLogcatStream",         "type": "item", "accelerator": "" },
-        { "icon" : "fa-android",      "caption" : "Settings ADB logcat",        "handler": "setupADBLogcatStream",        "type": "item", "accelerator": "" },
-        { "icon" : "fa-terminal",     "caption" : "Terminal command",           "handler": "openTerminalCommand",         "type": "item", "accelerator": "" }
-      ]
-    },
-    {
       "group": "Services",
       "items": [
-        { "icon" : "fa-stethoscope",  "caption" : "Monitor manager",            "handler": "openMonitorManager",   "type": "item", "accelerator": "" }
+        { "icon" : "fa-stethoscope",  "caption" : "Monitor manager",        "handler": "openMonitorManager",   "type": "item", "accelerator": "" }
       ]
     },
     {
       "group": "View",
       "items": [
-        { "icon" : "fa-pencil-square-o",  "caption" : "Markers",                    "handler": "openMarkersManager",      "type": "item", "accelerator": "" },
-        { "icon" : "fa-desktop",          "caption" : "Add view",                   "handler": "addView",                 "type": "item", "accelerator": "" },
-        { "icon" : "fa-paint-brush",      "caption" : "Change color theme",         "handler": "changeThemeSettings",     "type": "item", "accelerator": "" },
-        { "icon" : "fa-gear",             "caption" : "Settings",                   "handler": "openApplicationSettings", "type": "item", "accelerator": "" }
+        { "icon" : "fa-pencil-square-o",  "caption" : "Markers",            "handler": "openMarkersManager",      "type": "item", "accelerator": "" },
+        { "icon" : "fa-desktop",          "caption" : "Add view",           "handler": "addView",                 "type": "item", "accelerator": "" }
       ]
     },
     {
-      "group": "System",
+      "group": "Developer",
       "items": [
-        { "icon" : "fa-cloud",        "caption" : "Connect to service",         "handler": "connectionSettings",   "type": "item", "accelerator": "" },
-        { "icon" : "fa-refresh",      "caption" : "Check updates",              "handler": "checkUpdates",         "type": "item", "accelerator": "" },
+
         { "icon" : "fa-wrench",       "caption" : "Developer console",          "handler": "openDevConsole",       "type": "item", "accelerator": "" },
         { "icon" : "fa-bug",          "caption" : "Create Bug Report",          "handler": "openBugReportDialog",  "type": "item", "accelerator": "" }
       ]
