@@ -77,7 +77,7 @@ export class ViewControllerTabChart extends TabController implements ViewInterfa
         if (this.active){
             this.onWindowResize();
             if (this.D3 === null && this._rows.length === 0){
-                this.onDATA_IS_UPDATED({ rows : dataController.getRows(), bookmarks: [] }, false);
+                this.onDATA_IS_UPDATED(new EVENT_DATA_IS_UPDATED(dataController.getRows()), false);
             }
             if (this.D3 === null && this.svg !== void 0){
                 this.initD3Controller();
@@ -273,7 +273,7 @@ export class ViewControllerTabChart extends TabController implements ViewInterfa
     onCHART_VIEW_CHARTS_UPDATED(needsParsing: boolean = true){
         this.loadSets();
         needsParsing && dataController.updateForParsers();
-        this.onDATA_IS_UPDATED({ rows : dataController.getRows(), bookmarks: [] }, true);
+        this.onDATA_IS_UPDATED(new EVENT_DATA_IS_UPDATED(dataController.getRows()), true);
     }
 
     onCHART_VIEW_CHARTS_STYLE_UPDATED(){

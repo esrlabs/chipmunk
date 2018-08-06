@@ -1,11 +1,14 @@
 import { DataRow } from '../interface.data.row';
+import {DataFilter} from "../interface.data.filter";
 
 class DATA_IS_UPDATED {
     rows : Array<DataRow> = [];
     bookmarks: Array<number> = [];
-    constructor(rows : Array<DataRow>, bookmarks: Array<number> = []){
+    filter: DataFilter;
+    constructor(rows : Array<DataRow>, bookmarks: Array<number> = [], filter: DataFilter = { value: '', mode: ''}){
         this.rows = rows;
         this.bookmarks = bookmarks;
+        this.filter = filter;
     }
 }
 

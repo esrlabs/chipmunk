@@ -334,6 +334,17 @@ class Stream {
         });
     }
 
+    private _dropFilter(rows: Array<DataRow>): Promise<Array<DataRow>> {
+        return new Promise<Array<DataRow>>((resolve) => {
+            const measure = Logs.measure('[data.processor][Stream][_dropFilter]');
+            resolve(rows.map((row: DataRow) => {
+                row.filtered = false;
+                return row;
+            }));
+            Logs.measure(measure);
+        });
+    }
+
     private _applyFilters(rows: Array<DataRow>, filters: TFilters) : Promise<Array<DataRow>> {
         return new Promise <Array<DataRow>> ((resolve, reject) => {
             const measure = Logs.measure('[data.processor][Stream][_applyFilters]');
@@ -484,7 +495,11 @@ class Stream {
 
     public updateActiveFilter(filter: DataFilter) : Promise<Array<DataRow>> {
         this._filter = filter;
-        return this._applyFilter(this._rows);
+        if (this._filter.value === '') {
+            return this._dropFilter(this._rows);
+        } else {
+            return this._applyFilter(this._rows);
+        }
     }
 
     public addRequest(request: DataFilter) : Promise<Array<DataRow>> {
