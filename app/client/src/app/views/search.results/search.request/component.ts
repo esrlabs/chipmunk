@@ -158,7 +158,7 @@ export class TopBarSearchRequest implements AfterContentInit{
                 this.historyDrop();
                 this.trigger_SEARCH_REQUEST_CHANGED(event);
             } else {
-                this.lastRequest = null;
+                //this.lastRequest = null;
                 this.offerHistory();
             }
         } else {
@@ -210,11 +210,19 @@ export class TopBarSearchRequest implements AfterContentInit{
     }
 
     onAddRequest(){
-        this.lastRequest !== null && Events.trigger(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_ACCEPTED, this.lastRequest);
+        if (this.lastRequest === null) {
+            return;
+        }
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_CHANGED, (new DataFilter(this.mode, '')), true);
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_ACCEPTED, this.lastRequest, true);
         this.lastRequest = null;
+        this.resetInput();
     }
 
     onDropRequest(){
+        if (this.lastRequest === null) {
+            return;
+        }
         this.resetInput();
         this.triggerSearchRequest();
     }
@@ -235,7 +243,10 @@ export class TopBarSearchRequest implements AfterContentInit{
         this.setInputFocus();
     }
 
-    onSEARCH_REQUEST_CHANGED(event: DataFilter){
+    onSEARCH_REQUEST_CHANGED(event: DataFilter, internal: boolean = false){
+        if (internal){
+            return;
+        }
         if (event.value === '') {
             this.lastRequest = null;
         } else {

@@ -146,11 +146,16 @@ class DataController implements InitiableModule{
             });
     }
 
-    updateForFilter(filter: DataFilter){
-        this.stream !== null && this.stream.addRequest(filter)
+    updateForFilter(filter: DataFilter): Promise<Array<DataRow>> {
+        if (this.stream === null) {
+            return Promise.resolve([]);
+        }
+        return this.stream.addRequest(filter);
+        /*
             .then((rows: Array<DataRow>) => {
                 Events.trigger(Configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED, rows);
             });
+            */
     }
 
     onREMEMBER_FILTER(){
@@ -167,12 +172,12 @@ class DataController implements InitiableModule{
             });
     }
 
-    onSEARCH_REQUEST_CHANGED(filter: DataFilter){
+    onSEARCH_REQUEST_CHANGED(filter: DataFilter, internal: boolean = false){
         if (this.stream !== null) {
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_PROCESS_START, filter);
             this.stream.updateActiveFilter(filter)
                 .then((rows: Array<DataRow>) => {
-                    Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_FILTER_IS_UPDATED, new EVENT_DATA_IS_UPDATED(rows));
+                    Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_FILTER_IS_UPDATED, new EVENT_DATA_IS_UPDATED(rows, [], filter));
                     Events.trigger(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_PROCESS_FINISH, filter);
                 });
         }

@@ -5,12 +5,12 @@
     <p *ngIf="rows.length === 0" class="message-no-data">No Data Is Loaded</p>
     <a #exporturl [attr.href]="exportdata.url" class="export-url" [attr.download]="exportdata.filename"></a>
 </div>
-<div [attr.class]="'lv-manager-wrapper noselect' + ' ' + (requestsListClosed ? 'closed' : 'opened')">
+<div [attr.class]="'lv-manager-wrapper noselect' + (requestsListClosed ? ' closed' : ' opened') + (!isConditionVisible() ? ' no-conditions' : '')">
     <div class="lv-manager-trigger-area"  (click)="onRequestListTrigger()" (contextmenu)="onListContextMenu($event)">
         <span class="lv-manager-trigger fa fa-angle-double-left"></span>
         <span class="lv-manager-title">Requests List</span>
     </div>
-    <div class="lv-manager-conditions-area">
+    <div class="lv-manager-conditions-area" *ngIf="isConditionVisible()">
         <div class="wrapper">
             <simple-dd-list [items]="conditions" [css]="'drop-down-list'" [onChange]="onConditionChanged" [defaults]="filterMode"></simple-dd-list>
         </div>
