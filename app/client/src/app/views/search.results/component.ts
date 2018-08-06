@@ -121,6 +121,7 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     private shareHighlightHash          : string                        = '';
     private lastBookmarkOperation       : number                        = null;
     private highlight_search_requests   : boolean                       = false;
+    private inSearch                    : boolean                       = false;
 
     private conditions          : Array<SimpleListItem>         = [
         { caption: 'Active from Passive',   value: FILTER_MODES.ACTIVE_FROM_PASSIVE     },
@@ -303,7 +304,9 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     onSEARCH_REQUEST_CHANGED(event: DataFilter){
         if (event.value !== '') {
             this.forceOnOffToOn();
+            this.inSearch = true;
         } else {
+            this.inSearch = false;
             let settings = Settings.get();
             settings.visual.make_filters_active_after_search_is_cleared && this.forceOnOffToOff();
         }
@@ -320,11 +323,14 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
             return request;
         });
         this.checkOnOffMode();
+        this.dropConditionToDefault();
         this.forceUpdate();
     }
 
     onFILTER_IS_APPLIED(rows : Array<DataRow>){
         let measure = Logs.measure('[search.results/tab.results][onFILTER_IS_APPLIED]');
+        this.resultsMap = {};
+        this.dropConditionToDefault();
         this.initRows(rows);
         Logs.measure(measure);
     }
@@ -416,6 +422,25 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         this.resultsMap = {};
         this.filterMode = filterMode;
         this.filterRows();
+    }
+
+    isConditionVisible(){
+        let results = false;
+        this._requests.forEach((request: Request) => {
+           if (request.passive) {
+               results = true;
+           }
+        });
+        return results;
+    }
+
+    dropConditionToDefault(){
+        if (this.isConditionVisible()) {
+            return;
+        }
+        if (this.filterMode === FILTER_MODES.ONLY_PASSIVE || this.filterMode === FILTER_MODES.ACTIVE_FROM_PASSIVE) {
+            this.filterMode = FILTER_MODES.ONLY_ACTIVE;
+        }
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -816,25 +841,29 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
             result  : any               = [],
             measure                     = Logs.measure('[search.results/tab.results][convertFilterRows]');
         !adding && this.resetCounts();
-        switch (this.filterMode){
-            case FILTER_MODES.ACTIVE_FROM_PASSIVE:
-                let _rows   = this.getRowsByRequestsPassive(rows, passive, {}).rows;
-                result      = this.getRowsByRequestsActive(_rows, active, {}).rows;
-                break;
-            case FILTER_MODES.ACTIVE_AND_PASSIVE:
-                let _active = this.getRowsByRequestsActive  (rows, active, {});
-                let _passive= this.getRowsByRequestsPassive (rows, passive, _active.map);
-                result      = rows.filter((row, index)=>{
-                    let filtered = this.activeSearchResults && row.filtered;
-                    return filtered ? true : (this.bookmarks.indexOf(index) !== -1 ? true : (_active.map[index] !== void 0 ? true : (_passive.map[index] !== void 0)));
-                });
-                break;
-            case FILTER_MODES.ONLY_ACTIVE:
-                result = this.getRowsByRequestsActive (rows, active, {}).rows;
-                break;
-            case FILTER_MODES.ONLY_PASSIVE:
-                result = this.getRowsByRequestsPassive(rows, passive, {}).rows;
-                break;
+        if (this.inSearch) {
+            result = this.getRowsByRequestsActive (rows, active, {}).rows;
+        } else {
+            switch (this.filterMode){
+                case FILTER_MODES.ACTIVE_FROM_PASSIVE:
+                    let _rows   = this.getRowsByRequestsPassive(rows, passive, {}).rows;
+                    result      = this.getRowsByRequestsActive(_rows, active, {}).rows;
+                    break;
+                case FILTER_MODES.ACTIVE_AND_PASSIVE:
+                    let _active = this.getRowsByRequestsActive  (rows, active, {});
+                    let _passive= this.getRowsByRequestsPassive (rows, passive, _active.map);
+                    result      = rows.filter((row, index)=>{
+                        let filtered = this.activeSearchResults && row.filtered;
+                        return filtered ? true : (this.bookmarks.indexOf(index) !== -1 ? true : (_active.map[index] !== void 0 ? true : (_passive.map[index] !== void 0)));
+                    });
+                    break;
+                case FILTER_MODES.ONLY_ACTIVE:
+                    result = this.getRowsByRequestsActive (rows, active, {}).rows;
+                    break;
+                case FILTER_MODES.ONLY_PASSIVE:
+                    result = this.getRowsByRequestsPassive(rows, passive, {}).rows;
+                    break;
+            }
         }
         result.forEach((row: any) => {
             this.resultsMap[row.params.index] = true;
@@ -843,11 +872,12 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         return result;
     }
 
-    getHighlightHash(){
-        return this.rows.length + '/' +
-            Object.keys(this._requests).map((key:string)=>{ return this._requests[key].count + '_';}).join('.') +
-            Object.keys(this._requests).length + '/' +
-            Object.keys(this.requests).length + '/' + serviceRequests.getCurrentRequest().length;
+    getHighlightHash(): string {
+        let hash = `${this.rows.length}:${this.requests.length}:${this._requests.length}:${serviceRequests.getCurrentRequest().length}:`;
+        this._requests.forEach((request: Request) => {
+            hash += `${request.backgroundColor}-${request.foregroundColor}`;
+        });
+        return hash;
     }
 
     resetHighlightHash(){
@@ -1071,15 +1101,22 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
                 let afterRequest: Request = null;
 
                 active.forEach((request: Request) => {
+                    if (!this.inSearch && this.filterMode === FILTER_MODES.ONLY_ACTIVE && request.passive) {
+                        return;
+                    }
+                    if (!this.inSearch && this.filterMode === FILTER_MODES.ONLY_PASSIVE && !request.passive) {
+                        return;
+                    }
                     const GUID = request.GUID;
-                    if (!isIn && row.requests[GUID] === true && hidden[GUID] === void 0 && beforeRequest === null){
+                    const filtered = !request.passive ? row.requests[GUID] : !row.requests[GUID];
+                    if (!isIn && filtered === true && hidden[GUID] === void 0 && beforeRequest === null){
                         before = true;
                         beforeRequest = request;
                     }
-                    if (row.requests[GUID] === true && hidden[GUID] !== void 0) {
+                    if (filtered === true && hidden[GUID] !== void 0) {
                         isIn = true;
                     }
-                    if (isIn && row.requests[GUID] === true && hidden[GUID] === void 0 && afterRequest === null){
+                    if (isIn && filtered === true && hidden[GUID] === void 0 && afterRequest === null){
                         after = true;
                         afterRequest = request;
                     }

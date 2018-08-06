@@ -129,7 +129,7 @@ export class Base64ToJSON{
 export class BytesToStr {
 
     private str: string;
-    public name: string = 'Bytes -> String';
+    public name: string = 'Bytes [0...255] -> String';
 
     constructor(str: string) {
         this.str = str;
@@ -182,6 +182,67 @@ export class BytesToStr {
         const separator = this.getSeparator();
         const bytes = this.str.split(separator).map((part: string) => {
             return parseInt(part);
+        });
+        return String.fromCharCode.apply(null, bytes);
+    }
+}
+
+export class NegativeBytesToStr {
+
+    private str: string;
+    public name: string = 'Bytes [-128...127] -> String';
+
+    constructor(str: string) {
+        this.str = str;
+    }
+
+    private getSeparator(){
+        const separators = [',', ' '];
+        let separator = separators[0];
+        let count = -1;
+        separators.forEach((_splitter: string) => {
+            const parts = this.str.split(_splitter);
+            if (parts.length > count) {
+                separator = _splitter;
+                count = parts.length;
+            }
+        });
+        return separator;
+    }
+
+    public test(): boolean {
+        if (typeof this.str !== 'string') {
+            return false;
+        }
+        if (this.str.search(/[^\d,\-\s]/gi) !== -1) {
+            return false;
+        }
+        const separator = this.getSeparator();
+        const bytes = this.str.split(separator).map((part: string) => {
+            return parseInt(part) & 0xFF ^ 0x80;
+        });
+        if (bytes.length === 1){
+            return false;
+        }
+        let results = true;
+        bytes.forEach((byte: number) => {
+            if (isNaN(byte)) {
+                results = false;
+            }
+        });
+        try{ this.convert(true); } catch (e) { return false; }
+        return results;
+    }
+
+    public convert(internal: boolean = false): string {
+        if (!internal) {
+            if (!this.test()) {
+                return '';
+            }
+        }
+        const separator = this.getSeparator();
+        const bytes = this.str.split(separator).map((part: string) => {
+            return parseInt(part) & 0xFF ^ 0x80;
         });
         return String.fromCharCode.apply(null, bytes);
     }
@@ -283,7 +344,7 @@ export class HEXToString {
 export class BytesToHEX {
 
     private str: string;
-    public name: string = 'Bytes -> HEXs';
+    public name: string = 'Bytes [0...255] -> HEXs';
 
     constructor(str: string) {
         this.str = str;
@@ -336,6 +397,66 @@ export class BytesToHEX {
         const separator = this.getSeparator();
         return `${this.str.split(separator).map((part: string) => {
             return parseInt(part, 10).toString(16);
+        }).join(' ')}`;
+    }
+}
+
+export class NegativeBytesToHEX {
+
+    private str: string;
+    public name: string = 'Bytes [-128...127] -> HEXs';
+
+    constructor(str: string) {
+        this.str = str;
+    }
+
+    private getSeparator(){
+        const separators = [',', ' '];
+        let separator = separators[0];
+        let count = -1;
+        separators.forEach((_splitter: string) => {
+            const parts = this.str.split(_splitter);
+            if (parts.length > count) {
+                separator = _splitter;
+                count = parts.length;
+            }
+        });
+        return separator;
+    }
+
+    public test(): boolean {
+        if (typeof this.str !== 'string') {
+            return false;
+        }
+        if (this.str.search(/[^\d,\-\s]/gi) !== -1) {
+            return false;
+        }
+        const separator = this.getSeparator();
+        const bytes = this.str.split(separator).map((part: string) => {
+            return parseInt(part) & 0xFF ^ 0x80;
+        });
+        if (bytes.length === 1){
+            return false;
+        }
+        let results = true;
+        bytes.forEach((byte: number) => {
+            if (isNaN(byte)) {
+                results = false;
+            }
+        });
+        try{ this.convert(true); } catch (e) { return false; }
+        return results;
+    }
+
+    public convert(internal: boolean = false): string {
+        if (!internal) {
+            if (!this.test()) {
+                return '';
+            }
+        }
+        const separator = this.getSeparator();
+        return `${this.str.split(separator).map((part: string) => {
+            return (parseInt(part) & 0xFF ^ 0x80).toString(16);
         }).join(' ')}`;
     }
 }
@@ -461,7 +582,7 @@ export class Base64ToHEX {
 export class BytesToBase64 {
 
     private str: string;
-    public name: string = 'Bytes -> Base64';
+    public name: string = 'Bytes [0...255] -> Base64';
 
     constructor(str: string) {
         this.str = str;
@@ -495,10 +616,47 @@ export class BytesToBase64 {
     }
 }
 
+export class NegativeBytesToBase64 {
+
+    private str: string;
+    public name: string = 'Bytes [-128...127] -> Base64';
+
+    constructor(str: string) {
+        this.str = str;
+    }
+
+    public test(): boolean {
+        if (typeof this.str !== 'string') {
+            return false;
+        }
+        if (this.str.search(/[^\d,\-\s]/gi) !== -1) {
+            return false;
+        }
+        const bytesToHEX = new NegativeBytesToHEX(this.str);
+        if (!bytesToHEX.test()) {
+            return false;
+        }
+        const hexToBase64 = new HEXToBase64(bytesToHEX.convert());
+        return hexToBase64.test();
+    }
+
+    public convert(internal: boolean = false): string {
+        if (!internal) {
+            if (!this.test()) {
+                return '';
+            }
+        }
+        const bytesToHEX = new NegativeBytesToHEX(this.str);
+        const hex = bytesToHEX.convert();
+        const hexToBase64 = new HEXToBase64(hex);
+        return hexToBase64.convert();
+    }
+}
+
 export class BytesToBase64Decode {
 
     private str: string;
-    public name: string = 'Bytes -> Base64 -> String';
+    public name: string = 'Bytes [0...255] -> Base64 -> String';
 
     constructor(str: string) {
         this.str = str;
@@ -530,6 +688,48 @@ export class BytesToBase64Decode {
             }
         }
         const bytesToHEX = new BytesToHEX(this.str);
+        const hex = bytesToHEX.convert();
+        const hexToBase64 = new HEXToBase64(hex);
+        const decodeBase64 = new DecodeBase64Str(hexToBase64.convert());
+        return decodeBase64.convert();
+    }
+}
+
+export class NegativeBytesToBase64Decode {
+
+    private str: string;
+    public name: string = 'Bytes [-128...127] -> Base64 -> String';
+
+    constructor(str: string) {
+        this.str = str;
+    }
+
+    public test(): boolean {
+        if (typeof this.str !== 'string') {
+            return false;
+        }
+        if (this.str.search(/[^\d,\-\s]/gi) !== -1) {
+            return false;
+        }
+        const bytesToHEX = new NegativeBytesToHEX(this.str);
+        if (!bytesToHEX.test()) {
+            return false;
+        }
+        const hexToBase64 = new HEXToBase64(bytesToHEX.convert());
+        if (!hexToBase64.test()) {
+            return false;
+        }
+        const decodeBase64 = new DecodeBase64Str(hexToBase64.convert());
+        return decodeBase64.test();
+    }
+
+    public convert(internal: boolean = false): string {
+        if (!internal) {
+            if (!this.test()) {
+                return '';
+            }
+        }
+        const bytesToHEX = new NegativeBytesToHEX(this.str);
         const hex = bytesToHEX.convert();
         const hexToBase64 = new HEXToBase64(hex);
         const decodeBase64 = new DecodeBase64Str(hexToBase64.convert());

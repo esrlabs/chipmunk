@@ -21,7 +21,7 @@ export class DialogVisualSettingTab extends TabController implements OnDestroy, 
         highlight_search_requests                   : false,
         show_active_search_results_always           : false,
         make_filters_active_after_search_is_cleared : false,
-        use_autobottom_scroll                       : false
+        use_autobottom_scroll                       : true
     };
     @Input() active     : boolean   = false;
     @Input() register   : Function = null;

@@ -5,6 +5,7 @@ import { EVENT_DATA_IS_UPDATED          } from '../interfaces/events/DATA_IS_UPD
 import { Logs, TYPES as LogTypes        } from '../modules/tools.logs';
 import { DataFilter                     } from '../interfaces/interface.data.filter';
 import { localSettings, KEYs            } from '../modules/controller.localsettings';
+import { DataRow                        } from "../interfaces/interface.data.row";
 
 const SETTINGS = {
     FOREGROUND_COLOR    : '',
@@ -100,10 +101,13 @@ class ServiceRequests {
      * Core events
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     private onDATA_FILTER_IS_UPDATED(event : EVENT_DATA_IS_UPDATED){
+        if (event.filter.value === '') {
+            return;
+        }
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED, event.rows);
     }
 
-    private onSEARCH_REQUEST_CHANGED(event: DataFilter){
+    private onSEARCH_REQUEST_CHANGED(event: DataFilter, internal: boolean = false){
         if (event.value !== ''){
             this.currentRequest = this.initRequest({
                 GUID            : this.dataController.getRequestGUID(event.mode, event.value),
@@ -120,10 +124,10 @@ class ServiceRequests {
         } else {
             this.currentRequest = null;
         }
-        this.onRequestsChanges();
+        !internal && this.onRequestsChanges();
     }
 
-    private onSEARCH_REQUEST_ACCEPTED(event: DataFilter){
+    private onSEARCH_REQUEST_ACCEPTED(event: DataFilter, dropCurrent: boolean = false){
         if (!this.isExist(event.mode, event.value) && event.value !== ''){
             this.requests.push(this.initRequest({
                 GUID            : this.dataController.getRequestGUID(event.mode, event.value),
@@ -138,6 +142,9 @@ class ServiceRequests {
                 isTemporary     : false
 
             }));
+            if (dropCurrent) {
+                this.currentRequest = null;
+            }
             this.onRequestsChanges();
         }
     }
@@ -249,12 +256,18 @@ class ServiceRequests {
         const measure   = Logs.measure('[view.search.results.requests][updateSearchResults]');
         const active    = this.getActiveRequests();
         if (active.length > 0) {
-            active.forEach((request: Request)=>{
-                this.dataController.updateForFilter({
+            Promise.all(active.map((request: Request)=>{
+                return this.dataController.updateForFilter({
                     mode    : request.type,
                     value   : request.value
                 });
-            });
+            }))
+                .then((results: Array<Array<DataRow>>) => {
+                    Events.trigger(
+                        Configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED,
+                        results.length > 0 ? results[results.length - 1] : []
+                    );
+                });
         } else {
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.FILTER_IS_APPLIED, this.dataController.getRows());
         }
@@ -389,13 +402,13 @@ class ServiceRequests {
     }
 
     private onRequestsChanges(){
-        this.saveRequests();
         if (this.getCurrentRequest().length !== 0){
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED, this.getCurrentRequest(), this.getRequests());
         } else {
+            this.saveRequests();
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.REQUESTS_HISTORY_UPDATED, this.getActiveRequests(), this.getRequests());
+            this.updateSearchResults();
         }
-        this.updateSearchResults();
 
     }
 

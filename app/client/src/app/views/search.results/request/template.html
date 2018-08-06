@@ -1,4 +1,4 @@
-<p [attr.class]="'compact-view ' + (isTemporary ? 'temporary' : '')">
+<p [attr.class]="'compact-view' + (isTemporary ? ' temporary ' : '') + (count > 0 ? '' : ' no-matches ')">
     <span [attr.class]="'trigger compact' + (active ? ' active': '')" (click)="onClickTrigger()"></span>
     <span class="value" (click)="onClickTriggerSafe()" (dblclick)="onClickEdit()">{{count > 0 ? ('(' + count + ') ') : ''}} {{value}}</span>
     <span class="trigger-state" (click)="onClickTriggerState()">{{passive ? '[P]' : '[A]'}}</span>

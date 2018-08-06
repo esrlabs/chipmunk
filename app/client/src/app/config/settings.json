@@ -10,7 +10,7 @@
     "highlight_search_requests": false,
     "show_active_search_results_always": true,
     "make_filters_active_after_search_is_cleared": false,
-    "use_autobottom_scroll": false
+    "use_autobottom_scroll": true
   },
   "output":{
     "remove_empty_rows_from_stream": true
