@@ -258,7 +258,7 @@ export class LongList implements AfterViewChecked{
         }
         //Correction of top scroll
         if (event.target.scrollTop < SETTINGS.SCROLL_TOP_OFFSET){
-            event.target.scrollTop = SETTINGS.SCROLL_TOP_OFFSET;
+            event.target.scrollTop = (this.state.distance > this.rows.length - 1) ? 0 : SETTINGS.SCROLL_TOP_OFFSET;
         }
 
         this.state.previousST = event.target.scrollTop;
