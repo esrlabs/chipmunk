@@ -4,9 +4,13 @@ import {EContextMenuItemTypes, IContextMenuEvent} from "../../../core/components
 import {configuration as Configuration} from "../../../core/modules/controller.config";
 import {events as Events} from "../../../core/modules/controller.events";
 import * as Parsers from "../../../core/modules/controller.parsers";
+import { safelyCreateRegExp, serializeStringForReg } from "../../../core/modules/tools.regexp";
+import { clearHTML } from "../../../core/modules/tools.htmlserialize";
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 interface IField{
     value: string;
+    html: SafeHtml;
     caption: string;
 }
 
@@ -22,14 +26,15 @@ export class ViewControllerListFullLine implements OnDestroy, OnChanges, AfterCo
 
     private fields: Array<IField> = [];
     private currentFieldElement: HTMLTextAreaElement = null;
-    private currentFieldIndex: number = -1;
+    private selection: string = '';
 
     ngOnDestroy(){
 
     }
 
     constructor(private changeDetectorRef   : ChangeDetectorRef,
-                private viewContainerRef    : ViewContainerRef){
+                private viewContainerRef    : ViewContainerRef,
+                private sanitizer           : DomSanitizer){
         this.changeDetectorRef  = changeDetectorRef;
         this.viewContainerRef   = viewContainerRef;
     }
@@ -47,18 +52,19 @@ export class ViewControllerListFullLine implements OnDestroy, OnChanges, AfterCo
         this.changeDetectorRef.detectChanges();
     }
 
-    onMouseDown(index: number, event: MouseEvent){
+    onMouseDown(field: IField, event: MouseEvent){
         this.currentFieldElement = event.target as HTMLTextAreaElement;
-        this.currentFieldIndex = index;
     }
 
-    getSelection(): string | null {
-        if (this.currentFieldElement === null || this.currentFieldElement === void 0) {
-            return null;
+    onMouseUp(index: number, event: MouseEvent){
+        let selection = window.getSelection();
+        if (typeof selection.toString === 'function'){
+            this.selection = selection.toString();
+            console.log('GOOOD');
+        } else {
+            this.selection = '';
+            console.log('BAD');
         }
-        const start = this.currentFieldElement.selectionStart;
-        const finish = this.currentFieldElement.selectionEnd;
-        return this.currentFieldElement.value.substring(start, finish);
     }
 
     onCloseField(index: number){
@@ -72,8 +78,25 @@ export class ViewControllerListFullLine implements OnDestroy, OnChanges, AfterCo
     setupOriginal(){
         this.fields = [{
             caption: 'Original',
-            value: this.value
+            value: this.value,
+            html: this.getHTML(this.value)
         }];
+    }
+
+    getHTML(value: string, selection: string = ''): SafeHtml{
+        selection = clearHTML(selection);
+        value = clearHTML(value);
+        if (selection.trim() === '') {
+            return this.sanitizer.bypassSecurityTrustHtml(value);
+        }
+        if (value.indexOf(selection) === -1) {
+            return this.sanitizer.bypassSecurityTrustHtml(value);
+        }
+        const reg = safelyCreateRegExp(serializeStringForReg(selection));
+        if (!(reg instanceof RegExp)){
+            return this.sanitizer.bypassSecurityTrustHtml(value);
+        }
+        return this.sanitizer.bypassSecurityTrustHtml(value.replace(reg, `<span class="selection">${selection}</span>`));
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -87,16 +110,20 @@ export class ViewControllerListFullLine implements OnDestroy, OnChanges, AfterCo
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     * Context menu
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    onContextMenu(event: MouseEvent){
-        const selection = this.getSelection();
-        if (selection === null || selection.trim() === '') {
+    onContextMenu(index: number, event: MouseEvent){
+        if (this.selection === null || this.selection.trim() === '') {
+            event.preventDefault();
+            event.stopPropagation();
+            return false;
+        }
+        if (this.fields[index] === void 0) {
             event.preventDefault();
             event.stopPropagation();
             return false;
         }
         const items: Array<any> = [];
         Object.keys(Parsers).forEach((parser: string) => {
-            const implementation = new Parsers[parser](selection);
+            const implementation = new Parsers[parser](this.selection);
             const test: boolean = implementation.test();
             const name: string = implementation.name;
             if (!implementation.test()) {
@@ -106,10 +133,16 @@ export class ViewControllerListFullLine implements OnDestroy, OnChanges, AfterCo
                 caption : `${implementation.name}`,
                 type    : EContextMenuItemTypes.item,
                 handler : () => {
+                    const converted = implementation.convert();
+                    if (this.fields.length - 1 > index) {
+                        this.fields.splice(index + 1, this.fields.length);
+                    }
                     this.fields.push({
                         caption: name,
-                        value: implementation.convert()
+                        value: converted,
+                        html: this.getHTML(converted)
                     });
+                    this.fields[index].html = this.getHTML(this.fields[index].value, this.selection);
                 }
             });
         });

@@ -2,11 +2,15 @@
     <ul class="lv-full-line-com-fields">
         <li class="lv-full-line-com-field" *ngFor="let field of fields; let i = index;" [style.width]="(100 / fields.length) + '%'">
             <p class="lv-full-line-com-field-caption">{{field.caption}}</p>
-            <div class="lv-full-line-com-textarea">
-                <textarea #textarea (contextmenu)="onContextMenu($event)" (mousedown)="onMouseDown(i, $event)" readonly>{{field.value}}</textarea>
+            <div class="lv-full-line-com-value-wrapper">
+                <p class="lv-full-line-com-value"
+                   (contextmenu)="onContextMenu(i, $event)"
+                   (mousedown)="onMouseDown(field, $event)"
+                   (mouseup)="onMouseUp(filed, $event)"
+                   [innerHTML]="field.html"></p>
             </div>
             <div class="lv-full-line-com-back">
-                <span class="icon-button icon fa fa-mail-reply" (click)="onCloseField(i)"></span>
+                <span class="icon-button icon fa fa-close" (click)="onCloseField(i)"></span>
             </div>
         </li>
     </ul>
