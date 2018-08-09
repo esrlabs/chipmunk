@@ -199,6 +199,7 @@ class WSCommands{
     }
 
     [COMMANDS.OpenLocalFile             ](message : WSCommandMessage, sender: Function){
+        Logs.msg('OPEN LOCAL FILE IS GOTTEN');
         this.safelyExecute(() => {
             openLocalFile(message.params.file)
                 .then((data: string) => {
