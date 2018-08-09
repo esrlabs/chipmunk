@@ -304,7 +304,7 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     }
 
     removeIndexes(str: string){
-        return str.replace(/\u0020.*\u0020/gi, '');
+        return str.replace(/\u0020\d{1,}\u0020/gi, '').replace(/\d{1,}\u0020{1,}/gi, '');
     }
 
     onContextMenu(event: MouseEvent) {
