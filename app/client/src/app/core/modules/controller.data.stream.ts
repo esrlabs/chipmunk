@@ -181,6 +181,9 @@ class Stream {
 
     private _applyAll(rows: Array<DataRow>, filter: DataFilter, filters: TFilters, requests: TRequests) : Promise<Array<DataRow>> {
         return new Promise <Array<DataRow>> ((resolve, reject) => {
+            if (!this._worker.isReady()) {
+                return reject(new Error(`Worker isn't ready yet.`));
+            }
             const measure = Logs.measure('[data.processor][Stream][_applyAll]');
             this._worker.post({
                 command : this._worker.COMMANDS.apply,
@@ -238,6 +241,9 @@ class Stream {
 
     private _applyTo(fragment: string, rows: Array<DataRow>, filter: DataFilter, filters: TFilters, requests: TRequests) : Promise<Array<DataRow>> {
         return new Promise <Array<DataRow>> ((resolve, reject) => {
+            if (!this._worker.isReady()) {
+                return reject(new Error(`Worker isn't ready yet.`));
+            }
             const measure = Logs.measure('[data.processor][Stream][_applyAll]');
             const filterGUID = Helpers.getRequestGUID(filter.mode, filter.value);
             this._worker.post({
@@ -299,6 +305,9 @@ class Stream {
 
     private _applyFilter(rows: Array<DataRow>) : Promise<Array<DataRow>> {
         return new Promise <Array<DataRow>> ((resolve, reject) => {
+            if (!this._worker.isReady()) {
+                return reject(new Error(`Worker isn't ready yet.`));
+            }
             const measure = Logs.measure('[data.processor][Stream][_applyFilter]');
             const filterGUID = Helpers.getRequestGUID(this._filter.mode, this._filter.value);
             this._worker.post({
@@ -339,6 +348,7 @@ class Stream {
             const measure = Logs.measure('[data.processor][Stream][_dropFilter]');
             resolve(rows.map((row: DataRow) => {
                 row.filtered = false;
+                row.match = '';
                 return row;
             }));
             Logs.measure(measure);
@@ -347,6 +357,9 @@ class Stream {
 
     private _applyFilters(rows: Array<DataRow>, filters: TFilters) : Promise<Array<DataRow>> {
         return new Promise <Array<DataRow>> ((resolve, reject) => {
+            if (!this._worker.isReady()) {
+                return reject(new Error(`Worker isn't ready yet.`));
+            }
             const measure = Logs.measure('[data.processor][Stream][_applyFilters]');
             this._worker.post({
                 command : this._worker.COMMANDS.filters,
@@ -373,6 +386,9 @@ class Stream {
 
     private _applyRequests(rows: Array<DataRow>, requests: TRequests) : Promise<Array<DataRow>>{
         return new Promise <Array<DataRow>> ((resolve, reject) => {
+            if (!this._worker.isReady()) {
+                return reject(new Error(`Worker isn't ready yet.`));
+            }
             const measure = Logs.measure('[data.processor][Stream][_applyRequests]');
             //Add active search request
             let filterGUID;
@@ -419,6 +435,9 @@ class Stream {
 
     public create(fragment: string, activeRequests: Array<DataFilter>) : Promise<Array<DataRow>>{
         return new Promise <Array<DataRow>> ((resolve, reject) => {
+            if (!this._worker.isReady()) {
+                return reject(new Error(`Worker isn't ready yet.`));
+            }
             this._reset();
             //Build rows
             const measure   = Logs.measure('[data.processor][Stream][create]');
@@ -443,6 +462,9 @@ class Stream {
 
     public add(fragment: string, activeRequests: Array<DataFilter>) : Promise <Array<DataRow>> {
         return new Promise <Array<DataRow>> ((resolve, reject) => {
+            if (!this._worker.isReady()) {
+                return reject(new Error(`Worker isn't ready yet.`));
+            }
             const measure = Logs.measure('[data.processor][Stream][add]');
             //Attach rest from previous iteration
             fragment = this._rest + fragment;

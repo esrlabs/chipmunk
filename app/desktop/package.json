@@ -1,6 +1,6 @@
 {
   "name": "logviewer",
-  "version": "0.18.0",
+  "version": "0.25.2",
   "description": "LogViewer",
   "main": "electron.js",
   "scripts": {
@@ -16,16 +16,18 @@
   "author": "Dmitry Astafyev",
   "license": "MIT",
   "dependencies": {
-    "electron-json-storage": "4.0.2",
-    "electron-updater": "2.21.0",
+    "electron-json-storage": "^4.1.1",
+    "electron-updater": "^3.1.1",
+    "glob": "^7.1.2",
     "serialport": "6.1.1",
     "telnet-client": "^0.15.5",
     "uuid": "3.2.1",
     "websocket": "1.0.25"
   },
   "devDependencies": {
-    "electron": "1.8.3",
-    "electron-builder": "20.3.1"
+    "electron": "^2.0.7",
+    "electron-builder": "^20.27.1",
+    "dmg-builder": "^5.2.0"
   },
   "repository": {
     "type": "git",
@@ -36,6 +38,15 @@
     "appId": "com.logviewer.de",
     "productName": "logviewer",
     "copyright": "Copyright © 2018 year E.S.R.Labs",
+    "files": [
+      {
+        "from": "client/node_modules",
+        "to": "client/node_modules",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
     "directories": {
       "output": "dist"
     },

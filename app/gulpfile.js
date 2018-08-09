@@ -43,10 +43,18 @@ const CONFIGURATION = {
         appId           : 'com.logviewer.de',
         productName     : '',                //Generated: see _getNameOfApplication
         copyright       : `Copyright © ${(new Date()).getFullYear()} year E.S.R.Labs`,
+		files 			: [
+			{
+				"from": "client/node_modules",
+				"to": "client/node_modules",
+				"filter": ["**/*"]
+			},
+			'**/*'
+		],
         directories     :{
             output  : 'dist'
         },
-        publish: [{
+		publish: [{
             provider        : "github",
             owner           : "esrlabs",
             repo            : "logviewer"
@@ -82,8 +90,9 @@ const CONFIGURATION = {
 
 const PLATFORMS_DEPS = {
     COMMON              : {
-        "electron-json-storage" : "4.0.2",
-        "electron-updater"      : "2.21.0"
+		"electron-json-storage" : "^4.1.1",
+        "electron-updater"      : "^3.1.1",
+		"glob" 					: "^7.1.2"
     },
     [PLATFORMS.DARWIN]  : {
     },
@@ -95,9 +104,10 @@ const PLATFORMS_DEPS = {
 
 const PLATFORMS_DEV_DEPS = {
     COMMON              : {
-        "electron"          : "1.8.3",
-        "electron-builder"  : "20.3.1"
-    },
+        "electron"          : "^2.0.7",
+        "electron-builder"  : "^20.27.1",
+		"dmg-builder" 		: "^5.2.0"
+	},
     [PLATFORMS.DARWIN]  : {
     },
     [PLATFORMS.LINUX]   : {

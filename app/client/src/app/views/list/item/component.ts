@@ -303,6 +303,10 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
         this.bookmark.emit(this.index);
     }
 
+    removeIndexes(str: string){
+        return str.replace(/\u0020.*\u0020/gi, '').replace(/\d*\u0020{1,}/gi, '');
+    }
+
     onContextMenu(event: MouseEvent) {
         let contextEvent = {x: event.pageX,
             y: event.pageY,
@@ -337,7 +341,7 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
                 caption : 'Copy selection',
                 type    : EContextMenuItemTypes.item,
                 handler : () => {
-                    copyText(ANSIClearer(selectedTest));
+                    copyText(ANSIClearer(this.removeIndexes(selectedTest)));
                 }
             });
         }
