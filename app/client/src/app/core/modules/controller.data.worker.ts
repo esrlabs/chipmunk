@@ -42,6 +42,7 @@ export class WorkerController {
     private _onReady(response: IWorkerResponse){
         if (response.message === 'ready') {
             this._ready = true;
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_WORKER_IS_READY);
         }
     }
 
@@ -74,6 +75,10 @@ export class WorkerController {
             this._addCallback(message.sequenceID, resolve, reject);
             this._worker.postMessage(message);
         });
+    }
+
+    public isReady(): boolean{
+        return this._ready;
     }
 
 }

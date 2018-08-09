@@ -3,6 +3,7 @@ import { configuration as Configuration } from '../modules/controller.config';
 import { WSCommandMessage               } from './ws.message.interface';
 import { Logs, TYPES                    } from '../modules/tools.logs';
 import { versionController              } from "../modules/controller.version";
+import { openLocalFile                  } from "../modules/tools.localfiles";
 
 const COMMANDS = {
     greeting                : 'greeting',
@@ -23,14 +24,18 @@ const COMMANDS = {
     WriteToTelnet           : 'WriteToTelnet',
     ResultWrittenToTelnet   : 'ResultWrittenToTelnet',
     TelnetData              : 'TelnetData',
-    TelnetClosed            : 'TelnetClosed'
+    TelnetClosed            : 'TelnetClosed',
+    OpenLocalFile           : 'OpenLocalFile'
 };
 
 class WSCommands{
     private GUID: string = null;
+    private workerReady: boolean = false;
+    private pending: Array<Function> = [];
 
     constructor(GUID: string){
         this.GUID = GUID;
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.DATA_WORKER_IS_READY, this.onDATA_WORKER_IS_READY.bind(this));
     }
 
     proceed(message : WSCommandMessage, sender: Function){
@@ -41,6 +46,29 @@ class WSCommands{
             Logs.msg(_('WebSocket server send unknown command: ') + message.command, TYPES.ERROR);
             return false;
         }
+    }
+
+    onDATA_WORKER_IS_READY(){
+        this.workerReady = true;
+        this.executePending();
+    }
+
+    addPending(task: Function) {
+        this.pending.push(task);
+    }
+
+    executePending(){
+        this.pending.forEach((task: Function) => {
+           task();
+        });
+        this.pending = [];
+    }
+
+    safelyExecute(task: Function) {
+        if (this.workerReady) {
+            return task();
+        }
+        this.addPending(task);
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -169,6 +197,20 @@ class WSCommands{
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.DESKTOP_MODE_NOTIFICATION);
         versionController.setAsDesktop();
     }
+
+    [COMMANDS.OpenLocalFile             ](message : WSCommandMessage, sender: Function){
+        this.safelyExecute(() => {
+            openLocalFile(message.params.file)
+                .then((data: string) => {
+                    Events.trigger(Configuration.sets.SYSTEM_EVENTS.DESCRIPTION_OF_STREAM_UPDATED, message.params.file);
+                    Events.trigger(Configuration.sets.SYSTEM_EVENTS.TXT_DATA_COME, data);
+                })
+                .catch((error: Error) => {
+                    console.log(error.message);
+                });
+        });
+    }
+
 
 }
 

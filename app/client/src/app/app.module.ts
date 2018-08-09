@@ -28,6 +28,8 @@ import { MonitorManager                     } from './core/handles/hanlde.open.m
 import { viewsParameters                    } from './core/services/service.views.parameters';
 
 import { serviceRequests                    } from './core/services/service.requests';
+import { events as Events                   } from "./core/modules/controller.events";
+import { configuration as Configuration     } from "./core/modules/controller.config";
 
 @NgModule({
     imports:      [ BrowserModule, ComponentsCommmon, TopBarModule, HolderModule ],
@@ -46,15 +48,13 @@ export class AppModule {
     private markersController   : MarkersController     = new MarkersController();
 
     constructor(){
-        //Init others
         MonitorManager.init();
-        //Init communication
-        APIProcessor.init();
         controllerThemes.init();
         viewsParameters.init();
         serviceRequests.init();
-
         this.markersController.init();
+        //Init communication
+        APIProcessor.init();
         this.wsConnector = new WebSocketConnector();
         this.wsConnector.connect();
     }

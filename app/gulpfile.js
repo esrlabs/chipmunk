@@ -83,7 +83,8 @@ const CONFIGURATION = {
 const PLATFORMS_DEPS = {
     COMMON              : {
         "electron-json-storage" : "4.0.2",
-        "electron-updater"      : "2.21.0"
+        "electron-updater"      : "2.21.0",
+		"glob" 					: "7.1.2"
     },
     [PLATFORMS.DARWIN]  : {
     },

@@ -17,19 +17,22 @@ class Updater {
     constructor() {
         this._ServerEmitter                 = require('../server/libs/server.events');
         this._outgoingWSCommands            = require('../server/libs/websocket.commands.processor.js');
-        this._autoUpdater                   = electronUpdater.autoUpdater;
         this._info                          = null;
-        this._autoUpdater.logger            = logger;
-        Object.keys(UPDATER_EVENTS).forEach((key) => {
-            this._autoUpdater.on(UPDATER_EVENTS[key], this[UPDATER_EVENTS[key]].bind(this));
-        });
-        this._autoUpdater.setFeedURL({
-            provider        : "github",
-            owner           : "esrlabs",
-            repo            : "logviewer"
-        });
-        logger.info('Updater is created');
     }
+
+    init(){
+		this._autoUpdater                   = electronUpdater.autoUpdater;
+		this._autoUpdater.logger            = logger;
+		Object.keys(UPDATER_EVENTS).forEach((key) => {
+			this._autoUpdater.on(UPDATER_EVENTS[key], this[UPDATER_EVENTS[key]].bind(this));
+		});
+		this._autoUpdater.setFeedURL({
+			provider        : "github",
+			owner           : "esrlabs",
+			repo            : "logviewer"
+		});
+		logger.info('Updater is inited');
+	}
 
     [UPDATER_EVENTS.CHECKING]() {
         logger.info('Checking for update...');

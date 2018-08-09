@@ -183,7 +183,7 @@ class DataController implements InitiableModule{
         }
     }
 
-    onTXT_DATA_COME(data : string){
+    onTXT_DATA_COME(data : string) {
         const injectedRequests = this.extractInjectedFilters(data);
         const injectedBookmarks = this.extractInjectedBookmarks(data);
         const GUID = Symbol();
