@@ -18,6 +18,7 @@ const COMMANDS = {
 	sort	: 'sort',
 	dest 	: 'dest',
 	help    : 'help',
+	version : 'version',
 	debug 	: 'debug'
 };
 
@@ -78,6 +79,12 @@ const ARGUMENTS = {
 		args			: ['-h', '--help'],
 		errors			: {}
 	},
+	[COMMANDS.version]    	: {
+		description		: 'Show version of logviewer',
+		hasParameter	: false,
+		args			: ['-v', '--version'],
+		errors			: {}
+	},
 	[COMMANDS.debug]  	: {
 		description		: 'Open logviewer in debug mode',
 		hasParameter	: false,
@@ -88,16 +95,21 @@ const ARGUMENTS = {
 
 class CommandsImplementation{
 
-	constructor(commands) {
+	constructor(commands, version) {
 		this.commands = commands;
 		this.path = Path.dirname(process.mainModule.filename);
 		this.fileManager = new FileManager(true);
+		this._version = version;
 	}
 
 	proceed(){
 		return new Promise((resolve, reject) => {
 			if (~Object.keys(this.commands).indexOf(COMMANDS.help)){
 				this.help();
+				return resolve(true);
+			}
+			if (~Object.keys(this.commands).indexOf(COMMANDS.version)){
+				this.version();
 				return resolve(true);
 			}
 			if (!~Object.keys(this.commands).indexOf(COMMANDS.open)){
@@ -144,6 +156,10 @@ class CommandsImplementation{
 			let description = ARGUMENTS[command];
 			return `${description.args.join(' | ')}\t-\t${description.description};`;
 		}).join('\n')}`);
+	}
+
+	version(){
+		console.log(`Version: ${this._version}`);
 	}
 
 	getFilesList(patterns){
@@ -234,11 +250,12 @@ class CommandsImplementation{
 
 class CLIProcessor{
 
-	constructor(isElectron = false){
+	constructor(version, isElectron = false){
 		this.errors = [];
 		this.commands = [];
 		this.implementation = null;
 		this.isElectron = isElectron;
+		this.version = version;
 	}
 
 	isItArgument(smth) {
@@ -408,7 +425,7 @@ class CLIProcessor{
 			}
 
 			this.commands = commands;
-			this.implementation = new CommandsImplementation(commands);
+			this.implementation = new CommandsImplementation(commands, this.version);
 
 			this.implementation.proceed()
 				.then((result) => {

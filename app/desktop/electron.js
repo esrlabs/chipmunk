@@ -24,7 +24,7 @@ class Starter {
         this._storage 			= null;
         this._menu 				= null;
         this._version 			= null;
-        this._cli 				= new ApplicationCLI(true);
+        this._cli 				= new ApplicationCLI(this._app.getVersion(), true);
         //Bind electron events
         Object.keys(ELECTRON_EVENTS).forEach((key) => {
             if (this[ELECTRON_EVENTS[key]] !== void 0){
@@ -123,7 +123,8 @@ class Starter {
             protocol: 'file:',
             slashes: true
         }) + `#v${this._version}`);
-        // Emitted when the window is closed.
+		//this._window.loadFile(path.join(__dirname, `client/index.html`));
+		// Emitted when the window is closed.
         this._window.on('closed', this._onClose.bind(this));
         //Attach handler for state saving
         ['resize', 'move', 'close' ].forEach((event) => {
