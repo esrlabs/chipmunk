@@ -1,4 +1,4 @@
-import {Component, Input, OnInit, EventEmitter, Output, ViewContainerRef, ViewChild, OnDestroy} from '@angular/core';
+import {Component, Input, OnInit, EventEmitter, Output, ViewContainerRef, ChangeDetectorRef, ViewChild, OnDestroy} from '@angular/core';
 import { Parameters         } from './interface';
 
 const Directions = {
@@ -59,7 +59,8 @@ export class Popup implements OnInit, OnDestroy{
         y           : -1
     };
 
-    constructor(private viewContainerRef : ViewContainerRef) {
+    constructor(private viewContainerRef : ViewContainerRef,
+                private changeDetectorRef: ChangeDetectorRef) {
         this.onMove = this.onMove.bind(this);
         this.onMouseUp = this.onMouseUp.bind(this);
         this.onKeyPress = this.onKeyPress.bind(this);
@@ -80,6 +81,10 @@ export class Popup implements OnInit, OnDestroy{
         this.validateButtons();
         this.defaultPosition();
         this.attachContent();
+    }
+
+    forceUpdate(){
+        this.changeDetectorRef.detectChanges();
     }
 
     onKeyPress(event: KeyboardEvent){
@@ -146,6 +151,7 @@ export class Popup implements OnInit, OnDestroy{
                 component.destroy();
             });
         }
+        this.forceUpdate();
     }
 
     close(){
