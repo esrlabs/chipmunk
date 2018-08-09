@@ -52,11 +52,11 @@ class Starter {
 		this._cli.proceed()
 			.then((result) => {
 				if (typeof result === 'string' || result === true) {
+					this._loadFile(result);
 					this._init();
 					this._create();
 					this._menu.create();
 					this._ready = true;
-					this._loadFile(result)
 					return;
 				}
 				if (!result) {
@@ -167,10 +167,10 @@ class Starter {
     	const ServerEmitter = require('./server/libs/server.events');
 		const outgoingWSCommands = require('./server/libs/websocket.commands.processor.js');
 		ServerEmitter.emitter.on(ServerEmitter.EVENTS.CLIENT_IS_CONNECTED, (GUID, clientGUID) => {
-			ServerEmitter.emitter.removeAllListeners(ServerEmitter.EVENTS.CLIENT_IS_CONNECTED);
 			ServerEmitter.emitter.emit(ServerEmitter.EVENTS.SEND_VIA_WS, clientGUID, outgoingWSCommands.COMMANDS.OpenLocalFile, {
 				file: file
 			});
+			ServerEmitter.emitter.removeAllListeners(ServerEmitter.EVENTS.CLIENT_IS_CONNECTED);
 		});
 	}
 
