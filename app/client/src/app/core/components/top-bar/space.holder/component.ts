@@ -1,6 +1,6 @@
-import { Component, ChangeDetectorRef, OnInit   } from '@angular/core';
+import { Component, ChangeDetectorRef, OnInit} from '@angular/core';
 import { events as Events                       } from '../../../modules/controller.events';
-import { configuration                          } from '../../../modules/controller.config';
+import { configuration as Configuration         } from '../../../modules/controller.config';
 import { ServiceTopBarButtons                   } from '../../../services/service.topbar.buttons';
 import { ToolBarButton                          } from '../../../services/class.toolbar.button';
 
@@ -13,16 +13,18 @@ import { ToolBarButton                          } from '../../../services/class.
 export class TopBarSpaceHolder implements OnInit {
     shortcuts   : Array<ToolBarButton> = [ ];
     description : string;
+
     constructor(
         private changeDetectorRef   : ChangeDetectorRef,
         private serviceTopBarButtons: ServiceTopBarButtons
     ) {
         this.description = 'Welcome to LogViewer';
-        Events.bind(configuration.sets.SYSTEM_EVENTS.DESCRIPTION_OF_STREAM_UPDATED, this.onDESCRIPTION_OF_STREAM_UPDATED.bind(this));
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.DESCRIPTION_OF_STREAM_UPDATED, this.onDESCRIPTION_OF_STREAM_UPDATED.bind(this));
+        Events.bind(Configuration.sets.EVENTS_TOOLBAR.FORCE_REFRESH_TOOLBAR, this.onFORCE_REFRESH_TOOLBAR.bind(this));
     }
 
     getButtons(){
-        this.serviceTopBarButtons.getItems().then((items)=>{
+        return this.serviceTopBarButtons.getItems().then((items)=>{
             this.shortcuts = items;
         });
     }
@@ -38,5 +40,11 @@ export class TopBarSpaceHolder implements OnInit {
     onDESCRIPTION_OF_STREAM_UPDATED(description : string){
         this.description = description;
         this.forceUpdate();
+    }
+
+    onFORCE_REFRESH_TOOLBAR(){
+        this.getButtons().then(() => {
+            this.forceUpdate();
+        });
     }
 }

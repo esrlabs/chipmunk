@@ -1,4 +1,4 @@
-import { Component, ComponentFactoryResolver, ComponentFactory, ViewChild, ViewContainerRef, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ComponentFactoryResolver, ComponentFactory, ViewChild, ViewContainerRef, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { EventsController                       } from '../../../core/modules/controller.events';
 import { configuration as Configuration         } from '../../../core/modules/controller.config';
 
@@ -15,7 +15,8 @@ export class RootHolder implements OnDestroy{
 
     private refs : Object = {};
 
-    constructor(private componentFactoryResolver : ComponentFactoryResolver){
+    constructor(private componentFactoryResolver : ComponentFactoryResolver,
+                private changeDetectorRef: ChangeDetectorRef){
         this.eventsController.bind(Configuration.sets.SYSTEM_EVENTS.REQUEST_FOR_ROOT_HOLDER_RESOLVER,   this.onREQUEST_FOR_ROOT_HOLDER_RESOLVER.bind(this));
         this.eventsController.bind(Configuration.sets.SYSTEM_EVENTS.ADD_TO_ROOT_HOLDER,                 this.onADD_TO_ROOT_HOLDER.bind(this));
         this.eventsController.bind(Configuration.sets.SYSTEM_EVENTS.REMOVE_FROM_ROOT_HOLDER,            this.onREMOVE_FROM_ROOT_HOLDER.bind(this));
@@ -24,6 +25,10 @@ export class RootHolder implements OnDestroy{
     ngOnDestroy(){
         this.eventsController.kill();
         this.eventsController = null;
+    }
+
+    forceUpdate(){
+        this.changeDetectorRef.detectChanges();
     }
 
     onREQUEST_FOR_ROOT_HOLDER_RESOLVER(callback: Function){
@@ -43,11 +48,13 @@ export class RootHolder implements OnDestroy{
             });
         }
         this.refs[GUID] = component;
+        this.forceUpdate();
         typeof callback === 'function' && callback(component.instance);
     }
     onREMOVE_FROM_ROOT_HOLDER(GUID : symbol){
         if (this.refs[GUID] !== void 0){
             this.refs[GUID].destroy();
         }
+        this.forceUpdate();
     }
 }
