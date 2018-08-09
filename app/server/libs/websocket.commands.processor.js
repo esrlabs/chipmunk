@@ -22,7 +22,8 @@ const COMMANDS = {
     TermProcessData         : 'TermProcessData',
     TermProcessClosed       : 'TermProcessClosed',
     CallMenuItem            : 'CallMenuItem',
-    DesktopModeNotification : 'DesktopModeNotification'
+    DesktopModeNotification : 'DesktopModeNotification',
+	OpenLocalFile         	: 'OpenLocalFile'
 };
 
 class IncomeCommandsProcessor {
@@ -219,6 +220,14 @@ class OutgoingCommandsProcessor {
             params  : {}
         });
     }
+
+	[COMMANDS.OpenLocalFile](clientGUID, params){
+		this.sender({
+			GUID    : clientGUID,
+			command : COMMANDS.OpenLocalFile,
+			params  : params
+		});
+	}
 
 }
 

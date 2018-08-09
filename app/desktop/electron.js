@@ -4,9 +4,10 @@ const url               = require('url');
 const Updater           = require('./electron/application.updater');
 const ApplicationMenu   = require('./electron/application.menu');
 const ApplicationStorage= require('./electron/application.storage');
+const ApplicationCLI 	= require('./electron/application.cli');
 const logger            = new (require('./server/libs/tools.logger'))('Electron');
-const updater           = new Updater();
 const STORAGE_KEYS      = require('./electron/application.storage.keys');
+const updater 			= new Updater();
 
 const ELECTRON_EVENTS = {
     READY: 'ready',
@@ -20,9 +21,10 @@ class Starter {
         this._app               = app;
         this._window            = null;
         this._ready             = false;
-        this._storage           = new ApplicationStorage();
-        this._version           = this._app.getVersion();
-        this._menu              = new ApplicationMenu();
+        this._storage 			= null;
+        this._menu 				= null;
+        this._version 			= null;
+        this._cli 				= new ApplicationCLI(true);
         //Bind electron events
         Object.keys(ELECTRON_EVENTS).forEach((key) => {
             if (this[ELECTRON_EVENTS[key]] !== void 0){
@@ -32,6 +34,13 @@ class Starter {
         });
     }
 
+    _init(){
+		this._storage 	= new ApplicationStorage();
+		this._version 	= this._app.getVersion();
+		this._menu 		= new ApplicationMenu();
+		updater.init();
+	}
+
     _getWindowState(){
         return this._storage.get(STORAGE_KEYS.WINDOW_STATE);
     }
@@ -39,10 +48,27 @@ class Starter {
     // initialization and is ready to create browser windows.
     // Some APIs can only be used after this event occurs.
     [ELECTRON_EVENTS.READY](){
-        this._create();
-        this._menu.create();
-        //updater.check();
-        this._ready = true;
+        //Check CLI
+		this._cli.proceed()
+			.then((result) => {
+				if (typeof result === 'string' || result === true) {
+					this._init();
+					this._create();
+					this._menu.create();
+					this._ready = true;
+					this._loadFile(result)
+					return;
+				}
+				if (!result) {
+					return this._app.quit();
+				}
+			})
+			.catch((e)=>{
+				if (e instanceof Error) {
+					console.log(`Cannot start logviewer due error: ${e.message}.`);
+				}
+				this._app.quit();
+			});
     }
 
     // Quit when all windows are closed.
@@ -64,7 +90,6 @@ class Starter {
         if (this._window === null) {
             this._initClient();
             this._createServer();
-            //this.debug();
         }
     }
 
@@ -108,6 +133,10 @@ class Starter {
         if (state.isMaximized) {
             this._window.maximize();
         }
+        //Debug activation
+		if (process.argv instanceof Array && process.argv.indexOf('--debug') !== -1) {
+			this.debug();
+		}
     }
 
     _stateSave(event){
@@ -130,6 +159,20 @@ class Starter {
         // when you should delete the corresponding element.
         this._window = null
     }
+
+    _loadFile(file){
+    	if (typeof file !== 'string' || file.trim() === '') {
+    		return false;
+		}
+    	const ServerEmitter = require('./server/libs/server.events');
+		const outgoingWSCommands = require('./server/libs/websocket.commands.processor.js');
+		ServerEmitter.emitter.on(ServerEmitter.EVENTS.CLIENT_IS_CONNECTED, (GUID, clientGUID) => {
+			ServerEmitter.emitter.removeAllListeners(ServerEmitter.EVENTS.CLIENT_IS_CONNECTED);
+			ServerEmitter.emitter.emit(ServerEmitter.EVENTS.SEND_VIA_WS, clientGUID, outgoingWSCommands.COMMANDS.OpenLocalFile, {
+				file: file
+			});
+		});
+	}
 
     debug(){
         this._window.webContents.openDevTools();
