@@ -370,11 +370,6 @@ class CLIProcessor{
 			}
 
 			//Check defaults
-			if (Object.keys(commands).indexOf(COMMANDS.open) === -1 && defaults.length === 0) {
-				console.log(`Command -o (--open) isn't defined and isn't defined file(s) sources.`);
-				return reject();
-			}
-
 			if (Object.keys(commands).indexOf(COMMANDS.open) !== -1 && defaults.length > 0) {
 				console.log(`File(s) sources should be defined at the beginning or after -o (--open) command.`);
 				return reject();
