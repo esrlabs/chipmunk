@@ -73,7 +73,8 @@ class Connection{
     onClientGUID(clientGUID){
         this.clientGUID = clientGUID;
         this.outgoing.GUIDAccepted(this.clientGUID);
-        DesktopTools.isDesktop() && this.outgoing.DesktopModeNotification(this.clientGUID);
+		ServerEmitter.emitter.emit(ServerEmitter.EVENTS.CLIENT_IS_CONNECTED, this.GUID, this.clientGUID);
+		DesktopTools.isDesktop() && this.outgoing.DesktopModeNotification(this.clientGUID);
     }
 
     doCommand(command, params){

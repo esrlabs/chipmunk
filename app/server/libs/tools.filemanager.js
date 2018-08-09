@@ -1,7 +1,17 @@
+const Path = require('path');
+
+const SORT_CONDITIONS = {
+	byName: 'byName',
+	byNumbersInName: 'byNumbersInName',
+	byCreateDate: 'byCreateDate',
+	byModificationDate: 'byModificationDate'
+};
+
 class FileManager{
 
     constructor(noLogs = false){
-        this._fs        = require('fs');
+        this._fs = require('fs');
+        this.SORT_CONDITIONS = SORT_CONDITIONS;
         if (noLogs !== true) {
             this._logger = new (require('./tools.logger'))('FileManager', true);
         } else {
@@ -44,12 +54,33 @@ class FileManager{
     }
 
     isExistsSync(dest){
-        if (typeof dest === 'string' && dest.trim() !== '') {
-            return this._fs.existsSync(dest);
-        } else {
-            return false;
-        }
+    	try {
+			if (typeof dest === 'string' && dest.trim() !== '') {
+				return this._fs.existsSync(dest);
+			} else {
+				return false;
+			}
+		} catch (e) {
+			return false;
+		}
     }
+
+    isFilesExistsSync(files) {
+		if (!(files instanceof Array)){
+			return new Error(`Expected list of files (an array).`);
+		}
+		//Check files
+		let errors = [];
+		files.forEach((file) => {
+			if (!this.isExistsSync(file)){
+				errors.push(file);
+			}
+		});
+		if (errors.length !== 0) {
+			return new Error(`Next file(s) doesn't exist: ${errors.join(', ')}`);
+		}
+		return true;
+	}
 
     save(str, dest) {
         if (typeof str === 'string' && typeof dest === 'string' && dest.trim() !== '') {
@@ -65,12 +96,20 @@ class FileManager{
         return false;
     }
 
+    getFileInfo(file){
+    	try {
+			if (typeof file === 'string' && file.trim() !== '' && this._fs.existsSync(file)){
+				return this._fs.statSync(file);
+			}
+			return null;
+		} catch (e) {
+			return null;
+		}
+	}
+
     getSize(dest){
-        if (typeof dest === 'string' && dest.trim() !== '' && this._fs.existsSync(dest)){
-            let stats = this._fs.statSync(dest);
-            return stats.size;
-        }
-        return -1;
+        const info = this.getFileInfo(dest);
+        return info === null ? -1 : info.size;
     }
 
     getListOfFile(path){
@@ -131,7 +170,7 @@ class FileManager{
     glueFiles(files, dest, delimiter = false) {
         function next(files, dest, index, delimiter, resolve, reject) {
             if (files.length <= index) {
-                return resolve();
+                return resolve(count);
             }
 
             const file = files[index];
@@ -140,6 +179,10 @@ class FileManager{
 
             if (this.isExistsSync(file)) {
                 try {
+                	const info = this.getFileInfo(file);
+                	if (!info.isFile()) {
+						return next.call(this, files, dest, index, delimiter, resolve, reject);
+					}
                     const writer = this._fs.createWriteStream(dest, { 'flags': 'a' });
                     const reader = this._fs.createReadStream(file);
                     writer.on('finish', () => {
@@ -147,6 +190,7 @@ class FileManager{
                         if (typeof delimiter === 'string') {
                             this.append(delimiter, dest);
                         }
+						count += 1;
                         next.call(this, files, dest, index, delimiter, resolve, reject);
                     });
                     reader.pipe(writer);
@@ -157,17 +201,17 @@ class FileManager{
                 next.call(this, files, dest, index, delimiter, resolve, reject);
             }
         }
-
+        let count = 0;
         return new Promise((resolve, reject) => {
-            const pathSettings = require('./tools.settings.paths');
+        	const path = Path.dirname(dest);
             if (!(files instanceof Array) || files.length === 0){
                 return reject(new Error(`No files to glue together.`));
             }
             if (typeof dest !== 'string' || dest.trim() === '') {
                 return reject(new Error(`Destination file isn't defined.`));
             }
-            if (!this.isExistsSync(pathSettings.DOWNLOADS)){
-                this.createFolder(pathSettings.DOWNLOADS);
+            if (!this.isExistsSync(path)){
+                this.createFolder(path);
             }
             if (!this.isExistsSync(dest)) {
                 if (!this.save('', dest)){
@@ -177,6 +221,78 @@ class FileManager{
             next.call(this, files, dest, 0, delimiter, resolve, reject);
         });
     }
+
+    sort(files, condition){
+    	if (!(files instanceof Array)) {
+    		return new Error('No files list provided.');
+		}
+		if (SORT_CONDITIONS[condition] === void 0) {
+			return new Error(`Unknown sort conditions: ${condition}. Supported: ${Object.keys(SORT_CONDITIONS).join(', ')}.`)
+		}
+		let results = files.slice();
+		switch (condition){
+			case SORT_CONDITIONS.byName:
+				results.sort((a, b) => {
+					const nameA = Path.basename(a).toUpperCase();
+					const nameB = Path.basename(b).toUpperCase();
+					if (nameA < nameB) {
+						return -1;
+					}
+					if (nameA > nameB) {
+						return 1;
+					}
+					return 0;
+				});
+				return results;
+			case SORT_CONDITIONS.byNumbersInName:
+				results.sort((a, b) => {
+					let nameA = parseInt(Path.basename(a).replace(/[^\d]/gi, ''));
+					let nameB = parseInt(Path.basename(b).replace(/[^\d]/gi, ''));
+					nameA = isNaN(nameA) ? -1 : nameA;
+					nameB = isNaN(nameB) ? -1 : nameB;
+					if (nameA < nameB) {
+						return -1;
+					}
+					if (nameA > nameB) {
+						return 1;
+					}
+					return 0;
+				});
+				return results;
+			case SORT_CONDITIONS.byCreateDate:
+				results.sort((a, b) => {
+					let infoA = this.getFileInfo(a);
+					let infoB = this.getFileInfo(b);
+					infoA = infoA !== null ? parseFloat(infoA.birthtimeMs) : 0;
+					infoB = infoB !== null ? parseFloat(infoB.birthtimeMs) : 0;
+					if (infoA < infoB) {
+						return 1;
+					}
+					if (infoA > infoB) {
+						return -1;
+					}
+					return 0;
+				});
+				return results;
+			case SORT_CONDITIONS.byModificationDate:
+				results.sort((a, b) => {
+					let infoA = this.getFileInfo(a);
+					let infoB = this.getFileInfo(b);
+					infoA = infoA !== null ? parseFloat(infoA.mtimeMs) : 0;
+					infoB = infoB !== null ? parseFloat(infoB.mtimeMs) : 0;
+					if (infoA < infoB) {
+						return 1;
+					}
+					if (infoA > infoB) {
+						return -1;
+					}
+					return 0;
+				});
+				return results;
+		}
+	}
+
+
 }
 
 module.exports = FileManager;

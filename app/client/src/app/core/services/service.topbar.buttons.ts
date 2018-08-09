@@ -35,14 +35,17 @@ export class ServiceTopBarButtons implements OnDestroy{
 
     addButton(button: ToolBarButton | Array<ToolBarButton>){
         this.storage.addButton(button);
+        Events.trigger(configuration.sets.EVENTS_TOOLBAR.FORCE_REFRESH_TOOLBAR);
     }
 
     removeButton(id: string | number | symbol){
         this.storage.removeButton(id);
+        Events.trigger(configuration.sets.EVENTS_TOOLBAR.FORCE_REFRESH_TOOLBAR);
     }
 
     updateButton(button: ToolBarButton){
         this.storage.updateButton(button);
+        Events.trigger(configuration.sets.EVENTS_TOOLBAR.FORCE_REFRESH_TOOLBAR);
     }
 
     _loadStaticButtons(){

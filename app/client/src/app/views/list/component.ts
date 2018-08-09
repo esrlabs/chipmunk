@@ -790,7 +790,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
 
     updateLineData(){
         this.resetLineData();
-        this.rows.forEach((row, index)=>{
+        this.rows instanceof Array && this.rows.forEach((row, index)=>{
             if (row.params.filtered) {
                 this.line.marks.push({
                     position: index,
@@ -828,6 +828,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             this.resetLineData();
             this.line.visible = false;
         }
+        this.changeDetectorRef.detectChanges();
     }
 
     onScrollByLine(line: number){
@@ -877,8 +878,8 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
 
     forceUpdate(forceRecalculation: boolean = false){
         this.changeDetectorRef.detectChanges();
+        this.updateLine();
         if (this.listView !== void 0 && this.listView !== null && this.listView.update !== void 0){
-            this.updateLine();
             this.listView.update(forceRecalculation);
         }
     }
