@@ -90,7 +90,6 @@ const CONFIGURATION = {
 
 const PLATFORMS_DEPS = {
     COMMON              : {
-		"electron-json-storage" : "^4.1.1",
         "electron-updater"      : "^3.1.1",
 		"glob" 					: "^7.1.2"
     },
@@ -104,9 +103,9 @@ const PLATFORMS_DEPS = {
 
 const PLATFORMS_DEV_DEPS = {
     COMMON              : {
-        "electron"          : "^2.0.7",
-        "electron-builder"  : "^20.27.1",
-		"dmg-builder" 		: "^5.2.0"
+		"dmg-builder" 		: "5.2.0",
+		"electron" 			: "2.0.7",
+		"electron-builder" 	: "20.28.1"
 	},
     [PLATFORMS.DARWIN]  : {
     },
