@@ -19,7 +19,8 @@ const KEYs = {
     themes              : 'themes',
     adblogccat_stream   : 'adblogccat_stream',
     settings            : 'settings',
-    serial_history_cmds : 'serial_history_cmds'
+    serial_history_cmds : 'serial_history_cmds',
+    cloud               : 'cloud'
 };
 
 class ControllerLocalSettings{
@@ -34,9 +35,12 @@ class ControllerLocalSettings{
             valid       = true;
         if (typeof storage === 'object' && storage !== null){
             Object.keys(this.defaults()).forEach((key)=>{
-                storage[key] === void 0 && (valid = false);
+                if (storage[key] === void 0) {
+                    this.storage[key] = this.defaults()[key];
+                } else {
+                    this.storage[key] = storage[key];
+                }
             });
-            this.storage = valid ? storage : this.defaults();
         } else {
             this.storage = this.defaults();
         }
