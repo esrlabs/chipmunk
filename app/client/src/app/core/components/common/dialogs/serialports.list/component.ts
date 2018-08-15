@@ -27,6 +27,7 @@ export class DialogSerialPortsList implements OnDestroy {
     ngOnDestroy(){
         Events.unbind(Configuration.sets.SYSTEM_EVENTS.SERIAL_SCAN_STATISTIC_COME, this._onScanStatistic);
         Events.unbind(Configuration.sets.SYSTEM_EVENTS.SERIAL_SCAN_FINISHED, this._onScanFinish);
+        this._stopScanning();
     }
 
     _onScanStatistic(statistic: any){
@@ -66,20 +67,24 @@ export class DialogSerialPortsList implements OnDestroy {
                 }
             );
         } else {
-            APIProcessor.send(
-                APICommands.stopScanPorts,
-                {},
-                (response : APIResponse, error: Error) =>{
-                    if (error !== null){
-                        return false;
-                    }
-                    if (response.code !== 0){
-                        return false;
-                    }
-                    this._scanning = false;
-                }
-            );
+            this._stopScanning();
         }
+    }
+
+    _stopScanning(){
+        APIProcessor.send(
+            APICommands.stopScanPorts,
+            {},
+            (response : APIResponse, error: Error) =>{
+                if (error !== null){
+                    return false;
+                }
+                if (response.code !== 0){
+                    return false;
+                }
+                this._scanning = false;
+            }
+        );
     }
 
     onSelect(portID: string, settings: boolean){
