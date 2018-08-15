@@ -6,7 +6,6 @@ const ApplicationMenu   = require('./electron/application.menu');
 const ApplicationStorage= require('./electron/application.storage');
 const ApplicationCLI 	= require('./electron/application.cli');
 const logger            = new (require('./server/libs/tools.logger'))('Electron');
-const STORAGE_KEYS      = require('./electron/application.storage.keys');
 const updater 			= new Updater();
 
 const ELECTRON_EVENTS = {
@@ -25,6 +24,8 @@ class Starter {
         this._menu 				= null;
         this._version 			= null;
         this._cli 				= new ApplicationCLI(this._app.getVersion(), true);
+        this._state 			= {};
+        this._stateSave 		= this._stateSave.bind(this);
         //Bind electron events
         Object.keys(ELECTRON_EVENTS).forEach((key) => {
             if (this[ELECTRON_EVENTS[key]] !== void 0){
@@ -40,10 +41,6 @@ class Starter {
 		this._menu 		= new ApplicationMenu();
 		updater.init();
 	}
-
-    _getWindowState(){
-        return this._storage.get(STORAGE_KEYS.WINDOW_STATE);
-    }
 
     // initialization and is ready to create browser windows.
     // Some APIs can only be used after this event occurs.
@@ -94,29 +91,26 @@ class Starter {
     }
 
     _initClient(){
-        this._getWindowState()
+		this._storage.get()
             .then((state) => {
-                if (typeof state !== 'object' || state === null) {
-                    state = {};
-                }
                 this._createClient(state);
             })
             .catch((error) => {
-                logger.error(`State getting error.`);
-                logger.error(error);
+                logger.error(`State getting error due error: ${error.message}.`);
                 this._createClient({});
             });
     }
 
     _createClient(state){
         // Create the browser window.
-        this._window = new BrowserWindow({
-            title   : `LogViewer@${this._version}`,
-            width   : state.bounds !== void 0 ? (state.bounds.width !== void 0 ? state.bounds.width: 850) : 850,
-            height  : state.bounds !== void 0 ? (state.bounds.height !== void 0 ? state.bounds.height: 600) : 600,
-            x       : state.bounds !== void 0 ? (state.bounds.x !== void 0 ? state.bounds.x: undefined) : undefined,
-            y       : state.bounds !== void 0 ? (state.bounds.y !== void 0 ? state.bounds.y: undefined) : undefined,
-        });
+		this._state = {
+			title   : `LogViewer@${this._version}`,
+			width   : state.bounds !== void 0 ? (state.bounds.width !== void 0 ? state.bounds.width: 850) : 850,
+			height  : state.bounds !== void 0 ? (state.bounds.height !== void 0 ? state.bounds.height: 600) : 600,
+			x       : state.bounds !== void 0 ? (state.bounds.x !== void 0 ? state.bounds.x: undefined) : undefined,
+			y       : state.bounds !== void 0 ? (state.bounds.y !== void 0 ? state.bounds.y: undefined) : undefined,
+		};
+        this._window = new BrowserWindow(Object.assign({}, this._state));
         // and load the index.html of the app.
         this._window.loadURL(url.format({
             pathname: path.join(__dirname, `client/index.html`),
@@ -128,7 +122,7 @@ class Starter {
         this._window.on('closed', this._onClose.bind(this));
         //Attach handler for state saving
         ['resize', 'move', 'close' ].forEach((event) => {
-            this._window.on(event, this._stateSave.bind(this));
+            this._window.on(event, this._stateSave);
         });
         //Restore maximization
         if (state.isMaximized) {
@@ -141,13 +135,18 @@ class Starter {
     }
 
     _stateSave(event){
-        let state = {};
-        state.isMaximized = this._window.isMaximized();
-        if (!state.isMaximized) {
+		this._state.isMaximized = this._window.isMaximized();
+		if (!this._state.isMaximized) {
             // only update bounds if the window isn’t currently maximized
-            state.bounds = this._window.getBounds();
+			this._state.bounds = this._window.getBounds();
         }
-        this._storage.set(STORAGE_KEYS.WINDOW_STATE, state);
+		this._storage.set(this._state)
+			.then(() => {
+				logger.debug(`State is saved`);
+			})
+			.catch((e) => {
+				logger.debug(`Fail save state due error: ${e.message}`);
+			});
     }
 
     _createServer(){

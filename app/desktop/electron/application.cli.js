@@ -112,6 +112,9 @@ class CommandsImplementation{
 				this.version();
 				return resolve(true);
 			}
+			if (~Object.keys(this.commands).indexOf(COMMANDS.debug)){
+				return resolve(true);
+			}
 			if (!~Object.keys(this.commands).indexOf(COMMANDS.open)){
 				console.log(`Command -o (--open) isn't defined`);
 				return resolve(false);
