@@ -276,6 +276,9 @@ class Request{
                 });
             }
         }
+        if (typeof params === 'string') {
+            result = params;
+        }
         //Parameters are converted to string
         return result;
     }
