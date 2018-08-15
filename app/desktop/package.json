@@ -16,7 +16,6 @@
   "author": "Dmitry Astafyev",
   "license": "MIT",
   "dependencies": {
-    "electron-json-storage": "^4.1.1",
     "electron-updater": "^3.1.1",
     "glob": "^7.1.2",
     "serialport": "6.1.1",
@@ -25,9 +24,9 @@
     "websocket": "1.0.25"
   },
   "devDependencies": {
-    "electron": "^2.0.7",
-    "electron-builder": "^20.27.1",
-    "dmg-builder": "^5.2.0"
+    "dmg-builder": "5.2.0",
+    "electron": "2.0.7",
+    "electron-builder": "20.28.1"
   },
   "repository": {
     "type": "git",
