@@ -32,9 +32,14 @@ import { popupController                        } from "../../core/components/co
 import { ProgressBarCircle                      } from "../../core/components/common/progressbar.circle/component";
 import { ViewControllerListFullLine             } from "./full-line/component";
 import { DialogSaveLogs                         } from "../../core/components/common/dialogs/dialog-save-logs/component";
+import { DialogCloudLogs                        } from "../../core/components/common/dialogs/dialog-cloud-logs/component";
+import { DialogA                                } from "../../core/components/common/dialogs/dialog-a/component";
+import { DialogMessage                          } from "../../core/components/common/dialogs/dialog-message/component";
 
 import { timestampToDDMMYYYYhhmmSSsss           } from "../../core/modules/tools.date";
 import { versionController                      } from "../../core/modules/controller.version";
+import {KEYs, localSettings} from "../../core/modules/controller.localsettings";
+import {DIRECTIONS, Method, Request as AJAXRequest} from "../../core/modules/tools.ajax";
 
 interface ISelectedMarker {
     index: string,
@@ -173,6 +178,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_HIGHLIGHT_TRIGGER,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_SHOW_FULL_LINE,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_EXPORT_TO_FILE,
+            Configuration.sets.EVENTS_VIEWS.LIST_VIEW_EXPORT_TO_CLOUD,
             Configuration.sets.SYSTEM_EVENTS.VIEW_FORCE_UPDATE_CONTENT,
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_BEGIN,
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_END,
@@ -217,6 +223,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_ONLY_BOOKMARKS_TRIGGER,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_HIGHLIGHT_TRIGGER,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_EXPORT_TO_FILE,
+            Configuration.sets.EVENTS_VIEWS.LIST_VIEW_EXPORT_TO_CLOUD,
             Configuration.sets.EVENTS_VIEWS.LIST_VIEW_SHOW_FULL_LINE,
             Configuration.sets.SYSTEM_EVENTS.VIEW_FORCE_UPDATE_CONTENT,
             Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_BEGIN,
@@ -1011,6 +1018,67 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         }
     }
 
+    onLIST_VIEW_EXPORT_TO_CLOUD(GUID: string | symbol){
+        if (GUID === this.viewParams.GUID){
+            if (this.rows instanceof Array && this.rows.length > 0){
+                const GUID = Symbol();
+                const settings = localSettings.get();
+                let connection = {
+                    cloud: '',
+                    logviewer: ''
+                };
+                if (settings !== null && settings[KEYs.cloud] !== void 0){
+                    connection = Object.assign({}, settings[KEYs.cloud]);
+                }
+                popupController.open({
+                    content : {
+                        factory     : null,
+                        component   : DialogCloudLogs,
+                        params      : {
+                            message     : `Take in account, you also can include your search requests into log file and your bookmarks.`,
+                            cloud       : connection.cloud,
+                            logviewer   : connection.logviewer,
+                            buttons     : [
+                                {
+                                    caption: 'Upload',
+                                    handle: (params: { cloud: string | null, logviewer: string | null, bookmarks: boolean, filters: boolean}) => {
+                                        popupController.close(GUID);
+                                        localSettings.set({
+                                            [KEYs.cloud] : {
+                                                cloud: params.cloud,
+                                                logviewer: params.logviewer
+                                            }
+                                        });
+                                        this.uploadLogs(params);
+                                    }
+                                },
+                                {
+                                    caption: 'Cancel',
+                                    handle: () => {
+                                        popupController.close(GUID);
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    title   : `Uploading data (${this.rows.length} rows in logs)`,
+                    settings: {
+                        move            : true,
+                        resize          : true,
+                        width           : '30rem',
+                        height          : '27rem',
+                        close           : true,
+                        addCloseHandle  : false,
+                        css             : ''
+                    },
+                    buttons         : [],
+                    titlebuttons    : [],
+                    GUID            : GUID
+                });
+            }
+        }
+    }
+
     saveGetFileName(prefix: string, rest: string = '', ext: string = 'txt'){
         return `${prefix}_${timestampToDDMMYYYYhhmmSSsss((new Date()).getTime()).replace(/[\.\s]/gi, '_')}${rest !== '' ? '_' : ''}${rest}.${ext}`;
     }
@@ -1037,6 +1105,129 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         this.exportdata.url         = this.sanitizer.bypassSecurityTrustUrl(url);
         this.exportdata.filename    = typeof params.filename === 'string' ? (params.filename.trim() === '' ? this.saveGetFileName('export') : params.filename) :  this.saveGetFileName('export');
         this.forceUpdate();
+    }
+
+    uploadLogs(params: { cloud: string | null, logviewer: string | null, bookmarks: boolean, filters: boolean}){
+        let extraContent = '';
+        if (params.filters) {
+            const requests = dataController.getCurrentRequestsRecord();
+            if (requests !== null) {
+                extraContent += ('\n' + requests);
+            }
+        }
+        if (params.bookmarks) {
+            const bookmarks = dataController.getBookmarksInjectionRecord(this.bookmarks);
+            if (bookmarks !== null) {
+                extraContent += ('\n' + bookmarks);
+            }
+        }
+        let str = this.rows.map((row)=>{
+                return ANSIClearer(row.params.original);
+            }).join('\n') + extraContent;
+        const progress = Symbol();
+        popupController.open({
+            content : {
+                factory     : null,
+                component   : ProgressBarCircle,
+                params      : {}
+            },
+            title   : 'Please, wait. Uploading... ',
+            settings: {
+                move            : false,
+                resize          : false,
+                width           : '20rem',
+                height          : '10rem',
+                close           : false,
+                addCloseHandle  : false,
+                css             : ''
+            },
+            buttons         : [],
+            titlebuttons    : [],
+            GUID            : progress
+        });
+        let request = new AJAXRequest({
+            url         : `${params.cloud}/logs`,
+            method      : new Method(DIRECTIONS.POST),
+            post        : str
+        }).then((response : any)=>{
+            popupController.close(progress);
+            if (typeof response !== 'string'){
+                return popupController.open({
+                    content : {
+                        factory     : null,
+                        component   : DialogMessage,
+                        params      : {
+                            message     : `Failed to upload logs to clouds`,
+                            buttons     : []
+                        }
+                    },
+                    title   : `Fail to upload logs to cloud`,
+                    settings: {
+                        move            : true,
+                        resize          : true,
+                        width           : '30rem',
+                        height          : '10rem',
+                        close           : true,
+                        addCloseHandle  : false,
+                        css             : ''
+                    },
+                    buttons         : [],
+                    titlebuttons    : [],
+                    GUID            : Symbol()
+                });
+            }
+            popupController.open({
+                content : {
+                    factory     : null,
+                    component   : DialogA,
+                    params      : {
+                        caption     : `Logs uploaded to cloud. Please copy next url to have possibility open this logs.`,
+                        value       : `${params.logviewer}?openbyurl=${encodeURIComponent(`${params.cloud}/logs?logFileId=${response}`)}`,
+                        buttons     : []
+                    }
+                },
+                title   : `Success`,
+                settings: {
+                    move            : true,
+                    resize          : true,
+                    width           : '30rem',
+                    height          : '12rem',
+                    close           : true,
+                    addCloseHandle  : false,
+                    css             : ''
+                },
+                buttons         : [],
+                titlebuttons    : [],
+                GUID            : Symbol()
+            });
+
+        }).catch((error : Error)=>{
+            popupController.close(progress);
+            popupController.open({
+                content : {
+                    factory     : null,
+                    component   : DialogMessage,
+                    params      : {
+                        message     : `Failed to upload logs to clouds, due error: ${error.message}`,
+                        buttons     : []
+                    }
+                },
+                title   : `Fail to upload logs to cloud`,
+                settings: {
+                    move            : true,
+                    resize          : true,
+                    width           : '30rem',
+                    height          : '10rem',
+                    close           : true,
+                    addCloseHandle  : false,
+                    css             : ''
+                },
+                buttons         : [],
+                titlebuttons    : [],
+                GUID            : Symbol()
+            });
+        });
+        request.send();
     }
 
     onSHORTCUT_TO_END(){

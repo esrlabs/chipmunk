@@ -496,7 +496,6 @@ export class DialogSearchRequestsPresets implements AfterViewChecked {
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     importByURL(url: string){
         this.showWaitPopup();
-        //const url = 'https://raw.githubusercontent.com/esrlabs/esrlabs.com/master/package.json?token=AMP64157xMWj0wNzGCy5aEji0rH15Tc0ks5as42LwA%3D%3D';
         let request = new AJAXRequest({
             url         : url,
             method      : new Method(DIRECTIONS.GET)

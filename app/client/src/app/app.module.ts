@@ -28,8 +28,8 @@ import { MonitorManager                     } from './core/handles/hanlde.open.m
 import { viewsParameters                    } from './core/services/service.views.parameters';
 
 import { serviceRequests                    } from './core/services/service.requests';
-import { events as Events                   } from "./core/modules/controller.events";
-import { configuration as Configuration     } from "./core/modules/controller.config";
+import { OpenByURLOnStartUp                 } from './core/modules/controller.openbyurl.startup';
+
 
 @NgModule({
     imports:      [ BrowserModule, ComponentsCommmon, TopBarModule, HolderModule ],
@@ -46,6 +46,7 @@ export class AppModule {
     private terminal            : Terminal              = new Terminal();
     private updater             : Updater               = new Updater();
     private markersController   : MarkersController     = new MarkersController();
+    private openByURLOnStartUp  : OpenByURLOnStartUp    = new OpenByURLOnStartUp();
 
     constructor(){
         MonitorManager.init();

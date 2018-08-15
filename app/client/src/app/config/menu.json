@@ -1,9 +1,12 @@
 {
   "bar": [
-    { "icon" : "fa-folder-open-o",    "caption" : "Open log file",              "handler": "openLocalFile",                 "type": "item" }
+    { "icon" : "fa-folder-open-o",    "caption" : "Open log file",              "handler": "openLocalFile",                 "type": "item" },
+    { "icon" : "fa-cloud-download",   "caption" : "Open log file by URL",       "handler": "openLocalFileByURL",            "type": "item" }
   ],
   "web": [
     { "icon" : "fa-upload",           "caption" : "Open log file",              "handler": "openLocalFile",                 "type": "item" },
+    { "icon" : "fa-upload",           "caption" : "Open log file by URL",       "handler": "openLocalFileByURL",            "type": "item" },
+    { "type" : "line" },
     { "icon" : "fa-plug",             "caption" : "Open serial port stream",    "handler": "openSerialStream",              "type": "item" },
     { "icon" : "fa-desktop",          "caption" : "Open telnet stream",         "handler": "openTelnetStream",              "type": "item" },
     { "icon" : "fa-android",          "caption" : "Open ADB logcat stream",     "handler": "openADBLogcatStream",           "type": "item" },
@@ -42,7 +45,8 @@
     {
       "group": "File / Sources",
       "items": [
-        { "icon" : "",  "caption" : "Open local file", "handler": "openLocalFile",   "type": "item", "accelerator": "CmdOrCtrl+O" },
+        { "icon" : "",  "caption" : "Open local file",  "handler": "openLocalFile",         "type": "item", "accelerator": "CmdOrCtrl+O" },
+        { "icon" : "",  "caption" : "Open file by URL", "handler": "openLocalFileByURL",    "type": "item", "accelerator": "" },
         { "type" : "line" },
         { "icon" : "fa-plug",         "caption" : "Serial port stream",     "handler": "openSerialStream",            "type": "item", "accelerator": "" },
         { "icon" : "fa-desktop",      "caption" : "Telnet stream",          "handler": "openTelnetStream",            "type": "item", "accelerator": "" },
