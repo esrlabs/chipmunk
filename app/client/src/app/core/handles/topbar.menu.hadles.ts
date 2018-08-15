@@ -21,6 +21,8 @@ import { APISettings                    } from '../handles/handle.api.settings';
 import { controllerThemes               } from '../modules/controller.themes';
 import { OpenMarkersManager             } from '../handles/handle.open.markers.manager';
 import { BugReport                      } from '../handles/handle.bug.report';
+import {DIRECTIONS, Method, Request as AJAXRequest} from "../modules/tools.ajax";
+import {DialogA} from "../components/common/dialogs/dialog-a/component";
 
 
 class TopBarMenuHandles{
@@ -166,6 +168,89 @@ class TopBarMenuHandles{
     openBugReportDialog(){
         let bugReport = new BugReport();
         bugReport.start();
+    }
+
+    openLocalFileByURL(){
+        const guid = Symbol();
+        popupController.open({
+            content : {
+                factory     : null,
+                component   : DialogA,
+                params      : {
+                    caption: 'Type URL of source of data',
+                    value: '',
+                    type: 'test',
+                    placeholder: 'Type source URL',
+                    buttons: [
+                        {
+                            caption: 'Download',
+                            handle : (url: string)=>{
+                                popupController.close(guid);
+                                if (url.trim() === '') {
+                                    return;
+                                }
+                                const progress = Symbol();
+                                popupController.open({
+                                    content : {
+                                        factory     : null,
+                                        component   : ProgressBarCircle,
+                                        params      : {}
+                                    },
+                                    title   : 'Please, wait...',
+                                    settings: {
+                                        move            : false,
+                                        resize          : false,
+                                        width           : '20rem',
+                                        height          : '10rem',
+                                        close           : false,
+                                        addCloseHandle  : false,
+                                        css             : ''
+                                    },
+                                    buttons         : [],
+                                    titlebuttons    : [],
+                                    GUID            : progress
+                                });
+                                let request = new AJAXRequest({
+                                    url         : url,
+                                    method      : new Method(DIRECTIONS.GET)
+                                }).then((response : any)=>{
+                                    popupController.close(progress);
+                                    if (typeof response === 'object' && response !== null) {
+                                        response = JSON.stringify(response);
+                                    } else if (typeof response !== 'string'){
+                                        return false;
+                                    }
+                                    Events.trigger(Configuration.sets.SYSTEM_EVENTS.DESCRIPTION_OF_STREAM_UPDATED, url);
+                                    Events.trigger(Configuration.sets.SYSTEM_EVENTS.TXT_DATA_COME, response);
+                                }).catch((error : Error)=>{
+                                    popupController.close(progress);
+                                });
+                                request.send();
+                            }
+                        },
+                        {
+                            caption: 'Cancel',
+                            handle : ()=>{
+                                popupController.close(guid);
+                            }
+                        }
+                    ]
+                }
+            },
+            title   : 'Get logs by URL',
+            settings: {
+                move            : true,
+                resize          : true,
+                width           : '40rem',
+                height          : '12rem',
+                close           : true,
+                addCloseHandle  : false,
+                css             : ''
+            },
+            buttons         : [],
+            titlebuttons    : [],
+            GUID            : guid
+        });
     }
 
 }
