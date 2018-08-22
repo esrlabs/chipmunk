@@ -10,9 +10,6 @@ view-controller-list{
         bottom: 0;
         right: 0;
         overflow: hidden;
-        &.full-line-on{
-            bottom: 10rem;
-        }
         div.lv-list{
             position    : absolute;
             top         : 1.5rem;
@@ -30,6 +27,12 @@ view-controller-list{
                 padding: 0;
             }
 
+        }
+        &.full-line-on{
+            bottom: 10rem;
+        }
+        &.remarks-on{
+            right: 15rem;
         }
         div.lv-buffer{
             position    : absolute;
@@ -70,6 +73,14 @@ view-controller-list{
         left: 0rem;
         right: 0;
         height: 10rem;
+        overflow: hidden;
+    }
+    & div.lv-remarks{
+        position: absolute;
+        right: 0;
+        width: 15rem;
+        top:0;
+        bottom: 0;
         overflow: hidden;
     }
 }

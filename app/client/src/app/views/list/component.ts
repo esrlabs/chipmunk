@@ -31,6 +31,10 @@ import { DragAndDropFiles, DragDropFileEvent    } from '../../core/modules/contr
 import { popupController                        } from "../../core/components/common/popup/controller";
 import { ProgressBarCircle                      } from "../../core/components/common/progressbar.circle/component";
 import { ViewControllerListFullLine             } from "./full-line/component";
+import { ViewControllerListRemarks, IRemark     } from "./remarks/component";
+import { TRemarkSelection                       } from "./item/component";
+
+
 import { DialogSaveLogs                         } from "../../core/components/common/dialogs/dialog-save-logs/component";
 import { DialogCloudLogs                        } from "../../core/components/common/dialogs/dialog-cloud-logs/component";
 import { DialogA                                } from "../../core/components/common/dialogs/dialog-a/component";
@@ -38,8 +42,8 @@ import { DialogMessage                          } from "../../core/components/co
 
 import { timestampToDDMMYYYYhhmmSSsss           } from "../../core/modules/tools.date";
 import { versionController                      } from "../../core/modules/controller.version";
-import {KEYs, localSettings} from "../../core/modules/controller.localsettings";
-import {DIRECTIONS, Method, Request as AJAXRequest} from "../../core/modules/tools.ajax";
+import { KEYs, localSettings                    } from "../../core/modules/controller.localsettings";
+import { DIRECTIONS, Method, Request as AJAXRequest} from "../../core/modules/tools.ajax";
 
 interface ISelectedMarker {
     index: string,
@@ -93,6 +97,8 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
 
     @ViewChild(LongList) listView: LongList;
     @ViewChild('fulllinecomponent') fullLineComponent : ViewControllerListFullLine;
+    @ViewChild('listviewremarks') remarksComponent : ViewControllerListRemarks;
+
     @ViewChild ('exporturl', { read: ViewContainerRef}) exportURLNode: ViewContainerRef;
 
     private _rows                   : Array<any>                    = [];
@@ -114,6 +120,8 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     private dragAndDropFiles        : DragAndDropFiles              = null;
     private dragAndDropDialogGUID   : symbol                        = null;
     private fullLineView            : boolean                       = false;
+    private remarks                 : Array<IRemark>                = [];
+    private remarksSubscription     : any                           = null;
 
     private selection : {
         own     : boolean,
@@ -167,6 +175,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         this.onTextSelection            = this.onTextSelection. bind(this);
         this.onNumbersChange            = this.onNumbersChange. bind(this);
         this.onCloseFullLine            = this.onCloseFullLine. bind(this);
+        this.onRemarksUpdated           = this.onRemarksUpdated.bind(this);
 
         [   Configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED,
             Configuration.sets.SYSTEM_EVENTS.ROW_IS_SELECTED,
@@ -249,6 +258,12 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             this.exportURLNode.element.nativeElement.click();
             this.exportdata.url         = null;
             this.exportdata.filename    = '';
+        }
+        if (this.remarksComponent !== null && this.remarksComponent !== undefined && this.remarksSubscription === null) {
+            return this.subscribeRemarksComponent();
+        }
+        if ((this.remarksComponent === null || this.remarksComponent === undefined) && this.remarksSubscription !== null) {
+            return this.unsubscribeRemarksComponent();
         }
     }
 
@@ -358,7 +373,8 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                     markers         : this.markers,
                     markersHash     : markersHash,
                     regsCache       : this.regsCache,
-                    highlight       : highlight
+                    highlight       : highlight,
+                    remarks         : this.getRemarksForRow(_index)
                 },
                 callback: this.onRowInit.bind(this, _index),
                 update  : null,
@@ -519,6 +535,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     onRowInit(index: number, instance : ListItemInterface){
         instance.selected.subscribe(this.onOwnSelected.bind(this));
         instance.bookmark.subscribe(this.toggleBookmark.bind(this));
+        instance.remark.subscribe(this.onRemark.bind(this));
         this._rows[index] !== void 0 && (this._rows[index].update = instance.update.bind(instance));
     }
 
@@ -583,6 +600,102 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         bookmarks.forEach((index: number) => {
             this.toggleBookmark(index, true);
         });
+    }
+
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+     * Remarks
+     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    onRemark(remark: TRemarkSelection){
+        if (this.remarksComponent === null || this.remarksComponent === undefined) {
+            return;
+        }
+        const remarks = this.remarks.slice();
+        remarks.push({
+           text: '',
+           index: remark.index,
+           selection: remark.selection,
+           color: ''
+        });
+        remarks.sort((a: IRemark, b: IRemark) => {
+            if (a.index > b.index) {
+                return 1;
+            }
+            if (a.index > b.index) {
+                return -1;
+            }
+            return 0;
+        });
+        this.remarks = remarks;
+        this.updateRemarksOnRows();
+        this.forceUpdate(false);
+        this.remarksComponent.scrollIntoView(remark.index);
+    }
+
+    getRemarksForRow(index: number): Array<{ selection: string, color: string }> {
+        if (this.remarks.length === 0) {
+            return [];
+        }
+        const remarks: Array<{ selection: string, color: string }> = [];
+        this.remarks.forEach((remark: IRemark) => {
+           if (remark.index === index) {
+               remarks.push({ selection: remark.selection, color: remark.color });
+           }
+        });
+        return remarks;
+    }
+
+    onRemarksUpdated(remarks: Array<IRemark>){
+        this.remarks = remarks.filter((remark: IRemark) => {
+            return Object.assign({}, remark);
+        });
+        this.updateRemarksOnRows();
+        this.forceUpdate(false);
+    }
+
+    updateRemarksOnRows() {
+        this.rows = this.rows.map((row: any) => {
+            row.params.remarks = this.getRemarksForRow(row.params.index);
+            if (typeof row.update === 'function') {
+                row.update(row.params);
+            }
+            return row;
+        });
+    }
+
+    subscribeRemarksComponent(){
+        if (this.remarksComponent === null || this.remarksComponent === undefined) {
+            this.remarksSubscription = null;
+            return;
+        }
+        if (this.remarksSubscription !== null) {
+            return;
+        }
+        this.remarksSubscription = this.remarksComponent.onRemarksUpdated.subscribe(this.onRemarksUpdated);
+    }
+
+    unsubscribeRemarksComponent(){
+        if (this.remarksComponent === null || this.remarksComponent === undefined) {
+            this.remarksSubscription = null;
+            return;
+        }
+        if (this.remarksSubscription === null) {
+            return;
+        }
+        this.remarksSubscription.unsubsribe();
+    }
+
+    applyRemarks(remarks: Array<IRemark>) {
+        if (!(remarks instanceof Array)){
+            this.remarks = [];
+        }
+        this.remarks = remarks;
+        this.updateRemarksOnRows();
+        this.forceUpdate();
+    }
+
+    resetRemarks(){
+        this.remarks = [];
+        this.updateRemarksOnRows();
     }
 
 
@@ -986,7 +1099,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                             buttons : [
                                 {
                                     caption: 'Save',
-                                    handle: (params: { filename: string | null, bookmarks: boolean, filters: boolean}) => {
+                                    handle: (params: { filename: string | null, bookmarks: boolean, filters: boolean, remarks: boolean}) => {
                                         popupController.close(GUID);
                                         this.saveLogs(params);
                                     }
@@ -1005,7 +1118,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                         move            : true,
                         resize          : true,
                         width           : '30rem',
-                        height          : '25rem',
+                        height          : '27rem',
                         close           : true,
                         addCloseHandle  : false,
                         css             : ''
@@ -1041,7 +1154,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                             buttons     : [
                                 {
                                     caption: 'Upload',
-                                    handle: (params: { cloud: string | null, logviewer: string | null, bookmarks: boolean, filters: boolean}) => {
+                                    handle: (params: { cloud: string | null, logviewer: string | null, bookmarks: boolean, filters: boolean, remarks: boolean}) => {
                                         popupController.close(GUID);
                                         localSettings.set({
                                             [KEYs.cloud] : {
@@ -1066,7 +1179,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                         move            : true,
                         resize          : true,
                         width           : '30rem',
-                        height          : '27rem',
+                        height          : '29rem',
                         close           : true,
                         addCloseHandle  : false,
                         css             : ''
@@ -1083,8 +1196,14 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         return `${prefix}_${timestampToDDMMYYYYhhmmSSsss((new Date()).getTime()).replace(/[\.\s]/gi, '_')}${rest !== '' ? '_' : ''}${rest}.${ext}`;
     }
 
-    saveLogs(params: { filename: string | null, bookmarks: boolean, filters: boolean}){
+    saveLogs(params: { filename: string | null, bookmarks: boolean, filters: boolean, remarks: boolean}){
         let extraContent = '';
+        if (params.remarks) {
+            const remarks = dataController.getCurrentRemarksRecord(this.remarks);
+            if (remarks !== null) {
+                extraContent += ('\n' + remarks);
+            }
+        }
         if (params.filters) {
             const requests = dataController.getCurrentRequestsRecord();
             if (requests !== null) {
@@ -1107,8 +1226,14 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         this.forceUpdate();
     }
 
-    uploadLogs(params: { cloud: string | null, logviewer: string | null, bookmarks: boolean, filters: boolean}){
+    uploadLogs(params: { cloud: string | null, logviewer: string | null, bookmarks: boolean, filters: boolean, remarks: boolean}){
         let extraContent = '';
+        if (params.remarks) {
+            const remarks = dataController.getCurrentRemarksRecord(this.remarks);
+            if (remarks !== null) {
+                extraContent += ('\n' + remarks);
+            }
+        }
         if (params.filters) {
             const requests = dataController.getCurrentRequestsRecord();
             if (requests !== null) {
@@ -1265,6 +1390,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
             this.refreshScrollState();
             this.resetSearchNavigation();
             this.applyBookmarks(event.bookmarks);
+            this.applyRemarks(event.remarks);
             Logs.measure(measure);
         }
     }

@@ -1,4 +1,4 @@
-<div [attr.class]="'lv-wrapper ' + (fullLineView ? 'full-line-on' : '')" *ngIf="rows.length > 0">
+<div [attr.class]="'lv-wrapper ' + (fullLineView ? 'full-line-on' : '') + ' ' + (remarks.length > 0 ? 'remarks-on' : '')" *ngIf="rows.length > 0">
     <div [attr.class]="'lv-list' + (!line.visible ? ' no-line ' : '') + (buffer === '' ? ' no-buffer ' : '')">
         <long-list #list [rows]="rows" [onScroll]="onScrollSubscription" [maxWidthRow]="maxWidthRow"></long-list>
     </div>
@@ -22,6 +22,12 @@
             [value]="selection.str"
             [closeHandler]="onCloseFullLine"
     ></list-view-full-line>
+</div>
+<div *ngIf="remarks.length > 0" [attr.class]="'lv-remarks'">
+    <list-view-remarks
+            #listviewremarks
+            [remarks]="remarks"
+    ></list-view-remarks>
 </div>
 <p *ngIf="rows.length === 0" class="message-no-data">No Data Is Loaded</p>
 <a #exporturl [attr.href]="exportdata.url" class="export-url" [attr.download]="exportdata.filename"></a>
