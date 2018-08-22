@@ -22,13 +22,14 @@ const INDEX_MARKERS = {
     MARKER : '\u0020'
 };
 
-const MARKERS_SELECTION_MODE = {
-    WORDS: 'words',
-    LINES: 'lines'
+const DATA_ATTRS = {
+    MARKER_ID: 'data-marker-id',
+    REMARK_ID: 'data-remark-id'
 };
 
-const DATA_ATTRS = {
-    MARKER_ID: 'data-marker-id'
+export type TRemarkSelection = {
+    index: number,
+    selection: string
 };
 
 @Component({
@@ -53,6 +54,7 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     @Input() active             : boolean       = false;
     @Input() markersHash        : string        = '';
     @Input() regsCache          : Object        = {};
+    @Input() remarks            : Array<{ selection: string, color: string }> = [];
     @Input() markers            : Array<{
         value           : string,
         backgroundColor : string,
@@ -66,8 +68,9 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
         foregroundColor : ''
     };
 
-    @Output() selected  : EventEmitter<number>  = new EventEmitter();
-    @Output() bookmark  : EventEmitter<number>  = new EventEmitter();
+    @Output() selected  : EventEmitter<number>              = new EventEmitter();
+    @Output() bookmark  : EventEmitter<number>              = new EventEmitter();
+    @Output() remark    : EventEmitter<TRemarkSelection>    = new EventEmitter();
 
     private __index         : string                = '';
     public html             : string                = null;
@@ -113,10 +116,33 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     getHTML(){
         const settings      = Settings.get();
         let matchMatches    = null;
-        let markersMatches  : Array<{ mark: string, matches: Array<string>, bg: string, fg: string, index: number}> = [];
+        let markersMatches  : Array<{ mark: string, matches: Array<string>, bg?: string, fg?: string, index: number}> = [];
         this._highlight.backgroundColor = this.highlight.backgroundColor;
         this._highlight.foregroundColor = this.highlight.foregroundColor;
         this.html = serializeHTML(this.val);
+        if (this.remarks instanceof Array) {
+            this.remarks.forEach((remark, index)=>{
+                if (remark.selection.length > 0) {
+                    let matches = null;
+                    let mark    = `${MARKERS.MARKER_LEFT}${index}${MARKERS.MARKER_RIGHT}`;
+                    let markerKey = `__${remark.selection}__`;
+                    this.regsCache[markerKey]   === void 0 && (this.regsCache[markerKey]    = safelyCreateRegExp(serializeHTML(serializeStringForReg(remark.selection)), 'gi'));
+                    this.regsCache[mark]        === void 0 && (this.regsCache[mark]         = safelyCreateRegExp(serializeHTML(serializeStringForReg(mark)), 'gi'));
+                    if (this.regsCache[markerKey] !== null){
+                        matches = this.html.match(this.regsCache[markerKey]);
+                        if (matches instanceof Array && matches.length > 0){
+                            this.html = this.html.replace(this.regsCache[markerKey], mark);
+                            markersMatches.push({
+                                mark    : mark,
+                                matches : matches,
+                                index   : index,
+                                bg      : remark.color
+                            });
+                        }
+                    }
+                }
+            });
+        }
         if (this.markers instanceof Array){
             this.markers.forEach((marker, index)=>{
                 if (marker.value.length > 0) {
@@ -175,9 +201,15 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
 
         if (markersMatches instanceof Array && markersMatches.length > 0) {
             markersMatches.forEach((marker) => {
-                marker.matches.forEach((match)=>{
-                    this.html = this.html.replace(marker.mark, `<span ${DATA_ATTRS.MARKER_ID}="${marker.index}" class="marker" style="background-color: ${marker.bg};color:${marker.fg};">${match}</span>`);
-                });
+                if (marker.fg !== void 0) {
+                    marker.matches.forEach((match)=>{
+                        this.html = this.html.replace(marker.mark, `<span ${DATA_ATTRS.MARKER_ID}="${marker.index}" class="marker" style="background-color: ${marker.bg};color:${marker.fg};">${match}</span>`);
+                    });
+                } else {
+                    marker.matches.forEach((match)=>{
+                        this.html = this.html.replace(marker.mark, `<span ${DATA_ATTRS.REMARK_ID}="${this.index}" class="remark" style="background-color: ${marker.bg};">${match}</span>`);
+                    });
+                }
             });
         }
 
@@ -248,6 +280,19 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
                 force = true;
             }
         });
+        if (!force){
+            let remarksHash = '';
+            let _remarksHash = '';
+            this.remarks instanceof Array ? this.remarks.forEach((remark: { selection: string, color: string }) => {
+                remarksHash += remark.selection;
+            }) : '';
+            params.remarks instanceof Array ? params.remarks.forEach((remark: { selection: string, color: string }) => {
+                remarksHash += remark.selection;
+            }) : '';
+            if (remarksHash !== _remarksHash) {
+                force = true;
+            }
+        }
         Object.keys(params).forEach((key)=>{
             this[key] !== void 0 && (this[key] = params[key]);
         });
@@ -335,13 +380,24 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
                 }
             ]} as IContextMenuEvent;
         const selection = window.getSelection();
-        const selectedTest = selection.toString();
-        if (selectedTest.trim() !== '') {
+        const selectedText = selection.toString().replace(/[\n\r]/gi, '');
+        if (selectedText.trim() !== '') {
             contextEvent.items.unshift({
                 caption : 'Copy selection',
                 type    : EContextMenuItemTypes.item,
                 handler : () => {
-                    copyText(ANSIClearer(this.removeIndexes(selectedTest)));
+                    copyText(ANSIClearer(this.removeIndexes(selectedText)));
+                }
+            });
+            contextEvent.items.push({ type: EContextMenuItemTypes.divider });
+            contextEvent.items.push({
+                caption : 'Add remark',
+                type    : EContextMenuItemTypes.item,
+                handler : () => {
+                    this.remark.emit({
+                        index: this.index,
+                        selection: ANSIClearer(this.removeIndexes(selectedText))
+                    });
                 }
             });
         }
