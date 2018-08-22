@@ -6,6 +6,7 @@ export enum EContextMenuItemTypes {
 
 export interface IContextMenuItem{
     caption?: string,
+    color?: string,
     type: EContextMenuItemTypes,
     handler?: Function,
     items?: Array<IContextMenuItem>

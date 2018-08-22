@@ -2,6 +2,6 @@
     <ul *ngIf="_items !== null">
         <li *ngFor="let item of _items; let i = index;"
             (click)="onMenuItemClick($event, item.handler)"
-            [attr.class]="item.type === 'divider' ? 'divider' : ''">{{item.caption}}</li>
+            [attr.class]="item.type"><span *ngIf="item.color !== undefined" class="color" [style.background]="item.color"></span>{{item.caption}}</li>
     </ul>
 </div>
