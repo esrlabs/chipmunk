@@ -15,7 +15,8 @@ export class DialogSaveLogs {
 
     @ViewChild('input'      ) input : CommonInput;
     @ViewChild('bookmarks'  ) bookmarks : SimpleCheckbox;
-    @ViewChild('filters'    ) filters : CommonInput;
+    @ViewChild('filters'    ) filters : SimpleCheckbox;
+    @ViewChild('remarks'    ) remarks : SimpleCheckbox;
 
     constructor() {
         this.onButtonClick = this.onButtonClick.bind(this);
@@ -25,7 +26,8 @@ export class DialogSaveLogs {
         typeof handle === 'function' && handle({
             filename: this.input !== null ? (this.input !== void 0 ? this.input.getValue() : null) : null,
             bookmarks: this.bookmarks.getValue(),
-            filters: this.filters.getValue()
+            filters: this.filters.getValue(),
+            remarks: this.remarks.getValue()
         });
     }
 

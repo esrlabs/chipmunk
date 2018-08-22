@@ -17,7 +17,8 @@ export class DialogCloudLogs {
     @ViewChild('_cloud'     ) _cloud : CommonInput;
     @ViewChild('_logviewer' ) _logviewer : CommonInput;
     @ViewChild('bookmarks'  ) bookmarks : SimpleCheckbox;
-    @ViewChild('filters'    ) filters : CommonInput;
+    @ViewChild('filters'    ) filters : SimpleCheckbox;
+    @ViewChild('remarks'    ) remarks : SimpleCheckbox;
 
     constructor() {
         this.onButtonClick = this.onButtonClick.bind(this);
@@ -28,7 +29,8 @@ export class DialogCloudLogs {
             cloud: this._cloud !== null ? (this._cloud !== void 0 ? this._cloud.getValue() : null) : null,
             logviewer: this._logviewer !== null ? (this._logviewer !== void 0 ? this._logviewer.getValue() : null) : null,
             bookmarks: this.bookmarks.getValue(),
-            filters: this.filters.getValue()
+            filters: this.filters.getValue(),
+            remarks: this.remarks.getValue()
         });
     }
 
