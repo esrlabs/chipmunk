@@ -606,9 +606,6 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
      * Remarks
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     onRemark(remark: TRemarkSelection){
-        if (this.remarksComponent === null || this.remarksComponent === undefined) {
-            return;
-        }
         const remarks = this.remarks.slice();
         remarks.push({
            text: '',
@@ -628,7 +625,9 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         this.remarks = remarks;
         this.updateRemarksOnRows();
         this.forceUpdate(false);
-        this.remarksComponent.scrollIntoView(remark.index);
+        if (this.remarksComponent !== null || this.remarksComponent !== undefined) {
+            this.remarksComponent.scrollIntoView(remark.index);
+        }
     }
 
     getRemarksForRow(index: number): Array<{ selection: string, color: string }> {
