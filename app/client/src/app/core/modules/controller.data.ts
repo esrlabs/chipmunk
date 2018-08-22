@@ -13,6 +13,11 @@ import { popupController                        } from "../../core/components/co
 import { DialogMessage                          } from "../../core/components/common/dialogs/dialog-message/component";
 import {ProgressBarCircle} from "../components/common/progressbar.circle/component";
 
+const REMARKS_INJECTION_MARK = {
+    start: '__logviewer_remarks_injection__start__',
+    end: '__logviewer_remarks_injection__end__'
+};
+
 const CURRENT_REQUESTS_INJECTION_MARK = {
     start: '__logviewer_filters_injection__start__',
     end: '__logviewer_filters_injection__end__'
@@ -23,6 +28,7 @@ const BOOKMARKS_INJECTION_MARK = {
     end: '__logviewer_bookmarks_injection__end__'
 };
 
+const REMARKS_INJECTION_EXTRACTOR = /__logviewer_remarks_injection__start__.*__logviewer_remarks_injection__end__/gi;
 const REQUEST_INJECTION_EXTRACTOR = /__logviewer_filters_injection__start__.*__logviewer_filters_injection__end__/gi;
 const BOOKMARKS_INJECTION_EXTRACTOR = /__logviewer_bookmarks_injection__start__.*__logviewer_bookmarks_injection__end__/gi;
 
@@ -65,6 +71,19 @@ class DataController implements InitiableModule{
         return this.stream !== null ? this.stream.getRows() : [];
     }
 
+    public getCurrentRemarksRecord(remarks: Array<any>): string | null {
+        if (!(remarks instanceof Array)) {
+            return null;
+        }
+        let _remarks;
+        try {
+            _remarks =  btoa(JSON.stringify(remarks));
+        } catch (e) {
+            return null;
+        }
+        return `${REMARKS_INJECTION_MARK.start}${_remarks}${REMARKS_INJECTION_MARK.end}`;
+    }
+
     public getCurrentRequestsRecord(): string | null{
         const requests = serviceRequests.convertActiveRequests();
         if (requests === null) {
@@ -87,6 +106,23 @@ class DataController implements InitiableModule{
             return null;
         }
         return `${BOOKMARKS_INJECTION_MARK.start}${_bookmarks}${BOOKMARKS_INJECTION_MARK.end}`;
+    }
+
+    extractInjectedRemarks(text: string): Array<any> | null {
+        if (typeof text !== 'string') {
+            return null;
+        }
+        const match = text.match(REMARKS_INJECTION_EXTRACTOR);
+        if (match === null || match.length > 1) {
+            return null;
+        }
+        let remarks: any = match[0].replace(REMARKS_INJECTION_MARK.start, '').replace(REMARKS_INJECTION_MARK.end, '');
+        try {
+            remarks = JSON.parse(atob(remarks));
+        } catch (e) {
+            return null;
+        }
+        return remarks instanceof Array ? remarks : null;
     }
 
     extractInjectedFilters(text: string): Array<any> | null {
@@ -128,6 +164,7 @@ class DataController implements InitiableModule{
             return '';
         }
         return text
+            .replace(REMARKS_INJECTION_EXTRACTOR, '')
             .replace(REQUEST_INJECTION_EXTRACTOR, '')
             .replace(BOOKMARKS_INJECTION_EXTRACTOR, '');
     }
@@ -177,34 +214,35 @@ class DataController implements InitiableModule{
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_PROCESS_START, filter);
             this.stream.updateActiveFilter(filter)
                 .then((rows: Array<DataRow>) => {
-                    Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_FILTER_IS_UPDATED, new EVENT_DATA_IS_UPDATED(rows, [], filter));
+                    Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_FILTER_IS_UPDATED, new EVENT_DATA_IS_UPDATED(rows, [], [], filter));
                     Events.trigger(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_PROCESS_FINISH, filter);
                 });
         }
     }
 
     onTXT_DATA_COME(data : string) {
+        const injectedRemarks = this.extractInjectedRemarks(data);
         const injectedRequests = this.extractInjectedFilters(data);
         const injectedBookmarks = this.extractInjectedBookmarks(data);
         const GUID = Symbol();
         data = this.clearFromInjections(data);
-        if (injectedRequests !== null) {
+        if (injectedRequests !== null || injectedBookmarks !== null || injectedRemarks !== null) {
             popupController.open({
                 content : {
                     factory     : null,
                     component   : DialogMessage,
                     params      : {
-                        message : `This file includes ${injectedRequests.length} filter(s). Do you want to activate these filters? You will not lost your current filters, but it will be deactivated. ${injectedBookmarks !== null ? 'Also this file has bookmarks. It will be activated automatically.' : ''}`,
+                        message : `This file includes injected content (filters, bookmarks, notes). Do you want to activate it? You will not lost your current filters, but it will be deactivated.`,
                         buttons : [
                             {
-                                caption: 'Yes, open with filters',
+                                caption: 'Yes, open injected content',
                                 handle: () => {
                                     popupController.close(GUID);
                                     //Remove previous temporary requests
                                     serviceRequests.removeAllTemporary(false);
                                     //Add new temporary requests
                                     serviceRequests.addTemporaryRequests(injectedRequests, false);
-                                    this.openTextData(data, injectedBookmarks);
+                                    this.openTextData(data, injectedBookmarks, injectedRemarks);
                                 }
                             },
                             {
@@ -242,7 +280,7 @@ class DataController implements InitiableModule{
         }
     }
 
-    openTextData(data : string, bookmarks: Array<number> = []){
+    openTextData(data : string, bookmarks: Array<number> = [], remarks: Array<any> = []){
         if (!~data.search(/(\n|\n\r|\r|\r\n)$/gi)){
             data += '\n';
         }
@@ -255,7 +293,11 @@ class DataController implements InitiableModule{
             }) : [];
             this.stream !== null && this.stream.create(data, requests)
                 .then((rows: Array<DataRow>) => {
-                    Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED, new EVENT_DATA_IS_UPDATED(rows, bookmarks instanceof Array ? bookmarks : []));
+                    Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED, new EVENT_DATA_IS_UPDATED(
+                        rows,
+                        bookmarks instanceof Array ? bookmarks : [],
+                        remarks instanceof Array ? remarks : []
+                        ));
                     Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_BUFFER_IS_UPDATED, this.stream.getBuffer());
                 });
         });
