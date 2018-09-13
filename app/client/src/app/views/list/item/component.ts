@@ -68,9 +68,10 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
         foregroundColor : ''
     };
 
-    @Output() selected  : EventEmitter<number>              = new EventEmitter();
-    @Output() bookmark  : EventEmitter<number>              = new EventEmitter();
-    @Output() remark    : EventEmitter<TRemarkSelection>    = new EventEmitter();
+    @Output() selected      : EventEmitter<number>              = new EventEmitter();
+    @Output() bookmark      : EventEmitter<number>              = new EventEmitter();
+    @Output() remark        : EventEmitter<TRemarkSelection>    = new EventEmitter();
+    @Output() copySelection : EventEmitter<void>                = new EventEmitter();
 
     private __index         : string                = '';
     public html             : string                = null;
@@ -80,7 +81,6 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     private _match          : string                = '';
     private _matchReg       : boolean               = true;
     private _total_rows     : number                = -1;
-    private _selectionTask  : string                = null;
 
     private _highlight          : {
         backgroundColor : string,
@@ -117,6 +117,7 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
         const settings      = Settings.get();
         let matchMatches    = null;
         let markersMatches  : Array<{ mark: string, matches: Array<string>, bg?: string, fg?: string, index: number}> = [];
+        let floatId         = 0;
         this._highlight.backgroundColor = this.highlight.backgroundColor;
         this._highlight.foregroundColor = this.highlight.foregroundColor;
         this.html = serializeHTML(this.val);
@@ -194,7 +195,7 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
                 if (settings.visual.do_not_highlight_matches_in_requests && (this._highlight.backgroundColor !== '' || this._highlight.foregroundColor !== '') ) {
                     this.html = this.html.replace(MARKERS.MATCH, match);
                 } else {
-                    this.html = this.html.replace(MARKERS.MATCH, `<span class="match">${match}</span>`);
+                    this.html = this.html.replace(MARKERS.MATCH, `<span data-float-id="${this.index}-${floatId++}" class="match">${match}</span>`);
                 }
             });
         }
@@ -203,11 +204,11 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
             markersMatches.forEach((marker) => {
                 if (marker.fg !== void 0) {
                     marker.matches.forEach((match)=>{
-                        this.html = this.html.replace(marker.mark, `<span ${DATA_ATTRS.MARKER_ID}="${marker.index}" class="marker" style="background-color: ${marker.bg};color:${marker.fg};">${match}</span>`);
+                        this.html = this.html.replace(marker.mark, `<span data-float-id="${this.index}-${floatId++}" ${DATA_ATTRS.MARKER_ID}="${marker.index}" class="marker" style="background-color: ${marker.bg};color:${marker.fg};">${match}</span>`);
                     });
                 } else {
                     marker.matches.forEach((match)=>{
-                        this.html = this.html.replace(marker.mark, `<span ${DATA_ATTRS.REMARK_ID}="${this.index}" class="remark" style="background-color: ${marker.bg};">${match}</span>`);
+                        this.html = this.html.replace(marker.mark, `<span data-float-id="${this.index}-${floatId++}" ${DATA_ATTRS.REMARK_ID}="${this.index}" class="remark" style="background-color: ${marker.bg};">${match}</span>`);
                     });
                 }
             });
@@ -228,6 +229,28 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
             this.html = ANSIReader(this.html);
         }
         this.html = parseHTML(this.html);
+        //wrap to span text nodes
+        const spanReg = /<span .*<\/span>/gi;
+        const spans = this.html.match(spanReg);
+        if (spans === null || spans.length === 0) {
+            return this.html;
+        }
+        const parts = this.html.split(spanReg);
+        let result: string = '';
+        parts.forEach((part: string, index: number) => {
+            let style = '';
+            if (this._highlight.foregroundColor !== ''){
+                style += `color: ${this._highlight.foregroundColor};`
+            }
+            if (this._highlight.backgroundColor !== ''){
+                style += `background-color: ${this._highlight.backgroundColor};`
+            }
+            style = style === '' ? '' : `style="${style}"`;
+            result += `<span data-float-id="wrapper-${this.index}-${index}" ${style}>${part}</span>`;
+            spans[index] !== void 0 && (result += spans[index]);
+        });
+        this.html = result;
+        return this.html;
     }
 
 
@@ -249,13 +272,7 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     }
 
     ngAfterViewChecked(){
-        if (this._selectionTask !== null) {
-            /*
-            * D.Astafyev: I very don't like solution with timer, and have to find a way to escape from it
-            * */
-            setTimeout(this.selectMarker.bind(this, this._selectionTask), 100);
-            this._selectionTask = null;
-        }
+
     }
 
     ngOnChanges(){
@@ -273,7 +290,7 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
         this.bookmark.emit(this.index);
     }
 
-    update(params : any, selectedMarker? : { index: string, value: string}){
+    update(params : any){
         let force = false;
         ['val', 'selection', 'highlight'].forEach((key) => {
             if (params[key] !== void 0 && params[key] !== this[key]) {
@@ -313,43 +330,12 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
         }
         force && this.ngOnChanges();
         this.changeDetectorRef.detectChanges();
-        if (selectedMarker !== void 0 && parseInt(selectedMarker.index) === this.index){
-            this._selectionTask = selectedMarker.value;
-        }
-    }
-
-    selectMarker(value: string){
-        if (typeof value !== 'string' || value === ''){
-            return false;
-        }
-        let markerIndex = -1;
-        this.markers.forEach((marker: any, index) => {
-            if (!~markerIndex && marker.value === value){
-                markerIndex = index;
-            }
-        });
-        if (!~markerIndex){
-            return false;
-        }
-        const targetNode = this.paragraph.element.nativeElement.querySelector(`*[${DATA_ATTRS.MARKER_ID}="${markerIndex}"]`);
-        if (targetNode === null) {
-            return false;
-        }
-        const range = document.createRange();
-        const selection = window.getSelection();
-        selection.empty();
-        range.selectNode(targetNode);
-        selection.addRange(range);
     }
 
     onFavorite(){
         this.bookmarked = !this.bookmarked;
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.VIEW_BAR_ADD_FAVORITE_RESPONSE, { GUID: this.GUID, index: this.index });
         this.bookmark.emit(this.index);
-    }
-
-    removeIndexes(str: string){
-        return str.replace(/\u0020\d{1,}\u0020/gi, '').replace(/\d{1,}\u0020{1,}/gi, '');
     }
 
     onContextMenu(event: MouseEvent) {
@@ -380,26 +366,29 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
                 }
             ]} as IContextMenuEvent;
         const selection = window.getSelection();
+        const multiLines = selection.toString().search(/[\n\r]/gi) !== -1;
         const selectedText = selection.toString().replace(/[\n\r]/gi, '');
         if (selectedText.trim() !== '') {
             contextEvent.items.unshift({
                 caption : 'Copy selection',
                 type    : EContextMenuItemTypes.item,
                 handler : () => {
-                    copyText(ANSIClearer(this.removeIndexes(selectedText)));
+                    this.copySelection.emit();
                 }
             });
-            contextEvent.items.push({ type: EContextMenuItemTypes.divider });
-            contextEvent.items.push({
-                caption : 'Add remark',
-                type    : EContextMenuItemTypes.item,
-                handler : () => {
-                    this.remark.emit({
-                        index: this.index,
-                        selection: ANSIClearer(this.removeIndexes(selectedText))
-                    });
-                }
-            });
+            if (!multiLines && this.remark.observers.length > 0){
+                contextEvent.items.push({ type: EContextMenuItemTypes.divider });
+                contextEvent.items.push({
+                    caption : 'Add remark',
+                    type    : EContextMenuItemTypes.item,
+                    handler : () => {
+                        this.remark.emit({
+                            index: this.index,
+                            selection: ANSIClearer(selectedText)
+                        });
+                    }
+                });
+            }
         }
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.CONTEXT_MENU_CALL, contextEvent);
         event.preventDefault();

@@ -15,8 +15,9 @@ type ClipboardKeysEvent = {
 
 class ClipboardShortcuts {
 
-    public onCopy       : EventEmitter<ClipboardKeysEvent>   = new EventEmitter();
-    public onPaste      : EventEmitter<ClipboardKeysEvent>   = new EventEmitter();
+    public onCopy       : EventEmitter<ClipboardKeysEvent>  = new EventEmitter();
+    public onSelectAll  : EventEmitter<KeyboardEvent>       = new EventEmitter();
+    public onPaste      : EventEmitter<ClipboardKeysEvent>  = new EventEmitter();
 
     private silence     : boolean   = false;
 
@@ -53,6 +54,28 @@ class ClipboardShortcuts {
         if ((event.ctrlKey || event.metaKey) && ~['X', 'x'].indexOf(event.key)){
             return this.onCopy.emit({ event: event, selection: window.getSelection()});
         }
+        if ((event.ctrlKey || event.metaKey) && ~['A', 'a'].indexOf(event.key)){
+            return this.onSelectAll.emit(event);
+        }
+    }
+
+    public copyText(text: string){
+        const selection         = window.getSelection();
+        const element           = document.createElement('P');
+        element.style.opacity   = '0.0001';
+        element.style.position  = 'absolute';
+        element.style.width     = '1px';
+        element.style.height    = '1px';
+        element.style.overflow  = 'hidden';
+        element.innerHTML       = text.replace(/\r?\n|\r/gi, '</br>');
+        document.body.appendChild(element);
+        const range             = document.createRange();
+        range.selectNode(element);
+        selection.empty();
+        selection.addRange(range);
+        this.doCopy();
+        selection.empty();
+        document.body.removeChild(element);
     }
 
     public doCopy(){
