@@ -286,13 +286,10 @@ export class LongList implements AfterViewChecked, OnDestroy {
 
     setFocus() {
         this.focused = true;
-        console.log(this.guid + ' focused');
     }
 
     unsetFocus() {
         this.focused = false;
-        console.log(this.guid + ' bluer');
-
     }
 
     onScrollEvent(event : Event | any) {
