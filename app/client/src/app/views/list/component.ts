@@ -3,7 +3,7 @@ import {DomSanitizer                            } from '@angular/platform-browse
 
 import { ViewControllerPattern                  } from '../controller.pattern';
 import { ViewControllerListItem                 } from './item/component';
-import { LongList                               } from '../../core/components/common/long-list/component';
+import { LongList, TSelection                   } from '../../core/components/common/long-list/component';
 import { OnScrollEvent                          } from '../../core/components/common/long-list/interface.scrollevent';
 
 import { ListItemInterface                      } from './item/interface';
@@ -23,7 +23,6 @@ import { EVENT_VIEW_BAR_ADD_FAVORITE_RESPONSE   } from '../../core/interfaces/ev
 
 import { ViewClass                              } from '../../core/services/class.view';
 
-import { TextSelection, TSelectionEvent         } from '../../core/modules/controller.selection.text';
 import { settings as Settings                   } from '../../core/modules/controller.settings';
 import { viewsParameters                        } from '../../core/services/service.views.parameters';
 
@@ -44,9 +43,10 @@ import { timestampToDDMMYYYYhhmmSSsss           } from "../../core/modules/tools
 import { versionController                      } from "../../core/modules/controller.version";
 import { KEYs, localSettings                    } from "../../core/modules/controller.localsettings";
 import { DIRECTIONS, Method, Request as AJAXRequest} from "../../core/modules/tools.ajax";
+import { ClipboardShortcuts, ClipboardKeysEvent } from "../../core/modules/controller.clipboard.shortcuts";
 
 interface ISelectedMarker {
-    index: string,
+    index: number,
     value: string
 };
 
@@ -101,27 +101,28 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
 
     @ViewChild ('exporturl', { read: ViewContainerRef}) exportURLNode: ViewContainerRef;
 
-    private _rows                   : Array<any>                    = [];
-    private rows                    : Array<any>                    = [];
-    private maxWidthRow             : any                           = null;
-    private rowsCount               : number                        = 0;
-    private bookmarks               : Array<number>                 = [];
-    private followByScroll          : boolean                       = true;
-    private showOnlyBookmarks       : boolean                       = false;
-    private highlight               : boolean                       = true;
-    private onScrollSubscription    : EventEmitter<OnScrollEvent>   = new EventEmitter();
-    private textSelection           : TextSelection                 = null;
-    private textSelectionTrigger    : EventEmitter<TSelectionEvent> = new EventEmitter();
-    private regsCache               : Object                        = {};
-    private lastBookmarkOperation   : number                        = null;
-    private highlightCache          : { [key: number]: any }        = {};
-    private buffer                  : string                        = '';
-    private bufferVisibilityTimeout : number                        = -1;
-    private dragAndDropFiles        : DragAndDropFiles              = null;
-    private dragAndDropDialogGUID   : symbol                        = null;
-    private fullLineView            : boolean                       = false;
-    private remarks                 : Array<IRemark>                = [];
-    private remarksSubscription     : any                           = null;
+    private _rows                       : Array<any>                    = [];
+    private rows                        : Array<any>                    = [];
+    private maxWidthRow                 : any                           = null;
+    private rowsCount                   : number                        = 0;
+    private bookmarks                   : Array<number>                 = [];
+    private followByScroll              : boolean                       = true;
+    private showOnlyBookmarks           : boolean                       = false;
+    private highlight                   : boolean                       = true;
+    private onScrollSubscription        : EventEmitter<OnScrollEvent>   = new EventEmitter();
+    private onSelectSubscription        : EventEmitter<TSelection>      = new EventEmitter<TSelection>();
+    private onSelectStartedSubscription : EventEmitter<void>            = new EventEmitter<void>();
+    private regsCache                   : Object                        = {};
+    private lastBookmarkOperation       : number                        = null;
+    private highlightCache              : { [key: number]: any }        = {};
+    private buffer                      : string                        = '';
+    private bufferVisibilityTimeout     : number                        = -1;
+    private dragAndDropFiles            : DragAndDropFiles              = null;
+    private dragAndDropDialogGUID       : symbol                        = null;
+    private fullLineView                : boolean                       = false;
+    private remarks                     : Array<IRemark>                = [];
+    private remarksSubscription         : any                           = null;
+    private clipboardShortcuts          : ClipboardShortcuts            = new ClipboardShortcuts();
 
     private selection : {
         own     : boolean,
@@ -170,12 +171,16 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         this.componentFactoryResolver   = componentFactoryResolver;
         this.viewContainerRef           = viewContainerRef;
         this.changeDetectorRef          = changeDetectorRef;
-        this.onScroll                   = this.onScroll.        bind(this);
-        this.onScrollByLine             = this.onScrollByLine.  bind(this);
-        this.onTextSelection            = this.onTextSelection. bind(this);
-        this.onNumbersChange            = this.onNumbersChange. bind(this);
-        this.onCloseFullLine            = this.onCloseFullLine. bind(this);
-        this.onRemarksUpdated           = this.onRemarksUpdated.bind(this);
+        this.onScroll                   = this.onScroll.            bind(this);
+        this.onSelectText               = this.onSelectText.        bind(this);
+        this.onSelectTextStarted        = this.onSelectTextStarted. bind(this);
+        this.onScrollByLine             = this.onScrollByLine.      bind(this);
+        this.onNumbersChange            = this.onNumbersChange.     bind(this);
+        this.onCloseFullLine            = this.onCloseFullLine.     bind(this);
+        this.onRemarksUpdated           = this.onRemarksUpdated.    bind(this);
+        this.onClipboardCopy            = this.onClipboardCopy.     bind(this);
+        this.onClipboardPaste           = this.onClipboardPaste.    bind(this);
+        this.onClipboardSelectAll       = this.onClipboardSelectAll.bind(this);
 
         [   Configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED,
             Configuration.sets.SYSTEM_EVENTS.ROW_IS_SELECTED,
@@ -208,17 +213,21 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         super.getEmitters().favoriteGOTO.   subscribe(this.onFavoriteGOTO.      bind(this));
         super.getEmitters().resize.         subscribe(this.resizeOnREMOVE_VIEW. bind(this));
 
-        this.onScrollSubscription.      subscribe(this.onScroll);
-        this.line.scrollTo.             subscribe(this.onScrollByLine);
-        this.textSelectionTrigger.      subscribe(this.onTextSelection);
-        viewsParameters.onNumbersChange.subscribe(this.onNumbersChange);
+        this.onScrollSubscription.          subscribe(this.onScroll);
+        this.onSelectSubscription.          subscribe(this.onSelectText);
+        this.onSelectStartedSubscription.   subscribe(this.onSelectTextStarted);
+        this.line.scrollTo.                 subscribe(this.onScrollByLine);
+        viewsParameters.onNumbersChange.    subscribe(this.onNumbersChange);
+        this.clipboardShortcuts.onCopy.     subscribe(this.onClipboardCopy);
+        this.clipboardShortcuts.onPaste.    subscribe(this.onClipboardPaste);
+        this.clipboardShortcuts.onSelectAll.subscribe(this.onClipboardSelectAll);
         this.initRows();
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.MARKERS_GET_ALL, this.onMARKERS_UPDATED.bind(this));
     }
 
     ngOnInit(){
         this.viewParams !== null && super.setGUID(this.viewParams.GUID);
-        this.textSelection === null && (this.textSelection = new TextSelection(this.viewContainerRef.element.nativeElement, this.textSelectionTrigger));
+        //this.textSelection === null && (this.textSelection = new TextSelection(this.viewContainerRef.element.nativeElement, this.textSelectionTrigger));
         this.setDefaultStateOfButtons();
     }
 
@@ -536,6 +545,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         instance.selected.subscribe(this.onOwnSelected.bind(this));
         instance.bookmark.subscribe(this.toggleBookmark.bind(this));
         instance.remark.subscribe(this.onRemark.bind(this));
+        instance.copySelection.subscribe(this.onContextCopySelection.bind(this));
         this._rows[index] !== void 0 && (this._rows[index].update = instance.update.bind(instance));
     }
 
@@ -626,7 +636,9 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         this.updateRemarksOnRows();
         this.forceUpdate(false);
         if (this.remarksComponent !== null || this.remarksComponent !== undefined) {
+            this.listView.removeSelection();
             this.remarksComponent.scrollIntoView(remark.index);
+            this.remarksComponent.setFocus(remark.index);
         }
     }
 
@@ -697,62 +709,111 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         this.updateRemarksOnRows();
     }
 
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+     * Clipboard events
+     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    clearTextForClipboard(text: string){
+        return ANSIClearer(text);
+    }
+
+    onClipboardCopy(event: ClipboardKeysEvent) {
+        this.copySelectionToClipboard();
+        event.event.preventDefault();
+        return false;
+    }
+
+    onClipboardSelectAll(event: KeyboardEvent) {
+        if (this.listView === null || this.listView === void 0) {
+            return;
+        }
+        if (!this.listView.isFocused()) {
+            return;
+        }
+        event.preventDefault();
+        this.listView.selectAll();
+        return false;
+    }
+
+    onClipboardPaste() {
+
+    }
+
+    copySelectionToClipboard(){
+        if (this.listView === null || this.listView === void 0) {
+            return;
+        }
+        const selection: TSelection = this.listView.getSelection();
+        if (selection === null) {
+            return null;
+        }
+        if (selection.start === selection.end) {
+            return this.clipboardShortcuts.copyText(this.clearTextForClipboard(selection.startText));
+        }
+        const border = {
+            start: selection.startOffset > 0 ? selection.startText : selection.startText.replace(/^\d{1,}[\s\t]*/gi, ''),
+            end: selection.endText.replace(/^\d{1,}[\s\t]*/gi, '')
+        };
+        if (selection.end - selection.start === 1) {
+            return this.clipboardShortcuts.copyText(this.clearTextForClipboard(
+                border.start
+                + '\n' +
+                border.end));
+        }
+        const range = this.rows.slice(selection.start + 1, selection.end).map((row) => {
+            return row.params.val;
+        });
+        this.clipboardShortcuts.copyText( this.clearTextForClipboard(
+            border.start
+            + '\n' +
+            range.join('\n')
+            + '\n' +
+            border.end));
+        this.listView.refreshSelection();
+    }
+
+    onContextCopySelection(){
+        this.copySelectionToClipboard();
+    }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Text selection
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-    onTextSelection(event: TSelectionEvent){
-        if (typeof event.text === 'string' && !~event.text.search(/\r?\n|\r/gi)){
-            const selection = event.text.replace(/^\d*\u0020[\s\t]*/gi, '');
-            let index = this.getSelfMarkerIndex();
-            let itemIndex = this.getSelectedItemID(event.focusNode as HTMLElement);
-            if (selection.length > 0){
-                if (~index){
-                    this.markers[index].value = selection;
-                } else {
-                    this.markers.unshift({
-                        value           : selection,
-                        backgroundColor : SETTINGS.TEXT_SELECTED_BACKGROUND,
-                        foregroundColor : SETTINGS.TEXT_SELECTED_COLOR,
-                        self            : true
-                    });
-                }
-                this.updateMarkersOnly({
-                    index: itemIndex,
-                    value: selection
-                });
-            } else if (~index) {
-                this.markers.splice(index, 1);
-                this.updateMarkersOnly();
-            }
-        }
+    onSelectTextStarted(){
+        const markerIndex = this.getSelfMarkerIndex();
+        markerIndex !== -1 && this.markers.splice(markerIndex, 1);
+        markerIndex !== -1 && this.updateMarkersOnly();
     }
 
-    getSelfMarkerIndex(){
+    onSelectText(selection: TSelection) {
+        const markerIndex = this.getSelfMarkerIndex();
+        if (selection === null || selection.start !== selection.end || selection.startText === '') {
+            //No selection || Multiple lines selected
+            markerIndex !== -1 && this.markers.splice(markerIndex, 1);
+            markerIndex !== -1 && this.updateMarkersOnly();
+            return;
+        }
+        if (~markerIndex){
+            this.markers[markerIndex].value = selection.startText;
+        } else {
+            this.markers.unshift({
+                value           : selection.startText,
+                backgroundColor : SETTINGS.TEXT_SELECTED_BACKGROUND,
+                foregroundColor : SETTINGS.TEXT_SELECTED_COLOR,
+                self            : true
+            });
+        }
+        this.updateMarkersOnly({
+            index: selection.start,
+            value: selection.startText
+        });
+    }
+
+    getSelfMarkerIndex(): number {
         let result = -1;
         this.markers.forEach((marker, index)=>{
             marker.self !== void 0 && (result = index);
         });
         return result;
-    }
-
-    getSelectedItemID(node: HTMLElement): string {
-        if (typeof node === 'object' && node !== null && typeof node.nodeName === 'string') {
-            if (node.nodeName === 'body'){
-                return null;
-            }
-            if (typeof node.getAttribute === 'function') {
-                let attr = node.getAttribute('data-vv-item-index');
-                if (typeof attr === 'string' && attr.trim() !== ''){
-                    return attr;
-                }
-            }
-            if (node.parentNode !== void 0 && node.parentNode !== null){
-                return this.getSelectedItemID(node.parentNode as HTMLElement);
-            }
-        }
-        return null;
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *

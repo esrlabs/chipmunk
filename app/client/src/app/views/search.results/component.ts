@@ -2,7 +2,7 @@ import {Component, OnInit, ComponentFactoryResolver, ViewContainerRef, ChangeDet
 import {DomSanitizer                            } from '@angular/platform-browser';
 
 import { ViewControllerListItem                 } from '../list/item/component';
-import { LongList                               } from '../../core/components/common/long-list/component';
+import { LongList, TSelection                   } from '../../core/components/common/long-list/component';
 import { OnScrollEvent                          } from '../../core/components/common/long-list/interface.scrollevent';
 
 import { ListItemInterface                      } from '../list/item/interface';
@@ -15,8 +15,6 @@ import { configuration as Configuration         } from '../../core/modules/contr
 import { ViewInterface                          } from '../../core/interfaces/interface.view';
 import { DataRow                                } from '../../core/interfaces/interface.data.row';
 import { EVENT_DATA_IS_UPDATED                  } from '../../core/interfaces/events/DATA_IS_UPDATE';
-
-import { TextSelection, TSelectionEvent         } from '../../core/modules/controller.selection.text';
 
 import { Request                                } from '../../core/services/interface.request';
 import { SimpleListItem                         } from '../../core/components/common/lists/simple-drop-down/item.interface';
@@ -33,9 +31,10 @@ import { DialogSearchRequestsPresets            } from '../../core/components/co
 
 import { EContextMenuItemTypes, IContextMenuItem, IContextMenuEvent } from '../../core/components/context-menu/interfaces';
 import { DataFilter                             } from "../../core/interfaces/interface.data.filter";
+import { ClipboardShortcuts, ClipboardKeysEvent } from "../../core/modules/controller.clipboard.shortcuts";
 
 interface ISelectedMarker {
-    index: string,
+    index: number,
     value: string
 };
 
@@ -108,8 +107,8 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     private activeSearchResults         : boolean                       = true;
     private resultsMap                  : {[key:number]: boolean}       = {};
     private onScrollSubscription        : EventEmitter<OnScrollEvent>   = new EventEmitter();
-    private textSelection               : TextSelection                 = null;
-    private textSelectionTrigger        : EventEmitter<TSelectionEvent> = new EventEmitter();
+    private onSelectSubscription        : EventEmitter<TSelection>      = new EventEmitter<TSelection>();
+    private onSelectStartedSubscription : EventEmitter<void>            = new EventEmitter<void>();
     private regsCache                   : Object                        = {};
     private requests                    : Array<Request>                = [];
     private _requests                   : Array<Request>                = [];
@@ -122,6 +121,8 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     private lastBookmarkOperation       : number                        = null;
     private highlight_search_requests   : boolean                       = false;
     private inSearch                    : boolean                       = false;
+    private clipboardShortcuts          : ClipboardShortcuts            = new ClipboardShortcuts();
+
 
     private conditions          : Array<SimpleListItem>         = [
         { caption: 'Active from Passive',   value: FILTER_MODES.ACTIVE_FROM_PASSIVE     },
@@ -174,8 +175,9 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         this.viewContainerRef           = viewContainerRef;
         this.changeDetectorRef          = changeDetectorRef;
         this.onScroll                   = this.onScroll.            bind(this);
+        this.onSelectText               = this.onSelectText.        bind(this);
+        this.onSelectTextStarted        = this.onSelectTextStarted. bind(this);
         this.onScrollByLine             = this.onScrollByLine.      bind(this);
-        this.onTextSelection            = this.onTextSelection.     bind(this);
         this.onTabSelected              = this.onTabSelected.       bind(this);
         this.onTabDeselected            = this.onTabDeselected.     bind(this);
         this.onResizeHandle             = this.onResizeHandle.      bind(this);
@@ -185,6 +187,9 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         this.onInvert                   = this.onInvert.            bind(this);
         this.onOffOn                    = this.onOffOn.             bind(this);
         this.onNumbersChange            = this.onNumbersChange.     bind(this);
+        this.onClipboardCopy            = this.onClipboardCopy.     bind(this);
+        this.onClipboardPaste           = this.onClipboardPaste.    bind(this);
+        this.onClipboardSelectAll       = this.onClipboardSelectAll.bind(this);
 
         [   Configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED,
             Configuration.sets.SYSTEM_EVENTS.ROW_IS_SELECTED,
@@ -210,17 +215,20 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
             this['on' + handle] = this['on' + handle].bind(this);
             Events.bind(handle, this['on' + handle]);
         });
-        this.onScrollSubscription.      subscribe(this.onScroll);
-        this.line.scrollTo.             subscribe(this.onScrollByLine);
-        this.textSelectionTrigger.      subscribe(this.onTextSelection);
-        viewsParameters.onNumbersChange.subscribe(this.onNumbersChange);
+        this.onScrollSubscription.          subscribe(this.onScroll);
+        this.onSelectSubscription.          subscribe(this.onSelectText);
+        this.onSelectStartedSubscription.   subscribe(this.onSelectTextStarted);
+        this.line.scrollTo.                 subscribe(this.onScrollByLine);
+        viewsParameters.onNumbersChange.    subscribe(this.onNumbersChange);
+        this.clipboardShortcuts.onCopy.     subscribe(this.onClipboardCopy);
+        this.clipboardShortcuts.onPaste.    subscribe(this.onClipboardPaste);
+        this.clipboardShortcuts.onSelectAll.subscribe(this.onClipboardSelectAll);
         super.getEmitters().resize.subscribe(this.onResizeHandle.bind(this));
     }
 
     ngOnInit(){
         this.viewParams !== null && super.setGUID(this.viewParams.GUID);
         this.injectSearchBar();
-        this.textSelection === null && (this.textSelection = new TextSelection(this.viewContainerRef.element.nativeElement, this.textSelectionTrigger));
         this.initRequests();
         this.initRows();
         this.activeResultsUpdateSettings();
@@ -975,6 +983,7 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     onRowInit(index: number, instance : ListItemInterface){
         instance.selected.subscribe(this.onOwnSelected.bind(this));
         instance.bookmark.subscribe(this.toggleBookmark.bind(this));
+        instance.copySelection.subscribe(this.onContextCopySelection.bind(this));
         this._rows[index] !== void 0 && (this._rows[index].update = instance.update.bind(instance));
     }
 
@@ -1187,34 +1196,80 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+     * Clipboard events
+     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    clearTextForClipboard(text: string){
+        return ANSIClearer(text);
+    }
+
+    onClipboardCopy(event: ClipboardKeysEvent) {
+        this.copySelectionToClipboard();
+        event.event.preventDefault();
+        return false;
+    }
+
+    onClipboardSelectAll(event: KeyboardEvent) {
+        if (this.listView === null || this.listView === void 0) {
+            return;
+        }
+        if (!this.listView.isFocused()) {
+            return;
+        }
+        event.preventDefault();
+        this.listView.selectAll();
+        return false;
+    }
+
+    onClipboardPaste() {
+
+    }
+
+    copySelectionToClipboard(){
+        if (this.listView === null || this.listView === void 0) {
+            return;
+        }
+        const selection: TSelection = this.listView.getSelection();
+        if (selection === null) {
+            return null;
+        }
+        if (selection.start === selection.end) {
+            return this.clipboardShortcuts.copyText(this.clearTextForClipboard(selection.startText));
+        }
+        const border = {
+            start: selection.startOffset > 0 ? selection.startText : selection.startText.replace(/^\d{1,}[\s\t]*/gi, ''),
+            end: selection.endText.replace(/^\d{1,}[\s\t]*/gi, '')
+        };
+        if (selection.end - selection.start === 1) {
+            return this.clipboardShortcuts.copyText(this.clearTextForClipboard(
+                border.start
+                + '\n' +
+                border.end));
+        }
+        const range = this.rows.slice(selection.start + 1, selection.end).map((row) => {
+            return row.params.val;
+        });
+        this.clipboardShortcuts.copyText( this.clearTextForClipboard(
+            border.start
+            + '\n' +
+            range.join('\n')
+            + '\n' +
+            border.end));
+        this.listView.refreshSelection();
+    }
+
+    onContextCopySelection(){
+        this.copySelectionToClipboard();
+    }
+
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Text selection
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    onSelectTextStarted(){
 
-    onTextSelection(event: TSelectionEvent){
-        if (typeof event.text === 'string' && !~event.text.search(/\r?\n|\r/gi)){
-            let index = this.getSelfMarkerIndex();
-            let itemIndex = this.getSelectedItemID(event.focusNode as HTMLElement);
-            if (event.text.length > 0){
-                if (~index){
-                    this.markers[index].value = event.text;
-                } else {
-                    this.markers.unshift({
-                        value           : event.text,
-                        backgroundColor : SETTINGS.TEXT_SELECTED_BACKGROUND,
-                        foregroundColor : SETTINGS.TEXT_SELECTED_COLOR,
-                        self            : true
-                    });
-                }
-                this.updateMarkersOnly({
-                    index: itemIndex,
-                    value: event.text
-                });
-                //copyText(event.text);
-            } else if (~index) {
-                this.markers.splice(index, 1);
-                this.updateMarkersOnly();
-            }
-        }
+    }
+
+    onSelectText(selection: TSelection) {
+        this.listView.refreshSelection();
     }
 
     getSelfMarkerIndex(){
@@ -1223,24 +1278,6 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
             marker.self !== void 0 && (result = index);
         });
         return result;
-    }
-
-    getSelectedItemID(node: HTMLElement): string {
-        if (typeof node === 'object' && node !== null && typeof node.nodeName === 'string') {
-            if (node.nodeName === 'body'){
-                return null;
-            }
-            if (typeof node.getAttribute === 'function') {
-                let attr = node.getAttribute('data-vv-item-index');
-                if (typeof attr === 'string' && attr.trim() !== ''){
-                    return attr;
-                }
-            }
-            if (node.parentNode !== void 0 && node.parentNode !== null){
-                return this.getSelectedItemID(node.parentNode as HTMLElement);
-            }
-        }
-        return null;
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *

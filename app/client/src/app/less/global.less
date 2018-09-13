@@ -5,6 +5,22 @@
 body{
     background: @light;
 }
+body.no-user-select * {
+    -webkit-touch-callout   : none;
+    -webkit-user-select     : none;
+    -khtml-user-select      : none;
+    -moz-user-select        : none;
+    -ms-user-select         : none;
+    user-select             : none;
+}
+/*
+body:not([data-loaded-manual]) *{
+  color: rgba(0,0,0,0.001);
+  text-shadow: 0 0 1rem rgba(0,0,0,0.4);
+  background: rgba(255,255,255,1);
+}
+*/
+
 .message-no-data{
     position    : absolute;
     width       : 100%;

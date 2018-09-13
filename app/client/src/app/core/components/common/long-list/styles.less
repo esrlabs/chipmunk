@@ -49,7 +49,16 @@ long-list{
                 margin              : 0;
                 height              : 0;
                 opacity             : 0.01;
+                user-select         : none!important;
             }
+        }
+        .rows.selecting * {
+            -webkit-touch-callout   : text;
+            -webkit-user-select     : text;
+            -khtml-user-select      : text;
+            -moz-user-select        : text;
+            -ms-user-select         : text;
+            user-select             : text;
         }
         .border-top, .border-bottom{
             position: absolute;

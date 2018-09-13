@@ -1,11 +1,11 @@
-<div #wrapper [attr.class]="'wrapper ' + cssClass" (scroll)="onScrollEvent($event)" (window:resize)="onResize()" tabindex="0">
+<div #wrapper [attr.data-com-el-id]="guid" [attr.class]="'wrapper ' + cssClass" (scroll)="onScrollEvent($event)" (window:resize)="onResize()" tabindex="0">
     <div class="space-filler" [style.height] = "component.filler">
     </div>
-    <ul #ul class="rows" [style.marginTop] = "state.offset">
+    <ul #ul [attr.class]="'rows ' + (selection.selecting ? 'selecting' : '')" [style.marginTop] = "state.offset" (mousedown)="onMouseDown($event)">
         <li *ngIf="maxWidthRow !== null" class="max-width-row">
             <long-list-item [component]="maxWidthRow"></long-list-item>
         </li>
-        <li #li *ngFor="let row of state.rows;">
+        <li #li [attr.data-ll-row-index]="state.start + i" *ngFor="let row of state.rows; let i = index;">
             <long-list-item [component]="row"></long-list-item>
         </li>
     </ul>

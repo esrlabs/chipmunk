@@ -1,4 +1,4 @@
-import {Component, Input, Output, OnDestroy, OnChanges, AfterContentChecked, ChangeDetectorRef, EventEmitter, ViewContainerRef } from '@angular/core';
+import {Component, Input, Output, OnDestroy, OnChanges, AfterContentChecked, AfterViewChecked, ChangeDetectorRef, EventEmitter, ViewContainerRef } from '@angular/core';
 
 import {EContextMenuItemTypes, IContextMenuEvent} from "../../../core/components/context-menu/interfaces";
 import {configuration as Configuration} from "../../../core/modules/controller.config";
@@ -28,9 +28,10 @@ export interface IRemark{
   templateUrl   : './template.html'
 })
 
-export class ViewControllerListRemarks implements OnDestroy, OnChanges, AfterContentChecked{
+export class ViewControllerListRemarks implements OnDestroy, OnChanges, AfterContentChecked, AfterViewChecked{
 
     private _silence: boolean = false;
+    private _focusTo: number = -1;
     @Input() remarks: Array<IRemark> = [];
 
     ngOnDestroy(){
@@ -47,6 +48,13 @@ export class ViewControllerListRemarks implements OnDestroy, OnChanges, AfterCon
 
     ngAfterContentChecked(){
         this.forceUpdate();
+    }
+
+    ngAfterViewChecked(){
+        if (this._focusTo === -1) {
+            return;
+        }
+        this.setFocus(this._focusTo);
     }
 
     ngOnChanges(){
@@ -131,6 +139,15 @@ export class ViewControllerListRemarks implements OnDestroy, OnChanges, AfterCon
     @Output() onRemarksUpdated: EventEmitter<Array<IRemark>> = new EventEmitter();
     @Output() scrollIntoView(index: number){
         this.onROW_IS_SELECTED(index);
+    }
+    @Output() setFocus(index: number){
+        const target = document.querySelector(`li[id="lv-remarks-com-remark-${index}"] textarea`) as HTMLTextAreaElement;
+        if (target === null) {
+            this._focusTo = index;
+            return;
+        }
+        this._focusTo = -1;
+        target.focus();
     }
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     * Context menu

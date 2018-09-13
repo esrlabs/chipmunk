@@ -1,4 +1,4 @@
-<div [attr.class]="'context-menu'" [style.top]="_y + 'px'" [style.left]="_x + 'px'">
+<div [attr.class]="'context-menu'" [style.top]="_y + 'px'" [style.left]="_x + 'px'" data-context-menu="true">
     <ul *ngIf="_items !== null">
         <li *ngFor="let item of _items; let i = index;"
             (click)="onMenuItemClick($event, item.handler)"
