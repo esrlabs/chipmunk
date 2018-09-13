@@ -332,6 +332,7 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         });
         this.checkOnOffMode();
         this.dropConditionToDefault();
+        this.shareHighlightState(true);
         this.forceUpdate();
     }
 
