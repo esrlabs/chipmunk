@@ -1,6 +1,11 @@
 <div [attr.class]="'lv-wrapper ' + (fullLineView ? 'full-line-on' : '') + ' ' + (remarks.length > 0 ? 'remarks-on' : '')" *ngIf="rows.length > 0">
     <div [attr.class]="'lv-list' + (!line.visible ? ' no-line ' : '') + (buffer === '' ? ' no-buffer ' : '')">
-        <long-list #list [rows]="rows" [onScroll]="onScrollSubscription" [maxWidthRow]="maxWidthRow"></long-list>
+        <long-list #list
+                   [rows]="rows"
+                   [onScroll]="onScrollSubscription"
+                   [onSelection]="onSelectSubscription"
+                   [onSelectionStarted]="onSelectStartedSubscription"
+                   [maxWidthRow]="maxWidthRow"></long-list>
     </div>
     <div class="lv-buffer" *ngIf="buffer !== ''">
         <p>Pending: {{buffer}}</p>

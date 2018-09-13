@@ -6,7 +6,7 @@
    (contextmenu)="onContextMenu($event)">
     <span class="filler"></span>
     <span (click)="onFavorite($event)" [attr.class]="'font-system number noselect' + (!visibility ? ' hide fa fa-circle' : '') + (active ? ' active' : '')">{{(visibility ? __index : '')}}</span>
-    <span class="item font-system" [innerHTML]="safeHTML"></span>
+    <span class="item font-system" [innerHTML]="safeHTML" [attr.data-float-id]="index"></span>
 </p>
 <p *ngIf="_highlight.foregroundColor !== '' || _highlight.backgroundColor !== ''"
    #paragraph
@@ -16,5 +16,5 @@
    [attr.class]="(selection ? 'selected' : '') + ' ' + (bookmarked ? 'bookmarked' : '') + ' ' + (filtered ? 'filtered' : '')">
     <span class="filler" [style.background]="_highlight.backgroundColor"></span>
     <span (click)="onFavorite($event)" [attr.class]="'font-system number noselect' + (!visibility ? ' hide fa fa-circle' : '') + (active ? ' active' : '')">{{(visibility ? __index : '')}}</span>
-    <span class="item font-system" [style.color]="_highlight.foregroundColor" [innerHTML]="safeHTML"></span>
+    <span class="item font-system" [style.color]="_highlight.foregroundColor" [innerHTML]="safeHTML" [attr.data-float-id]="index"></span>
 </p>
