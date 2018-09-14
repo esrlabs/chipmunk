@@ -123,6 +123,8 @@ export class LongList implements AfterViewChecked, OnDestroy {
 
     private focused: boolean = false;
 
+    private ownClick: boolean = false;
+
     private selection: {
         selecting: boolean,
         start: number,
@@ -334,6 +336,10 @@ export class LongList implements AfterViewChecked, OnDestroy {
     }
 
     onWindowClick(event: MouseEvent) {
+        if (this.ownClick) {
+            this.ownClick = false;
+            return;
+        }
         const parent = this.findParentByAttr(event.target as HTMLElement, 'data-com-el-id');
         if (parent === null) {
             return this.unsetFocus();
@@ -364,6 +370,7 @@ export class LongList implements AfterViewChecked, OnDestroy {
     }
 
     onMouseDown(event: MouseEvent){
+        this.ownClick = true;
         this.setFocus();
         //Is on selected node
         if (this.selection.start !== -1 && this.selection.end !== -1) {
