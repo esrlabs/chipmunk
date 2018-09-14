@@ -4,7 +4,8 @@ import {events as Events                } from "./controller.events";
 
 const EVENTS = {
     keydown : 'keydown',
-    paste   : 'paste'
+    paste   : 'paste',
+    copy    : 'copy'
 };
 
 type ClipboardKeysEvent = {
@@ -48,13 +49,13 @@ class ClipboardShortcuts {
         if (this.silence || event.key === '') {
             return false;
         }
-        if ((event.ctrlKey || event.metaKey) && ~['C', 'c'].indexOf(event.key)){
+        if ((event.ctrlKey || event.metaKey) && ~['KeyC'].indexOf(event.code)){
             return this.onCopy.emit({ event: event, selection: window.getSelection()});
         }
-        if ((event.ctrlKey || event.metaKey) && ~['X', 'x'].indexOf(event.key)){
+        if ((event.ctrlKey || event.metaKey) && ~['KeyX'].indexOf(event.code)){
             return this.onCopy.emit({ event: event, selection: window.getSelection()});
         }
-        if ((event.ctrlKey || event.metaKey) && ~['A', 'a'].indexOf(event.key)){
+        if ((event.ctrlKey || event.metaKey) && ~['KeyA'].indexOf(event.code)){
             return this.onSelectAll.emit(event);
         }
     }
