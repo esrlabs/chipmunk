@@ -884,7 +884,7 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     getHighlightHash(): string {
         let hash = `${this.rows.length}:${this.requests.length}:${this._requests.length}:${serviceRequests.getCurrentRequest().length}:`;
         this._requests.forEach((request: Request) => {
-            hash += `${request.backgroundColor}-${request.foregroundColor}`;
+            hash += `${request.backgroundColor !== void 0 ? request.backgroundColor : 'x'}-${request.foregroundColor !== void 0 ? request.foregroundColor : 'x'}`;
         });
         return hash;
     }
