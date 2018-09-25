@@ -978,10 +978,10 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                     str     : row.params.val,
                     onClick : this.onROW_IS_SELECTED.bind(this, index, true)
                 });
-            } else if (row.params.highlight.backgroundColor !== '') {
+            } else if (row.params.highlight.backgroundColor !== '' || row.params.highlight.foregroundColor !== '') {
                 this.line.marks.push({
                     position: index,
-                    color   : row.params.highlight.backgroundColor,
+                    color   : row.params.highlight.backgroundColor !== '' ? row.params.highlight.backgroundColor : row.params.highlight.foregroundColor,
                     str     : row.params.val,
                     onClick : this.onROW_IS_SELECTED.bind(this, index, true)
                 });
@@ -1580,12 +1580,12 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                 }
                 row.update !== null && row.update(row.params);
             } else {
-                const hasHighlight = row.params.highlight.backgroundColor !== '' ? true : (row.params.highlight.foregroundColor !== '' ? true : false);
+                const hadHighlight = row.params.highlight.backgroundColor !== '' ? true : (row.params.highlight.foregroundColor !== '' ? true : false);
                 row.params.highlight = {
                     backgroundColor:'',
                     foregroundColor:''
                 };
-                if (hasHighlight){
+                if (hadHighlight){
                     row.update !== null && row.update(row.params);
                 }
             }
