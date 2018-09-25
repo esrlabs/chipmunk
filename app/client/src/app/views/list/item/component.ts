@@ -221,6 +221,7 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
                 (markersMatches instanceof Array && markersMatches.length > 0) ||
                 (matchMatches instanceof Array && matchMatches.length > 0) ||
                 (this._highlight.backgroundColor !== '') ||
+                (this._highlight.foregroundColor !== '') ||
                 (this.selection)
             )
         ) {
