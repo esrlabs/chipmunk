@@ -10,6 +10,10 @@ import { APIProcessor                   } from '../api/api.processor';
 import { APICommands                    } from '../api/api.commands';
 import { APIResponse                    } from '../api/api.response.interface';
 import { DialogTerminalStreamOpen       } from '../components/common/dialogs/terminal.open/component';
+import { localSettings, KEYs            } from '../../core/modules/controller.localsettings';
+import { ExtraButton, BarAPI            } from "../../views/search.results/search.request/interface.extrabutton";
+import {SerialSedingPackage} from "../interfaces/interface.serial.send.package";
+import {GUID} from "../modules/tools.guid";
 
 interface Entry {
     original: string
@@ -49,10 +53,119 @@ const ERRORS = {
     EXECUTING_ERROR : 'EXECUTING_ERROR'
 };
 
+const MAX_HISTORY_COMMANDS = 50;
+
+class SettingsController {
+
+    defaults(): Array<string>{
+        return [];
+    }
+
+    loadHistory(){
+        let settings = localSettings.get();
+        if (settings !== null && settings[KEYs.terminal] !== void 0 && settings[KEYs.terminal] !== null && settings[KEYs.terminal].history !== void 0){
+            return settings[KEYs.terminal].history;
+        } else {
+            return this.defaults();
+        }
+    }
+
+    saveHistory(history: Array<string>){
+        if (history instanceof Array){
+            localSettings.set({
+                [KEYs.terminal] : {
+                    history : history
+                }
+            });
+        }
+    }
+
+}
+
+class TerminalSender{
+
+    private ID              : symbol                = Symbol();
+    private barAPI          : BarAPI                = null;
+    private message         : string                = '';
+    private Settings        : SettingsController    = new SettingsController();
+    private history         : Array<string>         = [];
+
+    constructor(){
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.DATA_SENT_TO_TERM_PROCESS, this.onDATA_SENT_TO_TERM_PROCESS.bind(this));
+        this.history = this.Settings.loadHistory();
+    }
+
+    addButton(){
+        Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_SEARCH_RESULTS_BUTTON_ADD, {
+            id              : this.ID,
+            title           : 'Send data to terminal',
+            icon            : 'fa-keyboard-o',
+            active          : false,
+            onKeyUp         : this.onKeyUp.bind(this),
+            onEnter         : this.onEnter.bind(this),
+            onDropHistory   : this.onDropHistory.bind(this),
+            placeholder     : 'type command for terminal port'
+        } as ExtraButton, (api: BarAPI) => {
+            this.barAPI = api;
+            this.barAPI.setHistory(this.history);
+        });
+
+    }
+
+    removeButton(){
+        Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_SEARCH_RESULTS_BUTTON_REMOVE, this.ID);
+        this.barAPI = null;
+    }
+
+    onKeyUp(event: KeyboardEvent, value: string){
+
+    }
+
+    onEnter(event: KeyboardEvent, value: string){
+        this.message = value;
+        this.send();
+    }
+
+    onDropHistory(){
+        this.history = [];
+        this.Settings.saveHistory(this.history);
+    }
+
+    send(){
+        this.barAPI !== null && this.barAPI.showProgress();
+        this.saveHistoryCommand(this.message);
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.SEND_DATA_TO_TERMINAL, {
+            data: this.message + '\n'
+        });
+    }
+
+    onDATA_SENT_TO_TERM_PROCESS(params: any){
+        this.barAPI !== null && this.barAPI.hideProgress();
+        this.barAPI !== null && this.barAPI.setValue('');
+    }
+
+    saveHistoryCommand(command: string){
+        if (typeof command !== 'string' || command.trim() === ''){
+            return false;
+        }
+        if (this.history.indexOf(command) !== -1){
+            return false;
+        }
+        if (command.trim() === '') {
+            return false;
+        }
+        this.history.unshift(command);
+        this.history.length > MAX_HISTORY_COMMANDS && this.history.splice(this.history.length - 1, 1);
+        this.Settings.saveHistory(this.history);
+        this.barAPI !== null && this.barAPI.setHistory(this.history);
+    }
+}
+
 class TerminalStream {
     private state       : symbol                = STREAM_STATE.WORKING;
     private buffer      : string                = '';
     private stream      : string                = null;
+    private sender      : TerminalSender        = new TerminalSender();
     private buttons     = {
         STOP        : Symbol(),
         PLAYPAUSE   : Symbol(),
@@ -74,6 +187,7 @@ class TerminalStream {
         Events.bind(Configuration.sets.SYSTEM_EVENTS.TXT_DATA_COME,                     this.onStreamReset);
         Events.bind(Configuration.sets.SYSTEM_EVENTS.WS_DISCONNECTED,                   this.onLostConnection);
         this.addButtonsInToolBar();
+        this.sender.addButton();
     }
 
     addButtonsInToolBar(){
@@ -85,16 +199,18 @@ class TerminalStream {
 
     destroy(){
         //Unbind events
-        Events.unbind(Configuration.sets.SYSTEM_EVENTS.TERM_PROCESS_DATA_COME,  this.onData);
-        Events.unbind(Configuration.sets.SYSTEM_EVENTS.TERM_PROCESS_CLOSED,     this.onClose);
-        Events.unbind(Configuration.sets.SYSTEM_EVENTS.TXT_DATA_COME,           this.onStreamReset);
-        Events.unbind(Configuration.sets.SYSTEM_EVENTS.WS_DISCONNECTED,         this.onLostConnection);
+        Events.unbind(Configuration.sets.SYSTEM_EVENTS.TERM_PROCESS_DATA_COME,      this.onData);
+        Events.unbind(Configuration.sets.SYSTEM_EVENTS.TERM_PROCESS_CLOSED,         this.onClose);
+        Events.unbind(Configuration.sets.SYSTEM_EVENTS.TXT_DATA_COME,               this.onStreamReset);
+        Events.unbind(Configuration.sets.SYSTEM_EVENTS.WS_DISCONNECTED,             this.onLostConnection);
         //Kill buttons
         Object.keys(this.buttons).forEach((button)=>{
             Events.trigger(Configuration.sets.EVENTS_TOOLBAR.REMOVE_BUTTON, this.buttons[button]);
         });
         //Reset titles
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.DESCRIPTION_OF_STREAM_UPDATED, _('No active stream or file opened'));
+        //Remove sender
+        this.sender.removeButton();
     }
 
     onClose(params : IncomeData){
