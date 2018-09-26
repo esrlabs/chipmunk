@@ -25,7 +25,9 @@ const COMMANDS = {
     ResultWrittenToTelnet   : 'ResultWrittenToTelnet',
     TelnetData              : 'TelnetData',
     TelnetClosed            : 'TelnetClosed',
-    OpenLocalFile           : 'OpenLocalFile'
+    OpenLocalFile           : 'OpenLocalFile',
+    WriteToTerminal 		: 'WriteToTerminal',
+    ResultWrittenToTerminal : 'ResultWrittenToTerminal'
 };
 
 class WSCommands{
@@ -99,6 +101,14 @@ class WSCommands{
         });
     }
 
+    [COMMANDS.WriteToTerminal           ](message : WSCommandMessage, sender: Function){
+        sender({
+            GUID    : this.GUID,
+            command : COMMANDS.WriteToTerminal,
+            params  : message.params
+        });
+    }
+
     //INCOME
     [COMMANDS.GUIDAccepted              ](message : WSCommandMessage, sender: Function){
         if (this.GUID === message.GUID){
@@ -148,6 +158,12 @@ class WSCommands{
     [COMMANDS.ResultWrittenToTelnet     ](message : WSCommandMessage, sender: Function){
         if (typeof message.params === 'object' && message.params !== null && typeof message.params.streamGUID === 'string' && typeof message.params.packageGUID === 'string'){
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_TO_TELNET_SENT, message.params);
+        }
+    }
+
+    [COMMANDS.ResultWrittenToTerminal   ](message : WSCommandMessage, sender: Function){
+        if (typeof message.params === 'object' && message.params !== null){
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_SENT_TO_TERM_PROCESS, message.params);
         }
     }
 
