@@ -6,6 +6,7 @@ module.exports = {
 		'CLIENT_IS_CONNECTED' 		: Symbol(),
         'CLIENT_IS_DISCONNECTED'    : Symbol(),
         'WRITE_TO_SERIAL'           : Symbol(),
-        'WRITE_TO_TELNET'           : Symbol()
+        'WRITE_TO_TELNET'           : Symbol(),
+		'WRITE_TO_TERMINAL' 		: Symbol()
     }
 }
