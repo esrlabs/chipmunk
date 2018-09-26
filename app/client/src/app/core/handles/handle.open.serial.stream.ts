@@ -166,8 +166,8 @@ class SerialSender{
     onDATA_TO_SERIAL_SENT(params: any){
         if (params.packageGUID === this.packageGUID){
             this.barAPI !== null && this.barAPI.hideProgress();
+            this.barAPI !== null && this.barAPI.setValue('');
             this.packageGUID = null;
-            this.barAPI.setValue('');
         }
     }
 
