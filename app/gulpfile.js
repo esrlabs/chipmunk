@@ -103,9 +103,9 @@ const PLATFORMS_DEPS = {
 
 const PLATFORMS_DEV_DEPS = {
     COMMON              : {
-		"dmg-builder" 		: "5.2.0",
-		"electron" 			: "2.0.7",
-		"electron-builder" 	: "20.28.1"
+		"dmg-builder" 		: "5.3.1",
+		"electron" 			: "3.0.0",
+		"electron-builder" 	: "20.28.4"
 	},
     [PLATFORMS.DARWIN]  : {
     },

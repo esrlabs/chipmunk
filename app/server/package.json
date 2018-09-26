@@ -9,7 +9,7 @@
   "author": "Dmitry Astafyev (E.S.R.Labs)",
   "license": "ISC",
   "dependencies": {
-    "serialport": "6.1.1",
+    "serialport": "7.0.2",
     "telnet-client": "^0.15.5",
     "uuid": "3.2.1",
     "websocket": "1.0.25"
