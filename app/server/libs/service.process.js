@@ -84,18 +84,23 @@ class SpawnProcess extends EventEmitter{
             return this.spawn;
         }
         try {
+        	let env = Object.assign({}, process.env);
+        	env.PATH = this.path;
             this.spawn = spawn(this.alias, this.parameters, {
-                    env: {
-                        PATH: this.path
-                    }
-                })
-                .on('error', (error) => {
+				env: env
+			})	.on('error', (error) => {
                     this.error = new Error(logger.error(`[${ERRORS.EXECUTING_ERROR}] Error to execute ${this.alias}: ${error.message}. PATH=${this.path}`));
                     this.spawn = null;
                 })
                 .on('close',        this.onClose.bind(this))
                 .on('disconnect',   this.onClose.bind(this))
                 .on('exit',         this.onClose.bind(this));
+            if (this.spawn !== null && this.spawn !== undefined && this.spawn.stderr !== void 0 && this.spawn.stderr !== null) {
+							this.spawn.stderr.on('data', (data) => {
+								this.error = new Error(logger.error(`[${ERRORS.EXECUTING_ERROR}] Error to execute ${this.alias}: ${data}. PATH=${this.path}`));
+								this.spawn = null;
+							});
+						}
             this.error = null;
         } catch (error) {
             this.error = error;
@@ -116,8 +121,41 @@ class SpawnProcess extends EventEmitter{
         return this.error;
     }
 
+    write(data){
+    	return new Promise((resolve, reject) => {
+    		let done = false;
+			if (this.spawn === null) {
+				return reject(new Error(`No opened process found.`));
+			}
+			if (typeof data !== 'string') {
+				return reject(new Error(`Not string data cannot be written into process`));
+			}
+			this.spawn.stdin.on('error', (error) => {
+				if (!done) {
+					done = true;
+					reject(error);
+					this.spawn.stdin.end();
+					this.spawn.stdin.removeAllListeners('error');
+				}
+			});
+			this.spawn.stdin.setEncoding('utf-8');
+			this.spawn.stdin.write(data, (error) => {
+				if (!done) {
+					done = true;
+					this.spawn.stdin.removeAllListeners('error');
+					//this.spawn.stdin.end();
+					if (error) {
+						return reject(error);
+					}
+					resolve();
+				}
+			});
+		});
+
+	}
+
     onClose(code, signal) {
-        this.emit('close');
+    	this.emit('close');
     }
 
     destroy() {
@@ -302,8 +340,10 @@ class Controller {
     constructor(){
         this.streams            = {};
         this.onClientDisconnect = this.onClientDisconnect.bind(this);
-        this.processes          = [];
-        ServerEmitter.emitter.on(ServerEmitter.EVENTS.CLIENT_IS_DISCONNECTED, this.onClientDisconnect );
+		this.onWriteToTerminal 	= this.onWriteToTerminal.bind(this);
+		this.processes          = {};
+        ServerEmitter.emitter.on(ServerEmitter.EVENTS.CLIENT_IS_DISCONNECTED, 	this.onClientDisconnect );
+        ServerEmitter.emitter.on(ServerEmitter.EVENTS.WRITE_TO_TERMINAL,    	this.onWriteToTerminal  );
     }
 
     getProcess(clientGUID, settings) {
@@ -316,7 +356,7 @@ class Controller {
             return process.getError();
         }
         process.on('close', (event)=>{
-            this.close(clientGUID);
+			this.close(clientGUID);
         });
         this.processes[clientGUID] = process;
         return process;
@@ -328,7 +368,7 @@ class Controller {
         }
         this.processes[clientGUID].destroy();
         delete this.processes[clientGUID];
-        return true;
+		return true;
     }
 
     getStream(clientGUID, settings, spawn){
@@ -386,6 +426,33 @@ class Controller {
     onClientDisconnect(connection, clientGUID){
         this.close(clientGUID);
     }
+
+	onWriteToTerminal(clientGUID, params){
+		const outgoingWSCommands = require('./websocket.commands.processor.js');
+		if (this.processes[clientGUID] === void 0) {
+			return ServerEmitter.emitter.emit(ServerEmitter.EVENTS.SEND_VIA_WS, clientGUID, outgoingWSCommands.COMMANDS.ResultWrittenToTerminal, {
+				done: false,
+				error: 'No active process found'
+			});
+		}
+		if (typeof params !== 'object' || params === null || typeof params.data !== 'string' || params.data === '') {
+			return ServerEmitter.emitter.emit(ServerEmitter.EVENTS.SEND_VIA_WS, clientGUID, outgoingWSCommands.COMMANDS.ResultWrittenToTerminal, {
+				done: false,
+				error: 'Data should be not empty string'
+			});
+		}
+		const process = this.processes[clientGUID];
+		process.write(params.data).then(() => {
+			return ServerEmitter.emitter.emit(ServerEmitter.EVENTS.SEND_VIA_WS, clientGUID, outgoingWSCommands.COMMANDS.ResultWrittenToTerminal, {
+				done: true
+			});
+		}).catch((error) => {
+			return ServerEmitter.emitter.emit(ServerEmitter.EVENTS.SEND_VIA_WS, clientGUID, outgoingWSCommands.COMMANDS.ResultWrittenToTerminal, {
+				done: false,
+				error: error.message
+			});
+		});
+	}
 
 }
 
