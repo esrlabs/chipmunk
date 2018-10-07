@@ -68,49 +68,56 @@ class SpawnProcess extends EventEmitter{
     getPath(path){
         if (typeof path !== 'string' || path.trim() === ''){
             path = process.env.PATH;
-            if (~path.indexOf('/usr/bin') !== -1 || ~path.indexOf('/usr/sbin') !== -1){
-                //Linux & darwin patch
-                path.indexOf('/usr/local/bin'  ) === -1 && (path = '/usr/local/bin:' + path);
-                path.indexOf('/usr/local/sbin' ) === -1 && (path = '/usr/local/sbin:' + path);
-            }
-            return path;
         } else {
-            return path + ':' + process.env.PATH;
+			path = path + ':' + process.env.PATH;
         }
+		if (path.indexOf('/usr/bin') !== -1){
+			//Linux & darwin patch
+			path.indexOf('/usr/local/bin') === -1 && (path = path + ':/usr/local/bin');
+		}
+		if (path.indexOf('/usr/sbin') !== -1){
+			//Linux & darwin patch
+			path.indexOf('/usr/local/sbin' ) === -1 && (path = path + ':/usr/local/sbin');
+		}
+		return path;
     }
 
     startProcess() {
-        if (this.spawn !== null) {
-            return this.spawn;
-        }
-        try {
-        	let env = Object.assign({}, process.env);
-        	env.PATH = this.path;
-            this.spawn = spawn(this.alias, this.parameters, {
+		if (this.spawn !== null) {
+			return this.spawn;
+		}
+		try {
+			let env = Object.assign({}, process.env);
+			env.PATH = this.path;
+			if (env.TERM === undefined || env.TERM === '') {
+				//Apply default terminal color scheme
+				env.TERM = 'xterm-256color';
+			}
+			this.spawn = spawn(this.alias, this.parameters, {
 				env: env
 			})	.on('error', (error) => {
-                    this.error = new Error(logger.error(`[${ERRORS.EXECUTING_ERROR}] Error to execute ${this.alias}: ${error.message}. PATH=${this.path}`));
-                    this.spawn = null;
-                })
-                .on('close',        this.onClose.bind(this))
-                .on('disconnect',   this.onClose.bind(this))
-                .on('exit',         this.onClose.bind(this));
-            if (this.spawn !== null && this.spawn !== undefined && this.spawn.stderr !== void 0 && this.spawn.stderr !== null) {
-							this.spawn.stderr.on('data', (data) => {
-								this.error = new Error(logger.error(`[${ERRORS.EXECUTING_ERROR}] Error to execute ${this.alias}: ${data}. PATH=${this.path}`));
-								this.spawn = null;
-							});
-						}
-            this.error = null;
-        } catch (error) {
-            this.error = error;
-            this.spawn = null;
-        }
-        if (this.spawn !== null && (typeof this.spawn.pid !== 'number' || this.spawn.pid <= 0)){
-            this.error = new Error(logger.error(`[${ERRORS.EXECUTING_ERROR}] Fail to execute ${this.alias}. PATH=${this.path}`));
-            this.spawn = null;
-        }
-        return this.spawn;
+				this.error = new Error(logger.error(`[${ERRORS.EXECUTING_ERROR}] Error to execute ${this.alias}: ${error.message}. PATH=${this.path}`));
+				this.spawn = null;
+			})
+				.on('close',        this.onClose.bind(this))
+				.on('disconnect',   this.onClose.bind(this))
+				.on('exit',         this.onClose.bind(this));
+			if (this.spawn !== null && this.spawn !== undefined && this.spawn.stderr !== void 0 && this.spawn.stderr !== null) {
+				this.spawn.stderr.on('data', (data) => {
+					this.error = new Error(logger.error(`[${ERRORS.EXECUTING_ERROR}] Error to execute ${this.alias}: ${data}. PATH=${this.path}`));
+					this.spawn = null;
+				});
+			}
+			this.error = null;
+		} catch (error) {
+			this.error = error;
+			this.spawn = null;
+		}
+		if (this.spawn !== null && (typeof this.spawn.pid !== 'number' || this.spawn.pid <= 0)){
+			this.error = new Error(logger.error(`[${ERRORS.EXECUTING_ERROR}] Fail to execute ${this.alias}. PATH=${this.path}`));
+			this.spawn = null;
+		}
+		return this.spawn;
     }
 
     getSpawn() {
