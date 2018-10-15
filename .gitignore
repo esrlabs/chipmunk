@@ -47,6 +47,7 @@ app/client/src/app/**/*.css
 app/client/src/app/**/*.js
 app/client/src/app/**/*.js.map
 **/package-lock.json
+desktop/**/package.json
 
 .idea/
 app/client/build/
