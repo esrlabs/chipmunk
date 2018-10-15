@@ -16,7 +16,8 @@ import { ANSIClearer                    } from '../modules/tools.ansiclear';
 
 
 import { localSettings, KEYs            } from '../../core/modules/controller.localsettings';
-import set = Reflect.set;
+
+import StreamService from './streams.controller';
 
 interface Entry {
     date    : number,
@@ -185,6 +186,8 @@ class LogcatStream {
         });
         //Reset titles
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.DESCRIPTION_OF_STREAM_UPDATED, _('No active stream or file opened'));
+        //Reset service
+        StreamService.reset();
     }
 
     onStop(){
@@ -310,6 +313,26 @@ class LogcatStream {
         this.destroy();
     }
 
+    close(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (this.state === STREAM_STATE.STOPPED){
+                return resolve();
+            }
+            let processor   = APIProcessor;
+            this.state      = STREAM_STATE.STOPPED;
+            processor.send(
+                APICommands.closeLogcatStream,
+                {
+                    stream      : this.stream
+                },
+                () => {
+                    this.destroy();
+                    return resolve();
+                }
+            );
+        });
+    }
+
 }
 
 class OpenADBLogcatStream implements MenuHandleInterface{
@@ -318,6 +341,7 @@ class OpenADBLogcatStream implements MenuHandleInterface{
     private listening       : boolean               = false;
     private Settings        : SettingsController    = new SettingsController();
     private activeDevice    : string | null         = null;
+    private stream          : LogcatStream | null   = null;
 
     constructor(){
 
@@ -378,17 +402,37 @@ class OpenADBLogcatStream implements MenuHandleInterface{
                     this.showMessage('Error', `Fail to start ADB logcat due error: ${error.message}. Be sure ADB is installed. Aslo check you can check settings on ADB and check paths to ADB SDK.`);
                 });
         }
-        this.showProgress(_('Please wait... Opening...'));
-        let settings = this.Settings.load();
-        this.processor.send(
-            APICommands.openLogcatStream,
-            {
-                settings : this.Settings.convert(Object.assign({
-                    deviceID: this.activeDevice
-                }, settings))
-            },
-            this.onStreamOpened.bind(this)
-        );
+        StreamService.register({
+            name: `Android device: ${this.activeDevice}`,
+            closer: () => {
+                return new Promise((resolve, reject) => {
+                    if (this.stream === null) {
+                        return resolve();
+                    }
+                    this.stream.close().then(() => {
+                        this.stream = null;
+                        return resolve();
+                    }).catch((error) => {
+                        this.showMessage(`Something goes wrong.`, error.message);
+                        return reject();
+                    });
+                });
+            }
+        }).then(() => {
+            this.showProgress(_('Please wait... Opening...'));
+            let settings = this.Settings.load();
+            this.processor.send(
+                APICommands.openLogcatStream,
+                {
+                    settings : this.Settings.convert(Object.assign({
+                        deviceID: this.activeDevice
+                    }, settings))
+                },
+                this.onStreamOpened.bind(this)
+            );
+        }).catch(() => {
+           // Do nothing
+        });
     }
 
     onStreamOpened(response : APIResponse, error: Error){
@@ -414,7 +458,7 @@ class OpenADBLogcatStream implements MenuHandleInterface{
     }
 
     attachStream(stream: string){
-        let logcatStream = new LogcatStream(stream);
+        this.stream = new LogcatStream(stream);
     }
 
     outputToString(output: any){
