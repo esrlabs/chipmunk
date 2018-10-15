@@ -14,6 +14,7 @@ import { localSettings, KEYs            } from '../../core/modules/controller.lo
 import { ExtraButton, BarAPI            } from "../../views/search.results/search.request/interface.extrabutton";
 import {SerialSedingPackage} from "../interfaces/interface.serial.send.package";
 import {GUID} from "../modules/tools.guid";
+import StreamService from "./streams.controller";
 
 interface Entry {
     original: string
@@ -211,6 +212,8 @@ class TerminalStream {
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.DESCRIPTION_OF_STREAM_UPDATED, _('No active stream or file opened'));
         //Remove sender
         this.sender.removeButton();
+        //Reset service
+        StreamService.reset();
     }
 
     onClose(params : IncomeData){
@@ -285,6 +288,26 @@ class TerminalStream {
         this.destroy();
     }
 
+    close(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (this.state === STREAM_STATE.STOPPED){
+                return resolve();
+            }
+            let processor   = APIProcessor;
+            this.state      = STREAM_STATE.STOPPED;
+            processor.send(
+                APICommands.closeProcessStream,
+                {
+                    stream      : this.stream
+                },
+                () => {
+                    this.destroy();
+                    return resolve();
+                }
+            );
+        });
+    }
+
 }
 
 class OpenTerminalStream implements MenuHandleInterface{
@@ -306,7 +329,27 @@ class OpenTerminalStream implements MenuHandleInterface{
     }
 
     start(){
-        this.showOpen();
+        StreamService.register({
+            name: `Terminal application`,
+            closer: () => {
+                return new Promise((resolve, reject) =>{
+                    if (this.stream === null) {
+                        return resolve();
+                    }
+                    this.stream.close().then(() => {
+                        this.stream = null;
+                        return resolve();
+                    }).catch((error) => {
+                        this.showMessage(`Something goes wrong.`, error.message);
+                        return reject();
+                    });
+                });
+            }
+        }).then(() => {
+            this.showOpen();
+        }).catch(() => {
+            // Do nothing
+        });
     }
 
     openStream(params: StreamParameters){
@@ -343,6 +386,8 @@ class OpenTerminalStream implements MenuHandleInterface{
         if (this.stream !== null) {
             this.stream.onStop();
             this.stream = null;
+            //Reset service
+            StreamService.reset();
         }
     }
 
@@ -459,6 +504,8 @@ class OpenTerminalStream implements MenuHandleInterface{
 
     onCancelOpen(GUID: symbol){
         this.hidePopup(GUID);
+        //Reset service
+        StreamService.reset();
     }
 
     hidePopup(GUID: symbol){
