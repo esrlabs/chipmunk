@@ -18,6 +18,8 @@ import { localSettings, KEYs            } from '../../core/modules/controller.lo
 import { ExtraButton, BarAPI            } from '../../views/search.results/search.request/interface.extrabutton';
 import { GUID                           } from '../../core/modules/tools.guid';
 
+import StreamService from './streams.controller';
+
 interface IncomeData{
     connection  : string,
     data        : string
@@ -238,6 +240,8 @@ class SerialStream{
         //Reset titles
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.DESCRIPTION_OF_STREAM_UPDATED, _('No active stream or file opened'));
         this.sender.removeButton();
+        //Reset service
+        StreamService.reset();
     }
 
     onStreamReset(){
@@ -317,6 +321,27 @@ class SerialStream{
     onLostConnection(){
         this.destroy();
     }
+
+    stop(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (this.state === STREAM_STATE.STOPPED) {
+                return resolve();
+            }
+            let processor   = APIProcessor;
+            this.state      = STREAM_STATE.STOPPED;
+            processor.send(
+                APICommands.closeSerialStream,
+                {
+                    port        : this.port,
+                    connection  : this.connection
+                },
+                () => {
+                    this.destroy();
+                    resolve();
+                }
+            );
+        });
+    }
 }
 
 class OpenSerialStream implements MenuHandleInterface{
@@ -326,6 +351,7 @@ class OpenSerialStream implements MenuHandleInterface{
     private port            : string                = null;
     private connection      : string                = null;
     private Settings        : SettingsController    = new SettingsController();
+    private stream          : SerialStream | null   = null;
 
     constructor(){
     }
@@ -367,16 +393,36 @@ class OpenSerialStream implements MenuHandleInterface{
     }
 
     openSerialPort(port: string, settings: Object){
-        this.showProgress(_('Please wait... Opening ') + port);
-        this.port = port;
-        this.processor.send(
-            APICommands.openSerialPort,
-            {
-                port        : port,
-                settings    : settings
-            },
-            this.onOpenSerialPort.bind(this)
-        );
+        StreamService.register({
+            name    : `serial port: ${port}`,
+            closer  : () => {
+                return new Promise((resolve, reject) => {
+                    if (this.stream === null) {
+                        return resolve();
+                    }
+                    this.stream.stop().then(() => {
+                        this.stream = null;
+                        return resolve();
+                    }).catch((error) => {
+                        this.showMessage(`Something goes wrong.`, error.message);
+                        return reject();
+                    });
+                });
+            }
+        }).then(() => {
+            this.showProgress(_('Please wait... Opening ') + port);
+            this.port = port;
+            this.processor.send(
+                APICommands.openSerialPort,
+                {
+                    port        : port,
+                    settings    : settings
+                },
+                this.onOpenSerialPort.bind(this)
+            );
+        }).catch((error) => {
+            // do nothing
+        });
     }
 
     onOpenSerialPort(response : APIResponse, error: Error){
@@ -523,7 +569,7 @@ class OpenSerialStream implements MenuHandleInterface{
     }
 
     attachSerialStream(){
-        let serialStream = new SerialStream(this.connection, this.port);
+        this.stream = new SerialStream(this.connection, this.port);
     }
 
 

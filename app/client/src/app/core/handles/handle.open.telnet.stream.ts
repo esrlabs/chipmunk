@@ -19,6 +19,7 @@ import { ExtraButton, BarAPI            } from '../../views/search.results/searc
 import { GUID                           } from '../../core/modules/tools.guid';
 
 import { DefaultsTelnetSettings         } from '../components/common/dialogs/telnet.settings/defaults.settings';
+import StreamService from "./streams.controller";
 
 interface IncomeData{
     connection  : string,
@@ -220,6 +221,8 @@ class TelnetStream{
         //Reset titles
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.DESCRIPTION_OF_STREAM_UPDATED, _('No active stream or file opened'));
         this.sender.removeButton();
+        //Reset service
+        StreamService.reset();
     }
 
     onStreamReset(){
@@ -305,6 +308,27 @@ class TelnetStream{
     onLostConnection(){
         this.destroy();
     }
+
+    close(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (this.state === STREAM_STATE.STOPPED){
+                return resolve();
+            }
+            let processor   = APIProcessor;
+            this.state      = STREAM_STATE.STOPPED;
+            processor.send(
+                APICommands.closeTelnetStream,
+                {
+                    alias       : this.alias,
+                    connection  : this.connection
+                },
+                () => {
+                    this.destroy();
+                    return resolve();
+                }
+            );
+        });
+    }
 }
 
 class OpenTelnetStream implements MenuHandleInterface{
@@ -320,66 +344,87 @@ class OpenTelnetStream implements MenuHandleInterface{
     }
 
     start(){
-        const aliases = this.Settings.getAliases();
-        if (aliases.length > 0) {
-            let GUID = Symbol();
-            popupController.open({
-                content : {
-                    factory     : null,
-                    component   : DialogMessageList,
-                    params      : {
-                        message: `You have saved telnet connection. You can select it from your history:`,
-                        list   : aliases.map((alias: string) => {
-                            return {
-                                caption : alias,
-                                handle  : ()=>{
-                                    this.showSettings(this.Settings.load(alias));
-                                    popupController.close(GUID);
-                                }
-                            }
-                        }),
-                        buttons: [
-                            {
-                                caption: 'New',
-                                handle : ()=>{
-                                    this.showSettings(DEFAULT_TELNET_SETTINGS);
-                                    popupController.close(GUID);
-                                }
-                            },
-                            {
-                                caption: 'Clear All and Open New',
-                                handle : ()=>{
-                                    this.Settings.clear();
-                                    this.showSettings(DEFAULT_TELNET_SETTINGS);
-                                    popupController.close(GUID);
-                                }
-                            },
-                            {
-                                caption: 'Cancel',
-                                handle : ()=>{
-                                    popupController.close(GUID);
-                                }
-                            }
-                        ]
+        StreamService.register({
+            name: 'Telnet Connection',
+            closer: () => {
+                return new Promise((resolve, reject) => {
+                    if (this.telnetStream === null) {
+                        return resolve();
                     }
-                },
-                title   : _('History of telnet connections'),
-                settings: {
-                    move            : true,
-                    resize          : true,
-                    width           : '30rem',
-                    height          : '25rem',
-                    close           : true,
-                    addCloseHandle  : true,
-                    css             : ''
-                },
-                buttons         : [],
-                titlebuttons    : [],
-                GUID            : GUID
-            });
-        } else {
-            this.showSettings(DEFAULT_TELNET_SETTINGS);
-        }
+                    this.telnetStream.close().then(() => {
+                        this.telnetStream = null;
+                        return resolve();
+                    }).catch((error) => {
+                        this.showMessage(`Something goes wrong.`, error.message);
+                        return reject();
+                    });
+                });
+            }
+        }).then(() => {
+            const aliases = this.Settings.getAliases();
+            if (aliases.length > 0) {
+                let GUID = Symbol();
+                popupController.open({
+                    content : {
+                        factory     : null,
+                        component   : DialogMessageList,
+                        params      : {
+                            message: `You have saved telnet connection. You can select it from your history:`,
+                            list   : aliases.map((alias: string) => {
+                                return {
+                                    caption : alias,
+                                    handle  : ()=>{
+                                        this.showSettings(this.Settings.load(alias));
+                                        popupController.close(GUID);
+                                    }
+                                }
+                            }),
+                            buttons: [
+                                {
+                                    caption: 'New',
+                                    handle : ()=>{
+                                        this.showSettings(DEFAULT_TELNET_SETTINGS);
+                                        popupController.close(GUID);
+                                    }
+                                },
+                                {
+                                    caption: 'Clear All and Open New',
+                                    handle : ()=>{
+                                        this.Settings.clear();
+                                        this.showSettings(DEFAULT_TELNET_SETTINGS);
+                                        popupController.close(GUID);
+                                    }
+                                },
+                                {
+                                    caption: 'Cancel',
+                                    handle : ()=>{
+                                        StreamService.reset();
+                                        popupController.close(GUID);
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    title   : _('History of telnet connections'),
+                    settings: {
+                        move            : true,
+                        resize          : true,
+                        width           : '30rem',
+                        height          : '25rem',
+                        close           : true,
+                        addCloseHandle  : true,
+                        css             : ''
+                    },
+                    buttons         : [],
+                    titlebuttons    : [],
+                    GUID            : GUID
+                });
+            } else {
+                this.showSettings(DEFAULT_TELNET_SETTINGS);
+            }
+        }).catch(() => {
+            //Do nothing
+        });
     }
 
 
@@ -432,6 +477,7 @@ class OpenTelnetStream implements MenuHandleInterface{
                 this.openTelnetStream(alias, settings);
             }.bind(this, GUID),
             cancel  : function (GUID: symbol) {
+                StreamService.reset();
                 this.hidePopup(GUID);
             }.bind(this, GUID)
         }, settings);
