@@ -70,6 +70,8 @@ export class ViewControllerMarkers extends ViewControllerPattern implements View
             backgroundColor : marker.backgroundColor,
             foregroundColor : marker.foregroundColor,
             active          : marker.active,
+            lineIsTarget    : marker.lineIsTarget !== void 0 ? marker.lineIsTarget : false,
+            isRegExp        : marker.isRegExp !== void 0 ? marker.isRegExp : false,
             onChangeColor   : this.onMarkerColorChange.bind(this, marker.value),
             onRemove        : this.onMarkerRemove.bind(this, marker.value),
             onChangeState   : this.onMarkerChangeState.bind(this, marker.value),
@@ -105,7 +107,7 @@ export class ViewControllerMarkers extends ViewControllerPattern implements View
         }
     }
 
-    onMarkerChange(hook: string, updated: string, foregroundColor: string, backgroundColor: string){
+    onMarkerChange(hook: string, updated: string, foregroundColor: string, backgroundColor: string, lineIsTarget: boolean, isRegExp: boolean){
         let index = this.getMarkerIndexByHook(hook);
         if (~index){
             if (!~this.getMarkerIndexByHook(updated)){
@@ -113,11 +115,15 @@ export class ViewControllerMarkers extends ViewControllerPattern implements View
                     value           : updated,
                     foregroundColor : foregroundColor,
                     backgroundColor : backgroundColor,
-                    active          : this.markers[index].active
+                    active          : this.markers[index].active,
+                    lineIsTarget    : lineIsTarget,
+                    isRegExp        : isRegExp
                 });
             } else {
-                this.markers[this.getMarkerIndexByHook(updated)].foregroundColor = foregroundColor;
-                this.markers[this.getMarkerIndexByHook(updated)].backgroundColor = backgroundColor;
+                this.markers[this.getMarkerIndexByHook(updated)].foregroundColor    = foregroundColor;
+                this.markers[this.getMarkerIndexByHook(updated)].backgroundColor    = backgroundColor;
+                this.markers[this.getMarkerIndexByHook(updated)].lineIsTarget       = lineIsTarget;
+                this.markers[this.getMarkerIndexByHook(updated)].isRegExp           = isRegExp;
             }
             this.onMarkerChanges();
             this.forceUpdate();
@@ -142,6 +148,8 @@ export class ViewControllerMarkers extends ViewControllerPattern implements View
                     value           : marker.value,
                     foregroundColor : marker.foregroundColor,
                     backgroundColor : marker.backgroundColor,
+                    lineIsTarget    : marker.lineIsTarget,
+                    isRegExp        : marker.isRegExp,
                 }
             });
     }
@@ -160,11 +168,16 @@ export class ViewControllerMarkers extends ViewControllerPattern implements View
                                     foregroundColor : marker['foregroundColor'],
                                     backgroundColor : marker['backgroundColor'],
                                     value           : marker['hook'],
-                                    active          : true
+                                    active          : true,
+                                    lineIsTarget    : marker['lineIsTarget'],
+                                    isRegExp        : marker['isRegExp']
+
                                 }));
                             } else {
                                 this.markers[this.getMarkerIndexByHook(marker['hook'])].foregroundColor = marker['foregroundColor'];
                                 this.markers[this.getMarkerIndexByHook(marker['hook'])].backgroundColor = marker['backgroundColor'];
+                                this.markers[this.getMarkerIndexByHook(marker['hook'])].lineIsTarget    = marker['lineIsTarget'];
+                                this.markers[this.getMarkerIndexByHook(marker['hook'])].isRegExp        = marker['isRegExp'];
                             }
                             this.onMarkerChanges();
                             this.forceUpdate();
@@ -177,7 +190,7 @@ export class ViewControllerMarkers extends ViewControllerPattern implements View
                     move            : true,
                     resize          : true,
                     width           : '40rem',
-                    height          : '27rem',
+                    height          : '31rem',
                     close           : true,
                     addCloseHandle  : true,
                     css             : ''
@@ -222,7 +235,9 @@ export class ViewControllerMarkers extends ViewControllerPattern implements View
                         value           : marker.value,
                         backgroundColor : marker.backgroundColor,
                         foregroundColor : marker.foregroundColor,
-                        active          : marker.active
+                        active          : marker.active,
+                        lineIsTarget    : marker.lineIsTarget !== void 0 ? marker.lineIsTarget : false,
+                        isRegExp        : marker.isRegExp !== void 0 ? marker.isRegExp : false,
                     };
                 })
             }

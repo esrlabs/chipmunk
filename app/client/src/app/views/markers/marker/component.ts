@@ -13,6 +13,8 @@ export class ViewMarkersItem implements OnInit, OnDestroy, AfterViewInit {
     @Input() value          : string        = '';
     @Input() foregroundColor: string        = '';
     @Input() backgroundColor: string        = '';
+    @Input() lineIsTarget   : boolean       = false;
+    @Input() isRegExp       : boolean       = false;
     @Input() onChangeColor  : Function      = null;
     @Input() onRemove       : Function      = null;
     @Input() onChangeState  : Function      = null;
@@ -76,8 +78,10 @@ export class ViewMarkersItem implements OnInit, OnDestroy, AfterViewInit {
                     hook                : this.value,
                     foregroundColor     : this.foregroundColor,
                     backgroundColor     : this.backgroundColor,
+                    isRegExp            : this.isRegExp,
+                    lineIsTarget        : this.lineIsTarget,
                     callback            : function(marker: Object){
-                        typeof this.onChange === 'function' && this.onChange(marker['hook'], marker['foregroundColor'], marker['backgroundColor']);
+                        typeof this.onChange === 'function' && this.onChange(marker['hook'], marker['foregroundColor'], marker['backgroundColor'], marker['lineIsTarget'], marker['isRegExp']);
                         popupController.close(popup);
                     }.bind(this)
                 }
@@ -87,7 +91,7 @@ export class ViewMarkersItem implements OnInit, OnDestroy, AfterViewInit {
                 move            : true,
                 resize          : true,
                 width           : '40rem',
-                height          : '27rem',
+                height          : '31rem',
                 close           : true,
                 addCloseHandle  : true,
                 css             : ''
