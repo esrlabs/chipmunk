@@ -10,6 +10,6 @@
   "author": "Dmitry Astafyev",
   "license": "MIT",
   "dependencies": {
-    "gulp": "github:gulpjs/gulp#4.0"
+    "gulp": "^4.0.0"
   }
 }
