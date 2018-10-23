@@ -46,7 +46,7 @@
     "@types/node": "^6.0.46",
     "canonical-path": "0.0.2",
     "concurrently": "^3.2.0",
-    "gulp": "github:gulpjs/gulp#4.0",
+    "gulp": "^4.0.0",
     "gulp-clean": "^0.3.2",
     "gulp-concat": "^2.6.1",
     "gulp-less": "^3.3.0",
