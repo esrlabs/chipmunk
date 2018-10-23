@@ -28,6 +28,14 @@
                 <simple-checkbox [onChange]="onColorAutoGenerationChange" [checked]="generateColor" [on]="'ON'" [off]="'OFF'"></simple-checkbox>
             </td>
         </tr>
+        <tr>
+            <td>
+                Apply color to whole line
+            </td>
+            <td>
+                <simple-checkbox [onChange]="onColorTargetChange" [checked]="lineIsTarget" [on]="'ON'" [off]="'OFF'"></simple-checkbox>
+            </td>
+        </tr>
     </table>
 </div>
 

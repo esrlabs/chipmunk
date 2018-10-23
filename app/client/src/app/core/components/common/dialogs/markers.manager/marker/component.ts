@@ -13,6 +13,8 @@ export class DialogMarkersManagerItem implements OnInit, OnDestroy, AfterViewIni
     @Input() value          : string        = '';
     @Input() foregroundColor: string        = '';
     @Input() backgroundColor: string        = '';
+    @Input() lineIsTarget   : boolean       = false;
+    @Input() isRegExp       : boolean       = false;
     @Input() onChangeColor  : Function      = null;
     @Input() onRemove       : Function      = null;
     @Input() onChangeState  : Function      = null;
@@ -76,8 +78,10 @@ export class DialogMarkersManagerItem implements OnInit, OnDestroy, AfterViewIni
                     hook                : this.value,
                     foregroundColor     : this.foregroundColor,
                     backgroundColor     : this.backgroundColor,
+                    lineIsTarget        : this.lineIsTarget,
+                    isRegExp            : this.isRegExp,
                     callback            : function(marker: Object){
-                        typeof this.onChange === 'function' && this.onChange(marker['hook'], marker['foregroundColor'], marker['backgroundColor']);
+                        typeof this.onChange === 'function' && this.onChange(marker['hook'], marker['foregroundColor'], marker['backgroundColor'], marker['lineIsTarget'], marker['isRegExp']);
                         popupController.close(popup);
                     }.bind(this)
                 }
@@ -87,7 +91,7 @@ export class DialogMarkersManagerItem implements OnInit, OnDestroy, AfterViewIni
                 move            : true,
                 resize          : true,
                 width           : '40rem',
-                height          : '27rem',
+                height          : '31rem',
                 close           : true,
                 addCloseHandle  : true,
                 css             : ''
