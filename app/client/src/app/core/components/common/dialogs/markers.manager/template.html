@@ -6,9 +6,12 @@
             [onChangeState]="marker.onChangeState"
             [value]="marker.value"
             [active]="marker.active"
+            [lineIsTarget]="marker.lineIsTarget"
+            [isRegExp]="marker.isRegExp"
             [backgroundColor]="marker.backgroundColor"
             [foregroundColor]="marker.foregroundColor"></dialog-markers-item></li>
 </ul>
 <div class="markers-list-buttons">
-    <button-flat-text [caption]="'Add'" [handle]="onAddMarker"></button-flat-text>
+    <button-flat-text [caption]="'Copy From Filters'" [handle]="onCopyFromFilters"></button-flat-text>
+    <button-flat-text [caption]="'Add New'" [handle]="onAddMarker"></button-flat-text>
 </div>

@@ -54,6 +54,7 @@ export class MarkersEditDialog {
     @Input() isRegExp           : boolean       = true;
     @Input() noTypeChoose       : boolean       = false;
     @Input() noHook             : boolean       = false;
+    @Input() lineIsTarget       : boolean       = false;
 
     @ViewChild('_hook'          ) _hook         : CommonInput;
 
@@ -71,7 +72,7 @@ export class MarkersEditDialog {
         this.onSwitchForeground         = this.onSwitchForeground.bind(this);
         this.onColorAutoGenerationChange= this.onColorAutoGenerationChange.bind(this);
         this.onTypeChange               = this.onTypeChange.bind(this);
-
+        this.onColorTargetChange        = this.onColorTargetChange.bind(this);
     }
 
     forceUpdate(){
@@ -94,6 +95,10 @@ export class MarkersEditDialog {
         this.generateColor = !this.generateColor;
     }
 
+    onColorTargetChange() {
+        this.lineIsTarget  = !this.lineIsTarget;
+    }
+
     onApply(){
         this.hook = !this.noHook ? this._hook.getValue() : '';
         if (this.hook.trim() !== '' || this.noHook){
@@ -101,7 +106,8 @@ export class MarkersEditDialog {
                 hook            : this.hook,
                 backgroundColor : this.backgroundColor,
                 foregroundColor : this.foregroundColor,
-                isRegExp        : this.isRegExp
+                isRegExp        : this.isRegExp,
+                lineIsTarget    : this.lineIsTarget,
             });
         }
     }
@@ -110,7 +116,9 @@ export class MarkersEditDialog {
         typeof this.callback === 'function' && this.callback({
             hook            : this.hook,
             backgroundColor : '',
-            foregroundColor : ''
+            foregroundColor : '',
+            lineIsTarget    : false,
+            isRegExp        : false,
         });
     }
 
