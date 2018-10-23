@@ -58,7 +58,9 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
     @Input() markers            : Array<{
         value           : string,
         backgroundColor : string,
-        foregroundColor : string
+        foregroundColor : string,
+        lineIsTarget    : boolean,
+        isRegExp        : boolean
     }> = [];//Do not bind this <Marker> type, because markers view can be removed
     @Input() highlight          : {
         backgroundColor : string,
@@ -145,24 +147,38 @@ export class ViewControllerListItem implements ListItemInterface, OnDestroy, OnC
             });
         }
         if (this.markers instanceof Array){
-            this.markers.forEach((marker, index)=>{
+            this.markers.forEach((marker, index) => {
+                const lineIsTarget = marker.lineIsTarget !== void 0 ? marker.lineIsTarget : false;
+                const isRegExp = marker.isRegExp !== void 0 ? marker.isRegExp : false;
                 if (marker.value.length > 0) {
-                    let matches = null;
-                    let mark    = `${MARKERS.MARKER_LEFT}${index}${MARKERS.MARKER_RIGHT}`;
-                    let markerKey = `__${marker.value}__`;
-                    this.regsCache[markerKey]   === void 0 && (this.regsCache[markerKey]    = safelyCreateRegExp(serializeHTML(serializeStringForReg(marker.value)), 'gi'));
-                    this.regsCache[mark]        === void 0 && (this.regsCache[mark]         = safelyCreateRegExp(serializeHTML(serializeStringForReg(mark)), 'gi'));
+                    let matches     = null;
+                    let mark        = `${MARKERS.MARKER_LEFT}${index}${MARKERS.MARKER_RIGHT}`;
+                    let markerKey   = `__${marker.value}__${isRegExp ? '-reg' : '-plant'}__`;
+                    if (isRegExp) {
+                        this.regsCache[markerKey]   === void 0 && (this.regsCache[markerKey]    = safelyCreateRegExp(serializeHTML(marker.value), 'gi'));
+                        this.regsCache[mark]        === void 0 && (this.regsCache[mark]         = safelyCreateRegExp(serializeHTML(mark), 'gi'));
+                    } else {
+                        this.regsCache[markerKey]   === void 0 && (this.regsCache[markerKey]    = safelyCreateRegExp(serializeHTML(serializeStringForReg(marker.value)), 'gi'));
+                        this.regsCache[mark]        === void 0 && (this.regsCache[mark]         = safelyCreateRegExp(serializeHTML(serializeStringForReg(mark)), 'gi'));
+                    }
                     if (this.regsCache[markerKey] !== null){
                         matches = this.html.match(this.regsCache[markerKey]);
                         if (matches instanceof Array && matches.length > 0){
-                            this.html = this.html.replace(this.regsCache[markerKey], mark);
-                            markersMatches.push({
-                                mark    : mark,
-                                matches : matches,
-                                bg      : marker.backgroundColor,
-                                fg      : marker.foregroundColor,
-                                index   : index
-                            });
+                            if (lineIsTarget){
+                                if (this._highlight.backgroundColor === '' && this._highlight.foregroundColor === '') {
+                                    this._highlight.backgroundColor = marker.backgroundColor;
+                                    this._highlight.foregroundColor = marker.foregroundColor;
+                                }
+                            } else {
+                                this.html = this.html.replace(this.regsCache[markerKey], mark);
+                                markersMatches.push({
+                                    mark    : mark,
+                                    matches : matches,
+                                    bg      : marker.backgroundColor,
+                                    fg      : marker.foregroundColor,
+                                    index   : index
+                                });
+                            }
                         }
                     }
                 }

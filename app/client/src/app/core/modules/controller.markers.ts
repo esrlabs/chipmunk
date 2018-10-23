@@ -44,6 +44,8 @@ class MarkersController {
                     value           : marker.value,
                     foregroundColor : marker.foregroundColor,
                     backgroundColor : marker.backgroundColor,
+                    lineIsTarget    : marker.lineIsTarget !== void 0 ? marker.lineIsTarget : false,
+                    isRegExp        : marker.isRegExp !== void 0 ? marker.isRegExp : false,
                 }
             });
     }

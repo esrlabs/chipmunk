@@ -9,7 +9,7 @@ markers-edit-dialog{
         position    : absolute;
         top         :0;
         width       : 100%;
-        bottom      : 9rem;
+        bottom      : 12rem;
         overflow-x  : hidden;
         overflow-y  : auto;
         .marker-colors-foreground,
@@ -46,10 +46,15 @@ markers-edit-dialog{
     }
     .marker-settings{
         position    : absolute;
-        top         : ~"calc(100% - 9rem)";
+        top         : ~"calc(100% - 11.5rem)";
         width       : 100%;
         height      : 2rem;
         font-size   : 0.85rem;
+        & table {
+            & td:first-child{
+                width: 100%;
+            }
+        }
     }
     .marker-hook{
         position    : absolute;

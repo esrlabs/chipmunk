@@ -143,6 +143,8 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
         value           : string,
         foregroundColor : string,
         backgroundColor : string,
+        lineIsTarget    : boolean,
+        isRegExp        : boolean,
         self?           : boolean
     }> = [];//Do not bind this <Marker> type, because markers view can be removed
 
@@ -976,7 +978,9 @@ export class ViewControllerSearchResults extends ViewControllerPattern implement
     getMarkersHash(){
         let hash = '';
         this.markers instanceof Array && this.markers.forEach((marker)=>{
-            hash += marker.value + marker.foregroundColor + marker.backgroundColor;
+            const lineIsTarget = marker.lineIsTarget === true ? '--line--' : '--word--';
+            const isRegExp = marker.isRegExp === true ? '--reg--' : '--plant--';
+            hash += `${marker.value}${marker.foregroundColor}${marker.backgroundColor}${lineIsTarget}${isRegExp}`;
         });
         return hash;
     }

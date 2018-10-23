@@ -158,7 +158,9 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
         value           : string,
         foregroundColor : string,
         backgroundColor : string,
-        self?           : boolean
+        lineIsTarget    : boolean,
+        isRegExp        : boolean,
+        self?           : boolean,
     }> = [];//Do not bind this <Marker> type, because markers view can be removed
 
     constructor(
@@ -536,7 +538,9 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
     getMarkersHash(){
         let hash = '';
         this.markers instanceof Array && this.markers.forEach((marker)=>{
-            hash += marker.value + marker.foregroundColor + marker.backgroundColor;
+            const lineIsTarget = marker.lineIsTarget === true ? '--line--' : '--word--';
+            const isRegExp = marker.isRegExp === true ? '--reg--' : '--plant--';
+            hash += `${marker.value}${marker.foregroundColor}${marker.backgroundColor}${lineIsTarget}${isRegExp}`;
         });
         return hash;
     }
@@ -799,6 +803,8 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
                 value           : selection.startText,
                 backgroundColor : SETTINGS.TEXT_SELECTED_BACKGROUND,
                 foregroundColor : SETTINGS.TEXT_SELECTED_COLOR,
+                isRegExp        : false,
+                lineIsTarget    : false,
                 self            : true
             });
         }
