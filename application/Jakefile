@@ -137,10 +137,8 @@ namespace('solution', function() {
             if (!fs.existsSync(target)) {
                 return;
             }
-            tasks.push(...[
-                `unlink ${target} & exit 0`,
-                `rm -r ${target} & exit 0`
-            ]);
+            tasks.push(echo(colors.blue(`unlink: ${target}`)));
+            tasks.push(`unlink ${target} & exit 0`);
         });
         if (tasks.length === 0) {
             console.log(`Nothing to unlink. All projects arn't bound`);
@@ -160,11 +158,10 @@ namespace('solution', function() {
             const target = path.normalize(path.resolve(folder, PLATFORM_FOLDER));
             if (fs.existsSync(target)) {
                 console.log(`Project ${folder} is already linked. It will be unlinked before to be linked again.`);
-                tasks.push(...[
-                    `unlink ${target} & exit 0`,
-                    `rm -r ${target} & exit 0`
-                ]);
+                tasks.push(echo(colors.blue(`unlink: ${target}`)));
+                tasks.push(`unlink ${target} & exit 0`);
             }
+            tasks.push(echo(colors.blue(`link: ${target}`)));
             tasks.push(`ln -s ${platform} ${target}`);
         });
         sh(this, '.', ...tasks);
@@ -178,7 +175,10 @@ namespace('solution', function() {
         projects.forEach((folder) => {
             const target = path.normalize(path.resolve(folder, 'node_modules'));
             const etc = path.normalize(path.resolve(folder, 'etc'));
-            fs.existsSync(target) && tasks.push(`rm -rf ${target}`);
+            if (fs.existsSync(target)) {
+                tasks.push(echo(colors.blue(`clearing: ${target}`)));
+                tasks.push(`rm -rf ${target}`);
+            }
             fs.existsSync(etc) && tasks.push(`rm -r ${etc}`);
         });
         if (tasks.length === 0) {
@@ -197,6 +197,7 @@ namespace('solution', function() {
         projects.forEach((folder) => {
             const target = path.normalize(path.resolve(folder, 'node_modules'));
             fs.existsSync(target) && tasks.push(`rm -rf ${target}`);
+            tasks.push(echoDec(`Installing NPM in: ${folder}`, '*', colors.green));
             tasks.push(`npm install --prefix ${folder}`);
         });
         if (tasks.length === 0) {

@@ -11,7 +11,7 @@ const url = require('url');
     // and load the index.html of the app.
     win.loadFile('index.html')
     win.loadURL(url.format({
-        pathname: path.join(__dirname, `../../client/dist/index.html`),
+        pathname: path.join(__dirname, `../../client/dist/logviewer/index.html`),
         protocol: 'file:',
         slashes: true
     }));
