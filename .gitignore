@@ -51,3 +51,4 @@ Thumbs.db
 !webpack.config.js
 .idea
 !application/electron/**/*.js
+!application/electron/*.js
