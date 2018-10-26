@@ -50,4 +50,4 @@ Thumbs.db
 .vscode
 !webpack.config.js
 .idea
-
+!application/electron/**/*.js
