@@ -8,7 +8,7 @@ import * as Common from '../platform/node/src/index';
 import * as Installer from '../src/index';
 
 const MODULE_PATH: string = Common.Env.getExecutedModulePath();
-const SOURCE_TS_NODE_APP: string = Path.resolve(MODULE_PATH, '../../../../../../sandbox/serialport');
+const SOURCE_TS_NODE_APP: string = Path.resolve(MODULE_PATH, '../../../../../sandbox/serialport');
 
 const logger = new Common.Logger('[Test][TS Node App Installer]');
 
