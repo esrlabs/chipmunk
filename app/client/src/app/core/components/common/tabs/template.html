@@ -1,8 +1,0 @@
-<ul #tabsarea class="tabs-content">
-    <li #labels *ngFor="let tab of tabs;" [style.display]="(tab.active ? 'block' : 'none')" class="src-content-tab">
-        <tab-item [tab]="tab"></tab-item>
-    </li>
-</ul>
-<ul #labelarea class="tabs-labels">
-    <li #labels *ngFor="let tab of tabs;" [class]="(tab.active ? 'active' : '')" (click)="onSwitch(tab)">{{tab.label}}</li>
-</ul>
