@@ -39,22 +39,15 @@ Thumbs.db
 # Others #
 ##########
 **/node_modules
-desktop/server
-desktop/client
-desktop/dist
-app/client/build
-app/client/src/app/**/*.css
-app/client/src/app/**/*.js
-app/client/src/app/**/*.js.map
+**/*.js
+**/*.js.map
 **/package-lock.json
-desktop/**/package.json
+**/.vscode
+**/vscode
+**/.DS_store
+**/dist
+**/build
+.vscode
+!webpack.config.js
+.idea
 
-.idea/
-app/client/build/
-app/desktop/client/
-app/desktop/dist/
-app/desktop/server/
-app/desktop/package-lock.json
-app/desktop/package.json
-git.token.txt
-vim-markdown-preview.html

@@ -1,7 +1,0 @@
-{
-  "LIST": [
-    { "name": "Light", "file": "light.css" },
-    { "name": "Dark", "file": "dark.css" }
-  ],
-  "default": "dark.css"
-}
