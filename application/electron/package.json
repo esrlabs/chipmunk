@@ -1,0 +1,16 @@
+{
+  "name": "logviewer.electron",
+  "version": "1.0.0",
+  "description": "Logs analyzer tool",
+  "main": "./src/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "Dmitry Astafyev",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^3.0.6",
+    "electron-builder": "^20.28.4"
+  },
+  "dependencies": {}
+}
