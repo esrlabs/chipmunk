@@ -52,5 +52,7 @@ Thumbs.db
 .idea
 !application/electron/**/*.js
 !application/electron/*.js
+!jake.scripts/**/*.js
+!jake.scripts/*.js
 **/platform
 !application/platform
