@@ -1,16 +1,55 @@
 {
-  "name": "logviewer.electron",
+  "name": "logviewer",
   "version": "1.0.0",
-  "description": "Logs analyzer tool",
-  "main": "./src/main.js",
-  "scripts": {
-    "start": "electron ."
+  "description": "LogViewer",
+  "main": "compiled/main.js",
+  "copyright": "Copyright © 2018 year E.S.R.Labs",
+  "build": {
+    "appId": "com.logviewer.de",
+    "productName": "",
+    "copyright": "Copyright © 2018 year E.S.R.Labs",
+    "files": [
+      "**/*"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "esrlabs",
+        "repo": "logviewer"
+      }
+    ],
+    "npmRebuild": true,
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "./build/mac/icon.icns",
+      "target": [
+        {
+          "target": "dmg"
+        },
+        {
+          "target": "zip"
+        }
+      ]
+    }
   },
-  "author": "Dmitry Astafyev",
-  "license": "MIT",
+  "dependencies": {},
   "devDependencies": {
+    "dmg-builder": "^6.0.0",
     "electron": "^3.0.6",
-    "electron-builder": "^20.28.4"
+    "electron-builder": "^20.29.0",
+    "@types/electron": "^1.6.10",
+    "@types/jasmine": "^2.8.6",
+    "@types/node": "^10.12.0",
+    "tslint": "^5.11.0",
+    "typescript": "^3.1.3"
   },
-  "dependencies": {}
+  "scripts": {
+    "postinstall": "electron-builder install-app-deps",
+    "build-ts": "tsc -p ./tsconfig.json",
+    "build": "./node_modules/.bin/build --mac",
+    "publish": "./node_modules/.bin/build --mac -p always"
+  }
 }
