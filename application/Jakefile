@@ -68,6 +68,7 @@ class FSController {
 
 const fsController = new FSController();
 
+const ELECTRON_FOLDER = 'electron';
 const PLATFORM_FOLDER = 'platform';
 const PLATFORM_EXCEPTION_FOLDERS = [
     'platform',
@@ -111,6 +112,7 @@ function logo(){
         return;
     }
     const buffer = fs.readFileSync(file);
+    logo.__show = true;
     return console.log(colors.yellow(buffer.toString('utf8')));
 }
 function echo(msg) {
@@ -127,6 +129,7 @@ function echoDec(msg, filler = '*', colorFunc = null) {
 }
 
 namespace('solution', function() {
+
     task('unlink', function() {
         logo();
         const projects = findAllProjects(path.normalize(__dirname), PLATFORM_EXCEPTION_FOLDERS);
@@ -257,5 +260,102 @@ namespace('solution', function() {
         }
         shNotBreakble(this, '.', ...tasks);
     }, {async: true});
+
+});
+
+namespace('electron', function() {
+
+    namespace('package-file', function() {
+        task('create', function() {
+            logo();
+            const generator = require('./jake.scripts/jake.electron.package');
+            const packageJson = JSON.stringify(generator.getPackageJson());
+            const packageFilePath = path.normalize(path.resolve(__dirname, ELECTRON_FOLDER, 'package.json'));
+            if (fs.existsSync(packageFilePath)) {
+                console.log(colors.blue(`Remove package.json: ${packageFilePath}`));
+                fs.unlinkSync(packageFilePath);
+            }
+            console.log(colors.blue(`Create new package.json: ${packageFilePath}`));
+            fs.writeFileSync(packageFilePath, packageJson);
+            this.complete();
+        }, {async: true});
+        task('remove', function() {
+            logo();
+            const packageFilePath = path.normalize(path.resolve(__dirname, ELECTRON_FOLDER, 'package.json'));
+            if (fs.existsSync(packageFilePath)) {
+                console.log(colors.blue(`Remove package.json: ${packageFilePath}`));
+                fs.unlinkSync(packageFilePath);
+            }
+            this.complete();
+        }, {async: true});
+    });
+
+    task('install', function() {
+        logo();
+        const tasks = [];
+        const electronAppPath = path.normalize(path.resolve(__dirname, ELECTRON_FOLDER));
+        const electronNodeModules = path.normalize(path.resolve(electronAppPath, 'node_modules'));
+        if (fs.existsSync(electronNodeModules)) {
+            tasks.push(echo(colors.blue(`Remove node_modules files: ${electronNodeModules}`)));
+            tasks.push(`rm -rf ${electronNodeModules}`);
+        }
+        tasks.push(echo(colors.blue(`Installing NPM in: ${electronAppPath}`)));
+        tasks.push(`npm install --prefix ${electronAppPath}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('compile', function() {
+        logo();
+        const tasks = [];
+        const electronAppPath = path.normalize(path.resolve(__dirname, ELECTRON_FOLDER));
+        const electronCompiledFolder = path.normalize(path.resolve(electronAppPath, 'compiled'));
+        if (fs.existsSync(electronCompiledFolder)) {
+            tasks.push(echo(colors.blue(`Remove compiled files: ${electronCompiledFolder}`)));
+            tasks.push(`rm -rf ${electronCompiledFolder}`);
+        }
+        tasks.push(echo(colors.blue(`Installing NPM in: ${electronAppPath}`)));
+        tasks.push(`npm run build-ts`);
+        sh(this, electronAppPath, ...tasks);
+    }, {async: true});
+
+    task('clean', function() {
+        logo();
+        const tasks = [];
+        const electronAppPath = path.normalize(path.resolve(__dirname, ELECTRON_FOLDER));
+        const electronCompiledFolder = path.normalize(path.resolve(electronAppPath, 'compiled'));
+        const electronDistFolder = path.normalize(path.resolve(electronAppPath, 'dist'));
+        const electronNodeModules = path.normalize(path.resolve(electronAppPath, 'node_modules'));
+        if (fs.existsSync(electronCompiledFolder)) {
+            tasks.push(echo(colors.blue(`Remove compiled files: ${electronCompiledFolder}`)));
+            tasks.push(`rm -rf ${electronCompiledFolder}`);
+        }
+        if (fs.existsSync(electronDistFolder)) {
+            tasks.push(echo(colors.blue(`Remove compiled files: ${electronDistFolder}`)));
+            tasks.push(`rm -rf ${electronDistFolder}`);
+        }
+        if (fs.existsSync(electronNodeModules)) {
+            tasks.push(echo(colors.blue(`Remove compiled files: ${electronNodeModules}`)));
+            tasks.push(`rm -rf ${electronNodeModules}`);
+        }
+        if (tasks.length === 0) {
+            return this.complete();
+        }
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('buildApp', function() {
+        logo();
+        const tasks = [];
+        const electronAppPath = path.normalize(path.resolve(__dirname, ELECTRON_FOLDER));
+        const electronDist = path.normalize(path.resolve(electronAppPath, 'dist'));
+        if (fs.existsSync(electronDist)) {
+            tasks.push(echo(colors.blue(`Remove dist files: ${electronDist}`)));
+            tasks.push(`rm -rf ${electronDist}`);
+        }
+        tasks.push(`npm run build`);
+        sh(this, electronAppPath, ...tasks);
+    }, {async: true});
+
+    task('build', ['electron:package-file:create', 'electron:install', 'electron:compile' , 'electron:buildApp']);
 
 });

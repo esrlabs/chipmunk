@@ -1,17 +1,18 @@
-const { app, BrowserWindow } = require('electron');
-const path = require('path');
-const url = require('url');
+import { app, BrowserWindow } from 'electron';
 
-  let win
+import * as Path from 'path';
+import * as Url from 'url';
+
+  let win: BrowserWindow | null = null;
   
   function createWindow () {
     // Create the browser window.
     win = new BrowserWindow({ width: 800, height: 600 })
   
     // and load the index.html of the app.
-    win.loadFile('index.html')
-    win.loadURL(url.format({
-        pathname: path.join(__dirname, `../../client/dist/logviewer/index.html`),
+    //win.loadFile('index.html')
+    win.loadURL(Url.format({
+        pathname: Path.join(`/Users/dmitry.astafyev/WebstormProjects/logviewer/electron.github/application/client/dist/logviewer/index.html`),
         protocol: 'file:',
         slashes: true
     }));
