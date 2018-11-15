@@ -150,11 +150,22 @@ export class TopBarSearchRequest implements AfterContentInit{
 
     onKeyUp(event: KeyboardEvent){
         let extraButton = this.getActiveExtraButton();
+        if (event.shiftKey && (event.code === 'ArrowUp' || event.code === 'ArrowDown')) {
+            if (extraButton === null ) {
+                if (this.extraButtons.length === 0) {
+                    return;
+                }
+                this.onExtraButtonClick(event, this.extraButtons[0].id);
+            } else {
+                this.onExtraButtonClick(event, extraButton.id);
+            }
+            return;
+        }
         if (extraButton === null) {
             if (this.autoplay){
                 ~this.delayTimer && clearTimeout(this.delayTimer);
                 this.delayTimer = setTimeout(this.trigger_SEARCH_REQUEST_CHANGED.bind(this, event), SETTINGS.TYPING_DELAY);
-            } else if (event.keyCode === 13) {
+            } else if (event.code === 'Enter') {
                 this.historyDrop();
                 this.trigger_SEARCH_REQUEST_CHANGED(event);
             } else {
@@ -162,9 +173,13 @@ export class TopBarSearchRequest implements AfterContentInit{
                 this.offerHistory();
             }
         } else {
-            if (event.keyCode === 13) {
+            if (event.code === 'Enter') {
                 this.historyDrop();
-                return extraButton.onEnter(event, this.input.getValue());
+                extraButton.onEnter(event, this.input.getValue());
+                if (event.shiftKey) {
+                    this.onExtraButtonClick(event, extraButton.id);
+                }
+                return;
             }
             extraButton.onKeyUp(event, this.input.getValue());
             this.offerHistory();
@@ -303,7 +318,11 @@ export class TopBarSearchRequest implements AfterContentInit{
         matches = matches.map((item: string) => {
             return item.replace(value, '');
         });
-        this.historyPopupOffset = this.input.getHighlightOffset() - 3;
+        let inputOffset = 0;
+        if (this.input.input !== void 0 && this.input.input.element !== void 0  && this.input.input.element.nativeElement !== void 0){
+            inputOffset = this.input.input.element.nativeElement.getBoundingClientRect().left - 33;
+        }
+        this.historyPopupOffset = this.input.getHighlightOffset() - 3 + inputOffset;
         if (matches.length === 0) {
             return this.input.setHighlight('');
         }
@@ -395,7 +414,7 @@ export class TopBarSearchRequest implements AfterContentInit{
         this.forceUpdate();
     }
 
-    onExtraButtonClick(event: MouseEvent, id: string | symbol){
+    onExtraButtonClick(event: MouseEvent | KeyboardEvent, id: string | symbol){
         let button = this.getExtraButtonByID(id);
         if (!~button.index){
             return false;
@@ -403,6 +422,7 @@ export class TopBarSearchRequest implements AfterContentInit{
         this.extraButtons[button.index].active = !this.extraButtons[button.index].active;
         if (this.extraButtons[button.index].active){
             this.placeholder = this.extraButtons[button.index].placeholder;
+            this.history = this.extraButtons[button.index].getHistory();
         } else {
             this.placeholder = DEFAULTS.PLACEHOLDER;
             this.history = this.historyStorage.load();
