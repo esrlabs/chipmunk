@@ -1,5 +1,12 @@
 <div class="request">
-    <common-input #input [type]="type" [value]="value" [placeholder]="placeholder" [handles]="handles" [preventUpDown]="true"></common-input>
+    <div class="input-wrapper">
+        <div *ngIf="getActiveExtraButton() !== null" class="input-caption">
+            <span (click)="onExtraButtonClick($event, getActiveExtraButton().id)">{{getActiveExtraButton().caption}}</span>
+        </div>
+        <div class="input-holder">
+            <common-input #input [type]="type" [value]="value" [placeholder]="placeholder" [handles]="handles" [preventUpDown]="true"></common-input>
+        </div>
+    </div>
     <div class="buttons">
         <div *ngIf="getActiveExtraButton() === null" [attr.class]="'icon icon-2x2 ' + (mode === 'reg' ? 'active' : '')" (click)="onModeReg()" title="Turn on/off regular expression"><span class="fa fa-free-code-camp"></span></div>
         <div *ngIf="getActiveExtraButton() === null" [attr.class]="'icon icon-2x2 ' + (autoplay ? 'active' : '')" (click)="onAutoPlay()"><span class="fa fa-play" title="Automatically apply filter (without ENTER): on/off"></span></div>

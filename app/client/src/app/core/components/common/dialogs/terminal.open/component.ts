@@ -67,7 +67,7 @@ export class DialogTerminalStreamOpen implements AfterViewChecked{
         if (cmd.trim() === '') {
             return false;
         }
-        this.history.push(cmd);
+        this.history.indexOf(cmd) === -1 && this.history.push(cmd);
         this.storage.save(this.history);
         this.proceed({
             alias       : cmd,

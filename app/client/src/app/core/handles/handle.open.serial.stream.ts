@@ -123,12 +123,14 @@ class SerialSender{
         Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_SEARCH_RESULTS_BUTTON_ADD, {
             id              : this.ID,
             title           : 'Send data to port',
+            caption         : 'serial port:',
             icon            : 'fa-keyboard-o',
             active          : false,
             onKeyUp         : this.onKeyUp.bind(this),
             onEnter         : this.onEnter.bind(this),
             onDropHistory   : this.onDropHistory.bind(this),
-            placeholder     : 'type command for serial port'
+            placeholder     : 'type command for serial port',
+            getHistory      : () => { return this.Settings.loadHistory(); }
         } as ExtraButton, (api: BarAPI) => {
             this.barAPI = api;
             this.barAPI.setHistory(this.history);
