@@ -12,8 +12,6 @@ import { APIResponse                    } from '../api/api.response.interface';
 import { DialogTerminalStreamOpen       } from '../components/common/dialogs/terminal.open/component';
 import { localSettings, KEYs            } from '../../core/modules/controller.localsettings';
 import { ExtraButton, BarAPI            } from "../../views/search.results/search.request/interface.extrabutton";
-import {SerialSedingPackage} from "../interfaces/interface.serial.send.package";
-import {GUID} from "../modules/tools.guid";
 import StreamService from "./streams.controller";
 
 interface Entry {
@@ -100,12 +98,14 @@ class TerminalSender{
         Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_SEARCH_RESULTS_BUTTON_ADD, {
             id              : this.ID,
             title           : 'Send data to terminal',
+            caption         : 'terminal:',
             icon            : 'fa-keyboard-o',
             active          : false,
             onKeyUp         : this.onKeyUp.bind(this),
             onEnter         : this.onEnter.bind(this),
             onDropHistory   : this.onDropHistory.bind(this),
-            placeholder     : 'type command for terminal port'
+            placeholder     : 'type command for terminal port',
+            getHistory      : () => { return this.Settings.loadHistory(); }
         } as ExtraButton, (api: BarAPI) => {
             this.barAPI = api;
             this.barAPI.setHistory(this.history);

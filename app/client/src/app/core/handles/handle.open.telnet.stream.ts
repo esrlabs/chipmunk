@@ -104,13 +104,16 @@ class TelnetSender{
 
     addButton(){
         Events.trigger(Configuration.sets.EVENTS_VIEWS.VIEW_SEARCH_RESULTS_BUTTON_ADD, {
-            id          : this.ID,
-            title       : 'Send data to telnet',
-            icon        : 'fa-keyboard-o',
-            active      : false,
-            onKeyUp     : this.onKeyUp.bind(this),
-            onEnter     : this.onEnter.bind(this),
-            placeholder : 'type command for telnet'
+            id              : this.ID,
+            title           : 'Send data to telnet',
+            caption         : 'telnet:',
+            icon            : 'fa-keyboard-o',
+            active          : false,
+            onKeyUp         : this.onKeyUp.bind(this),
+            onEnter         : this.onEnter.bind(this),
+            onDropHistory   : () => { this.history = []},
+            placeholder     : 'type command for telnet',
+            getHistory      : () => { return this.history; }
         } as ExtraButton, (api: BarAPI) => {
             this.barAPI = api;
         });
