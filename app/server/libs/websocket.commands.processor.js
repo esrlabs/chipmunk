@@ -25,7 +25,9 @@ const COMMANDS = {
     CallMenuItem            : 'CallMenuItem',
     DesktopModeNotification : 'DesktopModeNotification',
 	OpenLocalFile         	: 'OpenLocalFile',
-	WriteToTerminal 		: 'WriteToTerminal'
+    WriteToTerminal 		: 'WriteToTerminal',
+    DltStreamClosed         : 'DltStreamClosed',
+    DltStreamData           : 'DltStreamData'
 };
 
 class IncomeCommandsProcessor {
@@ -240,6 +242,22 @@ class OutgoingCommandsProcessor {
 		this.sender({
 			GUID    : clientGUID,
 			command : COMMANDS.OpenLocalFile,
+			params  : params
+		});
+	}
+
+    [COMMANDS.DltStreamData](clientGUID, params){
+		this.sender({
+			GUID    : clientGUID,
+			command : COMMANDS.DltStreamData,
+			params  : params
+		});
+	}
+
+    [COMMANDS.DltStreamClosed](clientGUID, params){
+		this.sender({
+			GUID    : clientGUID,
+			command : COMMANDS.DltStreamClosed,
 			params  : params
 		});
 	}
