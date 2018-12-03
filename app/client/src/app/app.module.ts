@@ -15,6 +15,7 @@ import { SerialPorts                        } from './core/services/service.seri
 import { ADBLogcat                          } from './core/services/service.adblogcat';
 import { Telnet                             } from './core/services/service.telnet';
 import { Terminal                           } from './core/services/service.terminal';
+import { Dlt                                } from './core/services/service.dlt';
 
 import { controllerThemes                   } from './core/modules/controller.themes';
 
@@ -44,6 +45,7 @@ export class AppModule {
     private adbLogcat           : ADBLogcat             = new ADBLogcat();
     private telnet              : Telnet                = new Telnet();
     private terminal            : Terminal              = new Terminal();
+    private dlt                 : Dlt                   = new Dlt();
     private updater             : Updater               = new Updater();
     private markersController   : MarkersController     = new MarkersController();
     private openByURLOnStartUp  : OpenByURLOnStartUp    = new OpenByURLOnStartUp();

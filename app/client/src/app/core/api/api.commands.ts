@@ -28,7 +28,9 @@ const APICommands = {
     openDevConsole          : 'openDevConsole',
     requestFile             : 'requestFile',
     openTelnetStream        : 'openTelnetStream',
-    closeTelnetStream       : 'closeTelnetStream'
+    closeTelnetStream       : 'closeTelnetStream',
+    connectToDltDaemon      : 'connectToDltDaemon',
+    disconnectDltDaemon     : 'disconnectDltDaemon',
 };
 
 function isAPICommandValid(command: string){

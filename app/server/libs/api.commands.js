@@ -280,6 +280,33 @@ class APICommands{
         );
     }
 
+    //Dlt
+    connectToDltDaemon(income, response, callback){
+        if (typeof income.params.host === 'string' && typeof income.params.port === 'number' && typeof income.params.settings === 'object' && income.params.settings !== null){
+            let DltService = require('./service.dlt.js');
+            DltService.open(income.GUID, income.params.host, income.params.port, income.params.settings, (addr, error) => {
+                if (error === null){
+                    callback(addr, null);
+                } else {
+                    callback(null, error);
+                }
+            });
+        } else {
+            callback(null, new Error(logger.warning('Not defined [host], [port] or [settings].')))
+        }
+    }
+
+    disconnectDltDaemon(income, response, callback){
+        let DltService = require('./service.dlt.js');
+        DltService.close(income.GUID, (state, error) => {
+            if (error === null){
+                callback(state, null);
+            } else {
+                callback(null, error);
+            }
+        });
+    }
+
     //Electron
     checkUpdates(income, response, callback){
         let updater = null;
