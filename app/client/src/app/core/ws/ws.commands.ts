@@ -27,7 +27,9 @@ const COMMANDS = {
     TelnetClosed            : 'TelnetClosed',
     OpenLocalFile           : 'OpenLocalFile',
     WriteToTerminal 		: 'WriteToTerminal',
-    ResultWrittenToTerminal : 'ResultWrittenToTerminal'
+    ResultWrittenToTerminal : 'ResultWrittenToTerminal',
+    DltStreamClosed         : 'DltStreamClosed',
+    DltStreamData           : 'DltStreamData'
 };
 
 class WSCommands{
@@ -228,7 +230,18 @@ class WSCommands{
         });
     }
 
+    [COMMANDS.DltStreamData             ](message : WSCommandMessage, sender: Function){
+        if (typeof message.params === 'object' && message.params !== null){
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.DLT_DEAMON_DATA_COME, message.params);
+        }
+    }
 
+    [COMMANDS.DltStreamClosed           ](message : WSCommandMessage, sender: Function){
+        if (typeof message.params === 'object' && message.params !== null){
+            Events.trigger(Configuration.sets.SYSTEM_EVENTS.DLT_DEAMON_CLOSED, message.params);
+        }
+    }
+    
 }
 
 export { WSCommands, COMMANDS };

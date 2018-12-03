@@ -1,0 +1,26 @@
+<div class="settings">
+    <table>
+        <tr>
+            <td colspan="2"><span>Basic settings</span></td>
+        </tr>
+        <tr>
+            <td><span>host</span> IP address of DLT deamon.</td>
+            <td><div class="input-cover"><common-input  #_host [type]="'string'" [value]="host"></common-input></div></td>
+        </tr>
+        <tr>
+            <td><span>port</span> Port</td>
+            <td><div class="input-cover"><common-input  #_port [type]="'number'" [value]="port"></common-input></div></td>
+        </tr>
+        <tr>
+            <td colspan="2"><span>Extra settings</span><span [attr.class]="'fa fa-chevron-circle-down show-hide ' + (_showExtra ? 'visible' : '')" (click)="onShowHideExtra()"></span></td>
+        </tr>
+        <tr [attr.class]="_showExtra ? '' : 'hidden-settings'">
+            <td><span>level</span> Choose log level</td>
+            <td><div class="input-cover"><simple-dd-list  #_logLevel [items]="_logLevels" [defaults]="settings.logLevel"></simple-dd-list></div></td>
+        </tr>
+    </table>
+</div>
+<div class="buttons">
+    <button-flat-text [caption]="'Connect'" [handle]="onProceed"></button-flat-text>
+    <button-flat-text [caption]="'Cancel'" [handle]="cancel"></button-flat-text>
+</div>

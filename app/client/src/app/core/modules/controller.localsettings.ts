@@ -16,6 +16,7 @@ const KEYs = {
     serial_ports        : 'serial_ports',
     telnet              : 'telnet',
     terminal            : 'terminal',
+    dlt                 : 'dlt',
     themes              : 'themes',
     adblogccat_stream   : 'adblogccat_stream',
     settings            : 'settings',
