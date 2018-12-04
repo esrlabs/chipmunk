@@ -1481,6 +1481,7 @@ export class ViewControllerList extends ViewControllerPattern implements ViewInt
 
     onDATA_IS_MODIFIED(event : EVENT_DATA_IS_UPDATED){
         if (event.rows instanceof Array){
+            console.log(event.rows.length + ' ' + this._rows.length);
             let measure = Logs.measure('[view.list][onDATA_IS_MODIFIED]'),
                 _rows   = this.convertRows(event.rows, this._rows.length),
                 rows    = this.convertFilterRows(_rows);

@@ -7,12 +7,13 @@ const SETTINGS = {
 
 class D3Controller{
 
-    private svg         : any       = null;
-    private ready       : boolean   = false;
-    private d3          : any       = null;
-    private data        : any       = null;
-    private textColors  : any       = null;
-    private lineColors  : any       = null;
+    private svgNode     : HTMLElement   = null;
+    private svg         : any           = null;
+    private ready       : boolean       = false;
+    private d3          : any           = null;
+    private data        : any           = null;
+    private textColors  : any           = null;
+    private lineColors  : any           = null;
 
     private src : {
         start   : any,
@@ -82,6 +83,7 @@ class D3Controller{
     }
 
     init(){
+        this.svgNode        = this.svgNode !== null ? this.svgNode : document.querySelector(this.selector);
         this.svg            = this.svg !== null ? this.svg : this.d3.select(this.selector);
         this.size.margin    = {top: 10, right: 20, bottom: 200, left: 20};
         this.size.margin2   = {top: 460, right: 20, bottom: 20, left: 20};
@@ -130,7 +132,7 @@ class D3Controller{
             this.append();
             this.tools.range    = this.axis.x.range();
             this.d3.select(this.selector).on('click', function(){
-                typeof this.onSelect === 'function' && this.onSelect(this.axis.x.invert(this.d3.event.pageX));
+                typeof this.onSelect === 'function' && this.onSelect(this.axis.x.invert(this.getCorrectXPos(this.d3.event)));
             }.bind(this));
             return true;
         }
@@ -358,6 +360,14 @@ class D3Controller{
             left    = right - range[1] * SETTINGS.ON_SELECT_OFFSET;
         }
         this.onViewPort([left, right]);
+    }
+
+    getCorrectXPos(event: MouseEvent) {
+        if (this.svg === null) {
+            return event.pageX;
+        }
+        const rect: ClientRect = (this.svgNode as HTMLElement).getBoundingClientRect();
+        return event.pageX - rect.left;
     }
 
 }

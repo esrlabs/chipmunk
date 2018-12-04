@@ -22,6 +22,7 @@ import { popupController                        } from '../../../core/components
 import { ChartEditColorDialog                   } from '../../../core/components/common/dialogs/charts.edit.colors/component';
 import { ChartEditRulesHooksDialog              } from '../../../core/components/common/dialogs/charts.edit.rules.hooks/component';
 import { ChartEditRulesSegmentsDialog           } from '../../../core/components/common/dialogs/charts.edit.rules.segments/component';
+import { ChartEditRulesNumericDialog            } from '../../../core/components/common/dialogs/charts.edit.rules.numeric/component';
 import { ChartEditTypeDialog                    } from '../../../core/components/common/dialogs/charts.edit.type/component';
 
 import { DialogMessage                          } from '../../../core/components/common/dialogs/dialog-message/component';
@@ -34,13 +35,15 @@ import { ProgressBarCircle                      } from '../../../core/components
 const
     CHART_TYPES  = {
         hooks       : 'hooks',
-        segments    : 'segments'
+        segments    : 'segments',
+        numeric     : 'numeric'
     };
 
 const
     CHART_SCHEMES  = {
         hooks       : 'app/images/view.charts/charts.hooks.png',
-        segments    : 'app/images/view.charts/charts.segments.png'
+        segments    : 'app/images/view.charts/charts.segments.png',
+        numeric     : 'app/images/view.charts/charts.numeric.png',
     };
 
 @Component({
@@ -185,6 +188,12 @@ export class ViewControllerTabChartManager extends TabController implements View
                 params      : {
                     types               : [
                         {
+                            id          : CHART_TYPES.numeric,
+                            name        : 'By targets',
+                            description : 'This type of parser better to use target, which already has numeric values inside.',
+                            scheme      : CHART_SCHEMES.numeric
+                        },
+                        {
                             id          : CHART_TYPES.segments,
                             name        : 'By segments',
                             description : 'This type of parser better to use with values, which has very similar format.',
@@ -205,6 +214,9 @@ export class ViewControllerTabChartManager extends TabController implements View
                             case CHART_TYPES.hooks:
                                 this.popupCreateNewOfType(ChartEditRulesHooksDialog, this.popupShowScheme.bind(this, CHART_SCHEMES.hooks));
                                 break;
+                            case CHART_TYPES.numeric:
+                                this.popupCreateNewOfType(ChartEditRulesNumericDialog, this.popupShowScheme.bind(this, CHART_SCHEMES.numeric));
+                                break;
                         }
                         popupController.close(popup);
                     }.bind(this)
@@ -214,7 +226,7 @@ export class ViewControllerTabChartManager extends TabController implements View
             settings: {
                 move            : true,
                 resize          : true,
-                width           : '40rem',
+                width           : '60rem',
                 height          : '16rem',
                 close           : true,
                 addCloseHandle  : true,

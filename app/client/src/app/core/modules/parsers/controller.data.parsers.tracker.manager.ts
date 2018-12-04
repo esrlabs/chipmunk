@@ -4,8 +4,8 @@ import { localSettings, KEYs    } from '../../../core/modules/controller.localse
 
 const
     DEFAULTS = {
-        LINE_COLOR: 'rgb(20,20,20)',
-        TEXT_COLOR: 'rgb(20,20,20)'
+        LINE_COLOR: 'rgb(125,125,125)',
+        TEXT_COLOR: 'rgb(125,125,125)'
     };
 
 const
@@ -25,11 +25,11 @@ class Manager{
     }
 
     save(sets: any, needParsing : boolean = true){
-        //localSettings.reset(KEYs.view_charts, 'update');
+        let settings = this.load();
+        settings[SETTINGS.SETs] = sets;
+        localSettings.reset(KEYs.view_charts, 'update');
         localSettings.set({
-            [KEYs.view_charts] : {
-                [SETTINGS.SETs] : sets
-            }
+            [KEYs.view_charts] : settings
         });
         if (needParsing){
             Events.trigger(configuration.sets.EVENTS_VIEWS.CHART_VIEW_CHARTS_UPDATED);

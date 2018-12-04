@@ -2,6 +2,7 @@
 import { ParserData, ParserClass, ParsedResultIndexes   } from './controller.data.parsers.tracker.inerfaces.js';
 import { generator                                      } from './controller.data.parsers.tracker.generator.js';
 import { Manager                                        } from './controller.data.parsers.tracker.manager.js';
+import { isNumber } from 'util';
 
 class Parser implements ParserClass{
     protected manager   : Manager   = new Manager();
@@ -83,12 +84,75 @@ class Parser implements ParserClass{
         return result;
     }
 
+    parseTargetType(str: string, data: ParserData, GUID: string): Array<ParsedResultIndexes>{
+        function apply(income: string, regsStr: Array<string>, output: Array<string>){
+            regsStr.forEach((regStr: string)=>{
+                let reg     = generator.getRegExp(regStr),
+                    matches = [];
+                if (reg !== null){
+                    matches = regStr !== '' ? income.match(reg) : [income];
+                    if (matches instanceof Array && matches.length > 0){
+                        matches = matches.filter(match => match !== '');
+                        matches.length > 0 && output.push(...matches);
+                    }
+                }
+            });
+            return output;
+        };
+
+        let targets     : Array<string>                 = [],
+            values      : Array<string>                 = [],
+            numbers     : Array<number>                 = [];
+
+        //Step 0. Get targets
+        targets = apply(str, data.targets, targets);
+
+        if (targets.length === 0) {
+            return [];
+        }
+
+        //Step 1. Get values from targets
+        targets.forEach((segment: string)=>{
+            apply(segment, data.values, values);
+        });
+
+        if (values.length === 0) {
+            return [];
+        }
+
+        //Step 2. Clean up values
+        values = values.map((value: string)=>{
+            data.clearing.forEach((parserRegStr: string)=>{
+                value = value.replace(generator.getRegExp(parserRegStr), '');
+            });
+            return value;
+        });
+
+        //Step 3. Convert to numbers
+        numbers = values.map((value: string) => {
+            return parseFloat(value);
+        }).filter((num: number) => {
+            return (typeof num === 'number') && !isNaN(num) && isFinite(num);
+        });
+
+        if (numbers.length === 0) {
+            return [];
+        }
+
+        return [{
+            index: numbers[0],
+            label: `value: ${numbers[0]}`
+        }];
+    }
+
     parseSet(str: string, data: ParserData, GUID: string): Array<ParsedResultIndexes>{
         let result : Array<ParsedResultIndexes> = [];
         if (data.segments instanceof Array){
             result = this.parseSegmentType(str, data, GUID);
         } else if (data.tests instanceof Array) {
             result = this.parseKeysType(str, data, GUID);
+        } else if (data.targets instanceof Array) {
+            result = this.parseTargetType(str, data, GUID);
         }
         return result;
     }

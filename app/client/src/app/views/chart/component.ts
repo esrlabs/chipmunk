@@ -38,13 +38,6 @@ export class ViewControllerChart extends ViewControllerPattern implements ViewIn
         this.componentFactoryResolver   = componentFactoryResolver;
         this.viewContainerRef           = viewContainerRef;
         this.changeDetectorRef          = changeDetectorRef;
-
-
-        [   /*Configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED,
-            Configuration.sets.SYSTEM_EVENTS.ROW_IS_SELECTED*/].forEach((handle: string)=>{
-            this['on' + handle] = this['on' + handle].bind(this);
-            Events.bind(handle, this['on' + handle]);
-        });
         super.getEmitters().resize.subscribe(this.resizeOnREMOVE_VIEW. bind(this));
 
     }
@@ -55,10 +48,7 @@ export class ViewControllerChart extends ViewControllerPattern implements ViewIn
     }
 
     ngOnDestroy(){
-        [   /*Configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED,
-            Configuration.sets.SYSTEM_EVENTS.ROW_IS_SELECTED*/].forEach((handle: string)=>{
-            Events.unbind(handle, this['on' + handle]);
-        });
+
     }
 
     ngAfterViewChecked(){
