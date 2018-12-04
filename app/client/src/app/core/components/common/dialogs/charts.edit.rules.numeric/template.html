@@ -1,0 +1,72 @@
+<div class="chart-content">
+    <p class="chart-title">Name of rules group</p>
+    <div class="chart-text-line">
+        <common-input [value]="name" [type]="'text'" [handles]="{ onKeyUp: this.onNameChange}" [placeholder]="'Type name of this rules group'"></common-input>
+    </div>
+    <div class="chart-targets">
+        <p class="chart-title">Define here RegExps for detection targets with values</p>
+        <p class="chart-info">From each line will be done attempt to exclude defined targets. If segment will be found, process will go forward with it.</p>
+        <ul *ngIf="targets.length > 0">
+            <li *ngFor="let item of targets;">
+                <div class="chart-targets-value">
+                    <common-input [value]="item.value"
+                                  [type]="'text'"
+                                  [handles]="{ onKeyUp: onChange.bind(this, 'targets', item.GUID), onBlur: onBlur.bind(this, 'targets', item.GUID) }"
+                                  [placeholder]="'RegExp for segment'"></common-input>
+                </div>
+                <span class="fa fa-close remove" (click)="onRemove('targets', item.GUID)"></span>
+            </li>
+        </ul>
+        <p *ngIf="targets.length === 0" class="chart-note">Press "Add New Segment RegExp" to add the first segment condition</p>
+        <div class="chart-targets-buttons">
+            <button-flat-text [caption]="'Add New Segment RegExp'" [handle]="onAddNew.bind(this, 'targets')"></button-flat-text>
+        </div>
+    </div>
+    <div class="chart-targets">
+        <p class="chart-title">Define here RegExps for detection values from targets</p>
+        <p class="chart-info">From each found targets will be done attemt to exclude value. If value will be found, process will go forward with it.</p>
+        <ul *ngIf="values.length > 0">
+            <li *ngFor="let item of values;">
+                <div class="chart-targets-value">
+                    <common-input [value]="item.value"
+                                  [type]="'text'"
+                                  [handles]="{ onKeyUp: onChange.bind(this, 'values', item.GUID), onBlur: onBlur.bind(this, 'values', item.GUID) }"
+                                  [placeholder]="'RegExp for value excluding'"></common-input>
+                </div>
+                <span class="fa fa-close remove" (click)="onRemove('values', item.GUID)"></span>
+            </li>
+        </ul>
+        <p *ngIf="values.length === 0" class="chart-note">Press "Add New Values RegExp" to add the first values condition</p>
+        <div class="chart-targets-buttons">
+            <button-flat-text [caption]="'Add New Values RegExp'" [handle]="onAddNew.bind(this, 'values')"></button-flat-text>
+        </div>
+    </div>
+    <div class="chart-targets">
+        <p class="chart-title">Define here RegExps for clearing values</p>
+        <p class="chart-info">From each detected value will be removed all symbols, which will be found by defined bellow RegExp.</p>
+        <ul *ngIf="clearing.length > 0">
+            <li *ngFor="let item of clearing;">
+                <div class="chart-targets-value">
+                    <common-input [value]="item.value"
+                                  [type]="'text'"
+                                  [handles]="{ onKeyUp: onChange.bind(this, 'clearing', item.GUID), onBlur: onBlur.bind(this, 'clearing', item.GUID) }"
+                                  [placeholder]="'RegExp for clearing procedure'"></common-input>
+                </div>
+                <span class="fa fa-close remove" (click)="onRemove('clearing', item.GUID)"></span>
+            </li>
+        </ul>
+        <p *ngIf="clearing.length === 0" class="chart-note">Press "Add New Clearing RegExp" to add the first clearing condition</p>
+        <div class="chart-targets-buttons">
+            <button-flat-text [caption]="'Add New Clearing RegExp'" [handle]="onAddNew.bind(this, 'clearing')"></button-flat-text>
+        </div>
+    </div>
+</div>
+<div class="chart-controls">
+    <button-flat-text [caption]="'Apply'" [handle]="onApply"></button-flat-text>
+</div>
+<div *ngIf="errors.length > 0" class="chart-errors-wrapper" (click)="onErrorsReset()">
+    <ul class="chart-errors" (click)="onErrorsReset()">
+        <li *ngFor="let error of errors;">{{error}}</li>
+    </ul>
+    <p>(click to close it)</p>
+</div>

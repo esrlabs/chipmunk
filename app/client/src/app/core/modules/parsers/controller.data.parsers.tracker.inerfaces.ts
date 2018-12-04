@@ -7,6 +7,7 @@ interface ParserDataIndex {
 
 interface ParserData {
     name        : string,
+    targets?    : Array<string>,
     segments?   : Array<string>,
     tests?      : Array<string>,
     values?     : Array<string>,
