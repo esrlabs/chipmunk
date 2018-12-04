@@ -77,7 +77,7 @@ export class ViewControllerTabChart extends TabController implements ViewInterfa
         if (this.active){
             this.onWindowResize();
             if (this.D3 === null && this._rows.length === 0){
-                this.onDATA_IS_UPDATED(new EVENT_DATA_IS_UPDATED(dataController.getRows()), false);
+                //this.onDATA_IS_UPDATED(new EVENT_DATA_IS_UPDATED(dataController.getRows()), false);
             }
             if (this.D3 === null && this.svg !== void 0){
                 this.initD3Controller();
@@ -195,13 +195,12 @@ export class ViewControllerTabChart extends TabController implements ViewInterfa
         }
     }
 
-    parseData(source : Array<DataRow>, dest: RowsData){
+    parseData(source : Array<DataRow>, dest: RowsData, offset: number = 0){
         source.map((row: DataRow, index)=>{
-            if (row.parsed !== void 0){
-                const datetime = new Date(index);
+            if (row.parsed !== void 0 && row.parsed.tracks !== null && typeof row.parsed.tracks === 'object'){
+                const datetime = new Date(index + offset);
                 Object.keys(this.sets).forEach((GUID)=>{
-                    if (this.sets[GUID].active && row.parsed.tracks !== null && typeof row.parsed.tracks === 'object' &&
-                        row.parsed.tracks[GUID] instanceof Array && row.parsed.tracks[GUID].length > 0){
+                    if (this.sets[GUID].active && row.parsed.tracks[GUID] instanceof Array && row.parsed.tracks[GUID].length > 0){
                         dest.data[GUID] === void 0 && (dest.data[GUID] = []);
                         row.parsed.tracks[GUID].forEach((index: ParsedResultIndexes)=>{
                             dest.data[GUID].push({
@@ -231,7 +230,7 @@ export class ViewControllerTabChart extends TabController implements ViewInterfa
         if (event.rows instanceof Array && event.rows.length > 0){
             let measure = Logs.measure('[view.chart][onDATA_IS_UPDATED]');
             this.resetRowsDate();
-            this._rows  = event.rows;
+            this._rows  = event.rows.slice();
             this.rows   = this.parseData(event.rows, this.rows);
             this.forceUpdate();
             updateD3 && this.forceUpdateD3();
@@ -245,11 +244,22 @@ export class ViewControllerTabChart extends TabController implements ViewInterfa
     }
 
     onDATA_IS_MODIFIED(event : EVENT_DATA_IS_UPDATED){
+        console.log(event.rows.length + ' ' + this._rows.length);
         if (event.rows instanceof Array){
             let measure = Logs.measure('[view.chart][onDATA_IS_MODIFIED]'),
                 rows    = new RowsData();
-            rows        = this.parseData(event.rows, rows);
+            rows        = this.parseData(event.rows, rows, this._rows.length);
+            this._rows.push(...event.rows);
+            if (Object.keys(rows.data).length === 0) {
+                return;
+            }
             this.initRowsData();
+            Object.keys(rows.lineColors).forEach((key: string) => {
+                this.rows.lineColors[key] = rows.lineColors[key];
+            });
+            Object.keys(rows.textColors).forEach((key: string) => {
+                this.rows.textColors[key] = rows.textColors[key];
+            });
             Object.keys(this.rows.data).forEach((key)=>{
                 if (rows.data[key] !== void 0){
                     this.rows.data[key].push(...rows.data[key]);
@@ -264,8 +274,8 @@ export class ViewControllerTabChart extends TabController implements ViewInterfa
             this.rows.max   = this.rows.max > rows.max ? this.rows.max : rows.max;
             this.rows.min   = this.rows.min < rows.min ? this.rows.min : rows.min;
             this.rows.end   = rows.end;
-            this._rows.push(...event.rows);
             this.forceUpdate();
+            this.forceUpdateD3();
             Logs.measure(measure);
         }
     }
@@ -273,7 +283,7 @@ export class ViewControllerTabChart extends TabController implements ViewInterfa
     onCHART_VIEW_CHARTS_UPDATED(needsParsing: boolean = true){
         this.loadSets();
         needsParsing && dataController.updateForParsers();
-        this.onDATA_IS_UPDATED(new EVENT_DATA_IS_UPDATED(dataController.getRows()), true);
+        //this.onDATA_IS_UPDATED(new EVENT_DATA_IS_UPDATED(dataController.getRows()), true);
     }
 
     onCHART_VIEW_CHARTS_STYLE_UPDATED(){

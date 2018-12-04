@@ -9,6 +9,7 @@ import { popupController                        } from '../../../../core/compone
 import { MarkersEditDialog                      } from '../../../../core/components/common/dialogs/markers.edit/component';
 import { ChartEditRulesHooksDialog              } from '../../../../core/components/common/dialogs/charts.edit.rules.hooks/component';
 import { ChartEditRulesSegmentsDialog           } from '../../../../core/components/common/dialogs/charts.edit.rules.segments/component';
+import { ChartEditRulesNumericDialog            } from '../../../../core/components/common/dialogs/charts.edit.rules.numeric/component';
 
 
 @Component({
@@ -45,14 +46,6 @@ export class ViewControllerTabChartManagerSet implements OnInit, AfterViewChecke
         private viewContainerRef            : ViewContainerRef,
         private changeDetectorRef           : ChangeDetectorRef
     ){
-        [   /*Configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED,
-            Configuration.sets.SYSTEM_EVENTS.ROW_IS_SELECTED,
-            Configuration.sets.SYSTEM_EVENTS.DATA_FILTER_IS_UPDATED,
-            Configuration.sets.SYSTEM_EVENTS.DATA_IS_MODIFIED*/].forEach((handle)=>{
-            this['on' + handle] = this['on' + handle].bind(this);
-            Events.bind(handle, this['on' + handle]);
-        });
-
         //Load available sets
         this.sets = this.manager.load();
         this.sets = this.sets !== null ? (typeof this.sets === 'object' ? this.sets : {}) : {};
@@ -126,6 +119,8 @@ export class ViewControllerTabChartManagerSet implements OnInit, AfterViewChecke
                 return ChartEditRulesSegmentsDialog;
             } else if (this.sets[this.GUID].tests !== void 0){
                 return ChartEditRulesHooksDialog;
+            } else if (this.sets[this.GUID].targets !== void 0){
+                return ChartEditRulesNumericDialog;
             }
         }
         return null;

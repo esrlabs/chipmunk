@@ -297,7 +297,7 @@ class DataController implements InitiableModule{
                         rows,
                         bookmarks instanceof Array ? bookmarks : [],
                         remarks instanceof Array ? remarks : []
-                        ));
+                    ));
                     Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_BUFFER_IS_UPDATED, this.stream.getBuffer());
                 });
         });

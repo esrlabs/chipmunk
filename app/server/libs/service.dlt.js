@@ -226,6 +226,12 @@ class HostConnection extends EventEmitter {
         logger.debug(`Closing connection ${this.host}:${this.port}`);
     }
 
+    recreateBuffer() {
+        this.dltBuffer.removeAllListeners();
+        this.dltBuffer = new Dlt.DltBuffer();
+        this.dltBuffer.on(DLT_EVENTS.packet, this.onDltPacket.bind(this));
+    }
+
     onConnectionClose() {
         logger.debug(`Connection ${this.host}:${this.port} is closed`);
         this.emit(HOST_CONNECTION_EVENT.close, packet);
@@ -236,8 +242,8 @@ class HostConnection extends EventEmitter {
     }
 
     onConnectionData(data) {
-        this.dltBuffer.buffer(data);
-        return;
+        //this.dltBuffer.buffer(data);
+        //return;
         /*
             Module dlt-node gives an error:
 
@@ -252,6 +258,7 @@ class HostConnection extends EventEmitter {
             this.dltBuffer.buffer(data);
         } catch (e) {
             logger.error(`Error during buffering income data: ${e.message}. Data: ${data.toString()}`);
+            this.recreateBuffer();
         }
     }
 
