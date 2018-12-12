@@ -71,6 +71,7 @@ class SettingsController {
     }
 
     save(settings: IQuickChatSettings){
+        localSettings.reset(KEYs.quickchat, 'update');
         localSettings.set({
             [KEYs.quickchat] : settings
         });
@@ -259,6 +260,7 @@ export class ViewControllerQuickChart extends ViewControllerPattern implements V
                                 this._rules = {};
                                 this._cases = {};
                                 this._rebuildCharts();
+                                this._saveRules();
                                 popupController.close(guid);
                             }
                         },
