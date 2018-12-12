@@ -11,7 +11,8 @@ import { Stream                                 } from './controller.data.stream
 import { serviceRequests                        } from "../services/service.requests";
 import { popupController                        } from "../../core/components/common/popup/controller";
 import { DialogMessage                          } from "../../core/components/common/dialogs/dialog-message/component";
-import {ProgressBarCircle} from "../components/common/progressbar.circle/component";
+
+type TFilters       = {[key: string] : DataFilter   };
 
 const REMARKS_INJECTION_MARK = {
     start: '__logviewer_remarks_injection__start__',
@@ -296,7 +297,9 @@ class DataController implements InitiableModule{
                     Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_IS_UPDATED, new EVENT_DATA_IS_UPDATED(
                         rows,
                         bookmarks instanceof Array ? bookmarks : [],
-                        remarks instanceof Array ? remarks : []
+                        remarks instanceof Array ? remarks : [],
+                        undefined,
+                        data
                     ));
                     Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_BUFFER_IS_UPDATED, this.stream.getBuffer());
                 });
@@ -313,7 +316,7 @@ class DataController implements InitiableModule{
             }) : [];
             this.stream !== null && this.stream.add(data, requests)
                 .then((rows: Array<DataRow>) => {
-                    Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_IS_MODIFIED, new EVENT_DATA_IS_UPDATED(rows));
+                    Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_IS_MODIFIED, new EVENT_DATA_IS_UPDATED(rows, undefined, undefined, undefined, data));
                     Events.trigger(Configuration.sets.SYSTEM_EVENTS.DATA_BUFFER_IS_UPDATED, this.stream.getBuffer());
                     events.forEach((event)=>{
                         Events.trigger(event);
@@ -347,6 +350,10 @@ class DataController implements InitiableModule{
             filters: this.stream.getFilters(),
             requests: this.stream.getRequests()
         };
+    }
+
+    public getMatch(filters: TFilters, fragment: string = '') {
+        return this.stream.getMatch(filters, fragment);
     }
 
 }

@@ -418,12 +418,13 @@ export class ServiceViews{
                 message: 'Current version of logviewer supports only 4 views in meantime.'
             });
         }
+        /*
         if (this.isViewActive(ID)){
             return Events.trigger(Configuration.sets.SYSTEM_EVENTS.CREATE_NOTIFICATION, {
                 caption: 'View is active',
                 message: 'This view is already exist on viewport.'
             });
-        }
+        }*/
         if (view !== null){
             this.current.push(view);
             this.addRefreshHandles();

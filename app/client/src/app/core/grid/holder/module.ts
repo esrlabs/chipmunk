@@ -14,8 +14,11 @@ import { DynamicComponent                       } from '../../../views/controlle
 import { ViewListModule                         } from '../../../views/list/module';
 import { ViewSearchResultsModule                } from '../../../views/search.results/module';
 import { ViewChartModule                        } from '../../../views/chart/module';
+import { ViewQuickChartModule                   } from '../../../views/quickchart/module';
 import { ViewStateMonitorModule                 } from '../../../views/statemonitor/module';
 import { ViewStreamSenderModule                 } from '../../../views/streamsender/module';
+import { ViewControllerDLTMonitorModule         } from '../../../views/dlt.monitor/module';
+
 import { ViewMarkersModule                      } from '../../../views/markers/module';
 import { DialogMonitorManagerModule             } from '../../components/common/dialogs/monitor.manager/module';
 import { DialogSettingsModule                   } from '../../components/common/dialogs/app.settings/module';
@@ -26,7 +29,7 @@ import { DialogMarkersManagerModule             } from '../../components/common/
     entryComponents : [  ],
     imports         : [ CommonModule, ComponentsCommmon ],
     declarations    : [ Holder, View, ViewBar, ContextMenu, Notifications, DynamicComponent ],
-    exports         : [ Holder, View, ViewBar, ContextMenu, Notifications, ViewListModule, ViewSearchResultsModule, ViewChartModule, ViewStateMonitorModule, ViewStreamSenderModule, ViewMarkersModule, DialogMonitorManagerModule, DialogSettingsModule, DialogMarkersManagerModule ]
+    exports         : [ Holder, View, ViewBar, ContextMenu, Notifications, ViewListModule, ViewQuickChartModule, ViewSearchResultsModule, ViewChartModule, ViewStateMonitorModule, ViewStreamSenderModule, ViewControllerDLTMonitorModule, ViewMarkersModule, DialogMonitorManagerModule, DialogSettingsModule, DialogMarkersManagerModule ]
 })
 
 export class HolderModule {
