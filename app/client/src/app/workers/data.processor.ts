@@ -48,16 +48,20 @@ class StringsCollectionWrapper {
                 requests: {}
             };
             //Get filter results
-            if (filter !== null){
+            if (filter !== null && filter !== undefined){
                 results.filter = _collection.find(filter.value, filter.mode === MODES.REG);
             } else {
                 results.filter = {};
             }
             //Get results for each request
-            Object.keys(requests).forEach((GUID)=>{
-                const request = requests[GUID];
-                results.requests[GUID] = _collection.find(request.value, request.mode === MODES.REG);
-            });
+            if (requests !== null && requests !== undefined){
+                Object.keys(requests).forEach((GUID)=>{
+                    const request = requests[GUID];
+                    results.requests[GUID] = _collection.find(request.value, request.mode === MODES.REG);
+                });
+            } else {
+                results.requests = {};
+            }
             //Get results for each filter
             Object.keys(filters).forEach((GUID)=>{
                 const filter = filters[GUID];
@@ -98,6 +102,7 @@ class StringsCollectionWrapper {
             resolve(results);
         });
     }
+
 }
 
 const stringsCollectionWrapper = new StringsCollectionWrapper();
@@ -139,7 +144,11 @@ onmessage = function(event: MessageEvent) {
                 });
             break;
         case WORKER_COMMANDS.applyTo:
-            stringsCollectionWrapper.applyTo(request.str, request.filter, request.filters, request.requests)
+            stringsCollectionWrapper.applyTo(
+                request.str, 
+                request.filter !== void 0 ? request.filter : null, 
+                request.filters !== void 0 ? request.filters : {}, 
+                request.requests !== void 0 ? request.requests : {})
                 .then((results: { filter: TMatches , filters : TFiltersMatches, requests: TRequestsMatches})=>{
                     postMessage.call(this, {
                         sequenceID  : request.sequenceID,

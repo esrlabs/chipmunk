@@ -54,7 +54,7 @@ class D3Controller{
         context     : null,
     };
 
-    constructor(private selector: string){
+    constructor(private selector: string, labeles: boolean = true){
         this.d3 = window['d3'];
         this.init();
     }
@@ -143,12 +143,6 @@ class D3Controller{
                 .attr("transform", "translate(0," + this.size.height + ")")
                 .call(this.axis.xAxis);
 
-            /*
-            this.tools.focus.append("g")
-                .attr("class", "axis axis--y")
-                .call(this.axis.yAxis);
-            */
-
             this.tools.context.append("path")
                 .datum(json)
                 .attr("class", "area")
@@ -193,13 +187,6 @@ class D3Controller{
         this.tools.context.select(".brush").call(this.tools.brush.move, this.axis.x.range().map(t.invertX, t));
     }
 
-    /*
-    type(date : any){
-        d.date = parseDate(d.date);
-        d.price = +d.price;
-        return d;
-    }
-    */
 }
 
 export { D3Controller }

@@ -1,7 +1,7 @@
-interface ChartData{
-    lineColors  : Object,
-    textColors  : Object,
-    data        : Object,
+interface ChartData {
+    lineColors  : { [key: string]: string },
+    textColors  : { [key: string]: string },
+    data        : { [key: string]: ChartDataItem[] },
     start       : Date,
     end         : Date,
     min         : number,

@@ -31,6 +31,7 @@ const APICommands = {
     closeTelnetStream       : 'closeTelnetStream',
     connectToDltDaemon      : 'connectToDltDaemon',
     disconnectDltDaemon     : 'disconnectDltDaemon',
+    requestFileFromFS       : 'requestFileFromFS'
 };
 
 function isAPICommandValid(command: string){

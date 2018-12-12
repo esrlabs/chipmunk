@@ -14,7 +14,8 @@ export const WORKER_COMMANDS = {
     applyTo             : 'applyTo',
     filter              : 'filter',
     filters             : 'filters',
-    requests            : 'requests'
+    requests            : 'requests',
+    getMatches          : 'getMatches'
 };
 
 export interface IWorkerRequest {

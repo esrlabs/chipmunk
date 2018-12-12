@@ -12,9 +12,9 @@ import { EVENT_DATA_IS_UPDATED                  } from '../../../core/interfaces
 
 import { ViewSizeClassInt as Size               } from '../../../core/services/class.view.size';
 
-import { D3Controller                           } from './D3.series';
+import { D3Controller                           } from '../../../core/components/common/d3/D3.series';
 
-import { ChartData                              } from './interface.chart.data';
+import { ChartData, ChartDataItem               } from '../../../core/components/common/d3/interface.chart.data';
 
 import { Manager                                } from '../../../core/modules/parsers/controller.data.parsers.tracker.manager';
 import { ParsedResultIndexes                    } from '../../../core/modules/parsers/controller.data.parsers.tracker.inerfaces';
@@ -25,11 +25,22 @@ const OFFSET_DIRECTION = {
     RIGHT : Symbol(),
     LEFT  : Symbol()
 };
+/**
+     lineColors  : { [key: string]: string },
+    textColors  : { [key: string]: string },
+    data        : { [key: string]: ChartDataItem[] },
+    start       : Date,
+    end         : Date,
+    min         : number,
+    max         : number
+ * 
+ */
+
 
 class RowsData {
-    data        : Object    = {};
-    textColors  : Object    = {};
-    lineColors  : Object    = {};
+    data        : { [key: string]: ChartDataItem[] } = {};
+    textColors  : { [key: string]: string } = {};
+    lineColors  : { [key: string]: string } = {};
     start       : Date      = null;
     end         : Date      = null;
     min         : number    = Infinity;
@@ -244,7 +255,6 @@ export class ViewControllerTabChart extends TabController implements ViewInterfa
     }
 
     onDATA_IS_MODIFIED(event : EVENT_DATA_IS_UPDATED){
-        console.log(event.rows.length + ' ' + this._rows.length);
         if (event.rows instanceof Array){
             let measure = Logs.measure('[view.chart][onDATA_IS_MODIFIED]'),
                 rows    = new RowsData();

@@ -7,6 +7,7 @@ const
     Net                 = require('net'),
     ServerEmitter       = require('./server.events'),
     StringTimerBuffer   = require('./tools.buffers').StringTimerBuffer;
+    FS                  = require('fs'),
     EventEmitter        = require('events'),
     outgoingWSCommands  = require('./websocket.commands.processor.js');
 
@@ -167,6 +168,47 @@ class PacketParser {
         return result === '' ? '' : (this.getInfoBlock(packet) + result);
     }
 
+}
+
+class DLTFileReader {
+
+    constructor(file) {
+        this.file = file;
+        this.parser = new PacketParser();
+        this.dltBuffer = new Dlt.DltBuffer();
+        this.dltBuffer.on(DLT_EVENTS.packet, this.onDltPacket.bind(this));
+        this.output = '';
+    }
+
+    read() {
+        return new Promise((resolve, reject) => {
+            this._read().then((buffer) => {
+                this.dltBuffer.buffer(buffer);
+            }).catch(reject);
+        });
+    }
+
+    _read() {
+        return new Promise((resolve, reject) => {
+            FS.readFile(this.file, (error, buffer) => {
+                if (error) {
+                    return reject(error);
+                }
+                resolve(buffer);
+            });
+        });
+    }
+
+    onDltPacket(packet) {
+        let output = this.parser.getPayloadStr(packet);
+        if (output instanceof Error) {
+            return logger.error(`Error during parsing packet: ${error.message}`);
+        }
+        if (output.trim() === '') {
+            return;
+        }
+        this.output += (output + '\n');
+    }
 }
 
 class HostConnection extends EventEmitter {
@@ -381,6 +423,11 @@ class ServiceDltStream {
                 logger.error(`Error during closing connection: ${error.message}`);
             }
         });
+    }
+
+    readFile(file) {
+        const dltFileReader = new DLTFileReader(file);
+        dltFileReader.read();
     }
 
 }

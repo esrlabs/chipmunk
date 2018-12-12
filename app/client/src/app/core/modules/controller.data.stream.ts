@@ -343,6 +343,39 @@ class Stream {
         });
     }
 
+    public getMatch(filters: TFilters, fragment: string = ''): Promise<TFiltersMatches> {
+        return new Promise <TFiltersMatches> ((resolve, reject) => {
+            if (!this._worker.isReady()) {
+                return reject(new Error(`Worker isn't ready yet.`));
+            }
+            if (fragment === '') {
+                const measure = Logs.measure('[data.processor][Stream][_getMatch (whole stream)]');
+                this._worker.post({
+                    command : this._worker.COMMANDS.apply,
+                    filters : filters
+                }).then((response: IWorkerResponse) => {
+                    Logs.measure(measure);
+                    resolve(response.filters);
+                }).catch((error)=>{
+                    Logs.msg(`[_getMatch (whole stream)]: error: ${error.message}`, LogTypes.ERROR);
+                });
+            } else {
+                const measure = Logs.measure('[data.processor][Stream][_getMatch (fragment)]');
+                this._worker.post({
+                    command : this._worker.COMMANDS.applyTo,
+                    filters : filters,
+                    str     : fragment
+                }).then((response: IWorkerResponse) => {
+                    Logs.measure(measure);
+                    resolve(response.filters);
+                }).catch((error)=>{
+                    Logs.msg(`[_getMatch (fragment)]: error: ${error.message}`, LogTypes.ERROR);
+                });
+    
+            }
+        });
+    }
+
     private _dropFilter(rows: Array<DataRow>): Promise<Array<DataRow>> {
         return new Promise<Array<DataRow>>((resolve) => {
             const measure = Logs.measure('[data.processor][Stream][_dropFilter]');

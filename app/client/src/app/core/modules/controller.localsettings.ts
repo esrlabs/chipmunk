@@ -21,7 +21,8 @@ const KEYs = {
     adblogccat_stream   : 'adblogccat_stream',
     settings            : 'settings',
     serial_history_cmds : 'serial_history_cmds',
-    cloud               : 'cloud'
+    cloud               : 'cloud',
+    quickchat           : 'quickchat'
 };
 
 class ControllerLocalSettings{

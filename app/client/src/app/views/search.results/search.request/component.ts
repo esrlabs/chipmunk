@@ -82,6 +82,7 @@ export class TopBarSearchRequest implements AfterContentInit{
         Events.bind(Configuration.sets.EVENTS_SHORTCUTS.SHORTCUT_TO_SEARCH,             this.onSHORTCUT_TO_SEARCH.                  bind(this));
         Events.bind(Configuration.sets.EVENTS_VIEWS.VIEW_SEARCH_RESULTS_BUTTON_ADD,     this.onVIEW_SEARCH_RESULTS_BUTTON_ADD.      bind(this));
         Events.bind(Configuration.sets.EVENTS_VIEWS.VIEW_SEARCH_RESULTS_BUTTON_REMOVE,  this.onVIEW_SEARCH_RESULTS_BUTTON_REMOVE.   bind(this));
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.TRIGGER_SEARCH_REQUEST,            this.onTRIGGER_SEARCH_REQUEST.              bind(this));
     }
 
     onSHORTCUT_TO_SEARCH(){
@@ -207,6 +208,12 @@ export class TopBarSearchRequest implements AfterContentInit{
     triggerSearchRequest(){
         this.onSEARCH_REQUEST_PROCESS_START();
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_CHANGED, (new DataFilter(this.mode, this.value)));
+    }
+
+    onTRIGGER_SEARCH_REQUEST(request: DataFilter) {
+        this.value = request.value;
+        this.onSEARCH_REQUEST_PROCESS_START();
+        Events.trigger(Configuration.sets.SYSTEM_EVENTS.SEARCH_REQUEST_CHANGED, request);
     }
 
     onModeReg(){
