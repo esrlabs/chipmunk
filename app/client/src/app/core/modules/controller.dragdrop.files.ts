@@ -1,5 +1,13 @@
-import { Logs, TYPES } from '../modules/tools.logs';
-import {EventEmitter} from "@angular/core";
+import { Logs, TYPES                    } from '../modules/tools.logs';
+import { EventEmitter                   } from "@angular/core";
+import { APICommands                    } from "../api/api.commands";
+import { APIProcessor                   } from "../api/api.processor";
+import { APIResponse                    } from "../api/api.response.interface";
+import { events as Events               } from '../modules/controller.events';
+import { configuration as Configuration } from '../modules/controller.config';
+
+import { CSVDecoder } from '../modules/dlt/controller.csv.reader';
+import { IReader } from '../modules/dlt/reader.interface';
 
 const EVENTS = {
     drop    : 'drop',
@@ -10,6 +18,15 @@ const EVENTS = {
 };
 
 type DragDropFileEvent = { content: string, description: string, error?: Error };
+
+type TReaderDescription = { test: RegExp, reader: IReader };
+
+const FilesReaders: TReaderDescription[] = [
+    {
+        test: /\.dlt$/gi,
+        reader: (new CSVDecoder())
+    }
+];
 
 class DragAndDropFiles{
 
@@ -62,13 +79,24 @@ class DragAndDropFiles{
                 files.push(file);
             });
         }
+                
+        files = files.filter((file: File) => {
+            let res = true;
+            FilesReaders.forEach((description) => {
+                if (file.name.search(description.test) !== -1) {
+                    res = false;
+                    this._readFileWithReader(file, description.reader);
+                }
+            });
+            return res;
+        });
+
+        event.preventDefault();
 
         if (files.length === 0) {
             return false;
         }
-
-        event.preventDefault();
-
+        
         const description =  files.map((file: File) => {
             return file.name;
         }).join(', ');
@@ -115,11 +143,11 @@ class DragAndDropFiles{
         }
     }
 
-    _read(file: File){
+    _read(file: File, standalone: boolean = false){
         return new Promise((resolve, reject) => {
             const fileReader = new FileReader();
             fileReader.addEventListener(EVENTS.load,   (event: any) => {
-                this._content += event.currentTarget.result;
+                !standalone && (this._content += event.currentTarget.result);
                 resolve(event.currentTarget.result);
             });
             fileReader.addEventListener(EVENTS.error, (error: ErrorEvent) => {
@@ -129,6 +157,15 @@ class DragAndDropFiles{
         });
     }
 
+    _readFileWithReader(file: File, reader: any) {
+        this._read(file, true).then((str: string) => {
+            reader.read(file.name, str).catch((error: Error) => {
+                console.error(`Error during parsing file "${file.name}" (${file.size} bytes): ${error.message}`);
+            });
+        }).catch((error: Error) => {
+            console.error(`Error during reading file "${file.name}" (${file.size} bytes): ${error.message}`);
+        });
+    }
 
 }
 

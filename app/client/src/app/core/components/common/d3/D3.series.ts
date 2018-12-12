@@ -77,8 +77,15 @@ class D3Controller{
         range       : null
     };
 
-    constructor(private selector: string, private onSelect: Function){
+    private labeles: boolean = true;
+    private curve: boolean = true;
+    private leveles: boolean = true;
+
+    constructor(private selector: string, private onSelect: Function, labeles: boolean = true, leveles: boolean = false, curve: boolean = false){
         this.d3 = window['d3'];
+        this.labeles = labeles;
+        this.curve = curve;
+        this.leveles = leveles;
         this.init();
     }
 
@@ -88,8 +95,6 @@ class D3Controller{
         this.size.margin    = {top: 10, right: 20, bottom: 200, left: 20};
         this.size.margin2   = {top: 460, right: 20, bottom: 20, left: 20};
         this.size.width     = +this.svg.attr("width") - this.size.margin.left - this.size.margin.right;
-        //this.size.height    = +this.svg.attr("height") - this.size.margin.top - this.size.margin.bottom;
-        //this.size.height2   = +this.svg.attr("height") - this.size.margin2.top - this.size.margin2.bottom;
         this.size.height    = +(this.svg.attr("height") * 0.7 - 10);
         this.size.height2   = +(this.svg.attr("height") * 0.3 - 60);
         this.size.margin2.top = this.size.height + 30;
@@ -114,21 +119,41 @@ class D3Controller{
                 .extent([[0, 0], [this.size.width, this.size.height]])
                 .on("zoom", this.zoomed.bind(this));
 
-            this.tools.area     = this.d3.line()
-                .x(function(d : any) {
-                    return this.axis.x(d.datetime);
-                }.bind(this))
-                .y(function(d : ChartDataItem) {
-                    return this.axis.y(d.value);
-                }.bind(this));
+            if (this.curve) {
+                this.tools.area     = this.d3.line()
+                    .curve(this.d3.curveCardinal)
+                    .x(function(d : any) {
+                        return this.axis.x(d.datetime);
+                    }.bind(this))
+                    .y(function(d : ChartDataItem) {
+                        return this.axis.y(d.value);
+                    }.bind(this));
 
-            this.tools.area2    = this.d3.line()
-                .x(function(d : ChartDataItem) {
-                    return this.axis.x2(d.datetime);
-                }.bind(this))
-                .y(function(d : ChartDataItem) {
-                    return this.axis.y2(d.value);
-                }.bind(this));
+                this.tools.area2    = this.d3.line()
+                    .curve(this.d3.curveCardinal)
+                    .x(function(d : ChartDataItem) {
+                        return this.axis.x2(d.datetime);
+                    }.bind(this))
+                    .y(function(d : ChartDataItem) {
+                        return this.axis.y2(d.value);
+                    }.bind(this));
+            } else {
+                this.tools.area     = this.d3.line()
+                    .x(function(d : any) {
+                        return this.axis.x(d.datetime);
+                    }.bind(this))
+                    .y(function(d : ChartDataItem) {
+                        return this.axis.y(d.value);
+                    }.bind(this));
+
+                this.tools.area2    = this.d3.line()
+                    .x(function(d : ChartDataItem) {
+                        return this.axis.x2(d.datetime);
+                    }.bind(this))
+                    .y(function(d : ChartDataItem) {
+                        return this.axis.y2(d.value);
+                    }.bind(this));
+            }
             this.append();
             this.tools.range    = this.axis.x.range();
             this.d3.select(this.selector).on('click', function(){
@@ -222,12 +247,21 @@ class D3Controller{
                 this.createMainLine(GUID);
             });
 
-            this.tools.focus.   append("g").
+            this.tools.focus.append("g").
             attr("class", "axis axis--x").
             attr("transform", "translate(0," + this.size.height + ")").
             call(this.axis.xAxis);
 
-            this.tools.context. append("g").
+            if (this.leveles) {
+                this.tools.focus.append("g").
+                attr("class", "grid").
+                call(this.axis.yAxis.ticks(5)
+                    .tickSize(-this.size.width)
+                    .tickFormat("")
+                );
+            }
+
+            this.tools.context.append("g").
             attr("class", "axis axis--x").
             attr("transform", "translate(0," + this.size.height2 + ")").
             call(this.axis.xAxis2);
@@ -236,14 +270,14 @@ class D3Controller{
                 this.createZoomLine(GUID);
             });
 
-            this.svg.           append("rect").
+            this.svg.append("rect").
             attr("class", "zoom").
             attr("width", this.size.width).
             attr("height", this.size.height).
             attr("transform", "translate(" + this.size.margin.left + "," + this.size.margin.top + ")").
             call(this.tools.zoom);
 
-            this.tools.context. append("g").
+            this.tools.context.append("g").
             attr("class", "brush").
             call(this.tools.viewport).
             call(this.tools.viewport.move, this.axis.x.range());
@@ -279,6 +313,9 @@ class D3Controller{
     }
 
     labelsRender(GUID: string, serie : any){
+        if (!this.labeles) {
+            return;
+        }
         let label = serie.  selectAll('.label.'+ GUID).
                             data(function(d:ChartDataItem) { return d; }).
                             enter().

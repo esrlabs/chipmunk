@@ -384,6 +384,15 @@ class APICommands{
         //Do not callback, because ServiceDownloadManager will response by itself
     }
 
+    requestFileFromFS(income, response, callback) {
+        console.log(income.params);
+        if (typeof income.params !== 'object' || income.params === null || typeof income.params.name !== 'string' || income.params.name.trim() === '' || typeof income.params.size !== 'number' || typeof income.params.modified !== 'number') {
+            return callback(null, new Error(logger.warning(`Cannot do "requestFileFromFS" because name {string} isn't defined.`)));
+        }
+        let DltService = require('./service.dlt.js');
+        DltService.readFile(income.params.name);
+    }
+
 };
 
 module.exports = APICommands;

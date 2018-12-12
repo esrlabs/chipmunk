@@ -31,7 +31,6 @@
       { "icon": "fa-angle-double-down", "event" : "LIST_VIEW_FOLLOW_SCROLL_TRIGGER",  "hint": "auto scroll down: on/off", "active": true, "listen" : "LIST_VIEW_FOLLOW_SCROLL_SET" },
       { "icon": "fa-floppy-o",          "event" : "LIST_VIEW_EXPORT_TO_FILE",         "hint": "export data to file" },
       { "icon": "fa-filter",            "event" : "SEARCH_VIEW_MANAGE_PRESETS",       "hint": "manage presents of filters"  }
-
     ],
     "hide"        : [
       "SILENCE", "DEAFNESS", "FILTER", "FAVORITE", "CLOSE"
@@ -52,6 +51,35 @@
       "SILENCE", "DEAFNESS", "FILTER", "FAVORITE"
     ],
     "controller"  : "ViewControllerChart"
+  },
+  "view_quick_chart" : {
+    "name"        : "Quick Chart",
+    "description" : "Quick Chart",
+    "icon"        : "fa-bar-chart-o",
+    "weight"      : 0.5,
+    "vertical"    : false,
+    "horizontal"  : true,
+    "menu"        : [
+    ],
+    "hide"        : [
+      "SILENCE", "DEAFNESS", "FILTER", "FAVORITE"
+    ],
+    "controller"  : "ViewControllerQuickChart"
+  },
+  "view_dlt_monitor" : {
+    "name"        : "DLT monitor",
+    "description" : "DLT monitor",
+    "icon"        : "fa-thermometer-2",
+    "weight"      : 0.5,
+    "vertical"    : false,
+    "horizontal"  : true,
+    "menu"        : [
+      { "icon": "fa-connect", "event" : "===", "hint": "connect to DLT deamon" }
+    ],
+    "hide"        : [
+      "SILENCE", "DEAFNESS", "FILTER", "FAVORITE"
+    ],
+    "controller"  : "ViewControllerDLTMonitor"
   },
   "view_state_monitor" : {
     "name"        : "State Monitor",

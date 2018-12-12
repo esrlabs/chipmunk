@@ -141,7 +141,7 @@ class Parser implements ParserClass{
 
         return [{
             index: numbers[0],
-            label: `value: ${numbers[0]}`
+            label: numbers[0]
         }];
     }
 
