@@ -90,8 +90,8 @@ const CONFIGURATION = {
 
 const PLATFORMS_DEPS = {
     COMMON              : {
-        "electron-updater"      : "^3.1.1",
-		"glob" 					: "^7.1.2"
+        "electron-updater"      : "^4.0.6",
+		"glob" 					: "^7.1.3"
     },
     [PLATFORMS.DARWIN]  : {
     },
@@ -103,9 +103,9 @@ const PLATFORMS_DEPS = {
 
 const PLATFORMS_DEV_DEPS = {
     COMMON              : {
-		"dmg-builder" 		: "5.3.1",
-		"electron" 			: "3.0.0",
-		"electron-builder" 	: "20.28.4"
+		"dmg-builder" 		: "6.5.3",
+		"electron" 			: "3.0.11",
+		"electron-builder" 	: "20.38.3"
 	},
     [PLATFORMS.DARWIN]  : {
     },
@@ -113,7 +113,7 @@ const PLATFORMS_DEV_DEPS = {
         "7zip-bin-linux"    : "latest"
     },
     [PLATFORMS.WIN32]   : {
-        "7zip-bin-win"      : "^2.1.1"
+        "7zip-bin-win"      : "^2.2.0"
     }
 };
 
