@@ -1,0 +1,25 @@
+<div [attr.class]="'chart-holder ' + (_chartListIsOpened && 'opened')">
+    <view-controller-quickchart-holder #chart 
+        [GUID]="_chartGUID"
+        [onSelect]="onSelectOnChart"></view-controller-quickchart-holder>
+</div>
+<div [attr.class]="'charts-list ' + (_chartListIsOpened && 'opened')">
+    <div class="trigger-area" (click)="_onChartsListTrigger()">
+        <span class="trigger fa fa-angle-double-left"></span>
+        <span class="title">Charts List</span>
+    </div>
+    <div class="list-area">
+        <list-quickchart    [rules]="_rules" 
+                            [cases]="_cases"
+                            [onRemoveAllRules]="onRemoveAllRules"
+                            [onHideAllCases]="onHideAllCases"
+                            [onInvertCases]="onInvertCases"
+                            [onChartSmooth]="onChartSmooth"
+                            [onChartLabels]="onChartLabels"
+                            [onCaseVisibility]="onCaseVisibility"
+                            [onRuleVisibility]="onRuleVisibility"
+                            [onColorChange]="onColorChange"
+                            [removeRule]="onRemoveRule"
+                            [hideCase]="onHideCase"></list-quickchart>
+    </div>
+</div>
