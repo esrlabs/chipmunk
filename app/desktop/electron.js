@@ -127,7 +127,6 @@ class Starter {
 		if (state.isMaximized) {
 			this._window.maximize();
 		}
-		this.debug();
 		//Debug activation
 		if (process.argv instanceof Array && process.argv.indexOf('--debug') !== -1) {
 			this.debug();
