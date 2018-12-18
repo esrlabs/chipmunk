@@ -318,13 +318,9 @@ class APICommands{
         if (updater === null || updater === void 0) {
             return callback(null, new Error('Updater is available only for desktop versions.'))
         }
-        updater.check().then((result) => {
-            if (result !== null && typeof result === 'object' && result.updateInfo !== void 0) {
-                callback({
-                    res: result,
-                    cancellationToken: result.cancellationToken,
-                    cancellationTokenType: typeof result.cancellationToken
-                }, null);
+        updater.check().then((release) => {
+            if (release !== null && typeof release === 'object') {
+                callback(release, null);
             } else {
                 callback(null, new Error(`Unexpected result of updating checks`));
             }
@@ -333,7 +329,7 @@ class APICommands{
         });
     }
 
-    isUpdateAvailable(income, response, callback){
+    update(income, response, callback) {
         let updater = null;
         try{
             updater = require('../../electron').updater;
@@ -343,11 +339,15 @@ class APICommands{
         if (updater === null || updater === void 0) {
             return callback(null, new Error('Updater is available only for desktop versions.'))
         }
-        updater.isUpdateAvailable().then((result) => {
+        updater.update().then((info) => {
+            if (info === null) {
+                return callback(null, new Error('Fail to update, because no update info.'))
+            }
             callback({
-                res: result
+                file: info.file,
+                version: info.version
             }, null);
-        }).catch((error)=>{
+        }).catch((error) => {
             callback(null, error);
         });
     }

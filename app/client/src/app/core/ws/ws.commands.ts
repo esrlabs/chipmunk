@@ -14,7 +14,6 @@ const COMMANDS = {
     WriteToSerial           : 'WriteToSerial',
     ResultWrittenToSerial   : 'ResultWrittenToSerial',
     UpdateIsAvailable       : 'UpdateIsAvailable',
-    UpdateIsNotAvailable    : 'UpdateIsNotAvailable',
     UpdateDownloadProgress  : 'UpdateDownloadProgress',
     ADBLogcatData           : 'ADBLogcatData',
     TermProcessData         : 'TermProcessData',
@@ -172,12 +171,6 @@ class WSCommands{
     [COMMANDS.UpdateIsAvailable         ](message : WSCommandMessage, sender: Function){
         if (typeof message.params === 'object' && message.params !== null){
             Events.trigger(Configuration.sets.SYSTEM_EVENTS.UPDATE_IS_AVAILABLE, message.params);
-        }
-    }
-
-    [COMMANDS.UpdateIsNotAvailable      ](message : WSCommandMessage, sender: Function){
-        if (typeof message.params === 'object' && message.params !== null){
-            Events.trigger(Configuration.sets.SYSTEM_EVENTS.UPDATE_IS_NOT_AVAILABLE, message.params);
         }
     }
 
