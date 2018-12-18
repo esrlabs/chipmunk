@@ -90,7 +90,7 @@ const CONFIGURATION = {
 
 const PLATFORMS_DEPS = {
     COMMON              : {
-		"glob" : "^7.1.2"
+		"glob" : "^7.1.3"
     },
     [PLATFORMS.DARWIN]  : {
     },
@@ -103,7 +103,7 @@ const PLATFORMS_DEPS = {
 const PLATFORMS_DEV_DEPS = {
     COMMON              : {
 		"dmg-builder" 		: "6.5.3",
-		"electron" 			: "3.0.11",
+		"electron" 			: "3.0.13",
 		"electron-builder" 	: "20.38.3"
 	},
     [PLATFORMS.DARWIN]  : {
