@@ -13,7 +13,6 @@ import { OpenADBLogcatStream            } from '../handles/handle.open.adblogcat
 import { OpenTerminalStream             } from '../handles/handle.open.terminal.stream';
 import { MonitorManager                 } from '../handles/hanlde.open.monitor.manager';
 import { ApplicationSettingsManager     } from '../handles/hanlde.settings.manager';
-import { UpdateChecks                   } from '../handles/handle.update.checks';
 import { DeveloperConsole               } from '../handles/handle.developer.console';
 
 import { AddView                        } from '../handles/handle.add.view';
@@ -143,11 +142,6 @@ class TopBarMenuHandles{
 
     openProgressBar(){
 
-    }
-
-    checkUpdates(){
-        let updater = new UpdateChecks();
-        updater.start();
     }
 
     openDevConsole(){

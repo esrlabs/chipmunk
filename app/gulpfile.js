@@ -90,8 +90,7 @@ const CONFIGURATION = {
 
 const PLATFORMS_DEPS = {
     COMMON              : {
-        "electron-updater"      : "^4.0.6",
-		"glob" 					: "^7.1.3"
+		"glob" : "^7.1.2"
     },
     [PLATFORMS.DARWIN]  : {
     },

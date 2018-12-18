@@ -9,37 +9,40 @@ import { APIProcessor                   } from "../api/api.processor";
 import { ProgressBarCircle              } from "../components/common/progressbar.circle/component";
 import { versionController              } from "./controller.version";
 
-interface UpdateInfo{
-    info    : any
+interface ReleaseInfo{
+    name: string
+}
+
+interface PackageInfo{
+    release: ReleaseInfo
 }
 
 interface DownloadProgressState {
-    speed   : string | number,
-    progress: string | number,
-    info    : any
+    total   : string,
+    progress: string,
+    done    : string,
+    version : string
 }
 
 class Updater {
 
     private dialogGUID  : symbol = null;
     private processor   : any = APIProcessor;
-    private info        : UpdateInfo              = null;
-    private state       : DownloadProgressState   = null;
+    private info        : PackageInfo           = null;
+    private state       : DownloadProgressState = null;
 
     constructor() {
         this.API_IS_READY_TO_USE        = this.API_IS_READY_TO_USE.bind(this);
         this.UPDATE_DOWNLOAD_PROGRESS   = this.UPDATE_DOWNLOAD_PROGRESS.bind(this);
-        this.UPDATE_IS_NOT_AVAILABLE    = this.UPDATE_IS_NOT_AVAILABLE.bind(this);
         this.UPDATE_IS_AVAILABLE        = this.UPDATE_IS_AVAILABLE.bind(this);
         Events.bind(Configuration.sets.SYSTEM_EVENTS.API_IS_READY_TO_USE,       this.API_IS_READY_TO_USE);
         Events.bind(Configuration.sets.SYSTEM_EVENTS.UPDATE_IS_AVAILABLE,       this.UPDATE_IS_AVAILABLE);
         Events.bind(Configuration.sets.SYSTEM_EVENTS.UPDATE_DOWNLOAD_PROGRESS,  this.UPDATE_DOWNLOAD_PROGRESS);
-        Events.bind(Configuration.sets.SYSTEM_EVENTS.UPDATE_IS_NOT_AVAILABLE,   this.UPDATE_IS_NOT_AVAILABLE);
     }
 
     private API_IS_READY_TO_USE(){
         this.processor.send(
-            APICommands.isUpdateAvailable,
+            APICommands.checkUpdates,
             {},
             (response : APIResponse, error: Error) => {
                 if (response.code === 10003) {
@@ -49,10 +52,6 @@ class Updater {
                 }
             }
         );
-    }
-
-    private UPDATE_IS_NOT_AVAILABLE(){
-        this.info = null;
     }
 
     private requestUpdate(){
@@ -66,7 +65,7 @@ class Updater {
                         popupController.close(guid);
                         const progressGUID = this.showProgress();
                         this.processor.send(
-                            APICommands.checkUpdates,
+                            APICommands.update,
                             {},
                             (response : APIResponse, error: Error) => {
                                 popupController.close(progressGUID);
@@ -92,12 +91,12 @@ class Updater {
         });
     }
 
-    private UPDATE_IS_AVAILABLE(info: UpdateInfo){
+    private UPDATE_IS_AVAILABLE(info: PackageInfo){
         if (this.info !== null) {
             return;
         }
         this.info = info;
-        const version = typeof info === 'object' ? (info !== null ? (info.info !== void 0 ? (typeof info.info.version === 'string' ? info.info.version : null) : null) : null) : null
+        const version = typeof info === 'object' ? (info !== null ? (info.release !== void 0 ? (typeof info.release.name === 'string' ? info.release.name : null) : null) : null) : null
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.CREATE_NOTIFICATION, {
             caption: 'Update',
             message: `New version${version !== null ? ` (${version}) ` : ' '}is available. Do you want install it?`,
@@ -147,9 +146,10 @@ class Updater {
                     factory     : null,
                     component   : DialogUpdate,
                     params      : {
-                        info    : this.info     !== null ? (this.info.info        !== void 0 ? this.info.info         : null) : null,
+                        version : this.state    !== null ? (this.state.version   !== void 0 ? this.state.version    : null) : null,
                         progress: this.state    !== null ? (this.state.progress   !== void 0 ? this.state.progress    : null) : null,
-                        speed   : this.state    !== null ? (this.state.speed      !== void 0 ? this.state.speed       : null) : null
+                        total   : this.state    !== null ? (this.state.total      !== void 0 ? this.state.total       : null) : null,
+                        done    : this.state    !== null ? (this.state.done       !== void 0 ? this.state.done        : null) : null
                     }
                 },
                 title   : _('Updating'),
@@ -171,5 +171,5 @@ class Updater {
 
 }
 
-export { Updater, UpdateInfo, DownloadProgressState }
+export { Updater, PackageInfo, ReleaseInfo, DownloadProgressState }
 

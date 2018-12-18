@@ -11,6 +11,7 @@ class PathsSettings {
         this.REGISTER_FILE                  = '';
         this.DOWNLOADS                      = '';
         this.LOGVIEWER_LOGS                 = '';
+        this.RELEASES                       = '';
         this.generate();
         this.initialize();
     }
@@ -18,7 +19,7 @@ class PathsSettings {
     initialize(){
         const FileManager = require('./tools.filemanager');
         const fileManager = new FileManager(true);
-        [this.ROOT, this.LOGS_ROOT, this.LOGS_FOLDER, this.DOWNLOADS].forEach((folder) => {
+        [this.ROOT, this.LOGS_ROOT, this.LOGS_FOLDER, this.DOWNLOADS, this.RELEASES].forEach((folder) => {
             fileManager.createFolder(folder);
         });
     }
@@ -30,6 +31,7 @@ class PathsSettings {
         this.LOGS_FOLDER                    = Path.resolve(this.ROOT + '/logs/files/');
         this.REGISTER_FILE                  = Path.resolve(this.ROOT + '/logs/register.json');
         this.DOWNLOADS                      = Path.resolve(this.ROOT + '/downloads/');
+        this.RELEASES                       = Path.resolve(this.ROOT + '/releases/');
     }
 }
 
