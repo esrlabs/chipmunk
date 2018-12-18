@@ -1,7 +1,7 @@
 const { app, BrowserWindow } = require('electron');
 const path              = require('path');
 const url               = require('url');
-const Updater           = require('./electron/application.updater');
+const Updater           = require('./electron/application.updater.direct');
 const ApplicationMenu   = require('./electron/application.menu');
 const ApplicationStorage= require('./electron/application.storage');
 const ApplicationCLI 	= require('./electron/application.cli');
@@ -39,7 +39,6 @@ class Starter {
 		this._storage 	= new ApplicationStorage();
 		this._version 	= this._app.getVersion();
 		this._menu 		= new ApplicationMenu();
-		updater.init();
 	}
 
 	// initialization and is ready to create browser windows.
@@ -128,6 +127,7 @@ class Starter {
 		if (state.isMaximized) {
 			this._window.maximize();
 		}
+		this.debug();
 		//Debug activation
 		if (process.argv instanceof Array && process.argv.indexOf('--debug') !== -1) {
 			this.debug();

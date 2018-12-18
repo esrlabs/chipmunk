@@ -37,8 +37,6 @@
         { "icon" : "fa-gear",         "caption" : "Settings",             "handler": "openApplicationSettings",           "type": "item", "accelerator": "CmdOrCtrl+S" },
         { "icon" : "fa-paint-brush",  "caption" : "Change color theme",   "handler": "changeThemeSettings",               "type": "item", "accelerator": "" },
         { "type" : "line" },
-        { "icon" : "fa-refresh",      "caption" : "Check updates",        "handler": "checkUpdates",                      "type": "item", "accelerator": "" },
-        { "type" : "line" },
         { "icon" : "",                "caption" : "Quit", "click": "exit",   "type": "item", "accelerator": "Command+Q" }
       ]
     },

@@ -17,7 +17,6 @@ const COMMANDS = {
     ResultWrittenToTelnet   : 'ResultWrittenToTelnet',
 	ResultWrittenToTerminal : 'ResultWrittenToTerminal',
 	UpdateIsAvailable       : 'UpdateIsAvailable',
-    UpdateIsNotAvailable    : 'UpdateIsNotAvailable',
     UpdateDownloadProgress  : 'UpdateDownloadProgress',
     ADBLogcatData           : 'ADBLogcatData',
     TermProcessData         : 'TermProcessData',
@@ -182,13 +181,6 @@ class OutgoingCommandsProcessor {
         });
     }
 
-    [COMMANDS.UpdateIsNotAvailable](clientGUID, params){
-        this.sender({
-            GUID    : clientGUID,
-            command : COMMANDS.UpdateIsNotAvailable,
-            params  : params
-        });
-    }
 
     [COMMANDS.UpdateDownloadProgress](clientGUID, params){
         this.sender({
