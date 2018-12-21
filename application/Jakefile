@@ -186,7 +186,7 @@ namespace('solution', function() {
         });
         if (tasks.length === 0) {
             console.log(`No projects to be uninstalled`);
-            this.complete();
+            return this.complete();
         }
         console.log(`Will be uninstalled ${tasks.length} projects.`);
         sh(this, '.', ...tasks);
@@ -205,7 +205,7 @@ namespace('solution', function() {
         });
         if (tasks.length === 0) {
             console.log(`No projects to be installed`);
-            this.complete();
+            return this.complete();
         }
         sh(this, '.', ...tasks);
     }, {async: true});
@@ -220,7 +220,7 @@ namespace('solution', function() {
         });
         if (tasks.length === 0) {
             console.log(`No projects to be installed`);
-            this.complete();
+            return this.complete();
         }
         sh(this, '.', ...tasks);
     }, {async: true});
@@ -239,7 +239,7 @@ namespace('solution', function() {
         });
         if (tasks.length === 0) {
             console.log(`No projects to be upgraded`);
-            this.complete();
+            return this.complete();
         }
         sh(this, '.', ...tasks);
     }, {async: true});
@@ -256,7 +256,7 @@ namespace('solution', function() {
         });
         if (tasks.length === 0) {
             console.log(`No projects to be upgraded`);
-            this.complete();
+            return this.complete();
         }
         shNotBreakble(this, '.', ...tasks);
     }, {async: true});
