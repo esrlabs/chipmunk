@@ -35,14 +35,17 @@
       ]
     }
   },
-  "dependencies": {},
+  "dependencies": {
+    "uuid": "^3.3.2"
+  },
   "devDependencies": {
-    "dmg-builder": "^6.0.0",
-    "electron": "^3.0.6",
-    "electron-builder": "^20.29.0",
     "@types/electron": "^1.6.10",
     "@types/jasmine": "^2.8.6",
     "@types/node": "^10.12.0",
+    "@types/uuid": "^3.4.4",
+    "dmg-builder": "^6.0.0",
+    "electron": "^3.0.6",
+    "electron-builder": "^20.29.0",
     "tslint": "^5.11.0",
     "typescript": "^3.1.3"
   },

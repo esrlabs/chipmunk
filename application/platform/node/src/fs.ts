@@ -111,6 +111,27 @@ export function readTextFile(file: string, codding: string = 'utf8'): Promise<st
 }
 
 /**
+ * Write text contenent into file
+ * @param {string} file path to file
+ * @param {string} content content
+ * @param {string} codding codding name (default: utf8)
+ * @returns Promise<FS.Stats>
+ */
+export function writeTextFile(file: string, content: string, overwrite: boolean = true): Promise<string> {
+    return new Promise((resolve, reject) => {
+        if (isExist(file) && !overwrite) {
+            return reject(new Error(`File "${file}" doesn't exist.`));
+        }
+        FS.writeFile(file, content, (error: NodeJS.ErrnoException) => {
+            if (error) {
+                return reject(error);
+            }
+            resolve();
+        });
+    });
+}
+
+/**
  * Deletes a file
  * @param {string} file path to file
  * @returns Promise<void>
