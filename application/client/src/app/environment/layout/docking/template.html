@@ -1,0 +1,14 @@
+<div class="cover" (dblclick)="onDocksAreaDblClick($event)"></div>
+<app-layout-docking-dock *ngFor="let dock of docks | keyvalue" 
+    [sizeDocksAreaObservable]="_sizeDockArea.asObservable()"
+    [dock]="dock.value" 
+    [service]="service" 
+    [getSizeDocksArea]="getSizeDocksArea"></app-layout-docking-dock>
+<div *ngIf="spaceA !== null"
+    (click)="onDropAreaSpaces()"
+    [attr.class]="'space ' + (spaceA.active ? 'active' : 'inactive')" 
+    [ngStyle]="{'top': spaceA.t + 'px', 'left': spaceA.l + 'px', 'width': spaceA.w + 'px', 'height': spaceA.h + 'px'}"></div>
+<div *ngIf="spaceB !== null" 
+    (click)="onDropAreaSpaces()"
+    [attr.class]="'space ' + (spaceB.active ? 'active' : 'inactive')" 
+    [ngStyle]="{'top': spaceB.t + 'px', 'left': spaceB.l + 'px', 'width': spaceB.w + 'px', 'height': spaceB.h + 'px'}"></div>

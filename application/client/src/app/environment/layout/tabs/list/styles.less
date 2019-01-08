@@ -1,0 +1,76 @@
+@import '../../../theme/scheme.less';
+
+@background: lighten(@scheme-color-5, 10%);
+:host {
+    position: absolute;
+    display: block;
+    background: @background;
+    & ul.list{
+        position: absolute;
+        display: block;
+        height: 100%;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        white-space: nowrap;
+        background: @background;
+        box-sizing: border-box;
+        width: 100%;
+        box-shadow: inset 0px 10px 20px -12px rgba(0, 0, 0, 0.4);
+        border-bottom: inset thin @scheme-color-5;
+        & li.tab{
+            display: inline-block;
+            position: relative;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            box-sizing: border-box;
+            cursor: default;
+            & p.title {
+                padding: 0.1rem 1rem;
+                display: inline-block;
+            }
+            & span.close-button{
+                font-size: 12px;
+                padding: 0 0.5rem 0 0;
+                transition: all 150ms ease-in-out;
+                transform: translateY(-16px);
+                opacity: 0;
+            }
+            &:not(.active){
+                border-left: thin inset @background;
+            }
+            &:first-child {
+                border-left: thin solid rgba(0,0,0,0);
+            }
+            &.active + li.tab{
+                border-left: none;
+            }
+            &:last-child{
+                border-right: thin outset @background;
+            }
+            &.active{
+                .border-based-4;
+                border-bottom: none;
+                border-top-right-radius: @border-radius;
+                border-top-left-radius: @border-radius;
+                .gradient(linear; @scheme-color-5, lighten(@scheme-color-5, 4%));
+                box-shadow: 0 0 16px -3px rgba(0,0,0,0.4);
+                &::after{
+                    position: absolute;
+                    display: block;
+                    width: 100%;
+                    height: 2px;
+                    bottom: -1px;
+                    content: '';
+                    background: @scheme-color-5;
+                }
+                & span.close-button{
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+        }
+    }
+}

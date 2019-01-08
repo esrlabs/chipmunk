@@ -2,18 +2,18 @@
 import Logger from '../platform/node/src/env.logger';
 
 // Services
-import ServiceElectron from './service.electron';
-import ServicePackage from './service.package';
-import ServicePaths from './service.paths';
-import ServiceSettings from './service.settings';
-import ServiceWindowState from './service.window.state';
+import ServiceElectron from './services/service.electron';
+import ServicePackage from './services/service.package';
+import ServicePaths from './services/service.paths';
+import ServiceSettings from './services/service.settings';
+import ServiceWindowState from './services/service.window.state';
 
 const InitializeStages = [
     // Stage #1
     [ServicePaths],
     // Stage #2
     [ServiceSettings, ServiceWindowState, ServicePackage],
-    // Stage #3
+    // Stage #3 (last service should startup service and should be single always)
     [ServiceElectron],
 ];
 
@@ -29,12 +29,11 @@ class Application {
     public init(stage: number = 0): void {
         if (InitializeStages.length <= stage) {
             this._logger.env(`Application is initialized`);
-            return this._start();
         }
         this._logger.env(`Application initialization: stage #${stage + 1}: starting...`);
         const services: any[] = InitializeStages[stage];
         const tasks: Array<Promise<any>> = services.map((ref: any) => {
-            this._logger.env(`Init: ${ref.constructor.name}`);
+            this._logger.env(`Init: ${ref.getName()}`);
             return ref.init();
         });
         if (tasks.length === 0) {
@@ -46,11 +45,6 @@ class Application {
         }).catch((error: Error) => {
             this._logger.env(`Fail to initialize application dure error: ${error.message}`);
         });
-    }
-
-    private _start() {
-        this._logger.env(`Started.`);
-        // start app here
     }
 
 }

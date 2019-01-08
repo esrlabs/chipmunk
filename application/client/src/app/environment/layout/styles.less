@@ -1,0 +1,35 @@
+@status-bar-height: 1.5rem;
+@func-bar-width: 2.5rem;
+:host {
+    position: absolute;
+    display: block;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    & app-layout-tabs,
+    & app-layout-top-bar,
+    & app-layout-status-bar {
+        position: absolute;
+        display: block;
+        overflow: hidden;
+    }
+    & app-layout-tabs {
+        top: 0;
+        left: 0;
+        bottom: @status-bar-height;
+        right: @func-bar-width;
+    }
+    & app-layout-top-bar {
+        top: 0;
+        bottom: @status-bar-height;
+        right:0;
+        width: @func-bar-width;
+    }
+    & app-layout-status-bar {
+        bottom: 0;
+        height: @status-bar-height;
+        left:0;
+        right:0;
+    }
+}

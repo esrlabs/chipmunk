@@ -1,0 +1,6 @@
+<ul class="list">
+    <li [attr.class]="'tab ' + (tab.active ? 'active' : '')" *ngFor="let tab of tabs" (click) = "onClick(tab.id)">
+        <p class="title t-normal">{{tab.name}}</p>
+        <span class="close-button fas fa-times"></span>
+    </li>
+</ul>

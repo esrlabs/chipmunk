@@ -14,7 +14,7 @@ class Starter {
 		this._cli 				= new ApplicationCLI(this._app.getVersion(), true);
 		this._state 			= {};
 		this._stateSave 		= this._stateSave.bind(this);
-		//Bind electron events
+		// Bind electron events
 		Object.keys(ELECTRON_EVENTS).forEach((key) => {
 			if (this[ELECTRON_EVENTS[key]] !== void 0){
 				this[ELECTRON_EVENTS[key]] = this[ELECTRON_EVENTS[key]].bind(this);
