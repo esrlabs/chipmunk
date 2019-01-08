@@ -1,0 +1,16 @@
+<div *ngIf="notification.message !== undefined" class="wrapper">
+    <p class="caption">{{notification.caption}}<span *ngIf="notification.options.closable" class="close-button fas fa-times" (click)="onClose()"></span></p>
+    <p class="content">{{notification.message}}</p>
+    <div *ngIf="notification.buttons !== undefined" class="buttons">
+        <app-button *ngFor="let button of notification.buttons" [caption]="button.caption" [handler]="button.handler"></app-button>
+    </div>
+</div>
+<div *ngIf="notification.component !== undefined" class="wrapper">
+    <p class="caption">{{notification.caption}}<span *ngIf="notification.options.closable" class="close-button fas fa-times" (click)="onClose()"></span></p>
+    <div class="content">
+        <app-dynamic-com [component]="notification.component"></app-dynamic-com>
+    </div>
+    <div *ngIf="notification.buttons !== undefined" class="buttons">
+        <app-button *ngFor="let button of notification.buttons" [caption]="button.caption" [handler]="button.handler"></app-button>
+    </div>
+</div>

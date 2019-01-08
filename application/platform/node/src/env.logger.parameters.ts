@@ -1,6 +1,5 @@
 const DEFAUT_ALLOWED_CONSOLE = {
     DEBUG: true,
-    DEVELOP: true,
     ENV: true,
     ERROR: true,
     INFO: true,

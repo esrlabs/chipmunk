@@ -12,6 +12,8 @@
             "element",
             "app",
             "kebab-case"
-        ]
+        ],
+        "no-inferrable-types": false,
+        "max-line-length": false
     }
 }

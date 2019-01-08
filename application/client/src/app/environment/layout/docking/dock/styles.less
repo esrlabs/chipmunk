@@ -1,0 +1,143 @@
+@import '../../../theme/scheme.less';
+
+@caption-height: 1.5rem;
+@resize-border-size: 3px;
+:host {
+    position: absolute;
+    display: block;
+    width: 100%;
+    height: 100%;
+    top:0;
+    left:0;
+    overflow: hidden;
+    pointer-events: none;
+    & div.wrapper{
+        position: absolute;
+        display: block;
+        pointer-events: all;
+        background: @scheme-color-3;
+        &.manipulation{
+            transition: all 50ms linear;
+        }
+        .border-based-3;
+        & div.caption{
+            position: absolute;
+            display: block;
+            height: @caption-height;
+            top:0;
+            left: 0;
+            width: 100%;
+            .gradient(linear; darken(@scheme-color-4, 2%), lighten(@scheme-color-4, 2%));
+            & p.caption{
+                font-size: 0.9rem;
+                color: @scheme-color-1;
+                position: absolute;
+                display: block;
+                top:0;
+                left: @caption-height;
+                right: @caption-height;
+                bottom: 0;
+                margin: 0;
+                padding: 0.1rem;
+            }
+            & span.move-button,
+            & span.close-button{
+                position: absolute;
+                display: block;
+                font-size: 0.9rem;
+                color: @scheme-color-1;
+                top: 0;
+                width: @caption-height;
+                height: @caption-height;
+                padding: 0.3rem;
+                overflow: hidden;
+                cursor: move;
+            }
+            & span.move-button{
+                left: 0;
+                cursor: move;
+            }
+            & span.close-button{
+                right: 0;
+                cursor: default;
+                width: 0.8rem;
+            }
+        }
+        & div.content{
+            position: absolute;
+            top: @caption-height;
+            bottom: 0;
+            width: 100%;
+        }
+        & div.top-border,
+        & div.bottom-border,
+        & div.right-border,
+        & div.left-border {
+            position: absolute;
+            background: rgba(0,0,0,0.001);
+            z-index: 10;
+        }
+        & div.top-border,
+        & div.bottom-border{
+            height: @resize-border-size;
+            width: 100%;
+            left:0;
+            cursor: row-resize;
+        }
+        & div.right-border,
+        & div.left-border {
+            width: @resize-border-size;
+            height: 100%;
+            top:0;
+            cursor: col-resize;
+        }
+        & div.top-border {
+            top:0;
+            &:after{
+                position: absolute;
+                display: block;
+                content: '';
+                width: 100%;
+                height: @resize-border-size;
+                top: -@resize-border-size;
+                background: rgba(0,0,0,0.001);
+            }
+        }
+        & div.right-border {
+            right:0;
+            &:after{
+                position: absolute;
+                display: block;
+                content: '';
+                height: 100%;
+                width: @resize-border-size;
+                right: -@resize-border-size;
+                background: rgba(0,0,0,0.001);
+            }
+        }
+        & div.bottom-border {
+            bottom: 0;
+            &:after{
+                position: absolute;
+                display: block;
+                content: '';
+                width: 100%;
+                height: @resize-border-size;
+                bottom: -@resize-border-size;
+                background: rgba(0,0,0,0.001);
+            }
+        }
+        & div.left-border {
+            left: 0;
+            &:after{
+                position: absolute;
+                display: block;
+                content: '';
+                height: 100%;
+                width: @resize-border-size;
+                left: -@resize-border-size;
+                background: rgba(0,0,0,0.001);
+            }
+        }
+    }
+}
