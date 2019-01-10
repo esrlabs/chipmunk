@@ -6,7 +6,9 @@
         <p class="caption">{{dock.caption}}</p>
         <span class="close-button fas fa-times"></span>
     </div>
-    <div class="content"></div>
+    <div class="content">
+        t: {{dock.coor.t}} / l: {{dock.coor.l}} / w: {{dock.coor.w}} / h: {{dock.coor.h}}
+    </div>
     <div class="top-border" (mousedown)="onMouseDown($event, 'top')"></div>
     <div class="right-border" (mousedown)="onMouseDown($event, 'right')"></div>
     <div class="bottom-border" (mousedown)="onMouseDown($event, 'bottom')"></div>
