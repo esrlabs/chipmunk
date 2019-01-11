@@ -2,11 +2,12 @@ import { NgModule                               } from '@angular/core';
 import { CommonModule                           } from '@angular/common';
 
 import { LayoutDockingComponent                 } from './component';
-import { LayoutDockingAreaComponent             } from './dock/component';
+import { LayoutDockComponent                    } from './dock/component';
+import { LayoutDockContainerComponent           } from './container/component';
 
 import { EnvironmentComponentsModule            } from '../../components/module';
 
-const components = [ LayoutDockingComponent, LayoutDockingAreaComponent ];
+const components = [ LayoutDockingComponent, LayoutDockComponent, LayoutDockContainerComponent];
 
 @NgModule({
     entryComponents : [ ...components ],

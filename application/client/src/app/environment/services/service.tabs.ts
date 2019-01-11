@@ -1,13 +1,13 @@
 import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
-import { IDock } from './service.docks';
+import { DockDef } from './service.docks';
 import * as Tools from '../tools/index';
 
 export interface ITab {
     id?: string;
     name: string;
     active: boolean;
-    docks: IDock[];
+    dock: DockDef.IDock;
 }
 
 @Injectable({ providedIn: 'root' })
