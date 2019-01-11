@@ -12,8 +12,14 @@ export class DocksPositionsHolder extends Tools.Emitter {
         moved: Symbol()
     };
 
-    public add(id: string, position: DockDef.IDockPosition) {
+    private _docks: Map<string, DockDef.IDockPosition> = new Map();
 
+    public add(id: string, position: DockDef.IDockPosition) {
+        this._docks.set(id, position);
+    }
+
+    public get(id: string): DockDef.IDockPosition | undefined {
+        return this._docks.get(id);
     }
 
 

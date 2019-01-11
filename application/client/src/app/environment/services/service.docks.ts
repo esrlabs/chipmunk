@@ -3,84 +3,86 @@ import { DocksPositionsHolder } from './service.docks.positions';
 import * as Tools from '../tools/index';
 import * as DockDef from './service.docks.definitions';
 
+export { DockDef };
+
 export class DocksService {
 
-    private _subjectDocks = new Subject<DockDef.IDock>();
-    private _subjectCoors = new Subject<Map<string, DockDef.IDock>>();
-    private _subjectResized = new Subject<DockDef.ISubjectResized>();
-    private _subjectMoved = new Subject<DockDef.ISubjectMoved>();
-    private _subjectStartedManipulation = new Subject<string>();
-    private _subjectFinishedManipulation = new Subject<string>();
-    private _docks: Map<string, DockDef.IDock> = new Map();
+    private _subjects = {
+        dock: new Subject<DockDef.IDock>(),
+        resized: new Subject<DockDef.IPositionSubject>(),
+        moved: new Subject<DockDef.IPositionSubject>(),
+        resizeStarted: new Subject<string>(),
+        resizeFinished: new Subject<string>(),
+        dragStarted: new Subject<string>(),
+        dragFinished: new Subject<string>(),
+    };
+    private _dock: DockDef.IDock;
     private _sessionId: string = '';
     private _holder: DocksPositionsHolder = new DocksPositionsHolder();
 
-    constructor(sessionId: string, docks: DockDef.IDock[]) {
+    constructor(sessionId: string, dock: DockDef.IDock) {
         this._sessionId = sessionId;
-        // this._holder.subscribe(DocksPositionsHolder.EVENTS.reordered, this._onReordered.bind(this));
+        this._holder.subscribe(DocksPositionsHolder.EVENTS.reordered, this._onReordered.bind(this));
         this._holder.subscribe(DocksPositionsHolder.EVENTS.resized, this._onResized.bind(this));
         this._holder.subscribe(DocksPositionsHolder.EVENTS.moved, this._onMoved.bind(this));
-        if (docks instanceof Array) {
-            docks.forEach((dock: DockDef.IDock) => {
-                dock = this._normalize(dock);
-                if (dock === null) {
-                    return;
-                }
-                this._docks.set(dock.id, dock);
-                this._holder.add(dock.id, dock.position);
-            });
-        }
+        this._dock = this._normalize(dock);
     }
 
     public destroy() {
         this._holder.unsubscribeAll();
     }
 
-    public get(): Map<string, DockDef.IDock> {
-        return this._docks;
+    public get(): DockDef.IDock {
+        return this._dock;
     }
 
-    public add(dock: DockDef.IDock) {
+    public add(dock: DockDef.IDock, silence: boolean = false) {
         dock = this._normalize(dock);
         if (dock === null) {
             return;
         }
-        this._docks.set(dock.id, dock);
-        // this._coors.add(dock.id, dock.coor);
-        this._subjectDocks.next(dock);
+        // this._docks.set(dock.id, dock);
+        this._holder.add(dock.id, dock.position);
+        if (!silence) {
+            this._subjects.dock.next(dock);
+        }
     }
 
     public clear() {
-        this._docks.clear();
-        this._subjectDocks.next();
     }
 
-    public getDocksObservable(): Observable<DockDef.IDock> {
-        return this._subjectDocks.asObservable();
-    }
-
-    public getCoorsObservable(): Observable<Map<string, DockDef.IDock>> {
-        return this._subjectCoors.asObservable();
-    }
-
-    public getResizedObservable(): Observable<DockDef.ISubjectResized> {
-        return this._subjectResized.asObservable();
-    }
-
-    public getMovedObservable(): Observable<DockDef.ISubjectMoved> {
-        return this._subjectMoved.asObservable();
-    }
-
-    public getStartedManipulationObservable(): Observable<string> {
-        return this._subjectStartedManipulation.asObservable();
-    }
-
-    public getFinishedManipulationObservable(): Observable<string> {
-        return this._subjectFinishedManipulation.asObservable();
+    public getObservable(): {
+        dock: Observable<DockDef.IDock>,
+        docks: Observable<Map<string, DockDef.IDock>>,
+        resized: Observable<DockDef.IPositionSubject>,
+        moved: Observable<DockDef.IPositionSubject>,
+        resizeStarted: Observable<string>,
+        resizeFinished: Observable<string>,
+        dragStarted: Observable<string>,
+        dragFinished: Observable<string>,
+    } {
+        return {
+            dock: this._subjects.dock.asObservable(),
+            docks: this._subjects.docks.asObservable(),
+            resized: this._subjects.resized.asObservable(),
+            moved: this._subjects.moved.asObservable(),
+            resizeStarted: this._subjects.resizeStarted.asObservable(),
+            resizeFinished: this._subjects.resizeFinished.asObservable(),
+            dragStarted: this._subjects.dragStarted.asObservable(),
+            dragFinished: this._subjects.dragFinished.asObservable(),
+        };
     }
 
     public getSessionId(): string {
         return this._sessionId;
+    }
+
+    public dragStarted(id: string) {
+        this._subjects.dragStarted.next(id);
+    }
+
+    public dragFinished(id: string) {
+        this._subjects.dragFinished.next(id);
     }
 
     private _normalize(dock: DockDef.IDock): DockDef.IDock {
@@ -88,23 +90,50 @@ export class DocksService {
             return null;
         }
         dock.id = typeof dock.id === 'string' ? (dock.id.trim() !== '' ? dock.id : Tools.guid()) : Tools.guid();
+        dock.position = this._generatePosition(dock);
+        if (dock.child === undefined) {
+            return dock;
+        }
+        dock.child = this._normalize(dock.child);
         return dock;
     }
-/*
-    private _onReordered() {
-        this._docks.forEach((dock: DockDef.IDock, id: string) => {
-            dock.coor = this._coors.get(id);
-            this._docks.set(id, dock);
-        });
-        this._subjectCoors.next(this._docks);
-    }
-*/
-    private _onResized(data: DockDef.ISubjectResized) {
-        this._subjectResized.next(data);
+
+    private _generatePosition(dock: DockDef.IDock): DockDef.IDockPosition {
+        if (dock.position !== void 0) {
+            return dock.position;
+        }
+        if (dock.child === undefined) {
+            return {
+                position: Math.random() > 0.5 ? DockDef.EDockPosition.horizontal : DockDef.EDockPosition.vertical,
+                weight: 1
+            };
+        } else {
+            return {
+                position: Math.random() > 0.5 ? DockDef.EDockPosition.horizontal : DockDef.EDockPosition.vertical,
+                weight: 0.5
+            };
+        }
     }
 
-    private _onMoved(data: DockDef.ISubjectMoved) {
-        this._subjectMoved.next(data);
+    private _onReordered() {
+        /*
+        this._docks.forEach((dock: DockDef.IDock, id: string) => {
+            const position = this._holder.get(id);
+            if (position === undefined) {
+                return;
+            }
+            dock.position = position;
+        });
+        this._subjects.docks.next(this._docks);
+        */
+    }
+
+    private _onResized(data: DockDef.IPositionSubject) {
+        this._subjects.resized.next(data);
+    }
+
+    private _onMoved(data: DockDef.IPositionSubject) {
+        this._subjects.moved.next(data);
     }
 
 }

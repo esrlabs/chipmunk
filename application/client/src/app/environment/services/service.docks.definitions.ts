@@ -1,8 +1,6 @@
 export enum EDockPosition {
-    top = 'top',
-    left = 'left',
-    right = 'right',
-    bottom = 'bottom'
+    vertical = 'vertical',
+    horizontal = 'horizontal'
 }
 export interface IDockPosition {
     position: EDockPosition;
@@ -11,17 +9,17 @@ export interface IDockPosition {
 
 export interface IDock {
     id?: string;
+    child?: IDock;
     caption: string;
     position?: IDockPosition;
 }
 
-export interface ISubjectResized {
+export interface IDockContainer {
+    id?: string;
+    docks: IDock[];
+}
+
+export interface IPositionSubject {
     position: IDockPosition;
     id: string;
 }
-
-export interface ISubjectMoved {
-    position: IDockPosition;
-    id: string;
-}
-

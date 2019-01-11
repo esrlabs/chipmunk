@@ -1,0 +1,130 @@
+@import '../../../theme/scheme.less';
+
+@caption-height: 1.5rem;
+@resize-border-size: 3px;
+:host {
+    position: absolute;
+    display: block;
+    width: 100%;
+    height: 100%;
+    top:0;
+    left:0;
+    overflow: hidden;
+    & div.holder{
+        position: absolute;
+        display: block;
+        z-index: 1;
+    }
+    & div.resizer{
+        position: absolute;
+        display: block;
+        background: rgba(255,0,0,0.4);
+        z-index: 2;
+        &.vertical{
+            cursor: row-resize;
+        }
+        &.horizontal{
+            cursor: col-resize;
+        }
+    }
+    & div.draging-hook{
+        position: absolute;
+        width: 2rem;
+        height: 2rem;
+        top:0;
+        left:0;
+        background: red;
+    }
+    & div.parking-holder{
+        position: absolute;
+        display: block;
+        width: 100%;
+        height: 100%;
+        top:0;
+        left:0;
+        & div.parking{
+            position: absolute;
+            display: block;
+            &:after{
+                position: absolute;
+                display: block;
+                border:dashed thin black;
+                background: rgba(0,0,0,0.2);
+            }
+            &.top, &.bottom{
+                width: 50%;
+                height: 50%;
+                left:50%;
+                margin-left: -25%;
+                background: rgba(0,0,0,0.01);
+                &::after{
+                    left: -50%;
+                    right: -50%;
+                    height: 100%;
+                }
+            }
+            &.left, &.right{
+                width: 25%;
+                height: 100%;
+                top:0;
+                background: rgba(0,0,0,0.01);
+                &::after{
+                    width: 200%;
+                    height: 100%;
+                }
+            }
+            &.top{
+                top:0;
+                &::after{
+                    top:0;
+                }
+            }
+            &.bottom{
+                bottom:0;
+                &::after{
+                    bottom:0;
+                }
+            }
+            &.left{
+                left:0;
+                &::after{
+                    left:0;
+                }
+            }
+            &.right{
+                right:0;
+                &::after{
+                    right:0;
+                }
+            }
+        }
+        &.top {
+            & div.parking.top{
+                &::after{
+                    content: '';
+                }
+            }
+        }
+        &.bottom {
+            & div.parking.bottom{
+                &::after{
+                    content: '';
+                }
+            }
+        }
+        &.left {
+            & div.parking.left{
+                &::after{
+                    content: '';
+                }
+            }
+        }
+        &.right {
+            & div.parking.right{
+                &::after{
+                    content: '';
+                }
+            }
+        }
+    }
+}

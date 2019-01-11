@@ -1,5 +1,5 @@
 import { Component, Input, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { DocksService, EDockMode } from '../../../services/service.docks';
+import { DocksService } from '../../../services/service.docks';
 import { ITab, TabsService } from '../../../services/service.tabs';
 import { Subscription } from 'rxjs';
 
@@ -16,7 +16,7 @@ export class LayoutTabContentComponent implements OnDestroy {
     public service: DocksService | null = null;
     private _subscriptionTabActive: Subscription;
 
-    constructor(private _tabService: TabsService) {
+    constructor(private _tabService: TabsService, private _cdRef: ChangeDetectorRef) {
         this._subscriptionTabActive = this._tabService.getActiveObservable().subscribe(this.onActiveTabChange.bind(this));
     }
 
@@ -29,8 +29,8 @@ export class LayoutTabContentComponent implements OnDestroy {
         const _tab = await tab;
         if (_tab.active && id !== _tab.id) {
             this._tab = _tab;
-            this.service = new DocksService(this._tab.id, EDockMode.dock, this._tab.docks);
-
+            this.service = new DocksService(this._tab.id, this._tab.dock);
+            // this._cdRef.detectChanges();
         }
     }
 
