@@ -84,6 +84,9 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
         this.draggedDockId = dockId;
         this.service.dragStarted(dockId);
         this._cdRef.detectChanges();
+        setTimeout(() => {
+            this._updatePosition();
+        }, REDRAW_DELAY);
     }
 
     public onStartDrag(event: DragEvent, dockId: string) {
@@ -183,11 +186,11 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
     }
 
     private _updatePosition() {
-        if (this.dock.id === this.draggedDockId && this.dock.child !== void 0) {
+        if (this.draggable && this.dock.child !== void 0) {
             this.positions.child = { t: '0', l: '0', w: '100%', h: '100%' };
             return this._cdRef.detectChanges();
         }
-        if (this.dock.child !== void 0 && this.dock.child.id === this.draggedDockId) {
+        if (this.dock.child !== void 0 && this.draggedDockId === this.dock.child.id && this.dock.child.child === void 0) {
             this.positions.dock = { t: '0', l: '0', w: '100%', h: '100%' };
             return this._cdRef.detectChanges();
         }
