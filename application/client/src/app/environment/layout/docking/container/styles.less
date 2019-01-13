@@ -14,6 +14,9 @@
         position: absolute;
         display: block;
         z-index: 1;
+        &[draggable=true]{
+            
+        }
     }
     & div.resizer{
         position: absolute;
@@ -47,9 +50,11 @@
             display: block;
             &:after{
                 position: absolute;
-                display: block;
+                display: none;
                 border:dashed thin black;
                 background: rgba(0,0,0,0.2);
+                z-index: 2;
+                content: '';
             }
             &.top, &.bottom{
                 width: 50%;
@@ -57,7 +62,7 @@
                 left:50%;
                 margin-left: -25%;
                 background: rgba(0,0,0,0.01);
-                &::after{
+                &:after{
                     left: -50%;
                     right: -50%;
                     height: 100%;
@@ -68,63 +73,47 @@
                 height: 100%;
                 top:0;
                 background: rgba(0,0,0,0.01);
-                &::after{
+                &:after{
                     width: 200%;
                     height: 100%;
                 }
             }
             &.top{
                 top:0;
-                &::after{
+                &:after{
                     top:0;
                 }
             }
             &.bottom{
                 bottom:0;
-                &::after{
+                &:after{
                     bottom:0;
                 }
             }
             &.left{
                 left:0;
-                &::after{
+                &:after{
                     left:0;
                 }
             }
             &.right{
                 right:0;
-                &::after{
+                &:after{
                     right:0;
                 }
             }
         }
-        &.top {
-            & div.parking.top{
-                &::after{
-                    content: '';
-                }
-            }
+        &.top div.parking.top:after{
+            display: block;
         }
-        &.bottom {
-            & div.parking.bottom{
-                &::after{
-                    content: '';
-                }
-            }
+        &.bottom div.parking.bottom:after{
+            display: block;
         }
-        &.left {
-            & div.parking.left{
-                &::after{
-                    content: '';
-                }
-            }
+        &.left div.parking.left:after{
+            display: block;
         }
-        &.right {
-            & div.parking.right{
-                &::after{
-                    content: '';
-                }
-            }
+        &.right div.parking.right:after{
+            display: block;
         }
     }
 }

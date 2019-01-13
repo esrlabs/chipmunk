@@ -17,6 +17,8 @@ enum EActivities {
     resizing = 'resizing'
 }
 
+const REDRAW_DELAY = 150;
+
 @Component({
     selector: 'app-layout-docking-container',
     templateUrl: './template.html',
@@ -77,28 +79,46 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
     }
 
     public onDragTrigger(event: MouseEvent, dockId: string) {
+        this.draggable = true;
         this._activity = EActivities.dragingTrigger;
         this.draggedDockId = dockId;
-        this.draggable = true;
-        this._cdRef.detectChanges();
         this.service.dragStarted(dockId);
-        console.log(dockId);
+        this._cdRef.detectChanges();
     }
 
     public onStartDrag(event: DragEvent, dockId: string) {
+        setTimeout(() => {
+            (event.srcElement as HTMLElement).style.visibility = 'hidden';
+        }, REDRAW_DELAY);
     }
 
     public onEndDrag(event: DragEvent, dockId: string) {
         this._finishActivity();
-        this.service.dragFinished(dockId);
+        (event.srcElement as HTMLElement).style.visibility = '';
+        this.service.dragFinished(this.draggedDockId);
     }
 
-    public onDragOver(event: DragEvent, parking: string) {
+    public onDragOver(event: DragEvent, parking: string, hostDockId: string) {
+        event.preventDefault();
+        if (this.activeParking === parking) {
+            return;
+        }
         this.activeParking = parking;
+        console.log(`Dock host [OVER]: ${hostDockId}`);
+        // event.dataTransfer.dropEffect = "move";
     }
 
-    public onDragLeave(event: DragEvent) {
+    public onDragLeave(event: DragEvent, hostDockId: string) {
+        if (this.activeParking === '') {
+            return;
+        }
         this.activeParking = '';
+        console.log(`Dock host [LEAVE]: ${hostDockId}`);
+    }
+
+    public onDragDrop(event: DragEvent, parking: string, hostDockId: string) {
+        event.preventDefault();
+        console.log(`Dock host [DROP]: parking: ${parking}; host: ${hostDockId}; dragged: ${this.draggedDockId}`);
     }
 
     public onResizeTrigger(event: MouseEvent) {
@@ -163,6 +183,14 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
     }
 
     private _updatePosition() {
+        if (this.dock.id === this.draggedDockId && this.dock.child !== void 0) {
+            this.positions.child = { t: '0', l: '0', w: '100%', h: '100%' };
+            return this._cdRef.detectChanges();
+        }
+        if (this.dock.child !== void 0 && this.dock.child.id === this.draggedDockId) {
+            this.positions.dock = { t: '0', l: '0', w: '100%', h: '100%' };
+            return this._cdRef.detectChanges();
+        }
         this.positions = {
             dock: { t: '0', l: '0', w: '100%', h: '100%' },
             child: { t: '0', l: '0', w: '100%', h: '100%' },
@@ -200,16 +228,22 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
     }
 
     private _onDragStarted(id: string) {
+        if (this.draggedDockId !== '' && this.draggedDockId === id) {
+            return;
+        }
         this.draggedDockId = id;
         this.parking = true;
-        // this._cdRef.detectChanges();
+        this._updatePosition();
         console.log(`started with: ${id}`);
     }
 
     private _onDragFinished(id: string) {
+        if (this.draggedDockId === '') {
+            return;
+        }
         this.draggedDockId = '';
         this.parking = false;
-        // this._cdRef.detectChanges();
+        this._updatePosition();
         console.log(`finished with: ${id}`);
     }
 

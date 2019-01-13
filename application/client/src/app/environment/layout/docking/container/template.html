@@ -1,30 +1,23 @@
-<div class="holder" 
-    [ngStyle]="{'top': positions.dock.t, 'left': positions.dock.l, 'width': positions.dock.w, 'height': positions.dock.h}" 
+<div [attr.class]="'holder'"  
+    [ngStyle]="{'top': positions.dock.t, 'left': positions.dock.l, 'width': positions.dock.w, 'height': positions.dock.h }" 
     [attr.draggable]="draggable && draggedDockId === dock.id"
     (dragstart)="onStartDrag($event, dock.id)"
     (dragend)="onEndDrag($event, dock.id)">
     <app-layout-docking-dock [dock]="dock"></app-layout-docking-dock>
-    <div class="draging-hook" (mousedown)="onDragTrigger($event, dock.id)"></div>
+    <div *ngIf="draggedDockId === ''" class="draging-hook" (mousedown)="onDragTrigger($event, dock.id)"></div>
     <div *ngIf="parking && draggedDockId !== dock.id" [attr.class]="'parking-holder ' + activeParking">
-        <div class="parking top" (dragover)="onDragOver($event, 'top')" (dragleave)="onDragLeave($event)"></div>
-        <div class="parking bottom" (dragover)="onDragOver($event, 'bottom')" (dragleave)="onDragLeave($event)"></div>
-        <div class="parking left" (dragover)="onDragOver($event, 'left')" (dragleave)="onDragLeave($event)"></div>
-        <div class="parking right" (dragover)="onDragOver($event, 'right')" (dragleave)="onDragLeave($event)"></div>
+        <div class="parking top" (dragover)="onDragOver($event, 'top', dock.id)" (dragleave)="onDragLeave($event, dock.id)" (drop)="onDragDrop($event, 'top', dock.id)"></div>
+        <div class="parking bottom" (dragover)="onDragOver($event, 'bottom', dock.id)" (dragleave)="onDragLeave($event, dock.id)" (drop)="onDragDrop($event, 'top', dock.id)"></div>
+        <div class="parking left" (dragover)="onDragOver($event, 'left', dock.id)" (dragleave)="onDragLeave($event, dock.id)" (drop)="onDragDrop($event, 'top', dock.id)"></div>
+        <div class="parking right" (dragover)="onDragOver($event, 'right', dock.id)" (dragleave)="onDragLeave($event, dock.id)" (drop)="onDragDrop($event, 'top', dock.id)"></div>
     </div>
 </div>
 <div *ngIf="dock.child !== undefined" 
-    class="holder" 
-    [ngStyle]="{'top': positions.child.t, 'left': positions.child.l, 'width': positions.child.w, 'height': positions.child.h}" 
+    [attr.class]="'holder'" 
+    [ngStyle]="{'top': positions.child.t, 'left': positions.child.l, 'width': positions.child.w, 'height': positions.child.h }" 
     [attr.draggable]="draggable && draggedDockId === dock.child.id"
     (dragstart)="onStartDrag($event, dock.id)"
     (dragend)="onEndDrag($event, dock.child.id)">
     <app-layout-docking-container [dock]="dock.child" [service]="service"></app-layout-docking-container>
-    <div class="draging-hook" (mousedown)="onDragTrigger($event, dock.child.id)"></div>
-    <div *ngIf="parking && draggedDockId !== dock.child.id" [attr.class]="'parking-holder ' + activeParking">
-        <div class="parking top" (dragover)="onDragOver($event, 'top')" (dragleave)="onDragLeave($event)"></div>
-        <div class="parking bottom" (dragover)="onDragOver($event, 'bottom')" (dragleave)="onDragLeave($event)"></div>
-        <div class="parking left" (dragover)="onDragOver($event, 'left')" (dragleave)="onDragLeave($event)"></div>
-        <div class="parking right" (dragover)="onDragOver($event, 'right')" (dragleave)="onDragLeave($event)"></div>
-    </div>
 </div>
-<div *ngIf="dock.child !== undefined" [attr.class]="'resizer ' + (dock.position.position === 'vertical' ? 'vertical' : 'horizontal')" (mousedown)="onResizeTrigger($event)" [ngStyle]="{'top': positions.resizer.t, 'left': positions.resizer.l, 'width': positions.resizer.w, 'height': positions.resizer.h}"></div>
+<div *ngIf="dock.child !== undefined && draggedDockId !== dock.child.id" [attr.class]="'resizer ' + (dock.position.position === 'vertical' ? 'vertical' : 'horizontal')" (mousedown)="onResizeTrigger($event)" [ngStyle]="{'top': positions.resizer.t, 'left': positions.resizer.l, 'width': positions.resizer.w, 'height': positions.resizer.h}"></div>
