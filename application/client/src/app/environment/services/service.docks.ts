@@ -53,7 +53,6 @@ export class DocksService {
 
     public getObservable(): {
         dock: Observable<DockDef.IDock>,
-        docks: Observable<Map<string, DockDef.IDock>>,
         resized: Observable<DockDef.IPositionSubject>,
         moved: Observable<DockDef.IPositionSubject>,
         resizeStarted: Observable<string>,
@@ -63,7 +62,6 @@ export class DocksService {
     } {
         return {
             dock: this._subjects.dock.asObservable(),
-            docks: this._subjects.docks.asObservable(),
             resized: this._subjects.resized.asObservable(),
             moved: this._subjects.moved.asObservable(),
             resizeStarted: this._subjects.resizeStarted.asObservable(),

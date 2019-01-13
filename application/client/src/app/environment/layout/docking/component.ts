@@ -26,9 +26,9 @@ export class LayoutDockingComponent implements OnChanges, OnDestroy {
     private _height: number = -1;
 
     private _subscriptions: {
-        docks: Subscription | null,
+        dock: Subscription | null,
     } = {
-        docks: null
+        dock: null
     };
 
     private _sessionId: string = '';
@@ -43,11 +43,11 @@ export class LayoutDockingComponent implements OnChanges, OnDestroy {
             return;
         }
         if (this.service.getSessionId() !== this._sessionId) {
-            if (this._subscriptions.docks !== null) {
-                this._subscriptions.docks.unsubscribe();
+            if (this._subscriptions.dock !== null) {
+                this._subscriptions.dock.unsubscribe();
             }
             this._resetDock();
-            this._subscriptions.docks = this.service.getObservable().docks.subscribe(this._onAddDock.bind(this));
+            this._subscriptions.dock = this.service.getObservable().dock.subscribe(this._onAddDock.bind(this));
             this.dock = this.service.get();
             this._cdRef.detectChanges();
         }
