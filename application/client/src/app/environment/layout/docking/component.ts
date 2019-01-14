@@ -1,7 +1,6 @@
 import { Component, Input, OnChanges, OnDestroy, ChangeDetectorRef, ViewContainerRef } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { DockDef, DocksService } from '../../services/service.docks';
-import { Subject } from 'rxjs';
 
 import * as Tools from '../../tools/index';
 

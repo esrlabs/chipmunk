@@ -95,8 +95,30 @@ export class DocksService {
 
     public dragDrop(data: DockDef.IDockDrop) {
         this._subjects.dragDrop.next(data);
-        const host: DockDef.IDock = this._getById(data.host);
-
+        const host: DockDef.IDock = Object.assign({}, this._getById(data.host));
+        const target: DockDef.IDock = Object.assign({}, this._getById(data.target));
+        const hostPos = host.position;
+        ['child', 'id', 'position'].forEach((field: string) => {
+            delete target[field];
+            delete host[field];
+        });
+        target.position = hostPos;
+        switch (data.parking) {
+            case 'top':
+            case 'left':
+                if (data.parking === 'top') {
+                    target.position.position = DockDef.EDockPosition.vertical;
+                } else {
+                    target.position.position = DockDef.EDockPosition.horizontal;
+                }
+                this._update(data.host, target);
+                this._update(data.target, host);
+                break;
+            case 'bottom':
+            case 'right':
+                break;
+        }
+        console.log(data, host, target);
     }
 
     private _getById(id: string, dock?: DockDef.IDock): DockDef.IDock | null {
@@ -109,6 +131,18 @@ export class DocksService {
             return this._getById(id, dock.child);
         }
         return null;
+    }
+
+    private _update(id: string, update: any): void {
+        const dock: DockDef.IDock = this._getById(id);
+        if (dock === null) {
+            return;
+        }
+        Object.keys(dock).forEach((key: string) => {
+            if (update[key] !== void 0) {
+                dock[key] = update[key];
+            }
+        });
     }
 
     private _normalize(dock: DockDef.IDock): DockDef.IDock {

@@ -122,7 +122,7 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
 
     public onDragDrop(event: DragEvent, parking: string, hostDockId: string) {
         event.preventDefault();
-        this.service.dragDrop({ host: hostDockId, target: this.draggedDockId});
+        this.service.dragDrop({ host: hostDockId, target: this.draggedDockId, parking: parking});
     }
 
     public onResizeTrigger(event: MouseEvent) {
