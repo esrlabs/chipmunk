@@ -1,4 +1,5 @@
 import { events as Events               } from './controller.events';
+import { Logs, TYPES as LogTypes        } from './tools.logs';
 import { configuration as Configuration } from './controller.config';
 import { popupController                } from '../components/common/popup/controller';
 import { DialogUpdate                   } from '../components/common/dialogs/update/component';
@@ -95,11 +96,15 @@ class Updater {
         if (this.info !== null) {
             return;
         }
+        if (typeof info !== 'object' || info === null || 
+            typeof info.release !== 'object' || info.release === null || 
+            typeof info.release.name !== 'string' || info.release.name.trim() === '') {
+            return;
+        }
         this.info = info;
-        const version = typeof info === 'object' ? (info !== null ? (info.release !== void 0 ? (typeof info.release.name === 'string' ? info.release.name : null) : null) : null) : null
         Events.trigger(Configuration.sets.SYSTEM_EVENTS.CREATE_NOTIFICATION, {
             caption: 'Update',
-            message: `New version${version !== null ? ` (${version}) ` : ' '}is available. Do you want install it?`,
+            message: `New version ${info.release.name} is available. Do you want install it?`,
             buttons: [{ caption: 'Install', handler: ()=>{
                 this.requestUpdate();
             }}, { caption: 'Later', handler: ()=>{

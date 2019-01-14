@@ -109,7 +109,9 @@ class Starter {
 			x       : state.bounds !== void 0 ? (state.bounds.x !== void 0 ? state.bounds.x: undefined) : undefined,
 			y       : state.bounds !== void 0 ? (state.bounds.y !== void 0 ? state.bounds.y: undefined) : undefined,
 		};
-		this._window = new BrowserWindow(Object.assign({}, this._state));
+		this._window = new BrowserWindow(Object.assign({ webPreferences: {
+			devTools: true
+		}}, this._state));
 		// and load the index.html of the app.
 		this._window.loadURL(url.format({
 			pathname: path.join(__dirname, `client/index.html`),
