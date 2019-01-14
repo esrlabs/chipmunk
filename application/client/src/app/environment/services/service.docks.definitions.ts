@@ -23,3 +23,8 @@ export interface IPositionSubject {
     position: IDockPosition;
     id: string;
 }
+
+export interface IDockDrop {
+    host: string;
+    target: string;
+}
