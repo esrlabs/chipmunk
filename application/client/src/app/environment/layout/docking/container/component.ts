@@ -44,9 +44,11 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
     private _subscriptions: {
         dragStarted: Subscription | null,
         dragFinished: Subscription | null,
+        dragOver: Subscription | null,
     } = {
         dragStarted: null,
         dragFinished: null,
+        dragOver: null,
     };
     private _width: number = -1;
     private _height: number = -1;
@@ -76,22 +78,13 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
     ngAfterViewInit() {
         this._subscriptions.dragStarted = this.service.getObservable().dragStarted.subscribe(this._onDragStarted.bind(this));
         this._subscriptions.dragFinished = this.service.getObservable().dragFinished.subscribe(this._onDragFinished.bind(this));
+        this._subscriptions.dragOver = this.service.getObservable().dragOver.subscribe(this._onDragOver.bind(this));
         this._updatePosition();
     }
 
     public onDragTrigger(event: MouseEvent, dockId: string) {
         this.draggable = true;
         this._activity = EActivities.dragingTrigger;
-        /*
-        this.draggable = true;
-        this._activity = EActivities.dragingTrigger;
-        this.draggedDockId = dockId;
-        this.service.dragStarted(dockId);
-        this._cdRef.detectChanges();
-        setTimeout(() => {
-            this._updatePosition();
-        }, REDRAW_DELAY);
-        */
     }
 
     public onStartDrag(event: DragEvent, dockId: string) {
@@ -117,7 +110,7 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
             return;
         }
         this.activeParking = parking;
-        console.log(`Dock host [OVER]: ${hostDockId}`);
+        this.service.dragOver(hostDockId);
     }
 
     public onDragLeave(event: DragEvent, hostDockId: string) {
@@ -125,12 +118,11 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
             return;
         }
         this.activeParking = '';
-        console.log(`Dock host [LEAVE]: ${hostDockId}`);
     }
 
     public onDragDrop(event: DragEvent, parking: string, hostDockId: string) {
         event.preventDefault();
-        console.log(`Dock host [DROP]: parking: ${parking}; host: ${hostDockId}; dragged: ${this.draggedDockId}`);
+        this.service.dragDrop({ host: hostDockId, target: this.draggedDockId});
     }
 
     public onResizeTrigger(event: MouseEvent) {
@@ -140,7 +132,6 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
         this._movement.scaleY = this._height / 100;
         this._movement.x = event.x;
         this._movement.y = event.y;
-        console.log(this._movement);
     }
 
     private _onMouseMove(event: MouseEvent) {
@@ -246,7 +237,6 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
         this.draggedDockId = id;
         this.parking = true;
         this._updatePosition();
-        console.log(`started with: ${id}`);
     }
 
     private _onDragFinished(id: string) {
@@ -256,7 +246,16 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
         this.draggedDockId = '';
         this.parking = false;
         this._updatePosition();
-        console.log(`finished with: ${id}`);
+    }
+
+    private _onDragOver(id: string) {
+        if (this.dock.id === id) {
+            return;
+        }
+        if (this.activeParking === '') {
+            return;
+        }
+        this.activeParking = '';
     }
 
 }

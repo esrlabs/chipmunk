@@ -15,6 +15,8 @@ export class DocksService {
         resizeFinished: new Subject<string>(),
         dragStarted: new Subject<string>(),
         dragFinished: new Subject<string>(),
+        dragOver: new Subject<string>(),
+        dragDrop: new Subject<DockDef.IDockDrop>(),
     };
     private _dock: DockDef.IDock;
     private _sessionId: string = '';
@@ -59,6 +61,8 @@ export class DocksService {
         resizeFinished: Observable<string>,
         dragStarted: Observable<string>,
         dragFinished: Observable<string>,
+        dragOver: Observable<string>,
+        dragDrop: Observable<DockDef.IDockDrop>,
     } {
         return {
             dock: this._subjects.dock.asObservable(),
@@ -68,6 +72,8 @@ export class DocksService {
             resizeFinished: this._subjects.resizeFinished.asObservable(),
             dragStarted: this._subjects.dragStarted.asObservable(),
             dragFinished: this._subjects.dragFinished.asObservable(),
+            dragOver: this._subjects.dragOver.asObservable(),
+            dragDrop: this._subjects.dragDrop.asObservable(),
         };
     }
 
@@ -81,6 +87,28 @@ export class DocksService {
 
     public dragFinished(id: string) {
         this._subjects.dragFinished.next(id);
+    }
+
+    public dragOver(id: string) {
+        this._subjects.dragOver.next(id);
+    }
+
+    public dragDrop(data: DockDef.IDockDrop) {
+        this._subjects.dragDrop.next(data);
+        const host: DockDef.IDock = this._getById(data.host);
+
+    }
+
+    private _getById(id: string, dock?: DockDef.IDock): DockDef.IDock | null {
+        if (dock === undefined || typeof id !== 'string') {
+            dock = this._dock;
+        }
+        if (dock.id === id) {
+            return dock;
+        } else if (dock.child !== undefined) {
+            return this._getById(id, dock.child);
+        }
+        return null;
     }
 
     private _normalize(dock: DockDef.IDock): DockDef.IDock {
