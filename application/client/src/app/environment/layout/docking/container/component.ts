@@ -58,9 +58,10 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
     } = { x: 0, y: 0, scaleX: 1, scaleY: 1 };
 
     private _activity: EActivities = EActivities.pending;
+    private _dragStartTimer: any = -1;
 
-    constructor(private _cdRef: ChangeDetectorRef,
-        private _vcRef: ViewContainerRef) {
+    constructor(private _cdRef: ChangeDetectorRef, private _vcRef: ViewContainerRef) {
+        this._subscribeToWinEvents();
     }
 
     ngOnDestroy() {
@@ -81,23 +82,32 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
     public onDragTrigger(event: MouseEvent, dockId: string) {
         this.draggable = true;
         this._activity = EActivities.dragingTrigger;
+        /*
+        this.draggable = true;
+        this._activity = EActivities.dragingTrigger;
         this.draggedDockId = dockId;
         this.service.dragStarted(dockId);
         this._cdRef.detectChanges();
         setTimeout(() => {
             this._updatePosition();
         }, REDRAW_DELAY);
+        */
     }
 
     public onStartDrag(event: DragEvent, dockId: string) {
-        setTimeout(() => {
+        this._dragStartTimer = setTimeout(() => {
+            this.draggedDockId = dockId;
+            this.service.dragStarted(dockId);
+            this._cdRef.detectChanges();
+            this._updatePosition();
             (event.srcElement as HTMLElement).style.visibility = 'hidden';
         }, REDRAW_DELAY);
     }
 
     public onEndDrag(event: DragEvent, dockId: string) {
-        this._finishActivity();
+        clearTimeout(this._dragStartTimer);
         (event.srcElement as HTMLElement).style.visibility = '';
+        this._onMouseUp(event); // During dragging default mouse event is prevented. That's why we need trigger mouseup manually
         this.service.dragFinished(this.draggedDockId);
     }
 
@@ -108,7 +118,6 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
         }
         this.activeParking = parking;
         console.log(`Dock host [OVER]: ${hostDockId}`);
-        // event.dataTransfer.dropEffect = "move";
     }
 
     public onDragLeave(event: DragEvent, hostDockId: string) {
@@ -125,7 +134,6 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
     }
 
     public onResizeTrigger(event: MouseEvent) {
-        this._subscribeToWinEvents();
         this._activity = EActivities.resizing;
         this._updateSizeData();
         this._movement.scaleX = this._width / 100;
@@ -137,7 +145,7 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
 
     private _onMouseMove(event: MouseEvent) {
         if (this._activity === EActivities.pending) {
-            return this._unsubscribeToWinEvents();
+            return;
         }
         if (this._activity === EActivities.resizing) {
             const dX = event.x - this._movement.x;
@@ -157,20 +165,21 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
     }
 
     private _onMouseUp(event: MouseEvent) {
-        this._finishActivity();
-    }
-
-    private _finishActivity() {
-        this._unsubscribeToWinEvents();
+        if (this._activity === EActivities.pending) {
+            return;
+        }
         switch (this._activity) {
             case EActivities.resizing:
+                this._movement.x = -1;
+                this._movement.y = -1;
                 break;
             case EActivities.dragingTrigger:
                 this.draggable = false;
-                this._cdRef.detectChanges();
+                this._dragStartTimer = -1;
                 break;
         }
         this._activity = EActivities.pending;
+        this._cdRef.detectChanges();
     }
 
     private _subscribeToWinEvents() {
