@@ -27,4 +27,5 @@ export interface IPositionSubject {
 export interface IDockDrop {
     host: string;
     target: string;
+    parking: string;
 }

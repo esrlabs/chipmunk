@@ -7,9 +7,9 @@
     <div *ngIf="draggedDockId === ''" class="draging-hook" (mousedown)="onDragTrigger($event, dock.id)"></div>
     <div *ngIf="parking && !draggable" [attr.class]="'parking-holder ' + activeParking">
         <div class="parking top" (dragover)="onDragOver($event, 'top', dock.id)" (dragleave)="onDragLeave($event, dock.id)" (drop)="onDragDrop($event, 'top', dock.id)"></div>
-        <div class="parking bottom" (dragover)="onDragOver($event, 'bottom', dock.id)" (dragleave)="onDragLeave($event, dock.id)" (drop)="onDragDrop($event, 'top', dock.id)"></div>
-        <div class="parking left" (dragover)="onDragOver($event, 'left', dock.id)" (dragleave)="onDragLeave($event, dock.id)" (drop)="onDragDrop($event, 'top', dock.id)"></div>
-        <div class="parking right" (dragover)="onDragOver($event, 'right', dock.id)" (dragleave)="onDragLeave($event, dock.id)" (drop)="onDragDrop($event, 'top', dock.id)"></div>
+        <div class="parking bottom" (dragover)="onDragOver($event, 'bottom', dock.id)" (dragleave)="onDragLeave($event, dock.id)" (drop)="onDragDrop($event, 'bottom', dock.id)"></div>
+        <div class="parking left" (dragover)="onDragOver($event, 'left', dock.id)" (dragleave)="onDragLeave($event, dock.id)" (drop)="onDragDrop($event, 'left', dock.id)"></div>
+        <div class="parking right" (dragover)="onDragOver($event, 'right', dock.id)" (dragleave)="onDragLeave($event, dock.id)" (drop)="onDragDrop($event, 'right', dock.id)"></div>
     </div>
 </div>
 <div *ngIf="dock.child !== undefined" 
