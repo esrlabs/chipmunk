@@ -7,7 +7,7 @@ export interface ITab {
     id?: string;
     name: string;
     active: boolean;
-    dock: DockDef.IDock;
+    dock: DockDef.Container;
 }
 
 @Injectable({ providedIn: 'root' })

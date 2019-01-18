@@ -1,6 +1,8 @@
 import { AfterViewInit, Component, Compiler, Injector, ViewChild, ViewContainerRef } from '@angular/core';
 import { NotificationsService } from './environment/services/service.notifications';
 import { TabsService } from './environment/services/service.tabs';
+import { DockDef } from './environment/services/service.docks';
+
 import * as AngularCore from '@angular/core';
 import * as AngularCommon from '@angular/common';
 
@@ -38,31 +40,59 @@ export class AppComponent implements AfterViewInit {
     this._tabs.add({
       name: 'Tab 1 (3)',
       active: true,
-      dock: { caption: 'text 1', child: { caption: 'text 2', child: { caption: 'text 3'} } }
+      dock: new DockDef.Container({
+        a: new DockDef.Dock({ caption: 'Dock 1' }),
+        b: new DockDef.Container({
+          a: new DockDef.Dock({ caption: 'Dock 2' }),
+          b: new DockDef.Dock({ caption: 'Dock 3' })
+        })
+      })
     });
     this._tabs.add({
       name: 'Tab 2 (2)',
       active: false,
-      dock: { caption: 'text 1', child: { caption: 'text 2' } }
-
+      dock: new DockDef.Container({
+        a: new DockDef.Dock({ caption: 'Dock 1' }),
+        b: new DockDef.Dock({ caption: 'Dock 2' })
+      })
     });
     this._tabs.add({
       name: 'Tab 3 (4)',
       active: false,
-      dock: { caption: 'text 1', child: { caption: 'text 2', child: { caption: 'text 3', child: { caption: 'text 4' }} } }
-
+      dock: new DockDef.Container({
+        a: new DockDef.Container({
+          a: new DockDef.Dock({ caption: '1' }),
+          b: new DockDef.Dock({ caption: '2' })
+        }),
+        b: new DockDef.Container({
+          a: new DockDef.Dock({ caption: '3' }),
+          b: new DockDef.Dock({ caption: '4' })
+        })
+      })
     });
     this._tabs.add({
       name: 'Tab 4 (5)',
       active: false,
-      dock: { caption: 'text 1', child: { caption: 'text 2', child: { caption: 'text 3', child: { caption: 'text 4', child: { caption: 'text 5' } }} } }
-
+      dock: new DockDef.Container({
+        a: new DockDef.Container({
+          a: new DockDef.Dock({ caption: 'Dock 1' }),
+          b: new DockDef.Dock({ caption: 'Dock 2' })
+        }),
+        b: new DockDef.Container({
+          a: new DockDef.Dock({ caption: 'Dock 3' }),
+          b: new DockDef.Container({
+            a: new DockDef.Dock({ caption: 'Dock 4' }),
+            b: new DockDef.Dock({ caption: 'Dock 5' })
+          })
+        })
+      })
     });
     this._tabs.add({
       name: 'Tab 5 (1)',
       active: false,
-      dock: { caption: 'text 1' }
-
+      dock: new DockDef.Container({
+        a: new DockDef.Dock({ caption: 'Dock 1' })
+      })
     });
     return;
     const path = 'assets/plugin-c.umd.js';

@@ -10,110 +10,128 @@
     top:0;
     left:0;
     overflow: hidden;
-    & div.holder{
+    & .direction{
         position: absolute;
         display: block;
-        z-index: 1;
-        &[draggable=true]{
-            
-        }
+        z-index: 10;
+        top: 4rem;
     }
     & div.resizer{
         position: absolute;
         display: block;
-        background: rgba(255,0,0,0.4);
         z-index: 2;
         &.vertical{
-            cursor: row-resize;
-        }
-        &.horizontal{
             cursor: col-resize;
         }
+        &.horizontal{
+            cursor: row-resize;
+        }
     }
-    & div.draging-hook{
-        position: absolute;
-        width: 2rem;
-        height: 2rem;
-        top:0;
-        left:0;
-        background: red;
-    }
-    & div.parking-holder{
+    & div.wrapper {
         position: absolute;
         display: block;
         width: 100%;
         height: 100%;
         top:0;
         left:0;
-        & div.parking{
+        pointer-events: none;
+        & * {
+            pointer-events: all;
+        }
+        & div.holder{
             position: absolute;
             display: block;
-            &:after{
+            z-index: 1;
+            &[draggable=true]{
+                
+            }
+        }
+        & div.draging-hook{
+            position: absolute;
+            width: 2rem;
+            height: 2rem;
+            top:0;
+            left:0;
+            background: red;
+        }
+        & div.parking-holder{
+            position: absolute;
+            display: block;
+            width: 100%;
+            height: 100%;
+            top:0;
+            left:0;
+            & div.parking{
                 position: absolute;
-                display: none;
-                border:dashed thin black;
-                background: rgba(0,0,0,0.2);
-                z-index: 2;
-                content: '';
-            }
-            &.top, &.bottom{
-                width: 50%;
-                height: 50%;
-                left:50%;
-                margin-left: -25%;
-                background: rgba(0,0,0,0.01);
+                display: block;
                 &:after{
-                    left: -50%;
-                    right: -50%;
-                    height: 100%;
+                    position: absolute;
+                    display: none;
+                    border:dashed thin black;
+                    background: rgba(0,0,0,0.2);
+                    z-index: 2;
+                    content: '';
                 }
-            }
-            &.left, &.right{
-                width: 25%;
-                height: 100%;
-                top:0;
-                background: rgba(0,0,0,0.01);
-                &:after{
-                    width: 200%;
-                    height: 100%;
+                &.top, &.bottom{
+                    width: 50%;
+                    height: 50%;
+                    left:50%;
+                    margin-left: -25%;
+                    background: rgba(0,0,0,0.01);
+                    &:after{
+                        left: -50%;
+                        right: -50%;
+                        height: 100%;
+                    }
                 }
-            }
-            &.top{
-                top:0;
-                &:after{
+                &.left, &.right{
+                    width: 25%;
+                    height: 100%;
                     top:0;
+                    background: rgba(0,0,0,0.01);
+                    &:after{
+                        width: 200%;
+                        height: 100%;
+                    }
                 }
-            }
-            &.bottom{
-                bottom:0;
-                &:after{
+                &.top{
+                    top:0;
+                    &:after{
+                        top:0;
+                    }
+                }
+                &.bottom{
                     bottom:0;
+                    &:after{
+                        bottom:0;
+                    }
                 }
-            }
-            &.left{
-                left:0;
-                &:after{
+                &.left{
                     left:0;
+                    &:after{
+                        left:0;
+                    }
                 }
-            }
-            &.right{
-                right:0;
-                &:after{
+                &.right{
                     right:0;
+                    &:after{
+                        right:0;
+                    }
                 }
             }
-        }
-        &.top div.parking.top:after{
-            display: block;
-        }
-        &.bottom div.parking.bottom:after{
-            display: block;
-        }
-        &.left div.parking.left:after{
-            display: block;
-        }
-        &.right div.parking.right:after{
-            display: block;
+            &.top div.parking.top:after{
+                display: block;
+            }
+            &.bottom div.parking.bottom:after{
+                display: block;
+            }
+            &.left div.parking.left:after{
+                display: block;
+            }
+            &.right div.parking.right:after{
+                display: block;
+            }
         }
     }
+
 }
