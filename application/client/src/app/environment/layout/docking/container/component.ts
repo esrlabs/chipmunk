@@ -1,4 +1,4 @@
-import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef } from '@angular/core';
+import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, OnChanges } from '@angular/core';
 import { DockDef, DocksService } from '../../../services/service.docks';
 import { Subscription } from 'rxjs';
 import { Observable } from 'rxjs';
@@ -9,11 +9,13 @@ interface IWrapperPosition {
     l: string;
     w: string;
     h: string;
+    draggable: boolean;
+    place: string;      // parking place,
+    parking: boolean;   // parking activation
 }
 
 enum EActivities {
     pending = 'pending',
-    dragingTrigger = 'dragingTrigger',
     resizing = 'resizing'
 }
 
@@ -25,21 +27,24 @@ const REDRAW_DELAY = 150;
     styleUrls: ['./styles.less']
 })
 
-export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
+export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy, OnChanges {
 
-    @Input() public dock: DockDef.IDock;
+    @Input() public dock: DockDef.Container;
     @Input() public service: DocksService;
 
-    public positions: { [key: string]: IWrapperPosition } = {
-        dock: { t: '0', l: '0', w: '100%', h: '100%' },
-        child: { t: '0', l: '0', w: '100%', h: '100%' },
-        resizer: { t: '0', l: '0', w: '100%', h: '100%' },
+    public positions: {
+        a: IWrapperPosition,
+        b: IWrapperPosition,
+        r: IWrapperPosition,
+    } = {
+        a: { t: '0', l: '0', w: '100%', h: '100%', place: '', parking: false, draggable: false },
+        b: { t: '0', l: '0', w: '100%', h: '100%', place: '', parking: false, draggable: false },
+        r: { t: '0', l: '0', w: '100%', h: '100%', place: '', parking: false, draggable: false },
     };
-
-    public parking: boolean = false;
-    public activeParking: string = '';
-    public draggable: boolean = false;
+    public dropHostId: string = '';
     public draggedDockId: string = '';
+    public dragdedDockKey: string = '';
+    public notDragdedDockKey: string = '';
 
     private _subscriptions: {
         dragStarted: Subscription | null,
@@ -58,7 +63,6 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
         scaleX: number,
         scaleY: number,
     } = { x: 0, y: 0, scaleX: 1, scaleY: 1 };
-
     private _activity: EActivities = EActivities.pending;
     private _dragStartTimer: any = -1;
 
@@ -75,6 +79,10 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
         });
     }
 
+    ngOnChanges() {
+        this._updatePosition();
+    }
+
     ngAfterViewInit() {
         this._subscriptions.dragStarted = this.service.getObservable().dragStarted.subscribe(this._onDragStarted.bind(this));
         this._subscriptions.dragFinished = this.service.getObservable().dragFinished.subscribe(this._onDragFinished.bind(this));
@@ -83,13 +91,17 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
     }
 
     public onDragTrigger(event: MouseEvent, dockId: string) {
-        this.draggable = true;
-        this._activity = EActivities.dragingTrigger;
+        this._doForById(dockId, (key: string) => {
+            this.positions[key].draggable = true;
+        });
     }
 
     public onStartDrag(event: DragEvent, dockId: string) {
+        console.log(dockId);
         this._dragStartTimer = setTimeout(() => {
             this.draggedDockId = dockId;
+            this.dragdedDockKey = this._getEntityKeyById(dockId);
+            this.notDragdedDockKey = this._getReversedEntityKey(this.dragdedDockKey);
             this.service.dragStarted(dockId);
             this._cdRef.detectChanges();
             this._updatePosition();
@@ -98,31 +110,39 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
     }
 
     public onEndDrag(event: DragEvent, dockId: string) {
-        clearTimeout(this._dragStartTimer);
-        (event.srcElement as HTMLElement).style.visibility = '';
-        this._onMouseUp(event); // During dragging default mouse event is prevented. That's why we need trigger mouseup manually
-        this.service.dragFinished(this.draggedDockId);
+        this._afterDragIsFinished(event);
     }
 
-    public onDragOver(event: DragEvent, parking: string, hostDockId: string) {
+    public onDragOver(event: DragEvent, parkingSide: string, dropHostId: string) {
         event.preventDefault();
-        if (this.activeParking === parking) {
+        const dropHostKey = this._getEntityKeyById(dropHostId);
+        if (typeof dropHostKey !== 'string') {
             return;
         }
-        this.activeParking = parking;
-        this.service.dragOver(hostDockId);
+        if (this.positions[dropHostKey].place === parkingSide) {
+            return;
+        }
+        this.dropHostId = dropHostId;
+        this.positions[dropHostKey].place = parkingSide;
+        this.service.dragOver(dropHostId);
     }
 
-    public onDragLeave(event: DragEvent, hostDockId: string) {
-        if (this.activeParking === '') {
+    public onDragLeave(event: DragEvent, dropHostId: string) {
+        const dropHostKey = this._getEntityKeyById(dropHostId);
+        if (typeof dropHostKey !== 'string') {
             return;
         }
-        this.activeParking = '';
+        if (this.positions[dropHostKey].place === '') {
+            return;
+        }
+        this.positions[dropHostKey].place = '';
     }
 
     public onDragDrop(event: DragEvent, parking: string, hostDockId: string) {
         event.preventDefault();
-        this.service.dragDrop({ host: hostDockId, target: this.draggedDockId, parking: parking});
+        const draggedDockId = this.draggedDockId;
+        this.service.dragDrop({ host: hostDockId, target: draggedDockId, parking: parking});
+        // this._afterDragIsFinished(event);
     }
 
     public onResizeTrigger(event: MouseEvent) {
@@ -135,40 +155,30 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
     }
 
     private _onMouseMove(event: MouseEvent) {
-        if (this._activity === EActivities.pending) {
+        if (this._activity !== EActivities.resizing) {
             return;
         }
-        if (this._activity === EActivities.resizing) {
-            const dX = event.x - this._movement.x;
-            const dY = event.y - this._movement.y;
-            switch (this.dock.position.position) {
-                case DockDef.EDockPosition.vertical:
-                    this.dock.position.weight += ((dY / this._movement.scaleY) / 100);
-                    break;
-                case DockDef.EDockPosition.horizontal:
-                    this.dock.position.weight += ((dX / this._movement.scaleX) / 100);
-                    break;
-            }
-            this._movement.x = event.x;
-            this._movement.y = event.y;
-            this._updatePosition();
+        const dX = event.x - this._movement.x;
+        const dY = event.y - this._movement.y;
+        switch (this.dock.position.direction) {
+            case DockDef.EDirection.horizontal:
+                this.dock.position.weight += ((dY / this._movement.scaleY) / 100);
+                break;
+            case DockDef.EDirection.vertical:
+                this.dock.position.weight += ((dX / this._movement.scaleX) / 100);
+                break;
         }
+        this._movement.x = event.x;
+        this._movement.y = event.y;
+        this._updatePosition();
     }
 
     private _onMouseUp(event: MouseEvent) {
-        if (this._activity === EActivities.pending) {
+        if (this._activity !== EActivities.resizing) {
             return;
         }
-        switch (this._activity) {
-            case EActivities.resizing:
-                this._movement.x = -1;
-                this._movement.y = -1;
-                break;
-            case EActivities.dragingTrigger:
-                this.draggable = false;
-                this._dragStartTimer = -1;
-                break;
-        }
+        this._movement.x = -1;
+        this._movement.y = -1;
         this._activity = EActivities.pending;
         this._cdRef.detectChanges();
     }
@@ -185,38 +195,76 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
         window.removeEventListener('mouseup', this._onMouseUp);
     }
 
-    private _updatePosition() {
-        if (this.draggable && this.dock.child !== void 0) {
-            this.positions.child = { t: '0', l: '0', w: '100%', h: '100%' };
-            return this._cdRef.detectChanges();
+    private _getEntityKeyById(id: string): string | undefined {
+        if (this.dock.a !== void 0 && this.dock.a.id === id) {
+            return 'a';
         }
-        if (this.dock.child !== void 0 && this.draggedDockId === this.dock.child.id && this.dock.child.child === void 0) {
-            this.positions.dock = { t: '0', l: '0', w: '100%', h: '100%' };
+        if (this.dock.b !== void 0 && this.dock.b.id === id) {
+            return 'b';
+        }
+        return undefined;
+    }
+
+    private _getReversedEntityKey(key: string): string | undefined {
+        if (key === 'a' && this.dock.b !== void 0) {
+            return 'b';
+        }
+        if (key === 'b' && this.dock.a !== void 0) {
+            return 'a';
+        }
+        return undefined;
+    }
+
+    private _doForBoth(handler: (key: string) => any) {
+        ['a', 'b'].forEach((key: string) => {
+            if (this.dock[key] !== void 0) {
+                handler(key);
+            }
+        });
+    }
+
+    private _doForById(id: string, handler: (key: string) => any) {
+        const key = this._getEntityKeyById(id);
+        if (typeof key !== 'string') {
+            return;
+        }
+        handler(key);
+    }
+
+    private _updatePosition() {
+        if (this.notDragdedDockKey !== '' && this.positions[this.notDragdedDockKey] === undefined) {
+            this.notDragdedDockKey = '';
+        }
+        if (this.notDragdedDockKey !== '') {
+            this.positions[this.notDragdedDockKey].t = '0';
+            this.positions[this.notDragdedDockKey].l = '0';
+            this.positions[this.notDragdedDockKey].w = '100%';
+            this.positions[this.notDragdedDockKey].h = '100%';
+            this.positions[this.notDragdedDockKey].parking = true;
             return this._cdRef.detectChanges();
         }
         this.positions = {
-            dock: { t: '0', l: '0', w: '100%', h: '100%' },
-            child: { t: '0', l: '0', w: '100%', h: '100%' },
-            resizer: { t: '0', l: '0', w: '100%', h: '100%' },
+            a: { t: '0', l: '0', w: '100%', h: '100%', place: this.positions.a.place, parking: this.positions.a.parking, draggable: this.positions.a.draggable },
+            b: { t: '0', l: '0', w: '100%', h: '100%', place: this.positions.b.place, parking: this.positions.b.parking, draggable: this.positions.b.draggable },
+            r: { t: '0', l: '0', w: '100%', h: '100%', place: this.positions.r.place, parking: this.positions.r.parking, draggable: this.positions.r.draggable },
         };
-        if (this.dock.child === undefined) {
-            return;
-        }
-        switch (this.dock.position.position) {
-            case DockDef.EDockPosition.vertical:
-                this.positions.dock.h = this.dock.position.weight * 100 + '%';
-                this.positions.child.h = (1 - this.dock.position.weight) * 100 + '%';
-                this.positions.child.t = this.dock.position.weight * 100 + '%';
-                this.positions.resizer.t = `calc(${this.dock.position.weight * 100}% - 3px)`;
-                this.positions.resizer.h = `6px`;
-                break;
-            case DockDef.EDockPosition.horizontal:
-                this.positions.dock.w = this.dock.position.weight * 100 + '%';
-                this.positions.child.w = (1 - this.dock.position.weight) * 100 + '%';
-                this.positions.child.l = this.dock.position.weight * 100 + '%';
-                this.positions.resizer.l = `calc(${this.dock.position.weight * 100}% - 3px)`;
-                this.positions.resizer.w = `6px`;
-                break;
+        if (this.dock.a !== void 0 && this.dock.b !== void 0) {
+            switch (this.dock.position.direction) {
+                case DockDef.EDirection.horizontal:
+                    this.positions.a.h = this.dock.position.weight * 100 + '%';
+                    this.positions.b.h = (1 - this.dock.position.weight) * 100 + '%';
+                    this.positions.b.t = this.dock.position.weight * 100 + '%';
+                    this.positions.r.t = `calc(${this.dock.position.weight * 100}% - 3px)`;
+                    this.positions.r.h = `6px`;
+                    break;
+                case DockDef.EDirection.vertical:
+                    this.positions.a.w = this.dock.position.weight * 100 + '%';
+                    this.positions.b.w = (1 - this.dock.position.weight) * 100 + '%';
+                    this.positions.b.l = this.dock.position.weight * 100 + '%';
+                    this.positions.r.l = `calc(${this.dock.position.weight * 100}% - 3px)`;
+                    this.positions.r.w = `6px`;
+                    break;
+            }
         }
         this._cdRef.detectChanges();
     }
@@ -230,12 +278,23 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
         this._height = size.height;
     }
 
-    private _onDragStarted(id: string) {
-        if (this.draggedDockId !== '' && this.draggedDockId === id) {
-            return;
-        }
-        this.draggedDockId = id;
-        this.parking = true;
+    private _afterDragIsFinished(event: DragEvent) {
+        clearTimeout(this._dragStartTimer);
+        (event.srcElement as HTMLElement).style.visibility = '';
+        this._doForBoth((key: string) => {
+            this.positions[key].draggable = false;
+        });
+        this._dragStartTimer = -1;
+        this.service.dragFinished(this.draggedDockId);
+    }
+
+    private _onDragStarted(draggedDockId: string) {
+        this._doForBoth((key: string) => {
+            if (this.dock[key].id !== draggedDockId) {
+                this.positions[key].parking = true;
+            }
+        });
+        this.draggedDockId = draggedDockId;
         this._updatePosition();
     }
 
@@ -244,18 +303,26 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy {
             return;
         }
         this.draggedDockId = '';
-        this.parking = false;
+        this.dragdedDockKey = '';
+        this.notDragdedDockKey = '';
+        this._doForBoth((key: string) => {
+            this.positions[key].parking = false;
+        });
         this._updatePosition();
     }
 
-    private _onDragOver(id: string) {
-        if (this.dock.id === id) {
+    private _onDragOver(dropHostId: string) {
+        if (this.dropHostId === dropHostId) {
             return;
         }
-        if (this.activeParking === '') {
+        const dropHostKey = this._getEntityKeyById(dropHostId);
+        if (typeof dropHostKey !== 'string') {
             return;
         }
-        this.activeParking = '';
+        if (this.positions[dropHostKey] === '') {
+            return;
+        }
+        this.positions[dropHostKey] = '';
     }
 
 }

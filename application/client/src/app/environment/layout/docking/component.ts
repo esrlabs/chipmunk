@@ -19,7 +19,7 @@ export class LayoutDockingComponent implements OnChanges, OnDestroy {
 
     @Input() public service: DocksService | null = null;
 
-    public dock: DockDef.IDock | null;
+    public dock: DockDef.Container | null;
 
     private _width: number = -1;
     private _height: number = -1;

@@ -1,14 +1,25 @@
 import { Observable, Subject } from 'rxjs';
-import { DocksPositionsHolder } from './service.docks.positions';
 import * as Tools from '../tools/index';
 import * as DockDef from './service.docks.definitions';
 
 export { DockDef };
 
+interface IDockData {
+    target: DockDef.Dock;
+    key: string;
+    parent: DockDef.Container | null;
+}
+
+interface IContainerData {
+    target: DockDef.Container;
+    parent: DockDef.Container | null;
+    key: string;
+}
+
 export class DocksService {
 
     private _subjects = {
-        dock: new Subject<DockDef.IDock>(),
+        dock: new Subject<DockDef.Container>(),
         resized: new Subject<DockDef.IPositionSubject>(),
         moved: new Subject<DockDef.IPositionSubject>(),
         resizeStarted: new Subject<string>(),
@@ -18,43 +29,26 @@ export class DocksService {
         dragOver: new Subject<string>(),
         dragDrop: new Subject<DockDef.IDockDrop>(),
     };
-    private _dock: DockDef.IDock;
+    private _dock: DockDef.Container;
     private _sessionId: string = '';
-    private _holder: DocksPositionsHolder = new DocksPositionsHolder();
 
-    constructor(sessionId: string, dock: DockDef.IDock) {
+    constructor(sessionId: string, dock: DockDef.Container) {
         this._sessionId = sessionId;
-        this._holder.subscribe(DocksPositionsHolder.EVENTS.reordered, this._onReordered.bind(this));
-        this._holder.subscribe(DocksPositionsHolder.EVENTS.resized, this._onResized.bind(this));
-        this._holder.subscribe(DocksPositionsHolder.EVENTS.moved, this._onMoved.bind(this));
-        this._dock = this._normalize(dock);
+        this._dock = dock;
     }
 
     public destroy() {
-        this._holder.unsubscribeAll();
     }
 
-    public get(): DockDef.IDock {
+    public get(): DockDef.Container {
         return this._dock;
-    }
-
-    public add(dock: DockDef.IDock, silence: boolean = false) {
-        dock = this._normalize(dock);
-        if (dock === null) {
-            return;
-        }
-        // this._docks.set(dock.id, dock);
-        this._holder.add(dock.id, dock.position);
-        if (!silence) {
-            this._subjects.dock.next(dock);
-        }
     }
 
     public clear() {
     }
 
     public getObservable(): {
-        dock: Observable<DockDef.IDock>,
+        dock: Observable<DockDef.Container>,
         resized: Observable<DockDef.IPositionSubject>,
         moved: Observable<DockDef.IPositionSubject>,
         resizeStarted: Observable<string>,
@@ -94,106 +88,107 @@ export class DocksService {
     }
 
     public dragDrop(data: DockDef.IDockDrop) {
+        console.log(data);
         this._subjects.dragDrop.next(data);
-        const host: DockDef.IDock = Object.assign({}, this._getById(data.host));
-        const target: DockDef.IDock = Object.assign({}, this._getById(data.target));
-        const hostPos = host.position;
-        ['child', 'id', 'position'].forEach((field: string) => {
-            delete target[field];
-            delete host[field];
-        });
-        target.position = hostPos;
+        const host: IDockData = this._getDockById(data.host) as IDockData;
+        const target: IDockData = this._getDockById(data.target) as IDockData;
+        target.parent.drop(target.key);
+        host.parent.optimize();
+        let container;
         switch (data.parking) {
             case 'top':
             case 'left':
-                if (data.parking === 'top') {
-                    target.position.position = DockDef.EDockPosition.vertical;
+                if (host.parent.hasBoth()) {
+                    container = new DockDef.Container({ a: target.target, b: host.target });
+                    host.parent[host.key] = container;
                 } else {
-                    target.position.position = DockDef.EDockPosition.horizontal;
+                    if (host.parent.a === undefined) {
+                        host.parent.a = target.target;
+                    } else {
+                        host.parent.b = host.parent.a;
+                        host.parent.a = target.target;
+                    }
+                    container = host.parent;
                 }
-                this._update(data.host, target);
-                this._update(data.target, host);
+                if (data.parking === 'top') {
+                    container.toHorizontalAlign();
+                } else {
+                    container.toVerticalAlign();
+                }
                 break;
             case 'bottom':
             case 'right':
+                if (host.parent.hasBoth()) {
+                    container = new DockDef.Container({ a: host.target, b: target.target });
+                    host.parent[host.key] = container;
+                } else {
+                    if (host.parent.b === undefined) {
+                        host.parent.b = target.target;
+                    } else {
+                        host.parent.a = host.parent.b;
+                        host.parent.b = target.target;
+                    }
+                    container = host.parent;
+                }
+                if (data.parking === 'bottom') {
+                    container.toHorizontalAlign();
+                } else {
+                    container.toVerticalAlign();
+                }
                 break;
         }
-        console.log(data, host, target);
+        this._dock.optimize();
+        this._subjects.dragFinished.next(target.target.id);
+        console.log(this._dock);
+        if (target.parent.isEmpty()) {
+            const emptyEntityParent: IContainerData = this._getContainerById(target.parent.id) as IContainerData;
+            emptyEntityParent.parent.optimize();
+        }
+
     }
 
-    private _getById(id: string, dock?: DockDef.IDock): DockDef.IDock | null {
-        if (dock === undefined || typeof id !== 'string') {
-            dock = this._dock;
+    private _getDockById(id: string, entity?: DockDef.Dock | DockDef.Container, parent?: DockDef.Container, key?: string): IDockData | undefined {
+        if (entity === undefined) {
+            entity = this._dock;
         }
-        if (dock.id === id) {
-            return dock;
-        } else if (dock.child !== undefined) {
-            return this._getById(id, dock.child);
+        if (entity instanceof DockDef.Dock && entity.id === id) {
+            return { target: entity, parent: parent, key: key};
         }
-        return null;
+        if (entity instanceof DockDef.Container) {
+            let data: IDockData | undefined;
+            ['a', 'b'].forEach((_key: string) => {
+                if (data !== undefined) {
+                    return;
+                }
+                if (entity[_key] !== void 0) {
+                    data = this._getDockById(id, entity[_key], entity as DockDef.Container, _key);
+                }
+            });
+            return data;
+        }
+        return undefined;
     }
 
-    private _update(id: string, update: any): void {
-        const dock: DockDef.IDock = this._getById(id);
-        if (dock === null) {
-            return;
+    private _getContainerById(id: string, entity?: DockDef.Container, parent?: DockDef.Container, key?: string): IContainerData | undefined {
+        if (entity === undefined) {
+            entity = this._dock;
         }
-        Object.keys(dock).forEach((key: string) => {
-            if (update[key] !== void 0) {
-                dock[key] = update[key];
+        if (entity instanceof DockDef.Container) {
+            if (entity.id === id) {
+                return { parent: parent, target: entity, key: key };
             }
-        });
-    }
-
-    private _normalize(dock: DockDef.IDock): DockDef.IDock {
-        if (typeof dock !== 'object' || dock === null) {
-            return null;
+            let data: IContainerData | undefined;
+            ['a', 'b'].forEach((_key: string) => {
+                if (data !== undefined) {
+                    return;
+                }
+                if (entity[_key] instanceof DockDef.Container) {
+                    data = this._getContainerById(id, entity[_key], entity as DockDef.Container, _key);
+                }
+            });
+            return data;
         }
-        dock.id = typeof dock.id === 'string' ? (dock.id.trim() !== '' ? dock.id : Tools.guid()) : Tools.guid();
-        dock.position = this._generatePosition(dock);
-        if (dock.child === undefined) {
-            return dock;
-        }
-        dock.child = this._normalize(dock.child);
-        return dock;
-    }
-
-    private _generatePosition(dock: DockDef.IDock): DockDef.IDockPosition {
-        if (dock.position !== void 0) {
-            return dock.position;
-        }
-        if (dock.child === undefined) {
-            return {
-                position: Math.random() > 0.5 ? DockDef.EDockPosition.horizontal : DockDef.EDockPosition.vertical,
-                weight: 1
-            };
-        } else {
-            return {
-                position: Math.random() > 0.5 ? DockDef.EDockPosition.horizontal : DockDef.EDockPosition.vertical,
-                weight: 0.5
-            };
-        }
-    }
-
-    private _onReordered() {
-        /*
-        this._docks.forEach((dock: DockDef.IDock, id: string) => {
-            const position = this._holder.get(id);
-            if (position === undefined) {
-                return;
-            }
-            dock.position = position;
-        });
-        this._subjects.docks.next(this._docks);
-        */
-    }
-
-    private _onResized(data: DockDef.IPositionSubject) {
-        this._subjects.resized.next(data);
-    }
-
-    private _onMoved(data: DockDef.IPositionSubject) {
-        this._subjects.moved.next(data);
+        return undefined;
     }
 
 }
