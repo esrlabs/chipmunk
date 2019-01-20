@@ -41,7 +41,6 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy, O
         b: { t: '0', l: '0', w: '100%', h: '100%', place: '', parking: false, draggable: false },
         r: { t: '0', l: '0', w: '100%', h: '100%', place: '', parking: false, draggable: false },
     };
-    public dropHostId: string = '';
     public draggedDockId: string = '';
     public dragdedDockKey: string = '';
     public notDragdedDockKey: string = '';
@@ -97,7 +96,6 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy, O
     }
 
     public onStartDrag(event: DragEvent, dockId: string) {
-        console.log(dockId);
         this._dragStartTimer = setTimeout(() => {
             this.draggedDockId = dockId;
             this.dragdedDockKey = this._getEntityKeyById(dockId);
@@ -122,7 +120,6 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy, O
         if (this.positions[dropHostKey].place === parkingSide) {
             return;
         }
-        this.dropHostId = dropHostId;
         this.positions[dropHostKey].place = parkingSide;
         this.service.dragOver(dropHostId);
     }
@@ -142,7 +139,6 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy, O
         event.preventDefault();
         const draggedDockId = this.draggedDockId;
         this.service.dragDrop({ host: hostDockId, target: draggedDockId, parking: parking});
-        // this._afterDragIsFinished(event);
     }
 
     public onResizeTrigger(event: MouseEvent) {
@@ -312,17 +308,12 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy, O
     }
 
     private _onDragOver(dropHostId: string) {
-        if (this.dropHostId === dropHostId) {
-            return;
-        }
-        const dropHostKey = this._getEntityKeyById(dropHostId);
-        if (typeof dropHostKey !== 'string') {
-            return;
-        }
-        if (this.positions[dropHostKey] === '') {
-            return;
-        }
-        this.positions[dropHostKey] = '';
+        this._doForBoth((key: string) => {
+            if (this.dock[key].id !== dropHostId) {
+                this.positions[key].place = '';
+            }
+        });
+        this._cdRef.detectChanges();
     }
 
 }
