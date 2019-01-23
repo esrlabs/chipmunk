@@ -6,6 +6,7 @@
     "weight"      : 0.5,
     "vertical"    : false,
     "horizontal"  : true,
+    "multiple"    : false,
     "menu"        : [
       { "icon": "fa-list-ol",           "event" : "LIST_VIEW_NUMERIC_TRIGGER",        "hint": "show/hide numbers",              "active": true  },
       { "icon": "fa-angle-double-down", "event" : "LIST_VIEW_FOLLOW_SCROLL_TRIGGER",  "hint": "auto scroll down: on/off",       "active": true, "listen" : "LIST_VIEW_FOLLOW_SCROLL_SET" },
@@ -27,6 +28,7 @@
     "weight"      : 0.5,
     "vertical"    : false,
     "horizontal"  : true,
+    "multiple"    : false,
     "menu"        : [
       { "icon": "fa-angle-double-down", "event" : "LIST_VIEW_FOLLOW_SCROLL_TRIGGER",  "hint": "auto scroll down: on/off", "active": true, "listen" : "LIST_VIEW_FOLLOW_SCROLL_SET" },
       { "icon": "fa-floppy-o",          "event" : "LIST_VIEW_EXPORT_TO_FILE",         "hint": "export data to file" },
@@ -44,6 +46,7 @@
     "weight"      : 0.5,
     "vertical"    : false,
     "horizontal"  : true,
+    "multiple"    : false,
     "menu"        : [
       { "icon": "fa-plus", "event" : "CHART_VIEW_ADD_NEW_CHART", "hint": "add chart" }
     ],
@@ -59,6 +62,7 @@
     "weight"      : 0.5,
     "vertical"    : false,
     "horizontal"  : true,
+    "multiple"    : true,
     "menu"        : [
     ],
     "hide"        : [
@@ -73,6 +77,7 @@
     "weight"      : 0.5,
     "vertical"    : false,
     "horizontal"  : true,
+    "multiple"    : false,
     "menu"        : [
       { "icon": "fa-connect", "event" : "===", "hint": "connect to DLT deamon" }
     ],
@@ -88,6 +93,7 @@
     "weight"      : 0.5,
     "vertical"    : false,
     "horizontal"  : true,
+    "multiple"    : false,
     "menu"        : [
     ],
     "hide"        : [
@@ -102,6 +108,7 @@
     "weight"      : 0.5,
     "vertical"    : false,
     "horizontal"  : true,
+    "multiple"    : false,
     "menu"        : [
     ],
     "hide"        : [
@@ -116,6 +123,7 @@
     "weight"      : 0.5,
     "vertical"    : false,
     "horizontal"  : true,
+    "multiple"    : false,
     "menu"        : [
       { "icon": "fa-plus", "event" : "MARKS_VIEW_ADD", "hint": "Add new" }
     ],

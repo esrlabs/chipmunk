@@ -1,4 +1,4 @@
-import {Component, OnInit, ComponentFactoryResolver, ViewContainerRef, ChangeDetectorRef, ViewChild, OnDestroy, EventEmitter, AfterViewChecked } from '@angular/core';
+import {Component, OnInit, ComponentFactoryResolver, ViewContainerRef, ChangeDetectorRef, ViewChild, OnDestroy, AfterViewChecked } from '@angular/core';
 import { DomSanitizer                           } from '@angular/platform-browser';
 import { ViewControllerPattern                  } from '../controller.pattern';
 import { Logs, TYPES as LogTypes                } from '../../core/modules/tools.logs';
@@ -20,6 +20,7 @@ import { isValidRegExp, safelyCreateRegExp      } from '../../core/modules/tools
 import { localSettings, KEYs                    } from '../../core/modules/controller.localsettings';
 import { DialogMessage                          } from "../../core/components/common/dialogs/dialog-message/component";
 import { popupController                        } from "../../core/components/common/popup/controller";
+import Emitter from '../../core/modules/tools.emitter';
 
 export type TRule = { name: string; reg: string; regExp: RegExp | null, id: string };
 export type TRules = { [key: string]: TRule };
@@ -53,7 +54,20 @@ class ChartDataImplementation {
     }
 }
 
-class SettingsController {
+class SettingsController extends Emitter {
+
+    public static unlock = Symbol();
+
+    private _viewId: string = 'view_quick_chart';
+    private _locked: boolean = false;
+    private _local: IQuickChatSettings;
+    private _inited: boolean = false;
+
+    constructor() {
+        super();
+        Events.bind(Configuration.sets.SYSTEM_EVENTS.VIEWS_COLLECTION_UPDATED, this._VIEWS_COLLECTION_UPDATED.bind(this));
+        this._local = this.defaults();
+    }
 
     defaults(): IQuickChatSettings {
         return {
@@ -61,19 +75,56 @@ class SettingsController {
         };
     }
 
-    load(): IQuickChatSettings{
-        let settings = localSettings.get();
-        if (settings !== null && settings[KEYs.quickchat] !== void 0 && settings[KEYs.quickchat] !== null){
-            return settings[KEYs.quickchat];
-        } else {
-            return this.defaults();
-        }
+    load(): Promise<IQuickChatSettings> {
+        return new Promise((resolve) => {
+            if (!this._inited) {
+                return this._getViewsCount().then((count: number) => {
+                    count > 1 && (this._locked = true);
+                    this._inited = true;
+                    resolve(this._load());
+                });
+            }
+            resolve(this._load());
+        });
     }
 
     save(settings: IQuickChatSettings){
+        if (this._locked) {
+            this._local = settings;
+            return;
+        }
         localSettings.reset(KEYs.quickchat, 'update');
         localSettings.set({
             [KEYs.quickchat] : settings
+        });
+    }
+
+    private _load(): IQuickChatSettings {
+        let settings = localSettings.get();
+        if (settings !== null && settings[KEYs.quickchat] !== void 0 && settings[KEYs.quickchat] !== null && !this._locked){
+            return settings[KEYs.quickchat];
+        } else {
+            return Object.assign({}, this._local);
+        }
+    }
+
+    private _getViewsCount(): Promise<number> {
+        return new Promise((resolve) => {
+            Events.trigger(Configuration.sets.EVENTS_VIEWS.GET_ACTIVE_VIEWS_COUNT, this._viewId, (count: number) => {
+                resolve(count);
+            });
+        });
+    }
+
+    private _VIEWS_COLLECTION_UPDATED() {
+        this._getViewsCount().then((count: number) => {
+            if (count <= 1 && this._locked) {
+                this._locked = false;
+                const settings: IQuickChatSettings = this._load();
+                settings.rules = Object.assign(settings.rules, this._local.rules);
+                this.save(settings);
+                this.emit(SettingsController.unlock);
+            }
         });
     }
 
@@ -133,6 +184,7 @@ export class ViewControllerQuickChart extends ViewControllerPattern implements V
         this.onChartSmooth = this.onChartSmooth.bind(this);
         this.onChartLabels = this.onChartLabels.bind(this);
         this.onInvertCases = this.onInvertCases.bind(this);
+        this._settings.subscribe(SettingsController.unlock, this._onSettingsUnlocked.bind(this));
         this._loadRules();
     }
 
@@ -162,20 +214,31 @@ export class ViewControllerQuickChart extends ViewControllerPattern implements V
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Settings
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    private _loadRules() {
-        const settings: IQuickChatSettings = this._settings.load();
-        Object.keys(settings.rules).forEach((alias: string) => {
-            if (settings.rules[alias].regExp instanceof RegExp) {
-                return;
-            }
-            settings.rules[alias].regExp = safelyCreateRegExp(settings.rules[alias].reg);
+    private _loadRules(): Promise<void> {
+        return new Promise((resolve) => {
+            this._settings.load().then((settings: IQuickChatSettings) => {
+                Object.keys(settings.rules).forEach((alias: string) => {
+                    if (settings.rules[alias].regExp instanceof RegExp) {
+                        return;
+                    }
+                    settings.rules[alias].regExp = safelyCreateRegExp(settings.rules[alias].reg);
+                });
+                this._rules = settings.rules;
+                resolve();
+            });
         });
-        this._rules = settings.rules;
     }
 
     private _saveRules() {
         this._settings.save({
             rules: this._rules
+        });
+    }
+
+    private _onSettingsUnlocked() {
+        this._resetChartData();
+        this._loadRules().then(() => {
+            this._rebuildCharts();
         });
     }
 

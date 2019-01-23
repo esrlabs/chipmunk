@@ -380,7 +380,7 @@ class Calculator{
 
 @Injectable()
 
-export class ServiceViews{
+export class ServiceViews {
 
     private loader      : DefaultsLoader    = new DefaultsLoader();
     private calculator  : Calculator        = new Calculator();
@@ -399,6 +399,7 @@ export class ServiceViews{
         Events.bind(Configuration.sets.SYSTEM_EVENTS.REMOVE_VIEW,                   this.onREMOVE_VIEW.                 bind(this));
         Events.bind(Configuration.sets.SYSTEM_EVENTS.ADD_VIEW,                      this.onADD_VIEW.                    bind(this));
         Events.bind(Configuration.sets.SYSTEM_EVENTS.VIEW_SWITCH_POSITION_BETWEEN,  this.onVIEW_SWITCH_POSITION_BETWEEN.bind(this));
+        Events.bind(Configuration.sets.EVENTS_VIEWS.GET_ACTIVE_VIEWS_COUNT,         this.onGET_ACTIVE_VIEWS_COUNT.bind(this));
         this.calculator.emitter.subscribe(this.onRecalculate.bind(this));
     }
 
@@ -418,7 +419,7 @@ export class ServiceViews{
                 message: 'Current version of logviewer supports only 4 views in meantime.'
             });
         }
-        if (this.isViewActive(ID)){
+        if (!this.views[ID].multiple && this.isViewActive(ID)){
             return Events.trigger(Configuration.sets.SYSTEM_EVENTS.CREATE_NOTIFICATION, {
                 caption: 'View is active',
                 message: 'This view is already exist on viewport.'
@@ -431,11 +432,25 @@ export class ServiceViews{
         }
     }
 
+    onGET_ACTIVE_VIEWS_COUNT(ID: string, callback: (count: number) => any) {
+        typeof callback === 'function' && callback(this.getActiveViewsCount(ID));
+    }
+
     isViewActive(ID: string){
         let result = false;
         this.current.forEach((view: ViewClass) => {
            if (view.id === ID) {
                result = true;
+           }
+        });
+        return result;
+    }
+
+    getActiveViewsCount(ID: string): number {
+        let result = 0;
+        this.current.forEach((view: ViewClass) => {
+           if (view.id === ID) {
+               result += 1;
            }
         });
         return result;

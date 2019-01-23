@@ -55,6 +55,7 @@ class ApplicationStorage {
 		return new Promise((resolve, reject) => {
 			FS.readFile(this._file, 'utf8', (err, data) => {
 				if (err) {
+					logger.debug(`Fail to read file due: ${err.message}`);
 					return reject(err);
 				}
 				resolve(this._decode(data));

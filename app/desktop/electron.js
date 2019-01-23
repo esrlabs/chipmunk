@@ -37,13 +37,17 @@ class Starter {
 
 	_init(){
 		this._storage 	= new ApplicationStorage();
+		logger.debug(`Init version controller`);
 		this._version 	= this._app.getVersion();
+		logger.debug(`Init application menu controller`);
 		this._menu 		= new ApplicationMenu();
+		logger.debug(`Init is finished`);
 	}
 
 	// initialization and is ready to create browser windows.
 	// Some APIs can only be used after this event occurs.
 	[ELECTRON_EVENTS.READY](){
+		logger.debug(`Electron is ready. Check CLI`);
 		//Check CLI
 		this._cli.proceed()
 			.then((result) => {
@@ -77,6 +81,7 @@ class Starter {
 	}
 
 	[ELECTRON_EVENTS.ACTIVATE](){
+		logger.debug(`Electron is active`);
 		// On OS X it's common to re-create a window in the app when the
 		// dock icon is clicked and there are no other windows open.
 		this._ready && this._create();
@@ -84,14 +89,18 @@ class Starter {
 
 	_create(){
 		if (this._window === null) {
+			logger.debug(`Init client`);
 			this._initClient();
+			logger.debug(`Init server`);
 			this._createServer();
 		}
 	}
 
 	_initClient(){
+		logger.debug(`Try to get state file`);
 		this._storage.get()
 			.then((state) => {
+				logger.debug(`State is gotten from file. Create client`);
 				this._createClient(state);
 			})
 			.catch((error) => {
@@ -109,15 +118,18 @@ class Starter {
 			x       : state.bounds !== void 0 ? (state.bounds.x !== void 0 ? state.bounds.x: undefined) : undefined,
 			y       : state.bounds !== void 0 ? (state.bounds.y !== void 0 ? state.bounds.y: undefined) : undefined,
 		};
+		logger.debug(`Create window`);
 		this._window = new BrowserWindow(Object.assign({ webPreferences: {
 			devTools: true
 		}}, this._state));
+		logger.debug(`Load HTML`);
 		// and load the index.html of the app.
 		this._window.loadURL(url.format({
 			pathname: path.join(__dirname, `client/index.html`),
 			protocol: 'file:',
 			slashes: true
 		}) + `#v${this._version}`);
+		logger.debug(`Bind window events`);
 		//this._window.loadFile(path.join(__dirname, `client/index.html`));
 		// Emitted when the window is closed.
 		this._window.on('closed', this._onClose.bind(this));
@@ -125,10 +137,12 @@ class Starter {
 		['resize', 'move', 'close' ].forEach((event) => {
 			this._window.on(event, this._stateSave);
 		});
+		logger.debug(`Check state of window`);
 		//Restore maximization
 		if (state.isMaximized) {
 			this._window.maximize();
 		}
+		logger.debug(`Check debug flag activation`);
 		//Debug activation
 		if (process.argv instanceof Array && process.argv.indexOf('--debug') !== -1) {
 			this.debug();
