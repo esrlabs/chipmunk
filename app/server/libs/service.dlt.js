@@ -276,7 +276,7 @@ class HostConnection extends EventEmitter {
 
     onConnectionClose() {
         logger.debug(`Connection ${this.host}:${this.port} is closed`);
-        this.emit(HOST_CONNECTION_EVENT.close, packet);
+        this.emit(HOST_CONNECTION_EVENT.close, this.getConnectionAddr(this.host, this.port));
     }
 
     onConnectionError(error) {
@@ -299,7 +299,8 @@ class HostConnection extends EventEmitter {
         try {
             this.dltBuffer.buffer(data);
         } catch (e) {
-            logger.error(`Error during buffering income data: ${e.message}. Data: ${data.toString()}`);
+            logger.error(`Error during buffering income data: ${e.message}.`);
+            //logger.error(`Error during buffering income data: ${e.message}. Data: ${data.toString()}`);
             this.recreateBuffer();
         }
     }
@@ -320,6 +321,10 @@ class HostConnection extends EventEmitter {
 
     onBuffer(str){
         this.emit(HOST_CONNECTION_EVENT.data, str);
+    }
+
+    getConnectionAddr(host, port) {
+        return `${host}:${port}`;
     }
 
 }
