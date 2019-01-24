@@ -1,14 +1,16 @@
-import { Component, OnDestroy } from '@angular/core';
-import { ITab, TabsService } from '../../../services/service.tabs';
+import { Component, OnDestroy, Input, AfterViewInit } from '@angular/core';
+import { ITab, TabsService } from '../service';
 import { Subscription } from 'rxjs';
 
 @Component({
-    selector: 'app-layout-tabs-list',
+    selector: 'app-tabs-list',
     templateUrl: './template.html',
     styleUrls: ['./styles.less']
 })
 
-export class LayoutTabsListComponent implements OnDestroy {
+export class TabsListComponent implements OnDestroy, AfterViewInit {
+
+    @Input() public service: TabsService;
 
     private _tabs: Map<string, ITab> = new Map();
     private _subscriptionTabs: Subscription;
@@ -16,9 +18,16 @@ export class LayoutTabsListComponent implements OnDestroy {
 
     public tabs: ITab[] = [];
 
-    constructor(private _tabService: TabsService) {
-        this._subscriptionTabs = this._tabService.getObservable().subscribe(this.onNewTab.bind(this));
-        this._subscriptionTabActive = this._tabService.getActiveObservable().subscribe(this.onActiveTabChange.bind(this));
+    constructor() {
+    }
+
+    ngAfterViewInit() {
+        this._subscriptionTabs = this.service.getObservable().subscribe(this.onNewTab.bind(this));
+        this._subscriptionTabActive = this.service.getActiveObservable().subscribe(this.onActiveTabChange.bind(this));
+        this._tabs = this.service.get();
+        this._tabs.forEach((tab: ITab) => {
+            this.tabs.push(tab);
+        });
     }
 
     ngOnDestroy() {
@@ -28,7 +37,7 @@ export class LayoutTabsListComponent implements OnDestroy {
 
     public onClick(tabkey: string) {
         console.log(tabkey);
-        this._tabService.setActive(tabkey);
+        this.service.setActive(tabkey);
     }
 
     private async onNewTab(tab: ITab) {

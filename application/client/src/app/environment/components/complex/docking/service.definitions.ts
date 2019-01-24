@@ -1,4 +1,4 @@
-import * as Tools from '../tools/index';
+import * as Tools from '../../../tools/index';
 import { TouchSequence } from 'selenium-webdriver';
 
 export enum EDockPosition {

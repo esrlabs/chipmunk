@@ -1,16 +1,18 @@
 import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
-import { DockDef } from './service.docks';
-import * as Tools from '../tools/index';
+import * as Tools from '../../../tools/index';
+
+export interface IComponentDesc {
+    factory: any;
+    inputs?: any;
+}
 
 export interface ITab {
     id?: string;
     name: string;
     active: boolean;
-    dock: DockDef.Container;
+    content: IComponentDesc;
 }
-
-@Injectable({ providedIn: 'root' })
 
 export class TabsService {
 
@@ -18,7 +20,7 @@ export class TabsService {
     private _subjectActive = new Subject<ITab>();
     private _tabs: Map<string, ITab> = new Map();
 
-    setActive(id: string) {
+    public setActive(id: string) {
         const tab = this._tabs.get(id);
         if (tab === undefined) {
             return;
@@ -28,11 +30,11 @@ export class TabsService {
         this._subjectActive.next(tab);
     }
 
-    getActiveObservable(): Observable<ITab> {
+    public getActiveObservable(): Observable<ITab> {
         return this._subjectActive.asObservable();
     }
 
-    add(tab: ITab) {
+    public add(tab: ITab) {
         tab = this._normalize(tab);
         if (tab === null) {
             return;
@@ -44,12 +46,29 @@ export class TabsService {
         }
     }
 
-    clear() {
+    public get(): Map<string, ITab> {
+        return this._tabs;
+    }
+
+    public getActiveTab(): ITab | undefined {
+        let active: ITab | undefined;
+        this._tabs.forEach((tab: ITab) => {
+            if (active !== undefined) {
+                return;
+            }
+            if (tab.active) {
+                active = tab;
+            }
+        });
+        return active;
+    }
+
+    public clear() {
         this._tabs.clear();
         this._subjectTab.next();
     }
 
-    getObservable(): Observable<ITab> {
+    public getObservable(): Observable<ITab> {
         return this._subjectTab.asObservable();
     }
 

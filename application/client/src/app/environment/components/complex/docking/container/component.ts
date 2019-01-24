@@ -1,5 +1,5 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, OnChanges } from '@angular/core';
-import { DockDef, DocksService } from '../../../services/service.docks';
+import { DockDef, DocksService } from '../service';
 import { Subscription } from 'rxjs';
 import { Observable } from 'rxjs';
 import { IDocksAreaSize } from '../component';
@@ -22,12 +22,12 @@ enum EActivities {
 const REDRAW_DELAY = 150;
 
 @Component({
-    selector: 'app-layout-docking-container',
+    selector: 'app-docking-container',
     templateUrl: './template.html',
     styleUrls: ['./styles.less']
 })
 
-export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy, OnChanges {
+export class DockContainerComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     @Input() public dock: DockDef.Container;
     @Input() public service: DocksService;
@@ -228,6 +228,9 @@ export class LayoutDockContainerComponent implements AfterViewInit, OnDestroy, O
     }
 
     private _updatePosition() {
+        if (this.dock === undefined || this.service === undefined) {
+            return;
+        }
         if (this.notDragdedDockKey !== '' && this.positions[this.notDragdedDockKey] === undefined) {
             this.notDragdedDockKey = '';
         }
