@@ -1,6 +1,5 @@
 import { Observable, Subject } from 'rxjs';
-import * as Tools from '../tools/index';
-import * as DockDef from './service.docks.definitions';
+import * as DockDef from './service.definitions';
 
 export { DockDef };
 

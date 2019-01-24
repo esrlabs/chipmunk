@@ -1,5 +1,5 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { DockDef, DocksService } from '../../../services/service.docks';
+import { DockDef, DocksService } from '../service';
 import { Subscription } from 'rxjs';
 import { Observable } from 'rxjs';
 import { IDocksAreaSize } from '../component';
@@ -13,12 +13,12 @@ const DIRECTIONS = {
 };
 
 @Component({
-    selector: 'app-layout-docking-dock',
+    selector: 'app-docking-dock',
     templateUrl: './template.html',
     styleUrls: ['./styles.less']
 })
 
-export class LayoutDockComponent implements AfterViewInit, OnDestroy {
+export class DockComponent implements AfterViewInit, OnDestroy {
 
     @Input() public dock: DockDef.IDock;
 

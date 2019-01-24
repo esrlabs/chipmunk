@@ -6,16 +6,13 @@ import { LayoutStatusBarComponent               } from './bar.status/component';
 import { LayoutTopBarComponent                  } from './bar.func/component';
 
 import { EnvironmentComponentsModule            } from '../components/module';
-import { LayoutTabsModule                       } from './tabs/module';
-import { LayoutDockingModule                    } from './docking/module';
 
 const entryComponents = [ LayoutStatusBarComponent, LayoutTopBarComponent ];
 const components = [ LayoutComponent, ...entryComponents ];
 
-
 @NgModule({
     entryComponents : [ ...entryComponents ],
-    imports         : [ CommonModule, LayoutTabsModule, LayoutDockingModule, EnvironmentComponentsModule ],
+    imports         : [ CommonModule, EnvironmentComponentsModule ],
     declarations    : [ ...components ],
     exports         : [ ...components ]
 })

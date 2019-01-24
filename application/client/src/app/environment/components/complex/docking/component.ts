@@ -1,8 +1,8 @@
-import { Component, Input, OnChanges, OnDestroy, ChangeDetectorRef, ViewContainerRef } from '@angular/core';
+import { Component, Input, OnChanges, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { DockDef, DocksService } from '../../services/service.docks';
+import { DockDef, DocksService } from './service';
 
-import * as Tools from '../../tools/index';
+import * as Tools from '../../../tools/index';
 
 export interface IDocksAreaSize {
     height: number;
@@ -10,12 +10,12 @@ export interface IDocksAreaSize {
 }
 
 @Component({
-    selector: 'app-layout-docking',
+    selector: 'app-docking',
     templateUrl: './template.html',
     styleUrls: ['./styles.less']
 })
 
-export class LayoutDockingComponent implements OnChanges, OnDestroy {
+export class DockingComponent implements OnChanges, OnDestroy, AfterViewInit {
 
     @Input() public service: DocksService | null = null;
 
@@ -37,19 +37,12 @@ export class LayoutDockingComponent implements OnChanges, OnDestroy {
         this._subscribeToWinEvents();
     }
 
+    ngAfterViewInit() {
+        this._getDockFromService();
+    }
+
     ngOnChanges() {
-        if (this.service === null) {
-            return;
-        }
-        if (this.service.getSessionId() !== this._sessionId) {
-            if (this._subscriptions.dock !== null) {
-                this._subscriptions.dock.unsubscribe();
-            }
-            this._resetDock();
-            this._subscriptions.dock = this.service.getObservable().dock.subscribe(this._onAddDock.bind(this));
-            this.dock = this.service.get();
-            this._cdRef.detectChanges();
-        }
+        this._getDockFromService();
     }
 
     ngOnDestroy() {
@@ -70,6 +63,21 @@ export class LayoutDockingComponent implements OnChanges, OnDestroy {
             height: this._height,
             width: this._width
         };
+    }
+
+    private _getDockFromService() {
+        if (this.service === null) {
+            return;
+        }
+        if (this.service.getSessionId() !== this._sessionId) {
+            if (this._subscriptions.dock !== null) {
+                this._subscriptions.dock.unsubscribe();
+            }
+            this._resetDock();
+            this._subscriptions.dock = this.service.getObservable().dock.subscribe(this._onAddDock.bind(this));
+            this.dock = this.service.get();
+            this._cdRef.detectChanges();
+        }
     }
 
     private _resetDock() {
