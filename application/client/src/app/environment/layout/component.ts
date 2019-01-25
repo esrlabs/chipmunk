@@ -1,7 +1,5 @@
 import { Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { TabsService } from '../components/complex/tabs/service';
-import { DockingComponent } from '../components/complex/docking/component';
-import { DockDef, DocksService } from '../components/complex/docking/service';
 import { AreaState } from './state';
 import { Subscription } from 'rxjs';
 import * as ThemeParams from '../theme/sizes';
@@ -25,8 +23,6 @@ enum EFuncLocation {
 
 export class LayoutComponent implements OnDestroy {
 
-    public primaryService: TabsService = new TabsService();
-    public secondaryService: TabsService = new TabsService();
     public funcBarState: AreaState = new AreaState();
     public secAreaState: AreaState = new AreaState();
     public funcLocation: EFuncLocation = EFuncLocation.right;
@@ -58,7 +54,7 @@ export class LayoutComponent implements OnDestroy {
         }
     } = {
         sec: {
-            current: ThemeParams.tabs_list_height * 20,
+            current: ThemeParams.tabs_list_height,
             last: ThemeParams.tabs_list_height * 13
         },
         func: {
@@ -75,96 +71,6 @@ export class LayoutComponent implements OnDestroy {
 
     constructor(private _cdRef: ChangeDetectorRef) {
         this._subscribeToWinEvents();
-        this.primaryService.add({
-            name: 'Tab 1 (3)',
-            active: true,
-            content: {
-                factory: DockingComponent,
-                inputs: {
-                    service: new DocksService('1', new DockDef.Container({
-                        a: new DockDef.Dock({ caption: 'Dock 1' }),
-                        b: new DockDef.Container({
-                            a: new DockDef.Dock({ caption: 'Dock 2' }),
-                            b: new DockDef.Dock({ caption: 'Dock 3' })
-                        })
-                    }))
-                }
-            }
-        });
-        this.primaryService.add({
-            name: 'Tab 2 (2)',
-            active: false,
-            content: {
-                factory: DockingComponent,
-                inputs: {
-                    service: new DocksService('1', new DockDef.Container({
-                        a: new DockDef.Dock({ caption: 'Dock 1' }),
-                        b: new DockDef.Dock({ caption: 'Dock 2' })
-                    }))
-                }
-            }
-        });
-        this.primaryService.add({
-            name: 'Tab 3 (4)',
-            active: false,
-            content: {
-                factory: DockingComponent,
-                inputs: {
-                    service: new DocksService('1', new DockDef.Container({
-                        a: new DockDef.Container({
-                            a: new DockDef.Dock({ caption: '1' }),
-                            b: new DockDef.Dock({ caption: '2' })
-                        }),
-                        b: new DockDef.Container({
-                            a: new DockDef.Dock({ caption: '3' }),
-                            b: new DockDef.Dock({ caption: '4' })
-                        })
-                    }))
-                }
-            }
-        });
-        this.primaryService.add({
-            name: 'Tab 4 (5)',
-            active: false,
-            content: {
-                factory: DockingComponent,
-                inputs: {
-                    service: new DocksService('1', new DockDef.Container({
-                        a: new DockDef.Container({
-                            a: new DockDef.Dock({ caption: 'Dock 1' }),
-                            b: new DockDef.Dock({ caption: 'Dock 2' })
-                        }),
-                        b: new DockDef.Container({
-                            a: new DockDef.Dock({ caption: 'Dock 3' }),
-                            b: new DockDef.Container({
-                                a: new DockDef.Dock({ caption: 'Dock 4' }),
-                                b: new DockDef.Dock({ caption: 'Dock 5' })
-                            })
-                        })
-                    }))
-                }
-            }
-        });
-        this.primaryService.add({
-            name: 'Tab 5',
-            active: false,
-            content: {
-                factory: DockingComponent,
-                inputs: {
-                    service: new DocksService('1', new DockDef.Container({
-                        a: new DockDef.Dock({ caption: 'Dock 1' })
-                    }))
-                }
-            }
-        });
-        this.secondaryService.add({
-            name: 'Search Results',
-            active: true,
-        });
-        this.secondaryService.add({
-            name: 'Terminal',
-            active: false,
-        });
         this._funcBarStateSubscriptions.minimized = this.funcBarState.getObservable().minimized.subscribe(this._onFuncMinimized.bind(this));
         this._funcBarStateSubscriptions.updated = this.funcBarState.getObservable().updated.subscribe(this._onFuncStateUpdated.bind(this));
         this._secAreaStateSubscriptions.minimized = this.secAreaState.getObservable().minimized.subscribe(this._onSecAreaMinimized.bind(this));
@@ -335,6 +241,7 @@ export class LayoutComponent implements OnDestroy {
         if (minimized) {
             this._sizes.sec.last = this._sizes.sec.current;
             this._sizes.sec.current = ThemeParams.tabs_list_height;
+            console.log('FDFSFDSFSDFSDFSD');
         } else {
             this._sizes.sec.current = this._sizes.sec.last;
         }
@@ -345,11 +252,9 @@ export class LayoutComponent implements OnDestroy {
     }
 
     public _ng_onResizeSecAreaTrigger(event: MouseEvent) {
-        /*
         if (this.secAreaState.minimized) {
             return;
         }
-        */
         this._movement.x = event.x;
         this._movement.y = event.y;
         this._movement.type = EResizeType.sec;
