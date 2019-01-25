@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import * as Tools from '../../../tools/index';
+import { TabsOptions } from './options';
 
 export interface IComponentDesc {
     factory: any;
@@ -11,14 +11,44 @@ export interface ITab {
     id?: string;
     name: string;
     active: boolean;
-    content: IComponentDesc;
+    content?: IComponentDesc;
 }
 
 export class TabsService {
 
-    private _subjectTab = new Subject<ITab>();
-    private _subjectActive = new Subject<ITab>();
+    private _subjects = {
+        new: new Subject<ITab>(),
+        clear: new Subject<void>(),
+        active: new Subject<ITab>(),
+        options: new Subject<TabsOptions>(),
+    };
+
     private _tabs: Map<string, ITab> = new Map();
+    private _options: TabsOptions = new TabsOptions();
+    private _minimized: boolean = false;
+
+    constructor(params?: {
+        tabs?: Map<string, ITab>,
+        options?: TabsOptions
+    }) {
+        params = params ? params : {};
+        if (params.tabs !== void 0) { this._tabs = params.tabs; }
+        if (params.options !== void 0) { this._options = params.options; }
+    }
+
+    public getObservable(): {
+        new: Observable<ITab>,
+        clear: Observable<void>,
+        active: Observable<ITab>,
+        options: Observable<TabsOptions>,
+    } {
+        return {
+            new: this._subjects.new.asObservable(),
+            clear: this._subjects.clear.asObservable(),
+            active: this._subjects.active.asObservable(),
+            options: this._subjects.options.asObservable(),
+        };
+    }
 
     public setActive(id: string) {
         const tab = this._tabs.get(id);
@@ -27,11 +57,7 @@ export class TabsService {
         }
         tab.active = true;
         this._tabs.set(id, tab);
-        this._subjectActive.next(tab);
-    }
-
-    public getActiveObservable(): Observable<ITab> {
-        return this._subjectActive.asObservable();
+        this._subjects.active.next(tab);
     }
 
     public add(tab: ITab) {
@@ -40,14 +66,23 @@ export class TabsService {
             return;
         }
         this._tabs.set(tab.id, tab);
-        this._subjectTab.next(tab);
+        this._subjects.new.next(tab);
         if (tab.active) {
             this.setActive(tab.id);
         }
     }
 
-    public get(): Map<string, ITab> {
+    public getTabs(): Map<string, ITab> {
         return this._tabs;
+    }
+
+    public getOptions(): TabsOptions {
+        return this._options;
+    }
+
+    public setOptions(options: TabsOptions): void {
+        this._options = options;
+        this._subjects.options.next(this._options);
     }
 
     public getActiveTab(): ITab | undefined {
@@ -65,11 +100,7 @@ export class TabsService {
 
     public clear() {
         this._tabs.clear();
-        this._subjectTab.next();
-    }
-
-    public getObservable(): Observable<ITab> {
-        return this._subjectTab.asObservable();
+        this._subjects.clear.next();
     }
 
     private _normalize(tab: ITab): ITab {

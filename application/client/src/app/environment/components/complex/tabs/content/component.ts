@@ -12,22 +12,37 @@ export class TabContentComponent implements OnDestroy, AfterViewInit {
 
     @Input() public service: TabsService = null;
 
+    private _subscriptions: {
+        new: Subscription | null,
+        clear: Subscription | null,
+        active: Subscription | null,
+        options: Subscription | null,
+    } = {
+        new: null,
+        clear: null,
+        active: null,
+        options: null,
+    };
+
     private _tab: ITab | null = null;
-    private _subscriptionTabActive: Subscription;
 
     constructor(private _cdRef: ChangeDetectorRef) {
     }
 
     ngAfterViewInit() {
-        if (this.service === null) {
+        if (!this.service) {
             return;
         }
-        this._subscriptionTabActive = this.service.getActiveObservable().subscribe(this.onActiveTabChange.bind(this));
+        this._subscriptions.active = this.service.getObservable().active.subscribe(this.onActiveTabChange.bind(this));
         this._getDefaultTab();
     }
 
     ngOnDestroy() {
-        this._subscriptionTabActive.unsubscribe();
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            if (this._subscriptions[key] !== null) {
+                this._subscriptions[key].unsubscribe();
+            }
+        });
     }
 
     private async _getDefaultTab() {

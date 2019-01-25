@@ -1,4 +1,33 @@
-<app-tabs [service]="tabService"></app-tabs>
-<app-layout-top-bar></app-layout-top-bar>
-<app-layout-status-bar></app-layout-status-bar>
-<app-notifications></app-notifications>
+<div [attr.class]="'wrapper ' + (funcBarState.minimized ? 'fb-minimized' : 'fb-maximized') + ' ' + funcLocation">
+    <div class="output">
+        <div class="primary" [ngStyle]="{ 
+            'right': ((funcLocation === 'func-right' ? _sizes.func.current : 0) + 'px'),  
+            'left': ((funcLocation === 'func-left' ? _sizes.func.current : 0) + 'px'), 
+            'bottom': (_sizes.sec.current + 'px') }">
+            <app-tabs [service]="primaryService"></app-tabs>
+        </div>
+        <div class="secondary" [ngStyle]="{ 
+            'right': ((funcLocation === 'func-right' ? _sizes.func.current : 0) + 'px'),  
+            'left': ((funcLocation === 'func-left' ? _sizes.func.current : 0) + 'px'), 
+            'height': (_sizes.sec.current + 'px') }">
+            <app-tabs [service]="secondaryService"></app-tabs>
+        </div>
+        <div *ngIf="!secAreaState.minimized" class="resizer-sec" (mousedown)="_ng_onResizeFuncTrigger($event)" [ngStyle]="{ 
+            'margin-bottom': (_sizes.sec.current + 'px') }" (mousedown)="_ng_onResizeSecAreaTrigger($event)"></div>
+        <div class="funcs" [ngStyle]="{'width': (_sizes.func.current + 'px')}">
+            <div class="funcs-caption">
+                <div class="caption"></div>
+                <div class="location" (click)="_ng_onTriggerFuncLocation()">
+                    <span class="small-icon-button fas fa-angle-double-left"></span>
+                </div>
+                <div class="switcher" (click)="_ng_onTriggerFuncState()">
+                    <span class="small-icon-button fas fa-arrow-left"></span>
+                </div>
+            </div>
+            <app-layout-func-bar [state]="funcBarState"></app-layout-func-bar>
+            <div *ngIf="!funcBarState.minimized" class="resizer-func" (mousedown)="_ng_onResizeFuncTrigger($event)"></div>
+        </div>
+    </div>
+    <app-layout-status-bar></app-layout-status-bar>
+    <app-notifications></app-notifications>
+</div>
