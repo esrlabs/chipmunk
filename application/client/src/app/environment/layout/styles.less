@@ -23,16 +23,7 @@
                 display: block;
                 top: 0;
                 left: 0;
-                right: @tabs-list-height;
-                & app-tabs {
-                    top: 0;
-                    left: 0;
-                    bottom: 0;
-                    right: 0;
-                    position: absolute;
-                    display: block;
-                    overflow: hidden;
-                }    
+                right: @tabs-list-height;  
             }
             & div.secondary{
                 position: absolute;
@@ -57,6 +48,7 @@
                 bottom: 0;
                 right:0;
                 width: @tabs-list-height;
+                z-index: 1;
                 & div.funcs-caption{
                     position: absolute;
                     display: block;
@@ -125,7 +117,7 @@
                 bottom:-3px;
                 height: 6px;
                 right: 0;
-                background: rgba(255,0,0,0.2);
+                background: rgba(0,0,0,0.001);
                 cursor: row-resize;
                 z-index: 1;
             }

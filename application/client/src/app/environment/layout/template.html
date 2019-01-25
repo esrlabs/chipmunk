@@ -4,13 +4,13 @@
             'right': ((funcLocation === 'func-right' ? _sizes.func.current : 0) + 'px'),  
             'left': ((funcLocation === 'func-left' ? _sizes.func.current : 0) + 'px'), 
             'bottom': (_sizes.sec.current + 'px') }">
-            <app-tabs [service]="primaryService"></app-tabs>
+            <app-layout-area-primary></app-layout-area-primary>
         </div>
         <div class="secondary" [ngStyle]="{ 
             'right': ((funcLocation === 'func-right' ? _sizes.func.current : 0) + 'px'),  
             'left': ((funcLocation === 'func-left' ? _sizes.func.current : 0) + 'px'), 
             'height': (_sizes.sec.current + 'px') }">
-            <app-tabs [service]="secondaryService"></app-tabs>
+            <app-layout-area-secondary [state]="secAreaState"></app-layout-area-secondary>
         </div>
         <div *ngIf="!secAreaState.minimized" class="resizer-sec" (mousedown)="_ng_onResizeFuncTrigger($event)" [ngStyle]="{ 
             'margin-bottom': (_sizes.sec.current + 'px') }" (mousedown)="_ng_onResizeSecAreaTrigger($event)"></div>

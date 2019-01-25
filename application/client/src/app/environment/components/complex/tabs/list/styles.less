@@ -6,153 +6,186 @@
     position: absolute;
     display: block;
     background: @background;
-    & ul.list{
+    & div.wrapper{
         position: absolute;
         display: block;
         height: 100%;
+        width: 100%;
         list-style: none;
         padding: 0;
         margin: 0;
-        white-space: nowrap;
-        box-sizing: border-box;
-        width: 100%;
-        & li.tab{
-            display: inline-block;
-            position: relative;
+        & ul.list{
+            position: absolute;
+            display: block;
+            height: 100%;
             list-style: none;
+            padding: 0;
+            margin: 0;
+            white-space: nowrap;
             box-sizing: border-box;
-            cursor: default;
-            overflow: hidden;
-            & p.title {
+            width: 100%;
+            & li.tab{
                 display: inline-block;
-                white-space: nowrap;
-                color: lighten(greyscale(@scheme-color-1), 25%);
-            }
-            & span.close-button{
-                font-size: 12px;
-                opacity: 0;
-            }
-            &:not(.active){
-            }
-            &:first-child {
-            }
-            &.active + li.tab{
-            }
-            &:last-child{
-            }
-            &.active{
-                .border-based-4;
-                .gradient(linear; @scheme-color-5, lighten(@scheme-color-5, 4%));
-                &::after{
-                    position: absolute;
-                    display: block;
-                    content: '';
-                    background: @scheme-color-5;
+                position: relative;
+                list-style: none;
+                box-sizing: border-box;
+                cursor: default;
+                overflow: hidden;
+                & p.title {
+                    display: inline-block;
+                    white-space: nowrap;
+                    color: lighten(greyscale(@scheme-color-1), 25%);
                 }
                 & span.close-button{
-                    opacity: 1;
+                    font-size: 12px;
+                    opacity: 0;
                 }
-                & p.title {
-                    color: @scheme-color-1;
+                &:not(.active){
+                }
+                &:first-child {
+                }
+                &.active + li.tab{
+                }
+                &:last-child{
+                }
+                &.active{
+                    .border-based-4;
+                    .gradient(linear; @scheme-color-5, lighten(@scheme-color-5, 4%));
+                    &::after{
+                        position: absolute;
+                        display: block;
+                        content: '';
+                        background: @scheme-color-5;
+                    }
+                    & span.close-button{
+                        opacity: 1;
+                    }
+                    & p.title {
+                        color: @scheme-color-1;
+                    }
+                }
+            }
+            &.top{
+                border-bottom: inset thin @scheme-color-5;
+                box-shadow: inset 0px 10px 20px -12px rgba(0, 0, 0, 0.4);
+                & li.tab{
+                    padding: 0;
+                    margin: 0;
+                    height: 100%;
+                    cursor: default;
+                    & p.title {
+                        padding: 0.1rem 1rem;
+                    }
+                    & span.close-button{
+                        padding: 0 0.5rem 0 0;
+                        transition: all 150ms ease-in-out;
+                        transform: translateY(-16px);
+                    }
+                    &:not(.active){
+                        border-left: thin inset @background;
+                    }
+                    &:first-child {
+                        border-left: thin solid rgba(0,0,0,0);
+                    }
+                    &.active + li.tab{
+                        border-left: none;
+                    }
+                    &:last-child{
+                        border-right: thin outset @background;
+                    }
+                    &.active{
+                        .border-based-4;
+                        border-bottom: none;
+                        border-top-right-radius: @border-radius;
+                        border-top-left-radius: @border-radius;
+                        .gradient(linear; @scheme-color-5, lighten(@scheme-color-5, 4%));
+                        box-shadow: 0 0 16px -3px rgba(0,0,0,0.4);
+                        &::after{
+                            width: 100%;
+                            height: 2px;
+                            bottom: -1px;
+                            background: @scheme-color-5;
+                        }
+                        & span.close-button{
+                            transform: translateY(0);
+                        }
+                    }
+                }
+            }
+            &.left{
+                border-right: inset thin @scheme-color-5;
+                box-shadow: inset 10px 10px 20px -12px rgba(0, 0, 0, 0.4);
+                white-space: normal;
+                & li.tab{
+                    padding: 0;
+                    margin: 0;
+                    height: auto;
+                    cursor: default;
+                    & p.title {
+                        padding: 1rem 0.1rem;
+                        writing-mode: vertical-rl;
+                        text-orientation: mixed;
+                        transform: rotate(180deg);
+                    }
+                    & span.close-button{
+                        padding: 0 0 0 0.5rem;
+                        transition: all 150ms ease-in-out;
+                        transform: translateY(-16px);
+                    }
+                    &:not(.active){
+                        border-top: thin inset @background;
+                    }
+                    &:first-child {
+                        border-top: thin solid rgba(0,0,0,0);
+                    }
+                    &.active + li.tab{
+                        border-top: none;
+                    }
+                    &:last-child{
+                        border-bottom: thin outset @background;
+                    }
+                    &.active{
+                        .border-based-4;
+                        border-right: none;
+                        border-top-left-radius: @border-radius;
+                        border-bottom-left-radius: @border-radius;
+                        .gradient(linear; @scheme-color-5, lighten(@scheme-color-5, 4%));
+                        box-shadow: 0 0 16px -3px rgba(0,0,0,0.4);
+                        &::after{
+                            width: 100%;
+                            height: 2px;
+                            bottom: -1px;
+                            background: @scheme-color-5;
+                        }
+                        & span.close-button{
+                            transform: translateY(0);
+                        }
+                    }
                 }
             }
         }
-        &.top{
-            border-bottom: inset thin @scheme-color-5;
-            box-shadow: inset 0px 10px 20px -12px rgba(0, 0, 0, 0.4);
-            & li.tab{
-                padding: 0;
-                margin: 0;
+        &.injection{
+            display: flex;
+            flex-flow: row nowrap;
+            margin: 0;
+            padding: 0;
+            & ul.list{
+                display: block;
+                position: relative;
                 height: 100%;
-                cursor: default;
-                & p.title {
-                    padding: 0.1rem 1rem;
-                }
-                & span.close-button{
-                    padding: 0 0.5rem 0 0;
-                    transition: all 150ms ease-in-out;
-                    transform: translateY(-16px);
-                }
-                &:not(.active){
-                    border-left: thin inset @background;
-                }
-                &:first-child {
-                    border-left: thin solid rgba(0,0,0,0);
-                }
-                &.active + li.tab{
-                    border-left: none;
-                }
-                &:last-child{
-                    border-right: thin outset @background;
-                }
-                &.active{
-                    .border-based-4;
-                    border-bottom: none;
-                    border-top-right-radius: @border-radius;
-                    border-top-left-radius: @border-radius;
-                    .gradient(linear; @scheme-color-5, lighten(@scheme-color-5, 4%));
-                    box-shadow: 0 0 16px -3px rgba(0,0,0,0.4);
-                    &::after{
-                        width: 100%;
-                        height: 2px;
-                        bottom: -1px;
-                        background: @scheme-color-5;
-                    }
-                    & span.close-button{
-                        transform: translateY(0);
-                    }
-                }
-            }
-        }
-        &.left{
-            border-right: inset thin @scheme-color-5;
-            box-shadow: inset 10px 10px 20px -12px rgba(0, 0, 0, 0.4);
-            white-space: normal;
-            & li.tab{
-                padding: 0;
                 margin: 0;
-                height: auto;
-                cursor: default;
-                & p.title {
-                    padding: 1rem 0.1rem;
-                    writing-mode: vertical-rl;
-                    text-orientation: mixed;
-                    transform: rotate(180deg);
-                }
-                & span.close-button{
-                    padding: 0 0 0 0.5rem;
-                    transition: all 150ms ease-in-out;
-                    transform: translateY(-16px);
-                }
-                &:not(.active){
-                    border-top: thin inset @background;
-                }
-                &:first-child {
-                    border-top: thin solid rgba(0,0,0,0);
-                }
-                &.active + li.tab{
-                    border-top: none;
-                }
-                &:last-child{
-                    border-bottom: thin outset @background;
-                }
-                &.active{
-                    .border-based-4;
-                    border-right: none;
-                    border-top-left-radius: @border-radius;
-                    border-bottom-left-radius: @border-radius;
-                    .gradient(linear; @scheme-color-5, lighten(@scheme-color-5, 4%));
-                    box-shadow: 0 0 16px -3px rgba(0,0,0,0.4);
-                    &::after{
-                        width: 100%;
-                        height: 2px;
-                        bottom: -1px;
-                        background: @scheme-color-5;
-                    }
-                    & span.close-button{
-                        transform: translateY(0);
-                    }
-                }
+                padding: 0;
+                flex: 1 auto;
+                order: 1;
+            }
+            & div.injection{
+                display: block;
+                position: relative;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+                flex: 1 auto;
+                order: 2;
             }
         }
     }
