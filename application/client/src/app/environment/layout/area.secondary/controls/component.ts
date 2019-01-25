@@ -23,12 +23,15 @@ export class LayoutSecondaryAreaControlsComponent implements AfterViewInit, OnDe
 
     }
 
-    private _ng_onStateToggle() {
+    private _ng_onStateToggle(event: MouseEvent) {
         if (this.state.minimized) {
             this.state.maximize();
         } else {
             this.state.minimize();
         }
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return false;
     }
 
 }

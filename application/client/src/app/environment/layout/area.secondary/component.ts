@@ -56,12 +56,11 @@ export class LayoutSecondaryAreaComponent implements AfterViewInit, OnDestroy {
         });
     }
 
-    public _onTabsAreaClick() {
+    public _ng_onTabsAreaClick() {
         if (!this.state.minimized) {
             return;
         }
         this.state.maximize();
-        console.log('dfsdfsdsfsdfsd');
     }
 
     private _onMinimized(minimized: boolean) {
