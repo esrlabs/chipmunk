@@ -1,5 +1,6 @@
 import { Component, OnDestroy, Input, AfterViewInit } from '@angular/core';
 import { ITab, TabsService } from '../service';
+import { TabsOptions, ETabsListDirection } from '../options';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -10,11 +11,22 @@ import { Subscription } from 'rxjs';
 
 export class TabsListComponent implements OnDestroy, AfterViewInit {
 
-    @Input() public service: TabsService;
+    @Input() public service: TabsService = null;
+
+    private _subscriptions: {
+        new: Subscription | null,
+        clear: Subscription | null,
+        active: Subscription | null,
+        options: Subscription | null,
+    } = {
+        new: null,
+        clear: null,
+        active: null,
+        options: null,
+    };
 
     private _tabs: Map<string, ITab> = new Map();
-    private _subscriptionTabs: Subscription;
-    private _subscriptionTabActive: Subscription;
+    private _options: TabsOptions = new TabsOptions();
 
     public tabs: ITab[] = [];
 
@@ -22,17 +34,25 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
     }
 
     ngAfterViewInit() {
-        this._subscriptionTabs = this.service.getObservable().subscribe(this.onNewTab.bind(this));
-        this._subscriptionTabActive = this.service.getActiveObservable().subscribe(this.onActiveTabChange.bind(this));
-        this._tabs = this.service.get();
+        if (!this.service) {
+            return;
+        }
+        this._subscriptions.new = this.service.getObservable().new.subscribe(this.onNewTab.bind(this));
+        this._subscriptions.active = this.service.getObservable().active.subscribe(this.onActiveTabChange.bind(this));
+        this._subscriptions.options = this.service.getObservable().options.subscribe(this._onOptionsUpdated.bind(this));
+        this._tabs = this.service.getTabs();
         this._tabs.forEach((tab: ITab) => {
             this.tabs.push(tab);
         });
+        this._getDefaultOptions();
     }
 
     ngOnDestroy() {
-        this._subscriptionTabs.unsubscribe();
-        this._subscriptionTabActive.unsubscribe();
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            if (this._subscriptions[key] !== null) {
+                this._subscriptions[key].unsubscribe();
+            }
+        });
     }
 
     public onClick(tabkey: string) {
@@ -56,6 +76,14 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
                 this._tabs.set(id, storedTab);
             }
         });
+    }
+
+    private async _getDefaultOptions() {
+        this._options = await this.service.getOptions();
+    }
+
+    private async _onOptionsUpdated(options: TabsOptions) {
+        this._options = await options;
     }
 
 }

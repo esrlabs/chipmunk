@@ -3,11 +3,11 @@ import { CommonModule                           } from '@angular/common';
 
 import { LayoutComponent                        } from './component';
 import { LayoutStatusBarComponent               } from './bar.status/component';
-import { LayoutTopBarComponent                  } from './bar.func/component';
+import { LayoutFunctionsBarComponent            } from './bar.func/component';
 
 import { EnvironmentComponentsModule            } from '../components/module';
 
-const entryComponents = [ LayoutStatusBarComponent, LayoutTopBarComponent ];
+const entryComponents = [ LayoutStatusBarComponent, LayoutFunctionsBarComponent ];
 const components = [ LayoutComponent, ...entryComponents ];
 
 @NgModule({
