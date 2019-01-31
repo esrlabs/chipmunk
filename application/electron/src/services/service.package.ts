@@ -16,10 +16,10 @@ export class ServicePackage implements IService {
 
     private _logger: Logger = new Logger('ServicePackage');
     private _file: string;
-    private _package: any;
+    private _package: any = null;
 
     constructor() {
-        this._file = Path.resolve(ServicePaths.getHome(), 'package.json');
+        this._file = Path.resolve(ServicePaths.getRoot(), 'package.json');
     }
 
     /**
@@ -56,6 +56,7 @@ export class ServicePackage implements IService {
                 if (json instanceof Error) {
                     return reject(new Error(this._logger.error(`Cannot parse package file "${this._file}" due error: ${json.message}`)));
                 }
+                this._logger.env(`package.json file successfully read from ${this._file}.`);
                 resolve(json);
             }).catch((error: Error) => {
                 this._logger.error(`Fail to read package at "${this._file}" due error: ${error.message}`);

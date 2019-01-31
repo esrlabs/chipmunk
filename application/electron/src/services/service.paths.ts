@@ -18,6 +18,7 @@ class ServicePaths implements IService {
     private _logger: Logger = new Logger('ServicePaths');
     private _home: string;
     private _app: string;
+    private _root: string;
     private _resources: string;
 
     constructor() {
@@ -28,9 +29,7 @@ class ServicePaths implements IService {
             throw root;
         }
         this._app = root;
-        FS.readFolder(this._app).then((files: string[]) => {
-            console.log(files);
-        });
+        this._root = Path.resolve(root, '..');
     }
 
     /**
@@ -40,7 +39,7 @@ class ServicePaths implements IService {
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
             this._createFolder().then(() => {
-                this._logger.env(`Paths:\n\thome: ${this._home}\n\tapp: ${this._app}\n\tresources ${this._resources}`);
+                this._logger.env(`Paths:\n\thome: ${this._home}\n\troot: ${this._root}\n\tapp: ${this._app}\n\tresources ${this._resources}`);
                 resolve();
             }).catch(reject);
         });
@@ -56,6 +55,14 @@ class ServicePaths implements IService {
      */
     public getHome(): string {
         return this._home;
+    }
+
+    /**
+     * Returns path to root folder
+     * @returns string
+     */
+    public getRoot(): string {
+        return this._root;
     }
 
     /**

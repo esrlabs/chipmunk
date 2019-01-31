@@ -31,7 +31,6 @@ class ServiceElectron implements IService {
         this._onClosed = this._onClosed.bind(this);
         this._onActivate = this._onActivate.bind(this);
         this._onWindowClosed = this._onWindowClosed.bind(this);
-        this._bind();
     }
 
     /**
@@ -40,6 +39,7 @@ class ServiceElectron implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve) => {
+            this._bind();
             if (this._controllerBrowserWindow !== null) {
                 return resolve();
             }
