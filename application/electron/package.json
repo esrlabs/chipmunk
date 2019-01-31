@@ -2,14 +2,14 @@
   "name": "logviewer",
   "version": "1.0.0",
   "description": "LogViewer",
-  "main": "compiled/src/main.js",
-  "copyright": "Copyright © 2018 year E.S.R.Labs",
+  "main": "./dist/compiled/src/main.js",
+  "copyright": "Copyright © 2019 year E.S.R.Labs",
   "build": {
     "appId": "com.logviewer.de",
     "productName": "",
-    "copyright": "Copyright © 2018 year E.S.R.Labs",
+    "copyright": "Copyright © 2019 year E.S.R.Labs",
     "files": [
-      "**/*"
+      "./dist/compiled/**"
     ],
     "directories": {
       "output": "dist"
@@ -33,6 +33,12 @@
           "target": "zip"
         }
       ]
+    },
+    "linux": {
+      "icon": "./build/png"
+    },
+    "win": {
+      "icon": "./build/win/icon.ico"
     }
   },
   "dependencies": {
@@ -40,26 +46,27 @@
   },
   "devDependencies": {
     "@types/electron": "^1.6.10",
-    "@types/jasmine": "^3.3.4",
+    "@types/jasmine": "^3.3.8",
     "@types/node": "^10.12.0",
     "@types/uuid": "^3.4.4",
     "dmg-builder": "^6.0.0",
-    "electron": "^4.0.0",
+    "electron": "^4.0.3",
     "electron-builder": "^20.29.0",
-    "ts-loader": "^5.2.2",
     "tslint": "^5.11.0",
-    "tslint-loader": "^3.5.4",
-    "typescript": "^3.1.3",
-    "webpack": "^4.23.1",
-    "webpack-cli": "^3.1.2"
+    "typescript": "^3.1.3"
   },
   "scripts": {
-    "postinstall": "electron-builder install-app-deps",
+    "electron": "./node_modules/.bin/electron ./dist/compiled/src/main.js",
     "build-ts": "tsc -p ./tsconfig.json",
-    "build": "./node_modules/.bin/build --mac",
-    "publish": "./node_modules/.bin/build --mac -p always",
-    "webpack": "./node_modules/.bin/webpack --config ./webpack.config.js",
-    "electron-unpacked": "tsc -p ./tsconfig.json && ./node_modules/.bin/electron ./dist/compiled/src/main.js",
-    "electron-packed": "./node_modules/.bin/webpack --config ./webpack.config.js && ./node_modules/.bin/electron ./dist/packed/app.js"
+    "start": "npm run build-ts && npm run electron",
+    "postinstall": "electron-builder install-app-deps",
+    "build-mac": "./node_modules/.bin/build --mac",
+    "publish-mac": "./node_modules/.bin/build --mac -p always",
+    "build-linux": "./node_modules/.bin/build --linux",
+    "publish-linux": "./node_modules/.bin/build --linux -p always",
+    "build-win": "./node_modules/.bin/build --win",
+    "publish-win": "./node_modules/.bin/build --win -p always",
+    "package-check": "../node_modules/.bin/npm-check",
+    "package-upgrade": "../node_modules/.bin/npm-check -y"
   }
 }

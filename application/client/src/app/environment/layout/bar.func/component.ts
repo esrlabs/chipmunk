@@ -26,23 +26,11 @@ export class LayoutFunctionsBarComponent implements AfterViewInit, OnDestroy {
 
     constructor(private _cdRef: ChangeDetectorRef) {
         this.tabsService.add({
-            name: 'Tab 1 (3)',
+            name: 'Serial port',
             active: true,
         });
         this.tabsService.add({
-            name: 'Tab 2 (2)',
-            active: false,
-        });
-        this.tabsService.add({
-            name: 'Tab 3 (4)',
-            active: false,
-        });
-        this.tabsService.add({
-            name: 'Tab 4 (5)',
-            active: false,
-        });
-        this.tabsService.add({
-            name: 'Tab 5 fdfds dfs ',
+            name: 'ADB',
             active: false,
         });
         this.tabsService.setOptions(new TabsOptions({ direction: ETabsListDirection.left, minimized: true }));

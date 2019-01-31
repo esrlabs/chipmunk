@@ -1,6 +1,13 @@
 const path = require('path');
 const colors = require('colors/safe');
 const fs = require('fs');
+const os = require('os');
+
+const PLATFORMS = {
+    darwin  : 'darwin',
+    linux   : 'linux',
+    win32   : 'win32',
+};
 
 const sh = function(task, path, ...commands){
     const jake = require('jake');
@@ -72,11 +79,15 @@ const ELECTRON_FOLDER = 'electron';
 const PLATFORM_FOLDER = 'platform';
 const PLATFORM_EXCEPTION_FOLDERS = [
     'platform',
+    'client.plugins',
+    'sandbox',
     'node_modules',
     'build',
     'dist'
 ];
 const PROJECTS_EXCEPTION_FOLDERS = [
+    'client.plugins',
+    'sandbox',
     'node_modules',
     'build',
     'dist'
@@ -265,31 +276,6 @@ namespace('solution', function() {
 
 namespace('electron', function() {
 
-    namespace('package-file', function() {
-        task('create', function() {
-            logo();
-            const generator = require('./jake.scripts/jake.electron.package');
-            const packageJson = JSON.stringify(generator.getPackageJson());
-            const packageFilePath = path.normalize(path.resolve(__dirname, ELECTRON_FOLDER, 'package.json'));
-            if (fs.existsSync(packageFilePath)) {
-                console.log(colors.blue(`Remove package.json: ${packageFilePath}`));
-                fs.unlinkSync(packageFilePath);
-            }
-            console.log(colors.blue(`Create new package.json: ${packageFilePath}`));
-            fs.writeFileSync(packageFilePath, packageJson);
-            this.complete();
-        }, {async: true});
-        task('remove', function() {
-            logo();
-            const packageFilePath = path.normalize(path.resolve(__dirname, ELECTRON_FOLDER, 'package.json'));
-            if (fs.existsSync(packageFilePath)) {
-                console.log(colors.blue(`Remove package.json: ${packageFilePath}`));
-                fs.unlinkSync(packageFilePath);
-            }
-            this.complete();
-        }, {async: true});
-    });
-
     task('install', function() {
         logo();
         const tasks = [];
@@ -322,8 +308,8 @@ namespace('electron', function() {
         logo();
         const tasks = [];
         const electronAppPath = path.normalize(path.resolve(__dirname, ELECTRON_FOLDER));
-        const electronCompiledFolder = path.normalize(path.resolve(electronAppPath, 'compiled'));
         const electronDistFolder = path.normalize(path.resolve(electronAppPath, 'dist'));
+        const electronCompiledFolder = path.normalize(path.resolve(electronDistFolder, 'compiled'));
         const electronNodeModules = path.normalize(path.resolve(electronAppPath, 'node_modules'));
         if (fs.existsSync(electronCompiledFolder)) {
             tasks.push(echo(colors.blue(`Remove compiled files: ${electronCompiledFolder}`)));
@@ -347,15 +333,24 @@ namespace('electron', function() {
         logo();
         const tasks = [];
         const electronAppPath = path.normalize(path.resolve(__dirname, ELECTRON_FOLDER));
-        const electronDist = path.normalize(path.resolve(electronAppPath, 'dist'));
-        if (fs.existsSync(electronDist)) {
-            tasks.push(echo(colors.blue(`Remove dist files: ${electronDist}`)));
-            tasks.push(`rm -rf ${electronDist}`);
+        const electronDistFolder = path.normalize(path.resolve(electronAppPath, 'dist'));
+        const electronCompiledFolder = path.normalize(path.resolve(electronDistFolder, 'compiled'));
+        const platform = os.platform();
+        if ([PLATFORMS.darwin, PLATFORMS.linux, PLATFORMS.win32].indexOf(platform) === -1) {
+            return new Error(`Unsupportable platform: ${platform}`);
         }
-        tasks.push(`npm run build`);
+        const prefixes = {
+            [PLATFORMS.darwin]: 'mac',
+            [PLATFORMS.linux]: 'linux',
+            [PLATFORMS.win32]: 'win'
+        };
+        // Copy package.json
+        tasks.push(`cp ${path.normalize(path.resolve(electronAppPath, 'package.json'))} ${path.normalize(path.resolve(electronCompiledFolder, 'package.json'))}`)
+        // Build app
+        tasks.push(`npm run build-${prefixes[platform]}`);
         sh(this, electronAppPath, ...tasks);
     }, {async: true});
 
-    task('build', ['electron:package-file:create', 'electron:install', 'electron:compile' , 'electron:buildApp']);
+    task('build', ['electron:clean', 'solution:link', 'solution:fix-npm-etc', 'electron:install', 'electron:compile' , 'electron:buildApp']);
 
 });

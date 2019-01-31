@@ -12,8 +12,10 @@ const InitializeStages = [
     // Stage #1
     [ServicePaths],
     // Stage #2
-    [ServiceSettings, ServiceWindowState, ServicePackage],
-    // Stage #3 (last service should startup service and should be single always)
+    [ServicePackage],
+    // Stage #3
+    [ServiceSettings, ServiceWindowState],
+    // Stage #4 (last service should startup service and should be single always)
     [ServiceElectron],
 ];
 
@@ -29,6 +31,7 @@ class Application {
     public init(stage: number = 0): void {
         if (InitializeStages.length <= stage) {
             this._logger.env(`Application is initialized`);
+            return;
         }
         this._logger.env(`Application initialization: stage #${stage + 1}: starting...`);
         const services: any[] = InitializeStages[stage];

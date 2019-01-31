@@ -9,7 +9,6 @@
     "lint": "ng lint",
     "e2e": "ng e2e",
     "npm_pack": "cd dist/plugin-c && npm pack"
-
   },
   "private": true,
   "dependencies": {
