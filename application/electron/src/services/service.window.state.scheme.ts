@@ -9,7 +9,7 @@ export interface IWindowState {
 export const defaults: IWindowState = {
     h: 500,
     max: false,
-    w: 700,
-    x: 50,
-    y: 50,
+    w: 900,
+    x: 100,
+    y: 100,
 };

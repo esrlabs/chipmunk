@@ -7,6 +7,7 @@ import Logger from '../../platform/node/src/env.logger';
 import { IService } from '../../src/interfaces/interface.service';
 
 const HOME_FOLDER = '.logviewer';
+const PLUGINS_FOLDER = 'plugins';
 
 /**
  * @class ServicePaths
@@ -17,12 +18,15 @@ class ServicePaths implements IService {
 
     private _logger: Logger = new Logger('ServicePaths');
     private _home: string;
+    private _plugins: string;
     private _app: string;
     private _root: string;
     private _resources: string;
 
     constructor() {
         this._home = Path.resolve(OS.homedir(), HOME_FOLDER);
+        // this._plugins = Path.resolve(this._home, PLUGINS_FOLDER);
+        this._plugins = '/Users/dmitry.astafyev/WebstormProjects/logviewer/electron.github/application/sandbox';
         this._resources = process.resourcesPath as string;
         const root: string | Error = this._getRootPath();
         if (root instanceof Error) {
@@ -38,9 +42,16 @@ class ServicePaths implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._createFolder().then(() => {
-                this._logger.env(`Paths:\n\thome: ${this._home}\n\troot: ${this._root}\n\tapp: ${this._app}\n\tresources ${this._resources}`);
-                resolve();
+            this._createHomeFolder().then(() => {
+                Promise.all([this._plugins].map((folder: string) => {
+                    return this._mkdir(folder);
+                })).then(() => {
+                    this._logger.env(`Paths:\n\thome: ${this._home}\n\troot: ${this._root}\n\tapp: ${this._app}\n\tresources ${this._resources}\n\tplugins ${this._plugins}`);
+                    resolve();
+                }).catch((error: Error) => {
+                    this._logger.error(`Fail to initialize paths due error: ${error.message}`);
+                    reject(error);
+                });
             }).catch(reject);
         });
     }
@@ -66,7 +77,16 @@ class ServicePaths implements IService {
     }
 
     /**
+     * Returns path to plugins folder
+     * @returns string
+     */
+    public getPlugins(): string {
+        return this._plugins;
+    }
+
+    /**
      * Returns path from home perspective
+     * @param {string} folder path to folder
      * @returns string
      */
     public resoveHomeFolder(folder: string): string {
@@ -74,18 +94,40 @@ class ServicePaths implements IService {
     }
 
     /**
+     * Returns path from root perspective
+     * @param {string} folder path to folder
+     * @returns string
+     */
+    public resoveRootFolder(folder: string): string {
+        return Path.normalize(Path.resolve(this._root, folder));
+    }
+
+    /**
+     * Check path
+     * @param {string} path path to file / folder
+     * @returns boolean
+     */
+    public isExist(path: string): boolean {
+        return FS.isExist(path);
+    }
+
+    /**
      * Creates logviewer folder (if it's needed)
      * @returns Promise<void>
      */
-    private _createFolder(): Promise<void> {
+    private _createHomeFolder(): Promise<void> {
+        return this._mkdir(this._home);
+    }
+
+    private _mkdir(dir: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            if (FS.isExist(this._home)) {
+            if (FS.isExist(dir)) {
                 return resolve();
             }
-            FS.mkdir(this._home).then(() => {
+            FS.mkdir(dir).then(() => {
                 resolve();
             }).catch((error: Error) => {
-                this._logger.error(`Fail to create local logviewer folder "${this._home}" due error: ${error.message}`);
+                this._logger.error(`Fail to create local logviewer folder "${dir}" due error: ${error.message}`);
                 reject();
             });
         });

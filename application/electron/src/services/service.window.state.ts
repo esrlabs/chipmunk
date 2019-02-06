@@ -5,8 +5,8 @@ import { StateFile } from '../classes/class.statefile';
 const SETTINGS_FILE = 'config.window.json';
 
 /**
- * @class ServiceConfig
- * @description Provides access to logviewer configuration. Used on electron level
+ * @class ServiceWindowState
+ * @description Controls browser window state
  */
 
 class ServiceWindowState extends StateFile<IScheme.IWindowState> {

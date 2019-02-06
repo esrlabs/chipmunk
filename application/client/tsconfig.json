@@ -17,5 +17,10 @@
       "es2018",
       "dom"
     ]
-  }
+  },
+  "include": [
+    "src/**/*",
+    "../platform/cross/**/*",
+    "../platform/web/**/*"
+  ]
 }
