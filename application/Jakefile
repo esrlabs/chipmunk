@@ -75,6 +75,7 @@ class FSController {
 
 const fsController = new FSController();
 
+const CLIENT_FOLDER = 'client';
 const ELECTRON_FOLDER = 'electron';
 const PLATFORM_FOLDER = 'platform';
 const PLATFORM_EXCEPTION_FOLDERS = [
@@ -274,6 +275,28 @@ namespace('solution', function() {
 
 });
 
+namespace('client', function() {
+    task('build', function() {
+        logo();
+        const tasks = [];
+        const clientPath = path.normalize(path.resolve(__dirname, CLIENT_FOLDER));
+        const clientNodeModules = path.normalize(path.resolve(clientPath, 'node_modules'));
+        const clientDist = path.normalize(path.resolve(clientPath, 'dist'));
+        if (fs.existsSync(clientNodeModules)) {
+            tasks.push(echo(colors.blue(`Remove node_modules files: ${clientNodeModules}`)));
+            tasks.push(`rm -rf ${clientNodeModules}`);
+        }
+        if (fs.existsSync(clientDist)) {
+            tasks.push(echo(colors.blue(`Remove dist files: ${clientDist}`)));
+            tasks.push(`rm -rf ${clientDist}`);
+        }
+        tasks.push(echo(colors.blue(`Building: ${clientPath}`)));
+        tasks.push(`npm install --prefix ${clientPath}`);
+        tasks.push(`npm run build --prefix ${clientPath}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+});
+
 namespace('electron', function() {
 
     task('install', function() {
@@ -351,6 +374,20 @@ namespace('electron', function() {
         sh(this, electronAppPath, ...tasks);
     }, {async: true});
 
-    task('build', ['electron:clean', 'solution:link', 'solution:fix-npm-etc', 'electron:install', 'electron:compile' , 'electron:buildApp']);
+    task('deliveryClient', function() {
+        logo();
+        const tasks = [];
+        const clientPath = path.normalize(path.resolve(__dirname, CLIENT_FOLDER));
+        const clientDist = path.normalize(path.resolve(clientPath, 'dist/logviewer'));
+        const electronAppPath = path.normalize(path.resolve(__dirname, ELECTRON_FOLDER));
+        const electronDistFolder = path.normalize(path.resolve(electronAppPath, 'dist/compiled/client'));
+        tasks.push(echo(colors.blue(`Delivery client to electron: ${clientDist} to ${electronDistFolder}`)));
+        tasks.push(`rm -rf ${electronDistFolder} && exit 0`);
+        tasks.push(`cp -R ${clientDist} ${electronDistFolder}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('build-instance', ['electron:clean', 'solution:link', 'solution:fix-npm-etc', 'electron:install', 'electron:compile', 'client:build', 'electron:deliveryClient', 'electron:buildApp']);
+    task('build', ['electron:clean', 'solution:link', 'solution:fix-npm-etc', 'electron:install', 'electron:compile', 'client:build', 'electron:deliveryClient']);
 
 });

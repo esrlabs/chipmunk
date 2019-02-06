@@ -1,5 +1,6 @@
 import { AfterViewInit, Component, Compiler, Injector, ViewChild, ViewContainerRef } from '@angular/core';
 import { NotificationsService } from './environment/services/service.notifications';
+import ServiceElectronIpc from './electron/services/electron.ipc';
 
 import * as AngularCore from '@angular/core';
 import * as AngularCommon from '@angular/common';
@@ -9,6 +10,7 @@ import * as AngularCommon from '@angular/common';
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.less']
 })
+
 export class AppComponent implements AfterViewInit {
   title = 'logviewer';
   @ViewChild('content', { read: ViewContainerRef }) content: ViewContainerRef;
@@ -19,6 +21,10 @@ export class AppComponent implements AfterViewInit {
     private _notifications: NotificationsService) { }
 
   ngAfterViewInit() {
+    const subscription = ServiceElectronIpc.subscribe('toClient', (a: any, b: any) => {
+      console.log(a, b);
+    });
+    ServiceElectronIpc.send('toServer', 1, 2, { a: 1, b: 2});
     this._notifications.add({
       caption: 'test',
       message: 'this is test notification this is test notification this is test notification'

@@ -11,6 +11,7 @@ import ServicePackage from '../services/service.package';
 import ServicePath from '../services/service.paths';
 import ServiceSettings from '../services/service.settings';
 import ServiceWindowState from '../services/service.window.state';
+import ControllerElectronIpc from './controller.electron.ipc';
 
 export default class ControllerBrowserWindow extends EventEmitter {
 
@@ -20,9 +21,10 @@ export default class ControllerBrowserWindow extends EventEmitter {
         ready: Symbol(),
     };
 
-    private _window: BrowserWindow | null = null;
+    private _window: BrowserWindow | undefined;
     private _guid: string;
     private _logger: Logger = new Logger('ControllerBrowserWindow');
+    private _ipc: ControllerElectronIpc | undefined;
 
     constructor(guid: string) {
         super();
@@ -39,7 +41,25 @@ export default class ControllerBrowserWindow extends EventEmitter {
 
     public destroy() {
         this.unsubscribeAll();
-        this._window = null;
+        this._ipc !== undefined && this._ipc.destroy();
+        this._ipc = undefined;
+        this._window = undefined;
+    }
+
+    public debug() {
+        if (this._window === undefined) {
+            return;
+        }
+        this._window.webContents.openDevTools();
+    }
+
+    public getIpc(): Promise<ControllerElectronIpc> {
+        return new Promise((resolve, reject) => {
+            if (this._ipc === undefined) {
+                return reject(new Error(`IPC isn't available`));
+            }
+            resolve(this._ipc);
+        });
     }
 
     private _create(): Promise<void> {
@@ -53,19 +73,24 @@ export default class ControllerBrowserWindow extends EventEmitter {
                 y: state.y,
             };
             this._window = new BrowserWindow(options);
+            const clientPath = ServicePath.resoveRootFolder(ServiceSettings.get().client.indexHtml);
+            if (!ServicePath.isExist(clientPath)) {
+                throw new Error(this._logger.error(`Cannot find client on path "${clientPath}"`));
+            }
             this._window.loadURL(Url.format({
-                pathname: ServicePath.resoveHomeFolder(ServiceSettings.get().client.indexHtml),
+                pathname: clientPath,
 			    protocol: 'file:',
 			    slashes: true,
             }) + `?v${ServicePackage.get().version}`);
             state.max && this._window.maximize();
+            this._ipc = new ControllerElectronIpc(this._guid, this._window.webContents);
             this._bind();
             this.emit(ControllerBrowserWindow.Events.created);
         });
     }
 
     private _bind() {
-        if (this._window === null) {
+        if (this._window === undefined) {
             return;
         }
         this._window.on('resize', this._onUpdate);
@@ -76,7 +101,7 @@ export default class ControllerBrowserWindow extends EventEmitter {
     }
 
     private _onUpdate() {
-        if (this._window === null) {
+        if (this._window === undefined) {
             return;
         }
         const bounds = this._window.getBounds();

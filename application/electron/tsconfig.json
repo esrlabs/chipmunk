@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "types": ["node"],
     "outDir": "./dist/compiled/",
     "sourceMap": true,
     "noImplicitAny": true,
