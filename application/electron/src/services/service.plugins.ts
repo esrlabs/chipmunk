@@ -33,7 +33,7 @@ export interface IPlugin {
         render: any;
     };
     node?: {
-        process: ControllerPluginProcess;
+        controller: ControllerPluginProcess;
         started: number;
     };
 }
@@ -91,7 +91,10 @@ export class ServicePlugins implements IService {
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     *   Initialization of plugins
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
+    /**
+     * Start initialization of all found plugins. Initialize and process and render
+     * @returns { Promise<void> }
+     */
     private _initializeAllPlugins(): Promise<void> {
         return new Promise((resolve, reject) => {
             Promise.all(Array.from(this._plugins.values()).map((plugin: IPlugin) => {
@@ -136,7 +139,6 @@ export class ServicePlugins implements IService {
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     *   Initialization of plugins: process part
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
     /**
      * Does preinstalations checks:
      * - is plugin installed or not
@@ -168,23 +170,25 @@ export class ServicePlugins implements IService {
         });
     }
 
-    private _attachProcessOfPlugin(plugin: IPlugin): Promise<ChildProcess> {
+    /**
+     * Create controller of plugin's process
+     * Controller of plugin's process attachs plugins as forked process and provide communitin within it
+     * @param {IPlugin} plugin description of plugin
+     * @returns { Promise<ControllerPluginProcess> }
+     */
+    private _attachProcessOfPlugin(plugin: IPlugin): Promise<ControllerPluginProcess> {
         return new Promise((resolve, reject) => {
             const process: ControllerPluginProcess = new ControllerPluginProcess(plugin);
             process.attach().then(() => {
                 this._logger.env(`[${plugin.name}]: attached.`);
-                plugin.node = {
-                    process: process,
-                    started: Date.now(),
-                };
-                this._plugins.set(plugin.name, plugin);
-                resolve();
+                resolve(process);
             }).catch((attachError: Error) => {
                 this._logger.error(`[${plugin.name}]: fail to attach due error: ${attachError.message}`);
                 reject();
             });
         });
     }
+
     /**
      * Install and init plugin in part of process
      * @param {IPlugin} plugin description of plugin
@@ -197,7 +201,13 @@ export class ServicePlugins implements IService {
             this._preinstalationProcessOfPlugin(plugin, reinstall).then((install: boolean) => {
 
                 const initialize = () => {
-                    this._attachProcessOfPlugin(plugin).then(() => {
+                    this._attachProcessOfPlugin(plugin).then((controller: ControllerPluginProcess) => {
+                        // Save ref to controller and define start time
+                        plugin.node = {
+                            controller: controller,
+                            started: Date.now(),
+                        };
+                        this._plugins.set(plugin.name, plugin);
                         resolve();
                     }).catch((attachError: Error) => {
                         reject(attachError);
@@ -231,99 +241,22 @@ export class ServicePlugins implements IService {
                 this._logger.error(`[${plugin.name}]: Fail to do preinstallation operations due error: ${preinstallError.message}`);
                 reject(preinstallError);
             });
-            /*
-            const npmInstaller: NPMInstaller = new NPMInstaller();
-            npmInstaller.install(plugin.path.process).then(() => {
-                console.log('installed');
-                ElectronRebuild(plugin.path.process, '4.0.3').then(() => {
-                    console.log('REBUILDED!');
-                    const program = '/Users/dmitry.astafyev/WebstormProjects/logviewer/electron.github/application/sandbox/terminal/process/dist/main.js';
-                    const parameters: any[] = [];
-                    const options = {
-                        stdio: [ 'pipe', 'pipe', 'pipe', 'ipc' ],
-                    };
-    
-                    const child = fork(program, parameters, { stdio: [ 'pipe', 'pipe', 'pipe', 'ipc' ] });
-                    child.stderr.on('data', (chunk) => {
-                        console.log(chunk.toString());
-                    });
-                    child.stdout.on('data', (chunk) => {
-                        console.log(chunk.toString());
-                    });
-                    child.on('close', () => {
-                        console.log('PLUGIN DIED!');
-                    });
-                    child.on('message', (...args: any[]) => {
-                        console.log('message from child:', args);
-                        child.send('Hi');
-                    });
-                    setTimeout(() => {
-                        console.log(`KILLING!!!!!`);
-                        child.kill();
-                    }, 3000);
-                }).catch((error: Error) => {
-                    console.log(`FAIL TO REBUILD`);
-                    console.log(error);
-                });
-            }).catch((installationError: Error) => {
-                console.log(installationError);
-            });
-            */
-
-            /*
-            const spawn = new Spawn();
-            spawn.execute({ command: `npm install --prefix ${plugin.path.process}` }).then(() => {
-
-            }).catch((error: Error) => {
-                console.log(error);
-            });
-            */
-            /*
-            const npmInstaller: NPMInstaller = new NPMInstaller();
-            npmInstaller.install(plugin.path.process).then(() => {
-
-            }).catch((installationError: Error) => {
-                console.log(installationError);
-            });
-            */
-            /*
-            const program = '/Users/dmitry.astafyev/WebstormProjects/logviewer/electron.github/application/sandbox/terminal/process/dist/main.js';
-            const parameters: any[] = [];
-            const options = {
-                stdio: [ 'pipe', 'pipe', 'pipe', 'ipc' ],
-            };
-
-            const child = fork(program, parameters, { stdio: [ 'pipe', 'pipe', 'pipe', 'ipc' ] });
-            child.stderr.on('data', (chunk) => {
-                console.log(chunk.toString());
-            });
-            child.stdout.on('data', (chunk) => {
-                console.log(chunk.toString());
-            });
-            child.on('close', () => {
-                console.log('PLUGIN DIED!');
-            });
-            child.on('message', (...args: any[]) => {
-                console.log('message from child:', args);
-                child.send('Hi');
-            });
-            setTimeout(() => {
-                console.log(`KILLING!!!!!`);
-                child.kill();
-            }, 3000);
-            */
         });
     }
+
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    *   Initialization of plugins: render part
+    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
     private _initializeRenderOfPlugin(plugin: IPlugin): Promise<void> {
         return new Promise((resolve, reject) => {
             resolve();
         });
     }
+
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     *   Reading plugin's data
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
     /**
      * Walking plugin's folder and read all plugins inside and scans package.json file
      * @returns { Promise<Map<TPluginPath, IPlugin>> }
@@ -383,6 +316,8 @@ export class ServicePlugins implements IService {
 
     /**
      * Scan plugin folder for two subfolders: "process" (electron part) and "render" (render part). Search for each package.json; read it; save it into description
+     * @param {string} name name of plugin
+     * @param {string} path path to process's plugin
      * @returns { Promise<IPlugin> }
      */
     private _getPluginDescription(name: string, path: string): Promise<IPlugin> {
@@ -426,6 +361,7 @@ export class ServicePlugins implements IService {
 
     /**
      * Read package.json and try to parse as JSON
+     * @param {string} folder destination folder with package.json file
      * @returns { Promise<any> }
      */
     private _readPackage(folder: string): Promise<any> {

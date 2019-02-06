@@ -64,6 +64,41 @@ export default class ControllerPluginProcess extends Emitter {
     }
 
     /**
+     * Sends message to process of plugin
+     * @param {any} message message to plugin
+     * @returns { Promise<void> }
+     */
+    public send(message: any): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (this._process === undefined) {
+                return reject(new Error(`Plugin doesn't have attached process`));
+            }
+            if (!this._process.connected || this._process.killed) {
+                return reject(new Error(`Process of plugin was killed / disconnected or wasn't connected at all.`));
+            }
+            this._process.send(message, (error: Error) => {
+                if (error) {
+                    return reject(error);
+                }
+                resolve();
+            });
+        });
+    }
+
+    /**
+     * Attempt to kill plugin process
+     * @returns void
+     */
+    public kill(): boolean {
+        if (this._process === undefined) {
+            return false;
+        }
+        this._process.kill();
+        this._process = undefined;
+        return true;
+    }
+
+    /**
      * Handler to listen stdout and stderr of plugin process
      * @returns void
      */
@@ -103,9 +138,5 @@ export default class ControllerPluginProcess extends Emitter {
      */
     private _onMessage(...args: any[]): void {
         this.emit(ControllerPluginProcess.Events.message, ...args);
-        /*
-                        child.send('Hi');
-
-        */
     }
 }
