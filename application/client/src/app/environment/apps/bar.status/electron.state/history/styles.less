@@ -1,0 +1,33 @@
+@import '../../../../theme/scheme.less';
+
+:host {
+    position: relative;
+    display: block;
+    box-sizing: border-box;
+    height: 100%;
+    width: auto;
+    & ul.history{
+        position: relative;
+        display: block;
+        padding: 0;
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        list-style: none;
+        user-select: text;
+        pointer-events: all;
+        & li{
+            position: relative;
+            display: block;
+            margin: 0;
+            width: auto;
+            height: auto;
+            list-style: none;
+            font-size: 0.75rem;
+            color: @scheme-color-3;
+            white-space: nowrap;
+            padding: 0.1rem 0.5rem;
+            border-bottom: dotted thin @scheme-color-4;
+        }
+    }
+}
