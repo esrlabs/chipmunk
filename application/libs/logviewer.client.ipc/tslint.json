@@ -1,0 +1,36 @@
+{
+    "defaultSeverity": "error",
+    "extends": [
+        "tslint:recommended"
+    ],
+    "jsRules": {
+        "indent": false
+    },
+    "rules": {
+        "indent": false,
+        "object-literal-shorthand":false,
+        "quotemark":false,
+        "interface-over-type-literal":false,
+        "max-line-length": false,
+        "variable-name": [true, "ban-keywords", "check-format", "allow-leading-underscore", "allow-pascal-case"],
+        "no-unused-expression": [ "errors", { "allowShortCircuit": true }],
+        "typedef-whitespace": [
+            true,
+            {
+              "call-signature": "nospace",
+              "index-signature": "nospace",
+              "parameter": "nospace",
+              "property-declaration": "nospace",
+              "variable-declaration": "nospace"
+            },
+            {
+              "call-signature": "space",
+              "index-signature": "space",
+              "parameter": "space",
+              "property-declaration": "space",
+              "variable-declaration": "space"
+            }
+          ]
+    },
+    "rulesDirectory": []
+}
