@@ -2,13 +2,13 @@
 import Logger from '../platform/node/src/env.logger';
 
 // Services
-import ServiceApplicationIPC from './services/service.application.ipc';
 import ServiceElectron from './services/service.electron';
 import ServicePackage from './services/service.package';
 import ServicePaths from './services/service.paths';
 import ServicePlugins from './services/service.plugins';
 import ServiceSettings from './services/service.settings';
 import ServiceWindowState from './services/service.window.state';
+import ServiceElectronService from './services/service.electron.state';
 
 const InitializeStages = [
     // Stage #1
@@ -19,8 +19,8 @@ const InitializeStages = [
     [ServiceSettings, ServiceWindowState],
     // Stage #4. Init electron. Prepare browser window
     [ServiceElectron],
-    // Stage #5. Create IPC for plugins communication
-    [ServiceApplicationIPC],
+    // Stage #5. Init services and helpers
+    [ServiceElectronService],
     // Stage #6. Init plugins
     [ServicePlugins],
     // (last service should startup service and should be single always)
@@ -76,6 +76,30 @@ class Application {
     app.logger.env(`Application is ready.`);
     // initialization of plugins?
     // registration events?
+    /*
+    setInterval(() => {
+        ServiceElectron.IPC.send(ServiceElectron.IPCMessages.HostState, new ServiceElectron.IPCMessages.HostState({
+            message: 'hello',
+            state: ServiceElectron.IPCMessages.HostState.States.ready,
+        })).then(() => {
+            console.log('sent');
+        }).catch((error: Error) => {
+            console.log(`cannot send package`);
+        });
+    }, 2000);
+    */
+/*
+    ServiceElectron.IPC.subscribe('toServer', (a, b, c) => {
+        console.log(`!!!!!`);
+        console.log(a, b, c);
+        console.log(`!!!!!`);
+    }).then((subscription) => {
+        console.log('done');
+    }).catch((error: Error) => {
+        console.log(`cannot make subscription`);
+    });
+    */
+
 }).catch((error: Error) => {
     throw error;
 });

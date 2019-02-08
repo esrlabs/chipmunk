@@ -10,6 +10,9 @@ import { LayoutSecondaryAreaControlsComponent   } from './area.secondary/control
 
 import { EnvironmentComponentsModule            } from '../components/module';
 
+import { AppsBarStatusModule                    } from '../apps/bar.status/module';
+
+
 const entryComponents = [
     LayoutStatusBarComponent,
     LayoutFunctionsBarComponent,
@@ -22,7 +25,7 @@ const components = [ LayoutComponent, ...entryComponents ];
 
 @NgModule({
     entryComponents : [ ...entryComponents ],
-    imports         : [ CommonModule, EnvironmentComponentsModule ],
+    imports         : [ CommonModule, EnvironmentComponentsModule, AppsBarStatusModule ],
     declarations    : [ ...components ],
     exports         : [ ...components ]
 })

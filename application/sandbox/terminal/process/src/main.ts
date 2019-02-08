@@ -1,44 +1,117 @@
 import Logger from './env.logger';
-import { list } from 'serialport';
-import * as SerialPort from 'serialport';
+import PluginIPCService from './plugin.ipc.service';
+import { IPCMessage } from './plugin.ipc.service';
+import Shell from './process.shell';
+import * as EnvModule from './process.env';
 
-class Application {
+class Plugin {
 
-    private _logger: Logger = new Logger('Application');
+    private _logger: Logger = new Logger('Terminal');
+    private _processShell: Shell | undefined;
+    private _targetShell: string | undefined;
+    private _availableShells: string[] = [];
 
     constructor() {
-        if (process.send === void 0) {
-            throw new Error(`Fail to init plugin, because IPC interface isn't available`);
-        }
-        process.on('message', (...args: any[]) => {
-            console.log(args);
-            this._logger.env(`This is good`);
-            // process.send !== void 0 && process.send('HEY!');
-        });
-        process.send('Try to open list!');
-        try {
-            list().then((ports: SerialPort.PortInfo[]) => {
-                console.log(ports);
-                process.send !== void 0 && process.send(ports);
-            }).catch((error: Error) => {
-                console.log(error);
-                process.send !== void 0 && process.send(error);
+        PluginIPCService.on(PluginIPCService.Events.message, this._onCommand.bind(this));
+        this._onShellOutput = this._onShellOutput.bind(this);
+        this._onShellClose = this._onShellClose.bind(this);
+        this._getAvailableShells().then((shells: string[]) => {
+            this._availableShells = shells;
+            this._targetShell = this._availableShells[0];
+            this.execute().catch((executeError: Error) => {
+                this._logger.error(`Cannot execute defualt shell due error: ${executeError.message}`);
+                return executeError;
             });
-        } catch (e) {
-            process.send(e);
+        }).catch((shellsListError: Error) => {
+            this._targetShell = undefined;
+            this._availableShells = [];
+            this._logger.error(`Cannot get list of available shells due error: ${shellsListError.message}`);
+            return shellsListError;
+        });
+    }
+
+    public execute(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (this._targetShell === undefined) {
+                return reject(new Error(this._logger.error(`Target shell isn't defined. Cannot start shell process.`)));
+            }
+            this._processShell = new Shell({ shell: 'bash' });
+            this._processShell.on(Shell.Events.data, this._onShellOutput);
+            this._processShell.on(Shell.Events.exit, this._onShellClose);
+            resolve();
+        });
+    }
+
+    private _getAvailableShells(): Promise<string[]> {
+        return new Promise((resolve, reject) => {
+            EnvModule.shells().then((shells: string[]) => {
+                if (!(shells instanceof Array) || shells.length === 0) {
+                    return reject(new Error(this._logger.error(`Cannot detect available shells on OS level.`)));
+                }
+                resolve(shells);
+            });
+        });
+    }
+
+    private _onCommand(message: IPCMessage) {
+        switch (message.command) {
+            case 'shell':
+                if (this._processShell === undefined) {
+                    return PluginIPCService.send(new IPCMessage({
+                        command: message.command,
+                        data: {
+                            error: this._logger.error(`By some reasons shell process was killed. Cannot send command.`),
+                        },
+                        sequence: message.sequence
+                    }));
+                }
+                return this._processShell.send(message.data).then(() => {
+                    PluginIPCService.send(new IPCMessage({
+                        command: message.command,
+                        data: {},
+                        sequence: message.sequence
+                    }));
+                }).catch((error: Error) => {
+                    PluginIPCService.send(new IPCMessage({
+                        command: message.command,
+                        data: {
+                            error: this._logger.error(`Error sending data into shell due error: ${error.message}`),
+                        },
+                        sequence: message.sequence
+                    }));
+                });
+            case 'availableShells':
+                if (this._availableShells.length === 0) {
+                    return PluginIPCService.send(new IPCMessage({
+                        command: message.command,
+                        data: {
+                            error: this._logger.error(`No shells list is available.`),
+                        },
+                        sequence: message.sequence
+                    }));
+                }
+                return PluginIPCService.send(new IPCMessage({
+                    command: message.command,
+                    data: {
+                        shells: this._availableShells
+                    },
+                    sequence: message.sequence
+                }));
         }
-        process.send('Hey!');
+    }
+
+    private _onShellClose() {
+        if (this._processShell === undefined) {
+            return;
+        }
+        this._processShell.removeAllListeners();
+        this._processShell = undefined;
+    }
+
+    private _onShellOutput(chunk: any) {
+        PluginIPCService.sendToStream(chunk);
     }
 
 }
 
-const app: Application = new Application();
-setTimeout(() => {
-    console.log('q');
-}, 4000);
-
-setInterval(() => {
-    console.log('ping!');
-}, 1000);
-
-console.log('HEY!!!!!!!!');
+const app: Plugin = new Plugin();

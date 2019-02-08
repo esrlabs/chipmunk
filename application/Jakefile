@@ -75,6 +75,7 @@ class FSController {
 
 const fsController = new FSController();
 
+const APP_FOLDER = 'application';
 const CLIENT_FOLDER = 'client';
 const ELECTRON_FOLDER = 'electron';
 const PLATFORM_FOLDER = 'platform';
@@ -295,6 +296,25 @@ namespace('client', function() {
         tasks.push(`npm run build --prefix ${clientPath}`);
         sh(this, '.', ...tasks);
     }, {async: true});
+
+    task('link-ipc-messages', function() {
+        logo();
+        const tasks = [];
+        const clientPath = path.normalize(path.resolve(__dirname, CLIENT_FOLDER));
+        const clientMessagesFolder = path.normalize(path.resolve(clientPath, 'src/app/electron/ipc.messages'));
+        const electronPath = path.normalize(path.resolve(__dirname, ELECTRON_FOLDER));
+        const electronMessagesFolder = path.normalize(path.resolve(electronPath, 'src/controllers/electron.ipc.messages'));
+        if (fs.existsSync(clientMessagesFolder)) {
+            console.log(`Project ${clientMessagesFolder} is already linked. It will be unlinked before to be linked again.`);
+            tasks.push(echo(colors.blue(`unlink: ${clientMessagesFolder}`)));
+            tasks.push(`unlink ${clientMessagesFolder} & exit 0`);
+        }
+        tasks.push(echo(colors.blue(`link: ${clientMessagesFolder}`)));
+        tasks.push(`ln -s ${electronMessagesFolder} ${clientMessagesFolder}`);
+        tasks.push(`rm -rf ${path.normalize(path.resolve(clientPath, 'etc'))}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+    // application/electron
 });
 
 namespace('electron', function() {
@@ -387,7 +407,6 @@ namespace('electron', function() {
         sh(this, '.', ...tasks);
     }, {async: true});
 
-    task('build-instance', ['electron:clean', 'solution:link', 'solution:fix-npm-etc', 'electron:install', 'electron:compile', 'client:build', 'electron:deliveryClient', 'electron:buildApp']);
-    task('build', ['electron:clean', 'solution:link', 'solution:fix-npm-etc', 'electron:install', 'electron:compile', 'client:build', 'electron:deliveryClient']);
+    task('build', ['electron:clean', 'solution:link', 'solution:fix-npm-etc', 'electron:install', 'electron:compile', 'client:link-ipc-messages', 'client:build', 'electron:deliveryClient', 'electron:buildApp']);
 
 });

@@ -1,6 +1,7 @@
 import { AfterViewInit, Component, Compiler, Injector, ViewChild, ViewContainerRef } from '@angular/core';
 import { NotificationsService } from './environment/services/service.notifications';
 import ServiceElectronIpc from './electron/services/electron.ipc';
+import { IPCMessages } from './electron/services/electron.ipc';
 
 import * as AngularCore from '@angular/core';
 import * as AngularCommon from '@angular/common';
@@ -21,6 +22,8 @@ export class AppComponent implements AfterViewInit {
     private _notifications: NotificationsService) { }
 
   ngAfterViewInit() {
+
+    /*
     const subscription = ServiceElectronIpc.subscribe('toClient', (a: any, b: any) => {
       console.log(a, b);
     });
@@ -39,7 +42,7 @@ export class AppComponent implements AfterViewInit {
         ]
       });
     }, 3000);
-
+*/
     return;
     const path = 'assets/plugin-c.umd.js';
 
