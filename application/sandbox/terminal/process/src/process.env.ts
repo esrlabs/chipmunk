@@ -31,7 +31,7 @@ export enum EPlatforms {
 export type TEnvVars = { [key: string]: string };
 
 export function getOSEnvVars(): Promise<TEnvVars> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         let command: string = '';
         switch (OS.platform()) {
             case EPlatforms.aix:
@@ -44,6 +44,7 @@ export function getOSEnvVars(): Promise<TEnvVars> {
                 command = 'printenv';
                 break;
             case EPlatforms.win32:
+                // TODO: Find solution for win
                 command = 'printenv';
                 break;
         }
@@ -62,6 +63,35 @@ export function getOSEnvVars(): Promise<TEnvVars> {
             resolve(pairs);
         }).catch((error: Error) => {
             resolve(Object.assign({}, process.env) as TEnvVars);
+        });
+    });
+}
+
+export function shells(): Promise<string[]> {
+    return new Promise((resolve) => {
+        let command: string = '';
+        switch (OS.platform()) {
+            case EPlatforms.aix:
+            case EPlatforms.android:
+            case EPlatforms.darwin:
+            case EPlatforms.freebsd:
+            case EPlatforms.linux:
+            case EPlatforms.openbsd:
+            case EPlatforms.sunos:
+                command = 'cat /etc/shells';
+                break;
+            case EPlatforms.win32:
+                // TODO: Check solution with win
+                command = 'cmd.com';
+                break;
+        }
+        shell(command).then((stdout: string) => {
+            const values: string[] = stdout.split(/[\n\r]/gi).filter((value: string) => {
+                return value.indexOf('/') === 0;
+            });
+            resolve(values);
+        }).catch((error: Error) => {
+            resolve([]);
         });
     });
 }

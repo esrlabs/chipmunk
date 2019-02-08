@@ -2,18 +2,16 @@ import * as Path from 'path';
 import * as Objects from '../../platform/cross/src/env.objects';
 import * as FS from '../../platform/node/src/fs';
 
-import { ChildProcess, fork } from 'child_process';
-
 import Logger from '../../platform/node/src/env.logger';
 import NPMInstaller from '../tools/npm.installer';
 import ServiceElectron from './service.electron';
 import ServicePaths from './service.paths';
-
+import ServiceElectronService from './service.electron.state';
 import ControllerPluginProcess from '../controllers/controller.plugin.process';
+import ElectronRebuild from 'electron-rebuild';
 
 import { IService } from '../interfaces/interface.service';
-
-import ElectronRebuild from 'electron-rebuild';
+import { IPCMessages } from './service.electron';
 
 const PROCESS_FOLDER = 'process';
 const RENDER_FOLDER = 'render';
@@ -44,7 +42,6 @@ export type TPluginPath = string;
  * @class ServicePluginNode
  * @description Looking for plugins, which should be attached on nodejs level
  */
-
 export class ServicePlugins implements IService {
 
     private _logger: Logger = new Logger('ServicePluginNode');
@@ -69,15 +66,21 @@ export class ServicePlugins implements IService {
                 this._plugins = plugins;
                 if (plugins.size === 0) {
                     // No plugins to be initialized
+                    ServiceElectronService.updateHostState(`No plugins installed`, true);
+                    this._logger.env(`No plugins installed`);
                     return resolve();
                 }
                 this._initializeAllPlugins().then(() => {
+                    ServiceElectronService.updateHostState(`All plugins are ready`, true);
+                    this._logger.error(`All plugins are ready`);
                     resolve();
                 }).catch((initializationError: Error) => {
+                    ServiceElectronService.updateHostState(`Error during initialization of plugins: ${initializationError.message}`, true);
                     this._logger.error(`Error during initialization of plugins: ${initializationError.message}`);
                     resolve();
                 });
             }).catch((readingDescriptionsError: Error) => {
+                ServiceElectronService.updateHostState(`Fail to get description of available plugins due error: ${readingDescriptionsError.message}`, true);
                 this._logger.error(`Fail to get description of available plugins due error: ${readingDescriptionsError.message}`);
                 resolve();
             });
@@ -127,10 +130,12 @@ export class ServicePlugins implements IService {
                 tasks.push(this._initializeRenderOfPlugin(plugin));
             }
             Promise.all(tasks).then(() => {
+                ServiceElectronService.updateHostState(`[${plugin.name}]: initialization of plugin is done.`);
                 this._logger.env(`[${plugin.name}]: initialization of plugin is done.`);
                 resolve();
             }).catch((error: Error) => {
-                this._logger.env(`[${plugin.name}]: fail to initialize due error: ${error.message}.`);
+                ServiceElectronService.updateHostState(`[${plugin.name}]: fail to initialize due error: ${error.message}.`);
+                this._logger.warn(`[${plugin.name}]: fail to initialize due error: ${error.message}.`);
                 reject(error);
             });
         });
@@ -154,9 +159,11 @@ export class ServicePlugins implements IService {
         return new Promise((resolve, reject) => {
             const nodeModulesPath: string = Path.resolve(plugin.path.process, './node_modules');
             if (FS.isExist(nodeModulesPath) && !reinstall) {
+                ServiceElectronService.updateHostState(`[${plugin.name}]: plugin is already installed.`);
                 this._logger.env(`[${plugin.name}]: plugin is already installed.`);
                 return resolve(false);
             } else if (FS.isExist(nodeModulesPath) && reinstall) {
+                ServiceElectronService.updateHostState(`[${plugin.name}]: force reinstalation of plugin; node_modules will be removed.`);
                 this._logger.env(`[${plugin.name}]: force reinstalation of plugin; node_modules will be removed.`);
                 FS.rmdir(nodeModulesPath).then(() => {
                     resolve(true);
@@ -164,6 +171,7 @@ export class ServicePlugins implements IService {
                     reject(error);
                 });
             } else {
+                ServiceElectronService.updateHostState(`[${plugin.name}]: plugin has to be installed.`);
                 this._logger.env(`[${plugin.name}]: plugin has to be installed.`);
                 resolve(true);
             }
@@ -180,9 +188,11 @@ export class ServicePlugins implements IService {
         return new Promise((resolve, reject) => {
             const process: ControllerPluginProcess = new ControllerPluginProcess(plugin);
             process.attach().then(() => {
+                ServiceElectronService.updateHostState(`[${plugin.name}]: attached.`);
                 this._logger.env(`[${plugin.name}]: attached.`);
                 resolve(process);
             }).catch((attachError: Error) => {
+                ServiceElectronService.updateHostState(`[${plugin.name}]: fail to attach due error: ${attachError.message}`);
                 this._logger.error(`[${plugin.name}]: fail to attach due error: ${attachError.message}`);
                 reject();
             });
@@ -215,22 +225,28 @@ export class ServicePlugins implements IService {
                 };
 
                 if (install) {
-                    this._logger.env(`[${plugin.name}]: start installation of plugin.`);
+                    ServiceElectronService.updateHostState(`[${plugin.name}]: installing`);
+                    this._logger.env(`[${plugin.name}]: installing`);
                     const npmInstaller: NPMInstaller = new NPMInstaller();
                     npmInstaller.install(plugin.path.process).then(() => {
+                        ServiceElectronService.updateHostState(`[${plugin.name}]: installation is complited.`);
+                        ServiceElectronService.updateHostState(`[${plugin.name}]: rebuild.`);
                         this._logger.env(`[${plugin.name}]: installation is complited.`);
-                        this._logger.env(`[${plugin.name}]: start rebuild.`);
+                        this._logger.env(`[${plugin.name}]: rebuild.`);
                         ElectronRebuild({
                             buildPath: plugin.path.process,
                             electronVersion: this._electronVersion,
                         }).then(() => {
+                            ServiceElectronService.updateHostState(`[${plugin.name}]: rebuild is complited.`);
                             this._logger.env(`[${plugin.name}]: rebuild is complited.`);
                             initialize();
                         }).catch((rebuildError: Error) => {
+                            ServiceElectronService.updateHostState(`[${plugin.name}]: Fail rebuild due error: ${rebuildError.message}`);
                             this._logger.error(`[${plugin.name}]: Fail rebuild due error: ${rebuildError.message}`);
                             reject(rebuildError);
                         });
                     }).catch((installationError: Error) => {
+                        ServiceElectronService.updateHostState(`[${plugin.name}]: Fail install due error: ${installationError.message}`);
                         this._logger.error(`[${plugin.name}]: Fail install due error: ${installationError.message}`);
                         reject(installationError);
                     });
@@ -238,6 +254,7 @@ export class ServicePlugins implements IService {
                     initialize();
                 }
             }).catch((preinstallError: Error) => {
+                ServiceElectronService.updateHostState(`[${plugin.name}]: Fail to do preinstallation operations due error: ${preinstallError.message}`);
                 this._logger.error(`[${plugin.name}]: Fail to do preinstallation operations due error: ${preinstallError.message}`);
                 reject(preinstallError);
             });
@@ -268,6 +285,7 @@ export class ServicePlugins implements IService {
             FS.readFolders(this._path).then((folders: string[]) => {
                 if (folders.length === 0) {
                     // No any plugins
+                    ServiceElectronService.updateHostState(`No any plugins were found. Target folder: ${this._path}`);
                     this._logger.env(`No any plugins were found. Target folder: ${this._path}`);
                     return;
                 }
@@ -283,6 +301,7 @@ export class ServicePlugins implements IService {
                     });
                 })).then(() => {
                     if (errors.length > 0) {
+                        ServiceElectronService.updateHostState(`Not all plugins were initialized due next errors: \n\t-\t${errors.map((e: Error) => e.message).join('\n\t-\t')}`);
                         this._logger.error(`Not all plugins were initialized due next errors: \n\t-\t${errors.map((e: Error) => e.message).join('\n\t-\t')}`);
                     }
                     const list: {
@@ -303,10 +322,12 @@ export class ServicePlugins implements IService {
                     list.failed.length > 0 && this._logger.env(`Failed to read plugins: \n\t-\t${list.failed.join(';\n\t-\t')}`);
                     resolve(plugins);
                 }).catch((error: Error) => {
+                    ServiceElectronService.updateHostState(`Unexpected error during initialization of plugin: ${error.message}`);
                     this._logger.error(`Unexpected error during initialization of plugin: ${error.message}`);
                     resolve(plugins);
                 });
             }).catch((error: Error) => {
+                ServiceElectronService.updateHostState(`Fail to read plugins folder (${this._path}) due error: ${error.message}. Application will continue work, but plugins weren't inited.`);
                 this._logger.error(`Fail to read plugins folder (${this._path}) due error: ${error.message}. Application will continue work, but plugins weren't inited.`);
                 // Plugins should not block application
                 reject(plugins);
@@ -371,15 +392,18 @@ export class ServicePlugins implements IService {
             }
             const packageFile: string = Path.resolve(folder, 'package.json');
             if (!FS.isExist(packageFile)) {
+                ServiceElectronService.updateHostState(`Package.json file "${packageFile}" doesn't exist`);
                 return reject(new Error(this._logger.error(`Package.json file "${packageFile}" doesn't exist`)));
             }
             FS.readTextFile(packageFile).then((content: string) => {
                 const json = Objects.getJSON(content);
                 if (json instanceof Error) {
+                    ServiceElectronService.updateHostState(`Cannot parse package file "${packageFile}" due error: ${json.message}`);
                     return reject(new Error(this._logger.error(`Cannot parse package file "${packageFile}" due error: ${json.message}`)));
                 }
                 resolve(json);
             }).catch((error: Error) => {
+                ServiceElectronService.updateHostState(`Fail to read package at "${packageFile}" due error: ${error.message}`);
                 this._logger.error(`Fail to read package at "${packageFile}" due error: ${error.message}`);
             });
         });

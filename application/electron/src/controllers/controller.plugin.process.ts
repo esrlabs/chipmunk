@@ -1,13 +1,11 @@
 import * as Path from 'path';
 import * as FS from '../../platform/node/src/fs';
 
-import Logger from '../../platform/node/src/env.logger';
-
-import { IPlugin } from '../services/service.plugins';
-
-import { Emitter } from '../../platform/cross/src/index';
-
 import { ChildProcess, fork } from 'child_process';
+import { Emitter } from '../../platform/cross/src/index';
+import Logger from '../../platform/node/src/env.logger';
+import { IPlugin } from '../services/service.plugins';
+import ControllerIPCPlugin, { IPCMessage } from './controller.plugin.process.ipc';
 
 /**
  * @class ControllerPluginProcess
@@ -20,13 +18,13 @@ export default class ControllerPluginProcess extends Emitter {
         close: Symbol(),
         disconnect: Symbol(),
         error: Symbol(),
-        message: Symbol(),
         output: Symbol(),
     };
 
     private _logger: Logger;
     private _plugin: IPlugin;
     private _process: ChildProcess | undefined;
+    private _ipc: ControllerIPCPlugin | undefined;
 
     constructor(plugin: IPlugin) {
         super();
@@ -35,6 +33,7 @@ export default class ControllerPluginProcess extends Emitter {
         this._onSTDData = this._onSTDData.bind(this);
         this._onClose = this._onClose.bind(this);
         this._onMessage = this._onMessage.bind(this);
+        this._onStream = this._onStream.bind(this);
         this._onError = this._onError.bind(this);
         this._onDisconnect = this._onDisconnect.bind(this);
     }
@@ -52,48 +51,74 @@ export default class ControllerPluginProcess extends Emitter {
             if (!FS.isExist(main)) {
                 return reject(new Error(this._logger.error(`Cannot find file defined in "main" of package.json. File: ${main}.`)));
             }
-            this._process = fork(main, [], { stdio: [ 'pipe', 'pipe', 'pipe', 'ipc' ] });
+            this._process = fork(
+                main,
+                [`--inspect`],
+                { stdio: [
+                    'pipe', // stdin  - doesn't used by parent process
+                    'pipe', // stdout - listened by parent process. Whole output from it goes to logs of parent process
+                    'pipe', // stderr - listened by parent process. Whole output from it goes to logs of parent process
+                    'ipc',  // ipc    - used by parent process as command sender / reciever
+                    'pipe', // pipe   - listened by parent process.
+                ] });
+            // Getting data events
             this._process.stderr.on('data', this._onSTDData);
             this._process.stdout.on('data', this._onSTDData);
+            // State process events
+            this._process.on('exit', this._onClose);
             this._process.on('close', this._onClose);
-            this._process.on('message', this._onMessage);
             this._process.on('error', this._onError);
             this._process.on('disconnect', this._onDisconnect);
+            // Create IPC controller
+            this._ipc = new ControllerIPCPlugin(this._plugin.name, this._process, (this._process.stdio as any)[4]);
+            this._ipc.on(ControllerIPCPlugin.Events.message, this._onMessage);
+            this._ipc.on(ControllerIPCPlugin.Events.stream, this._onStream);
+            /*
+            setTimeout(() => {
+                this._ipc !== undefined && this._ipc.request(new IPCMessage({ command: 'shell', data: 'ls -lsa\n'})).then((response: IPCMessage) => {
+                    this._ipc !== undefined && this._ipc.request(new IPCMessage({ command: 'shell', data: 'npm install\n'})).then((response: IPCMessage) => {
+                        setTimeout(() => {
+                            this._ipc !== undefined && this._ipc.request(new IPCMessage({ command: 'shell', data: 'ssh dmitry@dmz-docker.int.esrlabs.com\n'})).then((response: IPCMessage) => {
+                                this._ipc !== undefined && this._ipc.request(new IPCMessage({ command: 'shell', data: 'dmitry\n'})).then((response: IPCMessage) => {
+                                    this._ipc !== undefined && this._ipc.request(new IPCMessage({ command: 'shell', data: 'ls -lsa\n'})).then((response: IPCMessage) => {
+                                        this._ipc !== undefined && this._ipc.request(new IPCMessage({ command: 'shell', data: 'cd ..\n'})).then((response: IPCMessage) => {
+                                            this._ipc !== undefined && this._ipc.request(new IPCMessage({ command: 'shell', data: 'ls -lsa\n'})).then((response: IPCMessage) => {
+                                                console.log('FINISHED');
+                                            });
+                                        });
+                                    });
+                                });
+                            });
+                        }, 10000);
+                    });
+                });
+            }, 2000 );
+            */
             resolve();
         });
     }
 
     /**
-     * Sends message to process of plugin
-     * @param {any} message message to plugin
+     * Returns IPC controller of plugin
      * @returns { Promise<void> }
      */
-    public send(message: any): Promise<void> {
-        return new Promise((resolve, reject) => {
-            if (this._process === undefined) {
-                return reject(new Error(`Plugin doesn't have attached process`));
-            }
-            if (!this._process.connected || this._process.killed) {
-                return reject(new Error(`Process of plugin was killed / disconnected or wasn't connected at all.`));
-            }
-            this._process.send(message, (error: Error) => {
-                if (error) {
-                    return reject(error);
-                }
-                resolve();
-            });
-        });
+    public getIPC(): ControllerIPCPlugin | Error {
+        if (this._ipc === undefined) {
+            return new Error(`IPC controller isn't initialized.`);
+        }
+        return this._ipc;
     }
 
     /**
      * Attempt to kill plugin process
      * @returns void
      */
-    public kill(): boolean {
-        if (this._process === undefined) {
+    public kill(signal: string = 'SIGTERM'): boolean {
+        if (this._process === undefined || this._ipc === undefined) {
             return false;
         }
-        this._process.kill();
+        this._ipc.destroy();
+        !this._process.killed && this._process.kill(signal);
         this._process = undefined;
         return true;
     }
@@ -113,6 +138,7 @@ export default class ControllerPluginProcess extends Emitter {
      * @returns void
      */
     private _onClose(...args: any[]): void {
+        this.kill();
         this.emit(ControllerPluginProcess.Events.close, ...args);
     }
 
@@ -121,6 +147,7 @@ export default class ControllerPluginProcess extends Emitter {
      * @returns void
      */
     private _onError(...args: any[]): void {
+        this.kill();
         this.emit(ControllerPluginProcess.Events.error, ...args);
     }
 
@@ -129,6 +156,7 @@ export default class ControllerPluginProcess extends Emitter {
      * @returns void
      */
     private _onDisconnect(...args: any[]): void {
+        this.kill();
         this.emit(ControllerPluginProcess.Events.disconnect, ...args);
     }
 
@@ -136,7 +164,17 @@ export default class ControllerPluginProcess extends Emitter {
      * Handler to listen message from process
      * @returns void
      */
-    private _onMessage(...args: any[]): void {
-        this.emit(ControllerPluginProcess.Events.message, ...args);
+    private _onMessage(message: IPCMessage): void {
+        switch (message.command) {
+            // TODO: processing common commands
+        }
+    }
+
+    /**
+     * Handler to listen stream incomes
+     * @returns void
+     */
+    private _onStream(chunk: any): void {
+        // TODO: here we should provide bridge to session-stream
     }
 }

@@ -1,0 +1,6 @@
+<div *ngIf="ng_showHistory" class="history">
+    <ul class="history-list">
+        <li *ngFor="let message of ng_history">{{message}}</li>
+    </ul>
+</div>
+<p class="current" (click)="_ng_onToggleHistory()">{{ng_current}}</p>

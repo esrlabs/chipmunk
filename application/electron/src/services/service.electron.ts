@@ -1,4 +1,6 @@
 
+// tslint:disable:ban-types
+
 import * as uuid from 'uuid';
 
 import { app } from 'electron';
@@ -17,6 +19,10 @@ import ServiceWindowState from './service.window.state';
 
 import ControllerBrowserWindow from '../controllers/controller.browserwindow';
 
+import { IPCMessages } from '../controllers/controller.electron.ipc';
+
+export { IPCMessages, Subscription };
+
 /**
  * @class ServiceElectron
  * @description Electron instance
@@ -24,9 +30,11 @@ import ControllerBrowserWindow from '../controllers/controller.browserwindow';
 
 class ServiceElectron implements IService {
 
+    public IPCMessages = IPCMessages;
+
     public IPC: {
-        send: (channel: string, ...args: any[]) => Promise<void>,
-        subscribe: (channel: string, handler: THandler) => Promise<Subscription>,
+        send: (event: Function, instance: IPCMessages.TMessage) => Promise<void>,
+        subscribe: (event: Function, handler: (event: IPCMessages.TMessage) => any) => Promise<Subscription>,
     } = {
         send: this._send.bind(this),
         subscribe: this._subscribe.bind(this),
@@ -80,33 +88,33 @@ class ServiceElectron implements IService {
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Electron IPC
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    private _subscribe(channel: string, handler: THandler): Promise<Subscription> {
+    private _subscribe(event: Function, handler: (event: IPCMessages.TMessage) => any): Promise<Subscription> {
         return new Promise((resolve, reject) => {
             if (this._controllerBrowserWindow === undefined) {
                 return reject(new Error(`Browser window isn't inited yet, cannot delivery IPC controller.`));
             }
             this._controllerBrowserWindow.getIpc().then((ipc: ControllerElectronIpc) => {
-                const subscription: Subscription | Error = ipc.subscribe(channel, handler);
-                if (subscription instanceof Error) {
-                    this._logger.warn(`Fail to subscribe to "${channel}" due error: ${subscription.message}`);
-                    return reject(subscription);
-                }
-                resolve(subscription);
+                ipc.subscribe(event, handler).then((subscription: Subscription) => {
+                    resolve(subscription);
+                }).catch((subscribeError: Error) => {
+                    this._logger.warn(`Fail to subscribe due error: ${subscribeError.message}`);
+                    return reject(subscribeError);
+                });
             }).catch((error: Error) => {
                 reject(error);
             });
         });
     }
 
-    private _send(channel: string, ...args: any[]): Promise<void> {
+    private _send(event: Function, instance: IPCMessages.TMessage): Promise<void> {
         return new Promise((resolve, reject) => {
             if (this._controllerBrowserWindow === undefined) {
                 return reject(new Error(`Browser window isn't inited yet, cannot delivery IPC controller.`));
             }
             this._controllerBrowserWindow.getIpc().then((ipc: ControllerElectronIpc) => {
-                const error: Error | void = ipc.send(channel, ...args);
+                const error: Error | void = ipc.send(event, instance);
                 if (error instanceof Error) {
-                    this._logger.warn(`Fail to send message via IPC by "${channel}" due error: ${error.message}`);
+                    this._logger.warn(`Fail to send message via IPC due error: ${error.message}`);
                     return reject(error);
                 }
                 resolve();
