@@ -1,6 +1,8 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
 import ServiceElectronIpc from '../../../../electron/services/electron.ipc';
 import { IPCMessages, Subscription } from '../../../../electron/services/electron.ipc';
+import { IComponentDesc, IFrameOptions } from '../../../components/complex/wrappers/frame/component';
+import { StateHistoryComponent } from './history/component';
 
 @Component({
     selector: 'app-apps-status-bar-electron-state',
@@ -10,10 +12,24 @@ import { IPCMessages, Subscription } from '../../../../electron/services/electro
 
 export class AppsStatusBarElectronStateComponent implements OnDestroy, AfterViewInit {
 
-    public ng_current: string = 'waiting...';
-    public ng_history: string[] = [];
+    public ng_current: string = 'waiting';
     public ng_showHistory: boolean = false;
+    public ng_frame_options: IFrameOptions = {
+        closable: true,
+        caption: 'Host notifications',
+        onClose: undefined,
+        style: {
+            maxHeight: '14rem'
+        }
+    };
+    public ng_component: IComponentDesc = {
+        factory: StateHistoryComponent,
+        inputs: {
+            history: []
+        }
+    };
 
+    private _history: string[] = [];
     private _subscriptions: { [key: string]: Subscription | undefined } = {
         state: undefined,
         history: undefined
@@ -32,6 +48,8 @@ export class AppsStatusBarElectronStateComponent implements OnDestroy, AfterView
         }).catch((error: Error) => {
             this._subscriptions.history = undefined;
         });
+        this._ng_onToggleHistory = this._ng_onToggleHistory.bind(this);
+        this.ng_frame_options.onClose = this._ng_onToggleHistory;
     }
 
     ngOnDestroy() {
@@ -46,9 +64,10 @@ export class AppsStatusBarElectronStateComponent implements OnDestroy, AfterView
     }
 
     private _ng_onToggleHistory() {
-        if (this.ng_history.length === 0) {
+        if (this._history.length === 0) {
             this.ng_showHistory = false;
         } else {
+            this.ng_component.inputs.history = this._history;
             this.ng_showHistory = !this.ng_showHistory;
         }
     }
@@ -58,7 +77,7 @@ export class AppsStatusBarElectronStateComponent implements OnDestroy, AfterView
             this.ng_current = 'ready';
         } else if (state.message !== '') {
             this.ng_current = state.message;
-            this.ng_history.push(state.message);
+            this._history.push(state.message);
         } else {
             this.ng_current = '';
         }
@@ -66,7 +85,7 @@ export class AppsStatusBarElectronStateComponent implements OnDestroy, AfterView
     }
 
     private _onHostStateHistory(state: IPCMessages.HostStateHistory) {
-        this.ng_history.unshift(...state.history);
+        this._history.unshift(...state.history);
         this._cdRef.detectChanges();
     }
 

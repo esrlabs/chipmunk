@@ -1,12 +1,11 @@
 import { NgModule                               } from '@angular/core';
 import { CommonModule                           } from '@angular/common';
 
-import { AppsStatusBarElectronStateComponent    } from './electron.state/component';
+import { ElectronStateModule                    } from './electron.state/module';
 
 import { EnvironmentComponentsModule            } from '../../components/module';
 
 const entryComponents = [
-    AppsStatusBarElectronStateComponent,
 ];
 
 const components = [ ...entryComponents ];
@@ -15,7 +14,7 @@ const components = [ ...entryComponents ];
     entryComponents : [ ...entryComponents ],
     imports         : [ CommonModule, EnvironmentComponentsModule ],
     declarations    : [ ...components ],
-    exports         : [ ...components ]
+    exports         : [ ElectronStateModule ]
 })
 
 export class AppsBarStatusModule {
