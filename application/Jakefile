@@ -3,6 +3,10 @@ const colors = require('colors/safe');
 const fs = require('fs');
 const os = require('os');
 
+const CLI_FLAGS = {
+    skipNpm: process.argv.indexOf('--skip-npm') !== -1
+};
+
 const PLATFORMS = {
     darwin  : 'darwin',
     linux   : 'linux',
@@ -76,23 +80,33 @@ class FSController {
 const fsController = new FSController();
 
 const APP_FOLDER = 'application';
-const CLIENT_FOLDER = 'client';
+const CLIENT_FOLDER = 'client.core';
+const CLIENT_NPM_LIBS = 'client.libs/logviewer.client.components'
+const CLIENT_IPC_LIB = 'client.libs/logviewer.client.electron.ipc';
 const ELECTRON_FOLDER = 'electron';
 const PLATFORM_FOLDER = 'platform';
+const CLIENT_NPM_LIBS_LIST = [
+    'logviewer-client-containers',
+    'logviewer-client-primitive',
+    'logviewer-client-complex',
+];
+
 const PLATFORM_EXCEPTION_FOLDERS = [
     'platform',
     'client.plugins',
     'sandbox',
     'node_modules',
     'build',
-    'dist'
+    'dist',
+    'client.libs'
 ];
 const PROJECTS_EXCEPTION_FOLDERS = [
     'client.plugins',
     'sandbox',
     'node_modules',
     'build',
-    'dist'
+    'dist',
+    'client.libs'
 ];
 const LOGO_FILE = 'logo.ascii';
 
@@ -188,7 +202,7 @@ namespace('solution', function() {
         const projects = findAllProjects(path.normalize(__dirname), PROJECTS_EXCEPTION_FOLDERS);
         console.log(`Found ${projects.length} projects:\n\t- ${projects.join('\n\t- ')}`);
         const tasks = [];
-        projects.forEach((folder) => {
+        !CLI_FLAGS.skipNpm && projects.forEach((folder) => {
             const target = path.normalize(path.resolve(folder, 'node_modules'));
             const etc = path.normalize(path.resolve(folder, 'etc'));
             if (fs.existsSync(target)) {
@@ -210,7 +224,7 @@ namespace('solution', function() {
         const projects = findAllProjects(path.normalize(__dirname), PROJECTS_EXCEPTION_FOLDERS);
         console.log(`Found ${projects.length} projects:\n\t- ${projects.join('\n\t- ')}`);
         const tasks = [];
-        projects.forEach((folder) => {
+        !CLI_FLAGS.skipNpm && projects.forEach((folder) => {
             const target = path.normalize(path.resolve(folder, 'node_modules'));
             fs.existsSync(target) && tasks.push(`rm -rf ${target}`);
             tasks.push(echoDec(`Installing NPM in: ${folder}`, '*', colors.green));
@@ -283,7 +297,7 @@ namespace('client', function() {
         const clientPath = path.normalize(path.resolve(__dirname, CLIENT_FOLDER));
         const clientNodeModules = path.normalize(path.resolve(clientPath, 'node_modules'));
         const clientDist = path.normalize(path.resolve(clientPath, 'dist'));
-        if (fs.existsSync(clientNodeModules)) {
+        if (!CLI_FLAGS.skipNpm && fs.existsSync(clientNodeModules)) {
             tasks.push(echo(colors.blue(`Remove node_modules files: ${clientNodeModules}`)));
             tasks.push(`rm -rf ${clientNodeModules}`);
         }
@@ -291,8 +305,8 @@ namespace('client', function() {
             tasks.push(echo(colors.blue(`Remove dist files: ${clientDist}`)));
             tasks.push(`rm -rf ${clientDist}`);
         }
-        tasks.push(echo(colors.blue(`Installing: ${clientPath}`)));
-        tasks.push(`npm install --prefix ${clientPath}`);
+        !CLI_FLAGS.skipNpm && tasks.push(echo(colors.blue(`Installing: ${clientPath}`)));
+        !CLI_FLAGS.skipNpm && tasks.push(`npm install --prefix ${clientPath}`);
         sh(this, '.', ...tasks);
     }, {async: true});
 
@@ -301,8 +315,8 @@ namespace('client', function() {
         const tasks = [];
         const clientPath = path.normalize(path.resolve(__dirname, CLIENT_FOLDER));
         const clientNodeModules = path.normalize(path.resolve(clientPath, 'node_modules'));
-        const clientIPCPath = path.normalize(path.resolve(__dirname, 'libs/logviewer.client.ipc'));
-        const clientIPCDestPath = path.normalize(path.resolve(clientNodeModules, 'logviewer.client.ipc'));
+        const clientIPCPath = path.normalize(path.resolve(__dirname, CLIENT_IPC_LIB));
+        const clientIPCDestPath = path.normalize(path.resolve(clientNodeModules, 'logviewer.client.electron.ipc'));
         if (!fs.existsSync(clientNodeModules)) {
             throw new Error(`Install client first`);
         }
@@ -310,10 +324,33 @@ namespace('client', function() {
             console.log(`Project ${clientIPCDestPath} is already linked. It will be unlinked before to be linked again.`);
             tasks.push(echo(colors.blue(`unlink: ${clientIPCDestPath}`)));
             tasks.push(`unlink ${clientIPCDestPath} & exit 0`);
+            tasks.push(`rm -rf ${clientIPCDestPath} & exit 0`);
         }
         tasks.push(echo(colors.blue(`link: ${clientIPCDestPath}`)));
         tasks.push(`ln -s ${clientIPCPath} ${clientIPCDestPath}`);
         tasks.push(`rm -rf ${path.normalize(path.resolve(clientPath, 'etc'))}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('link-client-libs', function() {
+        logo();
+        const tasks = [];
+        const clientPath = path.normalize(path.resolve(__dirname, CLIENT_FOLDER));
+        const clientNodeModules = path.normalize(path.resolve(clientPath, 'node_modules'));
+        const clientLibsPath = path.normalize(path.resolve(__dirname, CLIENT_NPM_LIBS));
+        const clientLibsDist = path.normalize(path.resolve(clientLibsPath, 'dist'));
+        CLIENT_NPM_LIBS_LIST.forEach((alias) => {
+            const clientLib = path.normalize(path.resolve(clientLibsDist, alias));
+            const clientLibDest = path.normalize(path.resolve(clientNodeModules, alias));
+            if (fs.existsSync(clientLibDest)) {
+                console.log(`Project ${clientLibDest} is already linked. It will be unlinked before to be linked again.`);
+                tasks.push(echo(colors.blue(`unlink: ${clientLibDest}`)));
+                tasks.push(`rm -rf ${clientLibDest} & exit 0`);
+            }
+            tasks.push(echo(colors.blue(`Coping: ${clientLibDest}`)));
+            tasks.push(`cp -R ${clientLib} ${clientLibDest}`);
+            tasks.push(`rm -rf ${path.normalize(path.resolve(clientPath, 'etc'))}`);
+        });
         sh(this, '.', ...tasks);
     }, {async: true});
 
@@ -332,7 +369,7 @@ namespace('client', function() {
         sh(this, '.', ...tasks);
     }, {async: true});
 
-    task('all', ['client:install', 'client.ipc:all', 'client:link-client-ipc', 'client:build']);
+    task('all', ['client:install', 'client.ipc:all', 'client.npmlibs:all', 'client:link-client-ipc', 'client:link-client-libs', 'client:build']);
 
 });
 
@@ -340,10 +377,10 @@ namespace('client.ipc', function() {
     task('build', function() {
         logo();
         const tasks = [];
-        const clientIPCPath = path.normalize(path.resolve(__dirname, 'libs/logviewer.client.ipc'));
+        const clientIPCPath = path.normalize(path.resolve(__dirname, CLIENT_IPC_LIB));
         const clientIPCNodeModules = path.normalize(path.resolve(clientIPCPath, 'node_modules'));
         const clientIPCDist = path.normalize(path.resolve(clientIPCPath, 'dist'));
-        if (fs.existsSync(clientIPCNodeModules)) {
+        if (!CLI_FLAGS.skipNpm && fs.existsSync(clientIPCNodeModules)) {
             tasks.push(echo(colors.blue(`Remove node_modules files: ${clientIPCNodeModules}`)));
             tasks.push(`rm -rf ${clientIPCNodeModules}`);
         }
@@ -352,7 +389,7 @@ namespace('client.ipc', function() {
             tasks.push(`rm -rf ${clientIPCDist}`);
         }
         tasks.push(echo(colors.blue(`Building: ${clientIPCPath}`)));
-        tasks.push(`npm install --prefix ${clientIPCPath}`);
+        !CLI_FLAGS.skipNpm && tasks.push(`npm install --prefix ${clientIPCPath}`);
         tasks.push(`npm run build --prefix ${clientIPCPath}`);
         sh(this, '.', ...tasks);
     }, {async: true});
@@ -360,7 +397,7 @@ namespace('client.ipc', function() {
     task('link-ipc-messages', function() {
         logo();
         const tasks = [];
-        const clientIPCPath = path.normalize(path.resolve(__dirname, 'libs/logviewer.client.ipc'));
+        const clientIPCPath = path.normalize(path.resolve(__dirname, CLIENT_IPC_LIB));
         const clientIPCMessagesFolder = path.normalize(path.resolve(clientIPCPath, 'src/ipc.messages'));
         const electronPath = path.normalize(path.resolve(__dirname, ELECTRON_FOLDER));
         const electronMessagesFolder = path.normalize(path.resolve(electronPath, 'src/controllers/electron.ipc.messages'));
@@ -368,6 +405,7 @@ namespace('client.ipc', function() {
             console.log(`Project ${clientIPCMessagesFolder} is already linked. It will be unlinked before to be linked again.`);
             tasks.push(echo(colors.blue(`unlink: ${clientIPCMessagesFolder}`)));
             tasks.push(`unlink ${clientIPCMessagesFolder} & exit 0`);
+            tasks.push(`rm -rf ${clientIPCMessagesFolder} & exit 0`);
         }
         tasks.push(echo(colors.blue(`link: ${clientIPCMessagesFolder}`)));
         tasks.push(`ln -s ${electronMessagesFolder} ${clientIPCMessagesFolder}`);
@@ -379,6 +417,36 @@ namespace('client.ipc', function() {
 
 });
 
+namespace('client.npmlibs', function() {
+
+    task('build', function() {
+        logo();
+        const tasks = [];
+        const clientLibsPath = path.normalize(path.resolve(__dirname, CLIENT_NPM_LIBS));
+        const clientLibsDist = path.normalize(path.resolve(clientLibsPath, 'dist'));
+        if (fs.existsSync(clientLibsDist)) {
+            tasks.push(echo(colors.blue(`Remove dist files: ${clientLibsDist}`)));
+            tasks.push(`rm -rf ${clientLibsDist}`);
+        }
+        CLIENT_NPM_LIBS_LIST.forEach((alias) => {
+            const libPath = path.normalize(path.resolve(clientLibsPath, `projects/${alias}`));
+            const libNodeModules = path.normalize(path.resolve(libPath, `node_modules`));
+            if (!CLI_FLAGS.skipNpm && fs.existsSync(libNodeModules)) {
+                tasks.push(echo(colors.blue(`Remove node_modules of "${alias}" files: ${libNodeModules}`)));
+                tasks.push(`rm -rf ${libNodeModules}`);
+            }
+            !CLI_FLAGS.skipNpm && tasks.push(echo(colors.blue(`Installing: ${alias}:: ${libPath}`)));
+            !CLI_FLAGS.skipNpm && tasks.push(`npm install --prefix ${libPath}`);
+            tasks.push(echo(colors.blue(`Building: ${alias}:: ${libPath}`)));
+            tasks.push(`npm run build:${alias} --prefix ${clientLibsPath}`);
+        });
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('all', ['client.npmlibs:build']);
+
+});
+
 namespace('electron', function() {
 
     task('install', function() {
@@ -386,12 +454,12 @@ namespace('electron', function() {
         const tasks = [];
         const electronAppPath = path.normalize(path.resolve(__dirname, ELECTRON_FOLDER));
         const electronNodeModules = path.normalize(path.resolve(electronAppPath, 'node_modules'));
-        if (fs.existsSync(electronNodeModules)) {
+        if (!CLI_FLAGS.skipNpm && fs.existsSync(electronNodeModules)) {
             tasks.push(echo(colors.blue(`Remove node_modules files: ${electronNodeModules}`)));
             tasks.push(`rm -rf ${electronNodeModules}`);
         }
-        tasks.push(echo(colors.blue(`Installing NPM in: ${electronAppPath}`)));
-        tasks.push(`npm install --prefix ${electronAppPath}`);
+        !CLI_FLAGS.skipNpm && tasks.push(echo(colors.blue(`Installing NPM in: ${electronAppPath}`)));
+        !CLI_FLAGS.skipNpm && tasks.push(`npm install --prefix ${electronAppPath}`);
         sh(this, '.', ...tasks);
     }, {async: true});
 
@@ -424,7 +492,7 @@ namespace('electron', function() {
             tasks.push(echo(colors.blue(`Remove compiled files: ${electronDistFolder}`)));
             tasks.push(`rm -rf ${electronDistFolder}`);
         }
-        if (fs.existsSync(electronNodeModules)) {
+        if (!CLI_FLAGS.skipNpm && fs.existsSync(electronNodeModules)) {
             tasks.push(echo(colors.blue(`Remove compiled files: ${electronNodeModules}`)));
             tasks.push(`rm -rf ${electronNodeModules}`);
         }

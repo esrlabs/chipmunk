@@ -1,0 +1,136 @@
+@import '../../../../../../theme/scheme.less';
+
+:host {
+    position: absolute;
+    display: block;
+    width: 100%;
+    height: 100%;
+    top:0;
+    left:0;
+    overflow: hidden;
+    & .direction{
+        position: absolute;
+        display: block;
+        z-index: 10;
+        top: 4rem;
+    }
+    & div.resizer{
+        position: absolute;
+        display: block;
+        z-index: 2;
+        &.vertical{
+            cursor: col-resize;
+        }
+        &.horizontal{
+            cursor: row-resize;
+        }
+    }
+    & div.wrapper {
+        position: absolute;
+        display: block;
+        width: 100%;
+        height: 100%;
+        top:0;
+        left:0;
+        pointer-events: none;
+        & * {
+            pointer-events: all;
+        }
+        & div.holder{
+            position: absolute;
+            display: block;
+            z-index: 1;
+            &[draggable=true]{
+                
+            }
+        }
+        & div.draging-hook{
+            position: absolute;
+            height: @caption-height;
+            top:0;
+            left: @caption-height;
+            right: @caption-height;
+            background: rgba(0,0,0,0.001);
+            cursor: move;
+        }
+        & div.parking-holder{
+            position: absolute;
+            display: block;
+            width: 100%;
+            height: 100%;
+            top:0;
+            left:0;
+            & div.parking{
+                position: absolute;
+                display: block;
+                &:after{
+                    position: absolute;
+                    display: none;
+                    border:dashed thin black;
+                    background: rgba(0,0,0,0.2);
+                    z-index: 2;
+                    content: '';
+                }
+                &.top, &.bottom{
+                    width: 50%;
+                    height: 50%;
+                    left:50%;
+                    margin-left: -25%;
+                    background: rgba(0,0,0,0.01);
+                    &:after{
+                        left: -50%;
+                        right: -50%;
+                        height: 100%;
+                    }
+                }
+                &.left, &.right{
+                    width: 25%;
+                    height: 100%;
+                    top:0;
+                    background: rgba(0,0,0,0.01);
+                    &:after{
+                        width: 200%;
+                        height: 100%;
+                    }
+                }
+                &.top{
+                    top:0;
+                    &:after{
+                        top:0;
+                    }
+                }
+                &.bottom{
+                    bottom:0;
+                    &:after{
+                        bottom:0;
+                    }
+                }
+                &.left{
+                    left:0;
+                    &:after{
+                        left:0;
+                    }
+                }
+                &.right{
+                    right:0;
+                    &:after{
+                        right:0;
+                    }
+                }
+            }
+            &.top div.parking.top:after{
+                display: block;
+            }
+            &.bottom div.parking.bottom:after{
+                display: block;
+            }
+            &.left div.parking.left:after{
+                display: block;
+            }
+            &.right div.parking.right:after{
+                display: block;
+            }
+        }
+    }
+
+}
