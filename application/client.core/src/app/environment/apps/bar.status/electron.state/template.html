@@ -1,0 +1,4 @@
+<div *ngIf="ng_showHistory" class="history">
+    <lib-containers-frame [content]="ng_component" [options]="ng_frame_options"></lib-containers-frame>
+</div>
+<p class="current" (click)="_ng_onToggleHistory()">{{ng_current}}</p>

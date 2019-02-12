@@ -1,0 +1,27 @@
+import { NgModule                               } from '@angular/core';
+import { CommonModule                           } from '@angular/common';
+
+import { ComplexModule                          } from 'logviewer-client-complex';
+import { PrimitiveModule                        } from 'logviewer-client-primitive';
+import { ContainersModule                       } from 'logviewer-client-containers';
+
+import { EnvironmentComplexModule               } from './complex/module';
+
+const modules = [
+    EnvironmentComplexModule,
+    ComplexModule,
+    PrimitiveModule,
+    ContainersModule
+];
+
+@NgModule({
+    entryComponents : [ ],
+    imports         : [ CommonModule ],
+    declarations    : [ ],
+    exports         : [ ...modules  ]
+})
+
+export class EnvironmentComponentsModule {
+    constructor() {
+    }
+}
