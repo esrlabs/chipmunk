@@ -36,14 +36,14 @@ export class AppsStatusBarElectronStateComponent implements OnDestroy, AfterView
     };
 
     constructor(private _cdRef: ChangeDetectorRef) {
-        this._onHostStateChanged = this._onHostStateChanged.bind(this);
-        this._onHostStateHistory = this._onHostStateHistory.bind(this);
-        ServiceElectronIpc.subscribe(IPCMessages.HostState, this._onHostStateChanged).then((subscription: Subscription) => {
+        this._ipc_onHostStateChanged = this._ipc_onHostStateChanged.bind(this);
+        this._ipc_onHostStateHistory = this._ipc_onHostStateHistory.bind(this);
+        ServiceElectronIpc.subscribe(IPCMessages.HostState, this._ipc_onHostStateChanged).then((subscription: Subscription) => {
             this._subscriptions.state = subscription;
         }).catch((error: Error) => {
             this._subscriptions.state = undefined;
         });
-        ServiceElectronIpc.subscribe(IPCMessages.HostStateHistory, this._onHostStateHistory).then((subscription: Subscription) => {
+        ServiceElectronIpc.subscribe(IPCMessages.HostStateHistory, this._ipc_onHostStateHistory).then((subscription: Subscription) => {
             this._subscriptions.history = subscription;
         }).catch((error: Error) => {
             this._subscriptions.history = undefined;
@@ -72,7 +72,7 @@ export class AppsStatusBarElectronStateComponent implements OnDestroy, AfterView
         }
     }
 
-    private _onHostStateChanged(state: IPCMessages.HostState) {
+    private _ipc_onHostStateChanged(state: IPCMessages.HostState) {
         if (state.state === IPCMessages.HostState.States.ready) {
             this.ng_current = 'ready';
         } else if (state.message !== '') {
@@ -84,7 +84,7 @@ export class AppsStatusBarElectronStateComponent implements OnDestroy, AfterView
         this._cdRef.detectChanges();
     }
 
-    private _onHostStateHistory(state: IPCMessages.HostStateHistory) {
+    private _ipc_onHostStateHistory(state: IPCMessages.HostStateHistory) {
         this._history.unshift(...state.history);
         this._cdRef.detectChanges();
     }

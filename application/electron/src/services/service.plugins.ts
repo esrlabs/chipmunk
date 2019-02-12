@@ -11,7 +11,7 @@ import ControllerPluginProcess from '../controllers/controller.plugin.process';
 import ElectronRebuild from 'electron-rebuild';
 
 import { IService } from '../interfaces/interface.service';
-import { IPCMessages } from './service.electron';
+import { IPCMessages, Subscription } from './service.electron';
 
 const PROCESS_FOLDER = 'process';
 const RENDER_FOLDER = 'render';
@@ -48,6 +48,11 @@ export class ServicePlugins implements IService {
     private _path: string = ServicePaths.getPlugins();
     private _plugins: Map<TPluginPath, IPlugin> = new Map();
     private _electronVersion: string = '';
+    private _subscriptions: { [key: string ]: Subscription | undefined } = { };
+
+    constructor() {
+        this._ipc_onRenderState = this._ipc_onRenderState.bind(this);
+    }
 
     /**
      * Initialization function
@@ -55,6 +60,8 @@ export class ServicePlugins implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
+            // Subscribe to render events
+            this._subscribeIPCMessages();
             // Get electron version
             const version = ServiceElectron.getVersion();
             if (version instanceof Error) {
@@ -407,6 +414,30 @@ export class ServicePlugins implements IService {
                 this._logger.error(`Fail to read package at "${packageFile}" due error: ${error.message}`);
             });
         });
+    }
+
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    *   Work with render process
+    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    private _subscribeIPCMessages() {
+        ServiceElectron.IPC.subscribe(IPCMessages.RenderState, this._ipc_onRenderState).then((subscription: Subscription) => {
+            this._subscriptions.renderState = subscription;
+        }).catch((error: Error) => {
+            this._logger.warn(`Fail to subscribe to render event "RenderState" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+        });
+    }
+
+    private _unsubscribeIPCMessages() {
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            (this._subscriptions as any)[key].destroy();
+        });
+    }
+    /**
+     * Handler render's state
+     * @returns void
+     */
+    private _ipc_onRenderState(state: IPCMessages.TMessage) {
+        console.log(state);
     }
 
 }
