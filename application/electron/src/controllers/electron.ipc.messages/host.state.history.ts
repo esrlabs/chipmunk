@@ -4,6 +4,7 @@ export interface IHostStateHistory {
 
 export class HostStateHistory {
     public static signature: string = 'HostStateHistory';
+    public signature: string = HostStateHistory.signature;
     public history: string[] = [];
 
     constructor(params: IHostStateHistory) {

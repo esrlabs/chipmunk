@@ -10,11 +10,15 @@ export { IRenderMountPlugin, RenderMountPlugin };
 import { IRenderState, RenderState, ERenderState } from './render.state';
 export { IRenderState, RenderState, ERenderState };
 
+import { IPluginMessage, PluginMessage } from './plugin.message';
+export { IPluginMessage, PluginMessage };
+
 // Common type for expected message implementation
 export type TMessage =  HostState |
                         HostStateHistory |
                         RenderMountPlugin |
-                        RenderState;
+                        RenderState |
+                        PluginMessage;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -25,5 +29,6 @@ export const Map = {
     [HostStateHistory.signature     ]: HostStateHistory,
     [RenderMountPlugin.signature    ]: RenderMountPlugin,
     [RenderState.signature          ]: RenderState,
+    [PluginMessage.signature        ]: PluginMessage,
 
 };

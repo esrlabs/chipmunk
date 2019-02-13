@@ -5,6 +5,7 @@ export interface IRenderMountPlugin {
 
 export class RenderMountPlugin {
     public static signature: string = 'PluginMount';
+    public signature: string = RenderMountPlugin.signature;
     public name: string = '';
     public location: string = '';
 

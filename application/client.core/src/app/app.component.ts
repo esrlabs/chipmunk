@@ -23,12 +23,12 @@ export class AppComponent implements AfterViewInit {
 
     ngAfterViewInit() {
         // Send notification to host
-        const stateMessageError: Error | undefined = ServiceElectronIpc.send(IPCMessages.RenderState, new IPCMessages.RenderState({
+        ServiceElectronIpc.send(new IPCMessages.RenderState({
             state: IPCMessages.ERenderState.ready
-        }));
-        if (stateMessageError) {
-            this._logger.error(`Fail to send "IPCMessages.RenderState" message to host due error: ${stateMessageError.message}`);
-        }
+        })).catch((sendingError: Error) => {
+            this._logger.error(`Fail to send "IPCMessages.RenderState" message to host due error: ${sendingError.message}`);
+
+        });
     }
 
 }

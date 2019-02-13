@@ -66,7 +66,7 @@ class ServiceElectronService implements IService {
             this._history.push(message);
         }
         this._isReadyState = isReady;
-        ServiceElectron.IPC.send(ServiceElectron.IPCMessages.HostState, new ServiceElectron.IPCMessages.HostState({
+        ServiceElectron.IPC.send(new ServiceElectron.IPCMessages.HostState({
             message: message,
             state: isReady ? ServiceElectron.IPCMessages.HostState.States.ready : ServiceElectron.IPCMessages.HostState.States.working,
         })).catch((error: Error) => {
@@ -80,7 +80,7 @@ class ServiceElectronService implements IService {
      * @returns void
      */
     private onHistoryOfHostStateRequested(message: IPCMessages.TMessage): any {
-        ServiceElectron.IPC.send(ServiceElectron.IPCMessages.HostStateHistory, new ServiceElectron.IPCMessages.HostStateHistory({
+        ServiceElectron.IPC.send(new ServiceElectron.IPCMessages.HostStateHistory({
             history: this._history,
         })).catch((error: Error) => {
             this._logger.warn(`Fait to send IPC message "HostStateHistory" to render due: ${error.message}`);
@@ -88,7 +88,7 @@ class ServiceElectronService implements IService {
     }
 
     private onHostStateRequested(message: IPCMessages.TMessage) {
-        ServiceElectron.IPC.send(ServiceElectron.IPCMessages.HostState, new ServiceElectron.IPCMessages.HostState({
+        ServiceElectron.IPC.send(new ServiceElectron.IPCMessages.HostState({
             state: this._isReadyState ? ServiceElectron.IPCMessages.HostState.States.ready : ServiceElectron.IPCMessages.HostState.States.working,
         })).catch((error: Error) => {
             this._logger.warn(`Fait to send IPC message "HostState" to render due: ${error.message}`);

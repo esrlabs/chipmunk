@@ -13,6 +13,7 @@ export class RenderState {
 
     public static States = ERenderState;
     public static signature: string = 'RenderState';
+    public signature: string = RenderState.signature;
     public message: string = '';
     public state: ERenderState = ERenderState.ready;
 

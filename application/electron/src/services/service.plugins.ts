@@ -505,7 +505,7 @@ export class ServicePlugins implements IService {
                 return;
             }
             // Inform render about plugin location
-            ServiceElectron.IPC.send(IPCMessages.RenderMountPlugin, new IPCMessages.RenderMountPlugin({ name: plugin.name, location: plugin.info.renderLocation })).then(() => {
+            ServiceElectron.IPC.send(new IPCMessages.RenderMountPlugin({ name: plugin.name, location: plugin.info.renderLocation })).then(() => {
                 this._logger.env(`Information about plugin "${plugin.name}" was sent to render`);
             }).catch((sendingError: Error) => {
                 ServiceElectronService.updateHostState(`Fail to send information to render about plugin "${plugin.name}" due error: ${sendingError.message}`);
