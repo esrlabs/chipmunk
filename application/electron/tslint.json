@@ -7,6 +7,7 @@
         "indent": false
     },
     "rules": {
+        "ban-types": false,
         "indent": false,
         "ordered-imports": false,
         "object-literal-shorthand":false,

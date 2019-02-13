@@ -5,7 +5,9 @@ import { ChildProcess, fork } from 'child_process';
 import { Emitter } from '../../platform/cross/src/index';
 import Logger from '../../platform/node/src/env.logger';
 import { IPlugin } from '../services/service.plugins';
-import ControllerIPCPlugin, { IPCMessage } from './controller.plugin.process.ipc';
+import ControllerIPCPlugin from './controller.plugin.process.ipc';
+import * as IPCPluginMessages from './plugin.ipc.messages/index';
+import { IPCMessagePackage } from './controller.plugin.process.ipc.messagepackage';
 
 /**
  * @class ControllerPluginProcess
@@ -32,7 +34,6 @@ export default class ControllerPluginProcess extends Emitter {
         this._logger = new Logger(`plugin: ${this._plugin.name}`);
         this._onSTDData = this._onSTDData.bind(this);
         this._onClose = this._onClose.bind(this);
-        this._onMessage = this._onMessage.bind(this);
         this._onStream = this._onStream.bind(this);
         this._onError = this._onError.bind(this);
         this._onDisconnect = this._onDisconnect.bind(this);
@@ -71,8 +72,8 @@ export default class ControllerPluginProcess extends Emitter {
             this._process.on('disconnect', this._onDisconnect);
             // Create IPC controller
             this._ipc = new ControllerIPCPlugin(this._plugin.name, this._process, (this._process.stdio as any)[4]);
-            this._ipc.on(ControllerIPCPlugin.Events.message, this._onMessage);
             this._ipc.on(ControllerIPCPlugin.Events.stream, this._onStream);
+
             /*
             setTimeout(() => {
                 this._ipc !== undefined && this._ipc.request(new IPCMessage({ command: 'shell', data: 'ls -lsa\n'})).then((response: IPCMessage) => {
@@ -94,8 +95,22 @@ export default class ControllerPluginProcess extends Emitter {
                 });
             }, 2000 );
             */
+            this._test();
             resolve();
         });
+    }
+
+    public _test() {
+        setTimeout(() => {
+            this._ipc !== undefined && this._ipc.request(new IPCPluginMessages.PluginRenderMessage({
+                data: { command: 'shell', post: 'ls -lsa\n' },
+            })).then((response: IPCPluginMessages.TMessage | undefined) => {
+                console.log(response);
+                this._test();
+            }).catch((error: Error) => {
+                console.log(error);
+            });
+        }, 1000);
     }
 
     /**
@@ -161,20 +176,11 @@ export default class ControllerPluginProcess extends Emitter {
     }
 
     /**
-     * Handler to listen message from process
-     * @returns void
-     */
-    private _onMessage(message: IPCMessage): void {
-        switch (message.command) {
-            // TODO: processing common commands
-        }
-    }
-
-    /**
      * Handler to listen stream incomes
      * @returns void
      */
     private _onStream(chunk: any): void {
+        console.log(chunk.toString());
         // TODO: here we should provide bridge to session-stream
     }
 }

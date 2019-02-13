@@ -1,43 +1,62 @@
-import { ChildProcess } from 'child_process';
+import * as FS from 'fs';
 import { EventEmitter } from 'events';
-import { Readable } from 'stream';
-import { IPCMessagePackage } from './controller.plugin.process.ipc.messagepackage';
-import * as IPCMessages from './plugin.ipc.messages/index';
-
-import Logger from '../../platform/node/src/env.logger';
-import { guid, Subscription, THandler } from '../../platform/cross/src/index';
+import { IMessagePackage, IPCMessagePackage } from './plugin.ipc.service.message';
+import Subscription, { THandler } from './tools.subscription';
+import * as IPCMessages from './ipc.messages/index';
+import guid from './tools.guid';
 
 export { IPCMessages };
 
-export default class ControllerIPCPlugin extends EventEmitter {
+/**
+ * @class PluginIPCService
+ * @description Service provides communition between plugin's process and parent (main) process
+ * @notes Parent (main) process attach plugin's process as fork with next FDs:
+ *      { fd: 0 } stdin     doesn't used by parent process
+ *      { fd: 1 } stdout    listened by parent process. Whole output from it goes to logs of parent process
+ *      { fd: 2 } stderr    listened by parent process. Whole output from it goes to logs of parent process
+ *      { fd: 3 } ipc       used by parent process as command sender / reciever
+ *      { fd: 4 } pipe      listened by parent process. Used as bridge to data's stream. All data from this 
+ *                          stream are redirected into session stream of parent process
+ * @recommendations
+ *      - to parse logs use simple "console.log (warn, err etc)" or you can write it directly to stdout
+ *      - parent process nothig send to process.stdin ( fd: 0 )
+ *      - ipc channel ({ fd: 3 }) are using to exchange commands, but not data. Data should be send via stream
+ *      - pipe channel ({ fd: 4 }) are using to send stream's data to parent. In only in one way: plugin -> parent. 
+ *        To work with this channel WriteStream is created. Developer are able:
+ *        a) use method of this service "sendToStream" to send chunk of data
+ *        b) get stream using "getDataStream" and pipe it with source of data
+ *      - use event "message" to get commands from parent process
+ *      - plugin process doesn't have direct access to render process; communication via render and main process
+ *        goes via main process: [plugin -> main (parent) -> render] and [render -> main (parent) -> plugin]
+ */
+export class PluginIPCService extends EventEmitter {
 
-    public static Events = {
-        stream: 'stream',
-    };
-
-    public Events = ControllerIPCPlugin.Events;
-
-    private _logger: Logger;
-    private _pluginName: string;
-    private _stream: Readable;
-    private _process: ChildProcess;
+    private _stream: FS.WriteStream;
     private _pending: Map<string, (message: IPCMessages.TMessage) => any> = new Map();
     private _subscriptions: Map<string, Subscription> = new Map();
     private _handlers: Map<string, Map<string, THandler>> = new Map();
 
-    constructor(pluginName: string, process: ChildProcess, stream: Readable) {
+    public static Events = {
+        close: 'close',
+    };
+
+    public Events = PluginIPCService.Events;
+
+    constructor() {
         super();
-        this._pluginName = pluginName;
-        this._stream = stream;
-        this._process = process;
-        this._logger = new Logger(`plugin IPC: ${this._pluginName}`);
-        this._process.on('message', this._onMessage.bind(this));
-        this._stream.on('data', this._onStream.bind(this));
+        // Check IPC (to communicate with parent process)
+        if (process.send === void 0) {
+            throw new Error(`Fail to init plugin, because IPC interface isn't available. Expecting 'ipc' on "fd:3"`);
+        }
+        // Create data's stream (to send data to main output stream)
+        this._stream = FS.createWriteStream('', { fd: 4 });
+        // Listen parent process for messages
+        process.on('message', this._onMessage.bind(this));
     }
 
     /**
-     * Sends message to plugin process via IPC without expecting any answer
-     * @param {IPCMessages.TMessage} message instance of defined IPC message
+     * Sends message to parent (main) process via IPC without expecting any answer
+     * @param {IPCMessages.TMessage} data package of data
      * @returns { Promise<void> }
      */
     public send(message: IPCMessages.TMessage): Promise<IPCMessages.TMessage | undefined> {
@@ -65,7 +84,7 @@ export default class ControllerIPCPlugin extends EventEmitter {
             }
             const messagePackage: IPCMessagePackage = new IPCMessagePackage({
                 message: message,
-                sequence: sequence,
+                sequence: sequence
             });
             this._send(messagePackage).then(() => {
                 resolve();
@@ -76,8 +95,8 @@ export default class ControllerIPCPlugin extends EventEmitter {
     }
 
     /**
-     * Sends message to plugin process via IPC and waiting for an answer
-     * @param {IPCMessages.TMessage} message instance of defined IPC message
+     * Sends message to parent (main) process via IPC and waiting for a answer
+     * @param {IPCMessages.TMessage} data package of data
      * @returns { Promise<IPCMessages.TMessage | undefined> }
      */
     public request(message: IPCMessages.TMessage): Promise<IPCMessages.TMessage | undefined> {
@@ -102,6 +121,7 @@ export default class ControllerIPCPlugin extends EventEmitter {
             if (!this._isValidMessageClassRef(message)) {
                 return reject(new Error(`Incorrect reference to message class.`));
             }
+           
             const signature: string = (message as any).signature;
             const subscriptionId: string = guid();
             let handlers: Map<string, THandler> | undefined = this._handlers.get(signature);
@@ -118,35 +138,50 @@ export default class ControllerIPCPlugin extends EventEmitter {
         });
     }
 
-    public destroy(): void {
-        this._process.removeAllListeners('message');
-        this._stream.removeAllListeners('data');
-        this._handlers.clear();
-        this._subscriptions.clear();
-        this._pending.clear();
+    /**
+     * Sends chunk of data to main data's stream 
+     * @param {any} chunk package of data
+     * @returns { Promise<void> }
+     */
+    public sendToStream(chunk: any): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._stream.write(chunk, (error: Error | null | undefined) => {
+                if (error) {
+                    return reject(error);
+                }
+                resolve();
+            });
+        });
     }
 
     /**
-     * Sends message to plugin process via IPC
-     * @param {IPCMessagePackage} data package of data
-     * @param {boolean} expectResponse  true - promise will be resolved with income message with same "sequence";
-     *                                  false (default) - promise will be resolved afte message be sent
-     * @returns { Promise<IPCMessagePackage | undefined> }
+     * Returns write stream. Can be used to pipe write stream with source of data 
+     * @returns { FS.WriteStream }
+     */
+    public getDataStream(): FS.WriteStream {
+        return this._stream;
+    }
+
+    /**
+     * Sends message to parent (main) process via IPC
+     * @param {IPCMessage} data package of data
+     * @param {boolean} expectResponse  true - promise will be resolved with income message with same "sequence"; 
+     *                                  false (default) - promise will be resolved afte message be sent 
+     * @returns { Promise<IPCMessage | undefined> }
      */
     private _send(message: IPCMessagePackage, expectResponse: boolean = false): Promise<IPCMessages.TMessage | undefined> {
         return new Promise((resolve, reject) => {
-            if (!this._process.send) {
-                return reject(new Error(this._logger.error(`IPC isn't available`)));
+            if (!process.send) {
+                return reject(new Error(`IPC isn't available`));
             }
             if (!(message instanceof IPCMessagePackage)) {
-                return reject(new Error(this._logger.error(`Expecting as message instance of IPCMessagePackage`)));
+                return reject(new Error(`Expecting as message instance of IPCMessagePackage`));
             }
             if (expectResponse) {
                 this._pending.set(message.sequence, resolve);
             }
-            this._process.send(message, (error: Error) => {
+            process.send(message, (error: Error) => {
                 if (error) {
-                    this._logger.warn(`Error while sending message to plugin: ${error.message}`);
                     return reject(error);
                 }
                 if (!expectResponse) {
@@ -157,7 +192,7 @@ export default class ControllerIPCPlugin extends EventEmitter {
     }
 
     /**
-     * Handler of incoming message from plugin process
+     * Handler of incoming message from parent (main) process 
      * @returns void
      */
     private _onMessage(data: any) {
@@ -181,16 +216,8 @@ export default class ControllerIPCPlugin extends EventEmitter {
                 handler(instance, this.response.bind(this, message.sequence));
             });
         } catch (e) {
-            this._logger.error(`Incorrect format of IPC message: ${typeof data}. Error: ${e.message}`);
+            console.log(`Incorrect format of IPC message: ${typeof data}. Error: ${e.message}`);
         }
-    }
-
-    /**
-     * Handler of incoming stream from plugin process
-     * @returns void
-     */
-    private _onStream(chunk: any): void {
-        this.emit(ControllerIPCPlugin.Events.stream, chunk);
     }
 
     private _getRefToMessageClass(message: IPCMessages.TMessage): Function | undefined {
@@ -237,3 +264,5 @@ export default class ControllerIPCPlugin extends EventEmitter {
     }
 
 }
+
+export default (new PluginIPCService());

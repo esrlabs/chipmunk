@@ -1,6 +1,6 @@
 import Logger from './env.logger';
-import PluginIPCService from './plugin.ipc.service';
-import { IPCMessage } from './plugin.ipc.service';
+import PluginIPCService from './plugin.ipc.service/plugin.ipc.service';
+import { IPCMessages } from './plugin.ipc.service/plugin.ipc.service';
 import Shell from './process.shell';
 import * as EnvModule from './process.env';
 
@@ -12,7 +12,7 @@ class Plugin {
     private _availableShells: string[] = [];
 
     constructor() {
-        PluginIPCService.on(PluginIPCService.Events.message, this._onCommand.bind(this));
+        PluginIPCService.subscribe(IPCMessages.PluginRenderMessage, this._onCommand.bind(this));
         this._onShellOutput = this._onShellOutput.bind(this);
         this._onShellClose = this._onShellClose.bind(this);
         this._getAvailableShells().then((shells: string[]) => {
@@ -53,49 +53,46 @@ class Plugin {
         });
     }
 
-    private _onCommand(message: IPCMessage) {
-        switch (message.command) {
+    private _onCommand(message: IPCMessages.PluginRenderMessage, response: (res: IPCMessages.TMessage) => any) {
+        const command = message.data.command;
+        console.log(message);
+        switch (command) {
             case 'shell':
                 if (this._processShell === undefined) {
-                    return PluginIPCService.send(new IPCMessage({
-                        command: message.command,
+                    return response(new IPCMessages.PluginError({
+                        message: this._logger.error(`By some reasons shell process was killed. Cannot send command.`),
                         data: {
-                            error: this._logger.error(`By some reasons shell process was killed. Cannot send command.`),
-                        },
-                        sequence: message.sequence
+                            command: command
+                        }
                     }));
                 }
-                return this._processShell.send(message.data).then(() => {
-                    PluginIPCService.send(new IPCMessage({
-                        command: message.command,
-                        data: {},
-                        sequence: message.sequence
+                return this._processShell.send(message.data.post).then(() => {
+                    response(new IPCMessages.PluginRenderMessage({
+                        data: {
+                            status: 'done'
+                        }
                     }));
                 }).catch((error: Error) => {
-                    PluginIPCService.send(new IPCMessage({
-                        command: message.command,
+                    response(new IPCMessages.PluginError({
+                        message: this._logger.error(`Error sending data into shell due error: ${error.message}`),
                         data: {
-                            error: this._logger.error(`Error sending data into shell due error: ${error.message}`),
-                        },
-                        sequence: message.sequence
+                            command: command
+                        }
                     }));
                 });
             case 'availableShells':
                 if (this._availableShells.length === 0) {
-                    return PluginIPCService.send(new IPCMessage({
-                        command: message.command,
+                    return response(new IPCMessages.PluginError({
+                        message: this._logger.error(`No shells list is available.`),
                         data: {
-                            error: this._logger.error(`No shells list is available.`),
-                        },
-                        sequence: message.sequence
+                            command: command
+                        }
                     }));
                 }
-                return PluginIPCService.send(new IPCMessage({
-                    command: message.command,
+                return response(new IPCMessages.PluginRenderMessage({
                     data: {
                         shells: this._availableShells
-                    },
-                    sequence: message.sequence
+                    }
                 }));
         }
     }

@@ -128,7 +128,6 @@ export class PluginsService {
                 }
             });
             resolve();
-
         });
     }
 
