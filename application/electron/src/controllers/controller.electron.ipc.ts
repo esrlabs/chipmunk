@@ -5,7 +5,7 @@ import Logger from '../../platform/node/src/env.logger';
 import { ipcMain, WebContents } from 'electron';
 import { guid, Subscription, THandler } from '../../platform/cross/src/index';
 import * as IPCMessages from './electron.ipc.messages/index';
-
+import { IPCMessagePackage } from './controller.electron.ipc.messagepackage';
 export { IPCMessages, Subscription, THandler };
 
 /**
@@ -18,80 +18,175 @@ export default class ControllerElectronIpc {
     private _logger: Logger = new Logger('ControllerElectronIpc');
     private _contents: WebContents | undefined;
     private _winId: string;
+    private _pending: Map<string, (message: IPCMessages.TMessage) => any> = new Map();
     private _subscriptions: Map<string, Subscription> = new Map();
+    private _handlers: Map<string, Map<string, THandler>> = new Map();
 
     constructor(winId: string, contents: WebContents) {
         this._winId = winId;
         this._contents = contents;
     }
 
-    public send(event: Function, instance: IPCMessages.TMessage): Error | void {
-        if (this._contents === undefined) {
-            return new Error(this._logger.warn(`[Send] Cannot send message, because context on browser's window isn't defined yet.`));
-        }
-        if (typeof event !== 'function' || typeof (event as any).signature !== 'string' || (event as any).signature.trim() === '') {
-            return new Error(this._logger.warn(`Incorrect target event definition`));
-        }
-        const signature: string = (event as any).signature;
-        // Get reference to class of message
-        const implRef: any = IPCMessages.Map[signature];
-        if (implRef === undefined) {
-            // Class of event wasn't found
-            return new Error(this._logger.warn(`Unknown type of message: ${event}/${typeof event}`));
-        }
-        if (!(instance instanceof implRef)) {
-            return new Error(this._logger.warn(`Target event "${signature}" doesn't match to implementation: ${typeof instance}`));
-        }
-        // Format:         | channel  |  event  | instance |
-        this._contents.send(signature, signature, instance);
+    public send(message: IPCMessages.TMessage): Promise<IPCMessages.TMessage | undefined> {
+        return new Promise((resolve, reject) => {
+            const ref: Function | undefined = this._getRefToMessageClass(message);
+            if (ref === undefined) {
+                return reject(new Error(`Incorrect type of message`));
+            }
+            this._send(message).then(() => {
+                resolve();
+            }).catch((sendingError: Error) => {
+                reject(sendingError);
+            });
+        });
     }
 
-    public subscribe(event: Function, handler: (event: IPCMessages.TMessage) => any): Promise<Subscription> {
+    public response(sequence: string, message: IPCMessages.TMessage): Promise<IPCMessages.TMessage | undefined> {
         return new Promise((resolve, reject) => {
-            if (this._contents === undefined) {
-                return new Error(this._logger.warn(`[Send] Cannot send message, because context on browser's window isn't defined yet.`));
+            const ref: Function | undefined = this._getRefToMessageClass(message);
+            if (ref === undefined) {
+                return reject(new Error(`Incorrect type of message`));
             }
-            if (typeof event !== 'function' || typeof (event as any).signature !== 'string' || (event as any).signature.trim() === '') {
-                return reject(new Error(this._logger.warn(`Incorrect target event definition`)));
+            this._send(message, false, sequence).then(() => {
+                resolve();
+            }).catch((sendingError: Error) => {
+                reject(sendingError);
+            });
+        });
+    }
+
+    public request(message: IPCMessages.TMessage): Promise<IPCMessages.TMessage | undefined> {
+        return new Promise((resolve, reject) => {
+            const ref: Function | undefined = this._getRefToMessageClass(message);
+            if (ref === undefined) {
+                return reject(new Error(`Incorrect type of message`));
             }
-            const signature: string = (event as any).signature;
+            this._send(message, true).then((response: IPCMessages.TMessage | undefined) => {
+                resolve(response);
+            }).catch((sendingError: Error) => {
+                reject(sendingError);
+            });
+        });
+    }
+
+    public subscribe(message: Function, handler: THandler): Promise<Subscription> {
+        return new Promise((resolve, reject) => {
+            if (!this._isValidMessageClassRef(message)) {
+                return reject(new Error(`Incorrect reference to message class.`));
+            }
+            const signature: string = (message as any).signature;
             const subscriptionId: string = guid();
-            const wrapperHandler = (ipcEvent: Event, eventName: string, eventObj: any) => {
-                const impl: IPCMessages.TMessage | Error = this._getEventImpl(eventName, eventObj);
-                if (impl instanceof Error) {
-                    return this._logger.warn(`Fail to parse income event due error: ${impl.message}. Event: ${eventName}/${typeof eventName}`);
-                }
-                handler(impl);
-            };
+            let handlers: Map<string, THandler> | undefined = this._handlers.get(signature);
+            if (handlers === undefined) {
+                handlers = new Map();
+                this._contents !== undefined && ipcMain.on(signature, this._onIPCMessage.bind(this));
+            }
+            handlers.set(subscriptionId, handler);
+            this._handlers.set(signature, handlers);
             const subscription: Subscription = new Subscription(signature, () => {
-                this._contents !== undefined && ipcMain.removeListener(signature, wrapperHandler);
-                this._subscriptions.delete(subscriptionId);
+                this._unsubscribe(signature, subscriptionId);
             }, subscriptionId);
             this._subscriptions.set(subscriptionId, subscription);
-            this._contents !== undefined && ipcMain.on(signature, wrapperHandler);
             resolve(subscription);
         });
     }
 
     public destroy() {
-        this._subscriptions.forEach((subscription: Subscription) => {
-            subscription.destroy();
+        this._handlers.forEach((handlers: Map<string, THandler>, signature: string) => {
+            this._contents !== undefined && ipcMain.removeAllListeners(signature);
         });
+        this._handlers.clear();
         this._subscriptions.clear();
+        this._pending.clear();
     }
 
-    private _getEventImpl(event: string, obj: any): IPCMessages.TMessage | Error {
-        // Get reference to class of message
-        const implRef: any = IPCMessages.Map[event];
-        if (implRef === undefined) {
-            // Class of event wasn't found
-            return new Error(this._logger.warn(`Unknown type of message: ${event}/${typeof event}`));
-        }
-        // Try to get implementation of message
+    private _onIPCMessage(ipcEvent: Event, eventName: string, data: any) {
         try {
-            return new implRef(obj);
+            const messagePackage: IPCMessagePackage = new IPCMessagePackage(data);
+            const resolver = this._pending.get(messagePackage.sequence);
+            this._pending.delete(messagePackage.sequence);
+            const refMessageClass = this._getRefToMessageClass(messagePackage.message);
+            if (refMessageClass === undefined) {
+                throw new Error(`Cannot find ref to class of message`);
+            }
+            const instance: IPCMessages.TMessage = new (refMessageClass as any)(messagePackage.message);
+            if (resolver !== undefined) {
+                return resolver(instance);
+            }
+            const handlers = this._handlers.get(instance.signature);
+            if (handlers === undefined) {
+                return;
+            }
+            handlers.forEach((handler: THandler) => {
+                handler(instance, this.response.bind(this, messagePackage.sequence));
+            });
         } catch (e) {
-            return new Error(this._logger.warn(`Fail to implement instance of message "${event}" due error: ${e.message}`));
+            this._logger.error(`Incorrect format of IPC message: ${typeof data}. Error: ${e.message}`);
+        }
+    }
+
+    private _send(message: IPCMessages.TMessage, expectResponse: boolean = false, sequence?: string): Promise<IPCMessages.TMessage | undefined> {
+        return new Promise((resolve, reject) => {
+            if (this._contents === undefined) {
+                return new Error(this._logger.warn(`[Send] Cannot send message, because context on browser's window isn't defined yet.`));
+            }
+            const messagePackage: IPCMessagePackage = new IPCMessagePackage({
+                message: message,
+                sequence: sequence,
+            });
+            const signature: string = message.signature;
+            if (expectResponse) {
+                this._pending.set(messagePackage.sequence, resolve);
+            }
+            // Format:         | channel  |  event  | instance |
+            this._contents.send(signature, signature, messagePackage);
+            if (!expectResponse) {
+                return resolve();
+            }
+        });
+    }
+
+    private _getRefToMessageClass(message: any): Function | undefined {
+        let ref: Function | undefined;
+        Object.keys(IPCMessages.Map).forEach((alias: string) => {
+            if (ref) {
+                return;
+            }
+            if (message instanceof (IPCMessages.Map as any)[alias] || message.signature === (IPCMessages.Map as any)[alias].signature) {
+                ref = (IPCMessages.Map as any)[alias];
+            }
+        });
+        return ref;
+    }
+
+    private _isValidMessageClassRef(messageRef: Function): boolean {
+        let result: boolean = false;
+        if (typeof (messageRef as any).signature !== 'string' || (messageRef as any).signature.trim() === '') {
+            return false;
+        }
+        Object.keys(IPCMessages.Map).forEach((alias: string) => {
+            if (result) {
+                return;
+            }
+            if ((messageRef as any).signature === (IPCMessages.Map as any)[alias].signature) {
+                result = true;
+            }
+        });
+        return result;
+    }
+
+    private _unsubscribe(signature: string, subscriptionId: string) {
+        this._subscriptions.delete(subscriptionId);
+        const handlers: Map<string, THandler> | undefined = this._handlers.get(signature);
+        if (handlers === undefined) {
+            return;
+        }
+        handlers.delete(subscriptionId);
+        if (handlers.size === 0) {
+            this._contents !== undefined && ipcMain.removeAllListeners(signature);
+            this._handlers.delete(signature);
+        } else {
+            this._handlers.set(signature, handlers);
         }
     }
 

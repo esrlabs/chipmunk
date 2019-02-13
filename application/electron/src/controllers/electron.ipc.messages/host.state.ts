@@ -12,6 +12,7 @@ export interface IHostState {
 export class HostState {
     public static States = EHostState;
     public static signature: string = 'HostState';
+    public signature: string = HostState.signature;
     public message: string = '';
     public state: EHostState = EHostState.ready;
 
