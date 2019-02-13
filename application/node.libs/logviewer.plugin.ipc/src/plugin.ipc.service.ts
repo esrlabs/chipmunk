@@ -15,13 +15,13 @@ export { IPCMessages };
  *      { fd: 1 } stdout    listened by parent process. Whole output from it goes to logs of parent process
  *      { fd: 2 } stderr    listened by parent process. Whole output from it goes to logs of parent process
  *      { fd: 3 } ipc       used by parent process as command sender / reciever
- *      { fd: 4 } pipe      listened by parent process. Used as bridge to data's stream. All data from this 
+ *      { fd: 4 } pipe      listened by parent process. Used as bridge to data's stream. All data from this
  *                          stream are redirected into session stream of parent process
  * @recommendations
  *      - to parse logs use simple "console.log (warn, err etc)" or you can write it directly to stdout
  *      - parent process nothig send to process.stdin ( fd: 0 )
  *      - ipc channel ({ fd: 3 }) are using to exchange commands, but not data. Data should be send via stream
- *      - pipe channel ({ fd: 4 }) are using to send stream's data to parent. In only in one way: plugin -> parent. 
+ *      - pipe channel ({ fd: 4 }) are using to send stream's data to parent. In only in one way: plugin -> parent.
  *        To work with this channel WriteStream is created. Developer are able:
  *        a) use method of this service "sendToStream" to send chunk of data
  *        b) get stream using "getDataStream" and pipe it with source of data
@@ -84,7 +84,7 @@ export class PluginIPCService extends EventEmitter {
             }
             const messagePackage: IPCMessagePackage = new IPCMessagePackage({
                 message: message,
-                sequence: sequence
+                sequence: sequence,
             });
             this._send(messagePackage).then(() => {
                 resolve();
@@ -121,7 +121,7 @@ export class PluginIPCService extends EventEmitter {
             if (!this._isValidMessageClassRef(message)) {
                 return reject(new Error(`Incorrect reference to message class.`));
             }
-           
+
             const signature: string = (message as any).signature;
             const subscriptionId: string = guid();
             let handlers: Map<string, THandler> | undefined = this._handlers.get(signature);
@@ -139,7 +139,7 @@ export class PluginIPCService extends EventEmitter {
     }
 
     /**
-     * Sends chunk of data to main data's stream 
+     * Sends chunk of data to main data's stream
      * @param {any} chunk package of data
      * @returns { Promise<void> }
      */
@@ -155,7 +155,7 @@ export class PluginIPCService extends EventEmitter {
     }
 
     /**
-     * Returns write stream. Can be used to pipe write stream with source of data 
+     * Returns write stream. Can be used to pipe write stream with source of data
      * @returns { FS.WriteStream }
      */
     public getDataStream(): FS.WriteStream {
@@ -165,8 +165,8 @@ export class PluginIPCService extends EventEmitter {
     /**
      * Sends message to parent (main) process via IPC
      * @param {IPCMessage} data package of data
-     * @param {boolean} expectResponse  true - promise will be resolved with income message with same "sequence"; 
-     *                                  false (default) - promise will be resolved afte message be sent 
+     * @param {boolean} expectResponse  true - promise will be resolved with income message with same "sequence";
+     *                                  false (default) - promise will be resolved afte message be sent
      * @returns { Promise<IPCMessage | undefined> }
      */
     private _send(message: IPCMessagePackage, expectResponse: boolean = false): Promise<IPCMessages.TMessage | undefined> {
@@ -192,7 +192,7 @@ export class PluginIPCService extends EventEmitter {
     }
 
     /**
-     * Handler of incoming message from parent (main) process 
+     * Handler of incoming message from parent (main) process
      * @returns void
      */
     private _onMessage(data: any) {

@@ -83,6 +83,7 @@ const APP_FOLDER = 'application';
 const CLIENT_FOLDER = 'client.core';
 const CLIENT_NPM_LIBS = 'client.libs/logviewer.client.components'
 const CLIENT_IPC_LIB = 'client.libs/logviewer.client.electron.ipc';
+const PLUGIN_IPC_LIB = 'node.libs/logviewer.plugin.ipc';
 const ELECTRON_FOLDER = 'electron';
 const PLATFORM_FOLDER = 'platform';
 const CLIENT_NPM_LIBS_LIST = [
@@ -414,6 +415,50 @@ namespace('client.ipc', function() {
     }, {async: true});
 
     task('all', ['client.ipc:link-ipc-messages', 'client.ipc:build']);
+
+});
+
+namespace('plugin.ipc', function() {
+    task('build', function() {
+        logo();
+        const tasks = [];
+        const pluginIPCPath = path.normalize(path.resolve(__dirname, PLUGIN_IPC_LIB));
+        const pluginIPCNodeModules = path.normalize(path.resolve(pluginIPCPath, 'node_modules'));
+        const pluginIPCDist = path.normalize(path.resolve(pluginIPCPath, 'dist'));
+        if (!CLI_FLAGS.skipNpm && fs.existsSync(pluginIPCNodeModules)) {
+            tasks.push(echo(colors.blue(`Remove node_modules files: ${pluginIPCNodeModules}`)));
+            tasks.push(`rm -rf ${pluginIPCNodeModules}`);
+        }
+        if (fs.existsSync(pluginIPCDist)) {
+            tasks.push(echo(colors.blue(`Remove dist files: ${pluginIPCDist}`)));
+            tasks.push(`rm -rf ${pluginIPCDist}`);
+        }
+        tasks.push(echo(colors.blue(`Building: ${pluginIPCPath}`)));
+        !CLI_FLAGS.skipNpm && tasks.push(`npm install --prefix ${pluginIPCPath}`);
+        tasks.push(`npm run build --prefix ${pluginIPCPath}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('link-ipc-messages', function() {
+        logo();
+        const tasks = [];
+        const pluginIPCPath = path.normalize(path.resolve(__dirname, PLUGIN_IPC_LIB));
+        const pluginIPCMessagesFolder = path.normalize(path.resolve(pluginIPCPath, 'src/ipc.messages'));
+        const electronPath = path.normalize(path.resolve(__dirname, ELECTRON_FOLDER));
+        const electronMessagesFolder = path.normalize(path.resolve(electronPath, 'src/controllers/plugin.ipc.messages'));
+        if (fs.existsSync(pluginIPCMessagesFolder)) {
+            console.log(`Project ${pluginIPCMessagesFolder} is already linked. It will be unlinked before to be linked again.`);
+            tasks.push(echo(colors.blue(`unlink: ${pluginIPCMessagesFolder}`)));
+            tasks.push(`unlink ${pluginIPCMessagesFolder} & exit 0`);
+            tasks.push(`rm -rf ${pluginIPCMessagesFolder} & exit 0`);
+        }
+        tasks.push(echo(colors.blue(`link: ${pluginIPCMessagesFolder}`)));
+        tasks.push(`ln -s ${electronMessagesFolder} ${pluginIPCMessagesFolder}`);
+        tasks.push(`rm -rf ${path.normalize(path.resolve(pluginIPCPath, 'etc'))}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('all', ['plugin.ipc:link-ipc-messages', 'plugin.ipc:build']);
 
 });
 

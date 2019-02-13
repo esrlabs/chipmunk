@@ -1,6 +1,6 @@
 import Logger from './env.logger';
-import PluginIPCService from './plugin.ipc.service/plugin.ipc.service';
-import { IPCMessages } from './plugin.ipc.service/plugin.ipc.service';
+import PluginIPCService from 'logviewer.plugin.ipc';
+import { IPCMessages } from 'logviewer.plugin.ipc';
 import Shell from './process.shell';
 import * as EnvModule from './process.env';
 
