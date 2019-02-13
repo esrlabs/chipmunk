@@ -240,7 +240,6 @@ export class LayoutComponent implements OnDestroy {
         if (minimized) {
             this._sizes.sec.last = this._sizes.sec.current;
             this._sizes.sec.current = ThemeParams.tabs_list_height;
-            console.log('FDFSFDSFSDFSDFSD');
         } else {
             this._sizes.sec.current = this._sizes.sec.last;
         }

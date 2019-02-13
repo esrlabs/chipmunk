@@ -34,6 +34,14 @@ export interface IPlugin {
         controller: ControllerPluginProcess;
         started: number;
     };
+    verified: {
+        process: boolean;
+        render: boolean;
+    };
+    info: {
+        renderSent: boolean;
+        renderLocation: string;
+    };
 }
 
 export type TPluginPath = string;
@@ -49,6 +57,7 @@ export class ServicePlugins implements IService {
     private _plugins: Map<TPluginPath, IPlugin> = new Map();
     private _electronVersion: string = '';
     private _subscriptions: { [key: string ]: Subscription | undefined } = { };
+    private _isRenderReady: boolean = false;
 
     constructor() {
         this._ipc_onRenderState = this._ipc_onRenderState.bind(this);
@@ -80,15 +89,18 @@ export class ServicePlugins implements IService {
                 this._initializeAllPlugins().then(() => {
                     ServiceElectronService.updateHostState(`All plugins are ready`, true);
                     this._logger.error(`All plugins are ready`);
+                    this._sendRenderPluginsData();
                     resolve();
                 }).catch((initializationError: Error) => {
                     ServiceElectronService.updateHostState(`Error during initialization of plugins: ${initializationError.message}`, true);
                     this._logger.error(`Error during initialization of plugins: ${initializationError.message}`);
+                    this._sendRenderPluginsData();
                     resolve();
                 });
             }).catch((readingDescriptionsError: Error) => {
                 ServiceElectronService.updateHostState(`Fail to get description of available plugins due error: ${readingDescriptionsError.message}`, true);
                 this._logger.error(`Fail to get description of available plugins due error: ${readingDescriptionsError.message}`);
+                this._sendRenderPluginsData();
                 resolve();
             });
         });
@@ -224,6 +236,7 @@ export class ServicePlugins implements IService {
                             controller: controller,
                             started: Date.now(),
                         };
+                        plugin.verified.process = true;
                         this._plugins.set(plugin.name, plugin);
                         resolve();
                     }).catch((attachError: Error) => {
@@ -272,8 +285,30 @@ export class ServicePlugins implements IService {
     *   Initialization of plugins: render part
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+    /**
+     * Verify plugin in part of render
+     * @param {IPlugin} plugin description of plugin
+     * @returns { Promise<void> }
+     */
     private _initializeRenderOfPlugin(plugin: IPlugin): Promise<void> {
         return new Promise((resolve, reject) => {
+            // Check "main" field of package.json
+            if (typeof plugin.packages.render.main !== 'string' || plugin.packages.render.main.trim() === '') {
+                ServiceElectronService.updateHostState(`[${plugin.name}]: Fail to find field "main" in package.json of plugin.`);
+                return reject(new Error(this._logger.error(`[${plugin.name}]: Fail to find field "main" in package.json of plugin.`)));
+            }
+            // Check main file of plugin
+            const main: string = Path.normalize(Path.resolve(plugin.path.render, plugin.packages.render.main));
+            if (!FS.isExist(main)) {
+                ServiceElectronService.updateHostState(`[${plugin.name}]: Fail to find main file: "${plugin.packages.render.main}" / "${main}"`);
+                return reject(new Error(this._logger.error(`[${plugin.name}]: Fail to find main file: "${plugin.packages.render.main}" / "${main}"`)));
+            }
+            // Mark plugin as verified
+            plugin.verified.render = true;
+            // Save location
+            plugin.info.renderLocation = main;
+            // Update plugin info
+            this._plugins.set(plugin.name, plugin);
             resolve();
         });
     }
@@ -363,6 +398,14 @@ export class ServicePlugins implements IService {
                 process: FS.isExist(Path.resolve(path, PROCESS_FOLDER)),
                 render: FS.isExist(Path.resolve(path, RENDER_FOLDER)),
                 root: path,
+                verified: {
+                    process: false,
+                    render: false,
+                },
+                info: {
+                    renderLocation: '',
+                    renderSent: false,
+                },
             };
             const tasks = [];
             if (desc.process) {
@@ -437,7 +480,38 @@ export class ServicePlugins implements IService {
      * @returns void
      */
     private _ipc_onRenderState(state: IPCMessages.TMessage) {
-        console.log(state);
+        if (!(state instanceof IPCMessages.RenderState)) {
+            return;
+        }
+        if (state.state !== IPCMessages.ERenderState.ready) {
+            return;
+        }
+        this._isRenderReady = true;
+        // Send infomation about verified plugins
+        this._sendRenderPluginsData();
+    }
+
+    private _sendRenderPluginsData() {
+        if (!this._isRenderReady) {
+            return;
+        }
+        this._plugins.forEach((plugin: IPlugin) => {
+            if (!plugin.verified.render) {
+                // Plugin isn't verified
+                return;
+            }
+            if (plugin.info.renderSent) {
+                // Information about plugin was already sent
+                return;
+            }
+            // Inform render about plugin location
+            ServiceElectron.IPC.send(IPCMessages.RenderMountPlugin, new IPCMessages.RenderMountPlugin({ name: plugin.name, location: plugin.info.renderLocation })).then(() => {
+                this._logger.env(`Information about plugin "${plugin.name}" was sent to render`);
+            }).catch((sendingError: Error) => {
+                ServiceElectronService.updateHostState(`Fail to send information to render about plugin "${plugin.name}" due error: ${sendingError.message}`);
+                this._logger.error(`Fail to send information to render about plugin "${plugin.name}" due error: ${sendingError.message}`);
+            });
+        });
     }
 
 }
