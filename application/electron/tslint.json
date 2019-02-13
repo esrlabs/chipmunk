@@ -15,6 +15,7 @@
         "max-line-length": false,
         "variable-name": [true, "ban-keywords", "check-format", "allow-leading-underscore", "allow-pascal-case"],
         "no-unused-expression": [ "errors", { "allowShortCircuit": true }],
+        "object-literal-sort-keys":false,
         "typedef-whitespace": [
             true,
             {

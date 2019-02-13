@@ -1,4 +1,5 @@
 import * as Tools from '../../tools/index';
+import { IComponentDesc } from 'logviewer-client-containers';
 
 export enum EDockPosition {
     vertical = 'vertical',
@@ -19,6 +20,7 @@ export interface IContainer {
 export interface IDock {
     id?: string;
     caption: string;
+    component?: IComponentDesc;
 }
 
 export interface IDockContainer {
@@ -37,9 +39,6 @@ export interface IDockDrop {
     parking: string;
 }
 
-
-
-
 export enum EDirection {
     vertical = 'vertical',
     horizontal = 'horizontal'
@@ -54,10 +53,12 @@ export class Dock {
 
     private _id: string = Tools.guid();
     private _caption: string;
+    private _component: IComponentDesc | undefined;
 
-    constructor( params: { id?: string, caption: string }) {
+    constructor( params: IDock) {
         this._id = params.id !== void 0 ? params.id : this._id;
         this._caption = params.caption !== void 0 ? params.caption : this._caption;
+        this._component = params.component !== void 0 ? params.component : undefined;
     }
 
     public isContainer(): boolean {
@@ -74,6 +75,10 @@ export class Dock {
 
     public get caption(): string {
         return this._caption;
+    }
+
+    public get component(): IComponentDesc | undefined {
+        return this._component;
     }
 
 }

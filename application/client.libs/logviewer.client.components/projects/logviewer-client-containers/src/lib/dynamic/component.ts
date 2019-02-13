@@ -6,6 +6,7 @@ import { Component, Input, ViewContainerRef, ReflectiveInjector, ComponentFactor
 
 export interface IComponentDesc {
     factory: any;
+    resolved?: boolean;
     inputs?: any;
 }
 
@@ -31,22 +32,32 @@ export class DynamicComponent {
         if (desc.inputs === void 0) {
             desc.inputs = {};
         }
-        const inputProviders = Object.keys(desc.inputs).map((inputName) => {
-            return {
-                provide: inputName,
-                useValue: desc.inputs[inputName],
-            };
-        });
-        const resolvedInputs = ReflectiveInjector.resolve(inputProviders);
-        const injector = ReflectiveInjector.fromResolvedProviders(resolvedInputs, this.viewContainerRef.injector);
-        const factory = this.resolver.resolveComponentFactory(desc.factory);
-        const component = factory.create(injector);
-        Object.keys(desc.inputs).forEach((key: string) => {
-            component.instance[key] = desc.inputs[key];
-        });
-        this.viewContainerRef.insert(component.hostView);
-        if (this.detectChanges === true)  {
-            component.hostView.detectChanges();
+        let component;
+        if (!desc.resolved) {
+            // Factory of component isn't resolved
+            const inputProviders = Object.keys(desc.inputs).map((inputName) => {
+                return {
+                    provide: inputName,
+                    useValue: desc.inputs[inputName],
+                };
+            });
+            const resolvedInputs = ReflectiveInjector.resolve(inputProviders);
+            const injector = ReflectiveInjector.fromResolvedProviders(resolvedInputs, this.viewContainerRef.injector);
+            const factory = this.resolver.resolveComponentFactory(desc.factory);
+            component = factory.create(injector);
+            Object.keys(desc.inputs).forEach((key: string) => {
+                component.instance[key] = desc.inputs[key];
+            });
+            this.viewContainerRef.insert(component.hostView);
+            if (this.detectChanges === true)  {
+                component.hostView.detectChanges();
+            }
+        } else {
+            // Factory of component is already resolved
+            component = this.viewContainerRef.createComponent(desc.factory);
+            Object.keys(desc.inputs).forEach((inputName) => {
+                component.instance[inputName] = desc.inputs[inputName];
+            });
         }
         if (this._component) {
             this._component.destroy();

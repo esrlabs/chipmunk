@@ -5,7 +5,25 @@ import * as AngularCore from '@angular/core';
 import * as AngularCommon from '@angular/common';
 import * as Tools from '../tools/index';
 
+import { TabsService, TabsOptions, ETabsListDirection, DockingComponent, DockDef, DocksService } from 'logviewer-client-complex';
+
+
+const PluginDefaultViewsComponents = {
+    view: 'lib-view',
+    state: 'lib-state',
+    static: 'lib-static'
+};
+
 type TPluginModule = any;
+
+export interface IPluginData {
+    module: TPluginModule;  // Instance of plugin module
+    factories: {
+        view?: any;         // Component of view
+        state?: any;        // Component of state app (to mount into state bar)
+        static?: any;       // Component of static app (to mount into secondory area as tab)
+    };
+}
 
 export class PluginsService {
 
@@ -34,7 +52,7 @@ export class PluginsService {
         });
     }
 
-    private _loadAndInit(name: string, location: string): Promise<TPluginModule> {
+    private _loadAndInit(name: string, location: string): Promise<IPluginData> {
         return new Promise((resolve, reject) => {
             // Step 1. Delivery sources
             fetch(location).then((response: Response) => {
@@ -61,29 +79,31 @@ export class PluginsService {
                     // Step 5. Compile
                     this._compiler.compileModuleAndAllComponentsAsync<any>(exports['PluginModule']).then((mwcf) => {
                         // Ok. From here we have access to plugin components. Also all components should be already initialized
-
-                        /*
-                        // We can take component manualy and inject it.
-                        const componentFactory = mwcf.componentFactories.find(e => e.selector === 'selector_of_plugin_component');
-                        if (componentFactory) {
-                            const componentRef = this.content.createComponent(componentFactory);
-                            componentRef.instance.data = 'Some Data';
-                        }*/
-                        resolve();
+                        // Step 6. Create plugin module
+                        try {
+                            const module = mwcf.ngModuleFactory.create(this._injector);
+                            if (!(module.instance instanceof exports['PluginModule'])) {
+                                return reject(new Error(this._logger.error(`Fail to compile main module of plugin "${name}".`)));
+                            }
+                            // Step 7. Search views of apps
+                            const pluginData: IPluginData = {
+                                module: module,
+                                factories: {}
+                            };
+                            Object.keys(PluginDefaultViewsComponents).forEach((alias: string) => {
+                                const selector: string = PluginDefaultViewsComponents[alias];
+                                const componentFactory = mwcf.componentFactories.find(e => e.selector === selector);
+                                if (componentFactory) {
+                                    pluginData.factories[alias] = componentFactory;
+                                }
+                            });
+                            resolve(pluginData);
+                        } catch (moduleCompileError) {
+                            return reject(new Error(this._logger.error(`Fail to compile main module of plugin "${name}" due error: ${moduleCompileError.message}.`)));
+                        }
                     }).catch((compileError: Error) => {
                         reject(new Error(this._logger.error(`Fail to compile plugin "${name}" due error: ${compileError.message}`)));
                     });
-                    /*
-                    exports.doSomething();
-                    this._compiler.compileModuleAndAllComponentsAsync<any>(exports['PluginCModule']).then((mwcf) => {
-                        const componentFactory = mwcf.componentFactories.find(e => e.selector === 'lib-plugin-c'); // find the entry component
-                        if (componentFactory) {
-                        const componentRef = this.content.createComponent(componentFactory);
-                        // componentRef.instance.data = 'Some Data';
-                        }
-                    });
-                    console.log(source);
-                    */
                 }).catch((responseError: Error) => {
                     reject(new Error(this._logger.error(`Response of plugin "${name}" wasn't parsed correctly due error: ${responseError.message}`)));
                 });
@@ -93,19 +113,36 @@ export class PluginsService {
         });
     }
 
-    private _deliveryApps(): Promise<void> {
+    private _deliveryApps(pluginData: IPluginData): Promise<void> {
         return new Promise((resolve, reject) => {
+            (window as any).__tabs.add({
+                name: 'Tab plugin',
+                active: true,
+                content: {
+                    factory: DockingComponent,
+                    inputs: {
+                        service: new DocksService('plugin', new DockDef.Container({
+                            a: new DockDef.Dock({ caption: 'Dock plugin', component: { factory: pluginData.factories.view, resolved: true, inputs: { title: 'test '}} })
+                        }))
+                    }
+                }
+            });
             resolve();
+
         });
     }
 
     private _ipc_onRenderMountPlugin(event: IPCMessages.RenderMountPlugin): void {
         this._logger.env(`Information about plugin "${event.name}" has been gotten. Starting loading & initialization.`);
-        this._loadAndInit(event.name, event.location).then((PluginModule: TPluginModule) => {
-            console.log(PluginModule);
-            // Here we should do delivery
+        this._loadAndInit(event.name, event.location).then((pluginData: IPluginData) => {
+            // Delivery applications of plugin into main application
+            this._deliveryApps(pluginData).then(() => {
+                this._logger.error(`Plugin "${event.name}" is successfully mount.`);
+            }).catch((deliveryError: Error) => {
+                this._logger.error(`Fail to delivery applications of plugin "${event.name}" due error: ${deliveryError.message}`);
+            });
         }).catch((loadError: Error) => {
-            this._logger.error(`Fail to load and initialize plugin due error: ${loadError.message}`);
+            this._logger.error(`Fail to load and initialize plugin "${event.name}" due error: ${loadError.message}`);
         });
     }
 

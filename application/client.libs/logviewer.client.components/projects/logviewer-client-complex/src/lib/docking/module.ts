@@ -1,3 +1,4 @@
+import { ContainersModule                       } from 'logviewer-client-containers';
 import { NgModule                               } from '@angular/core';
 import { CommonModule                           } from '@angular/common';
 
@@ -9,7 +10,7 @@ const components = [ DockingComponent, DockComponent, DockContainerComponent];
 
 @NgModule({
     entryComponents : [ ...components ],
-    imports         : [ CommonModule ],
+    imports         : [ CommonModule, ContainersModule ],
     declarations    : [ ...components ],
     exports         : [ ...components ]
 })

@@ -2,10 +2,23 @@ import { NgModule } from '@angular/core';
 import { ViewComponent } from './view/component';
 
 @NgModule({
-  declarations: [ViewComponent],
-  imports: [
-  ],
-  exports: [ViewComponent]
+    entryComponents: [ViewComponent],
+    declarations: [ViewComponent],
+    imports: [ ],
+    exports: [ViewComponent]
 })
 
-export class TerminalModule { }
+export class PluginModule {
+
+    public getView() {
+        return ViewComponent;
+    }
+
+    public getStatusBarApp() {
+        return true;
+    }
+
+    public getStaticApp() {
+        return true;
+    }
+}
