@@ -3,6 +3,7 @@ import * as Objects from '../../platform/cross/src/env.objects';
 import * as FS from '../../platform/node/src/fs';
 
 import Logger from '../../platform/node/src/env.logger';
+import { guid } from '../../platform/cross/src/index';
 import NPMInstaller from '../tools/npm.installer';
 import ServiceElectron from './service.electron';
 import ServicePaths from './service.paths';
@@ -42,6 +43,7 @@ export interface IPlugin {
         renderSent: boolean;
         renderLocation: string;
     };
+    token: string;
 }
 
 export type TPluginPath = string;
@@ -110,6 +112,38 @@ export class ServicePlugins implements IService {
         return 'ServicePackage';
     }
 
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    *   Redirection of messages
+    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    public redirectIPCMessageToPluginHost(message: IPCMessages.PluginMessage) {
+        const target: IPlugin | undefined = this._getPluginInfoByToken(message.token);
+        if (target === undefined) {
+            return this._logger.error(`Fail to find plugin by token: ${message.token}. Income message: ${message.message}`);
+        }
+        if (target.node === undefined) {
+            return this._logger.error(`Fail redirect message by token ${message.token}, because plugin doesn't have process. Income message: ${message.message}`);
+        }
+        const ipc = target.node.controller.getIPC();
+        if (ipc instanceof Error) {
+            return this._logger.error(`Fail redirect message by token ${message.token} due error: ${ipc.message}`);
+        }
+        ipc.send(message).catch((sendingError: Error) => {
+            this._logger.error(`Fail redirect message by token ${message.token} due error: ${sendingError.message}`);
+        });
+    }
+
+    private _getPluginInfoByToken(token: string): IPlugin | undefined {
+        let result: IPlugin | undefined;
+        this._plugins.forEach((plugin: IPlugin) => {
+            if (result) {
+                return;
+            }
+            if (plugin.token === token) {
+                result = plugin;
+            }
+        });
+        return result;
+    }
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     *   Initialization of plugins
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -406,6 +440,7 @@ export class ServicePlugins implements IService {
                     renderLocation: '',
                     renderSent: false,
                 },
+                token: guid(),
             };
             const tasks = [];
             if (desc.process) {
@@ -505,7 +540,11 @@ export class ServicePlugins implements IService {
                 return;
             }
             // Inform render about plugin location
-            ServiceElectron.IPC.send(new IPCMessages.RenderMountPlugin({ name: plugin.name, location: plugin.info.renderLocation })).then(() => {
+            ServiceElectron.IPC.send(new IPCMessages.RenderMountPlugin({
+                name: plugin.name,
+                location: plugin.info.renderLocation,
+                token: plugin.token,
+            })).then(() => {
                 this._logger.env(`Information about plugin "${plugin.name}" was sent to render`);
             }).catch((sendingError: Error) => {
                 ServiceElectronService.updateHostState(`Fail to send information to render about plugin "${plugin.name}" due error: ${sendingError.message}`);

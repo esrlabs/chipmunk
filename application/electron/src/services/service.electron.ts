@@ -12,10 +12,6 @@ import { THandler } from '../../platform/cross/src/types.common';
 import { IService } from '../interfaces/interface.service';
 
 import ControllerElectronIpc from '../controllers/controller.electron.ipc';
-import ServicePackage from './service.package';
-import ServicePath from './service.paths';
-import ServiceSettings from './service.settings';
-import ServiceWindowState from './service.window.state';
 
 import ControllerBrowserWindow from '../controllers/controller.browserwindow';
 
@@ -85,6 +81,18 @@ class ServiceElectron implements IService {
         return process.versions.electron;
     }
 
+    public redirectIPCMessageToPluginRender(message: IPCMessages.PluginMessage) {
+        if (this._controllerBrowserWindow === undefined) {
+            return this._logger.error(`Fail to redirect message of plugin by token: ${message.token}, because BrowserWindow is undefined. Income message: ${message.message}`);
+        }
+        this._controllerBrowserWindow.getIpc().then((ipc: ControllerElectronIpc) => {
+            ipc.send(message, null).catch((sendingError: Error) => {
+                this._logger.error(`Fail redirect message by token ${message.token} due error: ${sendingError.message}`);
+            });
+        }).catch((error: Error) => {
+            this._logger.error(`Fail redirect message by token ${message.token} due error: ${error.message}`);
+        });
+    }
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Electron IPC
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -112,7 +120,7 @@ class ServiceElectron implements IService {
                 return reject(new Error(`Browser window isn't inited yet, cannot delivery IPC controller.`));
             }
             this._controllerBrowserWindow.getIpc().then((ipc: ControllerElectronIpc) => {
-                ipc.send(instance).then(() => {
+                ipc.send(instance, null).then(() => {
                     resolve();
                 }).catch((sendingError: Error) => {
                     return reject(new Error(this._logger.warn(`Fail to send message via IPC due error: ${sendingError.message}`)));

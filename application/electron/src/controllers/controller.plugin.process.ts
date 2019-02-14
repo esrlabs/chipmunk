@@ -7,7 +7,6 @@ import Logger from '../../platform/node/src/env.logger';
 import { IPlugin } from '../services/service.plugins';
 import ControllerIPCPlugin from './controller.plugin.process.ipc';
 import * as IPCPluginMessages from './plugin.ipc.messages/index';
-import { IPCMessagePackage } from './controller.plugin.process.ipc.messagepackage';
 
 /**
  * @class ControllerPluginProcess
@@ -71,9 +70,14 @@ export default class ControllerPluginProcess extends Emitter {
             this._process.on('error', this._onError);
             this._process.on('disconnect', this._onDisconnect);
             // Create IPC controller
-            this._ipc = new ControllerIPCPlugin(this._plugin.name, this._process, (this._process.stdio as any)[4]);
+            this._ipc = new ControllerIPCPlugin(this._plugin.name, this._process, (this._process.stdio as any)[4], this._plugin.token);
             this._ipc.on(ControllerIPCPlugin.Events.stream, this._onStream);
-
+            // Send token
+            this._ipc.send(new IPCPluginMessages.PluginToken({
+                token: this._plugin.token,
+            })).catch((sendingError: Error) => {
+                this._logger.error(`Fail delivery plugin token due error: ${sendingError.message}`);
+            });
             /*
             setTimeout(() => {
                 this._ipc !== undefined && this._ipc.request(new IPCMessage({ command: 'shell', data: 'ls -lsa\n'})).then((response: IPCMessage) => {

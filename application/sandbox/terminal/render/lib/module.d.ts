@@ -1,6 +1,4 @@
-import { ViewComponent } from './view/component';
 export declare class PluginModule {
-    getView(): typeof ViewComponent;
-    getStatusBarApp(): boolean;
-    getStaticApp(): boolean;
+    private _token;
+    setPluginHostToken(token: string): void;
 }
