@@ -1,24 +1,22 @@
 import { NgModule } from '@angular/core';
 import { ViewComponent } from './view/component';
+import ServiceElectronIpc from 'logviewer.client.electron.ipc';
+import {CommonModule} from '@angular/common';
 
 @NgModule({
     entryComponents: [ViewComponent],
     declarations: [ViewComponent],
-    imports: [ ],
+    imports: [ CommonModule ],
     exports: [ViewComponent]
 })
 
 export class PluginModule {
 
-    public getView() {
-        return ViewComponent;
+    private _token: string | undefined;
+
+    public setPluginHostToken(token: string) {
+        this._token = token;
+        ServiceElectronIpc.setPluginHostToken(this._token);
     }
 
-    public getStatusBarApp() {
-        return true;
-    }
-
-    public getStaticApp() {
-        return true;
-    }
 }

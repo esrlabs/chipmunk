@@ -3,7 +3,7 @@ import { EventEmitter } from 'events';
 import { Readable } from 'stream';
 import { IPCMessagePackage } from './controller.plugin.process.ipc.messagepackage';
 import * as IPCMessages from './plugin.ipc.messages/index';
-
+import ServiceElectron from '../services/service.electron';
 import Logger from '../../platform/node/src/env.logger';
 import { guid, Subscription, THandler } from '../../platform/cross/src/index';
 
@@ -19,17 +19,19 @@ export default class ControllerIPCPlugin extends EventEmitter {
 
     private _logger: Logger;
     private _pluginName: string;
+    private _token: string;
     private _stream: Readable;
     private _process: ChildProcess;
     private _pending: Map<string, (message: IPCMessages.TMessage) => any> = new Map();
     private _subscriptions: Map<string, Subscription> = new Map();
     private _handlers: Map<string, Map<string, THandler>> = new Map();
 
-    constructor(pluginName: string, process: ChildProcess, stream: Readable) {
+    constructor(pluginName: string, process: ChildProcess, stream: Readable, token: string) {
         super();
         this._pluginName = pluginName;
         this._stream = stream;
         this._process = process;
+        this._token = token;
         this._logger = new Logger(`plugin IPC: ${this._pluginName}`);
         this._process.on('message', this._onMessage.bind(this));
         this._stream.on('data', this._onStream.bind(this));
@@ -48,6 +50,7 @@ export default class ControllerIPCPlugin extends EventEmitter {
             }
             const messagePackage: IPCMessagePackage = new IPCMessagePackage({
                 message: message,
+                token: this._token,
             });
             this._send(messagePackage).then(() => {
                 resolve();
@@ -66,6 +69,7 @@ export default class ControllerIPCPlugin extends EventEmitter {
             const messagePackage: IPCMessagePackage = new IPCMessagePackage({
                 message: message,
                 sequence: sequence,
+                token: this._token,
             });
             this._send(messagePackage).then(() => {
                 resolve();
@@ -88,6 +92,7 @@ export default class ControllerIPCPlugin extends EventEmitter {
             }
             const messagePackage: IPCMessagePackage = new IPCMessagePackage({
                 message: message,
+                token: this._token,
             });
             this._send(messagePackage, true).then((response: IPCMessages.TMessage | undefined) => {
                 resolve(response);
@@ -172,17 +177,24 @@ export default class ControllerIPCPlugin extends EventEmitter {
             const instance: IPCMessages.TMessage = new (refMessageClass as any)(message.message);
             if (resolver !== undefined) {
                 return resolver(instance);
+            } else if (instance instanceof IPCMessages.PluginMessage) {
+                this._redirectToPluginHost(instance);
+            } else {
+                const handlers = this._handlers.get(instance.signature);
+                if (handlers === undefined) {
+                    return;
+                }
+                handlers.forEach((handler: THandler) => {
+                    handler(instance, this.response.bind(this, message.sequence));
+                });
             }
-            const handlers = this._handlers.get(instance.signature);
-            if (handlers === undefined) {
-                return;
-            }
-            handlers.forEach((handler: THandler) => {
-                handler(instance, this.response.bind(this, message.sequence));
-            });
         } catch (e) {
             this._logger.error(`Incorrect format of IPC message: ${typeof data}. Error: ${e.message}`);
         }
+    }
+
+    private _redirectToPluginHost(message: IPCMessages.PluginMessage) {
+        ServiceElectron.redirectIPCMessageToPluginRender(message);
     }
 
     /**

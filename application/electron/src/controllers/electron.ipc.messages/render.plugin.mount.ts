@@ -1,6 +1,7 @@
 export interface IRenderMountPlugin {
     name: string;
     location: string;
+    token: string;
 }
 
 export class RenderMountPlugin {
@@ -8,6 +9,7 @@ export class RenderMountPlugin {
     public signature: string = RenderMountPlugin.signature;
     public name: string = '';
     public location: string = '';
+    public token: string = '';
 
     constructor(params: IRenderMountPlugin) {
         if (typeof params !== 'object' || params === null) {
@@ -19,7 +21,11 @@ export class RenderMountPlugin {
         if (typeof params.location !== 'string' || params.location.trim() === '') {
             throw new Error(`Location of plugin's files should be provided`);
         }
+        if (typeof params.token !== 'string' || params.token.trim() === '') {
+            throw new Error(`token of plugin's should be provided`);
+        }
         this.name = params.name;
         this.location = params.location;
+        this.token = params.token;
     }
 }

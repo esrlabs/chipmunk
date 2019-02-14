@@ -35,6 +35,8 @@ export class PluginIPCService extends EventEmitter {
     private _pending: Map<string, (message: IPCMessages.TMessage) => any> = new Map();
     private _subscriptions: Map<string, Subscription> = new Map();
     private _handlers: Map<string, Map<string, THandler>> = new Map();
+    private _token: string | undefined;
+    private _tokenSubscription: Subscription | undefined;
 
     public static Events = {
         close: 'close',
@@ -52,6 +54,49 @@ export class PluginIPCService extends EventEmitter {
         this._stream = FS.createWriteStream('', { fd: 4 });
         // Listen parent process for messages
         process.on('message', this._onMessage.bind(this));
+        // Subscribe to token message
+        this.subscribe(IPCMessages.PluginToken, this._onPluginToken.bind(this)).then((subscription: Subscription) => {
+            this._tokenSubscription = subscription;
+        }).catch((subscribeError: Error) => {
+            console.log(`Fail to subscribe "IPCMessages.PluginToken" due error: ${subscribeError.message}`);
+        });
+    }
+
+    public sendToPluginHost(message: any): Promise<any> {
+        return new Promise((resolve, reject) => {
+            if (this._token === undefined) {
+                return reject(new Error(`Fail to send to plugin host because token wasn't gotten.`));
+            }
+            const pluginMessage: IPCMessages.PluginMessage = new IPCMessages.PluginMessage({
+                message: message,
+                token: this._token,
+            });
+            this.send(pluginMessage).then(() => {
+                resolve();
+            }).catch((sendingError: Error) => {
+                reject(sendingError);
+            });
+        });
+    }
+
+    public requestToPluginHost(message: any): Promise<any> {
+        return new Promise((resolve, reject) => {
+            if (this._token === undefined) {
+                return reject(new Error(`Fail to send to plugin host because token wasn't gotten.`));
+            }
+            const pluginMessage: IPCMessages.PluginMessage = new IPCMessages.PluginMessage({
+                message: message,
+                token: this._token,
+            });
+            this.request(pluginMessage).then((response: IPCMessages.TMessage | undefined) => {
+                if (!(response instanceof IPCMessages.PluginMessage)) {
+                    return reject(new Error(`From plugin host was gotten incorrect responce: ${typeof response}/${response}`));
+                }
+                resolve(response.message);
+            }).catch((sendingError: Error) => {
+                reject(sendingError);
+            });
+        });
     }
 
     /**
@@ -67,6 +112,7 @@ export class PluginIPCService extends EventEmitter {
             }
             const messagePackage: IPCMessagePackage = new IPCMessagePackage({
                 message: message,
+                token: this._token !== undefined ? this._token : null,
             });
             this._send(messagePackage).then(() => {
                 resolve();
@@ -85,6 +131,7 @@ export class PluginIPCService extends EventEmitter {
             const messagePackage: IPCMessagePackage = new IPCMessagePackage({
                 message: message,
                 sequence: sequence,
+                token: this._token !== undefined ? this._token : null,
             });
             this._send(messagePackage).then(() => {
                 resolve();
@@ -107,6 +154,7 @@ export class PluginIPCService extends EventEmitter {
             }
             const messagePackage: IPCMessagePackage = new IPCMessagePackage({
                 message: message,
+                token: this._token !== undefined ? this._token : null,
             });
             this._send(messagePackage, true).then((response: IPCMessages.TMessage | undefined) => {
                 resolve(response);
@@ -197,14 +245,18 @@ export class PluginIPCService extends EventEmitter {
      */
     private _onMessage(data: any) {
         try {
-            const message: IPCMessagePackage = new IPCMessagePackage(data);
-            const resolver = this._pending.get(message.sequence);
-            this._pending.delete(message.sequence);
-            const refMessageClass = this._getRefToMessageClass(message.message);
+            const messagePackage: IPCMessagePackage = new IPCMessagePackage(data);
+            if (this._token !== undefined && messagePackage.token !== null && messagePackage.token !== this._token) {
+                // This message isn't for this instance of IPC
+                return;
+            }
+            const resolver = this._pending.get(messagePackage.sequence);
+            this._pending.delete(messagePackage.sequence);
+            const refMessageClass = this._getRefToMessageClass(messagePackage.message);
             if (refMessageClass === undefined) {
                 throw new Error(`Cannot find ref to class of message`);
             }
-            const instance: IPCMessages.TMessage = new (refMessageClass as any)(message.message);
+            const instance: IPCMessages.TMessage = new (refMessageClass as any)(messagePackage.message);
             if (resolver !== undefined) {
                 return resolver(instance);
             }
@@ -213,7 +265,7 @@ export class PluginIPCService extends EventEmitter {
                 return;
             }
             handlers.forEach((handler: THandler) => {
-                handler(instance, this.response.bind(this, message.sequence));
+                handler(instance, this.response.bind(this, messagePackage.sequence));
             });
         } catch (e) {
             console.log(`Incorrect format of IPC message: ${typeof data}. Error: ${e.message}`);
@@ -261,6 +313,10 @@ export class PluginIPCService extends EventEmitter {
         } else {
             this._handlers.set(signature, handlers);
         }
+    }
+
+    private _onPluginToken(message: IPCMessages.PluginToken) {
+        this._token = message.token;
     }
 
 }

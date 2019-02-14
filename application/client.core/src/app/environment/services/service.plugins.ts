@@ -1,4 +1,5 @@
 import { Compiler, Injector } from '@angular/core';
+import * as ServiceElectronIpcLib from 'logviewer.client.electron.ipc';
 import ServiceElectronIpc from 'logviewer.client.electron.ipc';
 import { IPCMessages, Subscription } from 'logviewer.client.electron.ipc';
 import * as AngularCore from '@angular/core';
@@ -62,7 +63,8 @@ export class PluginsService {
                     const exports: any = {};
                     const modules: any = {
                         '@angular/core': AngularCore,
-                        '@angular/common': AngularCommon
+                        '@angular/common': AngularCommon,
+                        'logviewer.client.electron.ipc': ServiceElectronIpcLib,
                     };
                     const require = (module) => modules[module]; // shim 'require'
                     // Step 3. Execute code of plugin to initialize
@@ -87,7 +89,7 @@ export class PluginsService {
                             }
                             // Step 7. Search views of apps
                             const pluginData: IPluginData = {
-                                module: module,
+                                module: module.instance,
                                 factories: {}
                             };
                             Object.keys(PluginDefaultViewsComponents).forEach((alias: string) => {
@@ -113,8 +115,12 @@ export class PluginsService {
         });
     }
 
-    private _deliveryApps(pluginData: IPluginData): Promise<void> {
+    private _deliveryApps(pluginData: IPluginData, token: string): Promise<void> {
         return new Promise((resolve, reject) => {
+            // Setup plugin token
+            debugger;
+            pluginData.module.setPluginHostToken(token);
+            console.log(`TOKEN: ${token}`);
             (window as any).__tabs.add({
                 name: 'Tab plugin',
                 active: true,
@@ -135,7 +141,7 @@ export class PluginsService {
         this._logger.env(`Information about plugin "${event.name}" has been gotten. Starting loading & initialization.`);
         this._loadAndInit(event.name, event.location).then((pluginData: IPluginData) => {
             // Delivery applications of plugin into main application
-            this._deliveryApps(pluginData).then(() => {
+            this._deliveryApps(pluginData, event.token).then(() => {
                 this._logger.error(`Plugin "${event.name}" is successfully mount.`);
             }).catch((deliveryError: Error) => {
                 this._logger.error(`Fail to delivery applications of plugin "${event.name}" due error: ${deliveryError.message}`);

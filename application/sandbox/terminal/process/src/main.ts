@@ -107,6 +107,7 @@ class Plugin {
 
     private _onShellOutput(chunk: any) {
         PluginIPCService.sendToStream(chunk);
+        PluginIPCService.sendToPluginHost(chunk.toString());
     }
 
 }
