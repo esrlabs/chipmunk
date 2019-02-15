@@ -1,0 +1,64 @@
+
+import * as Tools from '../tools/index';
+import * as IPCElectronMessages from './electron.ipc.messages/index';
+import ControllerPluginIPC from '../controller/controller.plugin.ipc';
+import ServiceElectronIpc from './service.electron.ipc';
+
+type TToken = string;
+
+export class PluginsIPCService {
+
+    private _logger: Tools.Logger = new Tools.Logger('PluginsIPCService');
+    private _ipcs: Map<TToken, ControllerPluginIPC> = new Map();
+    private _subscriptionPluginMessages: Tools.Subscription | undefined;
+
+    constructor() {
+        ServiceElectronIpc.subscribeOnPluginMessage(this._onPluginMessage.bind(this)).then((subscription: Tools.Subscription) => {
+            this._subscriptionPluginMessages = subscription;
+        }).catch((subscribeError: Error) => {
+            this._logger.error(`Error to subscribe to income plugin messages due error: ${subscribeError.message}`);
+        });
+    }
+
+    public destroy() {
+        if (this._subscriptionPluginMessages !== undefined) {
+            this._subscriptionPluginMessages.unsubscribe();
+        }
+    }
+
+    public addPlugin(token: TToken, controller: ControllerPluginIPC): Error | undefined {
+        if (this._ipcs.has(token)) {
+            return new Error(this._logger.error(`Plugin with token "${token}" was already added.`));
+        }
+        this._ipcs.set(token, controller);
+    }
+
+    public removePlugin(token: TToken): Error | undefined {
+        const controller: ControllerPluginIPC | undefined = this._ipcs.get(token);
+        if (controller === undefined) {
+            return new Error(this._logger.warn(`Fail to find plugin with token "${token}".`));
+        }
+        controller.destroy();
+        this._ipcs.delete(token);
+    }
+
+    public sendToHost(message: any, token: string): Promise<void> {
+        return ServiceElectronIpc.sendToPluginHost(message, token);
+    }
+
+    public reqiestFromHost(message: any, token: string): Promise<void> {
+        return ServiceElectronIpc.requestToPluginHost(message, token);
+    }
+
+    private _onPluginMessage(message: IPCElectronMessages.PluginMessage) {
+        this._ipcs.forEach((ipc: ControllerPluginIPC, token: TToken) => {
+            if (token === message.token) {
+                ipc.acceptHostMessage(message.message);
+            }
+        });
+    }
+
+}
+
+export default (new PluginsIPCService());
+

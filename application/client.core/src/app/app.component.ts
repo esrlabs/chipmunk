@@ -1,7 +1,7 @@
 import { AfterViewInit, Component, Compiler, Injector, ViewChild, ViewContainerRef } from '@angular/core';
 import { NotificationsService } from './environment/services/service.notifications';
-import ServiceElectronIpc from 'logviewer.client.electron.ipc';
-import { IPCMessages, Subscription } from 'logviewer.client.electron.ipc';
+import ServiceElectronIpc from './environment/services/service.electron.ipc';
+import { IPCMessages, Subscription } from './environment/services/service.electron.ipc';
 import { PluginsService } from './environment/services/service.plugins';
 import * as Tools from './environment/tools/index';
 
@@ -27,7 +27,6 @@ export class AppComponent implements AfterViewInit {
             state: IPCMessages.ERenderState.ready
         })).catch((sendingError: Error) => {
             this._logger.error(`Fail to send "IPCMessages.RenderState" message to host due error: ${sendingError.message}`);
-
         });
     }
 

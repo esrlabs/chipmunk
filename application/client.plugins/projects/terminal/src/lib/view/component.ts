@@ -1,5 +1,4 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input } from '@angular/core';
-import ServiceElectronIpc, { IPCMessages } from 'logviewer.client.electron.ipc';
 
 @Component({
     selector: 'lib-view',
@@ -10,6 +9,8 @@ import ServiceElectronIpc, { IPCMessages } from 'logviewer.client.electron.ipc';
 export class ViewComponent implements AfterViewInit, OnDestroy {
 
     @Input() public title: string;
+    @Input() public ipc: any;
+
     public items: string[] = [];
 
     private _timer: any = -1;
@@ -24,8 +25,9 @@ export class ViewComponent implements AfterViewInit, OnDestroy {
 
     ngAfterViewInit() {
         this._next();
-        ServiceElectronIpc.subscribe(IPCMessages.PluginMessage, (message: IPCMessages.PluginMessage) => {
-            this.items.push(...message.message.split(/[\n\r]/gi));
+        debugger;
+        this.ipc.subscribeToHost((message: string) => {
+            this.items.push(...message.split(/[\n\r]/gi));
         });
     }
 
