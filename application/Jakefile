@@ -82,7 +82,6 @@ const fsController = new FSController();
 const APP_FOLDER = 'application';
 const CLIENT_FOLDER = 'client.core';
 const CLIENT_NPM_LIBS = 'client.libs/logviewer.client.components'
-const CLIENT_IPC_LIB = 'client.libs/logviewer.client.electron.ipc';
 const PLUGIN_IPC_LIB = 'node.libs/logviewer.plugin.ipc';
 const ELECTRON_FOLDER = 'electron';
 const PLATFORM_FOLDER = 'platform';
@@ -311,28 +310,6 @@ namespace('client', function() {
         sh(this, '.', ...tasks);
     }, {async: true});
 
-    task('link-client-ipc', function() {
-        logo();
-        const tasks = [];
-        const clientPath = path.normalize(path.resolve(__dirname, CLIENT_FOLDER));
-        const clientNodeModules = path.normalize(path.resolve(clientPath, 'node_modules'));
-        const clientIPCPath = path.normalize(path.resolve(__dirname, CLIENT_IPC_LIB));
-        const clientIPCDestPath = path.normalize(path.resolve(clientNodeModules, 'logviewer.client.electron.ipc'));
-        if (!fs.existsSync(clientNodeModules)) {
-            throw new Error(`Install client first`);
-        }
-        if (fs.existsSync(clientIPCDestPath)) {
-            console.log(`Project ${clientIPCDestPath} is already linked. It will be unlinked before to be linked again.`);
-            tasks.push(echo(colors.blue(`unlink: ${clientIPCDestPath}`)));
-            tasks.push(`unlink ${clientIPCDestPath} & exit 0`);
-            tasks.push(`rm -rf ${clientIPCDestPath} & exit 0`);
-        }
-        tasks.push(echo(colors.blue(`link: ${clientIPCDestPath}`)));
-        tasks.push(`ln -s ${clientIPCPath} ${clientIPCDestPath}`);
-        tasks.push(`rm -rf ${path.normalize(path.resolve(clientPath, 'etc'))}`);
-        sh(this, '.', ...tasks);
-    }, {async: true});
-
     task('link-client-libs', function() {
         logo();
         const tasks = [];
@@ -370,51 +347,7 @@ namespace('client', function() {
         sh(this, '.', ...tasks);
     }, {async: true});
 
-    task('all', ['client:install', 'client.ipc:all', 'client.npmlibs:all', 'client:link-client-ipc', 'client:link-client-libs', 'client:build']);
-
-});
-
-namespace('client.ipc', function() {
-    task('build', function() {
-        logo();
-        const tasks = [];
-        const clientIPCPath = path.normalize(path.resolve(__dirname, CLIENT_IPC_LIB));
-        const clientIPCNodeModules = path.normalize(path.resolve(clientIPCPath, 'node_modules'));
-        const clientIPCDist = path.normalize(path.resolve(clientIPCPath, 'dist'));
-        if (!CLI_FLAGS.skipNpm && fs.existsSync(clientIPCNodeModules)) {
-            tasks.push(echo(colors.blue(`Remove node_modules files: ${clientIPCNodeModules}`)));
-            tasks.push(`rm -rf ${clientIPCNodeModules}`);
-        }
-        if (fs.existsSync(clientIPCDist)) {
-            tasks.push(echo(colors.blue(`Remove dist files: ${clientIPCDist}`)));
-            tasks.push(`rm -rf ${clientIPCDist}`);
-        }
-        tasks.push(echo(colors.blue(`Building: ${clientIPCPath}`)));
-        !CLI_FLAGS.skipNpm && tasks.push(`npm install --prefix ${clientIPCPath}`);
-        tasks.push(`npm run build --prefix ${clientIPCPath}`);
-        sh(this, '.', ...tasks);
-    }, {async: true});
-
-    task('link-ipc-messages', function() {
-        logo();
-        const tasks = [];
-        const clientIPCPath = path.normalize(path.resolve(__dirname, CLIENT_IPC_LIB));
-        const clientIPCMessagesFolder = path.normalize(path.resolve(clientIPCPath, 'src/ipc.messages'));
-        const electronPath = path.normalize(path.resolve(__dirname, ELECTRON_FOLDER));
-        const electronMessagesFolder = path.normalize(path.resolve(electronPath, 'src/controllers/electron.ipc.messages'));
-        if (fs.existsSync(clientIPCMessagesFolder)) {
-            console.log(`Project ${clientIPCMessagesFolder} is already linked. It will be unlinked before to be linked again.`);
-            tasks.push(echo(colors.blue(`unlink: ${clientIPCMessagesFolder}`)));
-            tasks.push(`unlink ${clientIPCMessagesFolder} & exit 0`);
-            tasks.push(`rm -rf ${clientIPCMessagesFolder} & exit 0`);
-        }
-        tasks.push(echo(colors.blue(`link: ${clientIPCMessagesFolder}`)));
-        tasks.push(`ln -s ${electronMessagesFolder} ${clientIPCMessagesFolder}`);
-        tasks.push(`rm -rf ${path.normalize(path.resolve(clientIPCPath, 'etc'))}`);
-        sh(this, '.', ...tasks);
-    }, {async: true});
-
-    task('all', ['client.ipc:link-ipc-messages', 'client.ipc:build']);
+    task('all', ['client:install', 'client.npmlibs:all', 'client:link-client-libs', 'client:build']);
 
 });
 

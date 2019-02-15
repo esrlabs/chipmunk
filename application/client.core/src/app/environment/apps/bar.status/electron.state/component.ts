@@ -1,6 +1,6 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
-import ServiceElectronIpc from 'logviewer.client.electron.ipc';
-import { IPCMessages, Subscription } from 'logviewer.client.electron.ipc';
+import ServiceElectronIpc from '../../../services/service.electron.ipc';
+import { IPCMessages, Subscription } from '../../../services/service.electron.ipc';
 import { IComponentDesc, IFrameOptions } from 'logviewer-client-containers';
 import { StateHistoryComponent } from './history/component';
 

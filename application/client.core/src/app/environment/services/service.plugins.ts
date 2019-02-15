@@ -1,7 +1,8 @@
 import { Compiler, Injector } from '@angular/core';
-import * as ServiceElectronIpcLib from 'logviewer.client.electron.ipc';
-import ServiceElectronIpc from 'logviewer.client.electron.ipc';
-import { IPCMessages, Subscription } from 'logviewer.client.electron.ipc';
+import ServiceElectronIpc from './service.electron.ipc';
+import { IPCMessages, Subscription } from './service.electron.ipc';
+import PluginsIPCService from './service.plugins.ipc';
+import ControllerPluginIPC from '../controller/controller.plugin.ipc';
 import * as AngularCore from '@angular/core';
 import * as AngularCommon from '@angular/common';
 import * as Tools from '../tools/index';
@@ -63,8 +64,7 @@ export class PluginsService {
                     const exports: any = {};
                     const modules: any = {
                         '@angular/core': AngularCore,
-                        '@angular/common': AngularCommon,
-                        'logviewer.client.electron.ipc': ServiceElectronIpcLib,
+                        '@angular/common': AngularCommon
                     };
                     const require = (module) => modules[module]; // shim 'require'
                     // Step 3. Execute code of plugin to initialize
@@ -115,12 +115,20 @@ export class PluginsService {
         });
     }
 
-    private _deliveryApps(pluginData: IPluginData, token: string): Promise<void> {
+    private _deliveryApps(pluginData: IPluginData, name: string, token: string): Promise<void> {
         return new Promise((resolve, reject) => {
             // Setup plugin token
             debugger;
-            pluginData.module.setPluginHostToken(token);
-            console.log(`TOKEN: ${token}`);
+            // Create IPC instance for plugin
+            const ipc: ControllerPluginIPC = new ControllerPluginIPC('name', token);
+            // Store IPC instance
+            PluginsIPCService.addPlugin(token, ipc);
+            // Setup plugin API
+            if (typeof pluginData.module.setAPI === 'function') {
+                pluginData.module.setAPI({
+                    ipc: ipc
+                });
+            }
             (window as any).__tabs.add({
                 name: 'Tab plugin',
                 active: true,
@@ -128,8 +136,8 @@ export class PluginsService {
                     factory: DockingComponent,
                     inputs: {
                         service: new DocksService('plugin', new DockDef.Container({
-                            a: new DockDef.Dock({ caption: 'Dock plugin', component: { factory: pluginData.factories.view, resolved: true, inputs: { title: 'test '}} })
-                        }))
+                            a: new DockDef.Dock({ caption: 'Dock plugin', component: { factory: pluginData.factories.view, resolved: true, inputs: { title: 'test', ipc: ipc }} })
+                        })),
                     }
                 }
             });
@@ -141,7 +149,7 @@ export class PluginsService {
         this._logger.env(`Information about plugin "${event.name}" has been gotten. Starting loading & initialization.`);
         this._loadAndInit(event.name, event.location).then((pluginData: IPluginData) => {
             // Delivery applications of plugin into main application
-            this._deliveryApps(pluginData, event.token).then(() => {
+            this._deliveryApps(pluginData, event.name, event.token).then(() => {
                 this._logger.error(`Plugin "${event.name}" is successfully mount.`);
             }).catch((deliveryError: Error) => {
                 this._logger.error(`Fail to delivery applications of plugin "${event.name}" due error: ${deliveryError.message}`);

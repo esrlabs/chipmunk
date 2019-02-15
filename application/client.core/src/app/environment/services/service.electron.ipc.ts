@@ -1,32 +1,25 @@
 declare var Electron: any;
 
-import { guid, Subscription, THandler } from '../platform/cross/src/index';
-import * as IPCMessages from './ipc.messages/index';
-import { IPCMessagePackage } from './service.ipc.messagepackage';
+import { guid, Subscription, THandler, Logger } from '../tools/index';
+import * as IPCMessages from './electron.ipc.messages/index';
+import { IPCMessagePackage } from './service.electron.ipc.messagepackage';
+
 export { IPCMessages, Subscription, THandler };
 
 class ServiceElectronIpc {
 
-    private _token: string | undefined;
+    private _logger: Logger = new Logger('ServiceElectronIpc');
     private _subscriptions: Map<string, Subscription> = new Map();
     private _pending: Map<string, (message: IPCMessages.TMessage) => any> = new Map();
     private _handlers: Map<string, Map<string, THandler>> = new Map();
 
-    public setPluginHostToken(token: string) {
-        this._token = token;
-        // Plugin was setup. It means this instance is used by plugin. Plugin could send message only with token
-    }
-
-    public sendToPluginHost(message: any): Promise<any> {
+    public sendToPluginHost(message: any, token: string): Promise<any> {
         return new Promise((resolve, reject) => {
-            if (this._token === undefined) {
-                return reject(new Error(`Fail to send to plugin host because token wasn't gotten.`));
-            }
             const pluginMessage: IPCMessages.PluginMessage = new IPCMessages.PluginMessage({
                 message: message,
-                token: this._token,
+                token: token,
             });
-            this.send(pluginMessage).then(() => {
+            this._send({ message: pluginMessage, token: token }).then(() => {
                 resolve();
             }).catch((sendingError: Error) => {
                 reject(sendingError);
@@ -34,14 +27,11 @@ class ServiceElectronIpc {
         });
     }
 
-    public requestToPluginHost(message: any): Promise<any> {
+    public requestToPluginHost(message: any, token: string): Promise<any> {
         return new Promise((resolve, reject) => {
-            if (this._token === undefined) {
-                return reject(new Error(`Fail to send to plugin host because token wasn't gotten.`));
-            }
             const pluginMessage: IPCMessages.PluginMessage = new IPCMessages.PluginMessage({
                 message: message,
-                token: this._token,
+                token: token,
             });
             this.request(pluginMessage).then((response: IPCMessages.TMessage | undefined) => {
                 if (!(response instanceof IPCMessages.PluginMessage)) {
@@ -60,7 +50,7 @@ class ServiceElectronIpc {
             if (ref === undefined) {
                 return reject(new Error(`Incorrect type of message`));
             }
-            this._send(message).then(() => {
+            this._send({ message: message }).then(() => {
                 resolve();
             }).catch((sendingError: Error) => {
                 reject(sendingError);
@@ -74,7 +64,7 @@ class ServiceElectronIpc {
             if (ref === undefined) {
                 return reject(new Error(`Incorrect type of message`));
             }
-            this._send(message, false, sequence).then(() => {
+            this._send({ message: message, sequence: sequence }).then(() => {
                 resolve();
             }).catch((sendingError: Error) => {
                 reject(sendingError);
@@ -88,7 +78,7 @@ class ServiceElectronIpc {
             if (ref === undefined) {
                 return reject(new Error(`Incorrect type of message`));
             }
-            this._send(message, true).then((response: IPCMessages.TMessage | undefined) => {
+            this._send({ message: message, expectResponse: true }).then((response: IPCMessages.TMessage | undefined) => {
                 resolve(response);
             }).catch((sendingError: Error) => {
                 reject(sendingError);
@@ -105,19 +95,13 @@ class ServiceElectronIpc {
                 return reject(new Error(`Incorrect reference to message class.`));
             }
             const signature: string = (message as any).signature;
-            const subscriptionId: string = guid();
-            let handlers: Map<string, THandler> | undefined = this._handlers.get(signature);
-            if (handlers === undefined) {
-                handlers = new Map();
-                Electron.ipcRenderer.on(signature, this._onIPCMessage.bind(this));
-            }
-            handlers.set(subscriptionId, handler);
-            this._handlers.set(signature, handlers);
-            const subscription: Subscription = new Subscription(signature, () => {
-                this._unsubscribe(signature, subscriptionId);
-            }, subscriptionId);
-            this._subscriptions.set(subscriptionId, subscription);
-            resolve(subscription);
+            resolve(this._setSubscription(signature, handler));
+        });
+    }
+
+    public subscribeOnPluginMessage(handler: THandler): Promise<Subscription> {
+        return new Promise((resolve) => {
+            resolve(this._setSubscription(IPCMessages.PluginMessage.signature, handler));
         });
     }
 
@@ -128,13 +112,35 @@ class ServiceElectronIpc {
         this._subscriptions.clear();
     }
 
+    private _setSubscription(signature: string, handler: THandler): Subscription {
+        const subscriptionId: string = guid();
+        let handlers: Map<string, THandler> | undefined = this._handlers.get(signature);
+        if (handlers === undefined) {
+            handlers = new Map();
+            Electron.ipcRenderer.on(signature, this._onIPCMessage.bind(this));
+        }
+        handlers.set(subscriptionId, handler);
+        this._handlers.set(signature, handlers);
+        const subscription: Subscription = new Subscription(signature, () => {
+            this._unsubscribe(signature, subscriptionId);
+        }, subscriptionId);
+        this._subscriptions.set(subscriptionId, subscription);
+        return subscription;
+    }
+
+    private _emitIncomePluginMessage(message: any) {
+        const handlers: Map<string, THandler> = this._handlers.get(IPCMessages.PluginMessage.signature);
+        if (handlers === undefined) {
+            return;
+        }
+        handlers.forEach((handler: THandler) => {
+            handler(message);
+        });
+    }
+
     private _onIPCMessage(ipcEvent: Event, eventName: string, data: any) {
         try {
             const messagePackage: IPCMessagePackage = new IPCMessagePackage(data);
-            if (this._token !== undefined && messagePackage.token !== null && messagePackage.token !== this._token) {
-                // This message isn't for this instance of IPC
-                return;
-            }
             const resolver = this._pending.get(messagePackage.sequence);
             this._pending.delete(messagePackage.sequence);
             const refMessageClass = this._getRefToMessageClass(messagePackage.message);
@@ -144,6 +150,15 @@ class ServiceElectronIpc {
             const instance: IPCMessages.TMessage = new (refMessageClass as any)(messagePackage.message);
             if (resolver !== undefined) {
                 return resolver(instance);
+            }
+            if (instance instanceof IPCMessages.PluginMessage) {
+                if (typeof instance.token !== 'string' || instance.token.trim() === '') {
+                    this._logger.warn(`Was gotten message "PluginMessage", but message doesn't have token. Message will be ignored.`, instance);
+                    return;
+                }
+                // This is plugin message. Do not pass into common stream of messages
+                this._emitIncomePluginMessage(instance);
+                return;
             }
             const handlers = this._handlers.get(instance.signature);
             if (handlers === undefined) {
@@ -157,23 +172,28 @@ class ServiceElectronIpc {
         }
     }
 
-    private _send(message: IPCMessages.TMessage, expectResponse: boolean = false, sequence?: string): Promise<IPCMessages.TMessage | undefined> {
+    private _send(params: {
+        message: IPCMessages.TMessage,
+        expectResponse?: boolean,
+        sequence?: string,
+        token?: string
+    }): Promise<IPCMessages.TMessage | undefined> {
         return new Promise((resolve, reject) => {
             if (typeof Electron === 'undefined') {
                 return new Error(`Electron is not available.`);
             }
             const messagePackage: IPCMessagePackage = new IPCMessagePackage({
-                message: message,
-                sequence: sequence,
-                token: this._token !== undefined ? this._token : null,
+                message: params.message,
+                sequence: params.sequence,
+                token: params.token,
             });
-            const signature: string = message.signature;
-            if (expectResponse) {
+            const signature: string = params.message.signature;
+            if (params.expectResponse) {
                 this._pending.set(messagePackage.sequence, resolve);
             }
             // Format:               | channel  |  event  | instance |
             Electron.ipcRenderer.send(signature, signature, messagePackage);
-            if (!expectResponse) {
+            if (!params.expectResponse) {
                 return resolve();
             }
         });

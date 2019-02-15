@@ -1,6 +1,5 @@
 import { NgModule } from '@angular/core';
 import { ViewComponent } from './view/component';
-import ServiceElectronIpc from 'logviewer.client.electron.ipc';
 import {CommonModule} from '@angular/common';
 
 @NgModule({
@@ -12,11 +11,11 @@ import {CommonModule} from '@angular/common';
 
 export class PluginModule {
 
-    private _token: string | undefined;
+    private _api: string | undefined;
 
-    public setPluginHostToken(token: string) {
-        this._token = token;
-        ServiceElectronIpc.setPluginHostToken(this._token);
+    public setAPI(api: any) {
+        debugger;
+        this._api = api;
     }
 
 }
