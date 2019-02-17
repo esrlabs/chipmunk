@@ -193,6 +193,7 @@ app.sendToMainDataStream(`this is very important data, which should posted into 
 ```
 
 API of PluginIPCService
+
 | Name | Interface | Description |
 | --- | --- | --- |
 | sendToPluginHost | **sendToPluginHost**(message: any): Promise\<any\> | Sends message to plugin render part. Resolved on success of sending. |
