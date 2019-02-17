@@ -1,40 +1,58 @@
-## Downloads
+# Developing documentation
+## Structure of folders
+```
+├── application
+│   ├── apps                                        # Support (helpers) applications
+│   │   └── tsnodeappinstaller
+│   ├── client.core                                 # Core of render. Based on Angular
+│   │   ├── dist                                    # Output folder for builds
+│   │   ├── platform -> link                        # Link to platform folder (collection of common helpers and reusable libs)
+│   │   └── src                                     # code of render's core
+│   │       ├── app
+│   │       │   ├── environment
+│   │       │   │   ├── apps
+│   │       │   │   ├── components                  # collection of core components. This components can be used only by core, but not by plugins
+│   │       │   │   ├── controller                  # controllers used in app
+│   │       │   │   ├── layout                      # layout of main view
+│   │       │   │   ├── services                    # services of app
+│   │       │   │   ├── theme                       # defitions of parameters of app theme (based on LESS)
+│   │       │   │   └── tools                       # collection of tools/helpers
+│   │       ├── assets                              # resources files: fonts, images etc.
+│   │       └── environments
+│   ├── client.libs                                 # storage of libraries to be used in plugins (in scope of render process)
+│   │   └── logviewer.client.components             # collection of reusable/shared components
+│   │       └── projects
+│   │           ├── logviewer-client-complex        # complex components like docks, tabs etc.
+│   │           ├── logviewer-client-containers     # components which wraps content, like dynamic injector, frames etc.
+│   │           └── logviewer-client-primitive      # priimitive components: buttons, lists etc.
+│   ├── client.plugins                              # sandbox for creating plugins (in scope of render process only)
+│   ├── electron                                    # electron part of solution
+│   │   ├── dist                                    # output folder for builds
+│   │   ├── platform -> link                        # Link to platform folder (collection of common helpers and reusable libs)
+│   │   └── src                                     # Sources of electron app
+│   │       ├── classes                             # Patterns of classes
+│   │       ├── controllers                         # Controlles used in app
+│   │       │   ├── electron.ipc.messages           # Collection of electron IPC messages (render <-> electron)
+│   │       │   └── plugin.ipc.messages             # Collection of plugin IPC messages (electron <-> plugin host)
+│   │       ├── interfaces                          # Interfaces
+│   │       ├── services                            # Application services
+│   │       └── tools                               # Collection of tools/helpers
+│   ├── node.libs                                   # storage of libraries to be used in plugins (in scope of node process)
+│   │   └── logviewer.plugin.ipc                    # IPC for communication: electron <-> plugin host
+│   ├── platform                                    # collection of common helpers and reusable libs
+│   │   ├── cross                                   # can be used in render and in node proceses
+│   │   ├── node                                    # can be used only on node level
+│   │   └── web                                     # can be used only on web level
+│   └── sandbox                                     # sendbox to develop plugin
+│       └── terminal
+│           ├── process
+│           └── render
+└── docs                                            # files related this documentation
+    └── assets
+```
 
-latest releases for Mac, Linux and Windows can be found [here](https://github.com/esrlabs/logviewer/releases/latest)
 
-![](https://github.com/esrlabs/logviewer/blob/master/doc/images/logviewer.png)
 
-# logviewer
+# Plugin based system
 
-## what is logviewer?
-
-logviewer is a tool to analyse log files of all kinds. It is built with web technologies. We use it a lot in our daily work.
-
-## features
-
-Logviewer can be used to analyse static logfiles of any kind or open a stream. A stream can be data
-coming in from a serial port, from `adb logcat`, from a terminal command.
-
-* search matching lines with regular expression or string search
-
-![](https://github.com/esrlabs/logviewer/blob/master/doc/images/searchbar.png)
-
-* build up multiple filters, reorder them, activite or deactivate them
-
-![](https://github.com/esrlabs/logviewer/blob/master/doc/images/Filters.png)
-
-* open android adb logcat stream
-
-![](https://github.com/esrlabs/logviewer/blob/master/doc/images/adb-config.png)
-
-* open stream from serial port
-
-![](https://github.com/esrlabs/logviewer/blob/master/doc/images/adb-config.png)
-
-* hover over search results indicated in the overview column
-
-![](https://github.com/esrlabs/logviewer/blob/master/doc/images/detail-view.png)
-
-## development
-
-Currently this project is still under heavy development and thus in a alpha stage. We plan to reach beta-state soon.
+![](https://raw.githubusercontent.com/DmitryAstafyev/logviewer/v2/docs/assets/basic_plugins_scheme.svg?sanitize=true)
