@@ -264,6 +264,7 @@ export class ViewComponent implements AfterViewInit {
 ```
 
 API of ControllerPluginIPC
+
 | Name | Interface | Description |
 | --- | --- | --- |
 | sentToHost | **sentToHost**(message: any): Promise\<void\> | Sends message to plugin host (node part). Resolved on success of sending. |
