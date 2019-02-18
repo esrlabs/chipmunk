@@ -121,7 +121,7 @@ Loading **plugin render** workflow includes:
 - [**render process**] Initialization of plugins apps: view, status bar app, tab app, parser etc.
 - [**render process**] Delivery plugin API to plugin angular module
 
-> **Note**. In scope of render part, API of core delivery not only to Angular module of plugin, but also to each plugin Angular component. Developer of plugin should not care about "sharing" API via components, because each component will got it.
+> **Note**. In scope of render part, API of core delivery not only to Angular module of plugin, but also to each plugin Angular component. Developer of plugin should not care about "sharing" API via components, because each component will get it.
 
 ## Plugins communication: basic scheme
 ![](https://raw.githubusercontent.com/DmitryAstafyev/logviewer/v2/docs/assets/components_communication.svg?sanitize=true)
@@ -134,7 +134,7 @@ Main process creates fork of plugin host process with defined communication chan
 - **IPC** used for messaging between plugin host and electron
 - **Stream** used to delivery data from plugin host into main data stream of logviewer.
 
-To be able communication with main process plugin should have installed library (npm module) **logviewer.plugin.ipc**
+To be able communicate with main process plugin should have installed library (npm module) **logviewer.plugin.ipc**
 
 ```
 npm install logviewer.plugin.ipc --save
@@ -163,7 +163,7 @@ class Plugin {
                     data: {
                         answer: 'pong'
                     }
-                }));;
+                }));
             case 'what_time_is_it':
                 return response(new IPCMessages.PluginRenderMessage({
                     data: {
@@ -264,7 +264,7 @@ export class ViewComponent implements AfterViewInit {
 
 ```
 
-API of ControllerPluginIPC
+API of **ControllerPluginIPC**
 
 | Name | Interface | Description |
 | --- | --- | --- |
@@ -272,5 +272,126 @@ API of ControllerPluginIPC
 | requestToHost | **requestToHost**(message: any): Promise\<any\> | Sends request to plugin host (node part). Resolved only within responce of plugin host. |
 | subscribeToHost | **subscribeToHost**(handler: Tools.THandler): Promise\<Subscription\> | Subscribe to any income message / event from plugin host (node part). Resolved with instance of **Subscription** to have a way to unsubscribe. |
 
-> **Note**. Plugin render process and plugin host proces (node) doesn't have direct communications channel. All messages comes to main render process, after (via main IPC) to electron process, electron process redirect it to plugin via plugin IPC. 
+> **Note**. Plugin render process and plugin host process (node) doesn't have direct communications channel. All messages comes to main render process, after (via main IPC) to electron process, electron process redirect it to plugin via plugin IPC. 
 
+## Plugins communications: collection of messages/events
+Communication workflow includes next elements:
+- IPC between main process (electron) and render process (Angular)
+- IPC between main process (electron) and plugin host process (node)
+- IPC between main render process (Angular) and plugin render module (Angular)
+
+First two has implementation of messages/events based on classes. It meast - each message/event is an instance of class.
+
+All possible messages stored in electron folder:
+```
+.
+├── dist
+├── package-lock.json
+├── package.json
+├── platform -> link to platform helpers/tools
+├── src
+│   ├── classes
+│   ├── controllers
+│   │   ├── electron.ipc.messages           # Storage of messages/events for IPC: render <-> main
+│   │   │   ├── host.state.history.ts
+│   │   │   ├── host.state.ts
+│   │   │   ├── index.ts
+│   │   │   ├── plugin.message.ts
+│   │   │   ├── render.plugin.mount.ts
+│   │   │   └── render.state.ts
+│   │   └── plugin.ipc.messages             # Storage of messages/events for IPC: plugin <-> main
+│   │       ├── index.ts
+│   │       ├── plugin.error.ts
+│   │       ├── plugin.message.ts
+│   │       ├── plugin.render.message.ts
+│   │       ├── plugin.state.ts
+│   │       └── plugin.token.ts
+│   ├── interfaces
+│   ├── main.ts
+│   ├── services
+│   └── tools
+├── tsconfig.json
+└── tslint.json
+
+```
+
+Both (IPC between main process (electron) and render process (Angular) and IPC between main process (electron) and plugin host process (node)) has same implementation of controller.
+
+Let's see on example of definittion message/event (electron.ipc.messages/host.state.ts):
+
+```typescript
+export enum EHostState {
+    ready = 'ready',        // Host is ready. No any operations
+    busy = 'busy',          // Host isn't ready. Some blocked operations are going
+    working = 'working',    // Host isn't ready, but can be used, because host has background operations
+}
+
+export interface IHostState {
+    message?: string;
+    state?: EHostState;
+}
+
+export class HostState {
+    public static States = EHostState;
+    public static signature: string = 'HostState';
+    public signature: string = HostState.signature;
+    public message: string = '';
+    public state: EHostState = EHostState.ready;
+
+    constructor(params: IHostState) {
+        if (typeof params !== 'object' || params === null) {
+            throw new Error(`Incorrect parameters for HostState message`);
+        }
+        this.message = typeof params.message === 'string' ? params.message : '';
+        this.state = typeof params.state === 'string' ? params.state : EHostState.ready;
+    }
+}
+```
+
+> Note. Class of message/event should have static and not static property "**signature**" with unique name of message/event.
+
+Using classes as message/event definition gives a few benifits.
+
+1. Developer is able to include parsing/validation procedure into constructor. If some data will be not valid, constructor should throw exception. It means: "wrong" messages will not go to the system and will not "create" some kind of bugs/errors related to incorrect data of message/event.
+2. Developer of plugin always get full list of available messages/events and not able to add/remove something. 
+3. IDE will show expected parameters of each message/event. It make developing process simpler.
+4. Code became more clear. See next example.
+
+Using as message/event definition a class, developer should not care about messages names. To subscrube will be enouth to pass reference to class.
+
+```typescript
+// Using from plugin host (node)
+
+// Get reference to IPC service
+import PluginIPCService from 'logviewer.plugin.ipc';
+// Get collection of available events
+import { IPCMessages } from 'logviewer.plugin.ipc';
+
+// To subscribe to event "HostState" developer just define reference to class
+// "HostState" from collection of messages/events. Developer should not back to
+// documentation or remember all events - IDE will show list of all available 
+// messages/events.
+PluginIPCService.subscribe(IPCMessages.HostState, () => {
+    // To do something
+});
+```
+
+Emiting messages/events also is very simple:
+
+```typescript
+// Using from plugin host (node)
+
+// Get reference to IPC service
+import PluginIPCService from 'logviewer.plugin.ipc';
+// Get collection of available events
+import { IPCMessages } from 'logviewer.plugin.ipc';
+
+// To subscribe to event "HostState" developer just define reference to class
+// "HostState" from collection of messages/events. Developer should not back to
+// documentation or remember all events - IDE will show list of all available 
+// messages/events.
+PluginIPCService.send(new IPCMessages.HostState({
+    state: IPCMessages.EHostState.ready,
+    message: ''
+}));
+```
