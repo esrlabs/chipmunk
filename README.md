@@ -280,7 +280,7 @@ Communication workflow includes next elements:
 - IPC between main process (electron) and plugin host process (node)
 - IPC between main render process (Angular) and plugin render module (Angular)
 
-First two has implementation of messages/events based on classes. It meast - each message/event is an instance of class.
+First two has implementation of messages/events based on classes. It means - each message/event is an instance of class.
 
 All possible messages stored in electron folder:
 ```
