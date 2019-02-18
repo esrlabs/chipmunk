@@ -386,10 +386,7 @@ import PluginIPCService from 'logviewer.plugin.ipc';
 // Get collection of available events
 import { IPCMessages } from 'logviewer.plugin.ipc';
 
-// To subscribe to event "HostState" developer just define reference to class
-// "HostState" from collection of messages/events. Developer should not back to
-// documentation or remember all events - IDE will show list of all available 
-// messages/events.
+// To emit to event "HostState" developer just create an instance of class "HostState".
 PluginIPCService.send(new IPCMessages.HostState({
     state: IPCMessages.EHostState.ready,
     message: ''
