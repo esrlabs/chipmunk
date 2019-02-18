@@ -392,3 +392,10 @@ PluginIPCService.send(new IPCMessages.HostState({
     message: ''
 }));
 ```
+## Plugins communications: specific of plugin communication on Angular level
+Because render part of plugin is attached as Angular module, it doesn't make sense to use IPC interface to comunicate. Module already will have access to global namespace in scope of Javascript.
+
+Instead using IPC, main render process delivery API object to render plugin part. This API includes:
+- "IPC" to communicate with plugin host (node part)
+- references to main render (Angular) services
+
