@@ -354,10 +354,10 @@ Using classes as message/event definition gives a few benifits.
 
 1. Developer is able to include parsing/validation procedure into constructor. If some data will be not valid, constructor should throw exception. It means: "wrong" messages will not go to the system and will not "create" some kind of bugs/errors related to incorrect data of message/event.
 2. Developer of plugin always get full list of available messages/events and not able to add/remove something. 
-3. IDE will show expected parameters of each message/event. It make developing process simpler.
-4. Code became more clear. See next example.
+3. IDE will show expected parameters of each message/event. It makes developing process simpler.
+4. Code becomes more clear. See next example.
 
-Using as message/event definition a class, developer should not care about messages names. To subscrube will be enouth to pass reference to class.
+Using as message/event definition a class, developer should not care about messages names. To subscrube will be enough to pass a reference to a class.
 
 ```typescript
 // Using from plugin host (node)
