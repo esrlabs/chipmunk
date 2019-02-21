@@ -1,16 +1,16 @@
 import { NgModule                               } from '@angular/core';
 import { CommonModule                           } from '@angular/common';
 
-import { NotificationsModule                    } from './notifications/module';
+import { ViewOutputModule                       } from './output/module';
 
 @NgModule({
     entryComponents : [  ],
     imports         : [ CommonModule ],
     declarations    : [  ],
-    exports         : [ NotificationsModule ]
+    exports         : [ ViewOutputModule ]
 })
 
-export class EnvironmentComplexModule {
+export class EnvironmentViewsModule {
     constructor() {
     }
 }

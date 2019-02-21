@@ -1,6 +1,6 @@
 import { Observable, Subject } from 'rxjs';
 import * as Tools from '../../tools/index';
-import { TabsOptions } from './options';
+import { TabsOptions, ITabsOptions } from './options';
 
 export interface IComponentDesc {
     factory: any;
@@ -8,7 +8,7 @@ export interface IComponentDesc {
 }
 
 export interface ITab {
-    id?: string;
+    guid?: string;
     name: string;
     active: boolean;
     content?: IComponentDesc;
@@ -50,13 +50,13 @@ export class TabsService {
         };
     }
 
-    public setActive(id: string) {
-        const tab = this._tabs.get(id);
+    public setActive(guid: string) {
+        const tab = this._tabs.get(guid);
         if (tab === undefined) {
             return;
         }
         tab.active = true;
-        this._tabs.set(id, tab);
+        this._tabs.set(guid, tab);
         this._subjects.active.next(tab);
     }
 
@@ -65,10 +65,10 @@ export class TabsService {
         if (tab === null) {
             return;
         }
-        this._tabs.set(tab.id, tab);
+        this._tabs.set(tab.guid, tab);
         this._subjects.new.next(tab);
         if (tab.active) {
-            this.setActive(tab.id);
+            this.setActive(tab.guid);
         }
     }
 
@@ -83,6 +83,17 @@ export class TabsService {
     public setOptions(options: TabsOptions): void {
         this._options = options;
         this._subjects.options.next(this._options);
+    }
+
+    public updateOptions(options: ITabsOptions): boolean {
+        if (typeof options !== 'object' || options === null) {
+            return false;
+        }
+        Object.keys(options).forEach((key: string) => {
+            this._options[key] = options[key];
+        });
+        this._subjects.options.next(this._options);
+        return true;
     }
 
     public getActiveTab(): ITab | undefined {
@@ -107,7 +118,7 @@ export class TabsService {
         if (typeof tab !== 'object' || tab === null) {
             return null;
         }
-        tab.id = typeof tab.id === 'string' ? (tab.id.trim() !== '' ? tab.id : Tools.guid()) : Tools.guid();
+        tab.guid = typeof tab.guid === 'string' ? (tab.guid.trim() !== '' ? tab.guid : Tools.guid()) : Tools.guid();
         return tab;
     }
 }

@@ -5,6 +5,7 @@ import { LayoutComponent                        } from './component';
 import { LayoutStatusBarComponent               } from './bar.status/component';
 import { LayoutFunctionsBarComponent            } from './bar.func/component';
 import { LayoutPrimaryAreaComponent             } from './area.primary/component';
+import { LayoutPrimiryAreaControlsComponent     } from './area.primary/controls/component';
 import { LayoutSecondaryAreaComponent           } from './area.secondary/component';
 import { LayoutSecondaryAreaControlsComponent   } from './area.secondary/controls/component';
 
@@ -17,6 +18,7 @@ const entryComponents = [
     LayoutStatusBarComponent,
     LayoutFunctionsBarComponent,
     LayoutPrimaryAreaComponent,
+    LayoutPrimiryAreaControlsComponent,
     LayoutSecondaryAreaComponent,
     LayoutSecondaryAreaControlsComponent
 ];

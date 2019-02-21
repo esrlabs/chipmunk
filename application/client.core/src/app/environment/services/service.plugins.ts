@@ -117,8 +117,6 @@ export class PluginsService {
 
     private _deliveryApps(pluginData: IPluginData, name: string, token: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            // Setup plugin token
-            debugger;
             // Create IPC instance for plugin
             const ipc: ControllerPluginIPC = new ControllerPluginIPC('name', token);
             // Store IPC instance
@@ -129,6 +127,7 @@ export class PluginsService {
                     ipc: ipc
                 });
             }
+            /*
             (window as any).__tabs.add({
                 name: 'Tab plugin',
                 active: true,
@@ -140,7 +139,7 @@ export class PluginsService {
                         })),
                     }
                 }
-            });
+            });*/
             resolve();
         });
     }

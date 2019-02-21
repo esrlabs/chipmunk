@@ -6,6 +6,7 @@ import ServiceElectron from './services/service.electron';
 import ServicePackage from './services/service.package';
 import ServicePaths from './services/service.paths';
 import ServicePlugins from './services/service.plugins';
+import ServiceStreams from './services/service.streams';
 import ServiceSettings from './services/service.settings';
 import ServiceWindowState from './services/service.window.state';
 import ServiceElectronService from './services/service.electron.state';
@@ -14,7 +15,7 @@ const InitializeStages = [
     // Stage #1
     [ServicePaths],
     // Stage #2
-    [ServicePackage],
+    [ServicePackage, ServiceStreams],
     // Stage #3
     [ServiceSettings, ServiceWindowState],
     // Stage #4. Init electron. Prepare browser window

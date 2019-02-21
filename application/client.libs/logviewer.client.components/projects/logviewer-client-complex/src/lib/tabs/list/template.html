@@ -1,6 +1,6 @@
 <div [attr.class]="'wrapper ' + (_options.injections ? (_options.injections.bar ? 'injection' : '') : '')">
     <ul [attr.class]="'list ' + _options.direction">
-        <li [attr.class]="'tab ' + (tab.active ? 'active' : '')" *ngFor="let tab of tabs" (click) = "onClick(tab.id)">
+        <li [attr.class]="'tab ' + (tab.active ? 'active' : '')" *ngFor="let tab of tabs" (click) = "onClick(tab.guid)">
             <p class="title t-normal">{{tab.name}}</p>
             <span class="close-button fas fa-times"></span>
         </li>

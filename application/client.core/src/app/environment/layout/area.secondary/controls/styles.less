@@ -2,14 +2,29 @@
 
 :host {
     position: relative;
-    display: inline-block;
     white-space: nowrap;
     height: 100%;
-    width: auto;
-    & span.state-trigger{
-        transition: transform 350ms ease-in-out;
+    width: 100%;
+    text-align: right;
+    display: flex;
+    flex-flow: row nowrap;
+    margin: 0;
+    padding: 0;
+    & .left-area{
+        flex: 1 auto;
+        order: 1;
+        width: auto;
     }
-    & span.state-trigger.minimized{
-        transform: rotate(180deg);
+    & .right-area{
+        flex: 1 auto;
+        order: 2;
+        width: 100%;
+        & span.state-trigger{
+            transition: transform 350ms ease-in-out;
+        }
+        & span.state-trigger.minimized{
+            transform: rotate(180deg);
+        }
     }
+
 }

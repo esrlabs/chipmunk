@@ -106,6 +106,14 @@ class Plugin {
     }
 
     private _onShellOutput(chunk: any) {
+        const socket: any = PluginIPCService.getDataStream('test-socket');
+        if (socket !== undefined) {
+            socket.write(chunk, (error: Error) => {
+                if (error) {
+                    console.log(error);
+                }
+            });
+        }
         PluginIPCService.sendToStream(chunk);
         PluginIPCService.sendToPluginHost(chunk.toString());
     }

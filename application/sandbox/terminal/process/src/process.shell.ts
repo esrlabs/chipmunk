@@ -1,4 +1,5 @@
 import { spawn, ChildProcess } from 'child_process';
+import * as Streams from 'stream';
 import { EventEmitter } from 'events';
 
 export interface IShellOptions {

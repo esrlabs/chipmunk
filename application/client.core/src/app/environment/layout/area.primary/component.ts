@@ -2,6 +2,8 @@ import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@
 import { TabsService, TabsOptions, ETabsListDirection, DockingComponent, DockDef, DocksService } from 'logviewer-client-complex';
 import { AreaState } from '../state';
 import { Subscription } from 'rxjs';
+import { LayoutPrimiryAreaControlsComponent } from './controls/component';
+import SessionsService from '../../services/service.sessions';
 
 @Component({
     selector: 'app-layout-area-primary',
@@ -13,7 +15,7 @@ export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
 
     @Input() public state: AreaState;
 
-    public tabsService: TabsService = new TabsService();
+    public tabsService: TabsService;
 
     private _subscriptions: {
         minimized: Subscription | null,
@@ -24,7 +26,24 @@ export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
     };
 
     constructor(private _cdRef: ChangeDetectorRef) {
-        (window as any).__tabs = this.tabsService;
+        this.tabsService = SessionsService.getTabsService();
+        SessionsService.create();
+        this.tabsService.updateOptions({
+            injections: {
+                bar: {
+                    factory: LayoutPrimiryAreaControlsComponent,
+                    inputs: {}
+                }
+            }
+        });
+        /*
+        const options = this.tabsService.getOptions();
+        options.injections.bar = {
+            factory: null,
+            inputs: {},
+        };
+        this.tabsService.setOptions(options);*/
+        /*
         this.tabsService.add({
             name: 'Tab 1 (3)',
             active: true,
@@ -41,72 +60,7 @@ export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
                 }
             }
         });
-        this.tabsService.add({
-            name: 'Tab 2 (2)',
-            active: false,
-            content: {
-                factory: DockingComponent,
-                inputs: {
-                    service: new DocksService('1', new DockDef.Container({
-                        a: new DockDef.Dock({ caption: 'Dock 1' }),
-                        b: new DockDef.Dock({ caption: 'Dock 2' })
-                    }))
-                }
-            }
-        });
-        this.tabsService.add({
-            name: 'Tab 3 (4)',
-            active: false,
-            content: {
-                factory: DockingComponent,
-                inputs: {
-                    service: new DocksService('1', new DockDef.Container({
-                        a: new DockDef.Container({
-                            a: new DockDef.Dock({ caption: '1' }),
-                            b: new DockDef.Dock({ caption: '2' })
-                        }),
-                        b: new DockDef.Container({
-                            a: new DockDef.Dock({ caption: '3' }),
-                            b: new DockDef.Dock({ caption: '4' })
-                        })
-                    }))
-                }
-            }
-        });
-        this.tabsService.add({
-            name: 'Tab 4 (5)',
-            active: false,
-            content: {
-                factory: DockingComponent,
-                inputs: {
-                    service: new DocksService('1', new DockDef.Container({
-                        a: new DockDef.Container({
-                            a: new DockDef.Dock({ caption: 'Dock 1' }),
-                            b: new DockDef.Dock({ caption: 'Dock 2' })
-                        }),
-                        b: new DockDef.Container({
-                            a: new DockDef.Dock({ caption: 'Dock 3' }),
-                            b: new DockDef.Container({
-                                a: new DockDef.Dock({ caption: 'Dock 4' }),
-                                b: new DockDef.Dock({ caption: 'Dock 5' })
-                            })
-                        })
-                    }))
-                }
-            }
-        });
-        this.tabsService.add({
-            name: 'Tab 5',
-            active: false,
-            content: {
-                factory: DockingComponent,
-                inputs: {
-                    service: new DocksService('1', new DockDef.Container({
-                        a: new DockDef.Dock({ caption: 'Dock 1' })
-                    }))
-                }
-            }
-        });
+        */
     }
 
     ngAfterViewInit() {

@@ -1,5 +1,6 @@
 import * as Path from 'path';
 import * as FS from '../../platform/node/src/fs';
+import * as Net from 'net';
 
 import { ChildProcess, fork } from 'child_process';
 import { Emitter } from '../../platform/cross/src/index';
@@ -7,6 +8,7 @@ import Logger from '../../platform/node/src/env.logger';
 import { IPlugin } from '../services/service.plugins';
 import ControllerIPCPlugin from './controller.plugin.process.ipc';
 import * as IPCPluginMessages from './plugin.ipc.messages/index';
+import ServiceStreams from '../services/service.streams';
 
 /**
  * @class ControllerPluginProcess
@@ -78,32 +80,27 @@ export default class ControllerPluginProcess extends Emitter {
             })).catch((sendingError: Error) => {
                 this._logger.error(`Fail delivery plugin token due error: ${sendingError.message}`);
             });
-            /*
-            setTimeout(() => {
-                this._ipc !== undefined && this._ipc.request(new IPCMessage({ command: 'shell', data: 'ls -lsa\n'})).then((response: IPCMessage) => {
-                    this._ipc !== undefined && this._ipc.request(new IPCMessage({ command: 'shell', data: 'npm install\n'})).then((response: IPCMessage) => {
-                        setTimeout(() => {
-                            this._ipc !== undefined && this._ipc.request(new IPCMessage({ command: 'shell', data: 'ssh dmitry@dmz-docker.int.esrlabs.com\n'})).then((response: IPCMessage) => {
-                                this._ipc !== undefined && this._ipc.request(new IPCMessage({ command: 'shell', data: 'dmitry\n'})).then((response: IPCMessage) => {
-                                    this._ipc !== undefined && this._ipc.request(new IPCMessage({ command: 'shell', data: 'ls -lsa\n'})).then((response: IPCMessage) => {
-                                        this._ipc !== undefined && this._ipc.request(new IPCMessage({ command: 'shell', data: 'cd ..\n'})).then((response: IPCMessage) => {
-                                            this._ipc !== undefined && this._ipc.request(new IPCMessage({ command: 'shell', data: 'ls -lsa\n'})).then((response: IPCMessage) => {
-                                                console.log('FINISHED');
-                                            });
-                                        });
-                                    });
-                                });
-                            });
-                        }, 10000);
-                    });
+
+            ServiceStreams.create(this._plugin.name).then((socket: Net.Socket) => {
+                if (this._process === undefined) {
+                    return;
+                }
+                this._process.send('test-socket', socket);
+                socket.on('data', (chunk: any) => {
+                    console.log('1!!!!!!!!');
+                    console.log(chunk.toString());
                 });
-            }, 2000 );
-            */
+            }).catch((error: Error) => {
+                console.log('ERROR!!!');
+                console.log(error);
+            });
+
+
             this._test();
             resolve();
         });
     }
-
+    
     public _test() {
         setTimeout(() => {
             this._ipc !== undefined && this._ipc.request(new IPCPluginMessages.PluginRenderMessage({
@@ -116,7 +113,7 @@ export default class ControllerPluginProcess extends Emitter {
             });
         }, 1000);
     }
-
+    
     /**
      * Returns IPC controller of plugin
      * @returns { Promise<void> }
@@ -184,7 +181,7 @@ export default class ControllerPluginProcess extends Emitter {
      * @returns void
      */
     private _onStream(chunk: any): void {
-        console.log(chunk.toString());
+        // console.log(chunk.toString());
         // TODO: here we should provide bridge to session-stream
     }
 }
