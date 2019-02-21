@@ -1,4 +1,5 @@
 import * as FS from 'fs';
+import * as Net from 'net';
 import { EventEmitter } from 'events';
 import { IMessagePackage, IPCMessagePackage } from './plugin.ipc.service.message';
 import Subscription, { THandler } from './tools.subscription';
@@ -37,6 +38,7 @@ export class PluginIPCService extends EventEmitter {
     private _handlers: Map<string, Map<string, THandler>> = new Map();
     private _token: string | undefined;
     private _tokenSubscription: Subscription | undefined;
+    private _sockets: Map<string, Net.Socket> = new Map();
 
     public static Events = {
         close: 'close',
@@ -204,10 +206,10 @@ export class PluginIPCService extends EventEmitter {
 
     /**
      * Returns write stream. Can be used to pipe write stream with source of data
-     * @returns { FS.WriteStream }
+     * @returns { Net.Socket }
      */
-    public getDataStream(): FS.WriteStream {
-        return this._stream;
+    public getDataStream(sessionId: string): Net.Socket | undefined {
+        return this._sockets.get(sessionId);
     }
 
     /**
@@ -243,8 +245,12 @@ export class PluginIPCService extends EventEmitter {
      * Handler of incoming message from parent (main) process
      * @returns void
      */
-    private _onMessage(data: any) {
+    private _onMessage(data: any, socket?: Net.Socket) {
         try {
+            // Check socket before
+            if (typeof data === 'string' && socket !== undefined) {
+                return this._acceptSocket(data as string, socket);
+            }
             const messagePackage: IPCMessagePackage = new IPCMessagePackage(data);
             if (this._token !== undefined && messagePackage.token !== null && messagePackage.token !== this._token) {
                 // This message isn't for this instance of IPC
@@ -270,6 +276,10 @@ export class PluginIPCService extends EventEmitter {
         } catch (e) {
             console.log(`Incorrect format of IPC message: ${typeof data}. Error: ${e.message}`);
         }
+    }
+
+    private _acceptSocket(sessionId: string, socket: Net.Socket) {
+        this._sockets.set(sessionId, socket);
     }
 
     private _getRefToMessageClass(message: IPCMessages.TMessage): Function | undefined {

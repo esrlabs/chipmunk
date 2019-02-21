@@ -6,9 +6,11 @@ import { PrimitiveModule                        } from 'logviewer-client-primiti
 import { ContainersModule                       } from 'logviewer-client-containers';
 
 import { EnvironmentComplexModule               } from './complex/module';
+import { EnvironmentViewsModule                 } from './views/module';
 
 const modules = [
     EnvironmentComplexModule,
+    EnvironmentViewsModule,
     ComplexModule,
     PrimitiveModule,
     ContainersModule

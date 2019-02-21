@@ -425,6 +425,73 @@ namespace('client.npmlibs', function() {
 
 });
 
+namespace('plugin.terminal', function() {
+    const PATH_DEST = path.normalize(path.resolve(__dirname, 'sandbox/terminal'));
+    const PATH_CLIENT_SOURCES = path.normalize(path.resolve(__dirname, 'client.plugins'));
+    const PATH_HOST_SOURCES = path.normalize(path.resolve(PATH_DEST, 'process'));
+    const HOST_IPC_MOD = path.normalize(path.resolve(__dirname, 'node.libs/logviewer.plugin.ipc'));
+
+    task('client.build', function() {
+        logo();
+        const tasks = [];
+        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist'));
+        const clientNodeModules = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'projects/terminal/node_modules'));
+        const clientPluginFolder = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'projects/terminal'));
+        if (fs.existsSync(clientDist)) {
+            tasks.push(echo(colors.blue(`Remove dist files: ${clientDist}`)));
+            tasks.push(`rm -rf ${clientDist}`);
+        }
+        if (!CLI_FLAGS.skipNpm && fs.existsSync(clientNodeModules)) {
+            tasks.push(echo(colors.blue(`Remove dist files: ${clientNodeModules}`)));
+            tasks.push(`rm -rf ${clientNodeModules}`);
+            tasks.push(`npm install --prefix ${clientPluginFolder}`);
+        }
+        tasks.push(`npm run build:terminal --prefix ${PATH_CLIENT_SOURCES}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('client.delivery', function() {
+        logo();
+        const tasks = [];
+        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist/terminal/*'));
+        const clientDest = path.normalize(path.resolve(PATH_DEST, 'render/'));
+        if (fs.existsSync(clientDest)) {
+            tasks.push(echo(colors.blue(`Remove dest files: ${clientDest}`)));
+            tasks.push(`rm -rf ${clientDest}`);
+        }
+        tasks.push(`mkdir ${clientDest}`);
+        tasks.push(`cp -R ${clientDist} ${clientDest}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('host.build', function() {
+        logo();
+        const tasks = [];
+        const hostDist = path.normalize(path.resolve(PATH_HOST_SOURCES, 'dist'));
+        const hostNodeModules = path.normalize(path.resolve(PATH_HOST_SOURCES, 'node_modules'));
+        const hostIPCMod = path.normalize(path.resolve(hostNodeModules, 'logviewer.plugin.ipc'));
+        if (fs.existsSync(hostDist)) {
+            tasks.push(echo(colors.blue(`Remove dist files: ${hostDist}`)));
+            tasks.push(`rm -rf ${hostDist}`);
+        }
+        if (!CLI_FLAGS.skipNpm && fs.existsSync(hostNodeModules)) {
+            tasks.push(echo(colors.blue(`Remove dist files: ${hostNodeModules}`)));
+            tasks.push(`rm -rf ${hostNodeModules}`);
+        }
+        if (!fs.existsSync(hostNodeModules)) {
+            tasks.push(`npm install --prefix ${PATH_HOST_SOURCES}`);
+        }
+        tasks.push(`unlink ${hostIPCMod} & exit 0`);
+        tasks.push(`rm -rf ${hostIPCMod} & exit 0`);
+        tasks.push(`ln -s ${HOST_IPC_MOD} ${hostIPCMod}`);
+        tasks.push(`npm run build --prefix ${PATH_HOST_SOURCES}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('all', ['plugin.terminal:client.build', 'plugin.terminal:client.delivery', 'plugin.terminal:host.build']);
+
+});
+
 namespace('electron', function() {
 
     task('install', function() {

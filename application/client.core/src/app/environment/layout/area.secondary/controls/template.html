@@ -1,1 +1,6 @@
-<span [attr.class]="'small-icon-button fas fa-arrow-down state-trigger ' + (state.minimized ? 'minimized' : '')" (click)="_ng_onStateToggle($event)"></span>
+<div class="left-area">
+    <span [attr.class]="'small-icon-button fas fa-plus add-new'" (click)="_ng_onStateToggle($event)"></span>
+</div>
+<div class="right-area">
+    <span [attr.class]="'small-icon-button fas fa-arrow-down state-trigger ' + (state.minimized ? 'minimized' : '')" (click)="_ng_onStateToggle($event)"></span>
+</div>

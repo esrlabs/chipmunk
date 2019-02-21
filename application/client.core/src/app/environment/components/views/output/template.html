@@ -1,0 +1,7 @@
+<ul class="rows" (window:resize)="_ng_onBrowserWindowResize($event)">
+    <cdk-virtual-scroll-viewport #outputviewport class="virtual-scroll-viewport" [ngStyle]="_ng_getOutputAreaStyle()" itemSize="16">
+      <ng-container *cdkVirtualFor="let packet of _ng_output">
+        <app-views-output-row [packet]="packet"></app-views-output-row>
+      </ng-container>
+    </cdk-virtual-scroll-viewport>
+</ul>

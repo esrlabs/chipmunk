@@ -62,19 +62,19 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
     }
 
     private async onNewTab(tab: ITab) {
-        this._tabs.set(tab.id, await tab);
+        this._tabs.set(tab.guid, await tab);
         this.tabs.push(tab);
     }
 
     private async onActiveTabChange(tab: ITab) {
-        this._tabs.forEach((storedTab: ITab, id: string) => {
-            if (storedTab.id !== tab.id && storedTab.active) {
+        this._tabs.forEach((storedTab: ITab, guid: string) => {
+            if (storedTab.guid !== tab.guid && storedTab.active) {
                 storedTab.active = false;
-                this._tabs.set(id, storedTab);
+                this._tabs.set(guid, storedTab);
             }
-            if (storedTab.id === tab.id && !storedTab.active) {
+            if (storedTab.guid === tab.guid && !storedTab.active) {
                 storedTab.active = true;
-                this._tabs.set(id, storedTab);
+                this._tabs.set(guid, storedTab);
             }
         });
     }

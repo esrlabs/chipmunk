@@ -4,12 +4,10 @@
   "lib": {
     "entryFile": "src/public_api.ts",
     "umdModuleIds": {
-      "logviewer.client.electron.ipc": "logviewer.client.electron.ipc"
     },
     "peerDependencies": {
       "@angular/common": "^7.0.0",
-      "@angular/core": "^7.0.0",
-      "logviewer.client.electron.ipc": "^0.0.1"
+      "@angular/core": "^7.0.0"
     }
   }
 }

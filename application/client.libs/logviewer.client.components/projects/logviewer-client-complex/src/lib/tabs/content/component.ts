@@ -12,7 +12,7 @@ export class TabContentComponent implements OnDestroy, AfterViewInit {
 
     @Input() public service: TabsService = null;
 
-    public _tab: ITab | null = null;
+    public _tab: ITab | undefined = undefined;
 
     private _subscriptions: {
         new: Subscription | null,
@@ -50,9 +50,9 @@ export class TabContentComponent implements OnDestroy, AfterViewInit {
     }
 
     private async onActiveTabChange(tab: ITab) {
-        const id = this._tab === null ? null : this._tab.id;
+        const guid = this._tab === undefined ? undefined : this._tab.guid;
         const _tab = await tab;
-        if (_tab.active && id !== _tab.id) {
+        if (_tab.active && guid !== _tab.guid) {
             this._tab = _tab;
         }
     }
