@@ -9,7 +9,7 @@ export class HostStateHistory {
 
     constructor(params: IHostStateHistory) {
         if (typeof params !== 'object' || params === null) {
-            throw new Error(`Incorrect parameters for HostState message`);
+            throw new Error(`Incorrect parameters for HostStateHistory message`);
         }
         this.history = params.history instanceof Array ? params.history : [];
     }

@@ -49,6 +49,12 @@ export class StateFile<TState> implements IService {
         });
     }
 
+    public destroy(): Promise<void> {
+        return new Promise((resolve) => {
+            resolve();
+        });
+    }
+
     public getName(): string {
         return this._alias;
     }

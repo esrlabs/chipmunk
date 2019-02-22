@@ -8,7 +8,7 @@ import Logger from '../../platform/node/src/env.logger';
 import { IPlugin } from '../services/service.plugins';
 import ControllerIPCPlugin from './controller.plugin.process.ipc';
 import * as IPCPluginMessages from './plugin.ipc.messages/index';
-import ServiceStreams from '../services/service.streams';
+import ServiceStreams, { IStreamInfo } from '../services/service.streams';
 
 /**
  * @class ControllerPluginProcess
@@ -81,12 +81,12 @@ export default class ControllerPluginProcess extends Emitter {
                 this._logger.error(`Fail delivery plugin token due error: ${sendingError.message}`);
             });
 
-            ServiceStreams.create(this._plugin.name).then((socket: Net.Socket) => {
+            ServiceStreams.create(this._plugin.name).then((stream: IStreamInfo) => {
                 if (this._process === undefined) {
                     return;
                 }
-                this._process.send('test-socket', socket);
-                socket.on('data', (chunk: any) => {
+                this._process.send('test-socket', stream.socket);
+                stream.connection.on('data', (chunk: any) => {
                     console.log('1!!!!!!!!');
                     console.log(chunk.toString());
                 });

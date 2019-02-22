@@ -13,12 +13,20 @@ export { IRenderState, RenderState, ERenderState };
 import { IPluginMessage, PluginMessage } from './plugin.message';
 export { IPluginMessage, PluginMessage };
 
+import { IStreamAdd, StreamAdd } from './stream.add';
+export { IStreamAdd, StreamAdd };
+
+import { IStreamRemove, StreamRemove } from './stream.remove';
+export { IStreamRemove, StreamRemove };
+
 // Common type for expected message implementation
 export type TMessage =  HostState |
                         HostStateHistory |
                         RenderMountPlugin |
                         RenderState |
-                        PluginMessage;
+                        PluginMessage |
+                        StreamAdd |
+                        StreamRemove;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -30,5 +38,7 @@ export const Map = {
     [RenderMountPlugin.signature    ]: RenderMountPlugin,
     [RenderState.signature          ]: RenderState,
     [PluginMessage.signature        ]: PluginMessage,
+    [StreamAdd.signature            ]: StreamAdd,
+    [StreamRemove.signature         ]: StreamRemove,
 
 };

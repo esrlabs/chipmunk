@@ -108,6 +108,19 @@ export class ServicePlugins implements IService {
         });
     }
 
+    public destroy(): Promise<void> {
+        return new Promise((resolve) => {
+            this._unsubscribeIPCMessages();
+            this._plugins.forEach((plugin: IPlugin) => {
+                if (plugin.node === undefined) {
+                    return;
+                }
+                plugin.node.controller.kill();
+            });
+            resolve();
+        });
+    }
+
     public getName(): string {
         return 'ServicePackage';
     }
