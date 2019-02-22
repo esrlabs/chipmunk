@@ -38,6 +38,12 @@ export class ServicePackage implements IService {
         });
     }
 
+    public destroy(): Promise<void> {
+        return new Promise((resolve) => {
+            resolve();
+        });
+    }
+
     public getName(): string {
         return 'ServicePackage';
     }

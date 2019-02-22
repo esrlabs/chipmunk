@@ -332,11 +332,31 @@ namespace('client', function() {
         sh(this, '.', ...tasks);
     }, {async: true});
 
+    task('link-client-ipc', function() {
+        logo();
+        const tasks = [];
+        const clientPath = path.normalize(path.resolve(__dirname, CLIENT_FOLDER));
+        const destElectronIPCPath = path.normalize(path.resolve(clientPath, 'src/app/environment/services/electron.ipc.messages'));
+        const destPluginIPCPath = path.normalize(path.resolve(clientPath, 'src/app/environment/services/plugins.ipc.messages'));
+        const electronPath = path.normalize(path.resolve(__dirname, ELECTRON_FOLDER));
+        const srcElectronIPCPath = path.normalize(path.resolve(electronPath, 'src/controllers/electron.ipc.messages'));
+        const srcPluginsIPCPath = path.normalize(path.resolve(electronPath, 'src/controllers/plugin.ipc.messages'));
+        tasks.push(echo(colors.blue(`Coping: ${srcElectronIPCPath}`)));
+        tasks.push(`rm -rf ${destElectronIPCPath}`);
+        tasks.push(`cp -R ${srcElectronIPCPath} ${destElectronIPCPath}`);
+        tasks.push(`rm -rf ${path.normalize(path.resolve(clientPath, 'etc'))}`);
+
+        tasks.push(echo(colors.blue(`Coping: ${srcPluginsIPCPath}`)));
+        tasks.push(`rm -rf ${destPluginIPCPath}`);
+        tasks.push(`cp -R ${srcPluginsIPCPath} ${destPluginIPCPath}`);
+        tasks.push(`rm -rf ${path.normalize(path.resolve(clientPath, 'etc'))}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
     task('build', function() {
         logo();
         const tasks = [];
         const clientPath = path.normalize(path.resolve(__dirname, CLIENT_FOLDER));
-        const clientNodeModules = path.normalize(path.resolve(clientPath, 'node_modules'));
         const clientDist = path.normalize(path.resolve(clientPath, 'dist'));
         if (fs.existsSync(clientDist)) {
             tasks.push(echo(colors.blue(`Remove dist files: ${clientDist}`)));
@@ -347,7 +367,7 @@ namespace('client', function() {
         sh(this, '.', ...tasks);
     }, {async: true});
 
-    task('all', ['client:install', 'client.npmlibs:all', 'client:link-client-libs', 'client:build']);
+    task('all', ['client:install', 'client.npmlibs:all', 'client:link-client-libs', 'client:link-client-ipc', 'client:build']);
 
 });
 

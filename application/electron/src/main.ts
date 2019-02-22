@@ -42,6 +42,7 @@ class Application {
                 if (error instanceof Error) {
                     return reject(error);
                 }
+                this._bindProcessEvents();
                 resolve(this);
             });
         });
@@ -69,6 +70,49 @@ class Application {
             this.logger.env(`Fail to initialize application dure error: ${error.message}`);
             callback(error);
         });
+    }
+
+    private _destroy(): Promise<void> {
+        return new Promise((resolve) => {
+            Promise.all([
+                ServicePaths.destroy(),
+                ServicePackage.destroy(),
+                ServiceStreams.destroy(),
+                ServiceSettings.destroy(),
+                ServiceWindowState.destroy(),
+                ServiceElectron.destroy(),
+                ServiceElectronService.destroy(),
+                ServicePlugins.destroy(),
+            ]).then(() => {
+                this.logger.env(`All services are destroyed.`);
+                resolve();
+            }).catch((destroyError: Error) => {
+                this.logger.error(`Error while destroying services: ${destroyError.message}`);
+                resolve();
+            });
+        });
+    }
+
+    private _bindProcessEvents() {
+        process.on('exit', this._process_onExit.bind(this));
+        process.on('SIGINT', this._process_onExit.bind(this));
+        process.on('uncaughtException', this._process_onException.bind(this));
+    }
+
+    private _process_onExit() {
+        // Remove existing handlers
+        process.removeAllListeners();
+        // Prevent closing application
+        process.stdin.resume();
+        // Destroy services
+        this._destroy().then(() => {
+            this.logger.env(`Application are ready to be closed.`);
+            process.exit(0);
+        });
+    }
+
+    private _process_onException(error: Error) {
+        this.logger.error(`Uncaught Exception: ${error.message}`, error.stack);
     }
 
 }
@@ -104,22 +148,3 @@ class Application {
 }).catch((error: Error) => {
     throw error;
 });
-
-/*
-    ServiceElectron.IPC.subscribe('toServer', (a, b, c) => {
-        console.log(`!!!!!`);
-        console.log(a, b, c);
-        console.log(`!!!!!`);
-    }).then((subscription) => {
-        console.log('done');
-    }).catch((error: Error) => {
-        console.log(`cannot make subscription`);
-    });
-    setInterval(() => {
-        ServiceElectron.IPC.send('toClient', 'hello', 'client').then(() => {
-            console.log('sent');
-        }).catch((error: Error) => {
-            console.log(`cannot send package`);
-        });
-    }, 2000);
-*/

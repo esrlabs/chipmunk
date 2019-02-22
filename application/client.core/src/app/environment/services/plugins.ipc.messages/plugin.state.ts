@@ -1,26 +1,27 @@
-export enum EHostState {
-    ready = 'ready',        // Host is ready. No any operations
-    busy = 'busy',          // Host isn't ready. Some blocked operations are going
-    working = 'working',    // Host isn't ready, but can be used, because host has background operations
+export enum EPluginState {
+    ready = 'ready',        // Plugin is ready. No any operations
+    busy = 'busy',          // Plugin isn't ready. Some blocked operations are going
+    working = 'working',    // Plugin isn't ready, but can be used, because host has background operations
 }
 
-export interface IHostState {
+export interface IPluginState {
     message?: string;
-    state?: EHostState;
+    state?: EPluginState;
 }
 
-export class HostState {
-    public static States = EHostState;
-    public static signature: string = 'HostState';
-    public signature: string = HostState.signature;
-    public message: string = '';
-    public state: EHostState = EHostState.ready;
+export class PluginState {
+    public static States = EPluginState;
+    public static signature: string = 'PluginState';
+    public signature: string = PluginState.signature;
 
-    constructor(params: IHostState) {
+    public message: string = '';
+    public state: EPluginState = EPluginState.ready;
+
+    constructor(params: IPluginState) {
         if (typeof params !== 'object' || params === null) {
-            throw new Error(`Incorrect parameters for HostState message`);
+            throw new Error(`Incorrect parameters for Plugin message`);
         }
         this.message = typeof params.message === 'string' ? params.message : '';
-        this.state = typeof params.state === 'string' ? params.state : EHostState.ready;
+        this.state = typeof params.state === 'string' ? params.state : EPluginState.ready;
     }
 }
