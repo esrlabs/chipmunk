@@ -6,6 +6,7 @@ import Logger from '../../platform/node/src/env.logger';
 import { guid } from '../../platform/cross/src/index';
 import NPMInstaller from '../tools/npm.installer';
 import ServiceElectron from './service.electron';
+import ServiceStreams, { IStreamInfo } from './service.streams';
 import ServicePaths from './service.paths';
 import ServiceElectronService from './service.electron.state';
 import ControllerPluginProcess from '../controllers/controller.plugin.process';
@@ -44,6 +45,7 @@ export interface IPlugin {
         renderLocation: string;
     };
     token: string;
+    streams: string[];
 }
 
 export type TPluginPath = string;
@@ -63,6 +65,8 @@ export class ServicePlugins implements IService {
 
     constructor() {
         this._ipc_onRenderState = this._ipc_onRenderState.bind(this);
+        this._streams_onStreamAdded = this._streams_onStreamAdded.bind(this);
+        this._streams_onStreamRemoved = this._streams_onStreamRemoved.bind(this);
     }
 
     /**
@@ -92,6 +96,8 @@ export class ServicePlugins implements IService {
                     ServiceElectronService.updateHostState(`All plugins are ready`, true);
                     this._logger.error(`All plugins are ready`);
                     this._sendRenderPluginsData();
+                    // Subscribe to streams events
+                    this._subscribeToStreamEvents();
                     resolve();
                 }).catch((initializationError: Error) => {
                     ServiceElectronService.updateHostState(`Error during initialization of plugins: ${initializationError.message}`, true);
@@ -111,6 +117,7 @@ export class ServicePlugins implements IService {
     public destroy(): Promise<void> {
         return new Promise((resolve) => {
             this._unsubscribeIPCMessages();
+            this._unsubscribeFromStreamEvents();
             this._plugins.forEach((plugin: IPlugin) => {
                 if (plugin.node === undefined) {
                     return;
@@ -128,13 +135,13 @@ export class ServicePlugins implements IService {
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     *   Redirection of messages
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    public redirectIPCMessageToPluginHost(message: IPCMessages.PluginMessage) {
+    public redirectIPCMessageToPluginHost(message: IPCMessages.PluginInternalMessage) {
         const target: IPlugin | undefined = this._getPluginInfoByToken(message.token);
         if (target === undefined) {
-            return this._logger.error(`Fail to find plugin by token: ${message.token}. Income message: ${message.message}`);
+            return this._logger.error(`Fail to find plugin by token: ${message.token}. Income message: ${message.data}`);
         }
         if (target.node === undefined) {
-            return this._logger.error(`Fail redirect message by token ${message.token}, because plugin doesn't have process. Income message: ${message.message}`);
+            return this._logger.error(`Fail redirect message by token ${message.token}, because plugin doesn't have process. Income message: ${message.data}`);
         }
         const ipc = target.node.controller.getIPC();
         if (ipc instanceof Error) {
@@ -145,6 +152,9 @@ export class ServicePlugins implements IService {
         });
     }
 
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    *   Common
+    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     private _getPluginInfoByToken(token: string): IPlugin | undefined {
         let result: IPlugin | undefined;
         this._plugins.forEach((plugin: IPlugin) => {
@@ -157,6 +167,67 @@ export class ServicePlugins implements IService {
         });
         return result;
     }
+
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    *   Streams
+    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    private _subscribeToStreamEvents() {
+        ServiceStreams.on(ServiceStreams.EVENTS.streamAdded, this._streams_onStreamAdded);
+        ServiceStreams.on(ServiceStreams.EVENTS.streamRemoved, this._streams_onStreamRemoved);
+    }
+
+    private _unsubscribeFromStreamEvents() {
+        ServiceStreams.removeListener(ServiceStreams.EVENTS.streamAdded, this._streams_onStreamAdded);
+        ServiceStreams.removeListener(ServiceStreams.EVENTS.streamRemoved, this._streams_onStreamRemoved);
+    }
+
+    private _streams_onStreamAdded(stream: IStreamInfo, transports: string[]) {
+        const plugins: IPlugin[] = [];
+        // Get all related transports (plugins)
+        transports.forEach((pluginName: string) => {
+            const plugin: IPlugin | undefined = this._plugins.get(pluginName);
+            if (plugin === undefined) {
+                return;
+            }
+            plugins.push(plugin);
+        });
+        plugins.forEach((plugin: IPlugin) => {
+            if (plugin.node === undefined) {
+                this._logger.warn(`Plugin ${plugin.name} was defined as transport, but plugin doesn't have nodejs part.`);
+                return;
+            }
+            // Send data to plugin
+            plugin.node.controller.addStream(stream.guid, stream.socket);
+            // Add ref to stream
+            plugin.streams.push(stream.guid);
+            // Save data
+            this._plugins.set(plugin.name, plugin);
+        });
+    }
+
+    private _streams_onStreamRemoved(streamId: string) {
+        const plugins: IPlugin[] = [];
+        // Find all plugins, which are bound with stream
+        this._plugins.forEach((plugin: IPlugin) => {
+            if (plugin.streams.indexOf(streamId) === -1) {
+                return;
+            }
+            plugins.push(plugin);
+        });
+        plugins.forEach((plugin: IPlugin) => {
+            if (plugin.node === undefined) {
+                this._logger.warn(`Plugin ${plugin.name} was defined as transport, but plugin doesn't have nodejs part.`);
+                return;
+            }
+            // Send data to plugin
+            plugin.node.controller.removeStream(streamId);
+            // Remove ref to stream
+            plugin.streams.splice(plugin.streams.indexOf(streamId), 1);
+            // Save data
+            this._plugins.set(plugin.name, plugin);
+        });
+    }
+
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     *   Initialization of plugins
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -454,6 +525,7 @@ export class ServicePlugins implements IService {
                     renderSent: false,
                 },
                 token: guid(),
+                streams: [],
             };
             const tasks = [];
             if (desc.process) {
@@ -543,6 +615,8 @@ export class ServicePlugins implements IService {
         if (!this._isRenderReady) {
             return;
         }
+        const plugins: IPCMessages.IRenderMountPluginInfo[] = [];
+        let names: string = '';
         this._plugins.forEach((plugin: IPlugin) => {
             if (!plugin.verified.render) {
                 // Plugin isn't verified
@@ -552,17 +626,21 @@ export class ServicePlugins implements IService {
                 // Information about plugin was already sent
                 return;
             }
-            // Inform render about plugin location
-            ServiceElectron.IPC.send(new IPCMessages.RenderMountPlugin({
+            names += `${plugin.name}; `;
+            plugins.push({
                 name: plugin.name,
                 location: plugin.info.renderLocation,
                 token: plugin.token,
-            })).then(() => {
-                this._logger.env(`Information about plugin "${plugin.name}" was sent to render`);
-            }).catch((sendingError: Error) => {
-                ServiceElectronService.updateHostState(`Fail to send information to render about plugin "${plugin.name}" due error: ${sendingError.message}`);
-                this._logger.error(`Fail to send information to render about plugin "${plugin.name}" due error: ${sendingError.message}`);
             });
+        });
+        // Inform render about plugin location
+        ServiceElectron.IPC.send(new IPCMessages.RenderMountPlugin({
+            plugins: plugins,
+        })).then(() => {
+            this._logger.env(`Information about plugin "${names}" was sent to render`);
+        }).catch((sendingError: Error) => {
+            ServiceElectronService.updateHostState(`Fail to send information to render about plugin "${names}" due error: ${sendingError.message}`);
+            this._logger.error(`Fail to send information to render about plugin "${names}" due error: ${sendingError.message}`);
         });
     }
 

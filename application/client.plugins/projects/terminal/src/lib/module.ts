@@ -14,7 +14,6 @@ export class PluginModule {
     private _api: string | undefined;
 
     public setAPI(api: any) {
-        debugger;
         this._api = api;
     }
 

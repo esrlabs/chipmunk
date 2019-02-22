@@ -6,6 +6,7 @@ import * as Tools from '../tools/index';
 
 export interface IControllerSessionStream {
     guid: string;
+    transports: string[];
 }
 
 export interface IStreamPacket {
@@ -16,6 +17,7 @@ export class ControllerSessionStream {
 
     private _logger: Tools.Logger;
     private _guid: string;
+    private _transports: string[];
     private _subjects = {
         new: new Subject<IStreamPacket>(),
         clear: new Subject<void>(),
@@ -25,7 +27,13 @@ export class ControllerSessionStream {
 
     constructor(params: IControllerSessionStream) {
         this._guid = params.guid;
+        this._transports = params.transports;
         this._logger = new Tools.Logger(`ControllerSessionStream: ${params.guid}`);
+        // Notify electron about new stream
+        ServiceElectronIpc.send(new IPCMessages.StreamAdd({
+            guid: this._guid,
+            transports: this._transports.slice(),
+        }));
         setInterval(() => {
             const original = `${Math.random().toFixed(10)}-${Math.random().toFixed(10)}-${Math.random().toFixed(10)}-${Math.random().toFixed(10)}`;
             this._subjects.new.next({

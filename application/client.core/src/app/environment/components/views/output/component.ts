@@ -1,8 +1,8 @@
-import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef } from '@angular/core';
 import { Subscription } from 'rxjs';
 import * as Tools from '../../../tools/index';
 import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
-import { ControllerSession } from '../../../controller/controller.session';
+import { ControllerSession, IComponentInjection } from '../../../controller/controller.session';
 import { IStreamPacket } from '../../../controller/controller.session.stream';
 import { ControllerSessionStreamOutput } from '../../../controller/controller.session.stream.output';
 
@@ -15,10 +15,17 @@ import { ControllerSessionStreamOutput } from '../../../controller/controller.se
 export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterContentInit {
 
     @ViewChild('outputviewport') _ng_outputAreaViewport: CdkVirtualScrollViewport;
+    @ViewChild('outputwrapper') _ng_outputWrapperViewport: ElementRef;
+
 
     @Input() public session: ControllerSession | undefined;
 
     public _ng_output: ControllerSessionStreamOutput | undefined;
+    public _ng_injections: {
+        bottom: Map<string, IComponentInjection>,
+    } = {
+        bottom: new Map()
+    };
 
     public _ng_outputAreaSize: {
         height: number;
@@ -43,7 +50,11 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         if (this.session === undefined) {
             return;
         }
+        // Get reference to stream wrapper
         this._ng_output = this.session.getSessionStream().getOutputStream();
+        // Get injections
+        this._ng_injections.bottom = this.session.getOutputBottomInjections();
+
     }
 
     public ngOnDestroy() {
@@ -67,7 +78,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         if (this._vcRef === null || this._vcRef === undefined) {
             return;
         }
-        const size = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect();
+        const size = this._ng_outputWrapperViewport.nativeElement.getBoundingClientRect();
         this._ng_outputAreaSize.width = size.width;
         this._ng_outputAreaSize.height = size.height;
         this._cdRef.detectChanges();

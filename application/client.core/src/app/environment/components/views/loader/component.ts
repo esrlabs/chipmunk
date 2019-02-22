@@ -1,12 +1,13 @@
 import { Component, Input } from '@angular/core';
 
 @Component({
-    selector: 'app-plugin-a-item',
+    selector: 'app-views-loader',
     templateUrl: './template.html',
     styleUrls: ['./styles.less']
 })
 
-export class PluginAItemComponent {
-  @Input() text = 'text';
+export class ViewLoaderComponent {
+
+    @Input() public comment: string = 'Welcome to logviewer';
 
 }

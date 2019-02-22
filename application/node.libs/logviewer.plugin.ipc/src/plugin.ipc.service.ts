@@ -42,6 +42,8 @@ export class PluginIPCService extends EventEmitter {
 
     public static Events = {
         close: 'close',
+        closeStream: 'closeStream',
+        openStream: 'openStream',
     };
 
     public Events = PluginIPCService.Events;
@@ -69,8 +71,8 @@ export class PluginIPCService extends EventEmitter {
             if (this._token === undefined) {
                 return reject(new Error(`Fail to send to plugin host because token wasn't gotten.`));
             }
-            const pluginMessage: IPCMessages.PluginMessage = new IPCMessages.PluginMessage({
-                message: message,
+            const pluginMessage: IPCMessages.PluginInternalMessage = new IPCMessages.PluginInternalMessage({
+                data: message,
                 token: this._token,
             });
             this.send(pluginMessage).then(() => {
@@ -86,15 +88,15 @@ export class PluginIPCService extends EventEmitter {
             if (this._token === undefined) {
                 return reject(new Error(`Fail to send to plugin host because token wasn't gotten.`));
             }
-            const pluginMessage: IPCMessages.PluginMessage = new IPCMessages.PluginMessage({
-                message: message,
+            const pluginMessage: IPCMessages.PluginInternalMessage = new IPCMessages.PluginInternalMessage({
+                data: message,
                 token: this._token,
             });
             this.request(pluginMessage).then((response: IPCMessages.TMessage | undefined) => {
-                if (!(response instanceof IPCMessages.PluginMessage)) {
+                if (!(response instanceof IPCMessages.PluginInternalMessage)) {
                     return reject(new Error(`From plugin host was gotten incorrect responce: ${typeof response}/${response}`));
                 }
-                resolve(response.message);
+                resolve(response.data);
             }).catch((sendingError: Error) => {
                 reject(sendingError);
             });
@@ -189,13 +191,18 @@ export class PluginIPCService extends EventEmitter {
     }
 
     /**
-     * Sends chunk of data to main data's stream
+     * Sends chunk of data to data's stream
      * @param {any} chunk package of data
+     * @param {string} streamId id of target stream
      * @returns { Promise<void> }
      */
-    public sendToStream(chunk: any): Promise<void> {
+    public sendToStream(chunk: any, streamId: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._stream.write(chunk, (error: Error | null | undefined) => {
+            const socket: Net.Socket | undefined = this._getStreamSocket(streamId);
+            if (socket === undefined) {
+                return reject(new Error(`Fail to find bound socket with stream "${streamId}".`));
+            }
+            socket.write(chunk, (error: Error) => {
                 if (error) {
                     return reject(error);
                 }
@@ -208,8 +215,8 @@ export class PluginIPCService extends EventEmitter {
      * Returns write stream. Can be used to pipe write stream with source of data
      * @returns { Net.Socket }
      */
-    public getDataStream(sessionId: string): Net.Socket | undefined {
-        return this._sockets.get(sessionId);
+    private _getStreamSocket(streamId: string): Net.Socket | undefined {
+        return this._sockets.get(streamId);
     }
 
     /**
@@ -278,9 +285,12 @@ export class PluginIPCService extends EventEmitter {
         }
     }
 
-    private _acceptSocket(sessionId: string, socket: Net.Socket) {
-        this._sockets.set(sessionId, socket);
+    private _acceptSocket(streamId: string, socket: Net.Socket) {
+        this._sockets.set(streamId, socket);
+        this.emit(this.Events.openStream, streamId);
     }
+
+    // TODO: Removing (closing) stream
 
     private _getRefToMessageClass(message: IPCMessages.TMessage): Function | undefined {
         let ref: Function | undefined;

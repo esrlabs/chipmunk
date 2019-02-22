@@ -177,7 +177,7 @@ export default class ControllerIPCPlugin extends EventEmitter {
             const instance: IPCMessages.TMessage = new (refMessageClass as any)(message.message);
             if (resolver !== undefined) {
                 return resolver(instance);
-            } else if (instance instanceof IPCMessages.PluginMessage) {
+            } else if (instance instanceof IPCMessages.PluginInternalMessage) {
                 this._redirectToPluginHost(instance);
             } else {
                 const handlers = this._handlers.get(instance.signature);
@@ -193,7 +193,7 @@ export default class ControllerIPCPlugin extends EventEmitter {
         }
     }
 
-    private _redirectToPluginHost(message: IPCMessages.PluginMessage) {
+    private _redirectToPluginHost(message: IPCMessages.PluginInternalMessage) {
         ServiceElectron.redirectIPCMessageToPluginRender(message);
     }
 

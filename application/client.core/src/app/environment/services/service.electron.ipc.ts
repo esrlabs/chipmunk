@@ -3,23 +3,34 @@ declare var Electron: any;
 import { guid, Subscription, THandler, Logger } from '../tools/index';
 import * as IPCMessages from './electron.ipc.messages/index';
 import { IPCMessagePackage } from './service.electron.ipc.messagepackage';
-
+import { IService } from '../interfaces/interface.service';
 export { IPCMessages, Subscription, THandler };
 
-class ServiceElectronIpc {
+class ElectronIpcService implements IService {
 
-    private _logger: Logger = new Logger('ServiceElectronIpc');
+    private _logger: Logger = new Logger('ElectronIpcService');
     private _subscriptions: Map<string, Subscription> = new Map();
     private _pending: Map<string, (message: IPCMessages.TMessage) => any> = new Map();
     private _handlers: Map<string, Map<string, THandler>> = new Map();
 
-    public sendToPluginHost(message: any, token: string): Promise<any> {
+    public init(): Promise<void> {
         return new Promise((resolve, reject) => {
-            const pluginMessage: IPCMessages.PluginMessage = new IPCMessages.PluginMessage({
-                message: message,
+            resolve();
+        });
+    }
+
+    public getName(): string {
+        return 'ElectronIpcService';
+    }
+
+    public sendToPluginHost(message: any, token: string, stream?: string): Promise<any> {
+        return new Promise((resolve, reject) => {
+            const pluginMessage: IPCMessages.PluginInternalMessage = new IPCMessages.PluginInternalMessage({
+                data: message,
                 token: token,
+                stream: stream
             });
-            this._send({ message: pluginMessage, token: token }).then(() => {
+            this._send({ message: pluginMessage, token: token, stream: stream }).then(() => {
                 resolve();
             }).catch((sendingError: Error) => {
                 reject(sendingError);
@@ -29,15 +40,15 @@ class ServiceElectronIpc {
 
     public requestToPluginHost(message: any, token: string): Promise<any> {
         return new Promise((resolve, reject) => {
-            const pluginMessage: IPCMessages.PluginMessage = new IPCMessages.PluginMessage({
-                message: message,
+            const pluginMessage: IPCMessages.PluginInternalMessage = new IPCMessages.PluginInternalMessage({
+                data: message,
                 token: token,
             });
             this.request(pluginMessage).then((response: IPCMessages.TMessage | undefined) => {
-                if (!(response instanceof IPCMessages.PluginMessage)) {
+                if (!(response instanceof IPCMessages.PluginInternalMessage)) {
                     return reject(new Error(`From plugin host was gotten incorrect responce: ${typeof response}/${response}`));
                 }
-                resolve(response.message);
+                resolve(response.data);
             }).catch((sendingError: Error) => {
                 reject(sendingError);
             });
@@ -65,6 +76,7 @@ class ServiceElectronIpc {
                 return reject(new Error(`Incorrect type of message`));
             }
             this._send({ message: message, sequence: sequence }).then(() => {
+                console.log(`SENDING MESSAGE: ${JSON.stringify(message)}`);
                 resolve();
             }).catch((sendingError: Error) => {
                 reject(sendingError);
@@ -101,7 +113,7 @@ class ServiceElectronIpc {
 
     public subscribeOnPluginMessage(handler: THandler): Promise<Subscription> {
         return new Promise((resolve) => {
-            resolve(this._setSubscription(IPCMessages.PluginMessage.signature, handler));
+            resolve(this._setSubscription(IPCMessages.PluginInternalMessage.signature, handler));
         });
     }
 
@@ -110,6 +122,10 @@ class ServiceElectronIpc {
             subscription.destroy();
         });
         this._subscriptions.clear();
+    }
+
+    public isAvailable(): boolean {
+        return typeof Electron !== 'undefined';
     }
 
     private _setSubscription(signature: string, handler: THandler): Subscription {
@@ -129,7 +145,7 @@ class ServiceElectronIpc {
     }
 
     private _emitIncomePluginMessage(message: any) {
-        const handlers: Map<string, THandler> = this._handlers.get(IPCMessages.PluginMessage.signature);
+        const handlers: Map<string, THandler> = this._handlers.get(IPCMessages.PluginInternalMessage.signature);
         if (handlers === undefined) {
             return;
         }
@@ -151,9 +167,9 @@ class ServiceElectronIpc {
             if (resolver !== undefined) {
                 return resolver(instance);
             }
-            if (instance instanceof IPCMessages.PluginMessage) {
+            if (instance instanceof IPCMessages.PluginInternalMessage) {
                 if (typeof instance.token !== 'string' || instance.token.trim() === '') {
-                    this._logger.warn(`Was gotten message "PluginMessage", but message doesn't have token. Message will be ignored.`, instance);
+                    this._logger.warn(`Was gotten message "PluginInternalMessage", but message doesn't have token. Message will be ignored.`, instance);
                     return;
                 }
                 // This is plugin message. Do not pass into common stream of messages
@@ -176,7 +192,8 @@ class ServiceElectronIpc {
         message: IPCMessages.TMessage,
         expectResponse?: boolean,
         sequence?: string,
-        token?: string
+        token?: string,
+        stream?: string,
     }): Promise<IPCMessages.TMessage | undefined> {
         return new Promise((resolve, reject) => {
             if (typeof Electron === 'undefined') {
@@ -186,6 +203,7 @@ class ServiceElectronIpc {
                 message: params.message,
                 sequence: params.sequence,
                 token: params.token,
+                stream: params.stream,
             });
             const signature: string = params.message.signature;
             if (params.expectResponse) {
@@ -245,4 +263,4 @@ class ServiceElectronIpc {
 
 }
 
-export default (new ServiceElectronIpc());
+export default (new ElectronIpcService());

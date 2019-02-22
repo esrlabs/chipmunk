@@ -3,10 +3,11 @@ import * as Tools from '../tools/index';
 import * as IPCElectronMessages from './electron.ipc.messages/index';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
 import ServiceElectronIpc from './service.electron.ipc';
+import { IService } from '../interfaces/interface.service';
 
 type TToken = string;
 
-export class PluginsIPCService {
+export class PluginsIPCService implements IService {
 
     private _logger: Tools.Logger = new Tools.Logger('PluginsIPCService');
     private _ipcs: Map<TToken, ControllerPluginIPC> = new Map();
@@ -18,6 +19,16 @@ export class PluginsIPCService {
         }).catch((subscribeError: Error) => {
             this._logger.error(`Error to subscribe to income plugin messages due error: ${subscribeError.message}`);
         });
+    }
+
+    public init(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            resolve();
+        });
+    }
+
+    public getName(): string {
+        return 'PluginsIPCService';
     }
 
     public destroy() {
@@ -42,18 +53,18 @@ export class PluginsIPCService {
         this._ipcs.delete(token);
     }
 
-    public sendToHost(message: any, token: string): Promise<void> {
-        return ServiceElectronIpc.sendToPluginHost(message, token);
+    public sendToHost(message: any, token: string, streamId?: string): Promise<void> {
+        return ServiceElectronIpc.sendToPluginHost(message, token, streamId);
     }
 
     public reqiestFromHost(message: any, token: string): Promise<void> {
         return ServiceElectronIpc.requestToPluginHost(message, token);
     }
 
-    private _onPluginMessage(message: IPCElectronMessages.PluginMessage) {
+    private _onPluginMessage(message: IPCElectronMessages.PluginInternalMessage) {
         this._ipcs.forEach((ipc: ControllerPluginIPC, token: TToken) => {
             if (token === message.token) {
-                ipc.acceptHostMessage(message.message);
+                ipc.acceptHostMessage(message.data);
             }
         });
     }

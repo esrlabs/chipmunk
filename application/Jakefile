@@ -589,6 +589,17 @@ namespace('electron', function() {
         sh(this, electronAppPath, ...tasks);
     }, {async: true});
 
+    task('package.json', function() {
+        logo();
+        const tasks = [];
+        const electronAppPath = path.normalize(path.resolve(__dirname, ELECTRON_FOLDER));
+        const electronDistFolder = path.normalize(path.resolve(electronAppPath, 'dist'));
+        const electronCompiledFolder = path.normalize(path.resolve(electronDistFolder, 'compiled'));
+        // Copy package.json
+        tasks.push(`cp ${path.normalize(path.resolve(electronAppPath, 'package.json'))} ${path.normalize(path.resolve(electronCompiledFolder, 'package.json'))}`)
+        sh(this, electronAppPath, ...tasks);
+    }, {async: true});
+
     task('deliveryClient', function() {
         logo();
         const tasks = [];
@@ -602,6 +613,7 @@ namespace('electron', function() {
         sh(this, '.', ...tasks);
     }, {async: true});
 
-    task('build', ['electron:clean', 'solution:link', 'solution:fix-npm-etc', 'electron:install', 'electron:compile', 'client:all', 'electron:deliveryClient', 'electron:buildApp']);
+    task('build', ['electron:clean', 'solution:link', 'solution:fix-npm-etc', 'electron:install', 'electron:compile', 'client:all', 'electron:deliveryClient', 'plugin.terminal:all', 'electron:buildApp']);
+    task('prebuild', ['electron:clean', 'solution:link', 'solution:fix-npm-etc', 'electron:install', 'electron:compile', 'client:all', 'electron:deliveryClient', 'plugin.terminal:all', 'electron:package.json']);
 
 });

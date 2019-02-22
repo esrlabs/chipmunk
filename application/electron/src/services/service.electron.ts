@@ -87,9 +87,9 @@ class ServiceElectron implements IService {
         return process.versions.electron;
     }
 
-    public redirectIPCMessageToPluginRender(message: IPCMessages.PluginMessage) {
+    public redirectIPCMessageToPluginRender(message: IPCMessages.PluginInternalMessage) {
         if (this._controllerBrowserWindow === undefined) {
-            return this._logger.error(`Fail to redirect message of plugin by token: ${message.token}, because BrowserWindow is undefined. Income message: ${message.message}`);
+            return this._logger.error(`Fail to redirect message of plugin by token: ${message.token}, because BrowserWindow is undefined. Income message: ${message.data}`);
         }
         this._controllerBrowserWindow.getIpc().then((ipc: ControllerElectronIpc) => {
             ipc.send(message, null).catch((sendingError: Error) => {

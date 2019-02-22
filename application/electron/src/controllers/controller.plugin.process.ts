@@ -80,7 +80,7 @@ export default class ControllerPluginProcess extends Emitter {
             })).catch((sendingError: Error) => {
                 this._logger.error(`Fail delivery plugin token due error: ${sendingError.message}`);
             });
-
+            /*
             ServiceStreams.create(this._plugin.name).then((stream: IStreamInfo) => {
                 if (this._process === undefined) {
                     return;
@@ -94,17 +94,18 @@ export default class ControllerPluginProcess extends Emitter {
                 console.log('ERROR!!!');
                 console.log(error);
             });
+            */
 
-
-            this._test();
+            // this._test();
             resolve();
         });
     }
     
     public _test() {
         setTimeout(() => {
-            this._ipc !== undefined && this._ipc.request(new IPCPluginMessages.PluginRenderMessage({
+            this._ipc !== undefined && this._ipc.request(new IPCPluginMessages.PluginInternalMessage({
                 data: { command: 'shell', post: 'ls -lsa\n' },
+                token: '',
             })).then((response: IPCPluginMessages.TMessage | undefined) => {
                 console.log(response);
                 this._test();
@@ -137,6 +138,18 @@ export default class ControllerPluginProcess extends Emitter {
         !this._process.killed && this._process.kill(signal);
         this._process = undefined;
         return true;
+    }
+
+    public addStream(guid: string, socket: Net.Socket) {
+        if (this._process === undefined) {
+            this._logger.warn(`Attempt to add stream to plugin, which doesn't attached. Stream GUID: ${guid}.`);
+            return;
+        }
+        this._process.send(guid, socket);
+    }
+
+    public removeStream(guid: string) {
+        // TODO: implement message to plugin
     }
 
     /**

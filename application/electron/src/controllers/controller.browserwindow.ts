@@ -71,6 +71,10 @@ export default class ControllerBrowserWindow extends EventEmitter {
                 width: state.w,
                 x: state.x,
                 y: state.y,
+                webPreferences: {
+                    allowRunningInsecureContent: true,
+                    webSecurity: false,
+                },
             };
             this._window = new BrowserWindow(options);
             const clientPath = ServicePath.resoveRootFolder(ServiceSettings.get().client.indexHtml);
