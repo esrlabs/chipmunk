@@ -15,14 +15,16 @@ const InitializeStages = [
     // Stage #1
     [ServicePaths],
     // Stage #2
-    [ServicePackage, ServiceStreams],
+    [ServicePackage],
     // Stage #3
     [ServiceSettings, ServiceWindowState],
     // Stage #4. Init electron. Prepare browser window
     [ServiceElectron],
     // Stage #5. Init services and helpers
     [ServiceElectronService],
-    // Stage #6. Init plugins
+    // Stage #6. Stream service
+    [ServiceStreams],
+    // Stage #7. Init plugins
     [ServicePlugins],
     // (last service should startup service and should be single always)
 ];

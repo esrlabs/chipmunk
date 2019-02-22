@@ -3,6 +3,7 @@ export interface IMessagePackage {
     sequence?: string;
     message?: any;
     token?: string | null;
+    stream?: string;
     created?: number;
 }
 
@@ -18,6 +19,7 @@ export class IPCMessagePackage {
     public sequence: string = '';
     public message: any;
     public token: string | null;
+    public stream?: string;
     public created: number;
 
     constructor(params: IMessagePackage) {
@@ -36,6 +38,7 @@ export class IPCMessagePackage {
         this.sequence = params.sequence;
         this.token = params.token;
         this.message = params.message;
+        this.stream = params.stream;
         this.created = params.created;
     }
 

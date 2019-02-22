@@ -3,12 +3,13 @@ import ServiceElectronIpc from './service.electron.ipc';
 import { IPCMessages, Subscription } from './service.electron.ipc';
 import { ControllerSession } from '../controller/controller.session';
 import * as Tools from '../tools/index';
+import { IService } from '../interfaces/interface.service';
 
 import { ViewOutputComponent } from '../components/views/output/component';
 
 type TSessionGuid = string;
 
-export class SessionsService {
+export class SessionsService implements IService {
 
     private _logger: Tools.Logger = new Tools.Logger('SessionsService');
     private _sessions: Map<TSessionGuid, ControllerSession> = new Map();
@@ -20,6 +21,16 @@ export class SessionsService {
 
     }
 
+    public init(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            resolve();
+        });
+    }
+
+    public getName(): string {
+        return 'SessionsService';
+    }
+
     public destroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].destroy();
@@ -29,7 +40,8 @@ export class SessionsService {
     public create(): void {
         const guid: string = Tools.guid();
         const session = new ControllerSession({
-            guid: guid
+            guid: guid,
+            transports: ['terminal'],
         });
         this._tabsService.add({
             guid: guid,
@@ -38,7 +50,7 @@ export class SessionsService {
             content: {
                 factory: DockingComponent,
                 inputs: {
-                    service: new DocksService('1', new DockDef.Container({
+                    service: new DocksService(guid, new DockDef.Container({
                         a: new DockDef.Dock({ caption: 'Default', component: {
                             factory: ViewOutputComponent,
                             inputs: {

@@ -4,14 +4,14 @@ export { HostState, EHostState, IHostState };
 import { HostStateHistory } from './host.state.history';
 export { HostStateHistory };
 
-import { IRenderMountPlugin, RenderMountPlugin } from './render.plugin.mount';
-export { IRenderMountPlugin, RenderMountPlugin };
+import { IRenderMountPlugin, RenderMountPlugin, IRenderMountPluginInfo } from './render.plugin.mount';
+export { IRenderMountPlugin, RenderMountPlugin, IRenderMountPluginInfo };
 
 import { IRenderState, RenderState, ERenderState } from './render.state';
 export { IRenderState, RenderState, ERenderState };
 
-import { IPluginMessage, PluginMessage } from './plugin.message';
-export { IPluginMessage, PluginMessage };
+import { IPluginInternalMessage, PluginInternalMessage } from './plugin.internal.message';
+export { IPluginInternalMessage, PluginInternalMessage };
 
 import { IStreamAdd, StreamAdd } from './stream.add';
 export { IStreamAdd, StreamAdd };
@@ -24,7 +24,7 @@ export type TMessage =  HostState |
                         HostStateHistory |
                         RenderMountPlugin |
                         RenderState |
-                        PluginMessage |
+                        PluginInternalMessage |
                         StreamAdd |
                         StreamRemove;
 
@@ -33,12 +33,12 @@ export type TMessage =  HostState |
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *  */
 export const Map = {
 
-    [HostState.signature            ]: HostState,
-    [HostStateHistory.signature     ]: HostStateHistory,
-    [RenderMountPlugin.signature    ]: RenderMountPlugin,
-    [RenderState.signature          ]: RenderState,
-    [PluginMessage.signature        ]: PluginMessage,
-    [StreamAdd.signature            ]: StreamAdd,
-    [StreamRemove.signature         ]: StreamRemove,
+    [HostState.signature                ]: HostState,
+    [HostStateHistory.signature         ]: HostStateHistory,
+    [RenderMountPlugin.signature        ]: RenderMountPlugin,
+    [RenderState.signature              ]: RenderState,
+    [PluginInternalMessage.signature    ]: PluginInternalMessage,
+    [StreamAdd.signature                ]: StreamAdd,
+    [StreamRemove.signature             ]: StreamRemove,
 
 };

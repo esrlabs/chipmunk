@@ -1,7 +1,12 @@
-<ul class="rows" (window:resize)="_ng_onBrowserWindowResize($event)">
+<ul #outputwrapper class="rows" (window:resize)="_ng_onBrowserWindowResize($event)">
     <cdk-virtual-scroll-viewport #outputviewport class="virtual-scroll-viewport" [ngStyle]="_ng_getOutputAreaStyle()" itemSize="16">
       <ng-container *cdkVirtualFor="let packet of _ng_output">
         <app-views-output-row [packet]="packet"></app-views-output-row>
       </ng-container>
     </cdk-virtual-scroll-viewport>
+</ul>
+<ul class="injections-bottom">
+  <li class="injection" *ngFor="let injection of _ng_injections.bottom | keyvalue">
+    <lib-containers-dynamic [component]="{ factory: injection.value.factory, inputs: injection.value.inputs, resolved: true }"></lib-containers-dynamic>
+  </li>
 </ul>

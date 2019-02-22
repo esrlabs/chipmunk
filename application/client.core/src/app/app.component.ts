@@ -1,9 +1,11 @@
-import { AfterViewInit, Component, Compiler, Injector, ViewChild, ViewContainerRef } from '@angular/core';
+import { AfterViewInit, Component, Compiler, Injector, ChangeDetectorRef } from '@angular/core';
 import { NotificationsService } from './environment/services/service.notifications';
 import ServiceElectronIpc from './environment/services/service.electron.ipc';
 import { IPCMessages, Subscription } from './environment/services/service.electron.ipc';
-import { PluginsService } from './environment/services/service.plugins';
+import PluginsService from './environment/services/service.plugins';
+import LoaderService from './environment/services/service.loader';
 import * as Tools from './environment/tools/index';
+import { debug } from 'util';
 
 @Component({
     selector: 'app-root',
@@ -13,20 +15,33 @@ import * as Tools from './environment/tools/index';
 
 export class AppComponent implements AfterViewInit {
 
-    private _logger: Tools.Logger = new Tools.Logger('PluginsService');
-    private _pluginsService: PluginsService = new PluginsService(this._compiler, this._injector);
+    private _logger: Tools.Logger = new Tools.Logger('AppComponent');
+    private _ready: boolean = false;
 
     constructor(
-      private _compiler: Compiler,
-      private _injector: Injector,
-      private _notifications: NotificationsService) { }
+        private _cdRef: ChangeDetectorRef,
+        private _compiler: Compiler,
+        private _injector: Injector,
+        private _notifications: NotificationsService) {
+        PluginsService.defineCompilerAndInjector(_compiler, _injector);
+    }
 
     ngAfterViewInit() {
-        // Send notification to host
-        ServiceElectronIpc.send(new IPCMessages.RenderState({
-            state: IPCMessages.ERenderState.ready
-        })).catch((sendingError: Error) => {
-            this._logger.error(`Fail to send "IPCMessages.RenderState" message to host due error: ${sendingError.message}`);
+        LoaderService.init().then(() => {
+            setTimeout(() => {
+                // Subscribe to plugins load event
+                PluginsService.subscribe(PluginsService.Events.pluginsLoaded, () => {
+                    PluginsService.unsubscribeAll();
+                    this._ready = true;
+                    this._cdRef.detectChanges();
+                });
+                // Send notification to host
+                ServiceElectronIpc.send(new IPCMessages.RenderState({
+                    state: IPCMessages.ERenderState.ready
+                })).catch((sendingError: Error) => {
+                    this._logger.error(`Fail to send "IPCMessages.RenderState" message to host due error: ${sendingError.message}`);
+                });
+            }, 5000);
         });
     }
 

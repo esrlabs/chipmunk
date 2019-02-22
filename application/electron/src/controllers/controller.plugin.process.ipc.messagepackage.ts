@@ -1,6 +1,7 @@
 // tslint:disable:only-arrow-functions
 export interface IMessagePackage {
     sequence?: string;
+    stream?: string;
     message?: any;
     token?: string | null;
     created?: number;
@@ -17,6 +18,7 @@ export class IPCMessagePackage {
 
     public sequence: string = '';
     public message: any;
+    public stream?: string;
     public token: string | null;
     public created: number;
 
@@ -35,6 +37,7 @@ export class IPCMessagePackage {
         }
         this.sequence = params.sequence;
         this.token = params.token;
+        this.stream = params.stream;
         this.message = params.message;
         this.created = params.created;
     }

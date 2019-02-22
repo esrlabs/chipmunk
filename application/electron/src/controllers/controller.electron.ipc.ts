@@ -27,6 +27,9 @@ export default class ControllerElectronIpc {
     constructor(winId: string, contents: WebContents) {
         this._winId = winId;
         this._contents = contents;
+        this._redirectToPluginHost = this._redirectToPluginHost.bind(this);
+        // Subscribe to plugins messages
+        this.subscribe(IPCMessages.PluginInternalMessage, this._redirectToPluginHost);
     }
 
     public send(message: IPCMessages.TMessage, token: string | null): Promise<IPCMessages.TMessage | undefined> {
@@ -114,8 +117,6 @@ export default class ControllerElectronIpc {
             const instance: IPCMessages.TMessage = new (refMessageClass as any)(messagePackage.message);
             if (resolver !== undefined) {
                 resolver(instance);
-            } else if (instance instanceof IPCMessages.PluginMessage) {
-                this._redirectToPluginHost(instance);
             } else {
                 const handlers = this._handlers.get(instance.signature);
                 if (handlers === undefined) {
@@ -130,7 +131,7 @@ export default class ControllerElectronIpc {
         }
     }
 
-    private _redirectToPluginHost(message: IPCMessages.PluginMessage) {
+    private _redirectToPluginHost(message: IPCMessages.PluginInternalMessage) {
         ServicePlugins.redirectIPCMessageToPluginHost(message);
     }
 

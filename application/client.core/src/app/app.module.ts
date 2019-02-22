@@ -4,8 +4,6 @@ import { JitCompilerFactory } from '@angular/platform-browser-dynamic';
 
 import { AppComponent } from './app.component';
 
-import { plugins } from './plugins/register';
-
 import { EnvironmentModule } from './environment/module';
 
 export function createCompiler(fn: CompilerFactory): Compiler {
@@ -18,8 +16,7 @@ export function createCompiler(fn: CompilerFactory): Compiler {
   ],
   imports: [
     BrowserModule,
-    EnvironmentModule,
-    ...plugins
+    EnvironmentModule
   ],
   providers: [{
     provide: COMPILER_OPTIONS,

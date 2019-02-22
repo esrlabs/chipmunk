@@ -1,41 +1,36 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, ElementRef, ViewChild } from '@angular/core';
 
 @Component({
-    selector: 'lib-view',
+    selector: 'lib-output-bottom',
     templateUrl: './template.html',
     styleUrls: ['./styles.less']
 })
 
 export class ViewComponent implements AfterViewInit, OnDestroy {
+    @ViewChild('cmdinput') _ng_input: ElementRef;
 
-    @Input() public title: string;
     @Input() public ipc: any;
-
-    public items: string[] = [];
-
-    private _timer: any = -1;
+    @Input() public session: string;
 
     constructor(private _cdRef: ChangeDetectorRef) {
 
     }
 
     ngOnDestroy() {
-        clearTimeout(this._timer);
     }
 
     ngAfterViewInit() {
-        this._next();
-        debugger;
-        this.ipc.subscribeToHost((message: string) => {
-            this.items.push(...message.split(/[\n\r]/gi));
-        });
+
     }
 
-    private _next() {
-        this._timer = setTimeout(() => {
-            this.title = Math.random() + '';
-            this._next();
-        }, 500);
+    public _ng_onKeyUp(event: KeyboardEvent) {
+        if (event.keyCode === 13) {
+            this.ipc.sentToHost({
+                stream: this.session,
+                command: 'shell',
+                post: `${(event.target as HTMLInputElement).value}\n`
+            }, this.session);
+        }
     }
 
 

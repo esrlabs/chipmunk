@@ -18,8 +18,8 @@ export default class ControllerPluginIPC {
 
     }
 
-    public sentToHost(message: any): Promise<void> {
-        return PluginsIPCService.sendToHost(message, this._token);
+    public sentToHost(message: any, streamId?: string): Promise<void> {
+        return PluginsIPCService.sendToHost(message, this._token, streamId);
     }
 
     public requestToHost(message: any): Promise<any> {

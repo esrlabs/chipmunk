@@ -2,10 +2,10 @@ import * as Path from 'path';
 import * as fs from 'fs';
 import * as Net from 'net';
 import * as FS from '../../platform/node/src/fs';
+import { EventEmitter } from 'events';
 
 import ServicePaths from './service.paths';
 import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from './service.electron';
-
 import Logger from '../../platform/node/src/env.logger';
 
 import { IService } from '../interfaces/interface.service';
@@ -25,13 +25,19 @@ type TGuid = string;
  * @description Controlls data streams of application
  */
 
-class ServiceStreams implements IService {
+class ServiceStreams extends EventEmitter implements IService  {
+
+    public EVENTS = {
+        streamAdded: 'streamAdded',
+        streamRemoved: 'streamRemoved',
+    };
 
     private _logger: Logger = new Logger('ServiceStreams');
     private _streams: Map<TGuid, IStreamInfo> = new Map();
     private _subscriptions: { [key: string ]: Subscription | undefined } = { };
 
     constructor() {
+        super();
         this._ipc_onStreamAdd = this._ipc_onStreamAdd.bind(this);
         this._ipc_onStreamRemove = this._ipc_onStreamRemove.bind(this);
     }
@@ -86,9 +92,9 @@ class ServiceStreams implements IService {
 
     /**
      * Creates new stream socket
-     * @returns Promise<void>
+     * @returns Promise<IStreamInfo>
      */
-    public create(guid: string): Promise<IStreamInfo> {
+    private _createStream(guid: string): Promise<IStreamInfo> {
         return new Promise((resolve, reject) => {
             const socketFile: string = Path.resolve(ServicePaths.getSockets(), `${Date.now()}-${guid}.sock`);
             try {
@@ -113,6 +119,28 @@ class ServiceStreams implements IService {
             } catch (e) {
                 reject(e);
             }
+        });
+    }
+
+    private _destroyStream(guid: string): Promise<void> {
+        return new Promise((resolve) => {
+            const stream: IStreamInfo | undefined = this._streams.get(guid);
+            if (stream === undefined) {
+                this._logger.warn(`Was gotten command to destroy stream, but stream wasn't found in storage.`);
+                return;
+            }
+            const streamSocketFile = stream.file;
+            stream.server.unref();
+            stream.connection.unref();
+            stream.connection.destroy();
+            this._streams.delete(guid);
+            fs.unlink(streamSocketFile, (removeFileError: NodeJS.ErrnoException) => {
+                if (removeFileError) {
+                    this._logger.warn(`Fail to remove stream socket file ${streamSocketFile} due error: ${removeFileError.message}`);
+                }
+                // Resolve in any case
+                resolve();
+            });
         });
     }
 
@@ -149,12 +177,23 @@ class ServiceStreams implements IService {
         if (!(message instanceof IPCElectronMessages.StreamAdd)) {
             return;
         }
+        // Create stream
+        this._createStream(message.guid).then((stream: IStreamInfo) => {
+            // Notify plugins server about new stream
+            this.emit(this.EVENTS.streamAdded, stream, message.transports);
+        }).catch((streamCreateError: Error) => {
+            this._logger.error(`Fail to create stream due error: ${streamCreateError.message}`);
+        });
     }
 
     private _ipc_onStreamRemove(message: IPCElectronMessages.TMessage) {
         if (!(message instanceof IPCElectronMessages.StreamRemove)) {
             return;
         }
+        this._destroyStream(message.guid).then(() => {
+            this.emit(this.EVENTS.streamRemoved);
+            // TODO: forward actions to other compoenents
+        });
     }
 
 }

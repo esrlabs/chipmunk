@@ -1,12 +1,11 @@
-import { OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
+import { OnDestroy, ChangeDetectorRef, AfterViewInit, ElementRef } from '@angular/core';
 export declare class ViewComponent implements AfterViewInit, OnDestroy {
     private _cdRef;
-    title: string;
+    _ng_input: ElementRef;
     ipc: any;
-    items: string[];
-    private _timer;
+    session: string;
     constructor(_cdRef: ChangeDetectorRef);
     ngOnDestroy(): void;
     ngAfterViewInit(): void;
-    private _next;
+    _ng_onKeyUp(event: KeyboardEvent): void;
 }

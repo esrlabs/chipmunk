@@ -74,66 +74,6 @@ export class LayoutComponent implements OnDestroy {
         this._funcBarStateSubscriptions.updated = this.funcBarState.getObservable().updated.subscribe(this._onFuncStateUpdated.bind(this));
         this._secAreaStateSubscriptions.minimized = this.secAreaState.getObservable().minimized.subscribe(this._onSecAreaMinimized.bind(this));
         this._secAreaStateSubscriptions.updated = this.secAreaState.getObservable().updated.subscribe(this._onSecAreaStateUpdated.bind(this));
-        /*
-        this.service.add({
-            name: 'Tab 1 (3)',
-            active: true,
-            dock: new DockDef.Container({
-              a: new DockDef.Dock({ caption: 'Dock 1' }),
-              b: new DockDef.Container({
-                a: new DockDef.Dock({ caption: 'Dock 2' }),
-                b: new DockDef.Dock({ caption: 'Dock 3' })
-              })
-            })
-          });
-          this.service.add({
-            name: 'Tab 2 (2)',
-            active: false,
-            dock: new DockDef.Container({
-              a: new DockDef.Dock({ caption: 'Dock 1' }),
-              b: new DockDef.Dock({ caption: 'Dock 2' })
-            })
-          });
-          this.service.add({
-            name: 'Tab 3 (4)',
-            active: false,
-            dock: new DockDef.Container({
-              a: new DockDef.Container({
-                a: new DockDef.Dock({ caption: '1' }),
-                b: new DockDef.Dock({ caption: '2' })
-              }),
-              b: new DockDef.Container({
-                a: new DockDef.Dock({ caption: '3' }),
-                b: new DockDef.Dock({ caption: '4' })
-              })
-            })
-          });
-          this.service.add({
-            name: 'Tab 4 (5)',
-            active: false,
-            dock: new DockDef.Container({
-              a: new DockDef.Container({
-                a: new DockDef.Dock({ caption: 'Dock 1' }),
-                b: new DockDef.Dock({ caption: 'Dock 2' })
-              }),
-              b: new DockDef.Container({
-                a: new DockDef.Dock({ caption: 'Dock 3' }),
-                b: new DockDef.Container({
-                  a: new DockDef.Dock({ caption: 'Dock 4' }),
-                  b: new DockDef.Dock({ caption: 'Dock 5' })
-                })
-              })
-            })
-          });
-          this.service.add({
-            name: 'Tab 5 (1)',
-            active: false,
-            dock: new DockDef.Container({
-              a: new DockDef.Dock({ caption: 'Dock 1' })
-            })
-          });
-          */
-
     }
 
     ngOnDestroy() {

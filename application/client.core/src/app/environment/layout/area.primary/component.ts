@@ -26,6 +26,7 @@ export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
     };
 
     constructor(private _cdRef: ChangeDetectorRef) {
+        debugger;
         this.tabsService = SessionsService.getTabsService();
         SessionsService.create();
         this.tabsService.updateOptions({
