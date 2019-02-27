@@ -29,11 +29,15 @@ export class ControllerSessionStream {
         this._guid = params.guid;
         this._transports = params.transports;
         this._logger = new Tools.Logger(`ControllerSessionStream: ${params.guid}`);
+        this._ipc_onStreamData = this._ipc_onStreamData.bind(this);
         // Notify electron about new stream
         ServiceElectronIpc.send(new IPCMessages.StreamAdd({
             guid: this._guid,
             transports: this._transports.slice(),
         }));
+        // Subscribe to streams data
+        ServiceElectronIpc.subscribe(IPCMessages.StreamData, this._ipc_onStreamData);
+        /*
         setInterval(() => {
             const original = `${Math.random().toFixed(10)}-${Math.random().toFixed(10)}-${Math.random().toFixed(10)}-${Math.random().toFixed(10)}`;
             this._subjects.new.next({
@@ -43,6 +47,7 @@ export class ControllerSessionStream {
                 original: original
             });
         }, Math.random() * 500);
+        */
     }
 
     public destroy() {
@@ -67,6 +72,17 @@ export class ControllerSessionStream {
             new: this._subjects.new.asObservable(),
             clear: this._subjects.clear.asObservable(),
         };
+    }
+
+    private _ipc_onStreamData(message: IPCMessages.StreamData) {
+        message.data.split(/[\n\r]/gi).forEach((row: string) => {
+            this._subjects.new.next({
+                original: row
+            });
+            this._output.pushToStream({
+                original: row
+            });
+        });
     }
 
 }

@@ -19,6 +19,9 @@ export { IStreamAdd, StreamAdd };
 import { IStreamRemove, StreamRemove } from './stream.remove';
 export { IStreamRemove, StreamRemove };
 
+import { IStreamData, StreamData } from './stream.data';
+export { IStreamData, StreamData };
+
 // Common type for expected message implementation
 export type TMessage =  HostState |
                         HostStateHistory |
@@ -26,7 +29,8 @@ export type TMessage =  HostState |
                         RenderState |
                         PluginInternalMessage |
                         StreamAdd |
-                        StreamRemove;
+                        StreamRemove |
+                        StreamData;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -40,5 +44,6 @@ export const Map = {
     [PluginInternalMessage.signature    ]: PluginInternalMessage,
     [StreamAdd.signature                ]: StreamAdd,
     [StreamRemove.signature             ]: StreamRemove,
+    [StreamData.signature               ]: StreamData,
 
 };

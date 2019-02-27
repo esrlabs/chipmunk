@@ -131,6 +131,7 @@ class ServiceStreams extends EventEmitter implements IService  {
             }
             const streamSocketFile = stream.file;
             stream.server.unref();
+            stream.connection.removeAllListeners();
             stream.connection.unref();
             stream.connection.destroy();
             this._streams.delete(guid);
@@ -181,6 +182,7 @@ class ServiceStreams extends EventEmitter implements IService  {
         this._createStream(message.guid).then((stream: IStreamInfo) => {
             // Notify plugins server about new stream
             this.emit(this.EVENTS.streamAdded, stream, message.transports);
+            stream.connection.on('data', this._stream_onData.bind(this, message.guid));
         }).catch((streamCreateError: Error) => {
             this._logger.error(`Fail to create stream due error: ${streamCreateError.message}`);
         });
@@ -193,6 +195,15 @@ class ServiceStreams extends EventEmitter implements IService  {
         this._destroyStream(message.guid).then(() => {
             this.emit(this.EVENTS.streamRemoved);
             // TODO: forward actions to other compoenents
+        });
+    }
+
+    private _stream_onData(guid: string, chung: Buffer) {
+        ServiceElectron.IPC.send(new IPCElectronMessages.StreamData({
+            guid: guid,
+            data: chung.toString(),
+        })).catch((error: Error) => {
+            this._logger.warn(`Fail send data from stream to render process due error: ${error.message}`);
         });
     }
 
