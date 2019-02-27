@@ -348,7 +348,7 @@ export class HostState {
 }
 ```
 
-> Note. Class of message/event should have static and not static property "**signature**" with unique name of message/event.
+> **Note**. Class of message/event should have static and not static property "**signature**" with unique name of message/event.
 
 Using classes as message/event definition gives a few benifits.
 
@@ -399,3 +399,33 @@ Instead using IPC, main render process delivery API object to render plugin part
 - "IPC" to communicate with plugin host (node part)
 - references to main render (Angular) services
 
+## Sessions / streams
+Common scheme is present bellow. 
+> **Note**. To make scheme simpler, communication between **render** and **main process**, also between **main process** and **plugins** are shown as direct lines, but in fact, communications goes via IPC and other services, like it was described before.
+
+![](https://raw.githubusercontent.com/DmitryAstafyev/logviewer/v2/docs/assets/plugins_and_streams.svg?sanitize=true)
+
+Workflow looks like:
+
+*--------------/ on render process level /--------------*
+- For each new tab of logviewer, render process creates session controller (which also created controller of session stream). 
+- Session controller created data package about session: ID of session, list of plugins (transports), which should join into stream
+- Session controller sends this data to render (via IPC for sure)
+  
+*--------------/ on main process level /--------------*
+
+- Main process gets (Streams Service) data about session and creates UNIX socket in **home folder** (located in home folder of OS user, name ".logviewer") of logviewer. 
+- Streams Service forward information about new stream to Plugins Service with list of plugins, which should join to stream.
+- Plugins Service send stream ID and reference to UNIX socket to each plugin
+
+*--------------/ on plugin level (node) /--------------*
+
+- Plugin register stream data and start pushing all related data into UNIX socket
+
+*--------------/ on main process level /--------------*
+
+- Streams Service listens stream-socket and sends (via IPC) each new package to render process
+
+*--------------/ on render process level /--------------*
+
+- Controller of session stream listens messages from Streams Service (main process) and redirect each income package to main output view. 
