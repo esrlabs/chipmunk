@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, AfterViewInit } from '@angular/core';
+import { Component, Input, OnDestroy, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { TabsService } from './service';
 import { TabsOptions, ETabsListDirection } from './options';
@@ -27,7 +27,7 @@ export class TabsComponent implements OnDestroy, AfterViewInit {
 
     public _options: TabsOptions = new TabsOptions();
 
-    constructor() {
+    constructor(private _cdRef: ChangeDetectorRef) {
     }
 
     ngAfterViewInit() {
@@ -48,9 +48,11 @@ export class TabsComponent implements OnDestroy, AfterViewInit {
 
     private async _getDefaultOptions() {
         this._options = await this.service.getOptions();
+        this._cdRef.detectChanges();
     }
 
     private async _onOptionsUpdated(options: TabsOptions) {
         this._options = await options;
+        this._cdRef.detectChanges();
     }
 }

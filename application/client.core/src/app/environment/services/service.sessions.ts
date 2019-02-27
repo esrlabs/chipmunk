@@ -46,7 +46,7 @@ export class SessionsService implements IService {
         this._tabsService.add({
             guid: guid,
             name: 'Default',
-            active: false,
+            active: true,
             content: {
                 factory: DockingComponent,
                 inputs: {

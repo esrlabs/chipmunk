@@ -26,9 +26,9 @@ export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
     };
 
     constructor(private _cdRef: ChangeDetectorRef) {
-        debugger;
+        // Get reference to tab service
         this.tabsService = SessionsService.getTabsService();
-        SessionsService.create();
+        // Add controls to tab list area (button "+")
         this.tabsService.updateOptions({
             injections: {
                 bar: {
@@ -37,6 +37,8 @@ export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
                 }
             }
         });
+        // Create default session
+        SessionsService.create();
         /*
         const options = this.tabsService.getOptions();
         options.injections.bar = {

@@ -9,7 +9,7 @@ import ServicePlugins from './services/service.plugins';
 import ServiceStreams from './services/service.streams';
 import ServiceSettings from './services/service.settings';
 import ServiceWindowState from './services/service.window.state';
-import ServiceElectronService from './services/service.electron.state';
+import ServiceElectronState from './services/service.electron.state';
 
 const InitializeStages = [
     // Stage #1
@@ -21,7 +21,7 @@ const InitializeStages = [
     // Stage #4. Init electron. Prepare browser window
     [ServiceElectron],
     // Stage #5. Init services and helpers
-    [ServiceElectronService],
+    [ServiceElectronState],
     // Stage #6. Stream service
     [ServiceStreams],
     // Stage #7. Init plugins
@@ -83,7 +83,7 @@ class Application {
                 ServiceSettings.destroy(),
                 ServiceWindowState.destroy(),
                 ServiceElectron.destroy(),
-                ServiceElectronService.destroy(),
+                ServiceElectronState.destroy(),
                 ServicePlugins.destroy(),
             ]).then(() => {
                 this.logger.env(`All services are destroyed.`);
@@ -121,6 +121,7 @@ class Application {
 
 (new Application()).init().then((app: Application) => {
     app.logger.env(`Application is ready.`);
+    ServiceElectronState.setStateAsReady();
     // initialization of plugins?
     // registration events?
     /*

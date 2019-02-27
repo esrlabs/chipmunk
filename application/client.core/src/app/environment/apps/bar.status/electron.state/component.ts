@@ -69,6 +69,7 @@ export class AppsStatusBarElectronStateComponent implements OnDestroy, AfterView
         } else {
             this.ng_component.inputs.history = this._history;
             this.ng_showHistory = !this.ng_showHistory;
+            this._cdRef.detectChanges();
         }
     }
 

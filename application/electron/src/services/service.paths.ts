@@ -49,7 +49,7 @@ class ServicePaths implements IService {
                 Promise.all([this._home, this._plugins, this._sockets].map((folder: string) => {
                     return this._mkdir(folder);
                 })).then(() => {
-                    this._logger.env(`Paths:\n\thome: ${this._home}\n\troot: ${this._root}\n\tapp: ${this._app}\n\tresources ${this._resources}\n\tplugins ${this._plugins}`);
+                    this._logger.env(`Paths:\n\thome: ${this._home}\n\troot: ${this._root}\n\tapp: ${this._app}\n\tresources ${this._resources}\n\tplugins ${this._plugins}\n\tsockets ${this._sockets}`);
                     resolve();
                 }).catch((error: Error) => {
                     this._logger.error(`Fail to initialize paths due error: ${error.message}`);
