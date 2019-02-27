@@ -401,7 +401,7 @@ Instead using IPC, main render process delivery API object to render plugin part
 
 ## Sessions / streams
 Common scheme is present bellow. 
-> **Note**. To make scheme simpler, communication between **render** and **main process**, also between **main process** and **plugins** are shown as direct lines, but in fact, communications goes via IPC and other services, like it was described before.
+> **Note**. To make scheme simpler, communication between **render** and **main process**, also between **main process** and **plugins** is shown as direct lines, but in fact, communication goes via IPC and other services, like it was described before.
 
 ![](https://raw.githubusercontent.com/DmitryAstafyev/logviewer/v2/docs/assets/plugins_and_streams.svg?sanitize=true)
 
@@ -409,14 +409,14 @@ Workflow looks like:
 
 *--------------/ on render process level /--------------*
 - For each new tab of logviewer, render process creates session controller (which also created controller of session stream). 
-- Session controller created data package about session: ID of session, list of plugins (transports), which should join into stream
+- Session controller creates data package about session: ID of session, list of plugins (transports), which should join into stream
 - Session controller sends this data to render (via IPC for sure)
   
 *--------------/ on main process level /--------------*
 
-- Main process gets (Streams Service) data about session and creates UNIX socket in **home folder** (located in home folder of OS user, name ".logviewer") of logviewer. 
-- Streams Service forward information about new stream to Plugins Service with list of plugins, which should join to stream.
-- Plugins Service send stream ID and reference to UNIX socket to each plugin
+- Main process gets (Streams Service) data about session and creates UNIX socket in **home folder** of logviewer (located in home folder of OS user, name ".logviewer"). 
+- Streams Service forwards information about new stream to Plugins Service with list of plugins, which should join to stream.
+- Plugins Service sends stream ID and reference to UNIX socket to each plugin
 
 *--------------/ on plugin level (node) /--------------*
 
