@@ -47,6 +47,7 @@ export class TabContentComponent implements OnDestroy, AfterViewInit {
 
     private async _getDefaultTab() {
         this._tab = await this.service.getActiveTab();
+        this._cdRef.detectChanges();
     }
 
     private async onActiveTabChange(tab: ITab) {
@@ -55,6 +56,7 @@ export class TabContentComponent implements OnDestroy, AfterViewInit {
         if (_tab.active && guid !== _tab.guid) {
             this._tab = _tab;
         }
+        this._cdRef.detectChanges();
     }
 
 }

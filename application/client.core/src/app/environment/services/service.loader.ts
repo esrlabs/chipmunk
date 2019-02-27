@@ -18,7 +18,7 @@ export class LoaderService {
 
     private _logger: Tools.Logger = new Tools.Logger('PluginsLoader');
 
-        /**
+    /**
      * Initialization of application
      * Will start application in case of success of initialization
      * @returns void

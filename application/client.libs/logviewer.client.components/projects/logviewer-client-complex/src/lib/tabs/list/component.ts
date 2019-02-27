@@ -1,4 +1,4 @@
-import { Component, OnDestroy, Input, AfterViewInit } from '@angular/core';
+import { Component, OnDestroy, Input, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { ITab, TabsService } from '../service';
 import { TabsOptions, ETabsListDirection } from '../options';
 import { Subscription } from 'rxjs';
@@ -31,7 +31,7 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
 
     public tabs: ITab[] = [];
 
-    constructor() {
+    constructor(private _cdRef: ChangeDetectorRef) {
     }
 
     ngAfterViewInit() {
@@ -59,11 +59,13 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
     public onClick(tabkey: string) {
         console.log(tabkey);
         this.service.setActive(tabkey);
+        this._cdRef.detectChanges();
     }
 
     private async onNewTab(tab: ITab) {
         this._tabs.set(tab.guid, await tab);
         this.tabs.push(tab);
+        this._cdRef.detectChanges();
     }
 
     private async onActiveTabChange(tab: ITab) {
@@ -81,10 +83,12 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
 
     private async _getDefaultOptions() {
         this._options = await this.service.getOptions();
+        this._cdRef.detectChanges();
     }
 
     private async _onOptionsUpdated(options: TabsOptions) {
         this._options = await options;
+        this._cdRef.detectChanges();
     }
 
 }

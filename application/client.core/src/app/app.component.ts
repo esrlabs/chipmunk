@@ -28,20 +28,18 @@ export class AppComponent implements AfterViewInit {
 
     ngAfterViewInit() {
         LoaderService.init().then(() => {
-            setTimeout(() => {
-                // Subscribe to plugins load event
-                PluginsService.subscribe(PluginsService.Events.pluginsLoaded, () => {
-                    PluginsService.unsubscribeAll();
-                    this._ready = true;
-                    this._cdRef.detectChanges();
-                });
-                // Send notification to host
-                ServiceElectronIpc.send(new IPCMessages.RenderState({
-                    state: IPCMessages.ERenderState.ready
-                })).catch((sendingError: Error) => {
-                    this._logger.error(`Fail to send "IPCMessages.RenderState" message to host due error: ${sendingError.message}`);
-                });
-            }, 5000);
+            // Subscribe to plugins load event
+            PluginsService.subscribe(PluginsService.Events.pluginsLoaded, () => {
+                PluginsService.unsubscribeAll();
+                this._ready = true;
+                this._cdRef.detectChanges();
+            });
+            // Send notification to host
+            ServiceElectronIpc.send(new IPCMessages.RenderState({
+                state: IPCMessages.ERenderState.ready
+            })).catch((sendingError: Error) => {
+                this._logger.error(`Fail to send "IPCMessages.RenderState" message to host due error: ${sendingError.message}`);
+            });
         });
     }
 
