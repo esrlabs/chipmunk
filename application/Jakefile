@@ -489,7 +489,6 @@ namespace('plugin.terminal', function() {
         const tasks = [];
         const hostDist = path.normalize(path.resolve(PATH_HOST_SOURCES, 'dist'));
         const hostNodeModules = path.normalize(path.resolve(PATH_HOST_SOURCES, 'node_modules'));
-        const hostIPCMod = path.normalize(path.resolve(hostNodeModules, 'logviewer.plugin.ipc'));
         if (fs.existsSync(hostDist)) {
             tasks.push(echo(colors.blue(`Remove dist files: ${hostDist}`)));
             tasks.push(`rm -rf ${hostDist}`);
@@ -501,9 +500,6 @@ namespace('plugin.terminal', function() {
         if (!fs.existsSync(hostNodeModules)) {
             tasks.push(`npm install --prefix ${PATH_HOST_SOURCES}`);
         }
-        tasks.push(`unlink ${hostIPCMod} & exit 0`);
-        tasks.push(`rm -rf ${hostIPCMod} & exit 0`);
-        tasks.push(`ln -s ${HOST_IPC_MOD} ${hostIPCMod}`);
         tasks.push(`npm run build --prefix ${PATH_HOST_SOURCES}`);
         sh(this, '.', ...tasks);
     }, {async: true});

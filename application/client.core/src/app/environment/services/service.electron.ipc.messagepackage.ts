@@ -2,8 +2,6 @@
 export interface IMessagePackage {
     sequence?: string;
     message?: any;
-    token?: string | null;
-    stream?: string;
     created?: number;
 }
 
@@ -18,8 +16,6 @@ export class IPCMessagePackage {
 
     public sequence: string = '';
     public message: any;
-    public token: string | null;
-    public stream?: string;
     public created: number;
 
     constructor(params: IMessagePackage) {
@@ -29,16 +25,11 @@ export class IPCMessagePackage {
         if (typeof params.sequence !== 'string' || params.sequence.trim() === '') {
             params.sequence = getSequence();
         }
-        if (typeof params.token !== 'string' || params.token.trim() === '') {
-            params.token = null;
-        }
         if (params.created === undefined) {
             params.created = Date.now();
         }
         this.sequence = params.sequence;
-        this.token = params.token;
         this.message = params.message;
-        this.stream = params.stream;
         this.created = params.created;
     }
 

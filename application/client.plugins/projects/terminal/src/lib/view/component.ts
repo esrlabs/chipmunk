@@ -24,6 +24,24 @@ export class ViewComponent implements AfterViewInit, OnDestroy {
     }
 
     public _ng_onKeyUp(event: KeyboardEvent) {
+        if (event.key.length === 1) {
+            this.ipc.requestToHost({
+                stream: this.session,
+                command: 'shell',
+                post: event.key
+            }, this.session).then((response) => {
+                console.log(`RES:: ${response}`);
+            });
+        } else {
+            this.ipc.requestToHost({
+                stream: this.session,
+                command: 'shell',
+                post: String.fromCharCode(event.keyCode)
+            }, this.session).then((response) => {
+                console.log(`RES:: ${response}`);
+            });
+        }
+        /*
         if (event.keyCode === 13) {
             this.ipc.sentToHost({
                 stream: this.session,
@@ -31,6 +49,7 @@ export class ViewComponent implements AfterViewInit, OnDestroy {
                 post: `${(event.target as HTMLInputElement).value}\n`
             }, this.session);
         }
+        */
     }
 
 

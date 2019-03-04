@@ -57,8 +57,8 @@ export class PluginsIPCService implements IService {
         return ServiceElectronIpc.sendToPluginHost(message, token, streamId);
     }
 
-    public reqiestFromHost(message: any, token: string): Promise<void> {
-        return ServiceElectronIpc.requestToPluginHost(message, token);
+    public requestFromHost(message: any, token: string, streamId?: string): Promise<void> {
+        return ServiceElectronIpc.requestToPluginHost(message, token, streamId);
     }
 
     private _onPluginMessage(message: IPCElectronMessages.PluginInternalMessage) {

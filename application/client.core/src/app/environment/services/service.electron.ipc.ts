@@ -30,7 +30,7 @@ class ElectronIpcService implements IService {
                 token: token,
                 stream: stream
             });
-            this._send({ message: pluginMessage, token: token, stream: stream }).then(() => {
+            this._send({ message: pluginMessage }).then(() => {
                 resolve();
             }).catch((sendingError: Error) => {
                 reject(sendingError);
@@ -38,11 +38,12 @@ class ElectronIpcService implements IService {
         });
     }
 
-    public requestToPluginHost(message: any, token: string): Promise<any> {
+    public requestToPluginHost(message: any, token: string, stream?: string): Promise<any> {
         return new Promise((resolve, reject) => {
             const pluginMessage: IPCMessages.PluginInternalMessage = new IPCMessages.PluginInternalMessage({
                 data: message,
                 token: token,
+                stream: stream
             });
             this.request(pluginMessage).then((response: IPCMessages.TMessage | undefined) => {
                 if (!(response instanceof IPCMessages.PluginInternalMessage)) {
@@ -90,7 +91,7 @@ class ElectronIpcService implements IService {
             if (ref === undefined) {
                 return reject(new Error(`Incorrect type of message`));
             }
-            this._send({ message: message, expectResponse: true }).then((response: IPCMessages.TMessage | undefined) => {
+            this._send({ message: message, expectResponse: true, sequence: guid() }).then((response: IPCMessages.TMessage | undefined) => {
                 resolve(response);
             }).catch((sendingError: Error) => {
                 reject(sendingError);
@@ -191,9 +192,7 @@ class ElectronIpcService implements IService {
     private _send(params: {
         message: IPCMessages.TMessage,
         expectResponse?: boolean,
-        sequence?: string,
-        token?: string,
-        stream?: string,
+        sequence?: string
     }): Promise<IPCMessages.TMessage | undefined> {
         return new Promise((resolve, reject) => {
             if (typeof Electron === 'undefined') {
@@ -201,9 +200,7 @@ class ElectronIpcService implements IService {
             }
             const messagePackage: IPCMessagePackage = new IPCMessagePackage({
                 message: params.message,
-                sequence: params.sequence,
-                token: params.token,
-                stream: params.stream,
+                sequence: params.sequence
             });
             const signature: string = params.message.signature;
             if (params.expectResponse) {
