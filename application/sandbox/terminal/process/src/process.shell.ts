@@ -1,5 +1,4 @@
-import { spawn, ChildProcess } from 'child_process';
-import * as Streams from 'stream';
+import * as pty from 'node-pty';
 import { EventEmitter } from 'events';
 
 export interface IShellOptions {
@@ -16,17 +15,19 @@ export default class Shell extends EventEmitter {
 
     public Events = Shell.Events;
 
-    private _process: ChildProcess | undefined;
+    private _process: pty.IPty | undefined;
 
     constructor(options: IShellOptions) {
         super();
-        this._process = spawn(options.shell);
-        this._process.stdout.on('data', this._onStdout.bind(this));
-        this._process.stderr.on('data', this._onStderr.bind(this));
+        this._process = pty.spawn(options.shell, [], {
+            name: 'xterm-color',
+            cols: 80,
+            rows: 30,
+            cwd: process.env.HOME,
+            env: process.env as any
+        });
+        this._process.on('data', this._onStdout.bind(this));
         this._process.on('exit', this._onExit.bind(this));
-        this._process.on('close', this._onClose.bind(this));
-        this._process.on('disconnect', this._onDisconnect.bind(this));
-        this._process.on('error', this._onError.bind(this));
     }
 
     public send(data: any): Promise<void> {
@@ -34,12 +35,8 @@ export default class Shell extends EventEmitter {
             if (this._process === undefined) {
                 return reject(new Error(`Shell process isn't available. It was destroyed or wasn't created at all.`));
             }
-            this._process.stdin.write(data, (error: Error | null | undefined) => {
-                if (error) {
-                    return reject(error);
-                }
-                resolve();
-            });
+            this._process.write(data);
+            resolve();
         });
     }
 
@@ -47,7 +44,6 @@ export default class Shell extends EventEmitter {
         if (this._process === undefined) {
             return;
         }
-        this._process.removeAllListeners();
         this._process.kill();
     }
 
@@ -55,28 +51,9 @@ export default class Shell extends EventEmitter {
         this.emit(this.Events.data, chunk);
     }
 
-    private _onStderr(chunk: any) {
-        this.emit(this.Events.data, chunk);
-    }
-
     private _onExit() {
         this.destroy();
         this.emit(this.Events.exit);
-    }
-
-    private _onClose() {
-        this.destroy();
-        this.emit(this.Events.exit);
-    }
-
-    private _onDisconnect() {
-        this.destroy();
-        this.emit(this.Events.exit);
-    }
-
-    private _onError(error: Error) {
-        this.destroy();
-        this.emit(this.Events.error, error);
     }
 
 }

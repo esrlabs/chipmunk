@@ -198,10 +198,11 @@ class ServiceStreams extends EventEmitter implements IService  {
         });
     }
 
-    private _stream_onData(guid: string, chung: Buffer) {
+    private _stream_onData(guid: string, chunk: Buffer) {
+        const output = chunk.toString('utf8');
         ServiceElectron.IPC.send(new IPCElectronMessages.StreamData({
             guid: guid,
-            data: chung.toString(),
+            data: output,
         })).catch((error: Error) => {
             this._logger.warn(`Fail send data from stream to render process due error: ${error.message}`);
         });

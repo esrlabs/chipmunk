@@ -22,8 +22,8 @@ export default class ControllerPluginIPC {
         return PluginsIPCService.sendToHost(message, this._token, streamId);
     }
 
-    public requestToHost(message: any): Promise<any> {
-        return PluginsIPCService.reqiestFromHost(message, this._token);
+    public requestToHost(message: any, streamId?: string): Promise<any> {
+        return PluginsIPCService.requestFromHost(message, this._token, streamId);
     }
 
     public subscribeToHost(handler: Tools.THandler): Promise<Tools.Subscription> {

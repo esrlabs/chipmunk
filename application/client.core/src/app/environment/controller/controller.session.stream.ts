@@ -75,7 +75,11 @@ export class ControllerSessionStream {
     }
 
     private _ipc_onStreamData(message: IPCMessages.StreamData) {
-        message.data.split(/[\n\r]/gi).forEach((row: string) => {
+        const output: string = message.data.replace(/[\r\n]/g, '\n').replace(/\n{2,}/g, '\n');
+        output.split(/\n/gi).forEach((row: string) => {
+            if (row.trim() === '') {
+                return;
+            }
             this._subjects.new.next({
                 original: row
             });

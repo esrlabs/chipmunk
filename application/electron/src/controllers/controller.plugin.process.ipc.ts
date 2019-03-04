@@ -40,9 +40,10 @@ export default class ControllerIPCPlugin extends EventEmitter {
     /**
      * Sends message to plugin process via IPC without expecting any answer
      * @param {IPCMessages.TMessage} message instance of defined IPC message
+     * @param {string} sequence sequence of message (if defined)
      * @returns { Promise<void> }
      */
-    public send(message: IPCMessages.TMessage): Promise<IPCMessages.TMessage | undefined> {
+    public send(message: IPCMessages.TMessage, sequence?: string): Promise<IPCMessages.TMessage | undefined> {
         return new Promise((resolve, reject) => {
             const ref: Function | undefined = this._getRefToMessageClass(message);
             if (ref === undefined) {
@@ -50,7 +51,7 @@ export default class ControllerIPCPlugin extends EventEmitter {
             }
             const messagePackage: IPCMessagePackage = new IPCMessagePackage({
                 message: message,
-                token: this._token,
+                sequence: sequence,
             });
             this._send(messagePackage).then(() => {
                 resolve();
@@ -69,7 +70,6 @@ export default class ControllerIPCPlugin extends EventEmitter {
             const messagePackage: IPCMessagePackage = new IPCMessagePackage({
                 message: message,
                 sequence: sequence,
-                token: this._token,
             });
             this._send(messagePackage).then(() => {
                 resolve();
@@ -92,7 +92,6 @@ export default class ControllerIPCPlugin extends EventEmitter {
             }
             const messagePackage: IPCMessagePackage = new IPCMessagePackage({
                 message: message,
-                token: this._token,
             });
             this._send(messagePackage, true).then((response: IPCMessages.TMessage | undefined) => {
                 resolve(response);
@@ -178,7 +177,7 @@ export default class ControllerIPCPlugin extends EventEmitter {
             if (resolver !== undefined) {
                 return resolver(instance);
             } else if (instance instanceof IPCMessages.PluginInternalMessage) {
-                this._redirectToPluginHost(instance);
+                this._redirectToPluginHost(instance, message.sequence);
             } else {
                 const handlers = this._handlers.get(instance.signature);
                 if (handlers === undefined) {
@@ -193,8 +192,8 @@ export default class ControllerIPCPlugin extends EventEmitter {
         }
     }
 
-    private _redirectToPluginHost(message: IPCMessages.PluginInternalMessage) {
-        ServiceElectron.redirectIPCMessageToPluginRender(message);
+    private _redirectToPluginHost(message: IPCMessages.PluginInternalMessage, sequence?: string) {
+        ServiceElectron.redirectIPCMessageToPluginRender(message, sequence);
     }
 
     /**

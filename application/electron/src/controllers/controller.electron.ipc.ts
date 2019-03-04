@@ -32,13 +32,13 @@ export default class ControllerElectronIpc {
         this.subscribe(IPCMessages.PluginInternalMessage, this._redirectToPluginHost);
     }
 
-    public send(message: IPCMessages.TMessage, token: string | null): Promise<IPCMessages.TMessage | undefined> {
+    public send(message: IPCMessages.TMessage, sequence?: string): Promise<IPCMessages.TMessage | undefined> {
         return new Promise((resolve, reject) => {
             const ref: Function | undefined = this._getRefToMessageClass(message);
             if (ref === undefined) {
                 return reject(new Error(`Incorrect type of message`));
             }
-            this._send(message, false, undefined, token).then(() => {
+            this._send(message, false, sequence).then(() => {
                 resolve();
             }).catch((sendingError: Error) => {
                 reject(sendingError);
@@ -46,13 +46,13 @@ export default class ControllerElectronIpc {
         });
     }
 
-    public response(sequence: string, token: string | null, message: IPCMessages.TMessage): Promise<IPCMessages.TMessage | undefined> {
+    public response(sequence: string, message: IPCMessages.TMessage): Promise<IPCMessages.TMessage | undefined> {
         return new Promise((resolve, reject) => {
             const ref: Function | undefined = this._getRefToMessageClass(message);
             if (ref === undefined) {
                 return reject(new Error(`Incorrect type of message`));
             }
-            this._send(message, false, sequence, token).then(() => {
+            this._send(message, false, sequence).then(() => {
                 resolve();
             }).catch((sendingError: Error) => {
                 reject(sendingError);
@@ -60,13 +60,13 @@ export default class ControllerElectronIpc {
         });
     }
 
-    public request(message: IPCMessages.TMessage, token: string | null): Promise<IPCMessages.TMessage | undefined> {
+    public request(message: IPCMessages.TMessage): Promise<IPCMessages.TMessage | undefined> {
         return new Promise((resolve, reject) => {
             const ref: Function | undefined = this._getRefToMessageClass(message);
             if (ref === undefined) {
                 return reject(new Error(`Incorrect type of message`));
             }
-            this._send(message, true, undefined, token).then((response: IPCMessages.TMessage | undefined) => {
+            this._send(message, true, undefined).then((response: IPCMessages.TMessage | undefined) => {
                 resolve(response);
             }).catch((sendingError: Error) => {
                 reject(sendingError);
@@ -123,7 +123,7 @@ export default class ControllerElectronIpc {
                     return;
                 }
                 handlers.forEach((handler: THandler) => {
-                    handler(instance, this.response.bind(this, messagePackage.sequence, messagePackage.token));
+                    handler(instance, this.response.bind(this, messagePackage.sequence), messagePackage.sequence);
                 });
             }
         } catch (e) {
@@ -131,11 +131,11 @@ export default class ControllerElectronIpc {
         }
     }
 
-    private _redirectToPluginHost(message: IPCMessages.PluginInternalMessage) {
-        ServicePlugins.redirectIPCMessageToPluginHost(message);
+    private _redirectToPluginHost(message: IPCMessages.PluginInternalMessage, response: () => any, sequence?: string) {
+        ServicePlugins.redirectIPCMessageToPluginHost(message, sequence);
     }
 
-    private _send(message: IPCMessages.TMessage, expectResponse: boolean = false, sequence?: string, token: string | null = null): Promise<IPCMessages.TMessage | undefined> {
+    private _send(message: IPCMessages.TMessage, expectResponse: boolean = false, sequence?: string): Promise<IPCMessages.TMessage | undefined> {
         return new Promise((resolve, reject) => {
             if (this._contents === undefined) {
                 return new Error(this._logger.warn(`[Send] Cannot send message, because context on browser's window isn't defined yet.`));
@@ -143,7 +143,6 @@ export default class ControllerElectronIpc {
             const messagePackage: IPCMessagePackage = new IPCMessagePackage({
                 message: message,
                 sequence: sequence,
-                token: token,
             });
             const signature: string = message.signature;
             if (expectResponse) {

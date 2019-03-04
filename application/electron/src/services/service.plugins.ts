@@ -135,7 +135,7 @@ export class ServicePlugins implements IService {
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     *   Redirection of messages
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    public redirectIPCMessageToPluginHost(message: IPCMessages.PluginInternalMessage) {
+    public redirectIPCMessageToPluginHost(message: IPCMessages.PluginInternalMessage, sequence?: string) {
         const target: IPlugin | undefined = this._getPluginInfoByToken(message.token);
         if (target === undefined) {
             return this._logger.error(`Fail to find plugin by token: ${message.token}. Income message: ${message.data}`);
@@ -147,7 +147,7 @@ export class ServicePlugins implements IService {
         if (ipc instanceof Error) {
             return this._logger.error(`Fail redirect message by token ${message.token} due error: ${ipc.message}`);
         }
-        ipc.send(message).catch((sendingError: Error) => {
+        ipc.send(message, sequence).catch((sendingError: Error) => {
             this._logger.error(`Fail redirect message by token ${message.token} due error: ${sendingError.message}`);
         });
     }

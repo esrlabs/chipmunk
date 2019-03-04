@@ -2,7 +2,6 @@
 export interface IMessagePackage {
     sequence?: string;
     message?: any;
-    stream?: string;
     token?: string | null;
     created?: number;
 }

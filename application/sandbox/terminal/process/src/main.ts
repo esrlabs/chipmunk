@@ -70,7 +70,8 @@ class Plugin {
                         data: {
                             status: 'done'
                         },
-                        token: message.token
+                        token: message.token,
+                        stream: message.stream
                     }));
                 }).catch((error: Error) => {
                     response(new IPCMessages.PluginError({
