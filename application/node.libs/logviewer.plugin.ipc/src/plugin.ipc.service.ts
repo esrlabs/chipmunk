@@ -16,8 +16,6 @@ export { IPCMessages };
  *      { fd: 1 } stdout    listened by parent process. Whole output from it goes to logs of parent process
  *      { fd: 2 } stderr    listened by parent process. Whole output from it goes to logs of parent process
  *      { fd: 3 } ipc       used by parent process as command sender / reciever
- *      { fd: 4 } pipe      listened by parent process. Used as bridge to data's stream. All data from this
- *                          stream are redirected into session stream of parent process
  * @recommendations
  *      - to parse logs use simple "console.log (warn, err etc)" or you can write it directly to stdout
  *      - parent process nothig send to process.stdin ( fd: 0 )
@@ -32,7 +30,6 @@ export { IPCMessages };
  */
 export class PluginIPCService extends EventEmitter {
 
-    private _stream: FS.WriteStream;
     private _pending: Map<string, (message: IPCMessages.TMessage) => any> = new Map();
     private _subscriptions: Map<string, Subscription> = new Map();
     private _handlers: Map<string, Map<string, THandler>> = new Map();
@@ -54,8 +51,6 @@ export class PluginIPCService extends EventEmitter {
         if (process.send === void 0) {
             throw new Error(`Fail to init plugin, because IPC interface isn't available. Expecting 'ipc' on "fd:3"`);
         }
-        // Create data's stream (to send data to main output stream)
-        this._stream = FS.createWriteStream('', { fd: 4 });
         // Listen parent process for messages
         process.on('message', this._onMessage.bind(this));
         // Subscribe to token message

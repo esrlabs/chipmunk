@@ -35,7 +35,6 @@ export default class ControllerPluginProcess extends Emitter {
         this._logger = new Logger(`plugin: ${this._plugin.name}`);
         this._onSTDData = this._onSTDData.bind(this);
         this._onClose = this._onClose.bind(this);
-        this._onStream = this._onStream.bind(this);
         this._onError = this._onError.bind(this);
         this._onDisconnect = this._onDisconnect.bind(this);
     }
@@ -61,7 +60,7 @@ export default class ControllerPluginProcess extends Emitter {
                     'pipe', // stdout - listened by parent process. Whole output from it goes to logs of parent process
                     'pipe', // stderr - listened by parent process. Whole output from it goes to logs of parent process
                     'ipc',  // ipc    - used by parent process as command sender / reciever
-                    'pipe', // pipe   - listened by parent process.
+                    // 'pipe', // Stream is deliveried as UNIX socket. We don't need it at the moment. But probably in th future it will be used as channel for sending big data
                 ] });
             // Getting data events
             this._process.stderr.on('data', this._onSTDData);
@@ -72,49 +71,17 @@ export default class ControllerPluginProcess extends Emitter {
             this._process.on('error', this._onError);
             this._process.on('disconnect', this._onDisconnect);
             // Create IPC controller
-            this._ipc = new ControllerIPCPlugin(this._plugin.name, this._process, (this._process.stdio as any)[4], this._plugin.token);
-            this._ipc.on(ControllerIPCPlugin.Events.stream, this._onStream);
+            this._ipc = new ControllerIPCPlugin(this._plugin.name, this._process, this._plugin.token);
             // Send token
             this._ipc.send(new IPCPluginMessages.PluginToken({
                 token: this._plugin.token,
             })).catch((sendingError: Error) => {
                 this._logger.error(`Fail delivery plugin token due error: ${sendingError.message}`);
             });
-            /*
-            ServiceStreams.create(this._plugin.name).then((stream: IStreamInfo) => {
-                if (this._process === undefined) {
-                    return;
-                }
-                this._process.send('test-socket', stream.socket);
-                stream.connection.on('data', (chunk: any) => {
-                    console.log('1!!!!!!!!');
-                    console.log(chunk.toString());
-                });
-            }).catch((error: Error) => {
-                console.log('ERROR!!!');
-                console.log(error);
-            });
-            */
-
-            // this._test();
             resolve();
         });
     }
-    
-    public _test() {
-        setTimeout(() => {
-            this._ipc !== undefined && this._ipc.request(new IPCPluginMessages.PluginInternalMessage({
-                data: { command: 'shell', post: 'ls -lsa\n' },
-                token: '',
-            })).then((response: IPCPluginMessages.TMessage | undefined) => {
-                console.log(response);
-                this._test();
-            }).catch((error: Error) => {
-                console.log(error);
-            });
-        }, 1000);
-    }
-    
+
     /**
      * Returns IPC controller of plugin
      * @returns { Promise<void> }
@@ -189,12 +156,4 @@ export default class ControllerPluginProcess extends Emitter {
         this.emit(ControllerPluginProcess.Events.disconnect, ...args);
     }
 
-    /**
-     * Handler to listen stream incomes
-     * @returns void
-     */
-    private _onStream(chunk: any): void {
-        // console.log(chunk.toString());
-        // TODO: here we should provide bridge to session-stream
-    }
 }
