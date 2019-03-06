@@ -6,6 +6,7 @@ import { EventEmitter } from 'events';
 
 import ServicePaths from './service.paths';
 import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from './service.electron';
+import ServicePlugins from './service.plugins';
 import Logger from '../../platform/node/src/env.logger';
 
 import { IService } from '../interfaces/interface.service';
@@ -199,10 +200,23 @@ class ServiceStreams extends EventEmitter implements IService  {
     }
 
     private _stream_onData(guid: string, chunk: Buffer) {
-        const output = chunk.toString('utf8');
+        // Exclude plugin id
+        const pluginId: number = chunk.readInt16BE(0);
+        // Get token
+        const pluginToken: string | undefined = ServicePlugins.getPluginToken(pluginId);
+        if (pluginToken === undefined) {
+            return this._logger.warn(`Fail to find plugin token by ID of plugin: id = "${pluginId}". Chunk of data will not be forward.`);
+        }
+        // Remove plugin ID from chunk
+        const cleared: Buffer = chunk.slice(2);
+        const output = cleared.toString('utf8');
+        console.log(output);
+        // Send data forward
         ServiceElectron.IPC.send(new IPCElectronMessages.StreamData({
             guid: guid,
             data: output,
+            pluginId: pluginId,
+            pluginToken: pluginToken,
         })).catch((error: Error) => {
             this._logger.warn(`Fail send data from stream to render process due error: ${error.message}`);
         });
