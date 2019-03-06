@@ -75,6 +75,7 @@ export default class ControllerPluginProcess extends Emitter {
             // Send token
             this._ipc.send(new IPCPluginMessages.PluginToken({
                 token: this._plugin.token,
+                id: this._plugin.id,
             })).catch((sendingError: Error) => {
                 this._logger.error(`Fail delivery plugin token due error: ${sendingError.message}`);
             });

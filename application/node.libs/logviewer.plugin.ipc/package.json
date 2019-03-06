@@ -1,6 +1,6 @@
 {
   "name": "logviewer.plugin.ipc",
-  "version": "0.0.1",
+  "version": "0.0.5",
   "description": "IPC transport and protocol for communication via plugin process and main process for logviewer ",
   "main": "./dist/plugin.ipc.service.js",
   "types": "./dist/plugin.ipc.service.d.ts",

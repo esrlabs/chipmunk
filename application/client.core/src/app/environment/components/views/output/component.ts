@@ -3,7 +3,6 @@ import { Subscription } from 'rxjs';
 import * as Tools from '../../../tools/index';
 import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import { ControllerSession, IComponentInjection } from '../../../controller/controller.session';
-import { IStreamPacket } from '../../../controller/controller.session.stream';
 import { ControllerSessionStreamOutput } from '../../../controller/controller.session.stream.output';
 
 @Component({
@@ -54,7 +53,8 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this._ng_output = this.session.getSessionStream().getOutputStream();
         // Get injections
         this._ng_injections.bottom = this.session.getOutputBottomInjections();
-
+        // Make subscriptions
+        this._subscriptions.next = this.session.getSessionStream().getObservable().next.subscribe(this._onNextStreamRow.bind(this));
     }
 
     public ngOnDestroy() {
@@ -83,6 +83,13 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this._ng_outputAreaSize.height = size.height;
         this._cdRef.detectChanges();
         this._ng_outputAreaViewport.checkViewportSize();
+    }
+
+    private _onNextStreamRow() {
+        if (this._vcRef === null || this._vcRef === undefined) {
+            return;
+        }
+        this._ng_outputAreaViewport.scrollTo({bottom: 0});
     }
 
 }

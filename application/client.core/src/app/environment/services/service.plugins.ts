@@ -5,6 +5,7 @@ import PluginsIPCService from './service.plugins.ipc';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
 import * as AngularCore from '@angular/core';
 import * as AngularCommon from '@angular/common';
+import * as AngularPlatformBrowser from '@angular/platform-browser';
 import * as Tools from '../tools/index';
 import { IService } from '../interfaces/interface.service';
 
@@ -47,12 +48,7 @@ export class PluginsService extends Tools.Emitter implements IService {
     constructor() {
         super();
         this._ipc_onRenderMountPlugin = this._ipc_onRenderMountPlugin.bind(this);
-        ElectronIpcService.subscribe(IPCMessages.RenderMountPlugin, this._ipc_onRenderMountPlugin).then((subscription: Subscription) => {
-            this._subscriptions.mountPlugin = subscription;
-        }).catch((subscribeError: Error) => {
-            this._logger.error(`Fail to subscribe to event "IPCMessages.PluginMount" due error: ${subscribeError.message}`);
-            this._subscriptions.state = undefined;
-        });
+        this._subscriptions.mountPlugin = ElectronIpcService.subscribe(IPCMessages.RenderMountPlugin, this._ipc_onRenderMountPlugin);
     }
 
     public init(): Promise<void> {
@@ -90,7 +86,8 @@ export class PluginsService extends Tools.Emitter implements IService {
                     const exports: any = {};
                     const modules: any = {
                         '@angular/core': AngularCore,
-                        '@angular/common': AngularCommon
+                        '@angular/common': AngularCommon,
+                        '@angular/platform-browser': AngularPlatformBrowser,
                     };
                     const require = (module) => modules[module]; // shim 'require'
                     // Step 3. Execute code of plugin to initialize

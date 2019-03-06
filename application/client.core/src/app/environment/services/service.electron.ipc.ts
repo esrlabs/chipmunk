@@ -12,6 +12,7 @@ class ElectronIpcService implements IService {
     private _subscriptions: Map<string, Subscription> = new Map();
     private _pending: Map<string, (message: IPCMessages.TMessage) => any> = new Map();
     private _handlers: Map<string, Map<string, THandler>> = new Map();
+    private _requests: Map<string, boolean> = new Map();
 
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
@@ -77,7 +78,6 @@ class ElectronIpcService implements IService {
                 return reject(new Error(`Incorrect type of message`));
             }
             this._send({ message: message, sequence: sequence }).then(() => {
-                console.log(`SENDING MESSAGE: ${JSON.stringify(message)}`);
                 resolve();
             }).catch((sendingError: Error) => {
                 reject(sendingError);
@@ -91,6 +91,14 @@ class ElectronIpcService implements IService {
             if (ref === undefined) {
                 return reject(new Error(`Incorrect type of message`));
             }
+            // Check, does we have handler for this type of message or not
+            if (!this._requests.has(message.signature)) {
+                // We don't have any listeners for this type of request. Have to create it.
+                // We don't need real handler, because this listeners has to be created just to
+                // catch income events.
+                Electron.ipcRenderer.on(message.signature, this._onIPCMessage.bind(this));
+                this._requests.set(message.signature, true);
+            }
             this._send({ message: message, expectResponse: true, sequence: guid() }).then((response: IPCMessages.TMessage | undefined) => {
                 resolve(response);
             }).catch((sendingError: Error) => {
@@ -99,18 +107,16 @@ class ElectronIpcService implements IService {
         });
     }
 
-    public subscribe(message: Function, handler: THandler): Promise<Subscription> {
-        return new Promise((resolve, reject) => {
-            if (typeof Electron === 'undefined') {
-                return reject(new Error(`Electron is not available.`));
-            }
-            if (!this._isValidMessageClassRef(message)) {
-                return reject(new Error(`Incorrect reference to message class.`));
-            }
-            const signature: string = (message as any).signature;
-            resolve(this._setSubscription(signature, handler));
-        });
-    }
+    public subscribe(message: Function, handler: THandler): Subscription {
+        if (!this._isValidMessageClassRef(message)) {
+            throw new Error(this._logger.error('Incorrect reference to message class.', message));
+        }
+        if (typeof Electron === 'undefined') {
+            throw new Error(this._logger.error(`Fail to subscribe to event ${(message as any).signature} because Electron isn't ready.`));
+        }
+        const signature: string = (message as any).signature;
+        return this._setSubscription(signature, handler);
+}
 
     public subscribeOnPluginMessage(handler: THandler): Promise<Subscription> {
         return new Promise((resolve) => {
@@ -185,7 +191,7 @@ class ElectronIpcService implements IService {
                 handler(instance, this.response.bind(this, messagePackage.sequence));
             });
         } catch (e) {
-            console.log(`Incorrect format of IPC message: ${typeof data}. Error: ${e.message}`);
+            this._logger.warn(`Incorrect format of IPC message: ${typeof data}. Error: ${e.message}`);
         }
     }
 

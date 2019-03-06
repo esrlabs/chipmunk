@@ -14,6 +14,7 @@ class Plugin {
     private _logger: Logger = new Logger('Terminal');
     private _availableShells: string[] = [];
     private _streams: Map<string, IStreamInfo> = new Map();
+    private _last: Map<string, string> = new Map();
 
     constructor() {
         this._onCommand = this._onCommand.bind(this);
@@ -22,15 +23,6 @@ class Plugin {
         PluginIPCService.subscribe(IPCMessages.PluginInternalMessage, this._onCommand);
         PluginIPCService.on(PluginIPCService.Events.openStream, this._onOpenStream);
         PluginIPCService.on(PluginIPCService.Events.closeStream, this._onCloseStream);
-    }
-
-    public execute(streamId: string, target: string): Promise<Shell> {
-        return new Promise((resolve, reject) => {
-            const shell: Shell = new Shell({ shell: target }); 
-            shell.on(Shell.Events.data, this._onShellOutput.bind(this, streamId));
-            shell.on(Shell.Events.exit, this._onShellClose.bind(this, streamId));
-            resolve(shell);
-        });
     }
 
     private _getAvailableShells(): Promise<string[]> {
@@ -111,13 +103,48 @@ class Plugin {
 
     private _onShellOutput(streamId: string, chunk: any) {
         PluginIPCService.sendToStream(chunk, streamId);
-        // PluginIPCService.sendToPluginHost(chunk.toString());
+        /*
+        const BreakRegExp = /[\r\n]/gm;
+        const src: string = chunk.toString();
+        const output: string = src.replace(BreakRegExp, '\n').replace(/\n{2,}/g, '\n');
+        const rows: string[] = output.split(/\n/gi);
+        let toStream: string = '';
+        let toPlugin: string = '';
+        if (rows.length === 1) {
+            let last: string | undefined = this._last.get(streamId);
+            if (last === undefined) {
+                last = '';
+            }
+            toPlugin = last + output;
+            this._last.set(streamId, toPlugin);
+        } else {
+            this._last.set(streamId, '');
+            toPlugin = rows[rows.length - 1];
+            toStream = rows.slice(0, rows.length - 1).join('\n');
+        }
+        PluginIPCService.sendToPluginHost({
+            last: toPlugin,
+            streamId: streamId
+        });
+        PluginIPCService.sendToStream(toStream + '\n', streamId);
+        */
+    }
+
+    private _execute(streamId: string, target: string): Promise<Shell> {
+        return new Promise((resolve, reject) => {
+            const shell: Shell = new Shell({ shell: target }); 
+            shell.on(Shell.Events.data, this._onShellOutput.bind(this, streamId));
+            shell.on(Shell.Events.exit, this._onShellClose.bind(this, streamId));
+            resolve(shell);
+        });
     }
 
     private _onOpenStream(streamId: string) {
         this._getAvailableShells().then((shells: string[]) => {
             this._availableShells = shells;
-            this.execute(streamId, this._availableShells[0]).then((shell: Shell) => {
+            // 6 - fish
+            // 0 - bash
+            this._execute(streamId, this._availableShells[0]).then((shell: Shell) => {
                 this._streams.set(streamId, {
                     shell: shell,
                     target: this._availableShells[0]
@@ -134,7 +161,7 @@ class Plugin {
     }
 
     private _onCloseStream(streamId: string) {
-
+        this._streams.delete(streamId);
     }
 
 }

@@ -34,6 +34,7 @@ export class PluginIPCService extends EventEmitter {
     private _subscriptions: Map<string, Subscription> = new Map();
     private _handlers: Map<string, Map<string, THandler>> = new Map();
     private _token: string | undefined;
+    private _id: number | undefined;
     private _tokenSubscription: Subscription | undefined;
     private _sockets: Map<string, Net.Socket> = new Map();
 
@@ -191,13 +192,21 @@ export class PluginIPCService extends EventEmitter {
      * @param {string} streamId id of target stream
      * @returns { Promise<void> }
      */
-    public sendToStream(chunk: any, streamId: string): Promise<void> {
+    public sendToStream(chunk: Buffer, streamId: string): Promise<void> {
         return new Promise((resolve, reject) => {
+            if (!(chunk instanceof Buffer)) {
+                return reject(new Error(`"chunk" should be a Buffer.`));
+            }
             const socket: Net.Socket | undefined = this._getStreamSocket(streamId);
             if (socket === undefined) {
                 return reject(new Error(`Fail to find bound socket with stream "${streamId}".`));
             }
-            socket.write(chunk, (error: Error) => {
+            // Add ID of plugin
+            const idBuffer: Buffer = Buffer.alloc(2);
+            idBuffer.writeInt16BE(this._id as number, 0);
+            const output: Buffer = Buffer.concat([idBuffer, chunk]);
+            // Send data
+            socket.write(output, (error: Error) => {
                 if (error) {
                     return reject(error);
                 }
@@ -332,6 +341,7 @@ export class PluginIPCService extends EventEmitter {
 
     private _onPluginToken(message: IPCMessages.PluginToken) {
         this._token = message.token;
+        this._id = message.id;
     }
 
 }
