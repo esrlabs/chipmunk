@@ -15,7 +15,7 @@ export default class ControllerPluginIPC {
     }
 
     public destroy() {
-
+        this._handlers.clear();
     }
 
     public sentToHost(message: any, streamId?: string): Promise<void> {
@@ -26,17 +26,14 @@ export default class ControllerPluginIPC {
         return PluginsIPCService.requestFromHost(message, this._token, streamId);
     }
 
-    public subscribeToHost(handler: Tools.THandler): Promise<Tools.Subscription> {
-        return new Promise((resolve) => {
-            const signature: string = this._name;
-            const subscriptionId: string = Tools.guid();
-            this._handlers.set(subscriptionId, handler);
-            const subscription: Tools.Subscription = new Tools.Subscription(signature, () => {
-                this._handlers.delete(subscriptionId);
-            }, subscriptionId);
-            resolve(subscription);
-        });
-    }
+    public subscribeToHost(handler: Tools.THandler): Tools.Subscription {
+        const signature: string = this._name;
+        const subscriptionId: string = Tools.guid();
+        this._handlers.set(subscriptionId, handler);
+        return new Tools.Subscription(signature, () => {
+            this._handlers.delete(subscriptionId);
+        }, subscriptionId);
+}
 
     public acceptHostMessage(message: any) {
         this._handlers.forEach((handler: Tools.THandler) => {
