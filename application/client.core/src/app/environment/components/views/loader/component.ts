@@ -1,4 +1,5 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import ServiceElectronIpc, { IPCMessages, Subscription } from '../../../services/service.electron.ipc';
 
 @Component({
     selector: 'app-views-loader',
@@ -6,8 +7,24 @@ import { Component, Input } from '@angular/core';
     styleUrls: ['./styles.less']
 })
 
-export class ViewLoaderComponent {
+export class ViewLoaderComponent implements OnDestroy {
 
     @Input() public comment: string = 'Welcome to logviewer';
 
+    private _subscription: Subscription;
+
+    constructor(private _cdRef: ChangeDetectorRef) {
+        this._subscription = ServiceElectronIpc.subscribe(IPCMessages.HostState, this._ipc_onHostStateChanged.bind(this));
+    }
+
+    public ngOnDestroy() {
+        this._subscription.destroy();
+    }
+
+    private _ipc_onHostStateChanged(state: IPCMessages.HostState) {
+        if (state.message !== '') {
+            this.comment = state.message;
+        }
+        this._cdRef.detectChanges();
+    }
 }

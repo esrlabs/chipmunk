@@ -1,4 +1,4 @@
-import ServiceElectronIpc from './service.electron.ipc';
+import ServiceElectronIpc, { IPCMessages } from './service.electron.ipc';
 import PluginsIPCService from './service.plugins.ipc';
 import PluginsService from './service.plugins';
 import SessionsService from './service.sessions';
@@ -17,7 +17,8 @@ const InitializeStages = [
 export class LoaderService {
 
     private _logger: Tools.Logger = new Tools.Logger('PluginsLoader');
-
+    private _subscription: Tools.Subscription | undefined;
+    private _resolver: () => any | undefined;
     /**
      * Initialization of application
      * Will start application in case of success of initialization
@@ -29,7 +30,17 @@ export class LoaderService {
                 if (error instanceof Error) {
                     return reject(error);
                 }
-                resolve();
+                // Request state of host
+                ServiceElectronIpc.request(new IPCMessages.HostState({})).then((response: IPCMessages.HostState) => {
+                    if (response.state === IPCMessages.EHostState.ready) {
+                        return resolve();
+                    }
+                    // Subscribe to state event
+                    this._subscription = ServiceElectronIpc.subscribe(IPCMessages.HostState, this._onHostStateChange.bind(this));
+                    this._resolver = resolve;
+                }).catch((requestError: Error) => {
+                    this._logger.error(`Fail to request HostState due error: ${requestError.message}`);
+                });
             });
         });
     }
@@ -56,6 +67,16 @@ export class LoaderService {
             this._logger.env(`Fail to initialize application dure error: ${error.message}`);
             callback(error);
         });
+    }
+
+    private _onHostStateChange(message: IPCMessages.HostState) {
+        if (this._resolver === undefined) {
+            return;
+        }
+        if (message.state === IPCMessages.EHostState.ready) {
+            this._subscription.destroy();
+            this._resolver();
+        }
     }
 
 }
