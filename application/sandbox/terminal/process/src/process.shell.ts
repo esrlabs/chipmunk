@@ -20,9 +20,9 @@ export default class Shell extends EventEmitter {
     constructor(options: IShellOptions) {
         super();
         this._process = pty.spawn(options.shell, [], {
-            name: 'xterm-color',
-            cols: 80,
-            rows: 30,
+            name: 'xterm-256color',
+            cols: 9999,
+            rows: 999,
             cwd: process.env.HOME,
             env: process.env as any
         });
@@ -48,6 +48,9 @@ export default class Shell extends EventEmitter {
     }
 
     private _onStdout(chunk: any) {
+        if (typeof chunk === 'string') {
+            chunk = Buffer.from(chunk);
+        }
         this.emit(this.Events.data, chunk);
     }
 

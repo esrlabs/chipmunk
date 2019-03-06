@@ -1,8 +1,8 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
-import ServiceElectronIpc from '../../../services/service.electron.ipc';
-import { IPCMessages, Subscription } from '../../../services/service.electron.ipc';
+import ServiceElectronIpc, { IPCMessages, Subscription } from '../../../services/service.electron.ipc';
 import { IComponentDesc, IFrameOptions } from 'logviewer-client-containers';
 import { StateHistoryComponent } from './history/component';
+import * as Tools from '../../../tools/index';
 
 @Component({
     selector: 'app-apps-status-bar-electron-state',
@@ -29,6 +29,7 @@ export class AppsStatusBarElectronStateComponent implements OnDestroy, AfterView
         }
     };
 
+    private _logger: Tools.Logger = new Tools.Logger('AppsStatusBarElectronStateComponent');
     private _history: string[] = [];
     private _subscriptions: { [key: string]: Subscription | undefined } = {
         state: undefined,
@@ -38,16 +39,8 @@ export class AppsStatusBarElectronStateComponent implements OnDestroy, AfterView
     constructor(private _cdRef: ChangeDetectorRef) {
         this._ipc_onHostStateChanged = this._ipc_onHostStateChanged.bind(this);
         this._ipc_onHostStateHistory = this._ipc_onHostStateHistory.bind(this);
-        ServiceElectronIpc.subscribe(IPCMessages.HostState, this._ipc_onHostStateChanged).then((subscription: Subscription) => {
-            this._subscriptions.state = subscription;
-        }).catch((error: Error) => {
-            this._subscriptions.state = undefined;
-        });
-        ServiceElectronIpc.subscribe(IPCMessages.HostStateHistory, this._ipc_onHostStateHistory).then((subscription: Subscription) => {
-            this._subscriptions.history = subscription;
-        }).catch((error: Error) => {
-            this._subscriptions.history = undefined;
-        });
+        this._subscriptions.state = ServiceElectronIpc.subscribe(IPCMessages.HostState, this._ipc_onHostStateChanged);
+        this._subscriptions.history = ServiceElectronIpc.subscribe(IPCMessages.HostStateHistory, this._ipc_onHostStateHistory);
         this._ng_onToggleHistory = this._ng_onToggleHistory.bind(this);
         this.ng_frame_options.onClose = this._ng_onToggleHistory;
     }

@@ -1,4 +1,5 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, ElementRef, ViewChild } from '@angular/core';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 @Component({
     selector: 'lib-output-bottom',
@@ -12,15 +13,25 @@ export class ViewComponent implements AfterViewInit, OnDestroy {
     @Input() public ipc: any;
     @Input() public session: string;
 
-    constructor(private _cdRef: ChangeDetectorRef) {
+    public _ng_safeHtml: SafeHtml = null;
 
+    private _subscription: any;
+
+    constructor(private _cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
     }
 
     ngOnDestroy() {
+        // tslint:disable-next-line:no-unused-expression
+        this._subscription !== undefined && this._subscription.destroy();
     }
 
     ngAfterViewInit() {
-
+        this._subscription = this.ipc.subscribeToHost((message: any) => {
+            if (message.streamId === this.session) {
+                this._ng_safeHtml = this._sanitizer.bypassSecurityTrustHtml(message.last);
+                this._cdRef.detectChanges();
+            }
+        });
     }
 
     public _ng_onKeyUp(event: KeyboardEvent) {
@@ -41,15 +52,7 @@ export class ViewComponent implements AfterViewInit, OnDestroy {
                 console.log(`RES:: ${response}`);
             });
         }
-        /*
-        if (event.keyCode === 13) {
-            this.ipc.sentToHost({
-                stream: this.session,
-                command: 'shell',
-                post: `${(event.target as HTMLInputElement).value}\n`
-            }, this.session);
-        }
-        */
+        (event.target as HTMLInputElement).value = '';
     }
 
 

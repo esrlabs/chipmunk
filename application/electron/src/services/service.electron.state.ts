@@ -130,8 +130,8 @@ class ServiceElectronState implements IService {
         });
     }
 
-    private onHostStateRequested(message: IPCMessages.TMessage) {
-        ServiceElectron.IPC.send(new ServiceElectron.IPCMessages.HostState({
+    private onHostStateRequested(message: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        response(new ServiceElectron.IPCMessages.HostState({
             state: this._isReadyState ? ServiceElectron.IPCMessages.HostState.States.ready : ServiceElectron.IPCMessages.HostState.States.working,
         })).catch((error: Error) => {
             this._logger.warn(`Fait to send IPC message "HostState" to render due: ${error.message}`);

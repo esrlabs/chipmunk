@@ -31,7 +31,7 @@ class ServiceElectron implements IService {
     public IPC: {
         send: (instance: IPCMessages.TMessage) => Promise<void>,
         request: (instance: IPCMessages.TMessage) => Promise<any>,
-        subscribe: (event: Function, handler: (event: IPCMessages.TMessage) => any) => Promise<Subscription>,
+        subscribe: (event: Function, handler: (event: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) => any) => Promise<Subscription>,
     } = {
         send: this._send.bind(this),
         request: this._request.bind(this),
@@ -104,7 +104,7 @@ class ServiceElectron implements IService {
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Electron IPC
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    private _subscribe(event: Function, handler: (event: IPCMessages.TMessage) => any): Promise<Subscription> {
+    private _subscribe(event: Function, handler: (event: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) => any): Promise<Subscription> {
         return new Promise((resolve, reject) => {
             if (this._controllerBrowserWindow === undefined) {
                 return reject(new Error(`Browser window isn't inited yet, cannot delivery IPC controller.`));

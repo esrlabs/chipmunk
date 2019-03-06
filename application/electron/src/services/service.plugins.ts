@@ -45,6 +45,7 @@ export interface IPlugin {
         renderLocation: string;
     };
     token: string;
+    id: number;
     streams: string[];
 }
 
@@ -62,6 +63,8 @@ export class ServicePlugins implements IService {
     private _electronVersion: string = '';
     private _subscriptions: { [key: string ]: Subscription | undefined } = { };
     private _isRenderReady: boolean = false;
+    private _seq: number = 0;
+    private _ids: Map<number, string> = new Map();
 
     constructor() {
         this._ipc_onRenderState = this._ipc_onRenderState.bind(this);
@@ -130,6 +133,10 @@ export class ServicePlugins implements IService {
 
     public getName(): string {
         return 'ServicePackage';
+    }
+
+    public getPluginToken(id: number): string | undefined {
+        return this._ids.get(id);
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -262,6 +269,7 @@ export class ServicePlugins implements IService {
             const tasks: Array<Promise<void>> = [];
             if (plugin.process) {
                 tasks.push(this._initializeProcessOfPlugin(plugin));
+                // tasks.push(this._initializeProcessOfPlugin(plugin, true)); // Force reintall (debug)
             }
             if (plugin.render) {
                 tasks.push(this._initializeRenderOfPlugin(plugin));
@@ -525,8 +533,10 @@ export class ServicePlugins implements IService {
                     renderSent: false,
                 },
                 token: guid(),
+                id: ++this._seq,
                 streams: [],
             };
+            this._ids.set(desc.id, desc.token);
             const tasks = [];
             if (desc.process) {
                 tasks.push(this._readPackage(Path.resolve(path, PROCESS_FOLDER)).then((data: any) => {

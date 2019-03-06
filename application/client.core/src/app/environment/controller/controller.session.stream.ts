@@ -19,7 +19,8 @@ export class ControllerSessionStream {
     private _guid: string;
     private _transports: string[];
     private _subjects = {
-        new: new Subject<IStreamPacket>(),
+        write: new Subject<string>(),
+        next: new Subject<void>(),
         clear: new Subject<void>(),
     };
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
@@ -37,17 +38,6 @@ export class ControllerSessionStream {
         }));
         // Subscribe to streams data
         ServiceElectronIpc.subscribe(IPCMessages.StreamData, this._ipc_onStreamData);
-        /*
-        setInterval(() => {
-            const original = `${Math.random().toFixed(10)}-${Math.random().toFixed(10)}-${Math.random().toFixed(10)}-${Math.random().toFixed(10)}`;
-            this._subjects.new.next({
-                original: original
-            });
-            this._output.pushToStream({
-                original: original
-            });
-        }, Math.random() * 500);
-        */
     }
 
     public destroy() {
@@ -65,28 +55,32 @@ export class ControllerSessionStream {
     }
 
     public getObservable(): {
-        new: Observable<IStreamPacket>,
+        write: Observable<string>,
+        next: Observable<void>,
         clear: Observable<void>,
     } {
         return {
-            new: this._subjects.new.asObservable(),
+            write: this._subjects.write.asObservable(),
+            next: this._subjects.next.asObservable(),
             clear: this._subjects.clear.asObservable(),
         };
     }
 
     private _ipc_onStreamData(message: IPCMessages.StreamData) {
-        const output: string = message.data.replace(/[\r\n]/g, '\n').replace(/\n{2,}/g, '\n');
-        output.split(/\n/gi).forEach((row: string) => {
-            if (row.trim() === '') {
-                return;
-            }
-            this._subjects.new.next({
-                original: row
+        const BreakRegExp = /[\r\n]/gm;
+        const output: string = message.data.replace(BreakRegExp, '\n').replace(/\n{2,}/g, '\n');
+        const rows: string[] = output.split(/\n/gi);
+        if (rows.length === 1) {
+            this._subjects.write.next(this._output.write(output));
+        } else {
+            rows.forEach((row: string, index: number) => {
+                this._subjects.write.next(this._output.write(row));
+                if (index !== rows.length - 1) {
+                    this._output.next();
+                    this._subjects.next.next();
+                }
             });
-            this._output.pushToStream({
-                original: row
-            });
-        });
+        }
     }
 
 }

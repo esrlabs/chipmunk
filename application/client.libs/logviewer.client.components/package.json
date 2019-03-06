@@ -8,7 +8,6 @@
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e",
-
     "build:logviewer-client-containers": "ng build logviewer-client-containers",
     "build:logviewer-client-primitive": "ng build logviewer-client-primitive",
     "build:logviewer-client-complex": "ng build logviewer-client-complex"

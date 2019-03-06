@@ -2,22 +2,15 @@
 
 
 :host {
-    position: absolute;
-    display: block;
-    padding: 0;
-    margin: 0;
-    width: 100%;
+    display: flex;
+    flex-flow: column;
     height: 100%;
-    top:0;
-    left:0;
     & .rows{
-        position: absolute;
-        display: block;
+        flex: 1 1 auto;
         padding: 0;
         margin: 0;
         width: 100%;
         top:0;
-        bottom: 2rem;
         left:0;
         list-style: none;
         overflow: hidden;
@@ -30,7 +23,7 @@
             height: 30px;
         }
         & .virtual-scroll-viewport{
-            position: absolute;
+            position: relative;
             display: block;
             padding: 0;
             margin: 0;
@@ -42,22 +35,13 @@
         }
     }
     & .injections-bottom{
-        position: absolute;
-        display: block;
-        padding: 0;
-        margin: 0;
-        width: 100%;
-        height: 2rem;
-        bottom: 0;
-        left:0;
-        list-style: none;
+        flex: 0 1 auto;
         & .injection{
             position: relative;
             display: block;
             list-style: none;
             padding: 0;
             margin: 0;
-            height: 2rem;
         }
     }
 }
