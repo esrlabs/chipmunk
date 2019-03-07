@@ -1,16 +1,12 @@
 import ServiceElectronIpc from '../services/service.electron.ipc';
 import { IPCMessages, Subscription } from '../services/service.electron.ipc';
 import { Observable, Subject } from 'rxjs';
-import { ControllerSessionStreamOutput } from './controller.session.stream.output';
+import { ControllerSessionStreamOutput, IStreamPacket } from './controller.session.stream.output';
 import * as Tools from '../tools/index';
 
 export interface IControllerSessionStream {
     guid: string;
     transports: string[];
-}
-
-export interface IStreamPacket {
-    original: string;
 }
 
 export class ControllerSessionStream {
@@ -19,7 +15,7 @@ export class ControllerSessionStream {
     private _guid: string;
     private _transports: string[];
     private _subjects = {
-        write: new Subject<string>(),
+        write: new Subject<IStreamPacket>(),
         next: new Subject<void>(),
         clear: new Subject<void>(),
     };
@@ -55,7 +51,7 @@ export class ControllerSessionStream {
     }
 
     public getObservable(): {
-        write: Observable<string>,
+        write: Observable<IStreamPacket>,
         next: Observable<void>,
         clear: Observable<void>,
     } {
@@ -67,14 +63,15 @@ export class ControllerSessionStream {
     }
 
     private _ipc_onStreamData(message: IPCMessages.StreamData) {
+        console.log(message.data);
         const BreakRegExp = /[\r\n]/gm;
         const output: string = message.data.replace(BreakRegExp, '\n').replace(/\n{2,}/g, '\n');
         const rows: string[] = output.split(/\n/gi);
         if (rows.length === 1) {
-            this._subjects.write.next(this._output.write(output));
+            this._subjects.write.next(this._output.write(output, message.pluginId));
         } else {
             rows.forEach((row: string, index: number) => {
-                this._subjects.write.next(this._output.write(row));
+                this._subjects.write.next(this._output.write(row, message.pluginId));
                 if (index !== rows.length - 1) {
                     this._output.next();
                     this._subjects.next.next();

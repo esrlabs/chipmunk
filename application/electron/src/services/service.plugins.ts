@@ -641,6 +641,7 @@ export class ServicePlugins implements IService {
                 name: plugin.name,
                 location: plugin.info.renderLocation,
                 token: plugin.token,
+                id: plugin.id,
             });
         });
         // Inform render about plugin location

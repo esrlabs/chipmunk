@@ -210,7 +210,6 @@ class ServiceStreams extends EventEmitter implements IService  {
         // Remove plugin ID from chunk
         const cleared: Buffer = chunk.slice(2);
         const output = cleared.toString('utf8');
-        console.log(output);
         // Send data forward
         ServiceElectron.IPC.send(new IPCElectronMessages.StreamData({
             guid: guid,
