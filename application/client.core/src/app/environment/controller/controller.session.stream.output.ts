@@ -1,13 +1,19 @@
 import { CollectionViewer, DataSource } from '@angular/cdk/collections';
 import { BehaviorSubject, Observable, Subscription } from 'rxjs';
+/*
 import * as AnsiCommands from '../tools/tools.ansi.commands';
 import { ansiToHTML } from '../tools/tools.ansi.colors';
+*/
 
+export interface IStreamPacket {
+    original: string;
+    pluginId: number;
+}
 
-export class ControllerSessionStreamOutput extends DataSource<string> {
+export class ControllerSessionStreamOutput extends DataSource<IStreamPacket> {
 
-    private _dataStream: BehaviorSubject<string[]> = new BehaviorSubject<string[]>([]);
-    private _rows: string[] = [];
+    private _dataStream: BehaviorSubject<IStreamPacket[]> = new BehaviorSubject<IStreamPacket[]>([]);
+    private _rows: IStreamPacket[] = [];
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _cursor: number = 0;
 
@@ -15,7 +21,7 @@ export class ControllerSessionStreamOutput extends DataSource<string> {
         super();
     }
 
-    public connect(collectionViewer: CollectionViewer): Observable<string[]> {
+    public connect(collectionViewer: CollectionViewer): Observable<IStreamPacket[]> {
         return this._dataStream;
     }
 
@@ -25,16 +31,13 @@ export class ControllerSessionStreamOutput extends DataSource<string> {
         });
     }
 
-    public write(input: string): string {
+    public write(input: string, pluginId: number): IStreamPacket {
         if (this._rows.length === 0) {
-            this._rows.push('');
+            this.next();
         }
         const index = this._rows.length - 1;
-        if (this._isInput(input)) {
-            this._rows[index] = ansiToHTML(this._applyAsInput(this._rows[index], input));
-        } else {
-            this._rows[index] = ansiToHTML(this._applyAsOutput(this._rows[index], input));
-        }
+        this._rows[index].original += input;
+        this._rows[index].pluginId = pluginId;
         this._dataStream.next(this._rows);
         return this._rows[index];
     }
@@ -42,9 +45,13 @@ export class ControllerSessionStreamOutput extends DataSource<string> {
     public next() {
         const last: number = this._rows.length - 1;
         if (last >= 0) {
-            this._rows[last] = ansiToHTML(this._rows[last]);
+            // Here parsers should be called
+            // this._rows[last] = ansiToHTML(this._rows[last]);
         }
-        this._rows.push('');
+        this._rows.push({
+            original: '',
+            pluginId: -1
+        });
         this._cursor = 0;
         this._dataStream.next(this._rows);
     }
@@ -54,14 +61,7 @@ export class ControllerSessionStreamOutput extends DataSource<string> {
         this._dataStream.next(this._rows);
     }
 
-    private _removeCursor() {
-
-    }
-
-    private _addCursor() {
-
-    }
-
+    /*
     private _isInput(input: string) {
         const code: number = input.charCodeAt(0);
         switch (code) {
@@ -161,5 +161,5 @@ export class ControllerSessionStreamOutput extends DataSource<string> {
     private _getEscapeCommand(input: string) {
 
     }
-
+    */
 }

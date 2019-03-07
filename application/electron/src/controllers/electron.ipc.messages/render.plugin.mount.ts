@@ -2,6 +2,7 @@ export interface IRenderMountPluginInfo {
     name: string;
     location: string;
     token: string;
+    id: number;
 }
 
 export interface IRenderMountPlugin {

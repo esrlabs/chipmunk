@@ -23,6 +23,7 @@ export interface IPluginData {
     token: string;              // Plugin token
     module: TPluginModule;      // Instance of plugin module
     ipc: ControllerPluginIPC;   // Related to plugin IPC
+    id: number;                 // ID of plugin
     factories: {
         'lib-view'?: any;             // Component of view
         'lib-output-bottom'?: any;    // Component to inject into bottom of output
@@ -44,6 +45,7 @@ export class PluginsService extends Tools.Emitter implements IService {
     private _subscriptions: { [key: string]: Subscription | undefined } = {
         mountPlugin: undefined,
     };
+    private _idsCache: { [key: number]: IPluginData } = {};
 
     constructor() {
         super();
@@ -76,7 +78,25 @@ export class PluginsService extends Tools.Emitter implements IService {
         return this._plugins.get(name);
     }
 
-    private _loadAndInit(name: string, token: string, location: string): Promise<IPluginData> {
+    public getPluginById(id: number): IPluginData | undefined {
+        if (this._idsCache[id] !== undefined) {
+            return this._idsCache[id];
+        }
+        let name: string;
+        this._plugins.forEach((plugin: IPluginData, pluginName: string) => {
+            if (plugin.id === id) {
+                name = pluginName;
+            }
+        });
+        if (name === undefined) {
+            this._logger.warn(`Fail to find plugin by ID: ${id}`);
+            return undefined;
+        }
+        this._idsCache[id] = this._plugins.get(name);
+        return this._idsCache[id];
+    }
+
+    private _loadAndInit(name: string, token: string, id: number, location: string): Promise<IPluginData> {
         return new Promise((resolve, reject) => {
             // Step 1. Delivery sources
             fetch(location).then((response: Response) => {
@@ -116,6 +136,7 @@ export class PluginsService extends Tools.Emitter implements IService {
                                 token: token,
                                 module: module.instance,
                                 ipc: new ControllerPluginIPC(name, token),
+                                id: id,
                                 factories: {}
                             };
                             Object.keys(PluginViews).forEach((alias: string) => {
@@ -165,7 +186,7 @@ export class PluginsService extends Tools.Emitter implements IService {
         }.bind(this);
         event.plugins.forEach((pluginInfo: IPCMessages.IRenderMountPluginInfo) => {
             this._logger.env(`Information about plugin "${pluginInfo.name}" has been gotten. Starting loading & initialization.`);
-            this._loadAndInit(pluginInfo.name, pluginInfo.token, pluginInfo.location).then((pluginData: IPluginData) => {
+            this._loadAndInit(pluginInfo.name, pluginInfo.token, pluginInfo.id, pluginInfo.location).then((pluginData: IPluginData) => {
                 // Delivery applications of plugin into main application
                 this._deliveryApps(pluginData, pluginInfo.name, pluginInfo.token).then((plugin: IPluginData) => {
                     // Save plugin
