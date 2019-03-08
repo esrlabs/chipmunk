@@ -1,8 +1,9 @@
 import { OnDestroy, ChangeDetectorRef, AfterViewInit, ElementRef } from '@angular/core';
+import * as Toolkit from 'logviewer.client.toolkit';
 export declare class ViewComponent implements AfterViewInit, OnDestroy {
     private _cdRef;
     _ng_input: ElementRef;
-    ipc: any;
+    ipc: Toolkit.PluginIPC;
     session: string;
     _ng_cwd: string;
     _ng_working: boolean;

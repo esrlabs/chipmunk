@@ -6,7 +6,7 @@
     "start": "ng serve",
     "build": "ng build",
     "build:terminal": "ng build terminal",
-    "build:processes": "ng build processes",   
+    "build:processes": "ng build processes",
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e",
@@ -24,6 +24,7 @@
     "@angular/platform-browser-dynamic": "~7.0.0",
     "@angular/router": "~7.0.0",
     "core-js": "^2.5.4",
+    "logviewer.client.toolkit": "0.0.6",
     "rxjs": "~6.3.3",
     "zone.js": "~0.8.26"
   },

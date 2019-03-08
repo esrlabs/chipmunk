@@ -9,6 +9,7 @@ import * as AngularPlatformBrowser from '@angular/platform-browser';
 import * as LogviewerClientComplex from 'logviewer-client-complex';
 import * as LogviewerClientContainers from 'logviewer-client-containers';
 import * as LogviewerClientPrimitive from 'logviewer-client-primitive';
+import * as LogviewerClientToolkit from 'logviewer.client.toolkit';
 import * as Tools from '../tools/index';
 import { IService } from '../interfaces/interface.service';
 
@@ -208,6 +209,7 @@ export class PluginsService extends Tools.Emitter implements IService {
             'logviewer-client-complex': LogviewerClientComplex,
             'logviewer-client-containers': LogviewerClientContainers,
             'logviewer-client-primitive': LogviewerClientPrimitive,
+            'logviewer.client.toolkit': LogviewerClientToolkit,
         };
     }
 
