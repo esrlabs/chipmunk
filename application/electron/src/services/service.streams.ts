@@ -13,10 +13,12 @@ import { IService } from '../interfaces/interface.service';
 
 export interface IStreamInfo {
     guid: string;
-    file: string;
+    socketFile: string;
+    streamFile: string;
     socket: Net.Socket;
     server: Net.Server;
     connection: Net.Socket;
+    fileWriteStream: fs.WriteStream;
 }
 
 type TGuid = string;
@@ -80,6 +82,7 @@ class ServiceStreams extends EventEmitter implements IService  {
                 stream.server.unref();
                 stream.connection.unref();
                 stream.connection.destroy();
+                stream.fileWriteStream.close();
             });
             // Remove all UNIX socket's files
             this._cleanUp().then(() => {
@@ -98,15 +101,18 @@ class ServiceStreams extends EventEmitter implements IService  {
     private _createStream(guid: string): Promise<IStreamInfo> {
         return new Promise((resolve, reject) => {
             const socketFile: string = Path.resolve(ServicePaths.getSockets(), `${Date.now()}-${guid}.sock`);
+            const streamFile: string = Path.resolve(ServicePaths.getStreams(), `${Date.now()}-${guid}.stream`);
             try {
                 // Create new server
                 const server: Net.Server = Net.createServer((socket: Net.Socket) => {
                     const stream: IStreamInfo = {
                         guid: guid,
-                        file: socketFile,
+                        socketFile: socketFile,
+                        streamFile: streamFile,
                         server: server,
                         socket: socket,
                         connection: connection,
+                        fileWriteStream: fs.createWriteStream(streamFile),
                     };
                     this._streams.set(guid, stream);
                     resolve(stream);
@@ -130,18 +136,25 @@ class ServiceStreams extends EventEmitter implements IService  {
                 this._logger.warn(`Was gotten command to destroy stream, but stream wasn't found in storage.`);
                 return;
             }
-            const streamSocketFile = stream.file;
+            const socketFile = stream.socketFile;
+            const streamFile = stream.streamFile;
             stream.server.unref();
             stream.connection.removeAllListeners();
             stream.connection.unref();
             stream.connection.destroy();
+            stream.fileWriteStream.close();
             this._streams.delete(guid);
-            fs.unlink(streamSocketFile, (removeFileError: NodeJS.ErrnoException) => {
-                if (removeFileError) {
-                    this._logger.warn(`Fail to remove stream socket file ${streamSocketFile} due error: ${removeFileError.message}`);
+            fs.unlink(socketFile, (removeSocketFileError: NodeJS.ErrnoException) => {
+                if (removeSocketFileError) {
+                    this._logger.warn(`Fail to remove stream socket file ${socketFile} due error: ${removeSocketFileError.message}`);
                 }
-                // Resolve in any case
-                resolve();
+                fs.unlink(streamFile, (removeStreamFileError: NodeJS.ErrnoException) => {
+                    if (removeStreamFileError) {
+                        this._logger.warn(`Fail to remove stream socket file ${streamFile} due error: ${removeStreamFileError.message}`);
+                    }
+                    // Resolve in any case
+                    resolve();
+                });
             });
         });
     }
@@ -152,7 +165,13 @@ class ServiceStreams extends EventEmitter implements IService  {
      */
     private _cleanUp(): Promise<void> {
         return new Promise((resolve, reject) => {
-            FS.readFolder(ServicePaths.getSockets(), FS.EReadingFolderTarget.files).then((files: string[]) => {
+            Promise.all([
+                FS.readFolder(ServicePaths.getSockets(), FS.EReadingFolderTarget.files),
+                FS.readFolder(ServicePaths.getStreams(), FS.EReadingFolderTarget.files),
+            ]).then((result: [ string[], string[] ]) => {
+                const files: string[] = [];
+                files.push(...result[0].map((file: string) => Path.resolve(ServicePaths.getSockets(), file) ));
+                files.push(...result[1].map((file: string) => Path.resolve(ServicePaths.getStreams(), file) ));
                 const queue: Array<Promise<void>> = files.map((file: string) => {
                     return new Promise((resolveUnlink) => {
                         const socket: string = Path.resolve(ServicePaths.getSockets(), file);
@@ -169,7 +188,7 @@ class ServiceStreams extends EventEmitter implements IService  {
                     resolve();
                 }).catch(reject);
             }).catch((readingError: Error) => {
-                this._logger.error(`Fail to read socket folder (${ServicePaths.getPlugins()}) due error: ${readingError.message}`);
+                this._logger.error(`Fail to read folder ${ServicePaths.getPlugins()} or ${ServicePaths.getStreams()} due error: ${readingError.message}`);
                 reject(readingError);
             });
         });
@@ -200,7 +219,12 @@ class ServiceStreams extends EventEmitter implements IService  {
     }
 
     private _stream_onData(guid: string, chunk: Buffer) {
-        // Exclude plugin id
+        // Get stream info
+        const stream: IStreamInfo | undefined = this._streams.get(guid);
+        if (stream === undefined) {
+            return this._logger.warn(`Fail to find a stream data for stream guid "${guid}"`);
+        }
+        // Extract plugin id
         const pluginId: number = chunk.readInt16BE(0);
         // Get token
         const pluginToken: string | undefined = ServicePlugins.getPluginToken(pluginId);
@@ -218,6 +242,12 @@ class ServiceStreams extends EventEmitter implements IService  {
             pluginToken: pluginToken,
         })).catch((error: Error) => {
             this._logger.warn(`Fail send data from stream to render process due error: ${error.message}`);
+        });
+        // Write data to stream file
+        stream.fileWriteStream.write(chunk, (writeError: Error | null | undefined) => {
+            if (writeError) {
+                this._logger.error(`Fail to write data into stream file (${stream.streamFile}) due error: ${writeError.message}`);
+            }
         });
     }
 

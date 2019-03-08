@@ -6,6 +6,7 @@
     "start": "ng serve",
     "build": "ng build",
     "build:terminal": "ng build terminal",
+    "build:processes": "ng build processes",   
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e",

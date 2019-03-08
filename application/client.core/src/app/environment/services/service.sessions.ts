@@ -41,7 +41,7 @@ export class SessionsService implements IService {
         const guid: string = Tools.guid();
         const session = new ControllerSession({
             guid: guid,
-            transports: ['terminal'],
+            transports: ['processes'],
         });
         this._tabsService.add({
             guid: guid,

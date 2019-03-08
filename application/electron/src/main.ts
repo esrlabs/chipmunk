@@ -75,6 +75,7 @@ class Application {
     }
 
     private _destroy(): Promise<void> {
+        // TODO: Destroy in reverse order list init
         return new Promise((resolve) => {
             Promise.all([
                 ServicePaths.destroy(),

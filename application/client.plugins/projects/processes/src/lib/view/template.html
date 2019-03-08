@@ -1,0 +1,11 @@
+<div [attr.class]="'container ' + (_ng_working ? 'working' : 'free')">
+    <div class="input-area">
+        <p class="cwd">{{_ng_cwd}}</p>
+        <div class="input-wrapper">
+            <input class="input" #cmdinput type="text" (keyup)="_ng_onKeyUp($event)"/>
+        </div>
+    </div>
+    <div class="spinner" *ngIf="_ng_working">
+        <lib-primitive-spinner-regular></lib-primitive-spinner-regular>
+    </div>
+</div>

@@ -1,26 +1,42 @@
 import { spawn, ChildProcess } from 'child_process';
-import * as Streams from 'stream';
 import { EventEmitter } from 'events';
 
-export interface IShellOptions {
-    shell: string;
+export interface IForkSettings {
+    env: { [key: string]: string };
+    shell: string | boolean;
+    cwd: string;
 }
 
-export default class Shell extends EventEmitter {
+export interface ICommand {
+    cmd: string;
+    settings: IForkSettings;
+}
+
+export default class Fork extends EventEmitter {
     
     public static Events = {
         data: 'data',
-        exit: 'exit',
-        error: 'error'
+        exit: 'exit'
     };
 
-    public Events = Shell.Events;
+    public Events = Fork.Events;
 
     private _process: ChildProcess | undefined;
+    private _closed: boolean = true;
+    private _command: ICommand;
 
-    constructor(options: IShellOptions) {
+    constructor(command: ICommand) {
         super();
-        this._process = spawn(options.shell);
+        this._command = command;
+    }
+
+    public execute() {
+        this._process = spawn(this._command.cmd, {
+            cwd: this._command.settings.cwd,
+            env: this._command.settings.env,
+            shell: this._command.settings.shell,
+        });
+        this._closed = false;
         this._process.stdout.on('data', this._onStdout.bind(this));
         this._process.stderr.on('data', this._onStderr.bind(this));
         this._process.on('exit', this._onExit.bind(this));
@@ -29,7 +45,7 @@ export default class Shell extends EventEmitter {
         this._process.on('error', this._onError.bind(this));
     }
 
-    public send(data: any): Promise<void> {
+    public write(data: any): Promise<void> {
         return new Promise((resolve, reject) => {
             if (this._process === undefined) {
                 return reject(new Error(`Shell process isn't available. It was destroyed or wasn't created at all.`));
@@ -44,11 +60,18 @@ export default class Shell extends EventEmitter {
     }
 
     public destroy() {
+        this._closed = true;
         if (this._process === undefined) {
             return;
         }
+        this.removeAllListeners();
         this._process.removeAllListeners();
         this._process.kill();
+        this._process = undefined;
+    }
+
+    public isClosed(): boolean {
+        return this._closed;
     }
 
     private _onStdout(chunk: any) {
@@ -60,23 +83,24 @@ export default class Shell extends EventEmitter {
     }
 
     private _onExit() {
-        this.destroy();
         this.emit(this.Events.exit);
+        this.destroy();
     }
 
     private _onClose() {
-        this.destroy();
         this.emit(this.Events.exit);
+        this.destroy();
     }
 
     private _onDisconnect() {
-        this.destroy();
         this.emit(this.Events.exit);
+        this.destroy();
     }
 
     private _onError(error: Error) {
+        this.emit(this.Events.data, error.message);
+        this.emit(this.Events.exit);
         this.destroy();
-        this.emit(this.Events.error, error);
     }
 
 }

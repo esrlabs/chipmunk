@@ -9,6 +9,7 @@ import { IService } from '../../src/interfaces/interface.service';
 const HOME_FOLDER = '.logviewer';
 const PLUGINS_FOLDER = 'plugins';
 const SOCKETS_FOLDER = 'sockets';
+const STREAMS_FOLDER = 'streams';
 
 /**
  * @class ServicePaths
@@ -24,10 +25,12 @@ class ServicePaths implements IService {
     private _root: string;
     private _resources: string;
     private _sockets: string;
+    private _streams: string;
 
     constructor() {
         this._home = Path.resolve(OS.homedir(), HOME_FOLDER);
         this._sockets = Path.resolve(this._home, SOCKETS_FOLDER);
+        this._streams = Path.resolve(this._home, STREAMS_FOLDER);
         // this._plugins = Path.resolve(this._home, PLUGINS_FOLDER);
         this._plugins = '/Users/dmitry.astafyev/WebstormProjects/logviewer/electron.github/application/sandbox';
         this._resources = process.resourcesPath as string;
@@ -46,7 +49,7 @@ class ServicePaths implements IService {
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
             this._createHomeFolder().then(() => {
-                Promise.all([this._home, this._plugins, this._sockets].map((folder: string) => {
+                Promise.all([this._home, this._plugins, this._sockets, this._streams].map((folder: string) => {
                     return this._mkdir(folder);
                 })).then(() => {
                     this._logger.env(`Paths:\n\thome: ${this._home}\n\troot: ${this._root}\n\tapp: ${this._app}\n\tresources ${this._resources}\n\tplugins ${this._plugins}\n\tsockets ${this._sockets}`);
@@ -99,6 +102,14 @@ class ServicePaths implements IService {
      */
     public getSockets(): string {
         return this._sockets;
+    }
+
+    /**
+     * Returns path to streams folder
+     * @returns string
+     */
+    public getStreams(): string {
+        return this._streams;
     }
 
     /**

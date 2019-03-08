@@ -5,7 +5,6 @@ import { IPCMessages, Subscription } from './environment/services/service.electr
 import PluginsService from './environment/services/service.plugins';
 import LoaderService from './environment/services/service.loader';
 import * as Tools from './environment/tools/index';
-import { debug } from 'util';
 
 @Component({
     selector: 'app-root',

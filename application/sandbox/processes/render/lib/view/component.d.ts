@@ -1,15 +1,18 @@
 import { OnDestroy, ChangeDetectorRef, AfterViewInit, ElementRef } from '@angular/core';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 export declare class ViewComponent implements AfterViewInit, OnDestroy {
     private _cdRef;
-    private _sanitizer;
     _ng_input: ElementRef;
     ipc: any;
     session: string;
-    _ng_safeHtml: SafeHtml;
+    _ng_cwd: string;
+    _ng_working: boolean;
     private _subscription;
-    constructor(_cdRef: ChangeDetectorRef, _sanitizer: DomSanitizer);
+    constructor(_cdRef: ChangeDetectorRef);
     ngOnDestroy(): void;
     ngAfterViewInit(): void;
     _ng_onKeyUp(event: KeyboardEvent): void;
+    private _sendCommand;
+    private _sendInput;
+    private _onIncomeMessage;
+    private _onIncomeEvent;
 }
