@@ -29,6 +29,12 @@
       ],
       "terminal/*": [
         "dist/terminal/*"
+      ],
+      "processes": [
+        "dist/processes"
+      ],
+      "processes/*": [
+        "dist/processes/*"
       ]
     }
   }

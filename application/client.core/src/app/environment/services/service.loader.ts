@@ -14,6 +14,8 @@ const InitializeStages = [
     [SessionsService, PluginsIPCService],
 ];
 
+// TODO: Destroy method, even dummy
+
 export class LoaderService {
 
     private _logger: Tools.Logger = new Tools.Logger('PluginsLoader');
