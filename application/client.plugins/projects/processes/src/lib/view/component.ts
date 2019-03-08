@@ -2,6 +2,7 @@
 
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, ElementRef, ViewChild } from '@angular/core';
 import { EHostEvents, EHostCommands } from '../common/host.events';
+import * as Toolkit from 'logviewer.client.toolkit';
 
 @Component({
     selector: 'lib-output-bottom',
@@ -12,7 +13,7 @@ import { EHostEvents, EHostCommands } from '../common/host.events';
 export class ViewComponent implements AfterViewInit, OnDestroy {
     @ViewChild('cmdinput') _ng_input: ElementRef;
 
-    @Input() public ipc: any;
+    @Input() public ipc: Toolkit.PluginIPC;
     @Input() public session: string;
 
     public _ng_cwd: string = '';
@@ -42,7 +43,6 @@ export class ViewComponent implements AfterViewInit, OnDestroy {
             }
             this._onIncomeMessage(message);
         });
-        debugger;
         // Request current cwd
         this.ipc.requestToHost({
             stream: this.session,

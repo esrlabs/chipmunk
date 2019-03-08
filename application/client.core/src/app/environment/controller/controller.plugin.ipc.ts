@@ -1,48 +1,14 @@
-import * as Tools from '../tools/index';
 import PluginsIPCService from '../services/service.plugins.ipc';
+import * as Toolkit from 'logviewer.client.toolkit';
 
-export default class ControllerPluginIPC {
-
-    private _token: string | undefined;
-    private _name: string | undefined;
-    private _logger: Tools.Logger;
-    private _handlers: Map<string, Tools.THandler> = new Map();
-
-    constructor(name: string, token: string) {
-        this._token = token;
-        this._name = name;
-        this._logger = new Tools.Logger(`ControllerPluginIPC: ${name}`);
-    }
-
-    public destroy() {
-        this._handlers.clear();
-    }
+export default class ControllerPluginIPC extends Toolkit.PluginIPC {
 
     public sentToHost(message: any, streamId?: string): Promise<void> {
-        return PluginsIPCService.sendToHost(message, this._token, streamId);
+        return PluginsIPCService.sendToHost(message, this.token, streamId);
     }
 
     public requestToHost(message: any, streamId?: string): Promise<any> {
-        return PluginsIPCService.requestFromHost(message, this._token, streamId);
-    }
-
-    public subscribeToHost(handler: Tools.THandler): Tools.Subscription {
-        const signature: string = this._name;
-        const subscriptionId: string = Tools.guid();
-        this._handlers.set(subscriptionId, handler);
-        return new Tools.Subscription(signature, () => {
-            this._handlers.delete(subscriptionId);
-        }, subscriptionId);
-}
-
-    public acceptHostMessage(message: any) {
-        this._handlers.forEach((handler: Tools.THandler) => {
-            try {
-                handler(message);
-            } catch (error) {
-                this._logger.error(`Error during emiting host event: ${error.message}. Message: `, message);
-            }
-        });
+        return PluginsIPCService.requestFromHost(message, this.token, streamId);
     }
 
 }
