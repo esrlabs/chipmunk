@@ -2,7 +2,7 @@ import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular
 import ServiceElectronIpc, { IPCMessages, Subscription } from '../../../services/service.electron.ipc';
 import { IComponentDesc, IFrameOptions } from 'logviewer-client-containers';
 import { StateHistoryComponent } from './history/component';
-import * as Tools from '../../../tools/index';
+import * as Toolkit from 'logviewer.client.toolkit';
 
 @Component({
     selector: 'app-apps-status-bar-electron-state',
@@ -29,7 +29,7 @@ export class AppsStatusBarElectronStateComponent implements OnDestroy, AfterView
         }
     };
 
-    private _logger: Tools.Logger = new Tools.Logger('AppsStatusBarElectronStateComponent');
+    private _logger: Toolkit.Logger = new Toolkit.Logger('AppsStatusBarElectronStateComponent');
     private _history: string[] = [];
     private _subscriptions: { [key: string]: Subscription | undefined } = {
         state: undefined,

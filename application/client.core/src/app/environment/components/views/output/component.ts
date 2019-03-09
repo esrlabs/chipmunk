@@ -1,6 +1,5 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef } from '@angular/core';
 import { Subscription } from 'rxjs';
-import * as Tools from '../../../tools/index';
 import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import { ControllerSession, IComponentInjection } from '../../../controller/controller.session';
 import { ControllerSessionStreamOutput } from '../../../controller/controller.session.stream.output';

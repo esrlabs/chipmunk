@@ -2,7 +2,7 @@ import ServiceElectronIpc from '../services/service.electron.ipc';
 import { IPCMessages, Subscription } from '../services/service.electron.ipc';
 import { Observable, Subject } from 'rxjs';
 import { ControllerSessionStreamOutput, IStreamPacket } from './controller.session.stream.output';
-import * as Tools from '../tools/index';
+import * as Toolkit from 'logviewer.client.toolkit';
 
 export interface IControllerSessionStream {
     guid: string;
@@ -11,7 +11,7 @@ export interface IControllerSessionStream {
 
 export class ControllerSessionStream {
 
-    private _logger: Tools.Logger;
+    private _logger: Toolkit.Logger;
     private _guid: string;
     private _transports: string[];
     private _subjects = {
@@ -25,7 +25,7 @@ export class ControllerSessionStream {
     constructor(params: IControllerSessionStream) {
         this._guid = params.guid;
         this._transports = params.transports;
-        this._logger = new Tools.Logger(`ControllerSessionStream: ${params.guid}`);
+        this._logger = new Toolkit.Logger(`ControllerSessionStream: ${params.guid}`);
         this._ipc_onStreamData = this._ipc_onStreamData.bind(this);
         // Notify electron about new stream
         ServiceElectronIpc.send(new IPCMessages.StreamAdd({
