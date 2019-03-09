@@ -4,7 +4,7 @@ import ServiceElectronIpc from './environment/services/service.electron.ipc';
 import { IPCMessages, Subscription } from './environment/services/service.electron.ipc';
 import PluginsService from './environment/services/service.plugins';
 import LoaderService from './environment/services/service.loader';
-import * as Tools from './environment/tools/index';
+import * as Toolkit from 'logviewer.client.toolkit';
 
 @Component({
     selector: 'app-root',
@@ -14,7 +14,7 @@ import * as Tools from './environment/tools/index';
 
 export class AppComponent implements AfterViewInit {
 
-    private _logger: Tools.Logger = new Tools.Logger('AppComponent');
+    private _logger: Toolkit.Logger = new Toolkit.Logger('AppComponent');
     private _ready: boolean = false;
 
     constructor(

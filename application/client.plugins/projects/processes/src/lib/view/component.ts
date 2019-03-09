@@ -5,7 +5,7 @@ import { EHostEvents, EHostCommands } from '../common/host.events';
 import * as Toolkit from 'logviewer.client.toolkit';
 
 @Component({
-    selector: 'lib-output-bottom',
+    selector: Toolkit.EViewsTypes.outputBottom,
     templateUrl: './template.html',
     styleUrls: ['./styles.less']
 })

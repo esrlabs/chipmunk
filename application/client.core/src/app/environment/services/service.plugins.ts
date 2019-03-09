@@ -9,16 +9,8 @@ import * as AngularPlatformBrowser from '@angular/platform-browser';
 import * as LogviewerClientComplex from 'logviewer-client-complex';
 import * as LogviewerClientContainers from 'logviewer-client-containers';
 import * as LogviewerClientPrimitive from 'logviewer-client-primitive';
-import * as LogviewerClientToolkit from 'logviewer.client.toolkit';
-import * as Tools from '../tools/index';
+import * as Toolkit from 'logviewer.client.toolkit';
 import { IService } from '../interfaces/interface.service';
-
-export const PluginViews = {
-    view: 'lib-view',
-    outputBottom: 'lib-output-bottom',
-    state: 'lib-state',
-    static: 'lib-static'
-};
 
 type TPluginModule = any;
 
@@ -30,25 +22,20 @@ export interface IPluginData {
     module: TPluginModule;      // Instance of plugin module
     ipc: ControllerPluginIPC;   // Related to plugin IPC
     id: number;                 // ID of plugin
-    factories: {
-        'lib-view'?: any;             // Component of view
-        'lib-output-bottom'?: any;    // Component to inject into bottom of output
-        'lib-state'?: any;            // Component of state app (to mount into state bar)
-        'lib-static'?: any;           // Component of static app (to mount into secondory area as tab)
-    };
+    factories: { [key: string]: any };
     parsers: {
         row: TRowParser | undefined,
         rest: TRowParser | undefined,
     };
 }
 
-export class PluginsService extends Tools.Emitter implements IService {
+export class PluginsService extends Toolkit.Emitter implements IService {
 
     public Events = {
         pluginsLoaded: 'pluginsLoaded'
     };
 
-    private _logger: Tools.Logger = new Tools.Logger('PluginsService');
+    private _logger: Toolkit.Logger = new Toolkit.Logger('PluginsService');
     private _compiler: Compiler;
     private _injector: Injector;
     private _plugins: Map<string, IPluginData> = new Map();
@@ -108,7 +95,7 @@ export class PluginsService extends Tools.Emitter implements IService {
 
     private _loadAndInit(name: string, token: string, id: number, location: string): Promise<IPluginData> {
         return new Promise((resolve, reject) => {
-            Tools.sequences([
+            Toolkit.sequences([
                 // Step 1. Delivery sources of module
                 this._loadAndInit_FetchPlugin.bind(this, name, token, id, location),        // Returns { string } - code of module
                 // Steps 2 - 4. Prepare environment and init code of module
@@ -153,8 +140,8 @@ export class PluginsService extends Tools.Emitter implements IService {
                 return reject(new Error(this._logger.error(`Fail to execute plugin "${name}" due error: ${executeError.message}`)));
             }
             // Step 4. Check plugin module
-            if (!exports['PluginModule']) {
-                return reject(new Error(this._logger.error(`Fail to compile plugin "${name}" because module "PluginModule" wasn't found.`)));
+            if (!exports[Toolkit.CModuleName]) {
+                return reject(new Error(this._logger.error(`Fail to compile plugin "${name}" because module "${Toolkit.CModuleName}" wasn't found.`)));
             }
             resolve(exports);
         });
@@ -163,12 +150,12 @@ export class PluginsService extends Tools.Emitter implements IService {
     private _loadAndInit_CompilePlugin(name: string, token: string, id: number, location: string, exports: {[key: string]: any}): Promise<IPluginData> {
         return new Promise((resolve, reject) => {
             // Step 5. Compile
-            this._compiler.compileModuleAndAllComponentsAsync<any>(exports['PluginModule']).then((mwcf) => {
+            this._compiler.compileModuleAndAllComponentsAsync<any>(exports[Toolkit.CModuleName]).then((mwcf) => {
                 // Ok. From here we have access to plugin components. Also all components should be already initialized
                 // Step 6. Create plugin module
                 try {
                     const module = mwcf.ngModuleFactory.create(this._injector);
-                    if (!(module.instance instanceof exports['PluginModule'])) {
+                    if (!(module.instance instanceof exports[Toolkit.CModuleName])) {
                         return reject(new Error(this._logger.error(`Fail to compile main module of plugin "${name}".`)));
                     }
                     // Step 7. Search views of apps
@@ -180,12 +167,12 @@ export class PluginsService extends Tools.Emitter implements IService {
                         id: id,
                         factories: {},
                         parsers: {
-                            row: exports['parserRow'],
-                            rest: exports['parserRest'],
+                            row: exports[Toolkit.EParsers.row],
+                            rest: exports[Toolkit.EParsers.rest],
                         },
                     };
-                    Object.keys(PluginViews).forEach((alias: string) => {
-                        const selector: string = PluginViews[alias];
+                    Object.keys(Toolkit.EViewsTypes).forEach((alias: string) => {
+                        const selector: string = Toolkit.EViewsTypes[alias];
                         const componentFactory = mwcf.componentFactories.find(e => e.selector === selector);
                         if (componentFactory) {
                             pluginData.factories[selector] = componentFactory;
@@ -209,7 +196,7 @@ export class PluginsService extends Tools.Emitter implements IService {
             'logviewer-client-complex': LogviewerClientComplex,
             'logviewer-client-containers': LogviewerClientContainers,
             'logviewer-client-primitive': LogviewerClientPrimitive,
-            'logviewer.client.toolkit': LogviewerClientToolkit,
+            'logviewer.client.toolkit': Toolkit,
         };
     }
 

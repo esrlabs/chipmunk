@@ -3,7 +3,7 @@ import PluginsIPCService from './service.plugins.ipc';
 import PluginsService from './service.plugins';
 import SessionsService from './service.sessions';
 
-import * as Tools from '../tools/index';
+import * as Toolkit from 'logviewer.client.toolkit';
 
 const InitializeStages = [
     // Stage #1
@@ -18,8 +18,8 @@ const InitializeStages = [
 
 export class LoaderService {
 
-    private _logger: Tools.Logger = new Tools.Logger('PluginsLoader');
-    private _subscription: Tools.Subscription | undefined;
+    private _logger: Toolkit.Logger = new Toolkit.Logger('PluginsLoader');
+    private _subscription: Toolkit.Subscription | undefined;
     private _resolver: () => any | undefined;
     /**
      * Initialization of application

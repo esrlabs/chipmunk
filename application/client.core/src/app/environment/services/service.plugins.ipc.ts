@@ -1,5 +1,5 @@
 
-import * as Tools from '../tools/index';
+import * as Toolkit from 'logviewer.client.toolkit';
 import * as IPCElectronMessages from './electron.ipc.messages/index';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
 import ServiceElectronIpc from './service.electron.ipc';
@@ -9,12 +9,12 @@ type TToken = string;
 
 export class PluginsIPCService implements IService {
 
-    private _logger: Tools.Logger = new Tools.Logger('PluginsIPCService');
+    private _logger: Toolkit.Logger = new Toolkit.Logger('PluginsIPCService');
     private _ipcs: Map<TToken, ControllerPluginIPC> = new Map();
-    private _subscriptionPluginMessages: Tools.Subscription | undefined;
+    private _subscriptionPluginMessages: Toolkit.Subscription | undefined;
 
     constructor() {
-        ServiceElectronIpc.subscribeOnPluginMessage(this._onPluginMessage.bind(this)).then((subscription: Tools.Subscription) => {
+        ServiceElectronIpc.subscribeOnPluginMessage(this._onPluginMessage.bind(this)).then((subscription: Toolkit.Subscription) => {
             this._subscriptionPluginMessages = subscription;
         }).catch((subscribeError: Error) => {
             this._logger.error(`Error to subscribe to income plugin messages due error: ${subscribeError.message}`);

@@ -1,6 +1,6 @@
 import { Component, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
-import * as Tools from '../../../tools/index';
+import * as Toolkit from 'logviewer.client.toolkit';
 
 import { NotificationsService, INotification } from '../../../services/service.notifications';
 
@@ -50,7 +50,7 @@ export class NotificationsComponent implements OnDestroy {
         if (typeof notification.caption !== 'string') {
             return null;
         }
-        notification.id = typeof notification.id === 'string' ? (notification.id.trim() !== '' ? notification.id : Tools.guid()) : Tools.guid();
+        notification.id = typeof notification.id === 'string' ? (notification.id.trim() !== '' ? notification.id : Toolkit.guid()) : Toolkit.guid();
         notification.options = typeof notification.options === 'object' ? (notification.options !== null ? notification.options : {}) : {};
         notification.options.closeDelay = typeof notification.options.closeDelay === 'number' ? notification.options.closeDelay : DEFAULT_OPTIONS.closeDelay;
         notification.options.closable = typeof notification.options.closable === 'boolean' ? notification.options.closable : true;

@@ -1,6 +1,6 @@
 {
   "name": "logviewer.client.toolkit",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Toolkit for developing render part of plugin of logviewer ",
   "main": "./dist/plugin.toolkit.js",
   "types": "./dist/plugin.toolkit.d.ts",

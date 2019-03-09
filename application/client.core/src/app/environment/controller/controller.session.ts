@@ -1,7 +1,7 @@
-import PluginsService, { IPluginData, PluginViews } from '../services/service.plugins';
+import PluginsService, { IPluginData } from '../services/service.plugins';
 import { Subscription } from '../services/service.electron.ipc';
 import { ControllerSessionStream } from './controller.session.stream';
-import * as Tools from '../tools/index';
+import * as Toolkit from 'logviewer.client.toolkit';
 
 export interface IControllerSession {
     guid: string;
@@ -15,7 +15,7 @@ export interface IComponentInjection {
 
 export class ControllerSession {
 
-    private _logger: Tools.Logger;
+    private _logger: Toolkit.Logger;
     private _guid: string;
     private _transports: string[];
     private _stream: ControllerSessionStream;
@@ -26,7 +26,7 @@ export class ControllerSession {
     constructor(params: IControllerSession) {
         this._guid = params.guid;
         this._transports = params.transports;
-        this._logger = new Tools.Logger(`ControllerSession: ${params.guid}`);
+        this._logger = new Toolkit.Logger(`ControllerSession: ${params.guid}`);
         this._stream = new ControllerSessionStream({
             guid: params.guid,
             transports: params.transports.slice()
@@ -55,11 +55,11 @@ export class ControllerSession {
                 this._logger.warn(`Plugin "${pluginName}" is defined as transport, but doesn't exist in storage.`);
                 return;
             }
-            if (plugin.factories[PluginViews.outputBottom] === undefined) {
+            if (plugin.factories[Toolkit.EViewsTypes.outputBottom] === undefined) {
                 return;
             }
             injections.set(plugin.name, {
-                factory: plugin.factories[PluginViews.outputBottom],
+                factory: plugin.factories[Toolkit.EViewsTypes.outputBottom],
                 inputs: {
                     ipc: plugin.ipc,
                     session: this._guid

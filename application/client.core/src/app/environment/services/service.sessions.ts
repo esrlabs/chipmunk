@@ -1,8 +1,7 @@
-import { TabsService, TabsOptions, ETabsListDirection, DockingComponent, DockDef, DocksService } from 'logviewer-client-complex';
-import ServiceElectronIpc from './service.electron.ipc';
-import { IPCMessages, Subscription } from './service.electron.ipc';
+import { TabsService, DockingComponent, DockDef, DocksService } from 'logviewer-client-complex';
+import { Subscription } from './service.electron.ipc';
 import { ControllerSession } from '../controller/controller.session';
-import * as Tools from '../tools/index';
+import * as Toolkit from 'logviewer.client.toolkit';
 import { IService } from '../interfaces/interface.service';
 
 import { ViewOutputComponent } from '../components/views/output/component';
@@ -11,7 +10,7 @@ type TSessionGuid = string;
 
 export class SessionsService implements IService {
 
-    private _logger: Tools.Logger = new Tools.Logger('SessionsService');
+    private _logger: Toolkit.Logger = new Toolkit.Logger('SessionsService');
     private _sessions: Map<TSessionGuid, ControllerSession> = new Map();
     private _tabsService: TabsService = new TabsService();
     private _subscriptions: { [key: string]: Subscription | undefined } = {
@@ -38,7 +37,7 @@ export class SessionsService implements IService {
     }
 
     public create(): void {
-        const guid: string = Tools.guid();
+        const guid: string = Toolkit.guid();
         const session = new ControllerSession({
             guid: guid,
             transports: ['processes'],
