@@ -12,7 +12,7 @@ class ElectronIpcService implements IService {
     private _subscriptions: Map<string, Subscription> = new Map();
     private _pending: Map<string, (message: IPCMessages.TMessage) => any> = new Map();
     private _handlers: Map<string, Map<string, THandler>> = new Map();
-    private _requests: Map<string, boolean> = new Map();
+    private _listeners: Map<string, boolean> = new Map();
 
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
@@ -91,14 +91,7 @@ class ElectronIpcService implements IService {
             if (ref === undefined) {
                 return reject(new Error(`Incorrect type of message`));
             }
-            // Check, does we have handler for this type of message or not
-            if (!this._requests.has(message.signature)) {
-                // We don't have any listeners for this type of request. Have to create it.
-                // We don't need real handler, because this listeners has to be created just to
-                // catch income events.
-                Electron.ipcRenderer.on(message.signature, this._onIPCMessage.bind(this));
-                this._requests.set(message.signature, true);
-            }
+            this._subscribeIPCMessage(message.signature);
             this._send({ message: message, expectResponse: true, sequence: guid() }).then((response: IPCMessages.TMessage | undefined) => {
                 resolve(response);
             }).catch((sendingError: Error) => {
@@ -140,7 +133,7 @@ class ElectronIpcService implements IService {
         let handlers: Map<string, THandler> | undefined = this._handlers.get(signature);
         if (handlers === undefined) {
             handlers = new Map();
-            Electron.ipcRenderer.on(signature, this._onIPCMessage.bind(this));
+            this._subscribeIPCMessage(signature);
         }
         handlers.set(subscriptionId, handler);
         this._handlers.set(signature, handlers);
@@ -161,9 +154,21 @@ class ElectronIpcService implements IService {
         });
     }
 
+    private _subscribeIPCMessage(messageAlias: string): boolean {
+        if (this._listeners.has(messageAlias)) {
+            return false;
+        }
+        this._listeners.set(messageAlias, true);
+        Electron.ipcRenderer.on(messageAlias, this._onIPCMessage.bind(this));
+        return true;
+    }
+
     private _onIPCMessage(ipcEvent: Event, eventName: string, data: any) {
         try {
             const messagePackage: IPCMessagePackage = new IPCMessagePackage(data);
+            if (messagePackage.message.data !== undefined) {
+                console.log('COMMON IPC: ', messagePackage.message.data);
+            }
             const resolver = this._pending.get(messagePackage.sequence);
             this._pending.delete(messagePackage.sequence);
             const refMessageClass = this._getRefToMessageClass(messagePackage.message);

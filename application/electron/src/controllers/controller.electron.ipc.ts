@@ -23,6 +23,7 @@ export default class ControllerElectronIpc {
     private _pending: Map<string, (message: IPCMessages.TMessage) => any> = new Map();
     private _subscriptions: Map<string, Subscription> = new Map();
     private _handlers: Map<string, Map<string, THandler>> = new Map();
+    private _listeners: Map<string, boolean> = new Map();
 
     constructor(winId: string, contents: WebContents) {
         this._winId = winId;
@@ -84,7 +85,7 @@ export default class ControllerElectronIpc {
             let handlers: Map<string, THandler> | undefined = this._handlers.get(signature);
             if (handlers === undefined) {
                 handlers = new Map();
-                this._contents !== undefined && ipcMain.on(signature, this._onIPCMessage.bind(this));
+                this._subscribeIPCMessage(signature);
             }
             handlers.set(subscriptionId, handler);
             this._handlers.set(signature, handlers);
@@ -103,6 +104,18 @@ export default class ControllerElectronIpc {
         this._handlers.clear();
         this._subscriptions.clear();
         this._pending.clear();
+    }
+
+    private _subscribeIPCMessage(messageAlias: string): boolean {
+        if (this._listeners.has(messageAlias)) {
+            return false;
+        }
+        if (this._contents === undefined) {
+            return false;
+        }
+        this._listeners.set(messageAlias, true);
+        ipcMain.on(messageAlias, this._onIPCMessage.bind(this));
+        return true;
     }
 
     private _onIPCMessage(ipcEvent: Event, eventName: string, data: any) {

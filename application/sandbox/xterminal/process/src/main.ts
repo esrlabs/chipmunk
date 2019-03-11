@@ -23,7 +23,7 @@ class Plugin {
                 return this._income_create(message).then(() => {
                     response(new IPCMessages.PluginInternalMessage({
                         data: {
-                            status: 'done'
+                            status: 'xterminal-created'
                         },
                         token: message.token,
                         stream: message.stream
@@ -40,7 +40,7 @@ class Plugin {
                 return this._income_destroy(message).then(() => {
                     response(new IPCMessages.PluginInternalMessage({
                         data: {
-                            status: 'done'
+                            status: 'destroied'
                         },
                         token: message.token,
                         stream: message.stream
@@ -57,7 +57,7 @@ class Plugin {
                 return this._income_write(message).then(() => {
                     response(new IPCMessages.PluginInternalMessage({
                         data: {
-                            status: 'done'
+                            status: 'sent'
                         },
                         token: message.token,
                         stream: message.stream
@@ -81,6 +81,7 @@ class Plugin {
                 return reject(new Error(this._logger.error(`PTY process isn't created, cannot send data into.`)));
             }
             this._pty.write(message.data.data);
+            resolve();
         });
     }
 
@@ -99,6 +100,7 @@ class Plugin {
                 env: process.env as any
             });
             this._pty.on('data', (data) => {
+                this._logger.debug(`Sending data: ${data}`);
                 PluginIPCService.sendToPluginHost({
                     event: 'data',
                     data: data,
