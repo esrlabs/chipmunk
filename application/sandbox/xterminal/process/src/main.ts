@@ -100,7 +100,6 @@ class Plugin {
                 env: process.env as any
             });
             this._pty.on('data', (data) => {
-                this._logger.debug(`Sending data: ${data}`);
                 PluginIPCService.sendToPluginHost({
                     event: 'data',
                     data: data,

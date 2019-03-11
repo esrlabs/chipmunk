@@ -3,6 +3,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, ElementRef, ViewChild } from '@angular/core';
 import { EHostEvents, EHostCommands } from '../common/host.events';
 import { Terminal } from 'xterm';
+import * as fit from 'xterm/lib/addons/fit/fit';
 import * as Toolkit from 'logviewer.client.toolkit';
 
 @Component({
@@ -22,6 +23,7 @@ export class SidebarViewComponent implements AfterViewInit, OnDestroy {
     private _xterm: Terminal | undefined;
 
     constructor(private _cdRef: ChangeDetectorRef) {
+        Terminal.applyAddon(fit);
     }
 
     ngOnDestroy() {
@@ -41,7 +43,6 @@ export class SidebarViewComponent implements AfterViewInit, OnDestroy {
     ngAfterViewInit() {
         // Subscription to income events
         this._subscription = this.ipc.subscribeToHost((message: any) => {
-            console.log('PLUGIN IPC: ', message);
             if (typeof message !== 'object' && message === null) {
                 // Unexpected format of message
                 return;
@@ -64,7 +65,6 @@ export class SidebarViewComponent implements AfterViewInit, OnDestroy {
         }
         this._xterm = new Terminal();
         this._xterm.open(this._ng_xtermholder.nativeElement);
-        debugger;
         this._xterm.on('data', (data) => {
             this.ipc.requestToHost({
                 session: this.session,
@@ -97,6 +97,7 @@ export class SidebarViewComponent implements AfterViewInit, OnDestroy {
                     return;
                 }
                 this._xterm.write(message.data);
+                (this._xterm as any).fit();
                 break;
         }
         this._cdRef.detectChanges();
