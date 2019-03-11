@@ -7,6 +7,7 @@ import * as LogviewerClientContainers from 'logviewer-client-containers';
 import * as LogviewerClientPrimitive from 'logviewer-client-primitive';
 import * as Toolkit from 'logviewer.client.toolkit';
 import * as XTerm from 'xterm';
+import * as XTermAddonFit from 'xterm/lib/addons/fit/fit';
 
 import { Compiler, Injector } from '@angular/core';
 import ElectronIpcService from './service.electron.ipc';
@@ -201,6 +202,7 @@ export class PluginsService extends Toolkit.Emitter implements IService {
             'logviewer-client-primitive': LogviewerClientPrimitive,
             'logviewer.client.toolkit': Toolkit,
             'xterm': XTerm,
+            'xterm/lib/addons/fit/fit': XTermAddonFit
         };
     }
 

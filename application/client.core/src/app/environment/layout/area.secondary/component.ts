@@ -35,6 +35,7 @@ export class LayoutSecondaryAreaComponent implements AfterViewInit, OnDestroy {
         if (!(this.state)) {
             return;
         }
+        this.state.maximize();
         this.tabsService.setOptions(new TabsOptions({ injections: { bar: {
             factory: LayoutSecondaryAreaControlsComponent,
             inputs: { state: this.state }
