@@ -7,7 +7,7 @@ import { IForkSettings } from './process.fork';
 
 class Plugin {
 
-    private _logger: Logger = new Logger('Terminal');
+    private _logger: Logger = new Logger('Processes');
 
     constructor() {
         this._onIncomeRenderIPCMessage = this._onIncomeRenderIPCMessage.bind(this);

@@ -1,8 +1,25 @@
-/* You can add global styles to this file, and also import other style files */
 
-
-// TODO: move xterm style into plugin
-
+:host {
+    position: absolute;
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    top:0;
+    left: 0;
+    overflow: hidden;
+    & .xterm-holder{
+        position: absolute;
+        display: block;
+        box-sizing: border-box;
+        width: 100%;
+        height: 100%;
+        top:0;
+        left: 0;
+        overflow: hidden;
+    }
+    
+}
 
 /**
 * Copyright (c) 2014 The xterm.js authors. All rights reserved.

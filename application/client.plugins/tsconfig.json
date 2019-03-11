@@ -35,6 +35,12 @@
       ],
       "processes/*": [
         "dist/processes/*"
+      ],
+      "xterminal": [
+        "dist/xterminal"
+      ],
+      "xterminal/*": [
+        "dist/xterminal/*"
       ]
     }
   }

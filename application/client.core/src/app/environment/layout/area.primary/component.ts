@@ -1,9 +1,9 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { TabsService, TabsOptions, ETabsListDirection, DockingComponent, DockDef, DocksService } from 'logviewer-client-complex';
+import { TabsService  } from 'logviewer-client-complex';
 import { AreaState } from '../state';
 import { Subscription } from 'rxjs';
 import { LayoutPrimiryAreaControlsComponent } from './controls/component';
-import SessionsService from '../../services/service.sessions';
+import TabsSessionsService from '../../services/service.sessions.tabs';
 
 @Component({
     selector: 'app-layout-area-primary',
@@ -27,7 +27,7 @@ export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
 
     constructor(private _cdRef: ChangeDetectorRef) {
         // Get reference to tab service
-        this.tabsService = SessionsService.getTabsService();
+        this.tabsService = TabsSessionsService.getTabsService();
         // Add controls to tab list area (button "+")
         this.tabsService.updateOptions({
             injections: {
@@ -38,7 +38,7 @@ export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
             }
         });
         // Create default session
-        SessionsService.create();
+        TabsSessionsService.create();
         /*
         const options = this.tabsService.getOptions();
         options.injections.bar = {

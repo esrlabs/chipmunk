@@ -1,8 +1,8 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
-import { ControllerSession, IComponentInjection } from '../../../controller/controller.session';
-import { ControllerSessionStreamOutput } from '../../../controller/controller.session.stream.output';
+import { ControllerSessionTab, IComponentInjection } from '../../../controller/controller.session.tab';
+import { ControllerSessionTabStreamOutput } from '../../../controller/controller.session.tab.stream.output';
 
 @Component({
     selector: 'app-views-output',
@@ -16,9 +16,9 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
     @ViewChild('outputwrapper') _ng_outputWrapperViewport: ElementRef;
 
 
-    @Input() public session: ControllerSession | undefined;
+    @Input() public session: ControllerSessionTab | undefined;
 
-    public _ng_output: ControllerSessionStreamOutput | undefined;
+    public _ng_output: ControllerSessionTabStreamOutput | undefined;
     public _ng_injections: {
         bottom: Map<string, IComponentInjection>,
     } = {
