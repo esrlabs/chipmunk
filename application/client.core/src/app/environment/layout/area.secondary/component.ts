@@ -3,6 +3,7 @@ import { TabsService, TabsOptions, ETabsListDirection } from 'logviewer-client-c
 import { AreaState } from '../state';
 import { Subscription } from 'rxjs';
 import { LayoutSecondaryAreaControlsComponent } from './controls/component';
+import HorizontalSidebarSessionsService from '../../services/service.sessions.sidebar.horizontal';
 
 @Component({
     selector: 'app-layout-area-secondary',
@@ -14,7 +15,7 @@ export class LayoutSecondaryAreaComponent implements AfterViewInit, OnDestroy {
 
     @Input() public state: AreaState;
 
-    public tabsService: TabsService = new TabsService();
+    public tabsService: TabsService;
 
     private _subscriptions: {
         minimized: Subscription | null,
@@ -25,14 +26,9 @@ export class LayoutSecondaryAreaComponent implements AfterViewInit, OnDestroy {
     };
 
     constructor(private _cdRef: ChangeDetectorRef) {
-        this.tabsService.add({
-            name: 'Search Results',
-            active: true,
-        });
-        this.tabsService.add({
-            name: 'Terminal',
-            active: false,
-        });
+        this.tabsService = HorizontalSidebarSessionsService.getTabsService();
+        // Create default session
+        HorizontalSidebarSessionsService.create();
     }
 
     ngAfterViewInit() {

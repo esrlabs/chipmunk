@@ -1,11 +1,9 @@
 import { Observable, Subject } from 'rxjs';
 import * as Tools from '../../tools/index';
 import { TabsOptions, ITabsOptions } from './options';
+import { IComponentDesc } from 'logviewer-client-containers';
 
-export interface IComponentDesc {
-    factory: any;
-    inputs?: any;
-}
+export { IComponentDesc };
 
 export interface ITab {
     guid?: string;

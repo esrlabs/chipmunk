@@ -1,6 +1,6 @@
 import { Component, Input, AfterContentChecked } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { IStreamPacket } from '../../../../controller/controller.session.stream.output';
+import { IStreamPacket } from '../../../../controller/controller.session.tab.stream.output';
 import PluginsService, { IPluginData } from '../../../../services/service.plugins';
 
 @Component({

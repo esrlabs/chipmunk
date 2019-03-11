@@ -238,6 +238,41 @@
           }
         }
       }
+    },
+    "xterminal": {
+      "root": "projects/xterminal",
+      "sourceRoot": "projects/xterminal/src",
+      "projectType": "library",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-ng-packagr:build",
+          "options": {
+            "tsConfig": "projects/xterminal/tsconfig.lib.json",
+            "project": "projects/xterminal/ng-package.json"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "main": "projects/xterminal/src/test.ts",
+            "tsConfig": "projects/xterminal/tsconfig.spec.json",
+            "karmaConfig": "projects/xterminal/karma.conf.js"
+          }
+        },
+        "lint": {
+          "builder": "@angular-devkit/build-angular:tslint",
+          "options": {
+            "tsConfig": [
+              "projects/xterminal/tsconfig.lib.json",
+              "projects/xterminal/tsconfig.spec.json"
+            ],
+            "exclude": [
+              "**/node_modules/**"
+            ]
+          }
+        }
+      }
     }
   },
   "defaultProject": "pluginB"

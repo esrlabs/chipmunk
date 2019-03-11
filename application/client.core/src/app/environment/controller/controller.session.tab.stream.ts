@@ -1,7 +1,7 @@
 import ServiceElectronIpc from '../services/service.electron.ipc';
 import { IPCMessages, Subscription } from '../services/service.electron.ipc';
 import { Observable, Subject } from 'rxjs';
-import { ControllerSessionStreamOutput, IStreamPacket } from './controller.session.stream.output';
+import { ControllerSessionTabStreamOutput, IStreamPacket } from './controller.session.tab.stream.output';
 import * as Toolkit from 'logviewer.client.toolkit';
 
 export interface IControllerSessionStream {
@@ -9,7 +9,7 @@ export interface IControllerSessionStream {
     transports: string[];
 }
 
-export class ControllerSessionStream {
+export class ControllerSessionTabStream {
 
     private _logger: Toolkit.Logger;
     private _guid: string;
@@ -20,12 +20,12 @@ export class ControllerSessionStream {
         clear: new Subject<void>(),
     };
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
-    private _output: ControllerSessionStreamOutput = new ControllerSessionStreamOutput();
+    private _output: ControllerSessionTabStreamOutput = new ControllerSessionTabStreamOutput();
 
     constructor(params: IControllerSessionStream) {
         this._guid = params.guid;
         this._transports = params.transports;
-        this._logger = new Toolkit.Logger(`ControllerSessionStream: ${params.guid}`);
+        this._logger = new Toolkit.Logger(`ControllerSessionTabStream: ${params.guid}`);
         this._ipc_onStreamData = this._ipc_onStreamData.bind(this);
         // Notify electron about new stream
         ServiceElectronIpc.send(new IPCMessages.StreamAdd({
@@ -46,7 +46,7 @@ export class ControllerSessionStream {
         return this._guid;
     }
 
-    public getOutputStream(): ControllerSessionStreamOutput {
+    public getOutputStream(): ControllerSessionTabStreamOutput {
         return this._output;
     }
 

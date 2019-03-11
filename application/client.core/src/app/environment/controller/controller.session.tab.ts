@@ -1,6 +1,6 @@
 import PluginsService, { IPluginData } from '../services/service.plugins';
 import { Subscription } from '../services/service.electron.ipc';
-import { ControllerSessionStream } from './controller.session.stream';
+import { ControllerSessionTabStream } from './controller.session.tab.stream';
 import * as Toolkit from 'logviewer.client.toolkit';
 
 export interface IControllerSession {
@@ -13,12 +13,12 @@ export interface IComponentInjection {
     inputs: { [key: string]: any };
 }
 
-export class ControllerSession {
+export class ControllerSessionTab {
 
     private _logger: Toolkit.Logger;
     private _guid: string;
     private _transports: string[];
-    private _stream: ControllerSessionStream;
+    private _stream: ControllerSessionTabStream;
 
     private _subscriptions: { [key: string]: Subscription | undefined } = {
     };
@@ -27,7 +27,7 @@ export class ControllerSession {
         this._guid = params.guid;
         this._transports = params.transports;
         this._logger = new Toolkit.Logger(`ControllerSession: ${params.guid}`);
-        this._stream = new ControllerSessionStream({
+        this._stream = new ControllerSessionTabStream({
             guid: params.guid,
             transports: params.transports.slice()
         });
@@ -43,7 +43,7 @@ export class ControllerSession {
         return this._guid;
     }
 
-    public getSessionStream(): ControllerSessionStream {
+    public getSessionStream(): ControllerSessionTabStream {
         return this._stream;
     }
 

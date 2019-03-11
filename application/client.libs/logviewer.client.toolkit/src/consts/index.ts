@@ -1,1 +1,2 @@
-export * from './views.enum';
+export * from './enums';
+export * from './aliases';

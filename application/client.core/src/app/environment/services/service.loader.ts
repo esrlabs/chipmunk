@@ -1,7 +1,8 @@
 import ServiceElectronIpc, { IPCMessages } from './service.electron.ipc';
 import PluginsIPCService from './service.plugins.ipc';
 import PluginsService from './service.plugins';
-import SessionsService from './service.sessions';
+import HorizontalSidebarSessionsService from './service.sessions.sidebar.horizontal';
+import TabsSessionsService from './service.sessions.tabs';
 
 import * as Toolkit from 'logviewer.client.toolkit';
 
@@ -11,7 +12,9 @@ const InitializeStages = [
     // Stage #2
     [PluginsService],
     // Stage #3
-    [SessionsService, PluginsIPCService],
+    [PluginsIPCService],
+    // Stage #4
+    [TabsSessionsService, HorizontalSidebarSessionsService],
 ];
 
 // TODO: Destroy method, even dummy

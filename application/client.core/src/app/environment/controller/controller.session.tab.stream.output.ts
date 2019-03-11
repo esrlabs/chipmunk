@@ -10,7 +10,7 @@ export interface IStreamPacket {
     pluginId: number;
 }
 
-export class ControllerSessionStreamOutput extends DataSource<IStreamPacket> {
+export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> {
 
     private _dataStream: BehaviorSubject<IStreamPacket[]> = new BehaviorSubject<IStreamPacket[]>([]);
     private _rows: IStreamPacket[] = [];

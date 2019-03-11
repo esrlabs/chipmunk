@@ -1,8 +1,4 @@
-import { Compiler, Injector } from '@angular/core';
-import ElectronIpcService from './service.electron.ipc';
-import { IPCMessages, Subscription } from './service.electron.ipc';
-import PluginsIPCService from './service.plugins.ipc';
-import ControllerPluginIPC from '../controller/controller.plugin.ipc';
+// List of modules to shate with plugin
 import * as AngularCore from '@angular/core';
 import * as AngularCommon from '@angular/common';
 import * as AngularPlatformBrowser from '@angular/platform-browser';
@@ -10,6 +6,13 @@ import * as LogviewerClientComplex from 'logviewer-client-complex';
 import * as LogviewerClientContainers from 'logviewer-client-containers';
 import * as LogviewerClientPrimitive from 'logviewer-client-primitive';
 import * as Toolkit from 'logviewer.client.toolkit';
+import * as XTerm from 'xterm';
+
+import { Compiler, Injector } from '@angular/core';
+import ElectronIpcService from './service.electron.ipc';
+import { IPCMessages, Subscription } from './service.electron.ipc';
+import PluginsIPCService from './service.plugins.ipc';
+import ControllerPluginIPC from '../controller/controller.plugin.ipc';
 import { IService } from '../interfaces/interface.service';
 
 type TPluginModule = any;
@@ -197,6 +200,7 @@ export class PluginsService extends Toolkit.Emitter implements IService {
             'logviewer-client-containers': LogviewerClientContainers,
             'logviewer-client-primitive': LogviewerClientPrimitive,
             'logviewer.client.toolkit': Toolkit,
+            'xterm': XTerm,
         };
     }
 

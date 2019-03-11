@@ -8,7 +8,6 @@ import Logger from '../../platform/node/src/env.logger';
 import { IPlugin } from '../services/service.plugins';
 import ControllerIPCPlugin from './controller.plugin.process.ipc';
 import * as IPCPluginMessages from './plugin.ipc.messages/index';
-import ServiceStreams, { IStreamInfo } from '../services/service.streams';
 
 /**
  * @class ControllerPluginProcess
@@ -54,7 +53,7 @@ export default class ControllerPluginProcess extends Emitter {
             }
             this._process = fork(
                 main,
-                [`--inspect`],
+                [`--inspect=127.0.0.1:${9229 + this._plugin.id - 1}`],
                 { stdio: [
                     'pipe', // stdin  - doesn't used by parent process
                     'pipe', // stdout - listened by parent process. Whole output from it goes to logs of parent process

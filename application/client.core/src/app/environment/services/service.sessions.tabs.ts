@@ -1,6 +1,6 @@
 import { TabsService, DockingComponent, DockDef, DocksService } from 'logviewer-client-complex';
 import { Subscription } from './service.electron.ipc';
-import { ControllerSession } from '../controller/controller.session';
+import { ControllerSessionTab } from '../controller/controller.session.tab';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { IService } from '../interfaces/interface.service';
 
@@ -8,10 +8,10 @@ import { ViewOutputComponent } from '../components/views/output/component';
 
 type TSessionGuid = string;
 
-export class SessionsService implements IService {
+export class TabsSessionsService implements IService {
 
-    private _logger: Toolkit.Logger = new Toolkit.Logger('SessionsService');
-    private _sessions: Map<TSessionGuid, ControllerSession> = new Map();
+    private _logger: Toolkit.Logger = new Toolkit.Logger('TabsSessionsService');
+    private _sessions: Map<TSessionGuid, ControllerSessionTab> = new Map();
     private _tabsService: TabsService = new TabsService();
     private _subscriptions: { [key: string]: Subscription | undefined } = {
     };
@@ -27,7 +27,7 @@ export class SessionsService implements IService {
     }
 
     public getName(): string {
-        return 'SessionsService';
+        return 'TabsSessionsService';
     }
 
     public destroy() {
@@ -38,7 +38,7 @@ export class SessionsService implements IService {
 
     public create(): void {
         const guid: string = Toolkit.guid();
-        const session = new ControllerSession({
+        const session = new ControllerSessionTab({
             guid: guid,
             transports: ['processes'],
         });
@@ -70,7 +70,7 @@ export class SessionsService implements IService {
 
 }
 
-export default (new SessionsService());
+export default (new TabsSessionsService());
 
 
         /*
