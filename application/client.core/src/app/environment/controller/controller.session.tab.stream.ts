@@ -53,12 +53,12 @@ export class ControllerSessionTabStream {
     public getObservable(): {
         write: Observable<IStreamPacket>,
         next: Observable<void>,
-        clear: Observable<void>,
+        clear: Observable<void>
     } {
         return {
             write: this._subjects.write.asObservable(),
             next: this._subjects.next.asObservable(),
-            clear: this._subjects.clear.asObservable(),
+            clear: this._subjects.clear.asObservable()
         };
     }
 

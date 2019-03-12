@@ -64,6 +64,7 @@ export class SidebarViewComponent implements AfterViewInit, OnDestroy {
             return null;
         }
         this._xterm = new Terminal();
+        this._setTheme(this._xterm);
         this._xterm.open(this._ng_xtermholder.nativeElement);
         this._xterm.on('data', (data) => {
             this.ipc.requestToHost({
@@ -80,6 +81,21 @@ export class SidebarViewComponent implements AfterViewInit, OnDestroy {
             command: EHostCommands.create
         }).then((response) => {
             // TODO: feedback based on response
+        });
+    }
+
+    private _setTheme(xterm: Terminal) {
+        // xterm.setOption('allowTransparency', true);
+        xterm.setOption('fontFamily', 'monospace');
+        xterm.setOption('fontSize', 14);
+        xterm.setOption('fontWeight', 500);
+        xterm.setOption('fontWeightBold', 600);
+        // xterm.setOption('lineHeight', 15);
+        xterm.setOption('theme', {
+            background: '#EEF4F2',
+            foreground: '#233656',
+            cursor: '#CDD6D5',
+            cursorAccent: '#EEF4F2',
         });
     }
 

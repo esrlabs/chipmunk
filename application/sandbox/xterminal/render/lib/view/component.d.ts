@@ -11,6 +11,7 @@ export declare class SidebarViewComponent implements AfterViewInit, OnDestroy {
     ngOnDestroy(): void;
     ngAfterViewInit(): void;
     private _createXTerm;
+    private _setTheme;
     private _onIncomeMessage;
     private _onIncomeEvent;
 }
