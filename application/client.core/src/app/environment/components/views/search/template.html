@@ -1,0 +1,10 @@
+<div class="search-input-wrapper">
+  <input class="search-input" type="text" placeholder="search request" />
+</div>
+<ul #outputwrapper class="rows" (window:resize)="_ng_onBrowserWindowResize($event)">
+    <cdk-virtual-scroll-viewport #outputviewport class="virtual-scroll-viewport" [ngStyle]="_ng_getOutputAreaStyle()" itemSize="16">
+      <ng-container *cdkVirtualFor="let row of _ng_output">
+        <app-views-search-row [row]="row"></app-views-search-row>
+      </ng-container>
+    </cdk-virtual-scroll-viewport>
+</ul>

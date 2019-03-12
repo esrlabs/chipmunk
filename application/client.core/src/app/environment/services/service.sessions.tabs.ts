@@ -3,6 +3,7 @@ import { Subscription } from './service.electron.ipc';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { IService } from '../interfaces/interface.service';
+import { Observable, Subject } from 'rxjs';
 
 import { ViewOutputComponent } from '../components/views/output/component';
 
@@ -15,6 +16,8 @@ export class TabsSessionsService implements IService {
     private _tabsService: TabsService = new TabsService();
     private _subscriptions: { [key: string]: Subscription | undefined } = {
     };
+    private _currentSessionSubject = new Subject<ControllerSessionTab>();
+    private _currentSessionGuid: string;
 
     constructor() {
 
@@ -61,11 +64,29 @@ export class TabsSessionsService implements IService {
             }
         });
         this._sessions.set(guid, session);
-        this._tabsService.setActive(guid);
+        this.setActive(guid);
     }
 
     public getTabsService(): TabsService {
         return this._tabsService;
+    }
+
+    public getCurrentSessionObservable(): Observable<ControllerSessionTab> {
+        return this._currentSessionSubject.asObservable();
+    }
+
+    public setActive(guid: string) {
+        const session: ControllerSessionTab | undefined = this._sessions.get(guid);
+        if (session === undefined) {
+            return this._logger.warn(`Cannot fild session ${guid}. Cannot make this session active.`);
+        }
+        this._currentSessionGuid = guid;
+        this._tabsService.setActive(this._currentSessionGuid);
+        this._currentSessionSubject.next(session);
+    }
+
+    public getActive(): ControllerSessionTab | undefined {
+        return this._sessions.get(this._currentSessionGuid);
     }
 
 }

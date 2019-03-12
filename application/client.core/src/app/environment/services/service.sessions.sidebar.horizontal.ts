@@ -5,6 +5,16 @@ import { IService } from '../interfaces/interface.service';
 import PluginsService, { IPluginData } from './service.plugins';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
 
+import { ViewSearchComponent } from '../components/views/search/component';
+
+const DefaultViews = [
+    {
+        name: 'Search',
+        factory: ViewSearchComponent,
+        inputs: { }
+    }
+];
+
 export interface ISidebarPluginInfo {
     name: string;
     factory: any;
@@ -41,13 +51,28 @@ export class HorizontalSidebarSessionsService implements IService {
     }
 
     public create(): void {
+        // Add default views
+        DefaultViews.forEach((defaultView, i) => {
+            const guid: string = Toolkit.guid();
+            this._tabsService.add({
+                guid: guid,
+                name: defaultView.name,
+                active: i === 0,
+                content: {
+                    factory: defaultView.factory,
+                    inputs: defaultView.inputs,
+                    resolved: false
+                }
+            });
+        });
+        // Add views of plugins
         this._plugins = this._getSidebarPlugins();
         this._plugins.forEach((pluginInfo: ISidebarPluginInfo, i: number) => {
             const guid: string = Toolkit.guid();
             this._tabsService.add({
                 guid: guid,
                 name: pluginInfo.name,
-                active: i === 0,
+                active: false,
                 content: {
                     factory: pluginInfo.factory,
                     inputs: {
