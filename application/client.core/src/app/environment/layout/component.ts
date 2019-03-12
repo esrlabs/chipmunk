@@ -148,6 +148,7 @@ export class LayoutComponent implements OnDestroy {
         }
         this._movement.x = event.x;
         this._movement.y = event.y;
+        this._cdRef.detectChanges();
     }
 
     private _onMouseUp(event: MouseEvent) {
@@ -170,6 +171,7 @@ export class LayoutComponent implements OnDestroy {
 
     public _ng_onTriggerFuncLocation() {
         this.funcLocation = this.funcLocation === EFuncLocation.right ? EFuncLocation.left : EFuncLocation.right;
+        this._cdRef.detectChanges();
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -183,6 +185,7 @@ export class LayoutComponent implements OnDestroy {
         } else {
             this._sizes.sec.current = this._sizes.sec.last;
         }
+        this._cdRef.detectChanges();
     }
 
     private _onSecAreaStateUpdated(state: AreaState) {
@@ -196,6 +199,7 @@ export class LayoutComponent implements OnDestroy {
         this._movement.x = event.x;
         this._movement.y = event.y;
         this._movement.type = EResizeType.sec;
+        this._cdRef.detectChanges();
     }
 
 }

@@ -1,5 +1,7 @@
-<div class="search-input-wrapper">
-  <input class="search-input" type="text" placeholder="search request" />
+<div class="comstyle-input-holder search-input-wrapper">
+  <div class="comstyle-input">
+    <input class="comstyle-input" type="text" placeholder="search request" />
+  </div>
 </div>
 <ul #outputwrapper class="rows" (window:resize)="_ng_onBrowserWindowResize($event)">
     <cdk-virtual-scroll-viewport #outputviewport class="virtual-scroll-viewport" [ngStyle]="_ng_getOutputAreaStyle()" itemSize="16">

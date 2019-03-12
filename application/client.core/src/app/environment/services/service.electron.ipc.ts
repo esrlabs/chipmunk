@@ -166,9 +166,6 @@ class ElectronIpcService implements IService {
     private _onIPCMessage(ipcEvent: Event, eventName: string, data: any) {
         try {
             const messagePackage: IPCMessagePackage = new IPCMessagePackage(data);
-            if (messagePackage.message.data !== undefined) {
-                console.log('COMMON IPC: ', messagePackage.message.data);
-            }
             const resolver = this._pending.get(messagePackage.sequence);
             this._pending.delete(messagePackage.sequence);
             const refMessageClass = this._getRefToMessageClass(messagePackage.message);
