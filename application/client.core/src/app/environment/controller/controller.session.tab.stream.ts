@@ -63,7 +63,6 @@ export class ControllerSessionTabStream {
     }
 
     private _ipc_onStreamData(message: IPCMessages.StreamData) {
-        console.log(message.data);
         const BreakRegExp = /[\r\n]/gm;
         const output: string = message.data.replace(BreakRegExp, '\n').replace(/\n{2,}/g, '\n');
         const rows: string[] = output.split(/\n/gi);

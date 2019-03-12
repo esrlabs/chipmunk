@@ -28,6 +28,18 @@ export { IStreamRemove, StreamRemove };
 import { IStreamData, StreamData } from './stream.data';
 export { IStreamData, StreamData };
 
+import { ISearchRequest, SearchRequest } from './search.request';
+export { ISearchRequest, SearchRequest };
+
+import { ISearchRequestStarted, SearchRequestStarted } from './search.request.started';
+export { ISearchRequestStarted, SearchRequestStarted };
+
+import { ISearchRequestFinished, SearchRequestFinished } from './search.request.finished';
+export { ISearchRequestFinished, SearchRequestFinished };
+
+import { ISearchRequestResults, SearchRequestResults } from './search.request.results';
+export { ISearchRequestResults, SearchRequestResults };
+
 // Common type for expected message implementation
 export type TMessage =  HostState |
                         HostStateHistory |
@@ -38,7 +50,11 @@ export type TMessage =  HostState |
                         PluginInternalMessage |
                         StreamAdd |
                         StreamRemove |
-                        StreamData;
+                        StreamData |
+                        SearchRequest |
+                        SearchRequestStarted |
+                        SearchRequestFinished |
+                        SearchRequestResults;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -55,5 +71,9 @@ export const Map = {
     [StreamAdd.signature                ]: StreamAdd,
     [StreamRemove.signature             ]: StreamRemove,
     [StreamData.signature               ]: StreamData,
+    [SearchRequest.signature            ]: SearchRequest,
+    [SearchRequestStarted.signature     ]: SearchRequestStarted,
+    [SearchRequestFinished.signature    ]: SearchRequestFinished,
+    [SearchRequestResults.signature     ]: SearchRequestResults,
 
 };

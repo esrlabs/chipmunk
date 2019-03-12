@@ -2,8 +2,12 @@ import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewIni
 import { Subscription } from 'rxjs';
 import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
+import { ControllerSessionTabSearch } from '../../../controller/controller.session.tab.search';
 import { ControllerSessionTabStreamSearch } from '../../../controller/controller.session.tab.search.output';
+import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
+import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
+import * as Toolkit from 'logviewer.client.toolkit';
 
 @Component({
     selector: 'app-views-search',
@@ -15,9 +19,11 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     @ViewChild('outputviewport') _ng_outputAreaViewport: CdkVirtualScrollViewport;
     @ViewChild('outputwrapper') _ng_outputWrapperViewport: ElementRef;
+    @ViewChild('requestinput') _ng_input: ElementRef;
 
     public _ng_output: ControllerSessionTabStreamSearch | undefined;
-
+    public _ng_working: boolean = false;
+    public _ng_isRequestValid: boolean = true;
     public _ng_outputAreaSize: {
         height: number;
         width: number;
@@ -26,10 +32,13 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         height: 0,
     };
 
-    private _subscriptions: { [key: string]: Subscription | undefined } = { };
+    private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription | undefined } = { };
+    private _session: ControllerSessionTabSearch | undefined;
+    private _requestId: string | undefined;
 
     constructor(private _cdRef: ChangeDetectorRef,
-                private _vcRef: ViewContainerRef) {
+                private _vcRef: ViewContainerRef,
+                private _notifications: NotificationsService) {
         this._subscriptions.currentSession = TabsSessionsService.getCurrentSessionObservable().subscribe(this._onSessionChange.bind(this));
         this._setActiveSession();
     }
@@ -57,6 +66,44 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     public _ng_onBrowserWindowResize() {
         this._updateOutputContainerSize();
+    }
+
+    public _ng_onKeyUp(event: KeyboardEvent) {
+        if (this._ng_working) {
+            return this._notifications.add({
+                caption: 'Search',
+                message: 'Cannot to do new search request, because current still is in progress.'
+            });
+        }
+        const value: string = (event.target as HTMLInputElement).value;
+        this._ng_isRequestValid = Toolkit.regTools.isRegStrValid(value);
+        this._cdRef.detectChanges();
+        if (event.key !== 'Enter') {
+            return;
+        }
+        if (value.trim() === '') {
+            this._ng_output.clearStream();
+            return this._cdRef.detectChanges();
+        }
+        if (!this._ng_isRequestValid) {
+            return this._notifications.add({
+                caption: 'Search',
+                message: `Regular expresion isn't valid. Please correct it.`
+            });
+        }
+        this._ng_working = true;
+        this._requestId = Toolkit.guid();
+        // Sending search request
+        this._session.search([Toolkit.regTools.createFromStr(value) as RegExp]).then((requestId: string) => {
+
+        }).catch((error: Error) => {
+            this._ng_working = false;
+            return this._notifications.add({
+                caption: 'Search',
+                message: `Cannot to do due error: ${error.message}.`
+            });
+        });
+        (event.target as HTMLInputElement).value = '';
     }
 
     private _updateOutputContainerSize() {
@@ -88,11 +135,14 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         if (session === undefined) {
             return;
         }
+        this._session = session.getSessionSearch();
         if (this._subscriptions.onSessionChange !== undefined) {
             this._subscriptions.onSessionChange.unsubscribe();
         }
-        this._ng_output = session.getSessionSearch().getOutputStream();
-        this._subscriptions.onSessionChange = session.getSessionStream().getObservable().next.subscribe(this._onNextStreamRow.bind(this));
+        this._ng_output = this._session.getOutputStream();
+        this._subscriptions.onSessionChange = this._session.getObservable().next.subscribe(this._onNextStreamRow.bind(this));
     }
+
+
 
 }

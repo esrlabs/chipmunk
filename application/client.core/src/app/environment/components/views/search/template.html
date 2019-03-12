@@ -1,6 +1,6 @@
 <div class="comstyle-input-holder search-input-wrapper">
   <div class="comstyle-input">
-    <input class="comstyle-input" type="text" placeholder="search request" />
+    <input #requestinput [attr.class]="'comstyle-input ' + (_ng_isRequestValid ? '' : 'not-valid')" type="text" placeholder="search request"  (keyup)="_ng_onKeyUp($event)"/>
   </div>
 </div>
 <ul #outputwrapper class="rows" (window:resize)="_ng_onBrowserWindowResize($event)">
