@@ -10,7 +10,7 @@ export interface IRenderMountPlugin {
 }
 
 export class RenderMountPlugin {
-    public static signature: string = 'PluginMount';
+    public static signature: string = 'RenderMountPlugin';
     public signature: string = RenderMountPlugin.signature;
     public plugins: IRenderMountPluginInfo[] = [];
 

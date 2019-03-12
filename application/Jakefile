@@ -718,5 +718,6 @@ namespace('electron', function() {
 
     task('build', ['electron:clean', 'solution:link', 'solution:fix-npm-etc', 'electron:install', 'electron:compile', 'client:all', 'electron:deliveryClient', 'plugin.processes:all', 'plugin.xterminal:all', 'electron:buildApp']);
     task('prebuild', ['electron:clean', 'solution:link', 'solution:fix-npm-etc', 'electron:install', 'electron:compile', 'client:all', 'electron:deliveryClient', 'plugin.processes:all', 'plugin.xterminal:all', 'electron:package.json']);
+    task('quick', ['client:build', 'electron:deliveryClient', 'electron:package.json']);
 
 });
