@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, Compiler, Injector, ChangeDetectorRef } from '@angular/core';
-import { NotificationsService } from './environment/services/service.notifications';
+import { NotificationsService } from './environment/services.injectable/injectable.service.notifications';
 import ServiceElectronIpc from './environment/services/service.electron.ipc';
 import { IPCMessages, Subscription } from './environment/services/service.electron.ipc';
 import PluginsService from './environment/services/service.plugins';

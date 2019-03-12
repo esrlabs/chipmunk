@@ -8,7 +8,7 @@ import ServicePaths from './service.paths';
 import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from './service.electron';
 import ServicePlugins from './service.plugins';
 import Logger from '../../platform/node/src/env.logger';
-
+import ControllerStreamSearch, { IResults } from '../controllers/controller.stream.search';
 import { IService } from '../interfaces/interface.service';
 
 export interface IStreamInfo {
@@ -43,6 +43,7 @@ class ServiceStreams extends EventEmitter implements IService  {
         super();
         this._ipc_onStreamAdd = this._ipc_onStreamAdd.bind(this);
         this._ipc_onStreamRemove = this._ipc_onStreamRemove.bind(this);
+        this._ipc_onSearchRequest = this._ipc_onSearchRequest.bind(this);
     }
 
     /**
@@ -63,6 +64,11 @@ class ServiceStreams extends EventEmitter implements IService  {
                 this._subscriptions.streamRemove = subscription;
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to subscribe to render event "StreamRemove" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+            });
+            ServiceElectron.IPC.subscribe(IPCElectronMessages.SearchRequest, this._ipc_onSearchRequest).then((subscription: Subscription) => {
+                this._subscriptions.searchRequest = subscription;
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to subscribe to render event "SearchRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
             });
         });
     }
@@ -144,17 +150,25 @@ class ServiceStreams extends EventEmitter implements IService  {
             stream.connection.destroy();
             stream.fileWriteStream.close();
             this._streams.delete(guid);
-            fs.unlink(socketFile, (removeSocketFileError: NodeJS.ErrnoException) => {
-                if (removeSocketFileError) {
-                    this._logger.warn(`Fail to remove stream socket file ${socketFile} due error: ${removeSocketFileError.message}`);
-                }
-                fs.unlink(streamFile, (removeStreamFileError: NodeJS.ErrnoException) => {
-                    if (removeStreamFileError) {
-                        this._logger.warn(`Fail to remove stream socket file ${streamFile} due error: ${removeStreamFileError.message}`);
-                    }
-                    // Resolve in any case
-                    resolve();
-                });
+            Promise.all([
+                new Promise((resolveUnlink) => {
+                    fs.unlink(socketFile, (removeSocketFileError: NodeJS.ErrnoException) => {
+                        if (removeSocketFileError) {
+                            this._logger.warn(`Fail to remove stream socket file ${socketFile} due error: ${removeSocketFileError.message}`);
+                        }
+                        resolveUnlink();
+                    });
+                }),
+                new Promise((resolveUnlink) => {
+                    fs.unlink(streamFile, (removeStreamFileError: NodeJS.ErrnoException) => {
+                        if (removeStreamFileError) {
+                            this._logger.warn(`Fail to remove stream socket file ${streamFile} due error: ${removeStreamFileError.message}`);
+                        }
+                        resolveUnlink();
+                    });
+                }),
+            ]).then(() => {
+                resolve();
             });
         });
     }
@@ -174,10 +188,9 @@ class ServiceStreams extends EventEmitter implements IService  {
                 files.push(...result[1].map((file: string) => Path.resolve(ServicePaths.getStreams(), file) ));
                 const queue: Array<Promise<void>> = files.map((file: string) => {
                     return new Promise((resolveUnlink) => {
-                        const socket: string = Path.resolve(ServicePaths.getSockets(), file);
-                        fs.unlink(socket, (errorUnlink: NodeJS.ErrnoException) => {
+                        fs.unlink(file, (errorUnlink: NodeJS.ErrnoException) => {
                             if (errorUnlink) {
-                                this._logger.warn(`Fail to remove ${socket} due error: ${errorUnlink.message}`);
+                                this._logger.warn(`Fail to remove ${file} due error: ${errorUnlink.message}`);
                             }
                             // Resolve in anyway
                             resolveUnlink();
@@ -248,6 +261,47 @@ class ServiceStreams extends EventEmitter implements IService  {
             if (writeError) {
                 this._logger.error(`Fail to write data into stream file (${stream.streamFile}) due error: ${writeError.message}`);
             }
+        });
+    }
+
+    private _ipc_onSearchRequest(message: any, response: (instance: any) => any) {
+        const done = (error?: string) => {
+            ServiceElectron.IPC.send(new IPCElectronMessages.SearchRequestFinished({
+                streamId: message.streamId,
+                requestId: message.requestId,
+                error: error,
+                duration: Date.now() - started,
+            }));
+        };
+        const stream: IStreamInfo | undefined = this._streams.get(message.streamId);
+        if (stream === undefined) {
+            // TODO: response with error;
+            return this._logger.warn(`Search request came for stream "${message.streamId}", but stream isn't found.`);
+        }
+        // Notify render: search is started
+        ServiceElectron.IPC.send(new IPCElectronMessages.SearchRequestStarted({
+            streamId: message.streamId,
+            requestId: message.requestId,
+        }));
+        // Create search controller, which: will read target file and make search
+        const search: ControllerStreamSearch = new ControllerStreamSearch(stream.streamFile, message.requests);
+        // Fix time of starting
+        const started: number = Date.now();
+        // Listen "middle" results
+        search.on(ControllerStreamSearch.Events.next, (middleResults: IResults) => {
+            // Send to render "middle" results
+            ServiceElectron.IPC.send(new IPCElectronMessages.SearchRequestResults({
+                streamId: message.streamId,
+                requestId: message.requestId,
+                results: middleResults.regs,
+            }));
+        });
+        // Start searching
+        search.search().then((fullResults: IResults) => {
+            // Nothing to do with full results, because everything was sent during search
+            done();
+        }).catch((error: Error) => {
+            done(error.message);
         });
     }
 

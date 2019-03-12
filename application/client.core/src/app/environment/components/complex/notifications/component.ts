@@ -1,8 +1,8 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Subscription } from 'rxjs';
 import * as Toolkit from 'logviewer.client.toolkit';
 
-import { NotificationsService, INotification } from '../../../services/service.notifications';
+import { NotificationsService, INotification } from '../../../services.injectable/injectable.service.notifications';
 
 const DEFAULT_OPTIONS = {
     closeDelay: 4000,           // ms
@@ -22,7 +22,7 @@ export class NotificationsComponent implements OnDestroy {
 
     public notifications: INotification[] = [];
 
-    constructor(private _notificationsService: NotificationsService) {
+    constructor(private _notificationsService: NotificationsService, private _cdRef: ChangeDetectorRef) {
         this._subscription = this._notificationsService.getObservable().subscribe(this._onNotification.bind(this));
     }
 
@@ -41,6 +41,7 @@ export class NotificationsComponent implements OnDestroy {
         }
         this._notifications.push(notification);
         this.notifications.push(notification);
+        this._cdRef.detectChanges();
     }
 
     private _normalize(notification: INotification): INotification | null {
@@ -92,10 +93,12 @@ export class NotificationsComponent implements OnDestroy {
     private _close(id: string) {
         this._update(id, { closing: true });
         setTimeout(this._remove.bind(this, id), DEFAULT_OPTIONS.closingAnimationDelay);
+        this._cdRef.detectChanges();
     }
 
     private _remove(id: string) {
         this.notifications = this.notifications.filter(notification => notification.id !== id);
+        this._cdRef.detectChanges();
     }
 
     private _update(id: string, updated: any): boolean {
