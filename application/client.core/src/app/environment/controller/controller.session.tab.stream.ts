@@ -4,6 +4,8 @@ import { Observable, Subject } from 'rxjs';
 import { ControllerSessionTabStreamOutput, IStreamPacket } from './controller.session.tab.stream.output';
 import * as Toolkit from 'logviewer.client.toolkit';
 
+export {ControllerSessionTabStreamOutput, IStreamPacket};
+
 export interface IControllerSessionStream {
     guid: string;
     transports: string[];
@@ -60,6 +62,10 @@ export class ControllerSessionTabStream {
             next: this._subjects.next.asObservable(),
             clear: this._subjects.clear.asObservable()
         };
+    }
+
+    public getRowsByIndexes(indexes: number[]): IStreamPacket[] {
+        return this._output.getRowsByIndexes(indexes);
     }
 
     private _ipc_onStreamData(message: IPCMessages.StreamData) {

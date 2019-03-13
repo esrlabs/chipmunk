@@ -1,5 +1,6 @@
 export enum EViewsTypes {
     view                = 'lib-view',
+    transport           = 'lib-transport',
     outputBottom        = 'lib-output-bottom',
     outputTop           = 'lib-output-top',
     outputLeft          = 'lib-output-left',

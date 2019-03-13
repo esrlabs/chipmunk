@@ -70,10 +70,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     public _ng_onKeyUp(event: KeyboardEvent) {
         if (this._ng_working) {
-            return this._notifications.add({
-                caption: 'Search',
-                message: 'Cannot to do new search request, because current still is in progress.'
-            });
+            return;
         }
         const value: string = (event.target as HTMLInputElement).value;
         this._ng_isRequestValid = Toolkit.regTools.isRegStrValid(value);
@@ -81,8 +78,8 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         if (event.key !== 'Enter') {
             return;
         }
+        this._ng_output.clearStream();
         if (value.trim() === '') {
-            this._ng_output.clearStream();
             return this._cdRef.detectChanges();
         }
         if (!this._ng_isRequestValid) {
@@ -95,15 +92,18 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._requestId = Toolkit.guid();
         // Sending search request
         this._session.search([Toolkit.regTools.createFromStr(value) as RegExp]).then((requestId: string) => {
-
+            this._ng_working = false;
+            this._cdRef.detectChanges();
         }).catch((error: Error) => {
             this._ng_working = false;
+            this._cdRef.detectChanges();
             return this._notifications.add({
                 caption: 'Search',
                 message: `Cannot to do due error: ${error.message}.`
             });
         });
         (event.target as HTMLInputElement).value = '';
+        this._cdRef.detectChanges();
     }
 
     private _updateOutputContainerSize() {

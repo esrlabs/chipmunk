@@ -34,7 +34,8 @@ export class ControllerSessionTab {
             transports: params.transports.slice()
         });
         this._search = new ControllerSessionTabSearch({
-            guid: params.guid
+            guid: params.guid,
+            stream: this._stream
         });
     }
 
