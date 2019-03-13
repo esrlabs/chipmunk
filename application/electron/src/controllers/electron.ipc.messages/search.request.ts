@@ -1,7 +1,12 @@
+export interface IRegExpStr {
+    source: string;
+    flags: string;
+}
+
 export interface ISearchRequest {
     streamId: string;
     requestId: string;
-    requests: RegExp[];
+    requests: IRegExpStr[];
 }
 
 export class SearchRequest {
@@ -9,7 +14,7 @@ export class SearchRequest {
     public signature: string = SearchRequest.signature;
     public streamId: string;
     public requestId: string;
-    public requests: RegExp[];
+    public requests: IRegExpStr[];
 
     constructor(params: ISearchRequest) {
         if (typeof params !== 'object' || params === null) {
@@ -22,7 +27,7 @@ export class SearchRequest {
             throw new Error(`Field "requestId" should be defined`);
         }
         if (!(params.requests instanceof Array)) {
-            throw new Error(`Field "request" should be an instance of RegExp[]`);
+            throw new Error(`Field "request" should be an instance of IRegExpStr[]`);
         }
         this.streamId = params.streamId;
         this.requestId = params.requestId;

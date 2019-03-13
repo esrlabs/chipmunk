@@ -21,8 +21,8 @@ export class SearchRequestResults {
         if (typeof params.requestId !== 'string' || params.requestId.trim() === '') {
             throw new Error(`Field "requestId" should be defined`);
         }
-        if (!(params.results instanceof Array)) {
-            throw new Error(`Field "results" should be an instance of RegExp`);
+        if (typeof params.results !== 'object' || params.results === null) {
+            throw new Error(`Field "results" should be { [regIndex: number]: number[] }`);
         }
         this.streamId = params.streamId;
         this.requestId = params.requestId;
