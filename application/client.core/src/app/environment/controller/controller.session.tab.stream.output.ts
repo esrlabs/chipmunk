@@ -55,4 +55,10 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
         this._dataStream.next(this._rows);
     }
 
+    public getRowsByIndexes(indexes: number[]): IStreamPacket[] {
+        return indexes.map((index: number) => {
+            return this._rows[index];
+        });
+    }
+
 }
