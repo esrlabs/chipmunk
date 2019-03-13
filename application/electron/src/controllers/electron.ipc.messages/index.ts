@@ -28,8 +28,8 @@ export { IStreamRemove, StreamRemove };
 import { IStreamData, StreamData } from './stream.data';
 export { IStreamData, StreamData };
 
-import { ISearchRequest, SearchRequest } from './search.request';
-export { ISearchRequest, SearchRequest };
+import { ISearchRequest, SearchRequest, IRegExpStr } from './search.request';
+export { ISearchRequest, SearchRequest, IRegExpStr };
 
 import { ISearchRequestStarted, SearchRequestStarted } from './search.request.started';
 export { ISearchRequestStarted, SearchRequestStarted };

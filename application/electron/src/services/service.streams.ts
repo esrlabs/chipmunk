@@ -283,8 +283,12 @@ class ServiceStreams extends EventEmitter implements IService  {
             streamId: message.streamId,
             requestId: message.requestId,
         }));
+        // Create regexps
+        const requests: RegExp[] = message.requests.map((regInfo: IPCElectronMessages.IRegExpStr) => {
+            return new RegExp(regInfo.source, regInfo.flags);
+        });
         // Create search controller, which: will read target file and make search
-        const search: ControllerStreamSearch = new ControllerStreamSearch(stream.streamFile, message.requests);
+        const search: ControllerStreamSearch = new ControllerStreamSearch(stream.streamFile, requests);
         // Fix time of starting
         const started: number = Date.now();
         // Listen "middle" results

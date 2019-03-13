@@ -64,7 +64,12 @@ export class ControllerSessionTabSearch {
             }
             const requestId: string = Toolkit.guid();
             ElectronIpcService.send(new IPCMessages.SearchRequest({
-                requests: requests,
+                requests: requests.map((reg: RegExp) => {
+                    return {
+                        source: reg.source,
+                        flags: reg.flags
+                    };
+                }),
                 streamId: this._guid,
                 requestId: requestId,
             })).then(() => {
