@@ -201,15 +201,11 @@ export class PluginIPCService extends EventEmitter {
             if (socket === undefined) {
                 return reject(new Error(`Fail to find bound socket with stream "${streamId}".`));
             }
-            // Add ID of plugin
-            const idBuffer: Buffer = Buffer.alloc(2);
-            idBuffer.writeInt16BE(this._id as number, 0);
-            const output: Buffer = Buffer.concat([idBuffer, chunk]);
             // Send data
-            socket.resume();
-            socket.write(output, (error: Error) => {
+            socket.write(chunk, (error: Error) => {
                 if (error) {
-                    return reject(error);
+                    console.log(`Fail to send data due error: ${error.message}`);
+                    // return reject(error);
                 }
                 resolve();
             });

@@ -48,6 +48,7 @@ export interface IPlugin {
     token: string;
     id: number;
     streams: string[];
+    connections: symbol[];
 }
 
 export type TPluginPath = string;
@@ -210,6 +211,8 @@ export class ServicePlugins implements IService {
                 (plugin.node as any).controller.addStream(stream.guid, connection);
                 // Add ref to stream
                 plugin.streams.push(stream.guid);
+                // Add ref to connection
+                // plugin.connections.push(connection.)
                 // Save data
                 this._plugins.set(plugin.name, plugin);
             });
@@ -539,6 +542,7 @@ export class ServicePlugins implements IService {
                 token: guid(),
                 id: ++this._seq,
                 streams: [],
+                connections: [],
             };
             this._ids.set(desc.id, desc.token);
             const tasks = [];

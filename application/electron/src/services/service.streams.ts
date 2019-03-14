@@ -10,6 +10,7 @@ import ServicePlugins from './service.plugins';
 import Logger from '../../platform/node/src/env.logger';
 import ControllerStreamSearch, { IResults } from '../controllers/controller.stream.search';
 import { IService } from '../interfaces/interface.service';
+import * as Tools from '../../platform/cross/src/index';
 
 export interface IStreamInfo {
     guid: string;
@@ -38,6 +39,7 @@ class ServiceStreams extends EventEmitter implements IService  {
     private _logger: Logger = new Logger('ServiceStreams');
     private _streams: Map<TGuid, IStreamInfo> = new Map();
     private _subscriptions: { [key: string ]: Subscription | undefined } = { };
+    private _pluginRefs: Map<string, number> = new Map();
 
     constructor() {
         super();
@@ -130,6 +132,7 @@ class ServiceStreams extends EventEmitter implements IService  {
                                 this._logger.env(`Created new connection UNIX socket: ${socketFile} for plugin "${pluginName}".`);
                                 resolveConnection(sharedConnection);
                             });
+                            (sharedConnection as any).__id = Tools.guid();
                         });
                     },
                 };
@@ -150,8 +153,10 @@ class ServiceStreams extends EventEmitter implements IService  {
         if (stream === undefined) {
             return this._logger.error(`Accepted connection to stream "${guid}", which doesn't exist anymore.`);
         }
+        // Create ref to plugin
+        const pluginRef: string = Tools.guid();
         // Start listen new connection
-        socket.on('data', this._stream_onData.bind(this, guid));
+        socket.on('data', this._stream_onData.bind(this, guid, pluginRef));
         this._logger.env(`New connection to stream "${guid}" is accepted.`);
         stream.connections.push(socket);
     }
@@ -254,22 +259,28 @@ class ServiceStreams extends EventEmitter implements IService  {
         });
     }
 
-    private _stream_onData(guid: string, chunk: Buffer) {
+    private _stream_onData(guid: string, ref: string, chunk: Buffer) {
         // Get stream info
         const stream: IStreamInfo | undefined = this._streams.get(guid);
         if (stream === undefined) {
             return this._logger.warn(`Fail to find a stream data for stream guid "${guid}"`);
         }
-        // Extract plugin id
-        const pluginId: number = chunk.readInt16BE(0);
+        const output = chunk.toString('utf8');
+        // Binding ref with ID of plugin
+        if (this._bindPluginRefWithPluginToken(output, ref) === true) {
+            // This is binding message. No need to process it forward.
+            return;
+        }
+        // Attempt to find ID of plugin
+        const pluginId: number | undefined = this._pluginRefs.get(ref);
+        if (pluginId === undefined) {
+            return this._logger.warn(`Fail to find plugin ID. Chunk of data will not be forward.`);
+        }
         // Get token
         const pluginToken: string | undefined = ServicePlugins.getPluginToken(pluginId);
         if (pluginToken === undefined) {
             return this._logger.warn(`Fail to find plugin token by ID of plugin: id = "${pluginId}". Chunk of data will not be forward.`);
         }
-        // Remove plugin ID from chunk
-        const cleared: Buffer = chunk.slice(2);
-        const output = cleared.toString('utf8');
         // Send data forward
         ServiceElectron.IPC.send(new IPCElectronMessages.StreamData({
             guid: guid,
@@ -285,6 +296,25 @@ class ServiceStreams extends EventEmitter implements IService  {
                 this._logger.error(`Fail to write data into stream file (${stream.streamFile}) due error: ${writeError.message}`);
             }
         });
+    }
+
+    private _bindPluginRefWithPluginToken(chunk: string, ref: string): boolean {
+        if (this._pluginRefs.has(ref)) {
+            // Plugin's connection is already bound
+            return false;
+        }
+        if (chunk.search(/\[plugin:\d*\]/) === -1) {
+            return false;
+        }
+        const id: number = parseInt(chunk.replace('[plugin:', '').replace(']', ''), 10);
+        const pluginToken: string | undefined = ServicePlugins.getPluginToken(id);
+        if (pluginToken === undefined) {
+            this._logger.warn(`Fail to find plugin token by ID of plugin: id = "${id}". Attempt auth of plugin connection is failed.`);
+            return false;
+        }
+        // Bind plugin ref with plugin ID
+        this._pluginRefs.set(ref, id);
+        return true;
     }
 
     private _ipc_onSearchRequest(message: any, response: (instance: any) => any) {
