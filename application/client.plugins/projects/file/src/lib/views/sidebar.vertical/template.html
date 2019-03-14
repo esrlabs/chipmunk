@@ -1,0 +1,12 @@
+<div class="wrapper">
+    <p class="t-normal">Actions</p>
+    <div class="aling-right">
+        <span class="small-button" (click)="_ng_onOpenClick()">Open</span>
+    </div>
+    <div *ngIf="_ng_file !== undefined" class="info">
+        <p class="t-normal">File</p>
+        <p class="t-console">{{_ng_file}}</p>
+        <p class="t-normal">Read</p>
+        <p class="t-console">{{_ng_read}} from {{_ng_size}}</p>    
+    </div>
+</div>

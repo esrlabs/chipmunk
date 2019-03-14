@@ -3,7 +3,7 @@ import { CommonModule                           } from '@angular/common';
 
 import { LayoutComponent                        } from './component';
 import { LayoutStatusBarComponent               } from './bar.status/component';
-import { LayoutFunctionsBarComponent            } from './bar.func/component';
+import { LayoutSessionSidebarComponent          } from './area.sidebar/component';
 import { LayoutPrimaryAreaComponent             } from './area.primary/component';
 import { LayoutPrimiryAreaControlsComponent     } from './area.primary/controls/component';
 import { LayoutSecondaryAreaComponent           } from './area.secondary/component';
@@ -16,7 +16,7 @@ import { AppsBarStatusModule                    } from '../apps/bar.status/modul
 
 const entryComponents = [
     LayoutStatusBarComponent,
-    LayoutFunctionsBarComponent,
+    LayoutSessionSidebarComponent,
     LayoutPrimaryAreaComponent,
     LayoutPrimiryAreaControlsComponent,
     LayoutSecondaryAreaComponent,

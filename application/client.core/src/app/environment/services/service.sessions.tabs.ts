@@ -14,8 +14,7 @@ export class TabsSessionsService implements IService {
     private _logger: Toolkit.Logger = new Toolkit.Logger('TabsSessionsService');
     private _sessions: Map<TSessionGuid, ControllerSessionTab> = new Map();
     private _tabsService: TabsService = new TabsService();
-    private _subscriptions: { [key: string]: Subscription | undefined } = {
-    };
+    private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _currentSessionSubject = new Subject<ControllerSessionTab>();
     private _currentSessionGuid: string;
 
@@ -43,7 +42,7 @@ export class TabsSessionsService implements IService {
         const guid: string = Toolkit.guid();
         const session = new ControllerSessionTab({
             guid: guid,
-            transports: ['processes'],
+            transports: ['file', 'processes'],
         });
         this._tabsService.add({
             guid: guid,

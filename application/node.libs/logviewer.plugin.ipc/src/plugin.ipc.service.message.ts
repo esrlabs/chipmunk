@@ -22,7 +22,8 @@ export class IPCMessagePackage {
 
     constructor(params: IMessagePackage) {
         if (typeof params !== 'object' || params === null || params.message === undefined) {
-            throw new Error(`At least property "message" should be defined`);
+            console.log(params);
+            throw new Error(`At least property "message" should be defined.`);
         }
         if (typeof params.sequence !== 'string' || params.sequence.trim() === '') {
             params.sequence = getSequence();
