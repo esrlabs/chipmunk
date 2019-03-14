@@ -94,6 +94,7 @@ class Plugin {
                 // Create stream to read a target file
                 const stream = fs.createReadStream(file);
                 stream.on('data', (chunk: any) => {
+                    console.log(`Send: ${chunk.length}`);
                     PluginIPCService.sendToStream(chunk, streamId);
                     PluginIPCService.sendToPluginHost({
                         event: 'state',

@@ -1,0 +1,30 @@
+@import '../../../theme/scheme.less';
+
+:host {
+    position: relative;
+    display: block;
+    box-sizing: border-box;
+    height: 100%;
+    width: auto;
+    & ul.tasks{
+        position: relative;
+        display: block;
+        display: block;
+        box-sizing: border-box;
+        height: 100%;
+        width: auto;
+        padding: 2px 0 0 0;
+        margin: 0;
+        list-style: none;
+        white-space: nowrap;
+        & li.task{
+            position: relative;
+            display: inline-block;
+            vertical-align: top;
+            padding: 0;
+            margin: 0 0.5rem 0 0;
+            color: @scheme-color-3;
+            .t-small;
+        }
+    }
+}
