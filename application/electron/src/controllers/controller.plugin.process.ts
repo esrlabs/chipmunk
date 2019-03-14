@@ -113,11 +113,29 @@ export default class ControllerPluginProcess extends Emitter {
             return;
         }
         this._logger.env(`Sent information about stream GUID: ${guid}.`);
-        this._process.send(`[socket]:${guid}`, socket);
+        // Bind socket
+        this._bindRefWithId(socket).then(() => {
+            if (this._process === undefined) {
+                return;
+            }
+            // Send socket to plugin process
+            this._process.send(`[socket]:${guid}`, socket);
+        });
     }
 
     public removeStream(guid: string) {
         // TODO: implement message to plugin
+    }
+
+    private _bindRefWithId(socket: Net.Socket): Promise<void> {
+        return new Promise((resolve, reject) => {
+            socket.write(`[plugin:${this._plugin.id}]`, (error: Error) => {
+                if (error) {
+                    return reject(new Error(this._logger.error(`Cannot send binding message into socket due error: ${error.message}`)));
+                }
+                resolve();
+            });
+        });
     }
 
     /**

@@ -57,7 +57,6 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     }
 
     public _ng_onOpenClick() {
-        debugger;
         if (this._file !== undefined) {
             return;
         }
