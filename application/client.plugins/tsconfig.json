@@ -18,12 +18,6 @@
       "dom"
     ],
     "paths": {
-      "plugin-c": [
-        "dist/plugin-c"
-      ],
-      "plugin-c/*": [
-        "dist/plugin-c/*"
-      ],
       "terminal": [
         "dist/terminal"
       ],
@@ -41,6 +35,12 @@
       ],
       "xterminal/*": [
         "dist/xterminal/*"
+      ],
+      "file": [
+        "dist/file"
+      ],
+      "file/*": [
+        "dist/file/*"
       ]
     }
   }

@@ -206,6 +206,7 @@ export class PluginIPCService extends EventEmitter {
             idBuffer.writeInt16BE(this._id as number, 0);
             const output: Buffer = Buffer.concat([idBuffer, chunk]);
             // Send data
+            socket.resume();
             socket.write(output, (error: Error) => {
                 if (error) {
                     return reject(error);
@@ -259,8 +260,12 @@ export class PluginIPCService extends EventEmitter {
     private _onMessage(data: any, socket?: Net.Socket) {
         try {
             // Check socket before
-            if (typeof data === 'string' && socket !== undefined) {
-                return this._acceptSocket(data as string, socket);
+            if (typeof data === 'string' && data.indexOf('[socket]:') === 0) {
+                if (socket === undefined) {
+                    return console.log(`Has gotten socket information "${data}", but handle to socket is undefined.`);
+                }
+                const streamId: string = data.replace('[socket]:', '');
+                return this._acceptSocket(streamId, socket);
             }
             const messagePackage: IPCMessagePackage = new IPCMessagePackage(data);
             if (this._token !== undefined && messagePackage.token !== null && messagePackage.token !== this._token) {
@@ -292,6 +297,7 @@ export class PluginIPCService extends EventEmitter {
     private _acceptSocket(streamId: string, socket: Net.Socket) {
         this._sockets.set(streamId, socket);
         this.emit(this.Events.openStream, streamId);
+        console.log(`Accepted socket of stream "${streamId}"`);
     }
 
     // TODO: Removing (closing) stream

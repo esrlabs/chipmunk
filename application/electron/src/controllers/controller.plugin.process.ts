@@ -112,7 +112,8 @@ export default class ControllerPluginProcess extends Emitter {
             this._logger.warn(`Attempt to add stream to plugin, which doesn't attached. Stream GUID: ${guid}.`);
             return;
         }
-        this._process.send(guid, socket);
+        this._logger.env(`Sent information about stream GUID: ${guid}.`);
+        this._process.send(`[socket]:${guid}`, socket);
     }
 
     public removeStream(guid: string) {

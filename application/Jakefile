@@ -615,6 +615,91 @@ namespace('plugin.xterminal', function() {
 
 });
 
+namespace('plugin.file', function() {
+    const PATH_DEST = path.normalize(path.resolve(__dirname, 'sandbox/file'));
+    const PATH_CLIENT_SOURCES = path.normalize(path.resolve(__dirname, 'client.plugins'));
+    const PATH_HOST_SOURCES = path.normalize(path.resolve(PATH_DEST, 'process'));
+    const HOST_IPC_MOD = path.normalize(path.resolve(__dirname, 'node.libs/logviewer.plugin.ipc'));
+
+    task('link-client-libs', function() {
+        logo();
+        const tasks = [];
+        const sandboxPath = path.normalize(path.resolve(__dirname, PATH_CLIENT_SOURCES));
+        const sandboxNodeModules = path.normalize(path.resolve(sandboxPath, 'node_modules'));
+        const clientLibsPath = path.normalize(path.resolve(__dirname, CLIENT_NPM_LIBS));
+        const clientLibsDist = path.normalize(path.resolve(clientLibsPath, 'dist'));
+        CLIENT_NPM_LIBS_LIST.forEach((alias) => {
+            const clientLib = path.normalize(path.resolve(clientLibsDist, alias));
+            const sandboxLibDest = path.normalize(path.resolve(sandboxNodeModules, alias));
+            if (fs.existsSync(sandboxLibDest)) {
+                console.log(`Project ${sandboxLibDest} is already linked. It will be unlinked before to be linked again.`);
+                tasks.push(echo(colors.blue(`unlink: ${sandboxLibDest}`)));
+                tasks.push(`rm -rf ${sandboxLibDest} & exit 0`);
+            }
+            tasks.push(echo(colors.blue(`Coping: ${sandboxLibDest}`)));
+            tasks.push(`cp -R ${clientLib} ${sandboxLibDest}`);
+            tasks.push(`rm -rf ${path.normalize(path.resolve(sandboxPath, 'etc'))}`);
+        });
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('client.build', function() {
+        logo();
+        const tasks = [];
+        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist'));
+        const clientNodeModules = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'projects/file/node_modules'));
+        const clientPluginFolder = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'projects/file'));
+        if (fs.existsSync(clientDist)) {
+            tasks.push(echo(colors.blue(`Remove dist files: ${clientDist}`)));
+            tasks.push(`rm -rf ${clientDist}`);
+        }
+        if (!CLI_FLAGS.skipNpm && fs.existsSync(clientNodeModules)) {
+            tasks.push(echo(colors.blue(`Remove dist files: ${clientNodeModules}`)));
+            tasks.push(`rm -rf ${clientNodeModules}`);
+            tasks.push(`npm install --prefix ${clientPluginFolder}`);
+        }
+        tasks.push(`npm run build:file --prefix ${PATH_CLIENT_SOURCES}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('client.delivery', function() {
+        logo();
+        const tasks = [];
+        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist/file/*'));
+        const clientDest = path.normalize(path.resolve(PATH_DEST, 'render/'));
+        if (fs.existsSync(clientDest)) {
+            tasks.push(echo(colors.blue(`Remove dest files: ${clientDest}`)));
+            tasks.push(`rm -rf ${clientDest}`);
+        }
+        tasks.push(`mkdir ${clientDest}`);
+        tasks.push(`cp -R ${clientDist} ${clientDest}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('host.build', function() {
+        logo();
+        const tasks = [];
+        const hostDist = path.normalize(path.resolve(PATH_HOST_SOURCES, 'dist'));
+        const hostNodeModules = path.normalize(path.resolve(PATH_HOST_SOURCES, 'node_modules'));
+        if (fs.existsSync(hostDist)) {
+            tasks.push(echo(colors.blue(`Remove dist files: ${hostDist}`)));
+            tasks.push(`rm -rf ${hostDist}`);
+        }
+        if (!CLI_FLAGS.skipNpm && fs.existsSync(hostNodeModules)) {
+            tasks.push(echo(colors.blue(`Remove dist files: ${hostNodeModules}`)));
+            tasks.push(`rm -rf ${hostNodeModules}`);
+        }
+        if (!fs.existsSync(hostNodeModules)) {
+            tasks.push(`npm install --prefix ${PATH_HOST_SOURCES}`);
+        }
+        tasks.push(`npm run build --prefix ${PATH_HOST_SOURCES}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('all', ['plugin.file:link-client-libs', 'plugin.file:client.build', 'plugin.file:client.delivery', 'plugin.file:host.build']);
+
+});
+
 namespace('electron', function() {
 
     task('install', function() {
@@ -716,8 +801,8 @@ namespace('electron', function() {
         sh(this, '.', ...tasks);
     }, {async: true});
 
-    task('build', ['electron:clean', 'solution:link', 'solution:fix-npm-etc', 'electron:install', 'electron:compile', 'client:all', 'electron:deliveryClient', 'plugin.processes:all', 'plugin.xterminal:all', 'electron:buildApp']);
-    task('prebuild', ['electron:clean', 'solution:link', 'solution:fix-npm-etc', 'electron:install', 'electron:compile', 'client:all', 'electron:deliveryClient', 'plugin.processes:all', 'plugin.xterminal:all', 'electron:package.json']);
+    task('build', ['electron:clean', 'solution:link', 'solution:fix-npm-etc', 'electron:install', 'electron:compile', 'client:all', 'electron:deliveryClient', 'plugin.processes:all', 'plugin.xterminal:all', 'plugin.file:all', 'electron:buildApp']);
+    task('prebuild', ['electron:clean', 'solution:link', 'solution:fix-npm-etc', 'electron:install', 'electron:compile', 'client:all', 'electron:deliveryClient', 'plugin.processes:all', 'plugin.xterminal:all', 'plugin.file:all', 'electron:package.json']);
     task('quick', ['client:build', 'electron:deliveryClient', 'electron:package.json']);
 
 });

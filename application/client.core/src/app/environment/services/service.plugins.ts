@@ -1,4 +1,6 @@
 // List of modules to shate with plugin
+declare var Electron: any;
+
 import * as AngularCore from '@angular/core';
 import * as AngularCommon from '@angular/common';
 import * as AngularPlatformBrowser from '@angular/platform-browser';
@@ -202,7 +204,8 @@ export class PluginsService extends Toolkit.Emitter implements IService {
             'logviewer-client-primitive': LogviewerClientPrimitive,
             'logviewer.client.toolkit': Toolkit,
             'xterm': XTerm,
-            'xterm/lib/addons/fit/fit': XTermAddonFit
+            'xterm/lib/addons/fit/fit': XTermAddonFit,
+            'electron': Electron
         };
     }
 
@@ -225,7 +228,10 @@ export class PluginsService extends Toolkit.Emitter implements IService {
         const done = function() {
             left -= 1;
             if (left === 0) {
-                this.emit(this.Events.pluginsLoaded);
+                setTimeout(() => {
+                    // Emit event out of scope promise to avoid catch section in case of exception
+                    this.emit(this.Events.pluginsLoaded);
+                }, 50);
             }
         }.bind(this);
         event.plugins.forEach((pluginInfo: IPCMessages.IRenderMountPluginInfo) => {

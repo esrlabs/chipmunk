@@ -1,7 +1,4 @@
 import { Component } from '@angular/core';
-import * as PluginC from 'plugin-c';
-
-console.log(PluginC);
 
 @Component({
   selector: 'app-root',

@@ -15,9 +15,9 @@ export interface IStreamInfo {
     guid: string;
     socketFile: string;
     streamFile: string;
-    socket: Net.Socket;
+    connections: Net.Socket[];
+    connectionFactory: (pluginName: string) => Promise<Net.Socket>;
     server: Net.Server;
-    connection: Net.Socket;
     fileWriteStream: fs.WriteStream;
 }
 
@@ -85,9 +85,13 @@ class ServiceStreams extends EventEmitter implements IService  {
             });
             // Destroy all connections / servers to UNIX sockets
             this._streams.forEach((stream: IStreamInfo, guid: TGuid) => {
+                stream.connections.forEach((connection: Net.Socket) => {
+                    connection.removeAllListeners();
+                    connection.unref();
+                    connection.destroy();
+                });
+                stream.connections = [];
                 stream.server.unref();
-                stream.connection.unref();
-                stream.connection.destroy();
                 stream.fileWriteStream.close();
             });
             // Remove all UNIX socket's files
@@ -106,33 +110,50 @@ class ServiceStreams extends EventEmitter implements IService  {
      */
     private _createStream(guid: string): Promise<IStreamInfo> {
         return new Promise((resolve, reject) => {
+            // const socketFile: string = Path.resolve(ServicePaths.getSockets(), `test.sock`);
             const socketFile: string = Path.resolve(ServicePaths.getSockets(), `${Date.now()}-${guid}.sock`);
             const streamFile: string = Path.resolve(ServicePaths.getStreams(), `${Date.now()}-${guid}.stream`);
             try {
                 // Create new server
-                const server: Net.Server = Net.createServer((socket: Net.Socket) => {
-                    const stream: IStreamInfo = {
-                        guid: guid,
-                        socketFile: socketFile,
-                        streamFile: streamFile,
-                        server: server,
-                        socket: socket,
-                        connection: connection,
-                        fileWriteStream: fs.createWriteStream(streamFile),
-                    };
-                    this._streams.set(guid, stream);
-                    resolve(stream);
-                });
+                const server: Net.Server = Net.createServer(this._acceptConnectionToSocket.bind(this, guid));
+                // Create connection to trigger creation of server
+                const stream: IStreamInfo = {
+                    guid: guid,
+                    socketFile: socketFile,
+                    streamFile: streamFile,
+                    server: server,
+                    connections: [],
+                    fileWriteStream: fs.createWriteStream(streamFile),
+                    connectionFactory: (pluginName: string) => {
+                        return new Promise((resolveConnection) => {
+                            const sharedConnection: Net.Socket = Net.connect(socketFile, () => {
+                                this._logger.env(`Created new connection UNIX socket: ${socketFile} for plugin "${pluginName}".`);
+                                resolveConnection(sharedConnection);
+                            });
+                        });
+                    },
+                };
                 // Bind server with file
                 server.listen(socketFile);
-                // Create connection to trigger creation of server
-                const connection = Net.connect(socketFile, () => {
-                    this._logger.env(`Created new UNIX socket: ${socketFile}.`);
-                });
+                // Store stream data
+                this._streams.set(guid, stream);
+                // Resolve / finish
+                resolve(stream);
             } catch (e) {
                 reject(e);
             }
         });
+    }
+
+    private _acceptConnectionToSocket(guid: string, socket: Net.Socket) {
+        const stream: IStreamInfo | undefined = this._streams.get(guid);
+        if (stream === undefined) {
+            return this._logger.error(`Accepted connection to stream "${guid}", which doesn't exist anymore.`);
+        }
+        // Start listen new connection
+        socket.on('data', this._stream_onData.bind(this, guid));
+        this._logger.env(`New connection to stream "${guid}" is accepted.`);
+        stream.connections.push(socket);
     }
 
     private _destroyStream(guid: string): Promise<void> {
@@ -144,10 +165,13 @@ class ServiceStreams extends EventEmitter implements IService  {
             }
             const socketFile = stream.socketFile;
             const streamFile = stream.streamFile;
+            stream.connections.forEach((connection: Net.Socket) => {
+                connection.removeAllListeners();
+                connection.unref();
+                connection.destroy();
+            });
             stream.server.unref();
-            stream.connection.removeAllListeners();
-            stream.connection.unref();
-            stream.connection.destroy();
+            stream.connections = [];
             stream.fileWriteStream.close();
             this._streams.delete(guid);
             Promise.all([
@@ -215,7 +239,6 @@ class ServiceStreams extends EventEmitter implements IService  {
         this._createStream(message.guid).then((stream: IStreamInfo) => {
             // Notify plugins server about new stream
             this.emit(this.EVENTS.streamAdded, stream, message.transports);
-            stream.connection.on('data', this._stream_onData.bind(this, message.guid));
         }).catch((streamCreateError: Error) => {
             this._logger.error(`Fail to create stream due error: ${streamCreateError.message}`);
         });

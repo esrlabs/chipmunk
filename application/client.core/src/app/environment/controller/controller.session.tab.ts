@@ -2,6 +2,7 @@ import PluginsService, { IPluginData } from '../services/service.plugins';
 import { Subscription } from '../services/service.electron.ipc';
 import { ControllerSessionTabStream } from './controller.session.tab.stream';
 import { ControllerSessionTabSearch } from './controller.session.tab.search';
+import { TabsService } from 'logviewer-client-complex';
 import * as Toolkit from 'logviewer.client.toolkit';
 
 export interface IControllerSession {
@@ -17,16 +18,15 @@ export interface IComponentInjection {
 export class ControllerSessionTab {
 
     private _logger: Toolkit.Logger;
-    private _guid: string;
+    private _sessionId: string;
     private _transports: string[];
     private _stream: ControllerSessionTabStream;
     private _search: ControllerSessionTabSearch;
-
-    private _subscriptions: { [key: string]: Subscription | undefined } = {
-    };
+    private _sidebarTabsService: TabsService;
+    private _subscriptions: { [key: string]: Subscription | undefined } = { };
 
     constructor(params: IControllerSession) {
-        this._guid = params.guid;
+        this._sessionId = params.guid;
         this._transports = params.transports;
         this._logger = new Toolkit.Logger(`ControllerSession: ${params.guid}`);
         this._stream = new ControllerSessionTabStream({
@@ -37,6 +37,7 @@ export class ControllerSessionTab {
             guid: params.guid,
             stream: this._stream
         });
+        this._sidebar_update();
     }
 
     public destroy() {
@@ -46,7 +47,7 @@ export class ControllerSessionTab {
     }
 
     public getGuid(): string {
-        return this._guid;
+        return this._sessionId;
     }
 
     public getSessionStream(): ControllerSessionTabStream {
@@ -55,6 +56,10 @@ export class ControllerSessionTab {
 
     public getSessionSearch(): ControllerSessionTabSearch {
         return this._search;
+    }
+
+    public getSidebarTabsService(): TabsService {
+        return this._sidebarTabsService;
     }
 
     public getOutputBottomInjections(): Map<string, IComponentInjection> {
@@ -72,11 +77,45 @@ export class ControllerSessionTab {
                 factory: plugin.factories[Toolkit.EViewsTypes.outputBottom],
                 inputs: {
                     ipc: plugin.ipc,
-                    session: this._guid
+                    session: this._sessionId
                 }
             });
         });
         return injections;
+    }
+
+    private _sidebar_update() {
+        if (this._sidebarTabsService !== undefined) {
+            // Drop previous if was defined
+            this._sidebarTabsService.clear();
+        }
+        // Create new tabs service
+        this._sidebarTabsService = new TabsService();
+        // Detect tabs related to transports (plugins)
+        this._transports.forEach((pluginName: string, index: number) => {
+            const plugin: IPluginData | undefined = PluginsService.getPlugin(pluginName);
+            if (plugin === undefined) {
+                this._logger.warn(`Plugin "${pluginName}" is defined as transport, but doesn't exist in storage.`);
+                return;
+            }
+            if (plugin.factories[Toolkit.EViewsTypes.sidebarVertical] === undefined) {
+                return;
+            }
+            // Add tab to sidebar
+            this._sidebarTabsService.add({
+                guid: Toolkit.guid(),
+                name: plugin.name,
+                active: index === 0,
+                content: {
+                    factory: plugin.factories[Toolkit.EViewsTypes.sidebarVertical],
+                    resolved: true,
+                    inputs: {
+                        session: this._sessionId,
+                        ipc: plugin.ipc
+                    }
+                }
+            });
+        });
     }
 
 }

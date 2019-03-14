@@ -13,3 +13,18 @@
         color: @scheme-color-3;
     }
 }
+
+.small-button {
+    position: relative;
+    display: inline-block;
+    font-size: 0.8rem;
+    color:@scheme-color-1;
+    padding: 0.25rem 0.4rem;
+    margin: 0;
+    cursor: default;
+    .gradient(linear; @scheme-color-5, lighten(@scheme-color-5, 4%));
+    &:hover{
+        color: @scheme-color-3;
+        .gradient(linear; lighten(@scheme-color-5, 4%), @scheme-color-5);
+    }
+}

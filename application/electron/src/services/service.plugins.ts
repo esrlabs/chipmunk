@@ -14,6 +14,7 @@ import ElectronRebuild from 'electron-rebuild';
 
 import { IService } from '../interfaces/interface.service';
 import { IPCMessages, Subscription } from './service.electron';
+import { Net } from 'electron';
 
 const PROCESS_FOLDER = 'process';
 const RENDER_FOLDER = 'render';
@@ -190,6 +191,7 @@ export class ServicePlugins implements IService {
 
     private _streams_onStreamAdded(stream: IStreamInfo, transports: string[]) {
         const plugins: IPlugin[] = [];
+        this._logger.env(`New stream is created ${stream.guid}. Sending information to plugins.`);
         // Get all related transports (plugins)
         transports.forEach((pluginName: string) => {
             const plugin: IPlugin | undefined = this._plugins.get(pluginName);
@@ -203,12 +205,14 @@ export class ServicePlugins implements IService {
                 this._logger.warn(`Plugin ${plugin.name} was defined as transport, but plugin doesn't have nodejs part.`);
                 return;
             }
-            // Send data to plugin
-            plugin.node.controller.addStream(stream.guid, stream.socket);
-            // Add ref to stream
-            plugin.streams.push(stream.guid);
-            // Save data
-            this._plugins.set(plugin.name, plugin);
+            stream.connectionFactory(plugin.name).then((connection) => {
+                // Send data to plugin
+                (plugin.node as any).controller.addStream(stream.guid, connection);
+                // Add ref to stream
+                plugin.streams.push(stream.guid);
+                // Save data
+                this._plugins.set(plugin.name, plugin);
+            });
         });
     }
 

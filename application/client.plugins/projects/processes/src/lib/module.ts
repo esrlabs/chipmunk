@@ -1,13 +1,14 @@
 import { NgModule } from '@angular/core';
-import { ViewComponent } from './view/component';
+import { InjectionOutputBottomComponent } from './views/injection.output.bottom/component';
+import { SidebarVerticalComponent } from './views/sidebar.vertical/component';
 import { CommonModule } from '@angular/common';
 import { PrimitiveModule } from 'logviewer-client-primitive';
 
 @NgModule({
-    entryComponents: [ViewComponent],
-    declarations: [ViewComponent],
+    entryComponents: [InjectionOutputBottomComponent, SidebarVerticalComponent],
+    declarations: [InjectionOutputBottomComponent, SidebarVerticalComponent],
     imports: [ CommonModule, PrimitiveModule ],
-    exports: [ViewComponent]
+    exports: [InjectionOutputBottomComponent, SidebarVerticalComponent]
 })
 
 export class PluginModule {

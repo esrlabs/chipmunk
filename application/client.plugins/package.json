@@ -8,10 +8,10 @@
     "build:terminal": "ng build terminal",
     "build:processes": "ng build processes",
     "build:xterminal": "ng build xterminal",
+    "build:file": "ng build file",
     "test": "ng test",
     "lint": "ng lint",
-    "e2e": "ng e2e",
-    "npm_pack": "cd dist/plugin-c && npm pack"
+    "e2e": "ng e2e"
   },
   "private": true,
   "dependencies": {
@@ -25,7 +25,8 @@
     "@angular/platform-browser-dynamic": "~7.0.0",
     "@angular/router": "~7.0.0",
     "core-js": "^2.5.4",
-    "logviewer.client.toolkit": "latest",
+    "electron": "^4.0.8",
+    "logviewer.client.toolkit": "0.0.11",
     "rxjs": "~6.3.3",
     "xterm": "^3.12.0",
     "zone.js": "~0.8.26"
