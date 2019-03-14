@@ -37,6 +37,17 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
         return this._rows[index];
     }
 
+    public rows(rows: string[], pluginId: number) {
+        const packets: IStreamPacket[] = rows.map((row: string) => {
+            return {
+                original: row,
+                pluginId: pluginId
+            };
+        });
+        this._rows.push(...packets);
+        this._dataStream.next(this._rows);
+    }
+
     public next() {
         const last: number = this._rows.length - 1;
         if (last >= 0) {

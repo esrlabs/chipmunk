@@ -12,10 +12,11 @@ export interface IControllerSessionStream {
 export class ControllerSessionTabSearch {
 
     private _logger: Toolkit.Logger;
+    private _queue: Toolkit.Queue;
     private _guid: string;
     private _stream: ControllerSessionTabStream;
     private _subjects = {
-        next: new Subject<ISearchPacket>(),
+        next: new Subject<void>(),
         clear: new Subject<void>(),
     };
     private _output: ControllerSessionTabStreamSearch = new ControllerSessionTabStreamSearch();
@@ -32,6 +33,13 @@ export class ControllerSessionTabSearch {
         this._guid = params.guid;
         this._stream = params.stream;
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearch: ${params.guid}`);
+        this._queue = new Toolkit.Queue(this._logger.error.bind(this._logger), 0);
+        // Subscribe to queue events
+        this._queue_onDone = this._queue_onDone.bind(this);
+        this._queue_onNext = this._queue_onNext.bind(this);
+        this._queue.subscribe(Toolkit.Queue.Events.done, this._queue_onDone);
+        this._queue.subscribe(Toolkit.Queue.Events.next, this._queue_onNext);
+        // Subscribe to streams data
         this._subscriptions.onSearchStarted = ElectronIpcService.subscribe(IPCMessages.SearchRequestStarted, this._ipc_onSearchStarted.bind(this));
         this._subscriptions.onSearchFinished = ElectronIpcService.subscribe(IPCMessages.SearchRequestFinished, this._ipc_onSearchFinished.bind(this));
         this._subscriptions.onSearchResults = ElectronIpcService.subscribe(IPCMessages.SearchRequestResults, this._ipc_onSearchResults.bind(this));
@@ -52,7 +60,7 @@ export class ControllerSessionTabSearch {
     }
 
     public getObservable(): {
-        next: Observable<ISearchPacket>,
+        next: Observable<void>,
         clear: Observable<void>
     } {
         return {
@@ -131,22 +139,33 @@ export class ControllerSessionTabSearch {
         if (!this._isIPCMessageBelongController(message)) {
             return;
         }
-        this._logger.env(`Search request ${message.requestId} results recieved.`);
-        // Store all indexes from all requests
-        let indexes: number[] = [];
-        Object.keys(message.results).forEach((regKey: string) => {
-            indexes.push(...message.results[regKey]);
-        });
-        // Remove duplicates
-        const indexesSet: Set<number> = new Set(indexes);
-        // Sort indexes
-        indexes = Array.from(indexesSet).sort((a, b) => a - b);
-        // Get rows
-        const rows: IStreamPacket[] = this._stream.getRowsByIndexes(indexes);
-        rows.forEach((row: IStreamPacket) => {
-            this._output.add(row.original, row.pluginId);
+        this._queue.add(() => {
+            // this._logger.env(`Search request ${message.requestId} results recieved.`);
+            // Store all indexes from all requests
+            let indexes: number[] = [];
+            Object.keys(message.results).forEach((regKey: string) => {
+                indexes.push(...message.results[regKey]);
+            });
+            // Remove duplicates
+            const indexesSet: Set<number> = new Set(indexes);
+            // Sort indexes
+            indexes = Array.from(indexesSet).sort((a, b) => a - b);
+            // Get rows
+            const rows: IStreamPacket[] = this._stream.getRowsByIndexes(indexes);
+            if (rows.length === 0) {
+                return;
+            }
+            this._output.add(rows.map((row) => row.original), rows[0].pluginId);
+            this._subjects.next.next();
         });
     }
 
+    private _queue_onNext(done: number, total: number) {
+
+    }
+
+    private _queue_onDone() {
+
+    }
 
 }

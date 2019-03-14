@@ -2,6 +2,7 @@ import { NgModule                               } from '@angular/core';
 import { CommonModule                           } from '@angular/common';
 
 import { ElectronStateModule                    } from './electron.state/module';
+import { QueueStateModule                       } from './queue.state/module';
 
 import { EnvironmentComponentsModule            } from '../../components/module';
 
@@ -14,7 +15,7 @@ const components = [ ...entryComponents ];
     entryComponents : [ ...entryComponents ],
     imports         : [ CommonModule, EnvironmentComponentsModule ],
     declarations    : [ ...components ],
-    exports         : [ ElectronStateModule ]
+    exports         : [ ElectronStateModule, QueueStateModule ]
 })
 
 export class AppsBarStatusModule {

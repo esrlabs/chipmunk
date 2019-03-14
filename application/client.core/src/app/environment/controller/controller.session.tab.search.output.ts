@@ -26,11 +26,14 @@ export class ControllerSessionTabStreamSearch extends DataSource<ISearchPacket> 
         });
     }
 
-    public add(original: string, pluginId: number): void {
-        this._rows.push({
-            original: original,
-            pluginId: pluginId
-        });
+    public add(original: string | string[], pluginId: number): void {
+        original = original instanceof Array ? original : [original];
+        this._rows.push(...original.map((str: string) => {
+            return {
+                original: str,
+                pluginId: pluginId
+            };
+        }));
         this._dataStream.next(this._rows);
     }
 
