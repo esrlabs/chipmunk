@@ -23,7 +23,7 @@ export class ViewOutputRowComponent implements AfterContentChecked {
             return;
         }
         const plugin: IPluginData | undefined = PluginsService.getPluginById(this.row.pluginId);
-        let html = this.row.original;
+        let html = this.row.str;
         if (plugin === undefined) {
             this._ng_sourceName = 'n/d';
         } else {

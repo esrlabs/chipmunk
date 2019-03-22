@@ -22,7 +22,7 @@ class Plugin {
                 return this._income_open(message).then(() => {
                     response(new IPCMessages.PluginInternalMessage({
                         data: {
-                            status: 'xterminal-created'
+                            status: 'started'
                         },
                         token: message.token,
                         stream: message.stream
@@ -39,7 +39,7 @@ class Plugin {
                 return this._income_stop(message).then(() => {
                     response(new IPCMessages.PluginInternalMessage({
                         data: {
-                            status: 'sent'
+                            status: 'stopped'
                         },
                         token: message.token,
                         stream: message.stream
@@ -67,11 +67,17 @@ class Plugin {
                 return reject(new Error(`File "${file}" doesn't exist.`));
             }
             const streamId: string = message.data.streamId;
+            let isDoneAlready: boolean = false;
             fs.stat(file, (error: NodeJS.ErrnoException, stats: fs.Stats) => {
                 if (error) {
                     return reject(new Error(`Fail to open file "${file}" due error: ${error.message}`));
                 }
+                let iteration: number = 0;
                 const done = () => {
+                    if (isDoneAlready) {
+                        return;
+                    }
+                    isDoneAlready = true;
                     PluginIPCService.sendToPluginHost({
                         event: 'finished',
                         streamId: streamId,
@@ -82,6 +88,8 @@ class Plugin {
                     this._stream = undefined;
                     this._file = undefined;
                     this._session = undefined;
+                    // Unblock session
+                    PluginIPCService.send(new IPCMessages.SessionStreamState({ state: IPCMessages.SessionStreamState.States.unblock, stream: streamId }));
                 };
                 const started: number = Date.now();
                 // Notify client: reading is started
@@ -91,27 +99,27 @@ class Plugin {
                     file: file,
                     size: stats.size
                 });
+                // Block session
+                PluginIPCService.send(new IPCMessages.SessionStreamState({ state: IPCMessages.SessionStreamState.States.block, stream: streamId}));
                 // Create stream to read a target file
                 const stream = fs.createReadStream(file);
                 stream.on('data', (chunk: any) => {
-                    console.log(`Send: ${chunk.length}`);
-                    PluginIPCService.sendToStream(chunk, streamId);
+                    iteration ++;
+                    PluginIPCService.sendToStream(chunk, streamId).then(() => {
+                        iteration --;
+                        if (stream !== undefined && iteration === 0 && stream.bytesRead === stats.size) {
+                            done();
+                        }
+                    });
                     PluginIPCService.sendToPluginHost({
                         event: 'state',
                         streamId: streamId,
                         file: file,
                         read: stream.bytesRead
                     });
-                    if (stream.bytesRead === stats.size) {
-                        // Whole file is read. If stream still is available - event "end" wasn't triggered.
-                        done();
-                    }
                 });
                 stream.on('end', () => {
-                    if (this._stream === undefined) {
-                        return;
-                    }
-                    done();
+                    // done();
                 });
                 // Save data
                 this._file = file;

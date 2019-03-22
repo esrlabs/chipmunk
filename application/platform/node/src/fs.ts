@@ -213,3 +213,21 @@ export function rmdir(dir: string): Promise<void> {
         });
     });
 }
+
+export function copyFolder(source: string, dest: string) {
+    const destFolder = Path.join(dest, Path.basename(source));
+    if (!FS.existsSync(destFolder)) {
+        FS.mkdirSync(destFolder);
+    }
+    if (FS.lstatSync(source).isDirectory() ) {
+        const files = FS.readdirSync(source);
+        files.forEach((file: string) => {
+            const fullname = Path.join(source, file);
+            if (FS.lstatSync(fullname).isDirectory() ) {
+                copyFolder(fullname, destFolder);
+            } else {
+                FS.copyFileSync(fullname, Path.join(destFolder, file))
+            }
+        });
+    }
+}

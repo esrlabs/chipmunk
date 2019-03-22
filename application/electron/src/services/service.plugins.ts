@@ -4,17 +4,16 @@ import * as FS from '../../platform/node/src/fs';
 
 import Logger from '../../platform/node/src/env.logger';
 import { guid } from '../../platform/cross/src/index';
-import NPMInstaller from '../tools/npm.installer';
 import ServiceElectron from './service.electron';
 import ServiceStreams, { IStreamInfo } from './service.streams';
 import ServicePaths from './service.paths';
 import ServiceElectronService from './service.electron.state';
 import ControllerPluginProcess from '../controllers/controller.plugin.process';
-import ElectronRebuild from 'electron-rebuild';
+import ControllerIPCPlugin from '../controllers/controller.plugin.process.ipc';
+import * as npm from '../tools/npm.tools';
 
 import { IService } from '../interfaces/interface.service';
 import { IPCMessages, Subscription } from './service.electron';
-import { Net } from 'electron';
 
 const PROCESS_FOLDER = 'process';
 const RENDER_FOLDER = 'render';
@@ -88,32 +87,39 @@ export class ServicePlugins implements IService {
                 return reject(version);
             }
             this._electronVersion = version;
-            // Get description of all plugins
-            this._getAllPluginDescription().then((plugins: Map<TPluginPath, IPlugin>) => {
-                this._plugins = plugins;
-                if (plugins.size === 0) {
-                    // No plugins to be initialized
-                    ServiceElectronService.logStateToRender(`No plugins installed`);
-                    this._logger.env(`No plugins installed`);
-                    return resolve();
-                }
-                this._initializeAllPlugins().then(() => {
-                    ServiceElectronService.logStateToRender(`All plugins are ready`);
-                    this._logger.error(`All plugins are ready`);
-                    this._sendRenderPluginsData();
-                    // Subscribe to streams events
-                    this._subscribeToStreamEvents();
-                    resolve();
-                }).catch((initializationError: Error) => {
-                    ServiceElectronService.logStateToRender(`Error during initialization of plugins: ${initializationError.message}`);
-                    this._logger.error(`Error during initialization of plugins: ${initializationError.message}`);
+            // Delivery default plugins first
+            this._deliveryDefaultPlugins().then(() => {
+                // Get description of all plugins
+                this._getAllPluginDescription().then((plugins: Map<TPluginPath, IPlugin>) => {
+                    this._plugins = plugins;
+                    if (plugins.size === 0) {
+                        // No plugins to be initialized
+                        ServiceElectronService.logStateToRender(`No plugins installed`);
+                        this._logger.env(`No plugins installed`);
+                        return resolve();
+                    }
+                    this._initializeAllPlugins().then(() => {
+                        ServiceElectronService.logStateToRender(`All plugins are ready`);
+                        this._logger.error(`All plugins are ready`);
+                        this._sendRenderPluginsData();
+                        // Subscribe to streams events
+                        this._subscribeToStreamEvents();
+                        resolve();
+                    }).catch((initializationError: Error) => {
+                        ServiceElectronService.logStateToRender(`Error during initialization of plugins: ${initializationError.message}`);
+                        this._logger.error(`Error during initialization of plugins: ${initializationError.message}`);
+                        this._sendRenderPluginsData();
+                        resolve();
+                    });
+                }).catch((readingDescriptionsError: Error) => {
+                    ServiceElectronService.logStateToRender(`Fail to get description of available plugins due error: ${readingDescriptionsError.message}`);
+                    this._logger.error(`Fail to get description of available plugins due error: ${readingDescriptionsError.message}`);
                     this._sendRenderPluginsData();
                     resolve();
                 });
-            }).catch((readingDescriptionsError: Error) => {
-                ServiceElectronService.logStateToRender(`Fail to get description of available plugins due error: ${readingDescriptionsError.message}`);
-                this._logger.error(`Fail to get description of available plugins due error: ${readingDescriptionsError.message}`);
-                this._sendRenderPluginsData();
+            }).catch((deliveryError: Error) => {
+                ServiceElectronService.logStateToRender(`Fail to delivery default plugins due error: ${deliveryError.message}`);
+                this._logger.error(`Fail to delivery default plugins due error: ${deliveryError.message}`);
                 resolve();
             });
         });
@@ -139,6 +145,34 @@ export class ServicePlugins implements IService {
 
     public getPluginToken(id: number): string | undefined {
         return this._ids.get(id);
+    }
+
+    public getPluginName(id: number): string | undefined {
+        const token: string | undefined = this._ids.get(id);
+        if (token === undefined) {
+            return undefined;
+        }
+        const plugin: IPlugin | undefined = this._getPluginInfoByToken(token);
+        if (plugin === undefined) {
+            return undefined;
+        }
+        return plugin.name;
+    }
+
+    public getPluginIPC(token: string): ControllerIPCPlugin | undefined {
+        const plugin: IPlugin | undefined = this._getPluginInfoByToken(token);
+        if (plugin === undefined) {
+            return undefined;
+        }
+        if (plugin.node === undefined) {
+            return undefined;
+        }
+        const IPC: ControllerIPCPlugin | Error = plugin.node.controller.getIPC();
+        if (IPC instanceof Error) {
+            this._logger.warn(`Fail to get IPC of plugin "${plugin.name}" due error: ${IPC.message}`);
+            return undefined;
+        }
+        return IPC;
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -296,6 +330,28 @@ export class ServicePlugins implements IService {
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     *   Initialization of plugins: process part
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    private _deliveryDefaultPlugins(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            FS.readFolder(ServicePaths.getPlugins(), FS.EReadingFolderTarget.folders).then((plugins: string[]) => {
+                if (plugins.length > 0) {
+                    return resolve();
+                }
+                FS.readFolder(ServicePaths.getDefaultPlugins(), FS.EReadingFolderTarget.folders).then((defaultPlugins: string[]) => {
+                    if (defaultPlugins.length === 0) {
+                        return resolve();
+                    }
+                    defaultPlugins.forEach((pluginFolder: string) => {
+                        FS.copyFolder(Path.resolve(ServicePaths.getDefaultPlugins(), pluginFolder), ServicePaths.getPlugins());
+                    });
+                    resolve();
+                }).catch((defPluginsFolderReadingError: Error) => {
+                    reject(defPluginsFolderReadingError);
+                });
+            }).catch((pluginsFolderReadingError: Error) => {
+                reject(pluginsFolderReadingError);
+            });
+        });
+    }
     /**
      * Does preinstalations checks:
      * - is plugin installed or not
@@ -380,24 +436,12 @@ export class ServicePlugins implements IService {
                 if (install) {
                     ServiceElectronService.logStateToRender(`[${plugin.name}]: installing`);
                     this._logger.env(`[${plugin.name}]: installing`);
-                    const npmInstaller: NPMInstaller = new NPMInstaller();
-                    npmInstaller.install(plugin.path.process).then(() => {
+                    npm.install(plugin.path.process).then(() => {
                         ServiceElectronService.logStateToRender(`[${plugin.name}]: installation is complited.`);
                         ServiceElectronService.logStateToRender(`[${plugin.name}]: rebuild.`);
                         this._logger.env(`[${plugin.name}]: installation is complited.`);
                         this._logger.env(`[${plugin.name}]: rebuild.`);
-                        ElectronRebuild({
-                            buildPath: plugin.path.process,
-                            electronVersion: this._electronVersion,
-                        }).then(() => {
-                            ServiceElectronService.logStateToRender(`[${plugin.name}]: rebuild is complited.`);
-                            this._logger.env(`[${plugin.name}]: rebuild is complited.`);
-                            initialize();
-                        }).catch((rebuildError: Error) => {
-                            ServiceElectronService.logStateToRender(`[${plugin.name}]: Fail rebuild due error: ${rebuildError.message}`);
-                            this._logger.error(`[${plugin.name}]: Fail rebuild due error: ${rebuildError.message}`);
-                            reject(rebuildError);
-                        });
+                        initialize();
                     }).catch((installationError: Error) => {
                         ServiceElectronService.logStateToRender(`[${plugin.name}]: Fail install due error: ${installationError.message}`);
                         this._logger.error(`[${plugin.name}]: Fail install due error: ${installationError.message}`);
