@@ -1,7 +1,6 @@
-import ServiceElectronIpc from '../services/service.electron.ipc';
-import { IPCMessages, Subscription } from '../services/service.electron.ipc';
+import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
 import { Observable, Subject } from 'rxjs';
-import { ControllerSessionTabStreamOutput, IStreamPacket } from './controller.session.tab.stream.output';
+import { ControllerSessionTabStreamOutput, IStreamPacket, TRequestDataHandler, BufferSettings } from './controller.session.tab.stream.output';
 import QueueService, { IQueueController } from '../services/parallels/service.queue';
 import * as Toolkit from 'logviewer.client.toolkit';
 
@@ -25,12 +24,13 @@ export class ControllerSessionTabStream {
         clear: new Subject<void>(),
     };
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
-    private _output: ControllerSessionTabStreamOutput = new ControllerSessionTabStreamOutput();
+    private _output: ControllerSessionTabStreamOutput;
 
     constructor(params: IControllerSessionStream) {
         this._guid = params.guid;
         this._transports = params.transports;
         this._logger = new Toolkit.Logger(`ControllerSessionTabStream: ${params.guid}`);
+        this._output = new ControllerSessionTabStreamOutput(params.guid, this._requestData.bind(this));
         this._queue = new Toolkit.Queue(this._logger.error.bind(this._logger), 0);
         // Notify electron about new stream
         ServiceElectronIpc.send(new IPCMessages.StreamAdd({
@@ -44,7 +44,9 @@ export class ControllerSessionTabStream {
         this._queue.subscribe(Toolkit.Queue.Events.next, this._queue_onNext);
         // Subscribe to streams data
         this._ipc_onStreamData = this._ipc_onStreamData.bind(this);
+        this._ipc_onStreamUpdated = this._ipc_onStreamUpdated.bind(this);
         ServiceElectronIpc.subscribe(IPCMessages.StreamData, this._ipc_onStreamData);
+        ServiceElectronIpc.subscribe(IPCMessages.StreamUpdated, this._ipc_onStreamUpdated);
     }
 
     public destroy() {
@@ -78,7 +80,29 @@ export class ControllerSessionTabStream {
         return this._output.getRowsByIndexes(indexes);
     }
 
+    private _requestData(start: number, end: number): Promise<Error | number> {
+        return new Promise((resolve) => {
+            const s = Date.now();
+            ServiceElectronIpc.request(
+                new IPCMessages.StreamChunk({
+                    guid: this._guid,
+                    start: start,
+                    end: end
+                })
+            ).then((response: IPCMessages.StreamChunk) => {
+                const duration: number = Date.now() - s;
+                this._logger.env(`Chunk is read in: ${(duration / 1000).toFixed(2)}s`);
+                if (response.error !== undefined) {
+                    return resolve(new Error(this._logger.warn(`Request to stream chunk was finished within error: ${response.error}`)));
+                }
+                this._output.update(response.data, response.start, response.end, response.rows);
+                resolve(duration);
+            });
+        });
+    }
+
     private _ipc_onStreamData(message: IPCMessages.StreamData) {
+        /*
         this._queue.add(() => {
             const BreakRegExp = /[\r\n]/gm;
             const output: string = message.data.replace(BreakRegExp, '\n').replace(/\n{2,}/g, '\n');
@@ -91,17 +115,16 @@ export class ControllerSessionTabStream {
                 this._output.rows(rows, message.pluginId);
                 this._output.write(last, message.pluginId);
                 this._subjects.next.next();
-                /*
-                rows.forEach((row: string, index: number) => {
-                    this._subjects.write.next(this._output.write(row, message.pluginId));
-                    if (index !== rows.length - 1) {
-                        this._output.next();
-                        this._subjects.next.next();
-                    }
-                });
-                */
             }
         });
+        */
+    }
+
+    private _ipc_onStreamUpdated(message: IPCMessages.StreamUpdated) {
+        if (this._guid !== message.guid) {
+            return;
+        }
+        this._requestData(message.rows > BufferSettings.chunk ? (message.rows - BufferSettings.chunk) : 0, message.rows - 1);
     }
 
     private _queue_onNext(done: number, total: number) {

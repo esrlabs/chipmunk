@@ -2,6 +2,7 @@ import { Observable, Subject } from 'rxjs';
 import { ControllerSessionTabStream, IStreamPacket } from './controller.session.tab.stream';
 import { ControllerSessionTabStreamSearch, ISearchPacket } from './controller.session.tab.search.output';
 import ElectronIpcService, { IPCMessages } from '../services/service.electron.ipc';
+import QueueService, { IQueueController } from '../services/parallels/service.queue';
 import * as Toolkit from 'logviewer.client.toolkit';
 
 export interface IControllerSessionStream {
@@ -15,6 +16,7 @@ export class ControllerSessionTabSearch {
     private _queue: Toolkit.Queue;
     private _guid: string;
     private _stream: ControllerSessionTabStream;
+    private _queueController: IQueueController | undefined;
     private _subjects = {
         next: new Subject<void>(),
         clear: new Subject<void>(),
@@ -139,6 +141,7 @@ export class ControllerSessionTabSearch {
         if (!this._isIPCMessageBelongController(message)) {
             return;
         }
+        /*
         this._queue.add(() => {
             // this._logger.env(`Search request ${message.requestId} results recieved.`);
             // Store all indexes from all requests
@@ -158,14 +161,22 @@ export class ControllerSessionTabSearch {
             this._output.add(rows.map((row) => row.original), rows[0].pluginId);
             this._subjects.next.next();
         });
+        */
     }
 
     private _queue_onNext(done: number, total: number) {
-
+        if (this._queueController === undefined) {
+            this._queueController = QueueService.create('search');
+        }
+        this._queueController.next(done, total);
     }
 
     private _queue_onDone() {
-
+        if (this._queueController === undefined) {
+            return;
+        }
+        this._queueController.done();
+        this._queueController = undefined;
     }
 
 }

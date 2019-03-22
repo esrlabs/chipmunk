@@ -33,6 +33,7 @@ export class AppsStatusBarQueueStateComponent implements OnDestroy {
     }
 
     private _onNext(state: IQueueState) {
+        // tslint:disable-next-line:prefer-const
         let task: ITask | undefined = this._ng_tasks.get(state.title);
         if (task === undefined) {
             (task as any) = {};

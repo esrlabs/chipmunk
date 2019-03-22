@@ -2,7 +2,7 @@ import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewIni
 import { Subscription } from 'rxjs';
 import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import { ControllerSessionTab, IComponentInjection } from '../../../controller/controller.session.tab';
-import { ControllerSessionTabStreamOutput } from '../../../controller/controller.session.tab.stream.output';
+import { ControllerSessionTabStreamOutput, IStreamPacket } from '../../../controller/controller.session.tab.stream.output';
 
 @Component({
     selector: 'app-views-output',
@@ -42,6 +42,9 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
 
     ngAfterViewInit() {
         this._updateOutputContainerSize();
+        if (this._ng_outputAreaViewport === null || this._ng_outputAreaViewport === undefined) {
+            return;
+        }
     }
 
     ngAfterContentInit() {
@@ -53,7 +56,8 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         // Get injections
         this._ng_injections.bottom = this.session.getOutputBottomInjections();
         // Make subscriptions
-        this._subscriptions.next = this.session.getSessionStream().getObservable().next.subscribe(this._onNextStreamRow.bind(this));
+        this._subscriptions.updated = this._ng_output.getObservable().updated.subscribe(this._onUpdated.bind(this));
+        this._subscriptions.scrollTo = this._ng_output.getObservable().scrollTo.subscribe(this._onScrollTo.bind(this));
     }
 
     public ngOnDestroy() {
@@ -73,8 +77,17 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this._updateOutputContainerSize();
     }
 
+    public _ng_trackByIdx(index: number, item: IStreamPacket) {
+        return index;
+    }
+
+    public _ng_scrolledIndexChange(index: number) {
+        // console.log(`_ng_scrolledIndexChange: ${index} / ${this._ng_outputAreaViewport.getRenderedRange().end}`);
+        this._ng_output.setViewport(index, this._ng_outputAreaViewport.getRenderedRange().end);
+    }
+
     private _updateOutputContainerSize() {
-        if (this._vcRef === null || this._vcRef === undefined) {
+        if (this._ng_outputAreaViewport === null || this._ng_outputAreaViewport === undefined) {
             return;
         }
         const size = this._ng_outputWrapperViewport.nativeElement.getBoundingClientRect();
@@ -84,11 +97,21 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this._ng_outputAreaViewport.checkViewportSize();
     }
 
-    private _onNextStreamRow() {
-        if (this._vcRef === null || this._vcRef === undefined) {
+    private _autoScroll() {
+        if (this._ng_outputAreaViewport === null || this._ng_outputAreaViewport === undefined) {
             return;
         }
         this._ng_outputAreaViewport.scrollTo({bottom: 0});
+    }
+
+    private _onUpdated() {
+        this._updateOutputContainerSize();
+        this._ng_output.setViewport(this._ng_outputAreaViewport.getRenderedRange().start, this._ng_outputAreaViewport.getRenderedRange().end);
+        this._autoScroll();
+    }
+
+    private _onScrollTo(index: number) {
+        this._ng_outputAreaViewport.scrollToIndex(index);
     }
 
 }

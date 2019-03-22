@@ -13,12 +13,16 @@ export { IPluginToken, PluginToken };
 import { IPluginStreamAdd, PluginStreamAdd } from './plugin.stream.add';
 export { IPluginStreamAdd, PluginStreamAdd };
 
+import { ISessionStreamState, SessionStreamState } from './session.stream.state';
+export { ISessionStreamState, SessionStreamState };
+
 // Common type for expected message implementation
 export type TMessage =  PluginState |
                         PluginInternalMessage |
                         PluginError |
                         PluginToken |
-                        PluginStreamAdd;
+                        PluginStreamAdd |
+                        SessionStreamState;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -30,5 +34,6 @@ export const Map = {
     [PluginError.signature              ]: PluginError,
     [PluginToken.signature              ]: PluginToken,
     [PluginStreamAdd.signature          ]: PluginStreamAdd,
+    [SessionStreamState.signature       ]: SessionStreamState,
 
 };

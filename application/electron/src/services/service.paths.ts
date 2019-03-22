@@ -23,9 +23,11 @@ class ServicePaths implements IService {
     private _plugins: string;
     private _app: string;
     private _root: string;
+    private _appModules: string;
     private _resources: string;
     private _sockets: string;
     private _streams: string;
+    private _defaultPlugins: string;
 
     constructor() {
         this._home = Path.resolve(OS.homedir(), HOME_FOLDER);
@@ -40,6 +42,8 @@ class ServicePaths implements IService {
         }
         this._app = root;
         this._root = Path.resolve(root, '..');
+        this._defaultPlugins = Path.resolve(this._root, 'plugins');
+        this._appModules = Path.resolve(this._root, '../../node_modules');
     }
 
     /**
@@ -52,7 +56,7 @@ class ServicePaths implements IService {
                 Promise.all([this._home, this._plugins, this._sockets, this._streams].map((folder: string) => {
                     return this._mkdir(folder);
                 })).then(() => {
-                    this._logger.env(`Paths:\n\thome: ${this._home}\n\troot: ${this._root}\n\tapp: ${this._app}\n\tresources ${this._resources}\n\tplugins ${this._plugins}\n\tsockets ${this._sockets}`);
+                    this._logger.env(`Paths:\n\thome: ${this._home}\n\troot: ${this._root}\n\tapp: ${this._app}\n\tresources ${this._resources}\n\tplugins ${this._plugins}\n\tdefault plugins ${this._defaultPlugins}\n\tsockets ${this._sockets}\n\tstreams ${this._streams}\n\tmodules ${this._appModules}`);
                     resolve();
                 }).catch((error: Error) => {
                     this._logger.error(`Fail to initialize paths due error: ${error.message}`);
@@ -86,6 +90,22 @@ class ServicePaths implements IService {
      */
     public getRoot(): string {
         return this._root;
+    }
+
+    /**
+     * Returns path to default plugins folder
+     * @returns string
+     */
+    public getDefaultPlugins(): string {
+        return this._defaultPlugins;
+    }
+
+    /**
+     * Returns path to node_modules folder of electron app
+     * @returns string
+     */
+    public getAppModules(): string {
+        return this._appModules;
     }
 
     /**

@@ -1,7 +1,7 @@
 <ul #outputwrapper class="rows" (window:resize)="_ng_onBrowserWindowResize($event)">
-    <cdk-virtual-scroll-viewport #outputviewport class="virtual-scroll-viewport" [ngStyle]="_ng_getOutputAreaStyle()" itemSize="16">
-      <ng-container *cdkVirtualFor="let row of _ng_output">
-        <app-views-output-row [row]="row"></app-views-output-row>
+    <cdk-virtual-scroll-viewport #outputviewport class="virtual-scroll-viewport" [ngStyle]="_ng_getOutputAreaStyle()" itemSize="16" (scrolledIndexChange)="_ng_scrolledIndexChange($event)">
+      <ng-container *cdkVirtualFor="let row of _ng_output; trackBy: _ng_trackByIdx">
+        <app-views-output-row *ngIf="row !== undefined" [row]="row"></app-views-output-row>
       </ng-container>
     </cdk-virtual-scroll-viewport>
 </ul>

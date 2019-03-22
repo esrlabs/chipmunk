@@ -3,12 +3,13 @@ import * as fs from 'fs';
 import * as Net from 'net';
 import * as FS from '../../platform/node/src/fs';
 import { EventEmitter } from 'events';
-
 import ServicePaths from './service.paths';
 import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from './service.electron';
 import ServicePlugins from './service.plugins';
 import Logger from '../../platform/node/src/env.logger';
 import ControllerStreamSearch, { IResults } from '../controllers/controller.stream.search';
+import ControllerStreamBuffer from '../controllers/controller.stream.buffer';
+import ControllerStreamProcessor from '../controllers/controller.stream.processor';
 import { IService } from '../interfaces/interface.service';
 import * as Tools from '../../platform/cross/src/index';
 
@@ -19,7 +20,8 @@ export interface IStreamInfo {
     connections: Net.Socket[];
     connectionFactory: (pluginName: string) => Promise<Net.Socket>;
     server: Net.Server;
-    fileWriteStream: fs.WriteStream;
+    processor: ControllerStreamProcessor;
+    received: number;
 }
 
 type TGuid = string;
@@ -39,10 +41,10 @@ class ServiceStreams extends EventEmitter implements IService  {
     private _logger: Logger = new Logger('ServiceStreams');
     private _streams: Map<TGuid, IStreamInfo> = new Map();
     private _subscriptions: { [key: string ]: Subscription | undefined } = { };
-    private _pluginRefs: Map<string, number> = new Map();
 
     constructor() {
         super();
+        // Binding
         this._ipc_onStreamAdd = this._ipc_onStreamAdd.bind(this);
         this._ipc_onStreamRemove = this._ipc_onStreamRemove.bind(this);
         this._ipc_onSearchRequest = this._ipc_onSearchRequest.bind(this);
@@ -94,7 +96,7 @@ class ServiceStreams extends EventEmitter implements IService  {
                 });
                 stream.connections = [];
                 stream.server.unref();
-                stream.fileWriteStream.close();
+                stream.processor.destroy();
             });
             // Remove all UNIX socket's files
             this._cleanUp().then(() => {
@@ -125,7 +127,6 @@ class ServiceStreams extends EventEmitter implements IService  {
                     streamFile: streamFile,
                     server: server,
                     connections: [],
-                    fileWriteStream: fs.createWriteStream(streamFile),
                     connectionFactory: (pluginName: string) => {
                         return new Promise((resolveConnection) => {
                             const sharedConnection: Net.Socket = Net.connect(socketFile, () => {
@@ -135,6 +136,8 @@ class ServiceStreams extends EventEmitter implements IService  {
                             (sharedConnection as any).__id = Tools.guid();
                         });
                     },
+                    processor: new ControllerStreamProcessor(guid, streamFile),
+                    received: 0,
                 };
                 // Bind server with file
                 server.listen(socketFile);
@@ -177,7 +180,7 @@ class ServiceStreams extends EventEmitter implements IService  {
             });
             stream.server.unref();
             stream.connections = [];
-            stream.fileWriteStream.close();
+            stream.processor.destroy();
             this._streams.delete(guid);
             Promise.all([
                 new Promise((resolveUnlink) => {
@@ -265,56 +268,12 @@ class ServiceStreams extends EventEmitter implements IService  {
         if (stream === undefined) {
             return this._logger.warn(`Fail to find a stream data for stream guid "${guid}"`);
         }
-        const output = chunk.toString('utf8');
-        // Binding ref with ID of plugin
-        if (this._bindPluginRefWithPluginToken(output, ref) === true) {
-            // This is binding message. No need to process it forward.
-            return;
-        }
-        // Attempt to find ID of plugin
-        const pluginId: number | undefined = this._pluginRefs.get(ref);
-        if (pluginId === undefined) {
-            return this._logger.warn(`Fail to find plugin ID. Chunk of data will not be forward.`);
-        }
-        // Get token
-        const pluginToken: string | undefined = ServicePlugins.getPluginToken(pluginId);
-        if (pluginToken === undefined) {
-            return this._logger.warn(`Fail to find plugin token by ID of plugin: id = "${pluginId}". Chunk of data will not be forward.`);
-        }
-        // Send data forward
-        ServiceElectron.IPC.send(new IPCElectronMessages.StreamData({
-            guid: guid,
-            data: output,
-            pluginId: pluginId,
-            pluginToken: pluginToken,
-        })).catch((error: Error) => {
-            this._logger.warn(`Fail send data from stream to render process due error: ${error.message}`);
+        stream.processor.write(chunk, ref).then(() => {
+            // Operation done
+            stream.received += chunk.length;
+        }).catch((errorWrite: Error) => {
+            this._logger.warn(`Fail to process data from stream (${guid}) due error: ${errorWrite.message}`);
         });
-        // Write data to stream file
-        stream.fileWriteStream.write(chunk, (writeError: Error | null | undefined) => {
-            if (writeError) {
-                this._logger.error(`Fail to write data into stream file (${stream.streamFile}) due error: ${writeError.message}`);
-            }
-        });
-    }
-
-    private _bindPluginRefWithPluginToken(chunk: string, ref: string): boolean {
-        if (this._pluginRefs.has(ref)) {
-            // Plugin's connection is already bound
-            return false;
-        }
-        if (chunk.search(/\[plugin:\d*\]/) === -1) {
-            return false;
-        }
-        const id: number = parseInt(chunk.replace('[plugin:', '').replace(']', ''), 10);
-        const pluginToken: string | undefined = ServicePlugins.getPluginToken(id);
-        if (pluginToken === undefined) {
-            this._logger.warn(`Fail to find plugin token by ID of plugin: id = "${id}". Attempt auth of plugin connection is failed.`);
-            return false;
-        }
-        // Bind plugin ref with plugin ID
-        this._pluginRefs.set(ref, id);
-        return true;
     }
 
     private _ipc_onSearchRequest(message: any, response: (instance: any) => any) {
@@ -361,7 +320,35 @@ class ServiceStreams extends EventEmitter implements IService  {
             done(error.message);
         });
     }
-
+    /*
+    private _buffer_onData(streamId: string, output: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            // Get stream info
+            const stream: IStreamInfo | undefined = this._streams.get(streamId);
+            if (stream === undefined) {
+                return reject(new Error(this._logger.warn(`Fail to find a stream data for stream guid "${streamId}"`)));
+            }
+            // Send data forward
+            /*
+            ServiceElectron.IPC.send(new IPCElectronMessages.StreamData({
+                guid: streamId,
+                data: output,
+                pluginId: 1,
+                pluginToken: 'fake',
+            })).catch((error: Error) => {
+                this._logger.warn(`Fail send data from stream to render process due error: ${error.message}`);
+            });*/
+            // Write data to stream file
+            /*
+            stream.fileWriteStream.write(output, (writeError: Error | null | undefined) => {
+                if (writeError) {
+                    return reject(new Error(this._logger.error(`Fail to write data into stream file (${stream.streamFile}) due error: ${writeError.message}`)));
+                }
+                resolve();
+            });
+        });
+    }
+    */
 }
 
 export default (new ServiceStreams());
