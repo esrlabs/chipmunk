@@ -99,8 +99,19 @@ export default class ControllerStreamProcessor {
                 // Source of data was changed.
                 output = `${MARKERS.PLUGIN}${this._lastSourceDataPluginId}${MARKERS.PLUGIN}\n${output}`;
             }
+            // Remember first row before update it
+            const lastRowBeforeUpdate: number = this._rows.last;
             // Add rows indexes
-            output = this._addRowIndexes(output, chunk.byteLength);
+            output = this._addRowIndexes(output);
+            // Get size of buffer to be written
+            const sizeToBeWritten: number = Buffer.from(output).byteLength;
+            // Store indexes
+            const streamLastPosition: number = this._getStreamSize();
+            this._rows.ranges.push({
+                bytes: { start: streamLastPosition, end: streamLastPosition + sizeToBeWritten - 1 },
+                rows: { start: lastRowBeforeUpdate, end: this._rows.last - 1 },
+            });
+            // Remember plugin id to break like in case it will change
             this._lastSourceDataPluginId = pluginInfo.id;
             // Write data into session storage file
             this._stream.write(output, (writeError: Error | null | undefined) => {
@@ -116,17 +127,11 @@ export default class ControllerStreamProcessor {
         });
     }
 
-    private _addRowIndexes(str: string, size: number): string {
-        const streamLastPosition: number = this._getStreamSize();
-        const rangeItem: IRangeMapItem = {
-            bytes: { start: streamLastPosition, end: streamLastPosition + size },
-            rows: { start: this._rows.last, end: 0 },
-        };
+    private _addRowIndexes(str: string): string {
         str = str.replace(REGEXPS.CARRETS, () => {
-            return MARKERS.NUMBER + (++this._rows.last) + MARKERS.NUMBER + '\n';
+            const injection: string = MARKERS.NUMBER + (this._rows.last++) + MARKERS.NUMBER;
+            return `${injection}\n`;
         });
-        rangeItem.rows.end = this._rows.last;
-        this._rows.ranges.push(rangeItem);
         return str;
     }
 
@@ -232,7 +237,7 @@ export default class ControllerStreamProcessor {
         return ServiceElectron.IPC.send(new IPCElectronMessages.StreamUpdated({
             guid: this._guid,
             length: this._getStreamSize(),
-            rows: this._rows.last + 1,
+            rows: this._rows.last,
         }));
     }
 
@@ -267,7 +272,7 @@ export default class ControllerStreamProcessor {
                 start: range.rows.start,
                 end: range.rows.end,
                 data: output,
-                rows: this._rows.last + 1,
+                rows: this._rows.last,
                 length: this._getStreamSize(),
             }));
         }).catch((readError: Error) => {
@@ -280,11 +285,11 @@ export default class ControllerStreamProcessor {
         const rows: IRange = { start: -1, end: -1 };
         for (let i = this._rows.ranges.length - 1; i >= 0; i -= 1) {
             const range: IRangeMapItem = this._rows.ranges[i];
-            if (bytes.start === -1 && range.rows.start <= requestedRows.start && range.rows.end > requestedRows.start) {
+            if (bytes.start === -1 && range.rows.start <= requestedRows.start && range.rows.end >= requestedRows.start) {
                 bytes.start = range.bytes.start;
                 rows.start = range.rows.start;
             }
-            if (bytes.end === -1 && range.rows.end >= requestedRows.end && range.rows.start < requestedRows.end) {
+            if (bytes.end === -1 && range.rows.end >= requestedRows.end && range.rows.start <= requestedRows.end) {
                 bytes.end = range.bytes.end;
                 rows.end = range.rows.end;
             }
