@@ -14,6 +14,7 @@ export class ViewOutputRowComponent implements AfterContentChecked {
 
     public _ng_safeHtml: SafeHtml = null;
     public _ng_sourceName: string | undefined;
+    public _ng_number: string | undefined;
 
     constructor(private _sanitizer: DomSanitizer) {
     }
@@ -33,6 +34,7 @@ export class ViewOutputRowComponent implements AfterContentChecked {
             }
         }
         this._ng_safeHtml = this._sanitizer.bypassSecurityTrustHtml(html);
+        this._ng_number = this.row.position.toString();
     }
 
 }

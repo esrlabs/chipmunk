@@ -1,10 +1,26 @@
-<ul #outputwrapper class="rows" (window:resize)="_ng_onBrowserWindowResize($event)">
-    <cdk-virtual-scroll-viewport #outputviewport class="virtual-scroll-viewport" [ngStyle]="_ng_getOutputAreaStyle()" itemSize="16" (scrolledIndexChange)="_ng_scrolledIndexChange($event)">
+<div class="rows-container">
+  <div #outputwrapper class="rows" (window:resize)="_ng_onBrowserWindowResize($event)">
+    <cdk-virtual-scroll-viewport #outputviewport 
+      class="virtual-scroll-viewport" 
+      [ngStyle]="_ng_getOutputAreaStyle()" 
+      itemSize="16" 
+      (scrolledIndexChange)="_ng_scrolledIndexChange($event)">
       <ng-container *cdkVirtualFor="let row of _ng_output; trackBy: _ng_trackByIdx">
         <app-views-output-row *ngIf="row !== undefined" [row]="row"></app-views-output-row>
       </ng-container>
     </cdk-virtual-scroll-viewport>
-</ul>
+  </div>
+  <div *ngIf="_ng_scrollbarVisibility.vertical" class="vertical-scroll-bar">
+    <div class="vertical-scroll-bar-cursor" 
+      (mousedown)="_ng_onScrollMouseDown($event, 'vertical')" 
+      [ngStyle]="_ng_getScrollCursorStyle('vertical')"></div>
+  </div>
+  <div *ngIf="_ng_scrollbarVisibility.horizontal"  class="horizontal-scroll-bar">
+    <div class="horizontal-scroll-bar-cursor" 
+      (mousedown)="_ng_onScrollMouseDown($event, 'horizontal')" 
+      [ngStyle]="_ng_getScrollCursorStyle('horizontal')"></div>
+  </div>
+</div>
 <ul class="injections-bottom">
   <li class="injection" *ngFor="let injection of _ng_injections.bottom | keyvalue">
     <lib-containers-dynamic [component]="{ factory: injection.value.factory, inputs: injection.value.inputs, resolved: true }"></lib-containers-dynamic>
