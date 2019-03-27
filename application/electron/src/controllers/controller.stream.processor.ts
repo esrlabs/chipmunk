@@ -41,7 +41,7 @@ export default class ControllerStreamProcessor {
     public static Events = {
         next: 'next',
     };
-
+    private _maxSizeOfChunkToBeSentWithUpdate: number = 1024 * 1024; // Bytes. Maximal size of chunk, which will be send to render with notification of stream update
     private _logger: Logger;
     private _guid: string;
     private _file: string;
@@ -113,12 +113,14 @@ export default class ControllerStreamProcessor {
             });
             // Remember plugin id to break like in case it will change
             this._lastSourceDataPluginId = pluginInfo.id;
+            // Get state of stream
+            const streamBlocked: boolean = this._isStreamBlocked();
             // Write data into session storage file
             this._stream.write(output, (writeError: Error | null | undefined) => {
                 if (writeError) {
                     return reject(new Error(this._logger.error(`Fail to write data into stream file due error: ${writeError.message}`)));
                 }
-                this._sendToRender(output, pluginInfo).then(() => {
+                !streamBlocked && this._sendToRender(output, sizeToBeWritten).then(() => {
                     resolve();
                 }).catch((sendingError: Error) => {
                     reject(new Error(this._logger.error(`Fail to send stream data to render due error: ${sendingError.message}`)));
@@ -153,30 +155,19 @@ export default class ControllerStreamProcessor {
         return this._state.size > 0;
     }
 
-    private _sendToRender(output: string, pluginInfo: IPluginInfo): Promise<void> {
-        return new Promise((resolve, reject) => {
+    private _sendToRender(output: string, size: number): Promise<void> {
+        return new Promise((resolve) => {
             // Check is stream blocked
             if (this._isStreamBlocked()) {
                 return resolve();
             }
-            this._sendUpdateStreamData().then(() => {
+            this._sendUpdateStreamData(
+                size <= this._maxSizeOfChunkToBeSentWithUpdate ? output : undefined,
+            ).then(() => {
                 resolve();
             }).catch((errorIPC: Error) => {
                 this._logger.warn(`Fail send data from stream (${this._guid}) to render process due error: ${errorIPC.message}`);
             });
-            /*
-            // Send data forward
-            ServiceElectron.IPC.send(new IPCElectronMessages.StreamData({
-                guid: this._guid,
-                data: output,
-                pluginId: pluginInfo.id,
-                pluginToken: pluginInfo.token,
-            })).then(() => {
-                resolve();
-            }).catch((errorIPC: Error) => {
-                this._logger.warn(`Fail send data from stream (${this._guid}) to render process due error: ${errorIPC.message}`);
-            });
-            */
         });
     }
 
@@ -233,7 +224,7 @@ export default class ControllerStreamProcessor {
         }
     }
 
-    private _sendUpdateStreamData(): Promise<void> {
+    private _sendUpdateStreamData(output?: string): Promise<void> {
         return ServiceElectron.IPC.send(new IPCElectronMessages.StreamUpdated({
             guid: this._guid,
             length: this._getStreamSize(),
@@ -283,15 +274,25 @@ export default class ControllerStreamProcessor {
     private _getBytesRange(requestedRows: IRange): IRangeMapItem | Error {
         const bytes: IRange = { start: -1, end: -1 };
         const rows: IRange = { start: -1, end: -1 };
-        for (let i = this._rows.ranges.length - 1; i >= 0; i -= 1) {
+        for (let i = 0, max = this._rows.ranges.length - 1; i <= max; i += 1) {
             const range: IRangeMapItem = this._rows.ranges[i];
-            if (bytes.start === -1 && range.rows.start <= requestedRows.start && range.rows.end >= requestedRows.start) {
-                bytes.start = range.bytes.start;
-                rows.start = range.rows.start;
+            if (bytes.start === -1 && requestedRows.start <= range.rows.start) {
+                if (i > 0) {
+                    bytes.start = this._rows.ranges[i - 1].bytes.start;
+                    rows.start = this._rows.ranges[i - 1].rows.start;
+                } else {
+                    bytes.start = range.bytes.start;
+                    rows.start = range.rows.start;
+                }
             }
-            if (bytes.end === -1 && range.rows.end >= requestedRows.end && range.rows.start <= requestedRows.end) {
-                bytes.end = range.bytes.end;
-                rows.end = range.rows.end;
+            if (bytes.end === -1 && requestedRows.end <= range.rows.end) {
+                if (i < this._rows.ranges.length - 1) {
+                    bytes.end = this._rows.ranges[i + 1].bytes.end;
+                    rows.end = this._rows.ranges[i + 1].rows.end;
+                } else {
+                    bytes.end = range.bytes.end;
+                    rows.end = range.rows.end;
+                }
             }
             if (bytes.start !== -1 && bytes.end !== -1) {
                 break;
