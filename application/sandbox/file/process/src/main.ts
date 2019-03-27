@@ -73,6 +73,7 @@ class Plugin {
                     return reject(new Error(`Fail to open file "${file}" due error: ${error.message}`));
                 }
                 let iteration: number = 0;
+                let iterations: number = 0;
                 const done = () => {
                     if (isDoneAlready) {
                         return;
@@ -105,8 +106,17 @@ class Plugin {
                 const stream = fs.createReadStream(file);
                 stream.on('data', (chunk: any) => {
                     iteration ++;
+                    if (iterations < iteration) {
+                        iterations = iteration;
+                    }
                     PluginIPCService.sendToStream(chunk, streamId).then(() => {
                         iteration --;
+                        PluginIPCService.sendToPluginHost({
+                            event: 'processing',
+                            streamId: streamId,
+                            iterationsAll: iterations,
+                            iterationsLeft: iteration
+                        });
                         if (stream !== undefined && iteration === 0 && stream.bytesRead === stats.size) {
                             done();
                         }
