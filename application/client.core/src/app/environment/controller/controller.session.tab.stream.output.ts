@@ -11,15 +11,25 @@ export interface IStreamPacket {
 }
 
 export interface IPosition {
-    startInStream: number;
-    endInStream: number;
-    start: number;
-    end: number;
+    startInView: number;
+    endInView: number;
+    startInStorage: number;
+    endInStorage: number;
     toStart: number;
     toEnd: number;
-    count: number;
-    lastStartInStream: number;
+    rowsInStream: number;
+    lastStartInView: number;
     requestedOnStartPoint: number;
+}
+
+export interface IUpdateData {
+    rowsInStream: number;
+    cursorInStream: number;
+}
+
+export interface IRange {
+    start: number;
+    end: number;
 }
 
 enum ELoadDirection {
@@ -42,19 +52,19 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _requestDataHandler: TRequestDataHandler;
     private _position: IPosition = {
-        startInStream: -1,
-        endInStream: -1,
-        start: -1,
-        end: -1,
-        toStart: -1,
-        toEnd: -1,
-        count: -1,
-        lastStartInStream: -1,
+        startInView: -1,
+        endInView: -1,
+        startInStorage: -1,
+        endInStorage: -1,
+        toStart: 0,
+        toEnd: 0,
+        rowsInStream: 0,
+        lastStartInView: -1,
         requestedOnStartPoint: -1,
     };
 
     private _subjects = {
-        updated: new Subject<number>(),
+        updated: new Subject<IUpdateData>(),
         scrollTo: new Subject<number>()
     };
 
@@ -96,10 +106,10 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
 
      /**
      * List of available observables.
-     * @returns { updated: Observable<number>, scrollTo: Observable<number>, }
+     * @returns { updated: Observable<IUpdateData>, scrollTo: Observable<number>, }
      */
     public getObservable(): {
-        updated: Observable<number>,
+        updated: Observable<IUpdateData>,
         scrollTo: Observable<number>,
     } {
         return {
@@ -121,7 +131,7 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
         }
         this._updatePositionByViewData(startInView, endInView);
         const direction: ELoadDirection | undefined = this._getLoadDirection();
-        this._position.lastStartInStream = this._position.startInStream;
+        this._position.lastStartInView = this._position.startInView;
         if (direction === undefined) {
             return;
         }
@@ -129,7 +139,7 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
             // Request is in progress
             return;
         }
-        this._position.requestedOnStartPoint = this._position.startInStream;
+        this._position.requestedOnStartPoint = this._position.startInView;
         switch (direction) {
             case ELoadDirection.up:
                 this._requestUp();
@@ -149,7 +159,7 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
      * @param { number } count - total count of rows in whole stream (not in input, but in whole stream)
      * @returns void
      */
-    public update(input: string, start: number, end: number, count: number): void {
+    public update(input: string, start: number, end: number, rowsInStream: number): void {
         // TODO: filter here should be removed -> bad data comes from process, it should be resolved there
         const rows: string[] = input.split(/\n/gi);
         // Conver rows to packets
@@ -163,7 +173,8 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
             return packet.position !== -1;
         });
         // Update size of whole stream (real size - count of rows in stream file)
-        this._position.count = count;
+        console.log(`(update) this._position.rowsInStream: ${this._position.rowsInStream}`);
+        this._position.rowsInStream = rowsInStream;
         this._acceptPackets(packets, start, end);
     }
 
@@ -171,8 +182,16 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
      * Returns total count of rows in whole stream
      * @returns number
      */
-    public getRowsCount(): number {
-        return this._position.count;
+    public getRowsCountInStream(): number {
+        return this._position.rowsInStream;
+    }
+
+    /**
+     * Returns total count of rows in storage
+     * @returns number
+     */
+    public getRowsCountInStorage(): number {
+        return this._rows.length;
     }
 
     /**
@@ -192,11 +211,51 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
         this._dataStream.next(this._rows);
     }
 
+    /**
+     * Update length of stream and returns needed range of rows to fit maximum buffer (considering current cursor position).
+     * @param { number } rows - number or rows in stream
+     * @returns { IRange | undefined } returns undefined if no need to load rows
+     */
+    public setStreamLength(length: number): IRange | undefined {
+        console.log(`(setStreamLength) this._position.rowsInStream: ${this._position.rowsInStream}`);
+        const updated: IRange = { start: this._position.rowsInStream, end: length - 1 };
+        this._position.rowsInStream = length;
+        if (updated.start >= this._position.startInView) {
+            // Stream updated after current cursor position
+            let requestedEndInStream: number = this._position.startInView + BufferSettings.chunk;
+            requestedEndInStream = requestedEndInStream > updated.end ? updated.end : requestedEndInStream;
+            if (this._position.endInStorage >= requestedEndInStream) {
+                // No need to update, because already have in storage.
+                return undefined;
+            }
+            return {
+                start: this._position.endInStorage + 1,
+                end: requestedEndInStream
+            };
+        }
+
+    }
+
     // TODO: this method is depricated. Should be removed after search will be updated
     public getRowsByIndexes(indexes: number[]): IStreamPacket[] {
         return indexes.map((index: number) => {
             return this._rows[index];
         });
+    }
+
+    /**
+     * Finds and returs index or row in viewport but index of row in stream.
+     * If index not found returs { undefined }
+     * @param { number } index - index of row in stream
+     * @returns number | undefined
+     */
+    public getRowIndexInStorageByIndexInStream(indexInStream: number): number | undefined {
+        for (let i = this._rows.length - 1; i >= 0; i -= 1) {
+            if (this._rows[i].position === indexInStream) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -221,7 +280,8 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
      */
     private _requestDown() {
         const start: number = this._rows[this._rows.length - 1].position;
-        this._requestDataHandler(start, this._position.count > (start + BufferSettings.chunk) ? (start + BufferSettings.chunk) : this._position.count).then((duration: Error | number) => {
+        const maxEndPosition: number = start + BufferSettings.chunk;
+        this._requestDataHandler(start, (this._position.rowsInStream - 1) > maxEndPosition ? maxEndPosition : (this._position.rowsInStream - 1)).then((duration: Error | number) => {
             if (duration instanceof Error) {
                 this._position.requestedOnStartPoint = -1;
             }
@@ -242,11 +302,11 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
             return;
         }
         // Detect position of package
-        if (first < this._position.start) {
+        if (first < this._position.startInStorage) {
             // Package before current position
-            if (last > this._position.start) {
+            if (last > this._position.startInStorage) {
                 // Package overlap current position. Crop it
-                const toCrop: number = last - this._position.start;
+                const toCrop: number = last - this._position.startInStorage;
                 packets.splice(-toCrop, toCrop);
             }
             // Add data before
@@ -257,11 +317,11 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
                 // Remove from the end
                 this._rows.splice(-toCrop, toCrop);
             }
-        } else if (last > this._position.end) {
+        } else if (last > this._position.endInStorage) {
             // Package after current position
-            if (first < this._position.end) {
+            if (first < this._position.endInStorage) {
                 // Package overlap current position. Crop it
-                const toCrop: number = this._position.end - first;
+                const toCrop: number = this._position.endInStorage - first + 1;
                 packets.splice(0, toCrop);
             }
             // Add data after
@@ -284,12 +344,12 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
      * @returns void
      */
     private _updatePositionByViewData(startInView: number, endInView: number): void {
-        this._position.startInStream = this._rows[startInView].position;
-        this._position.endInStream = this._rows[endInView].position;
-        this._position.start = this._rows[0].position;
-        this._position.end = this._rows[this._rows.length - 1].position;
-        this._position.toStart = this._position.startInStream - this._position.start;
-        this._position.toEnd = this._position.end - this._position.endInStream;
+        this._position.startInView = this._rows[startInView].position;
+        this._position.endInView = this._rows[endInView].position;
+        this._position.startInStorage = this._rows[0].position;
+        this._position.endInStorage = this._rows[this._rows.length - 1].position;
+        this._position.toStart = this._position.startInView - this._position.startInStorage;
+        this._position.toEnd = this._position.endInStorage - this._position.endInView;
     }
 
     /**
@@ -297,16 +357,16 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
      * @returns ELoadDirection | undefined
      */
     private _getLoadDirection(): ELoadDirection | undefined {
-        if (this._position.lastStartInStream === -1) {
+        if (this._position.lastStartInView === -1) {
             return undefined;
         }
-        if (this._position.lastStartInStream > this._position.startInStream) {
+        if (this._position.lastStartInView > this._position.startInView) {
             // Cursor moves to start
             if (this._position.toStart > BufferSettings.triggeOn) {
                 // Do not trigger extra data, because it's still far from unloaded data
                 return;
             }
-            if (this._position.start <= 1) {
+            if (this._position.startInStorage <= 1) {
                 // No need to load, because it's beggining
                 return;
             }
@@ -318,7 +378,7 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
                 // Do not trigger extra data, because it's still far from unloaded data
                 return;
             }
-            if (this._position.end >= this._position.count - 1) {
+            if (this._position.endInStorage >= this._position.rowsInStream - 1) {
                 // No need to load, because it's end of data
                 return;
             }
@@ -364,35 +424,16 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
     }
 
     /**
-     * Finds and returs index or row in viewport but index of row in stream.
-     * If index not found returs { undefined }
-     * @param { number } index - index of row in stream
-     * @returns number | undefined
-     */
-    private _getRowViewIndexByRowStreamIndex(index: number): number | undefined {
-        for (let i = this._rows.length - 1; i >= 0; i -= 1) {
-            if (this._rows[i].position === index) {
-                return i;
-            }
-        }
-    }
-
-    /**
      * Triggers update events and force scrolling in viewport
      * @returns void
      */
     private _emitUpdateEvent() {
         this._dataStream.next(this._rows);
-        this._subjects.updated.next(this._position.count);
-        if (this._position.requestedOnStartPoint !== -1) {
-            const index: number | undefined = this._getRowViewIndexByRowStreamIndex(this._position.requestedOnStartPoint);
-            this._position.requestedOnStartPoint = -1;
-            if (index === undefined) {
-                this._logger.warn(`Cannot find row index in view by row index in stream.`);
-                return;
-            }
-            this._subjects.scrollTo.next(index);
-        }
+        this._subjects.updated.next({
+            rowsInStream: this._position.rowsInStream,
+            cursorInStream: this._position.requestedOnStartPoint
+        });
+        this._position.requestedOnStartPoint = -1;
     }
 
 }

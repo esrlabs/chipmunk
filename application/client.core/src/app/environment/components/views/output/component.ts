@@ -2,11 +2,16 @@ import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewIni
 import { Subscription } from 'rxjs';
 import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import { ControllerSessionTab, IComponentInjection } from '../../../controller/controller.session.tab';
-import { ControllerSessionTabStreamOutput, IStreamPacket } from '../../../controller/controller.session.tab.stream.output';
+import { ControllerSessionTabStreamOutput, IStreamPacket, IUpdateData } from '../../../controller/controller.session.tab.stream.output';
 
 enum EScrollBarType {
     horizontal = 'horizontal',
     vertical = 'vertical'
+}
+
+enum EJob {
+    free = 'free',
+    updating = 'updating'
 }
 
 interface IRange {
@@ -53,24 +58,27 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
     };
     public _ng_scrollTop: number;
 
+    private _currentJob: EJob = EJob.free;
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _streamInfo: {
         rowsInStream: number,
         rowsInViewPort: number,
         firstInStream: number,
         firstInView: number,
+        scrollTo: number,
     } = {
         rowsInStream: 0,
         rowsInViewPort: 0,
         firstInStream: 0,
-        firstInView: 0
+        firstInView: 0,
+        scrollTo: -1
     };
     private _mouseData: {
         x: number,
         y: number,
         offset: number,
         scrollTop: number,
-        type: EScrollBarType
+        type: EScrollBarType,
     } = {
         x: -1,
         y: -1,
@@ -148,12 +156,13 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
             case EScrollBarType.horizontal:
                 return {};
             case EScrollBarType.vertical:
-                const height: number = (this._streamInfo.rowsInViewPort / this._streamInfo.rowsInStream) * 100;
-                const top: number = (this._streamInfo.firstInStream / this._streamInfo.rowsInStream) * 100;
-                console.log(`TOP: ${top + height > 100 ? (100 - height) : top}%`);
+                let height: number = (this._streamInfo.rowsInViewPort / this._streamInfo.rowsInStream) * 100;
+                height = height < 5 ? 5 : height;
+                let top: number = (this._streamInfo.firstInStream / this._streamInfo.rowsInStream) * 100;
+                top = top + height > 100 ? (100 - height) : top;
                 return {
-                    height: `${height < 5 ? 5 : height}%`,
-                    top: `${top + height > 100 ? (100 - height) : top}%`,
+                    height: `${height}%`,
+                    top: `${top}%`,
                 };
         }
     }
@@ -163,7 +172,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
             throw new Error(`Unexpected request range of rendered rows`);
         }
         const range = this._ng_outputAreaViewport.getRenderedRange();
-        const count = this._ng_output.getRowsCount();
+        const count = this._ng_output.getRowsCountInStorage();
         return {
             start: range.start >= 0 ? range.start : 0,
             end: range.end < count - 1 ? range.end : count - 1
@@ -188,12 +197,16 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this._ng_outputAreaViewport.scrollTo({bottom: 0});
     }
 
-    private _onUpdated(countRowsInStream: number) {
+    private _onUpdated(data: IUpdateData) {
         const range: IRange | undefined = this._getRangeRowsInView();
         this._updateOutputContainerSize();
         this._ng_output.setViewport(range.start, range.end);
-        this._updateScrollBarsState(countRowsInStream);
-        this._autoScroll();
+        this._updateScrollBarsState(data.rowsInStream);
+        if (data.cursorInStream !== undefined) {
+            // this._ng_outputAreaViewport.scrollToIndex(data.cursorInView);
+            this._streamInfo.scrollTo = this._ng_output.getRowIndexInStorageByIndexInStream(data.cursorInStream);
+        }
+        // this._autoScroll();
     }
 
     private _updateScrollBarsState(countRowsInStream?: number) {
@@ -208,7 +221,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         }
         // 16 => consider height of horizontal scroll bar
         this._streamInfo.rowsInViewPort = (this._ng_outputAreaSize.height - 16) / this._ng_itemHeight;
-        this._streamInfo.rowsInStream = countRowsInStream ? countRowsInStream : this._ng_output.getRowsCount();
+        this._streamInfo.rowsInStream = countRowsInStream ? countRowsInStream : this._ng_output.getRowsCountInStream();
         this._streamInfo.firstInStream = firstRowData.position;
         this._streamInfo.firstInView = firstRowInView;
         this._ng_scrollbarVisibility.vertical = this._streamInfo.rowsInStream > this._streamInfo.rowsInViewPort;
@@ -229,11 +242,23 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
             case EScrollBarType.vertical:
                 const rate = this._streamInfo.rowsInStream / this._streamInfo.rowsInViewPort;
                 this._mouseData.offset += (event.y - this._mouseData.y) * rate;
-                const firstRowInView: number = Math.round((this._mouseData.scrollTop + this._mouseData.offset) / this._ng_itemHeight);
+                const scrollTop = this._ng_outputAreaViewport.measureScrollOffset('top');
+                let firstRowInView: number;
+                if (this._streamInfo.scrollTo !== -1) {
+                    // Force value for cursor position
+                    firstRowInView = this._streamInfo.scrollTo;
+                    // Drop parameters of scrolling
+                    this._mouseData.offset = 0;
+                    this._mouseData.scrollTop = this._ng_outputAreaViewport.measureScrollOffset('top');
+                    // Reset forced value
+                    this._streamInfo.scrollTo = -1;
+                } else {
+                    firstRowInView = Math.round((scrollTop + this._mouseData.offset) / this._ng_itemHeight);
+                }
                 if (firstRowInView !== this._streamInfo.firstInView) {
+                    this._mouseData.offset = (this._streamInfo.firstInView - firstRowInView) % this._ng_itemHeight;
                     this._ng_outputAreaViewport.scrollToIndex(firstRowInView);
                 }
-                console.log(`${this._mouseData.scrollTop} / ${this._mouseData.offset} / ${firstRowInView}`);
                 break;
         }
         this._mouseData.x = event.x;

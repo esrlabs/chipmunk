@@ -1,10 +1,10 @@
 import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
 import { Observable, Subject } from 'rxjs';
-import { ControllerSessionTabStreamOutput, IStreamPacket, TRequestDataHandler, BufferSettings } from './controller.session.tab.stream.output';
+import { ControllerSessionTabStreamOutput, IStreamPacket, TRequestDataHandler, BufferSettings, IRange } from './controller.session.tab.stream.output';
 import QueueService, { IQueueController } from '../services/parallels/service.queue';
 import * as Toolkit from 'logviewer.client.toolkit';
 
-export {ControllerSessionTabStreamOutput, IStreamPacket};
+export {ControllerSessionTabStreamOutput, IStreamPacket };
 
 export interface IControllerSessionStream {
     guid: string;
@@ -124,7 +124,11 @@ export class ControllerSessionTabStream {
         if (this._guid !== message.guid) {
             return;
         }
-        this._requestData(message.rows > BufferSettings.chunk ? (message.rows - BufferSettings.chunk) : 0, message.rows - 1);
+        const requestedRange: IRange | undefined = this._output.setStreamLength(message.rows);
+        if (requestedRange === undefined) {
+            return;
+        }
+        this._requestData(requestedRange.start, requestedRange.end);
     }
 
     private _queue_onNext(done: number, total: number) {
