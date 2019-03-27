@@ -38,7 +38,8 @@ export interface IPluginData {
 export class PluginsService extends Toolkit.Emitter implements IService {
 
     public Events = {
-        pluginsLoaded: 'pluginsLoaded'
+        pluginsLoaded: 'pluginsLoaded',
+        onTaskBarPlugin: 'onTaskBarPlugin'
     };
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('PluginsService');
@@ -223,6 +224,14 @@ export class PluginsService extends Toolkit.Emitter implements IService {
         });
     }
 
+    private _inspectComponentsOfPlugins() {
+        this._plugins.forEach((plugin: IPluginData) => {
+            if (plugin.factories[Toolkit.EViewsTypes.tasksBar] !== undefined) {
+                this.emit(this.Events.onTaskBarPlugin, plugin.id, plugin.factories[Toolkit.EViewsTypes.tasksBar], plugin.ipc);
+            }
+        });
+    }
+
     private _ipc_onRenderMountPlugin(event: IPCMessages.RenderMountPlugin): void {
         let left: number = event.plugins.length;
         const done = function() {
@@ -231,6 +240,7 @@ export class PluginsService extends Toolkit.Emitter implements IService {
                 setTimeout(() => {
                     // Emit event out of scope promise to avoid catch section in case of exception
                     this.emit(this.Events.pluginsLoaded);
+                    this._inspectComponentsOfPlugins();
                 }, 50);
             }
         }.bind(this);

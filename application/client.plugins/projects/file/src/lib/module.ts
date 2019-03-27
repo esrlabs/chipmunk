@@ -1,13 +1,14 @@
 import { NgModule } from '@angular/core';
 import { SidebarVerticalComponent } from './views/sidebar.vertical/component';
+import { TaskbarStateComponent } from './views/taskbar.state/component';
 import { CommonModule } from '@angular/common';
 import { PrimitiveModule } from 'logviewer-client-primitive';
 
 @NgModule({
-    entryComponents: [SidebarVerticalComponent],
-    declarations: [SidebarVerticalComponent],
+    entryComponents: [TaskbarStateComponent, SidebarVerticalComponent],
+    declarations: [TaskbarStateComponent, SidebarVerticalComponent],
     imports: [ CommonModule, PrimitiveModule ],
-    exports: [SidebarVerticalComponent]
+    exports: [TaskbarStateComponent, SidebarVerticalComponent]
 })
 
 export class PluginModule {
