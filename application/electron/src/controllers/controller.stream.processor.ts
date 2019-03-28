@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import Logger from '../../platform/node/src/env.logger';
+import Logger from '../tools/env.logger';
 import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from '../services/service.electron';
 import ServicePlugins from '../services/service.plugins';
 import ControllerIPCPlugin, { IPCMessages as IPCPluginMessages} from './controller.plugin.process.ipc';

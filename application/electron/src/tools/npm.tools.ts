@@ -1,7 +1,7 @@
 import { exec, ExecException } from 'child_process';
 import * as path from 'path';
 import ServiceElectron from '../services/service.electron';
-import Logger from '../../platform/node/src/env.logger';
+import Logger from '../tools/env.logger';
 
 export function install(target: string): Promise<void> {
     return new Promise((resolve, reject) => {

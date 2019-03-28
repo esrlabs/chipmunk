@@ -1,10 +1,10 @@
 import * as Path from 'path';
-import * as FS from '../../platform/node/src/fs';
+import * as FS from '../tools/fs';
 import * as Net from 'net';
 
 import { ChildProcess, fork } from 'child_process';
 import { Emitter } from '../../platform/cross/src/index';
-import Logger from '../../platform/node/src/env.logger';
+import Logger from '../tools/env.logger';
 import { IPlugin } from '../services/service.plugins';
 import ControllerIPCPlugin from './controller.plugin.process.ipc';
 import * as IPCPluginMessages from './plugin.ipc.messages/index';

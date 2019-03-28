@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import Logger from '../../platform/node/src/env.logger';
+import Logger from '../tools/env.logger';
 
 export type THandler = (rows: string) => Promise<void>;
 export interface IChunk {

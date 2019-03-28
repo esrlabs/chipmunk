@@ -1,8 +1,8 @@
 import * as Path from 'path';
 import * as Objects from '../../platform/cross/src/env.objects';
-import * as FS from '../../platform/node/src/fs';
+import * as FS from '../tools/fs';
 
-import Logger from '../../platform/node/src/env.logger';
+import Logger from '../tools/env.logger';
 import ServicePaths from './service.paths';
 
 import { IService } from '../interfaces/interface.service';

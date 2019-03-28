@@ -1,8 +1,8 @@
 import * as OS from 'os';
 import * as Path from 'path';
-import * as FS from '../../platform/node/src/fs';
+import * as FS from '../tools/fs';
 
-import Logger from '../../platform/node/src/env.logger';
+import Logger from '../tools/env.logger';
 
 import { IService } from '../../src/interfaces/interface.service';
 
@@ -33,8 +33,8 @@ class ServicePaths implements IService {
         this._home = Path.resolve(OS.homedir(), HOME_FOLDER);
         this._sockets = Path.resolve(this._home, SOCKETS_FOLDER);
         this._streams = Path.resolve(this._home, STREAMS_FOLDER);
-        // this._plugins = Path.resolve(this._home, PLUGINS_FOLDER);
-        this._plugins = '/Users/dmitry.astafyev/WebstormProjects/logviewer/electron.github/application/sandbox';
+        this._plugins = Path.resolve(this._home, PLUGINS_FOLDER);
+        // this._plugins = '/Users/dmitry.astafyev/WebstormProjects/logviewer/electron.github/application/sandbox';
         this._resources = process.resourcesPath as string;
         const root: string | Error = this._getRootPath();
         if (root instanceof Error) {

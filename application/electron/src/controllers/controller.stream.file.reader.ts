@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import Logger from '../../platform/node/src/env.logger';
+import Logger from '../tools/env.logger';
 
 export default class ControllerStreamFileReader {
 

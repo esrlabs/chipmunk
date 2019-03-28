@@ -1,6 +1,6 @@
 import { Fragment, IResults } from './controller.stream.search.engine';
 import { EventEmitter } from 'events';
-import Logger from '../../platform/node/src/env.logger';
+import Logger from '../tools/env.logger';
 import * as fs from 'fs';
 
 export { IResults };

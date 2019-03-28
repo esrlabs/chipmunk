@@ -2,7 +2,7 @@ import * as Url from 'url';
 
 import { BrowserWindow, BrowserWindowConstructorOptions } from 'electron';
 
-import Logger from '../../platform/node/src/env.logger';
+import Logger from '../tools/env.logger';
 
 import EventEmitter from '../../platform/cross/src/emitter';
 import { IWindowState } from '../services/service.window.state.scheme';

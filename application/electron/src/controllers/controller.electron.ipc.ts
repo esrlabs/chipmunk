@@ -1,6 +1,6 @@
 // tslint:disable:ban-types
 
-import Logger from '../../platform/node/src/env.logger';
+import Logger from '../tools/env.logger';
 
 import { ipcMain, WebContents } from 'electron';
 import { guid, Subscription, THandler } from '../../platform/cross/src/index';

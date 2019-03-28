@@ -1,5 +1,5 @@
 // Libs
-import Logger from '../platform/node/src/env.logger';
+import Logger from './tools/env.logger';
 
 // Services
 import ServiceElectron from './services/service.electron';
