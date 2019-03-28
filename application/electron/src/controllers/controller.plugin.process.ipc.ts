@@ -4,7 +4,7 @@ import { Readable } from 'stream';
 import { IPCMessagePackage } from './controller.plugin.process.ipc.messagepackage';
 import * as IPCMessages from './plugin.ipc.messages/index';
 import ServiceElectron from '../services/service.electron';
-import Logger from '../../platform/node/src/env.logger';
+import Logger from '../tools/env.logger';
 import { guid, Subscription, THandler } from '../../platform/cross/src/index';
 
 export { IPCMessages };

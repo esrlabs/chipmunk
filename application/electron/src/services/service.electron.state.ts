@@ -1,4 +1,4 @@
-import Logger from '../../platform/node/src/env.logger';
+import Logger from '../tools/env.logger';
 import guid from '../../platform/cross/src/tools.guid';
 import { IService } from '../interfaces/interface.service';
 import ServiceElectron from './service.electron';

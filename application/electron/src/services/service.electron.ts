@@ -5,7 +5,7 @@ import * as uuid from 'uuid';
 
 import { app } from 'electron';
 
-import Logger from '../../platform/node/src/env.logger';
+import Logger from '../tools/env.logger';
 
 import { Subscription } from '../../platform/cross/src/index';
 import { THandler } from '../../platform/cross/src/types.common';
@@ -171,7 +171,7 @@ class ServiceElectron implements IService {
         }
         // Create client
         this._createBrowserWindow();
-        this._controllerBrowserWindow !== undefined && this._controllerBrowserWindow.debug();
+        // this._controllerBrowserWindow !== undefined && this._controllerBrowserWindow.debug();
         // Menu
         // Files from cmd
         // cmd

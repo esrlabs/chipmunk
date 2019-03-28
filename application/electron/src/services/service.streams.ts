@@ -1,12 +1,12 @@
 import * as Path from 'path';
 import * as fs from 'fs';
 import * as Net from 'net';
-import * as FS from '../../platform/node/src/fs';
+import * as FS from '../tools/fs';
 import { EventEmitter } from 'events';
 import ServicePaths from './service.paths';
 import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from './service.electron';
 import ServicePlugins from './service.plugins';
-import Logger from '../../platform/node/src/env.logger';
+import Logger from '../tools/env.logger';
 import ControllerStreamSearch, { IResults } from '../controllers/controller.stream.search';
 import ControllerStreamBuffer from '../controllers/controller.stream.buffer';
 import ControllerStreamProcessor from '../controllers/controller.stream.processor';
