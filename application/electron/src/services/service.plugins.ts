@@ -11,7 +11,6 @@ import ServiceElectronService from './service.electron.state';
 import ControllerPluginProcess from '../controllers/controller.plugin.process';
 import ControllerIPCPlugin from '../controllers/controller.plugin.process.ipc';
 import * as npm from '../tools/npm.tools';
-
 import { IService } from '../interfaces/interface.service';
 import { IPCMessages, Subscription } from './service.electron';
 
@@ -440,7 +439,6 @@ export class ServicePlugins implements IService {
                         ServiceElectronService.logStateToRender(`[${plugin.name}]: installation is complited.`);
                         ServiceElectronService.logStateToRender(`[${plugin.name}]: rebuild.`);
                         this._logger.env(`[${plugin.name}]: installation is complited.`);
-                        this._logger.env(`[${plugin.name}]: rebuild.`);
                         initialize();
                     }).catch((installationError: Error) => {
                         ServiceElectronService.logStateToRender(`[${plugin.name}]: Fail install due error: ${installationError.message}`);

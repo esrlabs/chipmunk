@@ -5,6 +5,7 @@
   "main": "./dist/compiled/src/main.js",
   "copyright": "Copyright © 2019 year E.S.R.Labs",
   "build": {
+    "asar": false,
     "appId": "com.logviewer.de",
     "productName": "",
     "copyright": "Copyright © 2019 year E.S.R.Labs",
@@ -42,7 +43,6 @@
     }
   },
   "dependencies": {
-    "npm": "^6.7.0",
     "uuid": "^3.3.2"
   },
   "devDependencies": {

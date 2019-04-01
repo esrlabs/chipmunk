@@ -33,9 +33,13 @@ class ServicePaths implements IService {
         this._home = Path.resolve(OS.homedir(), HOME_FOLDER);
         this._sockets = Path.resolve(this._home, SOCKETS_FOLDER);
         this._streams = Path.resolve(this._home, STREAMS_FOLDER);
-        this._plugins = Path.resolve(this._home, PLUGINS_FOLDER);
-        // this._plugins = '/Users/dmitry.astafyev/WebstormProjects/logviewer/electron.github/application/sandbox';
-        this._resources = process.resourcesPath as string;
+        // this._plugins = Path.resolve(this._home, PLUGINS_FOLDER);
+        this._plugins = '/Users/dmitry.astafyev/WebstormProjects/logviewer/electron.github/application/sandbox';
+        const resources: Error | string = this._getResourcePath();
+        if (resources instanceof Error) {
+            throw resources;
+        }
+        this._resources = resources;
         const root: string | Error = this._getRootPath();
         if (root instanceof Error) {
             throw root;
@@ -205,6 +209,16 @@ class ServicePaths implements IService {
             return Path.dirname(Path.resolve(process.cwd(), sourceFile));
         }
         return new Error(`Fail to detect application root folder`);
+    }
+
+    private _getResourcePath(): string | Error {
+        if (typeof process.resourcesPath === 'string' && process.resourcesPath !== '') {
+            return process.resourcesPath as string;
+        }
+        if (process.mainModule === undefined) {
+            return new Error(`Cannot detect resource path because process.mainModule === undefined`);
+        }
+        return Path.resolve(process.mainModule.filename, '../../../../../');
     }
 
 }

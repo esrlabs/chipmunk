@@ -1,6 +1,7 @@
 import { exec, ExecOptions } from 'child_process';
 import * as OS from 'os';
 import * as Path from 'path';
+import Logger from './env.logger';
 
 export function shell(command: string, options: ExecOptions = {}): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -30,8 +31,8 @@ export enum EPlatforms {
 
 export type TEnvVars = { [key: string]: string };
 
-export function getOSEnvVars(): Promise<TEnvVars> {
-    return new Promise((resolve, reject) => {
+export function getOSEnvVars(attachProcessEnv: boolean = false): Promise<TEnvVars> {
+    return new Promise((resolve) => {
         let command: string = '';
         switch (OS.platform()) {
             case EPlatforms.aix:
@@ -59,9 +60,47 @@ export function getOSEnvVars(): Promise<TEnvVars> {
             if (Object.keys(pairs).length === 0) {
                 return resolve(Object.assign({}, process.env) as TEnvVars);
             }
+            if (attachProcessEnv) {
+                Object.keys(process.env).forEach((key: string) => {
+                    if (pairs[key] === undefined) {
+                        pairs[key] = process.env[key] as  string;
+                    }
+                });
+            }
             resolve(pairs);
         }).catch((error: Error) => {
             resolve(Object.assign({}, process.env) as TEnvVars);
+        });
+    });
+}
+
+export function whereIs(target: string): Promise<string | undefined> {
+    return new Promise((resolve) => {
+        let command: string = '';
+        const logger = new Logger(`whereIs: ${target}`);
+        switch (OS.platform()) {
+            case EPlatforms.aix:
+            case EPlatforms.android:
+            case EPlatforms.darwin:
+            case EPlatforms.freebsd:
+            case EPlatforms.linux:
+            case EPlatforms.openbsd:
+            case EPlatforms.sunos:
+                command = 'which';
+                break;
+            case EPlatforms.win32:
+                command = 'which';
+                break;
+        }
+        shell(`${command} ${target}`).then((stdout: string) => {
+            logger.env(stdout);
+            if (typeof stdout !== 'string' || stdout.trim() === '') {
+                return undefined;
+            }
+            resolve(Path.dirname(stdout));
+        }).catch((error: Error) => {
+            logger.warn(error.message);
+            resolve(undefined);
         });
     });
 }

@@ -1,5 +1,9 @@
 import { inspect } from 'util';
 import { LoggerParameters } from './env.logger.parameters';
+import * as FS from './fs';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
 
 enum ELogLevels {
     INFO = 'INFO',
@@ -11,6 +15,14 @@ enum ELogLevels {
 }
 
 type TOutputFunc = (...args: any[]) => any;
+
+const HOME_FOLDER = path.resolve(os.homedir(), '.logviewer');
+const LOG_FILE = path.resolve(os.homedir(), '.logviewer/logviewer.log');
+
+// Check home folder
+if (!FS.isExist(HOME_FOLDER)) {
+    FS.mkdir(HOME_FOLDER);
+}
 
 /**
  * @class
@@ -94,6 +106,15 @@ export default class Logger {
         /* tslint:enable */
     }
 
+    private _write(message: string) {
+        fs.appendFile(LOG_FILE, `${message}\n`, { encoding: 'utf8' }, (error: NodeJS.ErrnoException) => {
+            if (error) {
+                // tslint:disable-next-line:no-console
+                console.error(`Fail to write logs into file due error: ${error.message}`);
+            }
+        });
+    }
+
     private _output(message: string) {
         typeof this._parameters.output === 'function' && this._parameters.output(message);
     }
@@ -119,9 +140,10 @@ export default class Logger {
     }
 
     private _log(message: string, level: ELogLevels) {
-        message = `[${this._signature}]: ${message}`;
-        this._console(`[${this._getTime()}]${message}`, level);
-        this._output(`[${this._getTime()}]${message}`);
+        message = `[${this._getTime()}][${level}][${this._signature}]: ${message}`;
+        this._console(message, level);
+        this._output(message);
+        this._write(message);
         return message;
     }
 
