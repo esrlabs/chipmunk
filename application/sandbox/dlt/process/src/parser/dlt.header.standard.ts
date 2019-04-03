@@ -1,5 +1,10 @@
 import { Buffer } from 'buffer';
 
+export const Parameters = {
+    MIN_LEN: 4,
+    MAX_LEN: 16
+}
+
 export const HeaderStandardFlags = {
     UEH : 0b00000001,
     MSBF: 0b00000010,
@@ -31,7 +36,13 @@ export class Header {
 
     constructor(buffer: Buffer) {
         this._buffer = buffer;
-        const content = this._buffer.readUInt8(0);
+    }
+
+    public read(): Error | undefined {
+        if (this._buffer.length < Parameters.MIN_LEN) {
+            return new Error(`Minimal length of standard header is ${Parameters.MIN_LEN} bytes, but size of buffer is ${this._buffer.byteLength} bytes.`);
+        }
+        const content = this._buffer.readUInt8(this._offset);
         // Check structure of header: what header includes
         ['UEH', 'MSBF', 'WEID', 'WSID', 'WTMS'].forEach((key: string) => {
             (this as any)[key] = (content & (HeaderStandardFlags as any)[key]) !== 0;
@@ -45,6 +56,14 @@ export class Header {
         // Get length 
         this.LEN = this._buffer.readUInt16LE(this._offset);
         this._offset += 2;
+        // Calculate length of whole header
+        let length = this._offset;
+        if (this.WEID) { length += 4; }
+        if (this.WSID) { length += 4; }
+        if (this.WTMS) { length += 4; }
+        if (this._buffer.byteLength < length) {
+            return new Error(`Expected size of header is bigger than buffer. Some of parameters are defiend (WEID, WSID, WTMS), but no data in buffer.`);
+        }
         // Check ECU ID (WEID)
         if (this.WEID) {
             this.EID = this._buffer.slice(this._offset, this._offset + 4).toString('ascii');
@@ -55,6 +74,7 @@ export class Header {
             this.SID = this._buffer.readUInt32LE(this._offset);
             this._offset += 4;
         }
+        // Check timestamp (WTMS)
         if (this.WTMS) {
             this.TMS = this._buffer.readUInt32LE(this._offset);
             this._offset += 4;

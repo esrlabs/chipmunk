@@ -1,5 +1,10 @@
 import { Buffer } from 'buffer';
 
+export const Parameters = {
+    MIN_LEN: 10,
+    MAX_LEN: 10
+}
+
 export const HeaderExtendedFlags = {
     VERB: 0b00000001,
     MSTP: 0b00001110,
@@ -93,6 +98,14 @@ export class Header {
 
     constructor(buffer: Buffer) {
         this._buffer = buffer;
+    }
+
+    public read(): Error | undefined {
+        // Check minimal size
+        if (this._buffer.length < Parameters.MIN_LEN) {
+            return new Error(`Minimal length of extended header is ${Parameters.MIN_LEN} bytes, but size of buffer is ${this._buffer.byteLength} bytes.`);
+        }
+        // Reading
         this.MSIN = this._buffer.readUInt8(this._offset);
         this._offset += 1;
         this.VERB = (this.MSIN & HeaderExtendedFlags.VERB) !== 0;
