@@ -1,6 +1,7 @@
 import { Buffer } from 'buffer';
 import * as PayloadConsts from './dlt.payload.arguments.consts';
 import TypeInfo from './dlt.payload.argument.type.info';
+import { IPayloadTypeProcessor } from './interface.dlt.payload.argument.type.processor';
 
 export interface IData {
     value: Buffer;
@@ -8,7 +9,7 @@ export interface IData {
     count: number;
 }
 
-export default class STRG {
+export default class STRG implements IPayloadTypeProcessor<IData> {
 
     private _buffer: Buffer;
     private _info: TypeInfo;
@@ -19,7 +20,7 @@ export default class STRG {
         this._info = info;
     }
 
-    public getData(): IData {
+    public read(): IData | Error {
         const result: IData = { value: new Buffer(0), count: 0, name: undefined };
         result.count = this._buffer.readUInt16LE(this._offset);
         this._offset += 2;
@@ -29,7 +30,7 @@ export default class STRG {
         return result;
     }
 
-    public crop() {
+    public crop(): Buffer {
         return this._buffer.slice(this._offset, this._buffer.length);
     }
 

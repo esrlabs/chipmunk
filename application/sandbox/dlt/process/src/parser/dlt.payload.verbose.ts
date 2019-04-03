@@ -17,11 +17,20 @@ export default class PayloadVerbose {
         this._NOAR = NOAR; // Count of expected arguments
     }
 
-    public getData(): IArgumentValue[] {
+    public read(): IArgumentValue[] | Error {
+        // Calculate minimal size of buffer. Size of TypeInfo is 4 bytes; TypeInfo should be presend for each argument
+        const minSize: number = 4 * this._NOAR;
+        // Check length of buffer
+        if (this._buffer.byteLength < minSize) {
+            return new Error(`NOAR is ${this._NOAR}, but size of buffer is ${this._buffer.byteLength} bytes. Minimal size requered: ${minSize} bytes.`);
+        }
         const result: IArgumentValue[] = [];
         do {
             const argument: PayloadArgument = new PayloadArgument(this._buffer);
-            const data: IArgumentData = argument.getData();
+            const data: IArgumentData | Error = argument.read();
+            if (data instanceof Error) {
+                return data;
+            }
             this._buffer = data.cropped;
             result.push({
                 type: data.type,

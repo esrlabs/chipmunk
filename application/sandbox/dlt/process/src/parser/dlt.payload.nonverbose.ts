@@ -13,7 +13,7 @@ export default class PayloadNonVerbose {
         this._offset += 4;
     }
 
-    public getData(): any {
+    public read(): any {
         return null;
     }
 

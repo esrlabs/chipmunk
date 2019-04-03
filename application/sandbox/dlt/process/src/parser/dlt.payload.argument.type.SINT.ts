@@ -1,6 +1,7 @@
 import { Buffer } from 'buffer';
 import * as PayloadConsts from './dlt.payload.arguments.consts';
 import TypeInfo from './dlt.payload.argument.type.info';
+import { IPayloadTypeProcessor } from './interface.dlt.payload.argument.type.processor';
 
 export interface IData {
     value: number;
@@ -14,7 +15,7 @@ interface IPointData {
     bufferOffset: number;
 }
 
-export default class SINT{
+export default class SINT implements IPayloadTypeProcessor<IData> {
 
     private _buffer: Buffer;
     private _info: TypeInfo;
@@ -25,7 +26,7 @@ export default class SINT{
         this._info = info;
     }
 
-    public getData(): IData {
+    public read(): IData | Error {
         const result: IData = { name: undefined, unit: undefined, value: 0 };
         const names: { name: string | undefined, unit: string | undefined } = this._getName();
         const point: IPointData = this._getPoint();
@@ -40,7 +41,7 @@ export default class SINT{
         return result;
     }
 
-    public crop() {
+    public crop(): Buffer {
         return this._buffer.slice(this._offset, this._buffer.length);
     }
 

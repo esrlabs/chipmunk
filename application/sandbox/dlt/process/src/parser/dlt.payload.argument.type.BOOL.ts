@@ -1,13 +1,14 @@
 import { Buffer } from 'buffer';
 import * as PayloadConsts from './dlt.payload.arguments.consts';
 import TypeInfo from './dlt.payload.argument.type.info';
+import { IPayloadTypeProcessor } from './interface.dlt.payload.argument.type.processor';
 
 export interface IData {
     value: boolean;
     name: string | undefined;
 }
 
-export default class BOOL{
+export default class BOOL implements IPayloadTypeProcessor<IData> {
 
     private _buffer: Buffer;
     private _info: TypeInfo;
@@ -18,7 +19,7 @@ export default class BOOL{
         this._info = info;
     }
 
-    public getData(): IData {
+    public read(): IData | Error {
         const name: string | undefined = this._getName();
         const value: boolean = this._buffer.readUInt8(this._offset) === 1;
         this._offset += 1;
@@ -28,7 +29,7 @@ export default class BOOL{
         }
     }
 
-    public crop() {
+    public crop(): Buffer {
         return this._buffer.slice(this._offset, this._buffer.length);
     }
 

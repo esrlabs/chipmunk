@@ -8,6 +8,11 @@ export enum EMode {
     NON_VERBOSE = 'NON_VERBOSE'
 }
 
+export interface IPayloadData {
+    mode: EMode;
+    content: any;
+}
+
 export default class Payload {
 
     public mode: EMode = EMode.NON_VERBOSE;
@@ -28,8 +33,15 @@ export default class Payload {
         }
     }
 
-    public getData(): any {
-        return this._processor.getData();
+    public read(): IPayloadData | Error {
+        const payload: any = this._processor.read();
+        if (payload instanceof Error) {
+            return payload;
+        }
+        return {
+            mode: this.mode,
+            content: payload
+        };
     }
 
 }
