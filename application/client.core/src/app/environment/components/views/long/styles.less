@@ -1,0 +1,44 @@
+@import '../../../theme/scheme.less';
+
+
+:host {
+    display: block;
+    position: absolute;
+    top:0;
+    left:0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    & div.filler{
+        position: relative;
+        display: block;
+        width: 1px;
+        z-index: 0;
+    }
+    & div.container{
+        display: block;
+        position: absolute;
+        top:0;
+        left:0;
+        right: 0;
+        bottom: 0;
+        z-index: 1;
+        overflow: auto;
+        & ul.holder{
+            position: relative;
+            display: block;
+            width: 100%;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            & li{
+                position: relative;
+                display: block;
+                width: auto;
+                list-style: none;
+                padding: 0;
+                margin: 0;
+            }
+        }
+    }
+}

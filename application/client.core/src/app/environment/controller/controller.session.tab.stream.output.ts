@@ -1,4 +1,5 @@
 import { CollectionViewer, DataSource } from '@angular/cdk/collections';
+import { IPCMessages } from '../services/service.electron.ipc';
 import { BehaviorSubject, Observable, Subscription, Subject } from 'rxjs';
 import * as Toolkit from 'logviewer.client.toolkit';
 
@@ -8,6 +9,7 @@ export interface IStreamPacket {
     str: string;
     position: number;
     pluginId: number;
+    pending: boolean;
 }
 
 export interface IPosition {
@@ -20,6 +22,8 @@ export interface IPosition {
     rowsInStream: number;
     lastStartInView: number;
     requestedOnStartPoint: number;
+    pendingStartInStorage: number;
+    pedningEndInStorage: number;
 }
 
 export interface IUpdateData {
@@ -47,10 +51,12 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
 
     private _guid: string;
     private _logger: Toolkit.Logger;
+    private _queue: Toolkit.Queue;
     private _dataStream: BehaviorSubject<IStreamPacket[]> = new BehaviorSubject<IStreamPacket[]>([]);
     private _rows: IStreamPacket[] = [];
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _requestDataHandler: TRequestDataHandler;
+    private _requestTimer: any;
     private _position: IPosition = {
         startInView: -1,
         endInView: -1,
@@ -61,6 +67,8 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
         rowsInStream: 0,
         lastStartInView: -1,
         requestedOnStartPoint: -1,
+        pedningEndInStorage: -1,
+        pendingStartInStorage: -1,
     };
 
     private _subjects = {
@@ -73,6 +81,7 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
         this._guid = guid;
         this._requestDataHandler = requestDataHandler;
         this._logger = new Toolkit.Logger(`ControllerSessionTabStreamOutput: ${this._guid}`);
+        this._queue = new Toolkit.Queue(this._logger.env.bind(this));
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -148,7 +157,24 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
                 this._requestDown();
                 break;
         }
-        console.log(this._rows.length);
+    }
+
+    public isRequestNeeded(startInView: number, endInView: number): boolean {
+        const state: IPosition = Object.assign({}, this._position);
+        state.startInView = this._rows[startInView].position;
+        state.endInView = this._rows[endInView].position;
+        state.startInStorage = this._rows[0].position;
+        state.endInStorage = this._rows[this._rows.length - 1].position;
+        state.toStart = state.startInView - state.startInStorage;
+        state.toEnd = state.endInStorage - state.endInView;
+        const direction: ELoadDirection | undefined = this._getLoadDirection();
+        if (direction === undefined) {
+            return false;
+        }
+        if (this._position.requestedOnStartPoint !== -1) {
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -161,21 +187,26 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
      */
     public update(input: string, start: number, end: number, rowsInStream: number): void {
         // TODO: filter here should be removed -> bad data comes from process, it should be resolved there
-        const rows: string[] = input.split(/\n/gi);
+        let rows: string[] = input.split(/\n/gi);
+        if (rows.length > (end - start)) {
+            // Remove last one, which could be not completed
+            rows = rows.slice(0, (end - start));
+        }
         // Conver rows to packets
         const packets: IStreamPacket[] = rows.map((str: string) => {
             return {
                 str: this._clearRowStr(str),                // Get cleared string
                 position: this._extractRowPosition(str),    // Get position
                 pluginId: this._extractPluginId(str),       // Get plugin id
+                pending: false,                             // Not pending row (row with content)
             };
         }).filter((packet: IStreamPacket) => {
-            return packet.position !== -1;
+            return (packet.position !== -1);
         });
         // Update size of whole stream (real size - count of rows in stream file)
-        console.log(`(update) this._position.rowsInStream: ${this._position.rowsInStream}`);
         this._position.rowsInStream = rowsInStream;
-        this._acceptPackets(packets, start, end);
+        // this._queue.add(this._acceptPackets.bind(this, packets, start, end));
+        this._acceptPackets(packets, start, end, false);
     }
 
     /**
@@ -192,6 +223,22 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
      */
     public getRowsCountInStorage(): number {
         return this._rows.length;
+    }
+
+    /**
+     * Returns first row in storage
+     * @returns number
+     */
+    public getStartInStorage(): number {
+        return this._position.startInStorage;
+    }
+
+    /**
+     * Returns last row in storage
+     * @returns number
+     */
+    public getLastInStorage(): number {
+        return this._position.endInStorage;
     }
 
     /**
@@ -216,10 +263,13 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
      * @param { number } rows - number or rows in stream
      * @returns { IRange | undefined } returns undefined if no need to load rows
      */
-    public setStreamLength(length: number): IRange | undefined {
-        console.log(`(setStreamLength) this._position.rowsInStream: ${this._position.rowsInStream}`);
-        const updated: IRange = { start: this._position.rowsInStream, end: length - 1 };
-        this._position.rowsInStream = length;
+    public updateStreamState(message: IPCMessages.StreamUpdated): IRange | undefined {
+        const updated: IRange = { start: this._position.rowsInStream, end: message.rowsCount - 1 };
+        this._position.rowsInStream = message.rowsCount;
+        if ((this._position.endInStorage + 1) === message.addedFrom) {
+            this.update(message.addedRowsData, message.addedFrom, message.addedTo, message.rowsCount);
+            return undefined;
+        }
         if (updated.start >= this._position.startInView) {
             // Stream updated after current cursor position
             let requestedEndInStream: number = this._position.startInView + BufferSettings.chunk;
@@ -267,11 +317,16 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
      */
      private _requestUp(): void {
         const end: number = this._rows[0].position;
-        this._requestDataHandler(end > BufferSettings.chunk ? (end - BufferSettings.chunk) : 0, end).then((duration: Error | number) => {
-            if (duration instanceof Error) {
-                this._position.requestedOnStartPoint = -1;
-            }
-        });
+        const start: number = end > BufferSettings.chunk ? (end - BufferSettings.chunk) : 0;
+        this._acceptPackets([], start, end, true);
+        clearTimeout(this._requestTimer);
+        this._requestTimer = setTimeout(() => {
+            this._requestDataHandler(start, end).then((duration: Error | number) => {
+                if (duration instanceof Error) {
+                    this._position.requestedOnStartPoint = -1;
+                }
+            });
+        }, 150);
     }
 
     /**
@@ -281,13 +336,29 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
     private _requestDown() {
         const start: number = this._rows[this._rows.length - 1].position;
         const maxEndPosition: number = start + BufferSettings.chunk;
-        this._requestDataHandler(start, (this._position.rowsInStream - 1) > maxEndPosition ? maxEndPosition : (this._position.rowsInStream - 1)).then((duration: Error | number) => {
-            if (duration instanceof Error) {
-                this._position.requestedOnStartPoint = -1;
-            }
-        });
+        const end: number = (this._position.rowsInStream - 1) > maxEndPosition ? maxEndPosition : (this._position.rowsInStream - 1);
+        this._acceptPackets([], start, end, true);
+        clearTimeout(this._requestTimer);
+        this._requestTimer = setTimeout(() => {
+            this._requestDataHandler(start, end).then((duration: Error | number) => {
+                if (duration instanceof Error) {
+                    this._position.requestedOnStartPoint = -1;
+                }
+            });
+        }, 150);
     }
 
+    private _getPendingPackages(first: number, last: number): IStreamPacket[] {
+        const rows: IStreamPacket[] = Array.from({ length: last - first}).map((_, i) => {
+            return {
+                pluginId: -1,
+                position: first + i,
+                str: '',
+                pending: true
+            };
+        });
+        return rows;
+    }
     /**
      * Adds new packet into stream and updates stream state
      * @param { IStreamPacket[] } packets - new packets to be added into stream
@@ -295,7 +366,21 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
      * @param { number } last - number of last row in packetes
      * @returns void
      */
-    private _acceptPackets(packets: IStreamPacket[], first: number, last: number): void {
+    private _acceptPackets(packets: IStreamPacket[], first: number, last: number, pending: boolean): void {
+        if (!pending) {
+            // Remove pending before
+            this._rows = this._rows.filter((row: IStreamPacket) => {
+                return !row.pending;
+            });
+            if (this._rows.length > 0) {
+                // Update border
+                this._position.startInStorage = this._rows[0].position;
+                this._position.endInStorage = this._rows[this._rows.length - 1].position;
+            }
+        } else {
+            packets = this._getPendingPackages(first, last);
+        }
+        // Add rows
         if (this._rows.length === 0) {
             this._rows.push(...packets);
             this._emitUpdateEvent();
@@ -356,17 +441,20 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
      * Detects direction of required loading of new data into steam: before cursor or after
      * @returns ELoadDirection | undefined
      */
-    private _getLoadDirection(): ELoadDirection | undefined {
-        if (this._position.lastStartInView === -1) {
+    private _getLoadDirection(target?: IPosition): ELoadDirection | undefined {
+        if (target === undefined) {
+            target = this._position;
+        }
+        if (target.lastStartInView === -1) {
             return undefined;
         }
-        if (this._position.lastStartInView > this._position.startInView) {
+        if (target.lastStartInView > target.startInView) {
             // Cursor moves to start
-            if (this._position.toStart > BufferSettings.triggeOn) {
+            if (target.toStart > BufferSettings.triggeOn) {
                 // Do not trigger extra data, because it's still far from unloaded data
                 return;
             }
-            if (this._position.startInStorage <= 1) {
+            if (target.startInStorage <= 1) {
                 // No need to load, because it's beggining
                 return;
             }
@@ -374,11 +462,11 @@ export class ControllerSessionTabStreamOutput extends DataSource<IStreamPacket> 
             return ELoadDirection.up;
         } else {
             // Cursor moves to end
-            if (this._position.toEnd > BufferSettings.triggeOn) {
+            if (target.toEnd > BufferSettings.triggeOn) {
                 // Do not trigger extra data, because it's still far from unloaded data
                 return;
             }
-            if (this._position.endInStorage >= this._position.rowsInStream - 1) {
+            if (target.endInStorage >= target.rowsInStream - 1) {
                 // No need to load, because it's end of data
                 return;
             }

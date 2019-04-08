@@ -48,7 +48,6 @@
   "devDependencies": {
     "@types/jasmine": "^3.3.8",
     "@types/node": "^10.14.1",
-    "@types/npm": "^2.0.29",
     "@types/uuid": "^3.4.4",
     "dmg-builder": "^6.0.0",
     "electron": "4.0.3",

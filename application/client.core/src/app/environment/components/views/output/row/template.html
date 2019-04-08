@@ -1,3 +1,11 @@
-<span class="source">{{_ng_sourceName}}</span>
-<span class="number">{{_ng_number}}</span>
-<p class="row" [innerHTML]="_ng_safeHtml"></p>
+<div *ngIf="_ng_pending === false">
+    <span class="source">{{_ng_sourceName}}</span>
+    <span class="number">{{_ng_number}}</span>
+    <p class="row" [innerHTML]="_ng_safeHtml"></p>
+</div>
+<div *ngIf="_ng_pending === true">
+    <span class="source">n/d</span>
+    <span class="number">{{_ng_number}}</span>
+    <p class="row pending"></p>
+</div>
+    
