@@ -42,7 +42,7 @@ export class TabsSessionsService implements IService {
         const guid: string = Toolkit.guid();
         const session = new ControllerSessionTab({
             guid: guid,
-            transports: ['file', 'processes'],
+            transports: ['file', 'processes', 'dlt'],
         });
         this._tabsService.add({
             guid: guid,

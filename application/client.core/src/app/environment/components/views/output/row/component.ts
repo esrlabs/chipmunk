@@ -15,11 +15,23 @@ export class ViewOutputRowComponent implements AfterContentChecked {
     public _ng_safeHtml: SafeHtml = null;
     public _ng_sourceName: string | undefined;
     public _ng_number: string | undefined;
+    public _ng_pending: boolean | undefined;
 
     constructor(private _sanitizer: DomSanitizer) {
     }
 
     ngAfterContentChecked() {
+        if (this.row.position.toString() === this._ng_number) {
+            return;
+        }
+        if (this.row.pending) {
+            this._acceptPendingRow();
+        } else {
+            this._acceptRowWithContent();
+        }
+    }
+
+    private _acceptRowWithContent() {
         if (this.row.pluginId === -1) {
             return;
         }
@@ -34,6 +46,12 @@ export class ViewOutputRowComponent implements AfterContentChecked {
             }
         }
         this._ng_safeHtml = this._sanitizer.bypassSecurityTrustHtml(html);
+        this._ng_number = this.row.position.toString();
+        this._ng_pending = false;
+    }
+
+    private _acceptPendingRow() {
+        this._ng_pending = true;
         this._ng_number = this.row.position.toString();
     }
 

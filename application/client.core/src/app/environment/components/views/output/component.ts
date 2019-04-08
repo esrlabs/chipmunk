@@ -58,7 +58,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
     };
     public _ng_scrollTop: number;
 
-    private _currentJob: EJob = EJob.free;
+    private _currentStreamPosition: number = -1;
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _streamInfo: {
         rowsInStream: number,
@@ -138,6 +138,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     public _ng_scrolledIndexChange(index: number) {
+        this._currentStreamPosition = this._ng_output.getRow(index).position;
         const range: IRange = this._getRangeRowsInView();
         this._ng_output.setViewport(range.start, range.end);
         this._updateScrollBarsState();
@@ -203,8 +204,13 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this._ng_output.setViewport(range.start, range.end);
         this._updateScrollBarsState(data.rowsInStream);
         if (data.cursorInStream !== undefined) {
-            // this._ng_outputAreaViewport.scrollToIndex(data.cursorInView);
-            this._streamInfo.scrollTo = this._ng_output.getRowIndexInStorageByIndexInStream(data.cursorInStream);
+            if (this._currentStreamPosition === -1) {
+                return;
+            }
+            this._streamInfo.scrollTo = this._ng_output.getRowIndexInStorageByIndexInStream(this._currentStreamPosition);
+            this._ng_outputAreaViewport.scrollToIndex(this._streamInfo.scrollTo);
+            // this._streamInfo.scrollTo = this._ng_output.getRowIndexInStorageByIndexInStream(data.cursorInStream);
+            // this._ng_outputAreaViewport.scrollToIndex(this._streamInfo.scrollTo);
         }
         // this._autoScroll();
     }
@@ -229,6 +235,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     private _onScrollTo(index: number) {
+        console.log(`ON SCROLL TO: ${index}`);
         this._ng_outputAreaViewport.scrollToIndex(index);
     }
 
@@ -256,6 +263,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                     firstRowInView = Math.round((scrollTop + this._mouseData.offset) / this._ng_itemHeight);
                 }
                 if (firstRowInView !== this._streamInfo.firstInView) {
+                    // const storageState = { start: this._ng_output.getStartInStorage(), end: this._ng_output.getLastInStorage() };
                     this._mouseData.offset = (this._streamInfo.firstInView - firstRowInView) % this._ng_itemHeight;
                     this._ng_outputAreaViewport.scrollToIndex(firstRowInView);
                 }

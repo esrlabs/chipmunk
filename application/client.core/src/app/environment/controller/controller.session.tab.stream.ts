@@ -4,7 +4,7 @@ import { ControllerSessionTabStreamOutput, IStreamPacket, TRequestDataHandler, B
 import QueueService, { IQueueController } from '../services/parallels/service.queue';
 import * as Toolkit from 'logviewer.client.toolkit';
 
-export {ControllerSessionTabStreamOutput, IStreamPacket };
+export { ControllerSessionTabStreamOutput, IStreamPacket };
 
 export interface IControllerSessionStream {
     guid: string;
@@ -91,7 +91,7 @@ export class ControllerSessionTabStream {
                 })
             ).then((response: IPCMessages.StreamChunk) => {
                 const duration: number = Date.now() - s;
-                this._logger.env(`Chunk is read in: ${(duration / 1000).toFixed(2)}s`);
+                this._logger.env(`Chunk [${start} - ${end}] is read in: ${(duration / 1000).toFixed(2)}s`);
                 if (response.error !== undefined) {
                     return resolve(new Error(this._logger.warn(`Request to stream chunk was finished within error: ${response.error}`)));
                 }
@@ -124,7 +124,7 @@ export class ControllerSessionTabStream {
         if (this._guid !== message.guid) {
             return;
         }
-        const requestedRange: IRange | undefined = this._output.setStreamLength(message.rows);
+        const requestedRange: IRange | undefined = this._output.updateStreamState(message);
         if (requestedRange === undefined) {
             return;
         }

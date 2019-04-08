@@ -3,9 +3,9 @@
     <cdk-virtual-scroll-viewport #outputviewport 
       class="virtual-scroll-viewport" 
       [ngStyle]="_ng_getOutputAreaStyle()" 
-      itemSize="16" 
+      itemSize="16" minBufferPx="1000" maxBufferPx="2000"
       (scrolledIndexChange)="_ng_scrolledIndexChange($event)">
-      <ng-container *cdkVirtualFor="let row of _ng_output; trackBy: _ng_trackByIdx">
+      <ng-container *cdkVirtualFor="let row of _ng_output; trackBy: _ng_trackByIdx; templateCacheSize: 1000;">
         <app-views-output-row *ngIf="row !== undefined" [row]="row"></app-views-output-row>
       </ng-container>
     </cdk-virtual-scroll-viewport>

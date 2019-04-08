@@ -41,6 +41,12 @@
       ],
       "file/*": [
         "dist/file/*"
+      ],
+      "dlt": [
+        "dist/dlt"
+      ],
+      "dlt/*": [
+        "dist/dlt/*"
       ]
     }
   }

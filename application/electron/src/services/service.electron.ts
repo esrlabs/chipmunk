@@ -171,7 +171,7 @@ class ServiceElectron implements IService {
         }
         // Create client
         this._createBrowserWindow();
-        // this._controllerBrowserWindow !== undefined && this._controllerBrowserWindow.debug();
+        this._controllerBrowserWindow !== undefined && this._controllerBrowserWindow.debug();
         // Menu
         // Files from cmd
         // cmd

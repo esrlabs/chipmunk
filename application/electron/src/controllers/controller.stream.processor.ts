@@ -25,6 +25,12 @@ export interface IStreamStateInfo {
     memoryUsed: number;
 }
 
+export interface IAddIndexesResults {
+    output: string;
+    from: number;
+    to: number;
+}
+
 const REGEXPS = {
     CARRETS: /[\r?\n|\r]/gi,
 };
@@ -102,7 +108,8 @@ export default class ControllerStreamProcessor {
             // Remember first row before update it
             const lastRowBeforeUpdate: number = this._rows.last;
             // Add rows indexes
-            output = this._addRowIndexes(output);
+            const addIndexesRes: IAddIndexesResults = this._addRowIndexes(output);
+            output = addIndexesRes.output;
             // Get size of buffer to be written
             const sizeToBeWritten: number = Buffer.from(output).byteLength;
             // Store indexes
@@ -120,7 +127,7 @@ export default class ControllerStreamProcessor {
                 if (writeError) {
                     return reject(new Error(this._logger.error(`Fail to write data into stream file due error: ${writeError.message}`)));
                 }
-                !streamBlocked && this._sendToRender(output, sizeToBeWritten).then(() => {
+                !streamBlocked && this._sendToRender(addIndexesRes.output, addIndexesRes.from, addIndexesRes.to).then(() => {
                     resolve();
                 }).catch((sendingError: Error) => {
                     reject(new Error(this._logger.error(`Fail to send stream data to render due error: ${sendingError.message}`)));
@@ -129,12 +136,19 @@ export default class ControllerStreamProcessor {
         });
     }
 
-    private _addRowIndexes(str: string): string {
+    private _addRowIndexes(str: string): IAddIndexesResults {
+        const result: IAddIndexesResults = {
+            output: '',
+            from: this._rows.last,
+            to: this._rows.last,
+        };
         str = str.replace(REGEXPS.CARRETS, () => {
-            const injection: string = MARKERS.NUMBER + (this._rows.last++) + MARKERS.NUMBER;
-            return `${injection}\n`;
+            const injection: string = `${(MARKERS.NUMBER + (this._rows.last++) + MARKERS.NUMBER)}\n`;
+            result.to += 1;
+            return injection;
         });
-        return str;
+        result.output = str;
+        return result;
     }
 
     private _getPluginInfo(pluginReference: string | undefined, id?: number): IPluginInfo | Error {
@@ -155,15 +169,13 @@ export default class ControllerStreamProcessor {
         return this._state.size > 0;
     }
 
-    private _sendToRender(output: string, size: number): Promise<void> {
+    private _sendToRender(complete: string, from: number, to: number): Promise<void> {
         return new Promise((resolve) => {
             // Check is stream blocked
             if (this._isStreamBlocked()) {
                 return resolve();
             }
-            this._sendUpdateStreamData(
-                size <= this._maxSizeOfChunkToBeSentWithUpdate ? output : undefined,
-            ).then(() => {
+            this._sendUpdateStreamData(complete, from, to).then(() => {
                 resolve();
             }).catch((errorIPC: Error) => {
                 this._logger.warn(`Fail send data from stream (${this._guid}) to render process due error: ${errorIPC.message}`);
@@ -224,11 +236,14 @@ export default class ControllerStreamProcessor {
         }
     }
 
-    private _sendUpdateStreamData(output?: string): Promise<void> {
+    private _sendUpdateStreamData(complete?: string, from?: number, to?: number): Promise<void> {
         return ServiceElectron.IPC.send(new IPCElectronMessages.StreamUpdated({
             guid: this._guid,
             length: this._getStreamSize(),
-            rows: this._rows.last,
+            rowsCount: this._rows.last,
+            addedRowsData: complete === undefined ? '' : complete,
+            addedFrom: from === undefined ? -1 : from,
+            addedTo: to === undefined ? -1 : to,
         }));
     }
 
