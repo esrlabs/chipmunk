@@ -137,8 +137,10 @@ export class ControllerSessionTabStreamOutput {
         this._state.count = message.rowsCount;
         // Check: shell we add data right now or not
         if (this._state.frame.end + 1 === message.addedFrom) {
+            // Update size of whole stream (real size - count of rows in stream file)
+            this._state.count = message.rowsCount;
             // Frame at the end of stream. Makes sense to store data
-            this._parse(message.addedRowsData, message.addedFrom, message.addedTo, message.rowsCount);
+            this._parse(message.addedRowsData);
         }
         this._subjects.onStateUpdated.next(Object.assign({}, this._state));
     }
@@ -190,8 +192,10 @@ export class ControllerSessionTabStreamOutput {
                     // No need to parse - new request was created
                     return;
                 }
+                // Update size of whole stream (real size - count of rows in stream file)
+                this._state.count = message.rows;
                 // Parse and accept rows
-                this._parse(message.data, message.start, message.end, message.rows);
+                this._parse(message.data);
                 // Check again last requested frame
                 if (stored.start <= frame.start && stored.end >= frame.end) {
                     // Send notification about update
@@ -217,13 +221,9 @@ export class ControllerSessionTabStreamOutput {
      * @param { number } count - total count of rows in whole stream (not in input, but in whole stream)
      * @returns void
      */
-    private _parse(input: string, start: number, end: number, rowsInStream: number): void {
+    private _parse(input: string): void {
         // TODO: filter here should be removed -> bad data comes from process, it should be resolved there
-        let rows: string[] = input.split(/\n/gi);
-        if (rows.length > (end - start)) {
-            // Remove last one, which could be not completed
-            rows = rows.slice(0, (end - start));
-        }
+        const rows: string[] = input.split(/\n/gi);
         // Conver rows to packets
         const packets: IStreamPacket[] = rows.map((str: string) => {
             return {
@@ -234,8 +234,6 @@ export class ControllerSessionTabStreamOutput {
         }).filter((packet: IStreamPacket) => {
             return (packet.position !== -1);
         });
-        // Update size of whole stream (real size - count of rows in stream file)
-        this._state.count = rowsInStream;
         this._acceptPackets(packets);
     }
 
@@ -279,7 +277,7 @@ export class ControllerSessionTabStreamOutput {
             }
         } else if (packet.end > this._state.stored.end) {
             const range = packet.end - this._state.stored.end;
-            const injection = packets.slice(packets.length - range, range);
+            const injection = packets.slice(packets.length - range, packets.length);
             this._rows.push(...injection);
             // Check size
             if (this._rows.length > Settings.maxStoredCount) {
