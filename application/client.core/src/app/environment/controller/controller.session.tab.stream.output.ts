@@ -16,6 +16,7 @@ export interface IStreamState {
     stored: IRange;
     frame: IRange;
     lastLoadingRequestId: any;
+    bufferLoadingRequestId: any;
 }
 
 export interface IRange {
@@ -29,6 +30,7 @@ export interface ILoadedRange {
 }
 
 export const Settings = {
+    trigger         : 10000,    // Trigger to load addition chunk
     maxRequestCount : 50000,    // chunk size in rows
     maxStoredCount  : 100000,   // limit of rows to have it in RAM. All above should be removed
     requestDelay    : 250,      // ms, delay before to do request
@@ -51,7 +53,8 @@ export class ControllerSessionTabStreamOutput {
             start: -1,
             end: -1
         },
-        lastLoadingRequestId: undefined
+        lastLoadingRequestId: undefined,
+        bufferLoadingRequestId: undefined,
     };
 
     private _subjects = {
@@ -103,12 +106,16 @@ export class ControllerSessionTabStreamOutput {
             throw new Error(`Calculation error: gotten ${rows.length} rows; should be: ${range.end - range.start}`);
         }
         this._state.frame = Object.assign({}, range);
+        console.log(`To end of buffer: ${this._state.stored.end - this._state.frame.end}`);
         return rows;
     }
 
     public setFrame(range: IRange) {
         this._state.frame = Object.assign({}, range);
-        this._load();
+        if (!this._load()) {
+            // No need to make request, but check buffer
+            this._buffer();
+        }
     }
 
     /**
@@ -155,7 +162,7 @@ export class ControllerSessionTabStreamOutput {
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Internal methods / helpers
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    private _load() {
+    private _load(): boolean {
         // First step: drop previos request
         clearTimeout(this._state.lastLoadingRequestId);
         // Check: do we need to load something at all
@@ -163,12 +170,12 @@ export class ControllerSessionTabStreamOutput {
         const stored = this._state.stored;
         if (stored.start <= frame.start && stored.end >= frame.end) {
             // Frame in borders of stored data. No need to request
-            return;
+            return false;
         }
         const request: IRange = { start: -1, end: -1 };
         // Calculate data, which should be requested
         if (frame.end - frame.start <= 0) {
-            return;
+            return false;
         }
         const distance = {
             toStart: frame.start,
@@ -211,6 +218,56 @@ export class ControllerSessionTabStreamOutput {
                 this._logger.error(`Error during requesting data (rows from ${request.start} to ${request.end}): ${error.message}`);
             });
         }, Settings.requestDelay);
+        return true;
+    }
+
+    private _buffer() {
+        if (this._state.bufferLoadingRequestId !== undefined) {
+            // Buffer is already requested
+            return;
+        }
+        const frame = this._state.frame;
+        const stored = this._state.stored;
+        const extended = {
+            start: (frame.start - Settings.trigger) < 0 ? 0 : (frame.start - Settings.trigger),
+            end: (frame.end + Settings.trigger) > (this._state.count - 1) ? (this._state.count - 1) : (frame.end + Settings.trigger),
+        };
+        const diffs = {
+            fromEnd: (extended.end > stored.end) ? (extended.end - stored.end) : -1,
+            fromStart: (extended.start < stored.start) ? (stored.start - extended.start) : -1,
+        };
+        if (diffs.fromEnd === -1 && diffs.fromStart === -1) {
+            // No need to add buffer
+            return;
+        }
+        const request = {
+            start: -1,
+            end: -1,
+        };
+        if (diffs.fromStart > diffs.fromEnd) {
+            // Add buffer to the beggining
+            request.start = (extended.start - Settings.maxRequestCount) < 0 ? 0 : (extended.start - Settings.maxRequestCount);
+            request.end = stored.start;
+        } else {
+            // Add buffer to the end
+            request.start = stored.end;
+            request.end = (extended.end + Settings.maxRequestCount) > this._state.count - 1 ? (this._state.count - 1) : (extended.end + Settings.maxRequestCount);
+        }
+        this._state.bufferLoadingRequestId = this._requestDataHandler(request.start, request.end).then((message: IPCMessages.StreamChunk) => {
+            this._state.bufferLoadingRequestId = undefined;
+            // Check: do we already have other request
+            if (this._state.lastLoadingRequestId !== undefined) {
+                // No need to parse - new request was created
+                return;
+            }
+            // Update size of whole stream (real size - count of rows in stream file)
+            this._state.count = message.rows;
+            // Parse and accept rows
+            this._parse(message.data);
+        }).catch((error: Error) => {
+            this._logger.error(`Error during requesting data (rows from ${request.start} to ${request.end}): ${error.message}`);
+            this._state.bufferLoadingRequestId = undefined;
+        });
     }
 
     /**
