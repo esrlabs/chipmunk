@@ -173,10 +173,12 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         }
         if (scrollTop === this._vSB.prevScrollTop) {
             if (this._state.start !== 0 && scrollTop === this._vSB.offset) {
+                this._cdRef.detectChanges();
                 return;
             } else if (scrollTop !== 0 && scrollTop !== this._vSB.offset && this._state.end !== (this._storageInfo.count - 1)) {
                 this._vSB.offset = scrollTop;
                 this._vSB.cache = scrollTop;
+                this._cdRef.detectChanges();
                 return;
             }
         }
