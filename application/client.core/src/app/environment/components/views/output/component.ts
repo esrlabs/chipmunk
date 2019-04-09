@@ -69,8 +69,14 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         return 16;
     }
 
-    private _api_getRange(range: IRange): IRowsPacket {
-        const rows: IStreamPacket[] = this._output.getRange(range);
+    private _api_getRange(range: IRange, antiLoopCounter: number = 0): IRowsPacket {
+        const rows: IStreamPacket[] | Error = this._output.getRange(range);
+        if (rows instanceof Error) {
+            if (antiLoopCounter > 1000) {
+                throw rows;
+            }
+            return this._api_getRange(range, antiLoopCounter + 1);
+        }
         return {
             range: range,
             rows: rows
