@@ -1,3 +1,4 @@
+// tslint:disable:max-line-length
 import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, ViewChild, Input, AfterContentInit, ElementRef } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
 
@@ -30,11 +31,20 @@ export interface IDataAPI {
     onRowsDelivered: Subject<IRowsPacket>;
 }
 
-const Settings = {
-    minScrollTop   : 1,         // To "catch" scroll event in reverse direction (to up) we should always keep minimal scroll offset
-    maxScrollHeight: 100000,    // Maximum scroll area height in px.
-    maxSlowDistance: 20,        // Less this distance will be applied scrolling without scale. In heights of items
-    scrollToOffset: 5,          // How many items show before item defined on scrollTo
+export interface ISettings {
+    minScrollTop: number;           // To "catch" scroll event in reverse direction (to up) we should always keep minimal scroll offset
+    maxScrollHeight: number;        // Maximum scroll area height in px.
+    maxSlowDistance: number;        // Less this distance will be applied scrolling without scale. In heights of items
+    scrollToOffset: number;         // How many items show before item defined on scrollTo
+    noScrollScaleOnWheel: boolean;  // Do not apply scale if scroll was done with wheel
+}
+
+const DefaultSettings = {
+    minScrollTop        : 1,            // To "catch" scroll event in reverse direction (to up) we should always keep minimal scroll offset
+    maxScrollHeight     : 100000,       // Maximum scroll area height in px.
+    maxSlowDistance     : 20,           // Less this distance will be applied scrolling without scale. In heights of items
+    scrollToOffset      : 5,            // How many items show before item defined on scrollTo
+    noScrollScaleOnWheel: true,         // Do not apply scale if scroll was done with wheel
 };
 
 @Component({
@@ -50,10 +60,12 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
     @ViewChild('filler') _ng_nodeFiller: ElementRef;
 
     @Input() public API: IDataAPI | undefined;
+    @Input() public settings: ISettings | undefined;
 
     public _ng_rows: Array<IRow | number> = [];
     public _ng_factory: any;
 
+    private _settings: ISettings = DefaultSettings;
     private _storageInfo: IStorageInformation | undefined;
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _containerSize: ClientRect | undefined;
@@ -65,6 +77,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         itemHeight: number,
         cache: number,
         prevScrollTop: number,
+        lastWheel: number,
     } = {
         scale: 1,
         heightFiller: -1,
@@ -73,6 +86,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         itemHeight: 0,
         cache: -1,
         prevScrollTop: -1,
+        lastWheel: 0,
     };
     private _state: {
         start: number;
@@ -92,11 +106,14 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         if (this.API === undefined) {
             return;
         }
+        if (this.settings !== undefined) {
+            this._settings = Object.assign(DefaultSettings, this._settings);
+        }
         this._ng_factory = this.API.getComponentFactory();
         // Get information about storage
         this._storageInfo = this.API.getStorageInfo();
         // Convert maxSlowDistance to px
-        this._vSB.maxSlowDistancePx = Settings.maxSlowDistance * this.API.getItemHeight();
+        this._vSB.maxSlowDistancePx = this._settings.maxSlowDistance * this.API.getItemHeight();
         // Store item height
         this._vSB.itemHeight = this.API.getItemHeight();
         // Update data about sizes
@@ -148,7 +165,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         // Get current scroll position
         const scrollTop: number = (event.target as HTMLElement).scrollTop;
         // Check max size of scroll top
-        if (scrollTop >= Settings.maxScrollHeight) {
+        if (scrollTop >= this._settings.maxScrollHeight) {
             return;
         }
         if (scrollTop === this._vSB.cache) {
@@ -165,7 +182,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         }
         this._vSB.prevScrollTop = scrollTop;
         let shouldBeUpdated: boolean;
-        if (this._vSB.heightFiller < Settings.maxScrollHeight) {
+        if (this._vSB.heightFiller < this._settings.maxScrollHeight) {
             shouldBeUpdated = this._scrollWithoutScale(event.target as HTMLElement, scrollTop);
         } else {
             shouldBeUpdated = this._scrollWithScale(event.target as HTMLElement, scrollTop);
@@ -177,6 +194,10 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
             this.API.updatingDone({ start: this._state.start, end: this._state.end });
         }
         this._cdRef.detectChanges();
+    }
+
+    public _ng_onWheel(event: MouseEvent | TouchEvent) {
+        this._vSB.lastWheel = Date.now();
     }
 
     public _ng_getFillerStyles(): { [key: string]: any } {
@@ -223,7 +244,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         }
         change = Math.abs(change);
         if (this._state.end !== -1) {
-            if (change >= this._vSB.maxSlowDistancePx) {
+            if (change >= this._vSB.maxSlowDistancePx && (!this._isScrolledByWheel() && this._settings.noScrollScaleOnWheel)) {
                 // Calculate considering scale
                 this._state.start += Math.round((change / this._vSB.scale) / this._vSB.itemHeight) * direction;
                 if (this._state.start < 0) {
@@ -325,6 +346,10 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         return true;
     }
 
+    private _isScrolledByWheel(): boolean {
+        return Date.now() - this._vSB.lastWheel < 500;
+    }
+
     private _updateContainerSize(force: boolean = false) {
         if (this._ng_nodeContainer === undefined) {
             return;
@@ -348,12 +373,12 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
             return;
         }
         // Calculate scale
-        if (scrollHeight < Settings.maxScrollHeight) {
+        if (scrollHeight < this._settings.maxScrollHeight) {
             this._vSB.scale = 1;
             this._vSB.heightFiller = scrollHeight;
         } else {
-            this._vSB.scale = Settings.maxScrollHeight / scrollHeight;
-            this._vSB.heightFiller = Settings.maxScrollHeight;
+            this._vSB.scale = this._settings.maxScrollHeight / scrollHeight;
+            this._vSB.heightFiller = this._settings.maxScrollHeight;
         }
         // Update
         this._cdRef.detectChanges();
@@ -393,7 +418,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         // Drop cache
         this._vSB.cache = -1;
         // Detect start of frame
-        let start: number = row - Settings.scrollToOffset > 0 ? (row - Settings.scrollToOffset) : 0;
+        let start: number = row - this._settings.scrollToOffset > 0 ? (row - this._settings.scrollToOffset) : 0;
         if (start + this._state.count > this._storageInfo.count - 1) {
             start = this._storageInfo.count - 1 - this._state.count;
             this._state.end = -1;
