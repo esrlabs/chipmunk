@@ -1,6 +1,10 @@
 /*
  * Public API Surface of complex
  */
+
+export * from './lib/infinityoutput/component';
+export * from './lib/infinityoutput/module';
+
 export * from './lib/docking/component';
 export * from './lib/docking/service';
 export * from './lib/docking/service.definitions';

@@ -10,33 +10,39 @@ import PluginsService, { IPluginData } from '../../../../services/service.plugin
 })
 
 export class ViewOutputRowComponent implements AfterContentChecked {
-    @Input() public row: IStreamPacket | undefined;
+
+    @Input() public str: string | undefined;
+    @Input() public position: number | undefined;
+    @Input() public pluginId: number | undefined;
 
     public _ng_safeHtml: SafeHtml = null;
     public _ng_sourceName: string | undefined;
     public _ng_number: string | undefined;
-    public _ng_pending: boolean | undefined;
 
     constructor(private _sanitizer: DomSanitizer) {
     }
 
-    ngAfterContentChecked() {
-        if (this.row.position.toString() === this._ng_number) {
+    public ngAfterContentChecked() {
+        if (this.position.toString() === this._ng_number) {
             return;
         }
-        if (this.row.pending) {
+        if (this.str === undefined) {
             this._acceptPendingRow();
         } else {
             this._acceptRowWithContent();
         }
     }
 
+    public _ng_isPending() {
+        return this.str === undefined;
+    }
+
     private _acceptRowWithContent() {
-        if (this.row.pluginId === -1) {
+        if (this.pluginId === -1) {
             return;
         }
-        const plugin: IPluginData | undefined = PluginsService.getPluginById(this.row.pluginId);
-        let html = this.row.str;
+        const plugin: IPluginData | undefined = PluginsService.getPluginById(this.pluginId);
+        let html = this.str;
         if (plugin === undefined) {
             this._ng_sourceName = 'n/d';
         } else {
@@ -46,13 +52,11 @@ export class ViewOutputRowComponent implements AfterContentChecked {
             }
         }
         this._ng_safeHtml = this._sanitizer.bypassSecurityTrustHtml(html);
-        this._ng_number = this.row.position.toString();
-        this._ng_pending = false;
+        this._ng_number = this.position.toString();
     }
 
     private _acceptPendingRow() {
-        this._ng_pending = true;
-        this._ng_number = this.row.position.toString();
+        this._ng_number = this.position.toString();
     }
 
 }

@@ -1,8 +1,9 @@
 import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
 import { Observable, Subject } from 'rxjs';
-import { ControllerSessionTabStreamOutput, IStreamPacket, TRequestDataHandler, BufferSettings, IRange } from './controller.session.tab.stream.output';
+import { ControllerSessionTabStreamOutput, IStreamPacket, TRequestDataHandler, Settings, IRange } from './controller.session.tab.stream.output';
 import QueueService, { IQueueController } from '../services/parallels/service.queue';
 import * as Toolkit from 'logviewer.client.toolkit';
+import { reject } from 'q';
 
 export { ControllerSessionTabStreamOutput, IStreamPacket };
 
@@ -76,11 +77,7 @@ export class ControllerSessionTabStream {
         };
     }
 
-    public getRowsByIndexes(indexes: number[]): IStreamPacket[] {
-        return this._output.getRowsByIndexes(indexes);
-    }
-
-    private _requestData(start: number, end: number): Promise<Error | number> {
+    private _requestData(start: number, end: number): Promise<IPCMessages.StreamChunk> {
         return new Promise((resolve) => {
             const s = Date.now();
             ServiceElectronIpc.request(
@@ -93,10 +90,9 @@ export class ControllerSessionTabStream {
                 const duration: number = Date.now() - s;
                 this._logger.env(`Chunk [${start} - ${end}] is read in: ${(duration / 1000).toFixed(2)}s`);
                 if (response.error !== undefined) {
-                    return resolve(new Error(this._logger.warn(`Request to stream chunk was finished within error: ${response.error}`)));
+                    return reject(new Error(this._logger.warn(`Request to stream chunk was finished within error: ${response.error}`)));
                 }
-                this._output.update(response.data, response.start, response.end, response.rows);
-                resolve(duration);
+                resolve(response);
             });
         });
     }
@@ -124,11 +120,7 @@ export class ControllerSessionTabStream {
         if (this._guid !== message.guid) {
             return;
         }
-        const requestedRange: IRange | undefined = this._output.updateStreamState(message);
-        if (requestedRange === undefined) {
-            return;
-        }
-        this._requestData(requestedRange.start, requestedRange.end);
+        this._output.updateStreamState(message);
     }
 
     private _queue_onNext(done: number, total: number) {

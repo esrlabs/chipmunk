@@ -2,8 +2,8 @@
     <div class="filler" #filler [ngStyle]="_ng_getFillerStyles()"></div>
     <ul class="holder" #holder [ngStyle]="_ng_getHolderStyles()">
         <li *ngFor="let row of _ng_rows" [ngStyle]="_ng_getItemStyles()">
-            <lib-containers-dynamic *ngIf="row.inputs !== undefined" [component]="{ factory: _ng_factory, resolved: false, inputs: row.inputs }"></lib-containers-dynamic>
-            <div *ngIf="row.inputs === undefined" class="pending"><span>{{row}}</span></div>
+            <lib-containers-dynamic *ngIf="!_ng_isRowPending(row)" [component]="{ factory: _ng_factory, resolved: false, inputs: row }"></lib-containers-dynamic>
+            <div *ngIf="_ng_isRowPending(row)" class="pending"><span>{{row}}</span></div>
         </li>
     </ul>
 </div>

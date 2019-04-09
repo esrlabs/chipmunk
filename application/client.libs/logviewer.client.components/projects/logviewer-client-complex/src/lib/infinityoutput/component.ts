@@ -136,7 +136,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
             this._state.end = this._state.start + this._state.count;
             if (this._state.end > this._storageInfo.count - 1) {
                 this._state.end = this._storageInfo.count - 1;
-                this._state.start = this._state.end - this._state.count;
+                this._state.start = (this._state.end - this._state.count) > 0 ? (this._state.end - this._state.count) : 0;
             }
             this._render();
             // Notification: update is done
@@ -176,6 +176,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
             // Notification: scroll is done
             this.API.updatingDone({ start: this._state.start, end: this._state.end });
         }
+        this._cdRef.detectChanges();
     }
 
     public _ng_getFillerStyles(): { [key: string]: any } {
@@ -228,7 +229,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
                 if (this._state.start < 0) {
                     this._state.start = 0;
                 } else if (this._state.start > this._storageInfo.count - this._state.count - 1) {
-                    this._state.start = this._storageInfo.count - this._state.count;
+                    this._state.start = (this._storageInfo.count - this._state.count) > 0 ? (this._storageInfo.count - this._state.count) : 0;
                 }
             } else {
                 // Check minimal scrollTop
@@ -240,11 +241,11 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
                 if (this._state.start < 0) {
                     this._state.start = 0;
                 } else if (this._state.start > this._storageInfo.count - this._state.count) {
-                    this._state.start = this._storageInfo.count - this._state.count;
+                    this._state.start = (this._storageInfo.count - this._state.count) > 0 ? (this._storageInfo.count - this._state.count) : 0;
                 }
             }
         } else {
-            this._state.start = this._storageInfo.count - this._state.count;
+            this._state.start = (this._storageInfo.count - this._state.count) > 0 ? (this._storageInfo.count - this._state.count) : 0;
         }
         // Recalculate scroll top
         scrollTop = Math.round((this._state.start * this._vSB.itemHeight) * this._vSB.scale);
@@ -259,7 +260,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         this._state.end = this._state.start + this._state.count;
         if (this._state.end > this._storageInfo.count - 1) {
             this._state.end = this._storageInfo.count - 1;
-            this._state.start = this._storageInfo.count - this._state.count;
+            this._state.start = (this._storageInfo.count - this._state.count) > 0 ? (this._storageInfo.count - this._state.count) : 0;
         }
         // Set margin
         this._vSB.offset = scrollTop;
@@ -299,7 +300,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         if (this._state.start < 0) {
             this._state.start = 0;
         } else if (this._state.start > this._storageInfo.count - this._state.count) {
-            this._state.start = this._storageInfo.count - this._state.count;
+            this._state.start = (this._storageInfo.count - this._state.count) > 0 ? (this._storageInfo.count - this._state.count) : 0;
         }
         scrollTop = this._state.start * this._vSB.itemHeight;
         // Check minimal offset from top
@@ -313,7 +314,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         this._state.end = this._state.start + this._state.count;
         if (this._state.end > this._storageInfo.count - 1) {
             this._state.end = this._storageInfo.count - 1;
-            this._state.start = this._storageInfo.count - this._state.count;
+            this._state.start = (this._storageInfo.count - this._state.count) > 0 ? (this._storageInfo.count - this._state.count) : 0;
         }
         // Set margin
         this._vSB.offset = scrollTop;
@@ -379,6 +380,8 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         }
         // Replace rows
         this._ng_rows = packet.rows;
+        // Force update
+        this._cdRef.detectChanges();
     }
 
     private _onScrollTo(row: number) {
@@ -410,9 +413,9 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
             shouldBeUpdated = true;
         }
         this._storageInfo.count = info.count;
+        // Scroll bar
+        this._updateVSB();
         if (shouldBeUpdated) {
-            // Scroll bar
-            this._updateVSB();
             // Render
             this._render();
             // Notification: scroll is done
@@ -423,7 +426,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
     private _render() {
         const frame = this.API.getRange({ start: this._state.start, end: this._state.end});
         const rows: Array<IRow | number> = frame.rows;
-        const pending = this._state.count - rows.length;
+        const pending = (this._state.count < this._storageInfo.count) ? (this._state.count - rows.length) : (this._storageInfo.count - rows.length);
         if (pending > 0) {
             // Not all rows were gotten
             if (frame.range.start === this._state.start) {
@@ -439,6 +442,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
             }
         }
         this._ng_rows = rows;
+        this._cdRef.detectChanges();
     }
 
 }
