@@ -26,9 +26,11 @@ export class AppComponent {
       onScrollTo: new Subject<number>(),
       getItemHeight: () => 12
     };
+    /*
     setTimeout(() => {
       this._ng_api.onStorageUpdated.next({ count: 6000004 });
     }, 3000);
+    */
     /*
     setTimeout(() => {
       this._ng_api.onScrollTo.next(49);
@@ -64,7 +66,7 @@ export class AppComponent {
 
   private _getStorageInfo(): IStorageInformation {
     return {
-      count: 50
+      count: 5000000
     };
   }
 
