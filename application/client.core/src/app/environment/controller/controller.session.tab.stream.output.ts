@@ -28,11 +28,19 @@ export interface ILoadedRange {
     range: IRange;
     rows: IStreamPacket[];
 }
-
+/*
 export const Settings = {
     trigger         : 10000,    // Trigger to load addition chunk
     maxRequestCount : 50000,    // chunk size in rows
     maxStoredCount  : 100000,   // limit of rows to have it in RAM. All above should be removed
+    requestDelay    : 250,      // ms, delay before to do request
+};
+
+*/
+export const Settings = {
+    trigger         : 1000,     // Trigger to load addition chunk
+    maxRequestCount : 5000,     // chunk size in rows
+    maxStoredCount  : 10000,    // limit of rows to have it in RAM. All above should be removed
     requestDelay    : 250,      // ms, delay before to do request
 };
 
@@ -88,25 +96,29 @@ export class ControllerSessionTabStreamOutput {
 
     public getRange(range: IRange): IStreamPacket[] {
         let rows: IStreamPacket[] = [];
+        const stored = Object.assign({}, this._state.stored);
         if (this._rows.length === 0) {
             return [];
         }
-        if (range.start >= this._state.stored.start && range.end <= this._state.stored.end) {
+        if (range.start >= stored.start && range.end <= stored.end) {
             rows = this._getRowsSliced(range.start, range.end + 1);
-        } else if (range.end > this._state.stored.start && range.start < this._state.stored.start && range.end < this._state.stored.end) {
-            rows = this._getPendingPackets(range.start, this._state.stored.start + 1);
-            rows.push(...this._getRowsSliced(this._state.stored.start, range.end + 1));
-        } else if (range.start < this._state.stored.end && range.start > this._state.stored.start && range.end > this._state.stored.end) {
-            rows = this._getPendingPackets(this._state.stored.end, range.end + 1);
-            rows.unshift(...this._getRowsSliced(range.start, this._state.stored.end + 1));
+        } else if (range.end > stored.start && range.start < stored.start && range.end < stored.end) {
+            rows = this._getPendingPackets(range.start, stored.start);
+            rows.push(...this._getRowsSliced(stored.start, range.end + 1));
+        } else if (range.start < stored.end && range.start > stored.start && range.end > stored.end) {
+            rows = this._getPendingPackets(stored.end + 1, range.end + 1);
+            rows.unshift(...this._getRowsSliced(range.start, stored.end + 1));
         } else {
             rows = this._getPendingPackets(range.start, range.end + 1);
+        }
+        // Check if state is still same
+        if (stored.start !== this._state.stored.start || stored.end !== this._state.stored.end) {
+            rows = this._getRowsSliced(range.start, range.end + 1);
         }
         if (rows.length !== range.end - range.start + 1) {
             throw new Error(`Calculation error: gotten ${rows.length} rows; should be: ${range.end - range.start}`);
         }
         this._state.frame = Object.assign({}, range);
-        console.log(`To end of buffer: ${this._state.stored.end - this._state.frame.end}`);
         return rows;
     }
 
