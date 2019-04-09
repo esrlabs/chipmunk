@@ -1,25 +1,5 @@
 <div class="rows-container">
-  <div #outputwrapper class="rows" (window:resize)="_ng_onBrowserWindowResize($event)">
-    <cdk-virtual-scroll-viewport #outputviewport 
-      class="virtual-scroll-viewport" 
-      [ngStyle]="_ng_getOutputAreaStyle()" 
-      itemSize="16" minBufferPx="1000" maxBufferPx="2000"
-      (scrolledIndexChange)="_ng_scrolledIndexChange($event)">
-      <ng-container *cdkVirtualFor="let row of _ng_output; trackBy: _ng_trackByIdx; templateCacheSize: 1000;">
-        <app-views-output-row *ngIf="row !== undefined" [row]="row"></app-views-output-row>
-      </ng-container>
-    </cdk-virtual-scroll-viewport>
-  </div>
-  <div *ngIf="_ng_scrollbarVisibility.vertical" class="vertical-scroll-bar">
-    <div class="vertical-scroll-bar-cursor" 
-      (mousedown)="_ng_onScrollMouseDown($event, 'vertical')" 
-      [ngStyle]="_ng_getScrollCursorStyle('vertical')"></div>
-  </div>
-  <div *ngIf="_ng_scrollbarVisibility.horizontal"  class="horizontal-scroll-bar">
-    <div class="horizontal-scroll-bar-cursor" 
-      (mousedown)="_ng_onScrollMouseDown($event, 'horizontal')" 
-      [ngStyle]="_ng_getScrollCursorStyle('horizontal')"></div>
-  </div>
+  <lib-complex-infinity-output [API]="_ng_outputAPI"></lib-complex-infinity-output>
 </div>
 <ul class="injections-bottom">
   <li class="injection" *ngFor="let injection of _ng_injections.bottom | keyvalue">

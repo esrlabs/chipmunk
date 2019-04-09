@@ -1,9 +1,9 @@
-<div *ngIf="_ng_pending === false">
+<div *ngIf="_ng_isPending() === false">
     <span class="source">{{_ng_sourceName}}</span>
     <span class="number">{{_ng_number}}</span>
     <p class="row" [innerHTML]="_ng_safeHtml"></p>
 </div>
-<div *ngIf="_ng_pending === true">
+<div *ngIf="_ng_isPending() === true">
     <span class="source">n/d</span>
     <span class="number">{{_ng_number}}</span>
     <p class="row pending"></p>

@@ -55,3 +55,4 @@ application/electron/*.js
 **/platform
 !application/platform
 external
+TODO.md
