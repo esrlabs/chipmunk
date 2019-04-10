@@ -15,6 +15,7 @@ import { Compiler, Injector } from '@angular/core';
 import ElectronIpcService from './service.electron.ipc';
 import { IPCMessages, Subscription } from './service.electron.ipc';
 import PluginsIPCService from './service.plugins.ipc';
+import OutputParsersService from './standalone/service.output.parsers';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
 import { IService } from '../interfaces/interface.service';
 
@@ -29,10 +30,6 @@ export interface IPluginData {
     ipc: ControllerPluginIPC;   // Related to plugin IPC
     id: number;                 // ID of plugin
     factories: { [key: string]: any };
-    parsers: {
-        row: TRowParser | undefined,
-        rest: TRowParser | undefined,
-    };
 }
 
 export class PluginsService extends Toolkit.Emitter implements IService {
@@ -134,9 +131,26 @@ export class PluginsService extends Toolkit.Emitter implements IService {
 
     private _loadAndInit_InitPlugin(name: string, token: string, id: number, location: string, code: string): Promise<{[key: string]: any}> {
         return new Promise((resolve, reject) => {
+            // debugger;
             // Step 2. Prepare environment for plugin initialization
             this._logger.env(`Sources of plugin "${name}" was fetch correctly.`);
             const exports: any = {};
+            // Loader for nonAngular modules
+            (window as any).setPluginModule = (module: any) => {
+                if (typeof module !== 'object' || module === null) {
+                    return;
+                }
+                exports[Toolkit.CNonAngularModuleName] = {};
+                Object.keys(module).forEach((prop: string) => {
+                    exports[Toolkit.CNonAngularModuleName][prop] = module[prop];
+                });
+            };
+            (window as any).getModules = () => {
+                return modules;
+            };
+            (window as any).getRequire = () => {
+                return require;
+            };
             const modules: any = this._getAvailablePluginModules();
             const require = (module) => modules[module]; // shim 'require'
             // Step 3. Execute code of plugin to initialize
@@ -147,8 +161,8 @@ export class PluginsService extends Toolkit.Emitter implements IService {
                 return reject(new Error(this._logger.error(`Fail to execute plugin "${name}" due error: ${executeError.message}`)));
             }
             // Step 4. Check plugin module
-            if (!exports[Toolkit.CModuleName]) {
-                return reject(new Error(this._logger.error(`Fail to compile plugin "${name}" because module "${Toolkit.CModuleName}" wasn't found.`)));
+            if (exports[Toolkit.CModuleName] === undefined && exports[Toolkit.CNonAngularModuleName] === undefined) {
+                return reject(new Error(this._logger.error(`Fail to compile plugin "${name}" because module "${Toolkit.CModuleName}" or "${Toolkit.CNonAngularModuleName}" were not found.`)));
             }
             resolve(exports);
         });
@@ -157,41 +171,61 @@ export class PluginsService extends Toolkit.Emitter implements IService {
     private _loadAndInit_CompilePlugin(name: string, token: string, id: number, location: string, exports: {[key: string]: any}): Promise<IPluginData> {
         return new Promise((resolve, reject) => {
             // Step 5. Compile
-            this._compiler.compileModuleAndAllComponentsAsync<any>(exports[Toolkit.CModuleName]).then((mwcf) => {
-                // Ok. From here we have access to plugin components. Also all components should be already initialized
-                // Step 6. Create plugin module
-                try {
-                    const module = mwcf.ngModuleFactory.create(this._injector);
-                    if (!(module.instance instanceof exports[Toolkit.CModuleName])) {
-                        return reject(new Error(this._logger.error(`Fail to compile main module of plugin "${name}".`)));
-                    }
-                    // Step 7. Search views of apps
-                    const pluginData: IPluginData = {
-                        name: name,
-                        token: token,
-                        module: module.instance,
-                        ipc: new ControllerPluginIPC(name, token),
-                        id: id,
-                        factories: {},
-                        parsers: {
-                            row: exports[Toolkit.EParsers.row],
-                            rest: exports[Toolkit.EParsers.rest],
-                        },
-                    };
-                    Object.keys(Toolkit.EViewsTypes).forEach((alias: string) => {
-                        const selector: string = Toolkit.EViewsTypes[alias];
-                        const componentFactory = mwcf.componentFactories.find(e => e.selector === selector);
-                        if (componentFactory) {
-                            pluginData.factories[selector] = componentFactory;
+            if (exports[Toolkit.CModuleName] !== undefined) {
+                // This is Angular module
+                this._compiler.compileModuleAndAllComponentsAsync<any>(exports[Toolkit.CModuleName]).then((mwcf) => {
+                    // Ok. From here we have access to plugin components. Also all components should be already initialized
+                    // Step 6. Create plugin module
+                    try {
+                        const module = mwcf.ngModuleFactory.create(this._injector);
+                        if (!(module.instance instanceof exports[Toolkit.CModuleName])) {
+                            return reject(new Error(this._logger.error(`Fail to compile main module of plugin "${name}".`)));
                         }
-                    });
-                    resolve(pluginData);
-                } catch (moduleCompileError) {
-                    return reject(new Error(this._logger.error(`Fail to compile main module of plugin "${name}" due error: ${moduleCompileError.message}.`)));
-                }
-            }).catch((compileError: Error) => {
-                reject(new Error(this._logger.error(`Fail to compile plugin "${name}" due error: ${compileError.message}`)));
-            });
+                        // Step 7. Search views of apps
+                        const pluginData: IPluginData = {
+                            name: name,
+                            token: token,
+                            module: module.instance,
+                            ipc: new ControllerPluginIPC(name, token),
+                            id: id,
+                            factories: {}
+                        };
+                        // Setup plugin parsers
+                        OutputParsersService.setPluginParsers(id, exports);
+                        // Setup common parsers
+                        OutputParsersService.setCommonParsers(exports);
+                        // Check views
+                        Object.keys(Toolkit.EViewsTypes).forEach((alias: string) => {
+                            const selector: string = Toolkit.EViewsTypes[alias];
+                            const componentFactory = mwcf.componentFactories.find(e => e.selector === selector);
+                            if (componentFactory) {
+                                pluginData.factories[selector] = componentFactory;
+                            }
+                        });
+                        resolve(pluginData);
+                    } catch (moduleCompileError) {
+                        return reject(new Error(this._logger.error(`Fail to compile main module of plugin "${name}" due error: ${moduleCompileError.message}.`)));
+                    }
+                }).catch((compileError: Error) => {
+                    reject(new Error(this._logger.error(`Fail to compile plugin "${name}" due error: ${compileError.message}`)));
+                });
+            } else {
+                // This is nonAngular module
+                // Step 7. Search views of apps
+                const pluginData: IPluginData = {
+                    name: name,
+                    token: token,
+                    module: exports[Toolkit.CNonAngularModuleName],
+                    ipc: new ControllerPluginIPC(name, token),
+                    id: id,
+                    factories: {}
+                };
+                // Setup plugin parsers
+                OutputParsersService.setPluginParsers(id, exports[Toolkit.CNonAngularModuleName]);
+                // Setup common parsers
+                OutputParsersService.setCommonParsers(exports[Toolkit.CNonAngularModuleName]);
+                resolve(pluginData);
+            }
         });
     }
 
