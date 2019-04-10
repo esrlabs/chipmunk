@@ -25,7 +25,7 @@
     "@angular/platform-browser-dynamic": "^7.1.4",
     "@angular/router": "^7.1.4",
     "core-js": "^2.5.4",
-    "logviewer.client.toolkit": "0.0.15",
+    "logviewer.client.toolkit": "latest",
     "rxjs": "~6.4.0",
     "systemjs": "^3.0.0",
     "xterm": "^3.12.0",

@@ -1,7 +1,7 @@
 import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
 import { Observable, Subject } from 'rxjs';
 import { ControllerSessionTabStreamOutput, IStreamPacket, TRequestDataHandler, Settings, IRange } from './controller.session.tab.stream.output';
-import QueueService, { IQueueController } from '../services/parallels/service.queue';
+import QueueService, { IQueueController } from '../services/standalone/service.queue';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { reject } from 'q';
 

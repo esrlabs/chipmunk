@@ -40,6 +40,12 @@ const MARKERS = {
     NUMBER: '\u0002',
 };
 
+const Settings = {
+    notificationDelayOnBlockedStream: 150,    // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is blocked
+    notificationDelayOnUnblockedStream: 50,   // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is unblocked
+    maxPostponedNotificationMessages: 100,    // How many IPC messages to render (client) should be postponed via timer
+};
+
 // TODO: add markers of line numbers here to make search faster
 
 export default class ControllerStreamProcessor {
@@ -47,7 +53,6 @@ export default class ControllerStreamProcessor {
     public static Events = {
         next: 'next',
     };
-    private _maxSizeOfChunkToBeSentWithUpdate: number = 1024 * 1024; // Bytes. Maximal size of chunk, which will be send to render with notification of stream update
     private _logger: Logger;
     private _guid: string;
     private _file: string;
@@ -68,6 +73,8 @@ export default class ControllerStreamProcessor {
         last: 0,
         ranges: [],
     };
+    private _timer: any;
+    private _attempts: number = 0;
 
     constructor(guid: string, file: string) {
         this._guid = guid;
@@ -120,18 +127,31 @@ export default class ControllerStreamProcessor {
             });
             // Remember plugin id to break like in case it will change
             this._lastSourceDataPluginId = pluginInfo.id;
-            // Get state of stream
-            const streamBlocked: boolean = this._isStreamBlocked();
             // Write data into session storage file
             this._stream.write(output, (writeError: Error | null | undefined) => {
                 if (writeError) {
                     return reject(new Error(this._logger.error(`Fail to write data into stream file due error: ${writeError.message}`)));
                 }
-                !streamBlocked && this._sendToRender(addIndexesRes.output, addIndexesRes.from, addIndexesRes.to).then(() => {
-                    resolve();
-                }).catch((sendingError: Error) => {
-                    reject(new Error(this._logger.error(`Fail to send stream data to render due error: ${sendingError.message}`)));
-                });
+                // Resolve in anyway, because writing was succesful
+                resolve();
+                // Notification of render (client) about stream's update
+                const delay: number = this._isStreamBlocked() ? Settings.notificationDelayOnBlockedStream : Settings.notificationDelayOnUnblockedStream;
+                // Drop previous timer
+                clearTimeout(this._timer);
+                // Set new timer for notification message
+                if (this._attempts < Settings.maxPostponedNotificationMessages) {
+                    this._attempts += 1;
+                    this._timer = setTimeout(() => {
+                        this._sendToRender(addIndexesRes.output, addIndexesRes.from, addIndexesRes.to).catch((sendingError: Error) => {
+                            this._logger.error(`Fail to send stream data to render due error: ${sendingError.message}`);
+                        });
+                    }, delay);
+                } else {
+                    this._attempts = 0;
+                    this._sendToRender(addIndexesRes.output, addIndexesRes.from, addIndexesRes.to).catch((sendingError: Error) => {
+                        this._logger.error(`Fail to send stream data to render due error: ${sendingError.message}`);
+                    });
+                }
             });
         });
     }
@@ -166,15 +186,12 @@ export default class ControllerStreamProcessor {
     }
 
     private _isStreamBlocked(): boolean {
+        return false;
         return this._state.size > 0;
     }
 
     private _sendToRender(complete: string, from: number, to: number): Promise<void> {
         return new Promise((resolve) => {
-            // Check is stream blocked
-            if (this._isStreamBlocked()) {
-                return resolve();
-            }
             this._sendUpdateStreamData(complete, from, to).then(() => {
                 resolve();
             }).catch((errorIPC: Error) => {

@@ -11,24 +11,32 @@
     & span.source {
         display: inline-block;
         position: relative;
+        font-family: monospace;
         width: 5rem;
         overflow: hidden;
-        line-height: 13px;
+        line-height: 16px;
         height: 16px;
         max-height: 16px;
-        font-size: 12px;
+        font-size: 10px;
         vertical-align: top;
     }
     & span.number{
         display: inline-block;
         position: relative;
-        width: 5rem;
+        font-family: monospace;
+        font-variant-numeric: tabular-nums;
         overflow: hidden;
-        line-height: 13px;
+        line-height: 16px;
         height: 16px;
         max-height: 16px;
-        font-size: 12px;
+        font-size: 13px;
         vertical-align: top;
+        margin: 0 8px;
+        padding: 0 8px 0 0;
+        border-right: thin @scheme-color-4 solid;
+        & span.filler{
+            color: @scheme-color-4;
+        }
     }
     & p.row {
         display: inline-block;
@@ -52,5 +60,4 @@
             max-height: 10px;
         }
     }
-    
 }
