@@ -1,5 +1,5 @@
 import { Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import QueueService, { IQueueState } from '../../../services/parallels/service.queue';
+import QueueService, { IQueueState } from '../../../services/standalone/service.queue';
 import { Subscription } from 'rxjs';
 import * as Toolkit from 'logviewer.client.toolkit';
 

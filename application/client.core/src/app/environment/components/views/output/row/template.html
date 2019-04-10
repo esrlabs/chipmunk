@@ -1,11 +1,11 @@
 <div *ngIf="_ng_isPending() === false">
     <span class="source">{{_ng_sourceName}}</span>
-    <span class="number">{{_ng_number}}</span>
-    <p class="row" [innerHTML]="_ng_safeHtml"></p>
+    <span class="number"><span class="filler">{{_ng_number_filler}}</span>{{_ng_number}}</span>
+    <p class="row noreset" [innerHTML]="_ng_safeHtml"></p>
 </div>
 <div *ngIf="_ng_isPending() === true">
     <span class="source">n/d</span>
-    <span class="number">{{_ng_number}}</span>
-    <p class="row pending"></p>
+    <span class="number"><span class="filler">{{_ng_number_filler}}</span>{{_ng_number}}</span>
+    <p class="row pending"><span></span></p>
 </div>
     

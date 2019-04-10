@@ -9,10 +9,12 @@ export interface IStreamPacket {
     str: string | undefined;
     position: number;
     pluginId: number;
+    rank: number;
 }
 
 export interface IStreamState {
     count: number;
+    countRank: number;
     stored: IRange;
     frame: IRange;
     lastLoadingRequestId: any;
@@ -53,6 +55,7 @@ export class ControllerSessionTabStreamOutput {
     private _requestDataHandler: TRequestDataHandler;
     private _state: IStreamState = {
         count: 0,
+        countRank: 1,
         stored: {
             start: 0,
             end: 0,
@@ -153,11 +156,11 @@ export class ControllerSessionTabStreamOutput {
      */
     public updateStreamState(message: IPCMessages.StreamUpdated): void {
         // Update count of rows
-        this._state.count = message.rowsCount;
+        this._setTotalStreamCount(message.rowsCount);
         // Check: shell we add data right now or not
         if (this._state.frame.end + 1 === message.addedFrom) {
             // Update size of whole stream (real size - count of rows in stream file)
-            this._state.count = message.rowsCount;
+            this._setTotalStreamCount(message.rowsCount);
             // Frame at the end of stream. Makes sense to store data
             this._parse(message.addedRowsData);
         }
@@ -212,7 +215,7 @@ export class ControllerSessionTabStreamOutput {
                     return;
                 }
                 // Update size of whole stream (real size - count of rows in stream file)
-                this._state.count = message.rows;
+                this._setTotalStreamCount(message.rows);
                 // Parse and accept rows
                 this._parse(message.data);
                 // Check again last requested frame
@@ -273,7 +276,7 @@ export class ControllerSessionTabStreamOutput {
                 return;
             }
             // Update size of whole stream (real size - count of rows in stream file)
-            this._state.count = message.rows;
+            this._setTotalStreamCount(message.rows);
             // Parse and accept rows
             this._parse(message.data);
         }).catch((error: Error) => {
@@ -299,6 +302,7 @@ export class ControllerSessionTabStreamOutput {
                 str: this._clearRowStr(str),                // Get cleared string
                 position: this._extractRowPosition(str),    // Get position
                 pluginId: this._extractPluginId(str),       // Get plugin id
+                rank: this._state.countRank
             };
         }).filter((packet: IStreamPacket) => {
             return (packet.position !== -1);
@@ -312,6 +316,7 @@ export class ControllerSessionTabStreamOutput {
                 pluginId: -1,
                 position: first + i,
                 str: undefined,
+                rank: this._state.countRank
             };
         });
         return rows;
@@ -393,6 +398,11 @@ export class ControllerSessionTabStreamOutput {
      */
     private _clearRowStr(rowStr: string): string {
         return rowStr.replace(/\u0002(\d*)\u0002/gi, '').replace(/\u0003(\d*)\u0003/gi, '');
+    }
+
+    private _setTotalStreamCount(count: number) {
+        this._state.count = count;
+        this._state.countRank = count.toString().length;
     }
 
 }

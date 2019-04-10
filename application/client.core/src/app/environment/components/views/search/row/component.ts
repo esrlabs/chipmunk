@@ -23,14 +23,11 @@ export class ViewSearchRowComponent implements AfterContentChecked {
             return;
         }
         const plugin: IPluginData | undefined = PluginsService.getPluginById(this.row.pluginId);
-        let html = this.row.original;
+        const html = this.row.original;
         if (plugin === undefined) {
             this._ng_sourceName = 'n/d';
         } else {
             this._ng_sourceName = plugin.name;
-            if (plugin.parsers.row !== undefined) {
-                html = plugin.parsers.row(html);
-            }
         }
         this._ng_safeHtml = this._sanitizer.bypassSecurityTrustHtml(html);
     }

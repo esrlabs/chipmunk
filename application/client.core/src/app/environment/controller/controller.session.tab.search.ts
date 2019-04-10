@@ -2,7 +2,7 @@ import { Observable, Subject } from 'rxjs';
 import { ControllerSessionTabStream, IStreamPacket } from './controller.session.tab.stream';
 import { ControllerSessionTabStreamSearch, ISearchPacket } from './controller.session.tab.search.output';
 import ElectronIpcService, { IPCMessages } from '../services/service.electron.ipc';
-import QueueService, { IQueueController } from '../services/parallels/service.queue';
+import QueueService, { IQueueController } from '../services/standalone/service.queue';
 import * as Toolkit from 'logviewer.client.toolkit';
 
 export interface IControllerSessionStream {

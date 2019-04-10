@@ -1,12 +1,13 @@
-import { Component, Input, AfterContentChecked } from '@angular/core';
+import { Component, Input, AfterContentChecked, ViewEncapsulation } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { IStreamPacket } from '../../../../controller/controller.session.tab.stream.output';
 import PluginsService, { IPluginData } from '../../../../services/service.plugins';
+import OutputParsersService from '../../../../services/standalone/service.output.parsers';
 
 @Component({
     selector: 'app-views-output-row',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
+    // encapsulation: ViewEncapsulation.None
 })
 
 export class ViewOutputRowComponent implements AfterContentChecked {
@@ -14,10 +15,12 @@ export class ViewOutputRowComponent implements AfterContentChecked {
     @Input() public str: string | undefined;
     @Input() public position: number | undefined;
     @Input() public pluginId: number | undefined;
+    @Input() public rank: number = 1;
 
     public _ng_safeHtml: SafeHtml = null;
     public _ng_sourceName: string | undefined;
     public _ng_number: string | undefined;
+    public _ng_number_filler: string | undefined;
 
     constructor(private _sanitizer: DomSanitizer) {
     }
@@ -47,16 +50,24 @@ export class ViewOutputRowComponent implements AfterContentChecked {
             this._ng_sourceName = 'n/d';
         } else {
             this._ng_sourceName = plugin.name;
-            if (plugin.parsers.row !== undefined) {
-                html = plugin.parsers.row(html);
-            }
         }
+        // Apply plugin parser
+        html = OutputParsersService.row(html, this.pluginId);
+        // Apply common parser
+        html = OutputParsersService.row(html);
+        // Generate safe html
         this._ng_safeHtml = this._sanitizer.bypassSecurityTrustHtml(html);
         this._ng_number = this.position.toString();
+        this._ng_number_filler = this._getNumberFiller();
     }
 
     private _acceptPendingRow() {
         this._ng_number = this.position.toString();
+        this._ng_number_filler = this._getNumberFiller();
+    }
+
+    private _getNumberFiller(): string {
+        return '0'.repeat(this.rank - this._ng_number.length);
     }
 
 }
