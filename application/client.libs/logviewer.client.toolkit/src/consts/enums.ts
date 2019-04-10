@@ -10,6 +10,14 @@ export enum EViewsTypes {
 }
 
 export enum EParsers {
-    row = 'parserRow',
-    rest = 'parserRest',
+    pluginRowParser = 'pluginRowParser',
+    pluginRestParser = 'pluginRestParser',
+    commonRowParser = 'commonRowParser',
+    commonRestParser = 'commonRestParser',
+}
+
+export enum EThemeType {
+    dark = 'dark',
+    light = 'light',
+    undefined = 'undefined',
 }
