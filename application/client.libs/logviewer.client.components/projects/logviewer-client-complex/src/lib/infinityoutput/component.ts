@@ -20,6 +20,11 @@ export interface IRowsPacket {
     rows: IRow[];
 }
 
+export interface IBoxSize {
+    width: number;
+    height: number;
+}
+
 export interface IDataAPI {
     getRange: (range: IRange) => IRowsPacket;
     getStorageInfo: () => IStorageInformation;
@@ -37,6 +42,7 @@ export interface ISettings {
     maxSlowDistance: number;        // Less this distance will be applied scrolling without scale. In heights of items
     scrollToOffset: number;         // How many items show before item defined on scrollTo
     noScrollScaleOnWheel: boolean;  // Do not apply scale if scroll was done with wheel
+    scrollBarSize: number;          // Size of scroll bar: height for horizontal; width for vertical. In px.
 }
 
 const DefaultSettings = {
@@ -45,6 +51,7 @@ const DefaultSettings = {
     maxSlowDistance     : 20,           // Less this distance will be applied scrolling without scale. In heights of items
     scrollToOffset      : 5,            // How many items show before item defined on scrollTo
     noScrollScaleOnWheel: true,         // Do not apply scale if scroll was done with wheel
+    scrollBarSize       : 8,            // Size of scroll bar: height for horizontal; width for vertical. In px.
 };
 
 @Component({
@@ -68,7 +75,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
     private _settings: ISettings = DefaultSettings;
     private _storageInfo: IStorageInformation | undefined;
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
-    private _containerSize: ClientRect | undefined;
+    private _containerSize: IBoxSize | undefined;
     private _vSB: {
         scale: number,
         heightFiller: number,
@@ -360,6 +367,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
             return;
         }
         this._containerSize = (this._ng_nodeContainer.nativeElement as HTMLElement).getBoundingClientRect();
+        this._containerSize.height -= this._settings.scrollBarSize;
         this._state.count = Math.floor(this._containerSize.height / this._vSB.itemHeight);
     }
 
