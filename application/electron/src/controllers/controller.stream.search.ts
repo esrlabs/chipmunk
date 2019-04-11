@@ -39,6 +39,7 @@ export default class ControllerStreamSearch extends EventEmitter {
                 regs: {},
                 end: -1,
                 begin: 0,
+                str: '',
             };
             // Offset in file. We need it to correctly calculate numbers of rows
             let offset = 0;
@@ -57,6 +58,7 @@ export default class ControllerStreamSearch extends EventEmitter {
                 }
                 result.found += res.found;
                 result.end = res.end;
+                // result.str += res.str; // Dangerous from memory usage point of view
                 offset = res.end;
                 Object.keys(res.regs).forEach((reg: string) => {
                     const index: number = parseInt(reg, 10);

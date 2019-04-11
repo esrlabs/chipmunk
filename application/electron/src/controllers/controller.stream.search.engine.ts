@@ -1,15 +1,9 @@
-
-export const REGEXPS = {
-    CARRETS: /\r?\n|\r/gi,
-    CLOSE_CARRET: /(\r?\n|\r)$/gi,
-    NUMBER: /\u0002(\d*)\u0002/gi,
-};
-
 export interface IResults {
-    regs: { [regIndex: number]: number[] };
+    regs: { [regIndex: number]: number[] }; // Indexes with matchs, like { 1: [2,3,4] } where 1 - index of reg; [2,3,4] - numbers of rows with match
     begin: number;
     end: number;
     found: number;
+    str: string;
 }
 
 export interface IMatch {
@@ -34,7 +28,11 @@ export class Fragment {
     constructor(offset: number, lengthMax: number, str: string = '') {
         this._offset = offset;
         this._lengthMax = lengthMax;
+        this._fragment = str;
+        /*
+        Do not need it any more: indexes are already there
         this._fragment = this.convert(str);
+        */
     }
 
     public isLocked(): boolean {
@@ -45,7 +43,10 @@ export class Fragment {
         if (typeof str !== 'string' || str === '') {
             throw new Error(`Can be added only string, but gotten type: ${typeof str}`);
         }
+        /*
+        Do not need it any more: indexes are already there
         str = this.convert(str);
+        */
         this._fragment += str;
     }
 
@@ -59,32 +60,43 @@ export class Fragment {
             end: this._length + this._offset,
             found: 0,
             regs: {},
+            str: '',
         };
         this._fragment.replace(searchRegExp.reg, (...args: any[]) => {
-            const subscring: string = args[0];
             /*
             Arguments looks like:
             ( match, group1, group2,... groupN, offset, string )
-            We should ignore group1, because this is common group in regexp
+            - We should ignore groupN because it's number of line
+            - We should ignore group1, because this is common group in regexp
             That's why we started from index = 2 to detect regexp, which has a match
-            args.slice(2, args.length - 2)
+            args.slice(2, args.length - 3)
              */
-            const regs: Array<string | undefined> = args.slice(2, args.length - 2);
+            if (args.length < 6) {
+                return '';
+            }
+            // Get whole row
+            const subscring: string = args[0];
+            // Get list of regs with match
+            const regs: Array<string | undefined> = args.slice(2, args.length - 3);
+            // Get row number
+            const row: number = parseInt(args[args.length - 3], 10);
+            // Confirm: row number is valid
+            if (row < 0 || isNaN(row) || !isFinite(row)) {
+                return '';
+            }
+            // Find index of reg, which has match
             const match: IMatch = this._getMatch(regs);
             if (match.index === -1) {
                 return '';
             }
-            const lineNumber: RegExpMatchArray | null = subscring.match(REGEXPS.NUMBER);
-            if (lineNumber === null || lineNumber.length !== 1) {
-                return match.text;
-            }
-            const rowNumber = parseInt(lineNumber[0].substring(1, lineNumber[0].length - 1), 10);
+            // Store results
             if (results.regs[match.index] === undefined) {
                 results.regs[match.index] = [];
             }
-            results.regs[match.index].push(rowNumber);
+            results.regs[match.index].push(row);
             results.found += 1;
-            return match.text;
+            results.str += `${subscring}\n`;
+            return '';
         });
         return results;
     }
@@ -121,12 +133,12 @@ export class Fragment {
                     }
                 });
                 return {
-                    reg: new RegExp(`(${regs.join('|')}).*${NUMBER_MARKER}\\d*${NUMBER_MARKER}`, flags),
+                    reg: new RegExp(`^.*(${regs.join('|')}).*${NUMBER_MARKER}(\\d*)${NUMBER_MARKER}$`, flags),
                     groups: regs.length,
                 };
             } else {
                 return {
-                    reg: new RegExp(`((${regExp.source})).*${NUMBER_MARKER}\\d*${NUMBER_MARKER}`, regExp.flags),
+                    reg: new RegExp(`^.*((${regExp.source})).*${NUMBER_MARKER}(\\d*)${NUMBER_MARKER}$`, regExp.flags),
                     groups: 1,
                 };
             }
@@ -134,7 +146,9 @@ export class Fragment {
             return error;
         }
     }
-
+// ^.*(2116).*\u0002(\d*)\u0002$
+    /*
+    Do not need it any more: indexes are already there
     private convert(str: string): string {
         let cursor = this._length;
         if (str.search(REGEXPS.CLOSE_CARRET) === -1) {
@@ -147,4 +161,10 @@ export class Fragment {
         return str;
     }
 
+    export const REGEXPS = {
+        CARRETS: /\r?\n|\r/gi,
+        CLOSE_CARRET: /(\r?\n|\r)$/gi,
+        NUMBER: /\u0002(\d*)\u0002/gi,
+    };
+    */
 }

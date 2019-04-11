@@ -91,7 +91,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._ng_working = true;
         this._requestId = Toolkit.guid();
         // Sending search request
-        this._session.search([Toolkit.regTools.createFromStr(value) as RegExp]).then((requestId: string) => {
+        this._session.search([Toolkit.regTools.createFromStr(value, 'gim') as RegExp]).then((requestId: string) => {
             this._ng_working = false;
             this._cdRef.detectChanges();
         }).catch((error: Error) => {
