@@ -35,16 +35,16 @@ const CBlockedStyles: { [key: string]: number[] } = {
 };
 
 const REGS = {
-    COLORS          : new RegExp('\\033\\[[\\d;]{1,}m[^\\33]*', 'g'),
-    COLORS_VALUE    : new RegExp('\\33\\[.*?m', 'g'),
-    CLEAR_COLORS    : new RegExp('[\\33\\[m]', 'g'),
-    BEGIN           : new RegExp('^[^\\33]*', 'g'),
+    COLORS          : /\033\[[\d;]{1,}m[^\033]*/g,
+    COLORS_VALUE    : /\033\[.*?m/g,
+    CLEAR_COLORS    : /[\033\[m]/g,
+    BEGIN           : /^[^\033]*/g,
 };
 
 const getHTMLFromASCII = (str: string, themeTypeRef: EThemeType = EThemeType.undefined) => {
     const themeType: number[] | undefined = CBlockedStyles[themeTypeRef] === undefined ? [] : CBlockedStyles[themeTypeRef];
     const parts: RegExpMatchArray | null = str.match(REGS.COLORS);
-    if (parts instanceof Array && parts.length > 0) {
+    if (parts instanceof Array && parts.length > 1) {
         const _begin: RegExpMatchArray | null = str.match(REGS.BEGIN);
         let result: string = _begin instanceof Array ? (_begin.length > 0 ? _begin[0] : '') : '';
         parts.forEach((part: string) => {
