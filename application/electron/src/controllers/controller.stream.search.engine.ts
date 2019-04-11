@@ -1,9 +1,7 @@
 export interface IResults {
     regs: { [regIndex: number]: number[] }; // Indexes with matchs, like { 1: [2,3,4] } where 1 - index of reg; [2,3,4] - numbers of rows with match
-    begin: number;
-    end: number;
-    found: number;
-    str: string;
+    found: number;                          // Total count of matches
+    str: string;                            // Rows with matches
 }
 
 export interface IMatch {
@@ -21,12 +19,9 @@ const NUMBER_MARKER = '\u0002';
 export class Fragment {
 
     private _fragment: string = '';
-    private _offset: number = 0;
-    private _length: number = 0;
     private _lengthMax: number = 0;
 
-    constructor(offset: number, lengthMax: number, str: string = '') {
-        this._offset = offset;
+    constructor(lengthMax: number, str: string = '') {
         this._lengthMax = lengthMax;
         this._fragment = str;
         /*
@@ -36,17 +31,13 @@ export class Fragment {
     }
 
     public isLocked(): boolean {
-        return this._length >= this._lengthMax;
+        return this._fragment.length >= this._lengthMax;
     }
 
     public append(str: string): void {
         if (typeof str !== 'string' || str === '') {
             throw new Error(`Can be added only string, but gotten type: ${typeof str}`);
         }
-        /*
-        Do not need it any more: indexes are already there
-        str = this.convert(str);
-        */
         this._fragment += str;
     }
 
@@ -56,8 +47,6 @@ export class Fragment {
             return searchRegExp;
         }
         const results: IResults = {
-            begin: this._offset,
-            end: this._length + this._offset,
             found: 0,
             regs: {},
             str: '',
@@ -102,7 +91,7 @@ export class Fragment {
     }
 
     public getLength() {
-        return this._length;
+        return this._fragment.length;
     }
 
     private _getMatch(array: Array<string | undefined>): IMatch {
@@ -146,25 +135,5 @@ export class Fragment {
             return error;
         }
     }
-// ^.*(2116).*\u0002(\d*)\u0002$
-    /*
-    Do not need it any more: indexes are already there
-    private convert(str: string): string {
-        let cursor = this._length;
-        if (str.search(REGEXPS.CLOSE_CARRET) === -1) {
-            str = str + '\n';
-        }
-        str = str.replace(REGEXPS.CARRETS, () => {
-            return NUMBER_MARKER + (this._offset + cursor++) + NUMBER_MARKER + '\n';
-        });
-        this._length = cursor;
-        return str;
-    }
 
-    export const REGEXPS = {
-        CARRETS: /\r?\n|\r/gi,
-        CLOSE_CARRET: /(\r?\n|\r)$/gi,
-        NUMBER: /\u0002(\d*)\u0002/gi,
-    };
-    */
 }
