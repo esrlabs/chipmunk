@@ -175,7 +175,7 @@ export default class ControllerStreamSearch {
     }
 
     private _ipc_onSearchRequest(message: any, response: (instance: any) => any) {
-        const done = (error?: string) => {
+        const done = (results: IResults | undefined, error?: string) => {
             // Destroy stream writer
             if (this._searchWriter !== undefined) {
                 this._rows.length = this._rows.bytesWritten;
@@ -183,6 +183,13 @@ export default class ControllerStreamSearch {
                 this._searchWriter.removeAllListeners();
             }
             this._searchWriter = undefined;
+            // Send response
+            response(new IPCElectronMessages.SearchRequestResults({
+                streamId: message.streamId,
+                requestId: message.requestId,
+                error: error,
+                results: results !== undefined ? results.regs : {},
+            }));
             // Notify client
             ServiceElectron.IPC.send(new IPCElectronMessages.SearchRequestFinished({
                 streamId: message.streamId,
@@ -217,14 +224,14 @@ export default class ControllerStreamSearch {
                 return new RegExp(regInfo.source, regInfo.flags);
             });
             // Start searching
-            this._search(requests, message.requestId).then((fullResults: IResults) => {
+            this._search(requests, message.requestId).then((results: IResults) => {
                 // Nothing to do with full results, because everything was sent during search
-                done();
+                done(results);
             }).catch((error: Error) => {
-                done(error.message);
+                done(undefined, error.message);
             });
         }).catch((error: Error) => {
-            done(error.message);
+            done(undefined, error.message);
         });
     }
 

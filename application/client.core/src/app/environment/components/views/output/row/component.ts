@@ -13,6 +13,7 @@ import OutputParsersService from '../../../../services/standalone/service.output
 export class ViewOutputRowComponent implements AfterContentChecked {
 
     @Input() public str: string | undefined;
+    @Input() public sessionId: string | undefined;
     @Input() public position: number | undefined;
     @Input() public pluginId: number | undefined;
     @Input() public rank: number = 1;
@@ -55,6 +56,8 @@ export class ViewOutputRowComponent implements AfterContentChecked {
         html = OutputParsersService.row(html, this.pluginId);
         // Apply common parser
         html = OutputParsersService.row(html);
+        // Apply search matches parser
+        html = OutputParsersService.matches(this.sessionId, this.position, html);
         // Generate safe html
         this._ng_safeHtml = this._sanitizer.bypassSecurityTrustHtml(html);
         this._ng_number = this.position.toString();

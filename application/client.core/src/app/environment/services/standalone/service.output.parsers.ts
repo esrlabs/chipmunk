@@ -12,6 +12,11 @@ export interface IPluginParsers {
     rest: TParser | undefined;
 }
 
+export interface ISearchResults {
+    matches: { [key: number]: number[] };
+    regs: RegExp[];
+}
+
 const PluginParsersNamesMap = {
     [Toolkit.EParsers.pluginRowParser]: 'row',
     [Toolkit.EParsers.pluginRestParser]: 'rest',
@@ -30,6 +35,7 @@ export class OutputParsersService {
         rest: [],
     };
     private _plugins: Map<number, IPluginParsers> = new Map();
+    private _search: Map<string, ISearchResults> = new Map();
 
     public setPluginParsers(pluginId: number, parsers: { [key: string]: TParser }): boolean {
         if (this._plugins.has(pluginId)) {
@@ -54,6 +60,14 @@ export class OutputParsersService {
                 this._common[CommonParsersNamesMap[key]].push(parsers[key]);
             }
         });
+    }
+
+    public setSearchResults(sessionId: string, regs: RegExp[], matches: { [key: number]: number[] }) {
+        this._search.set(sessionId, { regs: regs, matches: matches });
+    }
+
+    public unsetSearchResults(sessionId: string) {
+        this._search.delete(sessionId);
     }
 
     public row(str: string, pluginId?: number): string {
@@ -96,6 +110,27 @@ export class OutputParsersService {
             }
             return plugin.rest(str, Toolkit.EThemeType.light);
         }
+    }
+
+    public matches(sessionId: string, row: number, str: string): string {
+        const matches: ISearchResults | undefined = this._search.get(sessionId);
+        if (matches === undefined) {
+            return str;
+        }
+        let regIndex: number = -1;
+        Object.keys(matches.matches).forEach((key: string) => {
+            if (matches.matches[key].indexOf(row) === -1) {
+                return;
+            }
+            regIndex = parseInt(key, 10);
+        });
+        if (regIndex === -1) {
+            return str;
+        }
+        str = str.replace(matches.regs[regIndex], (match: string) => {
+            return `<span class="noreset match">${match}</span>`;
+        });
+        return str;
     }
 
 }
