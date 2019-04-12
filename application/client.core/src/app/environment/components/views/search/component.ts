@@ -53,6 +53,10 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         });
     }
 
+    public _ng_isWorking(): boolean {
+        return this._ng_searchRequestId !== undefined;
+    }
+
     public _ng_onKeyUp(event: KeyboardEvent) {
         if (this._ng_searchRequestId !== undefined) {
             return;
@@ -79,6 +83,8 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             [Toolkit.regTools.createFromStr(value, 'gim') as RegExp]
         ).then(() => {
             // Search done
+            this._ng_searchRequestId = undefined;
+            this._cdRef.detectChanges();
         }).catch((searchError: Error) => {
             this._ng_searchRequestId = undefined;
             this._cdRef.detectChanges();

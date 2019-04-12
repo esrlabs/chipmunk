@@ -35,7 +35,8 @@ export class ControllerSessionTab {
         });
         this._search = new ControllerSessionTabSearch({
             guid: params.guid,
-            transports: params.transports.slice()
+            transports: params.transports.slice(),
+            stream: this._stream.getOutputStream(),
         });
         this._sidebar_update();
     }

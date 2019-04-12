@@ -1,6 +1,7 @@
 import { IPCMessages } from '../services/service.electron.ipc';
 import { Observable, Subject } from 'rxjs';
 import * as Toolkit from 'logviewer.client.toolkit';
+import { ControllerSessionTabStreamOutput } from '../controller/controller.session.tab.stream.output';
 
 export type TRequestDataHandler = (start: number, end: number) => Promise<IPCMessages.StreamChunk>;
 
@@ -14,7 +15,6 @@ export interface ISearchStreamPacket {
 
 export interface IStreamState {
     count: number;
-    countRank: number;
     stored: IRange;
     frame: IRange;
     lastLoadingRequestId: any;
@@ -44,9 +44,9 @@ export class ControllerSessionTabSearchOutput {
     private _logger: Toolkit.Logger;
     private _rows: ISearchStreamPacket[] = [];
     private _requestDataHandler: TRequestDataHandler;
+    private _stream: ControllerSessionTabStreamOutput;
     private _state: IStreamState = {
         count: 0,
-        countRank: 1,
         stored: {
             start: 0,
             end: 0,
@@ -61,11 +61,13 @@ export class ControllerSessionTabSearchOutput {
 
     private _subjects = {
         onStateUpdated: new Subject<IStreamState>(),
+        onReset: new Subject<void>(),
         onRangeLoaded: new Subject<ILoadedRange>(),
     };
 
-    constructor(guid: string, requestDataHandler: TRequestDataHandler) {
+    constructor(guid: string, requestDataHandler: TRequestDataHandler, stream: ControllerSessionTabStreamOutput) {
         this._guid = guid;
+        this._stream = stream;
         this._requestDataHandler = requestDataHandler;
         this._logger = new Toolkit.Logger(`ControllerSessionTabStreamOutput: ${this._guid}`);
     }
@@ -81,10 +83,12 @@ export class ControllerSessionTabSearchOutput {
     public getObservable(): {
         onStateUpdated: Observable<IStreamState>,
         onRangeLoaded: Observable<ILoadedRange>,
+        onReset: Observable<void>,
     } {
         return {
             onStateUpdated: this._subjects.onStateUpdated.asObservable(),
             onRangeLoaded: this._subjects.onRangeLoaded.asObservable(),
+            onReset: this._subjects.onReset.asObservable(),
         };
     }
 
@@ -139,6 +143,20 @@ export class ControllerSessionTabSearchOutput {
      */
     public clearStream(): void {
         this._rows = [];
+        this._state = {
+            count: 0,
+            stored: {
+                start: 0,
+                end: 0,
+            },
+            frame: {
+                start: -1,
+                end: -1
+            },
+            lastLoadingRequestId: undefined,
+            bufferLoadingRequestId: undefined,
+        };
+        this._subjects.onReset.next();
     }
 
     /**
@@ -294,12 +312,11 @@ export class ControllerSessionTabSearchOutput {
                 position: from + i,                                // Position in file
                 positionInStream: this._extractRowPosition(str),    // Get position in stream
                 pluginId: this._extractPluginId(str),               // Get plugin id
-                rank: this._state.countRank
+                rank: this._stream.getRank(),
             };
         }).filter((packet: ISearchStreamPacket) => {
             return (packet.positionInStream !== -1);
         });
-        this._setCountRank(packets[packets.length - 1]);
         if (packets.length !== (to - from + 1)) {
             throw new Error(`Count of gotten rows dismatch with defined range. Range: ${from}-${to}. Actual count: ${rows.length}; expected count: ${to - from}.`);
         }
@@ -313,7 +330,7 @@ export class ControllerSessionTabSearchOutput {
                 position: first + i,
                 positionInStream: first + i,
                 str: undefined,
-                rank: this._state.countRank
+                rank: this._stream.getRank()
             };
         });
         return rows;
@@ -399,20 +416,6 @@ export class ControllerSessionTabSearchOutput {
 
     private _setTotalStreamCount(count: number) {
         this._state.count = count;
-        this._setCountRank();
-    }
-
-    private _setCountRank(row?: ISearchStreamPacket) {
-        const rankByLength = this._state.count.toString().length;
-        if (rankByLength > this._state.countRank) {
-            this._state.countRank = rankByLength;
-        }
-        if (row !== undefined) {
-            const rankByMax: number = row.positionInStream.toString().length;
-            if (rankByMax > this._state.countRank) {
-                this._state.countRank = rankByMax;
-            }
-        }
     }
 
 }

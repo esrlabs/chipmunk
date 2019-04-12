@@ -4,10 +4,10 @@
       #requestinput 
       [attr.class]="'comstyle-input ' + (_ng_isRequestValid ? '' : 'not-valid')"
       type="text"
-      [attr.placeholder]="_ng_working ? 'working ...' : 'type regular expression to search'"
-      [attr.disabled]="_ng_working ? '' : null"
+      [attr.placeholder]="_ng_isWorking() ? 'working ...' : 'type regular expression to search'"
+      [attr.disabled]="_ng_isWorking() ? '' : null"
       (keyup)="_ng_onKeyUp($event)"/>
-      <div class="spinner" *ngIf="_ng_working">
+      <div class="spinner" *ngIf="_ng_isWorking()">
         <lib-primitive-spinner-regular></lib-primitive-spinner-regular>
       </div>
   </div>
