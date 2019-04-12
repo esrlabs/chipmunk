@@ -58,7 +58,6 @@ export default class ControllerStreamProcessor {
     private _file: string;
     private _stream: fs.WriteStream;
     private _reader: ControllerStreamFileReader;
-    private _lastSourceDataPluginId: number = -1;
     private _pluginRefs: Map<string, number> = new Map();
     private _pluginIPCSubscriptions: {
         state: Map<number, Subscription>,
@@ -69,12 +68,19 @@ export default class ControllerStreamProcessor {
     private _rows: {
         last: number,
         ranges: IRangeMapItem[],
+        bytesWritten: number,
+        rest: string,
+        lastPluginId: number,
     } = {
         last: 0,
         ranges: [],
+        bytesWritten: 0,
+        rest: '',
+        lastPluginId: -1,
     };
     private _timer: any;
     private _attempts: number = 0;
+    private _subscriptions: { [key: string ]: Subscription | undefined } = { };
 
     constructor(guid: string, file: string) {
         this._guid = guid;
@@ -83,13 +89,21 @@ export default class ControllerStreamProcessor {
         this._reader = new ControllerStreamFileReader(this._guid, this._file);
         this._logger = new Logger(`ControllerStreamProcessor: ${this._guid}`);
         this._ipc_onStreamChunkRequested = this._ipc_onStreamChunkRequested.bind(this);
-        ServiceElectron.IPC.subscribe(IPCElectronMessages.StreamChunk, this._ipc_onStreamChunkRequested);
+        ServiceElectron.IPC.subscribe(IPCElectronMessages.StreamChunk, this._ipc_onStreamChunkRequested).then((subscription: Subscription) => {
+            this._subscriptions.StreamChunk = subscription;
+        }).catch((error: Error) => {
+            this._logger.warn(`Fail to subscribe to render event "StreamChunk" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+        });
     }
 
     public destroy() {
         this._stream.close();
         this._stream.removeAllListeners();
         this._reader.destroy();
+        // Unsubscribe IPC messages / events
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            (this._subscriptions as any)[key].destroy();
+        });
     }
 
     public write(chunk: Buffer, pluginReference: string | undefined, pluginId?: number): Promise<void> {
@@ -105,33 +119,51 @@ export default class ControllerStreamProcessor {
             if (pluginInfo instanceof Error) {
                 return reject(new Error(`Fail to write data due error: ${pluginInfo.message}`));
             }
-            // Process data
+            // Remove double carret
             output = output.replace(REGEXPS.CARRETS, '\n').replace(/\n{2,}/g, '\n');
-            output = output.replace(REGEXPS.CARRETS, `${MARKERS.PLUGIN}${pluginInfo.id}${MARKERS.PLUGIN}\n`);
-            if (this._lastSourceDataPluginId !== -1 && this._lastSourceDataPluginId !== pluginInfo.id) {
+            // Check: is plugin changed or not
+            if (this._rows.lastPluginId !== -1 && this._rows.lastPluginId !== pluginInfo.id) {
                 // Source of data was changed.
-                output = `${MARKERS.PLUGIN}${this._lastSourceDataPluginId}${MARKERS.PLUGIN}\n${output}`;
+                this._rows.rest = `${MARKERS.PLUGIN}${this._rows.lastPluginId}${MARKERS.PLUGIN}\n${this._rows.rest}`;
             }
-            // Remember first row before update it
-            const lastRowBeforeUpdate: number = this._rows.last;
+            // Normalize (remove last row, which could be not finished)
+            const rows: string[] = output.split(/\r?\n|\r/gi);
+            const rest: string = rows[rows.length - 1];
+            rows.splice(rows.length - 1, 1);
+            // Join and add plugins signatures
+            output = rows.join(`${MARKERS.PLUGIN}${pluginInfo.id}${MARKERS.PLUGIN}\n`);
+            // Add signature for last item, because it's missed
+            output = `${output}${MARKERS.PLUGIN}${pluginInfo.id}${MARKERS.PLUGIN}\n`;
+            // Add rest from last chunk
+            output = `${this._rows.rest}${output}`;
+            // Update rest
+            this._rows.rest = rest;
+            // Information about added frame
+            const frame = { from: this._rows.last, to: -1 };
             // Add rows indexes
             const addIndexesRes: IAddIndexesResults = this._addRowIndexes(output);
             output = addIndexesRes.output;
-            // Get size of buffer to be written
-            const sizeToBeWritten: number = Buffer.from(output).byteLength;
-            // Store indexes
-            const streamLastPosition: number = this._getStreamSize();
-            this._rows.ranges.push({
-                bytes: { start: streamLastPosition, end: streamLastPosition + sizeToBeWritten - 1 },
-                rows: { start: lastRowBeforeUpdate, end: this._rows.last - 1 },
-            });
+            // Set end of frame
+            frame.to = this._rows.last - 1;
+            // Store cursor position
+            const cursor = {
+                from: this._rows.bytesWritten,
+                to: this._rows.bytesWritten + Buffer.byteLength(output, 'utf8') - 1,
+            };
+            // Increase bytes written value
+            this._rows.bytesWritten += Buffer.byteLength(output, 'utf8');
             // Remember plugin id to break like in case it will change
-            this._lastSourceDataPluginId = pluginInfo.id;
+            this._rows.lastPluginId = pluginInfo.id;
             // Write data into session storage file
             this._stream.write(output, (writeError: Error | null | undefined) => {
                 if (writeError) {
                     return reject(new Error(this._logger.error(`Fail to write data into stream file due error: ${writeError.message}`)));
                 }
+                // Store indexes after chuck is written
+                this._rows.ranges.push({
+                    bytes: { start: cursor.from, end: cursor.to },
+                    rows: { start: frame.from, end: frame.to },
+                });
                 // Resolve in anyway, because writing was succesful
                 resolve();
                 // Notification of render (client) about stream's update
@@ -256,16 +288,12 @@ export default class ControllerStreamProcessor {
     private _sendUpdateStreamData(complete?: string, from?: number, to?: number): Promise<void> {
         return ServiceElectron.IPC.send(new IPCElectronMessages.StreamUpdated({
             guid: this._guid,
-            length: this._getStreamSize(),
+            length: this._rows.bytesWritten,
             rowsCount: this._rows.last,
             addedRowsData: complete === undefined ? '' : complete,
             addedFrom: from === undefined ? -1 : from,
             addedTo: to === undefined ? -1 : to,
         }));
-    }
-
-    private _getStreamSize(): number {
-        return this._stream.bytesWritten;
     }
 
     private _ipc_onStreamChunkRequested(_message: IPCElectronMessages.TMessage, response: (isntance: IPCElectronMessages.TMessage) => any) {
@@ -284,7 +312,7 @@ export default class ControllerStreamProcessor {
                 start: -1,
                 end: -1,
                 rows: this._rows.last + 1,
-                length: this._getStreamSize(),
+                length: this._rows.bytesWritten,
                 error: this._logger.error(`Fail to process StreamChunk request due error: ${range.message}`),
             }));
         }
@@ -296,7 +324,7 @@ export default class ControllerStreamProcessor {
                 end: range.rows.end,
                 data: output,
                 rows: this._rows.last,
-                length: this._getStreamSize(),
+                length: this._rows.bytesWritten,
             }));
         }).catch((readError: Error) => {
             this._logger.error(`Fail to read data from storage file due error: ${readError.message}`);

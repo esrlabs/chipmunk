@@ -2,6 +2,7 @@ export interface IResults {
     regs: { [regIndex: number]: number[] }; // Indexes with matchs, like { 1: [2,3,4] } where 1 - index of reg; [2,3,4] - numbers of rows with match
     found: number;                          // Total count of matches
     str: string;                            // Rows with matches
+    rows: number;                           // Count of rows with match
 }
 
 export interface IMatch {
@@ -50,6 +51,7 @@ export class Fragment {
             found: 0,
             regs: {},
             str: '',
+            rows: 0,
         };
         this._fragment.replace(searchRegExp.reg, (...args: any[]) => {
             /*
@@ -85,6 +87,7 @@ export class Fragment {
             results.regs[match.index].push(row);
             results.found += 1;
             results.str += `${subscring}\n`;
+            results.rows += 1;
             return '';
         });
         return results;

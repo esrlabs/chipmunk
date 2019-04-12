@@ -109,7 +109,7 @@ class ElectronIpcService implements IService {
         }
         const signature: string = (message as any).signature;
         return this._setSubscription(signature, handler);
-}
+    }
 
     public subscribeOnPluginMessage(handler: THandler): Promise<Subscription> {
         return new Promise((resolve) => {

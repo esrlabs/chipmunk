@@ -17,10 +17,12 @@ export interface IStreamInfo {
     guid: string;
     socketFile: string;
     streamFile: string;
+    searchFile: string;
     connections: Net.Socket[];
     connectionFactory: (pluginName: string) => Promise<Net.Socket>;
     server: Net.Server;
     processor: ControllerStreamProcessor;
+    search: ControllerStreamSearch;
     received: number;
 }
 
@@ -47,7 +49,6 @@ class ServiceStreams extends EventEmitter implements IService  {
         // Binding
         this._ipc_onStreamAdd = this._ipc_onStreamAdd.bind(this);
         this._ipc_onStreamRemove = this._ipc_onStreamRemove.bind(this);
-        this._ipc_onSearchRequest = this._ipc_onSearchRequest.bind(this);
     }
 
     /**
@@ -68,11 +69,6 @@ class ServiceStreams extends EventEmitter implements IService  {
                 this._subscriptions.streamRemove = subscription;
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to subscribe to render event "StreamRemove" due error: ${error.message}. This is not blocked error, loading will be continued.`);
-            });
-            ServiceElectron.IPC.subscribe(IPCElectronMessages.SearchRequest, this._ipc_onSearchRequest).then((subscription: Subscription) => {
-                this._subscriptions.searchRequest = subscription;
-            }).catch((error: Error) => {
-                this._logger.warn(`Fail to subscribe to render event "SearchRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
             });
         });
     }
@@ -117,6 +113,7 @@ class ServiceStreams extends EventEmitter implements IService  {
             // const socketFile: string = Path.resolve(ServicePaths.getSockets(), `test.sock`);
             const socketFile: string = Path.resolve(ServicePaths.getSockets(), `${Date.now()}-${guid}.sock`);
             const streamFile: string = Path.resolve(ServicePaths.getStreams(), `${Date.now()}-${guid}.stream`);
+            const searchFile: string = Path.resolve(ServicePaths.getStreams(), `${Date.now()}-${guid}.search`);
             try {
                 // Create new server
                 const server: Net.Server = Net.createServer(this._acceptConnectionToSocket.bind(this, guid));
@@ -125,6 +122,7 @@ class ServiceStreams extends EventEmitter implements IService  {
                     guid: guid,
                     socketFile: socketFile,
                     streamFile: streamFile,
+                    searchFile: searchFile,
                     server: server,
                     connections: [],
                     connectionFactory: (pluginName: string) => {
@@ -137,6 +135,7 @@ class ServiceStreams extends EventEmitter implements IService  {
                         });
                     },
                     processor: new ControllerStreamProcessor(guid, streamFile),
+                    search: new ControllerStreamSearch(guid, streamFile, searchFile),
                     received: 0,
                 };
                 // Bind server with file
@@ -276,50 +275,6 @@ class ServiceStreams extends EventEmitter implements IService  {
         });
     }
 
-    private _ipc_onSearchRequest(message: any, response: (instance: any) => any) {
-        const done = (error?: string) => {
-            ServiceElectron.IPC.send(new IPCElectronMessages.SearchRequestFinished({
-                streamId: message.streamId,
-                requestId: message.requestId,
-                error: error,
-                duration: Date.now() - started,
-            }));
-        };
-        const stream: IStreamInfo | undefined = this._streams.get(message.streamId);
-        if (stream === undefined) {
-            // TODO: response with error;
-            return this._logger.warn(`Search request came for stream "${message.streamId}", but stream isn't found.`);
-        }
-        // Notify render: search is started
-        ServiceElectron.IPC.send(new IPCElectronMessages.SearchRequestStarted({
-            streamId: message.streamId,
-            requestId: message.requestId,
-        }));
-        // Create regexps
-        const requests: RegExp[] = message.requests.map((regInfo: IPCElectronMessages.IRegExpStr) => {
-            return new RegExp(regInfo.source, regInfo.flags);
-        });
-        // Create search controller, which: will read target file and make search
-        const search: ControllerStreamSearch = new ControllerStreamSearch(stream.streamFile, requests);
-        // Fix time of starting
-        const started: number = Date.now();
-        // Listen "middle" results
-        search.on(ControllerStreamSearch.Events.next, (middleResults: IResults) => {
-            // Send to render "middle" results
-            ServiceElectron.IPC.send(new IPCElectronMessages.SearchRequestResults({
-                streamId: message.streamId,
-                requestId: message.requestId,
-                results: middleResults.regs,
-            }));
-        });
-        // Start searching
-        search.search().then((fullResults: IResults) => {
-            // Nothing to do with full results, because everything was sent during search
-            done();
-        }).catch((error: Error) => {
-            done(error.message);
-        });
-    }
     /*
     private _buffer_onData(streamId: string, output: string): Promise<void> {
         return new Promise((resolve, reject) => {

@@ -1,19 +1,18 @@
 import { Component, Input, AfterContentChecked, ViewEncapsulation } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import PluginsService, { IPluginData } from '../../../../services/service.plugins';
-import OutputParsersService from '../../../../services/standalone/service.output.parsers';
+import PluginsService, { IPluginData } from '../../../../../services/service.plugins';
+import OutputParsersService from '../../../../../services/standalone/service.output.parsers';
 
 @Component({
-    selector: 'app-views-output-row',
+    selector: 'app-views-search-output-row',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
-    // encapsulation: ViewEncapsulation.None
 })
 
-export class ViewOutputRowComponent implements AfterContentChecked {
+export class ViewSearchOutputRowComponent implements AfterContentChecked {
 
     @Input() public str: string | undefined;
-    @Input() public position: number | undefined;
+    @Input() public positionInStream: number | undefined;
     @Input() public pluginId: number | undefined;
     @Input() public rank: number = 1;
 
@@ -26,7 +25,7 @@ export class ViewOutputRowComponent implements AfterContentChecked {
     }
 
     public ngAfterContentChecked() {
-        if (this.position.toString() === this._ng_number) {
+        if (this.positionInStream.toString() === this._ng_number) {
             return;
         }
         if (this.str === undefined) {
@@ -57,12 +56,12 @@ export class ViewOutputRowComponent implements AfterContentChecked {
         html = OutputParsersService.row(html);
         // Generate safe html
         this._ng_safeHtml = this._sanitizer.bypassSecurityTrustHtml(html);
-        this._ng_number = this.position.toString();
+        this._ng_number = this.positionInStream.toString();
         this._ng_number_filler = this._getNumberFiller();
     }
 
     private _acceptPendingRow() {
-        this._ng_number = this.position.toString();
+        this._ng_number = this.positionInStream.toString();
         this._ng_number_filler = this._getNumberFiller();
     }
 

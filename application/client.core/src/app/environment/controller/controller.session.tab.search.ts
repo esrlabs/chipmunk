@@ -1,29 +1,31 @@
 import { Observable, Subject } from 'rxjs';
-import { ControllerSessionTabStream, IStreamPacket } from './controller.session.tab.stream';
-import { ControllerSessionTabStreamSearch, ISearchPacket } from './controller.session.tab.search.output';
-import ElectronIpcService, { IPCMessages } from '../services/service.electron.ipc';
+import { ControllerSessionTabSearchOutput } from './controller.session.tab.search.output';
 import QueueService, { IQueueController } from '../services/standalone/service.queue';
 import * as Toolkit from 'logviewer.client.toolkit';
+import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
 
 export interface IControllerSessionStream {
     guid: string;
-    stream: ControllerSessionTabStream;
+    transports: string[];
 }
 
 export class ControllerSessionTabSearch {
 
     private _logger: Toolkit.Logger;
     private _queue: Toolkit.Queue;
-    private _guid: string;
-    private _stream: ControllerSessionTabStream;
     private _queueController: IQueueController | undefined;
+    private _guid: string;
+    private _transports: string[];
     private _subjects = {
+        write: new Subject<void>(),
         next: new Subject<void>(),
         clear: new Subject<void>(),
+        onSearchStarted: new Subject<string>(),
+        onSearchFinished: new Subject<string>()
     };
-    private _output: ControllerSessionTabStreamSearch = new ControllerSessionTabStreamSearch();
-    private _subscriptions: { [key: string]: Toolkit.Subscription | undefined } = { };
-    private _request: {
+    private _subscriptions: { [key: string]: Subscription | undefined } = { };
+    private _output: ControllerSessionTabSearchOutput;
+    private _activeRequest: {
         id: string,
         resolve: (...args: any[]) => any,
         reject: (error: Error) => any,
@@ -33,8 +35,9 @@ export class ControllerSessionTabSearch {
 
     constructor(params: IControllerSessionStream) {
         this._guid = params.guid;
-        this._stream = params.stream;
+        this._transports = params.transports;
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearch: ${params.guid}`);
+        this._output = new ControllerSessionTabSearchOutput(params.guid, this._requestStreamData.bind(this));
         this._queue = new Toolkit.Queue(this._logger.error.bind(this._logger), 0);
         // Subscribe to queue events
         this._queue_onDone = this._queue_onDone.bind(this);
@@ -42,42 +45,54 @@ export class ControllerSessionTabSearch {
         this._queue.subscribe(Toolkit.Queue.Events.done, this._queue_onDone);
         this._queue.subscribe(Toolkit.Queue.Events.next, this._queue_onNext);
         // Subscribe to streams data
-        this._subscriptions.onSearchStarted = ElectronIpcService.subscribe(IPCMessages.SearchRequestStarted, this._ipc_onSearchStarted.bind(this));
-        this._subscriptions.onSearchFinished = ElectronIpcService.subscribe(IPCMessages.SearchRequestFinished, this._ipc_onSearchFinished.bind(this));
-        this._subscriptions.onSearchResults = ElectronIpcService.subscribe(IPCMessages.SearchRequestResults, this._ipc_onSearchResults.bind(this));
+        this._ipc_onSearchStreamUpdated = this._ipc_onSearchStreamUpdated.bind(this);
+        this._ipc_onSearchStarted = this._ipc_onSearchStarted.bind(this);
+        this._ipc_onSearchFinished = this._ipc_onSearchFinished.bind(this);
+        this._subscriptions.SearchStreamUpdated = ServiceElectronIpc.subscribe(IPCMessages.SearchStreamUpdated, this._ipc_onSearchStreamUpdated);
+        this._subscriptions.onSearchStarted = ServiceElectronIpc.subscribe(IPCMessages.SearchRequestStarted, this._ipc_onSearchStarted.bind(this));
+        this._subscriptions.onSearchFinished = ServiceElectronIpc.subscribe(IPCMessages.SearchRequestFinished, this._ipc_onSearchFinished.bind(this));
     }
 
     public destroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
-            this._subscriptions[key].unsubscribe();
+            this._subscriptions[key].destroy();
         });
+        this._queue.unsubscribeAll();
     }
 
     public getGuid(): string {
         return this._guid;
     }
 
-    public getOutputStream(): ControllerSessionTabStreamSearch {
+    public getOutputStream(): ControllerSessionTabSearchOutput {
         return this._output;
     }
 
     public getObservable(): {
+        write: Observable<void>,
         next: Observable<void>,
-        clear: Observable<void>
+        clear: Observable<void>,
+        onSearchStarted: Observable<string>,
+        onSearchFinished: Observable<string>,
     } {
         return {
+            write: this._subjects.write.asObservable(),
             next: this._subjects.next.asObservable(),
-            clear: this._subjects.clear.asObservable()
+            clear: this._subjects.clear.asObservable(),
+            onSearchStarted: this._subjects.onSearchStarted.asObservable(),
+            onSearchFinished: this._subjects.onSearchFinished.asObservable(),
         };
     }
 
-    public search(requests: RegExp[]): Promise<string> {
+    public search(requestId: string, requests: RegExp[]): Promise<string> {
         return new Promise((resolve, reject) => {
-            if (this._request !== undefined) {
+            if (this._activeRequest !== undefined) {
                 return reject(new Error(`Cannot start new search request while current isn't finished.`));
             }
-            const requestId: string = Toolkit.guid();
-            ElectronIpcService.send(new IPCMessages.SearchRequest({
+            // Drop output
+            this._output.clearStream();
+            // Start search
+            ServiceElectronIpc.send(new IPCMessages.SearchRequest({
                 requests: requests.map((reg: RegExp) => {
                     return {
                         source: reg.source,
@@ -89,7 +104,7 @@ export class ControllerSessionTabSearch {
             })).then(() => {
                 // Do not resolve now, because method "search" should be resolved after
                 // search request was processed complitely
-                this._request = {
+                this._activeRequest = {
                     id: requestId,
                     resolve: resolve,
                     reject: reject,
@@ -102,21 +117,39 @@ export class ControllerSessionTabSearch {
         });
     }
 
-    private _isIPCMessageBelongController(message: IPCMessages.SearchRequestStarted | IPCMessages.SearchRequestFinished | IPCMessages.SearchRequestResults): boolean {
-        if (this._request === undefined) {
-            return false;
+    private _requestStreamData(start: number, end: number): Promise<IPCMessages.SearchChunk> {
+        return new Promise((resolve, reject) => {
+            const s = Date.now();
+            ServiceElectronIpc.request(
+                new IPCMessages.SearchChunk({
+                    guid: this._guid,
+                    start: start,
+                    end: end
+                })
+            ).then((response: IPCMessages.SearchChunk) => {
+                const duration: number = Date.now() - s;
+                this._logger.env(`Chunk [${start} - ${end}] is read in: ${(duration / 1000).toFixed(2)}s`);
+                if (response.error !== undefined) {
+                    return reject(new Error(this._logger.warn(`Request to stream chunk was finished within error: ${response.error}`)));
+                }
+                resolve(response);
+            });
+        });
+    }
+
+    private _ipc_onSearchStreamUpdated(message: IPCMessages.SearchStreamUpdated) {
+        if (this._guid !== message.guid) {
+            return;
         }
-        if (this._request.id !== message.requestId) {
-            return false;
-        }
-        return true;
+        this._output.updateStreamState(message);
     }
 
     private _ipc_onSearchStarted(message: IPCMessages.SearchRequestStarted) {
         if (!this._isIPCMessageBelongController(message)) {
             return;
         }
-        this._request.started = Date.now();
+        this._activeRequest.started = Date.now();
+        this._subjects.onSearchStarted.next(this._activeRequest.id);
         this._logger.env(`Search request ${message.requestId} is started.`);
     }
 
@@ -124,49 +157,33 @@ export class ControllerSessionTabSearch {
         if (!this._isIPCMessageBelongController(message)) {
             return;
         }
-        this._request.finished = Date.now();
-        this._logger.env(`Search request ${message.requestId} was finished in ${((this._request.finished - this._request.started) / 1000).toFixed(2)}s (process time is ${(message.duration / 1000).toFixed(2)}s).`);
+        this._activeRequest.finished = Date.now();
+        this._logger.env(`Search request ${message.requestId} was finished in ${((this._activeRequest.finished - this._activeRequest.started) / 1000).toFixed(2)}s (process time is ${(message.duration / 1000).toFixed(2)}s).`);
         if (message.error !== undefined) {
             // Some error during processing search request
             this._logger.error(`Search request id ${message.requestId} was finished with error: ${message.error}`);
-            return this._request.reject(new Error(message.error));
+            return this._activeRequest.reject(new Error(message.error));
         }
         // Request is finished successful
-        this._request.resolve(message.duration);
+        this._activeRequest.resolve(message.duration);
         // Drop request data
-        this._request = undefined;
+        this._activeRequest = undefined;
+        this._subjects.onSearchFinished.next(this._activeRequest.id);
     }
 
-    private _ipc_onSearchResults(message: IPCMessages.SearchRequestResults) {
-        if (!this._isIPCMessageBelongController(message)) {
-            return;
+    private _isIPCMessageBelongController(message: IPCMessages.SearchRequestStarted | IPCMessages.SearchRequestFinished | IPCMessages.SearchRequestResults): boolean {
+        if (this._activeRequest === undefined) {
+            return false;
         }
-        /*
-        this._queue.add(() => {
-            // this._logger.env(`Search request ${message.requestId} results recieved.`);
-            // Store all indexes from all requests
-            let indexes: number[] = [];
-            Object.keys(message.results).forEach((regKey: string) => {
-                indexes.push(...message.results[regKey]);
-            });
-            // Remove duplicates
-            const indexesSet: Set<number> = new Set(indexes);
-            // Sort indexes
-            indexes = Array.from(indexesSet).sort((a, b) => a - b);
-            // Get rows
-            const rows: IStreamPacket[] = this._stream.getRowsByIndexes(indexes);
-            if (rows.length === 0) {
-                return;
-            }
-            this._output.add(rows.map((row) => row.original), rows[0].pluginId);
-            this._subjects.next.next();
-        });
-        */
+        if (this._activeRequest.id !== message.requestId) {
+            return false;
+        }
+        return true;
     }
 
     private _queue_onNext(done: number, total: number) {
         if (this._queueController === undefined) {
-            this._queueController = QueueService.create('search');
+            this._queueController = QueueService.create('reading');
         }
         this._queueController.next(done, total);
     }
