@@ -85,13 +85,13 @@ class ElectronIpcService implements IService {
         });
     }
 
-    public request(message: IPCMessages.TMessage): Promise<IPCMessages.TMessage | undefined> {
+    public request(message: IPCMessages.TMessage, expected?: any): Promise<IPCMessages.TMessage | undefined> {
         return new Promise((resolve, reject) => {
             const ref: Function | undefined = this._getRefToMessageClass(message);
             if (ref === undefined) {
                 return reject(new Error(`Incorrect type of message`));
             }
-            this._subscribeIPCMessage(message.signature);
+            this._subscribeIPCMessage(expected === undefined ? message.signature : expected.signature);
             this._send({ message: message, expectResponse: true, sequence: guid() }).then((response: IPCMessages.TMessage | undefined) => {
                 resolve(response);
             }).catch((sendingError: Error) => {

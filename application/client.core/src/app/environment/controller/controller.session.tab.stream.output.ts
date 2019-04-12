@@ -9,6 +9,7 @@ export interface IStreamPacket {
     position: number;
     pluginId: number;
     rank: number;
+    sessionId: string;
 }
 
 export interface IStreamState {
@@ -305,7 +306,8 @@ export class ControllerSessionTabStreamOutput {
                 str: this._clearRowStr(str),                // Get cleared string
                 position: this._extractRowPosition(str),    // Get position
                 pluginId: this._extractPluginId(str),       // Get plugin id
-                rank: this._state.countRank
+                rank: this._state.countRank,
+                sessionId: this._guid,
             };
         }).filter((packet: IStreamPacket) => {
             return (packet.position !== -1);
@@ -319,7 +321,8 @@ export class ControllerSessionTabStreamOutput {
                 pluginId: -1,
                 position: first + i,
                 str: undefined,
-                rank: this._state.countRank
+                rank: this._state.countRank,
+                sessionId: this._guid,
             };
         });
         return rows;

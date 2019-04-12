@@ -4,6 +4,7 @@ import { ControllerSessionTabStreamOutput } from './controller.session.tab.strea
 import QueueService, { IQueueController } from '../services/standalone/service.queue';
 import * as Toolkit from 'logviewer.client.toolkit';
 import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
+import OutputParsersService from '../services/standalone/service.output.parsers';
 
 export interface IControllerSessionStream {
     guid: string;
@@ -34,6 +35,13 @@ export class ControllerSessionTabSearch {
         started: number,
         finished: number,
     } | undefined;
+    private _results: {
+        indexes: { [key: number]: number[] },
+        regs: RegExp[]
+    } = {
+        indexes: [],
+        regs: [],
+    };
 
     constructor(params: IControllerSessionStream) {
         this._guid = params.guid;
@@ -60,6 +68,7 @@ export class ControllerSessionTabSearch {
             this._subscriptions[key].destroy();
         });
         this._queue.unsubscribeAll();
+        OutputParsersService.unsetSearchResults(this._guid);
     }
 
     public getGuid(): string {
@@ -91,10 +100,15 @@ export class ControllerSessionTabSearch {
             if (this._activeRequest !== undefined) {
                 return reject(new Error(`Cannot start new search request while current isn't finished.`));
             }
+            // Drop results
+            this._results = {
+                indexes: [],
+                regs: [],
+            };
             // Drop output
             this._output.clearStream();
             // Start search
-            ServiceElectronIpc.send(new IPCMessages.SearchRequest({
+            ServiceElectronIpc.request(new IPCMessages.SearchRequest({
                 requests: requests.map((reg: RegExp) => {
                     return {
                         source: reg.source,
@@ -103,7 +117,7 @@ export class ControllerSessionTabSearch {
                 }),
                 streamId: this._guid,
                 requestId: requestId,
-            })).then(() => {
+            }), IPCMessages.SearchRequestResults).then((results: IPCMessages.SearchRequestResults) => {
                 // Do not resolve now, because method "search" should be resolved after
                 // search request was processed complitely
                 this._activeRequest = {
@@ -113,6 +127,11 @@ export class ControllerSessionTabSearch {
                     started: -1,
                     finished: -1
                 };
+                // Save results
+                this._results.indexes = results.results;
+                this._results.regs = requests;
+                // Share results
+                OutputParsersService.setSearchResults(this._guid, requests, results.results);
             }).catch((error: Error) => {
                 reject(error);
             });

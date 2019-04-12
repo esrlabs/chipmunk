@@ -11,6 +11,7 @@ export interface ISearchStreamPacket {
     positionInStream: number;
     pluginId: number;
     rank: number;
+    sessionId: string;
 }
 
 export interface IStreamState {
@@ -313,6 +314,7 @@ export class ControllerSessionTabSearchOutput {
                 positionInStream: this._extractRowPosition(str),    // Get position in stream
                 pluginId: this._extractPluginId(str),               // Get plugin id
                 rank: this._stream.getRank(),
+                sessionId: this._guid,
             };
         }).filter((packet: ISearchStreamPacket) => {
             return (packet.positionInStream !== -1);
@@ -330,7 +332,8 @@ export class ControllerSessionTabSearchOutput {
                 position: first + i,
                 positionInStream: first + i,
                 str: undefined,
-                rank: this._stream.getRank()
+                rank: this._stream.getRank(),
+                sessionId: this._guid,
             };
         });
         return rows;
