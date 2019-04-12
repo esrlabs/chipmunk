@@ -1,11 +1,13 @@
 import { Observable, Subject } from 'rxjs';
 import { ControllerSessionTabSearchOutput } from './controller.session.tab.search.output';
+import { ControllerSessionTabStreamOutput } from './controller.session.tab.stream.output';
 import QueueService, { IQueueController } from '../services/standalone/service.queue';
 import * as Toolkit from 'logviewer.client.toolkit';
 import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
 
 export interface IControllerSessionStream {
     guid: string;
+    stream: ControllerSessionTabStreamOutput;
     transports: string[];
 }
 
@@ -37,7 +39,7 @@ export class ControllerSessionTabSearch {
         this._guid = params.guid;
         this._transports = params.transports;
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearch: ${params.guid}`);
-        this._output = new ControllerSessionTabSearchOutput(params.guid, this._requestStreamData.bind(this));
+        this._output = new ControllerSessionTabSearchOutput(params.guid, this._requestStreamData.bind(this), params.stream);
         this._queue = new Toolkit.Queue(this._logger.error.bind(this._logger), 0);
         // Subscribe to queue events
         this._queue_onDone = this._queue_onDone.bind(this);

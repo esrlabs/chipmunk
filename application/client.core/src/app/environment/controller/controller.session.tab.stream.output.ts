@@ -132,6 +132,10 @@ export class ControllerSessionTabStreamOutput {
         }
     }
 
+    public getRank(): number {
+        return this._state.countRank;
+    }
+
     /**
      * Returns total count of rows in whole stream
      * @returns number
