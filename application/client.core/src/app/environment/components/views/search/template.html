@@ -12,10 +12,6 @@
       </div>
   </div>
 </div>
-<ul #outputwrapper class="rows" (window:resize)="_ng_onBrowserWindowResize($event)">
-    <cdk-virtual-scroll-viewport #outputviewport class="virtual-scroll-viewport" [ngStyle]="_ng_getOutputAreaStyle()" itemSize="16">
-      <ng-container *cdkVirtualFor="let row of _ng_output">
-        <app-views-search-row [row]="row"></app-views-search-row>
-      </ng-container>
-    </cdk-virtual-scroll-viewport>
-</ul>
+<div class="rows">
+  <app-views-search-output #output [session]="_ng_session"></app-views-search-output>
+</div>

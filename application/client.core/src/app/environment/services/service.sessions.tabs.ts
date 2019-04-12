@@ -15,9 +15,12 @@ export class TabsSessionsService implements IService {
     private _sessions: Map<TSessionGuid, ControllerSessionTab> = new Map();
     private _tabsService: TabsService = new TabsService();
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
-    private _currentSessionSubject = new Subject<ControllerSessionTab>();
     private _currentSessionGuid: string;
-
+    private _subjects: {
+        onSessionChange: Subject<ControllerSessionTab>
+    } = {
+        onSessionChange: new Subject<ControllerSessionTab>()
+    };
     constructor() {
 
     }
@@ -70,8 +73,12 @@ export class TabsSessionsService implements IService {
         return this._tabsService;
     }
 
-    public getCurrentSessionObservable(): Observable<ControllerSessionTab> {
-        return this._currentSessionSubject.asObservable();
+    public getObservable(): {
+        onSessionChange: Observable<ControllerSessionTab>
+    } {
+        return {
+            onSessionChange: this._subjects.onSessionChange.asObservable()
+        };
     }
 
     public setActive(guid: string) {
@@ -81,7 +88,7 @@ export class TabsSessionsService implements IService {
         }
         this._currentSessionGuid = guid;
         this._tabsService.setActive(this._currentSessionGuid);
-        this._currentSessionSubject.next(session);
+        this._subjects.onSessionChange.next(session);
     }
 
     public getActive(): ControllerSessionTab | undefined {

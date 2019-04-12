@@ -23,7 +23,7 @@ export class LayoutSessionSidebarComponent implements AfterViewInit, OnDestroy {
         // Get tabs service
         this._setActiveTabsService();
         // Subscribe to change of current session
-        this._subscriptions.currentSession = TabsSessionsService.getCurrentSessionObservable().subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.currentSession = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         /*
         this.tabsService.add({
             name: 'Serial port',

@@ -35,7 +35,7 @@ export class ControllerSessionTab {
         });
         this._search = new ControllerSessionTabSearch({
             guid: params.guid,
-            stream: this._stream
+            transports: params.transports.slice()
         });
         this._sidebar_update();
     }

@@ -1,6 +1,5 @@
-import { CollectionViewer, DataSource } from '@angular/cdk/collections';
 import { IPCMessages } from '../services/service.electron.ipc';
-import { BehaviorSubject, Observable, Subscription, Subject } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import * as Toolkit from 'logviewer.client.toolkit';
 
 export type TRequestDataHandler = (start: number, end: number) => Promise<IPCMessages.StreamChunk>;
@@ -51,7 +50,6 @@ export class ControllerSessionTabStreamOutput {
     private _guid: string;
     private _logger: Toolkit.Logger;
     private _rows: IStreamPacket[] = [];
-    private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _requestDataHandler: TRequestDataHandler;
     private _state: IStreamState = {
         count: 0,

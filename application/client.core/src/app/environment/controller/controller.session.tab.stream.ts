@@ -3,7 +3,6 @@ import { Observable, Subject } from 'rxjs';
 import { ControllerSessionTabStreamOutput, IStreamPacket, TRequestDataHandler, Settings, IRange } from './controller.session.tab.stream.output';
 import QueueService, { IQueueController } from '../services/standalone/service.queue';
 import * as Toolkit from 'logviewer.client.toolkit';
-import { reject } from 'q';
 
 export { ControllerSessionTabStreamOutput, IStreamPacket };
 
@@ -44,9 +43,7 @@ export class ControllerSessionTabStream {
         this._queue.subscribe(Toolkit.Queue.Events.done, this._queue_onDone);
         this._queue.subscribe(Toolkit.Queue.Events.next, this._queue_onNext);
         // Subscribe to streams data
-        this._ipc_onStreamData = this._ipc_onStreamData.bind(this);
         this._ipc_onStreamUpdated = this._ipc_onStreamUpdated.bind(this);
-        ServiceElectronIpc.subscribe(IPCMessages.StreamData, this._ipc_onStreamData);
         ServiceElectronIpc.subscribe(IPCMessages.StreamUpdated, this._ipc_onStreamUpdated);
     }
 
@@ -78,7 +75,7 @@ export class ControllerSessionTabStream {
     }
 
     private _requestData(start: number, end: number): Promise<IPCMessages.StreamChunk> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             const s = Date.now();
             ServiceElectronIpc.request(
                 new IPCMessages.StreamChunk({
@@ -95,25 +92,6 @@ export class ControllerSessionTabStream {
                 resolve(response);
             });
         });
-    }
-
-    private _ipc_onStreamData(message: IPCMessages.StreamData) {
-        /*
-        this._queue.add(() => {
-            const BreakRegExp = /[\r\n]/gm;
-            const output: string = message.data.replace(BreakRegExp, '\n').replace(/\n{2,}/g, '\n');
-            const rows: string[] = output.split(/\n/gi);
-            if (rows.length === 1) {
-                this._output.write(output, message.pluginId);
-                this._subjects.write.next();
-            } else if (rows.length > 1) {
-                const last: string = rows.splice(rows.length - 1, 1)[0];
-                this._output.rows(rows, message.pluginId);
-                this._output.write(last, message.pluginId);
-                this._subjects.next.next();
-            }
-        });
-        */
     }
 
     private _ipc_onStreamUpdated(message: IPCMessages.StreamUpdated) {

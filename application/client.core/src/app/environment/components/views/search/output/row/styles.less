@@ -1,0 +1,63 @@
+@import '../../../../../theme/scheme.less';
+
+:host {
+    position: relative;
+    display: block;
+    padding: 0;
+    margin: 0;
+    height: 16px;
+    max-height: 16px;
+    white-space: nowrap;
+    & span.source {
+        display: inline-block;
+        position: relative;
+        font-family: monospace;
+        width: 5rem;
+        overflow: hidden;
+        line-height: 16px;
+        height: 16px;
+        max-height: 16px;
+        font-size: 10px;
+        vertical-align: top;
+    }
+    & span.number{
+        display: inline-block;
+        position: relative;
+        font-family: monospace;
+        font-variant-numeric: tabular-nums;
+        overflow: hidden;
+        line-height: 16px;
+        height: 16px;
+        max-height: 16px;
+        font-size: 13px;
+        vertical-align: top;
+        margin: 0 8px;
+        padding: 0 8px 0 0;
+        border-right: thin @scheme-color-4 solid;
+        & span.filler{
+            color: @scheme-color-4;
+        }
+    }
+    & p.row {
+        display: inline-block;
+        position: relative;
+        font-family: monospace;
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+        padding: 0;
+        margin: 0;
+        line-height: 16px;
+        height: 16px;
+        max-height: 16px;
+        white-space: pre;
+        vertical-align: top;
+        &.pending{
+            width: 100%;
+            background: @scheme-color-4;
+            margin-top: 3px;
+            line-height: 10px;
+            height: 10px;
+            max-height: 10px;
+        }
+    }
+}
