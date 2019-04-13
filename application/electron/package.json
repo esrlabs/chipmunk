@@ -1,6 +1,6 @@
 {
   "name": "logviewer",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "LogViewer",
   "main": "./dist/compiled/src/main.js",
   "copyright": "Copyright © 2019 year E.S.R.Labs",
@@ -62,12 +62,12 @@
     "start": "npm run build-ts && npm run electron",
     "postinstall": "electron-builder install-app-deps",
     "rebuild": "electron-rebuild -f -w npm",
-    "build-mac": "./node_modules/.bin/build --mac",
-    "publish-mac": "./node_modules/.bin/build --mac -p always",
-    "build-linux": "./node_modules/.bin/build --linux",
-    "publish-linux": "./node_modules/.bin/build --linux -p always",
-    "build-win": "./node_modules/.bin/build --win",
-    "publish-win": "./node_modules/.bin/build --win -p always",
+    "build-mac": "tsc -p ./tsconfig.json && ./node_modules/.bin/build --mac",
+    "publish-mac": "tsc -p ./tsconfig.json && ./node_modules/.bin/build --mac -p always",
+    "build-linux": "tsc -p ./tsconfig.json && ./node_modules/.bin/build --linux",
+    "publish-linux": "tsc -p ./tsconfig.json && ./node_modules/.bin/build --linux -p always",
+    "build-win": "tsc -p ./tsconfig.json && ./node_modules/.bin/build --win",
+    "publish-win": "tsc -p ./tsconfig.json && ./node_modules/.bin/build --win -p always",
     "package-check": "../node_modules/.bin/npm-check",
     "package-upgrade": "../node_modules/.bin/npm-check -y"
   }
