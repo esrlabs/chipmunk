@@ -102,7 +102,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
     } = {
         start: 0,
         end: 0,
-        count: 0
+        count: 0,
     };
 
     constructor(private _cdRef: ChangeDetectorRef,
@@ -438,21 +438,40 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         this._ng_nodeContainer.nativeElement.scrollTop = scrollTop;
     }
 
+    private _reset() {
+        this._vSB.offset = 0;
+        this._vSB.cache = -1;
+        this._state.start = 0;
+        this._state.end = 0;
+        this._ng_rows = [];
+    }
+
     private _onStorageUpdated(info: IStorageInformation) {
+        if (info.count < 0 || isNaN(info.count) || !isFinite(info.count)) {
+            return console.error(new Error(`Fail to proceed event "onStorageUpdated" with count = ${info.count}. Please check trigger of this event.`));
+        }
         let shouldBeUpdated: boolean;
-        if (this._state.start + this._state.count > info.count - 1) {
+        if (info.count === 0) {
+            this._reset();
+            shouldBeUpdated = true;
+        } else if (this._state.start + this._state.count > info.count - 1) {
             this._state.end = info.count - 1;
             shouldBeUpdated = true;
         } else if (this._storageInfo.count < this._state.count && info.count > this._state.count) {
             this._state.end = this._state.start + this._state.count;
             shouldBeUpdated = true;
         }
+        // Update storage data
         this._storageInfo.count = info.count;
         // Scroll bar
         this._updateVSB();
         if (shouldBeUpdated) {
             // Render
             this._render();
+            if (info.count === 0) {
+                // No need to do other actions, because no data
+                return;
+            }
             // Notification: scroll is done
             this.API.updatingDone({ start: this._state.start, end: this._state.end });
         }
