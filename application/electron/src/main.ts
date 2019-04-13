@@ -4,6 +4,7 @@ import Logger from './tools/env.logger';
 // Services
 import ServiceElectron from './services/service.electron';
 import ServicePackage from './services/service.package';
+import ServiceEnv from './services/service.env';
 import ServicePaths from './services/service.paths';
 import ServicePlugins from './services/service.plugins';
 import ServiceStreams from './services/service.streams';
@@ -24,7 +25,9 @@ const InitializeStages = [
     [ServiceElectronState],
     // Stage #6. Stream service
     [ServiceStreams],
-    // Stage #7. Init plugins
+    // Stage #7. Detect OS env
+    [ServiceEnv],
+    // Stage #8. Init plugins
     [ServicePlugins],
     // (last service should startup service and should be single always)
 ];
@@ -86,6 +89,7 @@ class Application {
                 ServiceElectron.destroy(),
                 ServiceElectronState.destroy(),
                 ServicePlugins.destroy(),
+                ServiceEnv.destroy(),
             ]).then(() => {
                 this.logger.env(`All services are destroyed.`);
                 resolve();
