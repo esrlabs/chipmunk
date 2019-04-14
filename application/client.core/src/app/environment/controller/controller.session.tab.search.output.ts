@@ -2,6 +2,7 @@ import { IPCMessages } from '../services/service.electron.ipc';
 import { Observable, Subject } from 'rxjs';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { ControllerSessionTabStreamOutput } from '../controller/controller.session.tab.stream.output';
+import OutputRedirectionsService from '../services/standalone/service.output.redirections';
 
 export type TRequestDataHandler = (start: number, end: number) => Promise<IPCMessages.StreamChunk>;
 
@@ -45,6 +46,7 @@ export class ControllerSessionTabSearchOutput {
     private _logger: Toolkit.Logger;
     private _rows: ISearchStreamPacket[] = [];
     private _requestDataHandler: TRequestDataHandler;
+    private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
     private _stream: ControllerSessionTabStreamOutput;
     private _state: IStreamState = {
         count: 0,
@@ -64,6 +66,7 @@ export class ControllerSessionTabSearchOutput {
         onStateUpdated: new Subject<IStreamState>(),
         onReset: new Subject<void>(),
         onRangeLoaded: new Subject<ILoadedRange>(),
+        onScrollTo: new Subject<number>(),
     };
 
     constructor(guid: string, requestDataHandler: TRequestDataHandler, stream: ControllerSessionTabStreamOutput) {
@@ -71,6 +74,7 @@ export class ControllerSessionTabSearchOutput {
         this._stream = stream;
         this._requestDataHandler = requestDataHandler;
         this._logger = new Toolkit.Logger(`ControllerSessionTabStreamOutput: ${this._guid}`);
+        this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(this._guid, this._onRowSelected.bind(this));
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -85,11 +89,13 @@ export class ControllerSessionTabSearchOutput {
         onStateUpdated: Observable<IStreamState>,
         onRangeLoaded: Observable<ILoadedRange>,
         onReset: Observable<void>,
+        onScrollTo: Observable<number>,
     } {
         return {
             onStateUpdated: this._subjects.onStateUpdated.asObservable(),
             onRangeLoaded: this._subjects.onRangeLoaded.asObservable(),
             onReset: this._subjects.onReset.asObservable(),
+            onScrollTo: this._subjects.onScrollTo.asObservable(),
         };
     }
 
@@ -184,6 +190,13 @@ export class ControllerSessionTabSearchOutput {
     private _getRowsSliced(from: number, to: number): ISearchStreamPacket[] {
         const offset: number = this._state.stored.start > 0 ? this._state.stored.start : 0;
         return this._rows.slice(from - offset, to - offset);
+    }
+
+    private _onRowSelected(sender: string, row: number) {
+        if (sender === 'search') {
+            return;
+        }
+        this._subjects.onScrollTo.next(row);
     }
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Internal methods / helpers

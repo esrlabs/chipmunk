@@ -53,6 +53,8 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         // Make subscriptions
         this._subscriptions.onStateUpdated = this._output.getObservable().onStateUpdated.subscribe(this._onStateUpdated.bind(this));
         this._subscriptions.onRangeLoaded = this._output.getObservable().onRangeLoaded.subscribe(this._onRangeLoaded.bind(this));
+        this._subscriptions.onReset = this._output.getObservable().onReset.subscribe(this._onReset.bind(this));
+        this._subscriptions.onScrollTo = this._output.getObservable().onScrollTo.subscribe(this._onScrollTo.bind(this));
     }
 
     public ngOnDestroy() {
@@ -93,6 +95,12 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this._output.setFrame(range);
     }
 
+    private _onReset() {
+        this._ng_outputAPI.onStorageUpdated.next({
+            count: 0
+        });
+    }
+
     private _onStateUpdated(state: IStreamState) {
         this._ng_outputAPI.onStorageUpdated.next({
             count: state.count
@@ -104,6 +112,10 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
             range: packet.range,
             rows: packet.rows,
         });
+    }
+
+    private _onScrollTo(row: number) {
+        this._ng_outputAPI.onScrollTo.next(row);
     }
 
 }

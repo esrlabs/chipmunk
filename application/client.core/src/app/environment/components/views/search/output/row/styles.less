@@ -5,9 +5,11 @@
     display: block;
     padding: 0;
     margin: 0;
+    line-height: 16px;
     height: 16px;
     max-height: 16px;
     white-space: nowrap;
+    min-width: 100%;
     & span.source {
         display: inline-block;
         position: relative;
@@ -34,6 +36,7 @@
         margin: 0 8px;
         padding: 0 8px 0 0;
         border-right: thin @scheme-color-4 solid;
+        cursor: default;
         & span.filler{
             color: @scheme-color-4;
             font-variant-numeric: tabular-nums;
@@ -42,6 +45,16 @@
             max-height: 16px;
             font-size: 13px;
             font-family: monospace;
+        }
+        &:hover::after{
+            position: absolute;
+            display: block;
+            content: '';
+            top:0;
+            bottom: 0;
+            right: 0;
+            width: 4px;
+            .gradient(linear; @scheme-color-2, lighten(@scheme-color-2, 4%));
         }
     }
     & p.row {
@@ -57,6 +70,17 @@
         max-height: 16px;
         white-space: pre;
         vertical-align: top;
+        &:hover::after{
+            position: absolute;
+            display: block;
+            content: '';
+            top:0;
+            left:0;
+            right: 0;
+            bottom: 0;
+            border-top: thin dotted @scheme-color-1;
+            border-bottom: thin dotted @scheme-color-1;
+        }
         &.pending{
             width: 100%;
             background: @scheme-color-4;

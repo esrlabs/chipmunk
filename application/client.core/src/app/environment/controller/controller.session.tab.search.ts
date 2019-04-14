@@ -36,11 +36,9 @@ export class ControllerSessionTabSearch {
         finished: number,
     } | undefined;
     private _results: {
-        indexes: { [key: number]: number[] },
-        regs: RegExp[]
+        matches: number[],
     } = {
-        indexes: [],
-        regs: [],
+        matches: [],
     };
 
     constructor(params: IControllerSessionStream) {
@@ -102,8 +100,7 @@ export class ControllerSessionTabSearch {
             }
             // Drop results
             this._results = {
-                indexes: [],
-                regs: [],
+                matches: [],
             };
             // Drop output
             this._output.clearStream();
@@ -128,14 +125,33 @@ export class ControllerSessionTabSearch {
                     finished: -1
                 };
                 // Save results
-                this._results.indexes = results.results;
-                this._results.regs = requests;
+                this._results.matches = results.matches;
                 // Share results
                 OutputParsersService.setSearchResults(this._guid, requests, results.results);
             }).catch((error: Error) => {
                 reject(error);
             });
         });
+    }
+
+    public getCloseToMatch(row: number): { row: number, index: number } {
+        if (this._results.matches.length === 0) {
+            return { row: -1, index: -1 };
+        }
+        for (let i = this._results.matches.length - 1; i >= 0; i -= 1) {
+            const cur: number = this._results.matches[i];
+            if (cur === row) {
+                return { row: row, index: i };
+            }
+            if (cur < row) {
+                if (i !== this._results.matches.length - 1) {
+                    const prev: number = this._results.matches[i + 1];
+                    return { row: (row - cur) < (prev - row) ? cur : prev, index: (row - cur) < (prev - row) ? i : (i + 1)};
+                }
+                return { row: cur, index: i};
+            }
+        }
+        return { row: this._results.matches[0], index: 0 };
     }
 
     private _requestStreamData(start: number, end: number): Promise<IPCMessages.SearchChunk> {
