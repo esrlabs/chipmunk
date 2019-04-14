@@ -85,6 +85,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         cache: number,
         prevScrollTop: number,
         lastWheel: number,
+        scrollTo: number,
     } = {
         scale: 1,
         heightFiller: -1,
@@ -94,6 +95,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         cache: -1,
         prevScrollTop: -1,
         lastWheel: 0,
+        scrollTo: -1,
     };
     private _state: {
         start: number;
@@ -255,7 +257,12 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         if (this._state.end !== -1) {
             if (change >= this._vSB.maxSlowDistancePx && (!this._isScrolledByWheel() && this._settings.noScrollScaleOnWheel)) {
                 // Calculate considering scale
-                this._state.start += Math.round((change / this._vSB.scale) / this._vSB.itemHeight) * direction;
+                if (this._vSB.scrollTo !== -1) {
+                    this._state.start = this._vSB.scrollTo;
+                    this._vSB.scrollTo = -1;
+                } else {
+                    this._state.start += Math.round((change / this._vSB.scale) / this._vSB.itemHeight) * direction;
+                }
                 if (this._state.start < 0) {
                     this._state.start = 0;
                 } else if (this._state.start > this._storageInfo.count - this._state.count - 1) {
@@ -267,7 +274,12 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
                     change = this._vSB.itemHeight;
                 }
                 // Calculate without scale
-                this._state.start += Math.round(change / this._vSB.itemHeight) * direction;
+                if (this._vSB.scrollTo !== -1) {
+                    this._state.start = this._vSB.scrollTo;
+                    this._vSB.scrollTo = -1;
+                } else {
+                    this._state.start += Math.round(change / this._vSB.itemHeight) * direction;
+                }
                 if (this._state.start < 0) {
                     this._state.start = 0;
                 } else if (this._state.start > this._storageInfo.count - this._state.count) {
@@ -320,13 +332,14 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
             this._vSB.cache = scrollTop;
             return false;
         }
-        if (this._state.start === -1) {
-            // onScrollTo was triggered
-            this._state.start = 0;
-        }
         change = Math.abs(change);
         change = change < this._vSB.itemHeight ? this._vSB.itemHeight : change;
-        this._state.start += Math.round(change / this._vSB.itemHeight) * direction;
+        if (this._vSB.scrollTo !== -1) {
+            this._state.start = this._vSB.scrollTo;
+            this._vSB.scrollTo = -1;
+        } else {
+            this._state.start += Math.round(change / this._vSB.itemHeight) * direction;
+        }
         if (this._state.start < 0) {
             this._state.start = 0;
         } else if (this._state.start > this._storageInfo.count - this._state.count) {
@@ -423,8 +436,6 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         // Correct row value
         row = row > this._storageInfo.count - 1 ? (this._storageInfo.count - 1) : row;
         row = row < 0 ? 0 : row;
-        // Drop frame to begin
-        this._state.start = -1;
         // Drop cache
         this._vSB.cache = -1;
         // Detect start of frame
@@ -433,6 +444,8 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
             start = this._storageInfo.count - 1 - this._state.count;
             this._state.end = -1;
         }
+        // Drop frame to begin
+        this._vSB.scrollTo = start;
         // Calculate scale
         const scrollTop = Math.round((start * this._vSB.itemHeight) * this._vSB.scale);
         this._ng_nodeContainer.nativeElement.scrollTop = scrollTop;
@@ -441,6 +454,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
     private _reset() {
         this._vSB.offset = 0;
         this._vSB.cache = -1;
+        this._vSB.scrollTo = -1;
         this._state.start = 0;
         this._state.end = 0;
         this._ng_rows = [];
