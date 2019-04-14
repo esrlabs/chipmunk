@@ -13,8 +13,8 @@ export interface IPluginParsers {
 }
 
 export interface ISearchResults {
-    matches: { [key: number]: number[] };
-    regs: RegExp[];
+    matches: { [key: number]: number[] };   // Matches by reg
+    regs: RegExp[];                         // List of regs in search
 }
 
 const PluginParsersNamesMap = {

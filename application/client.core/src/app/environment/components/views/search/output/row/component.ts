@@ -2,6 +2,7 @@ import { Component, Input, AfterContentChecked, ViewEncapsulation } from '@angul
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import PluginsService, { IPluginData } from '../../../../../services/service.plugins';
 import OutputParsersService from '../../../../../services/standalone/service.output.parsers';
+import OutputRedirectionsService from '../../../../../services/standalone/service.output.redirections';
 
 @Component({
     selector: 'app-views-search-output-row',
@@ -38,6 +39,10 @@ export class ViewSearchOutputRowComponent implements AfterContentChecked {
 
     public _ng_isPending() {
         return this.str === undefined;
+    }
+
+    public _ng_onRowSelect() {
+        OutputRedirectionsService.select('search', this.sessionId, this.positionInStream);
     }
 
     private _acceptRowWithContent() {

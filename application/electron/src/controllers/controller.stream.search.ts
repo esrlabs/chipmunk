@@ -112,6 +112,7 @@ export default class ControllerStreamSearch {
             const result: IResults = {
                 found: 0,
                 regs: {},
+                matches: [],
                 str: '',
                 rows: 0,
             };
@@ -163,6 +164,7 @@ export default class ControllerStreamSearch {
         }
         results.found += res.found;
         results.rows += res.rows;
+        results.matches.push(...res.matches);
         Object.keys(res.regs).forEach((reg: string) => {
             const index: number = parseInt(reg, 10);
             if (results.regs[index] === undefined) {
@@ -189,6 +191,7 @@ export default class ControllerStreamSearch {
                 requestId: message.requestId,
                 error: error,
                 results: results !== undefined ? results.regs : {},
+                matches: results !== undefined ? results.matches : [],
             }));
             // Notify client
             ServiceElectron.IPC.send(new IPCElectronMessages.SearchRequestFinished({
@@ -241,6 +244,7 @@ export default class ControllerStreamSearch {
             streamId: this._guid,
             requestId: searchRequestId,
             results: middleResults.regs,
+            matches: middleResults.matches,
         }));
     }
 

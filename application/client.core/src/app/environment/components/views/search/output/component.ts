@@ -47,6 +47,8 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         this._subscriptions.onStateUpdated = this._output.getObservable().onStateUpdated.subscribe(this._onStateUpdated.bind(this));
         this._subscriptions.onRangeLoaded = this._output.getObservable().onRangeLoaded.subscribe(this._onRangeLoaded.bind(this));
         this._subscriptions.onReset = this._output.getObservable().onReset.subscribe(this._onReset.bind(this));
+        this._subscriptions.onScrollTo = this._output.getObservable().onScrollTo.subscribe(this._onScrollTo.bind(this));
+
     }
 
     public ngOnDestroy() {
@@ -104,6 +106,14 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
             range: packet.range,
             rows: packet.rows,
         });
+    }
+
+    private _onScrollTo(row: number) {
+        const closed: { row: number, index: number } = this.session.getSessionSearch().getCloseToMatch(row);
+        if (closed.index === -1) {
+            return;
+        }
+        this._ng_outputAPI.onScrollTo.next(closed.index);
     }
 
 }

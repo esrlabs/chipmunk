@@ -1,6 +1,7 @@
 import { IPCMessages } from '../services/service.electron.ipc';
 import { Observable, Subject } from 'rxjs';
 import * as Toolkit from 'logviewer.client.toolkit';
+import OutputRedirectionsService from '../services/standalone/service.output.redirections';
 
 export type TRequestDataHandler = (start: number, end: number) => Promise<IPCMessages.StreamChunk>;
 
@@ -52,6 +53,7 @@ export class ControllerSessionTabStreamOutput {
     private _logger: Toolkit.Logger;
     private _rows: IStreamPacket[] = [];
     private _requestDataHandler: TRequestDataHandler;
+    private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
     private _state: IStreamState = {
         count: 0,
         countRank: 1,
@@ -70,12 +72,21 @@ export class ControllerSessionTabStreamOutput {
     private _subjects = {
         onStateUpdated: new Subject<IStreamState>(),
         onRangeLoaded: new Subject<ILoadedRange>(),
+        onReset: new Subject<void>(),
+        onScrollTo: new Subject<number>(),
     };
 
     constructor(guid: string, requestDataHandler: TRequestDataHandler) {
         this._guid = guid;
         this._requestDataHandler = requestDataHandler;
         this._logger = new Toolkit.Logger(`ControllerSessionTabStreamOutput: ${this._guid}`);
+        this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(this._guid, this._onRowSelected.bind(this));
+    }
+
+    public destroy() {
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            this._subscriptions[key].unsubscribe();
+        });
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -89,10 +100,14 @@ export class ControllerSessionTabStreamOutput {
     public getObservable(): {
         onStateUpdated: Observable<IStreamState>,
         onRangeLoaded: Observable<ILoadedRange>,
+        onReset: Observable<void>,
+        onScrollTo: Observable<number>,
     } {
         return {
             onStateUpdated: this._subjects.onStateUpdated.asObservable(),
             onRangeLoaded: this._subjects.onRangeLoaded.asObservable(),
+            onReset: this._subjects.onReset.asObservable(),
+            onScrollTo: this._subjects.onScrollTo.asObservable(),
         };
     }
 
@@ -151,6 +166,21 @@ export class ControllerSessionTabStreamOutput {
      */
     public clearStream(): void {
         this._rows = [];
+        this._state = {
+            count: 0,
+            countRank: 1,
+            stored: {
+                start: 0,
+                end: 0,
+            },
+            frame: {
+                start: -1,
+                end: -1
+            },
+            lastLoadingRequestId: undefined,
+            bufferLoadingRequestId: undefined,
+        };
+        this._subjects.onReset.next();
     }
 
     /**
@@ -178,6 +208,14 @@ export class ControllerSessionTabStreamOutput {
         const offset: number = this._state.stored.start > 0 ? this._state.stored.start : 0;
         return this._rows.slice(from - offset, to - offset);
     }
+
+    private _onRowSelected(sender: string, row: number) {
+        if (sender === 'stream') {
+            return;
+        }
+        this._subjects.onScrollTo.next(row);
+    }
+
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Internal methods / helpers
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */

@@ -1,5 +1,6 @@
 export interface IResults {
     regs: { [regIndex: number]: number[] }; // Indexes with matchs, like { 1: [2,3,4] } where 1 - index of reg; [2,3,4] - numbers of rows with match
+    matches: number[];                      // All numbers of rows with match
     found: number;                          // Total count of matches
     str: string;                            // Rows with matches
     rows: number;                           // Count of rows with match
@@ -50,6 +51,7 @@ export class Fragment {
         const results: IResults = {
             found: 0,
             regs: {},
+            matches: [],
             str: '',
             rows: 0,
         };
@@ -85,6 +87,7 @@ export class Fragment {
                 results.regs[match.index] = [];
             }
             results.regs[match.index].push(row);
+            results.matches.push(row);
             results.found += 1;
             results.str += `${subscring}\n`;
             results.rows += 1;
