@@ -2,20 +2,15 @@
 // tslint:disable:ban-types
 
 import * as uuid from 'uuid';
-
 import { app } from 'electron';
-
-import Logger from '../tools/env.logger';
-
 import { Subscription } from '../../platform/cross/src/index';
 import { THandler } from '../../platform/cross/src/types.common';
 import { IService } from '../interfaces/interface.service';
-
-import ControllerElectronIpc from '../controllers/controller.electron.ipc';
-
-import ControllerBrowserWindow from '../controllers/controller.browserwindow';
-
 import { IPCMessages } from '../controllers/controller.electron.ipc';
+import ControllerElectronIpc from '../controllers/controller.electron.ipc';
+import ServiceProduction from './service.production';
+import ControllerBrowserWindow from '../controllers/controller.browserwindow';
+import Logger from '../tools/env.logger';
 
 export { IPCMessages, Subscription };
 
@@ -171,7 +166,9 @@ class ServiceElectron implements IService {
         }
         // Create client
         this._createBrowserWindow();
-        this._controllerBrowserWindow !== undefined && this._controllerBrowserWindow.debug();
+        if (!ServiceProduction.isProduction()) {
+            this._controllerBrowserWindow !== undefined && this._controllerBrowserWindow.debug();
+        }
         // Menu
         // Files from cmd
         // cmd

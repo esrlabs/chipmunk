@@ -3,6 +3,7 @@ import * as Path from 'path';
 import * as FS from '../tools/fs';
 
 import Logger from '../tools/env.logger';
+import ServiceProduction from './service.production';
 
 import { IService } from '../../src/interfaces/interface.service';
 
@@ -33,8 +34,11 @@ class ServicePaths implements IService {
         this._home = Path.resolve(OS.homedir(), HOME_FOLDER);
         this._sockets = Path.resolve(this._home, SOCKETS_FOLDER);
         this._streams = Path.resolve(this._home, STREAMS_FOLDER);
-        // this._plugins = Path.resolve(this._home, PLUGINS_FOLDER);
-        this._plugins = '/Users/dmitry.astafyev/WebstormProjects/logviewer/electron.github/application/sandbox';
+        if (ServiceProduction.isProduction()) {
+            this._plugins = Path.resolve(this._home, PLUGINS_FOLDER);
+        } else {
+            this._plugins = '/Users/dmitry.astafyev/WebstormProjects/logviewer/electron.github/application/sandbox';
+        }
         const resources: Error | string = this._getResourcePath();
         if (resources instanceof Error) {
             throw resources;
