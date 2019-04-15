@@ -5,7 +5,7 @@ import { IPCMessagePackage } from './controller.plugin.process.ipc.messagepackag
 import * as IPCMessages from './plugin.ipc.messages/index';
 import ServiceElectron from '../services/service.electron';
 import Logger from '../tools/env.logger';
-import { guid, Subscription, THandler } from '../../platform/cross/src/index';
+import { guid, Subscription, THandler } from '../tools/index';
 
 export { IPCMessages };
 

@@ -12,7 +12,7 @@ import ControllerStreamSearch, { IResults } from '../controllers/controller.stre
 import ControllerStreamBuffer from '../controllers/controller.stream.buffer';
 import ControllerStreamProcessor from '../controllers/controller.stream.processor';
 import { IService } from '../interfaces/interface.service';
-import * as Tools from '../../platform/cross/src/index';
+import * as Tools from '../tools/index';
 
 export interface IStreamInfo {
     guid: string;

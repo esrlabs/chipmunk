@@ -1,5 +1,5 @@
 import Logger from '../tools/env.logger';
-import guid from '../../platform/cross/src/tools.guid';
+import guid from '../tools/tools.guid';
 import { IService } from '../interfaces/interface.service';
 import ServiceElectron from './service.electron';
 import { IPCMessages, Subscription } from './service.electron';

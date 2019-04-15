@@ -2,9 +2,9 @@ import * as Path from 'path';
 
 import { ChildProcess, spawn } from 'child_process';
 import { StringDecoder } from 'string_decoder';
-import { getOSEnvVars, TEnvVars } from './process.env';
+import { getShellEnvironment, TEnvVars } from './process.env';
 
-import Emitter from '../../platform/cross/src/emitter';
+import Emitter from '../tools/emitter';
 
 export interface ISpawnParameters {
     command: string;
@@ -158,7 +158,7 @@ export default class Spawn extends Emitter {
 
             // Add PATHs
             if (results.getOriginalEnvVars.length > 0) {
-                return getOSEnvVars().then((envVars: TEnvVars) => {
+                return getShellEnvironment().then((envVars: TEnvVars) => {
                     // Inject env variables
                     (results.getOriginalEnvVars as string[]).forEach((variable: string) => {
                         if (typeof envVars[variable] === 'string') {

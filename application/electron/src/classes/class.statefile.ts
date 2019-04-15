@@ -1,4 +1,4 @@
-import * as Objects from '../../platform/cross/src/env.objects';
+import * as Objects from '../tools/env.objects';
 import * as FS from '../tools/fs';
 
 import Logger from '../tools/env.logger';
