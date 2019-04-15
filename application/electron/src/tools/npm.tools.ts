@@ -1,6 +1,5 @@
 import { exec, ExecException } from 'child_process';
 import * as path from 'path';
-import * as util from 'util';
 import { getShellEnvironment } from './process.env';
 import ServiceElectron from '../services/service.electron';
 
@@ -32,12 +31,11 @@ export function install(target: string, npmPath?: string): Promise<void> {
 
 function getEnvVariables(): Promise<{ [key: string]: string | number | boolean }> {
     return new Promise((resolve) => {
-        return resolve({});
+        const logger = new Logger(`NPM env detector`);
         if (npmEnvVariables !== undefined) {
             return resolve(npmEnvVariables);
         }
         getShellEnvironment().then((env) => {
-            const logger = new Logger(`NPM env detector`);
             npmEnvVariables = Object.assign({
                 npm_config_target           : ServiceElectron.getVersion() as string,
                 npm_config_arch             : 'x64',
@@ -48,6 +46,8 @@ function getEnvVariables(): Promise<{ [key: string]: string | number | boolean }
                 ELECTRON_RUN_AS_NODE        : '1',
             }, env);
             resolve(npmEnvVariables);
+        }).catch((error: Error) => {
+            logger.error(`Fail to get OS env due error: ${error.message}`);
         });
     });
 }
