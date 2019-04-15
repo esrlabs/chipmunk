@@ -1,5 +1,6 @@
 import * as Path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as Net from 'net';
 import * as FS from '../tools/fs';
 import { EventEmitter } from 'events';
@@ -19,7 +20,7 @@ export interface IStreamInfo {
     streamFile: string;
     searchFile: string;
     connections: Net.Socket[];
-    connectionFactory: (pluginName: string) => Promise<Net.Socket>;
+    connectionFactory: (pluginName: string) => Promise<{ socket: Net.Socket, file: string }>;
     server: Net.Server;
     processor: ControllerStreamProcessor;
     search: ControllerStreamSearch;
@@ -111,7 +112,7 @@ class ServiceStreams extends EventEmitter implements IService  {
     private _createStream(guid: string): Promise<IStreamInfo> {
         return new Promise((resolve, reject) => {
             // const socketFile: string = Path.resolve(ServicePaths.getSockets(), `test.sock`);
-            const socketFile: string = Path.resolve(ServicePaths.getSockets(), `${Date.now()}-${guid}.sock`);
+            const socketFile: string = this._getSocketFileName(`${Date.now()}-${guid}`);
             const streamFile: string = Path.resolve(ServicePaths.getStreams(), `${Date.now()}-${guid}.stream`);
             const searchFile: string = Path.resolve(ServicePaths.getStreams(), `${Date.now()}-${guid}.search`);
             try {
@@ -125,13 +126,13 @@ class ServiceStreams extends EventEmitter implements IService  {
                     searchFile: searchFile,
                     server: server,
                     connections: [],
-                    connectionFactory: (pluginName: string) => {
+                    connectionFactory: (pluginName: string): Promise<{ socket: Net.Socket, file: string }> => {
                         return new Promise((resolveConnection) => {
-                            const sharedConnection: Net.Socket = Net.connect(socketFile, () => {
+                            const socket: Net.Socket = Net.connect(socketFile, () => {
                                 this._logger.env(`Created new connection UNIX socket: ${socketFile} for plugin "${pluginName}".`);
-                                resolveConnection(sharedConnection);
+                                resolveConnection({ socket: socket, file: socketFile });
                             });
-                            (sharedConnection as any).__id = Tools.guid();
+                            (socket as any).__id = Tools.guid();
                         });
                     },
                     processor: new ControllerStreamProcessor(guid, streamFile),
@@ -140,6 +141,10 @@ class ServiceStreams extends EventEmitter implements IService  {
                 };
                 // Bind server with file
                 server.listen(socketFile);
+                // Listen errors
+                server.on('error', (error: Error) => {
+                    this._logger.error(`Error on socket "${socketFile}": ${error.message}`);
+                });
                 // Store stream data
                 this._streams.set(guid, stream);
                 // Resolve / finish
@@ -159,7 +164,7 @@ class ServiceStreams extends EventEmitter implements IService  {
         const pluginRef: string = Tools.guid();
         // Start listen new connection
         socket.on('data', this._stream_onData.bind(this, guid, pluginRef));
-        this._logger.env(`New connection to stream "${guid}" is accepted.`);
+        this._logger.env(`New connection to stream "${guid}" is accepted. Reference: ${pluginRef}`);
         stream.connections.push(socket);
     }
 
@@ -275,35 +280,14 @@ class ServiceStreams extends EventEmitter implements IService  {
         });
     }
 
-    /*
-    private _buffer_onData(streamId: string, output: string): Promise<void> {
-        return new Promise((resolve, reject) => {
-            // Get stream info
-            const stream: IStreamInfo | undefined = this._streams.get(streamId);
-            if (stream === undefined) {
-                return reject(new Error(this._logger.warn(`Fail to find a stream data for stream guid "${streamId}"`)));
-            }
-            // Send data forward
-            /*
-            ServiceElectron.IPC.send(new IPCElectronMessages.StreamData({
-                guid: streamId,
-                data: output,
-                pluginId: 1,
-                pluginToken: 'fake',
-            })).catch((error: Error) => {
-                this._logger.warn(`Fail send data from stream to render process due error: ${error.message}`);
-            });*/
-            // Write data to stream file
-            /*
-            stream.fileWriteStream.write(output, (writeError: Error | null | undefined) => {
-                if (writeError) {
-                    return reject(new Error(this._logger.error(`Fail to write data into stream file (${stream.streamFile}) due error: ${writeError.message}`)));
-                }
-                resolve();
-            });
-        });
+    private _getSocketFileName(base: string): string {
+        if (process.platform === 'win32') {
+            return `\\\\.\\pipe\\${base}`;
+        } else {
+            return Path.resolve(ServicePaths.getSockets(), `${base}.sock`);
+        }
     }
-    */
+
 }
 
 export default (new ServiceStreams());

@@ -11,23 +11,26 @@ import ServiceStreams from './services/service.streams';
 import ServiceSettings from './services/service.settings';
 import ServiceWindowState from './services/service.window.state';
 import ServiceElectronState from './services/service.electron.state';
+import ServiceProduction from './services/service.production';
 
 const InitializeStages = [
     // Stage #1
-    [ServicePaths],
+    [ServiceProduction],
     // Stage #2
-    [ServicePackage],
+    [ServicePaths],
     // Stage #3
+    [ServicePackage],
+    // Stage #4
     [ServiceSettings, ServiceWindowState],
-    // Stage #4. Init electron. Prepare browser window
+    // Stage #5. Init electron. Prepare browser window
     [ServiceElectron],
-    // Stage #5. Init services and helpers
+    // Stage #6. Init services and helpers
     [ServiceElectronState],
-    // Stage #6. Stream service
+    // Stage #7. Stream service
     [ServiceStreams],
-    // Stage #7. Detect OS env
+    // Stage #8. Detect OS env
     [ServiceEnv],
-    // Stage #8. Init plugins
+    // Stage #9. Init plugins
     [ServicePlugins],
     // (last service should startup service and should be single always)
 ];
@@ -127,32 +130,6 @@ class Application {
 (new Application()).init().then((app: Application) => {
     app.logger.env(`Application is ready.`);
     ServiceElectronState.setStateAsReady();
-    // initialization of plugins?
-    // registration events?
-    /*
-    setInterval(() => {
-        ServiceElectron.IPC.send(ServiceElectron.IPCMessages.HostState, new ServiceElectron.IPCMessages.HostState({
-            message: 'hello',
-            state: ServiceElectron.IPCMessages.HostState.States.ready,
-        })).then(() => {
-            console.log('sent');
-        }).catch((error: Error) => {
-            console.log(`cannot send package`);
-        });
-    }, 2000);
-    */
-/*
-    ServiceElectron.IPC.subscribe('toServer', (a, b, c) => {
-        console.log(`!!!!!`);
-        console.log(a, b, c);
-        console.log(`!!!!!`);
-    }).then((subscription) => {
-        console.log('done');
-    }).catch((error: Error) => {
-        console.log(`cannot make subscription`);
-    });
-    */
-
 }).catch((error: Error) => {
     throw error;
 });
