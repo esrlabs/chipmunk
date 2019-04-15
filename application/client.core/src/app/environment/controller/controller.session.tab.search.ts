@@ -203,9 +203,10 @@ export class ControllerSessionTabSearch {
         }
         // Request is finished successful
         this._activeRequest.resolve(message.duration);
+        // Notify
+        this._subjects.onSearchFinished.next(this._activeRequest.id);
         // Drop request data
         this._activeRequest = undefined;
-        this._subjects.onSearchFinished.next(this._activeRequest.id);
     }
 
     private _isIPCMessageBelongController(message: IPCMessages.SearchRequestStarted | IPCMessages.SearchRequestFinished | IPCMessages.SearchRequestResults): boolean {
