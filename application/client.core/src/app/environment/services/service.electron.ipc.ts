@@ -164,37 +164,39 @@ class ElectronIpcService implements IService {
     }
 
     private _onIPCMessage(ipcEvent: Event, eventName: string, data: any) {
+        const messagePackage: IPCMessagePackage = new IPCMessagePackage(data);
+        const resolver = this._pending.get(messagePackage.sequence);
+        this._pending.delete(messagePackage.sequence);
+        const refMessageClass = this._getRefToMessageClass(messagePackage.message);
+        if (refMessageClass === undefined) {
+            return this._logger.warn(`Cannot find ref to class of message. Event: ${eventName}; data: ${data}.`);
+        }
+        const instance: IPCMessages.TMessage = new (refMessageClass as any)(messagePackage.message);
+        if (resolver !== undefined) {
+            return resolver(instance);
+        }
+        if (instance instanceof IPCMessages.PluginInternalMessage) {
+            if (typeof instance.token !== 'string' || instance.token.trim() === '') {
+                return this._logger.warn(`Was gotten message "PluginInternalMessage", but message doesn't have token. Message will be ignored.`, instance);
+            }
+            // This is plugin message. Do not pass into common stream of messages
+            this._emitIncomePluginMessage(instance);
+            return;
+        }
+        const handlers = this._handlers.get(instance.signature);
+        if (handlers === undefined) {
+            return;
+        }
+        // TODO: try / catch should be only on production
+        handlers.forEach((handler: THandler) => {
+            handler(instance, this.response.bind(this, messagePackage.sequence));
+        });
+        /*
         try {
-            const messagePackage: IPCMessagePackage = new IPCMessagePackage(data);
-            const resolver = this._pending.get(messagePackage.sequence);
-            this._pending.delete(messagePackage.sequence);
-            const refMessageClass = this._getRefToMessageClass(messagePackage.message);
-            if (refMessageClass === undefined) {
-                throw new Error(`Cannot find ref to class of message`);
-            }
-            const instance: IPCMessages.TMessage = new (refMessageClass as any)(messagePackage.message);
-            if (resolver !== undefined) {
-                return resolver(instance);
-            }
-            if (instance instanceof IPCMessages.PluginInternalMessage) {
-                if (typeof instance.token !== 'string' || instance.token.trim() === '') {
-                    this._logger.warn(`Was gotten message "PluginInternalMessage", but message doesn't have token. Message will be ignored.`, instance);
-                    return;
-                }
-                // This is plugin message. Do not pass into common stream of messages
-                this._emitIncomePluginMessage(instance);
-                return;
-            }
-            const handlers = this._handlers.get(instance.signature);
-            if (handlers === undefined) {
-                return;
-            }
-            handlers.forEach((handler: THandler) => {
-                handler(instance, this.response.bind(this, messagePackage.sequence));
-            });
         } catch (e) {
             this._logger.warn(`Incorrect format of IPC message: ${typeof data}. Error: ${e.message}`);
         }
+        */
     }
 
     private _send(params: {

@@ -58,8 +58,8 @@ export class ControllerSessionTabStreamOutput {
         count: 0,
         countRank: 1,
         stored: {
-            start: 0,
-            end: 0,
+            start: -1,
+            end: -1,
         },
         frame: {
             start: -1,
@@ -114,17 +114,21 @@ export class ControllerSessionTabStreamOutput {
     public getRange(range: IRange): IStreamPacket[] | Error {
         let rows: IStreamPacket[] = [];
         const stored = Object.assign({}, this._state.stored);
-        if (this._rows.length === 0) {
+        if (this._state.count === 0 || range.start < 0 || range.end < 0) {
             return [];
         }
-        if (range.start >= stored.start && range.end <= stored.end) {
-            rows = this._getRowsSliced(range.start, range.end + 1);
-        } else if (range.end > stored.start && range.start < stored.start && range.end < stored.end) {
-            rows = this._getPendingPackets(range.start, stored.start);
-            rows.push(...this._getRowsSliced(stored.start, range.end + 1));
-        } else if (range.start < stored.end && range.start > stored.start && range.end > stored.end) {
-            rows = this._getPendingPackets(stored.end + 1, range.end + 1);
-            rows.unshift(...this._getRowsSliced(range.start, stored.end + 1));
+        if (stored.start >= 0 && stored.end >= 0) {
+            if (range.start >= stored.start && range.end <= stored.end) {
+                rows = this._getRowsSliced(range.start, range.end + 1);
+            } else if (range.end > stored.start && range.start < stored.start && range.end < stored.end) {
+                rows = this._getPendingPackets(range.start, stored.start);
+                rows.push(...this._getRowsSliced(stored.start, range.end + 1));
+            } else if (range.start < stored.end && range.start > stored.start && range.end > stored.end) {
+                rows = this._getPendingPackets(stored.end + 1, range.end + 1);
+                rows.unshift(...this._getRowsSliced(range.start, stored.end + 1));
+            } else {
+                rows = this._getPendingPackets(range.start, range.end + 1);
+            }
         } else {
             rows = this._getPendingPackets(range.start, range.end + 1);
         }
@@ -170,8 +174,8 @@ export class ControllerSessionTabStreamOutput {
             count: 0,
             countRank: 1,
             stored: {
-                start: 0,
-                end: 0,
+                start: -1,
+                end: -1,
             },
             frame: {
                 start: -1,
@@ -231,7 +235,7 @@ export class ControllerSessionTabStreamOutput {
         }
         const request: IRange = { start: -1, end: -1 };
         // Calculate data, which should be requested
-        if (frame.end - frame.start <= 0) {
+        if (frame.end - frame.start + 1 <= 0) {
             return false;
         }
         const distance = {
@@ -265,7 +269,7 @@ export class ControllerSessionTabStreamOutput {
                     // Send notification about update
                     this._subjects.onRangeLoaded.next({
                         range: { start: frame.start, end: frame.end },
-                        rows: this._getRowsSliced(frame.start, frame.end)
+                        rows: this._getRowsSliced(frame.start, frame.end + 1)
                     });
                     return;
                 } else {

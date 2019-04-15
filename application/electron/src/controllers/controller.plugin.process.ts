@@ -1,13 +1,13 @@
 import * as Path from 'path';
 import * as FS from '../tools/fs';
 import * as Net from 'net';
-
+import * as IPCPluginMessages from './plugin.ipc.messages/index';
 import { ChildProcess, fork } from 'child_process';
 import { Emitter } from '../tools/index';
-import Logger from '../tools/env.logger';
 import { IPlugin } from '../services/service.plugins';
+import Logger from '../tools/env.logger';
 import ControllerIPCPlugin from './controller.plugin.process.ipc';
-import * as IPCPluginMessages from './plugin.ipc.messages/index';
+import ServiceProduction from '../services/service.production';
 
 /**
  * @class ControllerPluginProcess
@@ -51,9 +51,13 @@ export default class ControllerPluginProcess extends Emitter {
             if (!FS.isExist(main)) {
                 return reject(new Error(this._logger.error(`Cannot find file defined in "main" of package.json. File: ${main}.`)));
             }
+            const args: string[] = [];
+            if (!ServiceProduction.isProduction()) {
+                args.push(`--inspect=127.0.0.1:${9229 + this._plugin.id - 1}`);
+            }
             this._process = fork(
                 main,
-                [`--inspect=127.0.0.1:${9229 + this._plugin.id - 1}`],
+                args,
                 { stdio: [
                     'pipe', // stdin  - doesn't used by parent process
                     'pipe', // stdout - listened by parent process. Whole output from it goes to logs of parent process
