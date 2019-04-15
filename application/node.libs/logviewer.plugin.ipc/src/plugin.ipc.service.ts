@@ -8,6 +8,12 @@ import guid from './tools.guid';
 
 export { IPCMessages };
 
+export interface IStreamInfo {
+    id: string;
+    file: string;
+    socket: Net.Socket | undefined;
+}
+
 /**
  * @class PluginIPCService
  * @description Service provides communition between plugin's process and parent (main) process
@@ -257,11 +263,15 @@ export class PluginIPCService extends EventEmitter {
         try {
             // Check socket before
             if (typeof data === 'string' && data.indexOf('[socket]:') === 0) {
-                if (socket === undefined) {
-                    return console.log(`Has gotten socket information "${data}", but handle to socket is undefined.`);
+                if (socket === undefined && process.platform !== 'win32') {
+                    return console.error(`Has gotten socket information "${data}", but handle to socket is undefined. Platform: ${process.platform}`);
                 }
-                const streamId: string = data.replace('[socket]:', '');
-                return this._acceptSocket(streamId, socket);
+                const parts: string[] = data.replace('[socket]:', '').split(';');
+                if (parts.length !== 2) {
+                    return console.error(`Has gotten socket information "${data}", but there error with extracting stream ID and filename of socket.`);
+                }
+                const info: IStreamInfo = { id: parts[0], file: parts[1], socket: socket };
+                return this._acceptSocket(info);
             }
             const messagePackage: IPCMessagePackage = new IPCMessagePackage(data);
             if (this._token !== undefined && messagePackage.token !== null && messagePackage.token !== this._token) {
@@ -290,10 +300,28 @@ export class PluginIPCService extends EventEmitter {
         }
     }
 
-    private _acceptSocket(streamId: string, socket: Net.Socket) {
-        this._sockets.set(streamId, socket);
-        this.emit(this.Events.openStream, streamId);
-        console.log(`Accepted socket of stream "${streamId}"`);
+    private _acceptSocket(stream: IStreamInfo) {
+        if (process.platform === 'win32') {
+            const socket: Net.Socket = Net.connect(stream.file, () => {
+                // Save socket
+                this._sockets.set(stream.id, socket);
+                // Send signature
+                console.log(`Socket connection is created on plugin level. Will send signature (plugin ID: ${this._id}; token: ${this._token})`);
+                socket.write(`[plugin:${this._id}]`, (error: Error) => {
+                    if (error) {
+                        return console.log(`Cannot send ID of plugin into socket due error: ${error.message}`);
+                    }
+                    console.log(`ID of plugin was sent to main process.`);
+                });
+                // Notify listeners.
+                this.emit(this.Events.openStream, stream.id);
+                console.log(`Created new connection UNIX socket: ${stream.file} for plugin stream "${stream.id}".`);
+            });
+        } else if (stream.socket !== undefined) {
+            this._sockets.set(stream.id, stream.socket);
+            this.emit(this.Events.openStream, stream.id);
+            console.log(`Accepted socket of stream "${stream.id}"`);
+        }
     }
 
     // TODO: Removing (closing) stream
