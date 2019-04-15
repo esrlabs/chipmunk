@@ -1,7 +1,7 @@
 import * as Path from 'path';
 import * as Objects from '../../platform/cross/src/env.objects';
 import * as FS from '../tools/fs';
-
+import * as Net from 'net';
 import Logger from '../tools/env.logger';
 import { guid } from '../../platform/cross/src/index';
 import ServiceElectron from './service.electron';
@@ -239,13 +239,11 @@ export class ServicePlugins implements IService {
                 this._logger.warn(`Plugin ${plugin.name} was defined as transport, but plugin doesn't have nodejs part.`);
                 return;
             }
-            stream.connectionFactory(plugin.name).then((connection) => {
+            stream.connectionFactory(plugin.name).then((connection: { socket: Net.Socket, file: string }) => {
                 // Send data to plugin
                 (plugin.node as any).controller.addStream(stream.guid, connection);
                 // Add ref to stream
                 plugin.streams.push(stream.guid);
-                // Add ref to connection
-                // plugin.connections.push(connection.)
                 // Save data
                 this._plugins.set(plugin.name, plugin);
             });
