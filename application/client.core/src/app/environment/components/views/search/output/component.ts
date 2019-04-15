@@ -4,6 +4,7 @@ import { ControllerSessionTab } from '../../../../controller/controller.session.
 import { ControllerSessionTabSearchOutput, ISearchStreamPacket, IStreamState, ILoadedRange } from '../../../../controller/controller.session.tab.search.output';
 import { IDataAPI, IRange, IRow, IRowsPacket, IStorageInformation } from 'logviewer-client-complex';
 import { ViewSearchOutputRowComponent } from './row/component';
+import ViewsEventsService from '../../../../services/standalone/service.views.events';
 
 @Component({
     selector: 'app-views-search-output',
@@ -31,6 +32,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
             onStorageUpdated: new Subject<IStorageInformation>(),
             onScrollTo: new Subject<number>(),
             onRowsDelivered: new Subject<IRowsPacket>(),
+            onRedraw: new Subject<void>(),
         };
     }
 
@@ -48,7 +50,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         this._subscriptions.onRangeLoaded = this._output.getObservable().onRangeLoaded.subscribe(this._onRangeLoaded.bind(this));
         this._subscriptions.onReset = this._output.getObservable().onReset.subscribe(this._onReset.bind(this));
         this._subscriptions.onScrollTo = this._output.getObservable().onScrollTo.subscribe(this._onScrollTo.bind(this));
-
+        this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(this._onResize.bind(this));
     }
 
     public ngOnDestroy() {
@@ -114,6 +116,11 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
             return;
         }
         this._ng_outputAPI.onScrollTo.next(closed.index);
+    }
+
+    private _onResize() {
+        this._cdRef.detectChanges();
+        this._ng_outputAPI.onRedraw.next();
     }
 
 }

@@ -1,6 +1,7 @@
 import { Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { AreaState } from './state';
 import { Subscription } from 'rxjs';
+import ViewsEventsService from '../services/standalone/service.views.events';
 import * as ThemeParams from '../theme/sizes';
 
 enum EResizeType {
@@ -149,6 +150,7 @@ export class LayoutComponent implements OnDestroy {
         this._movement.x = event.x;
         this._movement.y = event.y;
         this._cdRef.detectChanges();
+        ViewsEventsService.fire().onResize();
     }
 
     private _onMouseUp(event: MouseEvent) {
@@ -159,6 +161,7 @@ export class LayoutComponent implements OnDestroy {
         this._movement.y = -1;
         this._movement.type = EResizeType.nothing;
         this._cdRef.detectChanges();
+        ViewsEventsService.fire().onResize();
     }
 
     public _ng_onTriggerFuncState() {
@@ -167,11 +170,13 @@ export class LayoutComponent implements OnDestroy {
         } else {
             this.funcBarState.minimize();
         }
+        ViewsEventsService.fire().onResize();
     }
 
     public _ng_onTriggerFuncLocation() {
         this.funcLocation = this.funcLocation === EFuncLocation.right ? EFuncLocation.left : EFuncLocation.right;
         this._cdRef.detectChanges();
+        ViewsEventsService.fire().onResize();
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -186,10 +191,12 @@ export class LayoutComponent implements OnDestroy {
             this._sizes.sec.current = this._sizes.sec.last;
         }
         this._cdRef.detectChanges();
+        ViewsEventsService.fire().onResize();
     }
 
     private _onSecAreaStateUpdated(state: AreaState) {
         this._cdRef.detectChanges();
+        ViewsEventsService.fire().onResize();
     }
 
     public _ng_onResizeSecAreaTrigger(event: MouseEvent) {
@@ -200,6 +207,7 @@ export class LayoutComponent implements OnDestroy {
         this._movement.y = event.y;
         this._movement.type = EResizeType.sec;
         this._cdRef.detectChanges();
+        ViewsEventsService.fire().onResize();
     }
 
 }
