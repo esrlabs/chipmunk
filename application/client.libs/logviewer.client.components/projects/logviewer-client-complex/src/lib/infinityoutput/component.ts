@@ -34,6 +34,7 @@ export interface IDataAPI {
     onStorageUpdated: Subject<IStorageInformation>;
     onScrollTo: Subject<number>;
     onRowsDelivered: Subject<IRowsPacket>;
+    onRedraw: Subject<void>;
 }
 
 export interface ISettings {
@@ -133,6 +134,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         this._subscriptions.onRowsDelivered = this.API.onRowsDelivered.asObservable().subscribe(this._onRowsDelivered.bind(this));
         this._subscriptions.onScrollTo = this.API.onScrollTo.asObservable().subscribe(this._onScrollTo.bind(this));
         this._subscriptions.onStorageUpdated = this.API.onStorageUpdated.asObservable().subscribe(this._onStorageUpdated.bind(this));
+        this._subscriptions.onRedraw = this.API.onRedraw.asObservable().subscribe(this._onRedraw.bind(this));
         // Get rows
         const rows = this.API.getRange({
             start: 0,
@@ -152,7 +154,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         return typeof row === 'number';
     }
 
-    public _ng_onBrowserWindowResize(event: Event) {
+    public _ng_onBrowserWindowResize(event?: Event) {
         // Update data about sizes
         this._updateContainerSize(true);
         // Update state of vertical scroll bar
@@ -511,6 +513,10 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         }
         this._ng_rows = rows;
         this._cdRef.detectChanges();
+    }
+
+    private _onRedraw() {
+        this._ng_onBrowserWindowResize();
     }
 
 }

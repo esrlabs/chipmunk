@@ -4,6 +4,7 @@ import { ControllerSessionTab, IComponentInjection } from '../../../controller/c
 import { ControllerSessionTabStreamOutput, IStreamPacket, IStreamState, ILoadedRange } from '../../../controller/controller.session.tab.stream.output';
 import { IDataAPI, IRange, IRow, IRowsPacket, IStorageInformation } from 'logviewer-client-complex';
 import { ViewOutputRowComponent } from './row/component';
+import ViewsEventsService from '../../../services/standalone/service.views.events';
 
 @Component({
     selector: 'app-views-output',
@@ -36,6 +37,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
             onStorageUpdated: new Subject<IStorageInformation>(),
             onScrollTo: new Subject<number>(),
             onRowsDelivered: new Subject<IRowsPacket>(),
+            onRedraw: new Subject<void>(),
         };
     }
 
@@ -55,6 +57,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this._subscriptions.onRangeLoaded = this._output.getObservable().onRangeLoaded.subscribe(this._onRangeLoaded.bind(this));
         this._subscriptions.onReset = this._output.getObservable().onReset.subscribe(this._onReset.bind(this));
         this._subscriptions.onScrollTo = this._output.getObservable().onScrollTo.subscribe(this._onScrollTo.bind(this));
+        this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(this._onResize.bind(this));
     }
 
     public ngOnDestroy() {
@@ -116,6 +119,11 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
 
     private _onScrollTo(row: number) {
         this._ng_outputAPI.onScrollTo.next(row);
+    }
+
+    private _onResize() {
+        this._cdRef.detectChanges();
+        this._ng_outputAPI.onRedraw.next();
     }
 
 }
