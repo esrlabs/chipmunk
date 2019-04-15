@@ -2,7 +2,7 @@
   "name": "logviewer",
   "version": "1.0.5",
   "description": "LogViewer",
-  "main": "./dist/compiled/src/main.js",
+  "main": "./dist/compiled/main.js",
   "copyright": "Copyright © 2019 year E.S.R.Labs",
   "build": {
     "asar": false,
@@ -57,7 +57,7 @@
     "typescript": "^3.1.3"
   },
   "scripts": {
-    "electron": "tsc -p ./tsconfig.json && ./node_modules/.bin/electron ./dist/compiled/src/main.js",
+    "electron": "tsc -p ./tsconfig.json && ./node_modules/.bin/electron ./dist/compiled/main.js",
     "build-ts": "tsc -p ./tsconfig.json",
     "start": "npm run build-ts && npm run electron",
     "postinstall": "electron-builder install-app-deps",

@@ -49,7 +49,7 @@ class ServicePaths implements IService {
             throw root;
         }
         this._app = root;
-        this._root = Path.resolve(root, '..');
+        this._root = root;
         this._defaultPlugins = Path.resolve(this._root, 'plugins');
         this._appModules = Path.resolve(this._root, '../../node_modules');
     }
