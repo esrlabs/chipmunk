@@ -5,7 +5,7 @@ import { IPCMessages } from 'logviewer.plugin.ipc';
 
 class Plugin {
 
-    private _logger: Logger = new Logger('XTerminal');
+    private _logger: Logger = new Logger('File');
     private _session: string | undefined;
     private _stream: fs.ReadStream | undefined;
     private _file: string | undefined;
