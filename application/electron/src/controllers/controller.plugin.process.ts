@@ -107,19 +107,25 @@ export default class ControllerPluginProcess extends Emitter {
         return true;
     }
 
-    public addStream(guid: string, socket: Net.Socket) {
+    public addStream(guid: string, connection: { socket: Net.Socket, file: string }) {
         if (this._process === undefined) {
             this._logger.warn(`Attempt to add stream to plugin, which doesn't attached. Stream GUID: ${guid}.`);
             return;
         }
         this._logger.env(`Sent information about stream GUID: ${guid}.`);
         // Bind socket
-        this._bindRefWithId(socket).then(() => {
+        this._bindRefWithId(connection.socket).then(() => {
             if (this._process === undefined) {
                 return;
             }
             // Send socket to plugin process
-            this._process.send(`[socket]:${guid}`, socket);
+            if (process.platform === 'win32') {
+                // Passing sockets is not supported on Windows.
+                this._process.send(`[socket]:${guid};${connection.file}`);
+            } else {
+                // On all other platforms we can pass socket
+                this._process.send(`[socket]:${guid};${connection.file}`, connection.socket);
+            }
         });
     }
 
