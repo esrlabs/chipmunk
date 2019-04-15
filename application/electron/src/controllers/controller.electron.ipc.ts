@@ -3,7 +3,7 @@
 import Logger from '../tools/env.logger';
 
 import { ipcMain, WebContents } from 'electron';
-import { guid, Subscription, THandler } from '../../platform/cross/src/index';
+import { guid, Subscription, THandler } from '../tools/index';
 import * as IPCMessages from './electron.ipc.messages/index';
 import { IPCMessagePackage } from './controller.electron.ipc.messagepackage';
 import ServicePlugins from '../services/service.plugins';

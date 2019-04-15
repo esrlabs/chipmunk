@@ -9,7 +9,7 @@ import { IService } from '../interfaces/interface.service';
 
 class ServiceProduction implements IService {
 
-    private _logger: Logger = new Logger('ServiceEnv');
+    private _logger: Logger = new Logger('ServiceProduction');
     // Should detect by executable file
     private _production: boolean = false;
 

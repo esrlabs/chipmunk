@@ -4,7 +4,7 @@ import { BrowserWindow, BrowserWindowConstructorOptions } from 'electron';
 
 import Logger from '../tools/env.logger';
 
-import EventEmitter from '../../platform/cross/src/emitter';
+import EventEmitter from '../tools/emitter';
 import { IWindowState } from '../services/service.window.state.scheme';
 
 import ServicePackage from '../services/service.package';

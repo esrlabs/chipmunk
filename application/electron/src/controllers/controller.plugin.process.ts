@@ -3,7 +3,7 @@ import * as FS from '../tools/fs';
 import * as Net from 'net';
 
 import { ChildProcess, fork } from 'child_process';
-import { Emitter } from '../../platform/cross/src/index';
+import { Emitter } from '../tools/index';
 import Logger from '../tools/env.logger';
 import { IPlugin } from '../services/service.plugins';
 import ControllerIPCPlugin from './controller.plugin.process.ipc';

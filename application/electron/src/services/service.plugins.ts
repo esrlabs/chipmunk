@@ -1,9 +1,9 @@
 import * as Path from 'path';
-import * as Objects from '../../platform/cross/src/env.objects';
+import * as Objects from '../tools/env.objects';
 import * as FS from '../tools/fs';
 import * as Net from 'net';
 import Logger from '../tools/env.logger';
-import { guid } from '../../platform/cross/src/index';
+import { guid } from '../tools/index';
 import ServiceElectron from './service.electron';
 import ServiceStreams, { IStreamInfo } from './service.streams';
 import ServicePaths from './service.paths';

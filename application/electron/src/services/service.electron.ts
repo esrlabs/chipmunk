@@ -3,8 +3,8 @@
 
 import * as uuid from 'uuid';
 import { app } from 'electron';
-import { Subscription } from '../../platform/cross/src/index';
-import { THandler } from '../../platform/cross/src/types.common';
+import { Subscription } from '../tools/index';
+import { THandler } from '../tools/types.common';
 import { IService } from '../interfaces/interface.service';
 import { IPCMessages } from '../controllers/controller.electron.ipc';
 import ControllerElectronIpc from '../controllers/controller.electron.ipc';
