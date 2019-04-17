@@ -4,49 +4,19 @@ import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } fro
 import ServicePlugins from '../services/service.plugins';
 import ControllerIPCPlugin, { IPCMessages as IPCPluginMessages} from './controller.plugin.process.ipc';
 import ControllerStreamFileReader from './controller.stream.file.reader';
-import PipesState from './controller.stream.processor.pipes.state';
-import Transform from './controller.stream.processor.transform';
+import Transform, { ITransformResult } from './controller.stream.processor.pipe.transform';
+import { IRange, IMapItem } from './controller.stream.processor.map';
+import State from './controller.stream.processor.state';
 
 export interface IPluginInfo {
     id: number;
     token: string;
 }
 
-export interface IRange {
-    start: number;
-    end: number;
-}
-
-export interface IRangeMapItem {
-    rows: IRange;
-    bytes: IRange;
-}
-
 export interface IStreamStateInfo {
     started: number;
     memoryUsed: number;
 }
-
-export interface IAddIndexesResults {
-    output: string;
-    from: number;
-    to: number;
-}
-
-const REGEXPS = {
-    CARRETS: /[\r?\n|\r]/gi,
-};
-
-const MARKERS = {
-    PLUGIN: '\u0003',
-    NUMBER: '\u0002',
-};
-
-const Settings = {
-    notificationDelayOnBlockedStream: 150,    // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is blocked
-    notificationDelayOnUnblockedStream: 50,   // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is unblocked
-    maxPostponedNotificationMessages: 100,    // How many IPC messages to render (client) should be postponed via timer
-};
 
 export default class ControllerStreamProcessor {
 
@@ -68,24 +38,10 @@ export default class ControllerStreamProcessor {
         pipeStarted: new Map(),
         pipeFinished: new Map(),
     };
-    private _state: Map<number, IStreamStateInfo> = new Map();
-    private _rows: {
-        last: number,
-        ranges: IRangeMapItem[],
-        bytesWritten: number,
-        rest: string,
-        lastPluginId: number,
-    } = {
-        last: 0,
-        ranges: [],
-        bytesWritten: 0,
-        rest: '',
-        lastPluginId: -1,
-    };
-    private _timer: any;
-    private _attempts: number = 0;
+    private _memUsage: Map<number, IStreamStateInfo> = new Map();
+    private _transform: Transform;
     private _subscriptions: { [key: string ]: Subscription | undefined } = { };
-    private _pipesState: PipesState;
+    private _state: State;
 
     constructor(guid: string, file: string) {
         this._guid = guid;
@@ -93,7 +49,8 @@ export default class ControllerStreamProcessor {
         this._stream = fs.createWriteStream(this._file, { encoding: 'utf8' });
         this._reader = new ControllerStreamFileReader(this._guid, this._file);
         this._logger = new Logger(`ControllerStreamProcessor: ${this._guid}`);
-        this._pipesState = new PipesState(this._guid);
+        this._state = new State(this._guid);
+        this._transform = new Transform({}, this._guid, this._state);
         this._ipc_onStreamChunkRequested = this._ipc_onStreamChunkRequested.bind(this);
         ServiceElectron.IPC.subscribe(IPCElectronMessages.StreamChunk, this._ipc_onStreamChunkRequested).then((subscription: Subscription) => {
             this._subscriptions.StreamChunk = subscription;
@@ -114,7 +71,8 @@ export default class ControllerStreamProcessor {
 
     public write(chunk: Buffer, pluginReference: string | undefined, pluginId?: number): Promise<void> {
         return new Promise((resolve, reject) => {
-            let output: string;
+            const st: number = Date.now();
+            let output: string = '';
             if (typeof chunk === 'string') {
                 output = chunk;
             } else {
@@ -123,107 +81,38 @@ export default class ControllerStreamProcessor {
             // Binding ref with ID of plugin
             if (pluginReference !== undefined && this._bindPlugin(output, pluginReference) === true) {
                 // This is binding message. No need to process it forward.
-                return;
+                return resolve();
             }
             // Get plugin info
             const pluginInfo: IPluginInfo | Error = this._getPluginInfo(pluginReference, pluginId);
             if (pluginInfo instanceof Error) {
                 return reject(new Error(`Fail to write data due error: ${pluginInfo.message}`));
             }
-            // Remove double carret
-            output = output.replace(REGEXPS.CARRETS, '\n').replace(/\n{2,}/g, '\n');
-            // Check: is plugin changed or not
-            if (this._rows.lastPluginId !== -1 && this._rows.lastPluginId !== pluginInfo.id) {
-                // Source of data was changed.
-                this._rows.rest = `${MARKERS.PLUGIN}${this._rows.lastPluginId}${MARKERS.PLUGIN}\n${this._rows.rest}`;
-            }
-            // Normalize (remove last row, which could be not finished)
-            const rows: string[] = output.split(/\r?\n|\r/gi);
-            const rest: string = rows[rows.length - 1];
-            rows.splice(rows.length - 1, 1);
-            // Join and add plugins signatures
-            output = rows.join(`${MARKERS.PLUGIN}${pluginInfo.id}${MARKERS.PLUGIN}\n`);
-            // Add signature for last item, because it's missed
-            output = `${output}${MARKERS.PLUGIN}${pluginInfo.id}${MARKERS.PLUGIN}\n`;
-            // Add rest from last chunk
-            output = `${this._rows.rest}${output}`;
-            // Update rest
-            this._rows.rest = rest;
-            // Information about added frame
-            const frame = { from: this._rows.last, to: -1 };
-            // Add rows indexes
-            const addIndexesRes: IAddIndexesResults = this._addRowIndexes(output);
-            output = addIndexesRes.output;
-            // Set end of frame
-            frame.to = this._rows.last - 1;
-            // Get length
-            const size: number = Buffer.byteLength(output, 'utf8');
-            // Store cursor position
-            const cursor = {
-                from: this._rows.bytesWritten,
-                to: this._rows.bytesWritten + size - 1,
-            };
-            // Increase bytes written value
-            this._rows.bytesWritten += size;
-            // Remember plugin id to break like in case it will change
-            this._rows.lastPluginId = pluginInfo.id;
-            // Write data into session storage file
-            this._stream.write(output, (writeError: Error | null | undefined) => {
+            // Set plugin
+            this._transform.setPluginId(pluginInfo.id);
+            // Convert chunk to string
+            const converted: ITransformResult = this._transform.convert(output);
+            // Write data
+            this._stream.write(converted.output, (writeError: Error | null | undefined) => {
                 if (writeError) {
                     return reject(new Error(this._logger.error(`Fail to write data into stream file due error: ${writeError.message}`)));
                 }
-                // Store indexes after chuck is written
-                this._rows.ranges.push({
-                    bytes: { start: cursor.from, end: cursor.to },
-                    rows: { start: frame.from, end: frame.to },
-                });
-                // Send state information for pipes (if it's needed)
-                this._pipesState.next(size);
-                // Resolve in anyway, because writing was succesful
                 resolve();
-                // Notification of render (client) about stream's update
-                const delay: number = Settings.notificationDelayOnUnblockedStream;
-                // Drop previous timer
-                clearTimeout(this._timer);
-                // Set new timer for notification message
-                if (this._attempts < Settings.maxPostponedNotificationMessages) {
-                    this._attempts += 1;
-                    this._timer = setTimeout(() => {
-                        this._sendToRender(addIndexesRes.output, addIndexesRes.from, addIndexesRes.to).catch((sendingError: Error) => {
-                            this._logger.error(`Fail to send stream data to render due error: ${sendingError.message}`);
-                        });
-                    }, delay);
-                } else {
-                    this._attempts = 0;
-                    this._sendToRender(addIndexesRes.output, addIndexesRes.from, addIndexesRes.to).catch((sendingError: Error) => {
-                        this._logger.error(`Fail to send stream data to render due error: ${sendingError.message}`);
-                    });
-                }
             });
         });
     }
 
+    public pipe(reader: fs.ReadStream) {
+        this._transform.setPluginId(1);
+        reader.pipe(this._transform).pipe(this._stream, { end: false});
+    }
+
     public addPipeSession(pipeId: string, size: number, name: string) {
-        this._pipesState.add(pipeId, size, name);
+        this._state.pipes.add(pipeId, size, name);
     }
 
     public removePipeSession(pipeId: string) {
-        this._pipesState.remove(pipeId);
-    }
-
-    private _addRowIndexes(str: string): IAddIndexesResults {
-        const result: IAddIndexesResults = {
-            output: '',
-            from: this._rows.last,
-            to: this._rows.last,
-        };
-        str = str.replace(REGEXPS.CARRETS, () => {
-            const injection: string = `${(MARKERS.NUMBER + (this._rows.last++) + MARKERS.NUMBER)}\n`;
-            result.to += 1;
-            return injection;
-        });
-        result.output = str;
-        return result;
+        this._state.pipes.remove(pipeId);
     }
 
     private _getPluginInfo(pluginReference: string | undefined, id?: number): IPluginInfo | Error {
@@ -291,12 +180,12 @@ export default class ControllerStreamProcessor {
             return;
         }
         if (message.state === IPCPluginMessages.SessionStreamState.States.block) {
-            this._state.set(id, {
+            this._memUsage.set(id, {
                 started: Date.now(),
                 memoryUsed: process.memoryUsage().heapUsed / 1024 / 1024,
             });
-        } else if (this._state.has(id)) {
-            const stateInfo: IStreamStateInfo = this._state.get(id) as IStreamStateInfo;
+        } else if (this._memUsage.has(id)) {
+            const stateInfo: IStreamStateInfo = this._memUsage.get(id) as IStreamStateInfo;
             const memory = {
                 used: process.memoryUsage().heapUsed / 1024 / 1024,
                 total: process.memoryUsage().heapTotal / 1024 / 1024,
@@ -305,7 +194,7 @@ export default class ControllerStreamProcessor {
             // Close "long chunk" by carret
             this.write(Buffer.from('\n'), undefined, id);
             this._sendUpdateStreamData();
-            this._state.delete(id);
+            this._memUsage.delete(id);
         } else {
             this._logger.warn(`Cannot close session for plugin ${id} because session wasn't started.`);
         }
@@ -315,21 +204,21 @@ export default class ControllerStreamProcessor {
         if (message.streamId !== this._guid) {
             return;
         }
-        this._pipesState.add(message.pipeId, message.size, message.name);
+        this._state.pipes.add(message.pipeId, message.size, message.name);
     }
 
     private _onSessionStreamPipeFinished(id: number, message: IPCPluginMessages.SessionStreamPipeFinished) {
         if (message.streamId !== this._guid) {
             return;
         }
-        this._pipesState.remove(message.pipeId);
+        this._state.pipes.remove(message.pipeId);
     }
 
     private _sendUpdateStreamData(complete?: string, from?: number, to?: number): Promise<void> {
         return ServiceElectron.IPC.send(new IPCElectronMessages.StreamUpdated({
             guid: this._guid,
-            length: this._rows.bytesWritten,
-            rowsCount: this._rows.last,
+            length: this._state.map.getByteLength(),
+            rowsCount: this._state.map.getRowsCount(),
             addedRowsData: complete === undefined ? '' : complete,
             addedFrom: from === undefined ? -1 : from,
             addedTo: to === undefined ? -1 : to,
@@ -342,66 +231,33 @@ export default class ControllerStreamProcessor {
             return;
         }
         // Get bytes range (convert rows range to bytes range)
-        const range: IRangeMapItem | Error = this._getBytesRange({
-            start: message.start,
-            end: message.end,
+        const range: IMapItem | Error = this._state.map.getBytesRange({
+            from: message.start,
+            to: message.end,
         });
         if (range instanceof Error) {
             return response(new IPCElectronMessages.StreamChunk({
                 guid: this._guid,
                 start: -1,
                 end: -1,
-                rows: this._rows.last + 1,
-                length: this._rows.bytesWritten,
+                rows: this._state.map.getRowsCount(),
+                length: this._state.map.getByteLength(),
                 error: this._logger.error(`Fail to process StreamChunk request due error: ${range.message}`),
             }));
         }
         // Reading chunk
-        this._reader.read(range.bytes.start, range.bytes.end).then((output: string) => {
+        this._reader.read(range.bytes.from, range.bytes.to).then((output: string) => {
             response(new IPCElectronMessages.StreamChunk({
                 guid: this._guid,
-                start: range.rows.start,
-                end: range.rows.end,
+                start: range.rows.from,
+                end: range.rows.to,
                 data: output,
-                rows: this._rows.last,
-                length: this._rows.bytesWritten,
+                rows: this._state.map.getRowsCount(),
+                length: this._state.map.getByteLength(),
             }));
         }).catch((readError: Error) => {
             this._logger.error(`Fail to read data from storage file due error: ${readError.message}`);
         });
-    }
-
-    private _getBytesRange(requestedRows: IRange): IRangeMapItem | Error {
-        const bytes: IRange = { start: -1, end: -1 };
-        const rows: IRange = { start: -1, end: -1 };
-        for (let i = 0, max = this._rows.ranges.length - 1; i <= max; i += 1) {
-            const range: IRangeMapItem = this._rows.ranges[i];
-            if (bytes.start === -1 && requestedRows.start <= range.rows.start) {
-                if (i > 0) {
-                    bytes.start = this._rows.ranges[i - 1].bytes.start;
-                    rows.start = this._rows.ranges[i - 1].rows.start;
-                } else {
-                    bytes.start = range.bytes.start;
-                    rows.start = range.rows.start;
-                }
-            }
-            if (bytes.end === -1 && requestedRows.end <= range.rows.end) {
-                if (i < this._rows.ranges.length - 1) {
-                    bytes.end = this._rows.ranges[i + 1].bytes.end;
-                    rows.end = this._rows.ranges[i + 1].rows.end;
-                } else {
-                    bytes.end = range.bytes.end;
-                    rows.end = range.rows.end;
-                }
-            }
-            if (bytes.start !== -1 && bytes.end !== -1) {
-                break;
-            }
-        }
-        if (bytes.end === -1 || bytes.start === -1) {
-            return new Error(`Fail to calculate bytes range with rows range: (${requestedRows.start} - ${requestedRows.end}).`);
-        }
-        return { bytes: bytes, rows: rows };
     }
 
 }

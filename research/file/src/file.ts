@@ -2,7 +2,6 @@ import * as fs from 'fs';
 import * as Streams from 'stream';
 
 let line: number = 0;
-
 const convertor = new Streams.Transform({
     transform: (chunk: Buffer, encoding: string, callback: Streams.TransformCallback) => {
         let output: string = chunk.toString('utf8');
@@ -15,8 +14,8 @@ const convertor = new Streams.Transform({
 });
 
 const start = Date.now();
-const source = '/Users/dmitry.astafyev/WebstormProjects/logviewer/logs_examples/big.log';
-const target = '/Users/dmitry.astafyev/WebstormProjects/logviewer/logs_examples/big.log';
+const source = '/Users/dmitry.astafyev/WebstormProjects/logviewer/logs_examples/small.log';
+const target = '/Users/dmitry.astafyev/WebstormProjects/logviewer/logs_examples/small_copy.log';
 const reader = fs.createReadStream(source);
 const writer = fs.createWriteStream(target);
 reader

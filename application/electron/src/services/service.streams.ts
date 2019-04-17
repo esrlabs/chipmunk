@@ -125,6 +125,24 @@ class ServiceStreams extends EventEmitter implements IService  {
         });
     }
 
+    public pipeWith(reader: fs.ReadStream, streamId?: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            // Get stream id
+            if (streamId === undefined) {
+                streamId = this._getActiveStream();
+            }
+            // Get stream info
+            const stream: IStreamInfo | undefined = this._streams.get(streamId);
+            if (stream === undefined) {
+                return reject(new Error(this._logger.warn(`Fail to find a stream data for stream guid "${streamId}"`)));
+            }
+            reader.on('end', () => {
+                resolve();
+            });
+            stream.processor.pipe(reader);
+        });
+    }
+
     public addPipeSession(id: string, size: number, name: string, streamId?: string) {
         // Get stream id
         if (streamId === undefined) {

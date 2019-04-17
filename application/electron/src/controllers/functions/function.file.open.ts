@@ -19,24 +19,18 @@ export default class FunctionOpenFile {
                 }
                 const file: string = files[0];
                 fs.stat(file, (error: NodeJS.ErrnoException, stats: fs.Stats) => {
-                    const close = () => {
-                        stream.close();
-                    };
                     if (error) {
                         return;
                     }
                     // Create read stream
-                    const stream: fs.ReadStream = fs.createReadStream(file, { highWaterMark: 256 * 1024 });
+                    const stream: fs.ReadStream = fs.createReadStream(file);
                     const pipeSessionId: string = Tools.guid();
                     ServiceStreams.addPipeSession(pipeSessionId, stats.size, file);
-                    stream.on('data', (chunk: Buffer) => {
-                        ServiceStreams.writeTo(chunk);
-                    });
-                    stream.on('end', () => {
+                    ServiceStreams.pipeWith(stream).then(() => {
                         ServiceStreams.removePipeSession(pipeSessionId);
+                        stream.close();
                     });
                 });
-                // files[0]
             });
         };
     }
