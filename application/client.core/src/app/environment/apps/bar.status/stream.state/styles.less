@@ -1,0 +1,35 @@
+@import '../../../theme/scheme.less';
+
+:host {
+    position: relative;
+    display: block;
+    width: auto;
+    height: 100%;
+    white-space: nowrap;
+    & .numeric{
+        font-variant-numeric: tabular-nums;
+    }
+    & .info {
+        position: relative;
+        display: inline-block;
+        color: #7B9BA6;
+        padding: 2px 0.5rem;
+        max-width: 15rem;
+        overflow: hidden;
+        height: 100%;
+        text-overflow: ellipsis;
+        cursor: default;
+        font-size: 0.8rem;
+        font-weight: 300;
+        vertical-align: top;
+    }
+    & p {
+        display: inline-block;
+    }
+    & div.progress{
+        position: relative;
+        display: inline-block;
+        width: 2rem;
+        height: 100%;
+    }
+}

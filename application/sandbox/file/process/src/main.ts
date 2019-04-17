@@ -67,32 +67,16 @@ class Plugin {
                 return reject(new Error(`File "${file}" doesn't exist.`));
             }
             const streamId: string = message.data.streamId;
-            let isDoneAlready: boolean = false;
             fs.stat(file, (error: NodeJS.ErrnoException, stats: fs.Stats) => {
-                if (error) {
-                    return reject(new Error(`Fail to open file "${file}" due error: ${error.message}`));
-                }
-                let iteration: number = 0;
-                let iterations: number = 0;
-                const done = () => {
-                    if (isDoneAlready) {
-                        return;
-                    }
-                    isDoneAlready = true;
-                    PluginIPCService.sendToPluginHost({
-                        event: 'finished',
-                        streamId: streamId,
-                        file: file,
-                        duration: Date.now() - started
-                    });
+                const close = () => {
                     stream.close();
                     this._stream = undefined;
                     this._file = undefined;
                     this._session = undefined;
-                    // Unblock session
-                    PluginIPCService.send(new IPCMessages.SessionStreamState({ state: IPCMessages.SessionStreamState.States.unblock, stream: streamId }));
                 };
-                const started: number = Date.now();
+                if (error) {
+                    return reject(new Error(`Fail to open file "${file}" due error: ${error.message}`));
+                }
                 // Notify client: reading is started
                 PluginIPCService.sendToPluginHost({
                     event: 'started',
@@ -100,43 +84,32 @@ class Plugin {
                     file: file,
                     size: stats.size
                 });
-                // Block session
-                PluginIPCService.send(new IPCMessages.SessionStreamState({ state: IPCMessages.SessionStreamState.States.block, stream: streamId}));
-                // Create stream to read a target file
-                const stream = fs.createReadStream(file);
-                stream.on('data', (chunk: any) => {
-                    iteration ++;
-                    if (iterations < iteration) {
-                        iterations = iteration;
-                    }
-                    PluginIPCService.sendToStream(chunk, streamId).then(() => {
-                        iteration --;
-                        PluginIPCService.sendToPluginHost({
-                            event: 'processing',
-                            streamId: streamId,
-                            iterationsAll: iterations,
-                            iterationsLeft: iteration
-                        });
-                        if (stream !== undefined && iteration === 0 && stream.bytesRead === stats.size) {
-                            done();
-                        }
-                    });
+                // Remember starting time
+                const started: number = Date.now();
+                // Create read stream
+                const stream: fs.ReadStream = fs.createReadStream(file);
+                // Pipe reader with unix-socket (or named pipe on win)
+                PluginIPCService.pipeWithStream(stream, { size: stats.size, name: file }, streamId).then(() => {
+                    // Notify client: reading is finished
                     PluginIPCService.sendToPluginHost({
-                        event: 'state',
+                        event: 'finished',
                         streamId: streamId,
                         file: file,
-                        read: stream.bytesRead
+                        duration: Date.now() - started
                     });
-                });
-                stream.on('end', () => {
-                    // done();
+                    // Close stream and drop data
+                    close();
+                }).catch((pipeError: Error) => {
+                    // Close stream and drop data
+                    close();
+                    return reject(new Error(`Fail to open/read/write file "${file}" due error: ${pipeError.message}`));
                 });
                 // Save data
                 this._file = file;
                 this._session = streamId;
                 this._stream = stream;
-                // Resolve
-                resolve();           
+                // Resolve here to notify - reading is started
+                resolve();          
             });
         });
     }

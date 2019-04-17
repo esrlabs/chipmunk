@@ -16,24 +16,34 @@ export { IPluginStreamAdd, PluginStreamAdd };
 import { ISessionStreamState, SessionStreamState } from './session.stream.state';
 export { ISessionStreamState, SessionStreamState };
 
+import { ISessionStreamPipeStarted, SessionStreamPipeStarted } from './session.stream.pipe.started';
+export { ISessionStreamPipeStarted, SessionStreamPipeStarted };
+
+import { ISessionStreamPipeFinished, SessionStreamPipeFinished } from './session.stream.pipe.finished';
+export { ISessionStreamPipeFinished, SessionStreamPipeFinished };
+
 // Common type for expected message implementation
 export type TMessage =  PluginState |
                         PluginInternalMessage |
                         PluginError |
                         PluginToken |
                         PluginStreamAdd |
-                        SessionStreamState;
+                        SessionStreamState |
+                        SessionStreamPipeStarted |
+                        SessionStreamPipeFinished;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *  */
 export const Map = {
 
-    [PluginState.signature              ]: PluginState,
-    [PluginInternalMessage.signature    ]: PluginInternalMessage,
-    [PluginError.signature              ]: PluginError,
-    [PluginToken.signature              ]: PluginToken,
-    [PluginStreamAdd.signature          ]: PluginStreamAdd,
-    [SessionStreamState.signature       ]: SessionStreamState,
+    [PluginState.signature                  ]: PluginState,
+    [PluginInternalMessage.signature        ]: PluginInternalMessage,
+    [PluginError.signature                  ]: PluginError,
+    [PluginToken.signature                  ]: PluginToken,
+    [PluginStreamAdd.signature              ]: PluginStreamAdd,
+    [SessionStreamState.signature           ]: SessionStreamState,
+    [SessionStreamPipeStarted.signature     ]: SessionStreamPipeStarted,
+    [SessionStreamPipeFinished.signature    ]: SessionStreamPipeFinished,
 
 };
