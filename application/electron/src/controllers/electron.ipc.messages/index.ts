@@ -31,6 +31,9 @@ export { IStreamData, StreamData };
 import { IStreamUpdated, StreamUpdated } from './stream.updated.';
 export { IStreamUpdated, StreamUpdated };
 
+import { IStreamPipeState, StreamPipeState } from './stream.pipe.state';
+export { IStreamPipeState, StreamPipeState };
+
 import { IStreamChunk, StreamChunk } from './stream.chunk';
 export { IStreamChunk, StreamChunk };
 
@@ -69,6 +72,7 @@ export type TMessage =  HostState |
                         SearchRequestResults |
                         SearchChunk |
                         StreamUpdated |
+                        StreamPipeState |
                         StreamChunk |
                         SearchStreamUpdated;
 
@@ -91,6 +95,7 @@ export const Map = {
     [StreamRemove.signature             ]: StreamRemove,
     [StreamData.signature               ]: StreamData,
     [StreamUpdated.signature            ]: StreamUpdated,
+    [StreamPipeState.signature          ]: StreamPipeState,
     [StreamChunk.signature              ]: StreamChunk,
 
     [SearchRequest.signature            ]: SearchRequest,

@@ -6,7 +6,6 @@ import * as FS from '../tools/fs';
 import { EventEmitter } from 'events';
 import ServicePaths from './service.paths';
 import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from './service.electron';
-import ServicePlugins from './service.plugins';
 import Logger from '../tools/env.logger';
 import ControllerStreamSearch, { IResults } from '../controllers/controller.stream.search';
 import ControllerStreamBuffer from '../controllers/controller.stream.buffer';
@@ -103,6 +102,57 @@ class ServiceStreams extends EventEmitter implements IService  {
                 resolve();
             });
         });
+    }
+
+    public writeTo(chunk: Buffer, streamId?: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            // Get stream id
+            if (streamId === undefined) {
+                streamId = this._getActiveStream();
+            }
+            // Get stream info
+            const stream: IStreamInfo | undefined = this._streams.get(streamId);
+            if (stream === undefined) {
+                return reject(new Error(this._logger.warn(`Fail to find a stream data for stream guid "${streamId}"`)));
+            }
+            stream.processor.write(chunk, undefined).then(() => {
+                // Operation done
+                stream.received += chunk.length;
+                resolve();
+            }).catch((errorWrite: Error) => {
+                return reject(new Error(this._logger.warn(`Fail to process data from stream (${streamId}) due error: ${errorWrite.message}`)));
+            });
+        });
+    }
+
+    public addPipeSession(id: string, size: number, name: string, streamId?: string) {
+        // Get stream id
+        if (streamId === undefined) {
+            streamId = this._getActiveStream();
+        }
+        // Get stream info
+        const stream: IStreamInfo | undefined = this._streams.get(streamId);
+        if (stream === undefined) {
+            return;
+        }
+        stream.processor.addPipeSession(id, size, name);
+    }
+
+    public removePipeSession(id: string, streamId?: string) {
+        // Get stream id
+        if (streamId === undefined) {
+            streamId = this._getActiveStream();
+        }
+        // Get stream info
+        const stream: IStreamInfo | undefined = this._streams.get(streamId);
+        if (stream === undefined) {
+            return;
+        }
+        stream.processor.removePipeSession(id);
+    }
+
+    private _getActiveStream() {
+        return this._streams.keys().next().value;
     }
 
     /**

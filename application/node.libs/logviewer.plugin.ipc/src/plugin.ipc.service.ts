@@ -1,5 +1,6 @@
 import * as FS from 'fs';
 import * as Net from 'net';
+import * as Stream from 'stream';
 import { EventEmitter } from 'events';
 import { IMessagePackage, IPCMessagePackage } from './plugin.ipc.service.message';
 import Subscription, { THandler } from './tools.subscription';
@@ -12,6 +13,11 @@ export interface IStreamInfo {
     id: string;
     file: string;
     socket: Net.Socket | undefined;
+}
+
+export interface IPipedStreamInfo {
+    size: number;
+    name: string;
 }
 
 /**
@@ -213,6 +219,37 @@ export class PluginIPCService extends EventEmitter {
                     console.log(`Fail to send data due error: ${error.message}`);
                     // return reject(error);
                 }
+                resolve();
+            });
+        });
+    }
+
+    /**
+     * Pipe readable stream with session stream.
+     * @returns { Error | undefined } returns errors if stream isn't found
+     */
+    public pipeWithStream(readStream: Stream.Readable, info: IPipedStreamInfo, streamId: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const socket: Net.Socket | undefined = this._getStreamSocket(streamId);
+            if (socket === undefined) {
+                return reject(new Error(`Fail to find bound socket with stream "${streamId}".`));
+            }
+            const pipeId: string = guid();
+            // Send message about streaming
+            this.send(new IPCMessages.SessionStreamPipeStarted({
+                name: info.name,
+                pipeId: pipeId,
+                size: info.size,
+                streamId: streamId,
+            }));
+            readStream.pipe(socket, { end: false });
+            readStream.on('end', () => {
+                // Notify main process: reading is finished
+                this.send(new IPCMessages.SessionStreamPipeFinished({
+                    pipeId: pipeId,
+                    streamId: streamId,
+                }));
+                // Resolve
                 resolve();
             });
         });

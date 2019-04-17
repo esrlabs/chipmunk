@@ -4,6 +4,8 @@ import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } fro
 import ServicePlugins from '../services/service.plugins';
 import ControllerIPCPlugin, { IPCMessages as IPCPluginMessages} from './controller.plugin.process.ipc';
 import ControllerStreamFileReader from './controller.stream.file.reader';
+import PipesState from './controller.stream.processor.pipes.state';
+import Transform from './controller.stream.processor.transform';
 
 export interface IPluginInfo {
     id: number;
@@ -46,8 +48,6 @@ const Settings = {
     maxPostponedNotificationMessages: 100,    // How many IPC messages to render (client) should be postponed via timer
 };
 
-// TODO: add markers of line numbers here to make search faster
-
 export default class ControllerStreamProcessor {
 
     public static Events = {
@@ -61,8 +61,12 @@ export default class ControllerStreamProcessor {
     private _pluginRefs: Map<string, number> = new Map();
     private _pluginIPCSubscriptions: {
         state: Map<number, Subscription>,
+        pipeStarted: Map<number, Subscription>,
+        pipeFinished: Map<number, Subscription>,
     } = {
         state: new Map(),
+        pipeStarted: new Map(),
+        pipeFinished: new Map(),
     };
     private _state: Map<number, IStreamStateInfo> = new Map();
     private _rows: {
@@ -81,13 +85,15 @@ export default class ControllerStreamProcessor {
     private _timer: any;
     private _attempts: number = 0;
     private _subscriptions: { [key: string ]: Subscription | undefined } = { };
+    private _pipesState: PipesState;
 
     constructor(guid: string, file: string) {
         this._guid = guid;
         this._file = file;
-        this._stream = fs.createWriteStream(this._file);
+        this._stream = fs.createWriteStream(this._file, { encoding: 'utf8' });
         this._reader = new ControllerStreamFileReader(this._guid, this._file);
         this._logger = new Logger(`ControllerStreamProcessor: ${this._guid}`);
+        this._pipesState = new PipesState(this._guid);
         this._ipc_onStreamChunkRequested = this._ipc_onStreamChunkRequested.bind(this);
         ServiceElectron.IPC.subscribe(IPCElectronMessages.StreamChunk, this._ipc_onStreamChunkRequested).then((subscription: Subscription) => {
             this._subscriptions.StreamChunk = subscription;
@@ -108,7 +114,12 @@ export default class ControllerStreamProcessor {
 
     public write(chunk: Buffer, pluginReference: string | undefined, pluginId?: number): Promise<void> {
         return new Promise((resolve, reject) => {
-            let output: string = chunk.toString('utf8');
+            let output: string;
+            if (typeof chunk === 'string') {
+                output = chunk;
+            } else {
+                output = chunk.toString('utf8');
+            }
             // Binding ref with ID of plugin
             if (pluginReference !== undefined && this._bindPlugin(output, pluginReference) === true) {
                 // This is binding message. No need to process it forward.
@@ -145,13 +156,15 @@ export default class ControllerStreamProcessor {
             output = addIndexesRes.output;
             // Set end of frame
             frame.to = this._rows.last - 1;
+            // Get length
+            const size: number = Buffer.byteLength(output, 'utf8');
             // Store cursor position
             const cursor = {
                 from: this._rows.bytesWritten,
-                to: this._rows.bytesWritten + Buffer.byteLength(output, 'utf8') - 1,
+                to: this._rows.bytesWritten + size - 1,
             };
             // Increase bytes written value
-            this._rows.bytesWritten += Buffer.byteLength(output, 'utf8');
+            this._rows.bytesWritten += size;
             // Remember plugin id to break like in case it will change
             this._rows.lastPluginId = pluginInfo.id;
             // Write data into session storage file
@@ -164,10 +177,12 @@ export default class ControllerStreamProcessor {
                     bytes: { start: cursor.from, end: cursor.to },
                     rows: { start: frame.from, end: frame.to },
                 });
+                // Send state information for pipes (if it's needed)
+                this._pipesState.next(size);
                 // Resolve in anyway, because writing was succesful
                 resolve();
                 // Notification of render (client) about stream's update
-                const delay: number = this._isStreamBlocked() ? Settings.notificationDelayOnBlockedStream : Settings.notificationDelayOnUnblockedStream;
+                const delay: number = Settings.notificationDelayOnUnblockedStream;
                 // Drop previous timer
                 clearTimeout(this._timer);
                 // Set new timer for notification message
@@ -186,6 +201,14 @@ export default class ControllerStreamProcessor {
                 }
             });
         });
+    }
+
+    public addPipeSession(pipeId: string, size: number, name: string) {
+        this._pipesState.add(pipeId, size, name);
+    }
+
+    public removePipeSession(pipeId: string) {
+        this._pipesState.remove(pipeId);
     }
 
     private _addRowIndexes(str: string): IAddIndexesResults {
@@ -207,19 +230,16 @@ export default class ControllerStreamProcessor {
         // Attempt to find ID of plugin
         const pluginId: number | undefined = pluginReference === undefined ? id : this._pluginRefs.get(pluginReference);
         if (pluginId === undefined) {
-            return new Error(`Fail to find plugin ID. Chunk of data will not be forward.`);
+            return { id: 1, token: '' };
+            // return new Error(`Fail to find plugin ID. Chunk of data will not be forward.`);
         }
         // Get token
         const pluginToken: string | undefined = ServicePlugins.getPluginToken(pluginId);
         if (pluginToken === undefined) {
-            return new Error(`Fail to find plugin token by ID of plugin: id = "${pluginId}". Chunk of data will not be forward.`);
+            return { id: 1, token: '' };
+            // return new Error(`Fail to find plugin token by ID of plugin: id = "${pluginId}". Chunk of data will not be forward.`);
         }
         return { id: pluginId, token: pluginToken };
-    }
-
-    private _isStreamBlocked(): boolean {
-        return false;
-        return this._state.size > 0;
     }
 
     private _sendToRender(complete: string, from: number, to: number): Promise<void> {
@@ -257,6 +277,12 @@ export default class ControllerStreamProcessor {
         IPC.subscribe(IPCPluginMessages.SessionStreamState, this._onSessionState.bind(this, id)).then((subscription: Subscription) => {
             this._pluginIPCSubscriptions.state.set(id, subscription);
         });
+        IPC.subscribe(IPCPluginMessages.SessionStreamPipeStarted, this._onSessionStreamPipeStarted.bind(this, id)).then((subscription: Subscription) => {
+            this._pluginIPCSubscriptions.pipeStarted.set(id, subscription);
+        });
+        IPC.subscribe(IPCPluginMessages.SessionStreamPipeFinished, this._onSessionStreamPipeFinished.bind(this, id)).then((subscription: Subscription) => {
+            this._pluginIPCSubscriptions.pipeFinished.set(id, subscription);
+        });
         return true;
     }
 
@@ -283,6 +309,20 @@ export default class ControllerStreamProcessor {
         } else {
             this._logger.warn(`Cannot close session for plugin ${id} because session wasn't started.`);
         }
+    }
+
+    private _onSessionStreamPipeStarted(id: number, message: IPCPluginMessages.SessionStreamPipeStarted) {
+        if (message.streamId !== this._guid) {
+            return;
+        }
+        this._pipesState.add(message.pipeId, message.size, message.name);
+    }
+
+    private _onSessionStreamPipeFinished(id: number, message: IPCPluginMessages.SessionStreamPipeFinished) {
+        if (message.streamId !== this._guid) {
+            return;
+        }
+        this._pipesState.remove(message.pipeId);
     }
 
     private _sendUpdateStreamData(complete?: string, from?: number, to?: number): Promise<void> {

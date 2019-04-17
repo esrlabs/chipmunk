@@ -10,6 +10,8 @@ import { IPCMessages } from '../controllers/controller.electron.ipc';
 import ControllerElectronIpc from '../controllers/controller.electron.ipc';
 import ServiceProduction from './service.production';
 import ControllerBrowserWindow from '../controllers/controller.browserwindow';
+import ControllerElectronMenu from '../controllers/controller.electron.menu';
+
 import Logger from '../tools/env.logger';
 
 export { IPCMessages, Subscription };
@@ -35,6 +37,7 @@ class ServiceElectron implements IService {
 
     private _logger: Logger = new Logger('ServiceElectron');
     private _controllerBrowserWindow: ControllerBrowserWindow | undefined;
+    private _controllerElectronMenu: ControllerElectronMenu | undefined;
     private _onReadyResolve: THandler | null = null;
     private _ready: {
         electron: boolean;
@@ -170,6 +173,7 @@ class ServiceElectron implements IService {
             this._controllerBrowserWindow !== undefined && this._controllerBrowserWindow.debug();
         }
         // Menu
+        this._controllerElectronMenu = new ControllerElectronMenu();
         // Files from cmd
         // cmd
         // Finish initialization
