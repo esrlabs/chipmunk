@@ -1,6 +1,6 @@
 import { Component, Input, AfterContentChecked, ViewEncapsulation } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import PluginsService, { IPluginData } from '../../../../services/service.plugins';
+import SourcesService from '../../../../services/service.sources';
 import OutputParsersService from '../../../../services/standalone/service.output.parsers';
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
 
@@ -50,12 +50,12 @@ export class ViewOutputRowComponent implements AfterContentChecked {
         if (this.pluginId === -1) {
             return;
         }
-        const plugin: IPluginData | undefined = PluginsService.getPluginById(this.pluginId);
         let html = this.str;
-        if (plugin === undefined) {
+        const sourceName: string = SourcesService.getSourceName(this.pluginId);
+        if (sourceName === undefined) {
             this._ng_sourceName = 'n/d';
         } else {
-            this._ng_sourceName = plugin.name;
+            this._ng_sourceName = sourceName;
         }
         // Apply plugin parser
         html = OutputParsersService.row(html, this.pluginId);

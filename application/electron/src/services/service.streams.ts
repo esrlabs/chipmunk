@@ -1,14 +1,12 @@
 import * as Path from 'path';
 import * as fs from 'fs';
-import * as os from 'os';
 import * as Net from 'net';
 import * as FS from '../tools/fs';
 import { EventEmitter } from 'events';
 import ServicePaths from './service.paths';
 import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from './service.electron';
 import Logger from '../tools/env.logger';
-import ControllerStreamSearch, { IResults } from '../controllers/controller.stream.search';
-import ControllerStreamBuffer from '../controllers/controller.stream.buffer';
+import ControllerStreamSearch from '../controllers/controller.stream.search';
 import ControllerStreamProcessor from '../controllers/controller.stream.processor';
 import { IService } from '../interfaces/interface.service';
 import * as Tools from '../tools/index';
@@ -42,11 +40,13 @@ class ServiceStreams extends EventEmitter implements IService  {
 
     private _logger: Logger = new Logger('ServiceStreams');
     private _streams: Map<TGuid, IStreamInfo> = new Map();
+    private _activeStreamGuid: string = '';
     private _subscriptions: { [key: string ]: Subscription | undefined } = { };
 
     constructor() {
         super();
         // Binding
+        this._ipc_onStreamSetActive = this._ipc_onStreamSetActive.bind(this);
         this._ipc_onStreamAdd = this._ipc_onStreamAdd.bind(this);
         this._ipc_onStreamRemove = this._ipc_onStreamRemove.bind(this);
     }
@@ -69,6 +69,11 @@ class ServiceStreams extends EventEmitter implements IService  {
                 this._subscriptions.streamRemove = subscription;
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to subscribe to render event "StreamRemove" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+            });
+            ServiceElectron.IPC.subscribe(IPCElectronMessages.StreamSetActive, this._ipc_onStreamSetActive).then((subscription: Subscription) => {
+                this._subscriptions.StreamSetActive = subscription;
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to subscribe to render event "StreamSetActive" due error: ${error.message}. This is not blocked error, loading will be continued.`);
             });
         });
     }
@@ -104,18 +109,18 @@ class ServiceStreams extends EventEmitter implements IService  {
         });
     }
 
-    public writeTo(chunk: Buffer, streamId?: string): Promise<void> {
+    public writeTo(chunk: Buffer, sourceId: number, streamId?: string): Promise<void> {
         return new Promise((resolve, reject) => {
             // Get stream id
             if (streamId === undefined) {
-                streamId = this._getActiveStream();
+                streamId = this._activeStreamGuid;
             }
             // Get stream info
             const stream: IStreamInfo | undefined = this._streams.get(streamId);
             if (stream === undefined) {
                 return reject(new Error(this._logger.warn(`Fail to find a stream data for stream guid "${streamId}"`)));
             }
-            stream.processor.write(chunk, undefined).then(() => {
+            stream.processor.write(chunk, undefined, sourceId).then(() => {
                 // Operation done
                 stream.received += chunk.length;
                 resolve();
@@ -125,11 +130,11 @@ class ServiceStreams extends EventEmitter implements IService  {
         });
     }
 
-    public pipeWith(reader: fs.ReadStream, streamId?: string): Promise<void> {
+    public pipeWith(reader: fs.ReadStream, sourceId: number, streamId?: string): Promise<void> {
         return new Promise((resolve, reject) => {
             // Get stream id
             if (streamId === undefined) {
-                streamId = this._getActiveStream();
+                streamId = this._activeStreamGuid;
             }
             // Get stream info
             const stream: IStreamInfo | undefined = this._streams.get(streamId);
@@ -139,14 +144,14 @@ class ServiceStreams extends EventEmitter implements IService  {
             reader.on('end', () => {
                 resolve();
             });
-            stream.processor.pipe(reader);
+            stream.processor.pipe(reader, sourceId);
         });
     }
 
     public addPipeSession(id: string, size: number, name: string, streamId?: string) {
         // Get stream id
         if (streamId === undefined) {
-            streamId = this._getActiveStream();
+            streamId = this._activeStreamGuid;
         }
         // Get stream info
         const stream: IStreamInfo | undefined = this._streams.get(streamId);
@@ -159,7 +164,7 @@ class ServiceStreams extends EventEmitter implements IService  {
     public removePipeSession(id: string, streamId?: string) {
         // Get stream id
         if (streamId === undefined) {
-            streamId = this._getActiveStream();
+            streamId = this._activeStreamGuid;
         }
         // Get stream info
         const stream: IStreamInfo | undefined = this._streams.get(streamId);
@@ -167,10 +172,6 @@ class ServiceStreams extends EventEmitter implements IService  {
             return;
         }
         stream.processor.removePipeSession(id);
-    }
-
-    private _getActiveStream() {
-        return this._streams.keys().next().value;
     }
 
     /**
@@ -317,6 +318,10 @@ class ServiceStreams extends EventEmitter implements IService  {
         }
         // Create stream
         this._createStream(message.guid).then((stream: IStreamInfo) => {
+            // Check active
+            if (this._activeStreamGuid === '') {
+                this._activeStreamGuid = stream.guid;
+            }
             // Notify plugins server about new stream
             this.emit(this.EVENTS.streamAdded, stream, message.transports);
         }).catch((streamCreateError: Error) => {
@@ -332,6 +337,14 @@ class ServiceStreams extends EventEmitter implements IService  {
             this.emit(this.EVENTS.streamRemoved);
             // TODO: forward actions to other compoenents
         });
+    }
+
+    private _ipc_onStreamSetActive(message: IPCElectronMessages.TMessage) {
+        if (!(message instanceof IPCElectronMessages.StreamSetActive)) {
+            return;
+        }
+        this._activeStreamGuid = message.guid;
+        this._logger.env(`Active session is set to: ${this._activeStreamGuid}`);
     }
 
     private _stream_onData(guid: string, ref: string, chunk: Buffer) {
