@@ -1,7 +1,6 @@
 import * as Stream from 'stream';
-import BytesRowsMap, { IMapItem, IRange } from './controller.stream.processor.map';
+import { IRange } from './controller.stream.processor.map';
 import * as StreamMarkers from '../consts/stream.markers';
-import PipesState from './controller.stream.processor.pipe.state';
 import Logger from '../tools/env.logger';
 import ServiceElectron, { IPCMessages as IPCElectronMessages } from '../services/service.electron';
 import State from './controller.stream.processor.state';

@@ -20,6 +20,11 @@ export interface IRowsPacket {
     rows: IRow[];
 }
 
+export interface IBoxSize {
+    width: number;
+    height: number;
+}
+
 export interface IDataAPI {
     getRange: (range: IRange) => IRowsPacket;
     getStorageInfo: () => IStorageInformation;
@@ -29,6 +34,7 @@ export interface IDataAPI {
     onStorageUpdated: Subject<IStorageInformation>;
     onScrollTo: Subject<number>;
     onRowsDelivered: Subject<IRowsPacket>;
+    onRedraw: Subject<void>;
 }
 
 export interface ISettings {
@@ -37,6 +43,17 @@ export interface ISettings {
     maxSlowDistance: number;        // Less this distance will be applied scrolling without scale. In heights of items
     scrollToOffset: number;         // How many items show before item defined on scrollTo
     noScrollScaleOnWheel: boolean;  // Do not apply scale if scroll was done with wheel
+    scrollBarSize: number;          // Size of scroll bar: height for horizontal; width for vertical. In px.
+}
+
+enum EKeys {
+    ArrowUp = 'ArrowUp',
+    ArrowDown = 'ArrowDown',
+    PageUp = 'PageUp',
+    PageDown = 'PageDown',
+    Home = 'Home',
+    End = 'End',
+    undefined = 'undefined'
 }
 
 const DefaultSettings = {
@@ -45,6 +62,7 @@ const DefaultSettings = {
     maxSlowDistance     : 20,           // Less this distance will be applied scrolling without scale. In heights of items
     scrollToOffset      : 5,            // How many items show before item defined on scrollTo
     noScrollScaleOnWheel: true,         // Do not apply scale if scroll was done with wheel
+    scrollBarSize       : 8,            // Size of scroll bar: height for horizontal; width for vertical. In px.
 };
 
 @Component({
@@ -68,7 +86,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
     private _settings: ISettings = DefaultSettings;
     private _storageInfo: IStorageInformation | undefined;
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
-    private _containerSize: ClientRect | undefined;
+    private _containerSize: IBoxSize | undefined;
     private _vSB: {
         scale: number,
         heightFiller: number,
@@ -78,6 +96,8 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         cache: number,
         prevScrollTop: number,
         lastWheel: number,
+        scrollTo: number,
+        scrollToDirection: number,
     } = {
         scale: 1,
         heightFiller: -1,
@@ -87,6 +107,8 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         cache: -1,
         prevScrollTop: -1,
         lastWheel: 0,
+        scrollTo: -1,
+        scrollToDirection: -1
     };
     private _state: {
         start: number;
@@ -95,7 +117,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
     } = {
         start: 0,
         end: 0,
-        count: 0
+        count: 0,
     };
 
     constructor(private _cdRef: ChangeDetectorRef,
@@ -124,6 +146,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         this._subscriptions.onRowsDelivered = this.API.onRowsDelivered.asObservable().subscribe(this._onRowsDelivered.bind(this));
         this._subscriptions.onScrollTo = this.API.onScrollTo.asObservable().subscribe(this._onScrollTo.bind(this));
         this._subscriptions.onStorageUpdated = this.API.onStorageUpdated.asObservable().subscribe(this._onStorageUpdated.bind(this));
+        this._subscriptions.onRedraw = this.API.onRedraw.asObservable().subscribe(this._onRedraw.bind(this));
         // Get rows
         const rows = this.API.getRange({
             start: 0,
@@ -143,7 +166,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         return typeof row === 'number';
     }
 
-    public _ng_onBrowserWindowResize(event: Event) {
+    public _ng_onBrowserWindowResize(event?: Event) {
         // Update data about sizes
         this._updateContainerSize(true);
         // Update state of vertical scroll bar
@@ -171,13 +194,13 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         if (scrollTop === this._vSB.cache) {
             return;
         }
-        if (scrollTop === this._vSB.prevScrollTop) {
-            if (this._state.start !== 0 && scrollTop === this._vSB.offset) {
+        if (scrollTop === this._vSB.prevScrollTop && this._vSB.scrollTo === -1) {
+            if (this._state.start !== 0 && scrollTop === this._vSB.cache) {
                 this._cdRef.detectChanges();
                 return;
-            } else if (scrollTop !== 0 && scrollTop !== this._vSB.offset && this._state.end !== (this._storageInfo.count - 1)) {
-                this._vSB.offset = scrollTop;
-                this._vSB.cache = scrollTop;
+            } else if (scrollTop !== 0 && scrollTop !== this._vSB.cache && this._state.end !== (this._storageInfo.count - 1)) {
+                this._vSB.offset = this._vSB.cache;
+                (event.target as HTMLElement).scrollTop = this._vSB.cache;
                 this._cdRef.detectChanges();
                 return;
             }
@@ -200,6 +223,15 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
 
     public _ng_onWheel(event: MouseEvent | TouchEvent) {
         this._vSB.lastWheel = Date.now();
+    }
+
+    public _ng_onKeyDown(event: KeyboardEvent) {
+        if ([EKeys.ArrowDown, EKeys.ArrowUp, EKeys.End, EKeys.Home, EKeys.PageDown, EKeys.PageUp].indexOf(event.key as EKeys) === -1) {
+            return true;
+        }
+        event.preventDefault();
+        this._onKeyboardAction(event.key as EKeys);
+        return false;
     }
 
     public _ng_getFillerStyles(): { [key: string]: any } {
@@ -225,7 +257,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         const minScrollTop = this._vSB.maxSlowDistancePx;
         const maxScrollTop = this._vSB.heightFiller - this._containerSize.height - this._vSB.maxSlowDistancePx;
         let change: number = this._vSB.cache === -1 ? scrollTop : (scrollTop - this._vSB.cache);
-        const direction: number = change > 0 ? 1 : -1;
+        const direction: number = this._vSB.scrollTo === -1 ? (change > 0 ? 1 : -1) : this._vSB.scrollToDirection;
         if (direction < 0 && this._state.start === 0) {
             // Already beginning of list
             scrollTop = minScrollTop;
@@ -240,6 +272,9 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
             this._vSB.cache = scrollTop;
             return false;
         }
+        if (direction > 0 && scrollTop > maxScrollTop && this._state.end !== this._storageInfo.count - 1 && !this._isScrolledByWheel()) {
+            this._state.start = (this._storageInfo.count - this._state.count) > 0 ? (this._storageInfo.count - this._state.count) : 0;
+        }
         if (this._state.start === -1) {
             // onScrollTo was triggered
             this._state.start = 0;
@@ -248,7 +283,12 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         if (this._state.end !== -1) {
             if (change >= this._vSB.maxSlowDistancePx && (!this._isScrolledByWheel() && this._settings.noScrollScaleOnWheel)) {
                 // Calculate considering scale
-                this._state.start += Math.round((change / this._vSB.scale) / this._vSB.itemHeight) * direction;
+                if (this._vSB.scrollTo !== -1) {
+                    this._state.start = this._vSB.scrollTo;
+                    this._vSB.scrollTo = -1;
+                } else {
+                    this._state.start += Math.round((change / this._vSB.scale) / this._vSB.itemHeight) * direction;
+                }
                 if (this._state.start < 0) {
                     this._state.start = 0;
                 } else if (this._state.start > this._storageInfo.count - this._state.count - 1) {
@@ -260,7 +300,12 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
                     change = this._vSB.itemHeight;
                 }
                 // Calculate without scale
-                this._state.start += Math.round(change / this._vSB.itemHeight) * direction;
+                if (this._vSB.scrollTo !== -1) {
+                    this._state.start = this._vSB.scrollTo;
+                    this._vSB.scrollTo = -1;
+                } else {
+                    this._state.start += Math.round(change / this._vSB.itemHeight) * direction;
+                }
                 if (this._state.start < 0) {
                     this._state.start = 0;
                 } else if (this._state.start > this._storageInfo.count - this._state.count) {
@@ -313,13 +358,14 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
             this._vSB.cache = scrollTop;
             return false;
         }
-        if (this._state.start === -1) {
-            // onScrollTo was triggered
-            this._state.start = 0;
-        }
         change = Math.abs(change);
         change = change < this._vSB.itemHeight ? this._vSB.itemHeight : change;
-        this._state.start += Math.round(change / this._vSB.itemHeight) * direction;
+        if (this._vSB.scrollTo !== -1) {
+            this._state.start = this._vSB.scrollTo;
+            this._vSB.scrollTo = -1;
+        } else {
+            this._state.start += Math.round(change / this._vSB.itemHeight) * direction;
+        }
         if (this._state.start < 0) {
             this._state.start = 0;
         } else if (this._state.start > this._storageInfo.count - this._state.count) {
@@ -352,6 +398,49 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         return Date.now() - this._vSB.lastWheel < 500;
     }
 
+    private _onKeyboardAction(key: EKeys) {
+        switch (key) {
+            case EKeys.ArrowDown:
+                if (this._state.start + 1 > this._storageInfo.count - 1) {
+                    return;
+                }
+                this._onScrollTo(this._state.start + 1, true);
+                break;
+            case EKeys.ArrowUp:
+                if (this._state.start - 1 < 0) {
+                    return;
+                }
+                this._onScrollTo(this._state.start - 1, true);
+                break;
+            case EKeys.PageDown:
+                if (this._state.start + this._state.count > this._storageInfo.count - 1) {
+                    this._onScrollTo(this._storageInfo.count - 1, true);
+                    return;
+                }
+                this._onScrollTo(this._state.start + this._state.count, true);
+                break;
+            case EKeys.PageUp:
+                if (this._state.start - this._state.count < 0) {
+                    this._onScrollTo(0, true);
+                    return;
+                }
+                this._onScrollTo(this._state.start - this._state.count, true);
+                break;
+            case EKeys.End:
+                if (this._state.start === this._storageInfo.count - 1) {
+                    return;
+                }
+                this._onScrollTo(this._storageInfo.count - 1, true);
+                break;
+            case EKeys.Home:
+                if (this._state.start === 0) {
+                    return;
+                }
+                this._onScrollTo(0, true);
+                break;
+        }
+    }
+
     private _updateContainerSize(force: boolean = false) {
         if (this._ng_nodeContainer === undefined) {
             return;
@@ -360,6 +449,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
             return;
         }
         this._containerSize = (this._ng_nodeContainer.nativeElement as HTMLElement).getBoundingClientRect();
+        this._containerSize.height -= this._settings.scrollBarSize;
         this._state.count = Math.floor(this._containerSize.height / this._vSB.itemHeight);
     }
 
@@ -411,40 +501,67 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         this._cdRef.detectChanges();
     }
 
-    private _onScrollTo(row: number) {
+    private _onScrollTo(row: number, noOffset: boolean = false) {
         // Correct row value
         row = row > this._storageInfo.count - 1 ? (this._storageInfo.count - 1) : row;
         row = row < 0 ? 0 : row;
-        // Drop frame to begin
-        this._state.start = -1;
-        // Drop cache
         this._vSB.cache = -1;
         // Detect start of frame
-        let start: number = row - this._settings.scrollToOffset > 0 ? (row - this._settings.scrollToOffset) : 0;
+        let start: number = noOffset ? row : (row - this._settings.scrollToOffset > 0 ? (row - this._settings.scrollToOffset) : 0);
         if (start + this._state.count > this._storageInfo.count - 1) {
             start = this._storageInfo.count - 1 - this._state.count;
             this._state.end = -1;
         }
+        // Change cache to indicate direction
+        if (this._state.start < start) {
+            // Move down
+            this._vSB.scrollToDirection = 1;
+        } else {
+            // Move up
+            this._vSB.scrollToDirection = -1;
+        }
+        // Drop frame to begin
+        this._vSB.scrollTo = start;
         // Calculate scale
         const scrollTop = Math.round((start * this._vSB.itemHeight) * this._vSB.scale);
         this._ng_nodeContainer.nativeElement.scrollTop = scrollTop;
     }
 
+    private _reset() {
+        this._vSB.offset = 0;
+        this._vSB.cache = -1;
+        this._vSB.scrollTo = -1;
+        this._state.start = 0;
+        this._state.end = 0;
+        this._ng_rows = [];
+    }
+
     private _onStorageUpdated(info: IStorageInformation) {
+        if (info.count < 0 || isNaN(info.count) || !isFinite(info.count)) {
+            return console.error(new Error(`Fail to proceed event "onStorageUpdated" with count = ${info.count}. Please check trigger of this event.`));
+        }
         let shouldBeUpdated: boolean;
-        if (this._state.start + this._state.count > info.count - 1) {
+        if (info.count === 0) {
+            this._reset();
+            shouldBeUpdated = true;
+        } else if (this._state.start + this._state.count > info.count - 1) {
             this._state.end = info.count - 1;
             shouldBeUpdated = true;
         } else if (this._storageInfo.count < this._state.count && info.count > this._state.count) {
             this._state.end = this._state.start + this._state.count;
             shouldBeUpdated = true;
         }
+        // Update storage data
         this._storageInfo.count = info.count;
         // Scroll bar
         this._updateVSB();
         if (shouldBeUpdated) {
             // Render
             this._render();
+            if (info.count === 0) {
+                // No need to do other actions, because no data
+                return;
+            }
             // Notification: scroll is done
             this.API.updatingDone({ start: this._state.start, end: this._state.end });
         }
@@ -470,6 +587,10 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         }
         this._ng_rows = rows;
         this._cdRef.detectChanges();
+    }
+
+    private _onRedraw() {
+        this._ng_onBrowserWindowResize();
     }
 
 }
