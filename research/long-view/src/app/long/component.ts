@@ -487,7 +487,12 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         this._vSB.scrollTo = start;
         // Calculate scale
         const scrollTop = Math.round((start * this._vSB.itemHeight) * this._vSB.scale);
-        this._ng_nodeContainer.nativeElement.scrollTop = scrollTop;
+        if (this._ng_nodeContainer.nativeElement.scrollTop === scrollTop) {
+            // Event of scroll will not be triggered, call manually
+            this._onScroll(this._ng_nodeContainer.nativeElement);
+        } else {
+            this._ng_nodeContainer.nativeElement.scrollTop = scrollTop;
+        }
     }
 
     private _reset() {
