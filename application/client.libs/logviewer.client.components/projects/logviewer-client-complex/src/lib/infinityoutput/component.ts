@@ -46,6 +46,16 @@ export interface ISettings {
     scrollBarSize: number;          // Size of scroll bar: height for horizontal; width for vertical. In px.
 }
 
+enum EKeys {
+    ArrowUp = 'ArrowUp',
+    ArrowDown = 'ArrowDown',
+    PageUp = 'PageUp',
+    PageDown = 'PageDown',
+    Home = 'Home',
+    End = 'End',
+    undefined = 'undefined'
+}
+
 const DefaultSettings = {
     minScrollTop        : 1,            // To "catch" scroll event in reverse direction (to up) we should always keep minimal scroll offset
     maxScrollHeight     : 100000,       // Maximum scroll area height in px.
@@ -87,6 +97,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         prevScrollTop: number,
         lastWheel: number,
         scrollTo: number,
+        scrollToDirection: number,
     } = {
         scale: 1,
         heightFiller: -1,
@@ -97,6 +108,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         prevScrollTop: -1,
         lastWheel: 0,
         scrollTo: -1,
+        scrollToDirection: -1
     };
     private _state: {
         start: number;
@@ -182,13 +194,13 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         if (scrollTop === this._vSB.cache) {
             return;
         }
-        if (scrollTop === this._vSB.prevScrollTop) {
-            if (this._state.start !== 0 && scrollTop === this._vSB.offset) {
+        if (scrollTop === this._vSB.prevScrollTop && this._vSB.scrollTo === -1) {
+            if (this._state.start !== 0 && scrollTop === this._vSB.cache) {
                 this._cdRef.detectChanges();
                 return;
-            } else if (scrollTop !== 0 && scrollTop !== this._vSB.offset && this._state.end !== (this._storageInfo.count - 1)) {
-                this._vSB.offset = scrollTop;
-                this._vSB.cache = scrollTop;
+            } else if (scrollTop !== 0 && scrollTop !== this._vSB.cache && this._state.end !== (this._storageInfo.count - 1)) {
+                this._vSB.offset = this._vSB.cache;
+                (event.target as HTMLElement).scrollTop = this._vSB.cache;
                 this._cdRef.detectChanges();
                 return;
             }
@@ -211,6 +223,15 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
 
     public _ng_onWheel(event: MouseEvent | TouchEvent) {
         this._vSB.lastWheel = Date.now();
+    }
+
+    public _ng_onKeyDown(event: KeyboardEvent) {
+        if ([EKeys.ArrowDown, EKeys.ArrowUp, EKeys.End, EKeys.Home, EKeys.PageDown, EKeys.PageUp].indexOf(event.key as EKeys) === -1) {
+            return true;
+        }
+        event.preventDefault();
+        this._onKeyboardAction(event.key as EKeys);
+        return false;
     }
 
     public _ng_getFillerStyles(): { [key: string]: any } {
@@ -236,7 +257,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         const minScrollTop = this._vSB.maxSlowDistancePx;
         const maxScrollTop = this._vSB.heightFiller - this._containerSize.height - this._vSB.maxSlowDistancePx;
         let change: number = this._vSB.cache === -1 ? scrollTop : (scrollTop - this._vSB.cache);
-        const direction: number = change > 0 ? 1 : -1;
+        const direction: number = this._vSB.scrollTo === -1 ? (change > 0 ? 1 : -1) : this._vSB.scrollToDirection;
         if (direction < 0 && this._state.start === 0) {
             // Already beginning of list
             scrollTop = minScrollTop;
@@ -250,6 +271,9 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
             target.scrollTop = scrollTop;
             this._vSB.cache = scrollTop;
             return false;
+        }
+        if (direction > 0 && scrollTop > maxScrollTop && this._state.end !== this._storageInfo.count - 1 && !this._isScrolledByWheel()) {
+            this._state.start = (this._storageInfo.count - this._state.count) > 0 ? (this._storageInfo.count - this._state.count) : 0;
         }
         if (this._state.start === -1) {
             // onScrollTo was triggered
@@ -374,6 +398,49 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         return Date.now() - this._vSB.lastWheel < 500;
     }
 
+    private _onKeyboardAction(key: EKeys) {
+        switch (key) {
+            case EKeys.ArrowDown:
+                if (this._state.start + 1 > this._storageInfo.count - 1) {
+                    return;
+                }
+                this._onScrollTo(this._state.start + 1, true);
+                break;
+            case EKeys.ArrowUp:
+                if (this._state.start - 1 < 0) {
+                    return;
+                }
+                this._onScrollTo(this._state.start - 1, true);
+                break;
+            case EKeys.PageDown:
+                if (this._state.start + this._state.count > this._storageInfo.count - 1) {
+                    this._onScrollTo(this._storageInfo.count - 1, true);
+                    return;
+                }
+                this._onScrollTo(this._state.start + this._state.count, true);
+                break;
+            case EKeys.PageUp:
+                if (this._state.start - this._state.count < 0) {
+                    this._onScrollTo(0, true);
+                    return;
+                }
+                this._onScrollTo(this._state.start - this._state.count, true);
+                break;
+            case EKeys.End:
+                if (this._state.start === this._storageInfo.count - 1) {
+                    return;
+                }
+                this._onScrollTo(this._storageInfo.count - 1, true);
+                break;
+            case EKeys.Home:
+                if (this._state.start === 0) {
+                    return;
+                }
+                this._onScrollTo(0, true);
+                break;
+        }
+    }
+
     private _updateContainerSize(force: boolean = false) {
         if (this._ng_nodeContainer === undefined) {
             return;
@@ -434,17 +501,24 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         this._cdRef.detectChanges();
     }
 
-    private _onScrollTo(row: number) {
+    private _onScrollTo(row: number, noOffset: boolean = false) {
         // Correct row value
         row = row > this._storageInfo.count - 1 ? (this._storageInfo.count - 1) : row;
         row = row < 0 ? 0 : row;
-        // Drop cache
         this._vSB.cache = -1;
         // Detect start of frame
-        let start: number = row - this._settings.scrollToOffset > 0 ? (row - this._settings.scrollToOffset) : 0;
+        let start: number = noOffset ? row : (row - this._settings.scrollToOffset > 0 ? (row - this._settings.scrollToOffset) : 0);
         if (start + this._state.count > this._storageInfo.count - 1) {
             start = this._storageInfo.count - 1 - this._state.count;
             this._state.end = -1;
+        }
+        // Change cache to indicate direction
+        if (this._state.start < start) {
+            // Move down
+            this._vSB.scrollToDirection = 1;
+        } else {
+            // Move up
+            this._vSB.scrollToDirection = -1;
         }
         // Drop frame to begin
         this._vSB.scrollTo = start;

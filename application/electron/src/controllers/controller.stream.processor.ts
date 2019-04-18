@@ -5,7 +5,7 @@ import ServicePlugins from '../services/service.plugins';
 import ControllerIPCPlugin, { IPCMessages as IPCPluginMessages} from './controller.plugin.process.ipc';
 import ControllerStreamFileReader from './controller.stream.file.reader';
 import Transform, { ITransformResult } from './controller.stream.processor.pipe.transform';
-import { IRange, IMapItem } from './controller.stream.processor.map';
+import { IMapItem } from './controller.stream.processor.map';
 import State from './controller.stream.processor.state';
 
 export interface IPluginInfo {
@@ -129,16 +129,6 @@ export default class ControllerStreamProcessor {
             // return new Error(`Fail to find plugin token by ID of plugin: id = "${pluginId}". Chunk of data will not be forward.`);
         }
         return { id: pluginId, token: pluginToken };
-    }
-
-    private _sendToRender(complete: string, from: number, to: number): Promise<void> {
-        return new Promise((resolve) => {
-            this._sendUpdateStreamData(complete, from, to).then(() => {
-                resolve();
-            }).catch((errorIPC: Error) => {
-                this._logger.warn(`Fail send data from stream (${this._guid}) to render process due error: ${errorIPC.message}`);
-            });
-        });
     }
 
     private _bindPlugin(chunk: string, ref: string): boolean {

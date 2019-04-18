@@ -24,7 +24,8 @@ export class AppComponent {
       onStorageUpdated: new Subject<IStorageInformation>(),
       onRowsDelivered: new Subject<IRowsPacket>(),
       onScrollTo: new Subject<number>(),
-      getItemHeight: () => 12
+      getItemHeight: () => 12,
+      onRedraw: new Subject<void>(),
     };
     /*
     setTimeout(() => {
@@ -49,24 +50,27 @@ export class AppComponent {
   }
 
   private _onUpdatingDone(range: IRange) {
+    const rows = this._generateRange(range.start, range.end - range.start + 1, true);
+    /*
     clearTimeout(this._requestTimer);
     this._requestTimer = setTimeout(() => {
       const rows = this._generateRange(range.start, range.end - range.start + 1, true);
       this._ng_api.onRowsDelivered.next({ range: range, rows: rows });
     }, 550);
+    */
   }
 
   private _getRange(range: IRange): IRowsPacket {
     this._requestedRange = Object.assign({}, range);
     return {
       range: range,
-      rows: this._generateRange(range.start, range.end - range.start + 1, false),
+      rows: this._generateRange(range.start, range.end - range.start + 1, true),
     };
   }
 
   private _getStorageInfo(): IStorageInformation {
     return {
-      count: 5000000
+      count: 50000
     };
   }
 
@@ -75,7 +79,8 @@ export class AppComponent {
       return Array.from({ length: count }).map((_, i) => {
         return {
           index: i + start,
-          row: Date.now().toString() + (Math.random() * 1000000000000).toFixed(0).repeat(Math.round(Math.random() * 5))
+          //row: Date.now().toString() + (Math.random() * 1000000000000).toFixed(0).repeat(Math.round(Math.random() * 5))
+          row: i + start
       };
       });
     } else {
