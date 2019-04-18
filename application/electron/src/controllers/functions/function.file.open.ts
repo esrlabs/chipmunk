@@ -1,6 +1,9 @@
 import { dialog } from 'electron';
 import * as fs from 'fs';
+import * as path from 'path';
 import ServiceStreams from '../../services/service.streams';
+import ServiceStreamSource from '../../services/service.stream.sources';
+
 import * as Tools from '../../tools/index';
 
 export default class FunctionOpenFile {
@@ -22,11 +25,13 @@ export default class FunctionOpenFile {
                     if (error) {
                         return;
                     }
+                    // Add new description of source
+                    const sourceId: number = ServiceStreamSource.add({ name: path.basename(file) });
                     // Create read stream
                     const stream: fs.ReadStream = fs.createReadStream(file);
                     const pipeSessionId: string = Tools.guid();
                     ServiceStreams.addPipeSession(pipeSessionId, stats.size, file);
-                    ServiceStreams.pipeWith(stream).then(() => {
+                    ServiceStreams.pipeWith(stream, sourceId).then(() => {
                         ServiceStreams.removePipeSession(pipeSessionId);
                         stream.close();
                     });

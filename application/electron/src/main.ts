@@ -12,6 +12,7 @@ import ServiceSettings from './services/service.settings';
 import ServiceWindowState from './services/service.window.state';
 import ServiceElectronState from './services/service.electron.state';
 import ServiceProduction from './services/service.production';
+import ServiceStreamSources from './services/service.stream.sources';
 
 const InitializeStages = [
     // Stage #1
@@ -27,7 +28,7 @@ const InitializeStages = [
     // Stage #6. Init services and helpers
     [ServiceElectronState],
     // Stage #7. Stream service
-    [ServiceStreams],
+    [ServiceStreamSources, ServiceStreams],
     // Stage #8. Detect OS env
     [ServiceEnv],
     // Stage #9. Init plugins

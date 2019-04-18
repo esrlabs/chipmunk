@@ -4,8 +4,8 @@ import { ControllerSessionTab } from '../controller/controller.session.tab';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { IService } from '../interfaces/interface.service';
 import { Observable, Subject } from 'rxjs';
-
 import { ViewOutputComponent } from '../components/views/output/component';
+import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
 
 type TSessionGuid = string;
 
@@ -89,6 +89,9 @@ export class TabsSessionsService implements IService {
         this._currentSessionGuid = guid;
         this._tabsService.setActive(this._currentSessionGuid);
         this._subjects.onSessionChange.next(session);
+        ElectronIpcService.send(new IPCMessages.StreamSetActive({ guid: this._currentSessionGuid })).catch((error: Error) => {
+            this._logger.warn(`Fail to send notification about active session due error: ${error.message}`);
+        });
     }
 
     public getActive(): ControllerSessionTab | undefined {

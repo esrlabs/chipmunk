@@ -2,15 +2,16 @@ import * as fs from 'fs';
 import Logger from '../tools/env.logger';
 import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from '../services/service.electron';
 import ServicePlugins from '../services/service.plugins';
+import ServiceStreamSource from '../services/service.stream.sources';
 import ControllerIPCPlugin, { IPCMessages as IPCPluginMessages} from './controller.plugin.process.ipc';
 import ControllerStreamFileReader from './controller.stream.file.reader';
 import Transform, { ITransformResult } from './controller.stream.processor.pipe.transform';
 import { IMapItem } from './controller.stream.processor.map';
 import State from './controller.stream.processor.state';
 
-export interface IPluginInfo {
+export interface ISourceInfo {
     id: number;
-    token: string;
+    token: string | undefined;
 }
 
 export interface IStreamStateInfo {
@@ -71,7 +72,6 @@ export default class ControllerStreamProcessor {
 
     public write(chunk: Buffer, pluginReference: string | undefined, pluginId?: number): Promise<void> {
         return new Promise((resolve, reject) => {
-            const st: number = Date.now();
             let output: string = '';
             if (typeof chunk === 'string') {
                 output = chunk;
@@ -79,17 +79,17 @@ export default class ControllerStreamProcessor {
                 output = chunk.toString('utf8');
             }
             // Binding ref with ID of plugin
-            if (pluginReference !== undefined && this._bindPlugin(output, pluginReference) === true) {
+            if (pluginReference !== undefined && this._bindPluginRef(output, pluginReference) === true) {
                 // This is binding message. No need to process it forward.
                 return resolve();
             }
             // Get plugin info
-            const pluginInfo: IPluginInfo | Error = this._getPluginInfo(pluginReference, pluginId);
-            if (pluginInfo instanceof Error) {
-                return reject(new Error(`Fail to write data due error: ${pluginInfo.message}`));
+            const sourceInfo: ISourceInfo | Error = this._getSourceInfo(pluginReference, pluginId);
+            if (sourceInfo instanceof Error) {
+                return reject(new Error(`Fail to write data due error: ${sourceInfo.message}`));
             }
             // Set plugin
-            this._transform.setPluginId(pluginInfo.id);
+            this._transform.setPluginId(sourceInfo.id);
             // Convert chunk to string
             const converted: ITransformResult = this._transform.convert(output);
             // Write data
@@ -102,8 +102,13 @@ export default class ControllerStreamProcessor {
         });
     }
 
-    public pipe(reader: fs.ReadStream) {
-        this._transform.setPluginId(1);
+    public pipe(reader: fs.ReadStream, sourceId: number): Error | undefined {
+        // Get plugin info
+        const sourceInfo: ISourceInfo | Error = this._getSourceInfo(undefined, sourceId);
+        if (sourceInfo instanceof Error) {
+            return new Error(`Fail to pipe data due error: ${sourceInfo.message}`);
+        }
+        this._transform.setPluginId(sourceInfo.id);
         reader.pipe(this._transform).pipe(this._stream, { end: false});
     }
 
@@ -115,23 +120,25 @@ export default class ControllerStreamProcessor {
         this._state.pipes.remove(pipeId);
     }
 
-    private _getPluginInfo(pluginReference: string | undefined, id?: number): IPluginInfo | Error {
+    private _getSourceInfo(pluginReference: string | undefined, id?: number): ISourceInfo | Error {
+        // Check source before
+        if (id !== undefined && ServiceStreamSource.get(id) !== undefined) {
+            return { id: id, token: undefined };
+        }
         // Attempt to find ID of plugin
         const pluginId: number | undefined = pluginReference === undefined ? id : this._pluginRefs.get(pluginReference);
         if (pluginId === undefined) {
-            return { id: 1, token: '' };
-            // return new Error(`Fail to find plugin ID. Chunk of data will not be forward.`);
+            return new Error(`Fail to find plugin ID. Chunk of data will not be forward.`);
         }
         // Get token
         const pluginToken: string | undefined = ServicePlugins.getPluginToken(pluginId);
         if (pluginToken === undefined) {
-            return { id: 1, token: '' };
-            // return new Error(`Fail to find plugin token by ID of plugin: id = "${pluginId}". Chunk of data will not be forward.`);
+            return new Error(`Fail to find plugin token by ID of plugin: id = "${pluginId}". Chunk of data will not be forward.`);
         }
         return { id: pluginId, token: pluginToken };
     }
 
-    private _bindPlugin(chunk: string, ref: string): boolean {
+    private _bindPluginRef(chunk: string, ref: string): boolean {
         if (this._pluginRefs.has(ref)) {
             // Plugin's connection is already bound
             return false;

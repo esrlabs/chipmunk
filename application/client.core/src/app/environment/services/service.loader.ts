@@ -1,6 +1,7 @@
 import ServiceElectronIpc, { IPCMessages } from './service.electron.ipc';
 import PluginsIPCService from './service.plugins.ipc';
 import PluginsService from './service.plugins';
+import SourcesService from './service.sources';
 import HorizontalSidebarSessionsService from './service.sessions.sidebar.horizontal';
 import TabsSessionsService from './service.sessions.tabs';
 
@@ -10,7 +11,7 @@ const InitializeStages = [
     // Stage #1
     [ServiceElectronIpc],
     // Stage #2
-    [PluginsService],
+    [PluginsService, SourcesService],
     // Stage #3
     [PluginsIPCService],
     // Stage #4

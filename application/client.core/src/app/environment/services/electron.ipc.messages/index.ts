@@ -22,6 +22,9 @@ export { IPluginInternalMessage, PluginInternalMessage };
 import { IStreamAdd, StreamAdd } from './stream.add';
 export { IStreamAdd, StreamAdd };
 
+import { IStreamSetActive, StreamSetActive } from './stream.setactive';
+export { IStreamSetActive, StreamSetActive };
+
 import { IStreamRemove, StreamRemove } from './stream.remove';
 export { IStreamRemove, StreamRemove };
 
@@ -36,6 +39,9 @@ export { IStreamPipeState, StreamPipeState };
 
 import { IStreamChunk, StreamChunk } from './stream.chunk';
 export { IStreamChunk, StreamChunk };
+
+import { IStreamSourceNew, StreamSourceNew } from './stream.source.new';
+export { IStreamSourceNew, StreamSourceNew };
 
 import { ISearchChunk, SearchChunk } from './search.chunk';
 export { ISearchChunk, SearchChunk };
@@ -63,17 +69,19 @@ export type TMessage =  HostState |
                         RenderMountPlugin |
                         RenderState |
                         PluginInternalMessage |
+                        StreamSetActive |
                         StreamAdd |
                         StreamRemove |
                         StreamData |
+                        StreamUpdated |
+                        StreamPipeState |
+                        StreamChunk |
+                        StreamSourceNew |
                         SearchRequest |
                         SearchRequestStarted |
                         SearchRequestFinished |
                         SearchRequestResults |
                         SearchChunk |
-                        StreamUpdated |
-                        StreamPipeState |
-                        StreamChunk |
                         SearchStreamUpdated;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -91,12 +99,14 @@ export const Map = {
 
     [PluginInternalMessage.signature    ]: PluginInternalMessage,
 
+    [StreamSetActive.signature          ]: StreamSetActive,
     [StreamAdd.signature                ]: StreamAdd,
     [StreamRemove.signature             ]: StreamRemove,
     [StreamData.signature               ]: StreamData,
     [StreamUpdated.signature            ]: StreamUpdated,
     [StreamPipeState.signature          ]: StreamPipeState,
     [StreamChunk.signature              ]: StreamChunk,
+    [StreamSourceNew.signature          ]: StreamSourceNew,
 
     [SearchRequest.signature            ]: SearchRequest,
     [SearchRequestStarted.signature     ]: SearchRequestStarted,
