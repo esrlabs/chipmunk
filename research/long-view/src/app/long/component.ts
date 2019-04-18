@@ -40,9 +40,7 @@ export interface IDataAPI {
 export interface ISettings {
     minScrollTop: number;           // To "catch" scroll event in reverse direction (to up) we should always keep minimal scroll offset
     maxScrollHeight: number;        // Maximum scroll area height in px.
-    maxSlowDistance: number;        // Less this distance will be applied scrolling without scale. In heights of items
     scrollToOffset: number;         // How many items show before item defined on scrollTo
-    noScrollScaleOnWheel: boolean;  // Do not apply scale if scroll was done with wheel
     scrollBarSize: number;          // Size of scroll bar: height for horizontal; width for vertical. In px.
 }
 
@@ -57,11 +55,9 @@ enum EKeys {
 }
 
 const DefaultSettings = {
-    minScrollTop        : 1,            // To "catch" scroll event in reverse direction (to up) we should always keep minimal scroll offset
+    minScrollTop        : 50,            // To "catch" scroll event in reverse direction (to up) we should always keep minimal scroll offset
     maxScrollHeight     : 100000,       // Maximum scroll area height in px.
-    maxSlowDistance     : 20,           // Less this distance will be applied scrolling without scale. In heights of items
     scrollToOffset      : 5,            // How many items show before item defined on scrollTo
-    noScrollScaleOnWheel: true,         // Do not apply scale if scroll was done with wheel
     scrollBarSize       : 8,            // Size of scroll bar: height for horizontal; width for vertical. In px.
 };
 
@@ -89,9 +85,10 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
     private _containerSize: IBoxSize | undefined;
     private _vSB: {
         scale: number,
+        minScrollTop: number,
+        maxScrollTop: number,
         heightFiller: number,
         offset: number,
-        maxSlowDistancePx: number,
         itemHeight: number,
         cache: number,
         prevScrollTop: number,
@@ -100,9 +97,10 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         scrollToDirection: number,
     } = {
         scale: 1,
+        minScrollTop: 0,
+        maxScrollTop: 0,
         heightFiller: -1,
         offset: 0,
-        maxSlowDistancePx: 0,
         itemHeight: 0,
         cache: -1,
         prevScrollTop: -1,
@@ -134,8 +132,6 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         this._ng_factory = this.API.getComponentFactory();
         // Get information about storage
         this._storageInfo = this.API.getStorageInfo();
-        // Convert maxSlowDistance to px
-        this._vSB.maxSlowDistancePx = this._settings.maxSlowDistance * this.API.getItemHeight();
         // Store item height
         this._vSB.itemHeight = this.API.getItemHeight();
         // Update data about sizes
@@ -185,38 +181,10 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
     }
 
     public _ng_onScroll(event: MouseEvent) {
-        // Get current scroll position
-        const scrollTop: number = (event.target as HTMLElement).scrollTop;
-        // Check max size of scroll top
-        if (scrollTop >= this._settings.maxScrollHeight) {
-            return;
-        }
-        if (scrollTop === this._vSB.cache) {
-            return;
-        }
-        if (scrollTop === this._vSB.prevScrollTop && this._vSB.scrollTo === -1) {
-            if (this._state.start !== 0 && scrollTop === this._vSB.cache) {
-                this._cdRef.detectChanges();
-                return;
-            } else if (scrollTop !== 0 && scrollTop !== this._vSB.cache && this._state.end !== (this._storageInfo.count - 1)) {
-                this._vSB.offset = this._vSB.cache;
-                (event.target as HTMLElement).scrollTop = this._vSB.cache;
-                this._cdRef.detectChanges();
-                return;
-            }
-        }
-        this._vSB.prevScrollTop = scrollTop;
-        let shouldBeUpdated: boolean;
-        if (this._vSB.heightFiller < this._settings.maxScrollHeight) {
-            shouldBeUpdated = this._scrollWithoutScale(event.target as HTMLElement, scrollTop);
-        } else {
-            shouldBeUpdated = this._scrollWithScale(event.target as HTMLElement, scrollTop);
-        }
-        if (shouldBeUpdated) {
-            // Update list
-            this._render();
-            // Notification: scroll is done
-            this.API.updatingDone({ start: this._state.start, end: this._state.end });
+        this._cdRef.detectChanges();
+        if (!this._onScroll(event.target as HTMLElement)) {
+            event.preventDefault();
+            return false;
         }
         this._cdRef.detectChanges();
     }
@@ -241,47 +209,71 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         };
     }
 
-    public _ng_getHolderStyles(): { [key: string]: any } {
-        return {
-            marginTop: `${this._vSB.offset}px`
-        };
-    }
-
     public _ng_getItemStyles(): { [key: string]: any } {
         return {
             height: `${this._vSB.itemHeight}px`,
         };
     }
 
-    private _scrollWithScale(target: HTMLElement, scrollTop: number): boolean {
-        const minScrollTop = this._vSB.maxSlowDistancePx;
-        const maxScrollTop = this._vSB.heightFiller - this._containerSize.height - this._vSB.maxSlowDistancePx;
+    private _onScroll(container: HTMLElement): boolean {
+        // Get current scroll position
+        const scrollTop: number = container.scrollTop;
+        // console.log(`scrollTop: ${scrollTop}; cache: ${this._vSB.cache}; start: ${this._state.start}`);
+        if (scrollTop === this._vSB.cache) {
+            return false;
+        }
+        this._vSB.prevScrollTop = scrollTop;
+        let update: { scrollTop: number, redraw: boolean };
+        if (this._vSB.heightFiller < this._settings.maxScrollHeight) {
+            update = this._scrollWithoutScale(scrollTop);
+        } else {
+            update = this._scrollWithScale(scrollTop);
+        }
+        // Set margin
+        this._vSB.offset = update.scrollTop;
+        // Drop cache
+        this._vSB.cache = update.scrollTop;
+        // Set scroll value
+        container.scrollTop = update.scrollTop;
+        // Redraw
+        if (update.redraw) {
+            // Update list
+            this._render();
+            // Notification: scroll is done
+            this.API.updatingDone({ start: this._state.start, end: this._state.end });
+        }
+        return true;
+    }
+
+    private _correctScrollTop(scrollTop: number): number {
+        // Check minimal offset from top
+        if (scrollTop < this._vSB.minScrollTop) {
+            scrollTop = this._vSB.minScrollTop;
+        }
+        // Check minimal offset from bottom
+        if (scrollTop > this._vSB.maxScrollTop) {
+            scrollTop = this._vSB.maxScrollTop;
+        }
+        return scrollTop;
+    }
+
+    private _scrollWithScale(scrollTop: number): { scrollTop: number, redraw: boolean } {
         let change: number = this._vSB.cache === -1 ? scrollTop : (scrollTop - this._vSB.cache);
         const direction: number = this._vSB.scrollTo === -1 ? (change > 0 ? 1 : -1) : this._vSB.scrollToDirection;
         if (direction < 0 && this._state.start === 0) {
             // Already beginning of list
-            scrollTop = minScrollTop;
-            target.scrollTop = scrollTop;
-            this._vSB.cache = scrollTop;
-            return false;
+            return { scrollTop: this._vSB.minScrollTop, redraw: false };
         }
         if (direction > 0 && this._state.end === this._storageInfo.count - 1) {
             // Already end of list
-            scrollTop = maxScrollTop;
-            target.scrollTop = scrollTop;
-            this._vSB.cache = scrollTop;
-            return false;
-        }
-        if (direction > 0 && scrollTop > maxScrollTop && this._state.end !== this._storageInfo.count - 1 && !this._isScrolledByWheel()) {
-            this._state.start = (this._storageInfo.count - this._state.count) > 0 ? (this._storageInfo.count - this._state.count) : 0;
-        }
-        if (this._state.start === -1) {
-            // onScrollTo was triggered
-            this._state.start = 0;
+            return { scrollTop: this._vSB.maxScrollTop, redraw: false };
         }
         change = Math.abs(change);
+        if (direction > 0 && scrollTop > this._vSB.maxScrollTop && this._state.end !== this._storageInfo.count - 1 && !this._isScrolledByWheel()) {
+            this._state.start = (this._storageInfo.count - this._state.count) > 0 ? (this._storageInfo.count - this._state.count) : 0;
+        }
         if (this._state.end !== -1) {
-            if (change >= this._vSB.maxSlowDistancePx && (!this._isScrolledByWheel() && this._settings.noScrollScaleOnWheel)) {
+            if (!this._isScrolledByWheel()) {
                 // Calculate considering scale
                 if (this._vSB.scrollTo !== -1) {
                     this._state.start = this._vSB.scrollTo;
@@ -317,46 +309,24 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         }
         // Recalculate scroll top
         scrollTop = Math.round((this._state.start * this._vSB.itemHeight) * this._vSB.scale);
-        // Check minimal offset from top
-        if (scrollTop < minScrollTop) {
-            scrollTop = minScrollTop;
-        }
-        // Check minimal offset from bottom
-        if (scrollTop > maxScrollTop) {
-            scrollTop = maxScrollTop;
-        }
         this._state.end = this._state.start + this._state.count;
         if (this._state.end > this._storageInfo.count - 1) {
             this._state.end = this._storageInfo.count - 1;
             this._state.start = (this._storageInfo.count - this._state.count) > 0 ? (this._storageInfo.count - this._state.count) : 0;
         }
-        // Set margin
-        this._vSB.offset = scrollTop;
-        // Drop cache
-        this._vSB.cache = scrollTop;
-        // Change real scroll
-        target.scrollTop = scrollTop;
-        return true;
+        return { scrollTop: this._correctScrollTop(scrollTop), redraw: true };
     }
 
-    private _scrollWithoutScale(target: HTMLElement, scrollTop: number): boolean {
-        const minScrollTop = 1;
-        const maxScrollTop = this._vSB.heightFiller - this._containerSize.height - 1;
+    private _scrollWithoutScale(scrollTop: number): { scrollTop: number, redraw: boolean } {
         let change: number = this._vSB.cache === -1 ? scrollTop : (scrollTop - this._vSB.cache);
         const direction: number = change > 0 ? 1 : -1;
         if (direction < 0 && this._state.start === 0) {
             // Already beginning of list
-            scrollTop = minScrollTop;
-            target.scrollTop = scrollTop;
-            this._vSB.cache = scrollTop;
-            return false;
+            return { scrollTop: this._vSB.minScrollTop, redraw: false };
         }
         if (direction > 0 && this._state.end === this._storageInfo.count - 1) {
             // Already end of list
-            scrollTop = maxScrollTop;
-            target.scrollTop = scrollTop;
-            this._vSB.cache = scrollTop;
-            return false;
+            return { scrollTop: this._vSB.maxScrollTop, redraw: false };
         }
         change = Math.abs(change);
         change = change < this._vSB.itemHeight ? this._vSB.itemHeight : change;
@@ -364,34 +334,23 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
             this._state.start = this._vSB.scrollTo;
             this._vSB.scrollTo = -1;
         } else {
-            this._state.start += Math.round(change / this._vSB.itemHeight) * direction;
+            this._state.start += Math.floor(change / this._vSB.itemHeight) * direction;
+            if (this._state.start === 0) {
+                this._state.start = 0;
+            }
         }
         if (this._state.start < 0) {
             this._state.start = 0;
         } else if (this._state.start > this._storageInfo.count - this._state.count) {
             this._state.start = (this._storageInfo.count - this._state.count) > 0 ? (this._storageInfo.count - this._state.count) : 0;
         }
-        scrollTop = this._state.start * this._vSB.itemHeight;
-        // Check minimal offset from top
-        if (scrollTop < minScrollTop) {
-            scrollTop = minScrollTop;
-        }
-        // Check minimal offset from bottom
-        if (scrollTop > maxScrollTop) {
-            scrollTop = maxScrollTop;
-        }
+        // scrollTop = this._state.start * this._vSB.itemHeight;
         this._state.end = this._state.start + this._state.count;
         if (this._state.end > this._storageInfo.count - 1) {
             this._state.end = this._storageInfo.count - 1;
             this._state.start = (this._storageInfo.count - this._state.count) > 0 ? (this._storageInfo.count - this._state.count) : 0;
         }
-        // Set margin
-        this._vSB.offset = scrollTop;
-        // Drop cache
-        this._vSB.cache = scrollTop;
-        // Set scroll top
-        target.scrollTop = scrollTop;
-        return true;
+        return { scrollTop: this._correctScrollTop(scrollTop), redraw: true };
     }
 
     private _isScrolledByWheel(): boolean {
@@ -468,10 +427,14 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         if (scrollHeight < this._settings.maxScrollHeight) {
             this._vSB.scale = 1;
             this._vSB.heightFiller = scrollHeight;
-        } else {
+            this._vSB.minScrollTop = 1;
+            this._vSB.maxScrollTop = this._vSB.heightFiller - this._containerSize.height - 1;
+            } else {
             this._vSB.scale = this._settings.maxScrollHeight / scrollHeight;
             this._vSB.heightFiller = this._settings.maxScrollHeight;
-        }
+            this._vSB.minScrollTop = this._settings.minScrollTop;
+            this._vSB.maxScrollTop = this._vSB.heightFiller - this._containerSize.height - this._settings.minScrollTop;
+            }
         // Update
         this._cdRef.detectChanges();
     }
@@ -594,3 +557,4 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
     }
 
 }
+
