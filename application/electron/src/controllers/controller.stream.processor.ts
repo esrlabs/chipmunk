@@ -109,7 +109,7 @@ export default class ControllerStreamProcessor {
             return new Error(`Fail to pipe data due error: ${sourceInfo.message}`);
         }
         this._transform.setPluginId(sourceInfo.id);
-        reader.pipe(this._transform).pipe(this._stream, { end: false});
+        reader.pipe(this._transform, { end: false}).pipe(this._stream, { end: false});
     }
 
     public addPipeSession(pipeId: string, size: number, name: string) {
