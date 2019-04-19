@@ -141,7 +141,7 @@ class ServiceStreams extends EventEmitter implements IService  {
             if (stream === undefined) {
                 return reject(new Error(this._logger.warn(`Fail to find a stream data for stream guid "${streamId}"`)));
             }
-            reader.on('end', () => {
+            reader.once('end', () => {
                 resolve();
             });
             stream.processor.pipe(reader, sourceId);
