@@ -16,19 +16,25 @@ const Settings = {
     maxPostponedNotificationMessages: 500,      // How many IPC messages to render (client) should be postponed via timer
 };
 
+export function convert(streamId: string, pluginId: number, state: State, chunk: Buffer | string): ITransformResult {
+    const transform: Transform = new Transform({}, streamId, pluginId, state);
+    return transform.convert(chunk);
+}
+
 export default class Transform extends Stream.Transform {
 
     private _logger: Logger;
-    private _pluginId: number = 0;
+    private _pluginId: number;
     private _rest: string = '';
     private _streamId: string;
     private _state: State;
     private _notificationTimer: any;
     private _postponedNotifications: number = 0;
 
-    constructor(options: Stream.TransformOptions, streamId: string, state: State) {
+    constructor(options: Stream.TransformOptions, streamId: string, pluginId: number, state: State) {
         super(options);
         this._streamId = streamId;
+        this._pluginId = pluginId;
         this._state = state;
         this._logger = new Logger(`ControllerStreamTransformer: ${this._streamId}`);
 
@@ -62,6 +68,7 @@ export default class Transform extends Stream.Transform {
             return `${StreamMarkers.PluginId}${this._pluginId}${StreamMarkers.PluginId}${StreamMarkers.RowNumber}${rows.to++}${StreamMarkers.RowNumber}\n`;
         });
         const size: number = Buffer.byteLength(output, 'utf8');
+        rows.to -= 1;
         bytes.to += size - 1;
         this._state.map.add({ rows: rows, bytes: bytes });
         if (callback !== undefined) {
@@ -79,16 +86,12 @@ export default class Transform extends Stream.Transform {
         return this._transform(chunk, 'utf8', undefined);
     }
 
-    public setPluginId(pluginId: number) {
-        this._pluginId = pluginId;
-    }
-
     private _getRest(str: string): { rest: string, cleared: string } {
         const last = str.length - 1;
         for (let i = last; i >= 0; i -= 1) {
             if (str[i] === '\n' && i > 0) {
                 return {
-                    rest: str.substr(i - 1, last),
+                    rest: str.substr(i + 1, last),
                     cleared: str.substr(0, i + 1),
                 };
             }

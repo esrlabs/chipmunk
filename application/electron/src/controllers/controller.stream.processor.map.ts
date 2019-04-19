@@ -17,7 +17,7 @@ export default class BytesRowsMap {
     public add(item: IMapItem) {
         this._map.push(item);
         this._bytes = item.bytes.to + 1;
-        this._rows = item.rows.to;
+        this._rows = item.rows.to + 1;
     }
 
     public getBytesRange(requested: IRange): IMapItem | Error {

@@ -5,7 +5,7 @@ import ServicePlugins from '../services/service.plugins';
 import ServiceStreamSource from '../services/service.stream.sources';
 import ControllerIPCPlugin, { IPCMessages as IPCPluginMessages} from './controller.plugin.process.ipc';
 import ControllerStreamFileReader from './controller.stream.file.reader';
-import Transform, { ITransformResult } from './controller.stream.processor.pipe.transform';
+import Transform, { ITransformResult, convert } from './controller.stream.processor.pipe.transform';
 import { IMapItem } from './controller.stream.processor.map';
 import State from './controller.stream.processor.state';
 
@@ -51,7 +51,7 @@ export default class ControllerStreamProcessor {
         this._reader = new ControllerStreamFileReader(this._guid, this._file);
         this._logger = new Logger(`ControllerStreamProcessor: ${this._guid}`);
         this._state = new State(this._guid);
-        this._transform = new Transform({}, this._guid, this._state);
+        this._transform = new Transform({}, this._guid, -1, this._state);
         this._ipc_onStreamChunkRequested = this._ipc_onStreamChunkRequested.bind(this);
         ServiceElectron.IPC.subscribe(IPCElectronMessages.StreamChunk, this._ipc_onStreamChunkRequested).then((subscription: Subscription) => {
             this._subscriptions.StreamChunk = subscription;
@@ -88,10 +88,8 @@ export default class ControllerStreamProcessor {
             if (sourceInfo instanceof Error) {
                 return reject(new Error(`Fail to write data due error: ${sourceInfo.message}`));
             }
-            // Set plugin
-            this._transform.setPluginId(sourceInfo.id);
             // Convert chunk to string
-            const converted: ITransformResult = this._transform.convert(output);
+            const converted: ITransformResult = convert(this._guid, sourceInfo.id, this._state, output);
             // Write data
             this._stream.write(converted.output, (writeError: Error | null | undefined) => {
                 if (writeError) {
@@ -108,8 +106,8 @@ export default class ControllerStreamProcessor {
         if (sourceInfo instanceof Error) {
             return new Error(`Fail to pipe data due error: ${sourceInfo.message}`);
         }
-        this._transform.setPluginId(sourceInfo.id);
-        reader.pipe(this._transform, { end: false}).pipe(this._stream, { end: false});
+        const transform: Transform = new Transform({}, this._guid, sourceId, this._state);
+        reader.pipe(transform).pipe(this._stream, { end: false});
     }
 
     public addPipeSession(pipeId: string, size: number, name: string) {
