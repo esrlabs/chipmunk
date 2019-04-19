@@ -229,6 +229,8 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         } else {
             update = this._scrollWithScale(scrollTop);
         }
+        // Drop scrollTo
+        this._vSB.scrollTo = -1;
         // Set margin
         this._vSB.offset = update.scrollTop;
         // Drop cache
@@ -277,7 +279,6 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
                 // Calculate considering scale
                 if (this._vSB.scrollTo !== -1) {
                     this._state.start = this._vSB.scrollTo;
-                    this._vSB.scrollTo = -1;
                 } else {
                     this._state.start += Math.round((change / this._vSB.scale) / this._vSB.itemHeight) * direction;
                 }
@@ -294,7 +295,6 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
                 // Calculate without scale
                 if (this._vSB.scrollTo !== -1) {
                     this._state.start = this._vSB.scrollTo;
-                    this._vSB.scrollTo = -1;
                 } else {
                     this._state.start += Math.round(change / this._vSB.itemHeight) * direction;
                 }
@@ -319,7 +319,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
 
     private _scrollWithoutScale(scrollTop: number): { scrollTop: number, redraw: boolean } {
         let change: number = this._vSB.cache === -1 ? scrollTop : (scrollTop - this._vSB.cache);
-        const direction: number = change > 0 ? 1 : -1;
+        const direction: number = this._vSB.scrollTo === -1 ? (change > 0 ? 1 : -1) : this._vSB.scrollToDirection;
         if (direction < 0 && this._state.start === 0) {
             // Already beginning of list
             return { scrollTop: this._vSB.minScrollTop, redraw: false };
@@ -332,7 +332,6 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         change = change < this._vSB.itemHeight ? this._vSB.itemHeight : change;
         if (this._vSB.scrollTo !== -1) {
             this._state.start = this._vSB.scrollTo;
-            this._vSB.scrollTo = -1;
         } else {
             this._state.start += Math.floor(change / this._vSB.itemHeight) * direction;
             if (this._state.start === 0) {
