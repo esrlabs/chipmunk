@@ -383,6 +383,14 @@ export class ControllerSessionTabStreamOutput {
         const packet: IRange = { start: packets[0].position, end: packets[packets.length - 1].position};
         if (this._rows.length === 0) {
             this._rows.push(...packets);
+        } else if (packet.start === this._state.stored.end + 1) {
+            this._rows.push(...packets);
+            // Check size
+            if (this._rows.length > Settings.maxStoredCount) {
+                const toCrop: number = this._rows.length - Settings.maxStoredCount;
+                // Remove from the begin
+                this._rows.splice(0, toCrop);
+            }
         } else if (packet.start > this._state.stored.end) {
             this._rows = packets;
         } else if (packet.end < this._state.stored.start) {
