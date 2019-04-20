@@ -70,7 +70,7 @@ export class AppComponent {
 
   private _getStorageInfo(): IStorageInformation {
     return {
-      count: 100
+      count: 2500000
     };
   }
 
