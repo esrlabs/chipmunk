@@ -49,6 +49,7 @@ export class InjectionOutputBottomComponent implements AfterViewInit, OnDestroy 
             command: EHostCommands.getSettings,
         }, this.session).then((response) => {
             this._ng_cwd = response.settings.cwd;
+            this._cdRef.detectChanges();
         });
     }
 
