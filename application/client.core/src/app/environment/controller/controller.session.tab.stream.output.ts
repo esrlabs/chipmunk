@@ -11,6 +11,7 @@ export interface IStreamPacket {
     pluginId: number;
     rank: number;
     sessionId: string;
+    controller: ControllerSessionTabStreamOutput;
 }
 
 export interface IStreamState {
@@ -74,6 +75,7 @@ export class ControllerSessionTabStreamOutput {
         onRangeLoaded: new Subject<ILoadedRange>(),
         onReset: new Subject<void>(),
         onScrollTo: new Subject<number>(),
+        onRankChanged: new Subject<number>(),
     };
 
     constructor(guid: string, requestDataHandler: TRequestDataHandler) {
@@ -95,19 +97,21 @@ export class ControllerSessionTabStreamOutput {
 
      /**
      * List of available observables.
-     * @returns { onStateUpdated: Observable<IStreamState>, onRangeLoaded: Observable<ILoadedRange>, }
+     * @returns { onStateUpdated: Observable<IStreamState>, onRangeLoaded: Observable<ILoadedRange>, onReset: Observable<void>, onScrollTo: Observable<number>, onRankChanged: Observable<number> }
      */
     public getObservable(): {
         onStateUpdated: Observable<IStreamState>,
         onRangeLoaded: Observable<ILoadedRange>,
         onReset: Observable<void>,
         onScrollTo: Observable<number>,
+        onRankChanged: Observable<number>,
     } {
         return {
             onStateUpdated: this._subjects.onStateUpdated.asObservable(),
             onRangeLoaded: this._subjects.onRangeLoaded.asObservable(),
             onReset: this._subjects.onReset.asObservable(),
             onScrollTo: this._subjects.onScrollTo.asObservable(),
+            onRankChanged: this._subjects.onRankChanged.asObservable(),
         };
     }
 
@@ -353,6 +357,7 @@ export class ControllerSessionTabStreamOutput {
                 pluginId: this._extractPluginId(str),       // Get plugin id
                 rank: this._state.countRank,
                 sessionId: this._guid,
+                controller: this,
             };
         }).filter((packet: IStreamPacket) => {
             return (packet.position !== -1);
@@ -368,6 +373,7 @@ export class ControllerSessionTabStreamOutput {
                 str: undefined,
                 rank: this._state.countRank,
                 sessionId: this._guid,
+                controller: this,
             };
         });
         return rows;
@@ -461,7 +467,14 @@ export class ControllerSessionTabStreamOutput {
 
     private _setTotalStreamCount(count: number) {
         this._state.count = count;
+        const changed: boolean = this._state.countRank !== count.toString().length;
         this._state.countRank = count.toString().length;
+        if (changed) {
+            this._rows.forEach((row: IStreamPacket) => {
+                row.rank = this._state.countRank;
+            });
+            this._subjects.onRankChanged.next(this._state.countRank);
+        }
     }
 
 }
