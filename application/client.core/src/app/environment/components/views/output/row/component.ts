@@ -1,6 +1,7 @@
-import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
+import { ControllerSessionTabStreamOutput } from '../../../../controller/controller.session.tab.stream.output';
 import SourcesService from '../../../../services/service.sources';
 import OutputParsersService from '../../../../services/standalone/service.output.parsers';
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
@@ -12,12 +13,13 @@ import OutputRedirectionsService from '../../../../services/standalone/service.o
     // encapsulation: ViewEncapsulation.None
 })
 
-export class ViewOutputRowComponent implements AfterContentChecked, OnDestroy {
+export class ViewOutputRowComponent implements AfterContentInit, AfterContentChecked, OnDestroy {
 
     @Input() public str: string | undefined;
     @Input() public sessionId: string | undefined;
     @Input() public position: number | undefined;
     @Input() public pluginId: number | undefined;
+    @Input() public controller: ControllerSessionTabStreamOutput | undefined;
     @Input() public rank: number = 1;
 
     public _ng_safeHtml: SafeHtml = null;
@@ -28,14 +30,25 @@ export class ViewOutputRowComponent implements AfterContentChecked, OnDestroy {
     private _subscriptions: { [key: string]: Subscription } = {};
 
     constructor(private _sanitizer: DomSanitizer, private _cdRef: ChangeDetectorRef ) {
+        this._onRankChanged = this._onRankChanged.bind(this);
         this._onUpdatedSearch = this._onUpdatedSearch.bind(this);
         this._subscriptions.onUpdatedSearch = OutputParsersService.getObservable().onUpdatedSearch.subscribe(this._onUpdatedSearch);
     }
 
-    ngOnDestroy() {
+    public ngOnDestroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
+    }
+
+    public ngAfterContentInit() {
+        if (this.controller === undefined) {
+            return;
+        }
+        if (this._subscriptions.onRankChanged !== undefined) {
+            return;
+        }
+        this._subscriptions.onRankChanged = this.controller.getObservable().onRankChanged.subscribe(this._onRankChanged);
     }
 
     public ngAfterContentChecked() {
@@ -47,6 +60,7 @@ export class ViewOutputRowComponent implements AfterContentChecked, OnDestroy {
         } else {
             this._acceptRowWithContent();
         }
+
     }
 
     public _ng_isPending() {
@@ -95,6 +109,12 @@ export class ViewOutputRowComponent implements AfterContentChecked, OnDestroy {
             return;
         }
         this._acceptRowWithContent();
+        this._cdRef.detectChanges();
+    }
+
+    private _onRankChanged(rank: number) {
+        this.rank = rank;
+        this._ng_number_filler = this._getNumberFiller();
         this._cdRef.detectChanges();
     }
 
