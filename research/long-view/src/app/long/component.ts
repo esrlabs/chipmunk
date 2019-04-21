@@ -212,6 +212,10 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
     }
 
     private _onScroll(container: HTMLElement): boolean {
+        // Check state (could be reset state)
+        if (this._vSB.heightFiller <= 0) {
+            return;
+        }
         // Get current scroll position
         const scrollTop: number = container.scrollTop;
         if (scrollTop === this._vSB.cache) {
@@ -474,6 +478,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
     private _reset() {
         this._vSB.cache = -1;
         this._vSB.scrollTo = -1;
+        this._vSB.heightFiller = -1;
         this._state.start = 0;
         this._state.end = 0;
         this._ng_rows = [];
@@ -510,7 +515,28 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         }
     }
 
+    private _isStateValid(): boolean {
+        if (this._state.start < 0 || this._state.end < 0) {
+            return false;
+        }
+        if (this._state.start > this._state.end) {
+            return false;
+        }
+        if (isNaN(this._state.start) || isNaN(this._state.end)) {
+            return false;
+        }
+        if (!isFinite(this._state.start) || !isFinite(this._state.end)) {
+            return false;
+        }
+        return true;
+    }
+
     private _render() {
+        if (!this._isStateValid() || (this._state.end - this._state.start) === 0) {
+            // This case can be in case of asynch calls usage
+            this._ng_rows = [];
+            return this._cdRef.detectChanges();
+        }
         const frame = this.API.getRange({ start: this._state.start, end: this._state.end});
         const rows: Array<IRow | number> = frame.rows;
         const pending = (this._state.count < this._storageInfo.count) ? (this._state.count - rows.length) : (this._storageInfo.count - rows.length);

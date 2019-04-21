@@ -73,7 +73,7 @@ export class ControllerSessionTabSearchOutput {
         this._guid = guid;
         this._stream = stream;
         this._requestDataHandler = requestDataHandler;
-        this._logger = new Toolkit.Logger(`ControllerSessionTabStreamOutput: ${this._guid}`);
+        this._logger = new Toolkit.Logger(`ControllerSessionTabSearchOutput: ${this._guid}`);
         this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(this._guid, this._onRowSelected.bind(this));
     }
 
@@ -101,6 +101,9 @@ export class ControllerSessionTabSearchOutput {
 
     public getRange(range: IRange): ISearchStreamPacket[] | Error {
         let rows: ISearchStreamPacket[] = [];
+        if (isNaN(range.start) || isNaN(range.end) || !isFinite(range.start) || !isFinite(range.end)) {
+            return new Error(`Range has incorrect format. Start and end shound be finite and not NaN`);
+        }
         const stored = Object.assign({}, this._state.stored);
         if (this._state.count === 0 || range.start < 0 || range.end < 0) {
             return [];
