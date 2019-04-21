@@ -21,9 +21,6 @@ export class TabsSessionsService implements IService {
     } = {
         onSessionChange: new Subject<ControllerSessionTab>()
     };
-    constructor() {
-
-    }
 
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
@@ -45,7 +42,7 @@ export class TabsSessionsService implements IService {
         const guid: string = Toolkit.guid();
         const session = new ControllerSessionTab({
             guid: guid,
-            transports: ['file', 'processes', 'dlt'],
+            transports: ['processes', 'dlt'],
         });
         this._tabsService.add({
             guid: guid,

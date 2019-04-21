@@ -1,4 +1,5 @@
 import * as Toolkit from 'logviewer.client.toolkit';
+import { Observable, Subject } from 'rxjs';
 
 export type TParser = (str: string, themeTypeRef?: Toolkit.EThemeType) => string;
 
@@ -36,6 +37,19 @@ export class OutputParsersService {
     };
     private _plugins: Map<number, IPluginParsers> = new Map();
     private _search: Map<string, ISearchResults> = new Map();
+    private _subjects: {
+        onUpdatedSearch: Subject<void>
+    } = {
+        onUpdatedSearch: new Subject<void>()
+    };
+
+    public getObservable(): {
+        onUpdatedSearch: Observable<void>,
+    } {
+        return {
+            onUpdatedSearch: this._subjects.onUpdatedSearch.asObservable()
+        };
+    }
 
     public setPluginParsers(pluginId: number, parsers: { [key: string]: TParser }): boolean {
         if (this._plugins.has(pluginId)) {
@@ -64,10 +78,12 @@ export class OutputParsersService {
 
     public setSearchResults(sessionId: string, regs: RegExp[], matches: { [key: number]: number[] }) {
         this._search.set(sessionId, { regs: regs, matches: matches });
+        this._subjects.onUpdatedSearch.next();
     }
 
     public unsetSearchResults(sessionId: string) {
         this._search.delete(sessionId);
+        this._subjects.onUpdatedSearch.next();
     }
 
     public row(str: string, pluginId?: number): string {

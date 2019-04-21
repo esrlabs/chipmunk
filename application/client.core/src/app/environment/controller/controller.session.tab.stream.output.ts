@@ -113,6 +113,9 @@ export class ControllerSessionTabStreamOutput {
 
     public getRange(range: IRange): IStreamPacket[] | Error {
         let rows: IStreamPacket[] = [];
+        if (isNaN(range.start) || isNaN(range.end) || !isFinite(range.start) || !isFinite(range.end)) {
+            return new Error(`Range has incorrect format. Start and end shound be finite and not NaN`);
+        }
         const stored = Object.assign({}, this._state.stored);
         if (this._state.count === 0 || range.start < 0 || range.end < 0) {
             return [];

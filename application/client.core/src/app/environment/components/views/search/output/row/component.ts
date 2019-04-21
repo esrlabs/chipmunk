@@ -1,5 +1,6 @@
-import { Component, Input, AfterContentChecked, ViewEncapsulation } from '@angular/core';
+import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { Subscription } from 'rxjs';
 import SourcesService from '../../../../../services/service.sources';
 import OutputParsersService from '../../../../../services/standalone/service.output.parsers';
 import OutputRedirectionsService from '../../../../../services/standalone/service.output.redirections';
@@ -10,7 +11,7 @@ import OutputRedirectionsService from '../../../../../services/standalone/servic
     styleUrls: ['./styles.less'],
 })
 
-export class ViewSearchOutputRowComponent implements AfterContentChecked {
+export class ViewSearchOutputRowComponent implements AfterContentChecked, OnDestroy {
 
     @Input() public str: string | undefined;
     @Input() public sessionId: string | undefined;
@@ -23,7 +24,17 @@ export class ViewSearchOutputRowComponent implements AfterContentChecked {
     public _ng_number: string | undefined;
     public _ng_number_filler: string | undefined;
 
-    constructor(private _sanitizer: DomSanitizer) {
+    private _subscriptions: { [key: string]: Subscription } = {};
+
+    constructor(private _sanitizer: DomSanitizer, private _cdRef: ChangeDetectorRef ) {
+        this._onUpdatedSearch = this._onUpdatedSearch.bind(this);
+        this._subscriptions.onUpdatedSearch = OutputParsersService.getObservable().onUpdatedSearch.subscribe(this._onUpdatedSearch);
+    }
+
+    ngOnDestroy() {
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            this._subscriptions[key].unsubscribe();
+        });
     }
 
     public ngAfterContentChecked() {
@@ -76,6 +87,14 @@ export class ViewSearchOutputRowComponent implements AfterContentChecked {
     private _getNumberFiller(): string {
         const rank = this.rank - this._ng_number.length;
         return '0'.repeat(rank < 0 ? 0 : rank);
+    }
+
+    private _onUpdatedSearch() {
+        if (this.str === undefined) {
+            return;
+        }
+        this._acceptRowWithContent();
+        this._cdRef.detectChanges();
     }
 
 }

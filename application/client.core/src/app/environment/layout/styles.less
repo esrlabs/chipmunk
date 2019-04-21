@@ -54,6 +54,7 @@
                     height: @tabs-list-height;
                     right:0;
                     overflow: hidden;
+                    background: lighten(@scheme-color-5, 10%);
                     & div.switcher{
                         position: absolute;
                         top:0;
@@ -62,6 +63,7 @@
                         width: @tabs-list-height;
                         & span.small-icon-button{
                             transition: transform 350ms ease-in-out;
+                            color: @scheme-color-1;
                         }
                     }
                     & div.caption{
@@ -73,6 +75,7 @@
                         right: @tabs-list-height;
                         overflow: hidden;
                         text-overflow: ellipsis;
+                        color: @scheme-color-1;
                     }
                     & div.location{
                         position: absolute;
@@ -83,6 +86,7 @@
                         width: @tabs-list-height;
                         & span.small-icon-button{
                             transition: transform 350ms ease-in-out;
+                            color: @scheme-color-1;
                         }
                     }
                 }
