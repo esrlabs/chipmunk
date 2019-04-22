@@ -14,8 +14,7 @@ export interface IPluginParsers {
 }
 
 export interface ISearchResults {
-    matches: { [key: number]: number[] };   // Matches by reg
-    regs: RegExp[];                         // List of regs in search
+    regs: RegExp[]; // List of regs in search
 }
 
 const PluginParsersNamesMap = {
@@ -76,8 +75,8 @@ export class OutputParsersService {
         });
     }
 
-    public setSearchResults(sessionId: string, regs: RegExp[], matches: { [key: number]: number[] }) {
-        this._search.set(sessionId, { regs: regs, matches: matches });
+    public setSearchResults(sessionId: string, regs: RegExp[] ) {
+        this._search.set(sessionId, { regs: regs });
         this._subjects.onUpdatedSearch.next();
     }
 
@@ -129,22 +128,14 @@ export class OutputParsersService {
     }
 
     public matches(sessionId: string, row: number, str: string): string {
-        const matches: ISearchResults | undefined = this._search.get(sessionId);
-        if (matches === undefined) {
+        const regs: ISearchResults | undefined = this._search.get(sessionId);
+        if (regs === undefined) {
             return str;
         }
-        let regIndex: number = -1;
-        Object.keys(matches.matches).forEach((key: string) => {
-            if (matches.matches[key].indexOf(row) === -1) {
-                return;
-            }
-            regIndex = parseInt(key, 10);
-        });
-        if (regIndex === -1) {
-            return str;
-        }
-        str = str.replace(matches.regs[regIndex], (match: string) => {
-            return `<span class="noreset match">${match}</span>`;
+        regs.regs.forEach((reg: RegExp) => {
+            str = str.replace(reg, (match: string) => {
+                return `<span class="noreset match">${match}</span>`;
+            });
         });
         return str;
     }

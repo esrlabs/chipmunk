@@ -46,17 +46,8 @@ export { IStreamSourceNew, StreamSourceNew };
 import { ISearchChunk, SearchChunk } from './search.chunk';
 export { ISearchChunk, SearchChunk };
 
-import { ISearchStreamUpdated, SearchStreamUpdated } from './search.stream.updated';
-export { ISearchStreamUpdated, SearchStreamUpdated };
-
 import { ISearchRequest, SearchRequest, IRegExpStr } from './search.request';
 export { ISearchRequest, SearchRequest, IRegExpStr };
-
-import { ISearchRequestStarted, SearchRequestStarted } from './search.request.started';
-export { ISearchRequestStarted, SearchRequestStarted };
-
-import { ISearchRequestFinished, SearchRequestFinished } from './search.request.finished';
-export { ISearchRequestFinished, SearchRequestFinished };
 
 import { ISearchRequestResults, SearchRequestResults } from './search.request.results';
 export { ISearchRequestResults, SearchRequestResults };
@@ -78,11 +69,8 @@ export type TMessage =  HostState |
                         StreamChunk |
                         StreamSourceNew |
                         SearchRequest |
-                        SearchRequestStarted |
-                        SearchRequestFinished |
                         SearchRequestResults |
-                        SearchChunk |
-                        SearchStreamUpdated;
+                        SearchChunk;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -109,10 +97,7 @@ export const Map = {
     [StreamSourceNew.signature          ]: StreamSourceNew,
 
     [SearchRequest.signature            ]: SearchRequest,
-    [SearchRequestStarted.signature     ]: SearchRequestStarted,
-    [SearchRequestFinished.signature    ]: SearchRequestFinished,
     [SearchRequestResults.signature     ]: SearchRequestResults,
     [SearchChunk.signature              ]: SearchChunk,
-    [SearchStreamUpdated.signature      ]: SearchStreamUpdated,
 
 };

@@ -257,7 +257,7 @@ class ServiceStreams extends EventEmitter implements IService  {
             this._streams.delete(guid);
             Promise.all([
                 new Promise((resolveUnlink) => {
-                    fs.unlink(socketFile, (removeSocketFileError: NodeJS.ErrnoException) => {
+                    fs.unlink(socketFile, (removeSocketFileError: NodeJS.ErrnoException | null) => {
                         if (removeSocketFileError) {
                             this._logger.warn(`Fail to remove stream socket file ${socketFile} due error: ${removeSocketFileError.message}`);
                         }
@@ -265,7 +265,7 @@ class ServiceStreams extends EventEmitter implements IService  {
                     });
                 }),
                 new Promise((resolveUnlink) => {
-                    fs.unlink(streamFile, (removeStreamFileError: NodeJS.ErrnoException) => {
+                    fs.unlink(streamFile, (removeStreamFileError: NodeJS.ErrnoException | null) => {
                         if (removeStreamFileError) {
                             this._logger.warn(`Fail to remove stream socket file ${streamFile} due error: ${removeStreamFileError.message}`);
                         }
@@ -293,7 +293,7 @@ class ServiceStreams extends EventEmitter implements IService  {
                 files.push(...result[1].map((file: string) => Path.resolve(ServicePaths.getStreams(), file) ));
                 const queue: Array<Promise<void>> = files.map((file: string) => {
                     return new Promise((resolveUnlink) => {
-                        fs.unlink(file, (errorUnlink: NodeJS.ErrnoException) => {
+                        fs.unlink(file, (errorUnlink: NodeJS.ErrnoException | null) => {
                             if (errorUnlink) {
                                 this._logger.warn(`Fail to remove ${file} due error: ${errorUnlink.message}`);
                             }
