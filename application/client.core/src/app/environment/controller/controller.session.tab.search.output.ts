@@ -178,16 +178,9 @@ export class ControllerSessionTabSearchOutput {
      * @param { number } rows - number or rows in stream
      * @returns { IRange | undefined } returns undefined if no need to load rows
      */
-    public updateStreamState(message: IPCMessages.StreamUpdated): void {
+    public updateStreamState(message: IPCMessages.SearchRequestResults): void {
         // Update count of rows
-        this._setTotalStreamCount(message.rowsCount);
-        // Check: shell we add data right now or not
-        if (this._state.frame.end + 1 === message.addedFrom) {
-            // Update size of whole stream (real size - count of rows in stream file)
-            this._setTotalStreamCount(message.rowsCount);
-            // Frame at the end of stream. Makes sense to store data
-            this._parse(message.addedRowsData, message.addedFrom, message.addedTo);
-        }
+        this._setTotalStreamCount(message.found);
         this._subjects.onStateUpdated.next(Object.assign({}, this._state));
     }
 

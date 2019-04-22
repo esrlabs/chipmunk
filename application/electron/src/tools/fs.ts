@@ -27,7 +27,7 @@ export enum EReadingFolderTarget {
  */
 export function readFolder(path: string, target: EReadingFolderTarget = EReadingFolderTarget.all): Promise<string[]> {
     return new Promise((resolve, reject) => {
-        FS.readdir(path, (error: NodeJS.ErrnoException, files: string[]) => {
+        FS.readdir(path, (error: NodeJS.ErrnoException | null, files: string[]) => {
             if (error) {
                 return reject(error);
             }
@@ -81,7 +81,7 @@ export function getEntityInfo(entity: string): Promise<FS.Stats> {
         if (!isExist(entity)) {
             return reject(new Error(`Entity "${entity}" doesn't exist.`));
         }
-        FS.stat(entity, (error: NodeJS.ErrnoException, stats: FS.Stats) => {
+        FS.stat(entity, (error: NodeJS.ErrnoException | null, stats: FS.Stats) => {
             if (error) {
                 return reject(error);
             }
@@ -101,7 +101,7 @@ export function readTextFile(file: string, codding: string = 'utf8'): Promise<st
         if (!isExist(file)) {
             return reject(new Error(`File "${file}" doesn't exist.`));
         }
-        FS.readFile(file, codding, (error: NodeJS.ErrnoException, data: string) => {
+        FS.readFile(file, codding, (error: NodeJS.ErrnoException | null, data: string) => {
             if (error) {
                 return reject(error);
             }
@@ -122,7 +122,7 @@ export function writeTextFile(file: string, content: string, overwrite: boolean 
         if (isExist(file) && !overwrite) {
             return reject(new Error(`File "${file}" doesn't exist.`));
         }
-        FS.writeFile(file, content, (error: NodeJS.ErrnoException) => {
+        FS.writeFile(file, content, (error: NodeJS.ErrnoException | null) => {
             if (error) {
                 return reject(error);
             }
@@ -141,7 +141,7 @@ export function unlink(file: string): Promise<void> {
         if (!isExist(file)) {
             return resolve();
         }
-        FS.unlink(file, (error: NodeJS.ErrnoException) => {
+        FS.unlink(file, (error: NodeJS.ErrnoException | null) => {
             if (error) {
                 return reject(error);
             }
@@ -160,7 +160,7 @@ export function mkdir(dir: string): Promise<void> {
         if (isExist(dir)) {
             return resolve();
         }
-        FS.mkdir(dir, (error: NodeJS.ErrnoException) => {
+        FS.mkdir(dir, (error: NodeJS.ErrnoException | null) => {
             if (error) {
                 return reject(error);
             }
@@ -199,7 +199,7 @@ export function rmdir(dir: string): Promise<void> {
                     return rmdir(Path.resolve(dir, nestedFolder));
                 }),
             ]).then(() => {
-                FS.rmdir(dir, (error: NodeJS.ErrnoException) => {
+                FS.rmdir(dir, (error: NodeJS.ErrnoException | null) => {
                     if (error instanceof Error) {
                         return reject(error);
                     }

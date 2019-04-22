@@ -35,7 +35,6 @@ export class AppsStatusBarStreamStateComponent implements OnDestroy {
             this._ng_read = undefined;
             this._ng_size = undefined;
             this._ng_state = undefined;
-            console.log('DONE!!!!!');
         } else {
             this._ng_progress = true;
             this._ng_size = (message.size / 1024 / 1024).toFixed(2);

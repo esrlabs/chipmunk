@@ -23,8 +23,6 @@ export class ControllerSessionTabSearch {
         write: new Subject<void>(),
         next: new Subject<void>(),
         clear: new Subject<void>(),
-        onSearchStarted: new Subject<string>(),
-        onSearchFinished: new Subject<string>()
     };
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _output: ControllerSessionTabSearchOutput;
@@ -52,13 +50,6 @@ export class ControllerSessionTabSearch {
         this._queue_onNext = this._queue_onNext.bind(this);
         this._queue.subscribe(Toolkit.Queue.Events.done, this._queue_onDone);
         this._queue.subscribe(Toolkit.Queue.Events.next, this._queue_onNext);
-        // Subscribe to streams data
-        this._ipc_onSearchStreamUpdated = this._ipc_onSearchStreamUpdated.bind(this);
-        this._ipc_onSearchStarted = this._ipc_onSearchStarted.bind(this);
-        this._ipc_onSearchFinished = this._ipc_onSearchFinished.bind(this);
-        this._subscriptions.SearchStreamUpdated = ServiceElectronIpc.subscribe(IPCMessages.SearchStreamUpdated, this._ipc_onSearchStreamUpdated);
-        this._subscriptions.onSearchStarted = ServiceElectronIpc.subscribe(IPCMessages.SearchRequestStarted, this._ipc_onSearchStarted.bind(this));
-        this._subscriptions.onSearchFinished = ServiceElectronIpc.subscribe(IPCMessages.SearchRequestFinished, this._ipc_onSearchFinished.bind(this));
     }
 
     public destroy() {
@@ -81,19 +72,15 @@ export class ControllerSessionTabSearch {
         write: Observable<void>,
         next: Observable<void>,
         clear: Observable<void>,
-        onSearchStarted: Observable<string>,
-        onSearchFinished: Observable<string>,
     } {
         return {
             write: this._subjects.write.asObservable(),
             next: this._subjects.next.asObservable(),
             clear: this._subjects.clear.asObservable(),
-            onSearchStarted: this._subjects.onSearchStarted.asObservable(),
-            onSearchFinished: this._subjects.onSearchFinished.asObservable(),
         };
     }
 
-    public search(requestId: string, requests: RegExp[]): Promise<string> {
+    public search(requestId: string, requests: RegExp[]): Promise<number> {
         return new Promise((resolve, reject) => {
             if (this._activeRequest !== undefined) {
                 return reject(new Error(`Cannot start new search request while current isn't finished.`));
@@ -115,19 +102,18 @@ export class ControllerSessionTabSearch {
                 streamId: this._guid,
                 requestId: requestId,
             }), IPCMessages.SearchRequestResults).then((results: IPCMessages.SearchRequestResults) => {
-                // Do not resolve now, because method "search" should be resolved after
-                // search request was processed complitely
-                this._activeRequest = {
-                    id: requestId,
-                    resolve: resolve,
-                    reject: reject,
-                    started: -1,
-                    finished: -1
-                };
-                // Save results
-                this._results.matches = results.matches;
+                this._logger.env(`Search request ${results.requestId} was finished in ${((results.duration) / 1000).toFixed(2)}s.`);
+                if (results.error !== undefined) {
+                    // Some error during processing search request
+                    this._logger.error(`Search request id ${results.requestId} was finished with error: ${results.error}`);
+                    return reject(new Error(results.error));
+                }
+                // Request is finished successful
+                resolve(results.found);
                 // Share results
-                OutputParsersService.setSearchResults(this._guid, requests, results.results);
+                OutputParsersService.setSearchResults(this._guid, requests);
+                // Update stream for render
+                this._output.updateStreamState(results);
             }).catch((error: Error) => {
                 reject(error);
             });
@@ -172,51 +158,6 @@ export class ControllerSessionTabSearch {
                 resolve(response);
             });
         });
-    }
-
-    private _ipc_onSearchStreamUpdated(message: IPCMessages.SearchStreamUpdated) {
-        if (this._guid !== message.guid) {
-            return;
-        }
-        this._output.updateStreamState(message);
-    }
-
-    private _ipc_onSearchStarted(message: IPCMessages.SearchRequestStarted) {
-        if (!this._isIPCMessageBelongController(message)) {
-            return;
-        }
-        this._activeRequest.started = Date.now();
-        this._subjects.onSearchStarted.next(this._activeRequest.id);
-        this._logger.env(`Search request ${message.requestId} is started.`);
-    }
-
-    private _ipc_onSearchFinished(message: IPCMessages.SearchRequestFinished) {
-        if (!this._isIPCMessageBelongController(message)) {
-            return;
-        }
-        this._activeRequest.finished = Date.now();
-        this._logger.env(`Search request ${message.requestId} was finished in ${((this._activeRequest.finished - this._activeRequest.started) / 1000).toFixed(2)}s (process time is ${(message.duration / 1000).toFixed(2)}s).`);
-        if (message.error !== undefined) {
-            // Some error during processing search request
-            this._logger.error(`Search request id ${message.requestId} was finished with error: ${message.error}`);
-            return this._activeRequest.reject(new Error(message.error));
-        }
-        // Request is finished successful
-        this._activeRequest.resolve(message.duration);
-        // Notify
-        this._subjects.onSearchFinished.next(this._activeRequest.id);
-        // Drop request data
-        this._activeRequest = undefined;
-    }
-
-    private _isIPCMessageBelongController(message: IPCMessages.SearchRequestStarted | IPCMessages.SearchRequestFinished | IPCMessages.SearchRequestResults): boolean {
-        if (this._activeRequest === undefined) {
-            return false;
-        }
-        if (this._activeRequest.id !== message.requestId) {
-            return false;
-        }
-        return true;
     }
 
     private _queue_onNext(done: number, total: number) {

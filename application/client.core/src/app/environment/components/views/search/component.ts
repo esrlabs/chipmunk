@@ -31,8 +31,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
                 private _vcRef: ViewContainerRef,
                 private _notifications: NotificationsService) {
         this._onSessionChange = this._onSessionChange.bind(this);
-        this._onSearchStarted = this._onSearchStarted.bind(this);
-        this._onSearchFinished = this._onSearchFinished.bind(this);
         this._subscriptionsSession.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange);
         this._setActiveSession();
     }
@@ -47,7 +45,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     public ngOnDestroy() {
-        this._unsubscribeSearch();
         Object.keys(this._subscriptionsSession).forEach((key: string) => {
             this._subscriptionsSession[key].unsubscribe();
         });
@@ -97,29 +94,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._cdRef.detectChanges();
     }
 
-    private _subscribeSearch() {
-        this._unsubscribeSearch();
-        this._subscriptionsSearch.onSearchStarted = this._ng_session.getSessionSearch().getObservable().onSearchStarted.subscribe(this._onSearchStarted);
-        this._subscriptionsSearch.onSearchFinished = this._ng_session.getSessionSearch().getObservable().onSearchFinished.subscribe(this._onSearchFinished);
-    }
-
-    private _unsubscribeSearch() {
-        Object.keys(this._subscriptionsSearch).forEach((key: string) => {
-            this._subscriptionsSearch[key].unsubscribe();
-        });
-    }
-
-    private _onSearchFinished(requestId: string) {
-        if (this._ng_searchRequestId !== requestId) {
-            return;
-        }
-        this._ng_searchRequestId = undefined;
-    }
-
-    private _onSearchStarted(requestId: string) {
-        // Do nothing
-    }
-
     private _onSessionChange(session: ControllerSessionTab) {
         this._setActiveSession(session);
         this._cdRef.detectChanges();
@@ -133,7 +107,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             return;
         }
         this._ng_session = session;
-        this._subscribeSearch();
     }
 
 }

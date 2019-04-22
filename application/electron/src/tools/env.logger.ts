@@ -107,7 +107,7 @@ export default class Logger {
     }
 
     private _write(message: string) {
-        fs.appendFile(LOG_FILE, `${message}\n`, { encoding: 'utf8' }, (error: NodeJS.ErrnoException) => {
+        fs.appendFile(LOG_FILE, `${message}\n`, { encoding: 'utf8' }, (error: NodeJS.ErrnoException | null) => {
             if (error) {
                 // tslint:disable-next-line:no-console
                 console.error(`Fail to write logs into file due error: ${error.message}`);

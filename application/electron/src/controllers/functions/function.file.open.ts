@@ -21,7 +21,7 @@ export default class FunctionOpenFile {
                     return;
                 }
                 const file: string = files[0];
-                fs.stat(file, (error: NodeJS.ErrnoException, stats: fs.Stats) => {
+                fs.stat(file, (error: NodeJS.ErrnoException | null, stats: fs.Stats) => {
                     if (error) {
                         return;
                     }
