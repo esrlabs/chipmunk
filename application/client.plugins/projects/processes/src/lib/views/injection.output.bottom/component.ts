@@ -20,6 +20,7 @@ export class InjectionOutputBottomComponent implements AfterViewInit, OnDestroy 
     public _ng_working: boolean = false;
 
     private _subscription: any;
+    private _logger: Toolkit.Logger = new Toolkit.Logger(`Plugin: processes: inj_output_bot:`);
 
     constructor(private _cdRef: ChangeDetectorRef) {
     }
@@ -50,6 +51,8 @@ export class InjectionOutputBottomComponent implements AfterViewInit, OnDestroy 
         }, this.session).then((response) => {
             this._ng_cwd = response.settings.cwd;
             this._cdRef.detectChanges();
+        }).catch((error: Error) => {
+            this._logger.env(`Cannot get current setting. It could be stream just not created yet. Error message: ${error.message}`);
         });
     }
 

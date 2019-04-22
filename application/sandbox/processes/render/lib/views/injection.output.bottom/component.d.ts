@@ -8,6 +8,7 @@ export declare class InjectionOutputBottomComponent implements AfterViewInit, On
     _ng_cwd: string;
     _ng_working: boolean;
     private _subscription;
+    private _logger;
     constructor(_cdRef: ChangeDetectorRef);
     ngOnDestroy(): void;
     ngAfterViewInit(): void;
