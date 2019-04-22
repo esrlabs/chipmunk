@@ -2,6 +2,7 @@ import Logger from './env.logger';
 import PluginIPCService from 'logviewer.plugin.ipc';
 import Fork, { IForkSettings } from './process.fork';
 import * as EnvModule from './process.env';
+import { EventEmitter } from 'events';
 
 export interface IStreamInfo {
     fork: Fork | undefined;
@@ -9,12 +10,18 @@ export interface IStreamInfo {
     settings: IForkSettings;
 }
 
-class StreamsService {
+class StreamsService extends EventEmitter {
+
+    public Events = {
+        onStreamOpened: 'onStreamOpened',
+        onStreamClosed: 'onStreamClosed',
+    };
 
     private _logger: Logger = new Logger('StreamsService');
     private _streams: Map<string, IStreamInfo> = new Map();
 
     constructor() {
+        super();
         this._onOpenStream = this._onOpenStream.bind(this);
         this._onCloseStream = this._onCloseStream.bind(this);
         PluginIPCService.on(PluginIPCService.Events.openStream, this._onOpenStream);
@@ -73,13 +80,15 @@ class StreamsService {
         });
     }
 
-    public updateSettings(streamId: string, settings: IForkSettings): Error | undefined {
+    public updateSettings(streamId: string, settings?: IForkSettings): Error | undefined {
         const stream: IStreamInfo | undefined = this._streams.get(streamId);
         if (stream === undefined) {
             return new Error(`Stream ${streamId} is not found. Cannot update settings.`);
         }
-        stream.settings = Object.assign({}, settings);
-        this._streams.set(streamId, stream);
+        if (settings !== undefined) {
+            stream.settings = Object.assign({}, settings);
+            this._streams.set(streamId, stream);
+        }
         PluginIPCService.sendToPluginHost({
             event: 'SettingsUpdated',
             settings: stream.settings,
@@ -116,6 +125,7 @@ class StreamsService {
         }
         // Remove stream now
         this._streams.delete(streamId);
+        this.emit(this.Events.onStreamClosed, streamId);
     }
 
     private _createStream(streamId: string, cwd: string, env: EnvModule.TEnvVars) {
@@ -128,6 +138,8 @@ class StreamsService {
                 env: env
             }
         });
+        this.emit(this.Events.onStreamOpened, streamId);
+        this._logger.env(`Stream "${streamId}" is bound with cwd "${cwd}".`)
     }
 }
 

@@ -10,8 +10,12 @@ class Plugin {
     private _logger: Logger = new Logger('Processes');
 
     constructor() {
+        this._onStreamOpened = this._onStreamOpened.bind(this);
+        this._onStreamClosed = this._onStreamClosed.bind(this);
         this._onIncomeRenderIPCMessage = this._onIncomeRenderIPCMessage.bind(this);
         PluginIPCService.subscribe(IPCMessages.PluginInternalMessage, this._onIncomeRenderIPCMessage);
+        StreamsService.on(StreamsService.Events.onStreamOpened, this._onStreamOpened);
+        StreamsService.on(StreamsService.Events.onStreamClosed, this._onStreamClosed);
     }
 
     /*
@@ -169,6 +173,22 @@ class Plugin {
         }
         StreamsService.updateSettings(stream.streamId, stream.settings);
         return true;
+    }
+
+    private _onStreamOpened(streamId: string) {
+        // Get a target stream
+        const stream: IStreamInfo | undefined = StreamsService.get(streamId);
+        if (stream === undefined) {
+            return this._logger.warn(`Event "onStreamOpened" was triggered, but fail to find a stream "${streamId}" in storage.`);
+        }
+        const error: Error | undefined = StreamsService.updateSettings(stream.streamId);
+        if (error instanceof Error) {
+            return this._logger.warn(`Event "onStreamOpened" was triggered, but fail to notify host due error: ${error.message}.`);
+        }
+    }
+
+    private _onStreamClosed(streamId: string) {
+
     }
 
 }
