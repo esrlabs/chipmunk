@@ -50,6 +50,7 @@ export class RGSearchWrapper {
             });
             const args: string[] = [
                 '-N',
+                '--text', // https://github.com/BurntSushi/ripgrep/issues/306 this issue is about a case, when not printable symble is in a file
                 '-e',
                 reg,
                 this._targetFile,
