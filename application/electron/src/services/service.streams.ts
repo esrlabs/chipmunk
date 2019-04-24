@@ -2,6 +2,7 @@ import * as Path from 'path';
 import * as fs from 'fs';
 import * as Net from 'net';
 import * as FS from '../tools/fs';
+import * as Stream from 'stream';
 import { EventEmitter } from 'events';
 import ServicePaths from './service.paths';
 import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from './service.electron';
@@ -22,6 +23,13 @@ export interface IStreamInfo {
     processor: ControllerStreamProcessor;
     search: ControllerStreamSearch;
     received: number;
+}
+
+export interface IPipeOptions {
+    reader: fs.ReadStream;
+    sourceId: number;
+    streamId?: string;
+    decoder?: Stream.Transform;
 }
 
 type TGuid = string;
@@ -130,21 +138,21 @@ class ServiceStreams extends EventEmitter implements IService  {
         });
     }
 
-    public pipeWith(reader: fs.ReadStream, sourceId: number, streamId?: string): Promise<void> {
+    public pipeWith(options: IPipeOptions): Promise<void> {
         return new Promise((resolve, reject) => {
             // Get stream id
-            if (streamId === undefined) {
-                streamId = this._activeStreamGuid;
+            if (options.streamId === undefined) {
+                options.streamId = this._activeStreamGuid;
             }
             // Get stream info
-            const stream: IStreamInfo | undefined = this._streams.get(streamId);
+            const stream: IStreamInfo | undefined = this._streams.get(options.streamId);
             if (stream === undefined) {
-                return reject(new Error(this._logger.warn(`Fail to find a stream data for stream guid "${streamId}"`)));
+                return reject(new Error(this._logger.warn(`Fail to find a stream data for stream guid "${options.streamId}"`)));
             }
-            reader.once('end', () => {
+            options.reader.once('end', () => {
                 resolve();
             });
-            stream.processor.pipe(reader, sourceId);
+            stream.processor.pipe(options);
         });
     }
 

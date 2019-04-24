@@ -1,11 +1,13 @@
 import { app, Menu } from 'electron';
-import FunctionOpenFile from './functions/function.file.open';
+import FunctionOpenTextFile from './functions/function.file.text.open';
+import FunctionOpenDltFile from './functions/function.file.dlt.open';
 
 const MENU_TEMPLATE = [
     {
         label: 'File',
         submenu: [
-            { label: FunctionOpenFile.getLabel(), click: FunctionOpenFile.handler() },
+            { label: FunctionOpenTextFile.getLabel(), click: FunctionOpenTextFile.handler() },
+            { label: FunctionOpenDltFile.getLabel(), click: FunctionOpenDltFile.handler() },
         ],
     },
     {

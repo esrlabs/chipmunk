@@ -1,6 +1,6 @@
 {
   "name": "logviewer",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "LogViewer",
   "main": "./dist/compiled/main.js",
   "copyright": "Copyright © 2019 year E.S.R.Labs",
@@ -43,8 +43,9 @@
     }
   },
   "dependencies": {
-    "uuid": "^3.3.2",
-    "vscode-ripgrep": "^1.2.5"
+    "dltreader": "latest",
+    "uuid": "latest",
+    "vscode-ripgrep": "latest"
   },
   "devDependencies": {
     "@types/jasmine": "^3.3.8",

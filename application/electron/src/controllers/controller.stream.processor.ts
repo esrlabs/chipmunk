@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as Stream from 'stream';
 import Logger from '../tools/env.logger';
 import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from '../services/service.electron';
 import ServicePlugins from '../services/service.plugins';
@@ -8,6 +9,12 @@ import ControllerStreamFileReader from './controller.stream.file.reader';
 import Transform, { ITransformResult, convert } from './controller.stream.processor.pipe.transform';
 import { IMapItem } from './controller.stream.processor.map';
 import State from './controller.stream.processor.state';
+
+export interface IPipeOptions {
+    reader: fs.ReadStream;
+    sourceId: number;
+    decoder?: Stream.Transform;
+}
 
 export interface ISourceInfo {
     id: number;
@@ -100,14 +107,18 @@ export default class ControllerStreamProcessor {
         });
     }
 
-    public pipe(reader: fs.ReadStream, sourceId: number): Error | undefined {
+    public pipe(options: IPipeOptions): Error | undefined {
         // Get plugin info
-        const sourceInfo: ISourceInfo | Error = this._getSourceInfo(undefined, sourceId);
+        const sourceInfo: ISourceInfo | Error = this._getSourceInfo(undefined, options.sourceId);
         if (sourceInfo instanceof Error) {
             return new Error(`Fail to pipe data due error: ${sourceInfo.message}`);
         }
-        const transform: Transform = new Transform({}, this._guid, sourceId, this._state);
-        reader.pipe(transform).pipe(this._stream, { end: false});
+        const transform: Transform = new Transform({}, this._guid, options.sourceId, this._state);
+        if (options.decoder !== undefined) {
+            options.reader.pipe(options.decoder).pipe(transform).pipe(this._stream, { end: false});
+        } else {
+            options.reader.pipe(transform).pipe(this._stream, { end: false});
+        }
     }
 
     public addPipeSession(pipeId: string, size: number, name: string) {
