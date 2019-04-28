@@ -63,6 +63,8 @@ const DefaultSettings = {
     scrollBarSize           : 8,            // Size of scroll bar: height for horizontal; width for vertical. In px.
 };
 
+const winplatforms = ['os/2', 'pocket pc', 'windows', 'win16', 'win32', 'wince'];
+
 @Component({
     selector: 'lib-complex-infinity-output',
     templateUrl: './template.html',
@@ -113,9 +115,12 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         end: 0,
         count: 0,
     };
+    private _scrollTimer: any;
+    private _windows: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef) {
+        this._detectWindows();
     }
 
     public ngAfterContentInit() {
@@ -221,6 +226,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         if (scrollTop === this._vSB.cache) {
             return false;
         }
+        clearTimeout(this._scrollTimer);
         let update: { scrollTop: number, redraw: boolean, rescroll: boolean };
         if (this._vSB.heightFiller < this._settings.maxScrollHeight) {
             update = this._scrollWithoutScale(scrollTop);
@@ -233,7 +239,13 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
             // Drop cache
             this._vSB.cache = update.scrollTop;
             // Set scroll value
-            container.scrollTop = update.scrollTop;
+            if (this._windows) {
+                this._scrollTimer = setTimeout(() => {
+                    container.scrollTop = update.scrollTop;
+                }, 0);
+            } else {
+                container.scrollTop = update.scrollTop;
+            }
         } else {
             // Drop cache
             this._vSB.cache = scrollTop;
@@ -560,6 +572,15 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
 
     private _onRedraw() {
         this._ng_onBrowserWindowResize();
+    }
+
+    private _detectWindows() {
+        const platform = navigator.platform.toLowerCase();
+        winplatforms.forEach((alias: string) => {
+            if (platform.indexOf(alias) !== -1) {
+                this._windows = true;
+            }
+        });
     }
 
 }
