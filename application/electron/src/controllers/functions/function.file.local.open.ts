@@ -1,23 +1,28 @@
 import { dialog } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as dlt from 'dltreader';
 import ServiceStreams from '../../services/service.streams';
 import ServiceStreamSource from '../../services/service.stream.sources';
-
+import { AFileParser } from '../files.parsers/interface';
 import * as Tools from '../../tools/index';
 
-export default class FunctionOpenDltFile {
+export default class FunctionOpenLocalFile {
 
-    public static getLabel(): string {
-        return 'Open Local Dlt File';
+    private _parser: AFileParser;
+
+    constructor(parser: AFileParser) {
+        this._parser = parser;
     }
 
-    public static handler(): () => void {
+    public getLabel(): string {
+        return `Open Local file: ${this._parser.getName()}`;
+    }
+
+    public getHandler(): () => void {
         return () => {
             dialog.showOpenDialog({
                 properties: ['openFile', 'showHiddenFiles'],
-                filters: [ { name: 'Dlt Files', extensions: ['dlt'] } ],
+                filters: this._parser.getExtnameFilters(),
             }, (files: string[]) => {
                 if (!(files instanceof Array) || files.length !== 1) {
                     return;
@@ -31,17 +36,12 @@ export default class FunctionOpenDltFile {
                     const sourceId: number = ServiceStreamSource.add({ name: path.basename(file) });
                     // Create read stream
                     const reader: fs.ReadStream = fs.createReadStream(file);
-                    // Create transformer
-                    const tranform: dlt.TransformStream = new dlt.TransformStream({}, { stringify: true });
-                    // Define pipe session Id
                     const pipeSessionId: string = Tools.guid();
-                    // Registe pipe session id
                     ServiceStreams.addPipeSession(pipeSessionId, stats.size, file);
-                    // Connect to active session stream
                     ServiceStreams.pipeWith({
                         reader: reader,
                         sourceId: sourceId,
-                        decoder: tranform,
+                        decoder: this._parser.getTransform(),
                     }).then(() => {
                         ServiceStreams.removePipeSession(pipeSessionId);
                         reader.close();
