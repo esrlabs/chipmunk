@@ -1,13 +1,15 @@
 import { app, Menu } from 'electron';
-import FunctionOpenTextFile from './functions/function.file.text.open';
-import FunctionOpenDltFile from './functions/function.file.dlt.open';
+import { FileParsers } from './files.parsers/index';
+import FunctionOpenLocalFile from './functions/function.file.local.open';
 
 const MENU_TEMPLATE = [
     {
         label: 'File',
         submenu: [
+            /*
             { label: FunctionOpenTextFile.getLabel(), click: FunctionOpenTextFile.handler() },
             { label: FunctionOpenDltFile.getLabel(), click: FunctionOpenDltFile.handler() },
+            */
         ],
     },
     {
@@ -57,6 +59,9 @@ export default class ControllerElectronMenu {
 
     private _create() {
         const template: any = MENU_TEMPLATE;
+        // Add files submenu
+        template[0].submenu.push(...this._getFilesLocalSubmenu());
+        // Add platform related items
         if (process.platform === 'darwin') {
             template.unshift({
                 label: app.getName(),
@@ -94,5 +99,16 @@ export default class ControllerElectronMenu {
         }
         this._menu = Menu.buildFromTemplate(template);
         Menu.setApplicationMenu(this._menu);
+    }
+
+    private _getFilesLocalSubmenu(): Array<{ label: string, click: () => any }> {
+        const items: Array<{ label: string, click: () => any }> = FileParsers.map((parser) => {
+            const wrapper: FunctionOpenLocalFile = new FunctionOpenLocalFile(new parser.class());
+            return {
+                label: wrapper.getLabel(),
+                click: wrapper.getHandler(),
+            };
+        });
+        return items;
     }
 }
