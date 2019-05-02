@@ -1,7 +1,10 @@
 use quicli::prelude::*;
+use std::error::Error;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
+use std::io::Write;
+use std::path::PathBuf;
 use structopt::StructOpt;
 /// Get first n lines of a file
 #[derive(Debug, StructOpt)]
@@ -26,6 +29,14 @@ fn main() -> CliResult {
     let source = &args.source;
     let mut reader = BufReader::new(f);
 
+    let path = PathBuf::from(source.to_string() + ".out");
+    let display = path.display();
+
+    let mut out_file = match File::create(&path) {
+        Err(why) => panic!("couldn't create {}: {}", display, why.description()),
+        Ok(file) => file,
+    };
+
     let mut line_nr = 1;
     loop {
         let mut line = String::new();
@@ -33,7 +44,7 @@ fn main() -> CliResult {
         if len == 0 {
             break;
         };
-        println!("{}{}{}", line.trim_end(), source, line_nr);
+        writeln!(out_file, "{}{}{}", line.trim_end(), source, line_nr)?;
         line_nr += 1;
     }
 
