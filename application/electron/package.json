@@ -43,7 +43,9 @@
     }
   },
   "dependencies": {
+    "@types/moment-timezone": "^0.5.12",
     "dltreader": "latest",
+    "moment-timezone": "^0.5.25",
     "uuid": "latest",
     "vscode-ripgrep": "latest"
   },

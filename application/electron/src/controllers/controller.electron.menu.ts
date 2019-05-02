@@ -5,12 +5,7 @@ import FunctionOpenLocalFile from './functions/function.file.local.open';
 const MENU_TEMPLATE = [
     {
         label: 'File',
-        submenu: [
-            /*
-            { label: FunctionOpenTextFile.getLabel(), click: FunctionOpenTextFile.handler() },
-            { label: FunctionOpenDltFile.getLabel(), click: FunctionOpenDltFile.handler() },
-            */
-        ],
+        submenu: [ ],
     },
     {
         label: 'Edit',

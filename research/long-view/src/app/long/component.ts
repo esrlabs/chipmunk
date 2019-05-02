@@ -73,13 +73,14 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
 
     @ViewChild('container') _ng_nodeContainer: ElementRef;
     @ViewChild('holder') _ng_nodeHolder: ElementRef;
-    @ViewChild('filler') _ng_nodeFiller: ElementRef;
 
     @Input() public API: IDataAPI | undefined;
     @Input() public settings: ISettings | undefined;
 
     public _ng_rows: Array<IRow | number> = [];
     public _ng_factory: any;
+    public _ng_rowsCount: number = 0;
+    public _ng_rowHeight: number = 0;
 
     private _settings: ISettings = DefaultSettings;
     private _storageInfo: IStorageInformation | undefined;
@@ -104,6 +105,29 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         lastWheel: 0,
         scrollTo: -1,
     };
+
+    private _item: {
+        height: number,
+    } = {
+        height: 0,
+    };
+
+    private _sbv: {
+        height: number,
+        thumb: number,
+        offset: number,
+        rate: number,
+        stamp: number;
+        mouseY: number;
+    } = {
+        height: 0,
+        thumb: 0,
+        offset: 0,
+        rate: 0,
+        stamp: 0,
+        mouseY: -1,
+    };
+
     private _state: {
         start: number;
         end: number;
@@ -112,6 +136,14 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         start: 0,
         end: 0,
         count: 0,
+    };
+
+    private _renderState: {
+        timer: any,
+        requests: number,
+    } = {
+        timer: -1,
+        requests: 0,
     };
 
     constructor(private _cdRef: ChangeDetectorRef,
@@ -128,12 +160,14 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         this._ng_factory = this.API.getComponentFactory();
         // Get information about storage
         this._storageInfo = this.API.getStorageInfo();
+        this._ng_rowsCount = this._storageInfo.count;
         // Store item height
-        this._vSB.itemHeight = this.API.getItemHeight();
+        this._item.height = this.API.getItemHeight();
+        this._ng_rowHeight = this._item.height;
         // Update data about sizes
         this._updateContainerSize();
         // Update state of vertical scroll bar
-        this._updateVSB();
+        this._sbv_update();
         // Subscribe
         this._subscriptions.onRowsDelivered = this.API.onRowsDelivered.asObservable().subscribe(this._onRowsDelivered.bind(this));
         this._subscriptions.onScrollTo = this.API.onScrollTo.asObservable().subscribe(this._onScrollTo.bind(this));
@@ -145,6 +179,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
             end: this._state.count > this._storageInfo.count ? (this._storageInfo.count - 1) : this._state.count
         }).rows;
         this._ng_rows = rows;
+        this._ng_updateSBV = this._ng_updateSBV.bind(this);
     }
 
     public ngOnDestroy() {
@@ -162,7 +197,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         // Update data about sizes
         this._updateContainerSize(true);
         // Update state of vertical scroll bar
-        this._updateVSB();
+        this._sbv_update();
         // Check currect state
         if (this._state.start + this._state.count > this._state.end) {
             this._state.end = this._state.start + this._state.count;
@@ -185,8 +220,11 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         this._cdRef.detectChanges();
     }
 
-    public _ng_onWheel(event: MouseEvent | TouchEvent) {
-        this._vSB.lastWheel = Date.now();
+    public _ng_onWheel(event: WheelEvent) {
+        // console.log(event);
+        this._onVerticalScroll(Math.abs(event.deltaY), event.deltaY > 0 ? 1 : -1);
+        event.preventDefault();
+        return false;
     }
 
     public _ng_onKeyDown(event: KeyboardEvent) {
@@ -198,17 +236,52 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         return false;
     }
 
-    public _ng_getFillerStyles(): { [key: string]: any } {
+    public _ng_getItemStyles(): { [key: string]: any } {
         return {
-            height: `${this._vSB.heightFiller}px`,
-            width: `1px`
+            height: `${this._item.height}px`,
         };
     }
 
-    public _ng_getItemStyles(): { [key: string]: any } {
+    public _ng_getSVThumbStyles(): { [key: string]: any } {
         return {
-            height: `${this._vSB.itemHeight}px`,
+            height: `${this._sbv.thumb}px`,
+            marginTop: `${this._sbv.offset}px`,
         };
+    }
+
+    public _ng_isSVBVisible(): boolean {
+        return this._sbv.rate < 1;
+    }
+
+    public _ng_updateSBV(change: number, direction: number) {
+        this._onVerticalScroll(change, direction);
+    }
+
+    private _onVerticalScroll(change: number, direction: number) {
+        if (!this._ng_isSVBVisible()) {
+            return;
+        }
+        if (this._state.start === 0 && direction < 0) {
+            return;
+        }
+        // Calculate first row
+        let offset: number = Math.round(change / this._item.height);
+        if (offset === 0) {
+            offset = 1;
+        }
+        this._state.start += offset * direction;
+        if (this._state.start < 0) {
+            this._state.start = 0;
+        }
+        this._state.end = this._state.start + this._state.count;
+        if (this._state.end > this._storageInfo.count - 1) {
+            this._state.end = this._storageInfo.count - 1;
+            this._state.start = (this._storageInfo.count - this._state.count) > 0 ? (this._storageInfo.count - this._state.count) : 0;
+        }
+        // Calculate offset of thumb on scrollbar
+        this._sbv.offset =  ((this._state.start + 1) / (this._storageInfo.count - this._state.count)) * (this._containerSize.height - this._sbv.thumb);
+        // Render
+        this._softRender();
     }
 
     private _onScroll(container: HTMLElement): boolean {
@@ -398,32 +471,25 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         }
         this._containerSize = (this._ng_nodeContainer.nativeElement as HTMLElement).getBoundingClientRect();
         this._containerSize.height -= this._settings.scrollBarSize;
-        this._state.count = Math.floor(this._containerSize.height / this._vSB.itemHeight);
+        this._state.count = Math.floor(this._containerSize.height / this._item.height);
     }
 
-    private _updateVSB() {
+    private _sbv_update() {
         if (!this._isAllAvailable()) {
             return;
         }
         // Calculate scroll area height
-        const scrollHeight: number = this._storageInfo.count * this._vSB.itemHeight;
-        // Check: do we need scroll bar at all for a moment
-        if (this._containerSize.height >= scrollHeight) {
-            this._vSB.heightFiller = 0;
-            return;
+        this._sbv.height = this._storageInfo.count * this._item.height;
+        // Calculate rate
+        this._sbv.rate = this._containerSize.height / this._sbv.height;
+        if (this._sbv.rate > 1) {
+            return this._cdRef.detectChanges();
         }
-        // Calculate scale
-        if (scrollHeight < this._settings.maxScrollHeight) {
-            this._vSB.scale = 1;
-            this._vSB.minScrollTop = this._settings.minScrollTopNotScale;
-            this._vSB.maxScrollTop = scrollHeight - this._containerSize.height - this._vSB.minScrollTop * 2;
-            this._vSB.heightFiller = scrollHeight;
-        } else {
-            this._vSB.scale = this._settings.maxScrollHeight / scrollHeight;
-            this._vSB.heightFiller = this._settings.maxScrollHeight;
-            this._vSB.minScrollTop = this._settings.minScrollTopScale;
-            this._vSB.maxScrollTop = this._vSB.heightFiller - this._containerSize.height - this._vSB.minScrollTop * 2;
-            }
+        // Calculate thumb height
+        this._sbv.thumb = this._containerSize.height * this._sbv.rate;
+        if (this._sbv.thumb < 20) {
+            this._sbv.thumb = 20;
+        }
         // Update
         this._cdRef.detectChanges();
     }
@@ -502,7 +568,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         // Update storage data
         this._storageInfo.count = info.count;
         // Scroll bar
-        this._updateVSB();
+        this._sbv_update();
         if (shouldBeUpdated) {
             // Render
             this._render();
@@ -531,6 +597,17 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         return true;
     }
 
+    private _softRender() {
+        clearTimeout(this._renderState.timer);
+        if (this._renderState.requests > 10) {
+            this._renderState.requests = 0;
+            this._render();
+        } else {
+            this._renderState.requests += 1;
+            this._renderState.timer = setTimeout(this._render.bind(this), 0);
+        }
+    }
+
     private _render() {
         if (!this._isStateValid() || (this._state.end - this._state.start) === 0) {
             // This case can be in case of asynch calls usage
@@ -555,7 +632,10 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
             }
         }
         this._ng_rows = rows;
+        this._cdRef.reattach();
         this._cdRef.detectChanges();
+        this._cdRef.detach();
+        console.log('RENDER DONE');
     }
 
     private _onRedraw() {

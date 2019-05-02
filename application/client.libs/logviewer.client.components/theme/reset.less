@@ -1,8 +1,11 @@
-* {
+@import './colors.less';
+
+*:not(.noreset) {
     font-family: 'primary';
     padding: 0;
     margin: 0;
     user-select: none;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    color: @scheme-color-1;
 }

@@ -2,11 +2,8 @@ import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewIni
 import { Subscription } from 'rxjs';
 import { ViewSearchOutputComponent } from './output/component';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
-import { ControllerSessionTabSearch } from '../../../controller/controller.session.tab.search';
-import { ControllerSessionTabSearchOutput } from '../../../controller/controller.session.tab.search.output';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
-import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
 import * as Toolkit from 'logviewer.client.toolkit';
 
 @Component({

@@ -12,6 +12,8 @@ import ServiceSettings from './services/service.settings';
 import ServiceWindowState from './services/service.window.state';
 import ServiceElectronState from './services/service.electron.state';
 import ServiceProduction from './services/service.production';
+import ServiceFileParsers from './services/service.file.parsers';
+import ServiceMergeFiles from './services/service.merge.files';
 import ServiceStreamSources from './services/service.stream.sources';
 
 const InitializeStages = [
@@ -31,7 +33,9 @@ const InitializeStages = [
     [ServiceStreamSources, ServiceStreams],
     // Stage #8. Detect OS env
     [ServiceEnv],
-    // Stage #9. Init plugins
+    // Stage #9, Render functionality
+    [ServiceFileParsers, ServiceMergeFiles],
+    // Stage #10. Init plugins
     [ServicePlugins],
     // (last service should startup service and should be single always)
 ];
@@ -53,6 +57,17 @@ class Application {
                 }
                 this._bindProcessEvents();
                 resolve(this);
+            });
+        });
+    }
+
+    public destroy(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._destroy(InitializeStages.length - 1, (error?: Error) => {
+                if (error instanceof Error) {
+                    return reject(error);
+                }
+                resolve();
             });
         });
     }
@@ -81,26 +96,27 @@ class Application {
         });
     }
 
-    private _destroy(): Promise<void> {
-        // TODO: Destroy in reverse order list init
-        return new Promise((resolve) => {
-            Promise.all([
-                ServicePaths.destroy(),
-                ServicePackage.destroy(),
-                ServiceStreams.destroy(),
-                ServiceSettings.destroy(),
-                ServiceWindowState.destroy(),
-                ServiceElectron.destroy(),
-                ServiceElectronState.destroy(),
-                ServicePlugins.destroy(),
-                ServiceEnv.destroy(),
-            ]).then(() => {
-                this.logger.env(`All services are destroyed.`);
-                resolve();
-            }).catch((destroyError: Error) => {
-                this.logger.error(`Error while destroying services: ${destroyError.message}`);
-                resolve();
-            });
+    private _destroy(stage: number = 0, callback: (error?: Error) => any): void {
+        if (stage < 0) {
+            this.logger.env(`Application is destroyed`);
+            typeof callback === 'function' && callback();
+            return;
+        }
+        this.logger.env(`Application destroy: stage #${stage + 1}: starting...`);
+        const services: any[] = InitializeStages[stage];
+        const tasks: Array<Promise<any>> = services.map((ref: any) => {
+            this.logger.env(`Destroy: ${ref.getName()}`);
+            return ref.destroy();
+        });
+        if (tasks.length === 0) {
+            return this._destroy(stage - 1, callback);
+        }
+        Promise.all(tasks).then(() => {
+            this.logger.env(`Application destroyed: stage #${stage + 1}: OK`);
+            this._destroy(stage - 1, callback);
+        }).catch((error: Error) => {
+            this.logger.env(`Fail to destroy application dure error: ${error.message}`);
+            callback(error);
         });
     }
 
@@ -116,7 +132,7 @@ class Application {
         // Prevent closing application
         process.stdin.resume();
         // Destroy services
-        this._destroy().then(() => {
+        this.destroy().then(() => {
             this.logger.env(`Application are ready to be closed.`);
             process.exit(0);
         });

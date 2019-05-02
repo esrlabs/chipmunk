@@ -1,5 +1,6 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { COMPILER_OPTIONS, CompilerFactory, Compiler, NgModule } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { JitCompilerFactory } from '@angular/platform-browser-dynamic';
 
 import { AppComponent } from './app.component';
@@ -16,6 +17,7 @@ export function createCompiler(fn: CompilerFactory): Compiler {
   ],
   imports: [
     BrowserModule,
+    FormsModule,
     EnvironmentModule
   ],
   providers: [{
