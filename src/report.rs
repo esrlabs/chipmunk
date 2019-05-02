@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Result;
 use std::fs;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Chunk {
     pub r: (usize, usize),
     pub b: (usize, usize),
