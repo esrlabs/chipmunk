@@ -5,3 +5,6 @@ authors = ["Oliver Mueller <oliver.mueller@esrlabs.com>"]
 edition = "2018"
 
 [dependencies]
+regex = "1.0.5"
+quicli = "0.4"
+structopt = "0.2"
