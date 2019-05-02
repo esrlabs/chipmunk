@@ -1,5 +1,6 @@
 import FileParserText from './file.parser.text';
 import FileParserDlt from './file.parser.dlt';
+import { AFileParser, IFileParserFunc } from './interface';
 
 export interface IFileParser {
     name: string;
@@ -19,4 +20,4 @@ const FileParsers: IFileParser[] = [
     },
 ];
 
-export { FileParsers };
+export { FileParsers, AFileParser, IFileParserFunc };

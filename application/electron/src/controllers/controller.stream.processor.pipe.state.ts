@@ -1,4 +1,4 @@
-import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from '../services/service.electron';
+import ServiceElectron, { IPCMessages as IPCElectronMessages } from '../services/service.electron';
 import Logger from '../tools/env.logger';
 
 const Settings = {

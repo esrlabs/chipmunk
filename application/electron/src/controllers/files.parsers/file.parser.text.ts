@@ -1,4 +1,4 @@
-import { AFileParser } from './interface';
+import { AFileParser, IFileParserFunc } from './interface';
 import { Transform } from 'stream';
 import * as path from 'path';
 
@@ -17,7 +17,7 @@ export default class FileParser extends AFileParser {
     }
 
     public isSupported(file: string): boolean {
-        const extname: string = path.extname(file).toLowerCase();
+        const extname: string = path.extname(file).toLowerCase().replace('.', '');
         return ExtNames.indexOf(extname) !== -1;
     }
 
@@ -25,4 +25,22 @@ export default class FileParser extends AFileParser {
         // Do not need any transform operations
         return undefined;
     }
+
+    public getParserFunc(): IFileParserFunc {
+        return {
+            parse: (chunk: Buffer) => {
+                return new Promise((resolve) => {
+                    resolve(chunk);
+                });
+            },
+            close: () => {
+                // Do nothing
+            },
+            rest: () => {
+                // Do nothing
+                return '';
+            },
+        };
+    }
+
 }

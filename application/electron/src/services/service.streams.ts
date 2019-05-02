@@ -182,6 +182,19 @@ class ServiceStreams extends EventEmitter implements IService  {
         stream.processor.removePipeSession(id);
     }
 
+    public updatePipeSession(written: number, streamId?: string) {
+        // Get stream id
+        if (streamId === undefined) {
+            streamId = this._activeStreamGuid;
+        }
+        // Get stream info
+        const stream: IStreamInfo | undefined = this._streams.get(streamId);
+        if (stream === undefined) {
+            return;
+        }
+        stream.processor.updatePipeSession(written);
+    }
+
     /**
      * Creates new stream socket
      * @returns Promise<IStreamInfo>

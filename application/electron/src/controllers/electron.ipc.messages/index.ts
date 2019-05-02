@@ -52,6 +52,30 @@ export { ISearchRequest, SearchRequest, IRegExpStr };
 import { ISearchRequestResults, SearchRequestResults } from './search.request.results';
 export { ISearchRequestResults, SearchRequestResults };
 
+import { IFileGetParserRequest, FileGetParserRequest } from './file.getparser.request';
+export { IFileGetParserRequest, FileGetParserRequest };
+
+import { IFileGetParserResponse, FileGetParserResponse } from './file.getparser.response';
+export { IFileGetParserResponse, FileGetParserResponse };
+
+import { IMergeFilesRequest, MergeFilesRequest } from './merge.files.request';
+export { IMergeFilesRequest, MergeFilesRequest };
+
+import { IMergeFilesResponse, MergeFilesResponse } from './merge.files.response';
+export { IMergeFilesResponse, MergeFilesResponse };
+
+import { IMergeFilesTestRequest, MergeFilesTestRequest } from './merge.files.test.request';
+export { IMergeFilesTestRequest, MergeFilesTestRequest };
+
+import { IMergeFilesTestResponse, MergeFilesTestResponse } from './merge.files.test.response';
+export { IMergeFilesTestResponse, MergeFilesTestResponse };
+
+import { MergeFilesTimezonesRequest } from './merge.files.timezone.request';
+export { MergeFilesTimezonesRequest };
+
+import { IMergeFilestimezoneResponse, MergeFilestimezoneResponse } from './merge.files.timezone.response';
+export { IMergeFilestimezoneResponse, MergeFilestimezoneResponse };
+
 // Common type for expected message implementation
 export type TMessage =  HostState |
                         HostStateHistory |
@@ -70,34 +94,52 @@ export type TMessage =  HostState |
                         StreamSourceNew |
                         SearchRequest |
                         SearchRequestResults |
-                        SearchChunk;
+                        SearchChunk |
+                        FileGetParserRequest |
+                        FileGetParserResponse |
+                        MergeFilesRequest |
+                        MergeFilesResponse |
+                        MergeFilesTestRequest |
+                        MergeFilesTestResponse |
+                        MergeFilesTimezonesRequest |
+                        MergeFilestimezoneResponse;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *  */
 export const Map = {
 
-    [HostState.signature                ]: HostState,
-    [HostStateHistory.signature         ]: HostStateHistory,
-    [HostTask.signature                 ]: HostTask,
-    [HostTaskHistory.signature          ]: HostTaskHistory,
+    [HostState.signature                    ]: HostState,
+    [HostStateHistory.signature             ]: HostStateHistory,
+    [HostTask.signature                     ]: HostTask,
+    [HostTaskHistory.signature              ]: HostTaskHistory,
 
-    [RenderMountPlugin.signature        ]: RenderMountPlugin,
-    [RenderState.signature              ]: RenderState,
+    [RenderMountPlugin.signature            ]: RenderMountPlugin,
+    [RenderState.signature                  ]: RenderState,
 
-    [PluginInternalMessage.signature    ]: PluginInternalMessage,
+    [PluginInternalMessage.signature        ]: PluginInternalMessage,
 
-    [StreamSetActive.signature          ]: StreamSetActive,
-    [StreamAdd.signature                ]: StreamAdd,
-    [StreamRemove.signature             ]: StreamRemove,
-    [StreamData.signature               ]: StreamData,
-    [StreamUpdated.signature            ]: StreamUpdated,
-    [StreamPipeState.signature          ]: StreamPipeState,
-    [StreamChunk.signature              ]: StreamChunk,
-    [StreamSourceNew.signature          ]: StreamSourceNew,
+    [StreamSetActive.signature              ]: StreamSetActive,
+    [StreamAdd.signature                    ]: StreamAdd,
+    [StreamRemove.signature                 ]: StreamRemove,
+    [StreamData.signature                   ]: StreamData,
+    [StreamUpdated.signature                ]: StreamUpdated,
+    [StreamPipeState.signature              ]: StreamPipeState,
+    [StreamChunk.signature                  ]: StreamChunk,
+    [StreamSourceNew.signature              ]: StreamSourceNew,
 
-    [SearchRequest.signature            ]: SearchRequest,
-    [SearchRequestResults.signature     ]: SearchRequestResults,
-    [SearchChunk.signature              ]: SearchChunk,
+    [SearchRequest.signature                ]: SearchRequest,
+    [SearchRequestResults.signature         ]: SearchRequestResults,
+    [SearchChunk.signature                  ]: SearchChunk,
+
+    [FileGetParserRequest.signature         ]: FileGetParserRequest,
+    [FileGetParserResponse.signature        ]: FileGetParserResponse,
+
+    [MergeFilesRequest.signature            ]: MergeFilesRequest,
+    [MergeFilesResponse.signature           ]: MergeFilesResponse,
+    [MergeFilesTestRequest.signature        ]: MergeFilesTestRequest,
+    [MergeFilesTestResponse.signature       ]: MergeFilesTestResponse,
+    [MergeFilesTimezonesRequest.signature   ]: MergeFilesTimezonesRequest,
+    [MergeFilestimezoneResponse.signature   ]: MergeFilestimezoneResponse,
 
 };

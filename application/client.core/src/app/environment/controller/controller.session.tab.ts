@@ -3,6 +3,7 @@ import { Subscription } from '../services/service.electron.ipc';
 import { ControllerSessionTabStream } from './controller.session.tab.stream';
 import { ControllerSessionTabSearch } from './controller.session.tab.search';
 import { TabsService } from 'logviewer-client-complex';
+import { DefaultSidebarApps } from '../components/sidebar/module';
 import * as Toolkit from 'logviewer.client.toolkit';
 
 export interface IControllerSession {
@@ -92,6 +93,22 @@ export class ControllerSessionTab {
         }
         // Create new tabs service
         this._sidebarTabsService = new TabsService();
+        // Add default sidebar apps
+        DefaultSidebarApps.forEach((app, index) => {
+            // Add tab to sidebar
+            this._sidebarTabsService.add({
+                guid: Toolkit.guid(),
+                name: app.name,
+                active: index === 0,
+                content: {
+                    factory: app.component,
+                    resolved: false,
+                    inputs: {
+                        session: this._sessionId,
+                    }
+                }
+            });
+        });
         // Detect tabs related to transports (plugins)
         this._transports.forEach((pluginName: string, index: number) => {
             const plugin: IPluginData | undefined = PluginsService.getPlugin(pluginName);
@@ -106,7 +123,7 @@ export class ControllerSessionTab {
             this._sidebarTabsService.add({
                 guid: Toolkit.guid(),
                 name: plugin.name,
-                active: index === 0,
+                active: false,
                 content: {
                     factory: plugin.factories[Toolkit.EViewsTypes.sidebarVertical],
                     resolved: true,

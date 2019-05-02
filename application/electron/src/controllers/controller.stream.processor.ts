@@ -129,6 +129,10 @@ export default class ControllerStreamProcessor {
         this._state.pipes.remove(pipeId);
     }
 
+    public updatePipeSession(written: number) {
+        this._state.pipes.next(written);
+    }
+
     private _getSourceInfo(pluginReference: string | undefined, id?: number): ISourceInfo | Error {
         // Check source before
         if (id !== undefined && ServiceStreamSource.get(id) !== undefined) {

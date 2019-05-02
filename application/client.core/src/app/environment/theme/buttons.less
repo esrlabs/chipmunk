@@ -1,5 +1,6 @@
 @import './colors.less';
 @import './support.less';
+@import './borders.less';
 
 .small-icon-button {
     position: relative;
@@ -20,11 +21,13 @@
     font-size: 0.8rem;
     color:@scheme-color-1;
     padding: 0.25rem 0.4rem;
-    margin: 0;
+    margin: 0.25rem;
     cursor: default;
-    .gradient(linear; @scheme-color-5, lighten(@scheme-color-5, 4%));
+    .gradient(linear; @scheme-color-4, lighten(@scheme-color-4, 4%));
+    .border-based-4;
+    border-radius: 2px;
     &:hover{
-        color: @scheme-color-3;
-        .gradient(linear; lighten(@scheme-color-5, 4%), @scheme-color-5);
+        color: @scheme-color-0;
+        .gradient(linear; lighten(@scheme-color-4, 4%), @scheme-color-4);
     }
 }

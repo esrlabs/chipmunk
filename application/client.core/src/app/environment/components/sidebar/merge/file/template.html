@@ -1,0 +1,30 @@
+<p class="file-name t-normal">File: {{name}}</p>
+<lib-primitive-input [placeholder]="'timestamp regexp'" [validate]="_ng_onRegexpValidate" [onChange]="_ng_onRegexpChange" [disabled]="_ng_disabled"></lib-primitive-input>
+<span class="spliter"></span>
+<lib-primitive-dropdownlist [placeholder]="'define timezone'" [defaults]="''" [items]="_ng_zones" [onChange]="_ng_onZoneChange" [disabled]="_ng_disabled"></lib-primitive-dropdownlist>
+<span class="spliter"></span>
+<table class="result" *ngIf="_result !== undefined">
+    <tr>
+        <td class="t-small name">Size:</td>
+        <td class="t-small value">{{_ng_getSize()}} Mb</td>
+    </tr>
+    <tr>
+        <td class="t-small name">Read rows:</td>
+        <td class="t-small value">{{_result.read}}</td>
+    </tr>
+    <tr>
+        <td class="t-small name">Found:</td>
+        <td class="t-small value">{{_result.found}}</td>
+    </tr>
+    <tr>
+        <td class="t-small name">First:</td>
+        <td class="t-small value">{{_result.first}}</td>
+    </tr>
+    <tr>
+        <td class="t-small name">Last:</td>
+        <td class="t-small value">{{_result.last}}</td>
+    </tr>
+</table>
+<div class="controlls" *ngIf="!_ng_disabled">
+    <span class="small-button" (click)="onRemove()">Remove</span>
+</div>
