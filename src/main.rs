@@ -1,5 +1,6 @@
 use quicli::prelude::*;
 use std::error::Error;
+use std::fmt::Write as W;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
@@ -36,7 +37,7 @@ fn main() -> CliResult {
         Err(why) => panic!("couldn't create {}: {}", display, why.description()),
         Ok(file) => file,
     };
-
+    let mut out_buffer = String::new();
     let mut line_nr = 1;
     loop {
         let mut line = String::new();
@@ -44,9 +45,10 @@ fn main() -> CliResult {
         if len == 0 {
             break;
         };
-        writeln!(out_file, "{}{}{}", line.trim_end(), source, line_nr)?;
+        writeln!(out_buffer, "{}{}{}", line.trim_end(), source, line_nr)?;
+        // writeln!(out_file, "{}{}{}", line.trim_end(), source, line_nr)?;
         line_nr += 1;
     }
-
+    let _ = out_file.write_all(out_buffer.as_bytes());
     Ok(())
 }
