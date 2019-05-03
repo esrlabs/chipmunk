@@ -5,6 +5,15 @@ task :test do
   sh "cargo test -- --nocapture"
 end
 
+desc "build release"
+task :release do
+  sh "cargo build --release"
+  current_version = get_current_version
+  cd "target/release" do
+    sh "tar -cvzf indexing@#{current_version}-darwin.tgz logviewer_parser"
+  end
+end
+
 namespace :version do
   desc 'bump patch level'
   task :patch do
