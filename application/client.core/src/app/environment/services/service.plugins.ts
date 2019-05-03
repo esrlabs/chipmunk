@@ -278,6 +278,10 @@ export class PluginsService extends Toolkit.Emitter implements IService {
                 }, 50);
             }
         }.bind(this);
+        if (event.plugins.length === 0) {
+            this.emit(this.Events.pluginsLoaded);
+            return;
+        }
         event.plugins.forEach((pluginInfo: IPCMessages.IRenderMountPluginInfo) => {
             this._logger.env(`Information about plugin "${pluginInfo.name}" has been gotten. Starting loading & initialization.`);
             this._loadAndInit(pluginInfo.name, pluginInfo.token, pluginInfo.id, pluginInfo.location).then((pluginData: IPluginData) => {

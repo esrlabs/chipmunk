@@ -1,0 +1,21 @@
+{
+  "name": "xterminal",
+  "version": "0.0.1",
+  "peerDependencies": {
+    "@angular/common": "^7.0.0",
+    "@angular/core": "^7.0.0"
+  },
+  "main": "bundles/xterminal.umd.js",
+  "module": "fesm5/xterminal.js",
+  "es2015": "fesm2015/xterminal.js",
+  "esm5": "esm5/xterminal.js",
+  "esm2015": "esm2015/xterminal.js",
+  "fesm5": "fesm5/xterminal.js",
+  "fesm2015": "fesm2015/xterminal.js",
+  "typings": "xterminal.d.ts",
+  "metadata": "xterminal.metadata.json",
+  "sideEffects": false,
+  "dependencies": {
+    "tslib": "^1.9.0"
+  }
+}

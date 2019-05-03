@@ -10,6 +10,7 @@ import ServicePaths from './service.paths';
 import ServiceElectronService from './service.electron.state';
 import ControllerPluginProcess from '../controllers/controller.plugin.process';
 import ControllerIPCPlugin from '../controllers/controller.plugin.process.ipc';
+import ControllerPluginDefaults from '../controllers/controller.plugin.defaults';
 import * as npm from '../tools/npm.tools';
 import { IService } from '../interfaces/interface.service';
 import { IPCMessages, Subscription } from './service.electron';
@@ -329,24 +330,17 @@ export class ServicePlugins implements IService {
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     private _deliveryDefaultPlugins(): Promise<void> {
         return new Promise((resolve, reject) => {
-            FS.readFolder(ServicePaths.getPlugins(), FS.EReadingFolderTarget.folders).then((plugins: string[]) => {
-                if (plugins.length > 0) {
+            const controller: ControllerPluginDefaults = new ControllerPluginDefaults();
+            controller.isNeeded().then((needed: boolean) => {
+                if (!needed) {
                     return resolve();
                 }
-                FS.readFolder(ServicePaths.getDefaultPlugins(), FS.EReadingFolderTarget.folders).then((defaultPlugins: string[]) => {
-                    if (defaultPlugins.length === 0) {
-                        return resolve();
-                    }
-                    defaultPlugins.forEach((pluginFolder: string) => {
-                        FS.copyFolder(Path.resolve(ServicePaths.getDefaultPlugins(), pluginFolder), ServicePaths.getPlugins());
-                    });
+                controller.delivery().then(() => {
                     resolve();
-                }).catch((defPluginsFolderReadingError: Error) => {
-                    reject(defPluginsFolderReadingError);
+                }).catch((deliveryError: Error) => {
+                    this._logger.error(`Fail to delivery default plugins due error: ${deliveryError.message}`);
                 });
-            }).catch((pluginsFolderReadingError: Error) => {
-                reject(pluginsFolderReadingError);
-            });
+            }).catch(reject);
         });
     }
     /**
@@ -502,7 +496,7 @@ export class ServicePlugins implements IService {
                     // No any plugins
                     ServiceElectronService.logStateToRender(`No any plugins were found. Target folder: ${this._path}`);
                     this._logger.env(`No any plugins were found. Target folder: ${this._path}`);
-                    return;
+                    return resolve(plugins);
                 }
                 const errors: Error[] = [];
                 // Check each plugin folder and read package.json of render and process apps
@@ -696,6 +690,9 @@ export class ServicePlugins implements IService {
         ServiceElectron.IPC.send(new IPCMessages.RenderMountPlugin({
             plugins: plugins,
         })).then(() => {
+            if (this._plugins.size === 0) {
+               return;
+            }
             this._logger.env(`Information about plugin "${names}" was sent to render`);
         }).catch((sendingError: Error) => {
             ServiceElectronService.logStateToRender(`Fail to send information to render about plugin "${names}" due error: ${sendingError.message}`);
