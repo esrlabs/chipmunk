@@ -51,23 +51,21 @@ pub fn process_file(
             // no more content
             break;
         };
-        let length_of_out_line = trimmed_len
-            + 4 * sentinal_length
-            + source_id.len()
-            + linenr_length(line_nr)
-            + if had_newline { 1 } else { 0 };
-        write!(
-            out_buffer,
-            "{}{}{}{}{}{}{}{}",
-            trimmed_line,
-            plugin_id_seperator,
-            source_id,
-            plugin_id_seperator,
-            row_number_seperator,
-            line_nr,
-            row_number_seperator,
-            if had_newline { "\n" } else { "" },
-        )?;
+        // discard empty lines
+        if trimmed_len != 0 {
+            write!(
+                out_buffer,
+                "{}{}{}{}{}{}{}{}",
+                trimmed_line,
+                plugin_id_seperator,
+                source_id,
+                plugin_id_seperator,
+                row_number_seperator,
+                line_nr,
+                row_number_seperator,
+                if had_newline { "\n" } else { "" },
+            )?;
+        }
         lines_in_buffer += 1;
         if lines_in_buffer >= max_lines {
             let _ = out_file.write_all(out_buffer.as_bytes());
@@ -76,6 +74,11 @@ pub fn process_file(
         }
         line_nr += 1;
 
+        let length_of_out_line = trimmed_len
+            + 4 * sentinal_length
+            + source_id.len()
+            + linenr_length(line_nr)
+            + if had_newline { 1 } else { 0 };
         current_byte_index += length_of_out_line;
         lines_in_chunk += 1;
 
@@ -173,6 +176,12 @@ mod tests {
         );
         run_test(
             "A\n",
+            &[b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL],
+            "tag",
+            1,
+        );
+        run_test(
+            "A\n\n",
             &[b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL],
             "tag",
             1,

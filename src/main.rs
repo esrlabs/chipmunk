@@ -1,7 +1,7 @@
 use crate::report::serialize_chunks;
 use quicli::prelude::*;
 use std::error::Error;
-use std::fs::File;
+use std::fs;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -31,20 +31,34 @@ fn main() -> CliResult {
     let args = Cli::from_args();
     let chunk_size = args.chunk_size;
 
-    let f: std::fs::File = File::open(&args.file)?;
+    let f: fs::File = fs::File::open(&args.file)?;
     let source_id = &args.source;
     // let mut reader = BufReader::new(f);
 
     let path = PathBuf::from(args.file.to_string() + ".out");
     let display = path.display();
 
-    let mut out_file: std::fs::File = match File::create(&path) {
+    let mut out_file: fs::File = match fs::File::create(&path) {
         Err(why) => panic!("couldn't create {}: {}", display, why.description()),
         Ok(file) => file,
     };
     match processor::process_file(&f, &mut out_file, source_id, args.max_lines, chunk_size) {
         Err(why) => panic!("couldn't process: {}", why),
         Ok(chunks) => {
+            match chunks.last() {
+                Some(last_chunk) => {
+                    let metadata = fs::metadata(&path)?;
+                    if metadata.len() as usize != last_chunk.b.1 {
+                        panic!(
+                            "error in computation! last byte in chunks is {} but should be {}",
+                            last_chunk.b.1,
+                            metadata.len()
+                        );
+                    }
+                }
+                None => println!("no content found"),
+            }
+
             let _ = serialize_chunks(&chunks);
             Ok(())
         }
