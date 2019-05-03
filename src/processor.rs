@@ -17,7 +17,7 @@ fn linenr_length(linenr: usize) -> usize {
         return 1;
     };
     let nr = linenr as f64;
-    return 1 + nr.log10().floor() as usize;
+    1 + nr.log10().floor() as usize
 }
 
 pub fn process_file(
@@ -43,7 +43,7 @@ pub fn process_file(
     loop {
         let mut line = String::new();
         let len = reader.read_line(&mut line)?;
-        let trimmed_line = line.trim_end_matches(|c: char| is_newline(c));
+        let trimmed_line = line.trim_end_matches(is_newline);
         let trimmed_len = trimmed_line.len();
         let sentinal_length = 1;
         let had_newline = trimmed_len != len;
@@ -91,7 +91,7 @@ pub fn process_file(
         }
     }
     let _ = out_file.write_all(out_buffer.as_bytes());
-    if line_nr > last_line_current_chunk + 1 || chunks.len() == 0 {
+    if line_nr > last_line_current_chunk + 1 || chunks.is_empty() {
         let chunk = Chunk {
             r: (last_line_current_chunk, line_nr - 1),
             b: (start_of_chunk_byte_index, current_byte_index),
@@ -115,7 +115,7 @@ mod tests {
     fn local_file(file_name: &str) -> std::path::PathBuf {
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         d.push(file_name);
-        return d;
+        d
     }
     fn get_chunks(test_content: &str, chunk_size: usize, tag_name: &str) -> (Vec<Chunk>, String) {
         let line_count = test_content.lines().count();
@@ -141,7 +141,7 @@ mod tests {
         // println!("out_file_content: {}", out_file_content);
         // println!("got chunks: {:?}", chunks);
         assert!(line_count < 10);
-        return (chunks, out_file_content);
+        (chunks, out_file_content)
     }
     fn run_test(test_content: &str, expected: &[u8], tag_name: &str, expected_chunk_len: usize) {
         let (chunks, out_file_content) = get_chunks(test_content, 5, tag_name);
@@ -162,29 +162,33 @@ mod tests {
     #[test]
     fn test_process_file() {
         #![allow(non_snake_case)]
-        let A = 'A' as u8;
-        let B = 'B' as u8;
-        let C = 'C' as u8;
-        let t = 't' as u8;
-        let a = 'a' as u8;
-        let g = 'g' as u8;
         let D1 = 0x03;
         let D2 = 0x02;
         let NL = 0x0a;
-        run_test("A", &vec![A, D1, t, a, g, D1, D2, 0x30, D2], "tag", 1);
-        run_test("A\n", &vec![A, D1, t, a, g, D1, D2, 0x30, D2, NL], "tag", 1);
+        run_test(
+            "A",
+            &[b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2],
+            "tag",
+            1,
+        );
+        run_test(
+            "A\n",
+            &[b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL],
+            "tag",
+            1,
+        );
         run_test(
             "A\r\n",
-            &vec![A, D1, t, a, g, D1, D2, 0x30, D2, NL],
+            &[b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL],
             "tag",
             1,
         );
         run_test(
             "A\nB\nC\n",
             &[
-                [A, D1, t, a, g, D1, D2, 0x30, D2, NL],
-                [B, D1, t, a, g, D1, D2, 0x31, D2, NL],
-                [C, D1, t, a, g, D1, D2, 0x32, D2, NL],
+                [b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL],
+                [b'B', D1, b't', b'a', b'g', D1, D2, 0x31, D2, NL],
+                [b'C', D1, b't', b'a', b'g', D1, D2, 0x32, D2, NL],
             ]
             .concat(),
             "tag",
@@ -231,10 +235,10 @@ mod tests {
         assert_eq!(2, chunks.len());
         assert_eq!(content.len(), size_of_all_chunks(&chunks));
     }
-    fn size_of_all_chunks(chunks: &Vec<Chunk>) -> usize {
-        return chunks
+    fn size_of_all_chunks(chunks: &[Chunk]) -> usize {
+        chunks
             .iter()
-            .fold(0, |acc, x: &Chunk| acc + (x.b.1 - x.b.0));
+            .fold(0, |acc, x: &Chunk| acc + (x.b.1 - x.b.0))
     }
     #[test]
     fn test_line_nr() {

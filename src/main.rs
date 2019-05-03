@@ -42,13 +42,11 @@ fn main() -> CliResult {
         Err(why) => panic!("couldn't create {}: {}", display, why.description()),
         Ok(file) => file,
     };
-    let res =
-        match processor::process_file(&f, &mut out_file, source_id, args.max_lines, chunk_size) {
-            Err(why) => panic!("couldn't process: {}", why),
-            Ok(chunks) => {
-                let _ = serialize_chunks(&chunks);
-                Ok(())
-            }
-        };
-    return res;
+    match processor::process_file(&f, &mut out_file, source_id, args.max_lines, chunk_size) {
+        Err(why) => panic!("couldn't process: {}", why),
+        Ok(chunks) => {
+            let _ = serialize_chunks(&chunks);
+            Ok(())
+        }
+    }
 }

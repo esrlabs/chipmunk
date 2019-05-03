@@ -7,7 +7,7 @@ pub struct Chunk {
     pub r: (usize, usize),
     pub b: (usize, usize),
 }
-pub fn serialize_chunks(chunks: &Vec<Chunk>) -> Result<()> {
+pub fn serialize_chunks(chunks: &[Chunk]) -> Result<()> {
     // Serialize it to a JSON string.
     let j = serde_json::to_string(chunks)?;
     fs::write("lineMetadata.json", j).expect("Unable to write file");
