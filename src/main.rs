@@ -8,7 +8,7 @@ use structopt::StructOpt;
 mod processor;
 mod report;
 
-/// Get first n lines of a file
+/// Create index file and mapping file for logviewer
 #[derive(Debug, StructOpt)]
 struct Cli {
     /// How many lines to collect before dumping
