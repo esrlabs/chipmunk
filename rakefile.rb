@@ -63,6 +63,7 @@ end
 def create_new_version(next_version)
   current_version = get_current_version
   update_toml(next_version)
+  sh "cargo build"
   sh "git add ."
   sh "git commit -m \"[](chore): version bump from #{current_version} => #{next_version.to_s}\""
   sh "git tag #{next_version.to_s}"
