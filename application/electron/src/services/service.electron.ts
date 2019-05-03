@@ -214,11 +214,14 @@ class ServiceElectron implements IService {
 
     private _onClosed() {
         this._destroyBrowserWindow();
+        return app.quit();
+        /*
         if (process.platform !== 'darwin') {
             this._logger.env(`Quit application`);
             return app.quit();
         }
         this._logger.env(`Darwin platform is detected. Application is deactivated.`);
+        */
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *

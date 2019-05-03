@@ -92,10 +92,10 @@ export class SidebarViewComponent implements AfterViewInit, OnDestroy {
         xterm.setOption('fontWeightBold', 600);
         // xterm.setOption('lineHeight', 15);
         xterm.setOption('theme', {
-            background: '#EEF4F2',
-            foreground: '#233656',
-            cursor: '#CDD6D5',
-            cursorAccent: '#EEF4F2',
+            background: '#333333',
+            foreground: '#eaeaea',
+            cursor: '#eaeaea',
+            cursorAccent: '#FFFFFF',
         });
     }
 
