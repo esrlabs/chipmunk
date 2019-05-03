@@ -1,7 +1,12 @@
+<span class="spliter"></span>
+<p class="t-normal info">This is experimental functionality.</p>
+<span class="spliter"></span>
 <div class="wrapper" *ngIf="_ng_state === 'disconnected'">
     <p class="t-normal">Connection</p>
-    <input #input_ip type="text" placeholder="IP address"/>
-    <input #input_port type="number" placeholder="Port" value="3490"/>
+    <lib-primitive-input #input_ip [type]="'text'" [placeholder]="'IP address'" [validate]="_ng_onIPValidate" [onChange]="_ng_onIPChange"></lib-primitive-input>
+    <span class="spliter"></span>
+    <lib-primitive-input #input_port [type]="'number'" [placeholder]="'Port'" [validate]="_ng_onPortValidate" [onChange]="_ng_onPortChange"></lib-primitive-input>
+    <span class="spliter"></span>
     <div class="aling-right">
         <span class="small-button" (click)="_ng_onConnect()">Connect</span>
     </div>

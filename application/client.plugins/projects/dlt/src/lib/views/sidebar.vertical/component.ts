@@ -3,6 +3,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, ElementRef, ViewChild } from '@angular/core';
 import { EHostEvents, EHostCommands } from '../../common/host.events';
 import * as Toolkit from 'logviewer.client.toolkit';
+import { InputStandardComponent } from 'logviewer-client-primitive';
 
 export interface IEnvVar {
     key: string;
@@ -23,8 +24,8 @@ export enum EState {
 })
 
 export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
-    @ViewChild('input_ip') _ng_input_ip: ElementRef;
-    @ViewChild('input_port') _ng_input_port: ElementRef;
+    @ViewChild('input_ip') _ng_input_ip: InputStandardComponent;
+    @ViewChild('input_port') _ng_input_port: InputStandardComponent;
 
     @Input() public ipc: Toolkit.PluginIPC;
     @Input() public session: string;
@@ -33,8 +34,8 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     public _ng_bytes: number;
     public _ng_packets: number;
     public _ng_error: string;
-    public _ng_addr: string;
-    public _ng_port: number;
+    public _ng_addr: string | undefined;
+    public _ng_port: number | undefined;
     private _subscription: any;
 
     constructor(private _cdRef: ChangeDetectorRef) {
@@ -59,6 +60,35 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             }
             this._onIncomeMessage(message);
         });
+    }
+
+    public _ng_onIPValidate(value: string): string | undefined {
+        if (/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/gi.exec(value) === null) {
+            this._ng_addr = undefined;
+            return `IP address isn't valid`;
+        }
+        return undefined;
+    }
+
+    public _ng_onPortValidate(value: string): string | undefined {
+        if (/\d{1,6}/gi.exec(value) === null) {
+            this._ng_port = undefined;
+            return `Port isn't valid`;
+        }
+        const numeric: number = parseInt(value, 10);
+        if (isNaN(numeric) || !isFinite(numeric)) {
+            this._ng_port = undefined;
+            return `Port isn't valid`;
+        }
+        return undefined;
+    }
+
+    public _ng_onIPChange(value: string) {
+        this._ng_addr = value;
+    }
+
+    public _ng_onPortChange(value: string) {
+        this._ng_port = parseInt(value, 10);
     }
 
     private _onIncomeMessage(message: any) {
@@ -102,23 +132,16 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         if (this._ng_input_port === undefined || this._ng_input_port === null) {
             return;
         }
-        const addr: string = (this._ng_input_ip.nativeElement.value as string);
-        const port: number = parseInt((this._ng_input_port.nativeElement.value as string), 10);
-        if (addr.trim() === '') {
-            return;
-        }
-        if (port < 0) {
+        if (this._ng_addr === undefined || this._ng_port === undefined) {
             return;
         }
         this._ng_state = EState.connecting;
-        this._ng_addr = addr;
-        this._ng_port = port;
         this._cdRef.detectChanges();
         this.ipc.requestToHost({
             streamId: this.session,
             command: EHostCommands.connect,
-            ip: addr,
-            port: port
+            ip: this._ng_addr,
+            port: this._ng_port,
         }, this.session).then((response) => {
             console.log(response);
         });
