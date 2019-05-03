@@ -1,6 +1,6 @@
 use crate::report::serialize_chunks;
+use crate::report::Chunk;
 use quicli::prelude::*;
-use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -17,11 +17,17 @@ struct Cli {
     /// How many lines should be in a chunk (used for access later)
     #[structopt(long = "chunk_size", short = "s", default_value = "500")]
     chunk_size: usize,
+    /// append to file if exists
+    #[structopt(long = "append", short = "a")]
+    append: bool,
     // Add a positional argument that the user has to supply:
     /// The file to read
     file: String,
     /// how to tag the source
-    source: String,
+    tag: String,
+    /// Output file, "<file>.out" if not present
+    #[structopt(parse(from_os_str))]
+    output: Option<PathBuf>,
     // Quick and easy logging setup you get for free with quicli
     #[structopt(flatten)]
     verbosity: Verbosity,
@@ -32,34 +38,39 @@ fn main() -> CliResult {
     let chunk_size = args.chunk_size;
 
     let f: fs::File = fs::File::open(&args.file)?;
-    let source_id = &args.source;
-    // let mut reader = BufReader::new(f);
+    let tag_id = &args.tag;
 
-    let path = PathBuf::from(args.file.to_string() + ".out");
-    let display = path.display();
-
-    let mut out_file: fs::File = match fs::File::create(&path) {
-        Err(why) => panic!("couldn't create {}: {}", display, why.description()),
-        Ok(file) => file,
+    let out_path: std::path::PathBuf = match args.output {
+        Some(path) => path,
+        None => PathBuf::from(args.file.to_string() + ".out"),
     };
-    match processor::process_file(&f, &mut out_file, source_id, args.max_lines, chunk_size) {
+
+    if args.append && !out_path.exists() {
+        panic!("appending only possible when {:?} exixts", out_path);
+    }
+    let mut out_file: std::fs::File = if args.append {
+        fs::OpenOptions::new()
+            .append(true)
+            .open(out_path)
+            .expect("could not open file to append")
+    } else {
+        std::fs::File::create(&out_path).unwrap()
+    };
+    let mapping_out_path: std::path::PathBuf = PathBuf::from(args.file.to_string() + ".map.json");
+    let current_chunks: Vec<Chunk> = Vec::new();
+
+    match processor::process_file(
+        &f,
+        &mut out_file,
+        &current_chunks,
+        tag_id,
+        args.max_lines,
+        chunk_size,
+        args.append,
+    ) {
         Err(why) => panic!("couldn't process: {}", why),
         Ok(chunks) => {
-            match chunks.last() {
-                Some(last_chunk) => {
-                    let metadata = fs::metadata(&path)?;
-                    if metadata.len() as usize != last_chunk.b.1 {
-                        panic!(
-                            "error in computation! last byte in chunks is {} but should be {}",
-                            last_chunk.b.1,
-                            metadata.len()
-                        );
-                    }
-                }
-                None => println!("no content found"),
-            }
-
-            let _ = serialize_chunks(&chunks);
+            let _ = serialize_chunks(&chunks, &mapping_out_path);
             Ok(())
         }
     }
