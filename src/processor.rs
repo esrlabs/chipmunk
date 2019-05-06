@@ -162,7 +162,6 @@ fn extended_line_length(
         + tag_len
         + linenr_length(line_nr)
         + if has_newline { 1 } else { 0 }
-    // println!("extended_line_length (line_nr={}): {}", line_nr, res);
 }
 fn last_line_nr(path: &std::path::Path) -> Option<usize> {
     let file = std::fs::File::open(path).expect("opening file did not work");
@@ -260,7 +259,7 @@ mod tests {
     }
     type Pair = (usize, usize);
     fn chunks_fit_together(chunks: &[Chunk]) -> bool {
-        if chunks.len() == 0 {
+        if chunks.is_empty() {
             return true;
         }
         let byte_ranges: Vec<(usize, usize)> = chunks.iter().map(|x| x.b).collect();
@@ -276,7 +275,6 @@ mod tests {
         expected: &[u8],
         tag_name: &str,
         (lines_per_chunk, expected_chunk_len): (usize, usize),
-        append: bool,
     ) {
         let (chunks, out_file_content) = get_chunks(test_content, lines_per_chunk, tag_name, None);
         println!("all chunks: {:?}", chunks);
@@ -300,7 +298,7 @@ mod tests {
     const NL: u8 = 0x0a;
     #[test]
     fn test_process_empty_file() {
-        run_test("", &[], "tag", (1, 0), false);
+        run_test("", &[], "tag", (1, 0));
     }
     #[test]
     fn test_process_file_one_line() {
@@ -309,7 +307,6 @@ mod tests {
             &[b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2],
             "tag",
             (1, 1),
-            false,
         );
     }
     #[test]
@@ -319,7 +316,6 @@ mod tests {
             &[b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL],
             "tag",
             (1, 1),
-            false,
         );
     }
     #[test]
@@ -329,7 +325,6 @@ mod tests {
             &[b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL],
             "tag",
             (1, 1),
-            false,
         );
     }
     #[test]
@@ -339,7 +334,6 @@ mod tests {
             &[b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL],
             "tag",
             (1, 1),
-            false,
         );
     }
     #[test]
@@ -349,7 +343,6 @@ mod tests {
             &[b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL],
             "tag",
             (1, 1),
-            false,
         );
     }
     #[test]
@@ -364,7 +357,6 @@ mod tests {
             .concat(),
             "tag",
             (1, 3),
-            false,
         );
     }
     #[test]
@@ -386,7 +378,6 @@ mod tests {
             .concat(),
             "tag",
             (1, 10),
-            false,
         );
     }
     #[test]

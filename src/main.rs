@@ -1,6 +1,6 @@
 use crate::report::serialize_chunks;
 use crate::report::Chunk;
-use quicli::prelude::*;
+use quicli::prelude::{CliResult, Verbosity};
 use std::fs;
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -35,7 +35,6 @@ struct Cli {
 
 fn main() -> CliResult {
     let args = Cli::from_args();
-    let chunk_size = args.chunk_size;
 
     let f: fs::File = fs::File::open(&args.file)?;
     let tag_id = &args.tag;
@@ -54,16 +53,12 @@ fn main() -> CliResult {
     let indexer = processor::Indexer {
         source_id: tag_id.to_string(), // tag to append to each line
         max_lines: args.max_lines,     // how many lines to collect before writing out
-        chunk_size: chunk_size,        // used for mapping line numbers to byte positions
+        chunk_size: args.chunk_size,   // used for mapping line numbers to byte positions
         append: args.append,
     };
 
     // match processor::process_file(
-    match indexer.process_file(
-        &f,
-        &out_path,
-        &current_chunks,
-    ) {
+    match indexer.process_file(&f, &out_path, &current_chunks) {
         Err(why) => panic!("couldn't process: {}", why),
         Ok(chunks) => {
             let _ = serialize_chunks(&chunks, &mapping_out_path);
