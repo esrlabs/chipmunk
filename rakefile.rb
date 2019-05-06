@@ -4,6 +4,12 @@ desc "run tests"
 task :test do
   sh "cargo test -- --nocapture"
 end
+desc "push tag to github"
+task :push do
+  sh "git push origin"
+  current_version = get_current_version
+  sh "git push origin #{current_version}"
+end
 
 def build_the_release
   sh "cargo build --release"
