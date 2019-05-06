@@ -5,13 +5,46 @@ task :test do
   sh "cargo test -- --nocapture"
 end
 
-desc "build release"
-task :release do
+def build_the_release
   sh "cargo build --release"
   current_version = get_current_version
   cd "target/release" do
     sh "tar -cvzf indexing@#{current_version}-darwin.tgz logviewer_parser"
   end
+end
+desc "create new version and release"
+task :create_release do
+  require 'highline'
+  cli = HighLine.new
+  cli.choose do |menu|
+    default = :minor
+    menu.prompt = "this will create and tag a new version (default: #{default}) "
+    menu.choice(:minor) do
+      next_version = get_next_version(:minor)
+      puts "create minor version with version #{next_version}"
+      create_and_tag_new_version(next_version)
+      build_the_release()
+    end
+    menu.choice(:major) do
+      next_version = get_next_version(:major)
+      puts "create major version with version #{next_version}"
+      create_and_tag_new_version(next_version)
+      build_the_release()
+    end
+    menu.choice(:patch) do
+      next_version = get_next_version(:patch)
+      puts "create patch version with version #{next_version}"
+      create_and_tag_new_version(next_version)
+      build_the_release()
+    end
+    menu.choice(:abort) { cli.say("ok...maybe later") }
+    menu.default = default
+  end
+end
+
+desc "build release, no version bump"
+task :build_release do
+  build_the_release
 end
 
 namespace :version do
@@ -19,19 +52,19 @@ namespace :version do
   task :patch do
     next_version = get_next_version(:patch)
     puts "next_version=#{next_version}"
-    create_new_version(next_version)
+    create_and_tag_new_version(next_version)
   end
   desc 'bump minor level'
   task :minor do
     next_version = get_next_version(:minor)
     puts "next_version=#{next_version}"
-    create_new_version(next_version)
+    create_and_tag_new_version(next_version)
   end
   desc 'bump major level'
   task :major do
     next_version = get_next_version(:major)
     puts "next_version=#{next_version}"
-    create_new_version(next_version)
+    create_and_tag_new_version(next_version)
   end
 end
 
@@ -60,7 +93,7 @@ def update_toml(new_version)
   end
 end
 
-def create_new_version(next_version)
+def create_and_tag_new_version(next_version)
   current_version = get_current_version
   update_toml(next_version)
   sh "cargo build"
