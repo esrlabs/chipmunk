@@ -22,6 +22,9 @@ ARGS:
 
 # Changelog
 
+0.4.0 (5/6/2019):
+  * append to mapping file supported
+
 0.3.0 (5/6/2019):
   * fix bug in mapping file
   * rename mapping file to [infile_name].mapping.json

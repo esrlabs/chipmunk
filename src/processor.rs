@@ -38,7 +38,8 @@ fn extended_line_length(
         + if has_newline { 1 } else { 0 }
     // println!("extended_line_length (line_nr={}): {}", line_nr, res);
 }
-fn last_line_nr(file: &std::fs::File) -> Option<usize> {
+fn last_line_nr(path: &std::path::Path) -> Option<usize> {
+    let file = std::fs::File::open(path).expect("opening file did not work");
     let file_size = file.metadata().expect("could not read file metadata").len();
     let mut reader = BufReader::new(file);
     let seek_offset: i64 = -(std::cmp::min(file_size - 1, PEEK_END_SIZE as u64) as i64);
@@ -57,12 +58,12 @@ fn last_line_nr(file: &std::fs::File) -> Option<usize> {
             // row nr starts at i + 2
             let row_slice = &buf[i + 2..];
             let row_string = std::str::from_utf8(row_slice).expect("could not parse row number");
-            println!("parsing: {:02X?}", row_slice);
             let row_nr: usize = row_string
                 .trim_end_matches(is_newline)
                 .trim_end_matches(ROW_NUMBER_SENTINAL)
                 .parse()
                 .expect("expected number was was none");
+            println!("parsing: {:02X?} => last row_nr: {}", row_slice, row_nr);
             return Some(row_nr);
         }
     }
@@ -71,7 +72,7 @@ fn last_line_nr(file: &std::fs::File) -> Option<usize> {
 
 pub fn process_file(
     f: &std::fs::File,
-    out_file: &mut std::fs::File,
+    out_path: &std::path::PathBuf,
     current_chunks: &[Chunk],
     source_id: &str,   // tag to append to each line
     max_lines: usize,  // how many lines to collect before writing out
@@ -85,17 +86,27 @@ pub fn process_file(
     let mut reader = BufReader::new(f);
     let mut out_buffer = String::new();
     let mut line_nr = if append {
-        last_line_nr(&out_file).expect("could not get last line number of old file") + 1
+        println!("trying to append to {:?}", out_path);
+        last_line_nr(&out_path).expect("could not get last line number of old file") + 1
     } else {
         0
     };
     let mut lines_in_buffer: usize = 1;
+    let mut out_file: std::fs::File = if append {
+        std::fs::OpenOptions::new()
+            .append(true)
+            .open(out_path)
+            .expect("could not open file to append")
+    } else {
+        std::fs::File::create(&out_path).unwrap()
+    };
+    let original_file_size = out_file.metadata().expect("could not read metadata").len() as usize;
 
-    let mut current_byte_index = 0;
+    let mut current_byte_index = original_file_size;
     let mut start_of_chunk_byte_index = current_byte_index;
     let mut lines_in_chunk = 0;
     let mut chunks = vec![];
-    let mut last_line_current_chunk = 0;
+    let mut last_line_current_chunk = line_nr;
     loop {
         let mut line = String::new();
         let len = reader.read_line(&mut line)?;
@@ -135,6 +146,10 @@ pub fn process_file(
 
             // check if we need to construct a new mapping chunk
             if lines_in_chunk >= chunk_size {
+                println!(
+                    "create chunk, line_nr={}, lines_in_chunk: {}",
+                    line_nr, lines_in_chunk
+                );
                 last_line_current_chunk = line_nr - 1;
                 let chunk = Chunk {
                     r: (line_nr - lines_in_chunk, line_nr - 1),
@@ -148,24 +163,28 @@ pub fn process_file(
     }
     // println!("done with content: {:02X?}", out_buffer.as_bytes());
     let _ = out_file.write_all(out_buffer.as_bytes());
+    // check if we still need to spit out a chunk
     if line_nr > last_line_current_chunk + 1 || chunks.is_empty() {
+        println!(
+            "create LAST chunk, line_nr={}, lines_in_chunk: {}",
+            line_nr, lines_in_chunk
+        );
         let chunk = Chunk {
             r: (last_line_current_chunk, line_nr - 1),
             b: (start_of_chunk_byte_index, current_byte_index),
         };
         chunks.push(chunk);
     }
-    // println!("result chunks: {:?}", chunks);
     match chunks.last() {
         Some(last_chunk) => {
             let metadata = out_file
                 .metadata()
                 .expect("cannot read size of output file");
-            if metadata.len() as usize != last_chunk.b.1 {
+            let last_expected_byte_index = metadata.len() as usize;
+            if last_expected_byte_index != last_chunk.b.1 {
                 panic!(
                     "error in computation! last byte in chunks is {} but should be {}",
-                    last_chunk.b.1,
-                    metadata.len()
+                    last_chunk.b.1, last_expected_byte_index
                 );
             }
         }
@@ -216,10 +235,9 @@ mod tests {
         // call our function
         let f = File::open(local_file(&tmp_test_file_name[..])).unwrap();
         let out_path = PathBuf::from(&tmp_out_file_name[..]);
-        let mut out_file: std::fs::File = File::create(&out_path).unwrap();
         let chunks = process_file(
             &f,
-            &mut out_file,
+            &out_path,
             &[],
             tag_name,
             5,
@@ -424,8 +442,7 @@ mod tests {
             let tmp_dir = TempDir::new("my_directory_prefix").expect("could not create temp dir");
             let path = tmp_dir.path().join("extract_row_test.txt");
             fs::write(&path, c).expect("testfile could not be written");
-            let f = File::open(path).unwrap();
-            assert_eq!(Some(expected), last_line_nr(&f));
+            assert_eq!(Some(expected), last_line_nr(&path));
             let _ = tmp_dir.close();
         }
         let content = [b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL];

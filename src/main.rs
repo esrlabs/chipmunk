@@ -48,20 +48,12 @@ fn main() -> CliResult {
     if args.append && !out_path.exists() {
         panic!("appending only possible when {:?} exixts", out_path);
     }
-    let mut out_file: std::fs::File = if args.append {
-        fs::OpenOptions::new()
-            .append(true)
-            .open(out_path)
-            .expect("could not open file to append")
-    } else {
-        std::fs::File::create(&out_path).unwrap()
-    };
     let mapping_out_path: std::path::PathBuf = PathBuf::from(args.file.to_string() + ".map.json");
     let current_chunks: Vec<Chunk> = Vec::new();
 
     match processor::process_file(
         &f,
-        &mut out_file,
+        &out_path,
         &current_chunks,
         tag_id,
         args.max_lines,
