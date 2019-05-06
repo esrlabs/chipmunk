@@ -22,6 +22,9 @@ ARGS:
 
 # Changelog
 
+0.4.3 (5/6/2019):
+  * handle empty files
+
 0.4.2 (5/6/2019):
   * correctly handle CRLF at start of line
 

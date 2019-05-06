@@ -51,14 +51,18 @@ fn main() -> CliResult {
     let mapping_out_path: std::path::PathBuf = PathBuf::from(args.file.to_string() + ".map.json");
     let current_chunks: Vec<Chunk> = Vec::new();
 
-    match processor::process_file(
+    let indexer = processor::Indexer {
+        source_id: tag_id.to_string(), // tag to append to each line
+        max_lines: args.max_lines,     // how many lines to collect before writing out
+        chunk_size: chunk_size,        // used for mapping line numbers to byte positions
+        append: args.append,
+    };
+
+    // match processor::process_file(
+    match indexer.process_file(
         &f,
         &out_path,
         &current_chunks,
-        tag_id,
-        args.max_lines,
-        chunk_size,
-        args.append,
     ) {
         Err(why) => panic!("couldn't process: {}", why),
         Ok(chunks) => {

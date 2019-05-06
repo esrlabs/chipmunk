@@ -10,6 +10,130 @@ const PLUGIN_ID_SENTINAL: char = '\u{0003}';
 const SENTINAL_LENGTH: usize = 1;
 const PEEK_END_SIZE: usize = 12;
 
+pub struct Indexer {
+    pub source_id: String, // tag to append to each line
+    pub max_lines: usize,  // how many lines to collect before writing out
+    pub chunk_size: usize, // used for mapping line numbers to byte positions
+    pub append: bool,
+}
+
+impl Indexer {
+    pub fn process_file(
+        &self,
+        f: &std::fs::File,
+        out_path: &std::path::PathBuf,
+        current_chunks: &[Chunk],
+    ) -> ::std::result::Result<Vec<Chunk>, failure::Error> {
+        println!(
+            "process file, currently have {} chunks",
+            current_chunks.len()
+        );
+        let mut reader = BufReader::new(f);
+        let mut out_buffer = String::new();
+        let mut line_nr = if self.append {
+            last_line_nr(&out_path).expect("could not get last line number of old file") + 1
+        } else {
+            0
+        };
+        let mut lines_in_buffer: usize = 1;
+        let mut out_file: std::fs::File = if self.append {
+            std::fs::OpenOptions::new()
+                .append(true)
+                .open(out_path)
+                .expect("could not open file to append")
+        } else {
+            std::fs::File::create(&out_path).unwrap()
+        };
+        let original_file_size =
+            out_file.metadata().expect("could not read metadata").len() as usize;
+
+        let mut current_byte_index = original_file_size;
+        let mut start_of_chunk_byte_index = current_byte_index;
+        let mut lines_in_chunk = 0;
+        let mut chunks = vec![];
+        let mut last_line_current_chunk = line_nr;
+        loop {
+            let mut line = String::new();
+            let len = reader.read_line(&mut line)?;
+            let trimmed_line = line.trim_matches(is_newline);
+            let trimmed_len = trimmed_line.len();
+            let had_newline = trimmed_len != len;
+            if len == 0 {
+                // no more content
+                break;
+            };
+            // discard empty lines
+            if trimmed_len != 0 {
+                write!(
+                    out_buffer,
+                    "{}{}{}{}{}{}{}{}",
+                    trimmed_line,
+                    PLUGIN_ID_SENTINAL,
+                    self.source_id,
+                    PLUGIN_ID_SENTINAL,
+                    ROW_NUMBER_SENTINAL,
+                    line_nr,
+                    ROW_NUMBER_SENTINAL,
+                    if had_newline { "\n" } else { "" },
+                )?;
+                lines_in_buffer += 1;
+                // check if we need to flush
+                if lines_in_buffer >= self.max_lines {
+                    // println!("flush with content: {:02X?}", out_buffer.as_bytes());
+                    let _ = out_file.write_all(out_buffer.as_bytes());
+                    out_buffer.clear();
+                    lines_in_buffer = 0;
+                }
+                current_byte_index +=
+                    extended_line_length(trimmed_len, self.source_id.len(), line_nr, had_newline);
+                line_nr += 1;
+                lines_in_chunk += 1;
+
+                // check if we need to construct a new mapping chunk
+                if lines_in_chunk >= self.chunk_size {
+                    last_line_current_chunk = line_nr - 1;
+                    let chunk = Chunk {
+                        r: (line_nr - lines_in_chunk, line_nr - 1),
+                        b: (start_of_chunk_byte_index, current_byte_index),
+                    };
+                    chunks.push(chunk);
+                    start_of_chunk_byte_index = current_byte_index + 1;
+                    lines_in_chunk = 0;
+                }
+            }
+        }
+        // println!("done with content: {:02X?}", out_buffer.as_bytes());
+        let _ = out_file.write_all(out_buffer.as_bytes());
+        // only add junk if we produced any output lines
+        if line_nr > 0 {
+            // check if we still need to spit out a chunk
+            if line_nr > last_line_current_chunk + 1 || chunks.is_empty() {
+                let chunk = Chunk {
+                    r: (last_line_current_chunk, line_nr - 1),
+                    b: (start_of_chunk_byte_index, current_byte_index),
+                };
+                chunks.push(chunk);
+            }
+        }
+        match chunks.last() {
+            Some(last_chunk) => {
+                let metadata = out_file
+                    .metadata()
+                    .expect("cannot read size of output file");
+                let last_expected_byte_index = metadata.len() as usize;
+                if last_expected_byte_index != last_chunk.b.1 {
+                    panic!(
+                        "error in computation! last byte in chunks is {} but should be {}",
+                        last_chunk.b.1, last_expected_byte_index
+                    );
+                }
+            }
+            None => println!("no content found"),
+        }
+        Ok(chunks)
+    }
+}
+
 #[inline]
 fn is_newline(c: char) -> bool {
     match c {
@@ -18,6 +142,7 @@ fn is_newline(c: char) -> bool {
         _ => false,
     }
 }
+#[inline]
 fn linenr_length(linenr: usize) -> usize {
     if linenr == 0 {
         return 1;
@@ -25,6 +150,7 @@ fn linenr_length(linenr: usize) -> usize {
     let nr = linenr as f64;
     1 + nr.log10().floor() as usize
 }
+#[inline]
 fn extended_line_length(
     trimmed_len: usize,
     tag_len: usize,
@@ -70,121 +196,6 @@ fn last_line_nr(path: &std::path::Path) -> Option<usize> {
     None
 }
 
-pub fn process_file(
-    f: &std::fs::File,
-    out_path: &std::path::PathBuf,
-    current_chunks: &[Chunk],
-    source_id: &str,   // tag to append to each line
-    max_lines: usize,  // how many lines to collect before writing out
-    chunk_size: usize, // used for mapping line numbers to byte positions
-    append: bool,
-) -> ::std::result::Result<Vec<Chunk>, failure::Error> {
-    println!(
-        "process file, currently have {} chunks",
-        current_chunks.len()
-    );
-    let mut reader = BufReader::new(f);
-    let mut out_buffer = String::new();
-    let mut line_nr = if append {
-        println!("trying to append to {:?}", out_path);
-        last_line_nr(&out_path).expect("could not get last line number of old file") + 1
-    } else {
-        0
-    };
-    let mut lines_in_buffer: usize = 1;
-    let mut out_file: std::fs::File = if append {
-        std::fs::OpenOptions::new()
-            .append(true)
-            .open(out_path)
-            .expect("could not open file to append")
-    } else {
-        std::fs::File::create(&out_path).unwrap()
-    };
-    let original_file_size = out_file.metadata().expect("could not read metadata").len() as usize;
-
-    let mut current_byte_index = original_file_size;
-    let mut start_of_chunk_byte_index = current_byte_index;
-    let mut lines_in_chunk = 0;
-    let mut chunks = vec![];
-    let mut last_line_current_chunk = line_nr;
-    loop {
-        let mut line = String::new();
-        let len = reader.read_line(&mut line)?;
-        let trimmed_line = line.trim_matches(is_newline);
-        let trimmed_len = trimmed_line.len();
-        let had_newline = trimmed_len != len;
-        if len == 0 {
-            // no more content
-            break;
-        };
-        // discard empty lines
-        if trimmed_len != 0 {
-            write!(
-                out_buffer,
-                "{}{}{}{}{}{}{}{}",
-                trimmed_line,
-                PLUGIN_ID_SENTINAL,
-                source_id,
-                PLUGIN_ID_SENTINAL,
-                ROW_NUMBER_SENTINAL,
-                line_nr,
-                ROW_NUMBER_SENTINAL,
-                if had_newline { "\n" } else { "" },
-            )?;
-            lines_in_buffer += 1;
-            // check if we need to flush
-            if lines_in_buffer >= max_lines {
-                // println!("flush with content: {:02X?}", out_buffer.as_bytes());
-                let _ = out_file.write_all(out_buffer.as_bytes());
-                out_buffer.clear();
-                lines_in_buffer = 0;
-            }
-            current_byte_index +=
-                extended_line_length(trimmed_len, source_id.len(), line_nr, had_newline);
-            line_nr += 1;
-            lines_in_chunk += 1;
-
-            // check if we need to construct a new mapping chunk
-            if lines_in_chunk >= chunk_size {
-                last_line_current_chunk = line_nr - 1;
-                let chunk = Chunk {
-                    r: (line_nr - lines_in_chunk, line_nr - 1),
-                    b: (start_of_chunk_byte_index, current_byte_index),
-                };
-                chunks.push(chunk);
-                start_of_chunk_byte_index = current_byte_index + 1;
-                lines_in_chunk = 0;
-            }
-        }
-    }
-    // println!("done with content: {:02X?}", out_buffer.as_bytes());
-    let _ = out_file.write_all(out_buffer.as_bytes());
-    // check if we still need to spit out a chunk
-    if line_nr > last_line_current_chunk + 1 || chunks.is_empty() {
-        let chunk = Chunk {
-            r: (last_line_current_chunk, line_nr - 1),
-            b: (start_of_chunk_byte_index, current_byte_index),
-        };
-        chunks.push(chunk);
-    }
-    match chunks.last() {
-        Some(last_chunk) => {
-            let metadata = out_file
-                .metadata()
-                .expect("cannot read size of output file");
-            let last_expected_byte_index = metadata.len() as usize;
-            if last_expected_byte_index != last_chunk.b.1 {
-                panic!(
-                    "error in computation! last byte in chunks is {} but should be {}",
-                    last_chunk.b.1, last_expected_byte_index
-                );
-            }
-        }
-        None => println!("no content found"),
-    }
-    Ok(chunks)
-}
-
 #[cfg(test)]
 mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
@@ -205,7 +216,7 @@ mod tests {
     }
     fn get_chunks(
         test_content: &str,
-        chunk_size: usize,
+        chunksize: usize,
         tag_name: &str,
         tmp_file_name: Option<&str>,
     ) -> (Vec<Chunk>, String) {
@@ -227,16 +238,13 @@ mod tests {
         // call our function
         let f = File::open(local_file(&tmp_test_file_name[..])).unwrap();
         let out_path = PathBuf::from(&tmp_out_file_name[..]);
-        let chunks = process_file(
-            &f,
-            &out_path,
-            &[],
-            tag_name,
-            5,
-            chunk_size,
-            tmp_file_name.is_some(),
-        )
-        .unwrap();
+        let indexer = Indexer {
+            source_id: tag_name.to_string(), // tag to append to each line
+            max_lines: 5,                    // how many lines to collect before writing out
+            chunk_size: chunksize,           // used for mapping line numbers to byte positions
+            append: tmp_file_name.is_some(),
+        };
+        let chunks = indexer.process_file(&f, &out_path, &[]).unwrap();
         let out_file_content: String = fs::read_to_string(out_path).expect("could not read file");
 
         // cleanup
@@ -249,6 +257,9 @@ mod tests {
     }
     type Pair = (usize, usize);
     fn chunks_fit_together(chunks: &[Chunk]) -> bool {
+        if chunks.len() == 0 {
+            return true;
+        }
         let byte_ranges: Vec<(usize, usize)> = chunks.iter().map(|x| x.b).collect();
         println!("byte_ranges: {:?}", byte_ranges);
         let tail: &[(usize, usize)] = &byte_ranges[1..];
@@ -284,6 +295,10 @@ mod tests {
     const D1: u8 = PLUGIN_ID_SENTINAL as u8;
     const D2: u8 = ROW_NUMBER_SENTINAL as u8;
     const NL: u8 = 0x0a;
+    #[test]
+    fn test_process_empty_file() {
+        run_test("", &[], "tag", (1, 0), false);
+    }
     #[test]
     fn test_process_file_one_line() {
         run_test(
