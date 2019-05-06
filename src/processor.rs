@@ -146,10 +146,6 @@ pub fn process_file(
 
             // check if we need to construct a new mapping chunk
             if lines_in_chunk >= chunk_size {
-                println!(
-                    "create chunk, line_nr={}, lines_in_chunk: {}",
-                    line_nr, lines_in_chunk
-                );
                 last_line_current_chunk = line_nr - 1;
                 let chunk = Chunk {
                     r: (line_nr - lines_in_chunk, line_nr - 1),
@@ -165,10 +161,6 @@ pub fn process_file(
     let _ = out_file.write_all(out_buffer.as_bytes());
     // check if we still need to spit out a chunk
     if line_nr > last_line_current_chunk + 1 || chunks.is_empty() {
-        println!(
-            "create LAST chunk, line_nr={}, lines_in_chunk: {}",
-            line_nr, lines_in_chunk
-        );
         let chunk = Chunk {
             r: (last_line_current_chunk, line_nr - 1),
             b: (start_of_chunk_byte_index, current_byte_index),

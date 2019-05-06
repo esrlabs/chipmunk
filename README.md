@@ -22,6 +22,9 @@ ARGS:
 
 # Changelog
 
+0.4.1 (5/6/2019):
+  * remove verbose output
+
 0.4.0 (5/6/2019):
   * append to mapping file supported
 
