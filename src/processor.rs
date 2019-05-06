@@ -110,7 +110,7 @@ pub fn process_file(
     loop {
         let mut line = String::new();
         let len = reader.read_line(&mut line)?;
-        let trimmed_line = line.trim_end_matches(is_newline);
+        let trimmed_line = line.trim_matches(is_newline);
         let trimmed_len = trimmed_line.len();
         let had_newline = trimmed_len != len;
         if len == 0 {
@@ -318,6 +318,16 @@ mod tests {
     fn test_process_file_one_line_with_crlf() {
         run_test(
             "A\r\n",
+            &[b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL],
+            "tag",
+            (1, 1),
+            false,
+        );
+    }
+    #[test]
+    fn test_process_file_one_line_with_crlf_at_beginning() {
+        run_test(
+            "\r\nA\n",
             &[b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL],
             "tag",
             (1, 1),

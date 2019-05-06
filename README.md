@@ -22,6 +22,9 @@ ARGS:
 
 # Changelog
 
+0.4.2 (5/6/2019):
+  * correctly handle CRLF at start of line
+
 0.4.1 (5/6/2019):
   * remove verbose output
 

@@ -1,4 +1,6 @@
 require 'rake'
+EXE_NAME="logviewer_parser"
+HOME=ENV['HOME']
 
 desc "run tests"
 task :test do
@@ -15,7 +17,8 @@ def build_the_release
   sh "cargo build --release"
   current_version = get_current_version
   cd "target/release" do
-    sh "tar -cvzf indexing@#{current_version}-darwin.tgz logviewer_parser"
+    cp "#{EXE_NAME}","#{HOME}/bin/#{EXE_NAME}"
+    sh "tar -cvzf indexing@#{current_version}-darwin.tgz #{EXE_NAME}"
   end
 end
 desc "create new version and release"
