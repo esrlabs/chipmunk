@@ -19,3 +19,9 @@ ARGS:
     <file>      The file to read
     <source>    how to tag the source
 ```
+
+# Changelog
+
+0.3.0 (5/6/2019):
+  * fix bug in mapping file
+  * rename mapping file to [infile_name].mapping.json
