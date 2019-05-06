@@ -22,6 +22,9 @@ ARGS:
 
 # Changelog
 
+0.4.4 (5/6/2019):
+  * handle empty index files
+
 0.4.3 (5/6/2019):
   * handle empty files
 

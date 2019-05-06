@@ -167,6 +167,9 @@ fn extended_line_length(
 fn last_line_nr(path: &std::path::Path) -> Option<usize> {
     let file = std::fs::File::open(path).expect("opening file did not work");
     let file_size = file.metadata().expect("could not read file metadata").len();
+    if file_size == 0 {
+        return Some(0);
+    };
     let mut reader = BufReader::new(file);
     let seek_offset: i64 = -(std::cmp::min(file_size - 1, PEEK_END_SIZE as u64) as i64);
     match reader.seek(SeekFrom::End(seek_offset as i64)) {
