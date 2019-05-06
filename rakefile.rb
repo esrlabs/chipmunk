@@ -2,6 +2,7 @@ require 'rake'
 EXE_NAME="logviewer_parser"
 HOME=ENV['HOME']
 
+task :default => [:test]
 desc "run tests"
 task :test do
   sh "cargo test -- --nocapture"
