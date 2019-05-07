@@ -22,6 +22,10 @@ ARGS:
 
 # Changelog
 
+0.4.5 (5/6/2019):
+  * fix row number starting row when appending (was wrong in json mapping)
+  * allow for using append mode (`-a`) even if file does not exist
+
 0.4.4 (5/6/2019):
   * handle empty index files
 
