@@ -58,7 +58,6 @@ impl Indexer {
             match reader.read_line(&mut line) {
                 Err(e) => {
                     println!("error reading one line: {}", e);
-                    reader.rea
                 }
                 Ok(len) => {
                     let trimmed_line = line.trim_matches(is_newline);

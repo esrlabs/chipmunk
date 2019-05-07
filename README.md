@@ -22,6 +22,9 @@ ARGS:
 
 # Changelog
 
+0.4.6 (5/7/2019):
+  * allow for text files that contain invalid UTF-8 characters
+
 0.4.5 (5/6/2019):
   * fix row number starting row when appending (was wrong in json mapping)
   * allow for using append mode (`-a`) even if file does not exist
