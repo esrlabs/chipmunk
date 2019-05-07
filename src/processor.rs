@@ -228,37 +228,26 @@ mod tests {
         tag_name: &str,
         tmp_file_name: Option<&str>,
     ) -> (Vec<Chunk>, String) {
-        let (tmp_test_file_name, tmp_out_file_name) = match tmp_file_name {
-            Some(file_name) => (file_name.to_string(), format!("{}.out", file_name)),
-            None => {
-                let mut rng = rand::thread_rng();
-                let rnd = rng.gen::<u32>();
-                (
-                    format!("tmpTestFile{}.txt", rnd),
-                    format!("tmpTestFile{}.txt.out", rnd),
-                )
-            }
-        };
-
-        fs::write(local_file(&tmp_test_file_name[..]), test_content)
-            .expect("testfile could not be written");
+        let tmp_dir = TempDir::new("test_dir").expect("could not create temp dir");
+        let test_file_path = tmp_dir.path().join("tmpTestFile.txt");
+        let out_file_path = tmp_dir.path().join("tmpTestFile.txt.out");
+        fs::write(&test_file_path, test_content).expect("testfile could not be written");
 
         // call our function
-        let f = File::open(local_file(&tmp_test_file_name[..])).unwrap();
-        let out_path = PathBuf::from(&tmp_out_file_name[..]);
+        let f = File::open(&test_file_path).unwrap();
         let indexer = Indexer {
             source_id: tag_name.to_string(), // tag to append to each line
             max_lines: 5,                    // how many lines to collect before writing out
             chunk_size: chunksize,           // used for mapping line numbers to byte positions
         };
         let chunks = indexer
-            .index_file(&f, &out_path, &[], tmp_file_name.is_some())
+            .index_file(&f, &out_file_path, &[], tmp_file_name.is_some())
             .unwrap();
-        let out_file_content: String = fs::read_to_string(out_path).expect("could not read file");
+        let out_file_content: String =
+            fs::read_to_string(out_file_path).expect("could not read file");
 
         // cleanup
-        fs::remove_file(local_file(&tmp_test_file_name[..])).expect("error cleaning up");
-        fs::remove_file(local_file(&tmp_out_file_name[..])).expect("error cleaning up");
+        let _ = tmp_dir.close();
 
         // println!("out_file_content: {}", out_file_content);
         // println!("got chunks: {:?}", chunks);
