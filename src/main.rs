@@ -45,7 +45,7 @@ fn main() -> CliResult {
     };
 
     if args.append && !out_path.exists() {
-        panic!("appending only possible when {:?} exixts", out_path);
+        let _ = fs::File::create(&out_path);
     }
     let mapping_out_path: std::path::PathBuf = PathBuf::from(args.file.to_string() + ".map.json");
     let current_chunks: Vec<Chunk> = Vec::new();
@@ -54,11 +54,9 @@ fn main() -> CliResult {
         source_id: tag_id.to_string(), // tag to append to each line
         max_lines: args.max_lines,     // how many lines to collect before writing out
         chunk_size: args.chunk_size,   // used for mapping line numbers to byte positions
-        append: args.append,
     };
 
-    // match processor::process_file(
-    match indexer.process_file(&f, &out_path, &current_chunks) {
+    match indexer.index_file(&f, &out_path, &current_chunks, args.append) {
         Err(why) => panic!("couldn't process: {}", why),
         Ok(chunks) => {
             let _ = serialize_chunks(&chunks, &mapping_out_path);

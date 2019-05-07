@@ -14,15 +14,15 @@ pub struct Indexer {
     pub source_id: String, // tag to append to each line
     pub max_lines: usize,  // how many lines to collect before writing out
     pub chunk_size: usize, // used for mapping line numbers to byte positions
-    pub append: bool,
 }
 
 impl Indexer {
-    pub fn process_file(
+    pub fn index_file(
         &self,
         f: &std::fs::File,
         out_path: &std::path::PathBuf,
         current_chunks: &[Chunk],
+        append: bool,
     ) -> ::std::result::Result<Vec<Chunk>, failure::Error> {
         println!(
             "process file, currently have {} chunks",
@@ -30,13 +30,14 @@ impl Indexer {
         );
         let mut reader = BufReader::new(f);
         let mut out_buffer = String::new();
-        let mut line_nr = if self.append {
-            last_line_nr(&out_path).expect("could not get last line number of old file") + 1
+        let mut line_nr = if append {
+            last_line_nr(&out_path).expect("could not get last line number of old file")
         } else {
             0
         };
+        println!("starting with line_nr: {}", line_nr);
         let mut lines_in_buffer: usize = 1;
-        let mut out_file: std::fs::File = if self.append {
+        let mut out_file: std::fs::File = if append {
             std::fs::OpenOptions::new()
                 .append(true)
                 .open(out_path)
@@ -91,9 +92,12 @@ impl Indexer {
 
                 // check if we need to construct a new mapping chunk
                 if lines_in_chunk >= self.chunk_size {
-                    last_line_current_chunk = line_nr - 1;
+                    last_line_current_chunk = line_nr;
                     let chunk = Chunk {
-                        r: (line_nr - lines_in_chunk, line_nr - 1),
+                        r: (
+                            last_line_current_chunk - lines_in_chunk,
+                            last_line_current_chunk,
+                        ),
                         b: (start_of_chunk_byte_index, current_byte_index),
                     };
                     chunks.push(chunk);
@@ -107,7 +111,7 @@ impl Indexer {
         // only add junk if we produced any output lines
         if line_nr > 0 {
             // check if we still need to spit out a chunk
-            if line_nr > last_line_current_chunk + 1 || chunks.is_empty() {
+            if line_nr > last_line_current_chunk || chunks.is_empty() {
                 let chunk = Chunk {
                     r: (last_line_current_chunk, line_nr - 1),
                     b: (start_of_chunk_byte_index, current_byte_index),
@@ -122,6 +126,7 @@ impl Indexer {
                     .expect("cannot read size of output file");
                 let last_expected_byte_index = metadata.len() as usize;
                 if last_expected_byte_index != last_chunk.b.1 {
+                    // println!("chunks were: {:?}", chunks);
                     panic!(
                         "error in computation! last byte in chunks is {} but should be {}",
                         last_chunk.b.1, last_expected_byte_index
@@ -167,6 +172,7 @@ fn last_line_nr(path: &std::path::Path) -> Option<usize> {
     let file = std::fs::File::open(path).expect("opening file did not work");
     let file_size = file.metadata().expect("could not read file metadata").len();
     if file_size == 0 {
+        println!("file was empty => last_line_nr was 0");
         return Some(0);
     };
     let mut reader = BufReader::new(file);
@@ -244,9 +250,10 @@ mod tests {
             source_id: tag_name.to_string(), // tag to append to each line
             max_lines: 5,                    // how many lines to collect before writing out
             chunk_size: chunksize,           // used for mapping line numbers to byte positions
-            append: tmp_file_name.is_some(),
         };
-        let chunks = indexer.process_file(&f, &out_path, &[]).unwrap();
+        let chunks = indexer
+            .index_file(&f, &out_path, &[], tmp_file_name.is_some())
+            .unwrap();
         let out_file_content: String = fs::read_to_string(out_path).expect("could not read file");
 
         // cleanup
@@ -379,6 +386,49 @@ mod tests {
             "tag",
             (1, 10),
         );
+    }
+    #[test]
+    fn test_append_to_empty_output() {
+        let empty_file_name = "empty.log";
+        let nonempty_file_name = "not_empty.log";
+        let out_name = "test_append_to_empty_output.log.out";
+        fs::write(local_file(nonempty_file_name), "A").unwrap();
+        // call our function
+        fs::write(local_file(empty_file_name), "").expect("testfile could not be written");
+        let empty_file = File::open(local_file(empty_file_name)).unwrap();
+        let out_path = local_file(out_name);
+        let indexer = Indexer {
+            source_id: "tag".to_string(), // tag to append to each line
+            max_lines: 5,                 // how many lines to collect before writing out
+            chunk_size: 1,                // used for mapping line numbers to byte positions
+        };
+        let chunks = indexer
+            .index_file(&empty_file, &out_path, &[], false)
+            .expect("could not index file");
+        assert_eq!(0, chunks.len(), "empty file should produce 0 chunks");
+        let out_file_content: String = fs::read_to_string(&out_path).expect("could not read file");
+        assert_eq!(
+            0,
+            out_file_content.len(),
+            "empty file should produce empty output"
+        );
+        let nonempty_file = File::open(local_file(nonempty_file_name)).unwrap();
+        let chunks2 = indexer
+            .index_file(&nonempty_file, &out_path, &[], true)
+            .expect("could not index file");
+        let out_file_content: String = fs::read_to_string(out_path).expect("could not read file");
+        println!("outfile: {}\nchunks: {:?}", out_file_content, chunks2);
+        assert_eq!(
+            1,
+            chunks2.len(),
+            "nonempty file should produce nonempty output"
+        );
+        assert_eq!(0, chunks2[0].r.0, "first chunk row should start with 0");
+
+        // cleanup
+        fs::remove_file(local_file(empty_file_name)).expect("error cleaning up");
+        fs::remove_file(local_file(nonempty_file_name)).expect("error cleaning up");
+        fs::remove_file(local_file(out_name)).expect("error cleaning up");
     }
     #[test]
     fn test_chunking_one_chunk_exact() {
