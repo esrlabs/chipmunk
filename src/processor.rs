@@ -55,54 +55,65 @@ impl Indexer {
         let mut last_line_current_chunk = line_nr;
         loop {
             let mut line = String::new();
-            let len = reader.read_line(&mut line)?;
-            let trimmed_line = line.trim_matches(is_newline);
-            let trimmed_len = trimmed_line.len();
-            let had_newline = trimmed_len != len;
-            if len == 0 {
-                // no more content
-                break;
-            };
-            // discard empty lines
-            if trimmed_len != 0 {
-                write!(
-                    out_buffer,
-                    "{}{}{}{}{}{}{}{}",
-                    trimmed_line,
-                    PLUGIN_ID_SENTINAL,
-                    self.source_id,
-                    PLUGIN_ID_SENTINAL,
-                    ROW_NUMBER_SENTINAL,
-                    line_nr,
-                    ROW_NUMBER_SENTINAL,
-                    if had_newline { "\n" } else { "" },
-                )?;
-                lines_in_buffer += 1;
-                // check if we need to flush
-                if lines_in_buffer >= self.max_lines {
-                    // println!("flush with content: {:02X?}", out_buffer.as_bytes());
-                    let _ = out_file.write_all(out_buffer.as_bytes());
-                    out_buffer.clear();
-                    lines_in_buffer = 0;
+            match reader.read_line(&mut line) {
+                Err(e) => {
+                    println!("error reading one line: {}", e);
+                    reader.rea
                 }
-                current_byte_index +=
-                    extended_line_length(trimmed_len, self.source_id.len(), line_nr, had_newline);
-                line_nr += 1;
-                lines_in_chunk += 1;
-
-                // check if we need to construct a new mapping chunk
-                if lines_in_chunk >= self.chunk_size {
-                    last_line_current_chunk = line_nr;
-                    let chunk = Chunk {
-                        r: (
-                            last_line_current_chunk - lines_in_chunk,
-                            last_line_current_chunk,
-                        ),
-                        b: (start_of_chunk_byte_index, current_byte_index),
+                Ok(len) => {
+                    let trimmed_line = line.trim_matches(is_newline);
+                    let trimmed_len = trimmed_line.len();
+                    let had_newline = trimmed_len != len;
+                    if len == 0 {
+                        // no more content
+                        break;
                     };
-                    chunks.push(chunk);
-                    start_of_chunk_byte_index = current_byte_index + 1;
-                    lines_in_chunk = 0;
+                    // discard empty lines
+                    if trimmed_len != 0 {
+                        write!(
+                            out_buffer,
+                            "{}{}{}{}{}{}{}{}",
+                            trimmed_line,
+                            PLUGIN_ID_SENTINAL,
+                            self.source_id,
+                            PLUGIN_ID_SENTINAL,
+                            ROW_NUMBER_SENTINAL,
+                            line_nr,
+                            ROW_NUMBER_SENTINAL,
+                            if had_newline { "\n" } else { "" },
+                        )?;
+                        lines_in_buffer += 1;
+                        // check if we need to flush
+                        if lines_in_buffer >= self.max_lines {
+                            // println!("flush with content: {:02X?}", out_buffer.as_bytes());
+                            let _ = out_file.write_all(out_buffer.as_bytes());
+                            out_buffer.clear();
+                            lines_in_buffer = 0;
+                        }
+                        current_byte_index += extended_line_length(
+                            trimmed_len,
+                            self.source_id.len(),
+                            line_nr,
+                            had_newline,
+                        );
+                        line_nr += 1;
+                        lines_in_chunk += 1;
+
+                        // check if we need to construct a new mapping chunk
+                        if lines_in_chunk >= self.chunk_size {
+                            last_line_current_chunk = line_nr;
+                            let chunk = Chunk {
+                                r: (
+                                    last_line_current_chunk - lines_in_chunk,
+                                    last_line_current_chunk,
+                                ),
+                                b: (start_of_chunk_byte_index, current_byte_index),
+                            };
+                            chunks.push(chunk);
+                            start_of_chunk_byte_index = current_byte_index + 1;
+                            lines_in_chunk = 0;
+                        }
+                    }
                 }
             }
         }
