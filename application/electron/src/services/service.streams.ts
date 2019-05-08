@@ -11,6 +11,7 @@ import ControllerStreamSearch from '../controllers/controller.stream.search';
 import ControllerStreamProcessor from '../controllers/controller.stream.processor';
 import { IService } from '../interfaces/interface.service';
 import * as Tools from '../tools/index';
+import { IMapItem } from '../controllers/controller.stream.processor.map';
 
 export interface IStreamInfo {
     guid: string;
@@ -156,6 +157,18 @@ class ServiceStreams extends EventEmitter implements IService  {
         });
     }
 
+    public getStreamFile(streamId?: string): { streamId: string, file: string } | Error {
+        if (streamId === undefined) {
+            streamId = this._activeStreamGuid;
+        }
+        // Get stream info
+        const stream: IStreamInfo | undefined = this._streams.get(streamId);
+        if (stream === undefined) {
+            return new Error(this._logger.warn(`Cannot return stream's filename, because fail to find a stream data for stream guid "${streamId}"`));
+        }
+        return { streamId: streamId, file: stream.streamFile };
+    }
+
     public addPipeSession(id: string, size: number, name: string, streamId?: string) {
         // Get stream id
         if (streamId === undefined) {
@@ -193,6 +206,14 @@ class ServiceStreams extends EventEmitter implements IService  {
             return;
         }
         stream.processor.updatePipeSession(written);
+    }
+
+    public updateStreamFileMap(streamId: string, map: IMapItem[]) {
+        const stream: IStreamInfo | undefined = this._streams.get(streamId);
+        if (stream === undefined) {
+            return this._logger.warn(`Fail to update stream file map for stream "${streamId}" because stream doesn't exist.`);
+        }
+        stream.processor.updateStreamMap(map);
     }
 
     /**

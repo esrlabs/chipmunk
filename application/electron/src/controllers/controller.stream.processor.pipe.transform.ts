@@ -55,6 +55,10 @@ export function convert(streamId: string, pluginId: number, state: State, chunk:
     return transform.convert(chunk);
 }
 
+export function getSourceMarker(sourceId: string | number): string {
+    return `${StreamMarkers.PluginId}${sourceId}${StreamMarkers.PluginId}`;
+}
+
 export default class Transform extends Stream.Transform {
 
     private _logger: Logger;
@@ -97,7 +101,7 @@ export default class Transform extends Stream.Transform {
             to: this._state.map.getByteLength(),
         };
         output = output.replace(/[\r?\n|\r]/gi, () => {
-            return `${StreamMarkers.PluginId}${this._pluginId}${StreamMarkers.PluginId}${StreamMarkers.RowNumber}${rows.to++}${StreamMarkers.RowNumber}\n`;
+            return `${getSourceMarker(this._pluginId)}${StreamMarkers.RowNumber}${rows.to++}${StreamMarkers.RowNumber}\n`;
         });
         const size: number = Buffer.byteLength(output, 'utf8');
         rows.to -= 1;

@@ -14,6 +14,12 @@ export default class BytesRowsMap {
     private _bytes: number = 0;
     private _rows: number = 0;
 
+    public update(map: IMapItem[]) {
+        this._map = map;
+        this._rows = map[map.length - 1].rows.to + 1;
+        this._bytes = map[map.length - 1].bytes.to + 1;
+    }
+
     public add(item: IMapItem) {
         this._map.push(item);
         this._bytes = item.bytes.to + 1;
