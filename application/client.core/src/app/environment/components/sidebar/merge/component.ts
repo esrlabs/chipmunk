@@ -1,9 +1,11 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewChildren, QueryList, AfterContentInit } from '@angular/core';
 import * as Toolkit from 'logviewer.client.toolkit';
 import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
-import { SidebarAppMergeFilesItemComponent } from './file/component';
+import { SidebarAppMergeFilesItemComponent, ETypes } from './file/component';
 import { IFile as ITestRequestFile } from '../../../services/electron.ipc.messages/merge.files.test.request';
 import { IFile as ITestResponseFile } from '../../../services/electron.ipc.messages/merge.files.test.response';
+import { IFile as IRequestFile } from '../../../services/electron.ipc.messages/merge.files.request';
+
 
 declare var Electron: any;
 
@@ -94,10 +96,11 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         const files: ITestRequestFile[] = this._filesComps.map((com: SidebarAppMergeFilesItemComponent) => {
             return {
                 file: com.getFile(),
-                timestampReg: com.getValue(),
+                reg: com.getValue(),
                 parser: com.getParser(),
-                offset: 0,
-                format: ''
+                offset: com.getOffset(),
+                zone: com.getTimezone(),
+                format: com.getFormat()
             };
         });
         ElectronIpcService.request(new IPCMessages.MergeFilesTestRequest({
@@ -129,13 +132,14 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         this._ng_busy = true;
         this._disable(true);
         this._cdRef.detectChanges();
-        const files: ITestRequestFile[] = this._filesComps.map((com: SidebarAppMergeFilesItemComponent) => {
+        const files: IRequestFile[] = this._filesComps.map((com: SidebarAppMergeFilesItemComponent) => {
             return {
                 file: com.getFile(),
-                timestampReg: com.getValue(),
+                reg: com.getValue(),
                 parser: com.getParser(),
-                offset: 0,
-                format: ''
+                offset: com.getOffset(),
+                zone: com.getTimezone(),
+                format: com.getFormat()
             };
         });
         ElectronIpcService.request(new IPCMessages.MergeFilesRequest({

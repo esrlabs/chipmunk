@@ -10,6 +10,12 @@ import { ButtonStandardComponent                } from './buttons/standard/compo
 
 import { SpinnerRegularComponent                } from './spinners/regular/component';
 
+import { SwitcherSimpleComponent                } from './switchers/simple/component';
+
+const switchers = [
+    SwitcherSimpleComponent
+];
+
 const ddlists = [
     DDListStandardComponent
 ];
@@ -27,10 +33,10 @@ const spinners = [
 ];
 
 @NgModule({
-    entryComponents : [ ...ddlists, ...inputs, ...buttons, ...spinners ],
+    entryComponents : [ ...switchers, ...ddlists, ...inputs, ...buttons, ...spinners ],
     imports         : [ CommonModule, FormsModule ],
-    declarations    : [ ...ddlists, ...inputs, ...buttons, ...spinners ],
-    exports         : [ ...ddlists, ...inputs, ...buttons, ...spinners ]
+    declarations    : [ ...switchers, ...ddlists, ...inputs, ...buttons, ...spinners ],
+    exports         : [ ...switchers, ...ddlists, ...inputs, ...buttons, ...spinners ]
 })
 
 export class PrimitiveModule { }

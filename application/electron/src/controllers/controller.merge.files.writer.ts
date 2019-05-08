@@ -13,7 +13,8 @@ type TRejector = (error: Error) => void;
 
 export interface IFile {
     file: string;
-    timestamp: RegExp;
+    reg: RegExp;
+    zone: string;
     format: string;
     offset: number;
     parser: string;
@@ -60,7 +61,7 @@ export default class MergeFilesWriter {
                     }
                     // Create holder
                     try {
-                        this._holders[file.file] = new Holder(file.file, file.timestamp, file.format, file.offset, file.parser);
+                        this._holders[file.file] = new Holder(file.file, file.reg, file.format, file.offset, file.zone, file.parser);
                     } catch (e) {
                         error = e;
                         return;

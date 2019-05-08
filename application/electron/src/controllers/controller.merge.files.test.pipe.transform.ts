@@ -23,10 +23,11 @@ export default class Transform extends Stream.Transform {
     private _zone: string = '';
     private _rest: string = '';
 
-    constructor(options: Stream.TransformOptions, file: string, timestamp: RegExp, offset: number, format: string) {
+    constructor(options: Stream.TransformOptions, file: string, timestamp: RegExp, offset: number, format: string, zone: string) {
         super(options);
         this._file = file;
         this._offset = offset;
+        this._zone = zone;
         this._format = format;
         this._timestamp = timestamp;
         this._logger = new Logger(`ControllerMergeFilesTestTransform: ${this._file}`);
@@ -69,22 +70,18 @@ export default class Transform extends Stream.Transform {
                 this._errors.push(`Found a few matches in row: ${row}. Matches: ${match.join(', ')}. Expected only 1 match.`);
                 return;
             }
-            const timestampStr: string = match[0];
-            let datetime: Date;
-            if (timestampStr.replace(/\d*\.?\d*/i, '') === '') {
-                // timestamp looks like unix time
-                datetime = new Date(parseFloat(timestampStr));
-            } else {
-                // Try to convert to date
-                datetime = new Date(timestampStr);
-            }
-            // Check results
-            if (!this._isDateValid(datetime)) {
-                return { unixtime: -1, str: row };
+            const datetime: Date | undefined = this._getDateObj(match[0]);
+            let unixtime: number = datetime === undefined ? -1 : datetime.getTime();
+            if (datetime === undefined) {
+                return;
             }
             // Apply offset if needed
             if (this._offset !== 0) {
-                datetime = new Date(datetime.getTime() + this._offset);
+                unixtime = unixtime + this._offset;
+            } else if (this._offset === 0 && this._zone !== '') {
+                const info = moment.tz(this._zone);
+                const offset: number = info.utcOffset();
+                unixtime = unixtime + offset;
             }
             this._times.push(datetime.getTime());
         });
@@ -109,6 +106,28 @@ export default class Transform extends Stream.Transform {
 
     private _isDateValid(date: Date) {
         return date instanceof Date && !isNaN(date.getTime());
+    }
+
+    private _getDateObj(str: string): Date | undefined {
+        let datetime: Date;
+        if (this._format !== '') {
+            // Extract date based on format
+            try {
+                datetime = moment(str, this._format).toDate();
+            } catch (e) {
+                return undefined;
+            }
+        } else {
+            // Find date without format
+            if (str.replace(/\d*\.?\d*/i, '') === '') {
+                // timestamp looks like unix time
+                datetime = new Date(parseInt(str, 10));
+            } else {
+                // Try to convert to date
+                datetime = new Date(str);
+            }
+        }
+        return this._isDateValid(datetime) ? datetime : undefined;
     }
 
 }

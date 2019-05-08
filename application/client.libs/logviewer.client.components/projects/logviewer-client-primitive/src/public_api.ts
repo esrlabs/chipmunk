@@ -1,7 +1,7 @@
 /*
  * Public API Surface of primitive
  */
-
+export { SwitcherSimpleComponent    } from './lib/switchers/simple/component';
 export { ButtonStandardComponent    } from './lib/buttons/standard/component';
 export { InputStandardComponent     } from './lib/inputs/standard/component';
 export { DDListStandardComponent    } from './lib/ddlists/standard/component';
