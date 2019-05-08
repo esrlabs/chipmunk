@@ -52,6 +52,7 @@ class ServiceElectron implements IService {
         this._onClosed = this._onClosed.bind(this);
         this._onActivate = this._onActivate.bind(this);
         this._onWindowClosed = this._onWindowClosed.bind(this);
+        this._configure();
         this._bind();
     }
 
@@ -161,6 +162,11 @@ class ServiceElectron implements IService {
         app.on('ready', this._onReady);
         app.on('activate', this._onActivate);
         app.on('window-all-closed', this._onClosed);
+    }
+
+    private _configure() {
+        this._logger.env(`Hardware acceleration is disabled.`);
+        app.disableHardwareAcceleration();
     }
 
     private _init() {
