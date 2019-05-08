@@ -22,28 +22,31 @@ ARGS:
 
 # Changelog
 
-0.4.6 (5/7/2019):
+### [0.5.0] - 5/7/2019
+  * allow for text files that contain invalid UTF-8 characters without discarding illegal lines
+
+### [0.4.6] - 5/7/2019
   * allow for text files that contain invalid UTF-8 characters
 
-0.4.5 (5/6/2019):
+### [0.4.5] - 5/6/2019
   * fix row number starting row when appending (was wrong in json mapping)
   * allow for using append mode (`-a`) even if file does not exist
 
-0.4.4 (5/6/2019):
+### [0.4.4] - 5/6/2019
   * handle empty index files
 
-0.4.3 (5/6/2019):
+### [0.4.3] - 5/6/2019
   * handle empty files
 
-0.4.2 (5/6/2019):
+### [0.4.2] - 5/6/2019
   * correctly handle CRLF at start of line
 
-0.4.1 (5/6/2019):
+### [0.4.1] - 5/6/2019
   * remove verbose output
 
-0.4.0 (5/6/2019):
+### [0.4.0] - 5/6/2019
   * append to mapping file supported
 
-0.3.0 (5/6/2019):
+### [0.3.0] - 5/6/2019
   * fix bug in mapping file
   * rename mapping file to [infile_name].mapping.json
