@@ -66,6 +66,7 @@ export class RGSearchWrapper {
                 resolve();
             });
             this._process.once('error', (error: Error) => {
+                this._process = undefined;
                 this._logger.error(`Error during calling rg: ${error.message}`);
                 reject(error);
             });

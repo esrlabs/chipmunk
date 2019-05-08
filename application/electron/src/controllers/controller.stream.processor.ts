@@ -133,6 +133,11 @@ export default class ControllerStreamProcessor {
         this._state.pipes.next(written);
     }
 
+    public updateStreamMap(map: IMapItem[]) {
+        this._state.map.update(map);
+        this._sendUpdateStreamData();
+    }
+
     private _getSourceInfo(pluginReference: string | undefined, id?: number): ISourceInfo | Error {
         // Check source before
         if (id !== undefined && ServiceStreamSource.get(id) !== undefined) {
