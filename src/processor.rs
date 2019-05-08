@@ -10,6 +10,23 @@ const PLUGIN_ID_SENTINAL: char = '\u{0003}';
 const SENTINAL_LENGTH: usize = 1;
 const PEEK_END_SIZE: usize = 12;
 
+trait LossyLine {
+    fn lossy_read_line(&mut self, buf: &mut String) -> std::io::Result<usize>;
+}
+
+impl<T: std::io::Read> LossyLine for BufReader<T> {
+    #[inline]
+    fn lossy_read_line(&mut self, buf: &mut String) -> std::io::Result<usize> {
+        let mut bytes = vec![];
+        self.read_until(b'\n', &mut bytes).map(|n| {
+            *buf = String::from_utf8_lossy(&bytes)
+                .trim_end_matches('\r')
+                .to_string();
+            n
+        })
+    }
+}
+
 pub struct Indexer {
     pub source_id: String, // tag to append to each line
     pub max_lines: usize,  // how many lines to collect before writing out
@@ -55,64 +72,61 @@ impl Indexer {
         let mut last_line_current_chunk = line_nr;
         loop {
             let mut line = String::new();
-            match reader.read_line(&mut line) {
+            // let len = match reader.read_line(&mut line) {
+            let len = match reader.lossy_read_line(&mut line) {
+                Ok(length) => length,
                 Err(e) => {
-                    println!("error reading one line: {}", e);
+                    eprintln!("error reading line[{}] with invalid characters", line_nr);
+                    reader.lossy_read_line(&mut line)?
                 }
-                Ok(len) => {
-                    let trimmed_line = line.trim_matches(is_newline);
-                    let trimmed_len = trimmed_line.len();
-                    let had_newline = trimmed_len != len;
-                    if len == 0 {
-                        // no more content
-                        break;
-                    };
-                    // discard empty lines
-                    if trimmed_len != 0 {
-                        write!(
-                            out_buffer,
-                            "{}{}{}{}{}{}{}{}",
-                            trimmed_line,
-                            PLUGIN_ID_SENTINAL,
-                            self.source_id,
-                            PLUGIN_ID_SENTINAL,
-                            ROW_NUMBER_SENTINAL,
-                            line_nr,
-                            ROW_NUMBER_SENTINAL,
-                            if had_newline { "\n" } else { "" },
-                        )?;
-                        lines_in_buffer += 1;
-                        // check if we need to flush
-                        if lines_in_buffer >= self.max_lines {
-                            // println!("flush with content: {:02X?}", out_buffer.as_bytes());
-                            let _ = out_file.write_all(out_buffer.as_bytes());
-                            out_buffer.clear();
-                            lines_in_buffer = 0;
-                        }
-                        current_byte_index += extended_line_length(
-                            trimmed_len,
-                            self.source_id.len(),
-                            line_nr,
-                            had_newline,
-                        );
-                        line_nr += 1;
-                        lines_in_chunk += 1;
+            };
+            let trimmed_line = line.trim_matches(is_newline);
+            let trimmed_len = trimmed_line.len();
+            let had_newline = trimmed_len != len;
+            if len == 0 {
+                // no more content
+                break;
+            };
+            // discard empty lines
+            if trimmed_len != 0 {
+                write!(
+                    out_buffer,
+                    "{}{}{}{}{}{}{}{}",
+                    trimmed_line,
+                    PLUGIN_ID_SENTINAL,
+                    self.source_id,
+                    PLUGIN_ID_SENTINAL,
+                    ROW_NUMBER_SENTINAL,
+                    line_nr,
+                    ROW_NUMBER_SENTINAL,
+                    if had_newline { "\n" } else { "" },
+                )?;
+                lines_in_buffer += 1;
+                // check if we need to flush
+                if lines_in_buffer >= self.max_lines {
+                    // println!("flush with content: {:02X?}", out_buffer.as_bytes());
+                    let _ = out_file.write_all(out_buffer.as_bytes());
+                    out_buffer.clear();
+                    lines_in_buffer = 0;
+                }
+                current_byte_index +=
+                    extended_line_length(trimmed_len, self.source_id.len(), line_nr, had_newline);
+                line_nr += 1;
+                lines_in_chunk += 1;
 
-                        // check if we need to construct a new mapping chunk
-                        if lines_in_chunk >= self.chunk_size {
-                            last_line_current_chunk = line_nr;
-                            let chunk = Chunk {
-                                r: (
-                                    last_line_current_chunk - lines_in_chunk,
-                                    last_line_current_chunk,
-                                ),
-                                b: (start_of_chunk_byte_index, current_byte_index),
-                            };
-                            chunks.push(chunk);
-                            start_of_chunk_byte_index = current_byte_index + 1;
-                            lines_in_chunk = 0;
-                        }
-                    }
+                // check if we need to construct a new mapping chunk
+                if lines_in_chunk >= self.chunk_size {
+                    last_line_current_chunk = line_nr;
+                    let chunk = Chunk {
+                        r: (
+                            last_line_current_chunk - lines_in_chunk,
+                            last_line_current_chunk,
+                        ),
+                        b: (start_of_chunk_byte_index, current_byte_index),
+                    };
+                    chunks.push(chunk);
+                    start_of_chunk_byte_index = current_byte_index + 1;
+                    lines_in_chunk = 0;
                 }
             }
         }
@@ -221,7 +235,6 @@ mod tests {
     extern crate tempdir;
     use super::*;
     use pretty_assertions::assert_eq;
-    use rand::Rng;
     use std::fs;
     use std::fs::File;
     use std::path::PathBuf;

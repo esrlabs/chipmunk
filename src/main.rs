@@ -3,6 +3,7 @@ use crate::report::Chunk;
 use quicli::prelude::{CliResult, Verbosity};
 use std::fs;
 use std::path::PathBuf;
+use std::process;
 use structopt::StructOpt;
 
 mod processor;
@@ -57,7 +58,10 @@ fn main() -> CliResult {
     };
 
     match indexer.index_file(&f, &out_path, &current_chunks, args.append) {
-        Err(why) => panic!("couldn't process: {}", why),
+        Err(why) => {
+            eprintln!("couldn't process: {}", why);
+            process::exit(2)
+        }
         Ok(chunks) => {
             let _ = serialize_chunks(&chunks, &mapping_out_path);
             Ok(())
