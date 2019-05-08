@@ -35,6 +35,10 @@ export class InputStandardComponent implements AfterContentInit {
         this._cdRef.detectChanges();
     }
 
+    public drop() {
+        this._ng_value = '';
+    }
+
     public _ng_onChange(value: string) {
         this._ng_error = this.validate(value);
         this.onChange(value);

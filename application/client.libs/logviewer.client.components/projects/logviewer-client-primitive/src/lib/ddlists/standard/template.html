@@ -1,5 +1,5 @@
 <select class="t-normal"
-        placeholder="placeholder"
+        [attr.placeholder]="placeholder"
         [attr.disabled]="disabled ? '' : null"
         [(ngModel)]="_ng_value" 
         (ngModelChange)="_ng_onChange($event)" 

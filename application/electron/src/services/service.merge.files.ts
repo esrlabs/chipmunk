@@ -103,13 +103,14 @@ class ServiceMergeFiles implements IService {
     private _onMergeFilesRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.MergeFilesRequest = request as IPCMessages.MergeFilesRequest;
         const writer: MergeFilesWriter = new MergeFilesWriter(req.files.map((file: IMergeFileRequest) => {
-            const regexp: RegExp = new RegExp(file.timestampReg, 'gi');
+            const regexp: RegExp = new RegExp(file.reg as string, 'gi');
             return {
                 file: file.file,
                 format: file.format,
-                timestamp: regexp,
+                reg: regexp,
                 offset: file.offset,
                 parser: file.parser,
+                zone: file.zone,
             };
         }));
         writer.write().then((written: number) => {
@@ -131,7 +132,7 @@ class ServiceMergeFiles implements IService {
         const files: ITestFileResults[] = [];
         Promise.all(req.files.map((file: ITestFileRequest) => {
             return new Promise((resolve) => {
-                this._test(file.file, file.timestampReg, file.parser, file.offset, file.format).then((testResult: ITestFileResults) => {
+                this._test(file.file, file.reg, file.parser, file.offset, file.format, file.zone).then((testResult: ITestFileResults) => {
                     files.push(testResult);
                     resolve();
                 }).catch((testError: Error) => {
@@ -143,7 +144,7 @@ class ServiceMergeFiles implements IService {
                         errors: [ testError.message ],
                         first: undefined,
                         last: undefined,
-                        reg: file.timestampReg,
+                        reg: file.reg,
                     });
                     resolve();
                 });
@@ -157,7 +158,7 @@ class ServiceMergeFiles implements IService {
 
     }
 
-    private _test(file: string, reg: string, parserName: string, offset: number, format: string): Promise<ITestFileResults> {
+    private _test(file: string, reg: string, parserName: string, offset: number, format: string, zone: string): Promise<ITestFileResults> {
         return new Promise((resolve, reject) => {
             // Get file parser
             const parserClass = ServiceFileParsers.getParser(parserName);
@@ -186,7 +187,7 @@ class ServiceMergeFiles implements IService {
                 // Create writer
                 const writer: NullWritableStream = new NullWritableStream();
                 // Create transformer
-                const transform: TestTransform = new TestTransform({}, file, regext, offset, format);
+                const transform: TestTransform = new TestTransform({}, file, regext, offset, format, zone);
                 // Listenn end of reading
                 reader.once('end', () => {
                     const results: ITestResults = transform.getResults();

@@ -12,19 +12,21 @@ export default class Holder {
 
     private _logger: Logger;
     private _file: string;
-    private _timestamp: RegExp;
+    private _reg: RegExp;
     private _format: string;
+    private _zone: string;
     private _offset: number;
     private _rest: string = '';
     private _parser: string = '';
     private _parserFunc: IFileParserFunc;
     private _rows: IRow[] = [];
 
-    constructor(file: string, timestamp: RegExp, format: string, offset: number, parser: string) {
+    constructor(file: string, reg: RegExp, format: string, offset: number, zone: string, parser: string) {
         this._file = file;
         this._format = format;
-        this._timestamp = timestamp;
+        this._reg = reg;
         this._offset = offset;
+        this._zone = zone;
         this._parser = parser;
         this._logger = new Logger(`ControllerMergeFilesWriterHolder: ${this._file}`);
         const parserFunc: IFileParserFunc | undefined = this._getParserFunc(parser);
@@ -58,31 +60,28 @@ export default class Holder {
                 // Convert to rows
                 const rows: string[] = output.split(/[\n\r]/gi).filter((_) => _ !== '');
                 this._rows.push(...rows.map((row: string) => {
-                    const match: RegExpMatchArray | null = row.match(this._timestamp);
+                    const match: RegExpMatchArray | null = row.match(this._reg);
                     if (match === null) {
                         return { unixtime: -1, str: row };
                     }
                     if (match.length === 0) {
                         return { unixtime: -1, str: row };
                     }
-                    const timestampStr: string = match[0]; // Always takes the first match
-                    let datetime: Date;
-                    if (timestampStr.replace(/\d*\.?\d*/i, '') === '') {
-                        // timestamp looks like unix time
-                        datetime = new Date(parseInt(timestampStr, 10));
-                    } else {
-                        // Try to convert to date
-                        datetime = new Date(timestampStr);
-                    }
+                    const datetime: Date | undefined = this._getDateObj(match[0]);
+                    let unixtime: number = datetime === undefined ? -1 : datetime.getTime();
                     // Check results
-                    if (!this._isDateValid(datetime)) {
-                        return { unixtime: -1, str: row };
+                    if (datetime === undefined) {
+                        return { unixtime: unixtime, str: row };
                     }
                     // Apply offset if needed
                     if (this._offset !== 0) {
-                        datetime = new Date(datetime.getTime() + this._offset);
+                        unixtime = unixtime + this._offset;
+                    } else if (this._offset === 0 && this._zone !== '') {
+                        const info = moment.tz(this._zone);
+                        const offset: number = info.utcOffset();
+                        unixtime = unixtime + offset;
                     }
-                    return { unixtime: datetime.getTime(), str: row };
+                    return { unixtime: unixtime, str: row };
                 }));
                 resolve();
             }).catch((parseError: Error) => {
@@ -164,6 +163,28 @@ export default class Holder {
         }
         const fileParser: AFileParser = new parserClass();
         return fileParser.getParserFunc();
+    }
+
+    private _getDateObj(str: string): Date | undefined {
+        let datetime: Date;
+        if (this._format !== '') {
+            // Extract date based on format
+            try {
+                datetime = moment(str, this._format).toDate();
+            } catch (e) {
+                return undefined;
+            }
+        } else {
+            // Find date without format
+            if (str.replace(/\d*\.?\d*/i, '') === '') {
+                // timestamp looks like unix time
+                datetime = new Date(parseInt(str, 10));
+            } else {
+                // Try to convert to date
+                datetime = new Date(str);
+            }
+        }
+        return this._isDateValid(datetime) ? datetime : undefined;
     }
 
 }

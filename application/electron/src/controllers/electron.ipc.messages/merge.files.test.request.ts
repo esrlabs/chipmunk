@@ -3,7 +3,8 @@ export interface IFile {
     parser: string;
     offset: number;
     format: string;
-    timestampReg: string;
+    reg: string;
+    zone: string;
 }
 
 export interface IMergeFilesTestRequest {
