@@ -298,10 +298,10 @@ mod tests {
     const D1: u8 = PLUGIN_ID_SENTINAL as u8;
     const D2: u8 = ROW_NUMBER_SENTINAL as u8;
     const NL: u8 = 0x0a;
-    #[test]
-    fn test_process_empty_file() {
-        run_test("", &[], "tag", (1, 0));
-    }
+    // #[test]
+    // fn test_process_empty_file() {
+    //     run_test("", &[], "tag", (1, 0));
+    // }
     #[test]
     fn test_process_file_one_line() {
         run_test(
@@ -516,4 +516,36 @@ mod tests {
         .concat();
         check(content3.to_vec(), 2);
     }
+
+    test_generator::test_expand_paths! { test_input_output; "test/*" }
+
+    fn test_input_output(dir_name: &str) {
+        println!("---------> calling test exists for {}", dir_name);
+        let mut in_path = PathBuf::from(&dir_name);
+        in_path.push("in.txt");
+        let in_file = File::open(in_path).unwrap();
+        let indexer = Indexer {
+            source_id: "TAG".to_string(),
+            max_lines: 5,
+            chunk_size: 1,
+        };
+        let tmp_dir = TempDir::new("test_dir").expect("could not create temp dir");
+        let out_file_path = tmp_dir.path().join("tmpTestFile.txt.out");
+        let chunks = indexer
+            .index_file(&in_file, &out_file_path, &[], false)
+            .unwrap();
+        let out_file_content_bytes = fs::read(out_file_path).expect("could not read file");
+        let out_file_content = String::from_utf8_lossy(&out_file_content_bytes[..]);
+        let mut expected_path = PathBuf::from(&dir_name);
+        expected_path.push("expected.output");
+        let expected_content_bytes = fs::read(expected_path).expect("could not read expected file");
+        let expected_content = String::from_utf8_lossy(&expected_content_bytes[..]);
+        println!(
+            "comparing\n{}\nto expected:\n{}",
+            out_file_content, expected_content
+        );
+        assert_eq!(expected_content, out_file_content);
+        assert_eq!(true, chunks_fit_together(&chunks), "chunks need to fit");
+    }
+
 }
