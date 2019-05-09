@@ -2,7 +2,6 @@ import { AFileParser, IFileParserFunc, IMapItem } from './interface';
 import { Transform } from 'stream';
 import * as path from 'path';
 import { Lvin, IIndexResult, IFileMapItem } from 'logviewer.lvin';
-import { getSourceMarker } from '../controller.stream.processor.pipe.transform';
 
 const ExtNames = ['txt', 'log', 'logs'];
 
@@ -45,14 +44,20 @@ export default class FileParser extends AFileParser {
         };
     }
 
-    public readAndWrite(srcFile: string, destFile: string, sourceId: string): Promise<IMapItem[]> {
+    public readAndWrite(srcFile: string, destFile: string, sourceId: string, updateBytesReadState?: (bytes: number) => void): Promise<IMapItem[]> {
         return new Promise((resolve, reject) => {
             const lvin: Lvin = new Lvin();
+            if (updateBytesReadState !== undefined) {
+                lvin.on(Lvin.Events.progress, (bytes: number) => {
+                    updateBytesReadState(bytes);
+                });
+            }
             lvin.index({
                 srcFile: srcFile,
                 destFile: destFile,
                 injection: sourceId.toString(),
             }).then((results: IIndexResult) => {
+                lvin.removeAllListeners();
                 resolve(results.map.map((item: IFileMapItem) => {
                     return { rows: { from: item.r[0], to: item.r[1] }, bytes: { from: item.b[0], to: item.b[1] }};
                 }));
