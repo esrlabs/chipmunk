@@ -1,6 +1,6 @@
 {
   "name": "logviewer",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "LogViewer",
   "main": "./dist/compiled/main.js",
   "copyright": "Copyright © 2019 year E.S.R.Labs",
