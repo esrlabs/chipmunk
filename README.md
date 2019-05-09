@@ -22,6 +22,11 @@ ARGS:
 
 # Changelog
 
+### [0.6.0] - 05/09/2019
+  * added rake task to create changelog for release
+  * [](feat): improve performance for processing large files
+  * now we use BufReader::read_until to avoid UTF-8 validity checks
+
 ### [0.5.0] - 5/7/2019
   * allow for text files that contain invalid UTF-8 characters without discarding illegal lines
 
