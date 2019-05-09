@@ -2,9 +2,16 @@ require 'rake'
 EXE_NAME="logviewer_parser"
 HOME=ENV['HOME']
 
-task :default => [:test]
+task :default do
+  puts "no default task"
+  create_changelog
+end
 desc "run tests"
 task :test do
+  sh "cargo test"
+end
+desc "run tests with printing to stdout"
+task :test_nocapture do
   sh "cargo test -- --nocapture"
 end
 desc "push tag to github"
@@ -13,7 +20,23 @@ task :push do
   current_version = get_current_version
   sh "git push origin #{current_version}"
 end
+def create_changelog(current_version, next_version)
+  current_version = get_current_version
+  raw_log = `git log --format=%B #{current_version}..HEAD`.strip
+  log_lines = raw_log.split(/\n/)
+  log = log_lines
+          .reject{|x| x.strip == ""}
+          .collect {|line| "  * #{line}"}.join("\n")
 
+  date = Time.now.strftime("%m/%d/%Y")
+  log_entry = "### [#{next_version}] - #{date}\n#{log}"
+  puts "logmessages: #{log}"
+  ['README.md'].each do |file|
+    text = File.read(file)
+    new_contents = text.gsub(/^#\sChangelog/, "# Changelog\n\n#{log_entry}")
+    File.open(file, "w") { |f| f.puts new_contents }
+  end
+end
 def build_the_release
   sh "cargo build --release"
   current_version = get_current_version
@@ -103,8 +126,14 @@ def update_toml(new_version)
   end
 end
 
+def assert_tag_exists(version)
+  raise "tag #{version} missing" if `git tag -l #{version}`.length == 0
+end
 def create_and_tag_new_version(next_version)
+  sh "cargo test"
   current_version = get_current_version
+  assert_tag_exists(current_version)
+  create_changelog(current_version, next_version)
   update_toml(next_version)
   sh "cargo build"
   sh "git add ."
