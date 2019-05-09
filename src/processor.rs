@@ -10,23 +10,6 @@ const PLUGIN_ID_SENTINAL: char = '\u{0003}';
 const SENTINAL_LENGTH: usize = 1;
 const PEEK_END_SIZE: usize = 12;
 
-trait LossyLine {
-    fn lossy_read_line(&mut self, buf: &mut String) -> std::io::Result<usize>;
-}
-
-impl<T: std::io::Read> LossyLine for BufReader<T> {
-    #[inline]
-    fn lossy_read_line(&mut self, buf: &mut String) -> std::io::Result<usize> {
-        let mut bytes = vec![];
-        self.read_until(b'\n', &mut bytes).map(|n| {
-            *buf = String::from_utf8_lossy(&bytes)
-                .trim_end_matches('\r')
-                .to_string();
-            n
-        })
-    }
-}
-
 pub struct Indexer {
     pub source_id: String, // tag to append to each line
     pub max_lines: usize,  // how many lines to collect before writing out
@@ -70,65 +53,65 @@ impl Indexer {
         let mut lines_in_chunk = 0;
         let mut chunks = vec![];
         let mut last_line_current_chunk = line_nr;
-        loop {
-            let mut line = String::new();
-            // let len = match reader.read_line(&mut line) {
-            let len = match reader.lossy_read_line(&mut line) {
-                Ok(length) => length,
-                Err(e) => {
-                    eprintln!("error reading line[{}] with invalid characters", line_nr);
-                    reader.lossy_read_line(&mut line)?
-                }
-            };
-            let trimmed_line = line.trim_matches(is_newline);
-            let trimmed_len = trimmed_line.len();
-            let had_newline = trimmed_len != len;
-            if len == 0 {
-                // no more content
-                break;
-            };
-            // discard empty lines
-            if trimmed_len != 0 {
-                write!(
-                    out_buffer,
-                    "{}{}{}{}{}{}{}{}",
-                    trimmed_line,
-                    PLUGIN_ID_SENTINAL,
-                    self.source_id,
-                    PLUGIN_ID_SENTINAL,
-                    ROW_NUMBER_SENTINAL,
-                    line_nr,
-                    ROW_NUMBER_SENTINAL,
-                    if had_newline { "\n" } else { "" },
-                )?;
-                lines_in_buffer += 1;
-                // check if we need to flush
-                if lines_in_buffer >= self.max_lines {
-                    // println!("flush with content: {:02X?}", out_buffer.as_bytes());
-                    let _ = out_file.write_all(out_buffer.as_bytes());
-                    out_buffer.clear();
-                    lines_in_buffer = 0;
-                }
-                current_byte_index +=
-                    extended_line_length(trimmed_len, self.source_id.len(), line_nr, had_newline);
-                line_nr += 1;
-                lines_in_chunk += 1;
+        let mut buf = vec![];
+        while let Ok(len) = reader.read_until(b'\n', &mut buf) {
+            unsafe {
+                let s = std::str::from_utf8_unchecked(&buf);
+                let trimmed_line = s.trim_matches(is_newline);
+                let trimmed_len = trimmed_line.len();
+                let had_newline = trimmed_len != len;
+                if len == 0 {
+                    // no more content
+                    break;
+                };
+                // discard empty lines
+                if trimmed_len != 0 {
+                    write!(
+                        out_buffer,
+                        "{}{}{}{}{}{}{}{}",
+                        trimmed_line, //trimmed_line,
+                        PLUGIN_ID_SENTINAL,
+                        self.source_id,
+                        PLUGIN_ID_SENTINAL,
+                        ROW_NUMBER_SENTINAL,
+                        line_nr,
+                        ROW_NUMBER_SENTINAL,
+                        if had_newline { "\n" } else { "" },
+                    )?;
+                    lines_in_buffer += 1;
+                    // check if we need to flush
+                    if lines_in_buffer >= self.max_lines {
+                        // println!("flush with content: {:02X?}", out_buffer.as_bytes());
+                        let _ = out_file.write_all(out_buffer.as_bytes());
+                        out_buffer.clear();
+                        lines_in_buffer = 0;
+                    }
+                    current_byte_index += extended_line_length(
+                        trimmed_len,
+                        self.source_id.len(),
+                        line_nr,
+                        had_newline,
+                    );
+                    line_nr += 1;
+                    lines_in_chunk += 1;
 
-                // check if we need to construct a new mapping chunk
-                if lines_in_chunk >= self.chunk_size {
-                    last_line_current_chunk = line_nr;
-                    let chunk = Chunk {
-                        r: (
-                            last_line_current_chunk - lines_in_chunk,
-                            last_line_current_chunk,
-                        ),
-                        b: (start_of_chunk_byte_index, current_byte_index),
-                    };
-                    chunks.push(chunk);
-                    start_of_chunk_byte_index = current_byte_index + 1;
-                    lines_in_chunk = 0;
+                    // check if we need to construct a new mapping chunk
+                    if lines_in_chunk >= self.chunk_size {
+                        last_line_current_chunk = line_nr;
+                        let chunk = Chunk {
+                            r: (
+                                last_line_current_chunk - lines_in_chunk,
+                                last_line_current_chunk,
+                            ),
+                            b: (start_of_chunk_byte_index, current_byte_index),
+                        };
+                        chunks.push(chunk);
+                        start_of_chunk_byte_index = current_byte_index + 1;
+                        lines_in_chunk = 0;
+                    }
                 }
-            }
+            };
+            buf = vec![];
         }
         // println!("done with content: {:02X?}", out_buffer.as_bytes());
         let _ = out_file.write_all(out_buffer.as_bytes());
@@ -151,10 +134,10 @@ impl Indexer {
                 let last_expected_byte_index = metadata.len() as usize;
                 if last_expected_byte_index != last_chunk.b.1 {
                     // println!("chunks were: {:?}", chunks);
-                    panic!(
+                    return Err(failure::err_msg(format!(
                         "error in computation! last byte in chunks is {} but should be {}",
                         last_chunk.b.1, last_expected_byte_index
-                    );
+                    )));
                 }
             }
             None => println!("no content found"),
@@ -299,14 +282,14 @@ mod tests {
         println!("all chunks: {:?}", chunks);
         println!("content: {:02X?}", out_file_content.as_bytes());
         assert_eq!(
-            chunks.len(),
             expected_chunk_len,
+            chunks.len(),
             "chunks should match expected length {}",
             expected_chunk_len
         );
         assert_eq!(
-            out_file_content.as_bytes(),
             expected,
+            out_file_content.as_bytes(),
             "out content should match expected size",
         );
         assert_eq!(true, chunks_fit_together(&chunks), "chunks need to fit");
