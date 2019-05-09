@@ -45,8 +45,8 @@ export default class FunctionOpenLocalFile {
                             this._logger.error(`Fail to pipe file "${file}" due error: ${pipeError.message}`);
                         });
                     } else {
-                        // Trigger progress bar on render
-                        ServiceStreams.updatePipeSession(1);
+                        // Trigger progress
+                        ServiceStreams.updatePipeSession(0);
                         // Parser has direct method of reading and writing
                         this._directReadWrite(file).then(() => {
                             ServiceStreams.removePipeSession(pipeSessionId);
@@ -95,7 +95,7 @@ export default class FunctionOpenLocalFile {
             if (this._parser.readAndWrite === undefined) {
                 return reject(new Error(`This case isn't possible, but typescript compile.`));
             }
-            this._parser.readAndWrite(file, dest.file, sourceId).then((map: IMapItem[]) => {
+            this._parser.readAndWrite(file, dest.file, sourceId, ServiceStreams.updatePipeSession).then((map: IMapItem[]) => {
                 // Update map
                 ServiceStreams.updateStreamFileMap(dest.streamId, map);
                 // Notify render

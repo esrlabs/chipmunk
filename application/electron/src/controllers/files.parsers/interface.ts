@@ -16,7 +16,7 @@ export interface IFileParserFunc {
 
 // tslint:disable-next-line:interface-name
 export interface AFileParser {
-    readAndWrite?(srcFile: string, destFile: string, sourceId: string | number): Promise<IMapItem[]>;
+    readAndWrite?(srcFile: string, destFile: string, sourceId: string | number, updateBytesReadState?: (bytes: number) => void): Promise<IMapItem[]>;
 }
 
 export abstract class AFileParser {
