@@ -10,8 +10,10 @@
             <div *ngIf="_ng_isRowPending(row)" class="pending"><span>{{row}}</span></div>
         </li>
     </ul>
-    <app-lib-complex-infinity-output-sbv *ngIf="_ng_isSVBVisible()" 
-        [rowsCount]="_ng_rowsCount"
+    <lib-complex-scrollbox-sbv *ngIf="_ng_isSVBVisible()" 
         [rowHeight]="_ng_rowHeight"
-        [update]="_ng_updateSBV"></app-lib-complex-infinity-output-sbv>
+        [getRowsCount]="_ng_sbv_getRowsCount"
+        [pgUp]="_ng_sbv_pgUp"
+        [pgDown]="_ng_sbv_pgDown"
+        [update]="_ng_sbv_update"></lib-complex-scrollbox-sbv>
 </div>
