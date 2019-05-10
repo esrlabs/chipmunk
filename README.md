@@ -22,6 +22,12 @@ ARGS:
 
 # Changelog
 
+### [0.7.0] - 05/10/2019
+  * [](feat): print all chunks to stdout for progress tracking
+  * [](chore): test case for utf8 invalid characters
+  * porting test cases to example folders, testcases
+  * based on file samples
+
 ### [0.6.0] - 05/09/2019
   * added rake task to create changelog for release
   * [](feat): improve performance for processing large files
