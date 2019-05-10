@@ -1,45 +1,65 @@
 // tslint:disable:max-line-length
 // tslint:disable:no-inferrable-types
 // tslint:disable:member-ordering
+// tslint:disable:component-selector
 
-import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, ViewChild, Input, AfterContentInit, ElementRef } from '@angular/core';
-import { Subscription, Subject } from 'rxjs';
+import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, Input, AfterContentInit, HostListener } from '@angular/core';
 
 export type TUpdateFunction = (offset: number, direction: number) => void;
+export type TGetRowsCount = () => number;
+export type THandler = () => void;
+
 @Component({
-    selector: 'app-lib-complex-infinity-output-sbv',
+    selector: 'lib-complex-scrollbox-sbv',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
 
-export class ComplexInfinityOutputSBVComponent implements OnDestroy, AfterContentInit {
+export class ComplexScrollBoxSBVComponent implements OnDestroy, AfterContentInit {
 
-    @Input() public rowsCount: number = 1;
     @Input() public rowHeight: number = 1;
     @Input() public update: TUpdateFunction = () => void 0;
-
-    private _subscriptions: { [key: string]: Subscription | undefined } = { };
+    @Input() public getRowsCount: TGetRowsCount = () => void 0;
+    @Input() public pgUp: THandler = () => void 0;
+    @Input() public pgDown: THandler = () => void 0;
 
     private _rate: number = 0;
     private _height: number = 0;
     private _mouseY: number = -1;
     private _thumb: number = 0;
     private _offset: number = 0;
+    private _start: number = -1;
+    private _end: number = -1;
+    private _count: number = 0;
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef) {
     }
 
+    @HostListener('click', ['$event'])
+
+    public onClick(event: MouseEvent) {
+        if (event.clientY < this._offset) {
+            this.pgUp();
+        } else if (event.clientY > this._offset + this._thumb) {
+            this.pgDown();
+        }
+    }
+
     public ngAfterContentInit() {
+        this._count = this.getRowsCount();
         this._setHeight();
         this._update();
     }
 
     public ngOnDestroy() {
-        Object.keys(this._subscriptions).forEach((key: string) => {
-            this._subscriptions[key].unsubscribe();
-        });
     }
+
+    public _ng_onBrowserWindowResize(event?: Event) {
+        this._setHeight();
+        this._update();
+        this.setFrame(this._start, this._end, this._count);
+    }
 
     public _ng_getStyles(): { [key: string]: any } {
         return {
@@ -48,7 +68,7 @@ export class ComplexInfinityOutputSBVComponent implements OnDestroy, AfterConten
         };
     }
 
-    public _ng_svb_mouseDown(event: MouseEvent) {
+    public _ng_mouseDown(event: MouseEvent) {
         this._mouseY = event.y;
         event.preventDefault();
         return false;
@@ -68,6 +88,9 @@ export class ComplexInfinityOutputSBVComponent implements OnDestroy, AfterConten
             return;
         }
         const change: number = event.y - this._mouseY;
+        if (change === 0) {
+            return;
+        }
         this._mouseY = event.y;
         this._offset += change;
         if (this._offset < 0) {
@@ -82,9 +105,25 @@ export class ComplexInfinityOutputSBVComponent implements OnDestroy, AfterConten
         return false;
     }
 
+    public setFrame(start: number, end: number, count: number) {
+        this._start = start;
+        this._end = end;
+        if (count !== this._count) {
+            this._count = count;
+            this._setHeight();
+            this._update();
+        }
+        const offset = (start / this._count) * (this._height - this._thumb);
+        if (Math.round(offset) === Math.round(this._offset)) {
+            return;
+        }
+        this._offset = offset;
+        this._cdRef.detectChanges();
+    }
+
     private _update() {
         // Calculate scroll area height
-        const full = this.rowsCount * this.rowHeight;
+        const full = this._count * this.rowHeight;
         // Calculate rate
         this._rate = this._height / full;
         if (this._rate > 1) {

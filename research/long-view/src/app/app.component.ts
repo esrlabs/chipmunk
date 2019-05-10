@@ -70,7 +70,7 @@ export class AppComponent {
 
   private _getStorageInfo(): IStorageInformation {
     return {
-      count: 2500000
+      count: 250000
     };
   }
 
@@ -79,7 +79,7 @@ export class AppComponent {
       return Array.from({ length: count }).map((_, i) => {
         return {
           index: i + start,
-          //row: Date.now().toString() + (Math.random() * 1000000000000).toFixed(0).repeat(Math.round(Math.random() * 5))
+          // row: Date.now().toString() + (Math.random() * 1000000000000).toFixed(0).repeat(Math.round(Math.random() * 5))
           row: i + start
       };
       });

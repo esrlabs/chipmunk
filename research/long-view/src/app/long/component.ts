@@ -1,6 +1,10 @@
 // tslint:disable:max-line-length
-import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, ViewChild, Input, AfterContentInit, ElementRef } from '@angular/core';
+// tslint:disable:no-inferrable-types
+// tslint:disable:component-selector
+
+import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, ViewChild, Input, AfterContentInit, ElementRef, OnChanges } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
+import { ComplexScrollBoxSBVComponent } from './sbv/component';
 
 export interface IRange {
     start: number;
@@ -64,68 +68,33 @@ const DefaultSettings = {
 };
 
 @Component({
-    selector: 'app-lib-complex-infinity-output',
+    selector: 'lib-complex-scrollbox',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
 
-export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentInit {
+export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, OnChanges {
 
     @ViewChild('container') _ng_nodeContainer: ElementRef;
     @ViewChild('holder') _ng_nodeHolder: ElementRef;
+    @ViewChild(ComplexScrollBoxSBVComponent) _ng_sbvCom: ComplexScrollBoxSBVComponent;
 
     @Input() public API: IDataAPI | undefined;
     @Input() public settings: ISettings | undefined;
 
     public _ng_rows: Array<IRow | number> = [];
     public _ng_factory: any;
-    public _ng_rowsCount: number = 0;
     public _ng_rowHeight: number = 0;
 
     private _settings: ISettings = DefaultSettings;
     private _storageInfo: IStorageInformation | undefined;
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _containerSize: IBoxSize | undefined;
-    private _vSB: {
-        scale: number,
-        minScrollTop: number,
-        maxScrollTop: number,
-        heightFiller: number,
-        itemHeight: number,
-        cache: number,
-        lastWheel: number,
-        scrollTo: number,
-    } = {
-        scale: 1,
-        minScrollTop: 0,
-        maxScrollTop: 0,
-        heightFiller: -1,
-        itemHeight: 0,
-        cache: -1,
-        lastWheel: 0,
-        scrollTo: -1,
-    };
 
     private _item: {
         height: number,
     } = {
         height: 0,
-    };
-
-    private _sbv: {
-        height: number,
-        thumb: number,
-        offset: number,
-        rate: number,
-        stamp: number;
-        mouseY: number;
-    } = {
-        height: 0,
-        thumb: 0,
-        offset: 0,
-        rate: 0,
-        stamp: 0,
-        mouseY: -1,
     };
 
     private _state: {
@@ -160,14 +129,11 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         this._ng_factory = this.API.getComponentFactory();
         // Get information about storage
         this._storageInfo = this.API.getStorageInfo();
-        this._ng_rowsCount = this._storageInfo.count;
         // Store item height
         this._item.height = this.API.getItemHeight();
         this._ng_rowHeight = this._item.height;
         // Update data about sizes
         this._updateContainerSize();
-        // Update state of vertical scroll bar
-        this._sbv_update();
         // Subscribe
         this._subscriptions.onRowsDelivered = this.API.onRowsDelivered.asObservable().subscribe(this._onRowsDelivered.bind(this));
         this._subscriptions.onScrollTo = this.API.onScrollTo.asObservable().subscribe(this._onScrollTo.bind(this));
@@ -179,7 +145,12 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
             end: this._state.count > this._storageInfo.count ? (this._storageInfo.count - 1) : this._state.count
         }).rows;
         this._ng_rows = rows;
-        this._ng_updateSBV = this._ng_updateSBV.bind(this);
+        this._ng_sbv_update = this._ng_sbv_update.bind(this);
+        this._ng_sbv_pgUp = this._ng_sbv_pgUp.bind(this);
+        this._ng_sbv_pgDown = this._ng_sbv_pgDown.bind(this);
+        this._updateSbvPosition = this._updateSbvPosition.bind(this);
+        this._ng_sbv_getRowsCount = this._ng_sbv_getRowsCount.bind(this);
+        this._updateSbvPosition();
     }
 
     public ngOnDestroy() {
@@ -189,15 +160,20 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         this._ng_rows = [];
     }
 
+    public ngOnChanges() {
+    }
+
     public _ng_isRowPending(row: IRow): boolean {
         return typeof row === 'number';
+    }
+
+    public _ng_isSVBVisible(): boolean {
+        return this._state.count < this._storageInfo.count;
     }
 
     public _ng_onBrowserWindowResize(event?: Event) {
         // Update data about sizes
         this._updateContainerSize(true);
-        // Update state of vertical scroll bar
-        this._sbv_update();
         // Check currect state
         if (this._state.start + this._state.count > this._state.end) {
             this._state.end = this._state.start + this._state.count;
@@ -211,18 +187,8 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         }
     }
 
-    public _ng_onScroll(event: MouseEvent) {
-        this._cdRef.detectChanges();
-        if (!this._onScroll(event.target as HTMLElement)) {
-            event.preventDefault();
-            return false;
-        }
-        this._cdRef.detectChanges();
-    }
-
     public _ng_onWheel(event: WheelEvent) {
-        // console.log(event);
-        this._onVerticalScroll(Math.abs(event.deltaY), event.deltaY > 0 ? 1 : -1);
+        this._ng_sbv_update(Math.abs(event.deltaY), event.deltaY > 0 ? 1 : -1);
         event.preventDefault();
         return false;
     }
@@ -242,25 +208,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         };
     }
 
-    public _ng_getSVThumbStyles(): { [key: string]: any } {
-        return {
-            height: `${this._sbv.thumb}px`,
-            marginTop: `${this._sbv.offset}px`,
-        };
-    }
-
-    public _ng_isSVBVisible(): boolean {
-        return this._sbv.rate < 1;
-    }
-
-    public _ng_updateSBV(change: number, direction: number) {
-        this._onVerticalScroll(change, direction);
-    }
-
-    private _onVerticalScroll(change: number, direction: number) {
-        if (!this._ng_isSVBVisible()) {
-            return;
-        }
+    public _ng_sbv_update(change: number, direction: number) {
         if (this._state.start === 0 && direction < 0) {
             return;
         }
@@ -269,154 +217,33 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         if (offset === 0) {
             offset = 1;
         }
-        this._state.start += offset * direction;
-        if (this._state.start < 0) {
-            this._state.start = 0;
-        }
-        this._state.end = this._state.start + this._state.count;
-        if (this._state.end > this._storageInfo.count - 1) {
-            this._state.end = this._storageInfo.count - 1;
-            this._state.start = (this._storageInfo.count - this._state.count) > 0 ? (this._storageInfo.count - this._state.count) : 0;
-        }
-        // Calculate offset of thumb on scrollbar
-        this._sbv.offset =  ((this._state.start + 1) / (this._storageInfo.count - this._state.count)) * (this._containerSize.height - this._sbv.thumb);
+        this._setFrame(this._state.start + offset * direction);
         // Render
         this._softRender();
     }
 
-    private _onScroll(container: HTMLElement): boolean {
-        // Check state (could be reset state)
-        if (this._vSB.heightFiller <= 0) {
-            return;
-        }
-        // Get current scroll position
-        const scrollTop: number = container.scrollTop;
-        if (scrollTop === this._vSB.cache) {
-            return false;
-        }
-        let update: { scrollTop: number, redraw: boolean, rescroll: boolean };
-        if (this._vSB.heightFiller < this._settings.maxScrollHeight) {
-            update = this._scrollWithoutScale(scrollTop);
-        } else {
-            update = this._scrollWithScale(scrollTop);
-        }
-        // Drop scrollTo
-        this._vSB.scrollTo = -1;
-        if (update.rescroll) {
-            // Drop cache
-            this._vSB.cache = update.scrollTop;
-            // Set scroll value
-            container.scrollTop = update.scrollTop;
-        } else {
-            // Drop cache
-            this._vSB.cache = scrollTop;
-        }
-        // Redraw
-        if (update.redraw) {
-            // Update list
-            this._render();
-            // Notification: scroll is done
-            this.API.updatingDone({ start: this._state.start, end: this._state.end });
-        }
-        return true;
+    public _ng_sbv_pgUp() {
+        this._onKeyboardAction(EKeys.PageUp);
     }
 
-    private _correctScrollTop(scrollTop: number): number {
-        // Check minimal offset from top
-        if (scrollTop < this._vSB.minScrollTop) {
-            scrollTop = this._vSB.minScrollTop;
-        }
-        // Check minimal offset from bottom
-        if (scrollTop > this._vSB.maxScrollTop) {
-            scrollTop = this._vSB.maxScrollTop;
-        }
-        return scrollTop;
+    public _ng_sbv_pgDown() {
+        this._onKeyboardAction(EKeys.PageDown);
     }
 
-    private _setStateEnd() {
+    public _ng_sbv_getRowsCount(): number {
+        return this._storageInfo.count;
+    }
+
+    private _setFrame(start: number) {
+        this._state.start = start;
+        if (this._state.start < 0) {
+            this._state.start = 0;
+        }
         this._state.end = this._state.start + this._state.count;
         if (this._state.end > this._storageInfo.count - 1) {
             this._state.end = this._storageInfo.count - 1;
             this._state.start = (this._storageInfo.count - this._state.count) > 0 ? (this._storageInfo.count - this._state.count) : 0;
         }
-    }
-
-    private _scrollWithScale(scrollTop: number): { scrollTop: number, redraw: boolean, rescroll: boolean } {
-        if (this._vSB.scrollTo !== -1) {
-            this._state.start = this._vSB.scrollTo;
-            this._setStateEnd();
-            return { scrollTop: this._correctScrollTop(scrollTop), redraw: true, rescroll: false };
-        }
-        let change: number = this._vSB.cache === -1 ? scrollTop : (scrollTop - this._vSB.cache);
-        const direction: number = change > 0 ? 1 : -1;
-        if (direction < 0 && this._state.start === 0) {
-            // Already beginning of list
-            return { scrollTop: this._vSB.minScrollTop, redraw: false, rescroll: false };
-        }
-        if (direction > 0 && this._state.end === this._storageInfo.count - 1) {
-            // Already end of list
-            return { scrollTop: this._vSB.maxScrollTop, redraw: false, rescroll: false };
-        }
-        if (!this._isScrolledByWheel()) {
-            // Calculate considering scale
-            let start = Math.round((scrollTop / this._vSB.maxScrollTop) * (this._storageInfo.count - 1));
-            if (direction > 0 && this._state.start > start) {
-                start = this._state.start;
-            }
-            if (direction < 0 && this._state.start < start) {
-                start = this._state.start;
-            }
-            this._state.start = start;
-        } else {
-            change = Math.abs(change);
-            // Check minimal scrollTop
-            if (change < this._vSB.itemHeight) {
-                change = this._vSB.itemHeight;
-            }
-            // Calculate without scale
-            this._state.start += Math.round(change / this._vSB.itemHeight) * direction;
-        }
-        if (this._state.start < 0) {
-            this._state.start = 0;
-        } else if (this._state.start > this._storageInfo.count - this._state.count) {
-            this._state.start = (this._storageInfo.count - this._state.count) > 0 ? (this._storageInfo.count - this._state.count) : 0;
-        }
-        if (!this._isScrolledByWheel()) {
-            // Do not change scroll top in this case
-        } else {
-            // Recalculate scroll top
-            scrollTop = Math.round((this._state.start * this._vSB.itemHeight) * this._vSB.scale);
-        }
-        this._setStateEnd();
-        if (!this._isScrolledByWheel()) {
-            return { scrollTop: this._correctScrollTop(scrollTop), redraw: true, rescroll: false };
-        } else {
-            return { scrollTop: this._correctScrollTop(scrollTop), redraw: true, rescroll: true };
-        }
-    }
-
-    private _scrollWithoutScale(scrollTop: number): { scrollTop: number, redraw: boolean, rescroll: boolean } {
-        if (this._vSB.scrollTo !== -1) {
-            this._state.start = this._vSB.scrollTo;
-            this._setStateEnd();
-            return { scrollTop: this._correctScrollTop(scrollTop), redraw: true, rescroll: false };
-        }
-        const change: number = this._vSB.cache === -1 ? scrollTop : (scrollTop - this._vSB.cache);
-        const direction: number = change > 0 ? 1 : -1;
-        let start = Math.round((scrollTop / this._vSB.heightFiller) * this._storageInfo.count);
-        if (direction > 0 && this._state.start > start) {
-            start = this._state.start;
-        }
-        if (direction < 0 && this._state.start < start) {
-            start = this._state.start;
-        }
-        this._state.start = start;
-        this._setStateEnd();
-        return { scrollTop: this._correctScrollTop(scrollTop), redraw: true, rescroll: false };
-    }
-
-    private _isScrolledByWheel(): boolean {
-        return Date.now() - this._vSB.lastWheel < 500;
     }
 
     private _onKeyboardAction(key: EKeys) {
@@ -474,37 +301,11 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         this._state.count = Math.floor(this._containerSize.height / this._item.height);
     }
 
-    private _sbv_update() {
-        if (!this._isAllAvailable()) {
+    private _updateSbvPosition() {
+        if (this._ng_sbvCom === undefined || this._ng_sbvCom === null) {
             return;
         }
-        // Calculate scroll area height
-        this._sbv.height = this._storageInfo.count * this._item.height;
-        // Calculate rate
-        this._sbv.rate = this._containerSize.height / this._sbv.height;
-        if (this._sbv.rate > 1) {
-            return this._cdRef.detectChanges();
-        }
-        // Calculate thumb height
-        this._sbv.thumb = this._containerSize.height * this._sbv.rate;
-        if (this._sbv.thumb < 20) {
-            this._sbv.thumb = 20;
-        }
-        // Update
-        this._cdRef.detectChanges();
-    }
-
-    private _isAllAvailable(): boolean {
-        if (this._containerSize === undefined) {
-            return false;
-        }
-        if (this._storageInfo === undefined) {
-            return false;
-        }
-        if (this.API === undefined) {
-            return false;
-        }
-        return true;
+        this._ng_sbvCom.setFrame(this._state.start, this._state.end, this._storageInfo.count);
     }
 
     private _onRowsDelivered(packet: IRowsPacket) {
@@ -523,28 +324,15 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         // Correct row value
         row = row > this._storageInfo.count - 1 ? (this._storageInfo.count - 1) : row;
         row = row < 0 ? 0 : row;
-        this._vSB.cache = -1;
         // Detect start of frame
         const start: number = noOffset ? row : (row - this._settings.scrollToOffset > 0 ? (row - this._settings.scrollToOffset) : 0);
-        // Drop frame to begin
-        this._vSB.scrollTo = start;
-        // Calculate scale
-        let scrollTop = Math.round((start * this._vSB.itemHeight) * this._vSB.scale);
-        if (scrollTop + this._containerSize.height > this._vSB.heightFiller) {
-            scrollTop = this._vSB.maxScrollTop;
-        }
-        if (this._ng_nodeContainer.nativeElement.scrollTop === scrollTop) {
-            // Event of scroll will not be triggered, call manually
-            this._onScroll(this._ng_nodeContainer.nativeElement);
-        } else {
-            this._ng_nodeContainer.nativeElement.scrollTop = scrollTop;
-        }
+        // Set frame
+        this._setFrame(start);
+        // Trigger scrolling
+        this._ng_sbv_update(0, 0);
     }
 
     private _reset() {
-        this._vSB.cache = -1;
-        this._vSB.scrollTo = -1;
-        this._vSB.heightFiller = -1;
         this._state.start = 0;
         this._state.end = 0;
         this._ng_rows = [];
@@ -568,7 +356,7 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
         // Update storage data
         this._storageInfo.count = info.count;
         // Scroll bar
-        this._sbv_update();
+        this._updateSbvPosition();
         if (shouldBeUpdated) {
             // Render
             this._render();
@@ -632,10 +420,10 @@ export class ComplexInfinityOutputComponent implements OnDestroy, AfterContentIn
             }
         }
         this._ng_rows = rows;
-        this._cdRef.reattach();
+        this._updateSbvPosition();
         this._cdRef.detectChanges();
-        this._cdRef.detach();
-        console.log('RENDER DONE');
+        // Notification: scroll is done
+        this.API.updatingDone({ start: this._state.start, end: this._state.end });
     }
 
     private _onRedraw() {
