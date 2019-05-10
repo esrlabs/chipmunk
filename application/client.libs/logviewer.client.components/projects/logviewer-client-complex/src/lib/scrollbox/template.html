@@ -1,0 +1,19 @@
+<div    tabindex="0" 
+        class="container" 
+        #container 
+        (wheel)="_ng_onWheel($event)" 
+        (window:resize)="_ng_onBrowserWindowResize($event)"
+        (keydown)="_ng_onKeyDown($event)">
+    <ul class="holder" #holder>
+        <li *ngFor="let row of _ng_rows" [ngStyle]="_ng_getItemStyles()">
+            <lib-containers-dynamic *ngIf="!_ng_isRowPending(row)" [component]="{ factory: _ng_factory, resolved: false, inputs: row }"></lib-containers-dynamic>
+            <div *ngIf="_ng_isRowPending(row)" class="pending"><span>{{row}}</span></div>
+        </li>
+    </ul>
+    <lib-complex-scrollbox-sbv *ngIf="_ng_isSVBVisible()" 
+        [rowHeight]="_ng_rowHeight"
+        [getRowsCount]="_ng_sbv_getRowsCount"
+        [pgUp]="_ng_sbv_pgUp"
+        [pgDown]="_ng_sbv_pgDown"
+        [update]="_ng_sbv_update"></lib-complex-scrollbox-sbv>
+</div>
