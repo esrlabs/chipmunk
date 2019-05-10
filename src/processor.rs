@@ -105,6 +105,7 @@ impl Indexer {
                             ),
                             b: (start_of_chunk_byte_index, current_byte_index),
                         };
+                        println!("{:?}", chunk);
                         chunks.push(chunk);
                         start_of_chunk_byte_index = current_byte_index + 1;
                         lines_in_chunk = 0;
@@ -123,6 +124,7 @@ impl Indexer {
                     r: (last_line_current_chunk, line_nr - 1),
                     b: (start_of_chunk_byte_index, current_byte_index),
                 };
+                println!("{:?}", chunk);
                 chunks.push(chunk);
             }
         }
