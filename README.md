@@ -22,6 +22,9 @@ ARGS:
 
 # Changelog
 
+### [0.7.1] - 05/11/2019
+  * nicer progress reporting
+
 ### [0.7.0] - 05/10/2019
   * [](feat): print all chunks to stdout for progress tracking
   * [](chore): test case for utf8 invalid characters
