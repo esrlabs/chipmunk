@@ -353,6 +353,7 @@ mod tests {
             (1, 1),
         );
     }
+
     #[test]
     fn test_process_file_multiple_lines_with_lf() {
         run_test(
