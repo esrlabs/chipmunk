@@ -1,9 +1,9 @@
 use crate::report::serialize_chunks;
-use crate::report::Chunk;
 use quicli::prelude::{CliResult, Verbosity};
 use std::fs;
 use std::path::PathBuf;
 use std::process;
+use std::time::Instant;
 use structopt::StructOpt;
 
 mod processor;
@@ -35,6 +35,8 @@ struct Cli {
 }
 
 fn main() -> CliResult {
+    let start = Instant::now();
+
     let args = Cli::from_args();
 
     let f: fs::File = fs::File::open(&args.file)?;
@@ -49,7 +51,6 @@ fn main() -> CliResult {
         let _ = fs::File::create(&out_path);
     }
     let mapping_out_path: std::path::PathBuf = PathBuf::from(args.file.to_string() + ".map.json");
-    let current_chunks: Vec<Chunk> = Vec::new();
 
     let indexer = processor::Indexer {
         source_id: tag_id.to_string(), // tag to append to each line
@@ -57,13 +58,25 @@ fn main() -> CliResult {
         chunk_size: args.chunk_size,   // used for mapping line numbers to byte positions
     };
 
-    match indexer.index_file(&f, &out_path, &current_chunks, args.append) {
+    match indexer.index_file(&f, &out_path, args.append) {
         Err(why) => {
             eprintln!("couldn't process: {}", why);
             process::exit(2)
         }
         Ok(chunks) => {
             let _ = serialize_chunks(&chunks, &mapping_out_path);
+            let elapsed = start.elapsed();
+            let ms = elapsed.as_millis();
+            let duration_in_s = ms as f64 / 1000.0;
+            let file_size_in_mb =
+                f.metadata().expect("could not read file metadata").len() as f64 / 1024.0 / 1024.0;
+            let mb_bytes_per_second: f64 = file_size_in_mb / duration_in_s;
+            println!(
+                "processing ~{} MB took {:.3}s! ({:.3} MB/s)",
+                file_size_in_mb.round(),
+                duration_in_s,
+                mb_bytes_per_second
+            );
             Ok(())
         }
     }

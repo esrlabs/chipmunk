@@ -9,6 +9,7 @@ const ROW_NUMBER_SENTINAL: char = '\u{0002}';
 const PLUGIN_ID_SENTINAL: char = '\u{0003}';
 const SENTINAL_LENGTH: usize = 1;
 const PEEK_END_SIZE: usize = 12;
+const REPORT_PROGRESS_LINE_BLOCK: usize = 1_000_000;
 
 pub struct Indexer {
     pub source_id: String, // tag to append to each line
@@ -21,13 +22,8 @@ impl Indexer {
         &self,
         f: &std::fs::File,
         out_path: &std::path::PathBuf,
-        current_chunks: &[Chunk],
         append: bool,
     ) -> ::std::result::Result<Vec<Chunk>, failure::Error> {
-        println!(
-            "process file, currently have {} chunks",
-            current_chunks.len()
-        );
         let mut reader = BufReader::new(f);
         let mut out_buffer = String::new();
         let mut line_nr = if append {
@@ -35,7 +31,6 @@ impl Indexer {
         } else {
             0
         };
-        println!("starting with line_nr: {}", line_nr);
         let mut lines_in_buffer: usize = 1;
         let mut out_file: std::fs::File = if append {
             std::fs::OpenOptions::new()
@@ -47,6 +42,7 @@ impl Indexer {
         };
         let original_file_size =
             out_file.metadata().expect("could not read metadata").len() as usize;
+        let source_file_size = f.metadata().expect("could not read metadata").len() as usize;
 
         let mut current_byte_index = original_file_size;
         let mut start_of_chunk_byte_index = current_byte_index;
@@ -54,12 +50,14 @@ impl Indexer {
         let mut chunks = vec![];
         let mut last_line_current_chunk = line_nr;
         let mut buf = vec![];
+        let mut processed_bytes = 0;
         while let Ok(len) = reader.read_until(b'\n', &mut buf) {
             unsafe {
                 let s = std::str::from_utf8_unchecked(&buf);
                 let trimmed_line = s.trim_matches(is_newline);
                 let trimmed_len = trimmed_line.len();
                 let had_newline = trimmed_len != len;
+                processed_bytes += len;
                 if len == 0 {
                     // no more content
                     break;
@@ -105,10 +103,17 @@ impl Indexer {
                             ),
                             b: (start_of_chunk_byte_index, current_byte_index),
                         };
-                        println!("{:?}", chunk);
                         chunks.push(chunk);
                         start_of_chunk_byte_index = current_byte_index + 1;
                         lines_in_chunk = 0;
+                    }
+                    if line_nr % REPORT_PROGRESS_LINE_BLOCK == 0 {
+                        println!(
+                            "processed {} lines -- byte-index {} ({} %)",
+                            line_nr,
+                            current_byte_index,
+                            (processed_bytes as f32 / source_file_size as f32 * 100.0).round()
+                        );
                     }
                 }
             };
@@ -124,7 +129,6 @@ impl Indexer {
                     r: (last_line_current_chunk, line_nr - 1),
                     b: (start_of_chunk_byte_index, current_byte_index),
                 };
-                println!("{:?}", chunk);
                 chunks.push(chunk);
             }
         }
@@ -249,7 +253,7 @@ mod tests {
             chunk_size: chunksize,           // used for mapping line numbers to byte positions
         };
         let chunks = indexer
-            .index_file(&f, &out_file_path, &[], tmp_file_name.is_some())
+            .index_file(&f, &out_file_path, tmp_file_name.is_some())
             .unwrap();
         let out_file_content: String =
             fs::read_to_string(out_file_path).expect("could not read file");
@@ -400,7 +404,7 @@ mod tests {
             chunk_size: 1,                // used for mapping line numbers to byte positions
         };
         let chunks = indexer
-            .index_file(&empty_file, &out_path, &[], false)
+            .index_file(&empty_file, &out_path, false)
             .expect("could not index file");
         assert_eq!(0, chunks.len(), "empty file should produce 0 chunks");
         let out_file_content: String = fs::read_to_string(&out_path).expect("could not read file");
@@ -411,7 +415,7 @@ mod tests {
         );
         let nonempty_file = File::open(local_file(nonempty_file_name)).unwrap();
         let chunks2 = indexer
-            .index_file(&nonempty_file, &out_path, &[], true)
+            .index_file(&nonempty_file, &out_path, true)
             .expect("could not index file");
         let out_file_content: String = fs::read_to_string(out_path).expect("could not read file");
         println!("outfile: {}\nchunks: {:?}", out_file_content, chunks2);
@@ -533,9 +537,7 @@ mod tests {
         };
         let tmp_dir = TempDir::new("test_dir").expect("could not create temp dir");
         let out_file_path = tmp_dir.path().join("tmpTestFile.txt.out");
-        let chunks = indexer
-            .index_file(&in_file, &out_file_path, &[], false)
-            .unwrap();
+        let chunks = indexer.index_file(&in_file, &out_file_path, false).unwrap();
         let out_file_content_bytes = fs::read(out_file_path).expect("could not read file");
         let out_file_content = String::from_utf8_lossy(&out_file_content_bytes[..]);
         let mut expected_path = PathBuf::from(&dir_name);
