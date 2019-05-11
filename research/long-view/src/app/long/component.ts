@@ -5,6 +5,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, ViewChild, Input, AfterContentInit, ElementRef, OnChanges } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
 import { ComplexScrollBoxSBVComponent } from './sbv/component';
+import { ComplexScrollBoxSBHComponent } from './sbh/component';
 
 export interface IRange {
     start: number;
@@ -52,6 +53,8 @@ export interface ISettings {
 enum EKeys {
     ArrowUp = 'ArrowUp',
     ArrowDown = 'ArrowDown',
+    ArrowLeft = 'ArrowLeft',
+    ArrowRight = 'ArrowRight',
     PageUp = 'PageUp',
     PageDown = 'PageDown',
     Home = 'Home',
@@ -78,6 +81,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, O
     @ViewChild('container') _ng_nodeContainer: ElementRef;
     @ViewChild('holder') _ng_nodeHolder: ElementRef;
     @ViewChild(ComplexScrollBoxSBVComponent) _ng_sbvCom: ComplexScrollBoxSBVComponent;
+    @ViewChild(ComplexScrollBoxSBHComponent) _ng_sbhCom: ComplexScrollBoxSBHComponent;
 
     @Input() public API: IDataAPI | undefined;
     @Input() public settings: ISettings | undefined;
@@ -85,11 +89,13 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, O
     public _ng_rows: Array<IRow | number> = [];
     public _ng_factory: any;
     public _ng_rowHeight: number = 0;
+    public _ng_horOffset: number = 0;
 
     private _settings: ISettings = DefaultSettings;
     private _storageInfo: IStorageInformation | undefined;
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _containerSize: IBoxSize | undefined;
+    private _holderSize: { width: number, hash: string } = { width: 0, hash: '' };
 
     private _item: {
         height: number,
@@ -150,6 +156,9 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, O
         this._ng_sbv_pgDown = this._ng_sbv_pgDown.bind(this);
         this._updateSbvPosition = this._updateSbvPosition.bind(this);
         this._ng_sbv_getRowsCount = this._ng_sbv_getRowsCount.bind(this);
+        this._ng_sbh_update = this._ng_sbh_update.bind(this);
+        this._ng_sbh_left = this._ng_sbh_left.bind(this);
+        this._ng_sbh_right = this._ng_sbh_right.bind(this);
         this._updateSbvPosition();
     }
 
@@ -163,12 +172,29 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, O
     public ngOnChanges() {
     }
 
+    public _ng_getHolderStyles(): { [key: string]: any } {
+        return {
+            marginLeft: `-${this._ng_horOffset}px`,
+        };
+    }
+
     public _ng_isRowPending(row: IRow): boolean {
         return typeof row === 'number';
     }
 
-    public _ng_isSVBVisible(): boolean {
+    public _ng_isSBVVisible(): boolean {
         return this._state.count < this._storageInfo.count;
+    }
+
+    public _ng_isSBHVisible(): boolean {
+        if (this._holderSize.width > this._containerSize.width) {
+            return true;
+        }
+        if (this._ng_horOffset !== 0) {
+            this._ng_horOffset = 0;
+            this._cdRef.detectChanges();
+        }
+        return false;
     }
 
     public _ng_onBrowserWindowResize(event?: Event) {
@@ -194,7 +220,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, O
     }
 
     public _ng_onKeyDown(event: KeyboardEvent) {
-        if ([EKeys.ArrowDown, EKeys.ArrowUp, EKeys.End, EKeys.Home, EKeys.PageDown, EKeys.PageUp].indexOf(event.key as EKeys) === -1) {
+        if ([EKeys.ArrowLeft, EKeys.ArrowRight, EKeys.ArrowDown, EKeys.ArrowUp, EKeys.End, EKeys.Home, EKeys.PageDown, EKeys.PageUp].indexOf(event.key as EKeys) === -1) {
             return true;
         }
         event.preventDefault();
@@ -234,6 +260,19 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, O
         return this._storageInfo.count;
     }
 
+    public _ng_sbh_left() {
+        this._ng_sbhCom.toLeft();
+    }
+
+    public _ng_sbh_right() {
+        this._ng_sbhCom.toRight();
+    }
+
+    public _ng_sbh_update(offset: number) {
+        this._ng_horOffset = offset;
+        this._cdRef.detectChanges();
+    }
+
     private _setFrame(start: number) {
         this._state.start = start;
         if (this._state.start < 0) {
@@ -248,6 +287,12 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, O
 
     private _onKeyboardAction(key: EKeys) {
         switch (key) {
+            case EKeys.ArrowLeft:
+                this._ng_sbh_left();
+                break;
+            case EKeys.ArrowRight:
+                this._ng_sbh_right();
+                break;
             case EKeys.ArrowDown:
                 if (this._state.start + 1 > this._storageInfo.count - 1) {
                     return;
@@ -299,6 +344,18 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, O
         this._containerSize = (this._ng_nodeContainer.nativeElement as HTMLElement).getBoundingClientRect();
         this._containerSize.height -= this._settings.scrollBarSize;
         this._state.count = Math.floor(this._containerSize.height / this._item.height);
+    }
+
+    private _updateHolderSize() {
+        if (this._ng_nodeHolder === undefined) {
+            return;
+        }
+        const hash: string = `${this._state.start}-${this._state.end}`;
+        if (this._holderSize.hash === hash) {
+            return;
+        }
+        this._holderSize.hash = hash;
+        this._holderSize.width = (this._ng_nodeHolder.nativeElement as HTMLElement).getBoundingClientRect().width;
     }
 
     private _updateSbvPosition() {
@@ -424,6 +481,8 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, O
         this._cdRef.detectChanges();
         // Notification: scroll is done
         this.API.updatingDone({ start: this._state.start, end: this._state.end });
+        // Update holder size
+        this._updateHolderSize();
     }
 
     private _onRedraw() {
