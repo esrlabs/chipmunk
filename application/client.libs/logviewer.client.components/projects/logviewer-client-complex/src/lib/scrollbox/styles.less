@@ -1,3 +1,4 @@
+
 @import '../../../../../theme/scheme.less';
 
 :host {
@@ -8,12 +9,6 @@
     right: 0;
     bottom: 0;
     overflow: hidden;
-    & div.filler{
-        position: absolute;
-        display: block;
-        width: 1px;
-        z-index: 0;
-    }
     & div.container{
         display: block;
         position: absolute;
@@ -25,13 +20,15 @@
         overflow: hidden;
         outline: none;
         & ul.holder{
-            position: sticky;
+            position: absolute;
             display: block;
-            width: 100%;
+            width: auto;
             list-style: none;
             padding: 0;
             margin: 0;
             top: 0;
+            bottom: 0;
+            left:0;
             & li{
                 position: relative;
                 display: block;
@@ -53,7 +50,7 @@
                     padding: 0;
                     margin: 0;
                     white-space: nowrap;
-                    background: @scheme-color-2;
+                    background: @scheme-color-1;
                     &:after{
                         position: absolute;
                         content: '';
@@ -61,15 +58,15 @@
                         left:0;
                         height: 100%;
                         width: 50%;
-                        animation: inf-output-pending-animation 1000ms infinite;
-                        background: @scheme-color-3;
+                        animation: scrollbox-pending-animation 1000ms infinite;
+                        background: @scheme-color-2;
                     }
                 }
             }
         }
     }
 }
-@keyframes inf-output-pending-animation{
+@keyframes scrollbox-pending-animation{
     0%{
         width: 50%;
     }

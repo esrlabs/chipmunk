@@ -90,12 +90,12 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, O
     public _ng_factory: any;
     public _ng_rowHeight: number = 0;
     public _ng_horOffset: number = 0;
+    public _containerSize: IBoxSize | undefined;
+    public _holderSize: { width: number, hash: string } = { width: 0, hash: '' };
 
     private _settings: ISettings = DefaultSettings;
     private _storageInfo: IStorageInformation | undefined;
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
-    private _containerSize: IBoxSize | undefined;
-    private _holderSize: { width: number, hash: string } = { width: 0, hash: '' };
 
     private _item: {
         height: number,
@@ -346,16 +346,17 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, O
         this._state.count = Math.floor(this._containerSize.height / this._item.height);
     }
 
-    private _updateHolderSize() {
+    private _updateHolderSize(ignoreHash: boolean = false) {
         if (this._ng_nodeHolder === undefined) {
             return;
         }
         const hash: string = `${this._state.start}-${this._state.end}`;
-        if (this._holderSize.hash === hash) {
+        if (this._holderSize.hash === hash && !ignoreHash) {
             return;
         }
         this._holderSize.hash = hash;
         this._holderSize.width = (this._ng_nodeHolder.nativeElement as HTMLElement).getBoundingClientRect().width;
+        this._cdRef.detectChanges();
     }
 
     private _updateSbvPosition() {
@@ -375,6 +376,8 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, O
         this._ng_rows = packet.rows;
         // Force update
         this._cdRef.detectChanges();
+        // Update holder size
+        this._updateHolderSize(true);
     }
 
     private _onScrollTo(row: number, noOffset: boolean = false) {
