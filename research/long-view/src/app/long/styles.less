@@ -8,12 +8,6 @@
     right: 0;
     bottom: 0;
     overflow: hidden;
-    & div.filler{
-        position: absolute;
-        display: block;
-        width: 1px;
-        z-index: 0;
-    }
     & div.container{
         display: block;
         position: absolute;
@@ -24,33 +18,16 @@
         z-index: 1;
         overflow: hidden;
         outline: none;
-        & div.vertical-sb{
-            position: absolute;
-            top:0;
-            bottom: 0;
-            width: 8px;
-            right: 0;
-            background:rgb(218, 218, 218);
-            transform: translateZ(0);
-            & div.vertical-sbt{
-                position: absolute;
-                top:0;
-                width: 100%;
-                height: 10px;
-                left:0;
-                background: black;
-                transform: translateZ(0);
-                cursor: default;
-            }
-        }
         & ul.holder{
-            position: sticky;
+            position: absolute;
             display: block;
-            width: 100%;
+            width: auto;
             list-style: none;
             padding: 0;
             margin: 0;
             top: 0;
+            bottom: 0;
+            left:0;
             & li{
                 position: relative;
                 display: block;
@@ -80,7 +57,7 @@
                         left:0;
                         height: 100%;
                         width: 50%;
-                        animation: inf-output-pending-animation 1000ms infinite;
+                        animation: scrollbox-pending-animation 1000ms infinite;
                         background: rgb(230,230,230);
                     }
                 }
@@ -88,7 +65,7 @@
         }
     }
 }
-@keyframes inf-output-pending-animation{
+@keyframes scrollbox-pending-animation{
     0%{
         width: 50%;
     }

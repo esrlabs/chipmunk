@@ -24,6 +24,7 @@ export class ComplexScrollBoxSBVComponent implements OnDestroy, AfterContentInit
     @Input() public pgDown: THandler = () => void 0;
 
     private _rate: number = 0;
+    private _rows: number = 0;
     private _height: number = 0;
     private _mouseY: number = -1;
     private _thumb: number = 0;
@@ -92,13 +93,7 @@ export class ComplexScrollBoxSBVComponent implements OnDestroy, AfterContentInit
             return;
         }
         this._mouseY = event.y;
-        this._offset += change;
-        if (this._offset < 0) {
-            this._offset = 0;
-        }
-        if (this._offset > this._height - this._thumb) {
-            this._offset = this._height - this._thumb;
-        }
+        this._setOffset(this._offset + change);
         this._cdRef.detectChanges();
         this.update(Math.abs(change / this._rate), change > 0 ? 1 : -1);
         event.preventDefault();
@@ -113,11 +108,11 @@ export class ComplexScrollBoxSBVComponent implements OnDestroy, AfterContentInit
             this._setHeight();
             this._update();
         }
-        const offset = (start / this._count) * (this._height - this._thumb);
+        const offset = (start / (this._count - this._rows)) * (this._height - this._thumb);
         if (Math.round(offset) === Math.round(this._offset)) {
             return;
         }
-        this._offset = offset;
+        this._setOffset(offset);
         this._cdRef.detectChanges();
     }
 
@@ -138,12 +133,23 @@ export class ComplexScrollBoxSBVComponent implements OnDestroy, AfterContentInit
         this._cdRef.detectChanges();
     }
 
+    private _setOffset(offset: number) {
+        this._offset = offset;
+        if (this._offset < 0) {
+            this._offset = 0;
+        }
+        if (this._offset > this._height - this._thumb) {
+            this._offset = this._height - this._thumb;
+        }
+    }
+
     private _setHeight() {
         if (this._vcRef === undefined || this._vcRef === null) {
             return;
         }
         const size = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect();
         this._height = size.height;
+        this._rows = Math.floor(this._height / this.rowHeight);
     }
 
 }
