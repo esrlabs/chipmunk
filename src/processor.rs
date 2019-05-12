@@ -278,117 +278,10 @@ mod tests {
         println!("pairs: {:?}", pairs);
         pairs.iter().all(|&(p1, p2)| p1.1 + 1 == p2.0)
     }
-    fn run_test(
-        test_content: &str,
-        expected: &[u8],
-        tag_name: &str,
-        (lines_per_chunk, expected_chunk_len): (usize, usize),
-    ) {
-        let (chunks, out_file_content) = get_chunks(test_content, lines_per_chunk, tag_name, None);
-        println!("all chunks: {:?}", chunks);
-        println!("content: {:02X?}", out_file_content.as_bytes());
-        assert_eq!(
-            expected_chunk_len,
-            chunks.len(),
-            "chunks should match expected length {}",
-            expected_chunk_len
-        );
-        assert_eq!(
-            expected,
-            out_file_content.as_bytes(),
-            "out content should match expected size",
-        );
-        assert_eq!(true, chunks_fit_together(&chunks), "chunks need to fit");
-    }
 
     const D1: u8 = PLUGIN_ID_SENTINAL as u8;
     const D2: u8 = ROW_NUMBER_SENTINAL as u8;
     const NL: u8 = 0x0a;
-    // #[test]
-    // fn test_process_empty_file() {
-    //     run_test("", &[], "tag", (1, 0));
-    // }
-    #[test]
-    fn test_process_file_one_line() {
-        run_test(
-            "A",
-            &[b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2],
-            "tag",
-            (1, 1),
-        );
-    }
-    #[test]
-    fn test_process_file_one_line_with_newline() {
-        run_test(
-            "A\n",
-            &[b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL],
-            "tag",
-            (1, 1),
-        );
-    }
-    #[test]
-    fn test_process_file_one_line_with_2_newline() {
-        run_test(
-            "A\n\n",
-            &[b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL],
-            "tag",
-            (1, 1),
-        );
-    }
-    #[test]
-    fn test_process_file_one_line_with_crlf() {
-        run_test(
-            "A\r\n",
-            &[b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL],
-            "tag",
-            (1, 1),
-        );
-    }
-    #[test]
-    fn test_process_file_one_line_with_crlf_at_beginning() {
-        run_test(
-            "\r\nA\n",
-            &[b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL],
-            "tag",
-            (1, 1),
-        );
-    }
-
-    #[test]
-    fn test_process_file_multiple_lines_with_lf() {
-        run_test(
-            "A\nB\nC\n",
-            &[
-                [b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL],
-                [b'B', D1, b't', b'a', b'g', D1, D2, 0x31, D2, NL],
-                [b'C', D1, b't', b'a', b'g', D1, D2, 0x32, D2, NL],
-            ]
-            .concat(),
-            "tag",
-            (1, 3),
-        );
-    }
-    #[test]
-    fn test_process_file_long_multiple_lines_with_lf() {
-        run_test(
-            "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n",
-            &[
-                [b'0', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL],
-                [b'1', D1, b't', b'a', b'g', D1, D2, 0x31, D2, NL],
-                [b'2', D1, b't', b'a', b'g', D1, D2, 0x32, D2, NL],
-                [b'3', D1, b't', b'a', b'g', D1, D2, 0x33, D2, NL],
-                [b'4', D1, b't', b'a', b'g', D1, D2, 0x34, D2, NL],
-                [b'5', D1, b't', b'a', b'g', D1, D2, 0x35, D2, NL],
-                [b'6', D1, b't', b'a', b'g', D1, D2, 0x36, D2, NL],
-                [b'7', D1, b't', b'a', b'g', D1, D2, 0x37, D2, NL],
-                [b'8', D1, b't', b'a', b'g', D1, D2, 0x38, D2, NL],
-                [b'9', D1, b't', b'a', b'g', D1, D2, 0x39, D2, NL],
-            ]
-            .concat(),
-            "tag",
-            (1, 10),
-        );
-    }
     #[test]
     fn test_append_to_empty_output() {
         let empty_file_name = "empty.log";
@@ -527,7 +420,6 @@ mod tests {
     test_generator::test_expand_paths! { test_input_output; "test/*" }
 
     fn test_input_output(dir_name: &str) {
-        println!("---------> calling test exists for {}", dir_name);
         let mut in_path = PathBuf::from(&dir_name);
         in_path.push("in.txt");
         let in_file = File::open(in_path).unwrap();
