@@ -1,9 +1,6 @@
 use crate::report::Chunk;
 use std::fmt::Write as W;
-use std::io::BufRead;
-use std::io::BufReader;
-use std::io::Write;
-use std::io::{Read, Seek, SeekFrom};
+use std::io::{BufRead, BufReader, Read, Seek, SeekFrom, Write};
 
 const ROW_NUMBER_SENTINAL: char = '\u{0002}';
 const PLUGIN_ID_SENTINAL: char = '\u{0003}';
