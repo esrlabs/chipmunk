@@ -22,6 +22,13 @@ ARGS:
 
 # Changelog
 
+### [0.8.0] - 05/13/2019
+  * added option to spit out mapping info on stdout (use `-t` to get
+    all chunks that have been written to stdout)
+  * replace tests with example input output tests
+  * more test cases in file form
+  * started work on merging files by timestamp
+
 ### [0.7.1] - 05/11/2019
   * nicer progress reporting
 
