@@ -133,8 +133,13 @@ export default class ControllerStreamProcessor {
         this._state.pipes.next(written);
     }
 
-    public updateStreamMap(map: IMapItem[]) {
-        this._state.map.update(map);
+    public rewriteStreamFileMap(map: IMapItem[]) {
+        this._state.map.rewrite(map);
+        this._sendUpdateStreamData();
+    }
+
+    public pushToStreamFileMap(map: IMapItem[]) {
+        this._state.map.push(map);
         this._sendUpdateStreamData();
     }
 

@@ -44,12 +44,14 @@ export default class FileParser extends AFileParser {
         };
     }
 
-    public readAndWrite(srcFile: string, destFile: string, sourceId: string, updateBytesReadState?: (bytes: number) => void): Promise<IMapItem[]> {
+    public readAndWrite(srcFile: string, destFile: string, sourceId: string, onMapUpdated?: (map: IMapItem[]) => void): Promise<IMapItem[]> {
         return new Promise((resolve, reject) => {
             const lvin: Lvin = new Lvin();
-            if (updateBytesReadState !== undefined) {
-                lvin.on(Lvin.Events.progress, (bytes: number) => {
-                    updateBytesReadState(bytes);
+            if (onMapUpdated !== undefined) {
+                lvin.on(Lvin.Events.map, (map: IFileMapItem[]) => {
+                    onMapUpdated(map.map((item: IFileMapItem) => {
+                        return { bytes: { from: item.b[0], to: item.b[1] }, rows: { from: item.r[0], to: item.r[1] } };
+                    }));
                 });
             }
             lvin.index({

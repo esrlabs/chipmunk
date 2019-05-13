@@ -95,9 +95,11 @@ export default class FunctionOpenLocalFile {
             if (this._parser.readAndWrite === undefined) {
                 return reject(new Error(`This case isn't possible, but typescript compile.`));
             }
-            this._parser.readAndWrite(file, dest.file, sourceId, ServiceStreams.updatePipeSession).then((map: IMapItem[]) => {
-                // Update map
-                ServiceStreams.updateStreamFileMap(dest.streamId, map);
+            this._parser.readAndWrite(file, dest.file, sourceId, (map: IMapItem[]) => {
+                ServiceStreams.pushToStreamFileMap(dest.streamId, map);
+                ServiceStreams.updatePipeSession(map[map.length - 1].bytes.to, dest.streamId);
+            }).then((map: IMapItem[]) => {
+                // Doesn't need to update map here, because it's updated on fly
                 // Notify render
                 resolve();
             }).catch((error: Error) => {
