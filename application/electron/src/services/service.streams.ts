@@ -208,12 +208,20 @@ class ServiceStreams extends EventEmitter implements IService  {
         stream.processor.updatePipeSession(written);
     }
 
-    public updateStreamFileMap(streamId: string, map: IMapItem[]) {
+    public rewriteStreamFileMap(streamId: string, map: IMapItem[]) {
         const stream: IStreamInfo | undefined = this._streams.get(streamId);
         if (stream === undefined) {
             return this._logger.warn(`Fail to update stream file map for stream "${streamId}" because stream doesn't exist.`);
         }
-        stream.processor.updateStreamMap(map);
+        stream.processor.rewriteStreamFileMap(map);
+    }
+
+    public pushToStreamFileMap(streamId: string, map: IMapItem[]) {
+        const stream: IStreamInfo | undefined = this._streams.get(streamId);
+        if (stream === undefined) {
+            return this._logger.warn(`Fail to push stream file map for stream "${streamId}" because stream doesn't exist.`);
+        }
+        stream.processor.pushToStreamFileMap(map);
     }
 
     /**
