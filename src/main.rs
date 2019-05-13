@@ -6,6 +6,7 @@ use std::process;
 use std::time::Instant;
 use structopt::StructOpt;
 
+mod merger;
 mod processor;
 mod report;
 
