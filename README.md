@@ -22,6 +22,9 @@ ARGS:
 
 # Changelog
 
+### [0.8.1] - 05/13/2019
+  * [](fix): add missing newlines to stdout mapping
+
 ### [0.8.0] - 05/13/2019
   * added option to spit out mapping info on stdout (use `-t` to get
     all chunks that have been written to stdout)
