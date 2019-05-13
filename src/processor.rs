@@ -102,7 +102,7 @@ impl Indexer {
                         let chunk = Chunk {
                             r: (
                                 last_line_current_chunk - lines_in_chunk,
-                                last_line_current_chunk,
+                                last_line_current_chunk -1,
                             ),
                             b: (start_of_chunk_byte_index, current_byte_index),
                         };
@@ -285,14 +285,22 @@ mod tests {
         (chunks, out_file_content)
     }
     type Pair = (usize, usize);
+
     fn chunks_fit_together(chunks: &[Chunk]) -> bool {
+        println!("chunks: {:?}", chunks);
         if chunks.is_empty() {
             return true;
         }
         let byte_ranges: Vec<(usize, usize)> = chunks.iter().map(|x| x.b).collect();
-        let tail: &[(usize, usize)] = &byte_ranges[1..];
-        let pairs: Vec<(&Pair, &Pair)> = byte_ranges.iter().zip(tail.iter()).collect();
-        pairs.iter().all(|&(p1, p2)| p1.1 + 1 == p2.0)
+        let bytes_tail: &[(usize, usize)] = &byte_ranges[1..];
+        let bytes_pairs: Vec<(&Pair, &Pair)> = byte_ranges.iter().zip(bytes_tail.iter()).collect();
+        println!("byte-pairs: {:?}", bytes_pairs);
+        let row_ranges: Vec<(usize, usize)> = chunks.iter().map(|x| x.r).collect();
+        let row_tail: &[(usize, usize)] = &row_ranges[1..];
+        let row_pairs: Vec<(&Pair, &Pair)> = row_ranges.iter().zip(row_tail.iter()).collect();
+        println!("row-pairs: {:?}", row_pairs);
+        bytes_pairs.iter().all(|&(p1, p2)| p1.1 + 1 == p2.0)
+            && row_pairs.iter().all(|&(p1, p2)| p1.1 + 1 == p2.0)
     }
 
     const D1: u8 = PLUGIN_ID_SENTINAL as u8;
