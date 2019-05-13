@@ -81,7 +81,7 @@ impl Indexer {
                         // println!("flush with content: {:02X?}", out_buffer.as_bytes());
                         let _ = out_file.write_all(out_buffer.as_bytes());
                         if to_stdout {
-                            println!("================> {}", immediate_output);
+                            println!("{}", immediate_output);
                             immediate_output.clear();
                         }
                         out_buffer.clear();
@@ -109,6 +109,7 @@ impl Indexer {
                         if to_stdout {
                             immediate_output += &serde_json::to_string(&chunk)
                                 .expect("chunk could not be serialized")[..];
+                            immediate_output += "\n";
                         }
 
                         chunks.push(chunk);
