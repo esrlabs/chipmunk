@@ -22,6 +22,10 @@ ARGS:
 
 # Changelog
 
+### [0.8.2] - 05/13/2019
+  * [](fix): fixed row offsets in mapping file
+  * basic timestamp parsing works
+
 ### [0.8.1] - 05/13/2019
   * [](fix): add missing newlines to stdout mapping
 

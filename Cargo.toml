@@ -1,6 +1,6 @@
 [package]
 name = "logviewer_parser"
-version = "0.8.1"
+version = "0.8.2"
 authors = ["Oliver Mueller <oliver.mueller@esrlabs.com>"]
 edition = "2018"
 
