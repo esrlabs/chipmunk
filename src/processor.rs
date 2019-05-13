@@ -20,6 +20,7 @@ impl Indexer {
         f: &std::fs::File,
         out_path: &std::path::PathBuf,
         append: bool,
+        to_stdout: bool,
     ) -> ::std::result::Result<Vec<Chunk>, failure::Error> {
         let mut reader = BufReader::new(f);
         let mut out_buffer = String::new();
@@ -48,6 +49,7 @@ impl Indexer {
         let mut last_line_current_chunk = line_nr;
         let mut buf = vec![];
         let mut processed_bytes = 0;
+        let mut immediate_output = String::new();
         while let Ok(len) = reader.read_until(b'\n', &mut buf) {
             unsafe {
                 let s = std::str::from_utf8_unchecked(&buf);
@@ -78,6 +80,10 @@ impl Indexer {
                     if lines_in_buffer >= self.max_lines {
                         // println!("flush with content: {:02X?}", out_buffer.as_bytes());
                         let _ = out_file.write_all(out_buffer.as_bytes());
+                        if to_stdout {
+                            println!("================> {}", immediate_output);
+                            immediate_output.clear();
+                        }
                         out_buffer.clear();
                         lines_in_buffer = 0;
                     }
@@ -100,12 +106,17 @@ impl Indexer {
                             ),
                             b: (start_of_chunk_byte_index, current_byte_index),
                         };
+                        if to_stdout {
+                            immediate_output += &serde_json::to_string(&chunk)
+                                .expect("chunk could not be serialized")[..];
+                        }
+
                         chunks.push(chunk);
                         start_of_chunk_byte_index = current_byte_index + 1;
                         lines_in_chunk = 0;
                     }
                     if line_nr % REPORT_PROGRESS_LINE_BLOCK == 0 {
-                        println!(
+                        eprintln!(
                             "processed {} lines -- byte-index {} ({} %)",
                             line_nr,
                             current_byte_index,
@@ -118,6 +129,10 @@ impl Indexer {
         }
         // println!("done with content: {:02X?}", out_buffer.as_bytes());
         let _ = out_file.write_all(out_buffer.as_bytes());
+        if to_stdout {
+            println!("{}", immediate_output);
+            immediate_output.clear();
+        }
         // only add junk if we produced any output lines
         if line_nr > 0 {
             // check if we still need to spit out a chunk
@@ -126,6 +141,12 @@ impl Indexer {
                     r: (last_line_current_chunk, line_nr - 1),
                     b: (start_of_chunk_byte_index, current_byte_index),
                 };
+                if to_stdout {
+                    println!(
+                        "{}",
+                        serde_json::to_string(&chunk).expect("chunk could not be serialized")
+                    );
+                }
                 chunks.push(chunk);
             }
         }
@@ -143,7 +164,7 @@ impl Indexer {
                     )));
                 }
             }
-            None => println!("no content found"),
+            None => eprintln!("no content found"),
         }
         Ok(chunks)
     }
@@ -182,7 +203,7 @@ fn last_line_nr(path: &std::path::Path) -> Option<usize> {
     let file = std::fs::File::open(path).expect("opening file did not work");
     let file_size = file.metadata().expect("could not read file metadata").len();
     if file_size == 0 {
-        println!("file was empty => last_line_nr was 0");
+        eprintln!("file was empty => last_line_nr was 0");
         return Some(0);
     };
     let mut reader = BufReader::new(file);
@@ -207,7 +228,7 @@ fn last_line_nr(path: &std::path::Path) -> Option<usize> {
                 .trim_end_matches(ROW_NUMBER_SENTINAL)
                 .parse()
                 .expect("expected number was was none");
-            println!("parsing: {:02X?} => last row_nr: {}", row_slice, row_nr);
+            eprintln!("parsing: {:02X?} => last row_nr: {}", row_slice, row_nr);
             return Some(row_nr);
         }
     }
@@ -250,7 +271,7 @@ mod tests {
             chunk_size: chunksize,           // used for mapping line numbers to byte positions
         };
         let chunks = indexer
-            .index_file(&f, &out_file_path, tmp_file_name.is_some())
+            .index_file(&f, &out_file_path, tmp_file_name.is_some(), false)
             .unwrap();
         let out_file_content: String =
             fs::read_to_string(out_file_path).expect("could not read file");
@@ -268,11 +289,8 @@ mod tests {
             return true;
         }
         let byte_ranges: Vec<(usize, usize)> = chunks.iter().map(|x| x.b).collect();
-        println!("byte_ranges: {:?}", byte_ranges);
         let tail: &[(usize, usize)] = &byte_ranges[1..];
-        println!("tail: {:?}", tail);
         let pairs: Vec<(&Pair, &Pair)> = byte_ranges.iter().zip(tail.iter()).collect();
-        println!("pairs: {:?}", pairs);
         pairs.iter().all(|&(p1, p2)| p1.1 + 1 == p2.0)
     }
 
@@ -295,7 +313,7 @@ mod tests {
             chunk_size: 1,                // used for mapping line numbers to byte positions
         };
         let chunks = indexer
-            .index_file(&empty_file, &out_path, false)
+            .index_file(&empty_file, &out_path, false, false)
             .expect("could not index file");
         assert_eq!(0, chunks.len(), "empty file should produce 0 chunks");
         let out_file_content: String = fs::read_to_string(&out_path).expect("could not read file");
@@ -306,7 +324,7 @@ mod tests {
         );
         let nonempty_file = File::open(local_file(nonempty_file_name)).unwrap();
         let chunks2 = indexer
-            .index_file(&nonempty_file, &out_path, true)
+            .index_file(&nonempty_file, &out_path, true, false)
             .expect("could not index file");
         let out_file_content: String = fs::read_to_string(out_path).expect("could not read file");
         println!("outfile: {}\nchunks: {:?}", out_file_content, chunks2);
@@ -427,7 +445,9 @@ mod tests {
         };
         let tmp_dir = TempDir::new("test_dir").expect("could not create temp dir");
         let out_file_path = tmp_dir.path().join("tmpTestFile.txt.out");
-        let chunks = indexer.index_file(&in_file, &out_file_path, false).unwrap();
+        let chunks = indexer
+            .index_file(&in_file, &out_file_path, false, false)
+            .unwrap();
         let out_file_content_bytes = fs::read(out_file_path).expect("could not read file");
         let out_file_content = String::from_utf8_lossy(&out_file_content_bytes[..]);
         let mut expected_path = PathBuf::from(&dir_name);

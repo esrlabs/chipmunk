@@ -18,6 +18,9 @@ struct Cli {
     /// How many lines should be in a chunk (used for access later)
     #[structopt(long = "chunk_size", short = "s", default_value = "500")]
     chunk_size: usize,
+    /// put out chunk information on stdout
+    #[structopt(long = "stdout", short = "t")]
+    stdout: bool,
     /// append to file if exists
     #[structopt(long = "append", short = "a")]
     append: bool,
@@ -58,7 +61,7 @@ fn main() -> CliResult {
         chunk_size: args.chunk_size,   // used for mapping line numbers to byte positions
     };
 
-    match indexer.index_file(&f, &out_path, args.append) {
+    match indexer.index_file(&f, &out_path, args.append, args.stdout) {
         Err(why) => {
             eprintln!("couldn't process: {}", why);
             process::exit(2)
@@ -71,7 +74,7 @@ fn main() -> CliResult {
             let file_size_in_mb =
                 f.metadata().expect("could not read file metadata").len() as f64 / 1024.0 / 1024.0;
             let mb_bytes_per_second: f64 = file_size_in_mb / duration_in_s;
-            println!(
+            eprintln!(
                 "processing ~{} MB took {:.3}s! ({:.3} MB/s)",
                 file_size_in_mb.round(),
                 duration_in_s,
