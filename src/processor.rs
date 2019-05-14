@@ -1,9 +1,7 @@
 use crate::report::Chunk;
-use std::fmt::Write as W;
+use crate::utils::{create_tagged_line, is_newline, PLUGIN_ID_SENTINAL, ROW_NUMBER_SENTINAL};
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom, Write};
 
-const ROW_NUMBER_SENTINAL: char = '\u{0002}';
-const PLUGIN_ID_SENTINAL: char = '\u{0003}';
 const SENTINAL_LENGTH: usize = 1;
 const PEEK_END_SIZE: usize = 12;
 const REPORT_PROGRESS_LINE_BLOCK: usize = 1_000_000;
@@ -22,7 +20,7 @@ impl Indexer {
         append: bool,
         to_stdout: bool,
     ) -> ::std::result::Result<Vec<Chunk>, failure::Error> {
-        let mut reader = BufReader::new(f);
+        let mut reader: BufReader<&std::fs::File> = BufReader::new(f);
         let mut out_buffer = String::new();
         let mut line_nr = if append {
             last_line_nr(&out_path).expect("could not get last line number of old file")
@@ -30,7 +28,7 @@ impl Indexer {
             0
         };
         let mut lines_in_buffer: usize = 1;
-        let mut out_file: std::fs::File = if append {
+        let mut out_file: std::fs::File = if append && !out_path.exists() {
             std::fs::OpenOptions::new()
                 .append(true)
                 .open(out_path)
@@ -63,17 +61,12 @@ impl Indexer {
                 };
                 // discard empty lines
                 if trimmed_len != 0 {
-                    write!(
-                        out_buffer,
-                        "{}{}{}{}{}{}{}{}",
+                    create_tagged_line(
+                        &self.source_id[..],
+                        &mut out_buffer,
                         trimmed_line, //trimmed_line,
-                        PLUGIN_ID_SENTINAL,
-                        self.source_id,
-                        PLUGIN_ID_SENTINAL,
-                        ROW_NUMBER_SENTINAL,
                         line_nr,
-                        ROW_NUMBER_SENTINAL,
-                        if had_newline { "\n" } else { "" },
+                        had_newline,
                     )?;
                     lines_in_buffer += 1;
                     // check if we need to flush
@@ -102,7 +95,7 @@ impl Indexer {
                         let chunk = Chunk {
                             r: (
                                 last_line_current_chunk - lines_in_chunk,
-                                last_line_current_chunk -1,
+                                last_line_current_chunk - 1,
                             ),
                             b: (start_of_chunk_byte_index, current_byte_index),
                         };
@@ -172,14 +165,6 @@ impl Indexer {
 }
 
 #[inline]
-fn is_newline(c: char) -> bool {
-    match c {
-        '\x0a' => true,
-        '\x0d' => true,
-        _ => false,
-    }
-}
-#[inline]
 fn linenr_length(linenr: usize) -> usize {
     if linenr == 0 {
         return 1;
@@ -248,11 +233,6 @@ mod tests {
     use std::path::PathBuf;
     use tempdir::TempDir;
 
-    fn local_file(file_name: &str) -> std::path::PathBuf {
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push(file_name);
-        d
-    }
     fn get_chunks(
         test_content: &str,
         chunksize: usize,
@@ -287,18 +267,15 @@ mod tests {
     type Pair = (usize, usize);
 
     fn chunks_fit_together(chunks: &[Chunk]) -> bool {
-        println!("chunks: {:?}", chunks);
         if chunks.is_empty() {
             return true;
         }
         let byte_ranges: Vec<(usize, usize)> = chunks.iter().map(|x| x.b).collect();
         let bytes_tail: &[(usize, usize)] = &byte_ranges[1..];
         let bytes_pairs: Vec<(&Pair, &Pair)> = byte_ranges.iter().zip(bytes_tail.iter()).collect();
-        println!("byte-pairs: {:?}", bytes_pairs);
         let row_ranges: Vec<(usize, usize)> = chunks.iter().map(|x| x.r).collect();
         let row_tail: &[(usize, usize)] = &row_ranges[1..];
         let row_pairs: Vec<(&Pair, &Pair)> = row_ranges.iter().zip(row_tail.iter()).collect();
-        println!("row-pairs: {:?}", row_pairs);
         bytes_pairs.iter().all(|&(p1, p2)| p1.1 + 1 == p2.0)
             && row_pairs.iter().all(|&(p1, p2)| p1.1 + 1 == p2.0)
     }
@@ -308,14 +285,14 @@ mod tests {
     const NL: u8 = 0x0a;
     #[test]
     fn test_append_to_empty_output() {
-        let empty_file_name = "empty.log";
-        let nonempty_file_name = "not_empty.log";
-        let out_name = "test_append_to_empty_output.log.out";
-        fs::write(local_file(nonempty_file_name), "A").unwrap();
+        let tmp_dir = TempDir::new("my_directory_prefix").expect("could not create temp dir");
+        let nonempty_file_path = tmp_dir.path().join("not_empty.log");
+        let empty_file_path = tmp_dir.path().join("empty.log");
+        fs::write(&nonempty_file_path, "A").unwrap();
         // call our function
-        fs::write(local_file(empty_file_name), "").expect("testfile could not be written");
-        let empty_file = File::open(local_file(empty_file_name)).unwrap();
-        let out_path = local_file(out_name);
+        fs::write(&empty_file_path, "").expect("testfile could not be written");
+        let empty_file = File::open(empty_file_path).unwrap();
+        let out_path = tmp_dir.path().join("test_append_to_empty_output.log.out");
         let indexer = Indexer {
             source_id: "tag".to_string(), // tag to append to each line
             max_lines: 5,                 // how many lines to collect before writing out
@@ -331,7 +308,7 @@ mod tests {
             out_file_content.len(),
             "empty file should produce empty output"
         );
-        let nonempty_file = File::open(local_file(nonempty_file_name)).unwrap();
+        let nonempty_file = File::open(nonempty_file_path).unwrap();
         let chunks2 = indexer
             .index_file(&nonempty_file, &out_path, true, false)
             .expect("could not index file");
@@ -343,11 +320,6 @@ mod tests {
             "nonempty file should produce nonempty output"
         );
         assert_eq!(0, chunks2[0].r.0, "first chunk row should start with 0");
-
-        // cleanup
-        fs::remove_file(local_file(empty_file_name)).expect("error cleaning up");
-        fs::remove_file(local_file(nonempty_file_name)).expect("error cleaning up");
-        fs::remove_file(local_file(out_name)).expect("error cleaning up");
     }
     #[test]
     fn test_chunking_one_chunk_exact() {
@@ -441,11 +413,10 @@ mod tests {
         check(content3.to_vec(), 2);
     }
 
-    test_generator::test_expand_paths! { test_input_output; "test/*" }
+    test_generator::test_expand_paths! { test_input_output; "test_samples/indexing/*" }
 
     fn test_input_output(dir_name: &str) {
-        let mut in_path = PathBuf::from(&dir_name);
-        in_path.push("in.txt");
+        let in_path = PathBuf::from(&dir_name).join("in.txt");
         let in_file = File::open(in_path).unwrap();
         let indexer = Indexer {
             source_id: "TAG".to_string(),
@@ -459,8 +430,7 @@ mod tests {
             .unwrap();
         let out_file_content_bytes = fs::read(out_file_path).expect("could not read file");
         let out_file_content = String::from_utf8_lossy(&out_file_content_bytes[..]);
-        let mut expected_path = PathBuf::from(&dir_name);
-        expected_path.push("expected.output");
+        let expected_path = PathBuf::from(&dir_name).join("expected.output");
         let expected_content_bytes = fs::read(expected_path).expect("could not read expected file");
         let expected_content = String::from_utf8_lossy(&expected_content_bytes[..]);
         println!(

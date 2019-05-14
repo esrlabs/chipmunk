@@ -1,0 +1,26 @@
+04-01 02:00:01.680 +0200 I/spieth.sh(   61): Launching dropbox tftpd on 192.168.11.10:69
+04-01 02:00:01.690 +0200 I/spieth.sh(   61): udpsvd: listening on 192.168.11.10:69, starting
+--------- beginning of /dev/log/system
+04-01 02:00:01.760 +0200 I/Vold    (   58): Vold 2.1 (the revenge) firing up
+04-01 02:00:01.790 +0200 I/Netd    (   62): Netd 1.0 starting
+04-01 02:00:01.800 +0200 D/Vold    (   58): Volume usb state changing -1 (Initializing) -> 0 (No-Media)
+04-01 02:00:01.810 +0200 W/InterfaceController(   62): Warning (Cannot load library: load_library(linker.cpp:745): library "/system/lib/libnetcmdiface.so" not found) while opening the net interface command library
+04-01 02:00:01.920 +0200 I/DEBUG   (   63): debuggerd: Feb 16 2016 13:14:27
+04-01 02:00:02.210 +0200 I/recovery(  121): Recovery image already installed 
+04-01 02:00:02.450 +0200 I/SurfaceFlinger(   65): SurfaceFlinger is starting
+04-01 02:00:02.460 +0200 I/SurfaceFlinger(   65): SurfaceFlinger's main thread ready to run. Initializing graphics H/W...
+04-01 02:00:02.470 +0200 D/libEGL  (   65): loaded /system/lib/egl/libEGL_POWERVR_SGX530_125.so
+04-01 02:00:02.630 +0200 D/libEGL  (   65): loaded /system/lib/egl/libGLESv1_CM_POWERVR_SGX530_125.so
+04-01 02:00:02.640 +0200 D/libEGL  (   65): loaded /system/lib/egl/libGLESv2_POWERVR_SGX530_125.so
+04-01 02:00:02.800 +0200 E/SurfaceFlinger(   65): hwcomposer module not found
+04-01 02:00:02.800 +0200 W/SurfaceFlinger(   65): getting VSYNC period from fb HAL: 82081591
+04-01 02:00:02.800 +0200 W/SurfaceFlinger(   65): no suitable EGLConfig found, trying without EGL_FRAMEBUFFER_TARGET_ANDROID
+04-01 02:00:02.820 +0200 I/SurfaceFlinger(   65): EGL informations:
+04-01 02:00:02.820 +0200 I/SurfaceFlinger(   65): vendor    : Android
+04-01 02:00:02.820 +0200 I/SurfaceFlinger(   65): version   : 1.4 Android META-EGL
+04-01 02:00:02.820 +0200 I/SurfaceFlinger(   65): extensions: EGL_KHR_image EGL_KHR_image_base EGL_KHR_gl_texture_2D_image EGL_KHR_gl_texture_cubemap_image EGL_KHR_gl_renderbuffer_image EGL_KHR_fence_sync EGL_ANDROID_image_native_buffer 
+04-01 02:00:02.820 +0200 I/SurfaceFlinger(   65): Client API: OpenGL_ES
+04-01 02:00:02.820 +0200 I/SurfaceFlinger(   65): EGLSurface: 8-8-8-8, config=0x2
+04-01 02:00:02.820 +0200 I/SurfaceFlinger(   65): OpenGL ES informations:
+04-01 02:00:02.820 +0200 I/SurfaceFlinger(   65): vendor    : Imagination Technologies
+04-01 02:00:02.820 +0200 I/SurfaceFlinger(   65): renderer  : PowerVR SGX 530

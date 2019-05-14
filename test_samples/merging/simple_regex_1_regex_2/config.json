@@ -1,0 +1,13 @@
+[
+  {
+    "name": "a.log",
+    "offset": 0,
+    "tag": "A-TAG"
+  },
+  {
+    "name": "b.log",
+    "offset": 0,
+    "tag": "B-TAG",
+    "year": 2019
+  }
+]

@@ -9,6 +9,7 @@ use structopt::StructOpt;
 mod merger;
 mod processor;
 mod report;
+mod utils;
 
 /// Create index file and mapping file for logviewer
 #[derive(Debug, StructOpt)]
@@ -17,19 +18,23 @@ struct Cli {
     #[structopt(long = "max_lines", short = "n", default_value = "1000000")]
     max_lines: usize,
     /// How many lines should be in a chunk (used for access later)
-    #[structopt(long = "chunk_size", short = "s", default_value = "500")]
+    #[structopt(long = "chunk_size", short = "c", default_value = "500")]
     chunk_size: usize,
     /// put out chunk information on stdout
-    #[structopt(long = "stdout", short = "t")]
+    #[structopt(long = "stdout", short = "s")]
     stdout: bool,
     /// append to file if exists
     #[structopt(long = "append", short = "a")]
     append: bool,
-    // Add a positional argument that the user has to supply:
+    /// input file is a json file that defines all files to be merged
+    #[structopt(long = "merge", short = "m")]
+    merge_config_file: Option<String>,
     /// The file to read
-    file: String,
+    #[structopt(long = "index", short = "i")]
+    file_to_index: Option<String>,
     /// how to tag the source
-    tag: String,
+    #[structopt(long = "tag", short = "t")]
+    tag: Option<String>,
     /// Output file, "<file>.out" if not present
     #[structopt(parse(from_os_str))]
     output: Option<PathBuf>,
@@ -43,45 +48,88 @@ fn main() -> CliResult {
 
     let args = Cli::from_args();
 
-    let f: fs::File = fs::File::open(&args.file)?;
-    let tag_id = &args.tag;
-
-    let out_path: std::path::PathBuf = match args.output {
-        Some(path) => path,
-        None => PathBuf::from(args.file.to_string() + ".out"),
-    };
-
-    if args.append && !out_path.exists() {
-        let _ = fs::File::create(&out_path);
-    }
-    let mapping_out_path: std::path::PathBuf = PathBuf::from(args.file.to_string() + ".map.json");
-
-    let indexer = processor::Indexer {
-        source_id: tag_id.to_string(), // tag to append to each line
-        max_lines: args.max_lines,     // how many lines to collect before writing out
-        chunk_size: args.chunk_size,   // used for mapping line numbers to byte positions
-    };
-
-    match indexer.index_file(&f, &out_path, args.append, args.stdout) {
-        Err(why) => {
-            eprintln!("couldn't process: {}", why);
-            process::exit(2)
-        }
-        Ok(chunks) => {
-            let _ = serialize_chunks(&chunks, &mapping_out_path);
-            let elapsed = start.elapsed();
-            let ms = elapsed.as_millis();
-            let duration_in_s = ms as f64 / 1000.0;
-            let file_size_in_mb =
-                f.metadata().expect("could not read file metadata").len() as f64 / 1024.0 / 1024.0;
-            let mb_bytes_per_second: f64 = file_size_in_mb / duration_in_s;
-            eprintln!(
-                "processing ~{} MB took {:.3}s! ({:.3} MB/s)",
-                file_size_in_mb.round(),
-                duration_in_s,
-                mb_bytes_per_second
-            );
+    match args.merge_config_file {
+        Some(merge_config_file_name) => {
+            let out_path: std::path::PathBuf = match args.output {
+                Some(path) => path,
+                None => {
+                    eprintln!("no output file specified");
+                    process::exit(2)
+                }
+            };
+            let merger = merger::Merger {
+                max_lines: args.max_lines,   // how many lines to collect before writing out
+                chunk_size: args.chunk_size, // used for mapping line numbers to byte positions
+            };
+            let config_path = PathBuf::from(merge_config_file_name);
+            match merger.merge_files_use_config_file(&config_path, &out_path, args.append) {
+                Ok(cnt) => eprintln!("merged {} lines", cnt),
+                Err(e) => {
+                    eprintln!("error merging: {}", e);
+                    process::exit(2)
+                }
+            }
             Ok(())
+        }
+        None => {
+            let file = match args.file_to_index {
+                Some(f) => f,
+                None => {
+                    eprintln!("file to index was not provided");
+                    process::exit(2)
+                }
+            };
+            let tag = match args.tag {
+                Some(f) => f,
+                None => {
+                    eprintln!("tag was not provided");
+                    process::exit(2)
+                }
+            };
+            let out_path: std::path::PathBuf = match args.output {
+                Some(path) => path,
+                None => PathBuf::from(file.to_string() + ".out"),
+            };
+            let mapping_out_path: std::path::PathBuf =
+                PathBuf::from(file.to_string() + ".map.json");
+
+            let indexer = processor::Indexer {
+                source_id: tag,                 // tag to append to each line
+                max_lines: args.max_lines,      // how many lines to collect before writing out
+                chunk_size: args.chunk_size,    // used for mapping line numbers to byte positions
+            };
+
+            let f = match fs::File::open(&file) {
+                Ok(file) => file,
+                Err(_) => {
+                    eprintln!("could not open {}", file);
+                    process::exit(2)
+                },
+            };
+            match indexer.index_file(&f, &out_path, args.append, args.stdout) {
+                Err(why) => {
+                    eprintln!("couldn't process: {}", why);
+                    process::exit(2)
+                }
+                Ok(chunks) => {
+                    let _ = serialize_chunks(&chunks, &mapping_out_path);
+                    let elapsed = start.elapsed();
+                    let ms = elapsed.as_millis();
+                    let duration_in_s = ms as f64 / 1000.0;
+                    let file_size_in_mb = f.metadata().expect("could not read file metadata").len()
+                        as f64
+                        / 1024.0
+                        / 1024.0;
+                    let mb_bytes_per_second: f64 = file_size_in_mb / duration_in_s;
+                    eprintln!(
+                        "processing ~{} MB took {:.3}s! ({:.3} MB/s)",
+                        file_size_in_mb.round(),
+                        duration_in_s,
+                        mb_bytes_per_second
+                    );
+                    Ok(())
+                }
+            }
         }
     }
 }
