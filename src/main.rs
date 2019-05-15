@@ -69,6 +69,10 @@ fn main() -> CliResult {
                     process::exit(2)
                 }
             }
+            let elapsed = start.elapsed();
+            let ms = elapsed.as_millis();
+            let duration_in_s = ms as f64 / 1000.0;
+            eprintln!("merging took {:.3}s!", duration_in_s);
             Ok(())
         }
         None => {

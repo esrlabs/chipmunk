@@ -46,10 +46,10 @@ lazy_static! {
     static ref REGEX_REGISTRY: HashMap<RegexKind, Regex> = {
         let mut m = HashMap::new();
         m.insert(RegexKind::R1, Regex::new(
-            r"(?x)^(?P<d>\d{2})-(?P<m>\d{2})\s+(?P<H>\d{2}):(?P<M>\d{2}):(?P<S>\d{2}).(?P<millis>\d+)\s(?P<timezone>[\+\-]\d+)"
+            r"(?x)^(?P<m>\d{2})-(?P<d>\d{2})\s+(?P<H>\d{2}):(?P<M>\d{2}):(?P<S>\d{2}).(?P<millis>\d+)\s(?P<timezone>[\+\-]\d+)"
         ).unwrap());
         m.insert(RegexKind::R2, Regex::new(
-            r"(?x)^(?P<d>\d{2})-(?P<m>\d{2})-(?P<Y>\d{4})\s+(?P<H>\d{2}):(?P<M>\d{2}):(?P<S>\d{2}).(?P<millis>\d+)",
+            r"(?x)^(?P<m>\d{2})-(?P<d>\d{2})-(?P<Y>\d{4})\s+(?P<H>\d{2}):(?P<M>\d{2}):(?P<S>\d{2}).(?P<millis>\d+)",
         ).unwrap());
         m
     };
@@ -180,6 +180,11 @@ fn line_to_timed_line(
     };
     match (the_year, offset_result) {
         (Some(y), Ok(offset)) => {
+            // eprintln!("(y, month, day) = {:?}", (y, month, day));
+            // eprintln!(
+            //     "(hour, minutes, seconds, millis) = {:?}",
+            //     (hour, minutes, seconds, millis)
+            // );
             let date_time: NaiveDateTime =
                 NaiveDate::from_ymd(y, month, day).and_hms_milli(hour, minutes, seconds, millis);
             let unix_timestamp = date_time.timestamp_millis();
@@ -438,5 +443,6 @@ mod tests {
         );
         assert_eq!(expected_content, out_file_content);
     }
+
     // TODO test files with lines without timestamp
 }
