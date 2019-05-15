@@ -4,23 +4,38 @@ Create index file and mapping file for logviewer
 
 ```
 USAGE:
-    logviewer_parser [FLAGS] [OPTIONS] <file> <source>
+    logviewer_parser [FLAGS] [OPTIONS]
 
 FLAGS:
+    -a, --append       append to file if exists
     -h, --help         Prints help information
+    -s, --stdout       put out chunk information on stdout
     -V, --version      Prints version information
     -v, --verbosity    Pass many times for more log output
 
 OPTIONS:
-    -s, --chunk_size <chunk_size>    How many lines should be in a chunk (used for access later) [default: 500]
-    -n, --max_lines <max_lines>      How many lines to collect before dumping [default: 1000000]
-
-ARGS:
-    <file>      The file to read
-    <source>    how to tag the source
+    -c, --chunk_size <chunk_size>      How many lines should be in a chunk (used for access later) [default: 500]
+    -i, --index <file_to_index>        The file to read
+    -n, --max_lines <max_lines>        How many lines to collect before dumping [default: 1000000]
+    -m, --merge <merge_config_file>    input file is a json file that defines all files to be merged
+    -o, --out <output>                 Output file, "<file_to_index>.out" if not present
+    -t, --tag <tag>                    how to tag the source
 ```
 
 # Changelog
+
+### [0.9.0] - 05/15/2019
+  * feat: first support for merging
+  * implemented regex discovery
+    * line detection
+  * rearranged test folders
+    * get use temp-dir for all tests where we create files
+  * first implementation of merge
+  * add option to use config file for merging
+  * improoved error handling
+  * push functionality to util for reuse
+  * add tags and line numbers to merged file
+  * deal with missing timestamp for a line
 
 ### [0.8.2] - 05/13/2019
   * [](fix): fixed row offsets in mapping file

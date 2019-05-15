@@ -35,9 +35,9 @@ struct Cli {
     /// how to tag the source
     #[structopt(long = "tag", short = "t")]
     tag: Option<String>,
-    /// Output file, "<file>.out" if not present
-    #[structopt(parse(from_os_str))]
-    output: Option<PathBuf>,
+    /// Output file, "<file_to_index>.out" if not present
+    #[structopt(long = "out", short = "o")]
+    output: Option<String>,
     // Quick and easy logging setup you get for free with quicli
     #[structopt(flatten)]
     verbosity: Verbosity,
@@ -51,7 +51,7 @@ fn main() -> CliResult {
     match args.merge_config_file {
         Some(merge_config_file_name) => {
             let out_path: std::path::PathBuf = match args.output {
-                Some(path) => path,
+                Some(path) => PathBuf::from(path),
                 None => {
                     eprintln!("no output file specified");
                     process::exit(2)
@@ -87,16 +87,16 @@ fn main() -> CliResult {
                 }
             };
             let out_path: std::path::PathBuf = match args.output {
-                Some(path) => path,
+                Some(path) => PathBuf::from(path),
                 None => PathBuf::from(file.to_string() + ".out"),
             };
             let mapping_out_path: std::path::PathBuf =
                 PathBuf::from(file.to_string() + ".map.json");
 
             let indexer = processor::Indexer {
-                source_id: tag,                 // tag to append to each line
-                max_lines: args.max_lines,      // how many lines to collect before writing out
-                chunk_size: args.chunk_size,    // used for mapping line numbers to byte positions
+                source_id: tag,              // tag to append to each line
+                max_lines: args.max_lines,   // how many lines to collect before writing out
+                chunk_size: args.chunk_size, // used for mapping line numbers to byte positions
             };
 
             let f = match fs::File::open(&file) {
@@ -104,7 +104,7 @@ fn main() -> CliResult {
                 Err(_) => {
                     eprintln!("could not open {}", file);
                     process::exit(2)
-                },
+                }
             };
             match indexer.index_file(&f, &out_path, args.append, args.stdout) {
                 Err(why) => {
