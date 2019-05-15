@@ -24,6 +24,9 @@ OPTIONS:
 
 # Changelog
 
+### [0.9.1] - 05/15/2019
+  * [](fix): corrected timestamp parsing: day and month were mixed up
+
 ### [0.9.0] - 05/15/2019
   * feat: first support for merging
   * implemented regex discovery
