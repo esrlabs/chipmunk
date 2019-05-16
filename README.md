@@ -24,6 +24,12 @@ OPTIONS:
 
 # Changelog
 
+### [0.9.2] - 05/16/2019
+  * [](refactor): using BufWriter to write to files
+  * better than doing it by hand, perfomance looks the same
+  * code is simpler
+  * [](refactor): extracted creating the index file functionality
+
 ### [0.9.1] - 05/15/2019
   * [](fix): corrected timestamp parsing: day and month were mixed up
 
