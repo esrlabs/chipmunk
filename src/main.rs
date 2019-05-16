@@ -6,9 +6,9 @@ use std::process;
 use std::time::Instant;
 use structopt::StructOpt;
 
+mod chunks;
 mod merger;
 mod processor;
-mod chunks;
 mod utils;
 
 /// Create index file and mapping file for logviewer
@@ -62,17 +62,22 @@ fn main() -> CliResult {
                 chunk_size: args.chunk_size, // used for mapping line numbers to byte positions
             };
             let config_path = PathBuf::from(merge_config_file_name);
-            match merger.merge_files_use_config_file(&config_path, &out_path, args.append) {
-                Ok(cnt) => eprintln!("merged {} lines", cnt),
+            let merged_lines = match merger.merge_files_use_config_file(
+                &config_path,
+                &out_path,
+                args.append,
+                args.stdout,
+            ) {
+                Ok(cnt) => cnt,
                 Err(e) => {
                     eprintln!("error merging: {}", e);
                     process::exit(2)
                 }
-            }
+            };
             let elapsed = start.elapsed();
             let ms = elapsed.as_millis();
             let duration_in_s = ms as f64 / 1000.0;
-            eprintln!("merging took {:.3}s!", duration_in_s);
+            eprintln!("merging {} lines took {:.3}s!", merged_lines, duration_in_s);
             Ok(())
         }
         None => {
@@ -110,7 +115,9 @@ fn main() -> CliResult {
                     process::exit(2)
                 }
             };
-            match indexer.index_file(&f, &out_path, args.append, args.stdout) {
+
+            let source_file_size = f.metadata()?.len() as usize;
+            match indexer.index_file(&f, &out_path, args.append, source_file_size, args.stdout) {
                 Err(why) => {
                     eprintln!("couldn't process: {}", why);
                     process::exit(2)

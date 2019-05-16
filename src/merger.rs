@@ -1,4 +1,5 @@
-use crate::utils::{create_tagged_line, is_newline};
+use crate::chunks::ChunkFactory;
+use crate::utils;
 use chrono::{NaiveDate, NaiveDateTime};
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -240,6 +241,7 @@ impl Merger {
         config_path: &PathBuf,
         out_path: &PathBuf,
         append: bool,
+        use_stdout: bool,
     ) -> ::std::result::Result<usize, failure::Error> {
         let mut merge_option_file = fs::File::open(config_path).unwrap();
         let dir_name = config_path
@@ -255,13 +257,14 @@ impl Merger {
                 tag: o.tag,
             })
             .collect();
-        self.merge_files(inputs, &out_path, append)
+        self.merge_files(inputs, &out_path, append, use_stdout)
     }
     pub fn merge_files(
         &self,
         merger_inputs: Vec<MergerInput>,
         out_path: &PathBuf,
         append: bool,
+        to_stdout: bool,
     ) -> ::std::result::Result<usize, failure::Error> {
         let mut heap: BinaryHeap<TimedLine> = BinaryHeap::new();
         let mut line_nr = 0;
@@ -273,6 +276,10 @@ impl Merger {
         } else {
             std::fs::File::create(&out_path).unwrap()
         };
+        let original_file_size =
+            out_file.metadata().expect("could not read metadata").len() as usize;
+        let mut chunks = vec![];
+        let mut chunk_factory = ChunkFactory::new(self.chunk_size, to_stdout, original_file_size);
         let mut buf_writer = BufWriter::with_capacity(100 * 1024 * 1024, out_file);
         for input in merger_inputs {
             let kind: RegexKind = detect_timestamp_regex(&input.path)?;
@@ -288,7 +295,7 @@ impl Merger {
                 };
                 unsafe {
                     let s = std::str::from_utf8_unchecked(&buf);
-                    let trimmed_line = s.trim_matches(is_newline);
+                    let trimmed_line = s.trim_matches(utils::is_newline);
                     let alt_tag = input.tag.clone();
                     let timed_line = line_to_timed_line(
                         trimmed_line,
@@ -308,15 +315,32 @@ impl Merger {
                 buf = vec![];
             }
         }
+        let mut immediate_output = String::new();
         let sorted = heap.into_sorted_vec();
         for t in sorted {
-            create_tagged_line(&t.tag[..], &mut buf_writer, &t.content[..], line_nr, true)
+            utils::create_tagged_line(&t.tag[..], &mut buf_writer, &t.content[..], line_nr, true)
                 .expect("could not create tagged line");
+            let trimmed_len = t.content.len();
+            let additional_bytes =
+                utils::extended_line_length(trimmed_len, t.tag.len(), line_nr, true);
             line_nr += 1;
+            if let Some(chunk) = chunk_factory.create_chunk_if_needed(
+                line_nr, // TODO avoid passing in this line...error prone
+                additional_bytes,
+                &mut immediate_output,
+            ) {
+                chunks.push(chunk);
+            }
         }
         buf_writer.flush()?;
-        let metadata = fs::metadata(out_path).expect("cannot read size of output file");
-        Ok(metadata.len() as usize)
+        if to_stdout {
+            print!("{}", immediate_output);
+            immediate_output.clear();
+        }
+        if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunks.is_empty()) {
+            chunks.push(chunk);
+        }
+        Ok(line_nr)
     }
 }
 #[cfg(test)]
@@ -421,7 +445,7 @@ mod tests {
             chunk_size: 5,
         };
         let merged_lines_cnt =
-            merger.merge_files_use_config_file(&option_path, &out_file_path, false);
+            merger.merge_files_use_config_file(&option_path, &out_file_path, false, false);
         println!("merged_lines_cnt: {:?}", merged_lines_cnt);
 
         let out_file_content_bytes = fs::read(out_file_path).expect("could not read file");
