@@ -24,6 +24,10 @@ OPTIONS:
 
 # Changelog
 
+### [0.10.0] - 05/16/2019
+  * better error handling
+  * report mapping for merging to stdout
+
 ### [0.9.2] - 05/16/2019
   * [](refactor): using BufWriter to write to files
   * better than doing it by hand, perfomance looks the same
