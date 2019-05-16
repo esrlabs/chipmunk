@@ -7,7 +7,7 @@ use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
 use std::fs;
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
 
 const LINES_TO_INSPECT: usize = 10;
@@ -224,7 +224,6 @@ pub fn read_merge_options(f: &mut fs::File) -> Result<Vec<MergeItemOptions>, fai
 
     let v: Vec<MergeItemOptions> =
         serde_json::from_str(&contents[..]).expect("could not parse merge item file");
-    // println!("merge-file-options: {:?}", v);
     Ok(v)
 }
 
@@ -266,6 +265,15 @@ impl Merger {
     ) -> ::std::result::Result<usize, failure::Error> {
         let mut heap: BinaryHeap<TimedLine> = BinaryHeap::new();
         let mut line_nr = 0;
+        let out_file: std::fs::File = if append {
+            std::fs::OpenOptions::new()
+                .append(true)
+                .open(out_path)
+                .expect("could not open file to append")
+        } else {
+            std::fs::File::create(&out_path).unwrap()
+        };
+        let mut buf_writer = BufWriter::with_capacity(100 * 1024 * 1024, out_file);
         for input in merger_inputs {
             let kind: RegexKind = detect_timestamp_regex(&input.path)?;
             let r: &Regex = &REGEX_REGISTRY[&kind];
@@ -301,29 +309,14 @@ impl Merger {
             }
         }
         let sorted = heap.into_sorted_vec();
-        let mut out_file: std::fs::File = if append {
-            std::fs::OpenOptions::new()
-                .append(true)
-                .open(out_path)
-                .expect("could not open file to append")
-        } else {
-            std::fs::File::create(&out_path).unwrap()
-        };
-        let out_content: Vec<String> = sorted
-            .into_iter()
-            .map(|t: TimedLine| {
-                let mut out_buffer = String::new();
-                create_tagged_line(&t.tag[..], &mut out_buffer, &t.content[..], line_nr, true)
-                    .expect("could not create tagged line");
-                line_nr += 1;
-                out_buffer
-            })
-            .collect();
-        // for s in out_content.clone() {
-        //     println!(">> {:?}", s);
-        // }
-        let _ = out_file.write_all(out_content.join("").as_bytes());
-        Ok(out_content.len())
+        for t in sorted {
+            create_tagged_line(&t.tag[..], &mut buf_writer, &t.content[..], line_nr, true)
+                .expect("could not create tagged line");
+            line_nr += 1;
+        }
+        buf_writer.flush()?;
+        let metadata = fs::metadata(out_path).expect("cannot read size of output file");
+        Ok(metadata.len() as usize)
     }
 }
 #[cfg(test)]

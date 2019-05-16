@@ -1,5 +1,3 @@
-use std::fmt::Write as W;
-
 pub const ROW_NUMBER_SENTINAL: char = '\u{0002}';
 pub const PLUGIN_ID_SENTINAL: char = '\u{0003}';
 
@@ -15,11 +13,11 @@ pub fn is_newline(c: char) -> bool {
 #[inline]
 pub fn create_tagged_line(
     tag: &str,
-    out_buffer: &mut String,
+    out_buffer: &mut std::io::Write,
     trimmed_line: &str,
     line_nr: usize,
     with_newline: bool,
-) -> std::fmt::Result {
+) -> std::io::Result<()> {
     write!(
         out_buffer,
         "{}{}{}{}{}{}{}{}",

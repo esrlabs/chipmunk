@@ -1,6 +1,7 @@
 use crate::chunks::{Chunk, ChunkFactory};
 use crate::utils::{create_tagged_line, is_newline, PLUGIN_ID_SENTINAL, ROW_NUMBER_SENTINAL};
-use std::io::{BufRead, BufReader, Read, Seek, SeekFrom, Write};
+use std::fs;
+use std::io::{BufRead, BufReader, BufWriter, Read, Seek, SeekFrom, Write};
 
 const SENTINAL_LENGTH: usize = 1;
 const PEEK_END_SIZE: usize = 12;
@@ -32,30 +33,31 @@ impl Indexer {
     }
     pub fn index_file(
         &self,
-        f: &std::fs::File,
+        f: &fs::File,
         out_path: &std::path::PathBuf,
         append: bool,
         to_stdout: bool,
     ) -> ::std::result::Result<Vec<Chunk>, failure::Error> {
-        let mut reader: BufReader<&std::fs::File> = BufReader::new(f);
-        let mut out_buffer = String::new();
+        let mut reader: BufReader<&fs::File> = BufReader::new(f);
+        // let mut out_buffer = String::new();
         let mut line_nr = if append {
             last_line_nr(&out_path).expect("could not get last line number of old file")
         } else {
             0
         };
-        let mut lines_in_buffer: usize = 0;
-        let mut out_file: std::fs::File = if append && !out_path.exists() {
-            std::fs::OpenOptions::new()
+        // let mut lines_in_buffer: usize = 0;
+        let out_file: std::fs::File = if append && !out_path.exists() {
+            fs::OpenOptions::new()
                 .append(true)
                 .open(out_path)
                 .expect("could not open file to append")
         } else {
-            std::fs::File::create(&out_path).unwrap()
+            fs::File::create(&out_path).unwrap()
         };
         let original_file_size =
             out_file.metadata().expect("could not read metadata").len() as usize;
         let source_file_size = f.metadata().expect("could not read metadata").len() as usize;
+        let mut buf_writer = BufWriter::with_capacity(100 * 1024 * 1024, out_file);
 
         let mut chunks = vec![];
         let mut buf = vec![];
@@ -78,23 +80,24 @@ impl Indexer {
                 if trimmed_len != 0 {
                     create_tagged_line(
                         &self.source_id[..],
-                        &mut out_buffer,
+                        // &mut out_buffer,
+                        &mut buf_writer,
                         trimmed_line, //trimmed_line,
                         line_nr,
                         had_newline,
                     )?;
-                    lines_in_buffer += 1;
+                    // lines_in_buffer += 1;
                     // check if we need to flush
-                    if lines_in_buffer >= self.max_lines {
-                        // println!("flush with content: {:02X?}", out_buffer.as_bytes());
-                        let _ = out_file.write_all(out_buffer.as_bytes());
-                        if to_stdout {
-                            println!("{}", immediate_output);
-                            immediate_output.clear();
-                        }
-                        out_buffer.clear();
-                        lines_in_buffer = 0;
-                    }
+                    // if lines_in_buffer >= self.max_lines {
+                    //     // println!("flush with content: {:02X?}", out_buffer.as_bytes());
+                    //     let _ = out_file.write_all(out_buffer.as_bytes());
+                    //     if to_stdout {
+                    //         println!("{}", immediate_output);
+                    //         immediate_output.clear();
+                    //     }
+                    //     out_buffer.clear();
+                    //     lines_in_buffer = 0;
+                    // }
 
                     let additional_bytes = extended_line_length(
                         trimmed_len,
@@ -122,7 +125,8 @@ impl Indexer {
             buf = vec![];
         }
         // println!("done with content: {:02X?}", out_buffer.as_bytes());
-        let _ = out_file.write_all(out_buffer.as_bytes());
+        // let _ = out_file.write_all(out_buffer.as_bytes());
+        buf_writer.flush()?;
         if to_stdout {
             println!("{}", immediate_output);
             immediate_output.clear();
@@ -132,9 +136,7 @@ impl Indexer {
         }
         match chunks.last() {
             Some(last_chunk) => {
-                let metadata = out_file
-                    .metadata()
-                    .expect("cannot read size of output file");
+                let metadata = fs::metadata(out_path).expect("cannot read size of output file");
                 let last_expected_byte_index = metadata.len() as usize;
                 if last_expected_byte_index != last_chunk.b.1 {
                     // println!("chunks were: {:?}", chunks);
@@ -176,7 +178,7 @@ fn extended_line_length(
         + if has_newline { 1 } else { 0 }
 }
 fn last_line_nr(path: &std::path::Path) -> Option<usize> {
-    let file = std::fs::File::open(path).expect("opening file did not work");
+    let file = fs::File::open(path).expect("opening file did not work");
     let file_size = file.metadata().expect("could not read file metadata").len();
     if file_size == 0 {
         eprintln!("file was empty => last_line_nr was 0");
