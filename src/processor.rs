@@ -1,4 +1,4 @@
-use crate::report::Chunk;
+use crate::chunks::{Chunk, ChunkFactory};
 use crate::utils::{create_tagged_line, is_newline, PLUGIN_ID_SENTINAL, ROW_NUMBER_SENTINAL};
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom, Write};
 
@@ -13,6 +13,23 @@ pub struct Indexer {
 }
 
 impl Indexer {
+    #[inline]
+    fn report_progress(
+        &self,
+        line_nr: usize,
+        current_byte_index: usize,
+        processed_bytes: usize,
+        source_file_size: usize,
+    ) {
+        if line_nr % REPORT_PROGRESS_LINE_BLOCK == 0 {
+            eprintln!(
+                "processed {} lines -- byte-index {} ({} %)",
+                line_nr,
+                current_byte_index,
+                (processed_bytes as f32 / source_file_size as f32 * 100.0).round()
+            );
+        }
+    }
     pub fn index_file(
         &self,
         f: &std::fs::File,
@@ -27,7 +44,7 @@ impl Indexer {
         } else {
             0
         };
-        let mut lines_in_buffer: usize = 1;
+        let mut lines_in_buffer: usize = 0;
         let mut out_file: std::fs::File = if append && !out_path.exists() {
             std::fs::OpenOptions::new()
                 .append(true)
@@ -40,14 +57,12 @@ impl Indexer {
             out_file.metadata().expect("could not read metadata").len() as usize;
         let source_file_size = f.metadata().expect("could not read metadata").len() as usize;
 
-        let mut current_byte_index = original_file_size;
-        let mut start_of_chunk_byte_index = current_byte_index;
-        let mut lines_in_chunk = 0;
         let mut chunks = vec![];
-        let mut last_line_current_chunk = line_nr;
         let mut buf = vec![];
         let mut processed_bytes = 0;
         let mut immediate_output = String::new();
+        let mut chunk_factory =
+            ChunkFactory::new(self.chunk_size, to_stdout, line_nr, original_file_size);
         while let Ok(len) = reader.read_until(b'\n', &mut buf) {
             unsafe {
                 let s = std::str::from_utf8_unchecked(&buf);
@@ -59,7 +74,7 @@ impl Indexer {
                     // no more content
                     break;
                 };
-                // discard empty lines
+                // only use non-empty lines, others will be dropped
                 if trimmed_len != 0 {
                     create_tagged_line(
                         &self.source_id[..],
@@ -80,43 +95,28 @@ impl Indexer {
                         out_buffer.clear();
                         lines_in_buffer = 0;
                     }
-                    current_byte_index += extended_line_length(
+
+                    let additional_bytes = extended_line_length(
                         trimmed_len,
                         self.source_id.len(),
                         line_nr,
                         had_newline,
                     );
                     line_nr += 1;
-                    lines_in_chunk += 1;
 
-                    // check if we need to construct a new mapping chunk
-                    if lines_in_chunk >= self.chunk_size {
-                        last_line_current_chunk = line_nr;
-                        let chunk = Chunk {
-                            r: (
-                                last_line_current_chunk - lines_in_chunk,
-                                last_line_current_chunk - 1,
-                            ),
-                            b: (start_of_chunk_byte_index, current_byte_index),
-                        };
-                        if to_stdout {
-                            immediate_output += &serde_json::to_string(&chunk)
-                                .expect("chunk could not be serialized")[..];
-                            immediate_output += "\n";
-                        }
-
+                    if let Some(chunk) = chunk_factory.create_chunk_if_needed(
+                        line_nr,
+                        additional_bytes,
+                        &mut immediate_output,
+                    ) {
                         chunks.push(chunk);
-                        start_of_chunk_byte_index = current_byte_index + 1;
-                        lines_in_chunk = 0;
                     }
-                    if line_nr % REPORT_PROGRESS_LINE_BLOCK == 0 {
-                        eprintln!(
-                            "processed {} lines -- byte-index {} ({} %)",
-                            line_nr,
-                            current_byte_index,
-                            (processed_bytes as f32 / source_file_size as f32 * 100.0).round()
-                        );
-                    }
+                    self.report_progress(
+                        line_nr,
+                        chunk_factory.get_current_byte_index(),
+                        processed_bytes,
+                        source_file_size,
+                    );
                 }
             };
             buf = vec![];
@@ -127,22 +127,8 @@ impl Indexer {
             println!("{}", immediate_output);
             immediate_output.clear();
         }
-        // only add junk if we produced any output lines
-        if line_nr > 0 {
-            // check if we still need to spit out a chunk
-            if line_nr > last_line_current_chunk || chunks.is_empty() {
-                let chunk = Chunk {
-                    r: (last_line_current_chunk, line_nr - 1),
-                    b: (start_of_chunk_byte_index, current_byte_index),
-                };
-                if to_stdout {
-                    println!(
-                        "{}",
-                        serde_json::to_string(&chunk).expect("chunk could not be serialized")
-                    );
-                }
-                chunks.push(chunk);
-            }
+        if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunks.is_empty()) {
+            chunks.push(chunk);
         }
         match chunks.last() {
             Some(last_chunk) => {
@@ -179,6 +165,10 @@ fn extended_line_length(
     line_nr: usize,
     has_newline: bool,
 ) -> usize {
+    // println!(
+    //     "trimmed: {}, tag_len: {}, line_nr: {}, has_newline: {}",
+    //     trimmed_len, tag_len, line_nr, has_newline
+    // );
     trimmed_len
         + 4 * SENTINAL_LENGTH
         + tag_len

@@ -1,4 +1,4 @@
-use crate::report::serialize_chunks;
+use crate::chunks::serialize_chunks;
 use quicli::prelude::{CliResult, Verbosity};
 use std::fs;
 use std::path::PathBuf;
@@ -8,7 +8,7 @@ use structopt::StructOpt;
 
 mod merger;
 mod processor;
-mod report;
+mod chunks;
 mod utils;
 
 /// Create index file and mapping file for logviewer
