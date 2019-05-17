@@ -1,8 +1,7 @@
 @import '../../../../../theme/scheme.less';
 
 :host {
-    position: relative;
-    display: block;
+    display: inline;
     padding: 0;
     margin: 0;
     line-height: 16px;
@@ -10,6 +9,7 @@
     max-height: 16px;
     white-space: nowrap;
     min-width: 100%;
+    user-select: text;
     & span.source {
         display: inline-block;
         position: relative;
@@ -21,6 +21,7 @@
         max-height: 16px;
         font-size: 10px;
         vertical-align: top;
+        user-select: none;
     }
     & span.number{
         display: inline-block;
@@ -37,6 +38,7 @@
         padding: 0 8px 0 0;
         border-right: thin @scheme-color-4 solid;
         cursor: default;
+        user-select: none;
         & span.filler{
             color: @scheme-color-4;
             font-variant-numeric: tabular-nums;
@@ -61,7 +63,7 @@
         display: inline-block;
         position: relative;
         font-family: monospace;
-        font-size: 13px;
+        font-size: 14px;
         font-variant-numeric: tabular-nums;
         padding: 0;
         margin: 0;
@@ -71,6 +73,7 @@
         white-space: pre;
         vertical-align: top;
         color: @scheme-color-0;
+        font-weight: 600;
         &:hover::after{
             position: absolute;
             display: block;

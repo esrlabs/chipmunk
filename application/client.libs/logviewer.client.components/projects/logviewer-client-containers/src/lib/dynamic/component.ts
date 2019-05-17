@@ -14,6 +14,7 @@ export interface IComponentDesc {
     selector        : 'lib-containers-dynamic',
     entryComponents : [],
     template        : '',
+    styles          : [':host { display: none; }'],
 })
 
 export class DynamicComponent {

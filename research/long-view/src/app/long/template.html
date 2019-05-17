@@ -14,7 +14,7 @@
         (mousedown)="_ng_onMouseDownHolder($event)"
         (window:mouseup)="_ng_onWindowMouseUp($event)"
         (window:mousemove)="_ng_onWindowMouseMove($event)">
-        <li *ngFor="let row of _ng_rows; let i = index;" [ngStyle]="_ng_getItemStyles()" [attr.data-sb-row-index]="i + this._state.start">
+        <li *ngFor="let row of _ng_rows; let i = index;" [ngStyle]="_ng_getItemStyles()" [attr.data-sb-row-index]="i + _ng_getFrameStart()">
             <lib-containers-dynamic *ngIf="!_ng_isRowPending(row)" [component]="{ factory: _ng_factory, resolved: false, inputs: row }"></lib-containers-dynamic>
             <div *ngIf="_ng_isRowPending(row)" class="pending"><span>{{row}}</span></div>
         </li>

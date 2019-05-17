@@ -276,7 +276,6 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         }
         this._ng_nodeHolder.nativeElement.focus();
         if (!this._selection.restored) {
-            // document.getSelection().removeAllRanges();
             return false;
         }
         if (this._selection.out) {
@@ -417,6 +416,10 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         if (setOffsetOnBar) {
             this._ng_sbhCom.setOffset(this._ng_horOffset);
         }
+    }
+
+    public _ng_getFrameStart(): number {
+        return this._state.start;
     }
 
     private _setFrame(start: number) {
@@ -743,6 +746,8 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         rowIndex = rowIndex === null ? undefined : (rowIndex === '' ? undefined : rowIndex);
         if (rowIndex !== undefined) {
             path = `${node.nodeName.toLowerCase()}[${RowIndexAttr}="${rowIndex}"]${path !== '' ? ' ' : ''}${path}`;
+        } else if (node.nodeType === Node.TEXT_NODE) {
+            return this._selection_getRowInfo(node.parentNode as HTMLElement, '#text');
         } else if (node.parentNode.children.length !== 0 && rowIndex === undefined) {
             let index: number = -1;
             Array.prototype.forEach.call(node.parentNode.children, (children: Node, i: number) => {
@@ -757,7 +762,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         } else {
             path = `${node.nodeName.toLowerCase()}${path !== '' ? ' ' : ''}${path}`;
         }
-        // node.nodeType !== Node.TEXT_NODE &&
+        //  &&
         const attr: string | null | undefined = node.getAttribute === undefined ? undefined : node.getAttribute(RowIndexAttr);
         if (attr === null || attr === undefined) {
             return this._selection_getRowInfo(node.parentNode as HTMLElement, path);
@@ -778,6 +783,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         this._selection.anchor.fragment = '';
         this._selection.going = false;
         this._selection.selection = undefined;
+        this._selection.restored = true;
         if (!soft) {
             document.getSelection().removeAllRanges();
         }
@@ -790,6 +796,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         if (this._selection.focus.index > this._selection.anchor.index) {
             // Direction: down
             if (this._selection.focus.index >= this._storageInfo.count - 1) {
+                this._selection.restored = true;
                 return;
             }
             if (this._selection.focus.index >= this._state.end - 1) {
@@ -800,6 +807,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         } else if (this._selection.focus.index < this._selection.anchor.index) {
             // Direction: up
             if (this._selection.focus.index === 0) {
+                this._selection.restored = true;
                 return;
             }
             if (this._selection.focus.index <= this._state.start + 1) {
