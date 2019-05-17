@@ -12,6 +12,7 @@ import { IFile as IMergeFileRequest } from '../controllers/electron.ipc.messages
 import * as Stream from 'stream';
 import * as moment from 'moment-timezone';
 import MergeFilesWriter from '../controllers/controller.merge.files.writer';
+import MergeFiles from '../controllers/controller.merge.files';
 
 export interface ITestFileResults {
     file: string;
@@ -102,6 +103,33 @@ class ServiceMergeFiles implements IService {
 
     private _onMergeFilesRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.MergeFilesRequest = request as IPCMessages.MergeFilesRequest;
+        const controller: MergeFiles = new MergeFiles(
+            req.files.map((file: IMergeFileRequest) => {
+                return {
+                    file: file.file,
+                    offset: file.offset,
+                    parser: file.parser,
+                    year: -1,
+                };
+            }),
+        );
+        controller.write().then((written: number) => {
+            response(new IPCMessages.MergeFilesResponse({
+                written: written,
+                id: req.id,
+            }));
+        }).catch((mergeError: Error) => {
+            response(new IPCMessages.MergeFilesResponse({
+                written: 0,
+                id: req.id,
+                error: mergeError.message,
+            }));
+        });
+    }
+
+    /*
+    private _onMergeFilesRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        const req: IPCMessages.MergeFilesRequest = request as IPCMessages.MergeFilesRequest;
         const writer: MergeFilesWriter = new MergeFilesWriter(req.files.map((file: IMergeFileRequest) => {
             const regexp: RegExp = new RegExp(file.reg as string, 'gi');
             return {
@@ -126,6 +154,7 @@ class ServiceMergeFiles implements IService {
             }));
         });
     }
+    */
 
     private _onMergeFilesTestRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.MergeFilesTestRequest = request as IPCMessages.MergeFilesTestRequest;

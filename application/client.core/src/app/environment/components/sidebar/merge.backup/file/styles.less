@@ -1,0 +1,40 @@
+@import '../../../../theme/scheme.less';
+
+
+:host {
+    position: relative;
+    display: block;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    p.file-name{
+        position: relative;
+        color: @scheme-color-2;
+        width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    & div.controlls{
+        position: relative;
+        width: 100%;
+        text-align: right;
+        & .small-button:last-child{
+            margin-right: 0;
+        }
+    }
+    & table.result {
+        & td.name {
+            color: @scheme-color-3;
+        }
+        & td.value {
+            color: @scheme-color-2;
+        }
+    }
+    & span.spliter{
+        position: relative;
+        display: block;
+        width: 100%;
+        height: 0.5rem;
+    }
+}
