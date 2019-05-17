@@ -5,6 +5,7 @@ export interface IFile {
     format: string;
     reg: string;
     zone: string;
+    year?: number;
 }
 
 export interface IMergeFilesRequest {

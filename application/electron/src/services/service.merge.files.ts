@@ -109,7 +109,7 @@ class ServiceMergeFiles implements IService {
                     file: file.file,
                     offset: file.offset,
                     parser: file.parser,
-                    year: -1,
+                    year: file.year,
                 };
             }),
         );

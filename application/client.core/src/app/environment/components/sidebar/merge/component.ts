@@ -100,7 +100,8 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
                 parser: com.getParser(),
                 offset: com.getOffset(),
                 zone: com.getTimezone(),
-                format: ''
+                format: '',
+                year: com.getYear(),
             };
         });
         ElectronIpcService.request(new IPCMessages.MergeFilesRequest({
