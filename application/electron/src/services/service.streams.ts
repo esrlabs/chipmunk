@@ -157,6 +157,10 @@ class ServiceStreams extends EventEmitter implements IService  {
         });
     }
 
+    public getActiveStreamId(): string {
+        return this._activeStreamGuid;
+    }
+
     public getStreamFile(streamId?: string): { streamId: string, file: string } | Error {
         if (streamId === undefined) {
             streamId = this._activeStreamGuid;

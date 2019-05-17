@@ -1,4 +1,4 @@
-<p class="caption t-normal">Select files to be merged. Timestamp and datetime format will be detected automaticaly.</p>
+<p class="caption t-normal">Select files, which you would like to merge and define for each file reqular expression of timestamp</p>
 <ul class="files">
     <li class="file" *ngFor="let file of _files">
         <app-sizebar-app-files-item [file]="file.file" 
@@ -12,6 +12,7 @@
 <p class="report t-small">{{_ng_report}}</p>
 <div class="controlls" *ngIf="!_ng_busy">
     <span class="small-button" (click)="_ng_onAddFile()">Add file</span>
+    <span *ngIf="_files.length > 0" class="small-button" (click)="_ng_onTest()">Test</span>
     <span *ngIf="_files.length > 1" class="small-button" (click)="_ng_onMerge()">Merge</span>
 </div>
 <div class="progress-testing" *ngIf="_ng_busy">

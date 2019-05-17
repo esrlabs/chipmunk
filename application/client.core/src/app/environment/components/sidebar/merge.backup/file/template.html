@@ -1,0 +1,40 @@
+<p class="file-name t-normal">File: {{name}}</p>
+<lib-primitive-switcher-simple [items]="_ng_options" [onChange]="_ng_onTypeChange"></lib-primitive-switcher-simple>
+<span class="spliter"></span>
+<lib-primitive-input #valueinput [placeholder]="'\\d{2}-\\d{2}-\\d{4} \\d{2}:\\d{2}:\\d{2}'" [validate]="_ng_onValueValidate" [onChange]="_ng_onValueChange" [disabled]="_ng_disabled"></lib-primitive-input>
+<div *ngIf="_ng_isFormatAllowed()">
+    <span class="spliter"></span>
+    <lib-primitive-input #formatinput [placeholder]="'DD-MM-YYYY hh:mm:ss'" [validate]="_ng_onFormatValidate" [onChange]="_ng_onFormatChange" [disabled]="_ng_disabled"></lib-primitive-input>
+</div>
+<span class="spliter"></span>
+<lib-primitive-dropdownlist [placeholder]="'define timezone'" [defaults]="''" [items]="_ng_zones" [onChange]="_ng_onZoneChange" [disabled]="_ng_disabled"></lib-primitive-dropdownlist>
+<div *ngIf="_ng_offset !== undefined">
+    <span class="spliter"></span>
+    <lib-primitive-input #offsetinput [type]="'number'" [placeholder]="'offset in ms'" [validate]="_ng_onOffsetValidate" [onChange]="_ng_onOffsetChange" [disabled]="_ng_disabled"></lib-primitive-input>
+</div>
+<span class="spliter"></span>
+<table class="result" *ngIf="_result !== undefined">
+    <tr>
+        <td class="t-small name">Size:</td>
+        <td class="t-small value">{{_ng_getSize()}} Mb</td>
+    </tr>
+    <tr>
+        <td class="t-small name">Read rows:</td>
+        <td class="t-small value">{{_result.read}}</td>
+    </tr>
+    <tr>
+        <td class="t-small name">Found:</td>
+        <td class="t-small value">{{_result.found}}</td>
+    </tr>
+    <tr>
+        <td class="t-small name">First:</td>
+        <td class="t-small value">{{_result.first}}</td>
+    </tr>
+    <tr>
+        <td class="t-small name">Last:</td>
+        <td class="t-small value">{{_result.last}}</td>
+    </tr>
+</table>
+<div class="controlls" *ngIf="!_ng_disabled">
+    <span class="small-button" (click)="onRemove()">Remove</span>
+</div>

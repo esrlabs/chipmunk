@@ -1,7 +1,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewChildren, QueryList, AfterContentInit } from '@angular/core';
 import * as Toolkit from 'logviewer.client.toolkit';
 import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
-import { SidebarAppMergeFilesItemComponent } from './file/component';
+import { SidebarAppMergeFilesItemComponent, ETypes } from './file/component';
 import { IFile as ITestRequestFile } from '../../../services/electron.ipc.messages/merge.files.test.request';
 import { IFile as ITestResponseFile } from '../../../services/electron.ipc.messages/merge.files.test.response';
 import { IFile as IRequestFile } from '../../../services/electron.ipc.messages/merge.files.request';
@@ -86,6 +86,45 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         });
     }
 
+    public _ng_onTest() {
+        if (!this._validate()) {
+            return;
+        }
+        this._ng_busy = true;
+        this._disable(true);
+        this._cdRef.detectChanges();
+        const files: ITestRequestFile[] = this._filesComps.map((com: SidebarAppMergeFilesItemComponent) => {
+            return {
+                file: com.getFile(),
+                reg: com.getValue(),
+                parser: com.getParser(),
+                offset: com.getOffset(),
+                zone: com.getTimezone(),
+                format: com.getFormat()
+            };
+        });
+        ElectronIpcService.request(new IPCMessages.MergeFilesTestRequest({
+            files: files,
+            id: Toolkit.guid(),
+        }), IPCMessages.MergeFilesTestResponse).then((response: IPCMessages.MergeFilesTestResponse) => {
+            response.files.forEach((fileResult: ITestResponseFile) => {
+                const comp: SidebarAppMergeFilesItemComponent | undefined = this._getFileComp(fileResult.file);
+                if (comp === undefined) {
+                    return;
+                }
+                comp.setResults(fileResult);
+            });
+            this._ng_busy = false;
+            this._disable(false);
+            this._cdRef.detectChanges();
+        }).catch((testError: Error) => {
+            this._ng_error = testError.message;
+            this._ng_busy = false;
+            this._disable(false);
+            this._cdRef.detectChanges();
+        });
+    }
+
     public _ng_onMerge() {
         if (!this._validate()) {
             return;
@@ -96,11 +135,11 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         const files: IRequestFile[] = this._filesComps.map((com: SidebarAppMergeFilesItemComponent) => {
             return {
                 file: com.getFile(),
-                reg: '',
+                reg: com.getValue(),
                 parser: com.getParser(),
                 offset: com.getOffset(),
                 zone: com.getTimezone(),
-                format: ''
+                format: com.getFormat()
             };
         });
         ElectronIpcService.request(new IPCMessages.MergeFilesRequest({
@@ -108,6 +147,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
             id: Toolkit.guid(),
         }), IPCMessages.MergeFilesResponse).then((response: IPCMessages.MergeFilesResponse) => {
             this._ng_busy = false;
+            this._dropResults();
             if (typeof response.error === 'string' && response.error.trim() !== '') {
                 this._ng_error = response.error;
                 this._disable(false);
@@ -161,6 +201,16 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
             }
         });
         return result;
+    }
+
+    private _dropResults() {
+        this._files.forEach((item) => {
+            const comp: SidebarAppMergeFilesItemComponent | undefined = this._getFileComp(item.file);
+            if (comp === undefined) {
+                return;
+            }
+            comp.dropResults();
+        });
     }
 
     private _disable(disabled: boolean) {
