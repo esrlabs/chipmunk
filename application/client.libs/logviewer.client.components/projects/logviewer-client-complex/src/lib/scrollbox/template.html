@@ -4,8 +4,17 @@
         (wheel)="_ng_onWheel($event)" 
         (window:resize)="_ng_onBrowserWindowResize($event)"
         (keydown)="_ng_onKeyDown($event)">
-    <ul class="holder" #holder [ngStyle]="_ng_getHolderStyles()">
-        <li *ngFor="let row of _ng_rows" [ngStyle]="_ng_getItemStyles()">
+    <ul class="holder" 
+        #holder 
+        [ngStyle]="_ng_getHolderStyles()" 
+        (selectstart)="_ng_onSelectStart($event)" 
+        (document:selectionchange)="_ng_onSelectChange($event)"
+        (mouseleave)="_ng_onMouseLeaveHolder($event)"
+        (mouseover)="_ng_onMouseOverHolder($event)"
+        (mousedown)="_ng_onMouseDownHolder($event)"
+        (window:mouseup)="_ng_onWindowMouseUp($event)"
+        (window:mousemove)="_ng_onWindowMouseMove($event)">
+        <li *ngFor="let row of _ng_rows; let i = index;" [ngStyle]="_ng_getItemStyles()" [attr.data-sb-row-index]="i + _ng_getFrameStart()">
             <lib-containers-dynamic *ngIf="!_ng_isRowPending(row)" [component]="{ factory: _ng_factory, resolved: false, inputs: row }"></lib-containers-dynamic>
             <div *ngIf="_ng_isRowPending(row)" class="pending"><span>{{row}}</span></div>
         </li>
