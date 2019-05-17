@@ -144,8 +144,8 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
         return this._offset;
     }
 
-    public getYear(): number {
-        return this._year;
+    public getYear(): number | undefined {
+        return this._year === -1 ? undefined : this._year;
     }
 
     public disable() {

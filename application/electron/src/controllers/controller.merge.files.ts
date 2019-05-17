@@ -9,7 +9,7 @@ import Logger from '../tools/env.logger';
 
 export interface IFile {
     file: string;
-    year: number;
+    year?: number;
     offset: number;
     parser: string;
 }
@@ -53,7 +53,7 @@ export default class MergeFiles {
                 });
                 lvin.merge(
                     this._files.map((file: IFile) => {
-                        return { file: file.file, offset: file.offset, sourceId: this._sourceIds[file.file].toString() /* year: file.year,*/ } as IFileToBeMerged;
+                        return { file: file.file, offset: file.offset, sourceId: this._sourceIds[file.file].toString(), year: file.year } as IFileToBeMerged;
                     }),
                     {
                         destFile: sessionData.file,
