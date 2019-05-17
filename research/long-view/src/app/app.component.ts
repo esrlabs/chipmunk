@@ -14,6 +14,7 @@ export class AppComponent {
   public _ng_api: IDataAPI;
   private _requestedRange: IRange | undefined;
   private _requestTimer: any;
+  private _rows: IRow[] = [];
 
   constructor() {
     this._ng_api = {
@@ -27,6 +28,12 @@ export class AppComponent {
       getItemHeight: () => 12,
       onRedraw: new Subject<void>(),
     };
+    this._rows = Array.from({ length: 2500 }).map((_, i) => {
+      return {
+        index: i,
+        row: i.toString() + this._randomStr() + '[end]',
+      };
+    });
     /*
     setTimeout(() => {
       this._ng_api.onStorageUpdated.next({ count: 6000004 });
@@ -43,6 +50,15 @@ export class AppComponent {
       }, 3000);
     }, 3000);
     */
+  }
+
+  private _randomStr(): string {
+    let str = '';
+    const data = 'qw er tyui op asd fgh jkl zx cvb nm Q WER TYU IOP AS DF GHJ KLZ XCV BNM ';
+    for (let i = Math.round(Math.random() * 150); i >= 0; i -= 1) {
+      str += data.charAt(Math.round(Math.random() * (data.length - 1)));
+    }
+    return str;
   }
 
   private _getComponentFactory(): any {
@@ -75,11 +91,15 @@ export class AppComponent {
   }
 
   private _generateRange(start: number, count: number, data: boolean = false): IRow[] {
+    return this._rows.slice(start, start + count);
+  }
+
+  /*
+  private _generateRange(start: number, count: number, data: boolean = false): IRow[] {
     if (data) {
       return Array.from({ length: count }).map((_, i) => {
         return {
           index: i + start,
-          // row: Date.now().toString() + (Math.random() * 1000000000000).toFixed(0).repeat(Math.round(Math.random() * 5))
           row: (i + start).toString().repeat(Math.round(start / 100)) + 'E',
         };
       });
@@ -91,5 +111,5 @@ export class AppComponent {
       });
     }
   }
-
+  */
 }

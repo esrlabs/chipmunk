@@ -1,6 +1,5 @@
 // tslint:disable-next-line:max-line-length
-import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef } from '@angular/core';
-import { Subscription, Observable } from 'rxjs';
+import { Component, ChangeDetectorRef, ViewContainerRef, Input, AfterContentInit, OnChanges } from '@angular/core';
 
 
 @Component({
@@ -9,7 +8,7 @@ import { Subscription, Observable } from 'rxjs';
     styleUrls: ['./styles.less'],
 })
 
-export class RowComponent implements AfterContentInit {
+export class RowComponent implements AfterContentInit, OnChanges {
 
     @Input() public row: string | undefined;
     @Input() public index: number | undefined;
@@ -17,6 +16,10 @@ export class RowComponent implements AfterContentInit {
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef) {
+    }
+
+    public ngOnChanges() {
+        this._cdRef.detectChanges();
     }
 
     public ngAfterContentInit() {

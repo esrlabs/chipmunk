@@ -113,6 +113,10 @@ export class ComplexScrollBoxSBHComponent implements OnDestroy, AfterContentInit
         this._cdRef.detectChanges();
     }
 
+    public getMinOffset(): number {
+        return this._minOffset;
+    }
+
     private _setOffset(offset: number) {
         this._offset = offset;
         if (this._offset < 0) {
