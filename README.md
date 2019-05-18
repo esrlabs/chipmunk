@@ -24,6 +24,10 @@ OPTIONS:
 
 # Changelog
 
+### [0.11.0] - 05/18/2019
+  * [](feat): merging now done with constant memory
+  * progress reports on merging
+
 ### [0.10.0] - 05/16/2019
   * better error handling
   * report mapping for merging to stdout
