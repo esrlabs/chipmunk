@@ -24,6 +24,10 @@ OPTIONS:
 
 # Changelog
 
+### [0.12.0] - 05/19/2019
+  * play with other parsing mechanisms for merging
+  * [](feat): timestamp in files to merge does not need to be at beginning
+
 ### [0.11.0] - 05/18/2019
   * [](feat): merging now done with constant memory
   * progress reports on merging
