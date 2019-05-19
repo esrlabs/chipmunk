@@ -49,11 +49,15 @@ impl RegexKind {
 lazy_static! {
     static ref REGEX_REGISTRY: HashMap<RegexKind, Regex> = {
         let mut m = HashMap::new();
+
+        // 05-22 12:36:36.506 +0100 I/GKI_LINUX1
         m.insert(RegexKind::R1, Regex::new(
-            r"(?x)^(?P<m>\d{2})-(?P<d>\d{2})\s+(?P<H>\d{2}):(?P<M>\d{2}):(?P<S>\d{2}).(?P<millis>\d+)\s(?P<timezone>[\+\-]\d+)"
+            r"(?x)(?P<m>\d{2})-(?P<d>\d{2})\s+(?P<H>\d{2}):(?P<M>\d{2}):(?P<S>\d{2}).(?P<millis>\d+)\s(?P<timezone>[\+\-]\d+)"
         ).unwrap());
+
+        // 05-22-2019 12:36:04.344 A0
         m.insert(RegexKind::R2, Regex::new(
-            r"(?x)^(?P<m>\d{2})-(?P<d>\d{2})-(?P<Y>\d{4})\s+(?P<H>\d{2}):(?P<M>\d{2}):(?P<S>\d{2}).(?P<millis>\d+)",
+            r"(?x)(?P<m>\d{2})-(?P<d>\d{2})-(?P<Y>\d{4})\s+(?P<H>\d{2}):(?P<M>\d{2}):(?P<S>\d{2}).(?P<millis>\d+)",
         ).unwrap());
         m
     };
