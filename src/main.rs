@@ -8,6 +8,7 @@ use structopt::StructOpt;
 
 mod chunks;
 mod merger;
+// mod parse;
 mod processor;
 mod utils;
 
