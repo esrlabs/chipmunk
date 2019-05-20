@@ -56,7 +56,14 @@ export default class ControllerStreamFileReader {
                 }
             });
             this._stream.on('end', () => {
-                // done();
+                if (this._stream !== undefined) {
+                    this._stream.close();
+                    this._stream.removeAllListeners();
+                    this._stream = undefined;
+                }
+                const stat: fs.Stats = fs.statSync(this._file);
+                this._logger.warn(`Reader finished read data unexpectable. File size: ${stat.size} bytes. Requested: ${options.start} - ${options.end}`);
+                resolve(output);
             });
         });
     }
