@@ -24,6 +24,10 @@ OPTIONS:
 
 # Changelog
 
+### [0.14.0] - 05/20/2019
+  * [](feat): update indexed file as soon as we write chunks to stdout
+  * playing with nom
+
 ### [0.13.0] - 05/20/2019
   * [](fix): append to empty file starts rows at 0 now
   * report mapping on the fly and not only at end
