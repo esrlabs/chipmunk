@@ -182,6 +182,7 @@ impl Merger {
             .map(|input| {
                 fs::File::open(&input.path)
                     .map_err(failure::Error::from)
+                    // .and_then(|f| detect_timestamp_regex(&input.path).map(|r| (f, r)))
                     .and_then(|f| detect_timestamp_regex(&input.path).map(|r| (f, r)))
                     .and_then(|(f, kind)| {
                         let r: &Regex = &REGEX_REGISTRY[&kind];

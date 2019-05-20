@@ -62,6 +62,7 @@ impl<'a> Iterator for TimedLineIter<'a> {
                 let s = unsafe { std::str::from_utf8_unchecked(&buf) };
                 let trimmed_line = s.trim_matches(utils::is_newline);
                 let timed_line = line_to_timed_line(
+                    // let timed_line = line_to_timed_line_nom(
                     trimmed_line,
                     original_line_length,
                     self.tag,
