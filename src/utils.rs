@@ -59,11 +59,14 @@ fn linenr_length(linenr: usize) -> usize {
 }
 
 #[inline]
-pub fn last_line_nr(path: &std::path::Path) -> Option<usize> {
+pub fn next_line_nr(path: &std::path::Path) -> Option<usize> {
+    if !path.exists() {
+        return Some(0);
+    }
     let file = fs::File::open(path).expect("opening file did not work");
     let file_size = file.metadata().expect("could not read file metadata").len();
     if file_size == 0 {
-        eprintln!("file was empty => last_line_nr was 0");
+        eprintln!("file was empty => next_line_nr was 0");
         return Some(0);
     };
     let mut reader = BufReader::new(file);
@@ -89,7 +92,7 @@ pub fn last_line_nr(path: &std::path::Path) -> Option<usize> {
                 .parse()
                 .expect("expected number was was none");
             eprintln!("parsing: {:02X?} => last row_nr: {}", row_slice, row_nr);
-            return Some(row_nr);
+            return Some(row_nr + 1);
         }
     }
     None
@@ -120,22 +123,22 @@ mod tests {
             let tmp_dir = TempDir::new("my_directory_prefix").expect("could not create temp dir");
             let path = tmp_dir.path().join("extract_row_test.txt");
             fs::write(&path, c).expect("testfile could not be written");
-            assert_eq!(Some(expected), last_line_nr(&path));
+            assert_eq!(Some(expected), next_line_nr(&path));
             let _ = tmp_dir.close();
         }
         let content = [b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL];
-        check(content.to_vec(), 0);
+        check(content.to_vec(), 1);
         let content2 = [
             b'A', b'A', b'A', b'A', b'A', b'A', b'A', b'A', b'A', b'A', b'A', b'A', b'A', b'A',
             b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL,
         ];
-        check(content2.to_vec(), 0);
+        check(content2.to_vec(), 1);
         let content3 = &[
             [b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL],
             [b'B', D1, b't', b'a', b'g', D1, D2, 0x31, D2, NL],
             [b'C', D1, b't', b'a', b'g', D1, D2, 0x32, D2, NL],
         ]
         .concat();
-        check(content3.to_vec(), 2);
+        check(content3.to_vec(), 3);
     }
 }

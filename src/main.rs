@@ -8,9 +8,10 @@ use structopt::StructOpt;
 
 mod chunks;
 mod merger;
-// mod parse;
+mod parse;
 mod processor;
 mod utils;
+mod timedline;
 
 /// Create index file and mapping file for logviewer
 #[derive(Debug, StructOpt)]

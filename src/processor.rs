@@ -40,15 +40,18 @@ impl Indexer {
     ) -> Result<Vec<Chunk>, Error> {
         let mut reader = BufReader::new(f);
         let mut line_nr = if append {
-            utils::last_line_nr(&out_path)
+            utils::next_line_nr(&out_path)
                 .ok_or_else(|| failure::format_err!("could not get last line number of old file"))?
         } else {
             0
         };
-        let out_file: std::fs::File = if append && !out_path.exists() {
-            fs::OpenOptions::new().append(true).open(out_path)?
+        let out_file: std::fs::File = if append {
+            std::fs::OpenOptions::new()
+                .append(true)
+                .create(true)
+                .open(out_path)?
         } else {
-            fs::File::create(&out_path)?
+            std::fs::File::create(&out_path).unwrap()
         };
         let original_file_size =
             out_file.metadata().expect("could not read metadata").len() as usize;
@@ -57,7 +60,6 @@ impl Indexer {
         let mut chunks = vec![];
         let mut buf = vec![];
         let mut processed_bytes = 0;
-        let mut immediate_output = String::new();
         let mut chunk_factory = ChunkFactory::new(self.chunk_size, to_stdout, original_file_size);
         while let Ok(len) = reader.read_until(b'\n', &mut buf) {
             let s = unsafe { std::str::from_utf8_unchecked(&buf) };
@@ -86,11 +88,8 @@ impl Indexer {
                 );
                 line_nr += 1;
 
-                if let Some(chunk) = chunk_factory.create_chunk_if_needed(
-                    line_nr,
-                    additional_bytes,
-                    &mut immediate_output,
-                ) {
+                if let Some(chunk) = chunk_factory.create_chunk_if_needed(line_nr, additional_bytes)
+                {
                     chunks.push(chunk);
                 }
                 self.report_progress(
@@ -103,10 +102,6 @@ impl Indexer {
             buf = vec![];
         }
         buf_writer.flush()?;
-        if to_stdout {
-            print!("{}", immediate_output);
-            immediate_output.clear();
-        }
         if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunks.is_empty()) {
             chunks.push(chunk);
         }
@@ -305,10 +300,28 @@ mod tests {
         };
         let tmp_dir = TempDir::new("test_dir").expect("could not create temp dir");
         let out_file_path = tmp_dir.path().join("tmpTestFile.txt.out");
-
         let in_file_size = in_file.metadata().unwrap().len() as usize;
+        let append_to_this = PathBuf::from(&dir_name).join("append_here.log");
+        let append_use_case = append_to_this.exists();
+
+        if append_use_case {
+            println!("append use case...trying to append to {:?}", append_to_this);
+            fs::copy(&append_to_this, &out_file_path).expect("copy content failed");
+            println!("copied from {:?}", append_to_this);
+            let content = fs::read_to_string(append_to_this).expect("could not read file");
+            println!("content was: {:?}", content);
+            println!("copied content to: {:?}", out_file_path);
+            let content2 = fs::read_to_string(&out_file_path).expect("could not read file");
+            println!("copied content was: {:?}", content2);
+        }
         let chunks = indexer
-            .index_file(&in_file, &out_file_path, false, in_file_size, false)
+            .index_file(
+                &in_file,
+                &out_file_path,
+                append_use_case,
+                in_file_size,
+                false,
+            )
             .unwrap();
         let out_file_content_bytes = fs::read(out_file_path).expect("could not read file");
         let out_file_content = String::from_utf8_lossy(&out_file_content_bytes[..]);

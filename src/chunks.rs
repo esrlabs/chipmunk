@@ -44,7 +44,6 @@ impl ChunkFactory {
         &mut self,
         line_nr: usize,
         additional_bytes: usize,
-        immediate_output: &mut String,
     ) -> Option<Chunk> {
         self.current_byte_index += additional_bytes;
         self.lines_in_chunk += 1;
@@ -60,9 +59,7 @@ impl ChunkFactory {
             };
             if self.to_stdout {
                 let serialized = &serde_json::to_string(&chunk).ok()?[..];
-                // let serialized = &serde_json::to_string(&chunk).expect("chunk could not be serialized")[..];
-                immediate_output.push_str(serialized);
-                immediate_output.push_str("\n");
+                println!("{}", serialized);
             }
 
             self.start_of_chunk_byte_index = self.current_byte_index + 1;
@@ -72,13 +69,17 @@ impl ChunkFactory {
         }
         None
     }
-    pub fn create_last_chunk(&self, line_nr: usize, only_chunk: bool) -> Option<Chunk> {
+    pub fn create_last_chunk(&mut self, line_nr: usize, only_chunk: bool) -> Option<Chunk> {
         // only add junk if we produced any output lines
         if line_nr > 0 {
             // check if we still need to spit out a chunk
             if line_nr > self.last_line_current_chunk || only_chunk {
+                self.last_line_current_chunk = line_nr;
                 let chunk = Chunk {
-                    r: (self.last_line_current_chunk, line_nr - 1),
+                    r: (
+                        self.last_line_current_chunk - self.lines_in_chunk,
+                        self.last_line_current_chunk - 1,
+                    ),
                     b: (self.start_of_chunk_byte_index, self.current_byte_index),
                 };
                 if self.to_stdout {
