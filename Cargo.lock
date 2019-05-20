@@ -340,7 +340,7 @@ dependencies = [
 
 [[package]]
 name = "logviewer_parser"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",

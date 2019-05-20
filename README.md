@@ -24,6 +24,10 @@ OPTIONS:
 
 # Changelog
 
+### [0.13.0] - 05/20/2019
+  * [](fix): append to empty file starts rows at 0 now
+  * report mapping on the fly and not only at end
+
 ### [0.12.0] - 05/19/2019
   * play with other parsing mechanisms for merging
   * [](feat): timestamp in files to merge does not need to be at beginning
