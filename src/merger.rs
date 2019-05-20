@@ -237,6 +237,7 @@ impl Merger {
                             additional_bytes,
                         ) {
                             chunks.push(chunk);
+                            buf_writer.flush()?;
                         }
 
                         self.report_progress(
@@ -309,7 +310,6 @@ mod tests {
     use pretty_assertions::assert_eq;
     use std::fs;
     use tempdir::TempDir;
-
 
     test_generator::test_expand_paths! { test_merge_files; "test_samples/merging/*" }
 

@@ -91,6 +91,7 @@ impl Indexer {
                 if let Some(chunk) = chunk_factory.create_chunk_if_needed(line_nr, additional_bytes)
                 {
                     chunks.push(chunk);
+                    buf_writer.flush()?;
                 }
                 self.report_progress(
                     line_nr,
