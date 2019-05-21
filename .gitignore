@@ -59,3 +59,4 @@ app/desktop/package.json
 git.token.txt
 vim-markdown-preview.html
 app/dlt
+**/package-lock.json
