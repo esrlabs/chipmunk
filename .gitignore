@@ -56,3 +56,4 @@ application/electron/*.js
 !application/platform
 external
 TODO.md
+./research
