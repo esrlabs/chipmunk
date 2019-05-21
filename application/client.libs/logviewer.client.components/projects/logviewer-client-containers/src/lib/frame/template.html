@@ -1,0 +1,9 @@
+<div class="frame-holder">
+    <div class="caption-holder">
+        <p class="caption">{{options.caption}}</p>
+        <span *ngIf="options.closable" class="close-button fas fa-times" (click)="_ng_onClose()"></span>
+    </div>
+    <div class="content-holder" [ngStyle]="options.style">
+        <lib-containers-dynamic [component]="content"></lib-containers-dynamic>
+    </div>
+</div>

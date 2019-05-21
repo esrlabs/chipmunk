@@ -1,0 +1,41 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "baseUrl": "./",
+    "outDir": "./dist/out-tsc",
+    "sourceMap": true,
+    "declaration": true,
+    "module": "es2015",
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "target": "es6",
+    "typeRoots": [
+      "node_modules/@types"
+    ],
+    "lib": [
+      "es2018",
+      "dom"
+    ],
+    "paths": {
+      "logviewer-client-primitive": [
+        "dist/logviewer-client-primitive"
+      ],
+      "logviewer-client-primitive/*": [
+        "dist/logviewer-client-primitive/*"
+      ],
+      "logviewer-client-complex": [
+        "dist/logviewer-client-complex"
+      ],
+      "logviewer-client-complex/*": [
+        "dist/logviewer-client-complex/*"
+      ],
+      "logviewer-client-containers": [
+        "dist/logviewer-client-containers"
+      ],
+      "logviewer-client-containers/*": [
+        "dist/logviewer-client-containers/*"
+      ]
+    }
+  }
+}

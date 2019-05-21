@@ -1,0 +1,3 @@
+<ul class="tasks">
+    <li class="task" *ngFor="let task of _ng_tasks | keyvalue">{{task.key}}: {{((task.value.done/task.value.count) * 100).toFixed(2) + '%'}}<sup>{{task.value.done}}/{{task.value.count}}</sup></li>
+</ul>

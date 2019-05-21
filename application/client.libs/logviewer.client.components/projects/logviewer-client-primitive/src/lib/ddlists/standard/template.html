@@ -1,0 +1,9 @@
+<select class="t-normal"
+        [attr.placeholder]="placeholder"
+        [attr.disabled]="disabled ? '' : null"
+        [(ngModel)]="_ng_value" 
+        (ngModelChange)="_ng_onChange($event)" 
+        (focus)="onFocus"
+        (blur)="onBlur">
+    <option *ngFor="let item of items" [value]="item.value" [selected]="item.value === _ng_value">{{item.caption}}</option>
+</select>

@@ -1,0 +1,40 @@
+
+:host {
+    position: relative;
+    display: block;
+    box-sizing: border-box;
+    height: 16px;
+    width: 100%;
+    overflow: hidden;
+    & input {
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        font-family: monospace;
+        border:none;
+        outline: none;
+        font-size: 0.75rem;
+        padding: 0;
+        margin: 0;
+        opacity: 0.001;
+    }
+    & p {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        font-family: monospace;
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+        padding: 0;
+        margin: 0;
+        line-height: 13px;
+        height: 16px;
+        max-height: 16px;
+        white-space: pre;
+    }
+}

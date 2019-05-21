@@ -1,0 +1,11 @@
+<input  class="t-normal"
+        [attr.type]="type" 
+        [attr.placeholder]="placeholder"
+        [attr.disabled]="disabled ? '' : null"
+        [(ngModel)]="_ng_value" 
+        (ngModelChange)="_ng_onChange($event)" 
+        (keydown)="onKeyDown"
+        (focus)="onFocus"
+        (blur)="onBlur"
+        (keyup)="_ng_onKeyUp($event)"/>
+<p class="error t-small" *ngIf="_ng_error !== undefined">{{_ng_error}}</p>

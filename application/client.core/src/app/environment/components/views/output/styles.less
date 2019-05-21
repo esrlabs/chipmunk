@@ -1,0 +1,50 @@
+@import '../../../theme/scheme.less';
+
+
+:host {
+    display: flex;
+    flex-flow: column;
+    height: 100%;
+    background: @scheme-color-5;
+    & .rows-container{
+        position: relative;
+        flex: 1 1 auto;
+        padding: 0;
+        margin: 0;
+        width: 100%;
+        top:0;
+        left:0;
+        user-select: text;
+        cursor: text;
+        & .rows{
+            display: block;
+            position: absolute;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            top:0;
+            left:0;
+            overflow: hidden;
+            user-select: text;
+            cursor: text;
+        }
+    }
+
+    & .injections-bottom{
+        flex: 0 1 auto;
+        padding: 0;
+        margin: 0;
+        & .injection{
+            position: relative;
+            display: block;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+    }
+    & lib-complex-scrollbox{
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+}

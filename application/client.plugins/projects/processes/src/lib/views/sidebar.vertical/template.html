@@ -1,0 +1,13 @@
+<div class="wrapper" *ngIf="_ng_settings !== undefined">
+    <p class="t-normal">Environment vars</p>
+    <ul class="env-vars">
+        <li *ngFor="let envvar of _ng_envvars">
+            <span class="key t-console">{{envvar.key}}</span>
+            <span class="value t-console">{{envvar.value}}</span>
+        </li>
+    </ul>
+    <p class="t-normal">Shell</p>
+    <p class="t-console">{{_ng_settings.shell}}</p>
+    <p class="t-normal">Cwd</p>
+    <p class="t-console">{{_ng_settings.cwd}}</p>
+</div>

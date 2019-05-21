@@ -1,0 +1,8 @@
+<div class="caption">
+    <span class="move-button fas fa-bars"></span>
+    <p class="caption">{{dock.caption}}</p>
+    <span class="close-button fas fa-times"></span>
+</div>
+<div class="content">
+    <lib-containers-dynamic *ngIf="dock.component !== undefined" [component]="dock.component"></lib-containers-dynamic>
+</div>

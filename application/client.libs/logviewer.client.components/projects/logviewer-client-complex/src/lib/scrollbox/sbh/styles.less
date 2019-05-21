@@ -1,0 +1,24 @@
+
+@import '../../../../../../theme/scheme.less';
+
+:host {
+    position: absolute;
+    left:0;
+    bottom: 0;
+    height: 8px;
+    right: 0;
+    background:@scheme-color-5;
+    transform: translateZ(0);
+    user-select: none;
+    & div.thumb{
+        position: absolute;
+        top:0;
+        height: 100%;
+        width: 10px;
+        left:0;
+        background: @scheme-color-2;
+        transform: translateZ(0);
+        cursor: default;
+        user-select: none;
+    }
+}

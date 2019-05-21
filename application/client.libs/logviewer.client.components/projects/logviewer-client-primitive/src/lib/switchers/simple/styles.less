@@ -1,0 +1,86 @@
+@import '../../../../../../theme/scheme.less';
+
+:host {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 1.5rem;
+    border: 1px solid @scheme-color-1;
+    background: @scheme-color-4;
+    color: @scheme-color-1;
+    padding: 0.1rem 0.2rem;
+    box-sizing: border-box;
+    & ul.items{
+        position: absolute;
+        display: block;
+        height: 100%;
+        left: 0;
+        right: 1.5rem;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        & li{
+            position: relative;
+            display: inline-block;
+            list-style: none;
+            padding: 0.05rem 0 0 0.25rem;
+            margin: 0;
+            width: 100%;
+            transition: all ease-in-out 100ms;
+        }
+    }
+    & ul.position{
+        position: absolute;
+        display: block;
+        left: 37%;
+        right: ~"calc(37% + 1.5rem)";
+        height: 4px;
+        bottom: 0;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        white-space: nowrap;
+        & li{
+            position: relative;
+            display: inline-block;
+            height: 100%;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            background: @scheme-color-3;
+            border: thin solid @scheme-color-4;
+            box-sizing: border-box;
+            vertical-align: top;
+        }
+    }
+    & div.switcher{
+        position: absolute;
+        right: 0;
+        width: 1.5rem;
+        height: 100%;
+        top: 0;
+        .gradient(linear; darken(@scheme-color-5, 4%), lighten(@scheme-color-5, 4%));
+        .border-based-4;
+        cursor: default;
+        & div.icon{
+            position: absolute;
+            top:0.1rem;
+            left:0.1rem;
+            right: 0.1rem;
+            bottom: 0.1rem;
+            color: @scheme-color-1;
+            font-size: 0.8rem;
+            line-height: 1.1rem;
+            text-align: center;
+            cursor: default;
+        }
+        &:hover{
+            .gradient(linear; lighten(@scheme-color-5, 4%), darken(@scheme-color-5, 4%));
+            & div.icon{
+                color: @scheme-color-0;
+            }
+        }
+    }
+}

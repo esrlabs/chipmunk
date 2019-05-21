@@ -1,0 +1,16 @@
+{
+  "name": "logviewer",
+  "version": "1.0.0",
+  "description": "Logs viewing tool",
+  "main": "./src/index.ts",
+  "scripts": {
+    "build": "tsc -p ./tsconfig.json"
+  },
+  "author": "Dmitry Astafyev",
+  "license": "MIT",
+  "devDependencies": {
+    "colors": "^1.3.2",
+    "jake": "^8.0.16",
+    "npm-check": "^5.9.0"
+  }
+}

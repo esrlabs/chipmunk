@@ -1,0 +1,33 @@
+import { Observable, Subject } from 'rxjs';
+
+export class AreaState {
+
+    public minimized: boolean = true;
+
+    private _subjects = {
+        minimized: new Subject<boolean>(),
+        updated: new Subject<AreaState>()
+    };
+
+    public getObservable(): {
+        minimized: Observable<boolean>,
+        updated: Observable<AreaState>,
+    } {
+        return {
+            minimized: this._subjects.minimized.asObservable(),
+            updated: this._subjects.updated.asObservable(),
+        };
+    }
+
+    public minimize() {
+        this.minimized = true;
+        this._subjects.minimized.next(this.minimized);
+        this._subjects.updated.next(this);
+    }
+
+    public maximize() {
+        this.minimized = false;
+        this._subjects.minimized.next(this.minimized);
+        this._subjects.updated.next(this);
+    }
+}
