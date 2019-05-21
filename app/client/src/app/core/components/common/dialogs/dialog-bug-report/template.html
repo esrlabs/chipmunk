@@ -1,9 +1,0 @@
-<div class="dialog-bug-report">
-    <div class="content">
-        <p>After you will press "Create Bug Report" logviewer will save your current logs, your search requests and your settings into a two files. This information will help us much to investigate source of issue. Please attach these files to github issue-report. This operation can take some time.</p>
-    </div>
-    <div class="buttons">
-        <button-flat-text [handle]="onCreateReport" [caption]="'Create Bug Report'"></button-flat-text>
-    </div>
-</div>
-<a #exporturl [attr.href]="exportdata.url" class="export-url" [attr.download]="exportdata.filename"></a>
