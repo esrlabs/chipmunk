@@ -1,0 +1,11 @@
+<div [attr.class]="'wrapper ' + (_options.injections ? (_options.injections.bar ? 'injection' : '') : '')">
+    <ul [attr.class]="'list ' + _options.direction">
+        <li [attr.class]="'tab ' + (tab.active ? 'active' : '')" *ngFor="let tab of tabs" (click) = "onClick(tab.guid)">
+            <p class="title t-normal">{{tab.name}}</p>
+            <span class="close-button fas fa-times"></span>
+        </li>
+    </ul>
+    <div *ngIf="_options.injections && _options.injections.bar" class="injection">
+        <lib-containers-dynamic [component]="_options.injections.bar"></lib-containers-dynamic>
+    </div>
+</div>

@@ -1,0 +1,35 @@
+@import '../../../theme/scheme.less';
+
+:host {
+    position: relative;
+    display: block;
+    box-sizing: border-box;
+    height: 100%;
+    width: auto;
+    & div.history{
+        position: fixed;
+        display: block;
+        max-height: 20rem;
+        width: 15rem;
+        max-width: 15rem;
+        bottom: @status-bar-height;
+        right: unit(@status-bar-height-abs / 2, rem);
+        box-sizing: border-box;
+        z-index: 2;
+    }
+    & p.current{
+        position: relative;
+        display: block;
+        color: @scheme-color-3;
+        padding: 2px 0.5rem;
+        max-width: 15rem;
+        overflow: hidden;
+        height: 100%;
+        text-overflow: ellipsis;
+        cursor: pointer;
+        .t-small;
+        &:hover{
+            background: @scheme-color-4;
+        }
+    }
+}

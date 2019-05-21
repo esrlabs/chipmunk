@@ -1,0 +1,17 @@
+<div class="comstyle-input-holder search-input-wrapper">
+  <div class="comstyle-input">
+    <input 
+      #requestinput 
+      [attr.class]="'comstyle-input ' + (_ng_isRequestValid ? '' : 'not-valid')"
+      type="text"
+      [attr.placeholder]="_ng_isWorking() ? 'working ...' : 'type regular expression to search'"
+      [attr.disabled]="_ng_isWorking() ? '' : null"
+      (keyup)="_ng_onKeyUp($event)"/>
+      <div class="spinner" *ngIf="_ng_isWorking()">
+        <lib-primitive-spinner-regular></lib-primitive-spinner-regular>
+      </div>
+  </div>
+</div>
+<div class="rows noreset">
+  <app-views-search-output #output [session]="_ng_session"></app-views-search-output>
+</div>

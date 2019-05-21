@@ -1,0 +1,5 @@
+<ul class="notifications">
+    <li *ngFor="let notification of notifications" [attr.class]="'notification ' + (notification.closing ? 'closing' : '')">
+        <app-notification [notification]="notification" [onClose]="onClose.bind(this, notification)"></app-notification>
+    </li>
+</ul>

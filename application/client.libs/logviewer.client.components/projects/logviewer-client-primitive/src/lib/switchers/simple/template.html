@@ -1,0 +1,9 @@
+<ul class="items t-normal" (click)="_ng_next()">
+    <li *ngFor="let item of items; let i = index" [ngStyle]="_ng_getStyle(i)" >{{item.caption}}</li>
+</ul>
+<ul class="position">
+    <li *ngFor="let item of items; let i = index" [ngStyle]="_ng_getPosStyle(i)"></li>
+</ul>
+<div class="switcher" (click)="_ng_next()">
+    <div class="icon fas fa-exchange-alt"></div>
+</div>

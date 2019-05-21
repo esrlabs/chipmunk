@@ -1,0 +1,33 @@
+@import './colors.less';
+@import './support.less';
+@import './borders.less';
+
+.small-icon-button {
+    position: relative;
+    display: inline-block;
+    font-size: 0.8rem;
+    color:@scheme-color-1;
+    padding: 0.1rem 0.4rem;
+    margin: 0;
+    cursor: default;
+    &:hover{
+        color: @scheme-color-3;
+    }
+}
+
+.small-button {
+    position: relative;
+    display: inline-block;
+    font-size: 0.8rem;
+    color:@scheme-color-1;
+    padding: 0.25rem 0.4rem;
+    margin: 0.25rem;
+    cursor: default;
+    .gradient(linear; @scheme-color-4, lighten(@scheme-color-4, 4%));
+    .border-based-4;
+    border-radius: 2px;
+    &:hover{
+        color: @scheme-color-0;
+        .gradient(linear; lighten(@scheme-color-4, 4%), @scheme-color-4);
+    }
+}

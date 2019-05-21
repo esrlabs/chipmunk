@@ -1,0 +1,14 @@
+<p class="file-name t-normal">File: {{name}}</p>
+<div *ngIf="_ng_isMoreOpened()">
+    <lib-primitive-dropdownlist [placeholder]="'define timezone'" [defaults]="''" [items]="_ng_zones" [onChange]="_ng_onZoneChange" [disabled]="_ng_disabled"></lib-primitive-dropdownlist>
+    <div *ngIf="_ng_offset !== undefined">
+        <span class="spliter"></span>
+        <lib-primitive-input #offsetinput [type]="'number'" [placeholder]="'offset in ms'" [validate]="_ng_onOffsetValidate" [onChange]="_ng_onOffsetChange" [disabled]="_ng_disabled"></lib-primitive-input>
+    </div>
+    <span class="spliter"></span>
+    <lib-primitive-input #yearinput [placeholder]="'Type year if missed'" [validate]="_ng_onYearValidate" [onChange]="_ng_onYearChange" [disabled]="_ng_disabled" [type]="'number'"></lib-primitive-input>
+</div>
+<div class="controlls" *ngIf="!_ng_disabled">
+    <span class="small-button" (click)="_ng_onMore()">{{_ng_moreButtonTitle}}</span>
+    <span class="small-button" (click)="_ng_onRemove()">Remove</span>
+</div>

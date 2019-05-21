@@ -1,0 +1,11 @@
+{
+  "$schema": "../../node_modules/ng-packagr/ng-package.schema.json",
+  "dest": "../../dist/terminal",
+  "lib": {
+    "entryFile": "src/public_api.ts",
+    "peerDependencies": {
+      "@angular/common": "^7.0.0",
+      "@angular/core": "^7.0.0"
+    }
+  }
+}
