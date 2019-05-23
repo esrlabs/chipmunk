@@ -1,9 +1,9 @@
-<div *ngIf="_ng_isPending() === false" class="noreset">
+<div *ngIf="_ng_isPending() === false" [attr.class]="'wrapper noreset ' + (_ng_bookmarked ? 'bookmarked' : '')">
     <span class="source">{{_ng_sourceName}}</span>
-    <span class="number"><span class="filler">{{_ng_number_filler}}</span>{{_ng_number}}</span>
+    <span class="number" (click)="_ng_onNumberClick()"><span class="filler">{{_ng_number_filler}}</span>{{_ng_number}}</span>
     <p class="row noreset" [innerHTML]="_ng_safeHtml" (click)="_ng_onRowSelect()"></p>
 </div>
-<div *ngIf="_ng_isPending() === true" class="noreset">
+<div *ngIf="_ng_isPending() === true" [attr.class]="'wrapper noreset ' + (_ng_bookmarked ? 'bookmarked' : '')">
     <span class="source">n/d</span>
     <span class="number"><span class="filler">{{_ng_number_filler}}</span>{{_ng_number}}</span>
     <p class="row pending"><span></span></p>

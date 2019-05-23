@@ -2,6 +2,7 @@ import { IPCMessages } from '../services/service.electron.ipc';
 import { Observable, Subject } from 'rxjs';
 import * as Toolkit from 'logviewer.client.toolkit';
 import OutputRedirectionsService from '../services/standalone/service.output.redirections';
+import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 
 export type TRequestDataHandler = (start: number, end: number) => Promise<IPCMessages.StreamChunk>;
 
@@ -12,6 +13,7 @@ export interface IStreamPacket {
     rank: number;
     sessionId: string;
     controller: ControllerSessionTabStreamOutput;
+    bookmarks: ControllerSessionTabStreamBookmarks;
 }
 
 export interface IStreamState {
@@ -54,6 +56,7 @@ export class ControllerSessionTabStreamOutput {
     private _logger: Toolkit.Logger;
     private _rows: IStreamPacket[] = [];
     private _requestDataHandler: TRequestDataHandler;
+    private _bookmarks: ControllerSessionTabStreamBookmarks;
     private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
     private _state: IStreamState = {
         count: 0,
@@ -78,9 +81,10 @@ export class ControllerSessionTabStreamOutput {
         onRankChanged: new Subject<number>(),
     };
 
-    constructor(guid: string, requestDataHandler: TRequestDataHandler) {
+    constructor(guid: string, requestDataHandler: TRequestDataHandler, bookmarks: ControllerSessionTabStreamBookmarks) {
         this._guid = guid;
         this._requestDataHandler = requestDataHandler;
+        this._bookmarks = bookmarks;
         this._logger = new Toolkit.Logger(`ControllerSessionTabStreamOutput: ${this._guid}`);
         this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(this._guid, this._onRowSelected.bind(this));
     }
@@ -210,6 +214,10 @@ export class ControllerSessionTabStreamOutput {
             this._parse(message.addedRowsData);
         }
         this._subjects.onStateUpdated.next(Object.assign({}, this._state));
+    }
+
+    public getBookmarks(): ControllerSessionTabStreamBookmarks {
+        return this._bookmarks;
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -358,6 +366,7 @@ export class ControllerSessionTabStreamOutput {
                 rank: this._state.countRank,
                 sessionId: this._guid,
                 controller: this,
+                bookmarks: this._bookmarks,
             };
         }).filter((packet: IStreamPacket) => {
             return (packet.position !== -1);
@@ -374,6 +383,7 @@ export class ControllerSessionTabStreamOutput {
                 rank: this._state.countRank,
                 sessionId: this._guid,
                 controller: this,
+                bookmarks: this._bookmarks,
             };
         });
         return rows;

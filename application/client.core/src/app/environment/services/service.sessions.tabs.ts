@@ -115,6 +115,17 @@ export class TabsSessionsService implements IService {
         return this._tabsService;
     }
 
+    public getSessionController(session: string): ControllerSessionTab | Error {
+        if (session === undefined) {
+            session = this._currentSessionGuid;
+        }
+        const controller: ControllerSessionTab = this._sessions.get(session);
+        if (controller === undefined) {
+            return new Error(`Fail to find defiend session "${session}"`);
+        }
+        return controller;
+    }
+
     public getObservable(): {
         onSessionChange: Observable<ControllerSessionTab>
     } {
