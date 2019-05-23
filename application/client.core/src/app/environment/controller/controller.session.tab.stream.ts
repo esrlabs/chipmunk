@@ -1,6 +1,7 @@
 import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
 import { Observable, Subject } from 'rxjs';
-import { ControllerSessionTabStreamOutput, IStreamPacket, TRequestDataHandler, Settings, IRange } from './controller.session.tab.stream.output';
+import { ControllerSessionTabStreamOutput, IStreamPacket } from './controller.session.tab.stream.output';
+import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 import QueueService, { IQueueController } from '../services/standalone/service.queue';
 import * as Toolkit from 'logviewer.client.toolkit';
 
@@ -25,12 +26,14 @@ export class ControllerSessionTabStream {
     };
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _output: ControllerSessionTabStreamOutput;
+    private _bookmarks: ControllerSessionTabStreamBookmarks;
 
     constructor(params: IControllerSessionStream) {
         this._guid = params.guid;
         this._transports = params.transports;
         this._logger = new Toolkit.Logger(`ControllerSessionTabStream: ${params.guid}`);
-        this._output = new ControllerSessionTabStreamOutput(params.guid, this._requestData.bind(this));
+        this._bookmarks = new ControllerSessionTabStreamBookmarks(params.guid);
+        this._output = new ControllerSessionTabStreamOutput(params.guid, this._requestData.bind(this), this._bookmarks);
         this._queue = new Toolkit.Queue(this._logger.error.bind(this._logger), 0);
         // Notify electron about new stream
         ServiceElectronIpc.send(new IPCMessages.StreamAdd({
@@ -51,6 +54,8 @@ export class ControllerSessionTabStream {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].destroy();
         });
+        this._output.destroy();
+        this._bookmarks.destroy();
         this._queue.unsubscribeAll();
     }
 
@@ -72,6 +77,10 @@ export class ControllerSessionTabStream {
             next: this._subjects.next.asObservable(),
             clear: this._subjects.clear.asObservable()
         };
+    }
+
+    public getBookmarks(): ControllerSessionTabStreamBookmarks {
+        return this._bookmarks;
     }
 
     private _requestData(start: number, end: number): Promise<IPCMessages.StreamChunk> {

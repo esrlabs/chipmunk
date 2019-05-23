@@ -56,6 +56,7 @@ export class ControllerSessionTabSearch {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].destroy();
         });
+        this._output.destroy();
         this._queue.unsubscribeAll();
         OutputParsersService.unsetSearchResults(this._guid);
     }

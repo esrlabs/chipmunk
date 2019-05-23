@@ -2,6 +2,7 @@ import PluginsService, { IPluginData } from '../services/service.plugins';
 import { Subscription } from '../services/service.electron.ipc';
 import { ControllerSessionTabStream } from './controller.session.tab.stream';
 import { ControllerSessionTabSearch } from './controller.session.tab.search';
+import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 import { TabsService } from 'logviewer-client-complex';
 import { DefaultSidebarApps } from '../components/sidebar/module';
 import * as Toolkit from 'logviewer.client.toolkit';
@@ -37,7 +38,7 @@ export class ControllerSessionTab {
         this._search = new ControllerSessionTabSearch({
             guid: params.guid,
             transports: params.transports.slice(),
-            stream: this._stream.getOutputStream(),
+            stream: this._stream.getOutputStream()
         });
         this._sidebar_update();
     }
@@ -54,6 +55,10 @@ export class ControllerSessionTab {
 
     public getSessionStream(): ControllerSessionTabStream {
         return this._stream;
+    }
+
+    public getSessionBooksmarks(): ControllerSessionTabStreamBookmarks {
+        return this._stream.getBookmarks();
     }
 
     public getSessionSearch(): ControllerSessionTabSearch {

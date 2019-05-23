@@ -2,6 +2,7 @@ import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, Af
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
 import { ControllerSessionTabStreamOutput } from '../../../../controller/controller.session.tab.stream.output';
+import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../../controller/controller.session.tab.stream.bookmarks';
 import SourcesService from '../../../../services/service.sources';
 import OutputParsersService from '../../../../services/standalone/service.output.parsers';
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
@@ -20,14 +21,17 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     @Input() public position: number | undefined;
     @Input() public pluginId: number | undefined;
     @Input() public controller: ControllerSessionTabStreamOutput | undefined;
+    @Input() public bookmarks: ControllerSessionTabStreamBookmarks | undefined;
     @Input() public rank: number = 1;
 
     public _ng_safeHtml: SafeHtml = null;
     public _ng_sourceName: string | undefined;
     public _ng_number: string | undefined;
     public _ng_number_filler: string | undefined;
+    public _ng_bookmarked: boolean = false;
 
     private _subscriptions: { [key: string]: Subscription } = {};
+    private _destroyed: boolean = false;
 
     constructor(private _sanitizer: DomSanitizer, private _cdRef: ChangeDetectorRef ) {
         this._onRankChanged = this._onRankChanged.bind(this);
@@ -39,6 +43,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
+        this._destroyed = true;
     }
 
     public ngAfterContentInit() {
@@ -49,18 +54,20 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
             return;
         }
         this._subscriptions.onRankChanged = this.controller.getObservable().onRankChanged.subscribe(this._onRankChanged);
+        this._subscriptions.onAddedBookmark = this.bookmarks.getObservable().onAdded.subscribe(this._onAddedBookmark.bind(this));
+        this._subscriptions.onRemovedBookmark = this.bookmarks.getObservable().onRemoved.subscribe(this._onRemovedBookmark.bind(this));
     }
 
     public ngAfterContentChecked() {
         if (this.position.toString() === this._ng_number) {
             return;
         }
+        this._ng_bookmarked = this.bookmarks.isBookmarked(this.position);
         if (this.str === undefined) {
             this._acceptPendingRow();
         } else {
             this._acceptRowWithContent();
         }
-
     }
 
     public _ng_isPending() {
@@ -69,6 +76,43 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
 
     public _ng_onRowSelect() {
         OutputRedirectionsService.select('stream', this.sessionId, this.position);
+    }
+
+    public _ng_onNumberClick() {
+        if (this.bookmarks === undefined) {
+            return;
+        }
+        if (this.bookmarks.isBookmarked(this.position)) {
+            this.bookmarks.remove(this.position);
+            this._ng_bookmarked = false;
+        } else {
+            this.bookmarks.add({
+                str: this.str,
+                position: this.position,
+                pluginId: this.pluginId,
+                rank: this.rank,
+            });
+            this._ng_bookmarked = true;
+        }
+        if (!this._destroyed) {
+            this._cdRef.detectChanges();
+        }
+    }
+
+    private _onAddedBookmark(bookmark: IBookmark) {
+        const prev: boolean = this._ng_bookmarked;
+        this._ng_bookmarked = this.position === bookmark.position ? true : this._ng_bookmarked;
+        if (prev !== this._ng_bookmarked) {
+            this._cdRef.detectChanges();
+        }
+    }
+
+    private _onRemovedBookmark(index: number) {
+        const prev: boolean = this._ng_bookmarked;
+        this._ng_bookmarked = this.position === index ? false : this._ng_bookmarked;
+        if (prev !== this._ng_bookmarked) {
+            this._cdRef.detectChanges();
+        }
     }
 
     private _acceptRowWithContent() {

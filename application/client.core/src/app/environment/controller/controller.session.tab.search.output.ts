@@ -1,7 +1,8 @@
 import { IPCMessages } from '../services/service.electron.ipc';
-import { Observable, Subject } from 'rxjs';
+import { Observable, Subject, Subscription } from 'rxjs';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { ControllerSessionTabStreamOutput } from '../controller/controller.session.tab.stream.output';
+import { ControllerSessionTabStreamBookmarks, IBookmark } from './controller.session.tab.stream.bookmarks';
 import OutputRedirectionsService from '../services/standalone/service.output.redirections';
 
 export type TRequestDataHandler = (start: number, end: number) => Promise<IPCMessages.StreamChunk>;
@@ -13,6 +14,7 @@ export interface ISearchStreamPacket {
     pluginId: number;
     rank: number;
     sessionId: string;
+    bookmarks: ControllerSessionTabStreamBookmarks;
 }
 
 export interface IStreamState {
@@ -46,8 +48,9 @@ export class ControllerSessionTabSearchOutput {
     private _logger: Toolkit.Logger;
     private _rows: ISearchStreamPacket[] = [];
     private _requestDataHandler: TRequestDataHandler;
-    private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
+    private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
     private _stream: ControllerSessionTabStreamOutput;
+    private _bookmakrs: ControllerSessionTabStreamBookmarks;
     private _state: IStreamState = {
         count: 0,
         stored: {
@@ -66,15 +69,25 @@ export class ControllerSessionTabSearchOutput {
         onStateUpdated: new Subject<IStreamState>(),
         onReset: new Subject<void>(),
         onRangeLoaded: new Subject<ILoadedRange>(),
+        onRangeUpdated: new Subject<ISearchStreamPacket[]>(),
         onScrollTo: new Subject<number>(),
     };
 
     constructor(guid: string, requestDataHandler: TRequestDataHandler, stream: ControllerSessionTabStreamOutput) {
         this._guid = guid;
         this._stream = stream;
+        this._bookmakrs = stream.getBookmarks();
         this._requestDataHandler = requestDataHandler;
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearchOutput: ${this._guid}`);
         this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(this._guid, this._onRowSelected.bind(this));
+        this._subscriptions.onAddedBookmark = this._bookmakrs.getObservable().onAdded.subscribe(this._onAddedBookmark.bind(this));
+        this._subscriptions.onRemovedBookmark = this._bookmakrs.getObservable().onRemoved.subscribe(this._onRemovedBookmark.bind(this));
+    }
+
+    public destroy() {
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            this._subscriptions[key].unsubscribe();
+        });
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -88,12 +101,14 @@ export class ControllerSessionTabSearchOutput {
     public getObservable(): {
         onStateUpdated: Observable<IStreamState>,
         onRangeLoaded: Observable<ILoadedRange>,
+        onRangeUpdated: Observable<ISearchStreamPacket[]>,
         onReset: Observable<void>,
         onScrollTo: Observable<number>,
     } {
         return {
             onStateUpdated: this._subjects.onStateUpdated.asObservable(),
             onRangeLoaded: this._subjects.onRangeLoaded.asObservable(),
+            onRangeUpdated: this._subjects.onRangeUpdated.asObservable(),
             onReset: this._subjects.onReset.asObservable(),
             onScrollTo: this._subjects.onScrollTo.asObservable(),
         };
@@ -106,7 +121,7 @@ export class ControllerSessionTabSearchOutput {
         }
         const stored = Object.assign({}, this._state.stored);
         if (this._state.count === 0 || range.start < 0 || range.end < 0) {
-            return [];
+            return this._insertBookmarks([]);
         }
         if (stored.start >= 0 && stored.end >= 0) {
             if (range.start >= stored.start && range.end <= stored.end) {
@@ -132,7 +147,7 @@ export class ControllerSessionTabSearchOutput {
             return new Error(this._logger.error(`Calculation error: gotten ${rows.length} rows; should be: ${range.end - range.start}. State was { start: ${stored.start}, end: ${stored.end}}, became { start: ${this._state.stored.start}, end: ${this._state.stored.end}}.`));
         }
         this._state.frame = Object.assign({}, range);
-        return rows;
+        return this._insertBookmarks(rows);
     }
 
     public setFrame(range: IRange) {
@@ -198,7 +213,70 @@ export class ControllerSessionTabSearchOutput {
         }
         this._subjects.onScrollTo.next(row);
     }
+
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+     * Bookmarks
+     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    private _onAddedBookmark(bookmark: IBookmark) {
+        const rows = this._getRowsSliced(this._state.frame.start, this._state.frame.end + 1);
+        this._subjects.onRangeUpdated.next(this._insertBookmarks(rows));
+    }
+
+    private _onRemovedBookmark(index: number) {
+        const rows = this._getRowsSliced(this._state.frame.start, this._state.frame.end + 1);
+        this._subjects.onRangeUpdated.next(this._insertBookmarks(rows));
+    }
+
+    private _insertBookmarks(rows: ISearchStreamPacket[]) {
+        const add = (target: ISearchStreamPacket[], from: number, to: number) => {
+            const between: number[] = this._getBetween(indexes, from, to);
+            between.forEach((index: number) => {
+                if (index === from || index === to) {
+                    return;
+                }
+                const inserted: IBookmark = bookmarks.get(index);
+                target.push({
+                    str: inserted.str,
+                    rank: inserted.rank,
+                    positionInStream: inserted.position,
+                    position: 0,
+                    pluginId: inserted.pluginId,
+                    sessionId: this._guid,
+                    bookmarks: this._bookmakrs,
+                });
+            });
+        };
+        const bookmarks: Map<number, IBookmark> = this._bookmakrs.get();
+        const indexes: number[] = Array.from(bookmarks.keys());
+        if (indexes.length === 0 || rows.length === 0) {
+            return rows;
+        }
+        indexes.sort((a, b) => a - b);
+        const updated: ISearchStreamPacket[] = [];
+        rows.forEach((row: ISearchStreamPacket, i: number) => {
+            if (i ===  rows.length - 1 && row.position !== this._state.count - 1) {
+                updated.push(row);
+                return;
+            } else if (i ===  rows.length - 1 && row.position === this._state.count - 1) {
+                updated.push(row);
+                add(updated, row.positionInStream, Infinity);
+                return;
+            } else if (i === 0 && row.position === 0) {
+                add(updated, -1, row.positionInStream);
+            }
+            updated.push(row);
+            add(updated, row.positionInStream, rows[i + 1].positionInStream);
+        });
+        return updated;
+    }
+
+    private _getBetween(indexes: number[], from: number, to: number): number[] {
+        return indexes.filter((value: number) => {
+            return value >= from ? (value <= to ? true : false) : false;
+        });
+    }
+
+     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Internal methods / helpers
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     private _load(): boolean {
@@ -247,7 +325,7 @@ export class ControllerSessionTabSearchOutput {
                     // Send notification about update
                     this._subjects.onRangeLoaded.next({
                         range: { start: frame.start, end: frame.end },
-                        rows: this._getRowsSliced(frame.start, frame.end + 1)
+                        rows: this._insertBookmarks(this._getRowsSliced(frame.start, frame.end + 1))
                     });
                     return;
                 } else {
@@ -328,6 +406,7 @@ export class ControllerSessionTabSearchOutput {
                 pluginId: this._extractPluginId(str),               // Get plugin id
                 rank: this._stream.getRank(),
                 sessionId: this._guid,
+                bookmarks: this._bookmakrs,
             };
         }).filter((packet: ISearchStreamPacket) => {
             return (packet.positionInStream !== -1);
@@ -347,6 +426,7 @@ export class ControllerSessionTabSearchOutput {
                 str: undefined,
                 rank: this._stream.getRank(),
                 sessionId: this._guid,
+                bookmarks: this._bookmakrs,
             };
         });
         return rows;

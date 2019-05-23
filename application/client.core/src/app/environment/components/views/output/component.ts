@@ -37,6 +37,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
             onStorageUpdated: new Subject<IStorageInformation>(),
             onScrollTo: new Subject<number>(),
             onRowsDelivered: new Subject<IRowsPacket>(),
+            onRangeUpdated: new Subject<IRow[]>(),
             onRedraw: new Subject<void>(),
         };
     }

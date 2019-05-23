@@ -39,6 +39,7 @@ export interface IDataAPI {
     onStorageUpdated: Subject<IStorageInformation>;
     onScrollTo: Subject<number>;
     onRowsDelivered: Subject<IRowsPacket>;
+    onRangeUpdated: Subject<IRow[]>;
     onRedraw: Subject<void>;
 }
 
@@ -196,6 +197,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         this._subscriptions.onScrollTo = this.API.onScrollTo.asObservable().subscribe(this._onScrollTo.bind(this));
         this._subscriptions.onStorageUpdated = this.API.onStorageUpdated.asObservable().subscribe(this._onStorageUpdated.bind(this));
         this._subscriptions.onRedraw = this.API.onRedraw.asObservable().subscribe(this._onRedraw.bind(this));
+        this._subscriptions.onRangeUpdated = this.API.onRangeUpdated.asObservable().subscribe(this._onRangeUpdated.bind(this));
         // Get rows
         const rows = this.API.getRange({
             start: 0,
@@ -528,6 +530,15 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         }
         // Replace rows
         this._ng_rows = packet.rows;
+        // Force update
+        this._cdRef.detectChanges();
+        // Update holder size
+        this._updateHolderSize(true);
+    }
+
+    private _onRangeUpdated(rows: IRow[]) {
+        // Replace rows
+        this._ng_rows = rows;
         // Force update
         this._cdRef.detectChanges();
         // Update holder size
