@@ -378,6 +378,9 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         if (offset === 0) {
             offset = 1;
         }
+        if (this._ng_rows.length - 1 > this._state.count) {
+            console.log('HEY!!!!!!!');
+        }
         this._setFrame(this._state.start + offset * direction);
         // Render
         this._softRender();
