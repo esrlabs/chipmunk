@@ -24,16 +24,6 @@ export class LayoutSessionSidebarComponent implements AfterViewInit, OnDestroy {
         this._setActiveTabsService();
         // Subscribe to change of current session
         this._subscriptions.currentSession = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-        /*
-        this.tabsService.add({
-            name: 'Serial port',
-            active: true,
-        });
-        this.tabsService.add({
-            name: 'ADB',
-            active: false,
-        });
-        */
     }
 
     ngAfterViewInit() {

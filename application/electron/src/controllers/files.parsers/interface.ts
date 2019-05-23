@@ -23,9 +23,11 @@ export abstract class AFileParser {
 
     public abstract getName(): string;
 
+    public abstract getAlias(): string;
+
     public abstract isSupported(file: string): boolean;
 
-    public abstract getTransform(): Transform | undefined;
+    public abstract getTransform(options?: any): Transform | undefined;
 
     public abstract getExtnameFilters(): Array<{ name: string, extensions: string[] }>;
 

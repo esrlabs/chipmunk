@@ -16,6 +16,7 @@ export class TabsService {
 
     private _subjects = {
         new: new Subject<ITab>(),
+        removed: new Subject<string>(),
         clear: new Subject<void>(),
         active: new Subject<ITab>(),
         options: new Subject<TabsOptions>(),
@@ -36,12 +37,14 @@ export class TabsService {
 
     public getObservable(): {
         new: Observable<ITab>,
+        removed: Observable<string>,
         clear: Observable<void>,
         active: Observable<ITab>,
         options: Observable<TabsOptions>,
     } {
         return {
             new: this._subjects.new.asObservable(),
+            removed: this._subjects.removed.asObservable(),
             clear: this._subjects.clear.asObservable(),
             active: this._subjects.active.asObservable(),
             options: this._subjects.options.asObservable(),
@@ -68,6 +71,18 @@ export class TabsService {
         if (tab.active) {
             this.setActive(tab.guid);
         }
+    }
+
+    public remove(guid: string): Error | undefined {
+        const tab = this._tabs.get(guid);
+        if (tab === undefined) {
+            return new Error(`Tab "${guid}" isn't found.`);
+        }
+        this._tabs.delete(guid);
+        if (tab.active && this._tabs.size > 0) {
+            this.setActive(this._tabs.keys().next().value);
+        }
+        this._subjects.removed.next(guid);
     }
 
     public getTabs(): Map<string, ITab> {

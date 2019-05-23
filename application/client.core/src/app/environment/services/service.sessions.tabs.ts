@@ -9,6 +9,10 @@ import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
 
 type TSessionGuid = string;
 
+export interface ISidebarTabOptions {
+    active?: boolean;
+}
+
 export class TabsSessionsService implements IService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('TabsSessionsService');
@@ -64,6 +68,47 @@ export class TabsSessionsService implements IService {
         });
         this._sessions.set(guid, session);
         this.setActive(guid);
+    }
+
+    public addSidebarApp(name: string, component: any, inputs: { [key: string]: any }, session?: string, options?: ISidebarTabOptions): string | Error {
+        if (session === undefined) {
+            session = this._currentSessionGuid;
+        }
+        // Get session controller
+        const controller: ControllerSessionTab = this._sessions.get(session);
+        if (controller === undefined) {
+            return new Error(`Fail to find defiend session "${session}"`);
+        }
+        if (options === undefined) {
+            options = {};
+        }
+        // Set defaut options
+        options.active = typeof options.active === 'boolean' ? options.active : true;
+        // Create tab guid
+        const guid: string = Toolkit.guid();
+        // Add sidebar tab
+        controller.getSidebarTabsService().add({
+            guid: guid,
+            name: name,
+            active: options.active,
+            content: {
+                factory: component,
+                inputs: inputs
+            }
+        });
+        return guid;
+    }
+
+    public removeSidebarApp(guid: string, session?: string): Error | undefined {
+        if (session === undefined) {
+            session = this._currentSessionGuid;
+        }
+        // Get session controller
+        const controller: ControllerSessionTab = this._sessions.get(session);
+        if (controller === undefined) {
+            return new Error(`Fail to find defiend session "${session}"`);
+        }
+        controller.getSidebarTabsService().remove(guid);
     }
 
     public getTabsService(): TabsService {

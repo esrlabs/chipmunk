@@ -61,11 +61,19 @@ export default class ControllerElectronIpc {
         });
     }
 
-    public request(message: IPCMessages.TMessage): Promise<IPCMessages.TMessage | undefined> {
+    public request(message: IPCMessages.TMessage, expected?: IPCMessages.TMessage): Promise<IPCMessages.TMessage | undefined> {
         return new Promise((resolve, reject) => {
             const ref: Function | undefined = this._getRefToMessageClass(message);
             if (ref === undefined) {
                 return reject(new Error(`Incorrect type of message`));
+            }
+            if (expected) {
+                const expectedRef: Function | undefined = this._getRefToMessageClass(expected);
+                if (expectedRef === undefined) {
+                    return reject(new Error(`Incorrect type of expected message`));
+                }
+                // Subscribe to expected message if needed
+                this._subscribeIPCMessage(expected.signature);
             }
             this._send(message, true, undefined).then((response: IPCMessages.TMessage | undefined) => {
                 resolve(response);
