@@ -55,6 +55,12 @@ export { ISearchRequestResults, SearchRequestResults };
 import { IFileGetParserRequest, FileGetParserRequest } from './file.getparser.request';
 export { IFileGetParserRequest, FileGetParserRequest };
 
+import { IFileGetOptionsRequest, FileGetOptionsRequest } from './file.getoptions.request';
+export { IFileGetOptionsRequest, FileGetOptionsRequest };
+
+import { IFileGetOptionsResponse, FileGetOptionsResponse } from './file.getoptions.response';
+export { IFileGetOptionsResponse, FileGetOptionsResponse };
+
 import { IFileGetParserResponse, FileGetParserResponse } from './file.getparser.response';
 export { IFileGetParserResponse, FileGetParserResponse };
 
@@ -134,6 +140,8 @@ export const Map = {
 
     [FileGetParserRequest.signature         ]: FileGetParserRequest,
     [FileGetParserResponse.signature        ]: FileGetParserResponse,
+    [FileGetOptionsRequest.signature        ]: FileGetOptionsRequest,
+    [FileGetOptionsResponse.signature       ]: FileGetOptionsResponse,
 
     [MergeFilesRequest.signature            ]: MergeFilesRequest,
     [MergeFilesResponse.signature           ]: MergeFilesResponse,

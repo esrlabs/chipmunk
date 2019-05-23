@@ -6,6 +6,8 @@ import { IPCMessagePackage } from './service.electron.ipc.messagepackage';
 import { IService } from '../interfaces/interface.service';
 export { IPCMessages, Subscription, THandler };
 
+export type TResponseFunc = (message: IPCMessages.TMessage) => Promise<IPCMessages.TMessage | undefined>;
+
 class ElectronIpcService implements IService {
 
     private _logger: Logger = new Logger('ElectronIpcService');

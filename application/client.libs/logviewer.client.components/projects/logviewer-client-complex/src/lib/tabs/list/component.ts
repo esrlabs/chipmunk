@@ -17,11 +17,13 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
 
     private _subscriptions: {
         new: Subscription | null,
+        removed: Subscription | null,
         clear: Subscription | null,
         active: Subscription | null,
         options: Subscription | null,
     } = {
         new: null,
+        removed: null,
         clear: null,
         active: null,
         options: null,
@@ -39,6 +41,7 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
             return;
         }
         this._subscriptions.new = this.service.getObservable().new.subscribe(this.onNewTab.bind(this));
+        this._subscriptions.removed = this.service.getObservable().removed.subscribe(this.onRemoveTab.bind(this));
         this._subscriptions.active = this.service.getObservable().active.subscribe(this.onActiveTabChange.bind(this));
         this._subscriptions.options = this.service.getObservable().options.subscribe(this._onOptionsUpdated.bind(this));
         this._tabs = this.service.getTabs();
@@ -68,6 +71,14 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
         this._cdRef.detectChanges();
     }
 
+    private async onRemoveTab(guid: string) {
+        this._tabs.delete(guid);
+        this.tabs = this.tabs.filter((tab: ITab) => {
+            return tab.guid !== guid;
+        });
+        this._cdRef.detectChanges();
+    }
+
     private async onActiveTabChange(tab: ITab) {
         this._tabs.forEach((storedTab: ITab, guid: string) => {
             if (storedTab.guid !== tab.guid && storedTab.active) {
@@ -79,6 +90,7 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
                 this._tabs.set(guid, storedTab);
             }
         });
+        this._cdRef.detectChanges();
     }
 
     private async _getDefaultOptions() {

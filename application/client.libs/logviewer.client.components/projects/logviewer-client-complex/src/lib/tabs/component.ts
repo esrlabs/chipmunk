@@ -15,11 +15,13 @@ export class TabsComponent implements OnDestroy, AfterViewInit {
 
     private _subscriptions: {
         new: Subscription | null,
+        removed: Subscription | null,
         clear: Subscription | null,
         active: Subscription | null,
         options: Subscription | null,
     } = {
         new: null,
+        removed: null,
         clear: null,
         active: null,
         options: null,

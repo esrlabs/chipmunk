@@ -5,10 +5,19 @@ import * as path from 'path';
 
 const ExtNames = ['dlt'];
 
+const CDelimiters = {
+    columns: '\u0004',
+    arguments: '\u0005',
+};
+
 export default class FileParser extends AFileParser {
 
     public getName(): string {
         return 'DLT format';
+    }
+
+    public getAlias(): string {
+        return 'dlt';
     }
 
     public getExtnameFilters(): Array<{ name: string, extensions: string[] }> {
@@ -22,12 +31,16 @@ export default class FileParser extends AFileParser {
         return ExtNames.indexOf(extname) !== -1;
     }
 
-    public getTransform(): Transform | undefined {
-        return new dlt.TransformStream({}, { stringify: true, datetime: true });
+    public getTransform(options?: any): Transform | undefined {
+        if (options === undefined) {
+            options = {};
+        }
+        options = Object.assign(options, { stringify: true, columnsDelimiter: CDelimiters.columns, argumentsDelimiter: CDelimiters.arguments });
+        return new dlt.TransformStream({}, options);
     }
 
     public getParserFunc(): IFileParserFunc {
-        let transform: dlt.TransformStream | undefined = new dlt.TransformStream({}, { stringify: true, datetime: true });
+        let transform: dlt.TransformStream | undefined = new dlt.TransformStream({}, { stringify: true, columnsDelimiter: CDelimiters.columns, argumentsDelimiter: CDelimiters.arguments });
         return {
             parse: (chunk: Buffer) => {
                 return new Promise((resolve, reject) => {
