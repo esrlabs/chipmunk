@@ -248,11 +248,15 @@ export class ControllerSessionTabSearchOutput {
         };
         const bookmarks: Map<number, IBookmark> = this._bookmakrs.get();
         const indexes: number[] = Array.from(bookmarks.keys());
-        if (indexes.length === 0 || rows.length === 0) {
+        if (indexes.length === 0) {
             return rows;
         }
         indexes.sort((a, b) => a - b);
         const updated: ISearchStreamPacket[] = [];
+        if (rows.length === 0) {
+            add(updated, -1, Infinity);
+            return updated;
+        }
         rows.forEach((row: ISearchStreamPacket, i: number) => {
             if (i ===  rows.length - 1 && row.position !== this._state.count - 1) {
                 updated.push(row);
