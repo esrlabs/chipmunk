@@ -15,6 +15,7 @@ export class AppComponent {
   private _requestedRange: IRange | undefined;
   private _requestTimer: any;
   private _rows: IRow[] = [];
+  private _range: IRow[] = [];
 
   constructor() {
     this._ng_api = {
@@ -24,6 +25,7 @@ export class AppComponent {
       updatingDone: this._onUpdatingDone.bind(this),
       onStorageUpdated: new Subject<IStorageInformation>(),
       onRowsDelivered: new Subject<IRowsPacket>(),
+      onRangeUpdated: new Subject<IRow[]>(),
       onScrollTo: new Subject<number>(),
       getItemHeight: () => 12,
       onRedraw: new Subject<void>(),
@@ -34,6 +36,14 @@ export class AppComponent {
         row: i.toString() + this._randomStr() + '[end]',
       };
     });
+    /*
+    setTimeout(() => {
+      this._range.splice(2, 0, { index : '--I1--', row: 'Injected 1'});
+      this._range.splice(3, 0, { index : '--I2--', row: 'Injected 2'});
+      this._range.splice(15, 0, { index : '--I3--', row: 'Injected 3'});
+      this._ng_api.onRangeUpdated.next(this._range);
+    }, 2000);
+    */
     /*
     setTimeout(() => {
       this._ng_api.onStorageUpdated.next({ count: 6000004 });
@@ -78,9 +88,18 @@ export class AppComponent {
 
   private _getRange(range: IRange): IRowsPacket {
     this._requestedRange = Object.assign({}, range);
+    this._range = this._generateRange(range.start, range.end - range.start + 1, true);
+    if (range.start <= 15) {
+      this._range.splice(2 - range.start, 0, { index : '--I1--', row: 'Injected 1'});
+      this._range.splice(3 - range.start, 0, { index : '--I2--', row: 'Injected 2'});
+      this._range.splice(4 - range.start, 0, { index : '--I4--', row: 'Injected 2'});
+      this._range.splice(5 - range.start, 0, { index : '--I5--', row: 'Injected 2'});
+      this._range.splice(6 - range.start, 0, { index : '--I6--', row: 'Injected 2'});
+      this._range.splice(15 - range.start, 0, { index : '--I3--', row: 'Injected 3'});
+    }
     return {
       range: range,
-      rows: this._generateRange(range.start, range.end - range.start + 1, true),
+      rows: this._range.slice(),
     };
   }
 

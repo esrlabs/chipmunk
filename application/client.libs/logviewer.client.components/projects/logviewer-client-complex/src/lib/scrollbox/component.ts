@@ -39,7 +39,7 @@ export interface IDataAPI {
     onStorageUpdated: Subject<IStorageInformation>;
     onScrollTo: Subject<number>;
     onRowsDelivered: Subject<IRowsPacket>;
-    onRangeUpdated: Subject<IRow[]>;
+    onRerequest: Subject<void>;
     onRedraw: Subject<void>;
 }
 
@@ -130,6 +130,15 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
     public _containerSize: IBoxSize | undefined;
     public _holderSize: { width: number, hash: string } = { width: 0, hash: '' };
 
+    private _injected: {
+        rows: Array<IRow | number>,
+        offset: number,
+        count: number,
+    } = {
+        rows: [],
+        offset: 0,
+        count: 0,
+    };
     private _settings: ISettings = DefaultSettings;
     private _storageInfo: IStorageInformation | undefined;
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
@@ -197,7 +206,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         this._subscriptions.onScrollTo = this.API.onScrollTo.asObservable().subscribe(this._onScrollTo.bind(this));
         this._subscriptions.onStorageUpdated = this.API.onStorageUpdated.asObservable().subscribe(this._onStorageUpdated.bind(this));
         this._subscriptions.onRedraw = this.API.onRedraw.asObservable().subscribe(this._onRedraw.bind(this));
-        this._subscriptions.onRangeUpdated = this.API.onRangeUpdated.asObservable().subscribe(this._onRangeUpdated.bind(this));
+        this._subscriptions.onRerequest = this.API.onRerequest.asObservable().subscribe(this._onRerequest.bind(this));
         // Get rows
         const rows = this.API.getRange({
             start: 0,
@@ -370,7 +379,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
     }
 
     public _ng_sbv_update(change: number, direction: number) {
-        if (this._state.start === 0 && direction < 0) {
+        if (this._state.start === 0 && direction < 0 && this._injected.offset === 0) {
             return;
         }
         // Calculate first row
@@ -378,11 +387,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         if (offset === 0) {
             offset = 1;
         }
-        if (this._ng_rows.length - 1 > this._state.count) {
-            console.log('HEY!!!!!!!');
-        }
         this._setFrame(this._state.start + offset * direction);
-        // Render
         this._softRender();
     }
 
@@ -539,11 +544,8 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         this._updateHolderSize(true);
     }
 
-    private _onRangeUpdated(rows: IRow[]) {
-        // Replace rows
-        this._ng_rows = rows;
-        // Force update
-        this._cdRef.detectChanges();
+    private _onRerequest() {
+        this._render();
         // Update holder size
         this._updateHolderSize(true);
     }
@@ -625,7 +627,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
     }
 
     private _render() {
-        if (!this._isStateValid() || (this._state.end - this._state.start) === 0) {
+        if (!this._isStateValid() || ((this._state.end - this._state.start) === 0 && (this._state.end !== 0 || this._state.start !== 0))) {
             // This case can be in case of asynch calls usage
             this._ng_rows = [];
             return this._cdRef.detectChanges();
