@@ -7,6 +7,15 @@ import OutputRedirectionsService from '../services/standalone/service.output.red
 
 export type TRequestDataHandler = (start: number, end: number) => Promise<IPCMessages.StreamChunk>;
 
+export type TGetActiveSearchRequestsHandler = () => RegExp[];
+
+export interface IParameters {
+    guid: string;
+    requestDataHandler: TRequestDataHandler;
+    getActiveSearchRequests: TGetActiveSearchRequestsHandler;
+    stream: ControllerSessionTabStreamOutput;
+}
+
 export interface ISearchStreamPacket {
     str: string | undefined;
     position: number;
@@ -18,7 +27,9 @@ export interface ISearchStreamPacket {
 }
 
 export interface IStreamState {
+    originalCount: number;
     count: number;
+    bookmarkOffset: number;
     stored: IRange;
     frame: IRange;
     lastLoadingRequestId: any;
@@ -48,11 +59,14 @@ export class ControllerSessionTabSearchOutput {
     private _logger: Toolkit.Logger;
     private _rows: ISearchStreamPacket[] = [];
     private _requestDataHandler: TRequestDataHandler;
+    private _getActiveSearchRequests: TGetActiveSearchRequestsHandler;
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
     private _stream: ControllerSessionTabStreamOutput;
     private _bookmakrs: ControllerSessionTabStreamBookmarks;
     private _state: IStreamState = {
         count: 0,
+        originalCount: 0,
+        bookmarkOffset: 0,
         stored: {
             start: -1,
             end: -1,
@@ -69,19 +83,20 @@ export class ControllerSessionTabSearchOutput {
         onStateUpdated: new Subject<IStreamState>(),
         onReset: new Subject<void>(),
         onRangeLoaded: new Subject<ILoadedRange>(),
-        onRangeUpdated: new Subject<ISearchStreamPacket[]>(),
+        onBookmarksChanged: new Subject<void>(),
         onScrollTo: new Subject<number>(),
     };
 
-    constructor(guid: string, requestDataHandler: TRequestDataHandler, stream: ControllerSessionTabStreamOutput) {
-        this._guid = guid;
-        this._stream = stream;
-        this._bookmakrs = stream.getBookmarks();
-        this._requestDataHandler = requestDataHandler;
+    constructor(params: IParameters) {
+        this._guid = params.guid;
+        this._stream = params.stream;
+        this._bookmakrs = params.stream.getBookmarks();
+        this._requestDataHandler = params.requestDataHandler;
+        this._getActiveSearchRequests = params.getActiveSearchRequests;
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearchOutput: ${this._guid}`);
         this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(this._guid, this._onRowSelected.bind(this));
-        this._subscriptions.onAddedBookmark = this._bookmakrs.getObservable().onAdded.subscribe(this._onAddedBookmark.bind(this));
-        this._subscriptions.onRemovedBookmark = this._bookmakrs.getObservable().onRemoved.subscribe(this._onRemovedBookmark.bind(this));
+        this._subscriptions.onAddedBookmark = this._bookmakrs.getObservable().onAdded.subscribe(this._onUpdateBookmarksState.bind(this));
+        this._subscriptions.onRemovedBookmark = this._bookmakrs.getObservable().onRemoved.subscribe(this._onUpdateBookmarksState.bind(this));
     }
 
     public destroy() {
@@ -101,14 +116,14 @@ export class ControllerSessionTabSearchOutput {
     public getObservable(): {
         onStateUpdated: Observable<IStreamState>,
         onRangeLoaded: Observable<ILoadedRange>,
-        onRangeUpdated: Observable<ISearchStreamPacket[]>,
+        onBookmarksChanged: Observable<void>,
         onReset: Observable<void>,
         onScrollTo: Observable<number>,
     } {
         return {
             onStateUpdated: this._subjects.onStateUpdated.asObservable(),
             onRangeLoaded: this._subjects.onRangeLoaded.asObservable(),
-            onRangeUpdated: this._subjects.onRangeUpdated.asObservable(),
+            onBookmarksChanged: this._subjects.onBookmarksChanged.asObservable(),
             onReset: this._subjects.onReset.asObservable(),
             onScrollTo: this._subjects.onScrollTo.asObservable(),
         };
@@ -119,9 +134,17 @@ export class ControllerSessionTabSearchOutput {
         if (isNaN(range.start) || isNaN(range.end) || !isFinite(range.start) || !isFinite(range.end)) {
             return new Error(`Range has incorrect format. Start and end shound be finite and not NaN`);
         }
+        if (this._state.originalCount === 0) {
+            if (this._rows.length - 1 < range.end || range.start < 0) {
+                return [];
+            }
+            return this._rows.slice(range.start, range.end + 1);
+        }
+        const correction = this._normalizeRange(range);
+        range = correction.range;
         const stored = Object.assign({}, this._state.stored);
-        if (this._state.count === 0 || range.start < 0 || range.end < 0) {
-            return this._insertBookmarks([]);
+        if (this._state.count === 0 || range.start < 0 || range.end < 0 || stored.start < 0 || stored.end < 0) {
+            return [];
         }
         if (stored.start >= 0 && stored.end >= 0) {
             if (range.start >= stored.start && range.end <= stored.end) {
@@ -147,11 +170,26 @@ export class ControllerSessionTabSearchOutput {
             return new Error(this._logger.error(`Calculation error: gotten ${rows.length} rows; should be: ${range.end - range.start}. State was { start: ${stored.start}, end: ${stored.end}}, became { start: ${this._state.stored.start}, end: ${this._state.stored.end}}.`));
         }
         this._state.frame = Object.assign({}, range);
-        return this._insertBookmarks(rows);
+        if (correction.offset !== 0) {
+            const bookmarkedRows: ISearchStreamPacket[] = this._getBookmarkedRowsFromEnd();
+            if (bookmarkedRows.length !== 0) {
+                if (bookmarkedRows.length >= correction.offset) {
+                    rows.push(...bookmarkedRows.slice(0, correction.offset));
+                    rows.splice(0, correction.offset);
+                } else if (bookmarkedRows.length < correction.offset) {
+                    rows.push(...bookmarkedRows);
+                    rows.splice(0, bookmarkedRows.length);
+                }
+            }
+        }
+        return rows;
     }
 
     public setFrame(range: IRange) {
-        this._state.frame = Object.assign({}, range);
+        if (this._state.originalCount === 0) {
+            return;
+        }
+        this._state.frame = Object.assign({}, this._normalizeRange(range)).range;
         if (!this._load()) {
             // No need to make request, but check buffer
             this._buffer();
@@ -174,6 +212,8 @@ export class ControllerSessionTabSearchOutput {
         this._rows = [];
         this._state = {
             count: 0,
+            originalCount: 0,
+            bookmarkOffset: 0,
             stored: {
                 start: -1,
                 end: -1,
@@ -195,6 +235,7 @@ export class ControllerSessionTabSearchOutput {
      */
     public updateStreamState(message: IPCMessages.SearchRequestResults): void {
         // Update count of rows
+        this._setBookmarksLengthOffset();
         this._setTotalStreamCount(message.found);
         this._subjects.onStateUpdated.next(Object.assign({}, this._state));
     }
@@ -217,17 +258,68 @@ export class ControllerSessionTabSearchOutput {
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Bookmarks
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    private _onAddedBookmark(bookmark: IBookmark) {
-        const rows = this._getRowsSliced(this._state.frame.start, this._state.frame.end + 1);
-        this._subjects.onRangeUpdated.next(this._insertBookmarks(rows));
+    private _normalizeRange(range: IRange): { range: IRange, offset: number } {
+        let offset: number = 0;
+        if (range.end > this._state.originalCount - 1) {
+            offset = (range.end - this._state.originalCount) + 1;
+            range.start -= offset;
+            range.end -= offset;
+        }
+        return { range: range, offset: offset };
     }
 
-    private _onRemovedBookmark(index: number) {
-        const rows = this._getRowsSliced(this._state.frame.start, this._state.frame.end + 1);
-        this._subjects.onRangeUpdated.next(this._insertBookmarks(rows));
+    private _getBookmarkedRowsFromEnd(): ISearchStreamPacket[] {
+        const last: number = this._getLastPosNotBookmarkedRow().index;
+        if (last === -1) {
+            return [];
+        }
+        const extra: number = (this._rows.length - 1) - last;
+        return extra === 0 ? [] : this._rows.slice(last + 1, this._rows.length);
     }
 
-    private _insertBookmarks(rows: ISearchStreamPacket[]) {
+    private _onUpdateBookmarksState(bookmark: IBookmark) {
+        // Clear from bookmarks
+        this._rows = this._removeBookmarks(this._rows);
+        // Insert bookmarks if exist
+        this._rows = this._insertBookmarks(this._rows);
+        // Setup parameters of starage
+        this._state.stored.start = this._getFirstPosNotBookmarkedRow().position;
+        this._state.stored.end = this._getLastPosNotBookmarkedRow().position;
+        // Update offset
+        this._setBookmarksLengthOffset();
+        // Update count or rows
+        this._setTotalStreamCount(this._state.originalCount);
+        if (this._state.originalCount === 0) {
+            // No rows in output
+            this._subjects.onStateUpdated.next(Object.assign({}, this._state));
+        }
+        // Emit rerequest event
+        this._subjects.onBookmarksChanged.next();
+    }
+
+    private _setBookmarksLengthOffset() {
+        let offset: number = this._bookmakrs.get().size;
+        if (offset === 0) {
+            this._state.bookmarkOffset = offset;
+            return;
+        }
+        const requests: RegExp[] = this._getActiveSearchRequests();
+        if (requests.length === 0) {
+            this._state.bookmarkOffset = offset;
+            return;
+        }
+        this._bookmakrs.get().forEach((bookmark: IBookmark) => {
+            for (let i = requests.length - 1; i >= 0; i -= 1) {
+                if (bookmark.str.search(requests[i]) !== -1) {
+                    offset -= 1;
+                    break;
+                }
+            }
+        });
+        this._state.bookmarkOffset = offset;
+    }
+
+    private _insertBookmarks(rows: ISearchStreamPacket[]): ISearchStreamPacket[] {
         const add = (target: ISearchStreamPacket[], from: number, to: number) => {
             const between: number[] = this._getBetween(indexes, from, to);
             between.forEach((index: number) => {
@@ -239,7 +331,7 @@ export class ControllerSessionTabSearchOutput {
                     str: inserted.str,
                     rank: inserted.rank,
                     positionInStream: inserted.position,
-                    position: 0,
+                    position: -1,
                     pluginId: inserted.pluginId,
                     sessionId: this._guid,
                     bookmarks: this._bookmakrs,
@@ -258,10 +350,10 @@ export class ControllerSessionTabSearchOutput {
             return updated;
         }
         rows.forEach((row: ISearchStreamPacket, i: number) => {
-            if (i ===  rows.length - 1 && row.position !== this._state.count - 1) {
+            if (i ===  rows.length - 1 && row.position !== this._state.originalCount - 1) {
                 updated.push(row);
                 return;
-            } else if (i ===  rows.length - 1 && row.position === this._state.count - 1) {
+            } else if (i ===  rows.length - 1 && row.position === this._state.originalCount - 1) {
                 updated.push(row);
                 add(updated, row.positionInStream, Infinity);
                 return;
@@ -272,6 +364,30 @@ export class ControllerSessionTabSearchOutput {
             add(updated, row.positionInStream, rows[i + 1].positionInStream);
         });
         return updated;
+    }
+
+    private _removeBookmarks(rows: ISearchStreamPacket[]): ISearchStreamPacket[] {
+        return rows.filter((row: ISearchStreamPacket) => {
+            return row.position !== -1;
+        });
+    }
+
+    private _getFirstPosNotBookmarkedRow(): { position: number, index: number } {
+        for (let i = 0, max = this._rows.length - 1; i <= max; i += 1) {
+            if (this._rows[i].position !== -1) {
+                return { position: this._rows[i].position, index: i };
+            }
+        }
+        return { position: -1, index: -1 };
+    }
+
+    private _getLastPosNotBookmarkedRow(): { position: number, index: number } {
+        for (let i = this._rows.length - 1; i >= 0; i -= 1) {
+            if (this._rows[i].position !== -1) {
+                return { position: this._rows[i].position, index: i };
+            }
+        }
+        return { position: -1, index: -1 };
     }
 
     private _getBetween(indexes: number[], from: number, to: number): number[] {
@@ -300,7 +416,7 @@ export class ControllerSessionTabSearchOutput {
         }
         const distance = {
             toStart: frame.start,
-            toEnd: (this._state.count - 1) - frame.end
+            toEnd: (this._state.originalCount - 1) - frame.end
         };
         if (distance.toStart > (Settings.maxRequestCount / 2)) {
             request.start = distance.toStart - (Settings.maxRequestCount / 2);
@@ -310,7 +426,7 @@ export class ControllerSessionTabSearchOutput {
         if (distance.toEnd > (Settings.maxRequestCount / 2)) {
             request.end = frame.end + (Settings.maxRequestCount / 2);
         } else {
-            request.end = (this._state.count - 1);
+            request.end = (this._state.originalCount - 1);
         }
         this._state.lastLoadingRequestId = setTimeout(() => {
             this._state.lastLoadingRequestId = undefined;
@@ -329,7 +445,7 @@ export class ControllerSessionTabSearchOutput {
                     // Send notification about update
                     this._subjects.onRangeLoaded.next({
                         range: { start: frame.start, end: frame.end },
-                        rows: this._insertBookmarks(this._getRowsSliced(frame.start, frame.end + 1))
+                        rows: this._getRowsSliced(frame.start, frame.end + 1)
                     });
                     return;
                 } else {
@@ -351,7 +467,7 @@ export class ControllerSessionTabSearchOutput {
         const stored = this._state.stored;
         const extended = {
             start: (frame.start - Settings.trigger) < 0 ? 0 : (frame.start - Settings.trigger),
-            end: (frame.end + Settings.trigger) > (this._state.count - 1) ? (this._state.count - 1) : (frame.end + Settings.trigger),
+            end: (frame.end + Settings.trigger) > (this._state.originalCount - 1) ? (this._state.originalCount - 1) : (frame.end + Settings.trigger),
         };
         const diffs = {
             fromEnd: (extended.end > stored.end) ? (extended.end - stored.end) : -1,
@@ -372,7 +488,7 @@ export class ControllerSessionTabSearchOutput {
         } else {
             // Add buffer to the end
             request.start = stored.end;
-            request.end = (extended.end + Settings.maxRequestCount) > this._state.count - 1 ? (this._state.count - 1) : (extended.end + Settings.maxRequestCount);
+            request.end = (extended.end + Settings.maxRequestCount) > this._state.originalCount - 1 ? (this._state.originalCount - 1) : (extended.end + Settings.maxRequestCount);
         }
         this._state.bufferLoadingRequestId = this._requestDataHandler(request.start, request.end).then((message: IPCMessages.StreamChunk) => {
             this._state.bufferLoadingRequestId = undefined;
@@ -454,6 +570,7 @@ export class ControllerSessionTabSearchOutput {
         } else if (packet.end < this._state.stored.start) {
             this._rows = packets;
         } else if (packet.start < this._state.stored.start) {
+            this._rows = this._removeBookmarks(this._rows);
             const range = this._state.stored.start - packet.start;
             const injection = packets.slice(0, range);
             this._rows.unshift(...injection);
@@ -464,6 +581,7 @@ export class ControllerSessionTabSearchOutput {
                 this._rows.splice(-toCrop, toCrop);
             }
         } else if (packet.end > this._state.stored.end) {
+            this._rows = this._removeBookmarks(this._rows);
             const range = packet.end - this._state.stored.end;
             const injection = packets.slice(packets.length - range, packets.length);
             this._rows.push(...injection);
@@ -474,8 +592,11 @@ export class ControllerSessionTabSearchOutput {
                 this._rows.splice(0, toCrop);
             }
         }
-        this._state.stored.start = this._rows[0].position;
-        this._state.stored.end = this._rows[this._rows.length - 1].position;
+        // Insert bookmarks if exist
+        this._rows = this._insertBookmarks(this._rows);
+        // Setup parameters of starage
+        this._state.stored.start = this._getFirstPosNotBookmarkedRow().position;
+        this._state.stored.end = this._getLastPosNotBookmarkedRow().position;
     }
 
     /**
@@ -515,7 +636,8 @@ export class ControllerSessionTabSearchOutput {
     }
 
     private _setTotalStreamCount(count: number) {
-        this._state.count = count;
+        this._state.originalCount = count;
+        this._state.count = this._state.originalCount + this._state.bookmarkOffset;
     }
 
 }

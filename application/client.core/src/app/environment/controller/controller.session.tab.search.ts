@@ -18,7 +18,7 @@ export class ControllerSessionTabSearch {
     private _queue: Toolkit.Queue;
     private _queueController: IQueueController | undefined;
     private _guid: string;
-    private _transports: string[];
+    private _active: RegExp[] = [];
     private _subjects = {
         write: new Subject<void>(),
         next: new Subject<void>(),
@@ -41,9 +41,13 @@ export class ControllerSessionTabSearch {
 
     constructor(params: IControllerSessionStream) {
         this._guid = params.guid;
-        this._transports = params.transports;
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearch: ${params.guid}`);
-        this._output = new ControllerSessionTabSearchOutput(params.guid, this._requestStreamData.bind(this), params.stream);
+        this._output = new ControllerSessionTabSearchOutput({
+            guid: params.guid,
+            requestDataHandler: this._requestStreamData.bind(this),
+            stream: params.stream,
+            getActiveSearchRequests: this._getActiveSearchRequests.bind(this),
+        });
         this._queue = new Toolkit.Queue(this._logger.error.bind(this._logger), 0);
         // Subscribe to queue events
         this._queue_onDone = this._queue_onDone.bind(this);
@@ -84,8 +88,11 @@ export class ControllerSessionTabSearch {
     public search(requestId: string, requests: RegExp[]): Promise<number> {
         return new Promise((resolve, reject) => {
             if (this._activeRequest !== undefined) {
+                this._active = [];
                 return reject(new Error(`Cannot start new search request while current isn't finished.`));
             }
+            // Save active requests
+            this._active = requests;
             // Drop results
             this._results = {
                 matches: [],
@@ -139,6 +146,10 @@ export class ControllerSessionTabSearch {
             }
         }
         return { row: this._results.matches[0], index: 0 };
+    }
+
+    private _getActiveSearchRequests(): RegExp[] {
+        return this._active;
     }
 
     private _requestStreamData(start: number, end: number): Promise<IPCMessages.SearchChunk> {

@@ -32,7 +32,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
             onStorageUpdated: new Subject<IStorageInformation>(),
             onScrollTo: new Subject<number>(),
             onRowsDelivered: new Subject<IRowsPacket>(),
-            onRangeUpdated: new Subject<IRow[]>(),
+            onRerequest: new Subject<void>(),
             onRedraw: new Subject<void>(),
         };
     }
@@ -49,7 +49,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         // Make subscriptions
         this._subscriptions.onStateUpdated = this._output.getObservable().onStateUpdated.subscribe(this._onStateUpdated.bind(this));
         this._subscriptions.onRangeLoaded = this._output.getObservable().onRangeLoaded.subscribe(this._onRangeLoaded.bind(this));
-        this._subscriptions.onRangeUpdated = this._output.getObservable().onRangeUpdated.subscribe(this._onRangeUpdated.bind(this));
+        this._subscriptions.onBookmarksChanged = this._output.getObservable().onBookmarksChanged.subscribe(this._onBookmarksChanged.bind(this));
         this._subscriptions.onReset = this._output.getObservable().onReset.subscribe(this._onReset.bind(this));
         this._subscriptions.onScrollTo = this._output.getObservable().onScrollTo.subscribe(this._onScrollTo.bind(this));
         this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(this._onResize.bind(this));
@@ -112,8 +112,8 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         });
     }
 
-    private _onRangeUpdated(rows: ISearchStreamPacket[]) {
-        this._ng_outputAPI.onRangeUpdated.next(rows);
+    private _onBookmarksChanged(rows: ISearchStreamPacket[]) {
+        this._ng_outputAPI.onRerequest.next();
     }
 
     private _onScrollTo(row: number) {
