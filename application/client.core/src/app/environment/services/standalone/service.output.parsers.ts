@@ -38,6 +38,7 @@ export class OutputParsersService {
     };
     private _plugins: Map<number, IPluginParsers> = new Map();
     private _search: Map<string, IRequest[]> = new Map();
+    private _highlights: IRequest[] = [];
     private _subjects: {
         onUpdatedSearch: Subject<void>,
         onRepain: Subject<void>,
@@ -91,6 +92,10 @@ export class OutputParsersService {
         this._subjects.onUpdatedSearch.next();
     }
 
+    public setHighlights(requests: IRequest[]) {
+        this._highlights = requests;
+    }
+
     public row(str: string, pluginId?: number): string {
         if (pluginId === undefined) {
             if (this._common.row.length === 0) {
@@ -141,6 +146,14 @@ export class OutputParsersService {
             };
         }
         let first: IRequest | undefined;
+        this._highlights.forEach((request: IRequest) => {
+            str = str.replace(request.reg, (match: string) => {
+                if (first === undefined) {
+                    first = request;
+                }
+                return `<span class="noreset match">${match}</span>`;
+            });
+        });
         requests.forEach((request: IRequest) => {
             str = str.replace(request.reg, (match: string) => {
                 if (first === undefined) {

@@ -102,7 +102,7 @@ export class ControllerSessionTab {
         DefaultSidebarApps.forEach((app, index) => {
             // Add tab to sidebar
             this._sidebarTabsService.add({
-                guid: Toolkit.guid(),
+                guid: app.guid !== undefined ? app.guid : Toolkit.guid(),
                 name: app.name,
                 active: index === 0,
                 content: {
