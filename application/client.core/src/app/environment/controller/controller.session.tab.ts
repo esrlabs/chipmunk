@@ -4,7 +4,7 @@ import { ControllerSessionTabStream } from './controller.session.tab.stream';
 import { ControllerSessionTabSearch } from './controller.session.tab.search';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 import { TabsService } from 'logviewer-client-complex';
-import { DefaultSidebarApps } from '../components/sidebar/module';
+import { DefaultSidebarApps } from '../states/state.default.sidebar.apps';
 import * as Toolkit from 'logviewer.client.toolkit';
 
 export interface IControllerSession {

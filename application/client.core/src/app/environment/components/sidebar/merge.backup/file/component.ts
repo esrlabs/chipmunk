@@ -13,7 +13,7 @@ export enum ETypes {
 }
 
 @Component({
-    selector: 'app-sizebar-app-files-item',
+    selector: 'app-sidebar-app-files-item',
     templateUrl: './template.html',
     styleUrls: ['./styles.less']
 })

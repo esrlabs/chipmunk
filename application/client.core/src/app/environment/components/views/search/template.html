@@ -1,15 +1,22 @@
-<div class="comstyle-input-holder search-input-wrapper">
-  <div class="comstyle-input">
-    <input 
-      #requestinput 
-      [attr.class]="'comstyle-input ' + (_ng_isRequestValid ? '' : 'not-valid')"
-      type="text"
-      [attr.placeholder]="_ng_isWorking() ? 'working ...' : 'type regular expression to search'"
-      [attr.disabled]="_ng_isWorking() ? '' : null"
-      (keyup)="_ng_onKeyUp($event)"/>
-      <div class="spinner" *ngIf="_ng_isWorking()">
-        <lib-primitive-spinner-regular></lib-primitive-spinner-regular>
-      </div>
+<div [attr.class]="'request ' + (_ng_prevRequest !== '' ? 'with-buttons' : '')">
+  <div class="comstyle-input-holder search-input-wrapper">
+    <div class="comstyle-input">
+      <input #requestinput 
+        [attr.class]="'comstyle-input ' + (_ng_isRequestValid ? '' : 'not-valid')"
+        type="text"
+        [attr.placeholder]="_ng_isWorking() ? 'working ...' : 'type regular expression to search'"
+        [attr.disabled]="_ng_isWorking() ? '' : null"
+        [(ngModel)]="_ng_request"
+        (blur)="_ng_onBlurRequestInput()"
+        (keyup)="_ng_onKeyUpRequestInput($event)"/>
+        <div class="spinner" *ngIf="_ng_isWorking()">
+          <lib-primitive-spinner-regular></lib-primitive-spinner-regular>
+        </div>
+    </div>
+  </div>
+  <div class="request-buttons" *ngIf="_ng_prevRequest !== ''">
+    <span [attr.class]="'small-icon-button fas fa-share-square ' + (_ng_isRequestSaved ? 'disabled' : '')" (click)="_ng_onStoreRequest()"></span>
+    <span [attr.class]="'small-icon-button fas fa-backspace '" (click)="_ng_onDropRequest()"></span>
   </div>
 </div>
 <div class="rows noreset">

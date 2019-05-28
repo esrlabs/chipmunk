@@ -13,8 +13,10 @@ export interface IPluginParsers {
     rest: TParser | undefined;
 }
 
-export interface ISearchResults {
-    regs: RegExp[]; // List of regs in search
+export interface IRequest {
+    reg: RegExp;
+    color: string | undefined;
+    background: string | undefined;
 }
 
 const PluginParsersNamesMap = {
@@ -35,18 +37,22 @@ export class OutputParsersService {
         rest: [],
     };
     private _plugins: Map<number, IPluginParsers> = new Map();
-    private _search: Map<string, ISearchResults> = new Map();
+    private _search: Map<string, IRequest[]> = new Map();
     private _subjects: {
-        onUpdatedSearch: Subject<void>
+        onUpdatedSearch: Subject<void>,
+        onRepain: Subject<void>,
     } = {
-        onUpdatedSearch: new Subject<void>()
+        onUpdatedSearch: new Subject<void>(),
+        onRepain: new Subject<void>(),
     };
 
     public getObservable(): {
         onUpdatedSearch: Observable<void>,
+        onRepain: Observable<void>,
     } {
         return {
-            onUpdatedSearch: this._subjects.onUpdatedSearch.asObservable()
+            onUpdatedSearch: this._subjects.onUpdatedSearch.asObservable(),
+            onRepain: this._subjects.onRepain.asObservable(),
         };
     }
 
@@ -75,8 +81,8 @@ export class OutputParsersService {
         });
     }
 
-    public setSearchResults(sessionId: string, regs: RegExp[] ) {
-        this._search.set(sessionId, { regs: regs });
+    public setSearchResults(sessionId: string, requests: IRequest[] ) {
+        this._search.set(sessionId, requests);
         this._subjects.onUpdatedSearch.next();
     }
 
@@ -127,17 +133,31 @@ export class OutputParsersService {
         }
     }
 
-    public matches(sessionId: string, row: number, str: string): string {
-        const regs: ISearchResults | undefined = this._search.get(sessionId);
-        if (regs === undefined) {
-            return str;
+    public matches(sessionId: string, row: number, str: string): { str: string, color?: string, background?: string } {
+        const requests: IRequest[] | undefined = this._search.get(sessionId);
+        if (requests === undefined) {
+            return {
+                str: str,
+            };
         }
-        regs.regs.forEach((reg: RegExp) => {
-            str = str.replace(reg, (match: string) => {
+        let first: IRequest | undefined;
+        requests.forEach((request: IRequest) => {
+            str = str.replace(request.reg, (match: string) => {
+                if (first === undefined) {
+                    first = request;
+                }
                 return `<span class="noreset match">${match}</span>`;
             });
         });
-        return str;
+        return {
+            str: str,
+            color: first === undefined ? undefined : first.color,
+            background: first === undefined ? undefined : first.background
+        };
+    }
+
+    public updateRowsView() {
+        this._subjects.onRepain.next();
     }
 
 }

@@ -54,6 +54,7 @@ export default class FunctionOpenLocalFile {
                             // Parser has direct method of reading and writing
                             this._directReadWrite(file).then(() => {
                                 ServiceStreams.removePipeSession(pipeSessionId);
+                                ServiceStreams.reattachSessionFileHandle();
                             }).catch((pipeError: Error) => {
                                 this._logger.error(`Fail to directly read file "${file}" due error: ${pipeError.message}`);
                             });

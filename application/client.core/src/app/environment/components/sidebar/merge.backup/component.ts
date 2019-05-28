@@ -10,7 +10,7 @@ import { IFile as IRequestFile } from '../../../services/electron.ipc.messages/m
 declare var Electron: any;
 
 @Component({
-    selector: 'app-sizebar-app-files',
+    selector: 'app-sidebar-app-files',
     templateUrl: './template.html',
     styleUrls: ['./styles.less']
 })

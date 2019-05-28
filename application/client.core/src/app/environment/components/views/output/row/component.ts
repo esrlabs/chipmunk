@@ -29,14 +29,16 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     public _ng_number: string | undefined;
     public _ng_number_filler: string | undefined;
     public _ng_bookmarked: boolean = false;
+    public _ng_color: string | undefined;
+    public _ng_background: string | undefined;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
 
     constructor(private _sanitizer: DomSanitizer, private _cdRef: ChangeDetectorRef ) {
         this._onRankChanged = this._onRankChanged.bind(this);
-        this._onUpdatedSearch = this._onUpdatedSearch.bind(this);
-        this._subscriptions.onUpdatedSearch = OutputParsersService.getObservable().onUpdatedSearch.subscribe(this._onUpdatedSearch);
+        this._subscriptions.onUpdatedSearch = OutputParsersService.getObservable().onUpdatedSearch.subscribe(this._onUpdatedSearch.bind(this));
+        this._subscriptions.onRepain = OutputParsersService.getObservable().onRepain.subscribe(this._onRepain.bind(this));
     }
 
     public ngOnDestroy() {
@@ -131,7 +133,10 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         // Apply common parser
         html = OutputParsersService.row(html);
         // Apply search matches parser
-        html = OutputParsersService.matches(this.sessionId, this.position, html);
+        const matches = OutputParsersService.matches(this.sessionId, this.position, html);
+        html = matches.str;
+        this._ng_color = matches.color;
+        this._ng_background = matches.background;
         // Generate safe html
         this._ng_safeHtml = this._sanitizer.bypassSecurityTrustHtml(html);
         this._ng_number = this.position.toString();
@@ -149,6 +154,14 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     }
 
     private _onUpdatedSearch() {
+        if (this.str === undefined) {
+            return;
+        }
+        this._acceptRowWithContent();
+        this._cdRef.detectChanges();
+    }
+
+    private _onRepain() {
         if (this.str === undefined) {
             return;
         }

@@ -1,0 +1,88 @@
+@import '../../../../theme/scheme.less';
+
+
+:host {
+    position: absolute;
+    display: block;
+    padding: 0;
+    margin: 0;
+    left:0;
+    top:0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-flow: column nowrap;
+    & p.caption{
+        color: @scheme-color-2;
+        &.padding{
+            padding: 0 0.5rem;
+        }
+    }
+    & div.requests-wrapper{
+        position: relative;
+        display: block;
+        padding: 0;
+        margin: 0;
+        list-style: none;
+        overflow-x: hidden;
+        overflow-y: auto;
+        width: 100%;
+        flex: 1 100%;
+        order: 1;
+        & ul.requests{
+            position: relative;
+            display: block;
+            padding: 0;
+            margin: 0;
+            list-style: none;
+            overflow-x: hidden;
+            overflow-y: auto;
+            width: 100%;
+            top: 0;
+            left: 0;
+            height: ~"calc(100% - 1.5rem)";
+            & li.request{
+                position: relative;
+                display: block;
+                margin: 0;
+                padding: 0.3rem 0;
+                list-style: none;
+                line-height: 1rem;
+                cursor: default;
+                &:hover,
+                &.selected{
+                    background: @scheme-color-4;
+                }
+                &.inactive{
+                    opacity: 0.5;
+                    &.selected{
+                        opacity: 1;
+                    }
+                }
+            }
+        }
+    }
+
+    & div.details{
+        position: relative;
+        display: block;
+        padding: 0 0.5rem;
+        margin: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        flex:none;
+        order: 2;
+    }
+
+    & div.controlls{
+        display: block;
+        padding: 0 0.5rem;
+        white-space: nowrap;
+        text-align: right;
+        flex:none;
+        order: 3;
+        & .small-button:last-child{
+            margin-right: 0;
+        }
+    }
+}

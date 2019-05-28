@@ -212,6 +212,19 @@ class ServiceStreams extends EventEmitter implements IService  {
         stream.processor.updatePipeSession(written);
     }
 
+    public reattachSessionFileHandle(streamId?: string) {
+        // Get stream id
+        if (streamId === undefined) {
+            streamId = this._activeStreamGuid;
+        }
+        // Get stream info
+        const stream: IStreamInfo | undefined = this._streams.get(streamId);
+        if (stream === undefined) {
+            return;
+        }
+        stream.processor.reattach();
+    }
+
     public rewriteStreamFileMap(streamId: string, map: IMapItem[]) {
         const stream: IStreamInfo | undefined = this._streams.get(streamId);
         if (stream === undefined) {
