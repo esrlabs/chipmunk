@@ -4,6 +4,7 @@ import { ViewSearchOutputComponent } from './output/component';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
+import LayoutStateService from '../../../services/standalone/service.layout.state';
 import * as Toolkit from 'logviewer.client.toolkit';
 
 @Component({
@@ -131,9 +132,15 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         if (this._ng_isRequestSaved) {
             return;
         }
+        this._openSidebarSearchTab();
         this._ng_session.getSessionSearch().addStored(this._ng_request);
         this._ng_isRequestSaved = this._ng_session.getSessionSearch().isRequestStored(this._ng_request);
         this._cdRef.detectChanges();
+    }
+
+    private _openSidebarSearchTab() {
+        LayoutStateService.sidebarMax();
+        TabsSessionsService.openTab('search');
     }
 
     private _onSessionChange(session: ControllerSessionTab) {

@@ -3,10 +3,12 @@ import { SidebarAppSearchManagerComponent       } from '../components/sidebar/se
 
 export const DefaultSidebarApps = [
     {
+        guid: 'search',
         name: 'Search',
         component: SidebarAppSearchManagerComponent,
     },
     {
+        guid: 'merging',
         name: 'Merging',
         component: SidebarAppMergeFilesComponent,
     },

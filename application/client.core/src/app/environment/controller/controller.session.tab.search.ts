@@ -120,7 +120,9 @@ export class ControllerSessionTabSearch {
                 // Request is finished successful
                 resolve(results.found);
                 // Share results
-                OutputParsersService.setSearchResults(this._guid, this._getRequestToShare());
+                OutputParsersService.setSearchResults(this._guid, requests.map((reg: RegExp) => {
+                    return { reg: reg, color: undefined, background: undefined };
+                }));
                 // Update stream for render
                 this._output.updateStreamState(results);
                 // Done
@@ -160,7 +162,7 @@ export class ControllerSessionTabSearch {
                 // Request is finished successful
                 resolve();
                 // Share results
-                OutputParsersService.setSearchResults(this._guid, this._getRequestToShare());
+                OutputParsersService.setSearchResults(this._guid, []);
                 // Update stream for render
                 this._output.updateStreamState(results);
                 // Done
@@ -215,7 +217,7 @@ export class ControllerSessionTabSearch {
         this._subjects.onRequestsUpdated.next(this._stored);
         if (count > 0 && this._stored.length === 0) {
             this.drop(Toolkit.guid()).then(() => {
-                OutputParsersService.setSearchResults(this._guid, this._getRequestToShare());
+                OutputParsersService.setHighlights(this._stored.slice());
                 OutputParsersService.updateRowsView();
             }).catch((error: Error) => {
                 this._logger.error(`Fail to drop search results`);
@@ -232,7 +234,7 @@ export class ControllerSessionTabSearch {
             return;
         }
         this.drop(Toolkit.guid()).then(() => {
-            OutputParsersService.setSearchResults(this._guid, this._getRequestToShare());
+            OutputParsersService.setHighlights(this._stored.slice());
             OutputParsersService.updateRowsView();
         }).catch((error: Error) => {
             this._logger.error(`Fail to drop search results of stored filters`);
@@ -242,6 +244,7 @@ export class ControllerSessionTabSearch {
 
     public updateStored(request: string, updated: { reguest?: string, color?: string, background?: string, active?: boolean }) {
         let isUpdateRequired: boolean = false;
+        const active: number = this.getActiveStored().length;
         this._stored = this._stored.map((stored: IRequest) => {
             if (request === stored.reg.source) {
                 if (updated.reguest !== undefined && stored.reg.source !== updated.reguest) {
@@ -259,9 +262,18 @@ export class ControllerSessionTabSearch {
         });
         this._subjects.onRequestsUpdated.next(this._stored);
         if (isUpdateRequired) {
-            this._applyFilters();
+            if (this.getActiveStored().length === 0 && active !== 0) {
+                this.drop(Toolkit.guid()).then(() => {
+                    OutputParsersService.setHighlights(this._stored.slice());
+                    OutputParsersService.updateRowsView();
+                }).catch((error: Error) => {
+                    this._logger.error(`Fail to drop search results of stored filters`);
+                });
+            } else {
+                this._applyFilters();
+            }
         } else {
-            OutputParsersService.setSearchResults(this._guid, this._getRequestToShare());
+            OutputParsersService.setHighlights(this._stored.slice());
             OutputParsersService.updateRowsView();
         }
     }
@@ -306,7 +318,7 @@ export class ControllerSessionTabSearch {
         this.search(requestId, active.map((request: IRequest) => {
             return request.reg;
         }), true).then(() => {
-            OutputParsersService.setSearchResults(this._guid, this._getRequestToShare());
+            OutputParsersService.setHighlights(this._stored.slice());
             OutputParsersService.updateRowsView();
         }).catch((error: Error) => {
             this._logger.error(`Cannot apply filters due error: ${error.message}`);

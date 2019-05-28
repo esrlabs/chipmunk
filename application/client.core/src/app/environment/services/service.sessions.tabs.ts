@@ -101,6 +101,18 @@ export class TabsSessionsService implements IService {
         return guid;
     }
 
+    public openTab(guid: string, session?: string): Error | undefined {
+        if (session === undefined) {
+            session = this._currentSessionGuid;
+        }
+        // Get session controller
+        const controller: ControllerSessionTab = this._sessions.get(session);
+        if (controller === undefined) {
+            return new Error(`Fail to find defiend session "${session}"`);
+        }
+        controller.getSidebarTabsService().setActive(guid);
+    }
+
     public removeSidebarApp(guid: string, session?: string): Error | undefined {
         if (session === undefined) {
             session = this._currentSessionGuid;
