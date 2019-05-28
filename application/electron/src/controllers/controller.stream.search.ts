@@ -131,6 +131,10 @@ export default class ControllerStreamSearch {
         }
         // Drop results file
         this._dropSearchData().then(() => {
+            if (message.requests.length === 0) {
+                // Only dropping results
+                return done(0);
+            }
             // Create reader
             this._searchReader = new ControllerStreamFileReader(this._guid, this._searchFile);
             // Create regexps

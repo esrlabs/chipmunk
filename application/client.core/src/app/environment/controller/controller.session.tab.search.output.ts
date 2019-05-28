@@ -237,6 +237,13 @@ export class ControllerSessionTabSearchOutput {
         // Update count of rows
         this._setBookmarksLengthOffset();
         this._setTotalStreamCount(message.found);
+        // Check bookmarks (if case if search is empty)
+        if (message.found === 0) {
+            // Clear from bookmarks
+            this._rows = this._removeBookmarks(this._rows);
+            // Insert bookmarks if exist
+            this._rows = this._insertBookmarks(this._rows);
+        }
         this._subjects.onStateUpdated.next(Object.assign({}, this._state));
     }
 

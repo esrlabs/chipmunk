@@ -15,6 +15,7 @@ import ServiceProduction from './services/service.production';
 import ServiceFileParsers from './services/service.file.parsers';
 import ServiceMergeFiles from './services/service.merge.files';
 import ServiceStreamSources from './services/service.stream.sources';
+import ServiceFilters from './services/service.filters';
 
 const InitializeStages = [
     // Stage #1
@@ -34,7 +35,7 @@ const InitializeStages = [
     // Stage #8. Detect OS env
     [ServiceEnv],
     // Stage #9, Render functionality
-    [ServiceFileParsers, ServiceMergeFiles],
+    [ServiceFileParsers, ServiceMergeFiles, ServiceFilters],
     // Stage #10. Init plugins
     [ServicePlugins],
     // (last service should startup service and should be single always)

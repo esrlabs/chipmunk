@@ -82,6 +82,18 @@ export { MergeFilesTimezonesRequest };
 import { IMergeFilestimezoneResponse, MergeFilestimezoneResponse } from './merge.files.timezone.response';
 export { IMergeFilestimezoneResponse, MergeFilestimezoneResponse };
 
+import { FiltersLoadRequest } from './file.filters.load.request';
+export { FiltersLoadRequest };
+
+import { IFilter, IFiltersLoadResponse, FiltersLoadResponse } from './file.filters.load.response';
+export { IFilter, IFiltersLoadResponse, FiltersLoadResponse };
+
+import { IFiltersSaveRequest, FiltersSaveRequest } from './file.filters.save.request';
+export { IFiltersSaveRequest, FiltersSaveRequest };
+
+import { IFiltersSaveResponse, FiltersSaveResponse } from './file.filters.save.response';
+export { IFiltersSaveResponse, FiltersSaveResponse };
+
 // Common type for expected message implementation
 export type TMessage =  HostState |
                         HostStateHistory |
@@ -108,7 +120,11 @@ export type TMessage =  HostState |
                         MergeFilesTestRequest |
                         MergeFilesTestResponse |
                         MergeFilesTimezonesRequest |
-                        MergeFilestimezoneResponse;
+                        MergeFilestimezoneResponse |
+                        FiltersLoadRequest |
+                        FiltersLoadResponse |
+                        FiltersSaveRequest |
+                        FiltersSaveResponse;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -149,5 +165,10 @@ export const Map = {
     [MergeFilesTestResponse.signature       ]: MergeFilesTestResponse,
     [MergeFilesTimezonesRequest.signature   ]: MergeFilesTimezonesRequest,
     [MergeFilestimezoneResponse.signature   ]: MergeFilestimezoneResponse,
+
+    [FiltersLoadRequest.signature           ]: FiltersLoadRequest,
+    [FiltersLoadResponse.signature          ]: FiltersLoadResponse,
+    [FiltersSaveRequest.signature           ]: FiltersSaveRequest,
+    [FiltersSaveResponse.signature          ]: FiltersSaveResponse,
 
 };

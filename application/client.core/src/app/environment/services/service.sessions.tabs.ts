@@ -7,6 +7,8 @@ import { Observable, Subject } from 'rxjs';
 import { ViewOutputComponent } from '../components/views/output/component';
 import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
 
+export { ControllerSessionTabSearch, IRequest } from '../controller/controller.session.tab.search';
+
 type TSessionGuid = string;
 
 export interface ISidebarTabOptions {
@@ -141,8 +143,9 @@ export class TabsSessionsService implements IService {
         }
         this._currentSessionGuid = guid;
         this._tabsService.setActive(this._currentSessionGuid);
-        this._subjects.onSessionChange.next(session);
-        ElectronIpcService.send(new IPCMessages.StreamSetActive({ guid: this._currentSessionGuid })).catch((error: Error) => {
+        ElectronIpcService.send(new IPCMessages.StreamSetActive({ guid: this._currentSessionGuid })).then(() => {
+            this._subjects.onSessionChange.next(session);
+        }).catch((error: Error) => {
             this._logger.warn(`Fail to send notification about active session due error: ${error.message}`);
         });
     }

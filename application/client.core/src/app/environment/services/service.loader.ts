@@ -5,6 +5,7 @@ import SourcesService from './service.sources';
 import FileOptionsService from './service.file.options';
 import HorizontalSidebarSessionsService from './service.sessions.sidebar.horizontal';
 import TabsSessionsService from './service.sessions.tabs';
+import SearchSessionsService from './service.sessions.search';
 
 import * as Toolkit from 'logviewer.client.toolkit';
 
@@ -17,6 +18,8 @@ const InitializeStages = [
     [PluginsIPCService],
     // Stage #4
     [TabsSessionsService, HorizontalSidebarSessionsService, FileOptionsService],
+    // Stage #5
+    [SearchSessionsService]
 ];
 
 // TODO: Destroy method, even dummy
