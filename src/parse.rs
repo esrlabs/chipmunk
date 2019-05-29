@@ -1,16 +1,184 @@
 use crate::timedline::*;
 use chrono::{NaiveDate, NaiveDateTime};
 use lazy_static::lazy_static;
-use nom::*;
+use nom::bytes::complete::{tag, take_while_m_n};
+
+use nom::combinator::*;
+use nom::multi::{fold_many0, many1};
+use nom::IResult;
 use regex::Regex;
 use std::collections::HashMap;
 use std::fs;
-use std::io::{BufRead, BufReader};
-use std::path::Path;
 
+use std::io::BufRead;
+use std::io::BufReader;
+use std::path::Path;
 const LINES_TO_INSPECT: usize = 10;
 const LINE_DETECTION_THRESHOLD: usize = 5;
 
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+enum FormatPiece {
+    Day,
+    Month,
+    Year,
+    Hour,
+    Minute,
+    Second,
+    Fraction,
+    TimeZone,
+    SeperatorChar(char),
+    Seperator(String),
+}
+impl std::fmt::Display for FormatPiece {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            FormatPiece::Day => write!(f, "Day"),
+            FormatPiece::Month => write!(f, "Month"),
+            FormatPiece::Year => write!(f, "Year"),
+            FormatPiece::Hour => write!(f, "Hour"),
+            FormatPiece::Minute => write!(f, "Minute"),
+            FormatPiece::Second => write!(f, "Second"),
+            FormatPiece::Fraction => write!(f, "Fraction"),
+            FormatPiece::TimeZone => write!(f, "TimeZone"),
+            FormatPiece::SeperatorChar(_) => write!(f, "SeperatorChar"),
+            FormatPiece::Seperator(_) => write!(f, "Seperator"),
+        }
+    }
+}
+fn days(input: &str) -> IResult<&str, FormatPiece> {
+    map(take_while_m_n(2, 2, |c| c == 'D'), |_| FormatPiece::Day)(input)
+}
+fn month(input: &str) -> IResult<&str, FormatPiece> {
+    map(take_while_m_n(2, 2, |c| c == 'M'), |_| FormatPiece::Month)(input)
+}
+fn year(input: &str) -> IResult<&str, FormatPiece> {
+    map(take_while_m_n(4, 4, |c| c == 'Y'), |_| FormatPiece::Year)(input)
+}
+fn hours(input: &str) -> IResult<&str, FormatPiece> {
+    map(take_while_m_n(2, 2, |c| c == 'h'), |_| FormatPiece::Hour)(input)
+}
+fn minutes(input: &str) -> IResult<&str, FormatPiece> {
+    map(take_while_m_n(2, 2, |c| c == 'm'), |_| FormatPiece::Minute)(input)
+}
+fn seconds(input: &str) -> IResult<&str, FormatPiece> {
+    map(take_while_m_n(2, 2, |c| c == 's'), |_| FormatPiece::Second)(input)
+}
+fn fraction(input: &str) -> IResult<&str, FormatPiece> {
+    map(nom::character::complete::char('s'), |_| {
+        FormatPiece::Fraction
+    })(input)
+}
+fn timezone(input: &str) -> IResult<&str, FormatPiece> {
+    map(tag("TZD"), |_| FormatPiece::TimeZone)(input)
+}
+fn many_spaces(input: &str) -> IResult<&str, char> {
+    map(many1(nom::character::complete::char(' ')), |_| ' ')(input)
+}
+fn seperator(input: &str) -> IResult<&str, FormatPiece> {
+    map(
+        nom::branch::alt((many_spaces, nom::character::complete::anychar)),
+        FormatPiece::SeperatorChar,
+    )(input)
+}
+fn any_date_format(input: &str) -> IResult<&str, FormatPiece> {
+    nom::branch::alt((
+        days, month, year, hours, minutes, seconds, fraction, timezone, seperator,
+    ))(input)
+}
+fn escape_metacharacters(c: char) -> String {
+    match c {
+        //  .|?*+(){}[]DD
+        ' ' => r"\s+".to_string(),
+        '.' => r"\.".to_string(),
+        '|' => r"\|".to_string(),
+        '?' => r"\?".to_string(),
+        '+' => r"\+".to_string(),
+        '(' => r"\(".to_string(),
+        ')' => r"\)".to_string(),
+        '[' => r"\[".to_string(),
+        '{' => r"\{".to_string(),
+        '^' => r"\^".to_string(),
+        '$' => r"\$".to_string(),
+        '*' => r"\*".to_string(),
+        c => c.to_string(),
+    }
+}
+/// takes a format string for a date representation and tokenize it
+/// into it's individual elements
+/// e.g. "DD-MM" => [Day,Seperator("-"),Month]
+///      YYYY = four-digit year
+///      MM   = two-digit month (01=January, etc.)
+///      DD   = two-digit day of month (01 through 31)
+///      hh   = two digits of hour (00 through 23) (am/pm NOT allowed)
+///      mm   = two digits of minute (00 through 59)
+///      ss   = two digits of second (00 through 59)
+///      s    = one or more digits representing a decimal fraction of a second
+///      TZD  = time zone designator (Z or +hh:mm or -hh:mm)
+fn date_expression(input: &str) -> IResult<&str, Vec<FormatPiece>> {
+    let parser = fold_many0(
+        any_date_format,
+        (String::from(""), Vec::new()),
+        |mut acc: (String, Vec<_>), item| {
+            match item {
+                FormatPiece::SeperatorChar(c) => acc.0.push_str(escape_metacharacters(c).as_str()),
+                _ => {
+                    if !acc.0.is_empty() {
+                        acc.1.push(FormatPiece::Seperator(acc.0));
+                        acc.0 = String::from("")
+                    }
+                    acc.1.push(item)
+                }
+            };
+            acc
+        },
+    );
+    map(parser, |p: (String, Vec<FormatPiece>)| p.1)(input)
+}
+
+fn date_format_str_to_regex(date_format: &str) -> Result<Regex, failure::Error> {
+    let format_pieces = date_expression(date_format);
+    match format_pieces {
+        Ok(r) => {
+            let s = r.1.iter().fold(String::from(r""), |mut acc, x| {
+                let part = format_piece_as_regex_string(x);
+                acc.push_str(part.as_str());
+                acc
+            });
+
+            if let Ok(regex) = Regex::new(s.as_str()) {
+                return Ok(regex);
+            }
+            return Err(failure::err_msg("could not create regex"));
+        }
+        Err(e) => eprintln!("{:?}", e),
+    }
+    Err(failure::err_msg("could not detect timestamp in"))
+}
+fn format_piece_as_regex_string(p: &FormatPiece) -> String {
+    match p {
+        FormatPiece::Day => String::from(r"(?P<d>\d{2})"),
+        FormatPiece::Month => String::from(r"(?P<m>\d{2})"),
+        FormatPiece::Year => String::from(r"(?P<Y>\d{4})"),
+        FormatPiece::Hour => String::from(r"(?P<H>\d{2})"),
+        FormatPiece::Minute => String::from(r"(?P<M>\d{2})"),
+        FormatPiece::Second => String::from(r"(?P<S>\d{2})"),
+        FormatPiece::Fraction => String::from(r"(?P<millis>\d+)"),
+        FormatPiece::TimeZone => String::from(r"(?P<timezone>[\+\-]\d+)"),
+        FormatPiece::SeperatorChar(c) => {
+            let mut s = String::from("");
+            s.push(*c);
+            s
+        }
+        FormatPiece::Seperator(s) => s.to_string(),
+    }
+}
+pub fn line_matching_format_expression(
+    format_expr: &str,
+    line: &str,
+) -> Result<bool, failure::Error> {
+    let regex = date_format_str_to_regex(format_expr)?;
+    Ok(regex.is_match(line))
+}
 pub fn line_to_timed_line(
     line: &str,
     original_line_length: usize,
@@ -37,7 +205,7 @@ pub fn line_to_timed_line(
         return None;
     }
     let offset_result = if time_offset.is_none() {
-        offset_from_timezone_in_ms(&caps["timezone"])
+        parse_timezone(&caps["timezone"])
     } else {
         time_offset.ok_or_else(|| failure::err_msg("could not detect timestamp in"))
     };
@@ -96,25 +264,18 @@ impl RegexKind {
         }
     }
 }
-// %Y	2001	The full proleptic Gregorian year, zero-padded to 4 digits
-// %m	07	Month number (01--12), zero-padded to 2 digits.
-// %d	08	Day number (01--31), zero-padded to 2 digits.
-// %H	00	Hour number (00--23), zero-padded to 2 digits.
-// %M	34	Minute number (00--59), zero-padded to 2 digits.
-// %S	60	Second number (00--60), zero-padded to 2 digits
 lazy_static! {
     pub static ref REGEX_REGISTRY: HashMap<RegexKind, Regex> = {
         let mut m = HashMap::new();
 
         // 05-22 12:36:36.506 +0100 I/GKI_LINUX1
-        m.insert(RegexKind::R1, Regex::new(
-            r"(?x)(?P<m>\d{2})-(?P<d>\d{2})\s+(?P<H>\d{2}):(?P<M>\d{2}):(?P<S>\d{2}).(?P<millis>\d+)\s(?P<timezone>[\+\-]\d+)"
-        ).unwrap());
+        m.insert(RegexKind::R1,
+            date_format_str_to_regex("MM-DD hh:mm:ss.s TZD").expect("should be parsed"));
 
         // 05-22-2019 12:36:04.344 A0
-        m.insert(RegexKind::R2, Regex::new(
-            r"(?x)(?P<m>\d{2})-(?P<d>\d{2})-(?P<Y>\d{4})\s+(?P<H>\d{2}):(?P<M>\d{2}):(?P<S>\d{2}).(?P<millis>\d+)",
-        ).unwrap());
+        m.insert(RegexKind::R2,
+            date_format_str_to_regex("MM-DD-YYYY hh:mm:ss.s").expect("should be parsed"));
+
         m
     };
     static ref REGEX_COUNT: usize = REGEX_REGISTRY.len();
@@ -138,7 +299,7 @@ pub fn detect_timestamp_regex(path: &Path) -> Result<RegexKind, failure::Error> 
             len,
             "TAG",
             &REGEX_REGISTRY[&RegexKind::R1],
-            Some(3333),
+            Some(2017),
             Some(0),
         ) {
             Some(_) => matched_lines_regex_01 + 1,
@@ -201,111 +362,26 @@ pub fn from_digits(input: &str) -> Result<u32, std::num::ParseIntError> {
 fn is_digit(c: char) -> bool {
     c.is_digit(10)
 }
-fn not_nl(c: char) -> bool {
-    c == '\n'
-}
-fn any(_c: char) -> bool {
-    true
-}
-named!(match_ws<char>, char!(' '));
-named!(num_primary<&str, u32>,
-  map_res!(take_while_m_n!(2, 2, is_digit), from_digits)
-);
-named!(num_primary4<&str, u32>,
-  map_res!(take_while_m_n!(2, 4, is_digit), from_digits)
-);
-named!(any_s<&str, &str>,
-    take_while!(not_nl)
-);
-named!( alpha<&str, &str>, take_while!( char::is_alphabetic ) );
-// named!( complete<&str, Line>,
-//     alt!(date_parser | anychar >> complete)
-// );
 
-named!(date_parser<&str, Line>,
-  do_parse!(
-    month:   num_primary >>
-    tag!("-")   >>
-    day: num_primary >>
-    tag!("-")   >>
-    year:  num_primary4 >>
-    tag!(" ")   >>
-    hour:  num_primary >>
-    tag!(":")   >>
-    minute:  num_primary >>
-    tag!(":")   >>
-    seconds:  num_primary >>
-    tag!(".")   >>
-    millis: ms >>
-    (Line { month, day, year, hour, minute, seconds, millis, timezone: "".to_string() })
-  )
-);
-named!(timezone<&str, String>,
-    do_parse!(
-        sign: tag!("+") >>
-        tz: take_while!(is_digit) >> (format!("{}{}", sign, tz))
-    )
-);
-// 05-14 12:26:04.344 +0200
-named!(date_parser2<&str, Line>,
-  do_parse!(
-    month:   num_primary >>
-    tag!("-")   >>
-    day: num_primary >>
-    tag!(" ")   >>
-    hour:  num_primary >>
-    tag!(":")   >>
-    minute:  num_primary >>
-    tag!(":")   >>
-    seconds:  num_primary >>
-    tag!(".")   >>
-    millis: ms >>
-    tag!(" ") >>
-    timezone: timezone >>
-    (Line { month, day, year: 2019, hour, minute, seconds, millis, timezone })
-  )
-);
-named!(ms<&str, u32>, map_res!(complete!(take_while!(is_digit)), from_digits));
-#[allow(dead_code)]
-pub fn line_to_timed_line_nom(
-    line: &str,
-    original_line_length: usize,
-    tag: &str,
-    year: Option<i32>,
-    time_offset: Option<i64>,
-) -> Option<TimedLine> {
-    if let Ok((rest, l)) = date_parser2(line) {
-        let mut y = l.year as i32;
-        if let Some(year) = year {
-            y = year;
-        }
-        let date_time: NaiveDateTime = NaiveDate::from_ymd(y, l.month, l.day)
-            .and_hms_milli(l.hour, l.minute, l.seconds, l.millis);
-        let unix_timestamp = date_time.timestamp_millis();
-        return match time_offset {
-            Some(offset) => Some(TimedLine {
-                timestamp: unix_timestamp - offset,
-                content: line.to_string(),
-                tag: tag.to_string(),
-                original_length: original_line_length,
-            }),
-            None => Some(TimedLine {
-                timestamp: unix_timestamp
-                    - offset_from_timezone_in_ms(l.timezone.as_str())
-                        .expect("could not get offset from timezone"),
-                content: line.to_string(),
-                tag: tag.to_string(),
-                original_length: original_line_length,
-            }),
-        };
-    }
-    None
-}
+use nom::character::complete::char;
+use nom::character::complete::digit1;
 
+// fn many_spaces(input: &str) -> IResult<&str, char> {
+//     map(many1(nom::character::complete::char(' ')), |_| ' ')(input)
+// }
 fn offset_from_timezone_in_ms(timezone: &str) -> Result<i64, failure::Error> {
+    if timezone.len() != 5 {
+        return Err(failure::err_msg(format!(
+            "timezone had unexpected length of {}",
+            timezone.len()
+        )));
+    }
+    if !timezone.is_ascii() {
+        return Err(failure::err_msg("timezone contained non-ascii characters"));
+    }
     let positive: bool = timezone.starts_with('+');
-    let absolute_hours: &i64 = &timezone[1..3].parse().expect("could not parse timezone");
-    let absolute_minutes: &i64 = &timezone[3..5].parse().expect("could not parse timezone");
+    let absolute_hours: &i64 = &timezone[1..3].parse()?;
+    let absolute_minutes: &i64 = &timezone[3..5].parse()?;
     let absolute = 1000 * (3600 * *absolute_hours + 60 * (*absolute_minutes));
     if positive {
         Ok(absolute)
@@ -314,128 +390,247 @@ fn offset_from_timezone_in_ms(timezone: &str) -> Result<i64, failure::Error> {
     }
 }
 
+/// should parse timezone string, valid formats are
+/// +hh:mm, +hhmm, or +hh
+/// -hh:mm, -hhmm, or -hh
+fn timezone_parser(input: &str) -> IResult<&str, i64> {
+    let timezone_sign = map(nom::branch::alt((char('+'), char('-'))), |c| c == '+');
+    fn timezone_count(input: &str) -> IResult<&str, i64> {
+        let (rest, r) = nom::bytes::complete::take(2usize)(input)?;
+        let second = map_res(digit1, |s: &str| s.parse::<i64>())(r)?;
+        Ok((rest, second.1))
+    }
+    fn timezone_minutes(input: &str) -> IResult<&str, i64> {
+        println!("timezone_minutes for {}", input);
+        let res = nom::sequence::preceded(opt(char(':')), timezone_count)(input);
+        println!("timezone_minutes res: {:?}", res);
+        res
+    }
+    let parser = nom::sequence::tuple((timezone_sign, timezone_count, opt(timezone_minutes)));
+    map(parser, |(positiv, hour, min): (bool, i64, Option<i64>)| {
+        println!("hour {}, min: {:?}", hour, min);
+        let absolute = 1000 * (3600 * hour + 60 * min.unwrap_or(0));
+        (if positiv { 1 } else { -1 }) * absolute
+    })(input)
+}
+fn parse_timezone(input: &str) -> Result<i64, failure::Error> {
+    match timezone_parser(input) {
+        Ok((_, res)) => Ok(res),
+        Err(e) => Err(failure::err_msg(format!("error parsing timezone: {:?}", e))),
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use pretty_assertions::assert_eq;
+    use proptest::prelude::*;
     use std::path::PathBuf;
 
-    named!(ms2<&str, u32>, map_res!(complete!(take_while!(is_digit)), from_digits));
-    #[test]
-    fn mini() {
-        assert_eq!(alpha("abc123"), Ok(("123", "abc")));
-        // assert_eq!(alpha("abc"), Ok(("", "abc")));
-        assert_eq!(ms_s("123abc"), Ok(("abc", "123")));
-        assert_eq!(ms2("123abc"), Ok(("abc", 123)));
-        // assert_eq!(ms2("123"), Ok(("", 123)));
-        // assert_eq!(ms("123"), Ok(("", 123)))
+    static VALID_TIMESTAMP_FORMAT: &str = "[+-]{1}[0-9]{2}[0-5]{1}[0-9]{1}";
+
+    proptest! {
+        #[test]
+        fn offset_from_timezone_in_ms_doesnt_crash(s in "\\PC*") {
+            let _ = parse_timezone(&s);
+        }
+        #[test]
+        fn parses_all_valid_dates(s in VALID_TIMESTAMP_FORMAT) {
+            parse_timezone(&s).unwrap();
+        }
     }
 
-    // named!(parsertest<&str, String>, preceded!(many0!( any_s ), timezone));
-    named!(p<&str, &str>, preceded!(tag!("ab"), tag!("XY")));
-    named!(parsertest<&str, Vec<&str>>, many0!( ms_s ));
-    named!(ms_s<&str, &str>, take_while!(is_digit));
     #[test]
-    fn basic_preceed() {
-        // assert_eq!(Ok(("\n", "+0200".to_string())), parsertest("#+0200\n"),);
-        assert_eq!(Ok(("Z", "XY")), p("abXYZ"));
-        // assert_eq!(Ok(("\n", vec!["+0200"])), parsertest("23230200\n"),);
-    }
-    #[test]
-    fn basic_nom() {
+    fn test_date_parsers() {
+        assert_eq!(any_date_format("DD23"), Ok(("23", FormatPiece::Day)));
+        assert_eq!(any_date_format("MM23"), Ok(("23", FormatPiece::Month)));
+        assert_eq!(any_date_format("DDMM"), Ok(("MM", FormatPiece::Day)));
+        assert_eq!(any_date_format("YYYY-"), Ok(("-", FormatPiece::Year)));
         assert_eq!(
-            Ok((
-                " 0 0.764564113869644 0.7033032911158661 0.807587397462308",
-                Line {
-                    month: 5,
-                    day: 14,
-                    year: 2019,
-                    hour: 12,
-                    minute: 26,
-                    seconds: 4,
-                    millis: 344,
-                    timezone: "".to_string(),
-                }
-            )),
-            date_parser(
-                "05-14-2019 12:26:04.344 0 0.764564113869644 0.7033032911158661 0.807587397462308"
-            ),
+            date_expression("DDMM"),
+            Ok(("", vec![FormatPiece::Day, FormatPiece::Month]))
         );
         assert_eq!(
+            date_expression("DD:MM"),
             Ok((
-                " D/oup.csc(  665): [728] MqttLogger",
-                Line {
-                    month: 5,
-                    day: 14,
-                    year: 2019,
-                    hour: 12,
-                    minute: 26,
-                    seconds: 4,
-                    millis: 344,
-                    timezone: "+0200".to_string(),
-                }
-            )),
-            date_parser2("05-14 12:26:04.344 +0200 D/oup.csc(  665): [728] MqttLogger"),
+                "",
+                vec![
+                    FormatPiece::Day,
+                    FormatPiece::Seperator(String::from(":")),
+                    FormatPiece::Month
+                ]
+            ))
+        );
+        assert_eq!(
+            date_expression("MMDD"),
+            Ok(("", vec![FormatPiece::Month, FormatPiece::Day]))
         );
     }
+    #[test]
+    fn test_date_parsers_escapes() {
+        assert_eq!(
+            date_expression("MM   .|?*+(){}[]^$DD"),
+            Ok((
+                "",
+                vec![
+                    FormatPiece::Month,
+                    FormatPiece::Seperator(String::from(r"\s+\.\|\?\*\+\(\)\{}\[]\^\$")),
+                    FormatPiece::Day
+                ]
+            ))
+        );
+    }
+    #[test]
+    fn test_format_parsers() {
+        // let input = "DD-MM hh:mm:ss:S TZD";
+        assert_eq!(
+            date_expression("DD-MM ---> hh:mm:ss:s TZD"),
+            Ok((
+                "",
+                vec![
+                    FormatPiece::Day,
+                    FormatPiece::Seperator(String::from("-")),
+                    FormatPiece::Month,
+                    FormatPiece::Seperator(String::from(r"\s+--->\s+")),
+                    FormatPiece::Hour,
+                    FormatPiece::Seperator(String::from(":")),
+                    FormatPiece::Minute,
+                    FormatPiece::Seperator(String::from(":")),
+                    FormatPiece::Second,
+                    FormatPiece::Seperator(String::from(":")),
+                    FormatPiece::Fraction,
+                    FormatPiece::Seperator(String::from(r"\s+")),
+                    FormatPiece::TimeZone,
+                ]
+            ))
+        );
+
+    }
+
+    #[test]
+    fn test_offset_from_timezone_in_ms_non_ascii() {
+        assert!(parse_timezone("aࡠA").is_err());
+    }
+    #[test]
+    fn test_offset_from_timezone_in_ms_invalid_input() {
+        assert!(parse_timezone("0Aaa0").is_err());
+    }
+
+    #[test]
+    fn test_timezone_parser() {
+        if let Ok(res) = parse_timezone("+01:00") {
+            println!("res: {:?}", res);
+        } else {
+            println!("could not parse");
+        }
+    }
+
+
     #[test]
     fn test_offset_from_timezone_in_ms() {
+        assert_eq!(0, parse_timezone("+0000").expect("could not parse"));
+        assert_eq!(0, parse_timezone("-0000").expect("could not parse"));
         assert_eq!(
-            0,
-            offset_from_timezone_in_ms("+0000").expect("could not parse")
-        );
-        assert_eq!(
-            0,
-            offset_from_timezone_in_ms("-0000").expect("could not parse")
+            2 * 3600 * 1000,
+            parse_timezone("+0200").expect("could not parse")
         );
         assert_eq!(
             2 * 3600 * 1000,
-            offset_from_timezone_in_ms("+0200").expect("could not parse")
+            parse_timezone("+02:00").expect("could not parse")
         );
         assert_eq!(
             2 * 3600 * 1000 + 30 * 60 * 1000,
-            offset_from_timezone_in_ms("+0230").expect("could not parse")
+            parse_timezone("+0230").expect("could not parse")
         );
         assert_eq!(
             -2 * 3600 * 1000,
-            offset_from_timezone_in_ms("-0200").expect("could not parse")
+            parse_timezone("-0200").expect("could not parse")
         );
     }
+    #[test]
+    fn test_date_format_str_to_regex1() {
+        // 05-22 12:36:36.506 +0100 I/GKI_LINUX1
+        let input = "DD-MM hh:mm:ss.s TZD";
+        let regex = date_format_str_to_regex(input).expect("should be parsed");
+        assert_eq!(Regex::new(r"(?P<d>\d{2})-(?P<m>\d{2})\s+(?P<H>\d{2}):(?P<M>\d{2}):(?P<S>\d{2})\.(?P<millis>\d+)\s+(?P<timezone>[\+\-]\d+)").unwrap().as_str(), regex.as_str());
+    }
+    #[test]
+    fn test_date_format_str_to_regex2() {
+        // 05-22-2019 12:36:04.344 A0
+        let input2 = "DD-MM-YYYY hh:mm:ss.s";
+        let regex2 = date_format_str_to_regex(input2).expect("should be parsed");
+        assert_eq!(Regex::new(r"(?P<d>\d{2})-(?P<m>\d{2})-(?P<Y>\d{4})\s+(?P<H>\d{2}):(?P<M>\d{2}):(?P<S>\d{2})\.(?P<millis>\d+)").unwrap().as_str(), regex2.as_str());
+    }
+    #[test]
+    fn test_date_format_str_to_regex_with_escape_characters() {
+        // 05|22|2019
+        let regex = date_format_str_to_regex("DD|MM|YYYY").expect("should be parsed");
+        assert_eq!(
+            Regex::new(r"(?P<d>\d{2})\|(?P<m>\d{2})\|(?P<Y>\d{4})")
+                .unwrap()
+                .as_str(),
+            regex.as_str()
+        );
+    }
+    #[test]
+    fn test_date_format_str_to_regex_other() {
+        assert!(
+            line_matching_format_expression("YYYY-MM-DDThh:mmTZD", "1997-07-16T19:20+01:00")
+                .unwrap_or(false)
+        );
+        assert!(line_matching_format_expression("YYYY", "1997").unwrap_or(false));
 
+        assert!(line_matching_format_expression("YYYY-MM", "1997-07").unwrap_or(false));
+
+        assert!(line_matching_format_expression("YYYY-MM-DD", "1997-07-16").unwrap_or(false));
+
+        assert!(
+            line_matching_format_expression("YYYY-MM-DDThh:mmTZD", "1997-07-16T19:20+01:00")
+                .unwrap_or(false)
+        );
+
+        assert!(line_matching_format_expression(
+            "YYYY-MM-DDThh:mm:ssTZD",
+            "1997-07-16T19:20:30+01:00"
+        )
+        .unwrap_or(false));
+
+        assert!(line_matching_format_expression(
+            "YYYY-MM-DDThh:mm:ss.sTZD",
+            "1997-07-16T19:20:30.45+01:00"
+        )
+        .unwrap_or(false));
+        assert!(line_matching_format_expression(
+            "YYYY-MM-DDThh:mm:ss.sTZD",
+            "1997-07-16T19:20:30.45+01:00"
+        )
+        .unwrap_or(false));
+        assert!(
+            line_matching_format_expression("YYYYMMDDhhmmsssTZD", "1997071619203045+01:00")
+                .unwrap_or(false)
+        );
+    }
     #[test]
     fn test_parse_date_line_no_year_with_timezone() {
         let input = "04-04 11:52:50.229 +0200 D/oup.csc(  665): [728] MqttLogger";
-        {
-            {
-                let TimedLine {
-                    timestamp,
-                    content,
-                    tag,
-                    ..
-                } = line_to_timed_line(
-                    input,
-                    input.len(),
-                    "TAG",
-                    &REGEX_REGISTRY[&RegexKind::R1],
-                    Some(2017),
-                    None,
-                )
-                .unwrap();
-                println!("timestamp: {}, tag: {}", timestamp, tag);
-                assert_eq!(1_491_299_570_229, timestamp);
-                assert_eq!(input, content);
-            }
-            {
-                let TimedLine {
-                    timestamp,
-                    content,
-                    tag,
-                    ..
-                } = line_to_timed_line_nom(input, input.len(), "TAG", Some(2017), None).unwrap();
-                println!("timestamp: {}, tag: {}", timestamp, tag);
-                assert_eq!(1_491_299_570_229, timestamp);
-                assert_eq!(input, content);
-            }
-        }
+
+        let TimedLine {
+            timestamp,
+            content,
+            tag,
+            ..
+        } = line_to_timed_line(
+            input,
+            input.len(),
+            "TAG",
+            &REGEX_REGISTRY[&RegexKind::R1],
+            Some(2017),
+            None,
+        )
+        .expect("convert to limed line should work");
+        println!("timestamp: {}, tag: {}", timestamp, tag);
+        assert_eq!(1_491_299_570_229, timestamp);
+        assert_eq!(input, content);
     }
     const TWO_HOURS_IN_MS: i64 = 2 * 3600 * 1000;
     #[test]
@@ -461,19 +656,6 @@ mod tests {
             assert_eq!(1_491_299_570_229, timestamp);
             assert_eq!(input, content);
         }
-
-        // {
-        //     let TimedLine {
-        //         timestamp,
-        //         content,
-        //         tag,
-        //         ..
-        //     } = line_to_timed_line_nom(input, input.len(), "TAG", None, Some(TWO_HOURS_IN_MS))
-        //         .unwrap();
-        //     println!("timestamp: {}, tag: {}", timestamp, tag);
-        //     assert_eq!(1_491_299_570_229, timestamp);
-        //     assert_eq!(input, content);
-        // }
     }
 
     test_generator::test_expand_paths! { test_detect_regex; "test_samples/detecting/*" }

@@ -1,4 +1,5 @@
 use crate::chunks::serialize_chunks;
+use crate::parse::line_matching_format_expression;
 use quicli::prelude::{CliResult, Verbosity};
 use std::fs;
 use std::path::PathBuf;
@@ -10,9 +11,9 @@ mod chunks;
 mod merger;
 mod parse;
 mod processor;
-mod utils;
-mod timedline;
 
+mod timedline;
+mod utils;
 /// Create index file and mapping file for logviewer
 #[derive(Debug, StructOpt)]
 struct Cli {
@@ -40,6 +41,12 @@ struct Cli {
     /// Output file, "<file_to_index>.out" if not present
     #[structopt(long = "out", short = "o")]
     output: Option<String>,
+    /// Format string to test
+    #[structopt(long = "format", short = "f")]
+    format_test: Option<String>,
+    /// test string to test with the format string
+    #[structopt(long = "example", short = "x")]
+    format_test_example: Option<String>,
     // Quick and easy logging setup you get for free with quicli
     #[structopt(flatten)]
     verbosity: Verbosity,
@@ -83,6 +90,20 @@ fn main() -> CliResult {
             Ok(())
         }
         None => {
+            if let Some(formatstr) = args.format_test {
+                let formatexample = match args.format_test_example {
+                    Some(e) => e,
+                    None => {
+                        eprintln!("format example missing");
+                        process::exit(2)
+                    }
+                };
+                println!("got format str: {}", formatstr);
+                println!("got format example: {}", formatexample);
+                let res = line_matching_format_expression(formatstr.as_str(), formatexample.as_str());
+                println!("match: {:?}", res);
+                process::exit(0);
+            };
             let file = match args.file_to_index {
                 Some(f) => f,
                 None => {

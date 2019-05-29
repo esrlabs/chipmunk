@@ -14,13 +14,65 @@ FLAGS:
     -v, --verbosity    Pass many times for more log output
 
 OPTIONS:
-    -c, --chunk_size <chunk_size>      How many lines should be in a chunk (used for access later) [default: 500]
-    -i, --index <file_to_index>        The file to read
-    -n, --max_lines <max_lines>        How many lines to collect before dumping [default: 1000000]
-    -m, --merge <merge_config_file>    input file is a json file that defines all files to be merged
-    -o, --out <output>                 Output file, "<file_to_index>.out" if not present
-    -t, --tag <tag>                    how to tag the source
+    -c, --chunk_size <chunk_size>          How many lines should be in a chunk (used for access later) [default: 500]
+    -i, --index <file_to_index>            The file to read
+    -f, --format <format_test>             Format string to test
+    -x, --example <format_test_example>    test string to test with the format string
+    -n, --max_lines <max_lines>            How many lines to collect before dumping [default: 1000000]
+    -m, --merge <merge_config_file>        input file is a json file that defines all files to be merged
+    -o, --out <output>                     Output file, "<file_to_index>.out" if not present
+    -t, --tag <tag>                        how to tag the source
 ```
+
+## Date Format for timestamps
+
+When using the merge option, 2 or more files can be merged together into one indexed logfile. In order to know how the log entries
+can be sorted correctly, we need to detect the timestamp for each entry.
+It is possible to detect the used date format in certain cases, here is an example of what can be detected out-of-the-box:
+
+Log entries that look like this `05-22 12:36:36.506 +0100 ...` will detect this format: `"MM-DD hh:mm:ss.s TZD"`
+Log entries that look like this `05-22-2019 12:36:04.344 ...` will detect this format: `"MM-DD-YYYY hh:mm:ss.s"`
+
+To support different formats, it is possible to define a custom date-time format using the following conventions:
+
+```
+YYYY = four-digit year
+MM   = two-digit month (01=January, etc.)
+DD   = two-digit day of month (01 through 31)
+hh   = two digits of hour (00 through 23) (am/pm NOT allowed)
+mm   = two digits of minute (00 through 59)
+ss   = two digits of second (00 through 59)
+s    = one or more digits representing a decimal fraction of a second
+TZD  = time zone designator (Z or +hh:mm or -hh:mm)
+```
+
+These format specifiers are taken from the ISO 8601 and should cover most scenarios.
+Examples include:
+
+```
+Year:
+    YYYY (eg 1997)
+Year and month:
+    YYYY-MM (eg 1997-07)
+Complete date:
+    YYYY-MM-DD (eg 1997-07-16)
+Complete date plus hours and minutes:
+    YYYY-MM-DDThh:mmTZD (eg 1997-07-16T19:20+01:00)
+Complete date plus hours, minutes and seconds:
+    YYYY-MM-DDThh:mm:ssTZD (eg 1997-07-16T19:20:30+01:00)
+Complete date plus hours, minutes, seconds and a decimal fraction of a second
+    YYYY-MM-DDThh:mm:ss.sTZD (eg 1997-07-16T19:20:30.45+01:00)
+```
+
+To test it, you can use the logviwer_parser like this:
+
+```
+logviewer_parser -f "DD.MM.YYYY" -x "22.12.1972"
+got format str: DD.MM.YYYY
+got format example: 22.12.1972
+match: Ok(true)
+```
+
 
 # Changelog
 
