@@ -194,6 +194,8 @@ export default class ControllerStreamProcessor {
             this._logger.warn(`Fail to find plugin token by ID of plugin: id = "${id}". Attempt auth of plugin connection is failed.`);
             return false;
         }
+        // Add source description
+        ServiceStreamSource.set(id, { name: ServicePlugins.getPluginName(id) as string});
         // Bind plugin ref with plugin ID
         this._pluginRefs.set(ref, id);
         this._logger.env(`Plugin #${id} (${ServicePlugins.getPluginName(id)}) bound with reference "${ref}".`);
