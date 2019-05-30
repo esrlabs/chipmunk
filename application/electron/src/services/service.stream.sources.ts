@@ -33,17 +33,31 @@ export class ServiceStreamSources implements IService  {
         const id: TSourceId = this._seq ++;
         this._sources.set(id, source);
         // Notify render about new source
-        ServiceElectron.IPC.send(new IPCElectronMessages.StreamSourceNew({
-            id: id,
-            name: source.name,
-        })).catch((error: Error) => {
-            this._logger.warn(`Fail to notify render about new source ("${source.name}") due error: ${error.message}`);
-        });
+        this._notify(id, source.name);
         return id;
     }
 
     public get(id: TSourceId): ISource | undefined {
         return this._sources.get(id);
+    }
+
+    public set(id: number, desc: ISource): Error | undefined {
+        if (this._sources.has(id)) {
+            return new Error(this._logger.warn(`Source id "${id}" is already registred.`));
+        }
+        this._sources.set(id, desc);
+        // Notify render about new source
+        this._notify(id, desc.name);
+    }
+
+    private _notify(id: number, name: string) {
+        // Notify render about new source
+        ServiceElectron.IPC.send(new IPCElectronMessages.StreamSourceNew({
+            id: id,
+            name: name,
+        })).catch((error: Error) => {
+            this._logger.warn(`Fail to notify render about new source ("${name}") due error: ${error.message}`);
+        });
     }
 
 }
