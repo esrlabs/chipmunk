@@ -2,8 +2,9 @@ import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewIni
 import { Subscription, Subject } from 'rxjs';
 import { ControllerSessionTab, IComponentInjection } from '../../../controller/controller.session.tab';
 import { ControllerSessionTabStreamOutput, IStreamPacket, IStreamState, ILoadedRange } from '../../../controller/controller.session.tab.stream.output';
-import { IDataAPI, IRange, IRow, IRowsPacket, IStorageInformation } from 'logviewer-client-complex';
+import { IDataAPI, IRange, IRow, IRowsPacket, IStorageInformation, DockDef } from 'logviewer-client-complex';
 import { ViewOutputRowComponent } from './row/component';
+import { ViewOutputControlsComponent, IButton } from './controls/component';
 import ViewsEventsService from '../../../services/standalone/service.views.events';
 
 @Component({
@@ -15,6 +16,8 @@ import ViewsEventsService from '../../../services/standalone/service.views.event
 export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterContentInit {
 
     @Input() public session: ControllerSessionTab | undefined;
+    @Input() public injectTitleContent: (content: DockDef.IDockTitleContent) => Error | undefined;
+    @Input() public rejectTitleContent: (id: string | number) => void;
 
     public _ng_outputAPI: IDataAPI;
     public _ng_injections: {
@@ -22,9 +25,15 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
     } = {
         bottom: new Map()
     };
-
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _output: ControllerSessionTabStreamOutput | undefined;
+    private _controls: {
+        update: Subject<IButton[]>,
+        keepScrollDown: boolean,
+    } = {
+        update: new Subject<IButton[]>(),
+        keepScrollDown: true,
+    };
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef) {
@@ -59,6 +68,8 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this._subscriptions.onReset = this._output.getObservable().onReset.subscribe(this._onReset.bind(this));
         this._subscriptions.onScrollTo = this._output.getObservable().onScrollTo.subscribe(this._onScrollTo.bind(this));
         this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(this._onResize.bind(this));
+        // Inject controls to caption of dock
+        this._ctrl_inject();
     }
 
     public ngOnDestroy() {
@@ -125,6 +136,39 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
     private _onResize() {
         this._cdRef.detectChanges();
         this._ng_outputAPI.onRedraw.next();
+    }
+
+    private _ctrl_inject() {
+        if (this.injectTitleContent === undefined) {
+            return;
+        }
+        this.injectTitleContent({
+            id: 'controls',
+            component: {
+                inputs: {
+                    getButtons: this._ctrl_getButtons.bind(this),
+                    onUpdate: this._controls.update.asObservable()
+                },
+                factory: ViewOutputControlsComponent,
+            },
+        });
+    }
+
+    private _ctrl_getButtons(): IButton[] {
+        return [
+            {
+                alias: 'scroll',
+                icon: `small-icon-button fa-arrow-alt-circle-down ${this._controls.keepScrollDown ? 'fas' : 'far'}`,
+                disabled: false,
+                handler: this._ctrl_onScrollDown.bind(this)
+            }
+        ];
+    }
+
+    private _ctrl_onScrollDown(button: IButton) {
+        this._controls.keepScrollDown = !this._controls.keepScrollDown;
+        this._controls.update.next(this._ctrl_getButtons());
+        console.log(button);
     }
 
 }

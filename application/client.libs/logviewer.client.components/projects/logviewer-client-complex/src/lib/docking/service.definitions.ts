@@ -1,6 +1,11 @@
 import * as Tools from '../../tools/index';
 import { IComponentDesc } from 'logviewer-client-containers';
 
+export interface IDockTitleContent {
+    id: string | number;
+    component: IComponentDesc;
+}
+
 export enum EDockPosition {
     vertical = 'vertical',
     horizontal = 'horizontal'
