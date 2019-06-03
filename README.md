@@ -76,6 +76,16 @@ match: Ok(true)
 
 # Changelog
 
+### [0.15.0] - 06/03/2019
+  * implemented support to define date format string for parsing dates in
+  * files to be merged
+  * * basic proptype tests
+  * * basic format parsing
+  * * create regex by parsing date format
+  * * handle more then 1 space
+  * * use ISO 8601 like format specifiers
+  * * add command line support to test date format
+
 ### [0.14.0] - 05/20/2019
   * [](feat): update indexed file as soon as we write chunks to stdout
   * playing with nom
