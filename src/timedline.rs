@@ -62,7 +62,6 @@ impl<'a> Iterator for TimedLineIter<'a> {
                 let s = unsafe { std::str::from_utf8_unchecked(&buf) };
                 let trimmed_line = s.trim_matches(utils::is_newline);
                 let timed_line = line_to_timed_line(
-                    // let timed_line = line_to_timed_line_nom(
                     trimmed_line,
                     original_line_length,
                     self.tag,
@@ -70,7 +69,7 @@ impl<'a> Iterator for TimedLineIter<'a> {
                     self.year,
                     self.time_offset,
                 )
-                .unwrap_or_else(|| TimedLine {
+                .unwrap_or_else(|_| TimedLine {
                     content: trimmed_line.to_string(),
                     tag: self.tag.to_string(),
                     timestamp: self.last_timestamp,

@@ -118,7 +118,7 @@ impl Merger {
                     input.year,
                     input.offset,
                 )
-                .unwrap_or_else(|| TimedLine {
+                .unwrap_or_else(|_| TimedLine {
                     content: trimmed_line.to_string(),
                     tag: alt_tag.to_string(),
                     timestamp: last_timestamp,

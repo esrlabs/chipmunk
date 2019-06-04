@@ -4,24 +4,85 @@ Create index file and mapping file for logviewer
 
 ```
 USAGE:
-    logviewer_parser [FLAGS] [OPTIONS]
+    logviewer_parser [FLAGS] [SUBCOMMAND]
 
 FLAGS:
-    -a, --append       append to file if exists
-    -h, --help         Prints help information
-    -s, --stdout       put out chunk information on stdout
-    -V, --version      Prints version information
-    -v, --verbosity    Pass many times for more log output
+    -h, --help       Prints help information
+    -v               Sets the level of verbosity
+    -V, --version    Prints version information
+
+SUBCOMMANDS:
+    format    test format string
+    help      Prints this message or the help of the given subcommand(s)
+    index     command for creating an index file
+    merge     command for merging multiple log files
+```
+
+For indexing a log file use the `index` subcommand:
+
+```
+logviewer_parser-index
+command for creating an index file
+
+USAGE:
+    logviewer_parser index [FLAGS] [OPTIONS] <input> --tag <TAG>
+
+FLAGS:
+    -a, --append     append to file if exists
+    -h, --help       Prints help information
+    -s, --stdout     put out chunk information on stdout
+    -V, --version    Prints version information
 
 OPTIONS:
-    -c, --chunk_size <chunk_size>          How many lines should be in a chunk (used for access later) [default: 500]
-    -i, --index <file_to_index>            The file to read
-    -f, --format <format_test>             Format string to test
-    -x, --example <format_test_example>    test string to test with the format string
-    -n, --max_lines <max_lines>            How many lines to collect before dumping [default: 1000000]
-    -m, --merge <merge_config_file>        input file is a json file that defines all files to be merged
-    -o, --out <output>                     Output file, "<file_to_index>.out" if not present
-    -t, --tag <tag>                        how to tag the source
+    -c, --chunk_siz <chunk_size>    How many lines should be in a chunk (used for access later) [default: 500]
+    -n, --max_lines <max_lines>     How many lines to collect before dumping [default: 1000000]
+    -o, --out <OUT>                 Output file, "<file_to_index>.out" if not present
+    -t, --tag <TAG>                 tag for each log entry
+
+ARGS:
+    <input>    Sets the input file to be indexed
+```
+
+For merging log-files use the `merge` subcommand:
+
+```
+logviewer_parser-merge
+command for merging multiple log files
+
+USAGE:
+    logviewer_parser merge [FLAGS] [OPTIONS] <merge_config> --out <OUT>
+
+FLAGS:
+    -a, --append     append to file if exists
+    -h, --help       Prints help information
+    -s, --stdout     put out chunk information on stdout
+    -V, --version    Prints version information
+
+OPTIONS:
+    -c, --chunk_siz <chunk_size>    How many lines should be in a chunk (used for access later) [default: 500]
+    -n, --max_lines <max_lines>     How many lines to collect before dumping [default: 1000000]
+    -o, --out <OUT>                 Output file
+
+ARGS:
+    <merge_config>    input file is a json file that defines all files to be merged
+```
+
+For testing a format string use the `format` subcommand:
+
+```
+logviewer_parser-format
+test format string
+
+USAGE:
+    logviewer_parser format <format-string> <test-string>
+
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+
+ARGS:
+    <format-string>    format string to use
+    <test-string>      test string to use
 ```
 
 ## Date Format for timestamps

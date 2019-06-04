@@ -3,9 +3,12 @@ use chrono::{NaiveDate, NaiveDateTime};
 use lazy_static::lazy_static;
 use nom::bytes::complete::{tag, take_while_m_n};
 
-use nom::combinator::*;
+use nom::character::complete::{char, digit1};
+use nom::combinator::{map, map_res, opt};
 use nom::multi::{fold_many0, many1};
 use nom::IResult;
+
+
 use regex::Regex;
 use std::collections::HashMap;
 use std::fs;
@@ -136,9 +139,16 @@ fn date_expression(input: &str) -> IResult<&str, Vec<FormatPiece>> {
 }
 
 fn date_format_str_to_regex(date_format: &str) -> Result<Regex, failure::Error> {
+    if date_format.is_empty() {
+        return Err(failure::err_msg("cannot construct regex from empty string"));
+    }
     let format_pieces = date_expression(date_format);
+
     match format_pieces {
         Ok(r) => {
+            if r.1.is_empty() {
+                return Err(failure::err_msg("could not create regex"));
+            }
             let s = r.1.iter().fold(String::from(r""), |mut acc, x| {
                 let part = format_piece_as_regex_string(x);
                 acc.push_str(part.as_str());
@@ -177,6 +187,7 @@ pub fn line_matching_format_expression(
     line: &str,
 ) -> Result<bool, failure::Error> {
     let regex = date_format_str_to_regex(format_expr)?;
+    println!("constructed regex: {}", regex.as_str());
     Ok(regex.is_match(line))
 }
 pub fn line_to_timed_line(
@@ -186,23 +197,41 @@ pub fn line_to_timed_line(
     regex: &Regex,
     year: Option<i32>,
     time_offset: Option<i64>,
-) -> Option<TimedLine> {
-    let caps = regex.captures(line)?;
-    let (day, month): (u32, u32) = (
-        caps["d"].parse().expect("error parsing day"),
-        caps["m"].parse().expect("error parsing month"),
-    );
+) -> Result<TimedLine, failure::Error> {
+    let caps = regex
+        .captures(line)
+        .ok_or_else(|| failure::err_msg("no captures in regex"))?;
+    let day_capt = caps
+        .name("d")
+        .ok_or_else(|| failure::err_msg("no group for days found in regex"))?;
+    let month_capt = caps
+        .name("m")
+        .ok_or_else(|| failure::err_msg("no group for month found in regex"))?;
+    let (day, month): (u32, u32) = (day_capt.as_str().parse()?, month_capt.as_str().parse()?);
+    let hour_capt = caps
+        .name("H")
+        .ok_or_else(|| failure::err_msg("no group for hour found in regex"))?;
+    let min_capt = caps
+        .name("M")
+        .ok_or_else(|| failure::err_msg("no group for minute found in regex"))?;
+    let sec_capt = caps
+        .name("S")
+        .ok_or_else(|| failure::err_msg("no group for seconds found in regex"))?;
+    let mil_str = match caps.name("millis") {
+        Some(m) => m.as_str(),
+        None => "0",
+    };
     let (hour, minutes, seconds, millis): (u32, u32, u32, u32) = (
-        caps["H"].parse().expect("error parsing hours"),
-        caps["M"].parse().expect("error parsing minutes"),
-        caps["S"].parse().expect("error parsing seconds"),
-        caps["millis"].parse().expect("error parsing millis"),
+        hour_capt.as_str().parse()?,
+        min_capt.as_str().parse()?,
+        sec_capt.as_str().parse()?,
+        mil_str.parse()?,
     );
 
     let timezone_n = caps.name("timezone");
     if time_offset.is_none() && timezone_n.is_none() {
         eprintln!("timestamp cannot be applied");
-        return None;
+        return Err(failure::err_msg("timestamp cannot be applied"));
     }
     let offset_result = if time_offset.is_none() {
         parse_timezone(&caps["timezone"])
@@ -223,7 +252,7 @@ pub fn line_to_timed_line(
             let date_time: NaiveDateTime =
                 NaiveDate::from_ymd(y, month, day).and_hms_milli(hour, minutes, seconds, millis);
             let unix_timestamp = date_time.timestamp_millis();
-            Some(TimedLine {
+            Ok(TimedLine {
                 timestamp: unix_timestamp - offset,
                 content: line.to_string(),
                 tag: tag.to_string(),
@@ -232,15 +261,20 @@ pub fn line_to_timed_line(
         }
         (None, Ok(_)) => {
             eprintln!("could not determine the year!");
-            None
+            Err(failure::err_msg("could not determine the year!"))
         }
         (Some(_), Err(e)) => {
             eprintln!("could not determine the timezone or offset! ({})", e);
-            None
+            Err(failure::err_msg(format!(
+                "could not determine the timezone or offset! ({})",
+                e
+            )))
         }
         (None, Err(_)) => {
             eprintln!("could not determine the year and timezone or offset!");
-            None
+            Err(failure::err_msg(
+                "could not determine the year and timezone or offset!",
+            ))
         }
     }
 }
@@ -302,8 +336,8 @@ pub fn detect_timestamp_regex(path: &Path) -> Result<RegexKind, failure::Error> 
             Some(2017),
             Some(0),
         ) {
-            Some(_) => matched_lines_regex_01 + 1,
-            None => matched_lines_regex_01,
+            Ok(_) => matched_lines_regex_01 + 1,
+            Err(_) => matched_lines_regex_01,
         };
         matched_lines_regex_02 = match line_to_timed_line(
             s,
@@ -313,8 +347,8 @@ pub fn detect_timestamp_regex(path: &Path) -> Result<RegexKind, failure::Error> 
             Some(3333),
             Some(0),
         ) {
-            Some(_) => matched_lines_regex_02 + 1,
-            None => matched_lines_regex_02,
+            Ok(_) => matched_lines_regex_02 + 1,
+            Err(_) => matched_lines_regex_02,
         };
         if !s.trim().is_empty() {
             inspected_lines += 1;
@@ -363,36 +397,10 @@ fn is_digit(c: char) -> bool {
     c.is_digit(10)
 }
 
-use nom::character::complete::char;
-use nom::character::complete::digit1;
-
-// fn many_spaces(input: &str) -> IResult<&str, char> {
-//     map(many1(nom::character::complete::char(' ')), |_| ' ')(input)
-// }
-fn offset_from_timezone_in_ms(timezone: &str) -> Result<i64, failure::Error> {
-    if timezone.len() != 5 {
-        return Err(failure::err_msg(format!(
-            "timezone had unexpected length of {}",
-            timezone.len()
-        )));
-    }
-    if !timezone.is_ascii() {
-        return Err(failure::err_msg("timezone contained non-ascii characters"));
-    }
-    let positive: bool = timezone.starts_with('+');
-    let absolute_hours: &i64 = &timezone[1..3].parse()?;
-    let absolute_minutes: &i64 = &timezone[3..5].parse()?;
-    let absolute = 1000 * (3600 * *absolute_hours + 60 * (*absolute_minutes));
-    if positive {
-        Ok(absolute)
-    } else {
-        Ok(-absolute)
-    }
-}
-
 /// should parse timezone string, valid formats are
 /// +hh:mm, +hhmm, or +hh
 /// -hh:mm, -hhmm, or -hh
+/// results in the offset in milliseconds
 fn timezone_parser(input: &str) -> IResult<&str, i64> {
     let timezone_sign = map(nom::branch::alt((char('+'), char('-'))), |c| c == '+');
     fn timezone_count(input: &str) -> IResult<&str, i64> {
@@ -573,6 +581,11 @@ mod tests {
         );
     }
     #[test]
+    fn test_date_format_str_to_regex_empty() {
+        let regex = date_format_str_to_regex("");
+        assert!(regex.is_err());
+    }
+    #[test]
     fn test_date_format_str_to_regex_other() {
         assert!(
             line_matching_format_expression("YYYY-MM-DDThh:mmTZD", "1997-07-16T19:20+01:00")
@@ -630,6 +643,23 @@ mod tests {
         .expect("convert to limed line should work");
         println!("timestamp: {}, tag: {}", timestamp, tag);
         assert_eq!(1_491_299_570_229, timestamp);
+        assert_eq!(input, content);
+    }
+    #[test]
+    fn test_parse_date_line_no_year_no_millis() {
+        let input = "04-04 11:52:50 +0200 D/oup.csc(  665): [728] MqttLogger";
+
+        let regex_to_use =
+            date_format_str_to_regex("MM-DD hh:mm:ss TZD").expect("should be parsed");
+        let TimedLine {
+            timestamp,
+            content,
+            tag,
+            ..
+        } = line_to_timed_line(input, input.len(), "TAG", &regex_to_use, Some(2017), None)
+            .expect("convert to limed line should work");
+        println!("timestamp: {}, tag: {}", timestamp, tag);
+        assert_eq!(1_491_299_570_000, timestamp);
         assert_eq!(input, content);
     }
     const TWO_HOURS_IN_MS: i64 = 2 * 3600 * 1000;

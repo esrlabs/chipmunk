@@ -1,11 +1,12 @@
 use crate::chunks::serialize_chunks;
 use crate::parse::line_matching_format_expression;
-use quicli::prelude::{CliResult, Verbosity};
+#[macro_use]
+extern crate clap;
+use clap::{App, Arg, SubCommand};
 use std::fs;
 use std::path::PathBuf;
 use std::process;
 use std::time::Instant;
-use structopt::StructOpt;
 
 mod chunks;
 mod merger;
@@ -14,121 +15,204 @@ mod processor;
 
 mod timedline;
 mod utils;
-/// Create index file and mapping file for logviewer
-#[derive(Debug, StructOpt)]
-struct Cli {
-    /// How many lines to collect before dumping
-    #[structopt(long = "max_lines", short = "n", default_value = "1000000")]
-    max_lines: usize,
-    /// How many lines should be in a chunk (used for access later)
-    #[structopt(long = "chunk_size", short = "c", default_value = "500")]
-    chunk_size: usize,
-    /// put out chunk information on stdout
-    #[structopt(long = "stdout", short = "s")]
-    stdout: bool,
-    /// append to file if exists
-    #[structopt(long = "append", short = "a")]
-    append: bool,
-    /// input file is a json file that defines all files to be merged
-    #[structopt(long = "merge", short = "m")]
-    merge_config_file: Option<String>,
-    /// The file to read
-    #[structopt(long = "index", short = "i")]
-    file_to_index: Option<String>,
-    /// how to tag the source
-    #[structopt(long = "tag", short = "t")]
-    tag: Option<String>,
-    /// Output file, "<file_to_index>.out" if not present
-    #[structopt(long = "out", short = "o")]
-    output: Option<String>,
-    /// Format string to test
-    #[structopt(long = "format", short = "f")]
-    format_test: Option<String>,
-    /// test string to test with the format string
-    #[structopt(long = "example", short = "x")]
-    format_test_example: Option<String>,
-    // Quick and easy logging setup you get for free with quicli
-    #[structopt(flatten)]
-    verbosity: Verbosity,
-}
 
-fn main() -> CliResult {
+fn main() {
     let start = Instant::now();
+    let matches = App::new("logviewer_parser")
+        .version(crate_version!())
+        .author(crate_authors!())
+        .about("Create index file and mapping file for logviewer")
+        .arg(
+            Arg::with_name("v")
+                .short("v")
+                .multiple(true)
+                .help("Sets the level of verbosity"),
+        )
+        .subcommand(
+            SubCommand::with_name("index")
+                .about("command for creating an index file")
+                .arg(
+                    Arg::with_name("input")
+                        .short("i")
+                        .long("input")
+                        .help("Sets the input file to be indexed")
+                        .required(true)
+                        .index(1),
+                )
+                .arg(
+                    Arg::with_name("tag")
+                        .short("t")
+                        .long("tag")
+                        .value_name("TAG")
+                        .help("tag for each log entry")
+                        .required(true),
+                )
+                .arg(
+                    Arg::with_name("output")
+                        .short("o")
+                        .long("out")
+                        .value_name("OUT")
+                        .help("Output file, \"<file_to_index>.out\" if not present"),
+                )
+                .arg(
+                    Arg::with_name("max_lines")
+                        .short("n")
+                        .long("max_lines")
+                        .help("How many lines to collect before dumping")
+                        .required(false)
+                        .default_value("1000000"),
+                )
+                .arg(
+                    Arg::with_name("chunk_size")
+                        .short("c")
+                        .long("chunk_siz")
+                        .help("How many lines should be in a chunk (used for access later)")
+                        .required(false)
+                        .default_value("500"),
+                )
+                .arg(
+                    Arg::with_name("append")
+                        .short("a")
+                        .long("append")
+                        .help("append to file if exists"),
+                )
+                .arg(
+                    Arg::with_name("stdout")
+                        .short("s")
+                        .long("stdout")
+                        .help("put out chunk information on stdout"),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("merge")
+                .about("command for merging multiple log files")
+                .arg(
+                    Arg::with_name("merge_config")
+                        .short("m")
+                        .long("merge")
+                        .help("input file is a json file that defines all files to be merged")
+                        .required(true)
+                        .index(1),
+                )
+                .arg(
+                    Arg::with_name("output")
+                        .short("o")
+                        .long("out")
+                        .value_name("OUT")
+                        .required(true)
+                        .help("Output file"),
+                )
+                .arg(
+                    Arg::with_name("max_lines")
+                        .short("n")
+                        .long("max_lines")
+                        .help("How many lines to collect before dumping")
+                        .required(false)
+                        .default_value("1000000"),
+                )
+                .arg(
+                    Arg::with_name("chunk_size")
+                        .short("c")
+                        .long("chunk_siz")
+                        .help("How many lines should be in a chunk (used for access later)")
+                        .required(false)
+                        .default_value("500"),
+                )
+                .arg(
+                    Arg::with_name("append")
+                        .short("a")
+                        .long("append")
+                        .help("append to file if exists"),
+                )
+                .arg(
+                    Arg::with_name("stdout")
+                        .short("s")
+                        .long("stdout")
+                        .help("put out chunk information on stdout"),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("format")
+                .about("test format string")
+                .arg(
+                    Arg::with_name("format-string")
+                        .short("f")
+                        .help("format string to use")
+                        .required(true)
+                        .index(1),
+                )
+                .arg(
+                    Arg::with_name("test-string")
+                        .short("t")
+                        .help("test string to use")
+                        .required(true)
+                        .index(2),
+                ),
+        )
+        .get_matches();
 
-    let args = Cli::from_args();
+    // Vary the output based on how many times the user used the "verbose" flag
+    // (i.e. 'myprog -v -v -v' or 'myprog -vvv' vs 'myprog -v'
+    match matches.occurrences_of("v") {
+        0 => println!("No verbose info"),
+        1 => println!("Some verbose info"),
+        2 => println!("Tons of verbose info"),
+        3 | _ => println!("Don't be crazy"),
+    }
 
-    match args.merge_config_file {
-        Some(merge_config_file_name) => {
-            let out_path: std::path::PathBuf = match args.output {
+    if let Some(matches) = matches.subcommand_matches("merge") {
+        if matches.is_present("merge_config") {
+            let merge_config_file_name: &str = matches
+                .value_of("merge_config")
+                .expect("merge_config must be present");
+            let out_path: std::path::PathBuf = match matches.value_of("output") {
                 Some(path) => PathBuf::from(path),
                 None => {
                     eprintln!("no output file specified");
                     process::exit(2)
                 }
             };
+            let max_lines = value_t_or_exit!(matches.value_of("max_lines"), usize);
+            let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
+            let append: bool = matches.is_present("append");
+            let stdout: bool = matches.is_present("stdout");
             let merger = merger::Merger {
-                max_lines: args.max_lines,   // how many lines to collect before writing out
-                chunk_size: args.chunk_size, // used for mapping line numbers to byte positions
+                max_lines,  // how many lines to collect before writing out
+                chunk_size, // used for mapping line numbers to byte positions
             };
             let config_path = PathBuf::from(merge_config_file_name);
-            let merged_lines = match merger.merge_files_use_config_file(
-                &config_path,
-                &out_path,
-                args.append,
-                args.stdout,
-            ) {
-                Ok(cnt) => cnt,
-                Err(e) => {
-                    eprintln!("error merging: {}", e);
-                    process::exit(2)
-                }
-            };
+            let merged_lines =
+                match merger.merge_files_use_config_file(&config_path, &out_path, append, stdout) {
+                    Ok(cnt) => cnt,
+                    Err(e) => {
+                        eprintln!("error merging: {}", e);
+                        process::exit(2)
+                    }
+                };
             let elapsed = start.elapsed();
             let ms = elapsed.as_millis();
             let duration_in_s = ms as f64 / 1000.0;
             eprintln!("merging {} lines took {:.3}s!", merged_lines, duration_in_s);
-            Ok(())
         }
-        None => {
-            if let Some(formatstr) = args.format_test {
-                let formatexample = match args.format_test_example {
-                    Some(e) => e,
-                    None => {
-                        eprintln!("format example missing");
-                        process::exit(2)
-                    }
-                };
-                println!("got format str: {}", formatstr);
-                println!("got format example: {}", formatexample);
-                let res = line_matching_format_expression(formatstr.as_str(), formatexample.as_str());
-                println!("match: {:?}", res);
-                process::exit(0);
-            };
-            let file = match args.file_to_index {
-                Some(f) => f,
-                None => {
-                    eprintln!("file to index was not provided");
-                    process::exit(2)
-                }
-            };
-            let tag = match args.tag {
-                Some(f) => f,
-                None => {
-                    eprintln!("tag was not provided");
-                    process::exit(2)
-                }
-            };
-            let out_path: std::path::PathBuf = match args.output {
-                Some(path) => PathBuf::from(path),
-                None => PathBuf::from(file.to_string() + ".out"),
-            };
+    }
+    if let Some(matches) = matches.subcommand_matches("index") {
+        if matches.is_present("input") && matches.is_present("tag") {
+            let file = matches.value_of("input").expect("input must be present");
+            let tag = matches.value_of("tag").expect("tag must be present");
+            let fallback_out = file.to_string() + ".out";
+            let out_path = PathBuf::from(
+                matches
+                    .value_of("output")
+                    .unwrap_or_else(|| fallback_out.as_str()),
+            );
             let mapping_out_path: std::path::PathBuf =
                 PathBuf::from(file.to_string() + ".map.json");
-
+            let max_lines = value_t_or_exit!(matches.value_of("max_lines"), usize);
+            let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
             let indexer = processor::Indexer {
-                source_id: tag,              // tag to append to each line
-                max_lines: args.max_lines,   // how many lines to collect before writing out
-                chunk_size: args.chunk_size, // used for mapping line numbers to byte positions
+                source_id: tag.to_string(), // tag to append to each line
+                max_lines,                  // how many lines to collect before writing out
+                chunk_size,                 // used for mapping line numbers to byte positions
             };
 
             let f = match fs::File::open(&file) {
@@ -139,8 +223,16 @@ fn main() -> CliResult {
                 }
             };
 
-            let source_file_size = f.metadata()?.len() as usize;
-            match indexer.index_file(&f, &out_path, args.append, source_file_size, args.stdout) {
+            let source_file_size = match f.metadata() {
+                Ok(file_meta) => file_meta.len() as usize,
+                Err(_) => {
+                    eprintln!("could not find out size of source file");
+                    process::exit(2);
+                }
+            };
+            let append: bool = matches.is_present("append");
+            let stdout: bool = matches.is_present("stdout");
+            match indexer.index_file(&f, &out_path, append, source_file_size, stdout) {
                 Err(why) => {
                     eprintln!("couldn't process: {}", why);
                     process::exit(2)
@@ -150,10 +242,7 @@ fn main() -> CliResult {
                     let elapsed = start.elapsed();
                     let ms = elapsed.as_millis();
                     let duration_in_s = ms as f64 / 1000.0;
-                    let file_size_in_mb = f.metadata().expect("could not read file metadata").len()
-                        as f64
-                        / 1024.0
-                        / 1024.0;
+                    let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
                     let mb_bytes_per_second: f64 = file_size_in_mb / duration_in_s;
                     eprintln!(
                         "processing ~{} MB took {:.3}s! ({:.3} MB/s)",
@@ -161,7 +250,27 @@ fn main() -> CliResult {
                         duration_in_s,
                         mb_bytes_per_second
                     );
-                    Ok(())
+                }
+            }
+        }
+    }
+    if let Some(matches) = matches.subcommand_matches("format") {
+        if matches.is_present("test-string") && matches.is_present("format-string") {
+            let format_string = matches
+                .value_of("format-string")
+                .expect("format-string must be present");
+            let test_string = matches
+                .value_of("test-string")
+                .expect("test-string must be present");
+            println!(
+                "format-string: {}, test_string: {}",
+                format_string, test_string
+            );
+            match line_matching_format_expression(format_string, test_string) {
+                Ok(res) => println!("match: {:?}", res),
+                Err(e) => {
+                    eprintln!("error matching: {}", e);
+                    process::exit(2)
                 }
             }
         }
