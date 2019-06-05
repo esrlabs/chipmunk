@@ -312,7 +312,7 @@ fn main() {
                 options.lines_to_test,
             ) {
                 Ok(res) => match serde_json::to_string(&res) {
-                    Ok(json) => eprintln!("{}", json),
+                    Ok(json) => println!("{}", json),
                     Err(e) => {
                         eprintln!("serializing result failed: {}", e);
                         process::exit(2)
