@@ -12,6 +12,7 @@ export interface IFile {
     year?: number;
     offset: number;
     parser: string;
+    format: string;
 }
 
 export default class MergeFiles {
@@ -53,7 +54,13 @@ export default class MergeFiles {
                 });
                 lvin.merge(
                     this._files.map((file: IFile) => {
-                        return { file: file.file, offset: file.offset, sourceId: this._sourceIds[file.file].toString(), year: file.year } as IFileToBeMerged;
+                        return {
+                            file: file.file,
+                            offset: file.offset,
+                            sourceId: this._sourceIds[file.file].toString(),
+                            year: file.year,
+                            format: file.format,
+                        } as IFileToBeMerged;
                     }),
                     {
                         destFile: sessionData.file,

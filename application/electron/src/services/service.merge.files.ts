@@ -8,22 +8,13 @@ import { IService } from '../interfaces/interface.service';
 import TestTransform, { IResults as ITestResults} from '../controllers/controller.merge.files.test.pipe.transform';
 import NullWritableStream from '../classes/stream.writable.null';
 import { IFile as ITestFileRequest } from '../controllers/electron.ipc.messages/merge.files.test.request';
+import { IFile as ITestFileResponse } from '../controllers/electron.ipc.messages/merge.files.test.response';
 import { IFile as IMergeFileRequest } from '../controllers/electron.ipc.messages/merge.files.request';
 import * as Stream from 'stream';
 import * as moment from 'moment-timezone';
 import MergeFilesWriter from '../controllers/controller.merge.files.writer';
 import MergeFiles from '../controllers/controller.merge.files';
-
-export interface ITestFileResults {
-    file: string;
-    reg: string;
-    size: number;
-    found: number;
-    read: number;
-    first: string | undefined;
-    last: string | undefined;
-    errors: string[];
-}
+import MergeTest, { IFileTestResults } from '../controllers/controller.merge.test';
 
 const Settings = {
     readBytesForTest: 64 * 1024,
@@ -110,6 +101,7 @@ class ServiceMergeFiles implements IService {
                     offset: file.offset,
                     parser: file.parser,
                     year: file.year,
+                    format: file.format,
                 };
             }),
         );
@@ -158,22 +150,22 @@ class ServiceMergeFiles implements IService {
 
     private _onMergeFilesTestRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.MergeFilesTestRequest = request as IPCMessages.MergeFilesTestRequest;
-        const files: ITestFileResults[] = [];
-        Promise.all(req.files.map((file: ITestFileRequest) => {
+        const files: ITestFileResponse[] = [];
+        Promise.all(req.files.map((requestFile: ITestFileRequest) => {
             return new Promise((resolve) => {
-                this._test(file.file, file.reg, file.parser, file.offset, file.format, file.zone).then((testResult: ITestFileResults) => {
-                    files.push(testResult);
+                this._test(requestFile).then((responseFile: ITestFileResponse) => {
+                    files.push(responseFile);
                     resolve();
-                }).catch((testError: Error) => {
+                }).catch((error: Error) => {
                     files.push({
-                        file: file.file,
+                        file: requestFile.file,
+                        found: -1,
+                        readBytes: -1,
+                        readRows: -1,
                         size: -1,
-                        read: 0,
-                        found: 0,
-                        errors: [ testError.message ],
-                        first: undefined,
-                        last: undefined,
-                        reg: file.reg,
+                        regExpStr: '',
+                        read: '',
+                        error: error.message,
                     });
                     resolve();
                 });
@@ -184,63 +176,30 @@ class ServiceMergeFiles implements IService {
                 files: files,
             }));
         });
-
     }
 
-    private _test(file: string, reg: string, parserName: string, offset: number, format: string, zone: string): Promise<ITestFileResults> {
+    private _test(file: ITestFileRequest): Promise<ITestFileResponse> {
         return new Promise((resolve, reject) => {
-            // Get file parser
-            const parserClass = ServiceFileParsers.getParser(parserName);
-            if (parserClass === undefined) {
-                return reject(new Error(`Fail to find parser "${parserName}". Cannot open file.`));
-            }
-            const fileParser: AFileParser = new parserClass();
-            // Get basic transformer for file
-            const fileTransform: Stream.Transform | undefined = fileParser.getTransform();
-            // Create regexp for timestamp
-            let regext: RegExp;
-            try {
-                regext = new RegExp(reg, 'gi');
-            } catch (regexpCreateError) {
-                return reject(regexpCreateError.message);
-            }
-            fs.stat(file, (error: NodeJS.ErrnoException | null, stats: fs.Stats) => {
-                if (error) {
-                    return;
+            const controller: MergeTest = new MergeTest({
+                file: file.file,
+                format: file.format,
+                rowsToBeRead: 500,
+            });
+            controller.test().then((results: IFileTestResults) => {
+                if (results.results.readBytes === 0) {
+                    return reject(`Fail to read file. Was read ${results.results.readBytes} bytes.`);
                 }
-                // Create read stream
-                const reader: fs.ReadStream = fs.createReadStream(file, {
-                    start: 0,
-                    end: Settings.readBytesForTest > stats.size ? stats.size - 1 : Settings.readBytesForTest,
+                resolve({
+                    file: file.file,
+                    found: results.results.matches,
+                    readBytes: results.results.readBytes,
+                    readRows: results.results.readRows,
+                    size: results.size,
+                    regExpStr: results.results.regExpStr,
+                    read: results.read,
                 });
-                // Create writer
-                const writer: NullWritableStream = new NullWritableStream();
-                // Create transformer
-                const transform: TestTransform = new TestTransform({}, file, regext, offset, format, zone);
-                // Listenn end of reading
-                reader.once('end', () => {
-                    const results: ITestResults = transform.getResults();
-                    resolve({
-                        file: file,
-                        size: stats.size,
-                        read: results.read,
-                        found: results.found,
-                        errors: results.errors,
-                        first: results.first === undefined ? undefined : results.first.toLocaleString(),
-                        last: results.last === undefined ? undefined : results.last.toLocaleString(),
-                        reg: reg,
-                    });
-                });
-                // Listen error on reading
-                reader.once('error', (readError: Error) => {
-                    reject(new Error(this._logger.error(`Fail to read file due error: ${readError.message}`)));
-                });
-                // Execute operation
-                if (fileTransform === undefined) {
-                    reader.pipe(transform).pipe(writer, { end: false });
-                } else {
-                    reader.pipe(fileTransform).pipe(transform).pipe(writer, { end: false });
-                }
+            }).catch((error: Error) => {
+                reject(error);
             });
         });
     }
