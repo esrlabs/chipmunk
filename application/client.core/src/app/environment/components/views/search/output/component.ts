@@ -31,6 +31,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
             updatingDone: this._api_updatingDone.bind(this),
             onStorageUpdated: new Subject<IStorageInformation>(),
             onScrollTo: new Subject<number>(),
+            onScrollUntil: new Subject<number>(),
             onRowsDelivered: new Subject<IRowsPacket>(),
             onRerequest: new Subject<void>(),
             onRedraw: new Subject<void>(),

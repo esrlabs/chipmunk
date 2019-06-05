@@ -5,7 +5,7 @@
 
 import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, Input, AfterContentInit, HostListener } from '@angular/core';
 
-export type TUpdateFunction = (offset: number, direction: number) => void;
+export type TUpdateFunction = (offset: number, direction: number, outside: boolean) => void;
 export type TGetRowsCount = () => number;
 export type THandler = () => void;
 
@@ -103,7 +103,7 @@ export class ComplexScrollBoxSBVComponent implements OnDestroy, AfterContentInit
         this._mouseY = event.y;
         this._setOffset(this._offset + change);
         this._cdRef.detectChanges();
-        this.update(Math.abs(change / this._rate), change > 0 ? 1 : -1);
+        this.update(Math.abs(change / this._rate), change > 0 ? 1 : -1, true);
         event.preventDefault();
         return false;
     }

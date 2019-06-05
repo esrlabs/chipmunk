@@ -3,7 +3,7 @@
 // tslint:disable:component-selector
 
 import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, ViewChild, Input, AfterContentInit, AfterViewChecked, ElementRef, OnChanges } from '@angular/core';
-import { Subscription, Subject } from 'rxjs';
+import { Subscription, Subject, Observable } from 'rxjs';
 import { ComplexScrollBoxSBVComponent } from './sbv/component';
 import { ComplexScrollBoxSBHComponent } from './sbh/component';
 
@@ -38,6 +38,7 @@ export interface IDataAPI {
     updatingDone: (range: IRange) => void;
     onStorageUpdated: Subject<IStorageInformation>;
     onScrollTo: Subject<number>;
+    onScrollUntil: Subject<number>;
     onRowsDelivered: Subject<IRowsPacket>;
     onRerequest: Subject<void>;
     onRedraw: Subject<void>;
@@ -130,6 +131,10 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
     public _containerSize: IBoxSize | undefined;
     public _holderSize: { width: number, hash: string } = { width: 0, hash: '' };
 
+    private _subjects = {
+        onScrolled: new Subject<IRange>(),
+    };
+
     private _injected: {
         rows: Array<IRow | number>,
         offset: number,
@@ -203,7 +208,8 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         this._updateContainerSize();
         // Subscribe
         this._subscriptions.onRowsDelivered = this.API.onRowsDelivered.asObservable().subscribe(this._onRowsDelivered.bind(this));
-        this._subscriptions.onScrollTo = this.API.onScrollTo.asObservable().subscribe(this._onScrollTo.bind(this));
+        this._subscriptions.onScrollTo = this.API.onScrollTo.asObservable().subscribe(this._onScrollTo.bind(this, true));
+        this._subscriptions.onScrollUntil = this.API.onScrollUntil.asObservable().subscribe(this._onScrollUntil.bind(this));
         this._subscriptions.onStorageUpdated = this.API.onStorageUpdated.asObservable().subscribe(this._onStorageUpdated.bind(this));
         this._subscriptions.onRedraw = this.API.onRedraw.asObservable().subscribe(this._onRedraw.bind(this));
         this._subscriptions.onRerequest = this.API.onRerequest.asObservable().subscribe(this._onRerequest.bind(this));
@@ -347,7 +353,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
             this._ng_sbh_update(this._ng_horOffset + event.deltaX, true);
         } else {
-            this._ng_sbv_update(Math.abs(event.deltaY), event.deltaY > 0 ? 1 : -1);
+            this._ng_sbv_update(Math.abs(event.deltaY), event.deltaY > 0 ? 1 : -1, false);
         }
         event.preventDefault();
         return false;
@@ -378,7 +384,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         };
     }
 
-    public _ng_sbv_update(change: number, direction: number) {
+    public _ng_sbv_update(change: number, direction: number, outside: boolean) {
         if (this._state.start === 0 && direction < 0 && this._injected.offset === 0) {
             return;
         }
@@ -387,7 +393,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         if (offset === 0) {
             offset = 1;
         }
-        this._setFrame(this._state.start + offset * direction);
+        this._setFrame(this._state.start + offset * direction, outside);
         this._softRender();
     }
 
@@ -432,7 +438,19 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         return this._state.start;
     }
 
-    private _setFrame(start: number) {
+    public getObservable(): {
+        onScrolled: Observable<IRange>,
+    } {
+        return {
+            onScrolled: this._subjects.onScrolled.asObservable(),
+        };
+    }
+
+    public getFrame(): IRange {
+        return { start: this._state.start, end: this._state.end };
+    }
+
+    private _setFrame(start: number, outside: boolean) {
         this._state.start = start;
         if (this._state.start < 0) {
             this._state.start = 0;
@@ -441,6 +459,9 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         if (this._state.end > this._storageInfo.count - 1) {
             this._state.end = this._storageInfo.count - 1;
             this._state.start = (this._storageInfo.count - this._state.count) > 0 ? (this._storageInfo.count - this._state.count) : 0;
+        }
+        if (!outside) {
+            this._subjects.onScrolled.next({ start: this._state.start, end: this._state.end });
         }
     }
 
@@ -456,39 +477,39 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
                 if (this._state.start + 1 > this._storageInfo.count - 1) {
                     return;
                 }
-                this._onScrollTo(this._state.start + 1, true);
+                this._onScrollTo(false, this._state.start + 1, true);
                 break;
             case EKeys.ArrowUp:
                 if (this._state.start - 1 < 0) {
                     return;
                 }
-                this._onScrollTo(this._state.start - 1, true);
+                this._onScrollTo(false, this._state.start - 1, true);
                 break;
             case EKeys.PageDown:
                 if (this._state.start + this._state.count > this._storageInfo.count - 1) {
-                    this._onScrollTo(this._storageInfo.count - 1, true);
+                    this._onScrollTo(false, this._storageInfo.count - 1, true);
                     return;
                 }
-                this._onScrollTo(this._state.start + this._state.count, true);
+                this._onScrollTo(false, this._state.start + this._state.count, true);
                 break;
             case EKeys.PageUp:
                 if (this._state.start - this._state.count < 0) {
-                    this._onScrollTo(0, true);
+                    this._onScrollTo(false, 0, true);
                     return;
                 }
-                this._onScrollTo(this._state.start - this._state.count, true);
+                this._onScrollTo(false, this._state.start - this._state.count, true);
                 break;
             case EKeys.End:
                 if (this._state.start === this._storageInfo.count - 1) {
                     return;
                 }
-                this._onScrollTo(this._storageInfo.count - 1, true);
+                this._onScrollTo(false, this._storageInfo.count - 1, true);
                 break;
             case EKeys.Home:
                 if (this._state.start === 0) {
                     return;
                 }
-                this._onScrollTo(0, true);
+                this._onScrollTo(false, 0, true);
                 break;
             case EKeys.KeyC:
             case EKeys.KeyX:
@@ -550,16 +571,28 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         this._updateHolderSize(true);
     }
 
-    private _onScrollTo(row: number, noOffset: boolean = false) {
+    private _onScrollTo(outside: boolean, row: number, noOffset: boolean = false) {
         // Correct row value
         row = row > this._storageInfo.count - 1 ? (this._storageInfo.count - 1) : row;
         row = row < 0 ? 0 : row;
         // Detect start of frame
         const start: number = noOffset ? row : (row - this._settings.scrollToOffset > 0 ? (row - this._settings.scrollToOffset) : 0);
         // Set frame
-        this._setFrame(start);
+        this._setFrame(start, outside);
         // Trigger scrolling
-        this._ng_sbv_update(0, 0);
+        this._ng_sbv_update(0, 0, outside);
+    }
+
+    private _onScrollUntil(row: number) {
+        // Correct row value
+        row = row > this._storageInfo.count - 1 ? (this._storageInfo.count - 1) : row;
+        row = row < 0 ? 0 : row;
+        // Detect start of frame
+        const start: number = row - this._state.count < 0 ? 0 : (row - this._state.count);
+        // Set frame
+        this._setFrame(start, true);
+        // Trigger scrolling
+        this._ng_sbv_update(0, 0, true);
     }
 
     private _reset() {
@@ -818,7 +851,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
             if (this._selection.focus.index >= this._state.end - 1) {
                 // Have to do scroll down
                 this._selection.restored = false;
-                this._onScrollTo(this._state.start + 1, true);
+                this._onScrollTo(false, this._state.start + 1, true);
             }
         } else if (this._selection.focus.index < this._selection.anchor.index) {
             // Direction: up
@@ -829,7 +862,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
             if (this._selection.focus.index <= this._state.start + 1) {
                 // Scroll up
                 this._selection.restored = false;
-                this._onScrollTo(this._state.start - 1, true);
+                this._onScrollTo(false, this._state.start - 1, true);
             }
         }
     }
