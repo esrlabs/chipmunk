@@ -3,7 +3,6 @@ export interface IFile {
     parser: string;
     offset: number;
     format: string;
-    reg: string;
     zone: string;
     year?: number;
 }

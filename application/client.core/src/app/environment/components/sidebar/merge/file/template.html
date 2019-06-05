@@ -1,5 +1,8 @@
 <p class="file-name t-normal">File: {{name}}</p>
+<span class="spliter"></span>
+<lib-primitive-input #formatinput [type]="'text'" [placeholder]="'YYYY-MM-DDThh:mmTZD'" [validate]="_ng_onFormatValidate" [onChange]="_ng_onFormatChange" [disabled]="_ng_disabled"></lib-primitive-input>
 <div *ngIf="_ng_isMoreOpened()">
+    <span class="spliter"></span>
     <lib-primitive-dropdownlist [placeholder]="'define timezone'" [defaults]="''" [items]="_ng_zones" [onChange]="_ng_onZoneChange" [disabled]="_ng_disabled"></lib-primitive-dropdownlist>
     <div *ngIf="_ng_offset !== undefined">
         <span class="spliter"></span>
@@ -8,7 +11,43 @@
     <span class="spliter"></span>
     <lib-primitive-input #yearinput [placeholder]="'Type year if missed'" [validate]="_ng_onYearValidate" [onChange]="_ng_onYearChange" [disabled]="_ng_disabled" [type]="'number'"></lib-primitive-input>
 </div>
+<div class="test-results" *ngIf="_ng_testResults !== undefined">
+    <span class="spliter"></span>
+    <p class="file-name t-normal">Test results:</p>
+    <span class="spliter"></span>
+    <div *ngIf="_ng_testResults.error === undefined">
+        <table>
+            <tr>
+                <td class="t-normal title">Size</td>
+                <td class="t-normal value">{{_ng_testResults.size}} bytes</td>
+            </tr>
+            <tr>
+                <td class="t-normal title">Found</td>
+                <td class="t-normal value">{{_ng_testResults.found}}</td>
+            </tr>
+            <tr>
+                <td class="t-normal title">Rows read</td>
+                <td class="t-normal value">{{_ng_testResults.readRows}}</td>
+            </tr>
+            <tr>
+                <td class="t-normal title">Size</td>
+                <td class="t-normal value">{{_ng_testResults.found}}</td>
+            </tr>
+        </table>
+        <span class="spliter"></span>
+        <div *ngIf="_ng_isMoreTestOpened()">
+            <p class="file-name t-normal">Read rows:</p>
+            <span class="spliter"></span>
+            <ul class="rows">
+                <li class="row" *ngFor="let row of _ng_readRows" [innerHTML]="row"></li>
+            </ul>
+        </div>
+    </div>
+    <p class="error t-normal" *ngIf="_ng_testResults.error !== undefined">{{_ng_testResults.error}}</p>
+</div>
+<span class="spliter"></span>
 <div class="controlls" *ngIf="!_ng_disabled">
+    <span *ngIf="(_ng_testResults !== undefined) && (_ng_testResults.error === undefined)" class="small-button" (click)="_ng_onMoreTest()">{{_ng_moreTestButtonTitle}}</span>
     <span class="small-button" (click)="_ng_onMore()">{{_ng_moreButtonTitle}}</span>
     <span class="small-button" (click)="_ng_onRemove()">Remove</span>
 </div>

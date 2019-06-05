@@ -1,12 +1,12 @@
 export interface IFile {
     file: string;
-    reg: string;
     found: number;
-    read: number;
+    readBytes: number;
+    readRows: number;
     size: number;
-    first: string | undefined;
-    last: string | undefined;
-    errors: string[];
+    regExpStr: string;
+    read: string;
+    error?: string;
 }
 
 export interface IMergeFilesTestResponse {
