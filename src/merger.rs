@@ -23,6 +23,7 @@ pub struct MergeItemOptions {
     offset: Option<i64>,
     year: Option<i32>,
     tag: String,
+    format: String,
 }
 
 pub fn read_merge_options(f: &mut fs::File) -> Result<Vec<MergeItemOptions>, failure::Error> {
@@ -30,8 +31,7 @@ pub fn read_merge_options(f: &mut fs::File) -> Result<Vec<MergeItemOptions>, fai
     f.read_to_string(&mut contents)
         .expect("something went wrong reading the file");
 
-    let v: Vec<MergeItemOptions> =
-        serde_json::from_str(&contents[..]).expect("could not parse merge item file");
+    let v: Vec<MergeItemOptions> = serde_json::from_str(&contents[..])?; //.expect("could not parse merge item file");
     Ok(v)
 }
 
@@ -39,6 +39,7 @@ pub struct MergerInput {
     path: PathBuf,
     offset: Option<i64>,
     year: Option<i32>,
+    format: String,
     tag: String,
 }
 
@@ -65,10 +66,10 @@ impl Merger {
                 path: PathBuf::from(&dir_name).join(o.name),
                 offset: o.offset,
                 year: o.year,
+                format: o.format,
                 tag: o.tag,
             })
             .collect();
-        // self.merge_files(inputs, &out_path, append, use_stdout)
         self.merge_files_iter(append, inputs, &out_path, use_stdout)
     }
     #[allow(dead_code)]
@@ -96,8 +97,9 @@ impl Merger {
         let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
 
         for input in merger_inputs {
-            let kind: RegexKind = detect_timestamp_regex(&input.path)?;
-            let r: &Regex = &REGEX_REGISTRY[&kind];
+            // let kind: RegexKind = detect_timestamp_regex(&input.path)?;
+            // let r: &Regex = &REGEX_REGISTRY[&kind];
+            let r = date_format_str_to_regex(&input.format)?;
             let f: fs::File = fs::File::open(input.path)?;
             let mut reader: BufReader<&std::fs::File> = BufReader::new(&f);
             let mut buf = vec![];
@@ -150,7 +152,7 @@ impl Merger {
         }
         Ok(line_nr)
     }
-    #[allow(dead_code)]
+
     pub fn merge_files_iter(
         &self,
         append: bool,
@@ -183,9 +185,10 @@ impl Merger {
                 fs::File::open(&input.path)
                     .map_err(failure::Error::from)
                     // .and_then(|f| detect_timestamp_regex(&input.path).map(|r| (f, r)))
-                    .and_then(|f| detect_timestamp_regex(&input.path).map(|r| (f, r)))
-                    .and_then(|(f, kind)| {
-                        let r: &Regex = &REGEX_REGISTRY[&kind];
+                    // .and_then(|f| detect_timestamp_regex(&input.path).map(|r| (f, r)))
+                    .and_then(|f| {
+                        // let r: &Regex = &REGEX_REGISTRY[&kind];
+                        let r: Regex = date_format_str_to_regex(&input.format)?;
                         Ok(
                             TimedLineIter::new(f, input.tag.as_str(), r, input.year, input.offset)
                                 .peekable(),

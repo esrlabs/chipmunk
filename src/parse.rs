@@ -1,6 +1,5 @@
 use crate::timedline::*;
 use chrono::{NaiveDate, NaiveDateTime};
-use lazy_static::lazy_static;
 use nom::bytes::complete::{tag, take_while_m_n};
 
 use nom::character::complete::{char, digit1};
@@ -8,14 +7,14 @@ use nom::combinator::{map, map_res, opt};
 use nom::multi::{fold_many0, many1};
 use nom::IResult;
 
-
 use regex::Regex;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 
 use std::io::BufRead;
 use std::io::BufReader;
 use std::path::Path;
+
 const LINES_TO_INSPECT: usize = 10;
 const LINE_DETECTION_THRESHOLD: usize = 5;
 
@@ -138,7 +137,7 @@ fn date_expression(input: &str) -> IResult<&str, Vec<FormatPiece>> {
     map(parser, |p: (String, Vec<FormatPiece>)| p.1)(input)
 }
 
-fn date_format_str_to_regex(date_format: &str) -> Result<Regex, failure::Error> {
+pub fn date_format_str_to_regex(date_format: &str) -> Result<Regex, failure::Error> {
     if date_format.is_empty() {
         return Err(failure::err_msg("cannot construct regex from empty string"));
     }
@@ -279,78 +278,39 @@ pub fn line_to_timed_line(
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub enum RegexKind {
-    /// use R1 for files with this kind of timestamp: "04-04 11:52:50.229 +0200 ...";
-    /// contains timezone but no year
-    R1 = 1,
-    /// use R2 for files with this kind of timestamp: "04-04-2017 11:52:50.229 ...";
-    /// contains year but no timezone
-    R2 = 2,
-}
-impl RegexKind {
-    #[allow(dead_code)]
-    pub fn from_u32(value: u32) -> RegexKind {
-        match value {
-            1 => RegexKind::R1,
-            2 => RegexKind::R2,
-            _ => panic!("Unknown value: {}", value),
-        }
-    }
-}
-lazy_static! {
-    pub static ref REGEX_REGISTRY: HashMap<RegexKind, Regex> = {
-        let mut m = HashMap::new();
-
-        // 05-22 12:36:36.506 +0100 I/GKI_LINUX1
-        m.insert(RegexKind::R1,
-            date_format_str_to_regex("MM-DD hh:mm:ss.s TZD").expect("should be parsed"));
-
-        // 05-22-2019 12:36:04.344 A0
-        m.insert(RegexKind::R2,
-            date_format_str_to_regex("MM-DD-YYYY hh:mm:ss.s").expect("should be parsed"));
-
-        m
-    };
-    static ref REGEX_COUNT: usize = REGEX_REGISTRY.len();
-}
-
-pub fn detect_timestamp_regex(path: &Path) -> Result<RegexKind, failure::Error> {
+#[allow(dead_code)]
+pub fn detect_timestamp_format(
+    path: &Path,
+    possible_formats: &[String],
+) -> Result<String, failure::Error> {
     let f: fs::File = fs::File::open(path)?;
     let mut reader: BufReader<&std::fs::File> = BufReader::new(&f);
 
     let mut buf = vec![];
-    let mut matched_lines_regex_01 = 0;
-    let mut matched_lines_regex_02 = 0;
     let mut inspected_lines = 0;
+    let mut matched_lines: HashMap<&String, usize> = HashMap::new();
+    let formats_to_check: HashSet<&String> = possible_formats
+        .iter()
+        .filter(|s| date_format_str_to_regex(s).is_ok())
+        .collect();
+
+    for format_string in formats_to_check {
+        matched_lines.insert(format_string, 0usize);
+    }
     while let Ok(len) = reader.read_until(b'\n', &mut buf) {
         if len == 0 {
             break; // file is done
         }
         let s = unsafe { std::str::from_utf8_unchecked(&buf) };
-        matched_lines_regex_01 = match line_to_timed_line(
-            s,
-            len,
-            "TAG",
-            &REGEX_REGISTRY[&RegexKind::R1],
-            Some(2017),
-            Some(0),
-        ) {
-            Ok(_) => matched_lines_regex_01 + 1,
-            Err(_) => matched_lines_regex_01,
-        };
-        matched_lines_regex_02 = match line_to_timed_line(
-            s,
-            len,
-            "TAG",
-            &REGEX_REGISTRY[&RegexKind::R2],
-            Some(3333),
-            Some(0),
-        ) {
-            Ok(_) => matched_lines_regex_02 + 1,
-            Err(_) => matched_lines_regex_02,
-        };
         if !s.trim().is_empty() {
+            for (format_to_check, _) in matched_lines.clone().iter() {
+                if let Ok(did_match) = line_matching_format_expression(format_to_check.as_str(), s)
+                {
+                    if did_match {
+                        *matched_lines.entry(format_to_check).or_insert(0) += 1;
+                    }
+                }
+            }
             inspected_lines += 1;
         }
         buf = vec![];
@@ -358,43 +318,29 @@ pub fn detect_timestamp_regex(path: &Path) -> Result<RegexKind, failure::Error> 
             break;
         }
     }
+    let best_format_string =
+        matched_lines.iter().fold(
+            (None, 0usize),
+            |acc, (&k, &v)| {
+                if acc.1 < v {
+                    (Some(k), v)
+                } else {
+                    acc
+                }
+            },
+        );
     let min_matched_lines = std::cmp::min(LINE_DETECTION_THRESHOLD, inspected_lines);
-    if matched_lines_regex_01 >= min_matched_lines
-        && matched_lines_regex_01 > matched_lines_regex_02
-    {
-        return Ok(RegexKind::R1);
+    if let (Some(s), n) = best_format_string {
+        if n >= min_matched_lines {
+            return Ok(s.clone());
+        }
     }
-    if matched_lines_regex_02 >= min_matched_lines
-        && matched_lines_regex_02 > matched_lines_regex_01
-    {
-        return Ok(RegexKind::R2);
-    }
+
     eprintln!("could not detect timestamp in {:?}", path);
     Err(failure::err_msg(format!(
         "could not detect timestamp in {:?}",
         path
     )))
-}
-
-#[derive(Debug, PartialEq)]
-pub struct Line {
-    pub month: u32,
-    pub day: u32,
-    pub year: u32,
-    pub hour: u32,
-    pub minute: u32,
-    pub seconds: u32,
-    pub millis: u32,
-    pub timezone: String,
-}
-#[allow(dead_code)]
-pub fn from_digits(input: &str) -> Result<u32, std::num::ParseIntError> {
-    u32::from_str_radix(input, 10)
-}
-
-#[allow(dead_code)]
-fn is_digit(c: char) -> bool {
-    c.is_digit(10)
 }
 
 /// should parse timezone string, valid formats are
@@ -409,14 +355,10 @@ fn timezone_parser(input: &str) -> IResult<&str, i64> {
         Ok((rest, second.1))
     }
     fn timezone_minutes(input: &str) -> IResult<&str, i64> {
-        println!("timezone_minutes for {}", input);
-        let res = nom::sequence::preceded(opt(char(':')), timezone_count)(input);
-        println!("timezone_minutes res: {:?}", res);
-        res
+        nom::sequence::preceded(opt(char(':')), timezone_count)(input)
     }
     let parser = nom::sequence::tuple((timezone_sign, timezone_count, opt(timezone_minutes)));
     map(parser, |(positiv, hour, min): (bool, i64, Option<i64>)| {
-        println!("hour {}, min: {:?}", hour, min);
         let absolute = 1000 * (3600 * hour + 60 * min.unwrap_or(0));
         (if positiv { 1 } else { -1 }) * absolute
     })(input)
@@ -626,21 +568,16 @@ mod tests {
     #[test]
     fn test_parse_date_line_no_year_with_timezone() {
         let input = "04-04 11:52:50.229 +0200 D/oup.csc(  665): [728] MqttLogger";
+        let regex = date_format_str_to_regex("MM-DD hh:mm:ss.s TZD")
+            .expect("format string should produce regex");
 
         let TimedLine {
             timestamp,
             content,
             tag,
             ..
-        } = line_to_timed_line(
-            input,
-            input.len(),
-            "TAG",
-            &REGEX_REGISTRY[&RegexKind::R1],
-            Some(2017),
-            None,
-        )
-        .expect("convert to limed line should work");
+        } = line_to_timed_line(input, input.len(), "TAG", &regex, Some(2017), None)
+            .expect("convert to limed line should work");
         println!("timestamp: {}, tag: {}", timestamp, tag);
         assert_eq!(1_491_299_570_229, timestamp);
         assert_eq!(input, content);
@@ -667,6 +604,8 @@ mod tests {
     fn test_parse_date_line_year_no_timezone() {
         let input =
             "04-04-2017 11:52:50.229 0 0.764564113869644 0.7033032911158661 0.807587397462308";
+        let regex = date_format_str_to_regex("MM-DD-YYYY hh:mm:ss.s")
+            .expect("format string should produce regex");
         {
             let TimedLine {
                 timestamp,
@@ -677,7 +616,7 @@ mod tests {
                 input,
                 input.len(),
                 "TAG",
-                &REGEX_REGISTRY[&RegexKind::R2],
+                &regex,
                 None,
                 Some(TWO_HOURS_IN_MS),
             )
@@ -691,19 +630,20 @@ mod tests {
     test_generator::test_expand_paths! { test_detect_regex; "test_samples/detecting/*" }
 
     fn test_detect_regex(dir_name: &str) {
+        let possible_formats: Vec<String> = vec![
+            "MM-DD hh:mm:ss.s TZD".to_string(),
+            "MM-DD-YYYY hh:mm:ss.s".to_string(),
+        ];
         let in_path = PathBuf::from(&dir_name).join("in.log");
-        let res = detect_timestamp_regex(&in_path).expect("could not detect regex type");
+        let res = detect_timestamp_format(&in_path, &possible_formats)
+            .expect("could not detect regex type");
 
         let mut format_path = PathBuf::from(&dir_name);
         format_path.push("expected.format");
         let contents =
             fs::read_to_string(format_path).expect("Something went wrong reading the file");
-        let expected_regex_number: u32 = contents
-            .trim()
-            .parse()
-            .expect("could not parse expected format");
-        let expected_regex_kind = RegexKind::from_u32(expected_regex_number);
-        assert_eq!(expected_regex_kind, res);
+        let expected_format_string: String = contents.trim().to_string();
+        assert_eq!(expected_format_string, res);
     }
 
 }

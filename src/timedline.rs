@@ -26,7 +26,7 @@ impl PartialOrd for TimedLine {
 pub struct TimedLineIter<'a> {
     reader: BufReader<File>,
     tag: &'a str,
-    regex: &'a Regex,
+    regex: Regex,
     year: Option<i32>,
     time_offset: Option<i64>,
     last_timestamp: i64,
@@ -35,7 +35,7 @@ impl<'a> TimedLineIter<'a> {
     pub fn new(
         fh: File,
         tag: &'a str,
-        regex: &'a Regex,
+        regex: Regex,
         year: Option<i32>,
         time_offset: Option<i64>,
     ) -> TimedLineIter<'a> {
@@ -65,7 +65,7 @@ impl<'a> Iterator for TimedLineIter<'a> {
                     trimmed_line,
                     original_line_length,
                     self.tag,
-                    self.regex,
+                    &self.regex,
                     self.year,
                     self.time_offset,
                 )

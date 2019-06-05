@@ -2,12 +2,14 @@
   {
     "name": "a.log",
     "offset": 0,
+    "format": "MM-DD-YYYY hh:mm:ss.s",
     "tag": "A-TAG"
   },
   {
     "name": "b.log",
     "offset": 0,
     "tag": "B-TAG",
+    "format": "MM-DD hh:mm:ss.s TZD",
     "year": 2019
   }
 ]
