@@ -1,5 +1,6 @@
 use crate::chunks::serialize_chunks;
 use crate::parse::line_matching_format_expression;
+use crate::parse::{match_format_string_in_file, read_format_string_options, FormatTestOptions};
 #[macro_use]
 extern crate clap;
 use clap::{App, Arg, SubCommand};
@@ -138,34 +139,46 @@ fn main() {
                     Arg::with_name("format-string")
                         .short("f")
                         .help("format string to use")
-                        .required(true)
-                        .index(1),
+                        .long("format")
+                        .requires("test-string")
+                        .value_name("FORMAT_STR")
+                        .required(false),
                 )
                 .arg(
                     Arg::with_name("test-string")
                         .short("t")
+                        .long("test")
+                        .requires("format-string")
                         .help("test string to use")
-                        .required(true)
-                        .index(2),
+                        .value_name("SAMPLE")
+                        .required(false),
+                )
+                .arg(
+                    Arg::with_name("test-config")
+                        .short("c")
+                        .long("config")
+                        .help("test a file using this configuration")
+                        .value_name("CONFIG")
+                        .required(false),
                 ),
         )
         .get_matches();
 
     // Vary the output based on how many times the user used the "verbose" flag
     // (i.e. 'myprog -v -v -v' or 'myprog -vvv' vs 'myprog -v'
-    match matches.occurrences_of("v") {
-        0 => println!("No verbose info"),
-        1 => println!("Some verbose info"),
-        2 => println!("Tons of verbose info"),
-        3 | _ => println!("Don't be crazy"),
-    }
+    // match matches.occurrences_of("v") {
+    //     0 => println!("No verbose info"),
+    //     1 => println!("Some verbose info"),
+    //     2 => println!("Tons of verbose info"),
+    //     3 | _ => println!("Don't be crazy"),
+    // }
 
     if let Some(matches) = matches.subcommand_matches("merge") {
         if matches.is_present("merge_config") {
             let merge_config_file_name: &str = matches
                 .value_of("merge_config")
                 .expect("merge_config must be present");
-            let out_path: std::path::PathBuf = match matches.value_of("output") {
+            let out_path: PathBuf = match matches.value_of("output") {
                 Some(path) => PathBuf::from(path),
                 None => {
                     eprintln!("no output file specified");
@@ -205,8 +218,7 @@ fn main() {
                     .value_of("output")
                     .unwrap_or_else(|| fallback_out.as_str()),
             );
-            let mapping_out_path: std::path::PathBuf =
-                PathBuf::from(file.to_string() + ".map.json");
+            let mapping_out_path: PathBuf = PathBuf::from(file.to_string() + ".map.json");
             let max_lines = value_t_or_exit!(matches.value_of("max_lines"), usize);
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
             let indexer = processor::Indexer {
@@ -270,6 +282,44 @@ fn main() {
                 Ok(res) => println!("match: {:?}", res),
                 Err(e) => {
                     eprintln!("error matching: {}", e);
+                    process::exit(2)
+                }
+            }
+        } else if matches.is_present("test-config") {
+            let test_config_name = matches
+                .value_of("test-config")
+                .expect("test-config-name must be present");
+            let config_path = PathBuf::from(test_config_name);
+            // match_format_string_in_file(format_expr: &str, file_name: &str)
+            let mut test_config_file = match fs::File::open(&config_path) {
+                Ok(file) => file,
+                Err(_) => {
+                    eprintln!("could not open {}", test_config_name);
+                    process::exit(2)
+                }
+            };
+            let options: FormatTestOptions = match read_format_string_options(&mut test_config_file)
+            {
+                Ok(o) => o,
+                Err(e) => {
+                    eprintln!("could not parse format config file: {}", e);
+                    process::exit(2)
+                }
+            };
+            match match_format_string_in_file(
+                options.format.as_str(),
+                options.file.as_str(),
+                options.lines_to_test,
+            ) {
+                Ok(res) => match serde_json::to_string(&res) {
+                    Ok(json) => eprintln!("{}", json),
+                    Err(e) => {
+                        eprintln!("serializing result failed: {}", e);
+                        process::exit(2)
+                    }
+                },
+                Err(e) => {
+                    eprintln!("could not match format string file: {}", e);
                     process::exit(2)
                 }
             }

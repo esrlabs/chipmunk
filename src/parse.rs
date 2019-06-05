@@ -8,12 +8,13 @@ use nom::multi::{fold_many0, many1};
 use nom::IResult;
 
 use regex::Regex;
+use serde::{Deserialize, Serialize};
+
 use std::collections::{HashMap, HashSet};
 use std::fs;
 
-use std::io::BufRead;
-use std::io::BufReader;
-use std::path::Path;
+use std::io::{BufRead, BufReader, Read};
+use std::path::{Path, PathBuf};
 
 const LINES_TO_INSPECT: usize = 10;
 const LINE_DETECTION_THRESHOLD: usize = 5;
@@ -181,12 +182,70 @@ fn format_piece_as_regex_string(p: &FormatPiece) -> String {
         FormatPiece::Seperator(s) => s.to_string(),
     }
 }
+#[derive(Serialize, Deserialize, Debug)]
+pub struct FormatStringMatches {
+    pub regex: String,
+    pub matching_lines: usize,
+    pub nonmatching_lines: usize,
+    pub processed_bytes: usize,
+}
+#[derive(Serialize, Deserialize, Debug)]
+pub struct FormatTestOptions {
+    pub file: String,
+    pub lines_to_test: i64,
+    pub format: String,
+}
+
+pub fn read_format_string_options(f: &mut fs::File) -> Result<FormatTestOptions, failure::Error> {
+    let mut contents = String::new();
+    f.read_to_string(&mut contents)
+        .expect("something went wrong reading the file");
+    let v: FormatTestOptions = serde_json::from_str(&contents[..])?;
+    Ok(v)
+}
+
+pub fn match_format_string_in_file(
+    format_expr: &str,
+    file_name: &str,
+    max_lines: i64,
+) -> Result<FormatStringMatches, failure::Error> {
+    let regex = date_format_str_to_regex(format_expr)?;
+    let path = PathBuf::from(file_name);
+    let f: fs::File = fs::File::open(path)?;
+    let mut reader: BufReader<&std::fs::File> = BufReader::new(&f);
+    let mut buf = vec![];
+    let mut inspected_lines = 0usize;
+    let mut matched_lines = 0usize;
+    let mut processed_bytes = 0;
+    while let Ok(len) = reader.read_until(b'\n', &mut buf) {
+        if len == 0 {
+            break; // file is done
+        }
+        let s = unsafe { std::str::from_utf8_unchecked(&buf) };
+        if !s.trim().is_empty() {
+            inspected_lines += 1;
+            if regex.is_match(s.trim()) {
+                matched_lines += 1;
+            }
+            processed_bytes += s.trim().len();
+        }
+        buf = vec![];
+        if inspected_lines > max_lines as usize {
+            break;
+        }
+    }
+    Ok(FormatStringMatches {
+        regex: regex.to_string(),
+        matching_lines: matched_lines,
+        nonmatching_lines: inspected_lines - matched_lines,
+        processed_bytes,
+    })
+}
 pub fn line_matching_format_expression(
     format_expr: &str,
     line: &str,
 ) -> Result<bool, failure::Error> {
     let regex = date_format_str_to_regex(format_expr)?;
-    println!("constructed regex: {}", regex.as_str());
     Ok(regex.is_match(line))
 }
 pub fn line_to_timed_line(

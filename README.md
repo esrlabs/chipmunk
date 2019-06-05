@@ -67,22 +67,42 @@ ARGS:
     <merge_config>    input file is a json file that defines all files to be merged
 ```
 
-For testing a format string use the `format` subcommand:
+For testing a format string use the `format` subcommand.
 
 ```
 logviewer_parser-format
 test format string
 
 USAGE:
-    logviewer_parser format <format-string> <test-string>
+    logviewer_parser format [OPTIONS]
 
 FLAGS:
     -h, --help       Prints help information
     -V, --version    Prints version information
 
-ARGS:
-    <format-string>    format string to use
-    <test-string>      test string to use
+OPTIONS:
+    -f, --format <FORMAT_STR>    format string to use
+    -c, --config <CONFIG>        test a file using this configuration
+    -t, --test <SAMPLE>          test string to use
+```
+
+When using this command with a config file, the config file should look like this:
+
+```
+{
+  "file": "a.log",
+  "lines_to_test": 100,
+  "format": "MM-DD-YYYY hh:mm:ss.s"
+}
+```
+and this will result in a json string to stderr like this:
+```
+{
+  "regex":"(?P<m>\\d{2})-(?P<d>\\d{2})-(?P<Y>\\d{4})\\s+(?P<H>\\d{2}):(?P<M>\\d{2}):(?P<S>\\d{2})\\.(?P<millis>\\d+)",
+  "matching_lines":10,
+  "nonmatching_lines":2,
+  "processed_bytes":320
+}
 ```
 
 ## Date Format for timestamps
@@ -136,6 +156,14 @@ match: Ok(true)
 
 
 # Changelog
+
+### [0.18.0] - 06/05/2019
+
+  * for testing a format string you know can use `logviewer_parser format -c format.cfg`
+  * the configuration for this has to include the `file` to test, how many lines at max to check,
+    and the format specifier
+  * result will be the regex we created for this match, the number of matched lines and the number of
+    unmatched lines
 
 ### [0.17.0] - 06/05/2019
   * removed automatic detection
