@@ -18,20 +18,16 @@
     <div *ngIf="_ng_testResults.error === undefined">
         <table>
             <tr>
-                <td class="t-normal title">Size</td>
-                <td class="t-normal value">{{_ng_testResults.size}} bytes</td>
+                <td class="t-normal title">File size: </td>
+                <td class="t-normal value">{{(_ng_testResults.size / 1024 / 1024).toFixed(2)}} Mb</td>
             </tr>
             <tr>
-                <td class="t-normal title">Found</td>
-                <td class="t-normal value">{{_ng_testResults.found}}</td>
+                <td class="t-normal title">Found matches in: </td>
+                <td class="t-normal value">{{_ng_testResults.found}} rows</td>
             </tr>
             <tr>
-                <td class="t-normal title">Rows read</td>
-                <td class="t-normal value">{{_ng_testResults.readRows}}</td>
-            </tr>
-            <tr>
-                <td class="t-normal title">Size</td>
-                <td class="t-normal value">{{_ng_testResults.found}}</td>
+                <td class="t-normal title">Was read: </td>
+                <td class="t-normal value">{{_ng_testResults.readRows}} rows</td>
             </tr>
         </table>
         <span class="spliter"></span>
