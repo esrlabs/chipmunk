@@ -1,4 +1,21 @@
-<p class="file-name t-normal">File: {{name}}</p>
+<table>
+    <tr>
+        <td class="t-normal title">Name: </td>
+        <td class="t-normal value">{{name}}</td>
+    </tr>
+    <tr>
+        <td class="t-normal title">Size: </td>
+        <td class="t-normal value">{{(size / 1024 / 1024).toFixed(2)}} Mb</td>
+    </tr>
+</table>
+<span class="spliter"></span>
+<div class="preview">
+    <p class="file-name t-normal">Preview:</p>
+    <span class="spliter"></span>
+    <ul class="rows">
+        <li class="row" *ngFor="let row of _ng_rows" [innerHTML]="row"></li>
+    </ul>
+</div>
 <span class="spliter"></span>
 <lib-primitive-input #formatinput [type]="'text'" [placeholder]="'YYYY-MM-DDThh:mmTZD'" [validate]="_ng_onFormatValidate" [onChange]="_ng_onFormatChange" [disabled]="_ng_disabled"></lib-primitive-input>
 <div *ngIf="_ng_isMoreOpened()">
@@ -18,10 +35,6 @@
     <div *ngIf="_ng_testResults.error === undefined">
         <table>
             <tr>
-                <td class="t-normal title">File size: </td>
-                <td class="t-normal value">{{(_ng_testResults.size / 1024 / 1024).toFixed(2)}} Mb</td>
-            </tr>
-            <tr>
                 <td class="t-normal title">Found matches in: </td>
                 <td class="t-normal value">{{_ng_testResults.found}} rows</td>
             </tr>
@@ -31,19 +44,12 @@
             </tr>
         </table>
         <span class="spliter"></span>
-        <div *ngIf="_ng_isMoreTestOpened()">
-            <p class="file-name t-normal">Read rows:</p>
-            <span class="spliter"></span>
-            <ul class="rows">
-                <li class="row" *ngFor="let row of _ng_readRows" [innerHTML]="row"></li>
-            </ul>
-        </div>
     </div>
     <p class="error t-normal" *ngIf="_ng_testResults.error !== undefined">{{_ng_testResults.error}}</p>
 </div>
 <span class="spliter"></span>
 <div class="controlls" *ngIf="!_ng_disabled">
-    <span *ngIf="(_ng_testResults !== undefined) && (_ng_testResults.error === undefined)" class="small-button" (click)="_ng_onMoreTest()">{{_ng_moreTestButtonTitle}}</span>
+    <span class="small-button" (click)="_ng_onTest()">Test</span>
     <span class="small-button" (click)="_ng_onMore()">{{_ng_moreButtonTitle}}</span>
     <span class="small-button" (click)="_ng_onRemove()">Remove</span>
 </div>

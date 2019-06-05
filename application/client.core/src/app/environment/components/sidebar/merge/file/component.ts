@@ -13,11 +13,6 @@ const COptionButton = {
     hide: 'Less Options'
 };
 
-const COptionTestButton = {
-    show: 'More Results',
-    hide: 'Less Results'
-};
-
 @Component({
     selector: 'app-sidebar-app-files-item',
     templateUrl: './template.html',
@@ -32,17 +27,19 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
 
     @Input() public file: string = '';
     @Input() public name: string = '';
+    @Input() public preview: string = '';
+    @Input() public size: number = 0;
     @Input() public parser: string = '';
     @Input() public zones: string[] = [];
     @Input() public onRemove: () => any = () => void 0;
+    @Input() public onTest: () => any = () => void 0;
 
     public _ng_zones: Array<{ value: string; caption: string}> = [];
     public _ng_disabled: boolean = false;
     public _ng_offset: number | undefined = undefined;
     public _ng_moreButtonTitle: string = COptionButton.show;
-    public _ng_moreTestButtonTitle: string = COptionTestButton.show;
     public _ng_testResults: ITestResult | undefined = undefined;
-    public _ng_readRows: SafeHtml[] = [];
+    public _ng_rows: SafeHtml[] = [];
 
     private _valid: boolean = false;
     private _year: number = -1;
@@ -66,6 +63,7 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
         });
         this._ng_zones.unshift({ value: ListOffsetValue, caption: 'Set time offset in ms' });
         this._ng_zones.unshift({ value: '', caption: 'Select time zone or offset' });
+        this._ng_rows = this._getReadRows();
         this._cdRef.detectChanges();
     }
 
@@ -84,15 +82,6 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
 
     public _ng_isMoreOpened(): boolean {
         return this._ng_moreButtonTitle === COptionButton.hide;
-    }
-
-    public _ng_onMoreTest() {
-        this._ng_moreTestButtonTitle = this._ng_moreTestButtonTitle === COptionTestButton.show ? COptionTestButton.hide : COptionTestButton.show;
-        this._cdRef.detectChanges();
-    }
-
-    public _ng_isMoreTestOpened(): boolean {
-        return this._ng_moreTestButtonTitle === COptionTestButton.hide;
     }
 
     public _ng_onOffsetValidate(value: string): string | undefined {
@@ -180,6 +169,10 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
         this.onRemove();
     }
 
+    public _ng_onTest() {
+        this.onTest();
+    }
+
     public isValid(): boolean {
         this.refresh();
         return this._valid;
@@ -224,13 +217,13 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
 
     public setTestResults(results: ITestResult | undefined) {
         this._ng_testResults = results;
-        this._ng_readRows = this._getReadRows();
+        this._ng_rows = this._getReadRows();
         this._cdRef.detectChanges();
     }
 
     public dropTestResults() {
         this._ng_testResults = undefined;
-        this._ng_readRows = [];
+        this._ng_rows = this._getReadRows();
         this._cdRef.detectChanges();
     }
 
@@ -245,21 +238,21 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
     }
 
     private _getReadRows(): SafeHtml[]  {
-        if (this._ng_testResults === undefined) {
-            return [];
+        let reg: RegExp | Error | undefined;
+        if (this._ng_testResults !== undefined && this._ng_testResults.error === undefined) {
+            reg = Toolkit.regTools.createFromStr(this._ng_testResults.regExpStr);
+            if (reg instanceof Error) {
+                reg = undefined;
+            }
         }
-        if (this._ng_testResults.error !== undefined) {
-            return [];
-        }
-        const rows: string[] = this._ng_testResults.read.split(/[\n\r]/gi);
-        const reg: RegExp | Error = Toolkit.regTools.createFromStr(this._ng_testResults.regExpStr);
-        if (reg instanceof Error) {
-            return;
-        }
+        const rows: string[] = this.preview.split(/[\n\r]/gi);
         return rows.map((row: string) => {
-            const html = row.replace(reg, (match: string, ...args: any[]) => {
-                return `<span class="noreset match">${match}</span>`;
-            });
+            let html: string = row;
+            if (reg !== undefined) {
+                html = row.replace(reg as RegExp, (match: string, ...args: any[]) => {
+                    return `<span class="noreset match">${match}</span>`;
+                });
+            }
             return this._sanitizer.bypassSecurityTrustHtml(html);
         });
     }

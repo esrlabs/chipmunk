@@ -9,6 +9,24 @@ import { IFile as IRequestFile } from '../../../services/electron.ipc.messages/m
 
 declare var Electron: any;
 
+interface IFileInfo {
+    parser: string;
+    shortname: string;
+}
+
+interface IFilePreview {
+    size: number;
+    preview: string;
+}
+
+interface IFileItem {
+    file: string;
+    name: string;
+    parser: string;
+    preview: string;
+    size: number;
+}
+
 @Component({
     selector: 'app-sidebar-app-files',
     templateUrl: './template.html',
@@ -23,7 +41,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     public _ng_report: string | undefined;
     public _ng_busy: boolean = false;
 
-    private _files: Array<{ file: string; name: string, parser: string }> = [];
+    private _files: IFileItem[] = [];
     private _zones: string[] = [];
 
     constructor(private _cdRef: ChangeDetectorRef) {
@@ -71,17 +89,16 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
                 this._ng_error = 'This file is already added.';
                 return this._cdRef.detectChanges();
             }
-            ElectronIpcService.request(new IPCMessages.FileGetParserRequest({
-                file: files[0],
-            }), IPCMessages.FileGetParserResponse).then((response: IPCMessages.FileGetParserResponse) => {
-                if (response.parser === undefined) {
-                    this._ng_error = `Fail to find parser for selected file.`;
-                } else {
-                    this._files.push({ file: files[0], name: response.shortname, parser: response.parser });
-                }
-                this._cdRef.detectChanges();
-            }).catch((error: Error) => {
-                this._ng_error = `Fail detect file parser due error: ${error.message}`;
+            this._getFileParser(files[0]).then((info: IFileInfo) => {
+                this._getFileContent(files[0]).then((preview: IFilePreview) => {
+                    this._files.push({ file: files[0], name: info.shortname, parser: info.parser, size: preview.size, preview: preview.preview });
+                    this._cdRef.detectChanges();
+                }).catch((previewError: Error) => {
+                    this._ng_error = `Fail read preview of file due error: ${previewError.message}`;
+                    this._cdRef.detectChanges();
+                });
+            }).catch((parserError: Error) => {
+                this._ng_error = `Fail detect file parser due error: ${parserError.message}`;
                 this._cdRef.detectChanges();
             });
         });
@@ -116,16 +133,38 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         });
     }
 
-    public _ng_onTest() {
+    public _ng_onFileTest(file: string) {
+        const comp: SidebarAppMergeFilesItemComponent | undefined = this._getFileComp(file);
+        if (comp === undefined) {
+            return;
+        }
+        comp.refresh();
+        if (!comp.isValid()) {
+            return;
+        }
+        comp.dropTestResults();
+        this._ng_onTest({
+            file: comp.getFile(),
+            parser: comp.getParser(),
+            offset: comp.getOffset(),
+            zone: comp.getTimezone(),
+            format: comp.getFormat(),
+            year: comp.getYear(),
+        });
+    }
+
+    public _ng_onTest(file?: IRequestFile) {
         if (!this._validate()) {
             return;
         }
         this._ng_busy = true;
         this._disable(true);
+        if (file === undefined) {
+            this._dropTestResults();
+        }
         this._cdRef.detectChanges();
-        const files: IRequestFile[] = this._getListOfFiles();
         ElectronIpcService.request(new IPCMessages.MergeFilesTestRequest({
-            files: files,
+            files: file === undefined ? this._getListOfFiles() : [file],
             id: Toolkit.guid(),
         }), IPCMessages.MergeFilesTestResponse).then((response: IPCMessages.MergeFilesTestResponse) => {
             this._ng_busy = false;
@@ -136,7 +175,6 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
             this._ng_error = testError.message;
             this._ng_busy = false;
             this._disable(false);
-            this._dropTestResults();
             this._cdRef.detectChanges();
         });
     }
@@ -145,7 +183,6 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         return this._filesComps.map((com: SidebarAppMergeFilesItemComponent) => {
             return {
                 file: com.getFile(),
-                reg: '',
                 parser: com.getParser(),
                 offset: com.getOffset(),
                 zone: com.getTimezone(),
@@ -225,6 +262,37 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
             } else {
                 comp.enable();
             }
+        });
+    }
+
+    private _getFileParser(file: string): Promise<IFileInfo> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(new IPCMessages.FileGetParserRequest({
+                file: file,
+            }), IPCMessages.FileGetParserResponse).then((response: IPCMessages.FileGetParserResponse) => {
+                if (response.parser === undefined) {
+                    return reject(new Error('Fail to find parser for selected file.'));
+                }
+                resolve({ parser: response.parser, shortname: response.shortname });
+            }).catch((error: Error) => {
+                reject(error);
+            });
+        });
+    }
+
+    private _getFileContent(file: string): Promise<IFilePreview> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(new IPCMessages.FileReadRequest({
+                file: file,
+                bytes: 50000,
+            }), IPCMessages.FileReadResponse).then((response: IPCMessages.FileReadResponse) => {
+                if (response.error !== undefined) {
+                    return reject(new Error(response.error));
+                }
+                resolve({ size: response.size, preview: response.content });
+            }).catch((error: Error) => {
+                reject(error);
+            });
         });
     }
 

@@ -4,7 +4,10 @@
         <app-sidebar-app-files-item [file]="file.file" 
                                     [name]="file.name"
                                     [parser]="file.parser"
+                                    [size]="file.size"
+                                    [preview]="file.preview"
                                     [zones]="_zones"
+                                    [onTest]="_ng_onFileTest.bind(this, file.file)"
                                     [onRemove]="_ng_onFileRemove.bind(this, file.file)"></app-sidebar-app-files-item>
     </li>
 </ul>
@@ -12,7 +15,7 @@
 <p class="report t-small">{{_ng_report}}</p>
 <div class="controlls" *ngIf="!_ng_busy">
     <span class="small-button" (click)="_ng_onAddFile()">Add file</span>
-    <span *ngIf="_files.length > 1" class="small-button" (click)="_ng_onTest()">Test</span>
+    <span *ngIf="_files.length > 1" class="small-button" (click)="_ng_onTest()">Test All</span>
     <span *ngIf="_files.length > 1" class="small-button" (click)="_ng_onMerge()">Merge</span>
 </div>
 <div class="progress-testing" *ngIf="_ng_busy">
