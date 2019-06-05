@@ -2,47 +2,12 @@ import * as Stream from 'stream';
 import { IRange } from './controller.stream.processor.map';
 import * as StreamMarkers from '../consts/stream.markers';
 import Logger from '../tools/env.logger';
-import ServiceElectron, { IPCMessages as IPCElectronMessages } from '../services/service.electron';
 import State from './controller.stream.processor.state';
 
 export interface ITransformResult {
     output: string;
     bytesSize: number;
     rows: IRange;
-}
-
-let _notificationTimer: any;
-let _postponedNotifications: number = 0;
-const _logger: Logger = new Logger(`Notification sender for Stream Transformer`);
-
-function notify(streamId: string, state: State, bytesChunkSize: number, rows: IRange, output: string) {
-    // Send state information for pipes (if it's needed)
-    state.pipes.next(bytesChunkSize);
-    // Notification of render (client) about stream's update
-    clearTimeout(_notificationTimer);
-    // Set new timer for notification message
-    if (_postponedNotifications < Settings.maxPostponedNotificationMessages) {
-        _postponedNotifications += 1;
-        _notificationTimer = setTimeout(() => {
-            sendNotification(streamId, state, output, rows.from, rows.to);
-        }, Settings.notificationDelayOnStream);
-    } else {
-        _postponedNotifications = 0;
-        sendNotification(streamId, state, output, rows.from, rows.to);
-    }
-}
-
-function sendNotification(streamId: string, state: State, complete?: string, from?: number, to?: number): Promise<void> {
-    return ServiceElectron.IPC.send(new IPCElectronMessages.StreamUpdated({
-        guid: streamId,
-        length: state.map.getByteLength(),
-        rowsCount: state.map.getRowsCount(),
-        addedRowsData: complete === undefined ? '' : complete,
-        addedFrom: from === undefined ? -1 : from,
-        addedTo: to === undefined ? -1 : to,
-    })).catch((error: Error) => {
-        _logger.warn(`Fail send notification to render due error: ${error.message}`);
-    });
 }
 
 const Settings = {
@@ -73,7 +38,6 @@ export default class Transform extends Stream.Transform {
         this._pluginId = pluginId;
         this._state = state;
         this._logger = new Logger(`ControllerStreamTransformer: ${this._streamId}`);
-
     }
 
     public _transform(chunk: Buffer | string, encoding: string, callback: Stream.TransformCallback | undefined): ITransformResult {
@@ -110,7 +74,11 @@ export default class Transform extends Stream.Transform {
         if (callback !== undefined) {
             callback(undefined, output);
         }
-        notify(this._streamId, this._state, size, rows, output);
+        // Add data in progress
+        this._state.pipes.next(size);
+        // Trigger notification
+        this._state.postman.notification();
+        // Return results
         return {
             output: output,
             bytesSize: size,

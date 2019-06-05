@@ -2,9 +2,6 @@ export interface IStreamUpdated {
     guid: string;
     length: number;
     rowsCount: number;
-    addedRowsData: string;
-    addedFrom: number;
-    addedTo: number;
 }
 
 export class StreamUpdated {
@@ -13,9 +10,6 @@ export class StreamUpdated {
     public guid: string;
     public length: number;
     public rowsCount: number;
-    public addedRowsData: string;
-    public addedFrom: number;
-    public addedTo: number;
 
     constructor(params: IStreamUpdated) {
         if (typeof params !== 'object' || params === null) {
@@ -30,20 +24,8 @@ export class StreamUpdated {
         if (typeof params.rowsCount !== 'number' || isNaN(params.rowsCount) || !isFinite(params.rowsCount)) {
             throw new Error(`Field "rowsCount" should be defined as number (not NaN and finited)`);
         }
-        if (typeof params.addedFrom !== 'number' || isNaN(params.addedFrom) || !isFinite(params.addedFrom)) {
-            throw new Error(`Field "addedFrom" should be defined as number (not NaN and finited)`);
-        }
-        if (typeof params.addedTo !== 'number' || isNaN(params.addedTo) || !isFinite(params.addedTo)) {
-            throw new Error(`Field "addedTo" should be defined as number (not NaN and finited)`);
-        }
-        if (typeof params.addedRowsData !== 'string') {
-            throw new Error(`Field "addedRowsData" should be defined`);
-        }
         this.guid = params.guid;
         this.length = params.length;
         this.rowsCount = params.rowsCount;
-        this.addedRowsData = params.addedRowsData;
-        this.addedFrom = params.addedFrom;
-        this.addedTo = params.addedTo;
     }
 }

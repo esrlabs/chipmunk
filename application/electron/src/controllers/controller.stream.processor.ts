@@ -5,7 +5,6 @@ import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } fro
 import ServicePlugins from '../services/service.plugins';
 import ServiceStreamSource from '../services/service.stream.sources';
 import ControllerIPCPlugin, { IPCMessages as IPCPluginMessages} from './controller.plugin.process.ipc';
-import ControllerStreamFileReader from './controller.stream.file.reader';
 import Transform, { ITransformResult, convert } from './controller.stream.processor.pipe.transform';
 import { IMapItem } from './controller.stream.processor.map';
 import State from './controller.stream.processor.state';
@@ -35,7 +34,6 @@ export default class ControllerStreamProcessor {
     private _guid: string;
     private _file: string;
     private _stream: fs.WriteStream | undefined;
-    private _reader: ControllerStreamFileReader;
     private _pluginRefs: Map<string, number> = new Map();
     private _pluginIPCSubscriptions: {
         state: Map<number, Subscription>,
@@ -54,9 +52,8 @@ export default class ControllerStreamProcessor {
     constructor(guid: string, file: string) {
         this._guid = guid;
         this._file = file;
-        this._reader = new ControllerStreamFileReader(this._guid, this._file);
         this._logger = new Logger(`ControllerStreamProcessor: ${this._guid}`);
-        this._state = new State(this._guid);
+        this._state = new State(this._guid, this._file);
         this._transform = new Transform({}, this._guid, -1, this._state);
         this._ipc_onStreamChunkRequested = this._ipc_onStreamChunkRequested.bind(this);
         ServiceElectron.IPC.subscribe(IPCElectronMessages.StreamChunk, this._ipc_onStreamChunkRequested).then((subscription: Subscription) => {
@@ -67,8 +64,7 @@ export default class ControllerStreamProcessor {
     }
 
     public destroy() {
-
-        this._reader.destroy();
+        this._state.destroy();
         // Unsubscribe IPC messages / events
         Object.keys(this._subscriptions).forEach((key: string) => {
             (this._subscriptions as any)[key].destroy();
@@ -134,12 +130,12 @@ export default class ControllerStreamProcessor {
 
     public rewriteStreamFileMap(map: IMapItem[]) {
         this._state.map.rewrite(map);
-        this._sendUpdateStreamData();
+        this._state.postman.notification();
     }
 
     public pushToStreamFileMap(map: IMapItem[]) {
         this._state.map.push(map);
-        this._sendUpdateStreamData();
+        this._state.postman.notification();
     }
 
     public reattach() {
@@ -234,7 +230,7 @@ export default class ControllerStreamProcessor {
             this._logger.env(`Session was closed by plugin #${id} in ${((Date.now() - stateInfo.started) / 1000).toFixed(2)}s. Memory: on start: ${stateInfo.memoryUsed.toFixed(2)}Mb; on end: ${memory.used.toFixed(2)}/${memory.used.toFixed(2)}Mb; diff: ${(memory.used - stateInfo.memoryUsed).toFixed(2)}Mb`);
             // Close "long chunk" by carret
             this.write(Buffer.from('\n'), undefined, id);
-            this._sendUpdateStreamData();
+            this._state.postman.notification();
             this._memUsage.delete(id);
         } else {
             this._logger.warn(`Cannot close session for plugin ${id} because session wasn't started.`);
@@ -253,17 +249,6 @@ export default class ControllerStreamProcessor {
             return;
         }
         this._state.pipes.remove(message.pipeId);
-    }
-
-    private _sendUpdateStreamData(complete?: string, from?: number, to?: number): Promise<void> {
-        return ServiceElectron.IPC.send(new IPCElectronMessages.StreamUpdated({
-            guid: this._guid,
-            length: this._state.map.getByteLength(),
-            rowsCount: this._state.map.getRowsCount(),
-            addedRowsData: complete === undefined ? '' : complete,
-            addedFrom: from === undefined ? -1 : from,
-            addedTo: to === undefined ? -1 : to,
-        }));
     }
 
     private _ipc_onStreamChunkRequested(_message: IPCElectronMessages.TMessage, response: (isntance: IPCElectronMessages.TMessage) => any) {
@@ -287,7 +272,7 @@ export default class ControllerStreamProcessor {
             }));
         }
         // Reading chunk
-        this._reader.read(range.bytes.from, range.bytes.to).then((output: string) => {
+        this._state.reader.read(range.bytes.from, range.bytes.to).then((output: string) => {
             response(new IPCElectronMessages.StreamChunk({
                 guid: this._guid,
                 start: range.rows.from,
