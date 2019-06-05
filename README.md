@@ -157,6 +157,9 @@ match: Ok(true)
 
 # Changelog
 
+### [0.18.1] - 06/05/2019
+  * print results of testing format string to stdout instead of stderr;
+
 ### [0.18.0] - 06/05/2019
 
   * for testing a format string you know can use `logviewer_parser format -c format.cfg`
