@@ -137,6 +137,11 @@ match: Ok(true)
 
 # Changelog
 
+### [0.17.0] - 06/05/2019
+  * removed automatic detection
+  * introduced more general detection function
+  * based on format strings
+
 ### [0.16.0] - 06/05/2019
   * add support for subcommands
     * switch to clap library
