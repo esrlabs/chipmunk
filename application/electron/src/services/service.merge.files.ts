@@ -164,7 +164,6 @@ class ServiceMergeFiles implements IService {
                         readRows: -1,
                         size: -1,
                         regExpStr: '',
-                        read: '',
                         error: error.message,
                     });
                     resolve();
@@ -196,7 +195,6 @@ class ServiceMergeFiles implements IService {
                     readRows: results.results.readRows,
                     size: results.size,
                     regExpStr: results.results.regExpStr,
-                    read: results.read,
                 });
             }).catch((error: Error) => {
                 reject(error);

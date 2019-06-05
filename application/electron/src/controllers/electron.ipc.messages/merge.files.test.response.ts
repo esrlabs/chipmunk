@@ -5,7 +5,6 @@ export interface IFile {
     readRows: number;
     size: number;
     regExpStr: string;
-    read: string;
     error?: string;
 }
 

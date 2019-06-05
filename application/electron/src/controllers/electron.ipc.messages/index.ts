@@ -64,6 +64,12 @@ export { IFileGetOptionsResponse, FileGetOptionsResponse };
 import { IFileGetParserResponse, FileGetParserResponse } from './file.getparser.response';
 export { IFileGetParserResponse, FileGetParserResponse };
 
+import { IFileReadRequest, FileReadRequest } from './file.read.request';
+export { IFileReadRequest, FileReadRequest };
+
+import { IFileReadResponse, FileReadResponse } from './file.read.response';
+export { IFileReadResponse, FileReadResponse };
+
 import { IMergeFilesRequest, MergeFilesRequest } from './merge.files.request';
 export { IMergeFilesRequest, MergeFilesRequest };
 
@@ -115,6 +121,8 @@ export type TMessage =  HostState |
                         SearchChunk |
                         FileGetParserRequest |
                         FileGetParserResponse |
+                        FileReadRequest |
+                        FileReadResponse |
                         MergeFilesRequest |
                         MergeFilesResponse |
                         MergeFilesTestRequest |
@@ -158,6 +166,8 @@ export const Map = {
     [FileGetParserResponse.signature        ]: FileGetParserResponse,
     [FileGetOptionsRequest.signature        ]: FileGetOptionsRequest,
     [FileGetOptionsResponse.signature       ]: FileGetOptionsResponse,
+    [FileReadRequest.signature              ]: FileReadRequest,
+    [FileReadResponse.signature             ]: FileReadResponse,
 
     [MergeFilesRequest.signature            ]: MergeFilesRequest,
     [MergeFilesResponse.signature           ]: MergeFilesResponse,

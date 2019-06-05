@@ -9,7 +9,6 @@ import Logger from '../tools/env.logger';
 
 export interface IFileTestResults {
     results: IDatetimeFormatTestResult;
-    read: string;
     size: number;
 }
 
@@ -34,14 +33,9 @@ export default class MergeTest {
                 }
                 const lvin: Lvin = new Lvin();
                 lvin.datetimeFormatTest(this._file).then((results: IDatetimeFormatTestResult) => {
-                    this._read(results.readBytes).then((content: string) => {
-                        resolve({
-                            results: results,
-                            size: size,
-                            read: content,
-                        });
-                    }).catch((readingError: Error) => {
-                        reject(readingError);
+                    resolve({
+                        results: results,
+                        size: size,
                     });
                 }).catch((error: Error) => {
                     reject(error);
@@ -63,29 +57,6 @@ export default class MergeTest {
                     return reject(error);
                 }
                 resolve(stats.size);
-            });
-        });
-    }
-
-    private _read(bytes: number): Promise<string> {
-        return new Promise((resolve, reject) => {
-            const options: { [key: string]: any } = { autoClose: true, encoding: 'utf8', start: 0, end: bytes };
-            let output: string = '';
-            const stream = fs.createReadStream(this._file.file, options);
-            stream.on('data', (chunk: string) => {
-                output += chunk;
-                if (stream !== undefined && stream.bytesRead >= (options.end - options.start)) {
-                    stream.close();
-                    stream.removeAllListeners();
-                    resolve(output);
-                }
-            });
-            stream.on('end', () => {
-                if (stream !== undefined) {
-                    stream.close();
-                    stream.removeAllListeners();
-                }
-                resolve(output);
             });
         });
     }
