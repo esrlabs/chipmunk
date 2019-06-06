@@ -1,6 +1,6 @@
 use crate::timedline::*;
 use chrono::{NaiveDate, NaiveDateTime};
-use nom::bytes::complete::{tag, take_while_m_n};
+use nom::bytes::complete::tag;
 
 use nom::character::complete::{char, digit1};
 use nom::combinator::{map, map_res, opt};
@@ -29,6 +29,7 @@ enum FormatPiece {
     Second,
     Fraction,
     TimeZone,
+    AbsoluteMilliseconds,
     SeperatorChar(char),
     Seperator(String),
 }
@@ -43,36 +44,60 @@ impl std::fmt::Display for FormatPiece {
             FormatPiece::Second => write!(f, "Second"),
             FormatPiece::Fraction => write!(f, "Fraction"),
             FormatPiece::TimeZone => write!(f, "TimeZone"),
+            FormatPiece::AbsoluteMilliseconds => write!(f, "AbsoluteMilliseconds"),
             FormatPiece::SeperatorChar(_) => write!(f, "SeperatorChar"),
             FormatPiece::Seperator(_) => write!(f, "Seperator"),
         }
     }
 }
+/// takes a format string for a date representation and tokenize it
+/// into it's individual elements
+/// e.g. "DD-MM" => [Day,Seperator("-"),Month]
+///      YYYY = four-digit year
+///      MM   = two-digit month (01=January, etc.)
+///      DD   = two-digit day of month (01 through 31)
+///      hh   = two digits of hour (00 through 23) (am/pm NOT allowed)
+///      mm   = two digits of minute (00 through 59)
+///      ss   = two digits of second (00 through 59)
+///      s    = one or more digits representing a decimal fraction of a second
+///      TZD  = time zone designator (Z or +hh:mm or -hh:mm)
+static DAY_FORMAT_TAG: &str = "DD";
+static MONTH_FORMAT_TAG: &str = "MM";
+static YEAR_FORMAT_TAG: &str = "YYYY";
+static HOURS_FORMAT_TAG: &str = "hh";
+static MINUTES_FORMAT_TAG: &str = "mm";
+static SECONDS_FORMAT_TAG: &str = "ss";
+static TIMEZONE_FORMAT_TAG: &str = "TZD";
+const FRACTION_FORMAT_CHAR: char = 's';
+
 fn days(input: &str) -> IResult<&str, FormatPiece> {
-    map(take_while_m_n(2, 2, |c| c == 'D'), |_| FormatPiece::Day)(input)
+    map(tag(DAY_FORMAT_TAG), |_| FormatPiece::Day)(input)
 }
 fn month(input: &str) -> IResult<&str, FormatPiece> {
-    map(take_while_m_n(2, 2, |c| c == 'M'), |_| FormatPiece::Month)(input)
+    map(tag(MONTH_FORMAT_TAG), |_| FormatPiece::Month)(input)
 }
 fn year(input: &str) -> IResult<&str, FormatPiece> {
-    map(take_while_m_n(4, 4, |c| c == 'Y'), |_| FormatPiece::Year)(input)
+    map(tag(YEAR_FORMAT_TAG), |_| FormatPiece::Year)(input)
 }
 fn hours(input: &str) -> IResult<&str, FormatPiece> {
-    map(take_while_m_n(2, 2, |c| c == 'h'), |_| FormatPiece::Hour)(input)
+    map(tag(HOURS_FORMAT_TAG), |_| FormatPiece::Hour)(input)
 }
 fn minutes(input: &str) -> IResult<&str, FormatPiece> {
-    map(take_while_m_n(2, 2, |c| c == 'm'), |_| FormatPiece::Minute)(input)
+    map(tag(MINUTES_FORMAT_TAG), |_| FormatPiece::Minute)(input)
 }
 fn seconds(input: &str) -> IResult<&str, FormatPiece> {
-    map(take_while_m_n(2, 2, |c| c == 's'), |_| FormatPiece::Second)(input)
+    map(tag(SECONDS_FORMAT_TAG), |_| FormatPiece::Second)(input)
 }
 fn fraction(input: &str) -> IResult<&str, FormatPiece> {
-    map(nom::character::complete::char('s'), |_| {
+    map(nom::character::complete::char(FRACTION_FORMAT_CHAR), |_| {
         FormatPiece::Fraction
     })(input)
 }
 fn timezone(input: &str) -> IResult<&str, FormatPiece> {
-    map(tag("TZD"), |_| FormatPiece::TimeZone)(input)
+    map(tag(TIMEZONE_FORMAT_TAG), |_| FormatPiece::TimeZone)(input)
+}
+fn absolute_millis(input: &str) -> IResult<&str, FormatPiece> {
+    map(tag("sss"), |_| FormatPiece::AbsoluteMilliseconds)(input)
 }
 fn many_spaces(input: &str) -> IResult<&str, char> {
     map(many1(nom::character::complete::char(' ')), |_| ' ')(input)
@@ -85,7 +110,16 @@ fn seperator(input: &str) -> IResult<&str, FormatPiece> {
 }
 fn any_date_format(input: &str) -> IResult<&str, FormatPiece> {
     nom::branch::alt((
-        days, month, year, hours, minutes, seconds, fraction, timezone, seperator,
+        days,
+        month,
+        year,
+        hours,
+        minutes,
+        absolute_millis,
+        seconds,
+        fraction,
+        timezone,
+        seperator,
     ))(input)
 }
 fn escape_metacharacters(c: char) -> String {
@@ -106,17 +140,6 @@ fn escape_metacharacters(c: char) -> String {
         c => c.to_string(),
     }
 }
-/// takes a format string for a date representation and tokenize it
-/// into it's individual elements
-/// e.g. "DD-MM" => [Day,Seperator("-"),Month]
-///      YYYY = four-digit year
-///      MM   = two-digit month (01=January, etc.)
-///      DD   = two-digit day of month (01 through 31)
-///      hh   = two digits of hour (00 through 23) (am/pm NOT allowed)
-///      mm   = two digits of minute (00 through 59)
-///      ss   = two digits of second (00 through 59)
-///      s    = one or more digits representing a decimal fraction of a second
-///      TZD  = time zone designator (Z or +hh:mm or -hh:mm)
 fn date_expression(input: &str) -> IResult<&str, Vec<FormatPiece>> {
     let parser = fold_many0(
         any_date_format,
@@ -135,7 +158,14 @@ fn date_expression(input: &str) -> IResult<&str, Vec<FormatPiece>> {
             acc
         },
     );
-    map(parser, |p: (String, Vec<FormatPiece>)| p.1)(input)
+    map(parser, |p: (String, Vec<FormatPiece>)| {
+        if !p.0.is_empty() {
+            let mut res_vec = p.1;
+            res_vec.push(FormatPiece::Seperator(p.0));
+            return res_vec;
+        }
+        p.1
+    })(input)
 }
 
 pub fn date_format_str_to_regex(date_format: &str) -> Result<Regex, failure::Error> {
@@ -164,16 +194,31 @@ pub fn date_format_str_to_regex(date_format: &str) -> Result<Regex, failure::Err
     }
     Err(failure::err_msg("could not detect timestamp in"))
 }
+static DAY_GROUP: &str = "d";
+static MONTH_GROUP: &str = "m";
+static YEAR_GROUP: &str = "Y";
+static HOUR_GROUP: &str = "H";
+static MINUTE_GROUP: &str = "M";
+static SECONDS_GROUP: &str = "S";
+static FRACTION_GROUP: &str = "millis";
+static TIMEZONE_GROUP: &str = "timezone";
+static ABSOLUTE_MS_GROUP: &str = "absolute";
+
+fn named_group(regex: &str, capture_id: &str) -> String {
+    format!(r"(?P<{}>{})", capture_id, regex)
+}
+
 fn format_piece_as_regex_string(p: &FormatPiece) -> String {
     match p {
-        FormatPiece::Day => String::from(r"(?P<d>\d{2})"),
-        FormatPiece::Month => String::from(r"(?P<m>\d{2})"),
-        FormatPiece::Year => String::from(r"(?P<Y>\d{4})"),
-        FormatPiece::Hour => String::from(r"(?P<H>\d{2})"),
-        FormatPiece::Minute => String::from(r"(?P<M>\d{2})"),
-        FormatPiece::Second => String::from(r"(?P<S>\d{2})"),
-        FormatPiece::Fraction => String::from(r"(?P<millis>\d+)"),
-        FormatPiece::TimeZone => String::from(r"(?P<timezone>[\+\-]\d+)"),
+        FormatPiece::Day => named_group(r"\d{2}", DAY_GROUP),
+        FormatPiece::Month => named_group(r"\d{2}", MONTH_GROUP),
+        FormatPiece::Year => named_group(r"\d{4}", YEAR_GROUP),
+        FormatPiece::Hour => named_group(r"\d{2}", HOUR_GROUP),
+        FormatPiece::Minute => named_group(r"\d{2}", MINUTE_GROUP),
+        FormatPiece::Second => named_group(r"\d{2}", SECONDS_GROUP),
+        FormatPiece::Fraction => named_group(r"\d+", FRACTION_GROUP),
+        FormatPiece::TimeZone => named_group(r"[\+\-]\d+", TIMEZONE_GROUP),
+        FormatPiece::AbsoluteMilliseconds => named_group(r"\d+", ABSOLUTE_MS_GROUP),
         FormatPiece::SeperatorChar(c) => {
             let mut s = String::from("");
             s.push(*c);
@@ -248,34 +293,38 @@ pub fn line_matching_format_expression(
     let regex = date_format_str_to_regex(format_expr)?;
     Ok(regex.is_match(line))
 }
-pub fn line_to_timed_line(
+pub fn to_posix_timestamp(
     line: &str,
-    original_line_length: usize,
-    tag: &str,
     regex: &Regex,
     year: Option<i32>,
     time_offset: Option<i64>,
-) -> Result<TimedLine, failure::Error> {
+) -> Result<i64, failure::Error> {
     let caps = regex
         .captures(line)
         .ok_or_else(|| failure::err_msg("no captures in regex"))?;
+    if caps.name(ABSOLUTE_MS_GROUP).is_some() && caps.len() == 1 + 1 {
+        // only one matched group in addition to the full match
+        let abs_ms_capt = caps.name(ABSOLUTE_MS_GROUP).expect("was verified");
+        let absolute_ms: i64 = abs_ms_capt.as_str().parse()?;
+        return Ok(absolute_ms - time_offset.unwrap_or(0));
+    }
     let day_capt = caps
-        .name("d")
+        .name(DAY_GROUP)
         .ok_or_else(|| failure::err_msg("no group for days found in regex"))?;
     let month_capt = caps
-        .name("m")
+        .name(MONTH_GROUP)
         .ok_or_else(|| failure::err_msg("no group for month found in regex"))?;
     let (day, month): (u32, u32) = (day_capt.as_str().parse()?, month_capt.as_str().parse()?);
     let hour_capt = caps
-        .name("H")
+        .name(HOUR_GROUP)
         .ok_or_else(|| failure::err_msg("no group for hour found in regex"))?;
     let min_capt = caps
-        .name("M")
+        .name(MINUTE_GROUP)
         .ok_or_else(|| failure::err_msg("no group for minute found in regex"))?;
     let sec_capt = caps
-        .name("S")
+        .name(SECONDS_GROUP)
         .ok_or_else(|| failure::err_msg("no group for seconds found in regex"))?;
-    let mil_str = match caps.name("millis") {
+    let mil_str = match caps.name(FRACTION_GROUP) {
         Some(m) => m.as_str(),
         None => "0",
     };
@@ -286,17 +335,17 @@ pub fn line_to_timed_line(
         mil_str.parse()?,
     );
 
-    let timezone_n = caps.name("timezone");
+    let timezone_n = caps.name(TIMEZONE_GROUP);
     if time_offset.is_none() && timezone_n.is_none() {
         eprintln!("timestamp cannot be applied");
         return Err(failure::err_msg("timestamp cannot be applied"));
     }
     let offset_result = if time_offset.is_none() {
-        parse_timezone(&caps["timezone"])
+        parse_timezone(&caps[TIMEZONE_GROUP])
     } else {
         time_offset.ok_or_else(|| failure::err_msg("could not detect timestamp in"))
     };
-    let the_year: Option<i32> = match caps.name("Y") {
+    let the_year: Option<i32> = match caps.name(YEAR_GROUP) {
         Some(year_str) => year_str.as_str().parse().ok(),
         None => year,
     };
@@ -310,12 +359,7 @@ pub fn line_to_timed_line(
             let date_time: NaiveDateTime =
                 NaiveDate::from_ymd(y, month, day).and_hms_milli(hour, minutes, seconds, millis);
             let unix_timestamp = date_time.timestamp_millis();
-            Ok(TimedLine {
-                timestamp: unix_timestamp - offset,
-                content: line.to_string(),
-                tag: tag.to_string(),
-                original_length: original_line_length,
-            })
+            Ok(unix_timestamp - offset)
         }
         (None, Ok(_)) => {
             eprintln!("could not determine the year!");
@@ -335,6 +379,22 @@ pub fn line_to_timed_line(
             ))
         }
     }
+}
+pub fn line_to_timed_line(
+    line: &str,
+    original_line_length: usize,
+    tag: &str,
+    regex: &Regex,
+    year: Option<i32>,
+    time_offset: Option<i64>,
+) -> Result<TimedLine, failure::Error> {
+    let posix_timestamp = to_posix_timestamp(line, regex, year, time_offset)?;
+    Ok(TimedLine {
+        timestamp: posix_timestamp,
+        content: line.to_string(),
+        tag: tag.to_string(),
+        original_length: original_line_length,
+    })
 }
 
 #[allow(dead_code)]
@@ -452,27 +512,17 @@ mod tests {
     #[test]
     fn test_date_parsers() {
         assert_eq!(any_date_format("DD23"), Ok(("23", FormatPiece::Day)));
+        assert_eq!(
+            any_date_format("sss23"),
+            Ok(("23", FormatPiece::AbsoluteMilliseconds))
+        );
         assert_eq!(any_date_format("MM23"), Ok(("23", FormatPiece::Month)));
         assert_eq!(any_date_format("DDMM"), Ok(("MM", FormatPiece::Day)));
         assert_eq!(any_date_format("YYYY-"), Ok(("-", FormatPiece::Year)));
+
         assert_eq!(
-            date_expression("DDMM"),
-            Ok(("", vec![FormatPiece::Day, FormatPiece::Month]))
-        );
-        assert_eq!(
-            date_expression("DD:MM"),
-            Ok((
-                "",
-                vec![
-                    FormatPiece::Day,
-                    FormatPiece::Seperator(String::from(":")),
-                    FormatPiece::Month
-                ]
-            ))
-        );
-        assert_eq!(
-            date_expression("MMDD"),
-            Ok(("", vec![FormatPiece::Month, FormatPiece::Day]))
+            any_date_format("-YYYY"),
+            Ok(("YYYY", FormatPiece::SeperatorChar('-')))
         );
     }
     #[test]
@@ -491,7 +541,6 @@ mod tests {
     }
     #[test]
     fn test_format_parsers() {
-        // let input = "DD-MM hh:mm:ss:S TZD";
         assert_eq!(
             date_expression("DD-MM ---> hh:mm:ss:s TZD"),
             Ok((
@@ -513,7 +562,39 @@ mod tests {
                 ]
             ))
         );
-
+        assert_eq!(
+            date_expression("-YYYY"),
+            Ok((
+                "",
+                vec![FormatPiece::Seperator("-".to_string()), FormatPiece::Year]
+            ))
+        );
+        assert_eq!(
+            date_expression("YYYY-"),
+            Ok((
+                "",
+                vec![FormatPiece::Year, FormatPiece::Seperator("-".to_string())]
+            ))
+        );
+        assert_eq!(
+            date_expression("DDMM"),
+            Ok(("", vec![FormatPiece::Day, FormatPiece::Month]))
+        );
+        assert_eq!(
+            date_expression("DD:MM"),
+            Ok((
+                "",
+                vec![
+                    FormatPiece::Day,
+                    FormatPiece::Seperator(String::from(":")),
+                    FormatPiece::Month
+                ]
+            ))
+        );
+        assert_eq!(
+            date_expression("MMDD"),
+            Ok(("", vec![FormatPiece::Month, FormatPiece::Day]))
+        );
     }
 
     #[test]
@@ -582,17 +663,33 @@ mod tests {
         );
     }
     #[test]
+    fn test_date_format_str_to_regex_minus_after() {
+        // 2019-
+        let regex = date_format_str_to_regex("YYYY-").expect("should be parsed");
+        assert_eq!(
+            Regex::new(r"(?P<Y>\d{4})-").unwrap().as_str(),
+            regex.as_str()
+        );
+    }
+    #[test]
     fn test_date_format_str_to_regex_empty() {
         let regex = date_format_str_to_regex("");
         assert!(regex.is_err());
     }
     #[test]
     fn test_date_format_str_to_regex_other() {
+        assert!(line_matching_format_expression("-YYYY", "-1997").unwrap_or(false));
         assert!(
             line_matching_format_expression("YYYY-MM-DDThh:mmTZD", "1997-07-16T19:20+01:00")
                 .unwrap_or(false)
         );
         assert!(line_matching_format_expression("YYYY", "1997").unwrap_or(false));
+        assert!(line_matching_format_expression("YYYY", "1997  some other crap").unwrap_or(false));
+        assert!(
+            line_matching_format_expression("YYYY", "something before: [1997]").unwrap_or(false)
+        );
+
+        // assert!(line_matching_format_expression("sss", "1559831467577").unwrap_or(false));
 
         assert!(line_matching_format_expression("YYYY-MM", "1997-07").unwrap_or(false));
 
@@ -630,34 +727,21 @@ mod tests {
         let regex = date_format_str_to_regex("MM-DD hh:mm:ss.s TZD")
             .expect("format string should produce regex");
 
-        let TimedLine {
-            timestamp,
-            content,
-            tag,
-            ..
-        } = line_to_timed_line(input, input.len(), "TAG", &regex, Some(2017), None)
+        let timestamp = to_posix_timestamp(input, &regex, Some(2017), None)
             .expect("convert to limed line should work");
-        println!("timestamp: {}, tag: {}", timestamp, tag);
+        println!("timestamp: {}", timestamp);
         assert_eq!(1_491_299_570_229, timestamp);
-        assert_eq!(input, content);
     }
     #[test]
     fn test_parse_date_line_no_year_no_millis() {
         let input = "04-04 11:52:50 +0200 D/oup.csc(  665): [728] MqttLogger";
-
         let regex_to_use =
             date_format_str_to_regex("MM-DD hh:mm:ss TZD").expect("should be parsed");
-        let TimedLine {
-            timestamp,
-            content,
-            tag,
-            ..
-        } = line_to_timed_line(input, input.len(), "TAG", &regex_to_use, Some(2017), None)
+        let timestamp = to_posix_timestamp(input, &regex_to_use, Some(2017), None)
             .expect("convert to limed line should work");
-        println!("timestamp: {}, tag: {}", timestamp, tag);
         assert_eq!(1_491_299_570_000, timestamp);
-        assert_eq!(input, content);
     }
+
     const TWO_HOURS_IN_MS: i64 = 2 * 3600 * 1000;
     #[test]
     fn test_parse_date_line_year_no_timezone() {
@@ -665,25 +749,18 @@ mod tests {
             "04-04-2017 11:52:50.229 0 0.764564113869644 0.7033032911158661 0.807587397462308";
         let regex = date_format_str_to_regex("MM-DD-YYYY hh:mm:ss.s")
             .expect("format string should produce regex");
-        {
-            let TimedLine {
-                timestamp,
-                content,
-                tag,
-                ..
-            } = line_to_timed_line(
-                input,
-                input.len(),
-                "TAG",
-                &regex,
-                None,
-                Some(TWO_HOURS_IN_MS),
-            )
-            .unwrap();
-            println!("timestamp: {}, tag: {}", timestamp, tag);
-            assert_eq!(1_491_299_570_229, timestamp);
-            assert_eq!(input, content);
-        }
+        let timestamp = to_posix_timestamp(input, &regex, None, Some(TWO_HOURS_IN_MS)).unwrap();
+        assert_eq!(1_491_299_570_229, timestamp);
+    }
+    #[test]
+    fn test_parse_date_line_only_millis() {
+        let input = "1559831467577 some logging here...";
+        let regex = date_format_str_to_regex("sss").expect("format string should produce regex");
+        let timestamp = to_posix_timestamp(input, &regex, None, None).unwrap();
+        assert_eq!(1_559_831_467_577, timestamp);
+        let timestamp_with_offset =
+            to_posix_timestamp(input, &regex, None, Some(-TWO_HOURS_IN_MS)).unwrap();
+        assert_eq!(1_559_838_667_577, timestamp_with_offset);
     }
 
     test_generator::test_expand_paths! { test_detect_regex; "test_samples/detecting/*" }

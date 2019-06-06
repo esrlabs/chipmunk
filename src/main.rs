@@ -1,6 +1,10 @@
 use crate::chunks::serialize_chunks;
-use crate::parse::line_matching_format_expression;
-use crate::parse::{match_format_string_in_file, read_format_string_options, FormatTestOptions};
+use crate::dlt::DltFileCodec;
+use crate::parse::{
+    line_matching_format_expression, match_format_string_in_file, read_format_string_options,
+    FormatTestOptions,
+};
+
 #[macro_use]
 extern crate clap;
 use clap::{App, Arg, SubCommand};
@@ -8,8 +12,12 @@ use std::fs;
 use std::path::PathBuf;
 use std::process;
 use std::time::Instant;
+use tokio::codec::{FramedRead, FramedWrite};
+use tokio::prelude::stream::Stream;
+use tokio::prelude::Future;
 
 mod chunks;
+mod dlt;
 mod merger;
 mod parse;
 mod processor;
@@ -162,6 +170,25 @@ fn main() {
                         .required(false),
                 ),
         )
+        .subcommand(
+            SubCommand::with_name("dlt")
+                .about("handling dtl input")
+                .arg(
+                    Arg::with_name("input")
+                        .short("i")
+                        .long("input")
+                        .help("the DLT file to parse")
+                        .required(true)
+                        .index(1),
+                )
+                .arg(
+                    Arg::with_name("output")
+                        .short("o")
+                        .long("out")
+                        .value_name("OUT")
+                        .help("Output file, \"<file_to_index>.out\" if not present"),
+                ),
+        )
         .get_matches();
 
     // Vary the output based on how many times the user used the "verbose" flag
@@ -174,41 +201,16 @@ fn main() {
     // }
 
     if let Some(matches) = matches.subcommand_matches("merge") {
-        if matches.is_present("merge_config") {
-            let merge_config_file_name: &str = matches
-                .value_of("merge_config")
-                .expect("merge_config must be present");
-            let out_path: PathBuf = match matches.value_of("output") {
-                Some(path) => PathBuf::from(path),
-                None => {
-                    eprintln!("no output file specified");
-                    process::exit(2)
-                }
-            };
-            let max_lines = value_t_or_exit!(matches.value_of("max_lines"), usize);
-            let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
-            let append: bool = matches.is_present("append");
-            let stdout: bool = matches.is_present("stdout");
-            let merger = merger::Merger {
-                max_lines,  // how many lines to collect before writing out
-                chunk_size, // used for mapping line numbers to byte positions
-            };
-            let config_path = PathBuf::from(merge_config_file_name);
-            let merged_lines =
-                match merger.merge_files_use_config_file(&config_path, &out_path, append, stdout) {
-                    Ok(cnt) => cnt,
-                    Err(e) => {
-                        eprintln!("error merging: {}", e);
-                        process::exit(2)
-                    }
-                };
-            let elapsed = start.elapsed();
-            let ms = elapsed.as_millis();
-            let duration_in_s = ms as f64 / 1000.0;
-            eprintln!("merging {} lines took {:.3}s!", merged_lines, duration_in_s);
-        }
+        handle_merge_subcommand(matches, start)
+    } else if let Some(matches) = matches.subcommand_matches("index") {
+        handle_index_subcommand(matches, start)
+    } else if let Some(matches) = matches.subcommand_matches("format") {
+        handle_format_subcommand(matches, start)
+    } else if let Some(matches) = matches.subcommand_matches("dlt") {
+        handle_dlt_subcommand(matches, start)
     }
-    if let Some(matches) = matches.subcommand_matches("index") {
+
+    fn handle_index_subcommand(matches: &clap::ArgMatches, start: std::time::Instant) {
         if matches.is_present("input") && matches.is_present("tag") {
             let file = matches.value_of("input").expect("input must be present");
             let tag = matches.value_of("tag").expect("tag must be present");
@@ -251,22 +253,52 @@ fn main() {
                 }
                 Ok(chunks) => {
                     let _ = serialize_chunks(&chunks, &mapping_out_path);
-                    let elapsed = start.elapsed();
-                    let ms = elapsed.as_millis();
-                    let duration_in_s = ms as f64 / 1000.0;
                     let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
-                    let mb_bytes_per_second: f64 = file_size_in_mb / duration_in_s;
-                    eprintln!(
-                        "processing ~{} MB took {:.3}s! ({:.3} MB/s)",
-                        file_size_in_mb.round(),
-                        duration_in_s,
-                        mb_bytes_per_second
-                    );
+                    duration_report_throughput(
+                        start,
+                        format!("processing ~{} MB", file_size_in_mb.round()),
+                        file_size_in_mb,
+                        "MB".to_string(),
+                    )
                 }
             }
         }
     }
-    if let Some(matches) = matches.subcommand_matches("format") {
+
+    fn handle_merge_subcommand(matches: &clap::ArgMatches, start: std::time::Instant) {
+        if matches.is_present("merge_config") {
+            let merge_config_file_name: &str = matches
+                .value_of("merge_config")
+                .expect("merge_config must be present");
+            let out_path: PathBuf = match matches.value_of("output") {
+                Some(path) => PathBuf::from(path),
+                None => {
+                    eprintln!("no output file specified");
+                    process::exit(2)
+                }
+            };
+            let max_lines = value_t_or_exit!(matches.value_of("max_lines"), usize);
+            let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
+            let append: bool = matches.is_present("append");
+            let stdout: bool = matches.is_present("stdout");
+            let merger = merger::Merger {
+                max_lines,  // how many lines to collect before writing out
+                chunk_size, // used for mapping line numbers to byte positions
+            };
+            let config_path = PathBuf::from(merge_config_file_name);
+            let merged_lines =
+                match merger.merge_files_use_config_file(&config_path, &out_path, append, stdout) {
+                    Ok(cnt) => cnt,
+                    Err(e) => {
+                        eprintln!("error merging: {}", e);
+                        process::exit(2)
+                    }
+                };
+            duration_report(start, format!("merging {} lines", merged_lines));
+        }
+    }
+
+    fn handle_format_subcommand(matches: &clap::ArgMatches, start: std::time::Instant) {
         if matches.is_present("test-string") && matches.is_present("format-string") {
             let format_string = matches
                 .value_of("format-string")
@@ -312,7 +344,16 @@ fn main() {
                 options.lines_to_test,
             ) {
                 Ok(res) => match serde_json::to_string(&res) {
-                    Ok(json) => println!("{}", json),
+                    Ok(json) => {
+                        duration_report(
+                            start,
+                            format!(
+                                "format checking {} lines",
+                                res.matching_lines + res.nonmatching_lines
+                            ),
+                        );
+                        println!("{}", json)
+                    }
                     Err(e) => {
                         eprintln!("serializing result failed: {}", e);
                         process::exit(2)
@@ -325,4 +366,75 @@ fn main() {
             }
         }
     }
+    fn handle_dlt_subcommand(matches: &clap::ArgMatches, start: std::time::Instant) {
+        if matches.is_present("input") {
+            let file_name = matches.value_of("input").expect("input must be present");
+            let source_file_size = match fs::metadata(file_name) {
+                Ok(file_meta) => file_meta.len() as usize,
+                Err(_) => {
+                    eprintln!("could not find out size of source file");
+                    process::exit(2);
+                }
+            };
+            let file_path = PathBuf::from(file_name);
+            let fallback_out = file_name.to_string() + ".out";
+            let out_path = PathBuf::from(
+                matches
+                    .value_of("output")
+                    .unwrap_or_else(|| fallback_out.as_str()),
+            );
+            let mapping_out_path: PathBuf = PathBuf::from(file_name.to_string() + ".map.json");
+            let task = tokio::fs::File::open(file_path)
+                .and_then(|input| tokio::fs::File::create(out_path).map(|output| (input, output)))
+                .and_then(|(file, output)| {
+                    let stream = FramedRead::new(file, DltFileCodec::default());
+                    let sink = FramedWrite::new(output, DltFileCodec::default());
+                    stream
+                        .forward(sink)
+                        .map_err(|e| {
+                            println!("error happened: {}", e);
+                            e
+                        })
+                        .map(drop)
+                    // .for_each(move |message| {
+                    //     message_cnt += 1;
+                    //     println!("[{}]", message_cnt);
+                    //     // println!("[{}]: Received message {:#?}", message_cnt, message);
+                    //     Ok(())
+                    // })
+                })
+                .map_err(|err| eprintln!("IO error: {:?}", err));
+            tokio::run(task);
+
+            let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
+            duration_report_throughput(
+                start,
+                format!("parsing ~{} MB", file_size_in_mb.round()),
+                file_size_in_mb,
+                "MB".to_string(),
+            )
+        }
+    }
+}
+
+fn duration_report(start: std::time::Instant, report: String) {
+    let elapsed = start.elapsed();
+    let ms = elapsed.as_millis();
+    let duration_in_s = ms as f64 / 1000.0;
+    eprintln!("{} took {:.3}s!", report, duration_in_s);
+}
+fn duration_report_throughput(
+    start: std::time::Instant,
+    report: String,
+    amount: f64,
+    unit: String,
+) {
+    let elapsed = start.elapsed();
+    let ms = elapsed.as_millis();
+    let duration_in_s = ms as f64 / 1000.0;
+    let amount_per_second: f64 = amount / duration_in_s;
+    eprintln!(
+        "{} took {:.3}s! ({:.3} {}/s)",
+        report, duration_in_s, amount_per_second, unit
+    );
 }
