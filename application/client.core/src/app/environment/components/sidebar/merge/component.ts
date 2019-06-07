@@ -1,11 +1,12 @@
-import { Component, OnDestroy, ChangeDetectorRef, ViewChildren, QueryList, AfterContentInit } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, ViewChildren, QueryList, AfterContentInit, AfterViewInit, ViewContainerRef } from '@angular/core';
 import * as Toolkit from 'logviewer.client.toolkit';
+import { Subscription } from 'rxjs';
 import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
 import { SidebarAppMergeFilesItemComponent } from './file/component';
-import { IFile as ITestRequestFile } from '../../../services/electron.ipc.messages/merge.files.test.request';
 import { IFile as ITestResponseFile } from '../../../services/electron.ipc.messages/merge.files.test.response';
 import { IFile as IRequestFile } from '../../../services/electron.ipc.messages/merge.files.request';
-
+import FileOpenerService from '../../../services/service.file.opener';
+import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 
 declare var Electron: any;
 
@@ -25,6 +26,12 @@ interface IFileItem {
     parser: string;
     preview: string;
     size: number;
+    defaultFormat: string;
+}
+
+enum EMergeButtonTitle {
+    merge = 'Merge',
+    confirm = 'Merge with warnings'
 }
 
 @Component({
@@ -33,32 +40,47 @@ interface IFileItem {
     styleUrls: ['./styles.less']
 })
 
-export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentInit {
+export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentInit, AfterViewInit {
 
     @ViewChildren(SidebarAppMergeFilesItemComponent) private _filesComps: QueryList<SidebarAppMergeFilesItemComponent>;
 
     public _ng_error: string | undefined;
     public _ng_report: string | undefined;
     public _ng_busy: boolean = false;
+    public _ng_warning: string | undefined;
+    public _ng_mergeButtonTitle: EMergeButtonTitle = EMergeButtonTitle.merge;
 
     private _files: IFileItem[] = [];
     private _zones: string[] = [];
+    private _dragdrop: ControllerComponentsDragDropFiles | undefined;
+    private _subscriptions: { [key: string]: Subscription } = {};
 
-    constructor(private _cdRef: ChangeDetectorRef) {
+    constructor(private _cdRef: ChangeDetectorRef,
+                private _vcRef: ViewContainerRef) {
         ElectronIpcService.request(new IPCMessages.MergeFilesTimezonesRequest(), IPCMessages.MergeFilestimezoneResponse).then((response: IPCMessages.MergeFilestimezoneResponse) => {
             this._zones = response.zones;
         }).catch((error: Error) => {
             this._ng_error = `Cannot delivery timezones due error: ${error.message}`;
         });
+        this._subscriptions.onFilesToBeMerged = FileOpenerService.getObservable().onFilesToBeMerged.subscribe(this._onFilesToBeMerged.bind(this));
     }
 
     public ngOnDestroy() {
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            this._subscriptions[key].unsubscribe();
+        });
     }
 
     public ngAfterContentInit() {
         if (this._ng_error !== undefined) {
             this._cdRef.detectChanges();
         }
+    }
+
+    public ngAfterViewInit() {
+        this._onFilesToBeMerged(FileOpenerService.getMerginPendingFiles());
+        this._dragdrop = new ControllerComponentsDragDropFiles(this._vcRef.element.nativeElement);
+        this._subscriptions.onFiles = this._dragdrop.getObservable().onFiles.subscribe(this._onFilesDropped.bind(this));
     }
 
     public _ng_onFileRemove(file: string) {
@@ -72,12 +94,19 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
             return;
         }
         this._files.splice(index, 1);
+        this._dropWarnings();
         this._cdRef.detectChanges();
+    }
+
+    public _ng_onFileFieldUpdated(file: string) {
+        this._setWarnings();
+        this._validate();
     }
 
     public _ng_onAddFile() {
         this._ng_error = undefined;
         this._ng_report = undefined;
+        this._dropWarnings();
         this._cdRef.detectChanges();
         Electron.remote.dialog.showOpenDialog({
             properties: ['openFile', 'showHiddenFiles']
@@ -85,27 +114,18 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
             if (!(files instanceof Array) || files.length !== 1) {
                 return;
             }
-            if (this._doesExist(files[0])) {
-                this._ng_error = 'This file is already added.';
-                return this._cdRef.detectChanges();
-            }
-            this._getFileParser(files[0]).then((info: IFileInfo) => {
-                this._getFileContent(files[0]).then((preview: IFilePreview) => {
-                    this._files.push({ file: files[0], name: info.shortname, parser: info.parser, size: preview.size, preview: preview.preview });
-                    this._cdRef.detectChanges();
-                }).catch((previewError: Error) => {
-                    this._ng_error = `Fail read preview of file due error: ${previewError.message}`;
-                    this._cdRef.detectChanges();
-                });
-            }).catch((parserError: Error) => {
-                this._ng_error = `Fail detect file parser due error: ${parserError.message}`;
-                this._cdRef.detectChanges();
-            });
+            this._openFile(files[0]);
         });
     }
 
     public _ng_onMerge() {
         if (!this._validate()) {
+            return;
+        }
+        const hasWarnings: boolean = this._hasWarnings();
+        this._setWarnings();
+        if (!hasWarnings && this._hasWarnings()) {
+            // Wait for confirmation
             return;
         }
         this._ng_busy = true;
@@ -124,9 +144,13 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
             }
             this._files = [];
             this._ng_report = `Files were merged. Written ${(response.written / 1024 / 1024).toFixed(2)} Mb`;
+            this._ng_error = undefined;
+            this._ng_warning = undefined;
             this._cdRef.detectChanges();
         }).catch((testError: Error) => {
             this._ng_error = testError.message;
+            this._ng_warning = undefined;
+            this._ng_report = undefined;
             this._ng_busy = false;
             this._disable(false);
             this._cdRef.detectChanges();
@@ -154,7 +178,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     }
 
     public _ng_onTest(file?: IRequestFile) {
-        if (!this._validate()) {
+        if (!this._validate() && file === undefined) {
             return;
         }
         this._ng_busy = true;
@@ -162,6 +186,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         if (file === undefined) {
             this._dropTestResults();
         }
+        this._dropWarnings();
         this._cdRef.detectChanges();
         ElectronIpcService.request(new IPCMessages.MergeFilesTestRequest({
             files: file === undefined ? this._getListOfFiles() : [file],
@@ -177,6 +202,60 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
             this._disable(false);
             this._cdRef.detectChanges();
         });
+    }
+
+    private _onFilesDropped(files: File[]) {
+        FileOpenerService.merge(files);
+    }
+
+    private _onFilesToBeMerged(files: File[]) {
+        FileOpenerService.dropMerginPendingFiles();
+        if (files.length === 0) {
+            return;
+        }
+        files.forEach((file: File) => {
+            this._openFile((file as any).path);
+        });
+    }
+
+    private _openFile(file: string) {
+        if (this._doesExist(file)) {
+            this._ng_error = 'This file is already added.';
+            return this._cdRef.detectChanges();
+        }
+        this._getFileParser(file).then((info: IFileInfo) => {
+            this._getFileContent(file).then((preview: IFilePreview) => {
+                this._files.push({
+                    file: file,
+                    name: info.shortname,
+                    parser: info.parser,
+                    size: preview.size,
+                    preview: preview.preview,
+                    defaultFormat: this._files.length === 0 ? undefined : this._getDefaultFormat()
+                });
+                this._cdRef.detectChanges();
+            }).catch((previewError: Error) => {
+                this._ng_error = `Fail read preview of file due error: ${previewError.message}`;
+                this._cdRef.detectChanges();
+            });
+        }).catch((parserError: Error) => {
+            this._ng_error = `Fail detect file parser due error: ${parserError.message}`;
+            this._cdRef.detectChanges();
+        });
+    }
+
+    private _getDefaultFormat(): string | undefined {
+        if (this._files.length === 0) {
+            return undefined;
+        }
+        const component: SidebarAppMergeFilesItemComponent | undefined = this._getFileComp(this._files[this._files.length - 1].file);
+        if (component === undefined) {
+            return undefined;
+        }
+        if (component.hasWarnings() || !component.isValid()) {
+            return undefined;
+        }
+        return component.getFormat();
     }
 
     private _getListOfFiles(): IRequestFile[] {
@@ -206,6 +285,34 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         }
         this._cdRef.detectChanges();
         return !error;
+    }
+
+    private _hasWarnings(): boolean {
+        return this._ng_warning !== undefined;
+    }
+
+    private _setWarnings(): void {
+        let warning: boolean = false;
+        this._filesComps.forEach((com: SidebarAppMergeFilesItemComponent) => {
+            if (com.hasWarnings()) {
+                warning = true;
+                com.refresh();
+            }
+        });
+        if (warning) {
+            this._ng_warning = `Something isn't okay with your configuration. Are you sure, you would like to merge?`;
+            this._ng_mergeButtonTitle = EMergeButtonTitle.confirm;
+        } else {
+            this._ng_mergeButtonTitle = EMergeButtonTitle.merge;
+            this._ng_warning = undefined;
+        }
+        this._cdRef.detectChanges();
+    }
+
+    private _dropWarnings() {
+        this._ng_mergeButtonTitle = EMergeButtonTitle.merge;
+        this._ng_warning = undefined;
+        this._cdRef.detectChanges();
     }
 
     private _getFileComp(file: string): SidebarAppMergeFilesItemComponent | undefined {
@@ -294,6 +401,10 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
                 reject(error);
             });
         });
+    }
+
+    private _getMergeWarning(): string | undefined {
+        return undefined;
     }
 
 }

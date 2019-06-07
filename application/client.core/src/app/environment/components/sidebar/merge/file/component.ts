@@ -1,6 +1,6 @@
 // tslint:disable:member-ordering
 
-import { Component, OnDestroy, ChangeDetectorRef, Input, ViewChild, AfterContentInit } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, Input, ViewChild, AfterContentInit, AfterViewInit } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { InputStandardComponent } from 'logviewer-client-primitive';
@@ -13,13 +13,26 @@ const COptionButton = {
     hide: 'Less Options'
 };
 
+const CDateTimeAliases = ['YYYY', 'MM', 'DD', 'hh', 'mm', 'ss', '.s', 'sss'];
+
+enum EDataTimeAliases {
+    YYYY = 'YYYY',
+    MM = 'MM',
+    DD = 'DD',
+    hh = 'hh',
+    mm = 'mm',
+    ss = 'ss',
+    s = '.s',
+    sss = 'sss',
+}
+
 @Component({
     selector: 'app-sidebar-app-files-item',
     templateUrl: './template.html',
     styleUrls: ['./styles.less']
 })
 
-export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterContentInit {
+export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterContentInit, AfterViewInit {
 
     @ViewChild('yearinput') _yearComRef: InputStandardComponent;
     @ViewChild('formatinput') _formatComRef: InputStandardComponent;
@@ -31,6 +44,8 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
     @Input() public size: number = 0;
     @Input() public parser: string = '';
     @Input() public zones: string[] = [];
+    @Input() public defaultFormat: string | undefined;
+    @Input() public onUpdated: () => any = () => void 0;
     @Input() public onRemove: () => any = () => void 0;
     @Input() public onTest: () => any = () => void 0;
 
@@ -40,6 +55,7 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
     public _ng_moreButtonTitle: string = COptionButton.show;
     public _ng_testResults: ITestResult | undefined = undefined;
     public _ng_rows: SafeHtml[] = [];
+    public _ng_warnings: string[] = [];
 
     private _valid: boolean = false;
     private _year: number = -1;
@@ -65,6 +81,12 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
         this._ng_zones.unshift({ value: '', caption: 'Select time zone or offset' });
         this._ng_rows = this._getReadRows();
         this._cdRef.detectChanges();
+    }
+
+    public ngAfterViewInit() {
+        if (this.defaultFormat !== undefined) {
+            this._formatComRef.setValue(this.defaultFormat);
+        }
     }
 
     public ngOnDestroy() {
@@ -97,48 +119,18 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
     }
 
     public _ng_onFormatValidate(value: string): string | undefined {
-        if (value === '') {
-            this._valid = false;
-            return 'Format of date/time should be defined.';
-        }
-        const singles = ['YYYY', 'MM', 'DD', 'hh', 'mm', 'ss', '.s', 'TZD', 'T'];
-        let valid: boolean = false;
-        singles.forEach((single: string) => {
-            if (value.indexOf(single) !== -1) {
-                valid = true;
-            }
-        });
-        if (!valid) {
-            this._valid = false;
-            return 'At least one date/time part should be defined: YYYY, DD, MM, hh, mm, ss, .s, T and TZD';
-        }
-        const wrong = [/\s{2,}/gi, /-{2,}/gi, /\/{2,}/gi, /:{2,}/gi, /\.{2,}/gi];
-        wrong.forEach((reg: RegExp) => {
-            if (value.search(reg) !== -1) {
-                valid = false;
-            }
-        });
-        if (!valid) {
-            this._valid = false;
-            return 'Special symbols cannot be used one by one: ., /, -, : and space';
-        }
-        singles.forEach((single: string) => {
-            value = value.replace(single, '');
-        });
-        const mutliple = [/\s/gi, /-/gi, /\//gi, /:/gi, /\./gi];
-        mutliple.forEach((reg: RegExp) => {
-            value = value.replace(reg, '');
-        });
-        if (value === '') {
+        this._updateWarningMsg();
+        if (value !== '') {
             return undefined;
         }
         this._valid = false;
-        return `Not valid part of format: ${value}`;
+        return 'Format of date/time should be defined.';
     }
 
     public _ng_onFormatChange(value: string) {
         this._format = value;
         this.dropTestResults();
+        this._updateWarningMsg();
     }
 
     public _ng_onZoneChange(value: string) {
@@ -189,6 +181,7 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
         if (this._formatComRef !== null && this._formatComRef !== undefined) {
             this._formatComRef.refresh();
         }
+        this._updateWarningMsg();
     }
 
     public getFile(): string {
@@ -237,10 +230,14 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
         this._cdRef.detectChanges();
     }
 
+    public hasWarnings(): boolean {
+        return this._ng_warnings.length > 0;
+    }
+
     private _getReadRows(): SafeHtml[]  {
         let reg: RegExp | Error | undefined;
         if (this._ng_testResults !== undefined && this._ng_testResults.error === undefined) {
-            reg = Toolkit.regTools.createFromStr(this._ng_testResults.regExpStr);
+            reg = Toolkit.regTools.createFromStr(this._ng_testResults.regExpStr, 'i');
             if (reg instanceof Error) {
                 reg = undefined;
             }
@@ -255,6 +252,84 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
             }
             return this._sanitizer.bypassSecurityTrustHtml(html);
         });
+    }
+
+    private _updateWarningMsg() {
+        const warings: boolean = this.hasWarnings();
+        const format: string | undefined = this._getFormatValidMsg();
+        const complite: string | undefined = this._getFormatCompliteMsg();
+        this._ng_warnings = [];
+        if (format !== undefined) {
+            this._ng_warnings.push(format);
+        }
+        if (complite !== undefined) {
+            this._ng_warnings.push(complite);
+        }
+        this._cdRef.detectChanges();
+        if (warings && !this.hasWarnings()) {
+            this.onUpdated();
+        }
+    }
+
+    private _getFormatValidMsg(): string | undefined {
+        let valid: boolean = false;
+        let value: string = this._format;
+        CDateTimeAliases.forEach((single: string) => {
+            if (value.indexOf(single) !== -1) {
+                valid = true;
+            }
+        });
+        if (!valid) {
+            return `Available format aliases: ${CDateTimeAliases.join(', ')}`;
+        }
+        const wrong = [/\s{2,}/gi, /-{2,}/gi, /\/{2,}/gi, /:{2,}/gi, /\.{2,}/gi];
+        wrong.forEach((reg: RegExp) => {
+            if (value.search(reg) !== -1) {
+                valid = false;
+            }
+        });
+        if (!valid) {
+            return 'Special symbols cannot be used one by one: ., /, -, : and space';
+        }
+        CDateTimeAliases.forEach((single: string) => {
+            value = value.replace(single, '');
+        });
+        const mutliple = [/\s/gi, /-/gi, /\//gi, /:/gi, /\./gi];
+        mutliple.forEach((reg: RegExp) => {
+            value = value.replace(reg, '');
+        });
+        if (value === '') {
+            return undefined;
+        }
+        return `Not valid part of format: ${this._format}`;
+    }
+
+    private _getFormatCompliteMsg(): string | undefined {
+        let isDateSet: boolean = false;
+        let isTimeSet: boolean = false;
+        let isUTimeSet: boolean = false;
+        [EDataTimeAliases.YYYY, EDataTimeAliases.MM, EDataTimeAliases.DD].forEach((single: string) => {
+            if (this._format.indexOf(single) !== -1) {
+                isDateSet = true;
+            }
+        });
+        [EDataTimeAliases.hh, EDataTimeAliases.mm, EDataTimeAliases.ss].forEach((single: string) => {
+            if (this._format.indexOf(single) !== -1) {
+                isTimeSet = true;
+            }
+        });
+        [EDataTimeAliases.sss].forEach((single: string) => {
+            if (this._format.indexOf(single) !== -1) {
+                isUTimeSet = true;
+            }
+        });
+        if (isUTimeSet) {
+            return undefined;
+        }
+        if (isTimeSet && isDateSet) {
+            return undefined;
+        }
+        return `Date format isn't full`;
     }
 
 }

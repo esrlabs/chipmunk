@@ -140,7 +140,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     private _openSidebarSearchTab() {
         LayoutStateService.sidebarMax();
-        TabsSessionsService.openTab('search');
+        TabsSessionsService.openSidebarTab('search');
     }
 
     private _onSessionChange(session: ControllerSessionTab) {

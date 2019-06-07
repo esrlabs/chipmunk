@@ -56,4 +56,9 @@ export class InputStandardComponent implements AfterContentInit {
         this._ng_onChange(this._ng_value);
     }
 
+    public setValue(value: string) {
+        this._ng_value = value;
+        this._ng_onChange(value);
+    }
+
 }

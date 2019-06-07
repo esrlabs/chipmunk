@@ -4,17 +4,21 @@ import { ControllerSessionTabStream } from './controller.session.tab.stream';
 import { ControllerSessionTabSearch } from './controller.session.tab.search';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 import { TabsService } from 'logviewer-client-complex';
-import { DefaultSidebarApps } from '../states/state.default.sidebar.apps';
 import * as Toolkit from 'logviewer.client.toolkit';
 
 export interface IControllerSession {
     guid: string;
     transports: string[];
+    defaultsSideBarApps: Array<{ guid: string, name: string, component: any }>;
 }
 
 export interface IComponentInjection {
     factory: any;
     inputs: { [key: string]: any };
+}
+
+export interface ISidebarTabOptions {
+    active?: boolean;
 }
 
 export class ControllerSessionTab {
@@ -25,6 +29,7 @@ export class ControllerSessionTab {
     private _stream: ControllerSessionTabStream;
     private _search: ControllerSessionTabSearch;
     private _sidebarTabsService: TabsService;
+    private _defaultsSideBarApps: Array<{ guid: string, name: string, component: any }>;
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
 
     constructor(params: IControllerSession) {
@@ -40,6 +45,7 @@ export class ControllerSessionTab {
             transports: params.transports.slice(),
             stream: this._stream.getOutputStream()
         });
+        this._defaultsSideBarApps = params.defaultsSideBarApps;
         this._sidebar_update();
     }
 
@@ -91,6 +97,35 @@ export class ControllerSessionTab {
         return injections;
     }
 
+    public addSidebarApp(name: string, component: any, inputs: { [key: string]: any }, options?: ISidebarTabOptions): string {
+        if (options === undefined) {
+            options = {};
+        }
+        // Set defaut options
+        options.active = typeof options.active === 'boolean' ? options.active : true;
+        // Create tab guid
+        const guid: string = Toolkit.guid();
+        // Add sidebar tab
+        this._sidebarTabsService.add({
+            guid: guid,
+            name: name,
+            active: options.active,
+            content: {
+                factory: component,
+                inputs: inputs
+            }
+        });
+        return guid;
+    }
+
+    public openSidebarTab(guid: string): void {
+        this._sidebarTabsService.setActive(guid);
+    }
+
+    public removeSidebarApp(guid: string): void {
+        this._sidebarTabsService.remove(guid);
+    }
+
     private _sidebar_update() {
         if (this._sidebarTabsService !== undefined) {
             // Drop previous if was defined
@@ -99,7 +134,7 @@ export class ControllerSessionTab {
         // Create new tabs service
         this._sidebarTabsService = new TabsService();
         // Add default sidebar apps
-        DefaultSidebarApps.forEach((app, index) => {
+        this._defaultsSideBarApps.forEach((app, index) => {
             // Add tab to sidebar
             this._sidebarTabsService.add({
                 guid: app.guid !== undefined ? app.guid : Toolkit.guid(),

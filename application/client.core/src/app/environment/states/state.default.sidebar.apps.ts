@@ -1,7 +1,7 @@
 import { SidebarAppMergeFilesComponent          } from '../components/sidebar/merge/component';
 import { SidebarAppSearchManagerComponent       } from '../components/sidebar/search.manager/component';
 
-export const DefaultSidebarApps = [
+export const DefaultSidebarApps: IDefaultSideBarApp[] = [
     {
         guid: 'search',
         name: 'Search',
@@ -13,3 +13,10 @@ export const DefaultSidebarApps = [
         component: SidebarAppMergeFilesComponent,
     },
 ];
+
+export interface IDefaultSideBarApp {
+    guid: string;
+    name: string;
+    component: any;
+}
+

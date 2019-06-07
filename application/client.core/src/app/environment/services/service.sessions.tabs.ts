@@ -1,19 +1,14 @@
 import { TabsService, DockingComponent, DockDef, DocksService } from 'logviewer-client-complex';
 import { Subscription } from './service.electron.ipc';
-import { ControllerSessionTab } from '../controller/controller.session.tab';
+import { ControllerSessionTab, ISidebarTabOptions } from '../controller/controller.session.tab';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { IService } from '../interfaces/interface.service';
 import { Observable, Subject } from 'rxjs';
-import { ViewOutputComponent } from '../components/views/output/component';
+import { IDefaultView, IDefaultSideBarApp } from '../states/state.default';
 import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
-
 export { ControllerSessionTabSearch, IRequest } from '../controller/controller.session.tab.search';
 
-type TSessionGuid = string;
-
-export interface ISidebarTabOptions {
-    active?: boolean;
-}
+export type TSessionGuid = string;
 
 export class TabsSessionsService implements IService {
 
@@ -22,6 +17,13 @@ export class TabsSessionsService implements IService {
     private _tabsService: TabsService = new TabsService();
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _currentSessionGuid: string;
+    private _defaults: {
+        views: IDefaultView[],
+        sidebarApps: IDefaultSideBarApp[],
+    } = {
+        views: [],
+        sidebarApps: [],
+    };
     private _subjects: {
         onSessionChange: Subject<ControllerSessionTab>
     } = {
@@ -44,11 +46,20 @@ export class TabsSessionsService implements IService {
         });
     }
 
+    public setDefaultViews(views: IDefaultView[]) {
+        this._defaults.views = views;
+    }
+
+    public setDefaultSidebarApps(apps: IDefaultSideBarApp[]) {
+        this._defaults.sidebarApps = apps;
+    }
+
     public create(): void {
         const guid: string = Toolkit.guid();
         const session = new ControllerSessionTab({
             guid: guid,
             transports: ['processes', 'dlt'],
+            defaultsSideBarApps: this._defaults.sidebarApps
         });
         this._tabsService.add({
             guid: guid,
@@ -58,10 +69,10 @@ export class TabsSessionsService implements IService {
                 factory: DockingComponent,
                 inputs: {
                     service: new DocksService(guid, new DockDef.Container({
-                        a: new DockDef.Dock({ caption: 'Default', component: {
-                            factory: ViewOutputComponent,
+                        a: new DockDef.Dock({ caption: this._defaults.views[0].name, component: {
+                            factory: this._defaults.views[0].component,
                             inputs: {
-                                session: session
+                                session: session,
                             }
                         } })
                     }))
@@ -81,27 +92,10 @@ export class TabsSessionsService implements IService {
         if (controller === undefined) {
             return new Error(`Fail to find defiend session "${session}"`);
         }
-        if (options === undefined) {
-            options = {};
-        }
-        // Set defaut options
-        options.active = typeof options.active === 'boolean' ? options.active : true;
-        // Create tab guid
-        const guid: string = Toolkit.guid();
-        // Add sidebar tab
-        controller.getSidebarTabsService().add({
-            guid: guid,
-            name: name,
-            active: options.active,
-            content: {
-                factory: component,
-                inputs: inputs
-            }
-        });
-        return guid;
+        return controller.addSidebarApp(name, component, inputs, options);
     }
 
-    public openTab(guid: string, session?: string): Error | undefined {
+    public openSidebarTab(guid: string, session?: string): Error | undefined {
         if (session === undefined) {
             session = this._currentSessionGuid;
         }
@@ -110,7 +104,7 @@ export class TabsSessionsService implements IService {
         if (controller === undefined) {
             return new Error(`Fail to find defiend session "${session}"`);
         }
-        controller.getSidebarTabsService().setActive(guid);
+        controller.openSidebarTab(guid);
     }
 
     public removeSidebarApp(guid: string, session?: string): Error | undefined {
@@ -122,7 +116,7 @@ export class TabsSessionsService implements IService {
         if (controller === undefined) {
             return new Error(`Fail to find defiend session "${session}"`);
         }
-        controller.getSidebarTabsService().remove(guid);
+        controller.removeSidebarApp(guid);
     }
 
     public getTabsService(): TabsService {

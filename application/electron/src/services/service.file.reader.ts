@@ -43,7 +43,7 @@ class ServiceFileReader implements IService {
     }
 
     public getName(): string {
-        return 'ServiceFileParsers';
+        return 'ServiceFileReader';
     }
 
     public getParser(name: string): any {
