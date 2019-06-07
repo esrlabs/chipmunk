@@ -6,17 +6,20 @@
                                     [parser]="file.parser"
                                     [size]="file.size"
                                     [preview]="file.preview"
+                                    [defaultFormat]="file.defaultFormat"
                                     [zones]="_zones"
+                                    [onUpdated]="_ng_onFileFieldUpdated.bind(this, file.file)"
                                     [onTest]="_ng_onFileTest.bind(this, file.file)"
                                     [onRemove]="_ng_onFileRemove.bind(this, file.file)"></app-sidebar-app-files-item>
     </li>
 </ul>
 <p class="error t-small">{{_ng_error}}</p>
 <p class="report t-small">{{_ng_report}}</p>
+<p class="warning t-small" *ngIf="_ng_warning !== undefined">{{_ng_warning}}</p>
 <div class="controlls" *ngIf="!_ng_busy">
     <span class="small-button" (click)="_ng_onAddFile()">Add file</span>
     <span *ngIf="_files.length > 1" class="small-button" (click)="_ng_onTest()">Test All</span>
-    <span *ngIf="_files.length > 1" class="small-button" (click)="_ng_onMerge()">Merge</span>
+    <span *ngIf="_files.length > 1" [attr.class]="'small-button ' + (_ng_warning !== undefined ? 'warning' : '')" (click)="_ng_onMerge()">{{_ng_mergeButtonTitle}}</span>
 </div>
 <div class="progress-testing" *ngIf="_ng_busy">
     <lib-primitive-spinner-regular></lib-primitive-spinner-regular>

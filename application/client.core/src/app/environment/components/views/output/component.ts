@@ -1,11 +1,13 @@
-import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
 import { ControllerSessionTab, IComponentInjection } from '../../../controller/controller.session.tab';
 import { ControllerSessionTabStreamOutput, IStreamPacket, IStreamState, ILoadedRange } from '../../../controller/controller.session.tab.stream.output';
+import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 import { IDataAPI, IRange, IRow, IRowsPacket, IStorageInformation, DockDef, ComplexScrollBoxComponent } from 'logviewer-client-complex';
 import { ViewOutputRowComponent } from './row/component';
 import { ViewOutputControlsComponent, IButton } from './controls/component';
 import ViewsEventsService from '../../../services/standalone/service.views.events';
+import FileOpenerService from '../../../services/service.file.opener';
 
 const CSettings: {
     preloadCount: number,
@@ -35,6 +37,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
     };
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _output: ControllerSessionTabStreamOutput | undefined;
+    private _dragdrop: ControllerComponentsDragDropFiles | undefined;
     private _controls: {
         update: Subject<IButton[]>,
         keepScrollDown: boolean,
@@ -65,6 +68,8 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
             return;
         }
         this._subscriptions.onScrolled = this._scrollBoxCom.getObservable().onScrolled.subscribe(this._onScrolled.bind(this));
+        this._dragdrop = new ControllerComponentsDragDropFiles(this._vcRef.element.nativeElement);
+        this._subscriptions.onFiles = this._dragdrop.getObservable().onFiles.subscribe(this._onFilesDropped.bind(this));
     }
 
     ngAfterContentInit() {
@@ -89,6 +94,9 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
+        if (this._dragdrop !== undefined) {
+            this._dragdrop.destroy();
+        }
     }
 
     private _api_getComponentFactory(): any {
@@ -161,6 +169,10 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
             this._controls.keepScrollDown = false;
             this._controls.update.next(this._ctrl_getButtons());
         }
+    }
+
+    private _onFilesDropped(files: File[]) {
+        FileOpenerService.open(files);
     }
 
     private _keepScrollDown() {

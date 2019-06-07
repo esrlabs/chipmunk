@@ -20,6 +20,9 @@
     & p.report{
         color: @scheme-color-3;
     }
+    & p.warning{
+        color: @scheme-color-warning;
+    }
     & ul.files{
         position: relative;
         display: block;
@@ -44,6 +47,9 @@
         text-align: right;
         & .small-button:last-child{
             margin-right: 0;
+        }
+        & .small-button.warning{
+            color: @scheme-color-warning;
         }
     }
     & div.progress-testing{

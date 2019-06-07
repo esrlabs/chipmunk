@@ -71,4 +71,37 @@
             }
         }
     }
+    & div.warning{
+        position: relative;
+        & span.warning-icon{
+            position: absolute;
+            display: block;
+            width: 3rem;
+            top:0;
+            left: 0;
+            font-size: 1.5rem;
+            line-height: 1.5rem;
+            color: @scheme-color-warning;
+            text-align: left;
+        }
+        & ul.messages{
+            position: relative;
+            display: block;
+            width: ~"calc(100% - 2.5rem)";
+            max-height: 7rem;
+            overflow: auto;
+            padding: 0 0 0 2.5rem;
+            margin: 0;
+            list-style: none;
+            cursor: default;
+            user-select: text;
+            & li.message{
+                display: block;
+                padding: 0;
+                margin: 0;
+                list-style: none;
+                color: @scheme-color-warning;
+            }
+        }
+    }
 }

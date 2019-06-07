@@ -17,7 +17,14 @@
     </ul>
 </div>
 <span class="spliter"></span>
-<lib-primitive-input #formatinput [type]="'text'" [placeholder]="'YYYY-MM-DDThh:mmTZD'" [validate]="_ng_onFormatValidate" [onChange]="_ng_onFormatChange" [disabled]="_ng_disabled"></lib-primitive-input>
+<lib-primitive-input #formatinput [type]="'text'" [placeholder]="'example: YYYY-MM-DD hh:mm:ss.s'" [validate]="_ng_onFormatValidate" [onChange]="_ng_onFormatChange" [disabled]="_ng_disabled"></lib-primitive-input>
+<span class="spliter" *ngIf="_ng_warnings.length > 0"></span>
+<div class="warning" *ngIf="_ng_warnings.length > 0">
+    <span class="warning-icon fas fa-exclamation-triangle"></span>
+    <ul class="messages">
+        <li class="message t-normal" *ngFor="let warning of _ng_warnings">{{warning}}</li>
+    </ul>
+</div>
 <div *ngIf="_ng_isMoreOpened()">
     <span class="spliter"></span>
     <lib-primitive-dropdownlist [placeholder]="'define timezone'" [defaults]="''" [items]="_ng_zones" [onChange]="_ng_onZoneChange" [disabled]="_ng_disabled"></lib-primitive-dropdownlist>
@@ -30,17 +37,17 @@
 </div>
 <div class="test-results" *ngIf="_ng_testResults !== undefined">
     <span class="spliter"></span>
-    <p class="file-name t-normal">Test results:</p>
+    <p class="file-name t-small">Test results:</p>
     <span class="spliter"></span>
     <div *ngIf="_ng_testResults.error === undefined">
         <table>
             <tr>
-                <td class="t-normal title">Found matches in: </td>
-                <td class="t-normal value">{{_ng_testResults.found}} rows</td>
+                <td class="t-small title">Found matches in: </td>
+                <td class="t-small value">{{_ng_testResults.found}} rows</td>
             </tr>
             <tr>
-                <td class="t-normal title">Was read: </td>
-                <td class="t-normal value">{{_ng_testResults.readRows}} rows</td>
+                <td class="t-small title">Was read: </td>
+                <td class="t-small value">{{_ng_testResults.readRows}} rows</td>
             </tr>
         </table>
         <span class="spliter"></span>
