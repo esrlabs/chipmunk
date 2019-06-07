@@ -157,6 +157,12 @@ match: Ok(true)
 
 # Changelog
 
+### [0.19.0] - 06/07/2019
+  * added basic dlt support
+  * read dlt from file stream, write to file sink
+  * added support for absolute timestamp in milliseconds
+  * add timestamp option to DLT output
+
 ### [0.18.1] - 06/05/2019
   * print results of testing format string to stdout instead of stderr;
 
