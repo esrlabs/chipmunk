@@ -20,13 +20,13 @@ use std::io::{Error, ErrorKind, Read};
 use std::str;
 use tokio::codec::{Decoder, Encoder};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StorageHeader {
     pub timestamp: u64,
     pub ecu_id: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Header {
     pub is_big_endian: bool,
     pub version: u8,
@@ -36,7 +36,7 @@ pub struct Header {
     pub timestamp: Option<u32>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum LogLevel {
     Fatal,
     Error,
@@ -46,7 +46,7 @@ pub enum LogLevel {
     Verbose,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ApplicationTraceType {
     Variable,
     FunctionIn,
@@ -55,7 +55,7 @@ pub enum ApplicationTraceType {
     Vfb,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum NetworkTraceType {
     Ipc,
     Can,
@@ -66,13 +66,13 @@ pub enum NetworkTraceType {
     UserDefined(u8),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ControlType {
     Request,
     Response,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum MessageType {
     Log(LogLevel),
     ApplicationTrace(ApplicationTraceType),
@@ -80,14 +80,14 @@ pub enum MessageType {
     Control(ControlType),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExtendedHeader {
     pub message_type: MessageType,
     pub application_id: String,
     pub context_id: String,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Value {
     Bool(bool),
     U8(u8),
@@ -101,25 +101,30 @@ pub enum Value {
     String(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Argument {
     pub name: Option<String>,
     pub unit: Option<String>,
     pub value: Value,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Payload {
     Verbose(Vec<Argument>),
     NonVerbose(u32, Vec<u8>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Message {
     pub storage_header: Option<StorageHeader>,
     pub header: Header,
     pub extended_header: Option<ExtendedHeader>,
     pub payload: Payload,
+}
+impl Message {
+    pub fn len(&self) -> usize {
+        0
+    }
 }
 
 // Convert dlt::LogLevel into log::Level
@@ -532,6 +537,55 @@ impl Decoder for DltFileCodec {
 
 }
 
+#[inline]
+pub fn create_message_line(
+    out_buffer: &mut std::io::Write,
+    msg: Message,
+) -> std::io::Result<()> {
+        // Messages without extended header (non-verbose) are unimplemented
+        if let Some(ext) = msg.extended_header {
+            let level = match ext.message_type {
+                MessageType::Log(level) => level.into(),
+                MessageType::ApplicationTrace(_) | MessageType::NetworkTrace(_) => {
+                    log::Level::Trace
+                }
+                // Ignore everything else
+                _ => return Ok(()),
+            };
+
+            // dest.reserve(1024); // TODO reserve correct amount
+                                // Format message: Join arguments as strings
+            if let Payload::Verbose(arguments) = msg.payload {
+                // Format tag by concatenating ecu_id, application_id and context_id
+                write!(
+                    out_buffer,
+                    "{}{}{}-{}",
+                    msg.storage_header
+                        .map_or(String::new(), |storage_header| format!(
+                            "{}: ",
+                            storage_header.timestamp
+                        )),
+                    msg.header
+                        .ecu_id
+                        .map(|id| format!("{}-", id))
+                        .unwrap_or_else(|| "".into()),
+                    ext.application_id,
+                    ext.context_id
+                )
+                .map_err(|e| Error::new(ErrorKind::Other, e))?;
+
+                // Format payload
+                arguments
+                    .iter()
+                    .try_for_each(|arg| write!(out_buffer, " {}", arg))
+                    .map_err(|e| Error::new(ErrorKind::Other, e))?;
+            }
+            writeln!(out_buffer).map_err(|e| Error::new(ErrorKind::Other, e))
+        } else {
+            Ok(())
+        }
+
+}
 impl Encoder for DltFileCodec {
     type Item = Message;
     type Error = Error;

@@ -1,5 +1,5 @@
 use crate::chunks::serialize_chunks;
-use crate::dlt::DltFileCodec;
+use crate::dlt::{create_message_line, DltFileCodec, Message};
 use crate::parse::{
     line_matching_format_expression, match_format_string_in_file, read_format_string_options,
     FormatTestOptions,
@@ -9,12 +9,13 @@ use crate::parse::{
 extern crate clap;
 use clap::{App, Arg, SubCommand};
 use std::fs;
-use std::path::PathBuf;
-use std::process;
+use std::io::{BufRead, BufReader, BufWriter, Read, Write};
+use std::path;
 use std::time::Instant;
 use tokio::codec::{FramedRead, FramedWrite};
 use tokio::prelude::stream::Stream;
-use tokio::prelude::Future;
+use tokio::prelude::{Future, Sink};
+
 
 mod chunks;
 mod dlt;
@@ -215,12 +216,13 @@ fn main() {
             let file = matches.value_of("input").expect("input must be present");
             let tag = matches.value_of("tag").expect("tag must be present");
             let fallback_out = file.to_string() + ".out";
-            let out_path = PathBuf::from(
+            let out_path = path::PathBuf::from(
                 matches
                     .value_of("output")
                     .unwrap_or_else(|| fallback_out.as_str()),
             );
-            let mapping_out_path: PathBuf = PathBuf::from(file.to_string() + ".map.json");
+            let mapping_out_path: path::PathBuf =
+                path::PathBuf::from(file.to_string() + ".map.json");
             let max_lines = value_t_or_exit!(matches.value_of("max_lines"), usize);
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
             let indexer = processor::Indexer {
@@ -233,7 +235,7 @@ fn main() {
                 Ok(file) => file,
                 Err(_) => {
                     eprintln!("could not open {}", file);
-                    process::exit(2)
+                    std::process::exit(2)
                 }
             };
 
@@ -241,7 +243,7 @@ fn main() {
                 Ok(file_meta) => file_meta.len() as usize,
                 Err(_) => {
                     eprintln!("could not find out size of source file");
-                    process::exit(2);
+                    std::process::exit(2);
                 }
             };
             let append: bool = matches.is_present("append");
@@ -249,7 +251,7 @@ fn main() {
             match indexer.index_file(&f, &out_path, append, source_file_size, stdout) {
                 Err(why) => {
                     eprintln!("couldn't process: {}", why);
-                    process::exit(2)
+                    std::process::exit(2)
                 }
                 Ok(chunks) => {
                     let _ = serialize_chunks(&chunks, &mapping_out_path);
@@ -270,11 +272,11 @@ fn main() {
             let merge_config_file_name: &str = matches
                 .value_of("merge_config")
                 .expect("merge_config must be present");
-            let out_path: PathBuf = match matches.value_of("output") {
-                Some(path) => PathBuf::from(path),
+            let out_path: path::PathBuf = match matches.value_of("output") {
+                Some(path) => path::PathBuf::from(path),
                 None => {
                     eprintln!("no output file specified");
-                    process::exit(2)
+                    std::process::exit(2)
                 }
             };
             let max_lines = value_t_or_exit!(matches.value_of("max_lines"), usize);
@@ -285,13 +287,13 @@ fn main() {
                 max_lines,  // how many lines to collect before writing out
                 chunk_size, // used for mapping line numbers to byte positions
             };
-            let config_path = PathBuf::from(merge_config_file_name);
+            let config_path = path::PathBuf::from(merge_config_file_name);
             let merged_lines =
                 match merger.merge_files_use_config_file(&config_path, &out_path, append, stdout) {
                     Ok(cnt) => cnt,
                     Err(e) => {
                         eprintln!("error merging: {}", e);
-                        process::exit(2)
+                        std::process::exit(2)
                     }
                 };
             duration_report(start, format!("merging {} lines", merged_lines));
@@ -314,20 +316,20 @@ fn main() {
                 Ok(res) => println!("match: {:?}", res),
                 Err(e) => {
                     eprintln!("error matching: {}", e);
-                    process::exit(2)
+                    std::process::exit(2)
                 }
             }
         } else if matches.is_present("test-config") {
             let test_config_name = matches
                 .value_of("test-config")
                 .expect("test-config-name must be present");
-            let config_path = PathBuf::from(test_config_name);
+            let config_path = path::PathBuf::from(test_config_name);
             // match_format_string_in_file(format_expr: &str, file_name: &str)
             let mut test_config_file = match fs::File::open(&config_path) {
                 Ok(file) => file,
                 Err(_) => {
                     eprintln!("could not open {}", test_config_name);
-                    process::exit(2)
+                    std::process::exit(2)
                 }
             };
             let options: FormatTestOptions = match read_format_string_options(&mut test_config_file)
@@ -335,7 +337,7 @@ fn main() {
                 Ok(o) => o,
                 Err(e) => {
                     eprintln!("could not parse format config file: {}", e);
-                    process::exit(2)
+                    std::process::exit(2)
                 }
             };
             match match_format_string_in_file(
@@ -356,12 +358,12 @@ fn main() {
                     }
                     Err(e) => {
                         eprintln!("serializing result failed: {}", e);
-                        process::exit(2)
+                        std::process::exit(2)
                     }
                 },
                 Err(e) => {
                     eprintln!("could not match format string file: {}", e);
-                    process::exit(2)
+                    std::process::exit(2)
                 }
             }
         }
@@ -373,20 +375,63 @@ fn main() {
                 Ok(file_meta) => file_meta.len() as usize,
                 Err(_) => {
                     eprintln!("could not find out size of source file");
-                    process::exit(2);
+                    std::process::exit(2);
                 }
             };
-            let file_path = PathBuf::from(file_name);
+            let file_path = path::PathBuf::from(file_name);
             let fallback_out = file_name.to_string() + ".out";
-            let out_path = PathBuf::from(
+            let out_path = path::PathBuf::from(
                 matches
                     .value_of("output")
                     .unwrap_or_else(|| fallback_out.as_str()),
             );
-            let mapping_out_path: PathBuf = PathBuf::from(file_name.to_string() + ".map.json");
+            let mapping_out_path: path::PathBuf =
+                path::PathBuf::from(file_name.to_string() + ".map.json");
+            // let append = true; // get from cmd args
+            // let out_file: std::fs::File = if append {
+            //     std::fs::OpenOptions::new()
+            //         .append(true)
+            //         .create(true)
+            //         .open(out_path)
+            //         .expect("file not opened")
+            // } else {
+            //     std::fs::File::create(&out_path).unwrap()
+            // };
+            // let mut buf_writer = BufWriter::with_capacity(100 * 1024 * 1024, out_file);
+            // let task = tokio::fs::File::open(file_path)
+            //     // .and_then(|input| tokio::fs::File::create(out_path).map(|output| (input, output)))
+            //     // .and_then(|(input, output)| {
+            //     //     tokio::fs::File::create(mapping_out_path)
+            //     //         .map(|mapping_output| (input, output, mapping_output))
+            //     // })
+            //     // .and_then(|(file, output, mapping_output)| {
+            //     .and_then(|file| {
+            //         let mut message_cnt = 0usize;
+            //         let stream = FramedRead::new(file, DltFileCodec::default());
+            //         // let sink = FramedWrite::new(output, DltFileCodec::default());
+            //         // let mapping_sink = FramedWrite::new(mapping_output, MappingCodec::default());
+            //         // // let dst = sink;
+            //         // let dst = sink.fanout(mapping_sink);
+            //         stream
+            //             //     .forward(dst)
+            //             //     .map_err(|e| {
+            //             //         println!("error happened: {}", e);
+            //             //         e
+            //             //     })
+            //             //     .map(drop)
+            //             .for_each(move |message| {
+            //                 create_message_line(&mut buf_writer, message)?;
+            //                 Ok(())
+            //             })
+            //     })
+            //     .map_err(|err| eprintln!("IO error: {:?}", err));
             let task = tokio::fs::File::open(file_path)
                 .and_then(|input| tokio::fs::File::create(out_path).map(|output| (input, output)))
-                .and_then(|(file, output)| {
+                .and_then(|(input, output)| {
+                    tokio::fs::File::create(mapping_out_path)
+                        .map(|mapping_output| (input, output, mapping_output))
+                })
+                .and_then(|(file, output, mapping_output)| {
                     let stream = FramedRead::new(file, DltFileCodec::default());
                     let sink = FramedWrite::new(output, DltFileCodec::default());
                     stream
@@ -396,15 +441,11 @@ fn main() {
                             e
                         })
                         .map(drop)
-                    // .for_each(move |message| {
-                    //     message_cnt += 1;
-                    //     println!("[{}]", message_cnt);
-                    //     // println!("[{}]: Received message {:#?}", message_cnt, message);
-                    //     Ok(())
-                    // })
                 })
                 .map_err(|err| eprintln!("IO error: {:?}", err));
             tokio::run(task);
+
+            // buf_writer.flush().expect("flush did not");
 
             let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
             duration_report_throughput(
@@ -438,3 +479,19 @@ fn duration_report_throughput(
         report, duration_in_s, amount_per_second, unit
     );
 }
+
+// use bytes::BytesMut;
+// use tokio::codec::Encoder;
+// #[derive(Default)]
+// pub struct MappingCodec;
+// impl Encoder for MappingCodec {
+//     type Item = Message;
+//     type Error = std::io::Error;
+//     fn encode(&mut self, msg: Self::Item, dest: &mut BytesMut) -> Result<(), Self::Error> {
+//         // writeln!(dest, "{}", 0).map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+//         match writeln!(dest, "{}", msg.len()) {
+//             Ok(_) => Ok(()),
+//             Err(_) => Ok(()),
+//         }
+//     }
+// }
