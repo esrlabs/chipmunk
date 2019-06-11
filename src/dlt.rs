@@ -9,34 +9,135 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
-use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
-use bytes::{Buf, ByteOrder, Bytes, BytesMut, IntoBuf};
-use log::warn;
+use bytes::{ByteOrder, BytesMut, BufMut};
+use chrono::{NaiveDate, NaiveDateTime};
+use chrono::prelude::{Utc, DateTime};
 use std::fmt;
-use std::fmt::{Formatter, Write};
+use std::fmt::{Formatter};
 use std::io;
-use std::io::{Error, ErrorKind, Read};
+use std::io::{Error};
+
+#[cfg(test)]
+use proptest_derive::Arbitrary;
+// #[cfg(test)]
+// use proptest::arbitrary;
+// #[cfg(test)]
+// use proptest::strategy::*;
 
 use std::str;
-use tokio::codec::{Decoder, Encoder};
 
-#[derive(Debug, Clone)]
-pub struct StorageHeader {
-    pub timestamp: u64,
-    pub ecu_id: String,
+#[derive(Debug, Clone, PartialEq)]
+pub struct DltTimeStamp {
+    pub seconds: u32,
+    pub microseconds: u32,
+}
+impl fmt::Display for DltTimeStamp {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        let naive: NaiveDateTime =
+            NaiveDateTime::from_timestamp(i64::from(self.seconds), self.microseconds * 1000);
+        let datetime: DateTime<Utc> = DateTime::from_utc(naive, Utc);
+
+        // Format the datetime how you want
+        let newdate = datetime.format("%Y/%m/%d %H:%M:%S");
+        write!(f, "{}", newdate)
+    }
 }
 
-#[derive(Debug, Clone)]
-pub struct Header {
-    pub is_big_endian: bool,
+#[derive(Debug, Clone, PartialEq)]
+pub struct StorageHeader {
+    pub timestamp: DltTimeStamp,
+    pub ecu_id: String,
+}
+impl fmt::Display for StorageHeader {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        let date_time: NaiveDateTime = NaiveDateTime::from_timestamp(
+            i64::from(self.timestamp.seconds),
+            self.timestamp.microseconds * 1000,
+        );
+        write!(f, "{}[{}]", self.timestamp, self.ecu_id)
+    }
+}
+trait BytesMutExt {
+    fn put_zero_terminated_string(&mut self, s: &str, max: usize);
+}
+impl BytesMutExt for BytesMut {
+    fn put_zero_terminated_string(&mut self, s: &str, max: usize) {
+        self.extend_from_slice(s.as_bytes());
+        if max > s.len() {
+            for _ in 0..(max - s.len()) {
+                self.put_u8(0x0);
+            }
+        }
+    }
+}
+impl StorageHeader {
+    pub fn as_bytes(self: &StorageHeader) -> Vec<u8> {
+        let mut buf = BytesMut::with_capacity(STORAGE_HEADER_LENGTH);
+        buf.extend_from_slice(b"DLT");
+        buf.put_u8(0x01);
+        buf.put_u32_le(self.timestamp.seconds);
+        buf.put_u32_le(self.timestamp.microseconds as u32);
+        buf.put_zero_terminated_string(&self.ecu_id[..], 4);
+        buf.to_vec()
+    }
+}
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(Arbitrary))]
+pub struct StandardHeader {
     pub version: u8,
+    pub has_extended_header: bool,
+    pub big_endian: bool,
     pub message_counter: u8,
+    pub overall_length: u16,
     pub ecu_id: Option<String>,
     pub session_id: Option<u32>,
     pub timestamp: Option<u32>,
 }
 
+impl StandardHeader {
+    pub fn header_type(self: &StandardHeader) -> u8 {
+        let mut header_type = 0u8;
+        if self.has_extended_header {
+            header_type |= WITH_EXTENDED_HEADER_FLAG
+        }
+        if self.big_endian {
+            header_type |= BIG_ENDIAN_FLAG
+        }
+        if self.ecu_id.is_some() {
+            header_type |= WITH_ECU_ID_FLAG
+        }
+        if self.session_id.is_some() {
+            header_type |= WITH_SESSION_ID_FLAG
+        }
+        if self.timestamp.is_some() {
+            header_type |= WITH_TIMESTAMP_FLAG
+        }
+        header_type |= self.version << 5;
+        header_type
+    }
+
+    pub fn as_bytes(self: &StandardHeader) -> Vec<u8> {
+        let header_type = self.header_type();
+        let size = calculate_standard_header_length(header_type);
+        let mut buf = BytesMut::with_capacity(size);
+        buf.put_u8(header_type);
+        buf.put_u8(self.message_counter);
+        buf.put_u16_be(self.overall_length);
+        if let Some(id) = &self.ecu_id {
+            buf.put_zero_terminated_string(&id[..], 4);
+        }
+        if let Some(id) = &self.session_id {
+            buf.put_u32_be(*id);
+        }
+        if let Some(time) = &self.timestamp {
+            buf.put_u32_be(*time);
+        }
+        buf.to_vec()
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
+#[cfg_attr(test, derive(Arbitrary))]
 pub enum LogLevel {
     Fatal,
     Error,
@@ -45,8 +146,21 @@ pub enum LogLevel {
     Debug,
     Verbose,
 }
+impl fmt::Display for LogLevel {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        match self {
+            LogLevel::Fatal => f.write_str("FATAL"),
+            LogLevel::Error => f.write_str("Error"),
+            LogLevel::Warn => f.write_str("WARN"),
+            LogLevel::Info => f.write_str("INFO"),
+            LogLevel::Debug => f.write_str("DEBUG"),
+            LogLevel::Verbose => f.write_str("VERBOSE"),
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Clone)]
+#[cfg_attr(test, derive(Arbitrary))]
 pub enum ApplicationTraceType {
     Variable,
     FunctionIn,
@@ -54,8 +168,20 @@ pub enum ApplicationTraceType {
     State,
     Vfb,
 }
+impl fmt::Display for ApplicationTraceType {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        match self {
+            ApplicationTraceType::Variable => f.write_str("VARIABLE"),
+            ApplicationTraceType::FunctionIn => f.write_str("FUNC_IN"),
+            ApplicationTraceType::FunctionOut => f.write_str("FUNC_OUT"),
+            ApplicationTraceType::State => f.write_str("STATE"),
+            ApplicationTraceType::Vfb => f.write_str("VFB"),
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Clone)]
+#[cfg_attr(test, derive(Arbitrary))]
 pub enum NetworkTraceType {
     Ipc,
     Can,
@@ -65,28 +191,97 @@ pub enum NetworkTraceType {
     Someip,
     UserDefined(u8),
 }
+impl fmt::Display for NetworkTraceType {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        match self {
+            NetworkTraceType::Ipc => f.write_str("IPC"),
+            NetworkTraceType::Can => f.write_str("CAN"),
+            NetworkTraceType::Flexray => f.write_str("FLEXRAY"),
+            NetworkTraceType::Most => f.write_str("MOST"),
+            NetworkTraceType::Ethernet => f.write_str("ETHERNET"),
+            NetworkTraceType::Someip => f.write_str("SOMEIP"),
+            NetworkTraceType::UserDefined(v) => write!(f, "USERDEFINED({})", v),
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Clone)]
+#[cfg_attr(test, derive(Arbitrary))]
 pub enum ControlType {
     Request,
     Response,
 }
+impl fmt::Display for ControlType {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        match self {
+            ControlType::Request => f.write_str("REQ"),
+            ControlType::Response => f.write_str("RES"),
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Clone)]
+#[cfg_attr(test, derive(Arbitrary))]
 pub enum MessageType {
     Log(LogLevel),
     ApplicationTrace(ApplicationTraceType),
     NetworkTrace(NetworkTraceType),
     Control(ControlType),
 }
+pub const DLT_TYPE_LOG: u8 = 0b000;
+pub const DLT_TYPE_APP_TRACE: u8 = 0b001;
+pub const DLT_TYPE_NW_TRACE: u8 = 0b010;
+pub const DLT_TYPE_CONTROL: u8 = 0b011;
 
-#[derive(Debug, Clone)]
+#[cfg_attr(test, derive(Arbitrary))]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExtendedHeader {
+    pub verbose: bool,
+    pub argument_count: u8,
     pub message_type: MessageType,
     pub application_id: String,
     pub context_id: String,
 }
+// #[cfg(test)]
+// impl arbitrary::Arbitrary for ExtendedHeader {
+//     type Strategy = ValueTree<Value = ExtendedHeader>;
+//     fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+//         Just(
+//         ExtendedHeader {
+//             verbose: true,
+//             argument_count: 3,
+//             message_type: MessageType::Log(LogLevel::Warn),
+//             application_id: String::default(),
+//             context_id: String::default(),
+//         }
+//         )
+//     }
+// }
 
+impl ExtendedHeader {
+    pub fn as_bytes(self: &ExtendedHeader) -> Vec<u8> {
+        let mut buf = BytesMut::with_capacity(EXTENDED_HEADER_LENGTH);
+        buf.put_u8(u8::from(&self.message_type) | if self.verbose { 1 } else { 0 });
+        buf.put_u8(self.argument_count);
+        buf.put_zero_terminated_string(&self.application_id[..], 4);
+        buf.put_zero_terminated_string(&self.context_id[..], 4);
+        buf.to_vec()
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum FixedPointValue {
+    I32(i32),
+    I64(i64),
+    // I128(i128), not supported
+}
+fn fixed_point_value_width(v: &FixedPointValue) -> usize {
+    match v {
+        FixedPointValue::I32(_) => 4,
+        FixedPointValue::I64(_) => 8,
+        // FixedPointValue::I128(_) => 16,
+    }
+}
 #[derive(Debug, PartialEq, Clone)]
 pub enum Value {
     Bool(bool),
@@ -94,39 +289,529 @@ pub enum Value {
     U16(u16),
     U32(u32),
     U64(u64),
+    U128(u128),
     I8(i8),
     I16(i16),
     I32(i32),
     I64(i64),
-    String(String),
+    I128(i128),
+    F32(f32),
+    F64(f64),
+    StringVal(String),
+    Raw(Vec<u8>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(Arbitrary))]
+pub enum StringCoding {
+    ASCII,
+    UTF8,
+}
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(Arbitrary))]
+pub enum TypeInfoKind {
+    Bool,
+    Signed(TypeLength),
+    Unsigned(TypeLength),
+    Float(TypeLength),
+    Array,
+    StringType,
+    Raw,
+}
+
+#[derive(Debug, Clone, PartialEq, Copy)]
+#[cfg_attr(test, derive(Arbitrary))]
+pub enum TypeLength {
+    BitLength8 = 8,
+    BitLength16 = 16,
+    BitLength32 = 32,
+    BitLength64 = 64,
+    BitLength128 = 128,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(test, derive(Arbitrary))]
+pub struct TypeInfo {
+    pub kind: TypeInfoKind,
+    pub coding: StringCoding,
+    pub has_variable_info: bool,
+    pub is_fixed_point: bool,
+    pub has_trace_info: bool,
+
+    // FixedPoint,
+    // TraceInfo,
+    // TypeStruct,
+}
+impl TypeInfo {
+    fn type_length_bits(self: &TypeInfo, len: TypeLength) -> u32 {
+        match len {
+            TypeLength::BitLength8 => 0b001,
+            TypeLength::BitLength16 => 0b010,
+            TypeLength::BitLength32 => 0b011,
+            TypeLength::BitLength64 => 0b100,
+            TypeLength::BitLength128 => 0b101,
+        }
+    }
+    fn type_width(self: &TypeInfo) -> usize {
+        match self.kind {
+            TypeInfoKind::Signed(v) => v as usize,
+            TypeInfoKind::Unsigned(v) => v as usize,
+            TypeInfoKind::Float(v) => v as usize,
+            _ => 0,
+        }
+    }
+    pub fn as_bytes<T: ByteOrder>(self: &TypeInfo) -> Vec<u8> {
+        let mut info: u32 = 0;
+        match self.kind {
+            TypeInfoKind::Float(len) => info |= self.type_length_bits(len),
+            TypeInfoKind::Signed(len) => info |= self.type_length_bits(len),
+            TypeInfoKind::Unsigned(len) => info |= self.type_length_bits(len),
+            TypeInfoKind::Bool => info |= self.type_length_bits(TypeLength::BitLength8),
+            _ => (),
+        }
+        match self.kind {
+            TypeInfoKind::Bool => info |= TYPE_INFO_BOOL_FLAG,
+            TypeInfoKind::Signed(_) => info |= TYPE_INFO_SINT_FLAG,
+            TypeInfoKind::Unsigned(_) => info |= TYPE_INFO_UINT_FLAG,
+            TypeInfoKind::Float(_) => info |= TYPE_INFO_FLOAT_FLAG,
+            TypeInfoKind::Array => info |= TYPE_INFO_ARRAY_FLAG,
+            TypeInfoKind::StringType => info |= TYPE_INFO_STRING_FLAG,
+            TypeInfoKind::Raw => info |= TYPE_INFO_RAW_FLAG,
+        }
+        if self.has_variable_info {
+            info |= TYPE_INFO_VARIABLE_INFO
+        }
+        if self.is_fixed_point {
+            info |= TYPE_INFO_FIXED_POINT_FLAG
+        }
+        if self.has_trace_info {
+            info |= TYPE_INFO_TRACE_INFO_FLAG
+        }
+        match self.coding {
+            StringCoding::ASCII => info |= 0b000 << 15,
+            StringCoding::UTF8 => info |= 0b001 << 15,
+        }
+
+        let mut buf = BytesMut::with_capacity(4);
+        let mut b = [0; 4];
+        T::write_u32(&mut b, info);
+        buf.put_slice(&b);
+        // println!("TypeInfo::as_bytes {:?} => {:#b} {:02X?}", self, info, buf);
+        buf.to_vec()
+    }
+}
+///    Bit Representation               0b0011_1111_1111_1111_1111
+///    string coding .......................^^_^||| |||| |||| ||||
+///    type struct .............................^|| |||| |||| ||||
+///    trace info ...............................^| |||| |||| ||||
+///    fixed point ...............................^ |||| |||| ||||
+///    variable info................................^||| |||| ||||
+///    type raw .....................................^|| |||| ||||
+///    type string ...................................^| |||| ||||
+///    type array .....................................^ |||| ||||
+///    type float .......................................^||| ||||
+///    type unsigned .....................................^|| ||||
+///    type signed ........................................^| ||||
+///    type bool ...........................................^ ||||
+///    type length ...........................................^^^^
+impl TryFrom<u32> for TypeInfo {
+    type Error = Error;
+    fn try_from(info: u32) -> Result<TypeInfo, Error> {
+        fn type_len(info: u32) -> Result<TypeLength, Error> {
+            match info & 0b1111 {
+                0x01 => Ok(TypeLength::BitLength8),
+                0x02 => Ok(TypeLength::BitLength16),
+                0x03 => Ok(TypeLength::BitLength32),
+                0x04 => Ok(TypeLength::BitLength64),
+                0x05 => Ok(TypeLength::BitLength128),
+                v => Err(Error::new(
+                    io::ErrorKind::Other,
+                    format!("Unknown type_len in TypeInfo {:b}", v),
+                )),
+            }
+        }
+
+        let kind = match (info >> 4) & 0b111_1111 {
+            0b000_0001 => Ok(TypeInfoKind::Bool),
+            0b000_0010 => Ok(TypeInfoKind::Signed(type_len(info)?)),
+            0b000_0100 => Ok(TypeInfoKind::Unsigned(type_len(info)?)),
+            0b000_1000 => Ok(TypeInfoKind::Float(type_len(info)?)),
+            0b001_0000 => Ok(TypeInfoKind::Array),
+            0b010_0000 => Ok(TypeInfoKind::StringType),
+            0b100_0000 => Ok(TypeInfoKind::Raw),
+            v => { 
+                eprintln!("Unknown TypeInfoKind in TypeInfo {:b}", v);
+                Err(Error::new(
+                io::ErrorKind::Other,
+                format!("Unknown TypeInfoKind in TypeInfo {:b}", v),
+            ))},
+        }?;
+        let coding = match (info >> 15) & 0b111 {
+            0x00 => (StringCoding::ASCII),
+            0x01 => (StringCoding::UTF8),
+            v => {
+                // eprintln!("Unknown coding in TypeIxfo 0x{:02X}, assume UTF8", v);
+                (StringCoding::UTF8)
+                // Err(Error::new(
+                //     io::ErrorKind::Other,
+                //     format!("Unknown coding in TypeInfo {:b}", v),))
+            }
+        };
+        Ok(TypeInfo {
+            has_variable_info: (info & TYPE_INFO_VARIABLE_INFO) != 0,
+            is_fixed_point: (info & TYPE_INFO_FIXED_POINT_FLAG) != 0,
+            has_trace_info: (info & TYPE_INFO_TRACE_INFO_FLAG) != 0,
+            kind,
+            coding,
+        })
+    }
+}
+#[derive(Debug, Clone, PartialEq)]
+pub struct FixedPoint {
+    pub quantization: f32,
+    pub offset: FixedPointValue,
+}
+#[derive(Debug, Clone, PartialEq)]
 pub struct Argument {
+    pub type_info: TypeInfo,
     pub name: Option<String>,
     pub unit: Option<String>,
+    pub fixed_point: Option<FixedPoint>,
     pub value: Value,
 }
+impl Argument {
+    #[allow(dead_code)]
+    pub fn as_bytes<T: ByteOrder>(self: &Argument) -> Vec<u8> {
+        fn mut_buf_with_typeinfo_name_unit<T: ByteOrder>(
+            info: &TypeInfo,
+            name: &Option<String>,
+            unit: &Option<String>,
+            fixed_point: &Option<FixedPoint>,
+        ) -> BytesMut {
+            let mut capacity = TYPE_INFO_LENGTH;
+            if let Some(n) = name {
+                capacity += 2 /* length name */ + n.len() + 1;
+            }
+            if let Some(u) = unit {
+                capacity += 2 /* length unit */ + u.len() + 1;
+            }
+            if let Some(fp) = fixed_point {
+                capacity += 4 /* quantization */ + fixed_point_value_width(&fp.offset);
+            }
+            capacity += info.type_width();
+            let mut buf = BytesMut::with_capacity(capacity);
+            buf.extend_from_slice(&info.as_bytes::<T>()[..]);
+            if let Some(n) = name {
+                buf.put_u16::<T>(n.len() as u16 + 1);
+            }
+            if let Some(u) = unit {
+                buf.put_u16::<T>(u.len() as u16 + 1)
+            }
+            if let Some(n) = name {
+                buf.extend_from_slice(n.as_bytes());
+                buf.put_u8(0x0); // null termination
+            }
+            if let Some(u) = unit {
+                buf.extend_from_slice(u.as_bytes());
+                buf.put_u8(0x0); // null termination
+            }
+            if let Some(fp) = fixed_point {
+                buf.put_f32::<T>(fp.quantization);
+                match fp.offset {
+                    FixedPointValue::I32(v) => {
+                        buf.put_i32::<T>(v);
+                    }
+                    FixedPointValue::I64(v) => {
+                        buf.put_i64::<T>(v);
+                    }
+                }
+            }
+            buf
+        }
+        match self.type_info.kind {
+            TypeInfoKind::Bool => {
+                let mut buf = mut_buf_with_typeinfo_name_unit::<T>(
+                    &self.type_info,
+                    &self.name,
+                    &self.unit,
+                    &None,
+                );
+                buf.put_u8(if self.value == Value::Bool(true) {
+                    0x1
+                } else {
+                    0x0
+                });
+                buf.to_vec()
+            }
+            TypeInfoKind::Signed(_) => {
+                fn write_value<T: ByteOrder>(value: &Value, buf: &mut BytesMut) {
+                    match value {
+                        Value::I8(v) => buf.put_i8(*v),
+                        Value::I16(v) => buf.put_i16::<T>(*v),
+                        Value::I32(v) => buf.put_i32::<T>(*v),
+                        Value::I64(v) => buf.put_i64::<T>(*v),
+                        Value::I128(v) => {
+                            let mut b = [0; 16];
+                            T::write_i128(&mut b, *v);
+                            buf.put_slice(&b);
+                        }
+                        _ => (),
+                    }
+                }
+                let mut buf = mut_buf_with_typeinfo_name_unit::<T>(
+                    &self.type_info,
+                    &self.name,
+                    &self.unit,
+                    &self.fixed_point,
+                );
+                write_value::<T>(&self.value, &mut buf);
+                buf.to_vec()
+            }
+            TypeInfoKind::Unsigned(_) => {
+                let mut buf = mut_buf_with_typeinfo_name_unit::<T>(
+                    &self.type_info,
+                    &self.name,
+                    &self.unit,
+                    &self.fixed_point,
+                );
+                match self.value {
+                    Value::U8(v) => buf.put_u8(v),
+                    Value::U16(v) => buf.put_u16::<T>(v),
+                    Value::U32(v) => buf.put_u32::<T>(v),
+                    Value::U64(v) => buf.put_u64::<T>(v),
+                    Value::U128(v) => {
+                        let mut b = [0; 16];
+                        T::write_u128(&mut b, v);
+                        buf.put_slice(&b);
+                    }
+                    _ => (),
+                }
+                buf.to_vec()
+            }
+            TypeInfoKind::Float(_) => {
+                fn write_value<T: ByteOrder>(value: &Value, buf: &mut BytesMut) {
+                    match value {
+                        Value::F32(v) => buf.put_f32::<T>(*v),
+                        Value::F64(v) => buf.put_f64::<T>(*v),
+                        _ => (),
+                    }
+                }
+                let mut buf = mut_buf_with_typeinfo_name_unit::<T>(
+                    &self.type_info,
+                    &self.name,
+                    &self.unit,
+                    &self.fixed_point,
+                );
+                write_value::<T>(&self.value, &mut buf);
+                buf.to_vec()
+            }
+            TypeInfoKind::Array => {
+                let mut buf = BytesMut::with_capacity(STORAGE_HEADER_LENGTH);
+                buf.to_vec()
+            }
+            TypeInfoKind::StringType => {
+                match (self.type_info.has_variable_info, &self.name) {
+                    (true, Some(var_name)) => {
+                        match &self.value {
+                            Value::StringVal(s) => {
+                                let name_len_with_termination: u16 = var_name.len() as u16 + 1;
+                                let mut buf = BytesMut::with_capacity(
+                                    TYPE_INFO_LENGTH +
+                                    2 /* length string */ +
+                                    2 /* length name */ +
+                                    name_len_with_termination as usize +
+                                    s.len() + 1,
+                                );
+                                buf.extend_from_slice(&self.type_info.as_bytes::<T>()[..]);
+                                buf.put_u16::<T>(s.len() as u16 + 1);
+                                buf.put_u16::<T>(name_len_with_termination);
+                                buf.extend_from_slice(var_name.as_bytes());
+                                buf.put_u8(0x0); // null termination
+                                buf.extend_from_slice(s.as_bytes());
+                                buf.put_u8(0x0); // null termination
+                                buf.to_vec()
+                            }
+                            _ => {
+                                eprintln!("found invalid dlt entry ({:?}", self);
+                                BytesMut::with_capacity(0).to_vec()
+                            }
+                        }
+                    }
+                    (false, None) => {
+                        match &self.value {
+                            Value::StringVal(s) => {
+                                let mut buf = BytesMut::with_capacity(
+                                    TYPE_INFO_LENGTH +
+                                    2 /* length string */ +
+                                    s.len() + 1,
+                                );
+                                buf.extend_from_slice(&self.type_info.as_bytes::<T>()[..]);
+                                buf.put_u16::<T>(s.len() as u16 + 1);
+                                buf.extend_from_slice(s.as_bytes());
+                                buf.put_u8(0x0); // null termination
+                                buf.to_vec()
+                            }
+                            _ => {
+                                eprintln!("found invalid dlt entry ({:?}", self);
+                                BytesMut::with_capacity(0).to_vec()
+                            }
+                        }
+                    }
+                    _ => {
+                        eprintln!("found invalid dlt entry ({:?}", self);
+                        BytesMut::with_capacity(0).to_vec()
+                    }
+                }
+            }
+            TypeInfoKind::Raw => {
+                match (self.type_info.has_variable_info, &self.name) {
+                    (true, Some(var_name)) => {
+                        match &self.value {
+                            Value::Raw(bytes) => {
+                                let name_len_with_termination: u16 = var_name.len() as u16 + 1;
+                                let mut buf = BytesMut::with_capacity(
+                                    TYPE_INFO_LENGTH +
+                                    2 /* length bytes */ +
+                                    2 /* length name */ +
+                                    name_len_with_termination as usize +
+                                    bytes.len(),
+                                );
+                                buf.extend_from_slice(&self.type_info.as_bytes::<T>()[..]);
+                                buf.put_u16::<T>(bytes.len() as u16);
+                                buf.put_u16::<T>(name_len_with_termination);
+                                buf.extend_from_slice(var_name.as_bytes());
+                                buf.put_u8(0x0); // null termination
+                                buf.extend_from_slice(bytes);
+                                buf.to_vec()
+                            }
+                            _ => {
+                                eprintln!("found invalid dlt entry ({:?}", self);
+                                BytesMut::with_capacity(0).to_vec()
+                            }
+                        }
+                    }
+                    (false, None) => {
+                        match &self.value {
+                            Value::Raw(bytes) => {
+                                let mut buf = BytesMut::with_capacity(
+                                    TYPE_INFO_LENGTH +
+                                    2 /* length string */ +
+                                    bytes.len(),
+                                );
+                                buf.extend_from_slice(&self.type_info.as_bytes::<T>()[..]);
+                                buf.put_u16::<T>(bytes.len() as u16);
+                                buf.extend_from_slice(bytes);
+                                buf.to_vec()
+                            }
+                            _ => {
+                                eprintln!("found invalid dlt entry ({:?}", self);
+                                BytesMut::with_capacity(0).to_vec()
+                            }
+                        }
+                    }
+                    _ => {
+                        eprintln!("found invalid dlt entry ({:?}", self);
+                        BytesMut::with_capacity(0).to_vec()
+                    }
+                }
+            }
+        }
+    }
+}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Payload {
     Verbose(Vec<Argument>),
     NonVerbose(u32, Vec<u8>),
 }
-
-#[derive(Debug, Clone)]
-pub struct Message {
-    pub storage_header: Option<StorageHeader>,
-    pub header: Header,
-    pub extended_header: Option<ExtendedHeader>,
-    pub payload: Payload,
-}
-impl Message {
-    pub fn len(&self) -> usize {
-        0
+impl Payload {
+    fn as_bytes<T: ByteOrder>(self: &Payload) -> Vec<u8> {
+        let mut buf = BytesMut::with_capacity(STORAGE_HEADER_LENGTH);
+        match self {
+            Payload::Verbose(args) => {
+                // for arg in args {
+                //     match arg.value {
+                //         Argument::Value::Bool(v) =>
+                //     }
+                //     T::write_u32(&mut buf, arg.);
+                // }
+                buf.extend_from_slice(b"DLT");
+                buf.put_u8(0x0);
+            }
+            Payload::NonVerbose(msg_id, payload) => {
+                buf.put_u32::<T>(*msg_id);
+                buf.extend_from_slice(payload);
+            }
+        }
+        buf.to_vec()
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct Message {
+    pub storage_header: Option<StorageHeader>,
+    pub header: StandardHeader,
+    pub extended_header: Option<ExtendedHeader>,
+    pub payload: Payload,
+}
+impl fmt::Display for Message {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{} [cnt:{}]---{}",
+            self.storage_header
+                .as_ref()
+                .map_or(String::new(), |storage_header| format!(
+                    "{} [{}]: ",
+                    storage_header.timestamp, storage_header.ecu_id
+                )),
+            self.header.message_counter,
+            self.header
+                .ecu_id
+                .as_ref()
+                .map(|id| format!("[{}]", id))
+                .unwrap_or_else(|| "".into()),
+        )?;
+
+        match &self.payload {
+            Payload::Verbose(arguments) => {
+                arguments
+                    .iter()
+                    .try_for_each(|arg| write!(f, " <{}>", arg))?;
+            }
+            Payload::NonVerbose(id, data) => {
+                let as_string = str::from_utf8(&data).unwrap_or("").trim();
+                f.write_str(
+                    &format!("[non-verbose, id:{}]({:?})|{:02X?}", id, as_string, data)[..],
+                )?;
+            }
+        }
+        if let Some(ext) = self.extended_header.as_ref() {
+            write!(
+                f,
+                "|{}|{}|<{}>|",
+                ext.application_id, ext.context_id, ext.message_type
+            )
+        } else {
+            write!(f, "")
+        }
+    }
+}
+
+impl From<&LogLevel> for u8 {
+    fn from(t: &LogLevel) -> Self {
+        let mut res: u8 = 0;
+        match t {
+            LogLevel::Fatal => res |= 0x1 << 4,
+            LogLevel::Error => res |= 0x2 << 4,
+            LogLevel::Warn => res |= 0x3 << 4,
+            LogLevel::Info => res |= 0x4 << 4,
+            LogLevel::Debug => res |= 0x5 << 4,
+            LogLevel::Verbose => res |= 0x6 << 4,
+        }
+        res
+    }
+}
 // Convert dlt::LogLevel into log::Level
 impl Into<log::Level> for LogLevel {
     fn into(self) -> log::Level {
@@ -148,11 +833,16 @@ impl fmt::Display for Value {
             Value::U16(value) => value.fmt(f),
             Value::U32(value) => value.fmt(f),
             Value::U64(value) => value.fmt(f),
+            Value::U128(value) => value.fmt(f),
             Value::I8(value) => value.fmt(f),
             Value::I16(value) => value.fmt(f),
             Value::I32(value) => value.fmt(f),
             Value::I64(value) => value.fmt(f),
-            Value::String(value) => value.fmt(f),
+            Value::I128(value) => value.fmt(f),
+            Value::F32(value) => value.fmt(f),
+            Value::F64(value) => value.fmt(f),
+            Value::StringVal(value) => value.fmt(f),
+            Value::Raw(value) => f.write_str(&format!("{:02X?}", value)[..]),
         }
     }
 }
@@ -174,7 +864,7 @@ impl fmt::Display for Argument {
     }
 }
 
-trait TryFrom<T>: Sized {
+pub trait TryFrom<T>: Sized {
     /// The type returned in the event of a conversion error.
     type Error;
 
@@ -182,39 +872,39 @@ trait TryFrom<T>: Sized {
     fn try_from(value: T) -> Result<Self, Self::Error>;
 }
 
-#[derive(Default)]
-pub struct Codec;
-
 // StorageHeader
-const STORAGE_HEADER_PATTERN_LENGTH: usize = 4;
-const STORAGE_HEADER_LENGTH: usize = 16;
+pub const STORAGE_HEADER_PATTERN_LENGTH: usize = 4;
+pub const STORAGE_HEADER_LENGTH: usize = 16;
 
-// Header
-const WITH_EXTENDED_HEADER_FLAG: u8 = 1;
-const BIG_ENDIAN_FLAG: u8 = 1 << 1;
-const WITH_ECU_ID_FLAG: u8 = 1 << 2;
-const WITH_SESSION_ID_FLAG: u8 = 1 << 3;
-const WITH_TIMESTAMP_FLAG: u8 = 1 << 4;
-const HEADER_MIN_LENGTH: usize = 4;
+// Standard header
+pub const WITH_EXTENDED_HEADER_FLAG: u8 = 1;
+pub const BIG_ENDIAN_FLAG: u8 = 1 << 1;
+pub const WITH_ECU_ID_FLAG: u8 = 1 << 2;
+pub const WITH_SESSION_ID_FLAG: u8 = 1 << 3;
+pub const WITH_TIMESTAMP_FLAG: u8 = 1 << 4;
+pub const HEADER_MIN_LENGTH: usize = 4;
+
+// Verbose Mode
 
 // Extended header
-const VERBOSE_FLAG: u8 = 1;
-const EXTENDED_HEADER_LENGTH: usize = 10;
+pub const VERBOSE_FLAG: u8 = 1;
+pub const EXTENDED_HEADER_LENGTH: usize = 10;
 
 // Arguments
-const BOOL_FLAG: u32 = 1 << 4;
-const SINT_FLAG: u32 = 1 << 5;
-const UINT_FLAG: u32 = 1 << 6;
-//const FLOAT_FLAG: u32 = 1 << 7;
-const ARRAY_FLAG: u32 = 1 << 8;
-const STRING_FLAG: u32 = 1 << 9;
-//const RAW_FLAG: u32 = 1 << 10;
-const INFO_FLAG: u32 = 1 << 11;
-const FIXED_POINT_FLAG: u32 = 1 << 12;
-//const TRACE_INFO_FLAG: u32 = 1 << 13;
-//const STRUCT_FLAG: u32 = 1 << 14;
+pub const TYPE_INFO_LENGTH: usize = 4;
+pub const TYPE_INFO_BOOL_FLAG: u32 = 1 << 4;
+pub const TYPE_INFO_SINT_FLAG: u32 = 1 << 5;
+pub const TYPE_INFO_UINT_FLAG: u32 = 1 << 6;
+pub const TYPE_INFO_FLOAT_FLAG: u32 = 1 << 7;
+pub const TYPE_INFO_ARRAY_FLAG: u32 = 1 << 8;
+pub const TYPE_INFO_STRING_FLAG: u32 = 1 << 9;
+pub const TYPE_INFO_RAW_FLAG: u32 = 1 << 10;
+pub const TYPE_INFO_VARIABLE_INFO: u32 = 1 << 11;
+pub const TYPE_INFO_FIXED_POINT_FLAG: u32 = 1 << 12;
+pub const TYPE_INFO_TRACE_INFO_FLAG: u32 = 1 << 13;
+pub const TYPE_INFO_STRUCT_FLAG: u32 = 1 << 14;
 
-fn calculate_all_headers_length(header_type: u8) -> usize {
+pub fn calculate_standard_header_length(header_type: u8) -> usize {
     let mut length = HEADER_MIN_LENGTH;
     if (header_type & WITH_ECU_ID_FLAG) != 0 {
         length += 4;
@@ -225,37 +915,69 @@ fn calculate_all_headers_length(header_type: u8) -> usize {
     if (header_type & WITH_TIMESTAMP_FLAG) != 0 {
         length += 4;
     }
+    length
+}
+
+pub fn calculate_all_headers_length(header_type: u8) -> usize {
+    let mut length = calculate_standard_header_length(header_type);
     if (header_type & WITH_EXTENDED_HEADER_FLAG) != 0 {
         length += EXTENDED_HEADER_LENGTH;
     }
     length
 }
 
-fn zero_terminated_string(raw: &[u8]) -> Result<String, Error> {
+pub fn zero_terminated_string(raw: &[u8]) -> Result<String, Error> {
     let nul_range_end = raw
         .iter()
         .position(|&c| c == b'\0')
         .unwrap_or_else(|| raw.len()); // default to length if no `\0` present
     str::from_utf8(&raw[0..nul_range_end])
         .map(|v| v.to_owned())
-        .map_err(|e| Error::new(io::ErrorKind::Other, e))
+        .map_err(|e| {
+            eprintln!("Invalid zero_terminated_string: {}", e);
+            Error::new(io::ErrorKind::Other, e)
+        })
 }
+
+pub const LEVEL_FATAL: u8 = 0x1;
+pub const LEVEL_ERROR: u8 = 0x2;
+pub const LEVEL_WARN: u8 = 0x3;
+pub const LEVEL_INFO: u8 = 0x4;
+pub const LEVEL_DEBUG: u8 = 0x5;
+pub const LEVEL_VERBOSE: u8 = 0x6;
 
 impl TryFrom<u8> for LogLevel {
     type Error = Error;
     fn try_from(message_info: u8) -> Result<LogLevel, Error> {
         match message_info >> 4 {
-            1 => Ok(LogLevel::Fatal),
-            2 => Ok(LogLevel::Error),
-            3 => Ok(LogLevel::Warn),
-            4 => Ok(LogLevel::Info),
-            5 => Ok(LogLevel::Debug),
-            6 => Ok(LogLevel::Verbose),
-            _ => Err(Error::new(
+            LEVEL_FATAL => Ok(LogLevel::Fatal),
+            LEVEL_ERROR => Ok(LogLevel::Error),
+            LEVEL_WARN => Ok(LogLevel::Warn),
+            LEVEL_INFO => Ok(LogLevel::Info),
+            LEVEL_DEBUG => Ok(LogLevel::Debug),
+            LEVEL_VERBOSE => Ok(LogLevel::Verbose),
+            _ => {
+                eprintln!("Invalid LogLevel");
+                Err(Error::new(
                 io::ErrorKind::Other,
                 format!("Unknown log level {}", message_info >> 4),
-            )),
+            ))
+            },
         }
+    }
+}
+
+impl From<&ApplicationTraceType> for u8 {
+    fn from(t: &ApplicationTraceType) -> Self {
+        let mut res: u8 = 0;
+        match t {
+            ApplicationTraceType::Variable => res |= 0x1 << 4,
+            ApplicationTraceType::FunctionIn => res |= 0x2 << 4,
+            ApplicationTraceType::FunctionOut => res |= 0x3 << 4,
+            ApplicationTraceType::State => res |= 0x4 << 4,
+            ApplicationTraceType::Vfb => res |= 0x5 << 4,
+        }
+        res
     }
 }
 
@@ -268,11 +990,30 @@ impl TryFrom<u8> for ApplicationTraceType {
             3 => Ok(ApplicationTraceType::FunctionOut),
             4 => Ok(ApplicationTraceType::State),
             5 => Ok(ApplicationTraceType::Vfb),
-            _ => Err(Error::new(
+            _ => {
+                eprintln!("Invalid ApplicationTraceType");
+                Err(Error::new(
                 io::ErrorKind::Other,
                 format!("Unknown application trace type {}", message_info >> 4),
-            )),
+            ))
+            },
         }
+    }
+}
+
+impl From<&NetworkTraceType> for u8 {
+    fn from(t: &NetworkTraceType) -> Self {
+        let mut res: u8 = 0;
+        match t {
+            NetworkTraceType::Ipc => res |= 0x1 << 4,
+            NetworkTraceType::Can => res |= 0x2 << 4,
+            NetworkTraceType::Flexray => res |= 0x3 << 4,
+            NetworkTraceType::Most => res |= 0x4 << 4,
+            NetworkTraceType::Ethernet => res |= 0x5 << 4,
+            NetworkTraceType::Someip => res |= 0x6 << 4,
+            NetworkTraceType::UserDefined(v) => res |= v << 4,
+        }
+        res
     }
 }
 
@@ -280,10 +1021,13 @@ impl TryFrom<u8> for NetworkTraceType {
     type Error = Error;
     fn try_from(message_info: u8) -> Result<NetworkTraceType, Error> {
         match message_info >> 4 {
-            0 => Err(Error::new(
+            0 => {
+                eprintln!("Unknown network trace type 0");
+                Err(Error::new(
                 io::ErrorKind::Other,
                 "Unknown network trace type 0",
-            )),
+            ))
+            },
             1 => Ok(NetworkTraceType::Ipc),
             2 => Ok(NetworkTraceType::Can),
             3 => Ok(NetworkTraceType::Flexray),
@@ -295,444 +1039,617 @@ impl TryFrom<u8> for NetworkTraceType {
     }
 }
 
+impl From<&ControlType> for u8 {
+    fn from(t: &ControlType) -> Self {
+        let mut res: u8 = 0;
+        match t {
+            ControlType::Request => res |= 0x1 << 4,
+            ControlType::Response => res |= 0x2 << 4,
+        }
+        res
+    }
+}
 impl TryFrom<u8> for ControlType {
     type Error = Error;
     fn try_from(message_info: u8) -> Result<ControlType, Error> {
         match message_info >> 4 {
             1 => Ok(ControlType::Request),
             2 => Ok(ControlType::Response),
-            _ => Err(Error::new(
+            _ => {
+                eprintln!("Unknown control type {}", message_info >> 4);
+                Err(Error::new(
                 io::ErrorKind::Other,
                 format!("Unknown control type {}", message_info >> 4),
-            )),
+            ))
+            },
         }
     }
 }
 
+impl fmt::Display for MessageType {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        match self {
+            MessageType::ApplicationTrace(app_type) => app_type.fmt(f),
+            MessageType::Control(c) => c.fmt(f),
+            MessageType::Log(log_level) => log_level.fmt(f),
+            MessageType::NetworkTrace(log_level) => log_level.fmt(f),
+            // Value::Raw(value) => f.write_str(&format!("{:#X?}", value)[..]),
+        }
+    }
+}
+impl From<&MessageType> for u8 {
+    fn from(t: &MessageType) -> Self {
+        let mut res: u8 = 0;
+        match t {
+            MessageType::Log(x) => res |=  /* 0x0 << 1 |*/ u8::from(x),
+            MessageType::ApplicationTrace(x) => res |= 0x1 << 1 | u8::from(x),
+            MessageType::Control(x) => res |= 0x3 << 1 | u8::from(x),
+            MessageType::NetworkTrace(x) => res |= 0x2 << 1 | u8::from(x),
+        }
+        res
+    }
+}
 impl TryFrom<u8> for MessageType {
     type Error = Error;
     fn try_from(message_info: u8) -> Result<MessageType, Error> {
         match (message_info >> 1) & 0b111 {
-            0 => Ok(MessageType::Log(LogLevel::try_from(message_info)?)),
-            1 => Ok(MessageType::ApplicationTrace(
+            DLT_TYPE_LOG => Ok(MessageType::Log(LogLevel::try_from(message_info)?)),
+            DLT_TYPE_APP_TRACE => Ok(MessageType::ApplicationTrace(
                 ApplicationTraceType::try_from(message_info)?,
             )),
-            2 => Ok(MessageType::NetworkTrace(NetworkTraceType::try_from(
+            DLT_TYPE_NW_TRACE => Ok(MessageType::NetworkTrace(NetworkTraceType::try_from(
                 message_info,
             )?)),
-            3 => Ok(MessageType::Control(ControlType::try_from(message_info)?)),
-            _ => Err(Error::new(
+            DLT_TYPE_CONTROL => Ok(MessageType::Control(ControlType::try_from(message_info)?)),
+            _ => {
+                eprintln!("Unknown message trace type {}", (message_info >> 1) & 0b111);
+                Err(Error::new(
                 io::ErrorKind::Other,
                 format!("Unknown message trace type {}", (message_info >> 1) & 0b111),
-            )),
+            ))
+            },
         }
     }
 }
 
-fn decode_storage_header(src: &mut BytesMut) -> Result<Option<StorageHeader>, Error> {
-    let mut buf = Bytes::from(src.as_ref()).into_buf();
-    if buf.remaining() < STORAGE_HEADER_PATTERN_LENGTH {
-        return Ok(None);
-    }
-    // read dlt storage header
-    let byte_1 = buf.get_u8();
-    let byte_2 = buf.get_u8();
-    let byte_3 = buf.get_u8();
-    let byte_4 = buf.get_u8();
-    let has_storage_header = byte_1 == 0x44 && byte_2 == 0x4C && byte_3 == 0x54 && byte_4 == 0x01; // "DLT" + 0x01
-
-    if has_storage_header {
-        if buf.remaining() < (STORAGE_HEADER_LENGTH - STORAGE_HEADER_PATTERN_LENGTH) {
-            return Ok(None); // we swallow an error in the dlt file
-        }
-        let timestamp_s = buf.get_u32_be();
-        let timestamp_ms = buf.get_u32_be();
-        let mut ecu_id = [0u8; 4];
-        buf.read_exact(&mut ecu_id)?;
-        let ecuid = str::from_utf8(&ecu_id).map_err(|e| Error::new(ErrorKind::Other, e))?;
-        src.advance(STORAGE_HEADER_LENGTH);
-        Ok(Some(StorageHeader {
-            timestamp: u64::from(timestamp_s) * 1000 * 1000 + u64::from(timestamp_ms),
-            ecu_id: ecuid.to_string(),
-        }))
-    } else {
-        Ok(None)
-    }
-}
-
-fn decode_header(buf: &mut Buf, header_type: u8, message_counter: u8) -> Result<Header, Error> {
-    let ecu_id = if (header_type & WITH_ECU_ID_FLAG) != 0 {
-        let ecu_id = Some(zero_terminated_string(&buf.bytes()[..4])?);
-        buf.advance(4);
-        ecu_id
-    } else {
-        None
-    };
-
-    let session_id = if (header_type & WITH_SESSION_ID_FLAG) != 0 {
-        Some(buf.get_u32_be())
-    } else {
-        None
-    };
-
-    let timestamp = if (header_type & WITH_TIMESTAMP_FLAG) != 0 {
-        Some(buf.get_u32_be())
-    } else {
-        None
-    };
-
-    Ok(Header {
-        is_big_endian: (header_type & BIG_ENDIAN_FLAG) != 0,
-        version: header_type >> 5,
-        message_counter,
-        ecu_id,
-        session_id,
-        timestamp,
-    })
-}
-
-fn decode_extended_header(buf: &mut Buf) -> Result<(bool, usize, Option<ExtendedHeader>), Error> {
-    let message_info = buf.get_u8();
-    let argument_count = buf.get_u8() as usize;
-    let application_id = zero_terminated_string(&buf.bytes()[..4])?;
-    buf.advance(4);
-    let context_id = zero_terminated_string(&buf.bytes()[..4])?;
-    buf.advance(4);
-
-    let verbose = (message_info & VERBOSE_FLAG) != 0;
-    let message_type = MessageType::try_from(message_info)?;
-    let extended_header = ExtendedHeader {
-        message_type,
-        application_id,
-        context_id,
-    };
-
-    Ok((verbose, argument_count, Some(extended_header)))
-}
-
-fn decode_variable_name<T: ByteOrder>(
-    rdr: &mut Read,
-    with_variable_info: bool,
-) -> Result<Option<String>, Error> {
-    if with_variable_info {
-        let size = rdr.read_u16::<T>()?;
-        let mut raw = vec![0; size as usize];
-        rdr.read_exact(&mut raw)?;
-        Ok(Some(zero_terminated_string(&raw)?))
-    } else {
-        Ok(None)
-    }
-}
-
-fn decode_variable_info<T: ByteOrder>(
-    rdr: &mut Read,
-    with_variable_info: bool,
-) -> Result<(Option<String>, Option<String>), Error> {
-    if with_variable_info {
-        let name_size = rdr.read_u16::<T>()?;
-        let unit_size = rdr.read_u16::<T>()?;
-
-        let mut raw = vec![0; name_size as usize];
-        rdr.read_exact(&mut raw)?;
-        let name = zero_terminated_string(&raw)?;
-
-        let mut raw = vec![0; unit_size as usize];
-        rdr.read_exact(&mut raw)?;
-        let unit = zero_terminated_string(&raw)?;
-
-        Ok((Some(name), Some(unit)))
-    } else {
-        Ok((None, None))
-    }
-}
-
-fn decode_argument<T: ByteOrder>(buf: &mut Buf) -> Result<Argument, Error> {
-    let mut rdr = buf.reader();
-
-    let info = rdr.read_u32::<T>()?;
-    let with_variable_info = (info & INFO_FLAG) != 0;
-
-    let arg = if (info & FIXED_POINT_FLAG) != 0 {
-        return Err(Error::new(
-            ErrorKind::Other,
-            "Fixed point is not implemented",
-        ));
-    } else if (info & ARRAY_FLAG) != 0 {
-        return Err(Error::new(ErrorKind::Other, "Arrays are not implemented"));
-    } else if (info & BOOL_FLAG) != 0 {
-        let name = decode_variable_name::<T>(&mut rdr, with_variable_info)?;
-
-        Argument {
-            name,
-            unit: None,
-            value: Value::Bool(rdr.read_u8()? != 0),
-        }
-    } else if (info & SINT_FLAG) != 0 {
-        let (name, unit) = decode_variable_info::<T>(&mut rdr, with_variable_info)?;
-
-        let value = match info & 0xF {
-            1 => rdr.read_i8().map(Value::I8)?,
-            2 => rdr.read_i16::<T>().map(Value::I16)?,
-            3 => rdr.read_i32::<T>().map(Value::I32)?,
-            4 => rdr.read_i64::<T>().map(Value::I64)?,
-            _ => return Err(Error::new(ErrorKind::Other, "Unknown size signed integer")),
-        };
-        Argument { name, unit, value }
-    } else if (info & UINT_FLAG) != 0 {
-        let (name, unit) = decode_variable_info::<T>(&mut rdr, with_variable_info)?;
-
-        let value = match info & 0xF {
-            1 => rdr.read_u8().map(Value::U8)?,
-            2 => rdr.read_u16::<T>().map(Value::U16)?,
-            3 => rdr.read_u32::<T>().map(Value::U32)?,
-            4 => rdr.read_u64::<T>().map(Value::U64)?,
-            _ => {
-                return Err(Error::new(
-                    ErrorKind::Other,
-                    "Unknown size unsigned integer",
-                ));
-            }
-        };
-        Argument { name, unit, value }
-    } else if (info & STRING_FLAG) != 0 {
-        let size = rdr.read_u16::<T>()?;
-        let name = decode_variable_name::<T>(&mut rdr, with_variable_info)?;
-
-        let mut raw = vec![0; size as usize];
-        rdr.read_exact(&mut raw)?;
-        let value = zero_terminated_string(&raw)?;
-
-        Argument {
-            name,
-            unit: None,
-            value: Value::String(value),
-        }
-    } else {
-        return Err(Error::new(ErrorKind::Other, "Unknown argument type"));
-    };
-
-    Ok(arg)
-}
-
-#[derive(Default)]
-pub struct DltFileCodec {
-    dlt_codec: Codec,
-}
-impl Decoder for DltFileCodec {
-    type Item = Message;
-    type Error = Error;
-    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        let storage_header = decode_storage_header(src)?;
-        let msg = self.dlt_codec.decode(src)?;
-        match msg {
-            Some(inner) => Ok(Some(Message {
-                storage_header,
-                header: inner.header,
-                extended_header: inner.extended_header,
-                payload: inner.payload,
-            })),
-            None => Ok(None),
-        }
-    }
-
-}
 
 #[inline]
-pub fn create_message_line(
-    out_buffer: &mut std::io::Write,
-    msg: Message,
-) -> std::io::Result<()> {
-        // Messages without extended header (non-verbose) are unimplemented
-        if let Some(ext) = msg.extended_header {
-            let level = match ext.message_type {
-                MessageType::Log(level) => level.into(),
-                MessageType::ApplicationTrace(_) | MessageType::NetworkTrace(_) => {
-                    log::Level::Trace
-                }
-                // Ignore everything else
-                _ => return Ok(()),
-            };
+pub fn create_message_line(out_buffer: &mut std::io::Write, msg: Message) -> std::io::Result<()> {
+    // Messages without extended header (non-verbose) are unimplemented
+    if let Some(ext) = msg.extended_header {
+        let level = match ext.message_type {
+            MessageType::Log(level) => level.into(),
+            MessageType::ApplicationTrace(_) | MessageType::NetworkTrace(_) => log::Level::Trace,
+            // Ignore everything else
+            _ => return Ok(()),
+        };
 
-            // dest.reserve(1024); // TODO reserve correct amount
-                                // Format message: Join arguments as strings
-            if let Payload::Verbose(arguments) = msg.payload {
-                // Format tag by concatenating ecu_id, application_id and context_id
-                write!(
-                    out_buffer,
-                    "{}{}{}-{}",
-                    msg.storage_header
-                        .map_or(String::new(), |storage_header| format!(
-                            "{}: ",
-                            storage_header.timestamp
-                        )),
-                    msg.header
-                        .ecu_id
-                        .map(|id| format!("{}-", id))
-                        .unwrap_or_else(|| "".into()),
-                    ext.application_id,
-                    ext.context_id
-                )
-                .map_err(|e| Error::new(ErrorKind::Other, e))?;
+        // dest.reserve(1024); // TODO reserve correct amount
+        // Format message: Join arguments as strings
+        if let Payload::Verbose(arguments) = msg.payload {
+            // Format tag by concatenating ecu_id, application_id and context_id
+            write!(
+                out_buffer,
+                "{}{}{}-{}",
+                msg.storage_header
+                    .map_or(String::new(), |storage_header| format!(
+                        "{}: ",
+                        storage_header.timestamp
+                    )),
+                msg.header
+                    .ecu_id
+                    .map(|id| format!("{}-", id))
+                    .unwrap_or_else(|| "".into()),
+                ext.application_id,
+                ext.context_id
+            )
+            .map_err(|e| Error::new(io::ErrorKind::Other, e))?;
 
-                // Format payload
-                arguments
-                    .iter()
-                    .try_for_each(|arg| write!(out_buffer, " {}", arg))
-                    .map_err(|e| Error::new(ErrorKind::Other, e))?;
-            }
-            writeln!(out_buffer).map_err(|e| Error::new(ErrorKind::Other, e))
-        } else {
-            Ok(())
+            // Format payload
+            arguments
+                .iter()
+                .try_for_each(|arg| write!(out_buffer, " {}", arg))
+                .map_err(|e| {
+                    eprintln!("error iterating over messages: {}", e);
+                    Error::new(io::ErrorKind::Other, e)
+                })?;
         }
-
-}
-impl Encoder for DltFileCodec {
-    type Item = Message;
-    type Error = Error;
-
-    fn encode(&mut self, msg: Self::Item, dest: &mut BytesMut) -> Result<(), Self::Error> {
-        // Messages without extended header (non-verbose) are unimplemented
-        if let Some(ext) = msg.extended_header {
-            let level = match ext.message_type {
-                MessageType::Log(level) => level.into(),
-                MessageType::ApplicationTrace(_) | MessageType::NetworkTrace(_) => {
-                    log::Level::Trace
-                }
-                // Ignore everything else
-                _ => return Ok(()),
-            };
-
-            dest.reserve(1024); // TODO reserve correct amount
-                                // Format message: Join arguments as strings
-            if let Payload::Verbose(arguments) = msg.payload {
-                // Format tag by concatenating ecu_id, application_id and context_id
-                write!(
-                    dest,
-                    "{}{}{}-{}",
-                    msg.storage_header
-                        .map_or(String::new(), |storage_header| format!(
-                            "{}: ",
-                            storage_header.timestamp
-                        )),
-                    msg.header
-                        .ecu_id
-                        .map(|id| format!("{}-", id))
-                        .unwrap_or_else(|| "".into()),
-                    ext.application_id,
-                    ext.context_id
-                )
-                .map_err(|e| Error::new(ErrorKind::Other, e))?;
-
-                // Format payload
-                arguments
-                    .iter()
-                    .try_for_each(|arg| write!(dest, " {}", arg))
-                    .map_err(|e| Error::new(ErrorKind::Other, e))?;
-            }
-            writeln!(dest).map_err(|e| Error::new(ErrorKind::Other, e))
-        } else {
-            Ok(())
-        }
-    }
-}
-impl Decoder for Codec {
-    type Item = Message;
-    type Error = Error;
-
-    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        let mut buf = Bytes::from(src.as_ref()).into_buf();
-
-        if buf.remaining() < HEADER_MIN_LENGTH {
-            return Ok(None);
-        }
-        let header_type = buf.get_u8();
-        let message_counter = buf.get_u8();
-        let message_length = buf.get_u16_be() as usize;
-
-        let headers_length = calculate_all_headers_length(header_type);
-        if message_length < headers_length {
-            return Err(Error::new(ErrorKind::Other, "Invalid header length"));
-        }
-
-        if buf.remaining() + HEADER_MIN_LENGTH < message_length {
-            return Ok(None);
-        }
-
-        let message = decode_message(
-            &mut buf,
-            header_type,
-            message_counter,
-            message_length,
-            headers_length,
-        )
-        .map(Option::Some)
-        .unwrap_or_else(|e| {
-            warn!("Failed to parse message: {}", e);
-            None
-        });
-        src.advance(message_length);
-        Ok(message)
+        writeln!(out_buffer).map_err(|e| Error::new(io::ErrorKind::Other, e))
+    } else {
+        Ok(())
     }
 }
 
-fn decode_message(
-    buf: &mut Buf,
-    header_type: u8,
-    message_counter: u8,
-    message_length: usize,
-    headers_length: usize,
-) -> Result<Message, Error> {
-    let header = decode_header(buf, header_type, message_counter)?;
 
-    let has_extended_header = (header_type & WITH_EXTENDED_HEADER_FLAG) != 0;
-    let (verbose, arg_count, extended_header) = if has_extended_header {
-        decode_extended_header(buf)?
-    } else {
-        (false, 0, None)
-    };
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    let payload_length = message_length - headers_length;
+    use pretty_assertions::assert_eq;
+    use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
+    use proptest::prelude::*;
 
-    let payload = if header.is_big_endian {
-        decode_payload::<BigEndian>(buf, verbose, arg_count, payload_length)
-    } else {
-        decode_payload::<LittleEndian>(buf, verbose, arg_count, payload_length)
-    }?;
-
-    Ok(Message {
-        storage_header: None,
-        header,
-        extended_header,
-        payload,
-    })
-}
-
-fn decode_payload<T: ByteOrder>(
-    buf: &mut Buf,
-    verbose: bool,
-    arg_count: usize,
-    payload_length: usize,
-) -> Result<Payload, Error> {
-    if !verbose {
-        let message_id = buf.reader().read_u32::<T>()?;
-        let payload = buf.bytes()[..(payload_length - 4)].to_vec();
-        Ok(Payload::NonVerbose(message_id, payload))
-    } else {
-        let mut arguments = Vec::with_capacity(arg_count);
-        for _ in 0..arg_count {
-            let arg = decode_argument::<T>(buf)?;
-            arguments.push(arg);
+    proptest! {
+        #[test]
+        fn convert_type_info_to_bytes_doesnt_crash(type_info: TypeInfo) {
+            let _ = type_info.as_bytes::<BigEndian>();
         }
-
-        Ok(Payload::Verbose(arguments))
     }
-}
 
-impl Encoder for Codec {
-    type Item = Message;
-    type Error = Error;
+    #[test]
+    fn test_convert_header_to_bytes() {
+        let header: StandardHeader = StandardHeader {
+            version: 1,
+            has_extended_header: true,
+            big_endian: true,
+            message_counter: 0x33,
+            overall_length: 0x1,
+            ecu_id: Some("abc".to_string()),
+            session_id: None,
+            timestamp: Some(5),
+        };
+        assert_eq!(
+            vec![
+                0x37, // header-type
+                0x33, // message-counter
+                0x0, 0x1, // overall length
+                0x61, 0x62, 0x63, 0x0, // ecu id "abc"
+                0x0, 0x0, 0x0, 0x5, // timestamp
+            ],
+            header.as_bytes()
+        );
+    }
+    #[test]
+    fn test_convert_extended_header_to_bytes() {
+        let extended_header = ExtendedHeader {
+            argument_count: 2,
+            verbose: true,
+            message_type: MessageType::Log(LogLevel::Warn),
+            application_id: "abc".to_string(),
+            context_id: "CON".to_string(),
+        };
+        assert_eq!(
+            vec![
+                0b0011_0001, // message info MSIN
+                0x2,         // arg-count
+                0x61,
+                0x62,
+                0x63,
+                0x0, // app id
+                0x43,
+                0x4F,
+                0x4E,
+                0x0, // context id
+            ],
+            extended_header.as_bytes()
+        );
+    }
+    #[test]
+    fn test_convert_storage_header_to_bytes() {
+        let timestamp = DltTimeStamp {
+            seconds: 0x4DC92C26,
+            microseconds: 0x000CA2D8,
+        };
+        let storage_header = StorageHeader {
+            timestamp,
+            ecu_id: "abc".to_string(),
+        };
+        assert_eq!(
+            vec![
+                0x44, 0x4C, 0x54, 0x01, // dlt tag
+                0x26, 0x2C, 0xC9, 0x4D, // timestamp seconds
+                0xD8, 0xA2, 0x0C, 0x0, // timestamp microseconds
+                0x61, 0x62, 0x63, 0x0, // ecu id "abc"
+            ],
+            storage_header.as_bytes()
+        );
+    }
+    #[test]
+    fn test_convert_typeinfo_to_bytes() {
+        let type_info = TypeInfo {
+            kind: TypeInfoKind::Bool,
+            coding: StringCoding::UTF8,
+            has_variable_info: true,
+            is_fixed_point: false,
+            has_trace_info: false,
+        };
+        let type_info2 = TypeInfo {
+            kind: TypeInfoKind::Unsigned(TypeLength::BitLength32),
+            coding: StringCoding::ASCII,
+            has_variable_info: false,
+            is_fixed_point: true,
+            has_trace_info: false,
+        };
+        let type_info3 = TypeInfo {
+            kind: TypeInfoKind::StringType,
+            coding: StringCoding::UTF8,
+            has_variable_info: false,
+            is_fixed_point: false,
+            has_trace_info: false,
+        };
+        let expected1: u32 = 0b0000_0000_0000_0000_1000_1000_0001_0001;
+        let expected2: u32 = 0b0000_0000_0000_0000_0001_0000_0100_0011;
+        let expected3: u32 = 0b0000_0000_0000_0000_1000_0010_0000_0000;
+        // string coding .......................^^_^||| |||| |||| ||||
+        // type struct .............................^|| |||| |||| ||||
+        // trace info ...............................^| |||| |||| ||||
+        // fixed point ...............................^ |||| |||| ||||
+        // variable info................................^||| |||| ||||
+        // type raw .....................................^|| |||| ||||
+        // type string ...................................^| |||| ||||
+        // type array .....................................^ |||| ||||
+        // type float .......................................^||| ||||
+        // type unsigned .....................................^|| ||||
+        // type signed ........................................^| ||||
+        // type bool ...........................................^ ||||
+        // type length ...........................................^^^^
+        println!("expected: {:#b}", expected2);
+        println!(
+            "got     : {:#b}",
+            BigEndian::read_u32(&type_info2.as_bytes::<BigEndian>()[..])
+        );
+        assert_eq!(
+            expected1,
+            BigEndian::read_u32(&type_info.as_bytes::<BigEndian>()[..])
+        );
+        assert_eq!(
+            expected1,
+            LittleEndian::read_u32(&type_info.as_bytes::<LittleEndian>()[..])
+        );
+        assert_eq!(
+            expected2,
+            BigEndian::read_u32(&type_info2.as_bytes::<BigEndian>()[..])
+        );
+        assert_eq!(
+            expected2,
+            LittleEndian::read_u32(&type_info2.as_bytes::<LittleEndian>()[..])
+        );
+        assert_eq!(
+            expected3,
+            BigEndian::read_u32(&type_info3.as_bytes::<BigEndian>()[..])
+        );
+        assert_eq!(
+            expected3,
+            LittleEndian::read_u32(&type_info3.as_bytes::<LittleEndian>()[..])
+        );
+    }
+    #[test]
+    fn test_convert_bool_argument_to_bytes() {
+        let type_info = TypeInfo {
+            kind: TypeInfoKind::Bool,
+            coding: StringCoding::UTF8,
+            has_variable_info: true,
+            is_fixed_point: false,
+            has_trace_info: false,
+        };
+        let argument = Argument {
+            type_info: type_info.clone(),
+            name: Some("foo".to_string()),
+            unit: None,
+            fixed_point: None,
+            value: Value::Bool(true),
+        };
+        let mut expected = type_info.as_bytes::<BigEndian>();
+        expected.extend(vec![0x0, 0x4]); // length of name + zero
+        expected.extend(b"foo\0");
+        expected.extend(vec![0x1]); // value for bool (true == 1)
+        assert_eq!(expected, argument.as_bytes::<BigEndian>());
 
-    fn encode(&mut self, _: Self::Item, _: &mut BytesMut) -> Result<(), Self::Error> {
-        unimplemented!()
+        // now without variable info
+        let type_info2 = TypeInfo {
+            kind: TypeInfoKind::Bool,
+            coding: StringCoding::UTF8,
+            has_variable_info: true,
+            is_fixed_point: false,
+            has_trace_info: false,
+        };
+        let mut expected2 = type_info2.as_bytes::<BigEndian>();
+        let argument2 = Argument {
+            type_info: type_info2,
+            name: None,
+            unit: None,
+            fixed_point: None,
+            value: Value::Bool(true),
+        };
+        expected2.extend(vec![0x1]); // value for bool (true == 1)
+        assert_eq!(expected2, argument2.as_bytes::<BigEndian>());
+    }
+    #[test]
+    fn test_convert_uint_argument_to_bytes() {
+        let type_info = TypeInfo {
+            kind: TypeInfoKind::Unsigned(TypeLength::BitLength32),
+            coding: StringCoding::UTF8,
+            has_variable_info: true,
+            is_fixed_point: false,
+            has_trace_info: false,
+        };
+        let mut expected = type_info.as_bytes::<BigEndian>();
+        let argument = Argument {
+            type_info,
+            name: Some("speed".to_string()),
+            unit: Some("mph".to_string()),
+            fixed_point: None,
+            value: Value::U32(0x33),
+        };
+        expected.extend(vec![0x0, 0x6]); // length of name + zero
+        expected.extend(vec![0x0, 0x4]); // length of unit + zero
+        expected.extend(b"speed\0");
+        expected.extend(b"mph\0");
+        let mut buf = [0; 4];
+        BigEndian::write_u32(&mut buf, 0x33);
+        expected.extend(&buf); // value
+        assert_eq!(expected, argument.as_bytes::<BigEndian>());
+
+        // now without variable info
+        let type_info = TypeInfo {
+            kind: TypeInfoKind::Unsigned(TypeLength::BitLength32),
+            coding: StringCoding::UTF8,
+            has_variable_info: false,
+            is_fixed_point: false,
+            has_trace_info: false,
+        };
+        let mut expected = type_info.as_bytes::<BigEndian>();
+        let argument = Argument {
+            type_info,
+            name: None,
+            unit: None,
+            fixed_point: None,
+            value: Value::U32(0x33),
+        };
+        let mut buf = [0; 4];
+        BigEndian::write_u32(&mut buf, 0x33);
+        expected.extend(&buf); // value
+        assert_eq!(expected, argument.as_bytes::<BigEndian>());
+    }
+
+    #[test]
+    fn test_convert_sint_argument_to_bytes() {
+        let type_info = TypeInfo {
+            kind: TypeInfoKind::Signed(TypeLength::BitLength32),
+            coding: StringCoding::UTF8,
+            has_variable_info: true,
+            is_fixed_point: false,
+            has_trace_info: false,
+        };
+        let mut expected = type_info.as_bytes::<BigEndian>();
+        let argument = Argument {
+            type_info,
+            name: Some("speed".to_string()),
+            unit: Some("mph".to_string()),
+            fixed_point: None,
+            value: Value::I32(-0x33),
+        };
+        expected.extend(vec![0x0, 0x6]); // length of name + zero
+        expected.extend(vec![0x0, 0x4]); // length of unit + zero
+        expected.extend(b"speed\0");
+        expected.extend(b"mph\0");
+        let mut buf = [0; 4];
+        BigEndian::write_i32(&mut buf, -0x33);
+        expected.extend(&buf); // value
+        assert_eq!(expected, argument.as_bytes::<BigEndian>());
+
+        // now without variable info
+        let type_info = TypeInfo {
+            kind: TypeInfoKind::Signed(TypeLength::BitLength32),
+            coding: StringCoding::UTF8,
+            has_variable_info: false,
+            is_fixed_point: false,
+            has_trace_info: false,
+        };
+        let mut expected = type_info.as_bytes::<BigEndian>();
+        let argument = Argument {
+            type_info,
+            name: None,
+            unit: None,
+            fixed_point: None,
+            value: Value::I32(-0x33),
+        };
+        let mut buf = [0; 4];
+        BigEndian::write_i32(&mut buf, -0x33);
+        expected.extend(&buf); // value
+        assert_eq!(expected, argument.as_bytes::<BigEndian>());
+    }
+
+    #[test]
+    fn test_convert_float_argument_to_bytes() {
+        let type_info = TypeInfo {
+            kind: TypeInfoKind::Float(TypeLength::BitLength32),
+            coding: StringCoding::UTF8,
+            has_variable_info: true,
+            is_fixed_point: false,
+            has_trace_info: false,
+        };
+        let mut expected = type_info.as_bytes::<BigEndian>();
+        let argument = Argument {
+            type_info,
+            name: Some("speed".to_string()),
+            unit: Some("mph".to_string()),
+            fixed_point: None,
+            value: Value::F32(123.98f32),
+        };
+        expected.extend(vec![0x0, 0x6]); // length of name + zero
+        expected.extend(vec![0x0, 0x4]); // length of unit + zero
+        expected.extend(b"speed\0");
+        expected.extend(b"mph\0");
+        let mut buf = [0; 4];
+        BigEndian::write_f32(&mut buf, 123.98f32);
+        expected.extend(&buf); // value
+        assert_eq!(expected, argument.as_bytes::<BigEndian>());
+
+        // now without variable info
+        let type_info = TypeInfo {
+            kind: TypeInfoKind::Float(TypeLength::BitLength64),
+            coding: StringCoding::UTF8,
+            has_variable_info: false,
+            is_fixed_point: false,
+            has_trace_info: false,
+        };
+        let mut expected = type_info.as_bytes::<BigEndian>();
+        let argument = Argument {
+            type_info,
+            name: None,
+            unit: None,
+            fixed_point: None,
+            value: Value::F64(123.98f64),
+        };
+        let mut buf = [0; 8];
+        BigEndian::write_f64(&mut buf, 123.98f64);
+        expected.extend(&buf); // value
+        assert_eq!(expected, argument.as_bytes::<BigEndian>());
+    }
+    #[test]
+    fn test_convert_string_argument_to_bytes() {
+        let type_info = TypeInfo {
+            kind: TypeInfoKind::StringType,
+            coding: StringCoding::UTF8,
+            has_variable_info: true,
+            is_fixed_point: false,
+            has_trace_info: false,
+        };
+        let mut expected = type_info.as_bytes::<BigEndian>();
+        let argument = Argument {
+            type_info,
+            name: Some("speed".to_string()),
+            unit: None,
+            fixed_point: None,
+            value: Value::StringVal("foo".to_string()),
+        };
+        expected.extend(vec![0x0, 0x4]); // length of value + zero
+        expected.extend(vec![0x0, 0x6]); // length of name + zero
+        expected.extend(b"speed\0"); // name
+        expected.extend(b"foo\0"); // value
+        assert_eq!(expected, argument.as_bytes::<BigEndian>());
+
+        // now without variable info
+        let type_info = TypeInfo {
+            kind: TypeInfoKind::StringType,
+            coding: StringCoding::UTF8,
+            has_variable_info: false,
+            is_fixed_point: false,
+            has_trace_info: false,
+        };
+        let mut expected = type_info.as_bytes::<BigEndian>();
+        let argument = Argument {
+            type_info,
+            name: None,
+            unit: None,
+            fixed_point: None,
+            value: Value::StringVal("foo".to_string()),
+        };
+        expected.extend(vec![0x0, 0x4]); // length of value + zero
+        expected.extend(b"foo\0"); // value
+        let argument_bytes = argument.as_bytes::<BigEndian>();
+        println!("{:02X?}", argument_bytes);
+        assert_eq!(expected, argument_bytes);
+    }
+    #[test]
+    fn test_convert_fixedpoint_argument_to_bytes() {
+        let type_info = TypeInfo {
+            kind: TypeInfoKind::Signed(TypeLength::BitLength32),
+            coding: StringCoding::UTF8,
+            has_variable_info: true,
+            is_fixed_point: true,
+            has_trace_info: false,
+        };
+        let mut expected = type_info.as_bytes::<BigEndian>();
+        let argument = Argument {
+            type_info,
+            name: Some("speed".to_string()),
+            unit: Some("mph".to_string()),
+            value: Value::I32(-44),
+            fixed_point: Some(FixedPoint {
+                quantization: 1.5,
+                offset: FixedPointValue::I32(-200),
+            }),
+        };
+        expected.extend(vec![0x0, 0x6]); // length of name + zero
+        expected.extend(vec![0x0, 0x4]); // length of unit + zero
+        expected.extend(b"speed\0");
+        expected.extend(b"mph\0");
+        let mut buf = [0; 4];
+        BigEndian::write_f32(&mut buf, 1.5f32);
+        expected.extend(&buf); // value
+        BigEndian::write_i32(&mut buf, -200);
+        expected.extend(&buf); // value
+        BigEndian::write_i32(&mut buf, -44);
+        expected.extend(&buf); // value
+        assert_eq!(expected, argument.as_bytes::<BigEndian>());
+
+        // now without variable info
+        let type_info = TypeInfo {
+            kind: TypeInfoKind::Signed(TypeLength::BitLength32),
+            coding: StringCoding::UTF8,
+            has_variable_info: false,
+            is_fixed_point: true,
+            has_trace_info: false,
+        };
+        let mut expected = type_info.as_bytes::<BigEndian>();
+        let argument = Argument {
+            type_info,
+            name: None,
+            unit: None,
+            value: Value::I32(-44),
+            fixed_point: Some(FixedPoint {
+                quantization: 1.5,
+                offset: FixedPointValue::I32(-200),
+            }),
+        };
+        let mut buf = [0; 4];
+        BigEndian::write_f32(&mut buf, 1.5f32);
+        expected.extend(&buf); // value
+        BigEndian::write_i32(&mut buf, -200);
+        expected.extend(&buf); // value
+        BigEndian::write_i32(&mut buf, -44);
+        expected.extend(&buf); // value
+        assert_eq!(expected, argument.as_bytes::<BigEndian>());
+    }
+    #[test]
+    fn test_convert_raw_argument_to_bytes() {
+        let type_info = TypeInfo {
+            kind: TypeInfoKind::Raw,
+            coding: StringCoding::UTF8,
+            has_variable_info: true,
+            is_fixed_point: false,
+            has_trace_info: false,
+        };
+        let mut expected = type_info.as_bytes::<BigEndian>();
+        let argument = Argument {
+            type_info,
+            name: Some("foo".to_string()),
+            unit: None,
+            value: Value::Raw(vec![0xD, 0xE, 0xA, 0xD]),
+            fixed_point: Some(FixedPoint {
+                quantization: 1.5,
+                offset: FixedPointValue::I32(-200),
+            }),
+        };
+        expected.extend(vec![0x0, 0x4]); // length of raw data bytes
+        expected.extend(vec![0x0, 0x4]); // length of name + zero
+        expected.extend(b"foo\0");
+        expected.extend(vec![0xD, 0xE, 0xA, 0xD]);
+        assert_eq!(expected, argument.as_bytes::<BigEndian>());
+
+        // now without variable info
+        let type_info = TypeInfo {
+            kind: TypeInfoKind::Raw,
+            coding: StringCoding::UTF8,
+            has_variable_info: false,
+            is_fixed_point: false,
+            has_trace_info: false,
+        };
+        let mut expected = type_info.as_bytes::<BigEndian>();
+        let argument = Argument {
+            type_info,
+            name: None,
+            unit: None,
+            value: Value::Raw(vec![0xD, 0xE, 0xA, 0xD]),
+            fixed_point: Some(FixedPoint {
+                quantization: 1.5,
+                offset: FixedPointValue::I32(-200),
+            }),
+        };
+        expected.extend(vec![0x0, 0x4]); // length of raw data bytes
+        expected.extend(vec![0xD, 0xE, 0xA, 0xD]);
+        assert_eq!(expected, argument.as_bytes::<BigEndian>());
     }
 }

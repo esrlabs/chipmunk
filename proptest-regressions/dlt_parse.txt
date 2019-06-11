@@ -1,0 +1,10 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 7e6bfdc3834fb4139fcbf48ae82705c04f73bcb05f3d198b60b24def98861665 # shrinks to s = "A"
+cc ece85d6cfd66f9a5e721ac707508325ca627d4a949f2c847d5bde7d345aba2a2 # shrinks to type_info = TypeInfo { kind: Raw, coding: ASCII, has_variable_info: false, is_fixed_point: false, has_trace_info: false, has_structured_data: false }
+cc 3793754c90b03b7714d102bff720be042dd13377440ca4fb113cc4960efbaf05 # shrinks to header_to_expect = ExtendedHeader { verbose: false, argument_count: 0, message_type: Log(Fatal), application_id: "00 0 ", context_id: "" }
+cc 26792daf76ff40158de157e5fe4496932ef313d356e8808e82d13494f1d24b75 # shrinks to header_to_expect = StandardHeader { version: 0, has_extended_header: false, big_endian: false, message_counter: 0, overall_length: 0, ecu_id: Some("🀰®"), session_id: None, timestamp: None }

@@ -91,7 +91,6 @@ pub fn next_line_nr(path: &std::path::Path) -> Option<usize> {
                 .trim_end_matches(ROW_NUMBER_SENTINAL)
                 .parse()
                 .expect("expected number was was none");
-            eprintln!("parsing: {:02X?} => last row_nr: {}", row_slice, row_nr);
             return Some(row_nr + 1);
         }
     }

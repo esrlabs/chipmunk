@@ -1,24 +1,26 @@
 use crate::chunks::serialize_chunks;
-use crate::dlt::{create_message_line, DltFileCodec, Message};
+// use crate::dlt_tokio::{DltFileCodec};
 use crate::parse::{
     line_matching_format_expression, match_format_string_in_file, read_format_string_options,
     FormatTestOptions,
 };
+use crate::dlt_parse::*;
 
 #[macro_use]
 extern crate clap;
 use clap::{App, Arg, SubCommand};
 use std::fs;
-use std::io::{BufRead, BufReader, BufWriter, Read, Write};
+// use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::path;
 use std::time::Instant;
-use tokio::codec::{FramedRead, FramedWrite};
-use tokio::prelude::stream::Stream;
-use tokio::prelude::{Future, Sink};
+// use tokio::codec::{FramedRead, FramedWrite};
+// use tokio::prelude::{Future, Sink};
 
 
 mod chunks;
 mod dlt;
+mod dlt_parse;
+mod dlt_tokio;
 mod merger;
 mod parse;
 mod processor;
@@ -387,74 +389,109 @@ fn main() {
             );
             let mapping_out_path: path::PathBuf =
                 path::PathBuf::from(file_name.to_string() + ".map.json");
-            // let append = true; // get from cmd args
-            // let out_file: std::fs::File = if append {
-            //     std::fs::OpenOptions::new()
-            //         .append(true)
-            //         .create(true)
-            //         .open(out_path)
-            //         .expect("file not opened")
-            // } else {
-            //     std::fs::File::create(&out_path).unwrap()
-            // };
-            // let mut buf_writer = BufWriter::with_capacity(100 * 1024 * 1024, out_file);
-            // let task = tokio::fs::File::open(file_path)
-            //     // .and_then(|input| tokio::fs::File::create(out_path).map(|output| (input, output)))
-            //     // .and_then(|(input, output)| {
-            //     //     tokio::fs::File::create(mapping_out_path)
-            //     //         .map(|mapping_output| (input, output, mapping_output))
-            //     // })
-            //     // .and_then(|(file, output, mapping_output)| {
-            //     .and_then(|file| {
-            //         let mut message_cnt = 0usize;
-            //         let stream = FramedRead::new(file, DltFileCodec::default());
-            //         // let sink = FramedWrite::new(output, DltFileCodec::default());
-            //         // let mapping_sink = FramedWrite::new(mapping_output, MappingCodec::default());
-            //         // // let dst = sink;
-            //         // let dst = sink.fanout(mapping_sink);
-            //         stream
-            //             //     .forward(dst)
-            //             //     .map_err(|e| {
-            //             //         println!("error happened: {}", e);
-            //             //         e
-            //             //     })
-            //             //     .map(drop)
-            //             .for_each(move |message| {
-            //                 create_message_line(&mut buf_writer, message)?;
-            //                 Ok(())
-            //             })
-            //     })
-            //     .map_err(|err| eprintln!("IO error: {:?}", err));
-            let task = tokio::fs::File::open(file_path)
-                .and_then(|input| tokio::fs::File::create(out_path).map(|output| (input, output)))
-                .and_then(|(input, output)| {
-                    tokio::fs::File::create(mapping_out_path)
-                        .map(|mapping_output| (input, output, mapping_output))
-                })
-                .and_then(|(file, output, mapping_output)| {
-                    let stream = FramedRead::new(file, DltFileCodec::default());
-                    let sink = FramedWrite::new(output, DltFileCodec::default());
-                    stream
-                        .forward(sink)
-                        .map_err(|e| {
-                            println!("error happened: {}", e);
-                            e
-                        })
-                        .map(drop)
-                })
-                .map_err(|err| eprintln!("IO error: {:?}", err));
-            tokio::run(task);
+            let f = match fs::File::open(&file_path) {
+                Ok(file) => file,
+                Err(_) => {
+                    eprintln!("could not open {:?}", file_path);
+                    std::process::exit(2)
+                }
+            };
 
-            // buf_writer.flush().expect("flush did not");
-
-            let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
-            duration_report_throughput(
-                start,
-                format!("parsing ~{} MB", file_size_in_mb.round()),
-                file_size_in_mb,
-                "MB".to_string(),
-            )
+            let message_iter = MessageIter::new(f);
+            for message in message_iter {
+                println!("{}", message);
+            }
+            // let mut p = message_iter.peekable();
+            // p.peek();
         }
+        /*
+            if matches.is_present("input") {
+                let file_name = matches.value_of("input").expect("input must be present");
+                let source_file_size = match fs::metadata(file_name) {
+                    Ok(file_meta) => file_meta.len() as usize,
+                    Err(_) => {
+                        eprintln!("could not find out size of source file");
+                        std::process::exit(2);
+                    }
+                };
+                let file_path = path::PathBuf::from(file_name);
+                let fallback_out = file_name.to_string() + ".out";
+                let out_path = path::PathBuf::from(
+                    matches
+                        .value_of("output")
+                        .unwrap_or_else(|| fallback_out.as_str()),
+                );
+                let mapping_out_path: path::PathBuf =
+                    path::PathBuf::from(file_name.to_string() + ".map.json");
+                // let append = true; // get from cmd args
+                // let out_file: std::fs::File = if append {
+                //     std::fs::OpenOptions::new()
+                //         .append(true)
+                //         .create(true)
+                //         .open(out_path)
+                //         .expect("file not opened")
+                // } else {
+                //     std::fs::File::create(&out_path).unwrap()
+                // };
+                // let mut buf_writer = BufWriter::with_capacity(100 * 1024 * 1024, out_file);
+                // let task = tokio::fs::File::open(file_path)
+                //     // .and_then(|input| tokio::fs::File::create(out_path).map(|output| (input, output)))
+                //     // .and_then(|(input, output)| {
+                //     //     tokio::fs::File::create(mapping_out_path)
+                //     //         .map(|mapping_output| (input, output, mapping_output))
+                //     // })
+                //     // .and_then(|(file, output, mapping_output)| {
+                //     .and_then(|file| {
+                //         let mut message_cnt = 0usize;
+                //         let stream = FramedRead::new(file, DltFileCodec::default());
+                //         // let sink = FramedWrite::new(output, DltFileCodec::default());
+                //         // let mapping_sink = FramedWrite::new(mapping_output, MappingCodec::default());
+                //         // // let dst = sink;
+                //         // let dst = sink.fanout(mapping_sink);
+                //         stream
+                //             //     .forward(dst)
+                //             //     .map_err(|e| {
+                //             //         println!("error happened: {}", e);
+                //             //         e
+                //             //     })
+                //             //     .map(drop)
+                //             .for_each(move |message| {
+                //                 create_message_line(&mut buf_writer, message)?;
+                //                 Ok(())
+                //             })
+                //     })
+                //     .map_err(|err| eprintln!("IO error: {:?}", err));
+                let task = tokio::fs::File::open(file_path)
+                    .and_then(|input| tokio::fs::File::create(out_path).map(|output| (input, output)))
+                    .and_then(|(input, output)| {
+                        tokio::fs::File::create(mapping_out_path)
+                            .map(|mapping_output| (input, output, mapping_output))
+                    })
+                    .and_then(|(file, output, mapping_output)| {
+                        let stream = FramedRead::new(file, DltFileCodec::default());
+                        let sink = FramedWrite::new(output, DltFileCodec::default());
+                        stream
+                            .forward(sink)
+                            .map_err(|e| {
+                                println!("error happened: {}", e);
+                                e
+                            })
+                            .map(drop)
+                    })
+                    .map_err(|err| eprintln!("IO error: {:?}", err));
+                tokio::run(task);
+
+                // buf_writer.flush().expect("flush did not");
+
+                let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
+                duration_report_throughput(
+                    start,
+                    format!("parsing ~{} MB", file_size_in_mb.round()),
+                    file_size_in_mb,
+                    "MB".to_string(),
+                )
+            }
+        }*/
     }
 }
 
@@ -479,19 +516,3 @@ fn duration_report_throughput(
         report, duration_in_s, amount_per_second, unit
     );
 }
-
-// use bytes::BytesMut;
-// use tokio::codec::Encoder;
-// #[derive(Default)]
-// pub struct MappingCodec;
-// impl Encoder for MappingCodec {
-//     type Item = Message;
-//     type Error = std::io::Error;
-//     fn encode(&mut self, msg: Self::Item, dest: &mut BytesMut) -> Result<(), Self::Error> {
-//         // writeln!(dest, "{}", 0).map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
-//         match writeln!(dest, "{}", msg.len()) {
-//             Ok(_) => Ok(()),
-//             Err(_) => Ok(()),
-//         }
-//     }
-// }

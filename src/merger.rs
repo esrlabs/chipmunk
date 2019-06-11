@@ -184,10 +184,7 @@ impl Merger {
             .map(|input| {
                 fs::File::open(&input.path)
                     .map_err(failure::Error::from)
-                    // .and_then(|f| detect_timestamp_regex(&input.path).map(|r| (f, r)))
-                    // .and_then(|f| detect_timestamp_regex(&input.path).map(|r| (f, r)))
                     .and_then(|f| {
-                        // let r: &Regex = &REGEX_REGISTRY[&kind];
                         let r: Regex = date_format_str_to_regex(&input.format)?;
                         Ok(
                             TimedLineIter::new(f, input.tag.as_str(), r, input.year, input.offset)
