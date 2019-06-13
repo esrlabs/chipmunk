@@ -46,6 +46,9 @@ export { IStreamSourceNew, StreamSourceNew };
 import { ISearchChunk, SearchChunk } from './search.chunk';
 export { ISearchChunk, SearchChunk };
 
+import { ISearchUpdated, SearchUpdated } from './search.updated';
+export { ISearchUpdated, SearchUpdated };
+
 import { ISearchRequest, SearchRequest, IRegExpStr } from './search.request';
 export { ISearchRequest, SearchRequest, IRegExpStr };
 
@@ -124,6 +127,7 @@ export type TMessage =  HostState |
                         StreamSourceNew |
                         SearchRequest |
                         SearchRequestResults |
+                        SearchUpdated |
                         SearchChunk |
                         FileGetParserRequest |
                         FileGetParserResponse |
@@ -169,6 +173,7 @@ export const Map = {
     [SearchRequest.signature                ]: SearchRequest,
     [SearchRequestResults.signature         ]: SearchRequestResults,
     [SearchChunk.signature                  ]: SearchChunk,
+    [SearchUpdated.signature                ]: SearchUpdated,
 
     [FileGetParserRequest.signature         ]: FileGetParserRequest,
     [FileGetParserResponse.signature        ]: FileGetParserResponse,
