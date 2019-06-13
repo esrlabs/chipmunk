@@ -87,7 +87,6 @@ export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
             return;
         }
         this.state.maximize();
-        console.log('dfsdfsdsfsdfsd');
     }
 
     private _onMinimized(minimized: boolean) {

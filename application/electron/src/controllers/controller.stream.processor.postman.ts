@@ -10,16 +10,10 @@ const CSettings = {
     maxPostponedChunksMessages: 500,
 };
 
-interface IReadResults {
-    range: IMapItem;
-    content: string;
-}
-
 export default class ControllerStreamUpdatesPostman {
 
     private _logger: Logger;
     private _streamId: string;
-    private _chunk: { timer: any, attempts: number } = { timer: -1, attempts: 0 };
     private _notification: { timer: any, attempts: number } = { timer: -1, attempts: 0 };
     private _map: BytesRowsMap;
     private _destroyed: boolean = false;
@@ -31,7 +25,6 @@ export default class ControllerStreamUpdatesPostman {
     }
 
     public destroy() {
-        clearTimeout(this._chunk.timer);
         clearTimeout(this._notification.timer);
         this._destroyed = true;
     }

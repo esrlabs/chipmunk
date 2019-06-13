@@ -41,7 +41,7 @@ export class ViewComponent implements AfterViewInit, OnDestroy {
                 command: 'shell',
                 post: event.key
             }, this.session).then((response) => {
-                console.log(`RES:: ${response}`);
+                // TODO: what to do here?
             });
         } else {
             this.ipc.requestToHost({
@@ -49,7 +49,7 @@ export class ViewComponent implements AfterViewInit, OnDestroy {
                 command: 'shell',
                 post: String.fromCharCode(event.keyCode)
             }, this.session).then((response) => {
-                console.log(`RES:: ${response}`);
+                // TODO: what to do here?
             });
         }
         (event.target as HTMLInputElement).value = '';

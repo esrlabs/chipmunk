@@ -60,7 +60,6 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
     }
 
     public onClick(tabkey: string) {
-        console.log(tabkey);
         this.service.setActive(tabkey);
         this._cdRef.detectChanges();
     }

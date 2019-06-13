@@ -71,7 +71,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                 command: EHostCommands.open,
                 file: files[0]
             }, this.session).then((response) => {
-                console.log(response);
+                // TODO: what to do here?
             });
         });
     }
