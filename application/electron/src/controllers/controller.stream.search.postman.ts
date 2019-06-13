@@ -5,8 +5,6 @@ import BytesRowsMap, { IMapItem } from './controller.stream.search.map';
 const CSettings = {
     notificationDelayOnStream: 500,             // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is blocked
     maxPostponedNotificationMessages: 500,      // How many IPC messages to render (client) should be postponed via timer
-    chunkDelayOnStream: 1000,
-    maxPostponedChunksMessages: 500,
 };
 
 interface IReadResults {
@@ -18,7 +16,6 @@ export default class ControllerSearchUpdatesPostman {
 
     private _logger: Logger;
     private _streamId: string;
-    private _chunk: { timer: any, attempts: number } = { timer: -1, attempts: 0 };
     private _notification: { timer: any, attempts: number } = { timer: -1, attempts: 0 };
     private _map: BytesRowsMap;
     private _destroyed: boolean = false;
@@ -30,7 +27,6 @@ export default class ControllerSearchUpdatesPostman {
     }
 
     public destroy() {
-        clearTimeout(this._chunk.timer);
         clearTimeout(this._notification.timer);
         this._destroyed = true;
     }
