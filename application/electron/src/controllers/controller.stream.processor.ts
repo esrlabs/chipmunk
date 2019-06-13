@@ -1,12 +1,11 @@
 import * as fs from 'fs';
 import * as Stream from 'stream';
 import Logger from '../tools/env.logger';
-import Subject from '../tools/subject';
 import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from '../services/service.electron';
 import ServicePlugins from '../services/service.plugins';
 import ServiceStreamSource from '../services/service.stream.sources';
 import ControllerIPCPlugin, { IPCMessages as IPCPluginMessages} from './controller.plugin.process.ipc';
-import Transform, { ITransformResult, convert } from './controller.stream.processor.pipe.transform';
+import Transform, { ITransformResult } from './controller.stream.processor.pipe.transform';
 import { IMapItem } from './controller.stream.processor.map';
 import State from './controller.stream.processor.state';
 import StreamState from './controller.stream.state';
@@ -93,21 +92,33 @@ export default class ControllerStreamProcessor {
                 return reject(new Error(`Fail to write data due error: ${sourceInfo.message}`));
             }
             // Convert chunk to string
-            convert(this._guid, sourceInfo.id, this._state, this._streamState, output, (converted: ITransformResult) => {
-                return new Promise((resolveBeforeNotify, rejectBeforeNotify) => {
+            const transform: Transform = new Transform( {},
+                                                        this._guid,
+                                                        sourceInfo.id,
+                                                        { bytes: this._state.map.getByteLength(), rows: this._state.map.getRowsCount() });
+            transform.setBeforeCallbackHandle((converted: ITransformResult) => {
+                return new Promise((resolveBeforeCallback, rejectBeforeCallback) => {
+                    // Add data into map
+                    this._state.map.add(converted.map);
+                    // Add data in progress
+                    this._state.pipes.next(converted.bytesSize);
                     // Write data
                     this._getStreamFileHandle().write(converted.output, (writeError: Error | null | undefined) => {
+                        // Send notification to render
+                        this._state.postman.notification();
+                        // Trigger event on stream was updated
+                        this._streamState.getSubject().onStreamUpdated.emit(converted.map.bytes);
                         if (writeError) {
                             const error: Error = new Error(this._logger.error(`Fail to write data into stream file due error: ${writeError.message}`));
-                            rejectBeforeNotify(error);
+                            rejectBeforeCallback(error);
                             return reject(error);
                         }
-                        resolveBeforeNotify();
+                        resolveBeforeCallback();
                         resolve();
                     });
                 });
             });
-
+            transform.convert(output);
         });
     }
 
@@ -117,7 +128,20 @@ export default class ControllerStreamProcessor {
         if (sourceInfo instanceof Error) {
             return new Error(`Fail to pipe data due error: ${sourceInfo.message}`);
         }
-        const transform: Transform = new Transform({}, this._guid, options.sourceId, this._state, this._streamState);
+        const transform: Transform = new Transform( {},
+                                                    this._guid,
+                                                    options.sourceId,
+                                                    { bytes: this._state.map.getByteLength(), rows: this._state.map.getRowsCount() });
+        transform.on(Transform.Events.onMapped, (converted: ITransformResult) => {
+            // Add data into map
+            this._state.map.add(converted.map);
+            // Add data in progress
+            this._state.pipes.next(converted.bytesSize);
+            // Send notification to render
+            this._state.postman.notification();
+            // Trigger event on stream was updated
+            this._streamState.getSubject().onStreamUpdated.emit(converted.map.bytes);
+        });
         if (options.decoder !== undefined) {
             options.reader.pipe(options.decoder).pipe(transform).pipe(this._getStreamFileHandle(), { end: false});
         } else {
