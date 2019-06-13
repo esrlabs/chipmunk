@@ -15,10 +15,19 @@
         order: 1;
         width: auto;
     }
+    & .injection-area{
+        flex: 1 auto;
+        order: 2;
+        width: 100%;
+    }
     & .right-area{
         flex: 1 auto;
         order: 2;
         width: 100%;
+        &.injection-exist{
+            order: 3;
+            width: auto;
+        }
         & span.state-trigger{
             transition: transform 350ms ease-in-out;
         }

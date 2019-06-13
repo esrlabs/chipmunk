@@ -2,8 +2,10 @@ import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewIni
 import { Subscription, Subject } from 'rxjs';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { ControllerSessionTabSearchOutput, ISearchStreamPacket, IStreamState, ILoadedRange } from '../../../../controller/controller.session.tab.search.output';
-import { IDataAPI, IRange, IRow, IRowsPacket, IStorageInformation } from 'logviewer-client-complex';
+import { IDataAPI, IRange, IRowsPacket, IStorageInformation, ComplexScrollBoxComponent } from 'logviewer-client-complex';
+import { IComponentDesc } from 'logviewer-client-containers';
 import { ViewSearchOutputRowComponent } from './row/component';
+import { ViewSearchControlsComponent, IButton } from './controls/component';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 
 @Component({
@@ -14,12 +16,22 @@ import ViewsEventsService from '../../../../services/standalone/service.views.ev
 
 export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, AfterContentInit {
 
+    @ViewChild(ComplexScrollBoxComponent) _scrollBoxCom: ComplexScrollBoxComponent;
+
     @Input() public session: ControllerSessionTab | undefined;
+    @Input() public injectionIntoTitleBar: Subject<IComponentDesc>;
 
     public _ng_outputAPI: IDataAPI;
 
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _output: ControllerSessionTabSearchOutput | undefined;
+    private _controls: {
+        update: Subject<IButton[]>,
+        keepScrollDown: boolean,
+    } = {
+        update: new Subject<IButton[]>(),
+        keepScrollDown: true,
+    };
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef) {
@@ -54,12 +66,15 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         this._subscriptions.onReset = this._output.getObservable().onReset.subscribe(this._onReset.bind(this));
         this._subscriptions.onScrollTo = this._output.getObservable().onScrollTo.subscribe(this._onScrollTo.bind(this));
         this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(this._onResize.bind(this));
+        // Inject controls to caption of dock
+        this._ctrl_inject();
     }
 
     public ngOnDestroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
+        this._ctrl_drop();
     }
 
     private _api_getComponentFactory(): any {
@@ -128,6 +143,49 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
     private _onResize() {
         this._cdRef.detectChanges();
         this._ng_outputAPI.onRedraw.next();
+    }
+
+    private _ctrl_inject() {
+        if (this.injectionIntoTitleBar === undefined) {
+            return;
+        }
+        this.injectionIntoTitleBar.next({
+            inputs: {
+                getButtons: this._ctrl_getButtons.bind(this),
+                onUpdate: this._controls.update.asObservable()
+            },
+            factory: ViewSearchControlsComponent,
+        });
+    }
+
+    private _ctrl_drop() {
+        if (this.injectionIntoTitleBar === undefined) {
+            return;
+        }
+        this.injectionIntoTitleBar.next(undefined);
+    }
+
+    private _ctrl_getButtons(): IButton[] {
+        return [
+            {
+                alias: 'scroll',
+                icon: `small-icon-button fa-arrow-alt-circle-down ${this._controls.keepScrollDown ? 'fas' : 'far'}`,
+                disabled: false,
+                handler: this._ctrl_onScrollDown.bind(this)
+            }
+        ];
+    }
+
+    private _ctrl_onScrollDown(button: IButton) {
+        this._controls.keepScrollDown = !this._controls.keepScrollDown;
+        this._controls.update.next(this._ctrl_getButtons());
+        if (this._scrollBoxCom === undefined || this._scrollBoxCom === null) {
+            return;
+        }
+        const last: number = this._output.getRowsCount() - 1;
+        if (this._controls.keepScrollDown && this._scrollBoxCom.getFrame().end < last) {
+            this._onScrollTo(last);
+        }
     }
 
 }

@@ -46,8 +46,7 @@ export class ControllerSessionTabStream {
         this._queue.subscribe(Toolkit.Queue.Events.done, this._queue_onDone);
         this._queue.subscribe(Toolkit.Queue.Events.next, this._queue_onNext);
         // Subscribe to streams data
-        this._ipc_onStreamUpdated = this._ipc_onStreamUpdated.bind(this);
-        ServiceElectronIpc.subscribe(IPCMessages.StreamUpdated, this._ipc_onStreamUpdated);
+        ServiceElectronIpc.subscribe(IPCMessages.StreamUpdated, this._ipc_onStreamUpdated.bind(this));
     }
 
     public destroy() {

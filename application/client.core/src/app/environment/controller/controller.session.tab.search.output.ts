@@ -233,7 +233,12 @@ export class ControllerSessionTabSearchOutput {
      * @param { number } rows - number or rows in stream
      * @returns { IRange | undefined } returns undefined if no need to load rows
      */
-    public updateStreamState(message: IPCMessages.SearchRequestResults): void {
+    public updateStreamState(rowsCount: number): void {
+        this._setBookmarksLengthOffset();
+        // Update count of rows
+        this._setTotalStreamCount(rowsCount);
+        this._subjects.onStateUpdated.next(Object.assign({}, this._state));
+        /*
         // Update count of rows
         this._setBookmarksLengthOffset();
         this._setTotalStreamCount(message.found);
@@ -245,6 +250,11 @@ export class ControllerSessionTabSearchOutput {
             this._rows = this._insertBookmarks(this._rows);
         }
         this._subjects.onStateUpdated.next(Object.assign({}, this._state));
+        */
+    }
+
+    public getRowsCount(): number {
+        return this._state.count;
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
