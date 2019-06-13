@@ -9,6 +9,8 @@ import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } fro
 import Logger from '../tools/env.logger';
 import ControllerStreamSearch from '../controllers/controller.stream.search';
 import ControllerStreamProcessor from '../controllers/controller.stream.processor';
+import ControllerStreamState from '../controllers/controller.stream.state';
+
 import { IService } from '../interfaces/interface.service';
 import * as Tools from '../tools/index';
 import { IMapItem } from '../controllers/controller.stream.processor.map';
@@ -21,6 +23,7 @@ export interface IStreamInfo {
     connections: Net.Socket[];
     connectionFactory: (pluginName: string) => Promise<{ socket: Net.Socket, file: string }>;
     server: Net.Server;
+    state: ControllerStreamState;
     processor: ControllerStreamProcessor;
     search: ControllerStreamSearch;
     received: number;
@@ -254,6 +257,8 @@ class ServiceStreams extends EventEmitter implements IService  {
             try {
                 // Create new server
                 const server: Net.Server = Net.createServer(this._acceptConnectionToSocket.bind(this, guid));
+                // Create stream state
+                const state: ControllerStreamState = new ControllerStreamState(guid);
                 // Create connection to trigger creation of server
                 const stream: IStreamInfo = {
                     guid: guid,
@@ -271,8 +276,9 @@ class ServiceStreams extends EventEmitter implements IService  {
                             (socket as any).__id = Tools.guid();
                         });
                     },
-                    processor: new ControllerStreamProcessor(guid, streamFile),
-                    search: new ControllerStreamSearch(guid, streamFile, searchFile),
+                    state: state,
+                    processor: new ControllerStreamProcessor(guid, streamFile, state),
+                    search: new ControllerStreamSearch(guid, streamFile, searchFile, state),
                     received: 0,
                 };
                 // Bind server with file

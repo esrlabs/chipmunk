@@ -1,4 +1,4 @@
-/*import * as rg from './rg';*/
+import * as rg from './rg';
 // Libs
 import Logger from './tools/env.logger';
 

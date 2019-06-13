@@ -19,7 +19,7 @@ export default class State {
         this.pipes = new PipesState(this._streamId);
         this.map = new BytesRowsMap();
         this.reader = new ControllerStreamFileReader(this._streamId, this._file);
-        this.postman = new StreamUpdatesPostman(this._streamId, this.map, this.reader);
+        this.postman = new StreamUpdatesPostman(this._streamId, this.map);
     }
 
     public destroy() {

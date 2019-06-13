@@ -1,6 +1,6 @@
 {
   "name": "logviewer",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "LogViewer",
   "main": "./dist/compiled/main.js",
   "copyright": "Copyright © 2019 year E.S.R.Labs",
@@ -48,6 +48,7 @@
     "dltreader": "latest",
     "logviewer.lvin": "latest",
     "moment-timezone": "^0.5.25",
+    "pty": "0.0.0",
     "tar": "^4.4.8",
     "uuid": "latest",
     "vscode-ripgrep": "latest"
