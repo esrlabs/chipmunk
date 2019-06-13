@@ -6,7 +6,7 @@ import { RGSearchWrapper } from './controller.stream.search.rg';
 import State from './controller.stream.search.state';
 import StreamState from './controller.stream.state';
 import { IMapItem } from './controller.stream.search.map';
-import Transform from './controller.stream.search.pipe.transform';
+import Transform, { ITransformResult } from './controller.stream.search.pipe.transform';
 import NullWritableStream from '../classes/stream.writable.null';
 
 export interface IRange {
@@ -109,7 +109,13 @@ export default class ControllerStreamSearch {
             // Create writer
             const writer: NullWritableStream = new NullWritableStream();
             // Create transformer
-            const transform: Transform = new Transform({}, this._guid, this._state);
+            const transform: Transform = new Transform({}, this._guid, { bytes: this._state.map.getByteLength(), rows: this._state.map.getRowsCount()});
+            transform.on(Transform.Events.onMapped, (converted: ITransformResult) => {
+                // Add map
+                this._state.map.add(converted.map);
+                // Notifications is here
+                this._state.postman.notification();
+            });
             // Listenn end of reading
             reader.once('end', () => {
                 resolve();
