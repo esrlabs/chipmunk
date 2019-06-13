@@ -20,5 +20,7 @@
   </div>
 </div>
 <div class="rows noreset">
-  <app-views-search-output #output [session]="_ng_session"></app-views-search-output>
+  <app-views-search-output #output 
+    [injectionIntoTitleBar]="injectionIntoTitleBar"
+    [session]="_ng_session"></app-views-search-output>
 </div>

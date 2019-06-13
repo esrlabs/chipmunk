@@ -1,9 +1,10 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { TabsService, TabsOptions, ETabsListDirection } from 'logviewer-client-complex';
 import { AreaState } from '../state';
-import { Subscription } from 'rxjs';
+import { Subscription, Subject, Observable } from 'rxjs';
 import { LayoutSecondaryAreaControlsComponent } from './controls/component';
 import HorizontalSidebarSessionsService from '../../services/service.sessions.sidebar.horizontal';
+import { IComponentDesc } from 'logviewer-client-containers';
 
 @Component({
     selector: 'app-layout-area-secondary',
@@ -25,10 +26,14 @@ export class LayoutSecondaryAreaComponent implements AfterViewInit, OnDestroy {
         updated: null,
     };
 
+    private _subjects: {
+        injectionIntoTitleBar: Subject<IComponentDesc>,
+    } = {
+        injectionIntoTitleBar: new Subject<IComponentDesc>(),
+    };
+
     constructor(private _cdRef: ChangeDetectorRef) {
         this.tabsService = HorizontalSidebarSessionsService.getTabsService();
-        // Create default session
-        HorizontalSidebarSessionsService.create();
     }
 
     ngAfterViewInit() {
@@ -36,10 +41,20 @@ export class LayoutSecondaryAreaComponent implements AfterViewInit, OnDestroy {
             return;
         }
         this.state.maximize();
+        // Add common inputs for all tabs
+        HorizontalSidebarSessionsService.setCommonInputs({
+            injectionIntoTitleBar: this._subjects.injectionIntoTitleBar,
+        });
+        // Set options area
         this.tabsService.setOptions(new TabsOptions({ injections: { bar: {
             factory: LayoutSecondaryAreaControlsComponent,
-            inputs: { state: this.state }
+            inputs: {
+                state: this.state,
+                injection: this._getObservable().injectionIntoTitleBar
+            }
         }}}));
+        // Create default session
+        HorizontalSidebarSessionsService.create();
         this._subscriptions.minimized = this.state.getObservable().minimized.subscribe(this._onMinimized.bind(this));
         this._subscriptions.updated = this.state.getObservable().updated.subscribe(this._onUpdated.bind(this));
     }
@@ -57,6 +72,14 @@ export class LayoutSecondaryAreaComponent implements AfterViewInit, OnDestroy {
             return;
         }
         this.state.maximize();
+    }
+
+    private _getObservable(): {
+        injectionIntoTitleBar: Observable<IComponentDesc>
+    } {
+        return {
+            injectionIntoTitleBar: this._subjects.injectionIntoTitleBar.asObservable()
+        };
     }
 
     private _onMinimized(minimized: boolean) {

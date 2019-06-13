@@ -1,6 +1,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Subscription, Subject } from 'rxjs';
 import { ViewSearchOutputComponent } from './output/component';
+import { IComponentDesc } from 'logviewer-client-containers';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
@@ -14,6 +15,8 @@ import * as Toolkit from 'logviewer.client.toolkit';
 })
 
 export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterContentInit {
+
+    @Input() public injectionIntoTitleBar: Subject<IComponentDesc>;
 
     @ViewChild('output') _ng_outputComponent: ViewSearchOutputComponent;
     @ViewChild('requestinput') _ng_requestInput: ElementRef;
@@ -36,6 +39,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     ngAfterViewInit() {
+
     }
 
     ngAfterContentInit() {

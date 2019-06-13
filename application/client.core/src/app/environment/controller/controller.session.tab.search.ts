@@ -57,6 +57,7 @@ export class ControllerSessionTabSearch {
         this._queue_onNext = this._queue_onNext.bind(this);
         this._queue.subscribe(Toolkit.Queue.Events.done, this._queue_onDone);
         this._queue.subscribe(Toolkit.Queue.Events.next, this._queue_onNext);
+        ServiceElectronIpc.subscribe(IPCMessages.SearchUpdated, this._ipc_onSearchUpdated.bind(this));
     }
 
     public destroy() {
@@ -124,7 +125,7 @@ export class ControllerSessionTabSearch {
                     return { reg: reg, color: undefined, background: undefined };
                 }));
                 // Update stream for render
-                this._output.updateStreamState(results);
+                this._output.updateStreamState(results.found);
                 // Done
                 this._state.done();
             }).catch((error: Error) => {
@@ -164,7 +165,7 @@ export class ControllerSessionTabSearch {
                 // Share results
                 OutputParsersService.setSearchResults(this._guid, []);
                 // Update stream for render
-                this._output.updateStreamState(results);
+                this._output.updateStreamState(results.found);
                 // Done
                 this._state.done();
                 // Aplly filters if exsists
@@ -203,7 +204,7 @@ export class ControllerSessionTabSearch {
         return undefined;
     }
 
-    insertStored(requests: IRequest[]) {
+    public insertStored(requests: IRequest[]) {
         this._stored.push(...requests);
         this._subjects.onRequestsUpdated.next(this._stored);
         this._applyFilters();
@@ -304,6 +305,13 @@ export class ControllerSessionTabSearch {
             }
         }
         return { row: this._results.matches[0], index: 0 };
+    }
+
+    private _ipc_onSearchUpdated(message: IPCMessages.StreamUpdated) {
+        if (this._guid !== message.guid) {
+            return;
+        }
+        this._output.updateStreamState(message.rowsCount);
     }
 
     private _applyFilters() {
