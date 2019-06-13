@@ -22,13 +22,11 @@ export default class ControllerStreamUpdatesPostman {
     private _chunk: { timer: any, attempts: number } = { timer: -1, attempts: 0 };
     private _notification: { timer: any, attempts: number } = { timer: -1, attempts: 0 };
     private _map: BytesRowsMap;
-    private _reader: StreamFileReader;
     private _destroyed: boolean = false;
 
-    constructor(streamId: string, map: BytesRowsMap, reader: StreamFileReader) {
+    constructor(streamId: string, map: BytesRowsMap) {
         this._streamId = streamId;
         this._map = map;
-        this._reader = reader;
         this._logger = new Logger(`ControllerStreamUpdatesPostman: ${this._streamId}`);
     }
 
@@ -39,6 +37,10 @@ export default class ControllerStreamUpdatesPostman {
     }
 
     public notification(): void {
+        if (this._destroyed) {
+            this._logger.warn(`Attempt to notify after postman was destroyed.`);
+            return;
+        }
         clearTimeout(this._notification.timer);
         if (this._notification.attempts > CSettings.maxPostponedNotificationMessages) {
             return this._notify();

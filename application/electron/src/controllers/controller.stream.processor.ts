@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as Stream from 'stream';
 import Logger from '../tools/env.logger';
+import Subject from '../tools/subject';
 import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from '../services/service.electron';
 import ServicePlugins from '../services/service.plugins';
 import ServiceStreamSource from '../services/service.stream.sources';
@@ -8,6 +9,8 @@ import ControllerIPCPlugin, { IPCMessages as IPCPluginMessages} from './controll
 import Transform, { ITransformResult, convert } from './controller.stream.processor.pipe.transform';
 import { IMapItem } from './controller.stream.processor.map';
 import State from './controller.stream.processor.state';
+import StreamState from './controller.stream.state';
+import { IRange } from './controller.stream.processor.map';
 
 export interface IPipeOptions {
     reader: fs.ReadStream;
@@ -45,16 +48,16 @@ export default class ControllerStreamProcessor {
         pipeFinished: new Map(),
     };
     private _memUsage: Map<number, IStreamStateInfo> = new Map();
-    private _transform: Transform;
     private _subscriptions: { [key: string ]: Subscription | undefined } = { };
     private _state: State;
+    private _streamState: StreamState;
 
-    constructor(guid: string, file: string) {
+    constructor(guid: string, file: string, streamState: StreamState) {
         this._guid = guid;
         this._file = file;
+        this._streamState = streamState;
         this._logger = new Logger(`ControllerStreamProcessor: ${this._guid}`);
         this._state = new State(this._guid, this._file);
-        this._transform = new Transform({}, this._guid, -1, this._state);
         this._ipc_onStreamChunkRequested = this._ipc_onStreamChunkRequested.bind(this);
         ServiceElectron.IPC.subscribe(IPCElectronMessages.StreamChunk, this._ipc_onStreamChunkRequested).then((subscription: Subscription) => {
             this._subscriptions.StreamChunk = subscription;
@@ -90,14 +93,21 @@ export default class ControllerStreamProcessor {
                 return reject(new Error(`Fail to write data due error: ${sourceInfo.message}`));
             }
             // Convert chunk to string
-            const converted: ITransformResult = convert(this._guid, sourceInfo.id, this._state, output);
-            // Write data
-            this._getStreamFileHandle().write(converted.output, (writeError: Error | null | undefined) => {
-                if (writeError) {
-                    return reject(new Error(this._logger.error(`Fail to write data into stream file due error: ${writeError.message}`)));
-                }
-                resolve();
+            convert(this._guid, sourceInfo.id, this._state, this._streamState, output, (converted: ITransformResult) => {
+                return new Promise((resolveBeforeNotify, rejectBeforeNotify) => {
+                    // Write data
+                    this._getStreamFileHandle().write(converted.output, (writeError: Error | null | undefined) => {
+                        if (writeError) {
+                            const error: Error = new Error(this._logger.error(`Fail to write data into stream file due error: ${writeError.message}`));
+                            rejectBeforeNotify(error);
+                            return reject(error);
+                        }
+                        resolveBeforeNotify();
+                        resolve();
+                    });
+                });
             });
+
         });
     }
 
@@ -107,7 +117,7 @@ export default class ControllerStreamProcessor {
         if (sourceInfo instanceof Error) {
             return new Error(`Fail to pipe data due error: ${sourceInfo.message}`);
         }
-        const transform: Transform = new Transform({}, this._guid, options.sourceId, this._state);
+        const transform: Transform = new Transform({}, this._guid, options.sourceId, this._state, this._streamState);
         if (options.decoder !== undefined) {
             options.reader.pipe(options.decoder).pipe(transform).pipe(this._getStreamFileHandle(), { end: false});
         } else {
@@ -130,12 +140,18 @@ export default class ControllerStreamProcessor {
 
     public rewriteStreamFileMap(map: IMapItem[]) {
         this._state.map.rewrite(map);
-        this._state.postman.notification();
+        this._notify({
+            from: map.length !== 0 ? map[0].bytes.from : -1,
+            to: map.length !== 0 ? map[map.length - 1].bytes.to : -1,
+        });
     }
 
     public pushToStreamFileMap(map: IMapItem[]) {
         this._state.map.push(map);
-        this._state.postman.notification();
+        this._notify({
+            from: map.length !== 0 ? map[0].bytes.from : -1,
+            to: map.length !== 0 ? map[map.length - 1].bytes.to : -1,
+        });
     }
 
     public reattach() {
@@ -230,7 +246,7 @@ export default class ControllerStreamProcessor {
             this._logger.env(`Session was closed by plugin #${id} in ${((Date.now() - stateInfo.started) / 1000).toFixed(2)}s. Memory: on start: ${stateInfo.memoryUsed.toFixed(2)}Mb; on end: ${memory.used.toFixed(2)}/${memory.used.toFixed(2)}Mb; diff: ${(memory.used - stateInfo.memoryUsed).toFixed(2)}Mb`);
             // Close "long chunk" by carret
             this.write(Buffer.from('\n'), undefined, id);
-            this._state.postman.notification();
+            this._notify();
             this._memUsage.delete(id);
         } else {
             this._logger.warn(`Cannot close session for plugin ${id} because session wasn't started.`);
@@ -284,6 +300,15 @@ export default class ControllerStreamProcessor {
         }).catch((readError: Error) => {
             this._logger.error(`Fail to read data from storage file due error: ${readError.message}`);
         });
+    }
+
+    private _notify(bytes?: IRange) {
+        // Send notification to render
+        this._state.postman.notification();
+        if (bytes !== undefined) {
+            // Trigger event on stream was updated
+            this._streamState.getSubject().onStreamUpdated.emit(bytes);
+        }
     }
 
 }

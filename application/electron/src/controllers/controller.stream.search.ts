@@ -4,13 +4,14 @@ import * as fs from 'fs';
 import ControllerStreamFileReader from './controller.stream.file.reader';
 import { RGSearchWrapper } from './controller.stream.search.rg';
 import State from './controller.stream.search.state';
+import StreamState from './controller.stream.state';
 import { IMapItem } from './controller.stream.search.map';
 import Transform from './controller.stream.search.pipe.transform';
 import NullWritableStream from '../classes/stream.writable.null';
 
 export interface IRange {
-    start: number;
-    end: number;
+    from: number;
+    to: number;
 }
 
 export interface IRangeMapItem {
@@ -26,14 +27,20 @@ export default class ControllerStreamSearch {
     private _searchFile: string;
     private _searchReader: ControllerStreamFileReader | undefined;
     private _subscriptions: { [key: string ]: Subscription | undefined } = { };
+    private _engine: RGSearchWrapper;
     private _state: State;
+    private _last: RegExp[] = [];
+    private _streamState: StreamState;
 
-    constructor(guid: string, streamFile: string, searchFile: string) {
+    constructor(guid: string, streamFile: string, searchFile: string, streamState: StreamState) {
         this._guid = guid;
         this._streamFile = streamFile;
         this._searchFile = searchFile;
+        this._streamState = streamState;
         this._logger = new Logger(`ControllerStreamSearch: ${this._guid}`);
         this._state = new State(this._guid);
+        this._engine = new RGSearchWrapper(this._streamFile, this._searchFile);
+        this._subscriptions.onStreamUpdate = this._streamState.getSubject().onStreamUpdated.subscribe(this._stream_onUpdate.bind(this));
         this._ipc_onSearchRequest = this._ipc_onSearchRequest.bind(this);
         this._ipc_onSearchChunkRequested = this._ipc_onSearchChunkRequested.bind(this);
         ServiceElectron.IPC.subscribe(IPCElectronMessages.SearchRequest, this._ipc_onSearchRequest).then((subscription: Subscription) => {
@@ -59,10 +66,27 @@ export default class ControllerStreamSearch {
         });
     }
 
+    private _append(bytes: IRange): Promise<number> {
+        return new Promise((resolve, reject) => {
+            if (this._last.length === 0) {
+                return resolve(0);
+            }
+            this._engine.append(bytes.from, bytes.to).then(() => {
+                this._generateFileMap(this._searchFile, true).then(() => {
+                    resolve(this._state.map.getRowsCount());
+                }).catch((writeError: Error) => {
+                    reject(writeError);
+                });
+            }).catch((searchError: Error) => {
+                reject(searchError);
+            });
+        });
+    }
+
     private _search(requests: RegExp[], searchRequestId: string): Promise<number> {
         return new Promise((resolve, reject) => {
-            const rg: RGSearchWrapper = new RGSearchWrapper(this._streamFile, this._searchFile);
-            rg.search(requests).then(() => {
+            this._engine.search(requests).then(() => {
+                this._last = requests;
                 this._generateFileMap(this._searchFile).then(() => {
                     resolve(this._state.map.getRowsCount());
                 }).catch((writeError: Error) => {
@@ -74,12 +98,14 @@ export default class ControllerStreamSearch {
         });
     }
 
-    private _generateFileMap(file: string): Promise<void> {
+    private _generateFileMap(file: string, append: boolean = false): Promise<void> {
         return new Promise((resolve, reject) => {
-            // Drop map
-            this._state.map.drop();
+            if (!append) {
+                // Drop map
+                this._state.map.drop();
+            }
             // Create reader
-            const reader: fs.ReadStream = fs.createReadStream(file);
+            const reader: fs.ReadStream = fs.createReadStream(file, { start: this._state.map.getByteLength()});
             // Create writer
             const writer: NullWritableStream = new NullWritableStream();
             // Create transformer
@@ -109,15 +135,6 @@ export default class ControllerStreamSearch {
                 found: found === undefined ? 0 : found,
                 duration: Date.now() - started,
             }));
-            /*
-            // Notify client
-            ServiceElectron.IPC.send(new IPCElectronMessages.SearchRequestFinished({
-                streamId: message.streamId,
-                requestId: message.requestId,
-                error: error,
-                duration: Date.now() - started,
-            }));
-            */
         };
         // Check target stream
         if (this._guid !== message.streamId) {
@@ -210,6 +227,15 @@ export default class ControllerStreamSearch {
             }));
         }).catch((readError: Error) => {
             this._logger.error(`Fail to read data from storage file due error: ${readError.message}`);
+        });
+    }
+
+    private _stream_onUpdate(bytes: IRange) {
+        this._append(bytes).then(() => {
+            console.log(this._state.map);
+            // notification
+        }).catch((error: Error) => {
+            this._logger.warn(`Fail to append search results due error: ${error.message}`);
         });
     }
 
