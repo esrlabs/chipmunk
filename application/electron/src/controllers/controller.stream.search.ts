@@ -99,11 +99,22 @@ export default class ControllerStreamSearch {
                 // Drop map
                 this._state.map.drop();
                 this._blocked = false;
-                // Create reader
-                this._searchReader = new ControllerStreamFileReader(this._guid, this._searchFile);
-                // Notification
-                this._state.postman.notification(true);
-                resolve();
+                // Create file
+                fs.open(this._searchFile, 'w', (createFileError: NodeJS.ErrnoException | null, fd: number) => {
+                    if (createFileError) {
+                        return reject(createFileError);
+                    }
+                    fs.close(fd, (closeFileError: NodeJS.ErrnoException | null) => {
+                        if (closeFileError) {
+                            return reject(closeFileError);
+                        }
+                        // Create reader
+                        this._searchReader = new ControllerStreamFileReader(this._guid, this._searchFile);
+                        // Notification
+                        this._state.postman.notification(true);
+                        resolve();
+                    });
+                });
             });
         });
     }
