@@ -141,25 +141,29 @@ export default class ControllerStreamProcessor {
         if (stream === undefined) {
             return new Error(`Stream is blocked for writting.`);
         }
+        transform.on(Transform.Events.onMap, (map: IMapItem, written: number) => {
+            // Add data into map
+            this._state.map.add(map);
+            // Add data in progress
+            this._state.pipes.next(written);
+            // Send notification to render
+            this._state.postman.notification();
+        });
         stream.once('finish', () => {
             const map: IMapItem[] = transform.getMap();
             if (map.length === 0) {
                 this._logger.warn(`Transformer doesn't have any item of map`);
                 return;
             }
-            // Add data into map
-            this._state.map.add(map);
-            // Add data in progress
-            this._state.pipes.next(transform.getBytesWritten());
             // Send notification to render
             this._state.postman.notification();
             // Trigger event on stream was updated
             this._streamState.getSubject().onStreamUpdated.emit({ from: map[0].bytes.from, to: map[map.length - 1].bytes.to });
         });
         if (options.decoder !== undefined) {
-            options.reader.pipe(options.decoder).pipe(transform).pipe(stream, { end: false});
+            options.reader.pipe(options.decoder).pipe(transform).pipe(stream);
         } else {
-            options.reader.pipe(transform).pipe(stream, { end: false});
+            options.reader.pipe(transform).pipe(stream);
         }
     }
 
