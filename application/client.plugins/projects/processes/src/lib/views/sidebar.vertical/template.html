@@ -7,7 +7,17 @@
         </li>
     </ul>
     <p class="t-normal">Shell</p>
-    <p class="t-console">{{_ng_settings.shell}}</p>
+    <p class="t-console crop">{{_ng_settings.shell}}</p>
     <p class="t-normal">Cwd</p>
-    <p class="t-console">{{_ng_settings.cwd}}</p>
+    <p class="t-console crop">{{_ng_settings.cwd}}</p>
+</div>
+<div [attr.class]="'container ' + (_ng_working ? 'working' : 'free')">
+    <div class="comstyle-input-holder input-wrapper">
+        <div class="comstyle-input">
+            <input class="comstyle-input" #cmdinput type="text" placeholder="command or path to program to be executed" (keyup)="_ng_onKeyUp($event)"/>
+        </div>
+    </div>
+    <div class="spinner" *ngIf="_ng_working">
+        <lib-primitive-spinner-regular></lib-primitive-spinner-regular>
+    </div>
 </div>
