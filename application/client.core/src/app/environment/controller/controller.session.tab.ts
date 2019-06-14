@@ -1,5 +1,5 @@
 import PluginsService, { IPluginData } from '../services/service.plugins';
-import { Subscription } from '../services/service.electron.ipc';
+import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
 import { ControllerSessionTabStream } from './controller.session.tab.stream';
 import { ControllerSessionTabSearch } from './controller.session.tab.search';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
@@ -124,6 +124,18 @@ export class ControllerSessionTab {
 
     public removeSidebarApp(guid: string): void {
         this._sidebarTabsService.remove(guid);
+    }
+
+    public resetSessionContent(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            ServiceElectronIpc.request(new IPCMessages.StreamResetRequest({
+                guid: this._sessionId,
+            }), IPCMessages.StreamResetResponse).then((response: IPCMessages.StreamResetResponse) => {
+                resolve();
+            }).catch((error: Error) => {
+                reject(error);
+            });
+        });
     }
 
     private _sidebar_update() {

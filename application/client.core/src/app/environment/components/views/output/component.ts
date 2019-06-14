@@ -8,6 +8,7 @@ import { ViewOutputRowComponent } from './row/component';
 import { ViewOutputControlsComponent, IButton } from './controls/component';
 import ViewsEventsService from '../../../services/standalone/service.views.events';
 import FileOpenerService from '../../../services/service.file.opener';
+import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 
 const CSettings: {
     preloadCount: number,
@@ -47,7 +48,8 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
     };
 
     constructor(private _cdRef: ChangeDetectorRef,
-                private _vcRef: ViewContainerRef) {
+                private _vcRef: ViewContainerRef,
+                private _notifications: NotificationsService) {
         this._ng_outputAPI = {
             getComponentFactory: this._api_getComponentFactory.bind(this),
             getItemHeight: this._api_getItemHeight.bind(this),
@@ -227,11 +229,17 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
     private _ctrl_getButtons(): IButton[] {
         return [
             {
+                alias: 'clean',
+                icon: `small-icon-button fas fa-eraser`,
+                disabled: false,
+                handler: this._ctrl_onCleanOutput.bind(this)
+            },
+            {
                 alias: 'scroll',
                 icon: `small-icon-button fa-arrow-alt-circle-down ${this._controls.keepScrollDown ? 'fas' : 'far'}`,
                 disabled: false,
                 handler: this._ctrl_onScrollDown.bind(this)
-            }
+            },
         ];
     }
 
@@ -245,6 +253,18 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         if (this._controls.keepScrollDown && this._scrollBoxCom.getFrame().end < last) {
             this._onScrollTo(last);
         }
+    }
+
+    private _ctrl_onCleanOutput(button: IButton) {
+        if (this.session === undefined) {
+            return;
+        }
+        this.session.resetSessionContent().catch((error: Error) => {
+            return this._notifications.add({
+                caption: 'Session',
+                message: `Fail to reset session due error: ${error.message}`
+            });
+        });
     }
 
 }
