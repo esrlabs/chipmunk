@@ -18,6 +18,10 @@ export function getSourceMarker(sourceId: string | number): string {
 
 export default class Transform extends Stream.Transform {
 
+    public static Events = {
+        onMap: 'onMap',
+    };
+
     private _logger: Logger;
     private _pluginId: number;
     private _rest: string = '';
@@ -104,6 +108,7 @@ export default class Transform extends Stream.Transform {
                 this._logger.warn(`Error from "beforeCallbackHandle": ${error.message}`);
             });
         }
+        this.emit(Transform.Events.onMap, results.map, size);
         return results;
     }
 
