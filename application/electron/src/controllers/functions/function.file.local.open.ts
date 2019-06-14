@@ -14,7 +14,7 @@ export default class FunctionOpenLocalFile {
     }
 
     public getLabel(): string {
-        return `Open Local file: ${this._parser.getName()}`;
+        return `Open: ${this._parser.getName()}`;
     }
 
     public getHandler(): () => void {
