@@ -65,4 +65,10 @@ export class ControllerSessionTabStreamBookmarks {
         return this._bookmarks;
     }
 
+    public reset() {
+        this._bookmarks.forEach((bookmark: IBookmark, key: number) => {
+            this.remove(key);
+        });
+    }
+
 }

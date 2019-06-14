@@ -131,6 +131,7 @@ export class ControllerSessionTab {
             ServiceElectronIpc.request(new IPCMessages.StreamResetRequest({
                 guid: this._sessionId,
             }), IPCMessages.StreamResetResponse).then((response: IPCMessages.StreamResetResponse) => {
+                this.getSessionBooksmarks().reset();
                 resolve();
             }).catch((error: Error) => {
                 reject(error);
