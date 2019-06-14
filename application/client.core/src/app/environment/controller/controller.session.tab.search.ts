@@ -368,10 +368,9 @@ export class ControllerSessionTabSearch {
                     guid: this._guid,
                     start: start,
                     end: end
-                })
+                }), IPCMessages.SearchChunk
             ).then((response: IPCMessages.SearchChunk) => {
-                const duration: number = Date.now() - s;
-                this._logger.env(`Chunk [${start} - ${end}] is read in: ${(duration / 1000).toFixed(2)}s`);
+                this._logger.env(`Chunk [${start} - ${end}] is read in: ${((Date.now() - s) / 1000).toFixed(2)}s`);
                 if (response.error !== undefined) {
                     return reject(new Error(this._logger.warn(`Request to stream chunk was finished within error: ${response.error}`)));
                 }
