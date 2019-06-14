@@ -47,6 +47,7 @@ export default class ControllerStreamSearch {
         bytes: { from: -1, to: -1 },
         isBusy: false,
     };
+    private _blocked: boolean = false;
 
     constructor(guid: string, streamFile: string, searchFile: string, streamState: StreamState) {
         this._guid = guid;
@@ -79,6 +80,31 @@ export default class ControllerStreamSearch {
         // Unsubscribe IPC messages / events
         Object.keys(this._subscriptions).forEach((key: string) => {
             (this._subscriptions as any)[key].destroy();
+        });
+    }
+
+    public reset(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._blocked = true;
+            // Close stream
+            if (this._searchReader !== undefined) {
+                this._searchReader.destroy();
+                this._searchReader = undefined;
+            }
+            // Drop stream file
+            fs.unlink(this._searchFile, (error: NodeJS.ErrnoException | null) => {
+                if (error) {
+                    return reject(error);
+                }
+                // Drop map
+                this._state.map.drop();
+                this._blocked = false;
+                // Create reader
+                this._searchReader = new ControllerStreamFileReader(this._guid, this._searchFile);
+                // Notification
+                this._state.postman.notification(true);
+                resolve();
+            });
         });
     }
 

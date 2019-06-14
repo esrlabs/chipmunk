@@ -50,6 +50,7 @@ export default class ControllerStreamProcessor {
     private _subscriptions: { [key: string ]: Subscription | undefined } = { };
     private _state: State;
     private _streamState: StreamState;
+    private _blocked: boolean = false;
 
     constructor(guid: string, file: string, streamState: StreamState) {
         this._guid = guid;
@@ -103,7 +104,11 @@ export default class ControllerStreamProcessor {
                     // Add data in progress
                     this._state.pipes.next(converted.bytesSize);
                     // Write data
-                    this._getStreamFileHandle().write(converted.output, (writeError: Error | null | undefined) => {
+                    const stream: fs.WriteStream | undefined = this._getStreamFileHandle();
+                    if (stream === undefined) {
+                        return reject(new Error(`Stream is blocked for writting.`));
+                    }
+                    stream.write(converted.output, (writeError: Error | null | undefined) => {
                         // Send notification to render
                         this._state.postman.notification();
                         // Trigger event on stream was updated
@@ -132,8 +137,11 @@ export default class ControllerStreamProcessor {
                                                     this._guid,
                                                     options.sourceId,
                                                     { bytes: this._state.map.getByteLength(), rows: this._state.map.getRowsCount() });
-        const writer: fs.WriteStream = this._getStreamFileHandle();
-        writer.once('finish', () => {
+        const stream: fs.WriteStream | undefined = this._getStreamFileHandle();
+        if (stream === undefined) {
+            return new Error(`Stream is blocked for writting.`);
+        }
+        stream.once('finish', () => {
             const map: IMapItem[] = transform.getMap();
             if (map.length === 0) {
                 this._logger.warn(`Transformer doesn't have any item of map`);
@@ -149,9 +157,9 @@ export default class ControllerStreamProcessor {
             this._streamState.getSubject().onStreamUpdated.emit({ from: map[0].bytes.from, to: map[map.length - 1].bytes.to });
         });
         if (options.decoder !== undefined) {
-            options.reader.pipe(options.decoder).pipe(transform).pipe(this._getStreamFileHandle(), { end: false});
+            options.reader.pipe(options.decoder).pipe(transform).pipe(stream, { end: false});
         } else {
-            options.reader.pipe(transform).pipe(this._getStreamFileHandle(), { end: false});
+            options.reader.pipe(transform).pipe(stream, { end: false});
         }
     }
 
@@ -188,7 +196,35 @@ export default class ControllerStreamProcessor {
         this._getStreamFileHandle();
     }
 
-    private _getStreamFileHandle(): fs.WriteStream {
+    public reset(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._blocked = true;
+            // Close stream
+            if (this._stream !== undefined) {
+                this._stream.close();
+                this._stream = undefined;
+            }
+            // Drop stream file
+            fs.unlink(this._file, (error: NodeJS.ErrnoException | null) => {
+                if (error) {
+                    return reject(error);
+                }
+                // Drop map
+                this._state.map.drop();
+                this._blocked = false;
+                // Reattach reader
+                this._getStreamFileHandle();
+                // Notification
+                this._notify();
+                resolve();
+            });
+        });
+    }
+
+    private _getStreamFileHandle(): fs.WriteStream | undefined {
+        if (this._blocked) {
+            return undefined;
+        }
         if (this._stream === undefined) {
             this._stream = fs.createWriteStream(this._file, { encoding: 'utf8', flags: 'a' });
         }

@@ -8,10 +8,6 @@ export interface IMapItem {
     bytes: IRange;
 }
 
-const CSettings = {
-    minChunkRowsCount: 500,
-};
-
 export default class BytesRowsMap {
 
     private _map: IMapItem[] = [];
@@ -19,9 +15,7 @@ export default class BytesRowsMap {
     private _rows: number = 0;
 
     public destroy() {
-        this._map = [];
-        this._bytes = 0;
-        this._rows = 0;
+        this.drop();
     }
 
     public rewrite(map: IMapItem[]) {
@@ -91,24 +85,11 @@ export default class BytesRowsMap {
     public getRowsCount(): number {
         return this._rows;
     }
-/*
-    public getLastRange(): IMapItem | Error {
-        if (this._map.length === 0) {
-            return new Error(`No data in file. File is empty.`);
-        }
-        const to: number = this._map.length - 1;
-        let from: number = to;
-        for (let i = from; i >= 0; i -= 1) {
-            if (this._map[to].rows.to - this._map[from].rows.from >= CSettings.minChunkRowsCount) {
-                from = i;
-                break;
-            }
-            from = i;
-        }
-        return {
-            bytes: { from: this._map[from].bytes.from, to: this._map[to].bytes.to },
-            rows: { from: this._map[from].rows.from, to: this._map[to].rows.to },
-        };
+
+    public drop() {
+        this._map = [];
+        this._bytes = 0;
+        this._rows = 0;
     }
-*/
+
 }

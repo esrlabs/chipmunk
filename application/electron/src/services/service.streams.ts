@@ -61,6 +61,7 @@ class ServiceStreams extends EventEmitter implements IService  {
         this._ipc_onStreamSetActive = this._ipc_onStreamSetActive.bind(this);
         this._ipc_onStreamAdd = this._ipc_onStreamAdd.bind(this);
         this._ipc_onStreamRemove = this._ipc_onStreamRemove.bind(this);
+        this._ipc_onStreamReset = this._ipc_onStreamReset.bind(this);
     }
 
     /**
@@ -86,6 +87,11 @@ class ServiceStreams extends EventEmitter implements IService  {
                 this._subscriptions.StreamSetActive = subscription;
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to subscribe to render event "StreamSetActive" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+            });
+            ServiceElectron.IPC.subscribe(IPCElectronMessages.StreamResetRequest, this._ipc_onStreamReset).then((subscription: Subscription) => {
+                this._subscriptions.StreamReset = subscription;
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to subscribe to render event "StreamReset" due error: ${error.message}. This is not blocked error, loading will be continued.`);
             });
         });
     }
@@ -418,6 +424,30 @@ class ServiceStreams extends EventEmitter implements IService  {
         }
         this._activeStreamGuid = message.guid;
         this._logger.env(`Active session is set to: ${this._activeStreamGuid}`);
+    }
+
+    private _ipc_onStreamReset(message: IPCElectronMessages.TMessage, response: (message: IPCElectronMessages.TMessage) => void) {
+        if (!(message instanceof IPCElectronMessages.StreamResetRequest)) {
+            return;
+        }
+        const stream: IStreamInfo | undefined = this._streams.get(message.guid);
+        if (stream === undefined) {
+            return this._logger.warn(`Fail to find a stream data for stream guid "${message.guid}"`);
+        }
+        Promise.all([
+            stream.processor.reset(),
+            stream.search.reset(),
+        ]).then(() => {
+            this._logger.env(`Session "${message.guid}" was reset.`);
+            response(new IPCElectronMessages.StreamResetResponse({
+                guid: message.guid,
+            }));
+        }).catch((error: Error) => {
+            response(new IPCElectronMessages.StreamResetResponse({
+                guid: message.guid,
+                error: this._logger.warn(`Fail to reset session "${message.guid}" due error: ${error.message}.`),
+            }));
+        });
     }
 
     private _stream_onData(guid: string, ref: string, chunk: Buffer) {
