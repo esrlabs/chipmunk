@@ -125,6 +125,9 @@ export class ControllerSessionTabStreamOutput {
         if (this._state.count === 0 || range.start < 0 || range.end < 0) {
             return [];
         }
+        if (range.start === 0 && range.end === 0) {
+            return [];
+        }
         if (stored.start >= 0 && stored.end >= 0) {
             if (range.start >= stored.start && range.end <= stored.end) {
                 rows = this._getRowsSliced(range.start, range.end + 1);
@@ -153,6 +156,9 @@ export class ControllerSessionTabStreamOutput {
     }
 
     public setFrame(range: IRange) {
+        if (this._state.count === 0) {
+            return;
+        }
         this._state.frame = Object.assign({}, range);
         if (!this._load()) {
             // No need to make request, but check buffer
@@ -517,6 +523,9 @@ export class ControllerSessionTabStreamOutput {
 
     private _setTotalStreamCount(count: number) {
         this._state.count = count;
+        if (count === 0) {
+            return this.clearStream();
+        }
         const changed: boolean = this._state.countRank !== count.toString().length;
         this._state.countRank = count.toString().length;
         if (changed) {

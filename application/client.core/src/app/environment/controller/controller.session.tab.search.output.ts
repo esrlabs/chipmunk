@@ -139,6 +139,9 @@ export class ControllerSessionTabSearchOutput {
         if (isNaN(range.start) || isNaN(range.end) || !isFinite(range.start) || !isFinite(range.end)) {
             return new Error(`Range has incorrect format. Start and end shound be finite and not NaN`);
         }
+        if (range.start === 0 && range.end === 0) {
+            return [];
+        }
         if (this._state.originalCount === 0) {
             if (this._rows.length - 1 < range.end || range.start < 0) {
                 return [];
@@ -191,7 +194,7 @@ export class ControllerSessionTabSearchOutput {
     }
 
     public setFrame(range: IRange) {
-        if (this._state.originalCount === 0) {
+        if (this._state.originalCount === 0 || this._state.count === 0) {
             return;
         }
         this._state.frame = Object.assign({}, this._normalizeRange(range)).range;
@@ -243,19 +246,6 @@ export class ControllerSessionTabSearchOutput {
         // Update count of rows
         this._setTotalStreamCount(rowsCount);
         this._subjects.onStateUpdated.next(Object.assign({}, this._state));
-        /*
-        // Update count of rows
-        this._setBookmarksLengthOffset();
-        this._setTotalStreamCount(message.found);
-        // Check bookmarks (if case if search is empty)
-        if (message.found === 0) {
-            // Clear from bookmarks
-            this._rows = this._removeBookmarks(this._rows);
-            // Insert bookmarks if exist
-            this._rows = this._insertBookmarks(this._rows);
-        }
-        this._subjects.onStateUpdated.next(Object.assign({}, this._state));
-        */
     }
 
     public getRowsCount(): number {
@@ -707,6 +697,9 @@ export class ControllerSessionTabSearchOutput {
     private _setTotalStreamCount(count: number) {
         this._state.originalCount = count;
         this._state.count = this._state.originalCount + this._state.bookmarkOffset;
+        if (this._state.count === 0) {
+            return this.clearStream();
+        }
     }
 
 }
