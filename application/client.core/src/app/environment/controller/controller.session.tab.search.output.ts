@@ -3,6 +3,7 @@ import { Observable, Subject, Subscription } from 'rxjs';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { ControllerSessionTabStreamOutput } from '../controller/controller.session.tab.stream.output';
 import { ControllerSessionTabStreamBookmarks, IBookmark } from './controller.session.tab.stream.bookmarks';
+import { ControllerSessionTabSourcesState } from './controller.session.tab.sources.state';
 import OutputRedirectionsService from '../services/standalone/service.output.redirections';
 
 export type TRequestDataHandler = (start: number, end: number) => Promise<IPCMessages.StreamChunk>;
@@ -24,6 +25,7 @@ export interface ISearchStreamPacket {
     rank: number;
     sessionId: string;
     bookmarks: ControllerSessionTabStreamBookmarks;
+    sources: ControllerSessionTabSourcesState;
 }
 
 export interface IStreamState {
@@ -64,6 +66,7 @@ export class ControllerSessionTabSearchOutput {
     private _stream: ControllerSessionTabStreamOutput;
     private _preloadRequestId: string | undefined;
     private _bookmakrs: ControllerSessionTabStreamBookmarks;
+    private _sources: ControllerSessionTabSourcesState;
     private _state: IStreamState = {
         count: 0,
         originalCount: 0,
@@ -92,6 +95,7 @@ export class ControllerSessionTabSearchOutput {
         this._guid = params.guid;
         this._stream = params.stream;
         this._bookmakrs = params.stream.getBookmarks();
+        this._sources = new ControllerSessionTabSourcesState(this._guid);
         this._requestDataHandler = params.requestDataHandler;
         this._getActiveSearchRequests = params.getActiveSearchRequests;
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearchOutput: ${this._guid}`);
@@ -368,6 +372,7 @@ export class ControllerSessionTabSearchOutput {
                     pluginId: inserted.pluginId,
                     sessionId: this._guid,
                     bookmarks: this._bookmakrs,
+                    sources: this._sources,
                 });
             });
         };
@@ -588,6 +593,7 @@ export class ControllerSessionTabSearchOutput {
                 rank: this._stream.getRank(),
                 sessionId: this._guid,
                 bookmarks: this._bookmakrs,
+                sources: this._sources,
             };
         }).filter((packet: ISearchStreamPacket) => {
             return (packet.positionInStream !== -1);
@@ -608,6 +614,7 @@ export class ControllerSessionTabSearchOutput {
                 rank: this._stream.getRank(),
                 sessionId: this._guid,
                 bookmarks: this._bookmakrs,
+                sources: this._sources,
             };
         });
         return rows;

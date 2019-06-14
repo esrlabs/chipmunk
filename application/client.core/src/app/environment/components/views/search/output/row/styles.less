@@ -11,7 +11,7 @@
     min-width: 100%;
     user-select: text;
     & div.wrapper{
-        & span.source {
+        & span.source-name {
             display: inline-block;
             position: relative;
             font-family: monospace;
@@ -23,6 +23,18 @@
             font-size: 10px;
             vertical-align: top;
             user-select: none;
+            cursor: pointer;
+        }
+        & span.source-alias {
+            display: inline-block;
+            position: relative;
+            width: 4px;
+            line-height: 16px;
+            height: 16px;
+            max-height: 16px;
+            vertical-align: top;
+            user-select: none;
+            cursor: pointer;
         }
         & span.number{
             display: inline-block;
