@@ -132,15 +132,21 @@ export default class ControllerStreamProcessor {
                                                     this._guid,
                                                     options.sourceId,
                                                     { bytes: this._state.map.getByteLength(), rows: this._state.map.getRowsCount() });
-        transform.on(Transform.Events.onMapped, (converted: ITransformResult) => {
+        const writer: fs.WriteStream = this._getStreamFileHandle();
+        writer.once('finish', () => {
+            const map: IMapItem[] = transform.getMap();
+            if (map.length === 0) {
+                this._logger.warn(`Transformer doesn't have any item of map`);
+                return;
+            }
             // Add data into map
-            this._state.map.add(converted.map);
+            this._state.map.add(map);
             // Add data in progress
-            this._state.pipes.next(converted.bytesSize);
+            this._state.pipes.next(transform.getBytesWritten());
             // Send notification to render
             this._state.postman.notification();
             // Trigger event on stream was updated
-            this._streamState.getSubject().onStreamUpdated.emit(converted.map.bytes);
+            this._streamState.getSubject().onStreamUpdated.emit({ from: map[0].bytes.from, to: map[map.length - 1].bytes.to });
         });
         if (options.decoder !== undefined) {
             options.reader.pipe(options.decoder).pipe(transform).pipe(this._getStreamFileHandle(), { end: false});

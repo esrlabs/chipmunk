@@ -18,16 +18,14 @@ export function getSourceMarker(sourceId: string | number): string {
 
 export default class Transform extends Stream.Transform {
 
-    public static Events = {
-        onMapped: 'onMapped',
-    };
-
     private _logger: Logger;
     private _pluginId: number;
     private _rest: string = '';
     private _streamId: string;
     private _beforeCallbackHandle: TBeforeCallbackHandle | undefined;
     private _offsets: { bytes: number, rows: number } = { bytes: 0, rows: 0 };
+    private _map: IMapItem[] = [];
+    private _writtenBytes: number = 0;
 
     constructor(options: Stream.TransformOptions,
                 streamId: string,
@@ -83,6 +81,13 @@ export default class Transform extends Stream.Transform {
             bytesSize: size,
             map: { rows: rows, bytes: bytes },
         };
+        // Update size
+        this._writtenBytes += size;
+        // Update offsets
+        this._offsets.rows = results.map.rows.to + 1;
+        this._offsets.bytes = results.map.bytes.to + 1;
+        // Store map
+        this._map.push(results.map);
         if (callback !== undefined) {
             if (typeof this._beforeCallbackHandle === 'function') {
                 this._beforeCallbackHandle(results).then(() => {
@@ -91,18 +96,27 @@ export default class Transform extends Stream.Transform {
                     this._logger.warn(`Error from "beforeCallbackHandle": ${error.message}`);
                     callback(undefined, output);
                 });
+            } else {
+                callback(undefined, output);
             }
         } else if (typeof this._beforeCallbackHandle === 'function') {
             this._beforeCallbackHandle(results).catch((error: Error) => {
                 this._logger.warn(`Error from "beforeCallbackHandle": ${error.message}`);
             });
         }
-        this.emit(Transform.Events.onMapped, results);
         return results;
     }
 
     public convert(chunk: Buffer | string): ITransformResult {
         return this._transform(chunk, 'utf8', undefined);
+    }
+
+    public getMap(): IMapItem[] {
+        return this._map;
+    }
+
+    public getBytesWritten(): number {
+        return this._writtenBytes;
     }
 
     private _getRest(str: string): { rest: string, cleared: string } {

@@ -79,43 +79,48 @@ export class RGSearchWrapper {
 
     public append(from: number, to: number): Promise<void> {
         return new Promise((resolve, reject) => {
-            if (this._process !== undefined) {
-                return new Error(this._logger.warn(`Cannot append search because previous process isn't finished yet.`));
-            }
-            if (this._last === undefined) {
-                return new Error(this._logger.warn(`Cannot append search because there are no primary search yet.`));
-            }
-            const reader: fs.ReadStream = fs.createReadStream(this._targetFile, { encoding: 'utf8', start: from, end: to});
-            const buff = fs.readFileSync(this._targetFile, { encoding: 'utf8'});
-            const args: string[] = [
-                '-N',
-                '--text', // https://github.com/BurntSushi/ripgrep/issues/306 this issue is about a case, when not printable symble is in a file
-                '-e',
-                this._last,
-                '-',
-            ];
-            const writer: fs.WriteStream = fs.createWriteStream(this._resultsFile, { flags: 'a', mode: 666 });
-            this._process = spawn(this._cmd, args, {
-                cwd: path.dirname(this._targetFile),
-                stdio: [ 'pipe', 'pipe', 'pipe' ],
-            });
-            reader.pipe(this._process.stdin);
-            this._process.stdout.pipe(writer);
-            this._process.once('close', () => {
-                this._process = undefined;
-                writer.close();
-                reader.close();
-                resolve();
-            });
-            this._process.once('error', (error: Error) => {
-                this._process = undefined;
-                this._last = undefined;
-                writer.close();
-                reader.close();
-                this._logger.error(`Error during calling rg: ${error.message}`);
-                reject(error);
+            setImmediate(() => {
+                if (this._process !== undefined) {
+                    return new Error(this._logger.warn(`Cannot append search because previous process isn't finished yet.`));
+                }
+                if (this._last === undefined) {
+                    return new Error(this._logger.warn(`Cannot append search because there are no primary search yet.`));
+                }
+                const reader: fs.ReadStream = fs.createReadStream(this._targetFile, { encoding: 'utf8', start: from, end: to});
+                const args: string[] = [
+                    '-N',
+                    '--text', // https://github.com/BurntSushi/ripgrep/issues/306 this issue is about a case, when not printable symble is in a file
+                    '-e',
+                    this._last,
+                    '-',
+                ];
+                const writer: fs.WriteStream = fs.createWriteStream(this._resultsFile, { flags: 'a', mode: 666 });
+                this._process = spawn(this._cmd, args, {
+                    cwd: path.dirname(this._targetFile),
+                    stdio: [ 'pipe', 'pipe', 'pipe' ],
+                });
+                reader.pipe(this._process.stdin);
+                this._process.stdout.pipe(writer);
+                this._process.once('close', () => {
+                    this._process = undefined;
+                    writer.close();
+                    reader.close();
+                    resolve();
+                });
+                this._process.once('error', (error: Error) => {
+                    this._process = undefined;
+                    this._last = undefined;
+                    writer.close();
+                    reader.close();
+                    this._logger.error(`Error during calling rg: ${error.message}`);
+                    reject(error);
+                });
             });
         });
+    }
+
+    public isBusy(): boolean {
+        return this._process !== undefined;
     }
 
 }
