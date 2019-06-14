@@ -4,10 +4,8 @@ import BytesRowsMap, { IMapItem } from './controller.stream.processor.map';
 import StreamFileReader from './controller.stream.file.reader';
 
 const CSettings = {
-    notificationDelayOnStream: 500,             // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is blocked
-    maxPostponedNotificationMessages: 500,      // How many IPC messages to render (client) should be postponed via timer
-    chunkDelayOnStream: 1000,
-    maxPostponedChunksMessages: 500,
+    notificationDelayOnStream: 250,             // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is blocked
+    maxPostponedNotificationMessages: 100,      // How many IPC messages to render (client) should be postponed via timer
 };
 
 export default class ControllerStreamUpdatesPostman {
@@ -17,6 +15,7 @@ export default class ControllerStreamUpdatesPostman {
     private _notification: { timer: any, attempts: number } = { timer: -1, attempts: 0 };
     private _map: BytesRowsMap;
     private _destroyed: boolean = false;
+    private _working: boolean = false;
 
     constructor(streamId: string, map: BytesRowsMap) {
         this._streamId = streamId;
@@ -35,7 +34,7 @@ export default class ControllerStreamUpdatesPostman {
             return;
         }
         clearTimeout(this._notification.timer);
-        if (this._notification.attempts > CSettings.maxPostponedNotificationMessages) {
+        if (!this._working && this._notification.attempts > CSettings.maxPostponedNotificationMessages) {
             return this._notify();
         }
         this._notification.attempts += 1;
@@ -46,11 +45,14 @@ export default class ControllerStreamUpdatesPostman {
 
     private _notify(): void {
         this._notification.attempts = 0;
+        this._working = true;
         ServiceElectron.IPC.send(new IPCElectronMessages.StreamUpdated({
             guid: this._streamId,
             length: this._map.getByteLength(),
             rowsCount: this._map.getRowsCount(),
-        })).catch((error: Error) => {
+        })).then(() => {
+            this._working = false;
+        }).catch((error: Error) => {
             this._logger.warn(`Fail send notification to render due error: ${error.message}`);
         });
     }

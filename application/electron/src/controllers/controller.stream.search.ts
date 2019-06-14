@@ -6,7 +6,7 @@ import { RGSearchWrapper } from './controller.stream.search.rg';
 import State from './controller.stream.search.state';
 import StreamState from './controller.stream.state';
 import { IMapItem } from './controller.stream.search.map';
-import Transform, { ITransformResult } from './controller.stream.search.pipe.transform';
+import Transform from './controller.stream.search.pipe.transform';
 import NullWritableStream from '../classes/stream.writable.null';
 
 export interface IRange {
@@ -18,6 +18,11 @@ export interface IRangeMapItem {
     rows: IRange;
     bytes: IRange;
 }
+
+const CSettings = {
+    delayOnAppend: 250,                 // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is blocked
+    maxPostponedAppendAttempts: 100,     // How many IPC messages to render (client) should be postponed via timer
+};
 
 export default class ControllerStreamSearch {
 
@@ -31,6 +36,17 @@ export default class ControllerStreamSearch {
     private _state: State;
     private _last: RegExp[] = [];
     private _streamState: StreamState;
+    private _appendState: {
+        timer: any,
+        attempts: number,
+        bytes: IRange,
+        isBusy: boolean,
+    } = {
+        timer: -1,
+        attempts: 0,
+        bytes: { from: -1, to: -1 },
+        isBusy: false,
+    };
 
     constructor(guid: string, streamFile: string, searchFile: string, streamState: StreamState) {
         this._guid = guid;
@@ -66,20 +82,45 @@ export default class ControllerStreamSearch {
         });
     }
 
-    private _append(bytes: IRange): Promise<number> {
-        return new Promise((resolve, reject) => {
-            if (this._last.length === 0) {
-                return resolve(0);
-            }
-            this._engine.append(bytes.from, bytes.to).then(() => {
-                this._generateFileMap(this._searchFile, true).then(() => {
-                    resolve(this._state.map.getRowsCount());
-                }).catch((writeError: Error) => {
-                    reject(writeError);
-                });
-            }).catch((searchError: Error) => {
-                reject(searchError);
+    private _tryToAppend(bytes: IRange) {
+        clearTimeout(this._appendState.timer);
+        this._appendState.attempts += 1;
+        if (this._appendState.bytes.from === -1 || this._appendState.bytes.from > bytes.from) {
+            this._appendState.bytes.from = bytes.from;
+        }
+        if (this._appendState.bytes.to < bytes.to) {
+            this._appendState.bytes.to = bytes.to;
+        }
+        if (this._appendState.attempts > CSettings.maxPostponedAppendAttempts && !this._engine.isBusy() && !this._appendState.isBusy) {
+            this._append();
+        } else {
+            this._appendState.timer = setTimeout(() => {
+                this._append();
+            }, CSettings.delayOnAppend);
+        }
+    }
+
+    private _append(): void {
+        if (this._last.length === 0) {
+            return;
+        }
+        if (this._engine.isBusy() || this._appendState.isBusy) {
+            this._tryToAppend(this._appendState.bytes);
+            return;
+        }
+        this._appendState.isBusy = true;
+        const bytes: IRange = { from: this._appendState.bytes.from, to: this._appendState.bytes.to };
+        this._appendState.bytes.from = -1;
+        this._appendState.bytes.to = -1;
+        this._appendState.attempts = 0;
+        this._engine.append(bytes.from, bytes.to).then(() => {
+            this._generateFileMap(true).then(() => {
+                this._appendState.isBusy = false;
+            }).catch((writeError: Error) => {
+                this._logger.warn(`Fail to generate map file due error: ${writeError.message}`);
             });
+        }).catch((searchError: Error) => {
+            this._logger.warn(`Fail to make a search due error: ${searchError.message}`);
         });
     }
 
@@ -87,7 +128,7 @@ export default class ControllerStreamSearch {
         return new Promise((resolve, reject) => {
             this._engine.search(requests).then(() => {
                 this._last = requests;
-                this._generateFileMap(this._searchFile).then(() => {
+                this._generateFileMap().then(() => {
                     resolve(this._state.map.getRowsCount());
                 }).catch((writeError: Error) => {
                     reject(writeError);
@@ -98,34 +139,48 @@ export default class ControllerStreamSearch {
         });
     }
 
-    private _generateFileMap(file: string, append: boolean = false): Promise<void> {
+    private _generateFileMap(append: boolean = false): Promise<void> {
         return new Promise((resolve, reject) => {
             if (!append) {
                 // Drop map
                 this._state.map.drop();
             }
+            const options = append ? { start: this._state.map.getByteLength() } : {};
             // Create reader
-            const reader: fs.ReadStream = fs.createReadStream(file, { start: this._state.map.getByteLength()});
+            const reader: fs.ReadStream = fs.createReadStream(this._searchFile, options);
             // Create writer
             const writer: NullWritableStream = new NullWritableStream();
             // Create transformer
             const transform: Transform = new Transform({}, this._guid, { bytes: this._state.map.getByteLength(), rows: this._state.map.getRowsCount()});
-            transform.on(Transform.Events.onMapped, (converted: ITransformResult) => {
-                // Add map
-                this._state.map.add(converted.map);
-                // Notifications is here
-                this._state.postman.notification();
+            // Listen error on reading
+            reader.once('error', (readingError: Error) => {
+                reject(new Error(this._logger.error(`Fail to read file due error: ${readingError.message}`)));
             });
-            // Listenn end of reading
-            reader.once('end', () => {
+            // Listen error on writing
+            reader.once('error', (readingError: Error) => {
+                reject(new Error(this._logger.error(`Fail to write file due error: ${readingError.message}`)));
+            });
+            // Listen end of writing
+            writer.once('finish', () => {
+                if (transform.getMap().length === 0) {
+                    this._logger.warn(`Transformer doesn't have any item of map`);
+                    return resolve();
+                }
+                // Add map
+                this._state.map.add(transform.getMap());
+                // Valid data
+                /*
+                const validate = this._state.map.getInvalid();
+                if (validate !== undefined) {
+                    console.log(`Not valid map items found: ${validate.indexes}`);
+                }
+                */
+                // Notifications is here
+                this._state.postman.notification(true);
                 resolve();
             });
-            // Listen error on reading
-            reader.once('error', (error: Error) => {
-                reject(new Error(this._logger.error(`Fail to read file due error: ${error.message}`)));
-            });
             // Execute operation
-            reader.pipe(transform).pipe(writer, { end: false });
+            reader.pipe(transform).pipe(writer);
         });
     }
 
@@ -237,12 +292,7 @@ export default class ControllerStreamSearch {
     }
 
     private _stream_onUpdate(bytes: IRange) {
-        this._append(bytes).then(() => {
-            console.log(this._state.map);
-            // notification
-        }).catch((error: Error) => {
-            this._logger.warn(`Fail to append search results due error: ${error.message}`);
-        });
+        this._tryToAppend(bytes);
     }
 
 }

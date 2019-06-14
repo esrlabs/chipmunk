@@ -62,6 +62,7 @@ export class ControllerSessionTabSearchOutput {
     private _getActiveSearchRequests: TGetActiveSearchRequestsHandler;
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
     private _stream: ControllerSessionTabStreamOutput;
+    private _preloadRequestId: string | undefined;
     private _bookmakrs: ControllerSessionTabStreamBookmarks;
     private _state: IStreamState = {
         count: 0,
@@ -257,9 +258,24 @@ export class ControllerSessionTabSearchOutput {
         return this._state.count;
     }
 
+    public preload(range: IRange): Promise<IRange> {
+        return this._preload(range);
+    }
+
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Rows operations
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    private _isRangeStored(range: IRange): boolean {
+        const stored = Object.assign({}, this._state.stored);
+        if (this._state.count === 0 || range.start < 0 || range.end < 0) {
+            return true;
+        }
+        if (range.start >= stored.start && range.end <= stored.end) {
+            return true;
+        }
+        return false;
+    }
+
     private _getRowsSliced(from: number, to: number): ISearchStreamPacket[] {
         const offset: number = this._state.stored.start > 0 ? this._state.stored.start : 0;
         return this._rows.slice(from - offset, to - offset);
@@ -473,6 +489,34 @@ export class ControllerSessionTabSearchOutput {
             });
         }, Settings.requestDelay);
         return true;
+    }
+
+    private _preload(range: IRange): Promise<IRange | null> {
+        return new Promise((resolve, reject) => {
+            if (this._preloadRequestId !== undefined) {
+                return resolve(null);
+            }
+            if (this._isRangeStored(range)) {
+                this._preloadRequestId = undefined;
+                return resolve(range);
+            }
+            this._preloadRequestId = Toolkit.guid();
+            this._requestDataHandler(range.start, range.end).then((message: IPCMessages.StreamChunk) => {
+                // Update size of whole stream (real size - count of rows in stream file)
+                this._setTotalStreamCount(message.rows);
+                // Parse and accept rows
+                this._parse(message.data, message.start, message.end);
+                // Drop request ID
+                this._preloadRequestId = undefined;
+                // Return actual preloaded range
+                resolve({ start: message.start, end: message.end});
+            }).catch((error: Error) => {
+                // Drop request ID
+                this._preloadRequestId = undefined;
+                // Reject
+                reject(new Error(this._logger.error(`Fail to preload data (rows from ${range.start} to ${range.end}) due error: ${error.message}`)));
+            });
+        });
     }
 
     private _buffer() {

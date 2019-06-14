@@ -8,6 +8,12 @@ import { ViewSearchOutputRowComponent } from './row/component';
 import { ViewSearchControlsComponent, IButton } from './controls/component';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 
+const CSettings: {
+    preloadCount: number,
+} = {
+    preloadCount: 100
+};
+
 @Component({
     selector: 'app-views-search-output',
     templateUrl: './template.html',
@@ -51,6 +57,10 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
     }
 
     ngAfterViewInit() {
+        if (this._scrollBoxCom === undefined || this._scrollBoxCom === null) {
+            return;
+        }
+        this._subscriptions.onScrolled = this._scrollBoxCom.getObservable().onScrolled.subscribe(this._onScrolled.bind(this));
     }
 
     ngAfterContentInit() {
@@ -119,6 +129,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         this._ng_outputAPI.onStorageUpdated.next({
             count: state.count
         });
+        this._keepScrollDown();
     }
 
     private _onRangeLoaded(packet: ILoadedRange) {
@@ -140,9 +151,53 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         this._ng_outputAPI.onScrollTo.next(closed.index);
     }
 
+    private _onScrolled(range: IRange) {
+        const last: number = this._output.getRowsCount() - 1;
+        if (range.end === last && !this._controls.keepScrollDown) {
+            this._controls.keepScrollDown = true;
+            this._controls.update.next(this._ctrl_getButtons());
+        } else if (range.end < last && this._controls.keepScrollDown) {
+            this._controls.keepScrollDown = false;
+            this._controls.update.next(this._ctrl_getButtons());
+        }
+    }
+
     private _onResize() {
         this._cdRef.detectChanges();
         this._ng_outputAPI.onRedraw.next();
+    }
+
+    private _keepScrollDown() {
+        if (this._scrollBoxCom === undefined || this._scrollBoxCom === null) {
+            return;
+        }
+        if (!this._controls.keepScrollDown) {
+            return;
+        }
+        const last: number = this._output.getRowsCount() - 1;
+        const range: IRange = {
+            start: last - CSettings.preloadCount < 0 ? 0 : (last - CSettings.preloadCount),
+            end: last
+        };
+        const frame: IRange = this._scrollBoxCom.getFrame();
+        if (frame.end === range.end) {
+            return;
+        }
+        this._output.preload(range).then((loaded: IRange | null) => {
+            if (loaded === null) {
+                // Already some request is in progress: do nothing
+                return;
+            }
+            this._ng_outputAPI.onScrollUntil.next(loaded.end);
+            // Repeat request to be sure - user at the end
+            /*
+            setTimeout(() => {
+                this._keepScrollDown();
+            }, 50);
+            */
+        }).catch((error: Error) => {
+            // Do nothing, no data available
+        });
     }
 
     private _ctrl_inject() {
@@ -184,7 +239,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         }
         const last: number = this._output.getRowsCount() - 1;
         if (this._controls.keepScrollDown && this._scrollBoxCom.getFrame().end < last) {
-            this._onScrollTo(last);
+            this._ng_outputAPI.onScrollTo.next(last);
         }
     }
 

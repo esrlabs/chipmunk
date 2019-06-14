@@ -34,15 +34,7 @@ export interface ILoadedRange {
     range: IRange;
     rows: IStreamPacket[];
 }
-/*
-export const Settings = {
-    trigger         : 10000,    // Trigger to load addition chunk
-    maxRequestCount : 50000,    // chunk size in rows
-    maxStoredCount  : 100000,   // limit of rows to have it in RAM. All above should be removed
-    requestDelay    : 250,      // ms, delay before to do request
-};
 
-*/
 export const Settings = {
     trigger         : 1000,     // Trigger to load addition chunk
     maxRequestCount : 5000,     // chunk size in rows
@@ -316,6 +308,7 @@ export class ControllerSessionTabStreamOutput {
                 return resolve(null);
             }
             if (this._isRangeStored(range)) {
+                this._preloadRequestId = undefined;
                 return resolve(range);
             }
             this._preloadRequestId = Toolkit.guid();

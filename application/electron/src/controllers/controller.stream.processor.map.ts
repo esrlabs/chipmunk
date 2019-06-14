@@ -36,10 +36,11 @@ export default class BytesRowsMap {
         this._bytes = this._map[this._map.length - 1].bytes.to + 1;
     }
 
-    public add(item: IMapItem) {
-        this._map.push(item);
-        this._bytes = item.bytes.to + 1;
-        this._rows = item.rows.to + 1;
+    public add(item: IMapItem | IMapItem[]) {
+        item = item instanceof Array ? item : [item];
+        this._map.push(...item);
+        this._bytes = item[item.length - 1].bytes.to + 1;
+        this._rows = item[item.length - 1].rows.to + 1;
     }
 
     public getBytesRange(requested: IRange): IMapItem | Error {
@@ -90,7 +91,7 @@ export default class BytesRowsMap {
     public getRowsCount(): number {
         return this._rows;
     }
-
+/*
     public getLastRange(): IMapItem | Error {
         if (this._map.length === 0) {
             return new Error(`No data in file. File is empty.`);
@@ -109,5 +110,5 @@ export default class BytesRowsMap {
             rows: { from: this._map[from].rows.from, to: this._map[to].rows.to },
         };
     }
-
+*/
 }

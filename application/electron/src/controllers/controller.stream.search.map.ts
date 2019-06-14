@@ -13,11 +13,13 @@ export default class BytesRowsMap {
     private _map: IMapItem[] = [];
     private _bytes: number = 0;
     private _rows: number = 0;
+    private _checked: number = -1;
 
-    public add(item: IMapItem) {
-        this._map.push(item);
-        this._bytes = item.bytes.to + 1;
-        this._rows = item.rows.to + 1;
+    public add(item: IMapItem | IMapItem[]) {
+        item = item instanceof Array ? item : [item];
+        this._map.push(...item);
+        this._bytes = item[item.length - 1].bytes.to + 1;
+        this._rows = item[item.length - 1].rows.to + 1;
     }
 
     public getBytesRange(requested: IRange): IMapItem | Error {
@@ -73,6 +75,32 @@ export default class BytesRowsMap {
         this._bytes = 0;
         this._map = [];
         this._rows = 0;
+        this._checked = -1;
+    }
+
+    public getInvalid(): { indexes: number[], items: IMapItem[] } | undefined {
+        let bytes: IRange | undefined;
+        let rows: IRange | undefined;
+        for (let i = this._map.length - 1; i >= this._checked + 1; i -= 1) {
+            const cBytes: IRange = this._map[i].bytes;
+            const cRows: IRange = this._map[i].rows;
+            if (bytes !== undefined && rows !== undefined) {
+                if (bytes.from !== cBytes.to + 1 || rows.from !== cRows.to + 1) {
+                    this._checked = i;
+                    return {
+                        indexes: [i, i + 1],
+                        items: [
+                            this._map[i],
+                            this._map[i + 1],
+                        ],
+                    };
+                }
+            }
+            bytes = cBytes;
+            rows = cRows;
+        }
+        this._checked = this._map.length - 2;
+        return undefined;
     }
 
 }
