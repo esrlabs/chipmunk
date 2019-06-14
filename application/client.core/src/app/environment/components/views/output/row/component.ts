@@ -2,6 +2,7 @@ import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, Af
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
 import { ControllerSessionTabStreamOutput } from '../../../../controller/controller.session.tab.stream.output';
+import { ControllerSessionTabSourcesState } from '../../../../controller/controller.session.tab.sources.state';
 import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../../controller/controller.session.tab.stream.bookmarks';
 import SourcesService from '../../../../services/service.sources';
 import OutputParsersService from '../../../../services/standalone/service.output.parsers';
@@ -22,6 +23,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     @Input() public pluginId: number | undefined;
     @Input() public controller: ControllerSessionTabStreamOutput | undefined;
     @Input() public bookmarks: ControllerSessionTabStreamBookmarks | undefined;
+    @Input() public sources: ControllerSessionTabSourcesState | undefined;
     @Input() public rank: number = 1;
 
     public _ng_safeHtml: SafeHtml = null;
@@ -31,6 +33,8 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     public _ng_bookmarked: boolean = false;
     public _ng_color: string | undefined;
     public _ng_background: string | undefined;
+    public _ng_sourceColor: string | undefined;
+    public _ng_source: boolean = false;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
@@ -55,9 +59,11 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         if (this._subscriptions.onRankChanged !== undefined) {
             return;
         }
+        this._ng_source = this.sources.isVisible();
         this._subscriptions.onRankChanged = this.controller.getObservable().onRankChanged.subscribe(this._onRankChanged);
         this._subscriptions.onAddedBookmark = this.bookmarks.getObservable().onAdded.subscribe(this._onAddedBookmark.bind(this));
         this._subscriptions.onRemovedBookmark = this.bookmarks.getObservable().onRemoved.subscribe(this._onRemovedBookmark.bind(this));
+        this._subscriptions.onSourceChange = this.sources.getObservable().onChanged.subscribe(this._onSourceChange.bind(this));
     }
 
     public ngAfterContentChecked() {
@@ -70,6 +76,10 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         } else {
             this._acceptRowWithContent();
         }
+    }
+
+    public _ng_onToggleSource() {
+        this.sources.change(!this._ng_source);
     }
 
     public _ng_isPending() {
@@ -123,6 +133,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         }
         let html = this.str;
         const sourceName: string = SourcesService.getSourceName(this.pluginId);
+        this._ng_sourceColor = SourcesService.getSourceColor(this.pluginId);
         if (sourceName === undefined) {
             this._ng_sourceName = 'n/d';
         } else {
@@ -172,6 +183,11 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     private _onRankChanged(rank: number) {
         this.rank = rank;
         this._ng_number_filler = this._getNumberFiller();
+        this._cdRef.detectChanges();
+    }
+
+    private _onSourceChange(source: boolean) {
+        this._ng_source = source;
         this._cdRef.detectChanges();
     }
 

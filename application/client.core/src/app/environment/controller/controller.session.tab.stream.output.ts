@@ -3,6 +3,7 @@ import { Observable, Subject } from 'rxjs';
 import * as Toolkit from 'logviewer.client.toolkit';
 import OutputRedirectionsService from '../services/standalone/service.output.redirections';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
+import { ControllerSessionTabSourcesState } from './controller.session.tab.sources.state';
 
 export type TRequestDataHandler = (start: number, end: number) => Promise<IPCMessages.StreamChunk>;
 
@@ -14,6 +15,7 @@ export interface IStreamPacket {
     sessionId: string;
     controller: ControllerSessionTabStreamOutput;
     bookmarks: ControllerSessionTabStreamBookmarks;
+    sources: ControllerSessionTabSourcesState;
 }
 
 export interface IStreamState {
@@ -49,6 +51,7 @@ export class ControllerSessionTabStreamOutput {
     private _rows: IStreamPacket[] = [];
     private _requestDataHandler: TRequestDataHandler;
     private _bookmarks: ControllerSessionTabStreamBookmarks;
+    private _sources: ControllerSessionTabSourcesState;
     private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
     private _preloadRequestId: string | undefined;
     private _state: IStreamState = {
@@ -78,6 +81,7 @@ export class ControllerSessionTabStreamOutput {
         this._guid = guid;
         this._requestDataHandler = requestDataHandler;
         this._bookmarks = bookmarks;
+        this._sources = new ControllerSessionTabSourcesState(this._guid);
         this._logger = new Toolkit.Logger(`ControllerSessionTabStreamOutput: ${this._guid}`);
         this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(this._guid, this._onRowSelected.bind(this));
     }
@@ -400,6 +404,7 @@ export class ControllerSessionTabStreamOutput {
                 sessionId: this._guid,
                 controller: this,
                 bookmarks: this._bookmarks,
+                sources: this._sources,
             };
         }).filter((packet: IStreamPacket) => {
             return (packet.position !== -1);
@@ -417,6 +422,7 @@ export class ControllerSessionTabStreamOutput {
                 sessionId: this._guid,
                 controller: this,
                 bookmarks: this._bookmarks,
+                sources: this._sources,
             };
         });
         return rows;

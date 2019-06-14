@@ -5,6 +5,7 @@ import SourcesService from '../../../../../services/service.sources';
 import OutputParsersService from '../../../../../services/standalone/service.output.parsers';
 import OutputRedirectionsService from '../../../../../services/standalone/service.output.redirections';
 import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../../../controller/controller.session.tab.stream.bookmarks';
+import { ControllerSessionTabSourcesState } from '../../../../../controller/controller.session.tab.sources.state';
 
 @Component({
     selector: 'app-views-search-output-row',
@@ -20,6 +21,7 @@ export class ViewSearchOutputRowComponent implements AfterContentChecked, AfterC
     @Input() public pluginId: number | undefined;
     @Input() public rank: number = 1;
     @Input() public bookmarks: ControllerSessionTabStreamBookmarks | undefined;
+    @Input() public sources: ControllerSessionTabSourcesState | undefined;
 
     public _ng_safeHtml: SafeHtml = null;
     public _ng_sourceName: string | undefined;
@@ -28,6 +30,8 @@ export class ViewSearchOutputRowComponent implements AfterContentChecked, AfterC
     public _ng_bookmarked: boolean = false;
     public _ng_color: string | undefined;
     public _ng_background: string | undefined;
+    public _ng_source: boolean = false;
+    public _ng_sourceColor: string | undefined;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
@@ -45,8 +49,10 @@ export class ViewSearchOutputRowComponent implements AfterContentChecked, AfterC
     }
 
     public ngAfterContentInit() {
+        this._ng_source = this.sources.isVisible();
         this._subscriptions.onAddedBookmark = this.bookmarks.getObservable().onAdded.subscribe(this._onAddedBookmark.bind(this));
         this._subscriptions.onRemovedBookmark = this.bookmarks.getObservable().onRemoved.subscribe(this._onRemovedBookmark.bind(this));
+        this._subscriptions.onSourceChange = this.sources.getObservable().onChanged.subscribe(this._onSourceChange.bind(this));
     }
 
     public ngAfterContentChecked() {
@@ -59,6 +65,10 @@ export class ViewSearchOutputRowComponent implements AfterContentChecked, AfterC
         } else {
             this._acceptRowWithContent();
         }
+    }
+
+    public _ng_onToggleSource() {
+        this.sources.change(!this._ng_source);
     }
 
     public _ng_isPending() {
@@ -112,6 +122,7 @@ export class ViewSearchOutputRowComponent implements AfterContentChecked, AfterC
         }
         let html = this.str;
         const sourceName: string = SourcesService.getSourceName(this.pluginId);
+        this._ng_sourceColor = SourcesService.getSourceColor(this.pluginId);
         if (sourceName === undefined) {
             this._ng_sourceName = 'n/d';
         } else {
@@ -155,6 +166,11 @@ export class ViewSearchOutputRowComponent implements AfterContentChecked, AfterC
             return;
         }
         this._acceptRowWithContent();
+        this._cdRef.detectChanges();
+    }
+
+    private _onSourceChange(source: boolean) {
+        this._ng_source = source;
         this._cdRef.detectChanges();
     }
 

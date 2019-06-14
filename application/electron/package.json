@@ -48,7 +48,6 @@
     "dltreader": "latest",
     "logviewer.lvin": "latest",
     "moment-timezone": "^0.5.25",
-    "pty": "0.0.0",
     "tar": "^4.4.8",
     "uuid": "latest",
     "vscode-ripgrep": "latest"

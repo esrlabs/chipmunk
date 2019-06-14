@@ -6,6 +6,7 @@ import { IService } from '../interfaces/interface.service';
 export type TSourceId = number;
 export interface ISource {
     name: string;
+    color: string;
     pluginId: number | undefined;
 }
 
@@ -44,6 +45,14 @@ export class SourcesService implements IService {
         return data.name;
     }
 
+    public getSourceColor(id: TSourceId): string | undefined {
+        const data = this._sources.get(id);
+        if (data === undefined) {
+            return undefined;
+        }
+        return data.color;
+    }
+
     public getRelatedPlugin(id: TSourceId): IPluginData | undefined {
         const data = this._sources.get(id);
         if (data === undefined) {
@@ -58,6 +67,7 @@ export class SourcesService implements IService {
         }
         this._sources.set(message.id, {
             name: message.name,
+            color: `rgb(${Math.round(Math.random() * 154) + 100},${Math.round(Math.random() * 154) + 100},${Math.round(Math.random() * 154) + 100})`,
             pluginId: undefined
         });
     }
