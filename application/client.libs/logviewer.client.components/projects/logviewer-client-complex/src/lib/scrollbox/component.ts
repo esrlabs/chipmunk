@@ -41,6 +41,7 @@ export interface IDataAPI {
     onScrollTo: Subject<number>;
     onScrollUntil: Subject<number>;
     onRowsDelivered: Subject<IRowsPacket>;
+    onSourceUpdated: Subject<void>;
     onRerequest: Subject<void>;
     onRedraw: Subject<void>;
 }
@@ -214,6 +215,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         this._subscriptions.onStorageUpdated = this.API.onStorageUpdated.asObservable().subscribe(this._onStorageUpdated.bind(this));
         this._subscriptions.onRedraw = this.API.onRedraw.asObservable().subscribe(this._onRedraw.bind(this));
         this._subscriptions.onRerequest = this.API.onRerequest.asObservable().subscribe(this._onRerequest.bind(this));
+        this._subscriptions.onSourceUpdated = this.API.onSourceUpdated.asObservable().subscribe(this._onSourceUpdated.bind(this));
         // Init first range
         this._getInitalRange();
         // Binding
@@ -593,6 +595,21 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         this._render();
         // Update holder size
         this._updateHolderSize(true);
+    }
+
+    private _onSourceUpdated() {
+        const storage: IStorageInformation = this.API.getStorageInfo();
+        // Update storage info
+        this._storageInfo.count = storage.count;
+        // Read initial state
+        this._getInitalRange();
+        // Update data about sizes
+        this._updateContainerSize(true);
+        this._updateHolderSize(true);
+        // Update vertical scroll bar
+        this._updateSbvPosition();
+        // Update
+        this._cdRef.detectChanges();
     }
 
     private _onScrollTo(outside: boolean, row: number, noOffset: boolean = false) {

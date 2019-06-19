@@ -116,6 +116,13 @@ export class ControllerSessionTabStreamOutput {
         };
     }
 
+    public getFrame(): IRange {
+        return {
+            start: this._state.frame.start >= 0 ? this._state.frame.start : 0,
+            end: this._state.frame.end >= 0 ? this._state.frame.end : 0,
+        };
+    }
+
     public getRange(range: IRange): IStreamPacket[] | Error {
         let rows: IStreamPacket[] = [];
         if (isNaN(range.start) || isNaN(range.end) || !isFinite(range.start) || !isFinite(range.end)) {

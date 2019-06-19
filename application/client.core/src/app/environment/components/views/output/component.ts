@@ -51,11 +51,13 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                 private _vcRef: ViewContainerRef,
                 private _notifications: NotificationsService) {
         this._ng_outputAPI = {
+            getLastFrame: this._api_getLastFrame.bind(this),
             getComponentFactory: this._api_getComponentFactory.bind(this),
             getItemHeight: this._api_getItemHeight.bind(this),
             getRange: this._api_getRange.bind(this),
             getStorageInfo: this._api_getStorageInfo.bind(this),
             updatingDone: this._api_updatingDone.bind(this),
+            onSourceUpdated: new Subject<void>(),
             onStorageUpdated: new Subject<IStorageInformation>(),
             onScrollTo: new Subject<number>(),
             onScrollUntil: new Subject<number>(),
@@ -72,6 +74,8 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this._subscriptions.onScrolled = this._scrollBoxCom.getObservable().onScrolled.subscribe(this._onScrolled.bind(this));
         this._dragdrop = new ControllerComponentsDragDropFiles(this._vcRef.element.nativeElement);
         this._subscriptions.onFiles = this._dragdrop.getObservable().onFiles.subscribe(this._onFilesDropped.bind(this));
+        // Inject controls to caption of dock
+        this._ctrl_inject();
     }
 
     ngAfterContentInit() {
@@ -88,11 +92,10 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this._subscriptions.onReset = this._output.getObservable().onReset.subscribe(this._onReset.bind(this));
         this._subscriptions.onScrollTo = this._output.getObservable().onScrollTo.subscribe(this._onScrollTo.bind(this));
         this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(this._onResize.bind(this));
-        // Inject controls to caption of dock
-        this._ctrl_inject();
     }
 
     public ngOnDestroy() {
+        this._ctrl_reject();
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
@@ -107,6 +110,10 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
 
     private _api_getItemHeight(): number {
         return 16;
+    }
+
+    private _api_getLastFrame(): IRange {
+        return this._output.getFrame();
     }
 
     private _api_getRange(range: IRange, antiLoopCounter: number = 0): IRowsPacket {
@@ -215,7 +222,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
             return;
         }
         this.injectTitleContent({
-            id: 'controls',
+            id: this.session.getGuid(),
             component: {
                 inputs: {
                     getButtons: this._ctrl_getButtons.bind(this),
@@ -224,6 +231,13 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                 factory: ViewOutputControlsComponent,
             },
         });
+    }
+
+    private _ctrl_reject() {
+        if (this.rejectTitleContent === undefined) {
+            return;
+        }
+        this.rejectTitleContent(this.session.getGuid());
     }
 
     private _ctrl_getButtons(): IButton[] {

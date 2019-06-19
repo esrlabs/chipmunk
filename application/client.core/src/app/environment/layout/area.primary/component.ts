@@ -17,13 +17,7 @@ export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
 
     public tabsService: TabsService;
 
-    private _subscriptions: {
-        minimized: Subscription | null,
-        updated: Subscription | null,
-    } = {
-        minimized: null,
-        updated: null,
-    };
+    private _subscriptions: { [key: string]: Subscription } = {};
 
     constructor(private _cdRef: ChangeDetectorRef) {
         // Get reference to tab service
@@ -33,12 +27,14 @@ export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
             injections: {
                 bar: {
                     factory: LayoutPrimiryAreaControlsComponent,
-                    inputs: {}
+                    inputs: {
+                        onNewTab: this._onNewTab.bind(this)
+                    }
                 }
             }
         });
         // Create default session
-        TabsSessionsService.create();
+        TabsSessionsService.add();
         /*
         const options = this.tabsService.getOptions();
         options.injections.bar = {
@@ -96,4 +92,9 @@ export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
     private _onUpdated(state: AreaState) {
         this._cdRef.detectChanges();
     }
+
+    public _onNewTab() {
+        TabsSessionsService.add();
+    }
+
 }

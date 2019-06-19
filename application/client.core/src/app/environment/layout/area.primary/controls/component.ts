@@ -9,6 +9,8 @@ import { AreaState } from '../../state';
 
 export class LayoutPrimiryAreaControlsComponent implements AfterViewInit, OnDestroy {
 
+    @Input() public onNewTab: () => void;
+
     constructor(private _cdRef: ChangeDetectorRef) {
 
     }
@@ -21,9 +23,13 @@ export class LayoutPrimiryAreaControlsComponent implements AfterViewInit, OnDest
 
     }
 
-    private _ng_onStateToggle(event: MouseEvent) {
+    private _ng_onAddNew(event: MouseEvent) {
         event.preventDefault();
         event.stopImmediatePropagation();
+        if (typeof this.onNewTab !== 'function') {
+            return false;
+        }
+        this.onNewTab();
         return false;
     }
 
