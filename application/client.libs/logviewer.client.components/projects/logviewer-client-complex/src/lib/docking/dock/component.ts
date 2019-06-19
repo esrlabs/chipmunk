@@ -18,11 +18,14 @@ export class DockComponent implements AfterViewInit, OnDestroy, AfterContentInit
     }
 
     public ngOnDestroy() {
-
+        this._ng_titleInjections = [];
     }
 
     public ngAfterViewInit() {
-
+        if (this._ng_titleInjections.length === 0) {
+            return;
+        }
+        this._cdRef.detectChanges();
     }
 
     public ngAfterContentInit() {
@@ -35,12 +38,8 @@ export class DockComponent implements AfterViewInit, OnDestroy, AfterContentInit
         if (this.dock.component.inputs === undefined) {
             this.dock.component.inputs = {};
         }
-        if (this.dock.component.inputs.injectTitleContent === undefined) {
-            this.dock.component.inputs.injectTitleContent = this._injectTitleContent.bind(this);
-        }
-        if (this.dock.component.inputs.rejectTitleContent === undefined) {
-            this.dock.component.inputs.rejectTitleContent = this._rejectTitleContent.bind(this);
-        }
+        this.dock.component.inputs.injectTitleContent = this._injectTitleContent.bind(this);
+        this.dock.component.inputs.rejectTitleContent = this._rejectTitleContent.bind(this);
     }
 
     private _injectTitleContent(content: DockDef.IDockTitleContent): Error | undefined {
@@ -55,5 +54,6 @@ export class DockComponent implements AfterViewInit, OnDestroy, AfterContentInit
             return button.id !== id;
         });
     }
+
 
 }
