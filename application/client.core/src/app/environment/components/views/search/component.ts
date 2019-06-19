@@ -1,8 +1,9 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef } from '@angular/core';
-import { Subscription, Subject } from 'rxjs';
+import { Subscription, Subject, Observable } from 'rxjs';
 import { ViewSearchOutputComponent } from './output/component';
 import { IComponentDesc } from 'logviewer-client-containers';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
+import { ControllerSessionTabSearchViewState, IViewState } from '../../../controller/controller.session.tab.search.view.state';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import LayoutStateService from '../../../services/standalone/service.layout.state';
@@ -27,14 +28,16 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     public _ng_request: string = '';
     public _ng_prevRequest: string = '';
     public _ng_isRequestSaved: boolean = false;
+    // Out of state (stored in controller)
+    public _ng_onSessionChanged: Subject<ControllerSessionTab> = new Subject<ControllerSessionTab>();
 
+    private _state: ControllerSessionTabSearchViewState;
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription | undefined } = { };
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef,
                 private _notifications: NotificationsService) {
-        this._onSessionChange = this._onSessionChange.bind(this);
-        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange);
+        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._setActiveSession();
     }
 
@@ -159,7 +162,11 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         if (session === undefined) {
             return;
         }
+        this._saveState();
         this._ng_session = session;
+        this._state = this._ng_session.getSessionSearch().getViewState();
+        this._loadState();
+        this._ng_onSessionChanged.next(this._ng_session);
     }
 
     private _focus() {
@@ -169,6 +176,31 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             }
             this._ng_requestInput.nativeElement.focus();
         }, 150);
+    }
+
+    private _saveState() {
+        if (this._ng_session === undefined || this._state === undefined) {
+            return;
+        }
+        this._state.set({
+            isRequestSaved: this._ng_isRequestSaved,
+            isRequestValid: this._ng_isRequestValid,
+            request: this._ng_request,
+            prevRequest: this._ng_prevRequest,
+            searchRequestId: this._ng_searchRequestId,
+        });
+    }
+
+    private _loadState() {
+        if (this._ng_session === undefined || this._state === undefined) {
+            return;
+        }
+        const state: IViewState = this._state.get();
+        this._ng_isRequestSaved = state.isRequestSaved;
+        this._ng_isRequestValid = state.isRequestValid;
+        this._ng_request = state.request;
+        this._ng_prevRequest = state.prevRequest;
+        this._ng_searchRequestId = state.searchRequestId;
     }
 
 }

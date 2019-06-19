@@ -155,6 +155,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
             this._disable(false);
             this._cdRef.detectChanges();
         });
+        // DD-MM-YYYY hh:mm:ss.s
     }
 
     public _ng_onFileTest(file: string) {

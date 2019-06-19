@@ -1,5 +1,5 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef } from '@angular/core';
-import { Subscription, Subject } from 'rxjs';
+import { Subscription, Subject, Observable } from 'rxjs';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { ControllerSessionTabSearchOutput, ISearchStreamPacket, IStreamState, ILoadedRange } from '../../../../controller/controller.session.tab.search.output';
 import { IDataAPI, IRange, IRowsPacket, IStorageInformation, ComplexScrollBoxComponent } from 'logviewer-client-complex';
@@ -25,12 +25,16 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
     @ViewChild(ComplexScrollBoxComponent) _scrollBoxCom: ComplexScrollBoxComponent;
 
     @Input() public session: ControllerSessionTab | undefined;
+    @Input() public onSessionChanged: Subject<ControllerSessionTab> | undefined;
     @Input() public injectionIntoTitleBar: Subject<IComponentDesc>;
 
     public _ng_outputAPI: IDataAPI;
 
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
+    private _outputSubscriptions: { [key: string]: Subscription | undefined } = { };
     private _output: ControllerSessionTabSearchOutput | undefined;
+    private _frames: Map<string, IRange> = new Map();
+    private _activeSessionId: string = '';
     private _controls: {
         update: Subject<IButton[]>,
         keepScrollDown: boolean,
@@ -42,11 +46,13 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef) {
         this._ng_outputAPI = {
+            getLastFrame: this._api_getLastFrame.bind(this),
             getComponentFactory: this._api_getComponentFactory.bind(this),
             getItemHeight: this._api_getItemHeight.bind(this),
             getRange: this._api_getRange.bind(this),
             getStorageInfo: this._api_getStorageInfo.bind(this),
             updatingDone: this._api_updatingDone.bind(this),
+            onSourceUpdated: new Subject<void>(),
             onStorageUpdated: new Subject<IStorageInformation>(),
             onScrollTo: new Subject<number>(),
             onScrollUntil: new Subject<number>(),
@@ -64,18 +70,16 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
     }
 
     ngAfterContentInit() {
-        if (this.session === undefined) {
+        if (this.session === undefined || this.onSessionChanged === undefined) {
             return;
         }
+        this._activeSessionId = this.session.getGuid();
         // Get reference to stream wrapper
         this._output = this.session.getSessionSearch().getOutputStream();
         // Make subscriptions
-        this._subscriptions.onStateUpdated = this._output.getObservable().onStateUpdated.subscribe(this._onStateUpdated.bind(this));
-        this._subscriptions.onRangeLoaded = this._output.getObservable().onRangeLoaded.subscribe(this._onRangeLoaded.bind(this));
-        this._subscriptions.onBookmarksChanged = this._output.getObservable().onBookmarksChanged.subscribe(this._onBookmarksChanged.bind(this));
-        this._subscriptions.onReset = this._output.getObservable().onReset.subscribe(this._onReset.bind(this));
-        this._subscriptions.onScrollTo = this._output.getObservable().onScrollTo.subscribe(this._onScrollTo.bind(this));
+        this._subscribeOutputEvents();
         this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(this._onResize.bind(this));
+        this._subscriptions.onSessionChanged = this.onSessionChanged.asObservable().subscribe(this._onSessionChanged.bind(this));
         // Inject controls to caption of dock
         this._ctrl_inject();
     }
@@ -84,8 +88,23 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
+        this._unsubscribeOutputEvents();
         this._ctrl_drop();
     }
+
+    private _subscribeOutputEvents() {
+        this._outputSubscriptions.onStateUpdated = this._output.getObservable().onStateUpdated.subscribe(this._onStateUpdated.bind(this));
+        this._outputSubscriptions.onRangeLoaded = this._output.getObservable().onRangeLoaded.subscribe(this._onRangeLoaded.bind(this));
+        this._outputSubscriptions.onBookmarksChanged = this._output.getObservable().onBookmarksChanged.subscribe(this._onBookmarksChanged.bind(this));
+        this._outputSubscriptions.onReset = this._output.getObservable().onReset.subscribe(this._onReset.bind(this));
+        this._outputSubscriptions.onScrollTo = this._output.getObservable().onScrollTo.subscribe(this._onScrollTo.bind(this));
+    }
+
+    private _unsubscribeOutputEvents() {
+        Object.keys(this._outputSubscriptions).forEach((key: string) => {
+            this._outputSubscriptions[key].unsubscribe();
+        });
+    }
 
     private _api_getComponentFactory(): any {
         return ViewSearchOutputRowComponent;
@@ -93,6 +112,10 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
 
     private _api_getItemHeight(): number {
         return 16;
+    }
+
+    private _api_getLastFrame(): IRange {
+        return this._output.getFrame();
     }
 
     private _api_getRange(range: IRange, antiLoopCounter: number = 0): IRowsPacket {
@@ -117,6 +140,25 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
 
     private _api_updatingDone(range: IRange): void {
         this._output.setFrame(range);
+    }
+
+    private _onSessionChanged(session: ControllerSessionTab) {
+        // Get current frame (cursor)
+        const storedFrame: IRange | undefined = this._frames.get(session.getGuid());
+        const frameToStore: IRange = this._output.getFrame();
+        this._frames.set(this._activeSessionId, frameToStore);
+        // Update session
+        this._activeSessionId = session.getGuid();
+        this.session = session;
+        // Unsubscribe
+        this._unsubscribeOutputEvents();
+        // Get reference to stream wrapper
+        this._output = this.session.getSessionSearch().getOutputStream();
+        // Subscribe
+        this._subscribeOutputEvents();
+        // Update
+        this._ng_outputAPI.onSourceUpdated.next();
+        this._cdRef.detectChanges();
     }
 
     private _onReset() {

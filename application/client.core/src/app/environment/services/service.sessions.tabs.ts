@@ -1,9 +1,9 @@
-import { TabsService, DockingComponent, DockDef, DocksService } from 'logviewer-client-complex';
+import { TabsService, DockingComponent, DockDef, DocksService, ITab } from 'logviewer-client-complex';
 import { Subscription } from './service.electron.ipc';
 import { ControllerSessionTab, ISidebarTabOptions } from '../controller/controller.session.tab';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { IService } from '../interfaces/interface.service';
-import { Observable, Subject } from 'rxjs';
+import { Observable, Subject, Subscription as SubscriptionRX } from 'rxjs';
 import { IDefaultView, IDefaultSideBarApp } from '../states/state.default';
 import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
 export { ControllerSessionTabSearch, IRequest } from '../controller/controller.session.tab.search';
@@ -15,7 +15,7 @@ export class TabsSessionsService implements IService {
     private _logger: Toolkit.Logger = new Toolkit.Logger('TabsSessionsService');
     private _sessions: Map<TSessionGuid, ControllerSessionTab> = new Map();
     private _tabsService: TabsService = new TabsService();
-    private _subscriptions: { [key: string]: Subscription | undefined } = { };
+    private _subscriptions: { [key: string]: Subscription | SubscriptionRX | undefined } = { };
     private _currentSessionGuid: string;
     private _defaults: {
         views: IDefaultView[],
@@ -32,6 +32,7 @@ export class TabsSessionsService implements IService {
 
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
+            this._subscriptions.onSessionTabChanged = this._tabsService.getObservable().active.subscribe(this._onSessionTabSwitched.bind(this));
             resolve();
         });
     }
@@ -42,7 +43,7 @@ export class TabsSessionsService implements IService {
 
     public destroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
-            this._subscriptions[key].destroy();
+            this._subscriptions[key].unsubscribe();
         });
     }
 
@@ -54,7 +55,7 @@ export class TabsSessionsService implements IService {
         this._defaults.sidebarApps = apps;
     }
 
-    public create(): void {
+    public add(): void {
         const guid: string = Toolkit.guid();
         const session = new ControllerSessionTab({
             guid: guid,
@@ -158,6 +159,13 @@ export class TabsSessionsService implements IService {
 
     public getActive(): ControllerSessionTab | undefined {
         return this._sessions.get(this._currentSessionGuid);
+    }
+
+    private _onSessionTabSwitched(tab: ITab) {
+        if (this._currentSessionGuid === tab.guid) {
+            return;
+        }
+        this.setActive(tab.guid);
     }
 
 }
