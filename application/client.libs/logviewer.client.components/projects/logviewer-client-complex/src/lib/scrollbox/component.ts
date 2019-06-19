@@ -2,7 +2,7 @@
 // tslint:disable:no-inferrable-types
 // tslint:disable:component-selector
 
-import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, ViewChild, Input, AfterContentInit, AfterViewChecked, ElementRef, OnChanges } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, ViewChild, Input, AfterContentInit, AfterViewChecked, AfterViewInit, ElementRef, OnChanges } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { ComplexScrollBoxSBVComponent } from './sbv/component';
 import { ComplexScrollBoxSBHComponent } from './sbh/component';
@@ -32,6 +32,7 @@ export interface IBoxSize {
 
 export interface IDataAPI {
     getRange: (range: IRange) => IRowsPacket;
+    getLastFrame: () => IRange;
     getStorageInfo: () => IStorageInformation;
     getComponentFactory: () => any;
     getItemHeight: () => number;
@@ -114,7 +115,7 @@ export function copyTextToClipboard(text: string) {
     styleUrls: ['./styles.less'],
 })
 
-export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, AfterViewChecked, OnChanges {
+export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, AfterViewChecked, AfterViewInit, OnChanges {
 
     @ViewChild('container') _ng_nodeContainer: ElementRef;
     @ViewChild('holder') _ng_nodeHolder: ElementRef;
@@ -213,14 +214,9 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         this._subscriptions.onStorageUpdated = this.API.onStorageUpdated.asObservable().subscribe(this._onStorageUpdated.bind(this));
         this._subscriptions.onRedraw = this.API.onRedraw.asObservable().subscribe(this._onRedraw.bind(this));
         this._subscriptions.onRerequest = this.API.onRerequest.asObservable().subscribe(this._onRerequest.bind(this));
-        // Get rows
-        const rows = this.API.getRange({
-            start: 0,
-            end: this._state.count > this._storageInfo.count ? (this._storageInfo.count - 1) : this._state.count
-        }).rows;
-        this._ng_rows = rows;
-        this._state.start = 0;
-        this._state.end = this._state.count > this._storageInfo.count ? (this._storageInfo.count - 1) : this._state.count;
+        // Init first range
+        this._getInitalRange();
+        // Binding
         this._ng_sbv_update = this._ng_sbv_update.bind(this);
         this._ng_sbv_pgUp = this._ng_sbv_pgUp.bind(this);
         this._ng_sbv_pgDown = this._ng_sbv_pgDown.bind(this);
@@ -229,8 +225,16 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         this._ng_sbh_update = this._ng_sbh_update.bind(this);
         this._ng_sbh_left = this._ng_sbh_left.bind(this);
         this._ng_sbh_right = this._ng_sbh_right.bind(this);
+    }
+
+    public ngAfterViewInit() {
+        // Update data about sizes
+        this._updateContainerSize(true);
+        this._updateHolderSize(true);
         // Update vertical scroll bar
         this._updateSbvPosition();
+        // Update
+        this._cdRef.detectChanges();
     }
 
     public ngAfterViewChecked() {
@@ -463,6 +467,26 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         if (!outside) {
             this._subjects.onScrolled.next({ start: this._state.start, end: this._state.end });
         }
+    }
+
+    private _getInitalRange() {
+        // Try to get last frame
+        const frame: IRange = this.API.getLastFrame();
+        if (frame.end - frame.start > this._state.count) {
+            frame.end = frame.start + this._state.count;
+        }
+        if (frame.end > this._storageInfo.count - 1) {
+            frame.end = this._storageInfo.count - 1;
+            frame.start = frame.end - this._state.count > 0 ? frame.end - this._state.count : 0;
+        }
+        // Get rows
+        const rows = this.API.getRange({
+            start: frame.start,
+            end: frame.end
+        }).rows;
+        this._ng_rows = rows;
+        this._state.start = frame.start;
+        this._state.end = frame.end;
     }
 
     private _onKeyboardAction(key: EKeys) {
