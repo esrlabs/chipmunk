@@ -7,6 +7,8 @@ import { IFile as ITestResponseFile } from '../../../services/electron.ipc.messa
 import { IFile as IRequestFile } from '../../../services/electron.ipc.messages/merge.files.request';
 import FileOpenerService from '../../../services/service.file.opener';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
+import SessionsService from '../../../services/service.sessions.tabs';
+import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 
 declare var Electron: any;
 
@@ -34,6 +36,16 @@ enum EMergeButtonTitle {
     confirm = 'Merge with warnings'
 }
 
+interface IState {
+    _ng_error: string | undefined;
+    _ng_report: string | undefined;
+    _ng_busy: boolean;
+    _ng_warning: string | undefined;
+    _ng_mergeButtonTitle: EMergeButtonTitle;
+    _files: IFileItem[];
+    _zones: string[];
+}
+
 @Component({
     selector: 'app-sidebar-app-files',
     templateUrl: './template.html',
@@ -41,6 +53,8 @@ enum EMergeButtonTitle {
 })
 
 export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentInit, AfterViewInit {
+
+    public static StateKey = 'side-bar-merge-view';
 
     @ViewChildren(SidebarAppMergeFilesItemComponent) private _filesComps: QueryList<SidebarAppMergeFilesItemComponent>;
 
@@ -54,18 +68,18 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     private _zones: string[] = [];
     private _dragdrop: ControllerComponentsDragDropFiles | undefined;
     private _subscriptions: { [key: string]: Subscription } = {};
+    private _session: ControllerSessionTab;
+    private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppMergeFilesComponent');
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef) {
-        ElectronIpcService.request(new IPCMessages.MergeFilesTimezonesRequest(), IPCMessages.MergeFilestimezoneResponse).then((response: IPCMessages.MergeFilestimezoneResponse) => {
-            this._zones = response.zones;
-        }).catch((error: Error) => {
-            this._ng_error = `Cannot delivery timezones due error: ${error.message}`;
-        });
+        this._session = SessionsService.getActive();
         this._subscriptions.onFilesToBeMerged = FileOpenerService.getObservable().onFilesToBeMerged.subscribe(this._onFilesToBeMerged.bind(this));
+        this._subscriptions.onSessionChange = SessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
     }
 
     public ngOnDestroy() {
+        this._saveState();
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
@@ -78,9 +92,9 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     }
 
     public ngAfterViewInit() {
-        this._onFilesToBeMerged(FileOpenerService.getMerginPendingFiles());
         this._dragdrop = new ControllerComponentsDragDropFiles(this._vcRef.element.nativeElement);
         this._subscriptions.onFiles = this._dragdrop.getObservable().onFiles.subscribe(this._onFilesDropped.bind(this));
+        this._loadState();
     }
 
     public _ng_onFileRemove(file: string) {
@@ -202,6 +216,70 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
             this._ng_busy = false;
             this._disable(false);
             this._cdRef.detectChanges();
+        });
+    }
+
+    private _loadState(): void {
+        if (!this._session.getSessionsStates().applyStateTo(this._getStateGuid(), this)) {
+            this._getZones().catch((error: Error) => {
+                this._logger.warn(`Fail init timezones due error: ${error.message}`);
+            });
+        }
+        this._onFilesToBeMerged(FileOpenerService.getMerginPendingFiles());
+    }
+
+    private _saveState(): void {
+        this._session.getSessionsStates().set<IState>(
+            this._getStateGuid(),
+            {
+                _ng_busy: this._ng_busy,
+                _ng_error: this._ng_error,
+                _ng_mergeButtonTitle: this._ng_mergeButtonTitle,
+                _ng_report: this._ng_report,
+                _ng_warning: this._ng_warning,
+                _files: this._files,
+                _zones: this._zones
+            }
+        );
+    }
+
+    private _dropState(): void {
+        this._ng_error = undefined;
+        this._ng_report = undefined;
+        this._ng_busy = false;
+        this._ng_warning = undefined;
+        this._ng_mergeButtonTitle = EMergeButtonTitle.merge;
+        this._files = [];
+        this._zones = [];
+    }
+
+    private _getStateGuid(): string {
+        return `${SidebarAppMergeFilesComponent.StateKey}:${this._session.getGuid()}`;
+    }
+
+    private _onSessionChange(session: ControllerSessionTab) {
+        // Save previos
+        this._saveState();
+        // Drop state before
+        this._dropState();
+        // Change session
+        this._session = session;
+        // Try to load
+        this._loadState();
+        // Update
+        this._cdRef.detectChanges();
+    }
+
+    private _getZones(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(new IPCMessages.MergeFilesTimezonesRequest(), IPCMessages.MergeFilestimezoneResponse).then((response: IPCMessages.MergeFilestimezoneResponse) => {
+                this._zones = response.zones;
+                resolve();
+            }).catch((error: Error) => {
+                this._ng_error = `Cannot delivery timezones due error: ${error.message}`;
+                this._zones = [];
+                reject(error);
+            });
         });
     }
 

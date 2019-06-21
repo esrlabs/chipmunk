@@ -2,6 +2,7 @@ import PluginsService, { IPluginData } from '../services/service.plugins';
 import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
 import { ControllerSessionTabStream } from './controller.session.tab.stream';
 import { ControllerSessionTabSearch } from './controller.session.tab.search';
+import { ControllerSessionTabStates } from './controller.session.tab.states';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 import { TabsService } from 'logviewer-client-complex';
 import * as Toolkit from 'logviewer.client.toolkit';
@@ -28,6 +29,7 @@ export class ControllerSessionTab {
     private _transports: string[];
     private _stream: ControllerSessionTabStream;
     private _search: ControllerSessionTabSearch;
+    private _states: ControllerSessionTabStates;
     private _sidebarTabsService: TabsService;
     private _defaultsSideBarApps: Array<{ guid: string, name: string, component: any }>;
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
@@ -45,6 +47,7 @@ export class ControllerSessionTab {
             transports: params.transports.slice(),
             stream: this._stream.getOutputStream()
         });
+        this._states = new ControllerSessionTabStates(params.guid);
         this._defaultsSideBarApps = params.defaultsSideBarApps;
         this._sidebar_update();
     }
@@ -57,6 +60,7 @@ export class ControllerSessionTab {
             Promise.all([
                 this._stream.destroy(),
                 this._search.destroy(),
+                this._states.destroy()
             ]).then(() => {
                 ServiceElectronIpc.request(
                     new IPCMessages.StreamRemoveRequest({ guid: this.getGuid() }),
@@ -89,6 +93,10 @@ export class ControllerSessionTab {
 
     public getSessionSearch(): ControllerSessionTabSearch {
         return this._search;
+    }
+
+    public getSessionsStates(): ControllerSessionTabStates {
+        return this._states;
     }
 
     public getSidebarTabsService(): TabsService {
