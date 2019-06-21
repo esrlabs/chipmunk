@@ -72,14 +72,17 @@ export default class ControllerStreamSearch {
         });
     }
 
-    public destroy() {
-        // TODO: check is rg works or results mapped. And force to close it
-        if (this._searchReader !== undefined) {
-            this._searchReader.destroy();
-        }
-        // Unsubscribe IPC messages / events
-        Object.keys(this._subscriptions).forEach((key: string) => {
-            (this._subscriptions as any)[key].destroy();
+    public destroy(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            // TODO: check is rg works or results mapped. And force to close it
+            if (this._searchReader !== undefined) {
+                this._searchReader.destroy();
+            }
+            // Unsubscribe IPC messages / events
+            Object.keys(this._subscriptions).forEach((key: string) => {
+                (this._subscriptions as any)[key].destroy();
+            });
+            resolve();
         });
     }
 

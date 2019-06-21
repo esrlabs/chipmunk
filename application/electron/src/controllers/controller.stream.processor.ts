@@ -66,11 +66,14 @@ export default class ControllerStreamProcessor {
         });
     }
 
-    public destroy() {
-        this._state.destroy();
-        // Unsubscribe IPC messages / events
-        Object.keys(this._subscriptions).forEach((key: string) => {
-            (this._subscriptions as any)[key].destroy();
+    public destroy(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._state.destroy();
+            // Unsubscribe IPC messages / events
+            Object.keys(this._subscriptions).forEach((key: string) => {
+                (this._subscriptions as any)[key].destroy();
+            });
+            resolve();
         });
     }
 

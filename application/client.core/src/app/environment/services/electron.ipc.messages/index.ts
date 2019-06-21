@@ -25,8 +25,11 @@ export { IStreamAdd, StreamAdd };
 import { IStreamSetActive, StreamSetActive } from './stream.setactive';
 export { IStreamSetActive, StreamSetActive };
 
-import { IStreamRemove, StreamRemove } from './stream.remove';
-export { IStreamRemove, StreamRemove };
+import { IStreamRemoveRequest, StreamRemoveRequest } from './stream.remove.request';
+export { IStreamRemoveRequest, StreamRemoveRequest };
+
+import { IStreamRemoveResponse, StreamRemoveResponse } from './stream.remove.response';
+export { IStreamRemoveResponse, StreamRemoveResponse };
 
 import { IStreamData, StreamData } from './stream.data';
 export { IStreamData, StreamData };
@@ -125,7 +128,8 @@ export type TMessage =  HostState |
                         PluginInternalMessage |
                         StreamSetActive |
                         StreamAdd |
-                        StreamRemove |
+                        StreamRemoveRequest |
+                        StreamRemoveResponse |
                         StreamData |
                         StreamUpdated |
                         StreamPipeState |
@@ -171,7 +175,8 @@ export const Map = {
 
     [StreamSetActive.signature              ]: StreamSetActive,
     [StreamAdd.signature                    ]: StreamAdd,
-    [StreamRemove.signature                 ]: StreamRemove,
+    [StreamRemoveRequest.signature          ]: StreamRemoveRequest,
+    [StreamRemoveResponse.signature         ]: StreamRemoveResponse,
     [StreamData.signature                   ]: StreamData,
     [StreamUpdated.signature                ]: StreamUpdated,
     [StreamPipeState.signature              ]: StreamPipeState,

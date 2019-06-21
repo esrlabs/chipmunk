@@ -64,13 +64,16 @@ export class ControllerSessionTabSearch {
         ServiceElectronIpc.subscribe(IPCMessages.SearchUpdated, this._ipc_onSearchUpdated.bind(this));
     }
 
-    public destroy() {
-        Object.keys(this._subscriptions).forEach((key: string) => {
-            this._subscriptions[key].destroy();
+    public destroy(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            Object.keys(this._subscriptions).forEach((key: string) => {
+                this._subscriptions[key].destroy();
+            });
+            this._output.destroy();
+            this._queue.unsubscribeAll();
+            OutputParsersService.unsetSearchResults(this._guid);
+            resolve();
         });
-        this._output.destroy();
-        this._queue.unsubscribeAll();
-        OutputParsersService.unsetSearchResults(this._guid);
     }
 
     public getGuid(): string {
