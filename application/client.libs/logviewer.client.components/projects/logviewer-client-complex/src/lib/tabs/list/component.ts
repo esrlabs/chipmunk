@@ -59,9 +59,17 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
         });
     }
 
-    public onClick(tabkey: string) {
+    public _ng_onClick(tabkey: string) {
         this.service.setActive(tabkey);
         this._cdRef.detectChanges();
+    }
+
+    public _ng_onTabClose(event: MouseEvent, tabkey: string) {
+        this.service.remove(tabkey);
+        event.stopImmediatePropagation();
+        event.preventDefault();
+        this._cdRef.detectChanges();
+        return false;
     }
 
     private async onNewTab(tab: ITab) {
