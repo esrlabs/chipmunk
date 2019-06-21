@@ -49,13 +49,16 @@ export class ControllerSessionTabStream {
         ServiceElectronIpc.subscribe(IPCMessages.StreamUpdated, this._ipc_onStreamUpdated.bind(this));
     }
 
-    public destroy() {
-        Object.keys(this._subscriptions).forEach((key: string) => {
-            this._subscriptions[key].destroy();
+    public destroy(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            Object.keys(this._subscriptions).forEach((key: string) => {
+                this._subscriptions[key].destroy();
+            });
+            this._output.destroy();
+            this._bookmarks.destroy();
+            this._queue.unsubscribeAll();
+            resolve();
         });
-        this._output.destroy();
-        this._bookmarks.destroy();
-        this._queue.unsubscribeAll();
     }
 
     public getGuid(): string {

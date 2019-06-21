@@ -49,9 +49,29 @@ export class ControllerSessionTab {
         this._sidebar_update();
     }
 
-    public destroy() {
-        Object.keys(this._subscriptions).forEach((key: string) => {
-            this._subscriptions[key].destroy();
+    public destroy(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            Object.keys(this._subscriptions).forEach((key: string) => {
+                this._subscriptions[key].destroy();
+            });
+            Promise.all([
+                this._stream.destroy(),
+                this._search.destroy(),
+            ]).then(() => {
+                ServiceElectronIpc.request(
+                    new IPCMessages.StreamRemoveRequest({ guid: this.getGuid() }),
+                    IPCMessages.StreamRemoveResponse
+                ).then((response: IPCMessages.StreamRemoveResponse) => {
+                    if (response.error) {
+                        return reject(new Error(this._logger.warn(`Fail to destroy session "${this.getGuid()}" due error: ${response.error}`)));
+                    }
+                    resolve();
+                }).catch((sendingError: Error) => {
+                    reject(new Error(this._logger.warn(`Fail to destroy session "${this.getGuid()}" due IPC error: ${sendingError.message}`)));
+                });
+            }).catch((error: Error) => {
+                reject(error);
+            });
         });
     }
 

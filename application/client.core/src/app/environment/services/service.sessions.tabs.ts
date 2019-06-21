@@ -33,6 +33,8 @@ export class TabsSessionsService implements IService {
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
             this._subscriptions.onSessionTabChanged = this._tabsService.getObservable().active.subscribe(this._onSessionTabSwitched.bind(this));
+            this._subscriptions.onSessionTabClosed = this._tabsService.getObservable().removed.subscribe(this._onSessionTabClosed.bind(this));
+
             resolve();
         });
     }
@@ -166,6 +168,19 @@ export class TabsSessionsService implements IService {
             return;
         }
         this.setActive(tab.guid);
+    }
+
+    private _onSessionTabClosed(session: string) {
+        // Get session controller
+        const controller: ControllerSessionTab = this._sessions.get(session);
+        if (controller === undefined) {
+            return this._logger.warn(`Fail to destroy session "${session}" because cannot find this session.`);
+        }
+        controller.destroy().then(() => {
+            this._logger.env(`Session "${session}" is destroyed`);
+        }).catch((error: Error) => {
+            this._logger.warn(`Fail to destroy session "${session}" due error: ${error.message}`);
+        });
     }
 
 }
