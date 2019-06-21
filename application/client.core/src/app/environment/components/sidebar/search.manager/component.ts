@@ -1,6 +1,4 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewChild, QueryList, AfterContentInit } from '@angular/core';
-import * as Toolkit from 'logviewer.client.toolkit';
-import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager',

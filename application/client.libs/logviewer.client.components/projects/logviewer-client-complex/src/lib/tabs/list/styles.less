@@ -22,19 +22,20 @@
             padding: 0;
             margin: 0;
             white-space: nowrap;
-            box-sizing: border-box;
+            box-sizing: content-box!important;
             width: 100%;
             & li.tab{
                 display: inline-block;
                 position: relative;
                 list-style: none;
-                box-sizing: border-box;
+                box-sizing: content-box!important;
                 cursor: default;
                 overflow: hidden;
                 & p.title {
                     display: inline-block;
                     white-space: nowrap;
-                    color: lighten(greyscale(@scheme-color-1), 25%);
+                    color: @scheme-color-1;
+                    opacity: 0.5;
                 }
                 & span.close-button{
                     font-size: 12px;
@@ -53,8 +54,9 @@
                 &:last-child{
                 }
                 &.active{
+                    box-sizing: content-box!important;
                     .border-based-4;
-                    .gradient(linear; @scheme-color-5, lighten(@scheme-color-5, 4%));
+                    .gradient(linear; lighten(@scheme-color-5, 18%), lighten(@scheme-color-5, 20%));
                     &::after{
                         position: absolute;
                         display: block;
@@ -66,17 +68,20 @@
                     }
                     & p.title {
                         color: @scheme-color-1;
+                        opacity: 1;
                     }
                 }
             }
             &.top{
                 border-bottom: inset thin @scheme-color-5;
                 box-shadow: inset 0px 10px 20px -12px rgba(0, 0, 0, 0.4);
+                box-sizing: content-box!important;
                 & li.tab{
                     padding: 0;
                     margin: 0;
                     height: 100%;
                     cursor: default;
+                    box-sizing: content-box!important;
                     & p.title {
                         padding: 0.1rem 1rem;
                     }
@@ -98,11 +103,12 @@
                         border-right: thin outset @background;
                     }
                     &.active{
+                        box-sizing: content-box!important;
                         .border-based-4;
                         border-bottom: none;
                         border-top-right-radius: @border-radius;
                         border-top-left-radius: @border-radius;
-                        .gradient(linear; @scheme-color-5, lighten(@scheme-color-5, 4%));
+                        .gradient(linear; lighten(@scheme-color-5, 18%), lighten(@scheme-color-5, 20%));
                         &::after{
                             width: 100%;
                             height: 2px;
@@ -119,11 +125,13 @@
                 border-right: inset thin @scheme-color-5;
                 box-shadow: inset 10px 10px 20px -12px rgba(0, 0, 0, 0.4);
                 white-space: normal;
+                box-sizing: content-box!important;
                 & li.tab{
                     padding: 0;
                     margin: 0;
                     height: auto;
                     cursor: default;
+                    box-sizing: content-box!important;
                     & p.title {
                         padding: 1rem 0.1rem;
                         writing-mode: vertical-rl;
@@ -152,7 +160,7 @@
                         border-right: none;
                         border-top-left-radius: @border-radius;
                         border-bottom-left-radius: @border-radius;
-                        .gradient(linear; @scheme-color-5, lighten(@scheme-color-5, 4%));
+                        .gradient(linear; lighten(@scheme-color-5, 18%), lighten(@scheme-color-5, 20%));
                         &::after{
                             width: 100%;
                             height: 2px;
