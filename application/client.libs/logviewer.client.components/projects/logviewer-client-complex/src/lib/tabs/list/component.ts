@@ -15,19 +15,7 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
 
     public _options: TabsOptions = new TabsOptions();
 
-    private _subscriptions: {
-        new: Subscription | null,
-        removed: Subscription | null,
-        clear: Subscription | null,
-        active: Subscription | null,
-        options: Subscription | null,
-    } = {
-        new: null,
-        removed: null,
-        clear: null,
-        active: null,
-        options: null,
-    };
+    private _subscriptions: { [key: string]: Subscription } = { };
 
     private _tabs: Map<string, ITab> = new Map();
 
@@ -44,6 +32,7 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
         this._subscriptions.removed = this.service.getObservable().removed.subscribe(this.onRemoveTab.bind(this));
         this._subscriptions.active = this.service.getObservable().active.subscribe(this.onActiveTabChange.bind(this));
         this._subscriptions.options = this.service.getObservable().options.subscribe(this._onOptionsUpdated.bind(this));
+        this._subscriptions.updated = this.service.getObservable().updated.subscribe(this._onTabUpdated.bind(this));
         this._tabs = this.service.getTabs();
         this._tabs.forEach((tab: ITab) => {
             this.tabs.push(tab);
@@ -107,6 +96,17 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
 
     private async _onOptionsUpdated(options: TabsOptions) {
         this._options = await options;
+        this._cdRef.detectChanges();
+    }
+
+    private async _onTabUpdated(tab: ITab) {
+        this._tabs.set(tab.guid, tab);
+        this.tabs = this.tabs.map((storedTab: ITab) => {
+            if (storedTab.guid === tab.guid) {
+                return tab;
+            }
+            return storedTab;
+        });
         this._cdRef.detectChanges();
     }
 

@@ -1,5 +1,5 @@
-import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
-import { Observable, Subject } from 'rxjs';
+import ServiceElectronIpc, { IPCMessages, Subscription as IPCSubscription } from '../services/service.electron.ipc';
+import { Observable, Subject, Subscription } from 'rxjs';
 import { ControllerSessionTabStreamOutput, IStreamPacket } from './controller.session.tab.stream.output';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 import QueueService, { IQueueController } from '../services/standalone/service.queue';
@@ -23,8 +23,9 @@ export class ControllerSessionTabStream {
         write: new Subject<void>(),
         next: new Subject<void>(),
         clear: new Subject<void>(),
+        onSourceChanged: new Subject<number>(),
     };
-    private _subscriptions: { [key: string]: Subscription | undefined } = { };
+    private _subscriptions: { [key: string]: Subscription | IPCSubscription } = { };
     private _output: ControllerSessionTabStreamOutput;
     private _bookmarks: ControllerSessionTabStreamBookmarks;
 
@@ -46,13 +47,13 @@ export class ControllerSessionTabStream {
         this._queue.subscribe(Toolkit.Queue.Events.done, this._queue_onDone);
         this._queue.subscribe(Toolkit.Queue.Events.next, this._queue_onNext);
         // Subscribe to streams data
-        ServiceElectronIpc.subscribe(IPCMessages.StreamUpdated, this._ipc_onStreamUpdated.bind(this));
+        this._subscriptions.onStreamUpdated = ServiceElectronIpc.subscribe(IPCMessages.StreamUpdated, this._ipc_onStreamUpdated.bind(this));
     }
 
     public destroy(): Promise<void> {
         return new Promise((resolve, reject) => {
             Object.keys(this._subscriptions).forEach((key: string) => {
-                this._subscriptions[key].destroy();
+                this._subscriptions[key].unsubscribe();
             });
             this._output.destroy();
             this._bookmarks.destroy();
@@ -72,12 +73,14 @@ export class ControllerSessionTabStream {
     public getObservable(): {
         write: Observable<void>,
         next: Observable<void>,
-        clear: Observable<void>
+        clear: Observable<void>,
+        onSourceChanged: Observable<number>,
     } {
         return {
             write: this._subjects.write.asObservable(),
             next: this._subjects.next.asObservable(),
-            clear: this._subjects.clear.asObservable()
+            clear: this._subjects.clear.asObservable(),
+            onSourceChanged: this._output.getObservable().onSourceChanged,
         };
     }
 

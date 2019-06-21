@@ -1,5 +1,6 @@
 import PluginsService, { IPluginData } from '../services/service.plugins';
-import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
+import ServiceElectronIpc, { IPCMessages, Subscription as IPCSubscription } from '../services/service.electron.ipc';
+import { Subscription, Observable } from 'rxjs';
 import { ControllerSessionTabStream } from './controller.session.tab.stream';
 import { ControllerSessionTabSearch } from './controller.session.tab.search';
 import { ControllerSessionTabStates } from './controller.session.tab.states';
@@ -32,7 +33,7 @@ export class ControllerSessionTab {
     private _states: ControllerSessionTabStates;
     private _sidebarTabsService: TabsService;
     private _defaultsSideBarApps: Array<{ guid: string, name: string, component: any }>;
-    private _subscriptions: { [key: string]: Subscription | undefined } = { };
+    private _subscriptions: { [key: string]: Subscription | IPCSubscription } = { };
 
     constructor(params: IControllerSession) {
         this._sessionId = params.guid;
@@ -55,7 +56,7 @@ export class ControllerSessionTab {
     public destroy(): Promise<void> {
         return new Promise((resolve, reject) => {
             Object.keys(this._subscriptions).forEach((key: string) => {
-                this._subscriptions[key].destroy();
+                this._subscriptions[key].unsubscribe();
             });
             Promise.all([
                 this._stream.destroy(),
@@ -77,6 +78,14 @@ export class ControllerSessionTab {
                 reject(error);
             });
         });
+    }
+
+    public getObservable(): {
+        onSourceChanged: Observable<number>,
+    } {
+        return {
+            onSourceChanged: this._stream.getObservable().onSourceChanged,
+        };
     }
 
     public getGuid(): string {
