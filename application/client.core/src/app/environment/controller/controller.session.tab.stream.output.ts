@@ -75,6 +75,7 @@ export class ControllerSessionTabStreamOutput {
         onReset: new Subject<void>(),
         onScrollTo: new Subject<number>(),
         onRankChanged: new Subject<number>(),
+        onSourceChanged: new Subject<number>(),
     };
 
     constructor(guid: string, requestDataHandler: TRequestDataHandler, bookmarks: ControllerSessionTabStreamBookmarks) {
@@ -106,6 +107,7 @@ export class ControllerSessionTabStreamOutput {
         onReset: Observable<void>,
         onScrollTo: Observable<number>,
         onRankChanged: Observable<number>,
+        onSourceChanged: Observable<number>,
     } {
         return {
             onStateUpdated: this._subjects.onStateUpdated.asObservable(),
@@ -113,6 +115,7 @@ export class ControllerSessionTabStreamOutput {
             onReset: this._subjects.onReset.asObservable(),
             onScrollTo: this._subjects.onScrollTo.asObservable(),
             onRankChanged: this._subjects.onRankChanged.asObservable(),
+            onSourceChanged: this._subjects.onSourceChanged.asObservable(),
         };
     }
 
@@ -138,6 +141,7 @@ export class ControllerSessionTabStreamOutput {
         if (stored.start >= 0 && stored.end >= 0) {
             if (range.start >= stored.start && range.end <= stored.end) {
                 rows = this._getRowsSliced(range.start, range.end + 1);
+                this._subjects.onSourceChanged.next(rows[0].pluginId);
             } else if (range.end > stored.start && range.start < stored.start && range.end < stored.end) {
                 rows = this._getPendingPackets(range.start, stored.start);
                 rows.push(...this._getRowsSliced(stored.start, range.end + 1));

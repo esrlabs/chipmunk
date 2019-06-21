@@ -6,6 +6,8 @@ import { IService } from '../interfaces/interface.service';
 import { Observable, Subject, Subscription as SubscriptionRX } from 'rxjs';
 import { IDefaultView, IDefaultSideBarApp } from '../states/state.default';
 import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
+import SourcesService from './service.sources';
+
 export { ControllerSessionTabSearch, IRequest } from '../controller/controller.session.tab.search';
 
 export type TSessionGuid = string;
@@ -14,6 +16,7 @@ export class TabsSessionsService implements IService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('TabsSessionsService');
     private _sessions: Map<TSessionGuid, ControllerSessionTab> = new Map();
+    private _sources: Map<TSessionGuid, number> = new Map();
     private _tabsService: TabsService = new TabsService();
     private _subscriptions: { [key: string]: Subscription | SubscriptionRX | undefined } = { };
     private _currentSessionGuid: string;
@@ -34,7 +37,6 @@ export class TabsSessionsService implements IService {
         return new Promise((resolve, reject) => {
             this._subscriptions.onSessionTabChanged = this._tabsService.getObservable().active.subscribe(this._onSessionTabSwitched.bind(this));
             this._subscriptions.onSessionTabClosed = this._tabsService.getObservable().removed.subscribe(this._onSessionTabClosed.bind(this));
-
             resolve();
         });
     }
@@ -64,9 +66,10 @@ export class TabsSessionsService implements IService {
             transports: ['processes', 'dlt'],
             defaultsSideBarApps: this._defaults.sidebarApps
         });
+        this._subscriptions[`onSourceChanged:${guid}`] = session.getObservable().onSourceChanged.subscribe(this._onSourceChanged.bind(this, guid));
         this._tabsService.add({
             guid: guid,
-            name: 'Default',
+            name: 'New',
             active: true,
             content: {
                 factory: DockingComponent,
@@ -161,6 +164,22 @@ export class TabsSessionsService implements IService {
 
     public getActive(): ControllerSessionTab | undefined {
         return this._sessions.get(this._currentSessionGuid);
+    }
+
+    private _onSourceChanged(guid: string, sourceId: number) {
+        if (typeof sourceId !== 'number' || sourceId < 0) {
+            return;
+        }
+        const current: number | undefined = this._sources.get(guid);
+        if (current === sourceId) {
+            return;
+        }
+        const name: string | undefined = SourcesService.getSourceName(sourceId);
+        if (typeof name !== 'string' || name.trim() === '') {
+            return;
+        }
+        this._sources.set(guid, sourceId);
+        this._tabsService.setTitle(guid, name);
     }
 
     private _onSessionTabSwitched(tab: ITab) {

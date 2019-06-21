@@ -19,6 +19,7 @@ export class TabsService {
         removed: new Subject<string>(),
         clear: new Subject<void>(),
         active: new Subject<ITab>(),
+        updated: new Subject<ITab>(),
         options: new Subject<TabsOptions>(),
     };
 
@@ -40,6 +41,7 @@ export class TabsService {
         removed: Observable<string>,
         clear: Observable<void>,
         active: Observable<ITab>,
+        updated: Observable<ITab>,
         options: Observable<TabsOptions>,
     } {
         return {
@@ -47,6 +49,7 @@ export class TabsService {
             removed: this._subjects.removed.asObservable(),
             clear: this._subjects.clear.asObservable(),
             active: this._subjects.active.asObservable(),
+            updated: this._subjects.updated.asObservable(),
             options: this._subjects.options.asObservable(),
         };
     }
@@ -125,6 +128,17 @@ export class TabsService {
     public clear() {
         this._tabs.clear();
         this._subjects.clear.next();
+    }
+
+    public setTitle(guid: string, title: string): Error | undefined {
+        const tab: ITab | undefined = this._tabs.get(guid);
+        if (tab === undefined) {
+            return new Error(`Fail to find tab "${guid}", tab doesn't exist.`);
+        }
+        tab.name = title;
+        this._tabs.set(guid, tab);
+        this._subjects.updated.next(tab);
+
     }
 
     private _normalize(tab: ITab): ITab {
