@@ -69,6 +69,13 @@
             margin-left: -0.5rem;
         }
         &.working{
+            & div.input-wrapper {
+                position: relative;
+                display: block;
+                height: 1.5rem;
+                width: ~"calc(100% - 5.5rem)";
+                margin-left: 2.5rem;
+            }
             & .input-area{
                 width: auto;
                 margin-right: 2.5rem;
@@ -76,10 +83,17 @@
         }
         & div.spinner{
             position: absolute;
-            right: 0.25rem;
+            left: 0.25rem;
             top: 0.25rem;
             width: 2rem;
             height: 1rem;
+        }
+        & div.buttons{
+            position: absolute;
+            right: 0;
+            top: -0.35rem;
+            height: 100%;
+            width: 3rem;
         }
 
     }

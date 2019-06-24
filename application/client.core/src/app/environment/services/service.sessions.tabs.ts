@@ -153,6 +153,7 @@ export class TabsSessionsService implements IService {
         if (session === undefined) {
             return this._logger.warn(`Cannot fild session ${guid}. Cannot make this session active.`);
         }
+        session.setActive();
         this._currentSessionGuid = guid;
         this._tabsService.setActive(this._currentSessionGuid);
         ElectronIpcService.send(new IPCMessages.StreamSetActive({ guid: this._currentSessionGuid })).then(() => {

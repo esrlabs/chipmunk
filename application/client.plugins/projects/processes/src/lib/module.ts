@@ -1,12 +1,13 @@
 import { NgModule } from '@angular/core';
-import { SidebarVerticalComponent } from './views/sidebar.vertical/component';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { SidebarVerticalComponent } from './views/sidebar.vertical/component';
 import { PrimitiveModule } from 'logviewer-client-primitive';
 
 @NgModule({
     entryComponents: [ SidebarVerticalComponent],
     declarations: [ SidebarVerticalComponent],
-    imports: [ CommonModule, PrimitiveModule ],
+    imports: [ CommonModule, FormsModule, PrimitiveModule ],
     exports: [ SidebarVerticalComponent]
 })
 

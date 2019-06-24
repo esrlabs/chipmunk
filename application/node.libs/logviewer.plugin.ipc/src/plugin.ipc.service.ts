@@ -74,13 +74,14 @@ export class PluginIPCService extends EventEmitter {
         });
     }
 
-    public sendToPluginHost(message: any): Promise<any> {
+    public sendToPluginHost(session: string, message: any): Promise<any> {
         return new Promise((resolve, reject) => {
             if (this._token === undefined) {
                 return reject(new Error(`Fail to send to plugin host because token wasn't gotten.`));
             }
             const pluginMessage: IPCMessages.PluginInternalMessage = new IPCMessages.PluginInternalMessage({
                 data: message,
+                stream: session,
                 token: this._token,
             });
             this.send(pluginMessage).then(() => {
@@ -91,13 +92,14 @@ export class PluginIPCService extends EventEmitter {
         });
     }
 
-    public requestToPluginHost(message: any): Promise<any> {
+    public requestToPluginHost(session: string, message: any): Promise<any> {
         return new Promise((resolve, reject) => {
             if (this._token === undefined) {
                 return reject(new Error(`Fail to send to plugin host because token wasn't gotten.`));
             }
             const pluginMessage: IPCMessages.PluginInternalMessage = new IPCMessages.PluginInternalMessage({
                 data: message,
+                stream: session,
                 token: this._token,
             });
             this.request(pluginMessage).then((response: IPCMessages.TMessage | undefined) => {

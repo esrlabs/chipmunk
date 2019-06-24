@@ -14,8 +14,17 @@
 <div [attr.class]="'container ' + (_ng_working ? 'working' : 'free')">
     <div class="comstyle-input-holder input-wrapper">
         <div class="comstyle-input">
-            <input class="comstyle-input" #cmdinput type="text" placeholder="command or path to program to be executed" (keyup)="_ng_onKeyUp($event)"/>
+            <input #cmdinput 
+                class="comstyle-input"
+                [attr.disabled]="_ng_working ? '' : null"
+                type="text"
+                placeholder="command or path to program to be executed"
+                [(ngModel)]="_ng_cmd" 
+                (keyup)="_ng_onKeyUp($event)"/>
         </div>
+    </div>
+    <div class="buttons" *ngIf="_ng_working">
+        <span class="small-button" (click)="_ng_onStop($event)">Stop</span>
     </div>
     <div class="spinner" *ngIf="_ng_working">
         <lib-primitive-spinner-regular></lib-primitive-spinner-regular>
