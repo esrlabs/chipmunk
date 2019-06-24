@@ -285,7 +285,7 @@ export default class ControllerStreamProcessor {
         this._pluginRefs.set(ref, id);
         this._logger.env(`Plugin #${id} (${ServicePlugins.getPluginName(id)}) bound with reference "${ref}".`);
         // Get IPC of plugin
-        const IPC: ControllerIPCPlugin | undefined = ServicePlugins.getPluginIPC(token);
+        const IPC: ControllerIPCPlugin | undefined = ServicePlugins.getPluginIPC(this._guid, token);
         if (IPC === undefined) {
             return true;
         }

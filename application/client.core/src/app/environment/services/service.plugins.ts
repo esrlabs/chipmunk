@@ -3,6 +3,7 @@ declare var Electron: any;
 
 import * as AngularCore from '@angular/core';
 import * as AngularCommon from '@angular/common';
+import * as AngularForms from '@angular/forms';
 import * as AngularPlatformBrowser from '@angular/platform-browser';
 import * as LogviewerClientComplex from 'logviewer-client-complex';
 import * as LogviewerClientContainers from 'logviewer-client-containers';
@@ -11,9 +12,10 @@ import * as Toolkit from 'logviewer.client.toolkit';
 import * as XTerm from 'xterm';
 import * as XTermAddonFit from 'xterm/lib/addons/fit/fit';
 
+import { Subscription  } from 'rxjs';
 import { Compiler, Injector } from '@angular/core';
 import ElectronIpcService from './service.electron.ipc';
-import { IPCMessages, Subscription } from './service.electron.ipc';
+import { IPCMessages } from './service.electron.ipc';
 import PluginsIPCService from './service.plugins.ipc';
 import OutputParsersService from './standalone/service.output.parsers';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
@@ -23,14 +25,25 @@ type TPluginModule = any;
 
 export type TRowParser = (str: string) => string;
 
+export interface IPluginControllers {
+    sessions: Toolkit.ControllerSessionsEvents;
+}
+
 export interface IPluginData {
-    name: string;               // Name of plugin
-    token: string;              // Plugin token
-    module: TPluginModule;      // Instance of plugin module
-    ipc: ControllerPluginIPC;   // Related to plugin IPC
-    id: number;                 // ID of plugin
+    name: string;                       // Name of plugin
+    token: string;                      // Plugin token
+    module: TPluginModule;              // Instance of plugin module
+    ipc: ControllerPluginIPC;           // Related to plugin IPC
+    controllers: IPluginControllers;    // Collection of controllers to plugin listents
+    id: number;                         // ID of plugin
     factories: { [key: string]: any };
 }
+
+const CPluginEvents = {
+    onSessionChange: 'onSessionChange',
+    onSessionOpen: 'onSessionOpen',
+    onSessionClose: 'onSessionClose',
+};
 
 export class PluginsService extends Toolkit.Emitter implements IService {
 
@@ -43,15 +56,12 @@ export class PluginsService extends Toolkit.Emitter implements IService {
     private _compiler: Compiler;
     private _injector: Injector;
     private _plugins: Map<string, IPluginData> = new Map();
-    private _subscriptions: { [key: string]: Subscription | undefined } = {
-        mountPlugin: undefined,
-    };
+    private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription | undefined } = { };
     private _idsCache: { [key: number]: IPluginData } = {};
 
     constructor() {
         super();
-        this._ipc_onRenderMountPlugin = this._ipc_onRenderMountPlugin.bind(this);
-        this._subscriptions.mountPlugin = ElectronIpcService.subscribe(IPCMessages.RenderMountPlugin, this._ipc_onRenderMountPlugin);
+        this._subscriptions.mountPlugin = ElectronIpcService.subscribe(IPCMessages.RenderMountPlugin, this._ipc_onRenderMountPlugin.bind(this));
     }
 
     public init(): Promise<void> {
@@ -71,7 +81,7 @@ export class PluginsService extends Toolkit.Emitter implements IService {
 
     public destroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
-            this._subscriptions[key].destroy();
+            this._subscriptions[key].unsubscribe();
         });
     }
 
@@ -95,6 +105,28 @@ export class PluginsService extends Toolkit.Emitter implements IService {
         }
         this._idsCache[id] = this._plugins.get(name);
         return this._idsCache[id];
+    }
+
+    public fire(): {
+        onSessionChange: (guid: string) => void,
+        onSessionOpen: (guid: string) => void,
+        onSessionClose: (guid: string) => void,
+    } {
+        return {
+            onSessionChange: this._fire.bind(this, CPluginEvents.onSessionChange),
+            onSessionOpen: this._fire.bind(this, CPluginEvents.onSessionOpen),
+            onSessionClose: this._fire.bind(this, CPluginEvents.onSessionClose),
+        };
+    }
+
+    private _fire(event: string, ...args: any) {
+        this._plugins.forEach((plugin: IPluginData) => {
+            const emitter = plugin.controllers.sessions.emit();
+            if (emitter[event] === undefined) {
+                return;
+            }
+            emitter[event](...args);
+        });
     }
 
     private _loadAndInit(name: string, token: string, id: number, location: string): Promise<IPluginData> {
@@ -187,6 +219,9 @@ export class PluginsService extends Toolkit.Emitter implements IService {
                             token: token,
                             module: module.instance,
                             ipc: new ControllerPluginIPC(name, token),
+                            controllers: {
+                                sessions: new Toolkit.ControllerSessionsEvents(),
+                            },
                             id: id,
                             factories: {}
                         };
@@ -217,6 +252,9 @@ export class PluginsService extends Toolkit.Emitter implements IService {
                     token: token,
                     module: exports[Toolkit.CNonAngularModuleName],
                     ipc: new ControllerPluginIPC(name, token),
+                    controllers: {
+                        sessions: new Toolkit.ControllerSessionsEvents(),
+                    },
                     id: id,
                     factories: {}
                 };
@@ -233,6 +271,7 @@ export class PluginsService extends Toolkit.Emitter implements IService {
         return {
             '@angular/core': AngularCore,
             '@angular/common': AngularCommon,
+            '@angular/forms': AngularForms,
             '@angular/platform-browser': AngularPlatformBrowser,
             'logviewer-client-complex': LogviewerClientComplex,
             'logviewer-client-containers': LogviewerClientContainers,

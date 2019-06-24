@@ -27,7 +27,7 @@
     "@angular/router": "~7.0.0",
     "core-js": "^2.5.4",
     "electron": "^4.0.8",
-    "logviewer.client.toolkit": "0.0.11",
+    "logviewer.client.toolkit": "latest",
     "rxjs": "~6.3.3",
     "xterm": "^3.12.0",
     "zone.js": "~0.8.26"

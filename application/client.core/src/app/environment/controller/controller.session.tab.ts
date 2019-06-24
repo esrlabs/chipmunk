@@ -51,6 +51,7 @@ export class ControllerSessionTab {
         this._states = new ControllerSessionTabStates(params.guid);
         this._defaultsSideBarApps = params.defaultsSideBarApps;
         this._sidebar_update();
+        PluginsService.fire().onSessionOpen(this._sessionId);
     }
 
     public destroy(): Promise<void> {
@@ -70,6 +71,7 @@ export class ControllerSessionTab {
                     if (response.error) {
                         return reject(new Error(this._logger.warn(`Fail to destroy session "${this.getGuid()}" due error: ${response.error}`)));
                     }
+                    PluginsService.fire().onSessionClose(this._sessionId);
                     resolve();
                 }).catch((sendingError: Error) => {
                     reject(new Error(this._logger.warn(`Fail to destroy session "${this.getGuid()}" due IPC error: ${sendingError.message}`)));
@@ -176,6 +178,10 @@ export class ControllerSessionTab {
         });
     }
 
+    public setActive() {
+        PluginsService.fire().onSessionChange(this._sessionId);
+    }
+
     private _sidebar_update() {
         if (this._sidebarTabsService !== undefined) {
             // Drop previous if was defined
@@ -219,7 +225,8 @@ export class ControllerSessionTab {
                     resolved: true,
                     inputs: {
                         session: this._sessionId,
-                        ipc: plugin.ipc
+                        ipc: plugin.ipc,
+                        sessions: plugin.controllers.sessions,
                     }
                 }
             });
