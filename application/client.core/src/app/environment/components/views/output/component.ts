@@ -8,6 +8,7 @@ import { ViewOutputRowComponent } from './row/component';
 import { ViewOutputControlsComponent, IButton } from './controls/component';
 import ViewsEventsService from '../../../services/standalone/service.views.events';
 import FileOpenerService from '../../../services/service.file.opener';
+import FileOptionsService from '../../../services/service.file.options';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 
 const CSettings: {
@@ -74,6 +75,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this._subscriptions.onScrolled = this._scrollBoxCom.getObservable().onScrolled.subscribe(this._onScrolled.bind(this));
         this._dragdrop = new ControllerComponentsDragDropFiles(this._vcRef.element.nativeElement);
         this._subscriptions.onFiles = this._dragdrop.getObservable().onFiles.subscribe(this._onFilesDropped.bind(this));
+        this._subscriptions.onFileOpenRequest = FileOptionsService.getObservable().onFileOpenRequest.subscribe(this._onFileOpenRequest.bind(this));
         // Inject controls to caption of dock
         this._ctrl_inject();
     }
@@ -184,6 +186,11 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         FileOpenerService.open(files);
     }
 
+    private _onFileOpenRequest() {
+        this._controls.keepScrollDown = false;
+        this._controls.update.next(this._ctrl_getButtons());
+    }
+
     private _keepScrollDown() {
         if (this._scrollBoxCom === undefined || this._scrollBoxCom === null) {
             return;
@@ -206,12 +213,6 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                 return;
             }
             this._ng_outputAPI.onScrollUntil.next(loaded.end);
-            // Repeat request to be sure - user at the end
-            /*
-            setTimeout(() => {
-                this._keepScrollDown();
-            }, 50);
-            */
         }).catch((error: Error) => {
             // Do nothing, no data available
         });
