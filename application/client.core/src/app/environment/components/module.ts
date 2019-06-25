@@ -8,13 +8,13 @@ import { ContainersModule                       } from 'logviewer-client-contain
 import { EnvironmentComplexModule               } from './complex/module';
 import { EnvironmentViewsModule                 } from './views/module';
 import { EnvironmentSidebarAppsModule           } from './sidebar/module';
-import { EnvironmentSidebarDialogsModule        } from './sidebar/dialogs/module';
+import { EnvironmentDialogsModule               } from './dialogs/module';
 
 const modules = [
     EnvironmentComplexModule,
     EnvironmentViewsModule,
     EnvironmentSidebarAppsModule,
-    EnvironmentSidebarDialogsModule,
+    EnvironmentDialogsModule,
     ComplexModule,
     PrimitiveModule,
     ContainersModule
