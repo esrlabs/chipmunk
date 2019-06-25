@@ -1,21 +1,23 @@
 import { NgModule                               } from '@angular/core';
 import { CommonModule                           } from '@angular/common';
 
-import { DialogsFileOptionsDltComponent         } from './file.options.dlt/component';
+import { PopupsComponent                        } from './component';
+import { PopupComponent                         } from './popup/component';
 
 import { PrimitiveModule                        } from 'logviewer-client-primitive';
 import { ContainersModule                       } from 'logviewer-client-containers';
 
-const CDialogs = [ DialogsFileOptionsDltComponent ];
+const entryComponents = [ PopupComponent ];
+const components = [ PopupsComponent, ...entryComponents ];
 
 @NgModule({
-    entryComponents : [ ...CDialogs ],
+    entryComponents : [ ...entryComponents ],
     imports         : [ CommonModule, PrimitiveModule, ContainersModule ],
-    declarations    : [ ...CDialogs ],
-    exports         : [ ...CDialogs ]
+    declarations    : [ ...components ],
+    exports         : [ ...components ]
 })
 
-export class EnvironmentSidebarDialogsModule {
+export class PopupsModule {
     constructor() {
     }
 }
