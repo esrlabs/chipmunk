@@ -1,8 +1,8 @@
 import * as Toolkit from 'logviewer.client.toolkit';
+import { Observable, Subject } from 'rxjs';
 import { IService } from '../interfaces/interface.service';
 import ServiceElectronIpc, { IPCMessages, Subscription, TResponseFunc } from './service.electron.ipc';
 import { AControllerFileOptions } from '../interfaces/interface.controller.file.options';
-
 import { ControllerDltFileOptions } from '../controller/file.options/controller.file.dlt';
 
 enum EFileTypes {
@@ -17,6 +17,9 @@ export class FileOptionsService implements IService {
 
     private _subscription: Subscription | undefined;
     private _logger: Toolkit.Logger = new Toolkit.Logger('FileOptionsService');
+    private _subjects = {
+        onFileOpenRequest: new Subject<void>()
+    };
 
     constructor() {
 
@@ -43,7 +46,16 @@ export class FileOptionsService implements IService {
         });
     }
 
+    public getObservable(): {
+        onFileOpenRequest: Observable<void>,
+    } {
+        return {
+            onFileOpenRequest: this._subjects.onFileOpenRequest.asObservable(),
+        };
+    }
+
     private _onRequest(request: IPCMessages.FileGetOptionsRequest, response: TResponseFunc) {
+        this._subjects.onFileOpenRequest.next();
         const fileType: string = request.type;
         if (CControllers[fileType] === undefined) {
             return response(new IPCMessages.FileGetOptionsResponse({

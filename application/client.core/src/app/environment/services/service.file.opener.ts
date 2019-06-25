@@ -12,6 +12,7 @@ export class FileOpenerService implements IService {
     private _subjects = {
         onFilesToBeMerged: new Subject<File[]>(),
     };
+
     constructor() {
 
     }
