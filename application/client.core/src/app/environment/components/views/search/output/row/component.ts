@@ -6,6 +6,7 @@ import OutputParsersService from '../../../../../services/standalone/service.out
 import OutputRedirectionsService from '../../../../../services/standalone/service.output.redirections';
 import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../../../controller/controller.session.tab.stream.bookmarks';
 import { ControllerSessionTabSourcesState } from '../../../../../controller/controller.session.tab.sources.state';
+import { IComponentDesc } from 'logviewer-client-containers';
 
 @Component({
     selector: 'app-views-search-output-row',
@@ -32,6 +33,7 @@ export class ViewSearchOutputRowComponent implements AfterContentChecked, AfterC
     public _ng_background: string | undefined;
     public _ng_source: boolean = false;
     public _ng_sourceColor: string | undefined;
+    public _ng_component: IComponentDesc | undefined;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
@@ -138,9 +140,21 @@ export class ViewSearchOutputRowComponent implements AfterContentChecked, AfterC
         this._ng_color = matches.color;
         this._ng_background = matches.background;
         // Generate safe html
-        this._ng_safeHtml = this._sanitizer.bypassSecurityTrustHtml(html);
         this._ng_number = this.positionInStream.toString();
         this._ng_number_filler = this._getNumberFiller();
+        // Check for external render
+        const component: IComponentDesc | undefined = OutputParsersService.getRowComponent(sourceName);
+        if (component === undefined) {
+            // Generate safe html
+            this._ng_safeHtml = this._sanitizer.bypassSecurityTrustHtml(html);
+            this._ng_component = undefined;
+        } else {
+            component.inputs = Object.assign(component.inputs, {
+                html: html
+            });
+            this._ng_component = component;
+            this._ng_safeHtml = null;
+        }
     }
 
     private _acceptPendingRow() {

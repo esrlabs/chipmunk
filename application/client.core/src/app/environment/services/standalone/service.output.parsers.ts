@@ -1,11 +1,26 @@
 import * as Toolkit from 'logviewer.client.toolkit';
+import { IComponentDesc } from 'logviewer-client-containers';
 import { Observable, Subject } from 'rxjs';
-
+import { ComponentFactory, ModuleWithComponentFactories } from '@angular/core';
 export type TParser = (str: string, themeTypeRef?: Toolkit.EThemeType) => string;
 
 export interface ICommonParsers {
     row: TParser[];
     rest: TParser[];
+}
+
+export type TTypeHandler = (sourceName: string) => boolean;
+
+export interface ITypedRowComponentDesc {
+    isTypeMatch: TTypeHandler;
+    component: {
+        selector: string;
+        inputs: { [key: string]: any }
+    };
+}
+export interface ITypedRowComponent {
+    isTypeMatch: TTypeHandler;
+    component: IComponentDesc;
 }
 
 export interface IPluginParsers {
@@ -36,9 +51,17 @@ export class OutputParsersService {
         row: [],
         rest: [],
     };
+    private _typed: Map<string, ITypedRowComponent> = new Map();
     private _plugins: Map<number, IPluginParsers> = new Map();
     private _search: Map<string, IRequest[]> = new Map();
     private _highlights: IRequest[] = [];
+    private _history: {
+        sources: string[],
+        typedComAliases: Map<string, string>
+    } = {
+        sources: [],
+        typedComAliases: new Map(),
+    };
     private _subjects: {
         onUpdatedSearch: Subject<void>,
         onRepain: Subject<void>,
@@ -57,29 +80,16 @@ export class OutputParsersService {
         };
     }
 
-    public setPluginParsers(pluginId: number, parsers: { [key: string]: TParser }): boolean {
-        if (this._plugins.has(pluginId)) {
-            return false;
+    public setParsers(module: any, pluginId: number, mwcf?: ModuleWithComponentFactories<any>) {
+        if (typeof module !== 'object' || module === null) {
+            return new Error(this._logger.warn(`Fail to setup parser because module isn't an object.`));
         }
-        const result: any = {};
-        Object.keys(PluginParsersNamesMap).forEach((key: string) => {
-            if (typeof parsers[key] === 'function') {
-                result[PluginParsersNamesMap[key]] = parsers[key];
-            }
-        });
-        if (Object.keys(result).length === 0) {
-            return false;
-        }
-        this._plugins.set(pluginId, result);
-        return true;
-    }
-
-    public setCommonParsers(parsers: { [key: string]: TParser }) {
-        Object.keys(CommonParsersNamesMap).forEach((key: string) => {
-            if (typeof parsers[key] === 'function') {
-                this._common[CommonParsersNamesMap[key]].push(parsers[key]);
-            }
-        });
+        // Check plugin's parsers
+        this._setPluginParsers(module, pluginId);
+        // Check common
+        this._setCommonParsers(module);
+        // Check row components
+        this._setTypedRowComponent(module, mwcf);
     }
 
     public setSearchResults(sessionId: string, requests: IRequest[] ) {
@@ -94,6 +104,11 @@ export class OutputParsersService {
 
     public setHighlights(requests: IRequest[]) {
         this._highlights = requests;
+    }
+
+    public getRowComponent(sourceName: string): IComponentDesc | undefined {
+        const typeComponent: ITypedRowComponent | undefined = this._getTypedComponent(sourceName);
+        return typeComponent === undefined ? undefined : typeComponent.component;
     }
 
     public row(str: string, pluginId?: number): string {
@@ -171,6 +186,91 @@ export class OutputParsersService {
 
     public updateRowsView() {
         this._subjects.onRepain.next();
+    }
+
+    public _setPluginParsers(parsers: { [key: string]: TParser }, pluginId: number): boolean {
+        if (pluginId === undefined) {
+            return;
+        }
+        if (this._plugins.has(pluginId)) {
+            return false;
+        }
+        const result: any = {};
+        Object.keys(PluginParsersNamesMap).forEach((key: string) => {
+            if (typeof parsers[key] === 'function') {
+                result[PluginParsersNamesMap[key]] = parsers[key];
+            }
+        });
+        if (Object.keys(result).length === 0) {
+            return false;
+        }
+        this._plugins.set(pluginId, result);
+        return true;
+    }
+
+    private _setCommonParsers(module: { [key: string]: TParser }) {
+        Object.keys(CommonParsersNamesMap).forEach((key: string) => {
+            if (typeof module[key] === 'function') {
+                this._common[CommonParsersNamesMap[key]].push(module[key]);
+            }
+        });
+    }
+
+    private _setTypedRowComponent(module: { [key: string]: ITypedRowComponentDesc }, mwcf: ModuleWithComponentFactories<any>) {
+        if (mwcf === undefined) {
+            return;
+        }
+        if (typeof module[Toolkit.EParsers.typedRowComponent] !== 'object' || module[Toolkit.EParsers.typedRowComponent] === null) {
+            return;
+        }
+        if (typeof module[Toolkit.EParsers.typedRowComponent].isTypeMatch !== 'function') {
+            return;
+        }
+        if (typeof module[Toolkit.EParsers.typedRowComponent].component !== 'object' || module[Toolkit.EParsers.typedRowComponent].component === null) {
+            return;
+        }
+        if (typeof module[Toolkit.EParsers.typedRowComponent].component.selector !== 'string') {
+            return;
+        }
+        const selector: string = module[Toolkit.EParsers.typedRowComponent].component.selector;
+        // Try to find component factory
+        const factory: ComponentFactory<any> | undefined = mwcf.componentFactories.find(e => e.selector === selector);
+        if (factory === undefined) {
+            this._logger.warn(`Fail to find factory by selector "${selector}"`);
+            return;
+        }
+        const guid: string = Toolkit.guid();
+        this._typed.set(guid, {
+            isTypeMatch: module[Toolkit.EParsers.typedRowComponent].isTypeMatch,
+            component: {
+                factory: factory,
+                inputs: module[Toolkit.EParsers.typedRowComponent].component.inputs,
+                resolved: true,
+            },
+        });
+    }
+
+    private _getTypedComponent(sourceName: string): ITypedRowComponent | undefined {
+        const isSrcInHistory: boolean = this._history.sources.indexOf(sourceName) !== -1;
+        if (isSrcInHistory) {
+            const guid: string | undefined = this._history.typedComAliases.get(sourceName);
+            if (guid === undefined) {
+                return undefined;
+            }
+            return this._typed.get(guid);
+        }
+        this._history.sources.push(sourceName);
+        let targetTypedRowComponentGuid: string | undefined;
+        this._typed.forEach((typedRowComponent: ITypedRowComponent, alias: string) => {
+            if (typedRowComponent.isTypeMatch(sourceName)) {
+                targetTypedRowComponentGuid = alias;
+            }
+        });
+        if (targetTypedRowComponentGuid === undefined) {
+            return undefined;
+        }
+        this._history.typedComAliases.set(sourceName, targetTypedRowComponentGuid);
+        return this._typed.get(targetTypedRowComponentGuid);
     }
 
 }

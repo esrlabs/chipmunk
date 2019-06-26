@@ -12,6 +12,7 @@ export enum EViewsTypes {
 export enum EParsers {
     pluginRowParser = 'pluginRowParser',
     pluginRestParser = 'pluginRestParser',
+    typedRowComponent = 'typedRowComponent',
     commonRowParser = 'commonRowParser',
     commonRestParser = 'commonRestParser',
 }

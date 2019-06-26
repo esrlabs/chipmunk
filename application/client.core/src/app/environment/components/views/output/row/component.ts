@@ -5,8 +5,9 @@ import { ControllerSessionTabStreamOutput } from '../../../../controller/control
 import { ControllerSessionTabSourcesState } from '../../../../controller/controller.session.tab.sources.state';
 import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../../controller/controller.session.tab.stream.bookmarks';
 import SourcesService from '../../../../services/service.sources';
-import OutputParsersService from '../../../../services/standalone/service.output.parsers';
+import OutputParsersService, { ITypedRowComponent } from '../../../../services/standalone/service.output.parsers';
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
+import { IComponentDesc } from 'logviewer-client-containers';
 
 @Component({
     selector: 'app-views-output-row',
@@ -35,6 +36,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     public _ng_background: string | undefined;
     public _ng_sourceColor: string | undefined;
     public _ng_source: boolean = false;
+    public _ng_component: IComponentDesc | undefined;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
@@ -131,8 +133,8 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         if (this.pluginId === -1) {
             return;
         }
-        let html = this.str;
         const sourceName: string = SourcesService.getSourceName(this.pluginId);
+        let html = this.str;
         this._ng_sourceColor = SourcesService.getSourceColor(this.pluginId);
         if (sourceName === undefined) {
             this._ng_sourceName = 'n/d';
@@ -148,10 +150,21 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         html = matches.str;
         this._ng_color = matches.color;
         this._ng_background = matches.background;
-        // Generate safe html
-        this._ng_safeHtml = this._sanitizer.bypassSecurityTrustHtml(html);
         this._ng_number = this.position.toString();
         this._ng_number_filler = this._getNumberFiller();
+        // Check for external render
+        const component: IComponentDesc | undefined = OutputParsersService.getRowComponent(sourceName);
+        if (component === undefined) {
+            // Generate safe html
+            this._ng_safeHtml = this._sanitizer.bypassSecurityTrustHtml(html);
+            this._ng_component = undefined;
+        } else {
+            component.inputs = Object.assign(component.inputs, {
+                html: html
+            });
+            this._ng_component = component;
+            this._ng_safeHtml = null;
+        }
     }
 
     private _acceptPendingRow() {
