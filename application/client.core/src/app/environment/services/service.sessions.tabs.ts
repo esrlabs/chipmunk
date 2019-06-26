@@ -63,7 +63,7 @@ export class TabsSessionsService implements IService {
         const guid: string = Toolkit.guid();
         const session = new ControllerSessionTab({
             guid: guid,
-            transports: ['processes', 'dlt'],
+            transports: ['processes', 'dlt', 'dlt-render'],
             defaultsSideBarApps: this._defaults.sidebarApps
         });
         this._subscriptions[`onSourceChanged:${guid}`] = session.getObservable().onSourceChanged.subscribe(this._onSourceChanged.bind(this, guid));
