@@ -1,0 +1,60 @@
+
+@import '../../../../../../theme/scheme.less';
+
+:host {
+    position: absolute;
+    display: block;
+    top:0.5rem;
+    left:0.5rem;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+    & p.payload-title{
+        margin-top: 16px;
+    }
+    & ul.columns{
+        position: relative;
+        width: 100%;
+        display: block;
+        padding: 0;
+        margin: 0;
+        list-style: none;
+        & li.column{
+            position: relative;
+            width: 100%;
+            display: block;
+            padding: 0;
+            margin: 0;
+            list-style: none;
+            border-bottom: dashed thin @scheme-color-4;
+            z-index: 1;
+            & p.field{
+                position: relative;
+                display: block;
+                white-space: normal;
+                font-family: monospace;
+                font-size: 10px;
+                padding: 4px 0 1px 0;
+                margin: 0;
+                line-height: 12px;
+                color: @scheme-color-3;
+                user-select: text!important;
+                pointer-events: all!important;
+            }
+            & p.content {
+                position: relative;
+                display: block;
+                white-space: normal;
+                font-family: monospace;
+                font-size: 13px;
+                font-variant-numeric: tabular-nums;
+                padding: 0;
+                margin: 0;
+                line-height: 16px;
+                user-select: text!important;
+                pointer-events: all!important;
+            }
+        }
+    }
+}

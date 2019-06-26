@@ -4,12 +4,7 @@ import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input } from '@
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
 import * as Toolkit from 'logviewer.client.toolkit';
-import ServiceColumns, { IColumnsWidthsChanged, CDefaults } from '../../services/service.columns';
-
-const CDelimiters = {
-    columns: '\u0004',
-    arguments: '\u0005',
-};
+import ServiceColumns, { IColumnsWidthsChanged, CDefaults, IColumnValue, CDelimiters } from '../../services/service.columns';
 
 @Component({
     selector: 'lib-dlt-row-component',
@@ -23,11 +18,12 @@ export class DLTRowComponent implements AfterViewInit, OnDestroy {
     @Input() public session: string;
     @Input() public html: string;
 
-    public _ng_columns: SafeHtml[] = [];
+    public _ng_columns: IColumnValue[] = [];
     public _ng_widths: { [key: number]: number } = {};
 
     private _cachedMouseX: number = -1;
     private _resizedColumnKey: number = -1;
+    private _values: string[] = [];
     private _subscriptions: { [key: string]: Subscription } = {};
     private _guid: string = Toolkit.guid();
 
@@ -48,7 +44,10 @@ export class DLTRowComponent implements AfterViewInit, OnDestroy {
         }
         this._subscribeToWinEvents();
         this._ng_columns = this.html.split(CDelimiters.columns).map((column: string) => {
-            return this._sanitizer.bypassSecurityTrustHtml(column);
+            return {
+                html: this._sanitizer.bypassSecurityTrustHtml(column),
+                str: column,
+            };
         });
         this._ng_widths = ServiceColumns.getWidths(this._ng_columns.length);
         this._subscriptions.onColumnsResized = ServiceColumns.getObservable().onColumnsResized.subscribe(this._onColumnsResized.bind(this));
@@ -60,6 +59,10 @@ export class DLTRowComponent implements AfterViewInit, OnDestroy {
             return `${CDefaults.width}px`;
         }
         return `${this._ng_widths[key]}px`;
+    }
+
+    public _ng_onSelect() {
+        ServiceColumns.emit({ selected: this._ng_columns.slice() }).onSelected.next(this._ng_columns);
     }
 
     public _ng_onMouseDown(key: number, event: MouseEvent) {
@@ -105,7 +108,7 @@ export class DLTRowComponent implements AfterViewInit, OnDestroy {
         }
         const width: number = this._ng_widths[this._resizedColumnKey] - offset;
         this._ng_widths[this._resizedColumnKey] = width < CDefaults.min ? CDefaults.min : width;
-        ServiceColumns.emit(this._ng_widths).onColumnsResized.next({
+        ServiceColumns.emit({ widths: this._ng_widths }).onColumnsResized.next({
             emitter: this._guid,
             widths: this._ng_widths,
         });
