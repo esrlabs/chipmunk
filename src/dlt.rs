@@ -10,7 +10,7 @@
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
 use bytes::{ByteOrder, BytesMut, BufMut};
-use chrono::{NaiveDate, NaiveDateTime};
+use chrono::{NaiveDateTime};
 use chrono::prelude::{Utc, DateTime};
 use std::fmt;
 use std::fmt::{Formatter};
@@ -50,10 +50,6 @@ pub struct StorageHeader {
 }
 impl fmt::Display for StorageHeader {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
-        let date_time: NaiveDateTime = NaiveDateTime::from_timestamp(
-            i64::from(self.timestamp.seconds),
-            self.timestamp.microseconds * 1000,
-        );
         write!(f, "{}[{}]", self.timestamp, self.ecu_id)
     }
 }
@@ -71,6 +67,7 @@ impl BytesMutExt for BytesMut {
     }
 }
 impl StorageHeader {
+    #[allow(dead_code)]
     pub fn as_bytes(self: &StorageHeader) -> Vec<u8> {
         let mut buf = BytesMut::with_capacity(STORAGE_HEADER_LENGTH);
         buf.extend_from_slice(b"DLT");
@@ -116,6 +113,7 @@ impl StandardHeader {
         header_type
     }
 
+    #[allow(dead_code)]
     pub fn as_bytes(self: &StandardHeader) -> Vec<u8> {
         let header_type = self.header_type();
         let size = calculate_standard_header_length(header_type);
@@ -259,6 +257,7 @@ pub struct ExtendedHeader {
 // }
 
 impl ExtendedHeader {
+    #[allow(dead_code)]
     pub fn as_bytes(self: &ExtendedHeader) -> Vec<u8> {
         let mut buf = BytesMut::with_capacity(EXTENDED_HEADER_LENGTH);
         buf.put_u8(u8::from(&self.message_type) | if self.verbose { 1 } else { 0 });
@@ -269,17 +268,17 @@ impl ExtendedHeader {
     }
 }
 
+/// Fixed-Point representation. only supports 32 bit and 64 bit values
+/// according to the spec 128 bit are possible but we don't support it
 #[derive(Debug, PartialEq, Clone)]
 pub enum FixedPointValue {
     I32(i32),
     I64(i64),
-    // I128(i128), not supported
 }
 fn fixed_point_value_width(v: &FixedPointValue) -> usize {
     match v {
         FixedPointValue::I32(_) => 4,
         FixedPointValue::I64(_) => 8,
-        // FixedPointValue::I128(_) => 16,
     }
 }
 #[derive(Debug, PartialEq, Clone)]
@@ -337,7 +336,6 @@ pub struct TypeInfo {
     pub has_variable_info: bool,
     pub is_fixed_point: bool,
     pub has_trace_info: bool,
-
     // FixedPoint,
     // TraceInfo,
     // TypeStruct,
@@ -439,17 +437,18 @@ impl TryFrom<u32> for TypeInfo {
             0b001_0000 => Ok(TypeInfoKind::Array),
             0b010_0000 => Ok(TypeInfoKind::StringType),
             0b100_0000 => Ok(TypeInfoKind::Raw),
-            v => { 
+            v => {
                 eprintln!("Unknown TypeInfoKind in TypeInfo {:b}", v);
                 Err(Error::new(
-                io::ErrorKind::Other,
-                format!("Unknown TypeInfoKind in TypeInfo {:b}", v),
-            ))},
+                    io::ErrorKind::Other,
+                    format!("Unknown TypeInfoKind in TypeInfo {:b}", v),
+                ))
+            }
         }?;
         let coding = match (info >> 15) & 0b111 {
             0x00 => (StringCoding::ASCII),
             0x01 => (StringCoding::UTF8),
-            v => {
+            _ => {
                 // eprintln!("Unknown coding in TypeIxfo 0x{:02X}, assume UTF8", v);
                 (StringCoding::UTF8)
                 // Err(Error::new(
@@ -502,9 +501,11 @@ impl Argument {
             let mut buf = BytesMut::with_capacity(capacity);
             buf.extend_from_slice(&info.as_bytes::<T>()[..]);
             if let Some(n) = name {
+                #[allow(deprecated)]
                 buf.put_u16::<T>(n.len() as u16 + 1);
             }
             if let Some(u) = unit {
+                #[allow(deprecated)]
                 buf.put_u16::<T>(u.len() as u16 + 1)
             }
             if let Some(n) = name {
@@ -516,12 +517,15 @@ impl Argument {
                 buf.put_u8(0x0); // null termination
             }
             if let Some(fp) = fixed_point {
+                #[allow(deprecated)]
                 buf.put_f32::<T>(fp.quantization);
                 match fp.offset {
                     FixedPointValue::I32(v) => {
+                        #[allow(deprecated)]
                         buf.put_i32::<T>(v);
                     }
                     FixedPointValue::I64(v) => {
+                        #[allow(deprecated)]
                         buf.put_i64::<T>(v);
                     }
                 }
@@ -547,9 +551,21 @@ impl Argument {
                 fn write_value<T: ByteOrder>(value: &Value, buf: &mut BytesMut) {
                     match value {
                         Value::I8(v) => buf.put_i8(*v),
-                        Value::I16(v) => buf.put_i16::<T>(*v),
-                        Value::I32(v) => buf.put_i32::<T>(*v),
-                        Value::I64(v) => buf.put_i64::<T>(*v),
+                        Value::I16(v) => {
+                            let mut b = [0; 2];
+                            T::write_i16(&mut b, *v);
+                            buf.put_slice(&b)
+                        }
+                        Value::I32(v) => {
+                            let mut b = [0; 4];
+                            T::write_i32(&mut b, *v);
+                            buf.put_slice(&b)
+                        }
+                        Value::I64(v) => {
+                            let mut b = [0; 8];
+                            T::write_i64(&mut b, *v);
+                            buf.put_slice(&b)
+                        }
                         Value::I128(v) => {
                             let mut b = [0; 16];
                             T::write_i128(&mut b, *v);
@@ -576,9 +592,21 @@ impl Argument {
                 );
                 match self.value {
                     Value::U8(v) => buf.put_u8(v),
-                    Value::U16(v) => buf.put_u16::<T>(v),
-                    Value::U32(v) => buf.put_u32::<T>(v),
-                    Value::U64(v) => buf.put_u64::<T>(v),
+                    Value::U16(v) => {
+                        let mut b = [0; 2];
+                        T::write_u16(&mut b, v);
+                        buf.put_slice(&b)
+                    }
+                    Value::U32(v) => {
+                        let mut b = [0; 4];
+                        T::write_u32(&mut b, v);
+                        buf.put_slice(&b)
+                    }
+                    Value::U64(v) => {
+                        let mut b = [0; 8];
+                        T::write_u64(&mut b, v);
+                        buf.put_slice(&b)
+                    }
                     Value::U128(v) => {
                         let mut b = [0; 16];
                         T::write_u128(&mut b, v);
@@ -591,8 +619,16 @@ impl Argument {
             TypeInfoKind::Float(_) => {
                 fn write_value<T: ByteOrder>(value: &Value, buf: &mut BytesMut) {
                     match value {
-                        Value::F32(v) => buf.put_f32::<T>(*v),
-                        Value::F64(v) => buf.put_f64::<T>(*v),
+                        Value::F32(v) => {
+                            let mut b = [0; 4];
+                            T::write_f32(&mut b, *v);
+                            buf.put_slice(&b)
+                        }
+                        Value::F64(v) => {
+                            let mut b = [0; 8];
+                            T::write_f64(&mut b, *v);
+                            buf.put_slice(&b)
+                        }
                         _ => (),
                     }
                 }
@@ -605,10 +641,7 @@ impl Argument {
                 write_value::<T>(&self.value, &mut buf);
                 buf.to_vec()
             }
-            TypeInfoKind::Array => {
-                let mut buf = BytesMut::with_capacity(STORAGE_HEADER_LENGTH);
-                buf.to_vec()
-            }
+            TypeInfoKind::Array => BytesMut::with_capacity(STORAGE_HEADER_LENGTH).to_vec(),
             TypeInfoKind::StringType => {
                 match (self.type_info.has_variable_info, &self.name) {
                     (true, Some(var_name)) => {
@@ -623,7 +656,9 @@ impl Argument {
                                     s.len() + 1,
                                 );
                                 buf.extend_from_slice(&self.type_info.as_bytes::<T>()[..]);
+                                #[allow(deprecated)]
                                 buf.put_u16::<T>(s.len() as u16 + 1);
+                                #[allow(deprecated)]
                                 buf.put_u16::<T>(name_len_with_termination);
                                 buf.extend_from_slice(var_name.as_bytes());
                                 buf.put_u8(0x0); // null termination
@@ -646,6 +681,7 @@ impl Argument {
                                     s.len() + 1,
                                 );
                                 buf.extend_from_slice(&self.type_info.as_bytes::<T>()[..]);
+                                #[allow(deprecated)]
                                 buf.put_u16::<T>(s.len() as u16 + 1);
                                 buf.extend_from_slice(s.as_bytes());
                                 buf.put_u8(0x0); // null termination
@@ -677,7 +713,9 @@ impl Argument {
                                     bytes.len(),
                                 );
                                 buf.extend_from_slice(&self.type_info.as_bytes::<T>()[..]);
+                                #[allow(deprecated)]
                                 buf.put_u16::<T>(bytes.len() as u16);
+                                #[allow(deprecated)]
                                 buf.put_u16::<T>(name_len_with_termination);
                                 buf.extend_from_slice(var_name.as_bytes());
                                 buf.put_u8(0x0); // null termination
@@ -699,6 +737,7 @@ impl Argument {
                                     bytes.len(),
                                 );
                                 buf.extend_from_slice(&self.type_info.as_bytes::<T>()[..]);
+                                #[allow(deprecated)]
                                 buf.put_u16::<T>(bytes.len() as u16);
                                 buf.extend_from_slice(bytes);
                                 buf.to_vec()
@@ -725,10 +764,11 @@ pub enum Payload {
     NonVerbose(u32, Vec<u8>),
 }
 impl Payload {
+    #[allow(dead_code)]
     fn as_bytes<T: ByteOrder>(self: &Payload) -> Vec<u8> {
         let mut buf = BytesMut::with_capacity(STORAGE_HEADER_LENGTH);
         match self {
-            Payload::Verbose(args) => {
+            Payload::Verbose(_) => {
                 // for arg in args {
                 //     match arg.value {
                 //         Argument::Value::Bool(v) =>
@@ -739,6 +779,7 @@ impl Payload {
                 buf.put_u8(0x0);
             }
             Payload::NonVerbose(msg_id, payload) => {
+                #[allow(deprecated)]
                 buf.put_u32::<T>(*msg_id);
                 buf.extend_from_slice(payload);
             }
@@ -902,6 +943,7 @@ pub const TYPE_INFO_RAW_FLAG: u32 = 1 << 10;
 pub const TYPE_INFO_VARIABLE_INFO: u32 = 1 << 11;
 pub const TYPE_INFO_FIXED_POINT_FLAG: u32 = 1 << 12;
 pub const TYPE_INFO_TRACE_INFO_FLAG: u32 = 1 << 13;
+#[allow(dead_code)]
 pub const TYPE_INFO_STRUCT_FLAG: u32 = 1 << 14;
 
 pub fn calculate_standard_header_length(header_type: u8) -> usize {
@@ -959,10 +1001,10 @@ impl TryFrom<u8> for LogLevel {
             _ => {
                 eprintln!("Invalid LogLevel");
                 Err(Error::new(
-                io::ErrorKind::Other,
-                format!("Unknown log level {}", message_info >> 4),
-            ))
-            },
+                    io::ErrorKind::Other,
+                    format!("Unknown log level {}", message_info >> 4),
+                ))
+            }
         }
     }
 }
@@ -993,10 +1035,10 @@ impl TryFrom<u8> for ApplicationTraceType {
             _ => {
                 eprintln!("Invalid ApplicationTraceType");
                 Err(Error::new(
-                io::ErrorKind::Other,
-                format!("Unknown application trace type {}", message_info >> 4),
-            ))
-            },
+                    io::ErrorKind::Other,
+                    format!("Unknown application trace type {}", message_info >> 4),
+                ))
+            }
         }
     }
 }
@@ -1024,10 +1066,10 @@ impl TryFrom<u8> for NetworkTraceType {
             0 => {
                 eprintln!("Unknown network trace type 0");
                 Err(Error::new(
-                io::ErrorKind::Other,
-                "Unknown network trace type 0",
-            ))
-            },
+                    io::ErrorKind::Other,
+                    "Unknown network trace type 0",
+                ))
+            }
             1 => Ok(NetworkTraceType::Ipc),
             2 => Ok(NetworkTraceType::Can),
             3 => Ok(NetworkTraceType::Flexray),
@@ -1058,10 +1100,10 @@ impl TryFrom<u8> for ControlType {
             _ => {
                 eprintln!("Unknown control type {}", message_info >> 4);
                 Err(Error::new(
-                io::ErrorKind::Other,
-                format!("Unknown control type {}", message_info >> 4),
-            ))
-            },
+                    io::ErrorKind::Other,
+                    format!("Unknown control type {}", message_info >> 4),
+                ))
+            }
         }
     }
 }
@@ -1104,20 +1146,20 @@ impl TryFrom<u8> for MessageType {
             _ => {
                 eprintln!("Unknown message trace type {}", (message_info >> 1) & 0b111);
                 Err(Error::new(
-                io::ErrorKind::Other,
-                format!("Unknown message trace type {}", (message_info >> 1) & 0b111),
-            ))
-            },
+                    io::ErrorKind::Other,
+                    format!("Unknown message trace type {}", (message_info >> 1) & 0b111),
+                ))
+            }
         }
     }
 }
 
-
+#[allow(dead_code)]
 #[inline]
 pub fn create_message_line(out_buffer: &mut std::io::Write, msg: Message) -> std::io::Result<()> {
     // Messages without extended header (non-verbose) are unimplemented
     if let Some(ext) = msg.extended_header {
-        let level = match ext.message_type {
+        let _level = match ext.message_type {
             MessageType::Log(level) => level.into(),
             MessageType::ApplicationTrace(_) | MessageType::NetworkTrace(_) => log::Level::Trace,
             // Ignore everything else
@@ -1160,13 +1202,12 @@ pub fn create_message_line(out_buffer: &mut std::io::Write, msg: Message) -> std
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     use pretty_assertions::assert_eq;
-    use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
+    use byteorder::{BigEndian, LittleEndian};
     use proptest::prelude::*;
 
     proptest! {

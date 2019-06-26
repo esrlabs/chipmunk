@@ -10,7 +10,6 @@ use log::warn;
 use std::fmt::{Write};
 use std::str;
 
-
 #[derive(Default)]
 pub struct Codec;
 
@@ -34,7 +33,6 @@ impl Decoder for DltFileCodec {
             None => Ok(None),
         }
     }
-
 }
 impl Encoder for DltFileCodec {
     type Item = dlt::Message;
@@ -43,7 +41,7 @@ impl Encoder for DltFileCodec {
     fn encode(&mut self, msg: Self::Item, dest: &mut BytesMut) -> Result<(), Self::Error> {
         // Messages without extended header (non-verbose) are unimplemented
         if let Some(ext) = msg.extended_header {
-            let level = match ext.message_type {
+            let _level = match ext.message_type {
                 dlt::MessageType::Log(level) => level.into(),
                 dlt::MessageType::ApplicationTrace(_) | dlt::MessageType::NetworkTrace(_) => {
                     log::Level::Trace
@@ -218,7 +216,10 @@ fn decode_storage_header(src: &mut BytesMut) -> Result<Option<dlt::StorageHeader
         let ecuid = str::from_utf8(&ecu_id).map_err(|e| Error::new(io::ErrorKind::Other, e))?;
         src.advance(dlt::STORAGE_HEADER_LENGTH);
         Ok(Some(dlt::StorageHeader {
-            timestamp: dlt::DltTimeStamp { seconds: timestamp_s, microseconds: timestamp_ms * 1000 },
+            timestamp: dlt::DltTimeStamp {
+                seconds: timestamp_s,
+                microseconds: timestamp_ms * 1000,
+            },
             ecu_id: ecuid.to_string(),
         }))
     } else {
@@ -334,7 +335,6 @@ fn decode_argument<T: ByteOrder>(buf: &mut Buf) -> Result<dlt::Argument, Error> 
             "Fixed point is not implemented",
         ));
     } else {
-
         match type_info.kind {
             dlt::TypeInfoKind::Array => {
                 return Err(Error::new(

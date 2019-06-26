@@ -615,7 +615,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn test_offset_from_timezone_in_ms() {
         assert_eq!(0, parse_timezone("+0000").expect("could not parse"));

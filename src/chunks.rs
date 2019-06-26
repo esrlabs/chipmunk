@@ -58,20 +58,18 @@ impl ChunkFactory {
                 b: (self.start_of_chunk_byte_index, self.current_byte_index),
             };
             if self.to_stdout {
-                let serialized = &serde_json::to_string(&chunk).ok()?[..];
-                println!("{}", serialized);
+                println!("{}", &serde_json::to_string(&chunk).ok()?[..]);
             }
 
             self.start_of_chunk_byte_index = self.current_byte_index + 1;
             self.lines_in_chunk = 0;
-            // println!("create_chunk_if_needed: {:?}", chunk);
             return Some(chunk);
         }
         None
     }
     pub fn create_last_chunk(&mut self, line_nr: usize, only_chunk: bool) -> Option<Chunk> {
         // only add junk if we produced any output lines
-        if line_nr > 0 {
+        if line_nr > 0 && self.start_of_chunk_byte_index != self.current_byte_index {
             // check if we still need to spit out a chunk
             if line_nr > self.last_line_current_chunk || only_chunk {
                 self.last_line_current_chunk = line_nr;
@@ -88,7 +86,6 @@ impl ChunkFactory {
                         serde_json::to_string(&chunk).expect("chunk could not be serialized")
                     );
                 }
-                // println!("create_last_chunk: {:?}", chunk);
                 return Some(chunk);
             }
         }

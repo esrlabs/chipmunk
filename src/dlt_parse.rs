@@ -12,8 +12,13 @@ use nom::{
 };
 
 use std::str;
-use std::io::{Error, BufReader, BufRead};
-use std::fs::File;
+use std::fmt;
+use std::io::{
+    Read,
+    BufRead
+};
+use buf_redux::BufReader;
+use buf_redux::policy::MinBuffered;
 
 // #[derive(Debug, Fail)]
 // enum ParsingError {
@@ -22,39 +27,77 @@ use std::fs::File;
 //     #[fail(display = "seems not to be a dlt file")]
 //     NoDltDiscovered,
 // }
-pub struct MessageIter {
-    reader: BufReader<File>,
+pub struct MessageIter<'a, T: Read> {
+    reader: BufReader<T, MinBuffered>,
+    #[allow(dead_code)]
+    tag: &'a str,
+    #[allow(dead_code)]
+    processed_bytes: usize,
+    #[allow(dead_code)]
+    processed_lines: usize,
 }
-impl<'a> MessageIter {
-    pub fn new(fh: File) -> MessageIter {
+impl<'a, T: Read> MessageIter<'a, T> {
+    pub fn new(fh: T, tag: &'a str, processed_lines: usize) -> MessageIter<'a, T> {
+        let reader =
+            BufReader::with_capacity(10 * 1024 * 1024, fh).set_policy(MinBuffered(10 * 1024));
         MessageIter {
-            // reader: BufReader::new(fh),
-            reader: BufReader::with_capacity(10 * 1024 * 1024, fh),
+            reader,
+            tag,
+            processed_bytes: 0,
+            processed_lines,
         }
     }
 }
-impl<'a> Iterator for MessageIter {
-    type Item = dlt::Message;
-    fn next(&mut self) -> Option<dlt::Message> {
-        let mut consumed = 0usize;
-        let result = match self.reader.fill_buf() {
-            Ok(content) => {
-                if content.is_empty() {
-                    return None;
-                }
-                let available = content.len();
-                let res: IResult<&[u8], dlt::Message> = dlt_message(content);
-                match res {
-                    Ok(r) => {
-                        consumed = available - r.0.len();
-                        Some(r.1)
+
+pub struct CountedMessage {
+    pub dlt_message: dlt::Message,
+    pub line_index: usize,
+    pub byte_index: usize,
+}
+impl fmt::Display for CountedMessage {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.dlt_message.fmt(f)
+    }
+}
+impl<'a, T: Read> Iterator for MessageIter<'a, T> {
+    type Item = CountedMessage;
+    fn next(&mut self) -> Option<Self::Item> {
+        let res = loop {
+            match self.reader.fill_buf() {
+                Ok(content) => {
+                    // println!("content: {}", content.len());
+                    if content.is_empty() {
+                        return None;
                     }
-                    _ => None,
+                    let available = content.len();
+                    let res: IResult<&[u8], dlt::Message> = dlt_message(content);
+                    match res {
+                        Ok(r) => {
+                            let consumed = available - r.0.len();
+                            break (consumed, r.1);
+                        }
+                        e => {
+                            if let Err(nom::Err::Incomplete(_)) = e {
+                                continue;
+                            } else {
+                                panic!(format!("error while iterating...{:?}", e));
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    panic!("error while iterating...{}", e);
                 }
             }
-            Err(_) => None,
         };
-        self.reader.consume(consumed);
+        self.reader.consume(res.0);
+        let result = Some(CountedMessage{
+            dlt_message:  res.1,
+            line_index: self.processed_lines,
+            byte_index: self.processed_bytes,
+        });
+        self.processed_lines += 1;
+        self.processed_bytes += res.0;
         result
     }
 }
@@ -161,7 +204,7 @@ fn dlt_extended_header(input: &[u8]) -> IResult<&[u8], dlt::ExtendedHeader> {
         Err(e) => {
             eprintln!("Invalid message type: {}", e);
             Err(nom::Err::Error((i, nom::error::ErrorKind::Verify)))
-        },
+        }
     }
 }
 #[inline]
@@ -172,6 +215,7 @@ pub fn is_not_null(chr: u8) -> bool {
 pub fn is_null(chr: u8) -> bool {
     chr == 0x0
 }
+#[allow(clippy::type_complexity)]
 pub fn zeros(max: usize) -> Box<Fn(&[u8]) -> IResult<&[u8], &[u8]>> {
     Box::new(move |input| nom::bytes::streaming::take_while_m_n(max, max, is_null)(input))
 }
@@ -184,6 +228,7 @@ fn dlt_zero_terminated_string(s: &[u8], size: usize) -> IResult<&[u8], &str> {
     let (rest2, _) = zeros(missing)(rest)?;
     Ok((rest2, non_null))
 }
+#[allow(clippy::type_complexity)]
 fn dlt_variable_name_and_unit<T: NomByteOrder>(
     type_info: &dlt::TypeInfo,
 ) -> fn(&[u8]) -> IResult<&[u8], (Option<String>, Option<String>)> {
@@ -218,7 +263,6 @@ pub trait NomByteOrder: Clone + Copy + Eq + Ord + PartialEq + PartialOrd {
     fn parse_u128(i: &[u8]) -> IResult<&[u8], u128>;
     fn parse_i128(i: &[u8]) -> IResult<&[u8], i128>;
 }
-
 
 impl NomByteOrder for BigEndian {
     #[inline]
@@ -341,10 +385,11 @@ fn dlt_type_info<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], dlt::TypeInfo>
         Ok(type_info) => {
             // println!("was type_info {:?}", type_info);
             Ok((i, type_info))
-        },
+        }
         Err(_) => {
             eprintln!("dlt_type_info no type_info");
-            Err(nom::Err::Error((&[], nom::error::ErrorKind::Verify)))},
+            Err(nom::Err::Error((&[], nom::error::ErrorKind::Verify)))
+        }
     }
 }
 fn dlt_fixed_point<T: NomByteOrder>(
@@ -585,7 +630,6 @@ fn dlt_message(input: &[u8]) -> IResult<&[u8], dlt::Message> {
         },
     ))
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -983,21 +1027,20 @@ mod tests {
     fn test_dlt_message_parsing() {
         let raw1: Vec<u8> = vec![
             // storage header
-            0x44, 0x4C, 0x54, 0x01, 0x56, 0xA2, 0x91, 0x5C, 0x9C, 0x91, 0x0B, 0x00, 0x45, 0x43, 0x55, 0x31,
-            // header
+            0x44, 0x4C, 0x54, 0x01, 0x56, 0xA2, 0x91, 0x5C, 0x9C, 0x91, 0x0B, 0x00, 0x45, 0x43,
+            0x55, 0x31, // header
             0x3D, // header type 0b11 1101
-            0x40, 0x00, 0xA2,
-            0x45, 0x43, 0x55, 0x31, // ecu id
+            0x40, 0x00, 0xA2, 0x45, 0x43, 0x55, 0x31, // ecu id
             0x00, 0x00, 0x01, 0x7F, // session id
             0x00, 0x5B, 0xF7, 0x16, // timestamp
             // extended header
-            0x51, // MSIN 0b101 0001 => verbose, MST log, 
+            0x51, // MSIN 0b101 0001 => verbose, MST log,
             0x06, // arg count
             0x56, 0x53, 0x6F, 0x6D, // app id VSom
             0x76, 0x73, 0x73, 0x64, // context id vssd
             // arguments
             // 0x00, 0x82, 0x00, 0x00, // type info 0b1000001000000000
-            // 0x3A, 0x00, 
+            // 0x3A, 0x00,
             // 0x5B, 0x33, 0x38, 0x33, 0x3A, 0x20, 0x53, 0x65,
             // 0x72, 0x76, 0x69, 0x63, 0x65, 0x44, 0x69, 0x73, 0x63, 0x6F, 0x76, 0x65, 0x72, 0x79,
             // 0x55, 0x64, 0x70, 0x45, 0x6E, 0x64, 0x70, 0x6F, 0x69, 0x6E, 0x74, 0x28, 0x31, 0x36,
@@ -1005,15 +1048,15 @@ mod tests {
             // 0x30, 0x31, 0x35, 0x32, 0x29, 0x5D, 0x20, 0x00,
             0x00, 0x82, 0x00, 0x00, // type info 0b1000001000000000
             0x0F, 0x00, // length
-            0x50, 0x72, 0x6F, 0x63, 0x65, 0x73, 0x73, 0x4D, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x00, // "ProcessMessage"
+            0x50, 0x72, 0x6F, 0x63, 0x65, 0x73, 0x73, 0x4D, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65,
+            0x00, // "ProcessMessage"
             0x00, 0x82, 0x00, 0x00, // type info 0b1000001000000000
             0x02, 0x00, // length
             0x3A, 0x00, // ":"
             0x23, 0x00, 0x00, 0x00, // type info 0b10000000001000010
-             0x0D,
-            0x01, 0x00, 0x00, 0x00, 0x82, 0x00, 0x00, 0x03, 0x00, 0x3A, 0x20, 0x00, 0x00, 0x82,
-            0x00, 0x00, 0x14, 0x00, 0x31, 0x36, 0x30, 0x2E, 0x34, 0x38, 0x2E, 0x31, 0x39, 0x39,
-            0x2E, 0x31, 0x36, 0x2C, 0x33, 0x30, 0x35, 0x30, 0x31, 0x00,
+            0x0D, 0x01, 0x00, 0x00, 0x00, 0x82, 0x00, 0x00, 0x03, 0x00, 0x3A, 0x20, 0x00, 0x00,
+            0x82, 0x00, 0x00, 0x14, 0x00, 0x31, 0x36, 0x30, 0x2E, 0x34, 0x38, 0x2E, 0x31, 0x39,
+            0x39, 0x2E, 0x31, 0x36, 0x2C, 0x33, 0x30, 0x35, 0x30, 0x31, 0x00,
         ];
         let raw: Vec<u8> = vec![
             0x44, 0x4C, 0x54, 0x01, 0x56, 0xA2, 0x91, 0x5C, 0x9C, 0x91, 0x0B, 0x00, 0x45, 0x43,
@@ -1031,8 +1074,8 @@ mod tests {
             0x30, 0x78, 0x00, 0x42, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x82, 0x00, 0x00, 0x02,
             0x00, 0x29, 0x00,
         ];
-        // let res1: IResult<&[u8], dlt::Message> = dlt_message(&raw1[..]);
-        // println!("res1 was: {:?}", res1);
+        let res1: IResult<&[u8], dlt::Message> = dlt_message(&raw1[..]);
+        println!("res1 was: {:?}", res1);
         let res: IResult<&[u8], dlt::Message> = dlt_message(&raw[..]);
         println!("res was: {:?}", res);
     }

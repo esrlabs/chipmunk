@@ -16,6 +16,7 @@ nom = "5.0.0-beta2"
 clap = "2"
 tokio = "0.1.21"
 log = "0.4.6"
+buf_redux = "0.8.1"
 
 [dev-dependencies]
 rand = "0.6.5"

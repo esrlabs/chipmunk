@@ -4,7 +4,6 @@ use crate::parse::{
     line_matching_format_expression, match_format_string_in_file, read_format_string_options,
     FormatTestOptions,
 };
-use crate::dlt_parse::*;
 
 #[macro_use]
 extern crate clap;
@@ -15,7 +14,6 @@ use std::path;
 use std::time::Instant;
 // use tokio::codec::{FramedRead, FramedWrite};
 // use tokio::prelude::{Future, Sink};
-
 
 mod chunks;
 mod dlt;
@@ -185,11 +183,47 @@ fn main() {
                         .index(1),
                 )
                 .arg(
+                    Arg::with_name("tag")
+                        .short("t")
+                        .long("tag")
+                        .value_name("TAG")
+                        .help("tag for each log entry")
+                        .required(true),
+                )
+                .arg(
+                    Arg::with_name("max_lines")
+                        .short("n")
+                        .long("max_lines")
+                        .help("How many lines to collect before dumping")
+                        .required(false)
+                        .default_value("1000000"),
+                )
+                .arg(
+                    Arg::with_name("chunk_size")
+                        .short("c")
+                        .long("chunk_siz")
+                        .help("How many lines should be in a chunk (used for access later)")
+                        .required(false)
+                        .default_value("500"),
+                )
+                .arg(
+                    Arg::with_name("append")
+                        .short("a")
+                        .long("append")
+                        .help("append to file if exists"),
+                )
+                .arg(
                     Arg::with_name("output")
                         .short("o")
                         .long("out")
                         .value_name("OUT")
                         .help("Output file, \"<file_to_index>.out\" if not present"),
+                )
+                .arg(
+                    Arg::with_name("stdout")
+                        .short("s")
+                        .long("stdout")
+                        .help("put out chunk information on stdout"),
                 ),
         )
         .get_matches();
@@ -227,11 +261,6 @@ fn main() {
                 path::PathBuf::from(file.to_string() + ".map.json");
             let max_lines = value_t_or_exit!(matches.value_of("max_lines"), usize);
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
-            let indexer = processor::Indexer {
-                source_id: tag.to_string(), // tag to append to each line
-                max_lines,                  // how many lines to collect before writing out
-                chunk_size,                 // used for mapping line numbers to byte positions
-            };
 
             let f = match fs::File::open(&file) {
                 Ok(file) => file,
@@ -250,7 +279,17 @@ fn main() {
             };
             let append: bool = matches.is_present("append");
             let stdout: bool = matches.is_present("stdout");
-            match indexer.index_file(&f, &out_path, append, source_file_size, stdout) {
+
+            match processor::create_index_and_mapping(processor::IndexingConfig {
+                tag,
+                max_lines,
+                chunk_size,
+                in_file: f,
+                out_path: &out_path,
+                append,
+                source_file_size,
+                to_stdout: stdout,
+            }) {
                 Err(why) => {
                     eprintln!("couldn't process: {}", why);
                     std::process::exit(2)
@@ -372,6 +411,7 @@ fn main() {
     }
     fn handle_dlt_subcommand(matches: &clap::ArgMatches, start: std::time::Instant) {
         if matches.is_present("input") {
+            let tag = matches.value_of("tag").expect("tag must be present");
             let file_name = matches.value_of("input").expect("input must be present");
             let source_file_size = match fs::metadata(file_name) {
                 Ok(file_meta) => file_meta.len() as usize,
@@ -397,10 +437,39 @@ fn main() {
                 }
             };
 
-            let message_iter = MessageIter::new(f);
-            for message in message_iter {
-                println!("{}", message);
+            let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
+            let max_lines = value_t_or_exit!(matches.value_of("max_lines"), usize);
+            let append: bool = matches.is_present("append");
+            let stdout: bool = matches.is_present("stdout");
+            match processor::create_index_and_mapping_dlt(processor::IndexingConfig {
+                tag,
+                max_lines,
+                chunk_size,
+                in_file: f,
+                out_path: &out_path,
+                append,
+                source_file_size,
+                to_stdout: stdout,
+            }) {
+                Err(why) => {
+                    eprintln!("couldn't process: {}", why);
+                    std::process::exit(2)
+                }
+                Ok(chunks) => {
+                    let _ = serialize_chunks(&chunks, &mapping_out_path);
+                    let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
+                    duration_report_throughput(
+                        start,
+                        format!("processing ~{} MB", file_size_in_mb.round()),
+                        file_size_in_mb,
+                        "MB".to_string(),
+                    )
+                }
             }
+            // let message_iter = MessageIter::new(f, tag);
+            // for message in message_iter {
+            //     println!("{}", message);
+            // }
             // let mut p = message_iter.peekable();
             // p.peek();
         }

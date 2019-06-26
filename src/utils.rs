@@ -1,4 +1,5 @@
 use std::fs;
+use std::fmt::Display;
 use std::io::{BufReader, Read, Seek, SeekFrom};
 
 pub const ROW_NUMBER_SENTINAL: char = '\u{0002}';
@@ -16,13 +17,37 @@ pub fn is_newline(c: char) -> bool {
 }
 
 #[inline]
+pub fn create_tagged_line_d<T: Display>(
+    tag: &str,
+    out_buffer: &mut std::io::Write,
+    trimmed_line: T,
+    line_nr: usize,
+    with_newline: bool,
+) -> std::io::Result<usize> {
+    let s = format!(
+        // out_buffer,
+        "{}{}{}{}{}{}{}{}",
+        trimmed_line, //trimmed_line,
+        PLUGIN_ID_SENTINAL,
+        tag,
+        PLUGIN_ID_SENTINAL,
+        ROW_NUMBER_SENTINAL,
+        line_nr,
+        ROW_NUMBER_SENTINAL,
+        if with_newline { "\n" } else { "" },
+    );
+    let len = s.len();
+    write!(out_buffer, "{}", s)?;
+    Ok(len)
+}
+#[inline]
 pub fn create_tagged_line(
     tag: &str,
     out_buffer: &mut std::io::Write,
     trimmed_line: &str,
     line_nr: usize,
     with_newline: bool,
-) -> std::io::Result<()> {
+) -> std::io::Result<usize> {
     write!(
         out_buffer,
         "{}{}{}{}{}{}{}{}",
@@ -34,7 +59,12 @@ pub fn create_tagged_line(
         line_nr,
         ROW_NUMBER_SENTINAL,
         if with_newline { "\n" } else { "" },
-    )
+    )?;
+    Ok(trimmed_line.len()
+        + 4 * SENTINAL_LENGTH
+        + tag.len()
+        + linenr_length(line_nr)
+        + if with_newline { 1 } else { 0 })
 }
 
 #[inline]
