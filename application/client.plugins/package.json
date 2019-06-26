@@ -10,6 +10,7 @@
     "build:xterminal": "ng build xterminal",
     "build:file": "ng build file",
     "build:dlt": "ng build dlt",
+    "build:dlt-render": "ng build dlt-render",
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e"

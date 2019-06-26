@@ -5,6 +5,7 @@ import * as AngularCore from '@angular/core';
 import * as AngularCommon from '@angular/common';
 import * as AngularForms from '@angular/forms';
 import * as AngularPlatformBrowser from '@angular/platform-browser';
+import * as RXJS from 'rxjs';
 import * as LogviewerClientComplex from 'logviewer-client-complex';
 import * as LogviewerClientContainers from 'logviewer-client-containers';
 import * as LogviewerClientPrimitive from 'logviewer-client-primitive';
@@ -37,6 +38,7 @@ export interface IPluginData {
     controllers: IPluginControllers;    // Collection of controllers to plugin listents
     id: number;                         // ID of plugin
     factories: { [key: string]: any };
+    mwcf?: AngularCore.ModuleWithComponentFactories<any>;
 }
 
 const CPluginEvents = {
@@ -105,6 +107,17 @@ export class PluginsService extends Toolkit.Emitter implements IService {
         }
         this._idsCache[id] = this._plugins.get(name);
         return this._idsCache[id];
+    }
+
+    public getPluginFactory(id: number, selector: string): AngularCore.ComponentFactory<any> | undefined {
+        const plugin: IPluginData | undefined = this.getPluginById(id);
+        if (plugin === undefined) {
+            return undefined;
+        }
+        if (plugin.mwcf === undefined) {
+            return;
+        }
+        return plugin.mwcf.componentFactories.find(e => e.selector === selector);
     }
 
     public fire(): {
@@ -205,7 +218,7 @@ export class PluginsService extends Toolkit.Emitter implements IService {
             // Step 5. Compile
             if (exports[Toolkit.CModuleName] !== undefined) {
                 // This is Angular module
-                this._compiler.compileModuleAndAllComponentsAsync<any>(exports[Toolkit.CModuleName]).then((mwcf) => {
+                this._compiler.compileModuleAndAllComponentsAsync<any>(exports[Toolkit.CModuleName]).then((mwcf: AngularCore.ModuleWithComponentFactories<any>) => {
                     // Ok. From here we have access to plugin components. Also all components should be already initialized
                     // Step 6. Create plugin module
                     try {
@@ -223,12 +236,11 @@ export class PluginsService extends Toolkit.Emitter implements IService {
                                 sessions: new Toolkit.ControllerSessionsEvents(),
                             },
                             id: id,
-                            factories: {}
+                            factories: {},
+                            mwcf: mwcf,
                         };
-                        // Setup plugin parsers
-                        OutputParsersService.setPluginParsers(id, exports);
-                        // Setup common parsers
-                        OutputParsersService.setCommonParsers(exports);
+                        // Setup parsers
+                        OutputParsersService.setParsers(exports, id, mwcf);
                         // Check views
                         Object.keys(Toolkit.EViewsTypes).forEach((alias: string) => {
                             const selector: string = Toolkit.EViewsTypes[alias];
@@ -258,10 +270,8 @@ export class PluginsService extends Toolkit.Emitter implements IService {
                     id: id,
                     factories: {}
                 };
-                // Setup plugin parsers
-                OutputParsersService.setPluginParsers(id, exports[Toolkit.CNonAngularModuleName]);
                 // Setup common parsers
-                OutputParsersService.setCommonParsers(exports[Toolkit.CNonAngularModuleName]);
+                OutputParsersService.setParsers(exports[Toolkit.CNonAngularModuleName], id);
                 resolve(pluginData);
             }
         });
@@ -273,6 +283,7 @@ export class PluginsService extends Toolkit.Emitter implements IService {
             '@angular/common': AngularCommon,
             '@angular/forms': AngularForms,
             '@angular/platform-browser': AngularPlatformBrowser,
+            'rxjs': RXJS,
             'logviewer-client-complex': LogviewerClientComplex,
             'logviewer-client-containers': LogviewerClientContainers,
             'logviewer-client-primitive': LogviewerClientPrimitive,
