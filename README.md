@@ -157,6 +157,29 @@ match: Ok(true)
 
 # Changelog
 
+### [0.20.0] - 06/26/2019
+  * DLT: nom parsing of dlt messages
+    * added header parsing
+    * parsing extended headers
+    * parsing string,signed,unsigned,bool arguments
+    * fixed point parsing
+    * implemented float parsing
+    * support for parsing dlt raw arguments
+    * parsing correct timestamp in dlt
+  * DLT: added Message serialization
+    * add type for TypeInfo in Argument
+    * serializing signed/unsigned values
+    * serializing float values (only support f32 and f64)
+    * raw support for serialization
+  * DLT: iterator for dlt messages
+  * DLT: Display implementation for DLT messages
+  * DLT: dlt: accept invalid string format (interpret as UTF8)
+  * split tokio functionality away from dlt module
+  * testing with proptest
+  * fixes #283: no stupid output to stderr
+  * error messages
+  * working version with tokio codecs
+
 ### [0.19.0] - 06/07/2019
   * added basic dlt support
   * read dlt from file stream, write to file sink
