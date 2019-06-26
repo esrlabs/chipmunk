@@ -146,7 +146,12 @@ export class ControllerSessionTabSearchOutput {
         if (isNaN(range.start) || isNaN(range.end) || !isFinite(range.start) || !isFinite(range.end)) {
             return new Error(`Range has incorrect format. Start and end shound be finite and not NaN`);
         }
+        /*
         if (range.start === 0 && range.end === 0) {
+            return [];
+        }
+        */
+        if (range.start < 0 || range.end < 0) {
             return [];
         }
         if (this._state.originalCount === 0) {
