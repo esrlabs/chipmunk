@@ -1,6 +1,12 @@
 <div *ngIf="_ng_isPending() === false" [attr.class]="'wrapper noreset ' + (_ng_bookmarked ? 'bookmarked' : '')">
-    <span class="source-name" *ngIf="_ng_source" (click)="_ng_onToggleSource()">{{_ng_sourceName}}</span>
-    <span class="source-alias" *ngIf="!_ng_source" [ngStyle]="{'background': _ng_sourceColor}" (click)="_ng_onToggleSource()"></span>
+    <span   class="source-name" 
+            *ngIf="_ng_source" 
+            (click)="_ng_onToggleSource()">{{_ng_sourceName}}</span>
+    <span   class="source-alias" 
+            *ngIf="!_ng_source" 
+            [ngStyle]="{'background': _ng_sourceColor}"
+            [attr.data-source-name]="_ng_sourceName" 
+            (click)="_ng_onToggleSource()"></span>
     <span class="number" (click)="_ng_onNumberClick()"><span class="filler">{{_ng_number_filler}}</span>{{_ng_number}}</span>
     <p  *ngIf="_ng_safeHtml !== null"
         class="row noreset" 
