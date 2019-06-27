@@ -5,6 +5,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { InputStandardComponent } from 'logviewer-client-primitive';
 import { IFile as ITestResult } from '../../../../services/electron.ipc.messages/merge.files.test.response';
+import { Subscription, Observable, Subject } from 'rxjs';
 
 const ListOffsetValue: string = 'offset';
 
@@ -48,6 +49,9 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
     @Input() public onUpdated: () => any = () => void 0;
     @Input() public onRemove: () => any = () => void 0;
     @Input() public onTest: () => any = () => void 0;
+    @Input() public onExtendObs: Observable<string>;
+    @Input() public onExtendSub: Subject<string>;
+
 
     public _ng_zones: Array<{ value: string; caption: string}> = [];
     public _ng_disabled: boolean = false;
@@ -56,12 +60,13 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
     public _ng_testResults: ITestResult | undefined = undefined;
     public _ng_rows: SafeHtml[] = [];
     public _ng_warnings: string[] = [];
+    public _ng_format: string = '';
 
     private _valid: boolean = false;
     private _year: number = -1;
     private _offset: number = 0;
     private _zone: string = '';
-    private _format: string = '';
+    private _subscriptions: { [key: string]: Subscription } = {};
 
     constructor(private _sanitizer: DomSanitizer, private _cdRef: ChangeDetectorRef) {
         this._ng_onZoneChange = this._ng_onZoneChange.bind(this);
@@ -87,9 +92,15 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
         if (this.defaultFormat !== undefined) {
             this._formatComRef.setValue(this.defaultFormat);
         }
+        if (this.onExtendObs !== undefined) {
+            this._subscriptions.onExtended = this.onExtendObs.subscribe(this._onExtendedFormat.bind(this));
+        }
     }
 
     public ngOnDestroy() {
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            this._subscriptions[key].unsubscribe();
+        });
     }
 
     public _ng_onMore() {
@@ -128,7 +139,7 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
     }
 
     public _ng_onFormatChange(value: string) {
-        this._format = value;
+        this._ng_format = value;
         this.dropTestResults();
         this._updateWarningMsg();
     }
@@ -163,6 +174,10 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
 
     public _ng_onTest() {
         this.onTest();
+    }
+
+    public _ng_onExtend() {
+        this.onExtendSub.next(this._ng_format);
     }
 
     public isValid(): boolean {
@@ -205,7 +220,7 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
     }
 
     public getFormat(): string {
-        return this._format;
+        return this._ng_format;
     }
 
     public setTestResults(results: ITestResult | undefined) {
@@ -232,6 +247,15 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
 
     public hasWarnings(): boolean {
         return this._ng_warnings.length > 0;
+    }
+
+    private _onExtendedFormat(format: string) {
+        if (this._ng_format.trim() !== '') {
+            return;
+        }
+        this._ng_format = format;
+        this._formatComRef.setValue(format);
+        this._cdRef.detectChanges();
     }
 
     private _getReadRows(): SafeHtml[]  {
@@ -273,7 +297,7 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
 
     private _getFormatValidMsg(): string | undefined {
         let valid: boolean = false;
-        let value: string = this._format;
+        let value: string = this._ng_format;
         CDateTimeAliases.forEach((single: string) => {
             if (value.indexOf(single) !== -1) {
                 valid = true;
@@ -301,7 +325,7 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
         if (value === '') {
             return undefined;
         }
-        return `Not valid part of format: ${this._format}`;
+        return `Not valid part of format: ${this._ng_format}`;
     }
 
     private _getFormatCompliteMsg(): string | undefined {
@@ -309,17 +333,17 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
         let isTimeSet: boolean = false;
         let isUTimeSet: boolean = false;
         [EDataTimeAliases.YYYY, EDataTimeAliases.MM, EDataTimeAliases.DD].forEach((single: string) => {
-            if (this._format.indexOf(single) !== -1) {
+            if (this._ng_format.indexOf(single) !== -1) {
                 isDateSet = true;
             }
         });
         [EDataTimeAliases.hh, EDataTimeAliases.mm, EDataTimeAliases.ss].forEach((single: string) => {
-            if (this._format.indexOf(single) !== -1) {
+            if (this._ng_format.indexOf(single) !== -1) {
                 isTimeSet = true;
             }
         });
         [EDataTimeAliases.sss].forEach((single: string) => {
-            if (this._format.indexOf(single) !== -1) {
+            if (this._ng_format.indexOf(single) !== -1) {
                 isUTimeSet = true;
             }
         });

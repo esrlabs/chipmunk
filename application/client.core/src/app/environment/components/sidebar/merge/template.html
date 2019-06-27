@@ -8,6 +8,8 @@
                                     [preview]="file.preview"
                                     [defaultFormat]="file.defaultFormat"
                                     [zones]="_zones"
+                                    [onExtendSub]="_ng_extendSub"
+                                    [onExtendObs]="_ng_extendObs"
                                     [onUpdated]="_ng_onFileFieldUpdated.bind(this, file.file)"
                                     [onTest]="_ng_onFileTest.bind(this, file.file)"
                                     [onRemove]="_ng_onFileRemove.bind(this, file.file)"></app-sidebar-app-files-item>

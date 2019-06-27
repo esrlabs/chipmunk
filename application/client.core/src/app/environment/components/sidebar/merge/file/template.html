@@ -17,7 +17,10 @@
     </ul>
 </div>
 <span class="spliter"></span>
-<lib-primitive-input #formatinput [type]="'text'" [placeholder]="'example: YYYY-MM-DD hh:mm:ss.s'" [validate]="_ng_onFormatValidate" [onChange]="_ng_onFormatChange" [disabled]="_ng_disabled"></lib-primitive-input>
+<div class="format-input-wrapper">
+    <lib-primitive-input #formatinput [type]="'text'" [placeholder]="'example: YYYY-MM-DD hh:mm:ss.s'" [validate]="_ng_onFormatValidate" [onChange]="_ng_onFormatChange" [disabled]="_ng_disabled"></lib-primitive-input>
+    <span *ngIf="_ng_format !== ''" class="t-small extend-button" title="Will put this format to other file-fields" (click)="_ng_onExtend()">extend</span>
+</div>
 <span class="spliter" *ngIf="_ng_warnings.length > 0"></span>
 <div class="warning" *ngIf="_ng_warnings.length > 0">
     <span class="warning-icon fas fa-exclamation-triangle"></span>

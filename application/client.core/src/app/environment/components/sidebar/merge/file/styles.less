@@ -15,6 +15,23 @@
         overflow: hidden;
         text-overflow: ellipsis;
     }
+    & div.format-input-wrapper{
+        position: relative;
+        width: 100%;
+        & span.extend-button{
+            display: inline-block;
+            position: absolute;
+            top:2px;
+            right: 8px;
+            color: @scheme-color-0;
+            cursor: pointer;
+            font-weight: 400;
+            &:hover{
+                border-bottom: dotted thin @scheme-color-0;
+                cursor: pointer;
+            }
+        }
+    }
     & div.controlls{
         position: relative;
         width: 100%;

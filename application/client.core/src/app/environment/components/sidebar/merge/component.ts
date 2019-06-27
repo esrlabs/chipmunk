@@ -1,6 +1,6 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewChildren, QueryList, AfterContentInit, AfterViewInit, ViewContainerRef } from '@angular/core';
 import * as Toolkit from 'logviewer.client.toolkit';
-import { Subscription } from 'rxjs';
+import { Subscription, Subject, Observable } from 'rxjs';
 import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
 import { SidebarAppMergeFilesItemComponent } from './file/component';
 import { IFile as ITestResponseFile } from '../../../services/electron.ipc.messages/merge.files.test.response';
@@ -63,6 +63,8 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     public _ng_busy: boolean = false;
     public _ng_warning: string | undefined;
     public _ng_mergeButtonTitle: EMergeButtonTitle = EMergeButtonTitle.merge;
+    public _ng_extendSub: Subject<string> = new Subject<string>();
+    public _ng_extendObs: Observable<string> = this._ng_extendSub.asObservable();
 
     private _files: IFileItem[] = [];
     private _zones: string[] = [];
