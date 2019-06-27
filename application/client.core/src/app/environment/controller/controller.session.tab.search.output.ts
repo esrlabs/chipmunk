@@ -31,7 +31,7 @@ export interface ISearchStreamPacket {
 export interface IStreamState {
     originalCount: number;
     count: number;
-    bookmarkOffset: number;
+    bookmarksCount: number;
     stored: IRange;
     frame: IRange;
     lastLoadingRequestId: any;
@@ -70,7 +70,7 @@ export class ControllerSessionTabSearchOutput {
     private _state: IStreamState = {
         count: 0,
         originalCount: 0,
-        bookmarkOffset: 0,
+        bookmarksCount: 0,
         stored: {
             start: -1,
             end: -1,
@@ -146,40 +146,28 @@ export class ControllerSessionTabSearchOutput {
         if (isNaN(range.start) || isNaN(range.end) || !isFinite(range.start) || !isFinite(range.end)) {
             return new Error(`Range has incorrect format. Start and end shound be finite and not NaN`);
         }
-        /*
-        if (range.start === 0 && range.end === 0) {
-            return [];
-        }
-        */
         if (range.start < 0 || range.end < 0) {
             return [];
         }
-        if (this._state.originalCount === 0) {
-            if (this._rows.length - 1 < range.end || range.start < 0) {
-                return [];
-            }
-            return this._rows.slice(range.start, range.end + 1);
-        }
-        const correction = this._normalizeRange(range);
-        range = correction.range;
+        const requested: number = range.end - range.start + 1;
+        const offset: number = this._state.stored.start < 0 ? 0 : this._state.stored.start;
+        const indexes = {
+            start: range.start - offset,
+            end: range.end - offset,
+        };
         const stored = Object.assign({}, this._state.stored);
-        if (this._state.count === 0 || range.start < 0 || range.end < 0 || stored.start < 0 || stored.end < 0) {
-            return [];
-        }
-        if (stored.start >= 0 && stored.end >= 0) {
-            if (range.start >= stored.start && range.end <= stored.end) {
-                rows = this._getRowsSliced(range.start, range.end + 1);
-            } else if (this._rows.length > 0 && range.end > stored.start && range.start < stored.start && range.end < stored.end) {
-                rows = this._getPendingPackets(range.start, stored.start);
-                rows.push(...this._getRowsSliced(stored.start, range.end + 1));
-            } else if (this._rows.length > 0 && range.start < stored.end && range.start > stored.start && range.end > stored.end) {
-                rows = this._getPendingPackets(stored.end + 1, range.end + 1);
-                rows.unshift(...this._getRowsSliced(range.start, stored.end + 1));
-            } else {
-                rows = this._getPendingPackets(range.start, range.end + 1);
-            }
-        } else {
+        if (indexes.start > this._rows.length - 1) {
             rows = this._getPendingPackets(range.start, range.end + 1);
+        } else if (indexes.start < 0 && indexes.end < 0) {
+            rows = this._getPendingPackets(range.start, range.end + 1);
+        } else if (indexes.start >= 0 && indexes.start <= this._rows.length - 1 && indexes.end <= this._rows.length - 1) {
+            rows = this._rows.slice(indexes.start, indexes.end + 1);
+        } else if (indexes.start >= 0 && indexes.start <= this._rows.length - 1 && indexes.end > this._rows.length - 1) {
+            rows = this._rows.slice(indexes.start, this._rows.length);
+            rows.push(...this._getPendingPackets(this._rows.length, indexes.end + 1));
+        } else if (indexes.start < 0 && indexes.end >= 0  && indexes.end <= this._rows.length - 1) {
+            rows = this._rows.slice(0, indexes.end + 1);
+            rows.unshift(...this._getPendingPackets(0, Math.abs(indexes.start)));
         }
         // Check if state is still same
         if (stored.start !== this._state.stored.start || stored.end !== this._state.stored.end) {
@@ -189,19 +177,7 @@ export class ControllerSessionTabSearchOutput {
         if (rows.length !== range.end - range.start + 1) {
             return new Error(this._logger.error(`Calculation error: gotten ${rows.length} rows; should be: ${range.end - range.start}. State was { start: ${stored.start}, end: ${stored.end}}, became { start: ${this._state.stored.start}, end: ${this._state.stored.end}}.`));
         }
-        this._state.frame = Object.assign({}, range);
-        if (correction.offset !== 0) {
-            const bookmarkedRows: ISearchStreamPacket[] = this._getBookmarkedRowsFromEnd();
-            if (bookmarkedRows.length !== 0) {
-                if (bookmarkedRows.length >= correction.offset) {
-                    rows.push(...bookmarkedRows.slice(0, correction.offset));
-                    rows.splice(0, correction.offset);
-                } else if (bookmarkedRows.length < correction.offset) {
-                    rows.push(...bookmarkedRows);
-                    rows.splice(0, bookmarkedRows.length);
-                }
-            }
-        }
+        this.setFrame(range);
         return rows;
     }
 
@@ -209,7 +185,9 @@ export class ControllerSessionTabSearchOutput {
         if (this._state.originalCount === 0 || this._state.count === 0) {
             return;
         }
-        this._state.frame = Object.assign({}, this._normalizeRange(range)).range;
+        // Normalize range (to exclude bookmarks)
+        range.end = range.end > this._state.originalCount - 1 ? this._state.originalCount - 1 : range.end;
+        this._state.frame = Object.assign({}, range);
         if (!this._load()) {
             // No need to make request, but check buffer
             this._buffer();
@@ -233,7 +211,7 @@ export class ControllerSessionTabSearchOutput {
         this._state = {
             count: 0,
             originalCount: 0,
-            bookmarkOffset: 0,
+            bookmarksCount: 0,
             stored: {
                 start: -1,
                 end: -1,
@@ -254,9 +232,11 @@ export class ControllerSessionTabSearchOutput {
      * @returns { IRange | undefined } returns undefined if no need to load rows
      */
     public updateStreamState(rowsCount: number): void {
-        this._setBookmarksLengthOffset();
         // Update count of rows
         this._setTotalStreamCount(rowsCount);
+        // Update bookmarks state
+        this._updateBookmarksData();
+        // Trigger events
         this._subjects.onStateUpdated.next(Object.assign({}, this._state));
     }
 
@@ -265,6 +245,8 @@ export class ControllerSessionTabSearchOutput {
     }
 
     public preload(range: IRange): Promise<IRange> {
+        // Normalize range (to exclude bookmarks)
+        range.end = range.end > this._state.originalCount - 1 ? this._state.originalCount - 1 : range.end;
         return this._preload(range);
     }
 
@@ -297,65 +279,30 @@ export class ControllerSessionTabSearchOutput {
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Bookmarks
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    private _normalizeRange(range: IRange): { range: IRange, offset: number } {
-        let offset: number = 0;
-        if (range.end > this._state.originalCount - 1) {
-            offset = (range.end - this._state.originalCount) + 1;
-            range.start -= offset;
-            range.end -= offset;
-        }
-        return { range: range, offset: offset };
-    }
-
-    private _getBookmarkedRowsFromEnd(): ISearchStreamPacket[] {
-        const last: number = this._getLastPosNotBookmarkedRow().index;
-        if (last === -1) {
-            return [];
-        }
-        const extra: number = (this._rows.length - 1) - last;
-        return extra === 0 ? [] : this._rows.slice(last + 1, this._rows.length);
-    }
-
     private _onUpdateBookmarksState(bookmark: IBookmark) {
+        this._updateBookmarksData(bookmark);
+    }
+
+    private _updateBookmarksData(bookmark?: IBookmark) {
         // Clear from bookmarks
         this._rows = this._removeBookmarks(this._rows);
         // Insert bookmarks if exist
         this._rows = this._insertBookmarks(this._rows);
-        // Setup parameters of starage
+        // Setup parameters of storage
         this._state.stored.start = this._getFirstPosNotBookmarkedRow().position;
         this._state.stored.end = this._getLastPosNotBookmarkedRow().position;
-        // Update offset
-        this._setBookmarksLengthOffset();
+        // Remember previous value of count
+        const count: number = this._state.count;
         // Update count or rows
         this._setTotalStreamCount(this._state.originalCount);
-        if (this._state.originalCount === 0) {
-            // No rows in output
+        if (this._state.count !== count) {
+            // Emit updating of state event
             this._subjects.onStateUpdated.next(Object.assign({}, this._state));
         }
-        // Emit rerequest event
-        this._subjects.onBookmarksChanged.next();
-    }
-
-    private _setBookmarksLengthOffset() {
-        let offset: number = this._bookmakrs.get().size;
-        if (offset === 0) {
-            this._state.bookmarkOffset = offset;
-            return;
+        if (bookmark !== undefined) {
+            // Emit rerequest event
+            this._subjects.onBookmarksChanged.next();
         }
-        const requests: RegExp[] = this._getActiveSearchRequests();
-        if (requests.length === 0) {
-            this._state.bookmarkOffset = offset;
-            return;
-        }
-        this._bookmakrs.get().forEach((bookmark: IBookmark) => {
-            for (let i = requests.length - 1; i >= 0; i -= 1) {
-                if (bookmark.str.search(requests[i]) !== -1) {
-                    offset -= 1;
-                    break;
-                }
-            }
-        });
-        this._state.bookmarkOffset = offset;
     }
 
     private _insertBookmarks(rows: ISearchStreamPacket[]): ISearchStreamPacket[] {
@@ -376,10 +323,12 @@ export class ControllerSessionTabSearchOutput {
                     bookmarks: this._bookmakrs,
                     sources: this._sources,
                 });
+                this._state.bookmarksCount += 1;
             });
         };
         const bookmarks: Map<number, IBookmark> = this._bookmakrs.get();
         const indexes: number[] = Array.from(bookmarks.keys());
+        this._state.bookmarksCount = 0;
         if (indexes.length === 0) {
             return rows;
         }
@@ -394,6 +343,9 @@ export class ControllerSessionTabSearchOutput {
                 updated.push(row);
                 return;
             } else if (i ===  rows.length - 1 && row.position === this._state.originalCount - 1) {
+                if (i === 0 && row.position === 0) {
+                    add(updated, -1, row.positionInStream);
+                }
                 updated.push(row);
                 add(updated, row.positionInStream, Infinity);
                 return;
@@ -407,6 +359,7 @@ export class ControllerSessionTabSearchOutput {
     }
 
     private _removeBookmarks(rows: ISearchStreamPacket[]): ISearchStreamPacket[] {
+        this._state.bookmarksCount = 0;
         return rows.filter((row: ISearchStreamPacket) => {
             return row.position !== -1;
         });
@@ -482,6 +435,8 @@ export class ControllerSessionTabSearchOutput {
                 this._parse(message.data, message.start, message.end);
                 // Check again last requested frame
                 if (stored.start <= frame.start && stored.end >= frame.end) {
+                    // Update bookmarks state
+                    this._updateBookmarksData();
                     // Send notification about update
                     this._subjects.onRangeLoaded.next({
                         range: { start: frame.start, end: frame.end },
@@ -516,6 +471,8 @@ export class ControllerSessionTabSearchOutput {
                 this._setTotalStreamCount(message.rows);
                 // Parse and accept rows
                 this._parse(message.data, message.start, message.end);
+                // Update bookmarks state
+                this._updateBookmarksData();
                 // Return actual preloaded range
                 resolve({ start: message.start, end: message.end});
             }).catch((error: Error) => {
@@ -570,6 +527,8 @@ export class ControllerSessionTabSearchOutput {
             this._setTotalStreamCount(message.rows);
             // Parse and accept rows
             this._parse(message.data, message.start, message.end);
+            // Update bookmarks state
+            this._updateBookmarksData();
         }).catch((error: Error) => {
             this._logger.error(`Error during requesting data (rows from ${request.start} to ${request.end}): ${error.message}`);
             this._state.bufferLoadingRequestId = undefined;
@@ -708,7 +667,7 @@ export class ControllerSessionTabSearchOutput {
 
     private _setTotalStreamCount(count: number) {
         this._state.originalCount = count;
-        this._state.count = this._state.originalCount + this._state.bookmarkOffset;
+        this._state.count = this._state.originalCount + this._state.bookmarksCount;
         if (this._state.count === 0) {
             return this.clearStream();
         }
