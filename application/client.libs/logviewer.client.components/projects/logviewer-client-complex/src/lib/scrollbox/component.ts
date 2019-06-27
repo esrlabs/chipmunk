@@ -706,9 +706,15 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
             this._ng_rows = [];
             return this._cdRef.detectChanges();
         }
+        let requested: number = this._state.end - this._state.start + 1;
+        // Correct frame if it's needed
+        if (requested < this._state.count && this._storageInfo.count > this._state.count) {
+            this._state.start = this._state.end - (this._state.count - 1);
+            requested = this._state.end - this._state.start + 1;
+        }
         const frame = this.API.getRange({ start: this._state.start, end: this._state.end});
         const rows: Array<IRow | number> = frame.rows;
-        const pending = (this._state.count < this._storageInfo.count) ? (this._state.count - rows.length) : (this._storageInfo.count - rows.length);
+        const pending = requested - rows.length;
         if (pending > 0) {
             // Not all rows were gotten
             if (frame.range.start === this._state.start) {
