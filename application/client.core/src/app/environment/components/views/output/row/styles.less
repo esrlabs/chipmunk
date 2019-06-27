@@ -36,6 +36,30 @@
             vertical-align: top;
             user-select: none;
             cursor: pointer;
+            &::after{
+                background: inherit;
+                position: absolute;
+                display: block;
+                height: 100%;
+                top:0;
+                width: 0;
+                left: 100%;
+                content: attr(data-source-name);
+                cursor: default;
+                overflow: hidden;
+                z-index: 1;
+                font-size: 0.8rem;
+                line-height: 0.9rem;
+                color: @scheme-color-6;
+                padding: 0 0.5rem;
+                opacity: 0;
+            }
+            &:hover{
+                &::after{
+                    width: auto;
+                    opacity: 1;
+                }
+            }
         }
         & span.number{
             display: inline-block;
