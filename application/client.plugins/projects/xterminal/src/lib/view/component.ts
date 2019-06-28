@@ -64,8 +64,8 @@ export class SidebarViewComponent implements AfterViewInit, OnDestroy {
             return null;
         }
         this._xterm = new Terminal();
-        this._setTheme(this._xterm);
         this._xterm.open(this._ng_xtermholder.nativeElement);
+        this._setTheme(this._xterm);
         this._xterm.on('data', (data) => {
             this.ipc.requestToHost({
                 session: this.session,

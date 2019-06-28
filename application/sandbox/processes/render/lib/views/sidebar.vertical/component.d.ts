@@ -33,4 +33,5 @@ export declare class SidebarVerticalComponent implements AfterViewInit, OnDestro
     private _onSessionClose;
     private _saveState;
     private _loadState;
+    private _initState;
 }

@@ -14,17 +14,7 @@ export class TabContentComponent implements OnDestroy, AfterViewInit {
 
     public _tab: ITab | undefined = undefined;
 
-    private _subscriptions: {
-        new: Subscription | null,
-        clear: Subscription | null,
-        active: Subscription | null,
-        options: Subscription | null,
-    } = {
-        new: null,
-        clear: null,
-        active: null,
-        options: null,
-    };
+    private _subscriptions: { [key: string]: Subscription } = {};
 
     constructor(private _cdRef: ChangeDetectorRef) {
     }
@@ -34,6 +24,7 @@ export class TabContentComponent implements OnDestroy, AfterViewInit {
             return;
         }
         this._subscriptions.active = this.service.getObservable().active.subscribe(this.onActiveTabChange.bind(this));
+        this._subscriptions.removed = this.service.getObservable().removed.subscribe(this.onRemoveTab.bind(this));
         this._getDefaultTab();
     }
 
@@ -56,6 +47,14 @@ export class TabContentComponent implements OnDestroy, AfterViewInit {
         if (_tab.active && guid !== _tab.guid) {
             this._tab = _tab;
         }
+        this._cdRef.detectChanges();
+    }
+
+    private async onRemoveTab(guid: string) {
+        if (this.service.getTabs().size !== 0) {
+            return;
+        }
+        this._tab = undefined;
         this._cdRef.detectChanges();
     }
 

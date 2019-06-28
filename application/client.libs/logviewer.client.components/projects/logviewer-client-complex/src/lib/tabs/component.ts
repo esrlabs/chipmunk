@@ -13,19 +13,7 @@ export class TabsComponent implements OnDestroy, AfterViewInit {
 
     @Input() public service: TabsService;
 
-    private _subscriptions: {
-        new: Subscription | null,
-        removed: Subscription | null,
-        clear: Subscription | null,
-        active: Subscription | null,
-        options: Subscription | null,
-    } = {
-        new: null,
-        removed: null,
-        clear: null,
-        active: null,
-        options: null,
-    };
+    private _subscriptions: { [key: string]: Subscription } = {};
 
     public _options: TabsOptions = new TabsOptions();
 
@@ -57,4 +45,5 @@ export class TabsComponent implements OnDestroy, AfterViewInit {
         this._options = await options;
         this._cdRef.detectChanges();
     }
+
 }

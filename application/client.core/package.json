@@ -28,7 +28,7 @@
     "logviewer.client.toolkit": "latest",
     "rxjs": "~6.4.0",
     "systemjs": "^3.0.0",
-    "xterm": "^3.12.0",
+    "xterm": "^3.14.4",
     "zone.js": "~0.8.26"
   },
   "devDependencies": {
