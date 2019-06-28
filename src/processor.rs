@@ -25,11 +25,7 @@ pub struct IndexedLineIter<T: Read> {
 impl<T: Read> IndexedIter for IndexedLineIter<T> {}
 
 impl<T: Read> IndexedLineIter<T> {
-    pub fn new(
-        reader: T,
-        processed_bytes: usize,
-        processed_lines: usize,
-    ) -> IndexedLineIter<T> {
+    pub fn new(reader: T, processed_bytes: usize, processed_lines: usize) -> IndexedLineIter<T> {
         IndexedLineIter {
             reader: BufReader::new(reader),
             processed_bytes,
@@ -76,12 +72,16 @@ pub struct IndexingConfig<'a> {
     pub append: bool,
     pub source_file_size: usize,
     pub to_stdout: bool,
+    pub status_updates: bool,
 }
 pub fn create_index_and_mapping_dlt(config: IndexingConfig) -> Result<Vec<Chunk>, Error> {
     let initial_line_nr = match utils::next_line_nr(config.out_path) {
         Some(nr) => nr,
         None => {
-            eprintln!("could not determine last line number of {:?}", config.out_path);
+            eprintln!(
+                "could not determine last line number of {:?}",
+                config.out_path
+            );
             std::process::exit(2)
         }
     };
@@ -91,7 +91,10 @@ pub fn create_index_and_mapping(config: IndexingConfig) -> Result<Vec<Chunk>, Er
     let initial_line_nr = match utils::next_line_nr(config.out_path) {
         Some(nr) => nr,
         None => {
-            eprintln!("could not determine last line number of {:?}", config.out_path);
+            eprintln!(
+                "could not determine last line number of {:?}",
+                config.out_path
+            );
             std::process::exit(2)
         }
     };
@@ -132,19 +135,21 @@ pub fn index_dlt_file(config: IndexingConfig, initial_line_nr: usize) -> Result<
             counted_message.line_index,
             false,
         )?;
-        if let Some(chunk) = chunk_factory
-            .create_chunk_if_needed(counted_message.line_index + 1, written_bytes_len)
+        if let Some(chunk) =
+            chunk_factory.create_chunk_if_needed(counted_message.line_index + 1, written_bytes_len)
         {
             chunks.push(chunk);
             buf_writer.flush()?;
         }
         processed_lines = counted_message.line_index;
-        report_progress(
-            processed_lines,
-            chunk_factory.get_current_byte_index(),
-            counted_message.byte_index,
-            config.source_file_size,
-        );
+        if config.status_updates {
+            report_progress(
+                processed_lines,
+                chunk_factory.get_current_byte_index(),
+                counted_message.byte_index,
+                config.source_file_size,
+            );
+        }
     }
 
     buf_writer.flush()?;
@@ -201,19 +206,21 @@ pub fn index_file(config: IndexingConfig, initial_line_nr: usize) -> Result<Vec<
             tagged_line.line_nr,
             tagged_line.has_newline,
         )?;
-        if let Some(chunk) = chunk_factory
-            .create_chunk_if_needed(tagged_line.line_nr + 1, written_bytes_len)
+        if let Some(chunk) =
+            chunk_factory.create_chunk_if_needed(tagged_line.line_nr + 1, written_bytes_len)
         {
             chunks.push(chunk);
             buf_writer.flush()?;
         }
         processed_lines = tagged_line.line_nr;
-        report_progress(
-            processed_lines,
-            chunk_factory.get_current_byte_index(),
-            tagged_line.processed_bytes,
-            config.source_file_size,
-        );
+        if config.status_updates {
+            report_progress(
+                processed_lines,
+                chunk_factory.get_current_byte_index(),
+                tagged_line.processed_bytes,
+                config.source_file_size,
+            );
+        }
     }
 
     buf_writer.flush()?;
@@ -274,6 +281,7 @@ mod tests {
             append: tmp_file_name.is_some(),
             source_file_size,
             to_stdout: false,
+            status_updates: true,
         })
         .unwrap();
         let out_file_content: String =
@@ -306,7 +314,8 @@ mod tests {
         let empty_file = std::fs::OpenOptions::new()
             .append(true)
             .create(true)
-            .open(tmp_dir.path().join("empty.log")).unwrap();
+            .open(tmp_dir.path().join("empty.log"))
+            .unwrap();
         let out_path = tmp_dir.path().join("test_append_to_empty_output.log.out");
         let source_file_size = empty_file.metadata().unwrap().len() as usize;
         let chunks = create_index_and_mapping(IndexingConfig {
@@ -318,6 +327,7 @@ mod tests {
             append: false,
             source_file_size,
             to_stdout: false,
+            status_updates: true,
         })
         .expect("could not index file");
         assert_eq!(0, chunks.len(), "empty file should produce 0 chunks");
@@ -345,6 +355,7 @@ mod tests {
             append: true,
             source_file_size: nonempty_file_size,
             to_stdout: false,
+            status_updates: true,
         })
         .expect("could not index file");
         let out_file_content: String = fs::read_to_string(out_path).expect("could not read file");
@@ -445,6 +456,7 @@ mod tests {
             append: append_use_case,
             source_file_size: in_file_size,
             to_stdout: false,
+            status_updates: true,
         })
         .unwrap();
         let out_file_content_bytes = fs::read(out_file_path).expect("could not read file");

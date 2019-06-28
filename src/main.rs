@@ -230,24 +230,23 @@ fn main() {
 
     // Vary the output based on how many times the user used the "verbose" flag
     // (i.e. 'myprog -v -v -v' or 'myprog -vvv' vs 'myprog -v'
-    // match matches.occurrences_of("v") {
-    //     0 => println!("No verbose info"),
-    //     1 => println!("Some verbose info"),
-    //     2 => println!("Tons of verbose info"),
-    //     3 | _ => println!("Don't be crazy"),
-    // }
+    let use_stderr_for_status_updates = matches.occurrences_of("v") >= 1;
 
     if let Some(matches) = matches.subcommand_matches("merge") {
-        handle_merge_subcommand(matches, start)
+        handle_merge_subcommand(matches, start, use_stderr_for_status_updates)
     } else if let Some(matches) = matches.subcommand_matches("index") {
-        handle_index_subcommand(matches, start)
+        handle_index_subcommand(matches, start, use_stderr_for_status_updates)
     } else if let Some(matches) = matches.subcommand_matches("format") {
-        handle_format_subcommand(matches, start)
+        handle_format_subcommand(matches, start, use_stderr_for_status_updates)
     } else if let Some(matches) = matches.subcommand_matches("dlt") {
-        handle_dlt_subcommand(matches, start)
+        handle_dlt_subcommand(matches, start, use_stderr_for_status_updates)
     }
 
-    fn handle_index_subcommand(matches: &clap::ArgMatches, start: std::time::Instant) {
+    fn handle_index_subcommand(
+        matches: &clap::ArgMatches,
+        start: std::time::Instant,
+        status_updates: bool,
+    ) {
         if matches.is_present("input") && matches.is_present("tag") {
             let file = matches.value_of("input").expect("input must be present");
             let tag = matches.value_of("tag").expect("tag must be present");
@@ -289,6 +288,7 @@ fn main() {
                 append,
                 source_file_size,
                 to_stdout: stdout,
+                status_updates,
             }) {
                 Err(why) => {
                     eprintln!("couldn't process: {}", why);
@@ -297,18 +297,24 @@ fn main() {
                 Ok(chunks) => {
                     let _ = serialize_chunks(&chunks, &mapping_out_path);
                     let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
-                    duration_report_throughput(
-                        start,
-                        format!("processing ~{} MB", file_size_in_mb.round()),
-                        file_size_in_mb,
-                        "MB".to_string(),
-                    )
+                    if status_updates {
+                        duration_report_throughput(
+                            start,
+                            format!("processing ~{} MB", file_size_in_mb.round()),
+                            file_size_in_mb,
+                            "MB".to_string(),
+                        )
+                    }
                 }
             }
         }
     }
 
-    fn handle_merge_subcommand(matches: &clap::ArgMatches, start: std::time::Instant) {
+    fn handle_merge_subcommand(
+        matches: &clap::ArgMatches,
+        start: std::time::Instant,
+        status_updates: bool,
+    ) {
         if matches.is_present("merge_config") {
             let merge_config_file_name: &str = matches
                 .value_of("merge_config")
@@ -337,11 +343,17 @@ fn main() {
                         std::process::exit(2)
                     }
                 };
-            duration_report(start, format!("merging {} lines", merged_lines));
+            if status_updates {
+                duration_report(start, format!("merging {} lines", merged_lines));
+            }
         }
     }
 
-    fn handle_format_subcommand(matches: &clap::ArgMatches, start: std::time::Instant) {
+    fn handle_format_subcommand(
+        matches: &clap::ArgMatches,
+        start: std::time::Instant,
+        status_updates: bool,
+    ) {
         if matches.is_present("test-string") && matches.is_present("format-string") {
             let format_string = matches
                 .value_of("format-string")
@@ -365,7 +377,6 @@ fn main() {
                 .value_of("test-config")
                 .expect("test-config-name must be present");
             let config_path = path::PathBuf::from(test_config_name);
-            // match_format_string_in_file(format_expr: &str, file_name: &str)
             let mut test_config_file = match fs::File::open(&config_path) {
                 Ok(file) => file,
                 Err(_) => {
@@ -387,15 +398,16 @@ fn main() {
                 options.lines_to_test,
             ) {
                 Ok(res) => match serde_json::to_string(&res) {
-                    Ok(json) => {
-                        duration_report(
-                            start,
-                            format!(
-                                "format checking {} lines",
-                                res.matching_lines + res.nonmatching_lines
-                            ),
-                        );
-                        println!("{}", json)
+                    Ok(_) => {
+                        if status_updates {
+                            duration_report(
+                                start,
+                                format!(
+                                    "format checking {} lines",
+                                    res.matching_lines + res.nonmatching_lines
+                                ),
+                            );
+                        }
                     }
                     Err(e) => {
                         eprintln!("serializing result failed: {}", e);
@@ -409,7 +421,11 @@ fn main() {
             }
         }
     }
-    fn handle_dlt_subcommand(matches: &clap::ArgMatches, start: std::time::Instant) {
+    fn handle_dlt_subcommand(
+        matches: &clap::ArgMatches,
+        start: std::time::Instant,
+        status_updates: bool,
+    ) {
         if matches.is_present("input") {
             let tag = matches.value_of("tag").expect("tag must be present");
             let file_name = matches.value_of("input").expect("input must be present");
@@ -450,6 +466,7 @@ fn main() {
                 append,
                 source_file_size,
                 to_stdout: stdout,
+                status_updates,
             }) {
                 Err(why) => {
                     eprintln!("couldn't process: {}", why);
@@ -458,109 +475,17 @@ fn main() {
                 Ok(chunks) => {
                     let _ = serialize_chunks(&chunks, &mapping_out_path);
                     let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
-                    duration_report_throughput(
-                        start,
-                        format!("processing ~{} MB", file_size_in_mb.round()),
-                        file_size_in_mb,
-                        "MB".to_string(),
-                    )
+                    if status_updates {
+                        duration_report_throughput(
+                            start,
+                            format!("processing ~{} MB", file_size_in_mb.round()),
+                            file_size_in_mb,
+                            "MB".to_string(),
+                        )
+                    }
                 }
             }
-            // let message_iter = MessageIter::new(f, tag);
-            // for message in message_iter {
-            //     println!("{}", message);
-            // }
-            // let mut p = message_iter.peekable();
-            // p.peek();
         }
-        /*
-            if matches.is_present("input") {
-                let file_name = matches.value_of("input").expect("input must be present");
-                let source_file_size = match fs::metadata(file_name) {
-                    Ok(file_meta) => file_meta.len() as usize,
-                    Err(_) => {
-                        eprintln!("could not find out size of source file");
-                        std::process::exit(2);
-                    }
-                };
-                let file_path = path::PathBuf::from(file_name);
-                let fallback_out = file_name.to_string() + ".out";
-                let out_path = path::PathBuf::from(
-                    matches
-                        .value_of("output")
-                        .unwrap_or_else(|| fallback_out.as_str()),
-                );
-                let mapping_out_path: path::PathBuf =
-                    path::PathBuf::from(file_name.to_string() + ".map.json");
-                // let append = true; // get from cmd args
-                // let out_file: std::fs::File = if append {
-                //     std::fs::OpenOptions::new()
-                //         .append(true)
-                //         .create(true)
-                //         .open(out_path)
-                //         .expect("file not opened")
-                // } else {
-                //     std::fs::File::create(&out_path).unwrap()
-                // };
-                // let mut buf_writer = BufWriter::with_capacity(100 * 1024 * 1024, out_file);
-                // let task = tokio::fs::File::open(file_path)
-                //     // .and_then(|input| tokio::fs::File::create(out_path).map(|output| (input, output)))
-                //     // .and_then(|(input, output)| {
-                //     //     tokio::fs::File::create(mapping_out_path)
-                //     //         .map(|mapping_output| (input, output, mapping_output))
-                //     // })
-                //     // .and_then(|(file, output, mapping_output)| {
-                //     .and_then(|file| {
-                //         let mut message_cnt = 0usize;
-                //         let stream = FramedRead::new(file, DltFileCodec::default());
-                //         // let sink = FramedWrite::new(output, DltFileCodec::default());
-                //         // let mapping_sink = FramedWrite::new(mapping_output, MappingCodec::default());
-                //         // // let dst = sink;
-                //         // let dst = sink.fanout(mapping_sink);
-                //         stream
-                //             //     .forward(dst)
-                //             //     .map_err(|e| {
-                //             //         println!("error happened: {}", e);
-                //             //         e
-                //             //     })
-                //             //     .map(drop)
-                //             .for_each(move |message| {
-                //                 create_message_line(&mut buf_writer, message)?;
-                //                 Ok(())
-                //             })
-                //     })
-                //     .map_err(|err| eprintln!("IO error: {:?}", err));
-                let task = tokio::fs::File::open(file_path)
-                    .and_then(|input| tokio::fs::File::create(out_path).map(|output| (input, output)))
-                    .and_then(|(input, output)| {
-                        tokio::fs::File::create(mapping_out_path)
-                            .map(|mapping_output| (input, output, mapping_output))
-                    })
-                    .and_then(|(file, output, mapping_output)| {
-                        let stream = FramedRead::new(file, DltFileCodec::default());
-                        let sink = FramedWrite::new(output, DltFileCodec::default());
-                        stream
-                            .forward(sink)
-                            .map_err(|e| {
-                                println!("error happened: {}", e);
-                                e
-                            })
-                            .map(drop)
-                    })
-                    .map_err(|err| eprintln!("IO error: {:?}", err));
-                tokio::run(task);
-
-                // buf_writer.flush().expect("flush did not");
-
-                let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
-                duration_report_throughput(
-                    start,
-                    format!("parsing ~{} MB", file_size_in_mb.round()),
-                    file_size_in_mb,
-                    "MB".to_string(),
-                )
-            }
-        }*/
     }
 }
 
