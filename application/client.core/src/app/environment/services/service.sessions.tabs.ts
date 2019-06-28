@@ -28,9 +28,9 @@ export class TabsSessionsService implements IService {
         sidebarApps: [],
     };
     private _subjects: {
-        onSessionChange: Subject<ControllerSessionTab>
+        onSessionChange: Subject<ControllerSessionTab | undefined>,
     } = {
-        onSessionChange: new Subject<ControllerSessionTab>()
+        onSessionChange: new Subject<ControllerSessionTab>(),
     };
 
     public init(): Promise<void> {
@@ -141,10 +141,10 @@ export class TabsSessionsService implements IService {
     }
 
     public getObservable(): {
-        onSessionChange: Observable<ControllerSessionTab>
+        onSessionChange: Observable<ControllerSessionTab | undefined>,
     } {
         return {
-            onSessionChange: this._subjects.onSessionChange.asObservable()
+            onSessionChange: this._subjects.onSessionChange.asObservable(),
         };
     }
 
@@ -197,12 +197,22 @@ export class TabsSessionsService implements IService {
             return this._logger.warn(`Fail to destroy session "${session}" because cannot find this session.`);
         }
         controller.destroy().then(() => {
-            this._sessions.delete(session);
+            this._removeSession(session);
             this._logger.env(`Session "${session}" is destroyed`);
         }).catch((error: Error) => {
-            this._sessions.delete(session);
+            this._removeSession(session);
             this._logger.warn(`Fail to destroy session "${session}" due error: ${error.message}`);
         });
+    }
+
+    private _removeSession(guid: string) {
+        if (this._subscriptions[`onSourceChanged:${guid}`] !== undefined) {
+            this._subscriptions[`onSourceChanged:${guid}`].unsubscribe();
+        }
+        this._sessions.delete(guid);
+        if (this._sessions.size === 0) {
+            this._subjects.onSessionChange.next(undefined);
+        }
     }
 
 }

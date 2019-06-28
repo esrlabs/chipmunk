@@ -59,6 +59,8 @@ export class ControllerSessionTab {
             Object.keys(this._subscriptions).forEach((key: string) => {
                 this._subscriptions[key].unsubscribe();
             });
+            this._sidebarTabsService.clear();
+            this._sidebarTabsService = undefined;
             Promise.all([
                 this._stream.destroy(),
                 this._search.destroy(),

@@ -14,6 +14,7 @@ export class TabsComponent implements OnDestroy, AfterViewInit {
     @Input() public service: TabsService;
 
     private _subscriptions: { [key: string]: Subscription } = {};
+    private _destroyed: boolean = false;
 
     public _options: TabsOptions = new TabsOptions();
 
@@ -29,6 +30,7 @@ export class TabsComponent implements OnDestroy, AfterViewInit {
     }
 
     ngOnDestroy() {
+        this._destroyed = true;
         Object.keys(this._subscriptions).forEach((key: string) => {
             if (this._subscriptions[key] !== null) {
                 this._subscriptions[key].unsubscribe();
@@ -38,11 +40,18 @@ export class TabsComponent implements OnDestroy, AfterViewInit {
 
     private async _getDefaultOptions() {
         this._options = await this.service.getOptions();
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     private async _onOptionsUpdated(options: TabsOptions) {
         this._options = await options;
+        this._forceUpdate();
+    }
+
+    private _forceUpdate() {
+        if (this._destroyed) {
+            return;
+        }
         this._cdRef.detectChanges();
     }
 

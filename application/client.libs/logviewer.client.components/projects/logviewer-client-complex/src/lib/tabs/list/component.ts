@@ -16,7 +16,7 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
     public _options: TabsOptions = new TabsOptions();
 
     private _subscriptions: { [key: string]: Subscription } = { };
-
+    private _destroyed: boolean = false;
     private _tabs: Map<string, ITab> = new Map();
 
     public tabs: ITab[] = [];
@@ -41,6 +41,7 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
     }
 
     ngOnDestroy() {
+        this._destroyed = true;
         Object.keys(this._subscriptions).forEach((key: string) => {
             if (this._subscriptions[key] !== null) {
                 this._subscriptions[key].unsubscribe();
@@ -50,21 +51,21 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
 
     public _ng_onClick(tabkey: string) {
         this.service.setActive(tabkey);
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     public _ng_onTabClose(event: MouseEvent, tabkey: string) {
         this.service.remove(tabkey);
         event.stopImmediatePropagation();
         event.preventDefault();
-        this._cdRef.detectChanges();
+        this._forceUpdate();
         return false;
     }
 
     private async onNewTab(tab: ITab) {
         this._tabs.set(tab.guid, await tab);
         this.tabs.push(tab);
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     private async onRemoveTab(guid: string) {
@@ -72,7 +73,7 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
         this.tabs = this.tabs.filter((tab: ITab) => {
             return tab.guid !== guid;
         });
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     private async onActiveTabChange(tab: ITab) {
@@ -86,17 +87,17 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
                 this._tabs.set(guid, storedTab);
             }
         });
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     private async _getDefaultOptions() {
         this._options = await this.service.getOptions();
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     private async _onOptionsUpdated(options: TabsOptions) {
         this._options = await options;
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     private async _onTabUpdated(tab: ITab) {
@@ -107,6 +108,13 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
             }
             return storedTab;
         });
+        this._forceUpdate();
+    }
+
+    private _forceUpdate() {
+        if (this._destroyed) {
+            return;
+        }
         this._cdRef.detectChanges();
     }
 

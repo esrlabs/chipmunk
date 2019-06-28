@@ -41,11 +41,13 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
 
     private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger(`Plugin: processes: inj_output_bot:`);
+    private _destroyed: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef) {
     }
 
     ngOnDestroy() {
+        this._destroyed = true;
         this._saveState();
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
@@ -145,7 +147,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                 this._settingsUpdated();
                 break;
         }
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     private _settingsUpdated(settings?: IForkSettings) {
@@ -162,7 +164,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                 value: this._ng_settings.env[key]
             });
         });
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     private _onSessionChange(guid: string) {
@@ -204,7 +206,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         if (this._ng_input !== null && this._ng_input !== undefined) {
             this._ng_input.nativeElement.value = this._ng_cmd;
         }
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     private _initState() {
@@ -220,10 +222,17 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             stream: this.session,
             command: EHostCommands.getSettings,
         }, this.session).then((response) => {
-            this._cdRef.detectChanges();
+            this._forceUpdate();
         }).catch((error: Error) => {
             this._logger.env(`Cannot get current setting. It could be stream just not created yet. Error message: ${error.message}`);
         });
+    }
+
+    private _forceUpdate() {
+        if (this._destroyed) {
+            return;
+        }
+        this._cdRef.detectChanges();
     }
 
 }

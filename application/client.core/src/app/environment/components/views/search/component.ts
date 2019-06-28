@@ -150,7 +150,12 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         TabsSessionsService.openSidebarTab('search');
     }
 
-    private _onSessionChange(session: ControllerSessionTab) {
+    private _onSessionChange(session: ControllerSessionTab | undefined) {
+        if (session === undefined) {
+            this._ng_session = undefined;
+            this._cdRef.detectChanges();
+            return;
+        }
         this._setActiveSession(session);
         this._cdRef.detectChanges();
     }

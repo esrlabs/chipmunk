@@ -2,6 +2,7 @@ import * as Toolkit from 'logviewer.client.toolkit';
 import { IService } from '../interfaces/interface.service';
 import { Observable, Subject, Subscription } from 'rxjs';
 import TabsSessionsService, { ControllerSessionTabSearch, IRequest } from './service.sessions.tabs';
+import { ControllerSessionTab } from '../controller/controller.session.tab';
 
 export { ControllerSessionTabSearch, IRequest };
 
@@ -61,18 +62,30 @@ export class SearchSessionsService implements IService {
     }
 
     public removeStoredRequest(request: string) {
+        if (this._session === undefined) {
+            return;
+        }
         this._session.removeStored(request);
     }
 
     public removeAllStoredRequests() {
+        if (this._session === undefined) {
+            return;
+        }
         this._session.removeAllStored();
     }
 
     public insertStoredRequests(requests: IRequest[]) {
+        if (this._session === undefined) {
+            return;
+        }
         this._session.insertStored(requests);
     }
 
     public updateRequest(request: string, updated: { reguest?: string, color?: string, background?: string, active?: boolean }) {
+        if (this._session === undefined) {
+            return;
+        }
         this._session.updateStored(request, updated);
     }
 
@@ -91,7 +104,13 @@ export class SearchSessionsService implements IService {
     }
 
     private _onSessionChange() {
-        this._session = TabsSessionsService.getActive().getSessionSearch();
+        const session: ControllerSessionTab | undefined = TabsSessionsService.getActive();
+        if (session === undefined) {
+            this._unbindSearchSeassionEvents();
+            this._session = undefined;
+            return;
+        }
+        this._session = session.getSessionSearch();
         if (this._session === undefined) {
             return this._logger.warn(`Cannot get active session, after it was changed.`);
         }

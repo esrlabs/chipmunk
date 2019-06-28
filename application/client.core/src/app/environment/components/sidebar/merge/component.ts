@@ -65,17 +65,17 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     public _ng_mergeButtonTitle: EMergeButtonTitle = EMergeButtonTitle.merge;
     public _ng_extendSub: Subject<string> = new Subject<string>();
     public _ng_extendObs: Observable<string> = this._ng_extendSub.asObservable();
+    public _ng_session: ControllerSessionTab | undefined;
 
     private _files: IFileItem[] = [];
     private _zones: string[] = [];
     private _dragdrop: ControllerComponentsDragDropFiles | undefined;
     private _subscriptions: { [key: string]: Subscription } = {};
-    private _session: ControllerSessionTab;
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppMergeFilesComponent');
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef) {
-        this._session = SessionsService.getActive();
+        this._ng_session = SessionsService.getActive();
         this._subscriptions.onFilesToBeMerged = FileOpenerService.getObservable().onFilesToBeMerged.subscribe(this._onFilesToBeMerged.bind(this));
         this._subscriptions.onSessionChange = SessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
     }
@@ -222,7 +222,10 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     }
 
     private _loadState(): void {
-        if (!this._session.getSessionsStates().applyStateTo(this._getStateGuid(), this)) {
+        if (this._ng_session === undefined) {
+            return;
+        }
+        if (!this._ng_session.getSessionsStates().applyStateTo(this._getStateGuid(), this)) {
             this._getZones().catch((error: Error) => {
                 this._logger.warn(`Fail init timezones due error: ${error.message}`);
             });
@@ -231,7 +234,10 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     }
 
     private _saveState(): void {
-        this._session.getSessionsStates().set<IState>(
+        if (this._ng_session === undefined) {
+            return;
+        }
+        this._ng_session.getSessionsStates().set<IState>(
             this._getStateGuid(),
             {
                 _ng_busy: this._ng_busy,
@@ -256,7 +262,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     }
 
     private _getStateGuid(): string {
-        return `${SidebarAppMergeFilesComponent.StateKey}:${this._session.getGuid()}`;
+        return `${SidebarAppMergeFilesComponent.StateKey}:${this._ng_session.getGuid()}`;
     }
 
     private _onSessionChange(session: ControllerSessionTab) {
@@ -265,9 +271,11 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         // Drop state before
         this._dropState();
         // Change session
-        this._session = session;
-        // Try to load
-        this._loadState();
+        this._ng_session = session;
+        if (session !== undefined) {
+            // Try to load
+            this._loadState();
+        }
         // Update
         this._cdRef.detectChanges();
     }
