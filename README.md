@@ -157,6 +157,15 @@ match: Ok(true)
 
 # Changelog
 
+### [0.21.0] - 06/28/2019
+  * cleaned up printing to stderr (only done in "-v" verbose mode)
+  * DLT support for files now produces valid index files and mapping files
+  * reading/writing dlt with constant memory consumption (no matter how
+  * big the file)
+  * simpler function to index and map
+  * get rid of warnings
+  * dlt file indexing with tags and mapping file
+
 ### [0.20.0] - 06/26/2019
   * DLT: nom parsing of dlt messages
     * added header parsing
