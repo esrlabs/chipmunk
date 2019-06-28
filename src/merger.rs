@@ -54,6 +54,7 @@ impl Merger {
         out_path: &PathBuf,
         append: bool,
         use_stdout: bool,
+        report_status: bool,
     ) -> Result<usize, failure::Error> {
         let mut merge_option_file = fs::File::open(config_path)?;
         let dir_name = config_path
@@ -70,7 +71,7 @@ impl Merger {
                 tag: o.tag,
             })
             .collect();
-        self.merge_files_iter(append, inputs, &out_path, use_stdout)
+        self.merge_files_iter(append, inputs, &out_path, use_stdout, report_status)
     }
     #[allow(dead_code)]
     pub fn merge_files(
@@ -159,6 +160,7 @@ impl Merger {
         merger_inputs: Vec<MergerInput>,
         out_path: &PathBuf,
         to_stdout: bool,
+        report_status: bool
     ) -> Result<usize, failure::Error> {
         let out_file: std::fs::File = if append {
             std::fs::OpenOptions::new()
@@ -240,12 +242,14 @@ impl Merger {
                             buf_writer.flush()?;
                         }
 
-                        self.report_progress(
-                            line_nr,
-                            chunk_factory.get_current_byte_index(),
-                            processed_bytes,
-                            combined_source_file_size as usize,
-                        );
+                        if report_status {
+                            self.report_progress(
+                                line_nr,
+                                chunk_factory.get_current_byte_index(),
+                                processed_bytes,
+                                combined_source_file_size as usize,
+                            );
+                        }
                     }
                 } else {
                     break;
@@ -338,6 +342,7 @@ mod tests {
             &out_file_path,
             append_use_case,
             false, // use stdout
+            false, // status reports
         );
         println!("merged_lines_cnt: {:?}", merged_lines_cnt);
 

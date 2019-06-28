@@ -336,7 +336,7 @@ fn main() {
             };
             let config_path = path::PathBuf::from(merge_config_file_name);
             let merged_lines =
-                match merger.merge_files_use_config_file(&config_path, &out_path, append, stdout) {
+                match merger.merge_files_use_config_file(&config_path, &out_path, append, stdout, status_updates) {
                     Ok(cnt) => cnt,
                     Err(e) => {
                         eprintln!("error merging: {}", e);
