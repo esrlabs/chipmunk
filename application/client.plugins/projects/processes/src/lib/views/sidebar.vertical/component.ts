@@ -182,6 +182,10 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     }
 
     private _saveState() {
+        if (this._ng_envvars.length === 0) {
+            // Do not save, because data wasn't gotten from backend
+            return;
+        }
         state.save(this.session, {
             _ng_envvars: this._ng_envvars,
             _ng_settings: this._ng_settings,
