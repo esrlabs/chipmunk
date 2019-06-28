@@ -13,7 +13,7 @@ export class TabContentComponent implements OnDestroy, AfterViewInit {
     @Input() public service: TabsService = null;
 
     public _tab: ITab | undefined = undefined;
-
+    private _destroyed: boolean = false;
     private _subscriptions: { [key: string]: Subscription } = {};
 
     constructor(private _cdRef: ChangeDetectorRef) {
@@ -29,6 +29,7 @@ export class TabContentComponent implements OnDestroy, AfterViewInit {
     }
 
     ngOnDestroy() {
+        this._destroyed = true;
         Object.keys(this._subscriptions).forEach((key: string) => {
             if (this._subscriptions[key] !== null) {
                 this._subscriptions[key].unsubscribe();
@@ -38,7 +39,7 @@ export class TabContentComponent implements OnDestroy, AfterViewInit {
 
     private async _getDefaultTab() {
         this._tab = await this.service.getActiveTab();
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     private async onActiveTabChange(tab: ITab) {
@@ -47,7 +48,7 @@ export class TabContentComponent implements OnDestroy, AfterViewInit {
         if (_tab.active && guid !== _tab.guid) {
             this._tab = _tab;
         }
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     private async onRemoveTab(guid: string) {
@@ -55,7 +56,13 @@ export class TabContentComponent implements OnDestroy, AfterViewInit {
             return;
         }
         this._tab = undefined;
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
+    private _forceUpdate() {
+        if (this._destroyed) {
+            return;
+        }
+        this._cdRef.detectChanges();
+    }
 }

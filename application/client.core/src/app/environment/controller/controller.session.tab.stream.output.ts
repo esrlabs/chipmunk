@@ -456,6 +456,7 @@ export class ControllerSessionTabStreamOutput {
         if (packets.length === 0) {
             return;
         }
+        const size: number = this._rows.length;
         const packet: IRange = { start: packets[0].position, end: packets[packets.length - 1].position};
         if (this._rows.length === 0) {
             this._rows.push(...packets);
@@ -494,6 +495,9 @@ export class ControllerSessionTabStreamOutput {
         }
         this._state.stored.start = this._rows[0].position;
         this._state.stored.end = this._rows[this._rows.length - 1].position;
+        if (size === 0 && this._rows.length !== 0) {
+            this._subjects.onSourceChanged.next(this._rows[0].pluginId);
+        }
     }
 
     /**

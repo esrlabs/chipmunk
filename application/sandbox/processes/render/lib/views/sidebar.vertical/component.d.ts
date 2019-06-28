@@ -17,6 +17,7 @@ export declare class SidebarVerticalComponent implements AfterViewInit, OnDestro
     _ng_cmd: string;
     private _subscriptions;
     private _logger;
+    private _destroyed;
     constructor(_cdRef: ChangeDetectorRef);
     ngOnDestroy(): void;
     ngAfterViewInit(): void;
@@ -34,4 +35,5 @@ export declare class SidebarVerticalComponent implements AfterViewInit, OnDestro
     private _saveState;
     private _loadState;
     private _initState;
+    private _forceUpdate;
 }
