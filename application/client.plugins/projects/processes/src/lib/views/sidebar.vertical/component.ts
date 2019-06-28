@@ -65,22 +65,6 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             }
             this._onIncomeMessage(message);
         });
-        // Request current settings
-        this.ipc.requestToHost({
-            stream: this.session,
-            command: EHostCommands.getSettings,
-        }, this.session).then((response) => {
-            this._settingsUpdated(response.settings);
-        });
-        // Request current cwd
-        this.ipc.requestToHost({
-            stream: this.session,
-            command: EHostCommands.getSettings,
-        }, this.session).then((response) => {
-            this._cdRef.detectChanges();
-        }).catch((error: Error) => {
-            this._logger.env(`Cannot get current setting. It could be stream just not created yet. Error message: ${error.message}`);
-        });
         // Subscribe to sessions events
         this._subscriptions.onSessionChange = this.sessions.subscribe().onSessionChange(this._onSessionChange.bind(this));
         this._subscriptions.onSessionOpen = this.sessions.subscribe().onSessionOpen(this._onSessionOpen.bind(this));
@@ -200,23 +184,46 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             _ng_envvars: this._ng_envvars,
             _ng_settings: this._ng_settings,
             _ng_working: this._ng_working,
-            _ng_cmd: this._ng_cmd,
+            _ng_cmd: this._ng_cmd === undefined ? '' : this._ng_cmd,
         });
     }
 
     private _loadState() {
+        this._ng_envvars  = [];
+        this._ng_settings = undefined;
+        this._ng_working = false;
+        this._ng_cmd = '';
         const stored: IState | undefined = state.load(this.session);
         if (stored === undefined) {
-            this._ng_envvars  = [];
-            this._ng_settings = undefined;
-            this._ng_working = false;
-            this._ng_cmd = '';
+            this._initState();
         } else {
             Object.keys(stored).forEach((key: string) => {
                 (this as any)[key] = stored[key];
             });
         }
+        if (this._ng_input !== null && this._ng_input !== undefined) {
+            this._ng_input.nativeElement.value = this._ng_cmd;
+        }
         this._cdRef.detectChanges();
+    }
+
+    private _initState() {
+        // Request current settings
+        this.ipc.requestToHost({
+            stream: this.session,
+            command: EHostCommands.getSettings,
+        }, this.session).then((response) => {
+            this._settingsUpdated(response.settings);
+        });
+        // Request current cwd
+        this.ipc.requestToHost({
+            stream: this.session,
+            command: EHostCommands.getSettings,
+        }, this.session).then((response) => {
+            this._cdRef.detectChanges();
+        }).catch((error: Error) => {
+            this._logger.env(`Cannot get current setting. It could be stream just not created yet. Error message: ${error.message}`);
+        });
     }
 
 }

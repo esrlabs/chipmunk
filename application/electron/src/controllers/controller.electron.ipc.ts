@@ -112,6 +112,7 @@ export default class ControllerElectronIpc {
         this._handlers.clear();
         this._subscriptions.clear();
         this._pending.clear();
+        this._listeners.clear();
     }
 
     private _subscribeIPCMessage(messageAlias: string): boolean {
@@ -216,6 +217,7 @@ export default class ControllerElectronIpc {
         if (handlers.size === 0) {
             this._contents !== undefined && ipcMain.removeAllListeners(signature);
             this._handlers.delete(signature);
+            this._listeners.delete(signature);
         } else {
             this._handlers.set(signature, handlers);
         }

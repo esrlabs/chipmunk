@@ -67,6 +67,7 @@ export class TabsSessionsService implements IService {
             defaultsSideBarApps: this._defaults.sidebarApps
         });
         this._subscriptions[`onSourceChanged:${guid}`] = session.getObservable().onSourceChanged.subscribe(this._onSourceChanged.bind(this, guid));
+        this._sessions.set(guid, session);
         this._tabsService.add({
             guid: guid,
             name: 'New',
@@ -85,7 +86,6 @@ export class TabsSessionsService implements IService {
                 }
             }
         });
-        this._sessions.set(guid, session);
         this.setActive(guid);
     }
 
@@ -197,8 +197,10 @@ export class TabsSessionsService implements IService {
             return this._logger.warn(`Fail to destroy session "${session}" because cannot find this session.`);
         }
         controller.destroy().then(() => {
+            this._sessions.delete(session);
             this._logger.env(`Session "${session}" is destroyed`);
         }).catch((error: Error) => {
+            this._sessions.delete(session);
             this._logger.warn(`Fail to destroy session "${session}" due error: ${error.message}`);
         });
     }
