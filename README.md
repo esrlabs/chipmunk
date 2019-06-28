@@ -157,6 +157,9 @@ match: Ok(true)
 
 # Changelog
 
+### [0.21.1] - 06/28/2019
+  * fix: merging still printed to stdout even without -v flag
+
 ### [0.21.0] - 06/28/2019
   * cleaned up printing to stderr (only done in "-v" verbose mode)
   * DLT support for files now produces valid index files and mapping files
