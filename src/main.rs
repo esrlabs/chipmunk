@@ -398,7 +398,8 @@ fn main() {
                 options.lines_to_test,
             ) {
                 Ok(res) => match serde_json::to_string(&res) {
-                    Ok(_) => {
+                    Ok(v) => {
+                        eprintln!("{}", v);
                         if status_updates {
                             duration_report(
                                 start,
