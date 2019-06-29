@@ -8,6 +8,7 @@ import { IFile as IRequestFile } from '../../../services/electron.ipc.messages/m
 import FileOpenerService from '../../../services/service.file.opener';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 import SessionsService from '../../../services/service.sessions.tabs';
+import EventsHubService from '../../../services/standalone/service.eventshub';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 
 declare var Electron: any;
@@ -148,6 +149,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         this._disable(true);
         this._cdRef.detectChanges();
         const files: IRequestFile[] = this._getListOfFiles();
+        EventsHubService.getSubject().onKeepScrollPrevent.next();
         ElectronIpcService.request(new IPCMessages.MergeFilesRequest({
             files: files,
             id: Toolkit.guid(),

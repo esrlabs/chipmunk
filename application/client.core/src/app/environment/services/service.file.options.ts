@@ -4,6 +4,7 @@ import { IService } from '../interfaces/interface.service';
 import ServiceElectronIpc, { IPCMessages, Subscription, TResponseFunc } from './service.electron.ipc';
 import { AControllerFileOptions } from '../interfaces/interface.controller.file.options';
 import { ControllerDltFileOptions } from '../controller/file.options/controller.file.dlt';
+import EventsHubService from './standalone/service.eventshub';
 
 enum EFileTypes {
     dlt = 'dlt'
@@ -56,6 +57,7 @@ export class FileOptionsService implements IService {
 
     private _onRequest(request: IPCMessages.FileGetOptionsRequest, response: TResponseFunc) {
         this._subjects.onFileOpenRequest.next();
+        EventsHubService.getSubject().onKeepScrollPrevent.next();
         const fileType: string = request.type;
         if (CControllers[fileType] === undefined) {
             return response(new IPCMessages.FileGetOptionsResponse({
