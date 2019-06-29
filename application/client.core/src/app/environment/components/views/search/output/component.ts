@@ -7,6 +7,7 @@ import { IComponentDesc } from 'logviewer-client-containers';
 import { ViewSearchOutputRowComponent } from './row/component';
 import { ViewSearchControlsComponent, IButton } from './controls/component';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
+import EventsHubService from '../../../../services/standalone/service.eventshub';
 
 const CSettings: {
     preloadCount: number,
@@ -67,6 +68,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
             return;
         }
         this._subscriptions.onScrolled = this._scrollBoxCom.getObservable().onScrolled.subscribe(this._onScrolled.bind(this));
+        this._subscriptions.onKeepScrollPrevent = EventsHubService.getObservable().onKeepScrollPrevent.subscribe(this._onKeepScrollPrevent.bind(this));
     }
 
     ngAfterContentInit() {
@@ -209,6 +211,11 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         this._ng_outputAPI.onRedraw.next();
     }
 
+    private _onKeepScrollPrevent() {
+        this._controls.keepScrollDown = false;
+        this._controls.update.next(this._ctrl_getButtons());
+    }
+
     private _keepScrollDown() {
         if (this._scrollBoxCom === undefined || this._scrollBoxCom === null) {
             return;
@@ -231,12 +238,6 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
                 return;
             }
             this._ng_outputAPI.onScrollUntil.next(loaded.end);
-            // Repeat request to be sure - user at the end
-            /*
-            setTimeout(() => {
-                this._keepScrollDown();
-            }, 50);
-            */
         }).catch((error: Error) => {
             // Do nothing, no data available
         });
