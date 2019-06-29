@@ -157,6 +157,9 @@ match: Ok(true)
 
 # Changelog
 
+### [0.21.2] - 06/29/2019
+  * bugfix: print matching regex for format string to stdout
+
 ### [0.21.1] - 06/28/2019
   * fix: merging still printed to stdout even without -v flag
 
