@@ -1,7 +1,27 @@
 require 'rake'
 EXE_NAME="logviewer_parser"
 HOME=ENV['HOME']
+module OS
+  def OS.windows?
+    (/cygwin|mswin|mingw|bccwin|wince|emx/ =~ RUBY_PLATFORM) != nil
+  end
 
+  def OS.mac?
+   (/darwin/ =~ RUBY_PLATFORM) != nil
+  end
+
+  def OS.unix?
+    !OS.windows?
+  end
+
+  def OS.linux?
+    OS.unix? and not OS.mac?
+  end
+
+  def OS.jruby?
+    RUBY_ENGINE == 'jruby'
+  end
+end
 task :default do
   puts "no default task"
   create_changelog
@@ -42,7 +62,13 @@ def build_the_release
   current_version = get_current_version
   cd "target/release" do
     cp "#{EXE_NAME}","#{HOME}/bin/#{EXE_NAME}"
-    sh "tar -cvzf indexing@#{current_version}-darwin.tgz #{EXE_NAME}"
+    os_ext = "darwin"
+    if OS.linux?
+	os_ext = "linux"
+    elsif OS.windows?
+	os_ext = "linux"
+    end
+    sh "tar -cvzf indexing@#{current_version}-#{os_ext}.tgz #{EXE_NAME}"
   end
 end
 desc "create new version and release"
