@@ -157,6 +157,9 @@ match: Ok(true)
 
 # Changelog
 
+### [0.21.3] - 06/29/2019
+  * use stdout instead of stderr for format to regex results
+
 ### [0.21.2] - 06/29/2019
   * bugfix: print matching regex for format string to stdout
 
