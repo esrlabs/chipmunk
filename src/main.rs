@@ -399,7 +399,7 @@ fn main() {
             ) {
                 Ok(res) => match serde_json::to_string(&res) {
                     Ok(v) => {
-                        eprintln!("{}", v);
+                        println!("{}", v);
                         if status_updates {
                             duration_report(
                                 start,
