@@ -1,5 +1,5 @@
 <div *ngIf="_ng_session !== undefined">
-    <p class="caption t-normal">Select files to be merged. Timestamp and datetime format will be detected automaticaly.</p>
+    <p class="caption t-normal">Select files to be merged.</p>
     <ul class="files">
         <li class="file" *ngFor="let file of _files">
             <app-sidebar-app-files-item [file]="file.file" 
