@@ -11,8 +11,6 @@
 </table>
 <span class="spliter"></span>
 <div class="preview">
-    <p class="file-name t-normal">Preview:</p>
-    <span class="spliter"></span>
     <ul class="rows">
         <li class="row" *ngFor="let row of _ng_rows" [innerHTML]="row"></li>
     </ul>
@@ -26,15 +24,22 @@
     </div>
     <div class="options">
         <div class="format-input-wrapper">
-            <lib-primitive-input #formatinput [type]="'text'" [placeholder]="'example: YYYY-MM-DD hh:mm:ss.s'" [validate]="_ng_onFormatValidate" [onChange]="_ng_onFormatChange" [disabled]="_ng_disabled"></lib-primitive-input>
-            <span *ngIf="_ng_format !== ''" class="t-small extend-button" title="Will put this format to other file-fields" (click)="_ng_onExtend()">extend</span>
-        </div>
-        <span class="spliter" *ngIf="_ng_warnings.length > 0"></span>
-        <div class="warning" *ngIf="_ng_warnings.length > 0">
-            <span class="warning-icon fas fa-exclamation-triangle"></span>
-            <ul class="messages">
-                <li class="message t-normal" *ngFor="let warning of _ng_warnings">{{warning}}</li>
-            </ul>
+            <lib-primitive-input #formatinput 
+                                [type]="'text'" 
+                                [placeholder]="'example: YYYY-MM-DD hh:mm:ss.s'" 
+                                [validate]="_ng_onFormatValidate" 
+                                [onChange]="_ng_onFormatChange" 
+                                [disabled]="_ng_disabled"></lib-primitive-input>
+            <div class="input-controlls">
+                <span   *ngIf="_ng_format !== ''" 
+                        class="small-icon-button input-button fas fa-play"
+                        title="Will test your datetime format" 
+                        (click)="_ng_onTest()"></span>
+                <span   *ngIf="_ng_format !== ''" 
+                        class="small-icon-button input-button far fa-copy" 
+                        title="Will put this format to other file-fields" 
+                        (click)="_ng_onExtend()"></span>
+            </div>
         </div>
         <div *ngIf="_ng_isMoreOpened()">
             <span class="spliter"></span>
@@ -45,6 +50,13 @@
             </div>
             <span class="spliter"></span>
             <lib-primitive-input #yearinput [placeholder]="'Type year if missed'" [validate]="_ng_onYearValidate" [onChange]="_ng_onYearChange" [disabled]="_ng_disabled" [type]="'number'"></lib-primitive-input>
+        </div>
+        <span class="spliter" *ngIf="_ng_warnings.length > 0"></span>
+        <div class="warning" *ngIf="_ng_warnings.length > 0">
+            <span class="warning-icon fas fa-exclamation-triangle"></span>
+            <ul class="messages">
+                <li class="message t-normal" *ngFor="let warning of _ng_warnings">{{warning}}</li>
+            </ul>
         </div>
     </div>
 </div>
@@ -69,6 +81,3 @@
     <p class="error t-normal" *ngIf="_ng_testResults.error !== undefined">{{_ng_testResults.error}}</p>
 </div>
 <span class="spliter"></span>
-<div class="controlls" *ngIf="!_ng_disabled">
-    <span class="small-button" (click)="_ng_onTest()">Test</span>
-</div>
