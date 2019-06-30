@@ -60,15 +60,26 @@ end
 def build_the_release
   sh "cargo build --release"
   current_version = get_current_version
-  cd "target/release" do
+  release_folder = "target/release"
+  os_ext = "darwin"
+  if OS.linux?
+      os_ext = "linux"
+  elsif OS.windows?
+      os_ext = "windows"
+      release_folder = "target/x86_64-pc-windows-gnu/release"
+  end
+  cd "#{release_folder}" do
     cp "#{EXE_NAME}","#{HOME}/bin/#{EXE_NAME}"
-    os_ext = "darwin"
-    if OS.linux?
-	os_ext = "linux"
-    elsif OS.windows?
-	os_ext = "linux"
-    end
     sh "tar -cvzf indexing@#{current_version}-#{os_ext}.tgz #{EXE_NAME}"
+  end
+end
+def build_the_release_windows
+  sh "cargo build --release --target=x86_64-pc-windows-gnu"
+  current_version = get_current_version
+  os_ext = "windows"
+  release_folder = "target/x86_64-pc-windows-gnu/release"
+  cd "#{release_folder}" do
+    sh "tar -cvzf indexing@#{current_version}-#{os_ext}.tgz #{EXE_NAME}.exe"
   end
 end
 desc "create new version and release"
@@ -104,6 +115,10 @@ end
 desc "build release, no version bump"
 task :build_release do
   build_the_release
+end
+desc "build windows release, no version bump"
+task :build_release_windows do
+  build_the_release_windows
 end
 
 namespace :version do
