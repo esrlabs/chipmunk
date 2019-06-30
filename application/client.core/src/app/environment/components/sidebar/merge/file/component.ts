@@ -135,7 +135,7 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
             return undefined;
         }
         this._valid = false;
-        return 'Format of date/time should be defined.';
+        return undefined;
     }
 
     public _ng_onFormatChange(value: string) {

@@ -48,6 +48,20 @@
     & div.format-input-wrapper{
         position: relative;
         width: 100%;
+        & div.input-controlls{
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            & span.input-button{
+                position: relative;
+                display: inline-block;
+                color: @scheme-color-1;
+                &:hover{
+                    color: @scheme-color-0;
+                }
+            }
+        }
         & span.extend-button{
             display: inline-block;
             position: absolute;
@@ -126,8 +140,8 @@
             width: 3rem;
             top:0;
             left: 0;
-            font-size: 1.5rem;
-            line-height: 1.5rem;
+            font-size: 1rem;
+            line-height: 1rem;
             color: @scheme-color-warning;
             text-align: left;
         }
