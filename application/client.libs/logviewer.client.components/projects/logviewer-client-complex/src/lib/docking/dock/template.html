@@ -1,6 +1,13 @@
 <div class="caption">
     <span class="move-button fas fa-bars"></span>
-    <p class="caption">{{dock.caption}}</p>
+    <div class="wrapper">
+        <p class="caption">{{dock.caption}}</p>
+        <ul class="injections" *ngIf="_ng_titleInjections.length > 0">
+            <li class="injection" *ngFor="let injection of _ng_titleInjections">
+                <lib-containers-dynamic [component]="injection.component"></lib-containers-dynamic>
+            </li>
+        </ul>
+    </div>
     <span class="close-button fas fa-times"></span>
 </div>
 <div class="content">

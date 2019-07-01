@@ -11,6 +11,15 @@ export interface IEnvVar {
     value: string;
 }
 
+interface IState {
+    _ng_envvars: IEnvVar[];
+    _ng_settings: IForkSettings | undefined;
+    _ng_working: boolean;
+    _ng_cmd: string;
+}
+
+const state: Toolkit.ControllerState<IState> = new Toolkit.ControllerState<IState>();
+
 @Component({
     selector: Toolkit.EViewsTypes.sidebarVertical,
     templateUrl: './template.html',
@@ -19,26 +28,35 @@ export interface IEnvVar {
 
 export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
 
+    @ViewChild('cmdinput') _ng_input: ElementRef;
+
     @Input() public ipc: Toolkit.PluginIPC;
     @Input() public session: string;
+    @Input() public sessions: Toolkit.ControllerSessionsEvents;
 
     public _ng_envvars: IEnvVar[] = [];
     public _ng_settings: IForkSettings | undefined;
+    public _ng_working: boolean = false;
+    public _ng_cmd: string = '';
 
-    private _subscription: any;
+    private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
+    private _logger: Toolkit.Logger = new Toolkit.Logger(`Plugin: processes: inj_output_bot:`);
+    private _destroyed: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef) {
     }
 
     ngOnDestroy() {
-        if (this._subscription !== undefined) {
-            this._subscription.destroy();
-        }
+        this._destroyed = true;
+        this._saveState();
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            this._subscriptions[key].unsubscribe();
+        });
     }
 
     ngAfterViewInit() {
         // Subscription to income events
-        this._subscription = this.ipc.subscribeToHost((message: any) => {
+        this._subscriptions.incomeIPCHostMessage = this.ipc.subscribeToHost((message: any) => {
             if (typeof message !== 'object' && message === null) {
                 // Unexpected format of message
                 return;
@@ -49,12 +67,51 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             }
             this._onIncomeMessage(message);
         });
-        // Request current settings
+        // Subscribe to sessions events
+        this._subscriptions.onSessionChange = this.sessions.subscribe().onSessionChange(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionOpen = this.sessions.subscribe().onSessionOpen(this._onSessionOpen.bind(this));
+        this._subscriptions.onSessionClose = this.sessions.subscribe().onSessionClose(this._onSessionClose.bind(this));
+        // Restore state
+        this._loadState();
+    }
+
+    public _ng_onKeyUp(event: KeyboardEvent) {
+        if (this._ng_working) {
+            this._sendInput(event);
+        } else {
+            this._sendCommand(event);
+        }
+    }
+
+    public _ng_onStop(event: MouseEvent) {
+        this._sendStop();
+    }
+
+    private _sendCommand(event: KeyboardEvent) {
+        if (event.key !== 'Enter') {
+            return;
+        }
+        if (this._ng_cmd.trim() === '') {
+            return;
+        }
         this.ipc.requestToHost({
             stream: this.session,
-            command: EHostCommands.getSettings,
-        }, this.session).then((response) => {
-            this._settingsUpdated(response.settings);
+            command: EHostCommands.command,
+            cmd: this._ng_cmd,
+        }, this.session).catch((error: Error) => {
+            console.error(error);
+        });
+    }
+
+    private _sendStop() {
+        if (!this._ng_working) {
+            return;
+        }
+        this.ipc.requestToHost({
+            stream: this.session,
+            command: EHostCommands.stop,
+        }, this.session).catch((error: Error) => {
+            console.error(error);
         });
     }
 
@@ -66,7 +123,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         }, this.session).catch((error: Error) => {
             console.error(error);
         });
-        (event.target as HTMLInputElement).value = '';
+        this._ng_cmd = '';
     }
 
     private _onIncomeMessage(message: any) {
@@ -78,11 +135,19 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
 
     private _onIncomeEvent(message: any) {
         switch (message.event) {
+            case EHostEvents.ForkStarted:
+                this._ng_working = true;
+                break;
+            case EHostEvents.ForkClosed:
+                this._ng_working = false;
+                this._ng_cmd = '';
+                break;
             case EHostEvents.SettingsUpdated:
                 this._ng_settings = message.settings;
                 this._settingsUpdated();
                 break;
         }
+        this._forceUpdate();
     }
 
     private _settingsUpdated(settings?: IForkSettings) {
@@ -99,8 +164,79 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                 value: this._ng_settings.env[key]
             });
         });
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
+    private _onSessionChange(guid: string) {
+        this._saveState();
+        this.session = guid;
+        this._loadState();
+    }
+
+    private _onSessionOpen(guid: string) {
+        //
+    }
+
+    private _onSessionClose(guid: string) {
+        //
+    }
+
+    private _saveState() {
+        if (this._ng_envvars.length === 0) {
+            // Do not save, because data wasn't gotten from backend
+            return;
+        }
+        state.save(this.session, {
+            _ng_envvars: this._ng_envvars,
+            _ng_settings: this._ng_settings,
+            _ng_working: this._ng_working,
+            _ng_cmd: this._ng_cmd === undefined ? '' : this._ng_cmd,
+        });
+    }
+
+    private _loadState() {
+        this._ng_envvars  = [];
+        this._ng_settings = undefined;
+        this._ng_working = false;
+        this._ng_cmd = '';
+        const stored: IState | undefined = state.load(this.session);
+        if (stored === undefined) {
+            this._initState();
+        } else {
+            Object.keys(stored).forEach((key: string) => {
+                (this as any)[key] = stored[key];
+            });
+        }
+        if (this._ng_input !== null && this._ng_input !== undefined) {
+            this._ng_input.nativeElement.value = this._ng_cmd;
+        }
+        this._forceUpdate();
+    }
+
+    private _initState() {
+        // Request current settings
+        this.ipc.requestToHost({
+            stream: this.session,
+            command: EHostCommands.getSettings,
+        }, this.session).then((response) => {
+            this._settingsUpdated(response.settings);
+        });
+        // Request current cwd
+        this.ipc.requestToHost({
+            stream: this.session,
+            command: EHostCommands.getSettings,
+        }, this.session).then((response) => {
+            this._forceUpdate();
+        }).catch((error: Error) => {
+            this._logger.env(`Cannot get current setting. It could be stream just not created yet. Error message: ${error.message}`);
+        });
+    }
+
+    private _forceUpdate() {
+        if (this._destroyed) {
+            return;
+        }
+        this._cdRef.detectChanges();
+    }
 
 }

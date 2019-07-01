@@ -1,59 +1,16 @@
+// tslint:disable:variable-name
 import * as Stream from 'stream';
-import { IRange } from './controller.stream.processor.map';
+import { IRange, IMapItem } from './controller.stream.processor.map';
 import * as StreamMarkers from '../consts/stream.markers';
 import Logger from '../tools/env.logger';
-import ServiceElectron, { IPCMessages as IPCElectronMessages } from '../services/service.electron';
-import State from './controller.stream.processor.state';
 
 export interface ITransformResult {
     output: string;
     bytesSize: number;
-    rows: IRange;
+    map: IMapItem;
 }
 
-let _notificationTimer: any;
-let _postponedNotifications: number = 0;
-const _logger: Logger = new Logger(`Notification sender for Stream Transformer`);
-
-function notify(streamId: string, state: State, bytesChunkSize: number, rows: IRange, output: string) {
-    // Send state information for pipes (if it's needed)
-    state.pipes.next(bytesChunkSize);
-    // Notification of render (client) about stream's update
-    clearTimeout(_notificationTimer);
-    // Set new timer for notification message
-    if (_postponedNotifications < Settings.maxPostponedNotificationMessages) {
-        _postponedNotifications += 1;
-        _notificationTimer = setTimeout(() => {
-            sendNotification(streamId, state, output, rows.from, rows.to);
-        }, Settings.notificationDelayOnStream);
-    } else {
-        _postponedNotifications = 0;
-        sendNotification(streamId, state, output, rows.from, rows.to);
-    }
-}
-
-function sendNotification(streamId: string, state: State, complete?: string, from?: number, to?: number): Promise<void> {
-    return ServiceElectron.IPC.send(new IPCElectronMessages.StreamUpdated({
-        guid: streamId,
-        length: state.map.getByteLength(),
-        rowsCount: state.map.getRowsCount(),
-        addedRowsData: complete === undefined ? '' : complete,
-        addedFrom: from === undefined ? -1 : from,
-        addedTo: to === undefined ? -1 : to,
-    })).catch((error: Error) => {
-        _logger.warn(`Fail send notification to render due error: ${error.message}`);
-    });
-}
-
-const Settings = {
-    notificationDelayOnStream: 500,             // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is blocked
-    maxPostponedNotificationMessages: 500,      // How many IPC messages to render (client) should be postponed via timer
-};
-
-export function convert(streamId: string, pluginId: number, state: State, chunk: Buffer | string): ITransformResult {
-    const transform: Transform = new Transform({}, streamId, pluginId, state);
-    return transform.convert(chunk);
-}
+export type TBeforeCallbackHandle = (results: ITransformResult) => Promise<void>;
 
 export function getSourceMarker(sourceId: string | number): string {
     return `${StreamMarkers.PluginId}${sourceId}${StreamMarkers.PluginId}`;
@@ -61,22 +18,39 @@ export function getSourceMarker(sourceId: string | number): string {
 
 export default class Transform extends Stream.Transform {
 
+    public static Events = {
+        onMap: 'onMap',
+    };
+
     private _logger: Logger;
     private _pluginId: number;
     private _rest: string = '';
     private _streamId: string;
-    private _state: State;
+    private _beforeCallbackHandle: TBeforeCallbackHandle | undefined;
+    private _offsets: { bytes: number, rows: number } = { bytes: 0, rows: 0 };
+    private _map: IMapItem[] = [];
+    private _writtenBytes: number = 0;
 
-    constructor(options: Stream.TransformOptions, streamId: string, pluginId: number, state: State) {
+    constructor(options: Stream.TransformOptions,
+                streamId: string,
+                pluginId: number,
+                offsets: { bytes: number, rows: number }) {
+
         super(options);
         this._streamId = streamId;
         this._pluginId = pluginId;
-        this._state = state;
+        this._offsets = offsets;
         this._logger = new Logger(`ControllerStreamTransformer: ${this._streamId}`);
-
     }
 
-    public _transform(chunk: Buffer | string, encoding: string, callback: Stream.TransformCallback | undefined): ITransformResult {
+    public setBeforeCallbackHandle(handle: TBeforeCallbackHandle | undefined) {
+        this._beforeCallbackHandle = handle;
+    }
+
+    public _transform(  chunk: Buffer | string,
+                        encoding: string,
+                        callback: Stream.TransformCallback | undefined): ITransformResult {
+
         // Convert to utf8 and insert rest from previos
         let output: string = '';
         if (typeof chunk === 'string') {
@@ -92,13 +66,13 @@ export default class Transform extends Stream.Transform {
         output = rest.cleared;
         // Add indexes
         const rows: IRange = {
-            from: this._state.map.getRowsCount(),
-            to: this._state.map.getRowsCount(),
+            from: this._offsets.rows,
+            to: this._offsets.rows,
         };
         // Store cursor position
         const bytes = {
-            from: this._state.map.getByteLength(),
-            to: this._state.map.getByteLength(),
+            from: this._offsets.bytes,
+            to: this._offsets.bytes,
         };
         output = output.replace(/[\r?\n|\r]/gi, () => {
             return `${getSourceMarker(this._pluginId)}${StreamMarkers.RowNumber}${rows.to++}${StreamMarkers.RowNumber}\n`;
@@ -106,20 +80,48 @@ export default class Transform extends Stream.Transform {
         const size: number = Buffer.byteLength(output, 'utf8');
         rows.to -= 1;
         bytes.to += size - 1;
-        this._state.map.add({ rows: rows, bytes: bytes });
-        if (callback !== undefined) {
-            callback(undefined, output);
-        }
-        notify(this._streamId, this._state, size, rows, output);
-        return {
+        const results: ITransformResult = {
             output: output,
             bytesSize: size,
-            rows: rows,
+            map: { rows: rows, bytes: bytes },
         };
+        // Update size
+        this._writtenBytes += size;
+        // Update offsets
+        this._offsets.rows = results.map.rows.to + 1;
+        this._offsets.bytes = results.map.bytes.to + 1;
+        // Store map
+        this._map.push(results.map);
+        if (callback !== undefined) {
+            if (typeof this._beforeCallbackHandle === 'function') {
+                this._beforeCallbackHandle(results).then(() => {
+                    callback(undefined, output);
+                }).catch((error: Error) => {
+                    this._logger.warn(`Error from "beforeCallbackHandle": ${error.message}`);
+                    callback(undefined, output);
+                });
+            } else {
+                callback(undefined, output);
+            }
+        } else if (typeof this._beforeCallbackHandle === 'function') {
+            this._beforeCallbackHandle(results).catch((error: Error) => {
+                this._logger.warn(`Error from "beforeCallbackHandle": ${error.message}`);
+            });
+        }
+        this.emit(Transform.Events.onMap, results.map, size);
+        return results;
     }
 
     public convert(chunk: Buffer | string): ITransformResult {
         return this._transform(chunk, 'utf8', undefined);
+    }
+
+    public getMap(): IMapItem[] {
+        return this._map;
+    }
+
+    public getBytesWritten(): number {
+        return this._writtenBytes;
     }
 
     private _getRest(str: string): { rest: string, cleared: string } {

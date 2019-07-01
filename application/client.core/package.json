@@ -28,7 +28,7 @@
     "logviewer.client.toolkit": "latest",
     "rxjs": "~6.4.0",
     "systemjs": "^3.0.0",
-    "xterm": "^3.12.0",
+    "xterm": "^3.14.4",
     "zone.js": "~0.8.26"
   },
   "devDependencies": {
@@ -38,7 +38,7 @@
     "@angular/language-service": "^7.1.4",
     "@types/jasmine": "^3.3.4",
     "@types/jasminewd2": "~2.0.3",
-    "@types/node": "^11.9.4",
+    "@types/node": "^11.13.13",
     "@types/systemjs": "^0.20.6",
     "codelyzer": "~4.5.0",
     "jasmine-core": "^3.2.1",

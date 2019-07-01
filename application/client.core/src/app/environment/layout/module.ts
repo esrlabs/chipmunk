@@ -1,5 +1,6 @@
 import { NgModule                               } from '@angular/core';
 import { CommonModule                           } from '@angular/common';
+import { ContainersModule                       } from 'logviewer-client-containers';
 
 import { LayoutComponent                        } from './component';
 import { LayoutStatusBarComponent               } from './bar.status/component';
@@ -27,7 +28,7 @@ const components = [ LayoutComponent, ...entryComponents ];
 
 @NgModule({
     entryComponents : [ ...entryComponents ],
-    imports         : [ CommonModule, EnvironmentComponentsModule, AppsBarStatusModule ],
+    imports         : [ CommonModule, ContainersModule, EnvironmentComponentsModule, AppsBarStatusModule ],
     declarations    : [ ...components ],
     exports         : [ ...components ]
 })

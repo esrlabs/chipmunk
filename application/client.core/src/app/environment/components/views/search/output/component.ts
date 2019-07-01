@@ -1,10 +1,19 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef } from '@angular/core';
-import { Subscription, Subject } from 'rxjs';
+import { Subscription, Subject, Observable } from 'rxjs';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { ControllerSessionTabSearchOutput, ISearchStreamPacket, IStreamState, ILoadedRange } from '../../../../controller/controller.session.tab.search.output';
-import { IDataAPI, IRange, IRow, IRowsPacket, IStorageInformation } from 'logviewer-client-complex';
+import { IDataAPI, IRange, IRowsPacket, IStorageInformation, ComplexScrollBoxComponent } from 'logviewer-client-complex';
+import { IComponentDesc } from 'logviewer-client-containers';
 import { ViewSearchOutputRowComponent } from './row/component';
+import { ViewSearchControlsComponent, IButton } from './controls/component';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
+import EventsHubService from '../../../../services/standalone/service.eventshub';
+
+const CSettings: {
+    preloadCount: number,
+} = {
+    preloadCount: 100
+};
 
 @Component({
     selector: 'app-views-search-output',
@@ -14,50 +23,90 @@ import ViewsEventsService from '../../../../services/standalone/service.views.ev
 
 export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, AfterContentInit {
 
+    @ViewChild(ComplexScrollBoxComponent) _scrollBoxCom: ComplexScrollBoxComponent;
+
     @Input() public session: ControllerSessionTab | undefined;
+    @Input() public onSessionChanged: Subject<ControllerSessionTab> | undefined;
+    @Input() public injectionIntoTitleBar: Subject<IComponentDesc>;
 
     public _ng_outputAPI: IDataAPI;
 
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
+    private _outputSubscriptions: { [key: string]: Subscription | undefined } = { };
     private _output: ControllerSessionTabSearchOutput | undefined;
+    private _frames: Map<string, IRange> = new Map();
+    private _activeSessionId: string = '';
+    private _controls: {
+        update: Subject<IButton[]>,
+        keepScrollDown: boolean,
+    } = {
+        update: new Subject<IButton[]>(),
+        keepScrollDown: true,
+    };
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef) {
         this._ng_outputAPI = {
+            getLastFrame: this._api_getLastFrame.bind(this),
             getComponentFactory: this._api_getComponentFactory.bind(this),
             getItemHeight: this._api_getItemHeight.bind(this),
             getRange: this._api_getRange.bind(this),
             getStorageInfo: this._api_getStorageInfo.bind(this),
             updatingDone: this._api_updatingDone.bind(this),
+            onSourceUpdated: new Subject<void>(),
             onStorageUpdated: new Subject<IStorageInformation>(),
             onScrollTo: new Subject<number>(),
+            onScrollUntil: new Subject<number>(),
             onRowsDelivered: new Subject<IRowsPacket>(),
+            onRerequest: new Subject<void>(),
             onRedraw: new Subject<void>(),
         };
     }
 
     ngAfterViewInit() {
+        if (this._scrollBoxCom === undefined || this._scrollBoxCom === null) {
+            return;
+        }
+        this._subscriptions.onScrolled = this._scrollBoxCom.getObservable().onScrolled.subscribe(this._onScrolled.bind(this));
+        this._subscriptions.onKeepScrollPrevent = EventsHubService.getObservable().onKeepScrollPrevent.subscribe(this._onKeepScrollPrevent.bind(this));
     }
 
     ngAfterContentInit() {
-        if (this.session === undefined) {
+        if (this.session === undefined || this.onSessionChanged === undefined) {
             return;
         }
+        this._activeSessionId = this.session.getGuid();
         // Get reference to stream wrapper
         this._output = this.session.getSessionSearch().getOutputStream();
         // Make subscriptions
-        this._subscriptions.onStateUpdated = this._output.getObservable().onStateUpdated.subscribe(this._onStateUpdated.bind(this));
-        this._subscriptions.onRangeLoaded = this._output.getObservable().onRangeLoaded.subscribe(this._onRangeLoaded.bind(this));
-        this._subscriptions.onReset = this._output.getObservable().onReset.subscribe(this._onReset.bind(this));
-        this._subscriptions.onScrollTo = this._output.getObservable().onScrollTo.subscribe(this._onScrollTo.bind(this));
+        this._subscribeOutputEvents();
         this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(this._onResize.bind(this));
+        this._subscriptions.onSessionChanged = this.onSessionChanged.asObservable().subscribe(this._onSessionChanged.bind(this));
+        // Inject controls to caption of dock
+        this._ctrl_inject();
     }
 
     public ngOnDestroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
+        this._unsubscribeOutputEvents();
+        this._ctrl_drop();
     }
+
+    private _subscribeOutputEvents() {
+        this._outputSubscriptions.onStateUpdated = this._output.getObservable().onStateUpdated.subscribe(this._onStateUpdated.bind(this));
+        this._outputSubscriptions.onRangeLoaded = this._output.getObservable().onRangeLoaded.subscribe(this._onRangeLoaded.bind(this));
+        this._outputSubscriptions.onBookmarksChanged = this._output.getObservable().onBookmarksChanged.subscribe(this._onBookmarksChanged.bind(this));
+        this._outputSubscriptions.onReset = this._output.getObservable().onReset.subscribe(this._onReset.bind(this));
+        this._outputSubscriptions.onScrollTo = this._output.getObservable().onScrollTo.subscribe(this._onScrollTo.bind(this));
+    }
+
+    private _unsubscribeOutputEvents() {
+        Object.keys(this._outputSubscriptions).forEach((key: string) => {
+            this._outputSubscriptions[key].unsubscribe();
+        });
+    }
 
     private _api_getComponentFactory(): any {
         return ViewSearchOutputRowComponent;
@@ -65,6 +114,10 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
 
     private _api_getItemHeight(): number {
         return 16;
+    }
+
+    private _api_getLastFrame(): IRange {
+        return this._output.getFrame();
     }
 
     private _api_getRange(range: IRange, antiLoopCounter: number = 0): IRowsPacket {
@@ -91,6 +144,25 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         this._output.setFrame(range);
     }
 
+    private _onSessionChanged(session: ControllerSessionTab) {
+        // Get current frame (cursor)
+        const storedFrame: IRange | undefined = this._frames.get(session.getGuid());
+        const frameToStore: IRange = this._output.getFrame();
+        this._frames.set(this._activeSessionId, frameToStore);
+        // Update session
+        this._activeSessionId = session.getGuid();
+        this.session = session;
+        // Unsubscribe
+        this._unsubscribeOutputEvents();
+        // Get reference to stream wrapper
+        this._output = this.session.getSessionSearch().getOutputStream();
+        // Subscribe
+        this._subscribeOutputEvents();
+        // Update
+        this._ng_outputAPI.onSourceUpdated.next();
+        this._cdRef.detectChanges();
+    }
+
     private _onReset() {
         this._ng_outputAPI.onStorageUpdated.next({
             count: 0
@@ -101,6 +173,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         this._ng_outputAPI.onStorageUpdated.next({
             count: state.count
         });
+        this._keepScrollDown();
     }
 
     private _onRangeLoaded(packet: ILoadedRange) {
@@ -108,6 +181,10 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
             range: packet.range,
             rows: packet.rows,
         });
+    }
+
+    private _onBookmarksChanged(rows: ISearchStreamPacket[]) {
+        this._ng_outputAPI.onRerequest.next();
     }
 
     private _onScrollTo(row: number) {
@@ -118,9 +195,95 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         this._ng_outputAPI.onScrollTo.next(closed.index);
     }
 
+    private _onScrolled(range: IRange) {
+        const last: number = this._output.getRowsCount() - 1;
+        if (range.end === last && !this._controls.keepScrollDown) {
+            this._controls.keepScrollDown = true;
+            this._controls.update.next(this._ctrl_getButtons());
+        } else if (range.end < last && this._controls.keepScrollDown) {
+            this._controls.keepScrollDown = false;
+            this._controls.update.next(this._ctrl_getButtons());
+        }
+    }
+
     private _onResize() {
         this._cdRef.detectChanges();
         this._ng_outputAPI.onRedraw.next();
+    }
+
+    private _onKeepScrollPrevent() {
+        this._controls.keepScrollDown = false;
+        this._controls.update.next(this._ctrl_getButtons());
+    }
+
+    private _keepScrollDown() {
+        if (this._scrollBoxCom === undefined || this._scrollBoxCom === null) {
+            return;
+        }
+        if (!this._controls.keepScrollDown) {
+            return;
+        }
+        const last: number = this._output.getRowsCount() - 1;
+        const range: IRange = {
+            start: last - CSettings.preloadCount < 0 ? 0 : (last - CSettings.preloadCount),
+            end: last
+        };
+        const frame: IRange = this._scrollBoxCom.getFrame();
+        if (frame.end === range.end) {
+            return;
+        }
+        this._output.preload(range).then((loaded: IRange | null) => {
+            if (loaded === null) {
+                // Already some request is in progress: do nothing
+                return;
+            }
+            this._ng_outputAPI.onScrollUntil.next(loaded.end);
+        }).catch((error: Error) => {
+            // Do nothing, no data available
+        });
+    }
+
+    private _ctrl_inject() {
+        if (this.injectionIntoTitleBar === undefined) {
+            return;
+        }
+        this.injectionIntoTitleBar.next({
+            inputs: {
+                getButtons: this._ctrl_getButtons.bind(this),
+                onUpdate: this._controls.update.asObservable()
+            },
+            factory: ViewSearchControlsComponent,
+        });
+    }
+
+    private _ctrl_drop() {
+        if (this.injectionIntoTitleBar === undefined) {
+            return;
+        }
+        this.injectionIntoTitleBar.next(undefined);
+    }
+
+    private _ctrl_getButtons(): IButton[] {
+        return [
+            {
+                alias: 'scroll',
+                icon: `small-icon-button fa-arrow-alt-circle-down ${this._controls.keepScrollDown ? 'fas' : 'far'}`,
+                disabled: false,
+                handler: this._ctrl_onScrollDown.bind(this)
+            }
+        ];
+    }
+
+    private _ctrl_onScrollDown(button: IButton) {
+        this._controls.keepScrollDown = !this._controls.keepScrollDown;
+        this._controls.update.next(this._ctrl_getButtons());
+        if (this._scrollBoxCom === undefined || this._scrollBoxCom === null) {
+            return;
+        }
+        const last: number = this._output.getRowsCount() - 1;
+        if (this._controls.keepScrollDown && this._scrollBoxCom.getFrame().end < last) {
+            this._ng_outputAPI.onScrollTo.next(last);
+        }
     }
 
 }

@@ -87,7 +87,6 @@ export class DocksService {
     }
 
     public dragDrop(data: DockDef.IDockDrop) {
-        console.log(data);
         this._subjects.dragDrop.next(data);
         const host: IDockData = this._getDockById(data.host) as IDockData;
         const target: IDockData = this._getDockById(data.target) as IDockData;
@@ -138,7 +137,6 @@ export class DocksService {
         }
         this._dock.optimize();
         this._subjects.dragFinished.next(target.target.id);
-        console.log(this._dock);
         if (target.parent.isEmpty()) {
             const emptyEntityParent: IContainerData = this._getContainerById(target.parent.id) as IContainerData;
             emptyEntityParent.parent.optimize();

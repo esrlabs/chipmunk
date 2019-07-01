@@ -27,7 +27,7 @@ class ServiceElectron implements IService {
 
     public IPC: {
         send: (instance: IPCMessages.TMessage) => Promise<void>,
-        request: (instance: IPCMessages.TMessage) => Promise<any>,
+        request: (instance: IPCMessages.TMessage, expected?: IPCMessages.TMessage) => Promise<any>,
         subscribe: (event: Function, handler: (event: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) => any) => Promise<Subscription>,
     } = {
         send: this._send.bind(this),
@@ -138,13 +138,13 @@ class ServiceElectron implements IService {
         });
     }
 
-    private _request(instance: IPCMessages.TMessage): Promise<any> {
+    private _request(instance: IPCMessages.TMessage, expected?: IPCMessages.TMessage): Promise<any> {
         return new Promise((resolve, reject) => {
             if (this._controllerBrowserWindow === undefined) {
                 return reject(new Error(`Browser window isn't inited yet, cannot delivery IPC controller.`));
             }
             this._controllerBrowserWindow.getIpc().then((ipc: ControllerElectronIpc) => {
-                ipc.request(instance).then((response: any) => {
+                ipc.request(instance, expected).then((response: any) => {
                     resolve(response);
                 }).catch((sendingError: Error) => {
                     return reject(new Error(this._logger.warn(`Fail to send message via IPC due error: ${sendingError.message}`)));

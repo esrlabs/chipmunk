@@ -6,5 +6,6 @@ export declare enum EHostEvents {
 export declare enum EHostCommands {
     command = "command",
     write = "write",
+    stop = "stop",
     getSettings = "getSettings"
 }

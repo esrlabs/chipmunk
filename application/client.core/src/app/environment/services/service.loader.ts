@@ -2,9 +2,12 @@ import ServiceElectronIpc, { IPCMessages } from './service.electron.ipc';
 import PluginsIPCService from './service.plugins.ipc';
 import PluginsService from './service.plugins';
 import SourcesService from './service.sources';
+import FileOptionsService from './service.file.options';
 import HorizontalSidebarSessionsService from './service.sessions.sidebar.horizontal';
 import TabsSessionsService from './service.sessions.tabs';
-
+import SearchSessionsService from './service.sessions.search';
+import FileOpenerService from './service.file.opener';
+import * as Defaults from '../states/state.default';
 import * as Toolkit from 'logviewer.client.toolkit';
 
 const InitializeStages = [
@@ -15,7 +18,9 @@ const InitializeStages = [
     // Stage #3
     [PluginsIPCService],
     // Stage #4
-    [TabsSessionsService, HorizontalSidebarSessionsService],
+    [TabsSessionsService, HorizontalSidebarSessionsService, FileOptionsService, FileOpenerService ],
+    // Stage #5
+    [SearchSessionsService]
 ];
 
 // TODO: Destroy method, even dummy
@@ -36,16 +41,19 @@ export class LoaderService {
                 if (error instanceof Error) {
                     return reject(error);
                 }
-                // Request state of host
-                ServiceElectronIpc.request(new IPCMessages.HostState({})).then((response: IPCMessages.HostState) => {
-                    if (response.state === IPCMessages.EHostState.ready) {
-                        return resolve();
-                    }
-                    // Subscribe to state event
-                    this._subscription = ServiceElectronIpc.subscribe(IPCMessages.HostState, this._onHostStateChange.bind(this));
-                    this._resolver = resolve;
-                }).catch((requestError: Error) => {
-                    this._logger.error(`Fail to request HostState due error: ${requestError.message}`);
+                // Make post init operations
+                this._postInit().then(() => {
+                    // Request state of host
+                    ServiceElectronIpc.request(new IPCMessages.HostState({})).then((response: IPCMessages.HostState) => {
+                        if (response.state === IPCMessages.EHostState.ready) {
+                            return resolve();
+                        }
+                        // Subscribe to state event
+                        this._subscription = ServiceElectronIpc.subscribe(IPCMessages.HostState, this._onHostStateChange.bind(this));
+                        this._resolver = resolve;
+                    }).catch((requestError: Error) => {
+                        this._logger.error(`Fail to request HostState due error: ${requestError.message}`);
+                    });
                 });
             });
         });
@@ -83,6 +91,14 @@ export class LoaderService {
             this._subscription.destroy();
             this._resolver();
         }
+    }
+
+    private _postInit(): Promise<void> {
+        return new Promise((resolve) => {
+            TabsSessionsService.setDefaultViews(Defaults.getDefaultViews());
+            TabsSessionsService.setDefaultSidebarApps(Defaults.getDefaultSideBarApps());
+            resolve();
+        });
     }
 
 }

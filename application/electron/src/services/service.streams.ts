@@ -9,6 +9,8 @@ import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } fro
 import Logger from '../tools/env.logger';
 import ControllerStreamSearch from '../controllers/controller.stream.search';
 import ControllerStreamProcessor from '../controllers/controller.stream.processor';
+import ControllerStreamState from '../controllers/controller.stream.state';
+
 import { IService } from '../interfaces/interface.service';
 import * as Tools from '../tools/index';
 import { IMapItem } from '../controllers/controller.stream.processor.map';
@@ -21,6 +23,7 @@ export interface IStreamInfo {
     connections: Net.Socket[];
     connectionFactory: (pluginName: string) => Promise<{ socket: Net.Socket, file: string }>;
     server: Net.Server;
+    state: ControllerStreamState;
     processor: ControllerStreamProcessor;
     search: ControllerStreamSearch;
     received: number;
@@ -57,7 +60,8 @@ class ServiceStreams extends EventEmitter implements IService  {
         // Binding
         this._ipc_onStreamSetActive = this._ipc_onStreamSetActive.bind(this);
         this._ipc_onStreamAdd = this._ipc_onStreamAdd.bind(this);
-        this._ipc_onStreamRemove = this._ipc_onStreamRemove.bind(this);
+        this._ipc_onStreamRemoveRequest = this._ipc_onStreamRemoveRequest.bind(this);
+        this._ipc_onStreamReset = this._ipc_onStreamReset.bind(this);
     }
 
     /**
@@ -74,8 +78,8 @@ class ServiceStreams extends EventEmitter implements IService  {
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to subscribe to render event "StreamAdd" due error: ${error.message}. This is not blocked error, loading will be continued.`);
             });
-            ServiceElectron.IPC.subscribe(IPCElectronMessages.StreamRemove, this._ipc_onStreamRemove).then((subscription: Subscription) => {
-                this._subscriptions.streamRemove = subscription;
+            ServiceElectron.IPC.subscribe(IPCElectronMessages.StreamRemoveRequest, this._ipc_onStreamRemoveRequest).then((subscription: Subscription) => {
+                this._subscriptions.StreamRemoveRequest = subscription;
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to subscribe to render event "StreamRemove" due error: ${error.message}. This is not blocked error, loading will be continued.`);
             });
@@ -83,6 +87,11 @@ class ServiceStreams extends EventEmitter implements IService  {
                 this._subscriptions.StreamSetActive = subscription;
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to subscribe to render event "StreamSetActive" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+            });
+            ServiceElectron.IPC.subscribe(IPCElectronMessages.StreamResetRequest, this._ipc_onStreamReset).then((subscription: Subscription) => {
+                this._subscriptions.StreamReset = subscription;
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to subscribe to render event "StreamReset" due error: ${error.message}. This is not blocked error, loading will be continued.`);
             });
         });
     }
@@ -212,6 +221,19 @@ class ServiceStreams extends EventEmitter implements IService  {
         stream.processor.updatePipeSession(written);
     }
 
+    public reattachSessionFileHandle(streamId?: string) {
+        // Get stream id
+        if (streamId === undefined) {
+            streamId = this._activeStreamGuid;
+        }
+        // Get stream info
+        const stream: IStreamInfo | undefined = this._streams.get(streamId);
+        if (stream === undefined) {
+            return;
+        }
+        stream.processor.reattach();
+    }
+
     public rewriteStreamFileMap(streamId: string, map: IMapItem[]) {
         const stream: IStreamInfo | undefined = this._streams.get(streamId);
         if (stream === undefined) {
@@ -241,6 +263,8 @@ class ServiceStreams extends EventEmitter implements IService  {
             try {
                 // Create new server
                 const server: Net.Server = Net.createServer(this._acceptConnectionToSocket.bind(this, guid));
+                // Create stream state
+                const state: ControllerStreamState = new ControllerStreamState(guid);
                 // Create connection to trigger creation of server
                 const stream: IStreamInfo = {
                     guid: guid,
@@ -258,8 +282,9 @@ class ServiceStreams extends EventEmitter implements IService  {
                             (socket as any).__id = Tools.guid();
                         });
                     },
-                    processor: new ControllerStreamProcessor(guid, streamFile),
-                    search: new ControllerStreamSearch(guid, streamFile, searchFile),
+                    state: state,
+                    processor: new ControllerStreamProcessor(guid, streamFile, state),
+                    search: new ControllerStreamSearch(guid, streamFile, searchFile, state),
                     received: 0,
                 };
                 // Bind server with file
@@ -292,7 +317,7 @@ class ServiceStreams extends EventEmitter implements IService  {
     }
 
     private _destroyStream(guid: string): Promise<void> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             const stream: IStreamInfo | undefined = this._streams.get(guid);
             if (stream === undefined) {
                 this._logger.warn(`Was gotten command to destroy stream, but stream wasn't found in storage.`);
@@ -300,6 +325,7 @@ class ServiceStreams extends EventEmitter implements IService  {
             }
             const socketFile = stream.socketFile;
             const streamFile = stream.streamFile;
+            const searchFile = stream.searchFile;
             stream.connections.forEach((connection: Net.Socket) => {
                 connection.removeAllListeners();
                 connection.unref();
@@ -307,27 +333,43 @@ class ServiceStreams extends EventEmitter implements IService  {
             });
             stream.server.unref();
             stream.connections = [];
-            stream.processor.destroy();
-            this._streams.delete(guid);
-            Promise.all([
-                new Promise((resolveUnlink) => {
-                    fs.unlink(socketFile, (removeSocketFileError: NodeJS.ErrnoException | null) => {
+            const destroyControllers = () => {
+                return Promise.all([
+                    stream.processor.destroy(),
+                    stream.search.destroy(),
+                ]);
+            };
+            const unlinkFile = (file: string): Promise<void> => {
+                return new Promise((resolveUnlink) => {
+                    fs.unlink(file, (removeSocketFileError: NodeJS.ErrnoException | null) => {
                         if (removeSocketFileError) {
-                            this._logger.warn(`Fail to remove stream socket file ${socketFile} due error: ${removeSocketFileError.message}`);
+                            this._logger.warn(`Fail to remove stream file ${file} due error: ${removeSocketFileError.message}`);
                         }
                         resolveUnlink();
                     });
-                }),
-                new Promise((resolveUnlink) => {
-                    fs.unlink(streamFile, (removeStreamFileError: NodeJS.ErrnoException | null) => {
-                        if (removeStreamFileError) {
-                            this._logger.warn(`Fail to remove stream socket file ${streamFile} due error: ${removeStreamFileError.message}`);
-                        }
-                        resolveUnlink();
-                    });
-                }),
-            ]).then(() => {
-                resolve();
+                });
+            };
+            const unlinkStorageFiles = () => {
+                return Promise.all([
+                    unlinkFile(socketFile),
+                    unlinkFile(streamFile),
+                    unlinkFile(searchFile),
+                ]);
+            };
+            // Destroy controllers
+            destroyControllers().then(() => {
+                this._logger.env(`Controllers of stream "${guid}" are destroyed.`);
+                unlinkStorageFiles().then(() => {
+                    this._streams.delete(guid);
+                    resolve();
+                }).catch((unlinkError: Error) => {
+                    this._streams.delete(guid);
+                    this._logger.warn(`Fail to unlink stream files of stream "${guid}" due error: ${unlinkError.message}`);
+                    reject(unlinkError);
+                });
+            }).catch((destroyControllersError: Error) => {
+                this._logger.warn(`Fail to destroy controllers of stream "${guid}" due error: ${destroyControllersError.message}.`);
+                reject(destroyControllersError);
             });
         });
     }
@@ -383,13 +425,16 @@ class ServiceStreams extends EventEmitter implements IService  {
         });
     }
 
-    private _ipc_onStreamRemove(message: IPCElectronMessages.TMessage) {
-        if (!(message instanceof IPCElectronMessages.StreamRemove)) {
+    private _ipc_onStreamRemoveRequest(message: IPCElectronMessages.TMessage, response: (message: IPCElectronMessages.TMessage) => void) {
+        if (!(message instanceof IPCElectronMessages.StreamRemoveRequest)) {
             return;
         }
         this._destroyStream(message.guid).then(() => {
             this.emit(this.EVENTS.streamRemoved);
-            // TODO: forward actions to other compoenents
+            response(new IPCElectronMessages.StreamRemoveResponse({ guid: message.guid }));
+        }).catch((destroyError: Error) => {
+            this._logger.warn(`Fail to correctly destroy session "${message.guid}" due error: ${destroyError.message}.`);
+            response(new IPCElectronMessages.StreamRemoveResponse({ guid: message.guid, error: destroyError.message }));
         });
     }
 
@@ -399,6 +444,30 @@ class ServiceStreams extends EventEmitter implements IService  {
         }
         this._activeStreamGuid = message.guid;
         this._logger.env(`Active session is set to: ${this._activeStreamGuid}`);
+    }
+
+    private _ipc_onStreamReset(message: IPCElectronMessages.TMessage, response: (message: IPCElectronMessages.TMessage) => void) {
+        if (!(message instanceof IPCElectronMessages.StreamResetRequest)) {
+            return;
+        }
+        const stream: IStreamInfo | undefined = this._streams.get(message.guid);
+        if (stream === undefined) {
+            return this._logger.warn(`Fail to find a stream data for stream guid "${message.guid}"`);
+        }
+        Promise.all([
+            stream.processor.reset(),
+            stream.search.reset(),
+        ]).then(() => {
+            this._logger.env(`Session "${message.guid}" was reset.`);
+            response(new IPCElectronMessages.StreamResetResponse({
+                guid: message.guid,
+            }));
+        }).catch((error: Error) => {
+            response(new IPCElectronMessages.StreamResetResponse({
+                guid: message.guid,
+                error: this._logger.warn(`Fail to reset session "${message.guid}" due error: ${error.message}.`),
+            }));
+        });
     }
 
     private _stream_onData(guid: string, ref: string, chunk: Buffer) {

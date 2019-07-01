@@ -14,6 +14,10 @@ export default class BytesRowsMap {
     private _bytes: number = 0;
     private _rows: number = 0;
 
+    public destroy() {
+        this.drop();
+    }
+
     public rewrite(map: IMapItem[]) {
         this._map = map;
         this._rows = map[map.length - 1].rows.to + 1;
@@ -26,10 +30,11 @@ export default class BytesRowsMap {
         this._bytes = this._map[this._map.length - 1].bytes.to + 1;
     }
 
-    public add(item: IMapItem) {
-        this._map.push(item);
-        this._bytes = item.bytes.to + 1;
-        this._rows = item.rows.to + 1;
+    public add(item: IMapItem | IMapItem[]) {
+        item = item instanceof Array ? item : [item];
+        this._map.push(...item);
+        this._bytes = item[item.length - 1].bytes.to + 1;
+        this._rows = item[item.length - 1].rows.to + 1;
     }
 
     public getBytesRange(requested: IRange): IMapItem | Error {
@@ -79,6 +84,12 @@ export default class BytesRowsMap {
 
     public getRowsCount(): number {
         return this._rows;
+    }
+
+    public drop() {
+        this._map = [];
+        this._bytes = 0;
+        this._rows = 0;
     }
 
 }

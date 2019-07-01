@@ -27,8 +27,8 @@ export class HorizontalSidebarSessionsService implements IService {
     private _plugins: ISidebarPluginInfo[] = [];
     private _guid: string = Toolkit.guid();
     private _tabsService: TabsService = new TabsService();
-    private _subscriptions: { [key: string]: Subscription | undefined } = {
-    };
+    private _subscriptions: { [key: string]: Subscription | undefined } = {};
+    private _inputs: { [key: string]: any } = {};
 
     constructor() {
 
@@ -60,7 +60,7 @@ export class HorizontalSidebarSessionsService implements IService {
                 active: i === 0,
                 content: {
                     factory: defaultView.factory,
-                    inputs: defaultView.inputs,
+                    inputs: Object.assign(defaultView.inputs, this._inputs),
                     resolved: false
                 }
             });
@@ -75,10 +75,10 @@ export class HorizontalSidebarSessionsService implements IService {
                 active: false,
                 content: {
                     factory: pluginInfo.factory,
-                    inputs: {
+                    inputs: Object.assign({
                         ipc: pluginInfo.ipc,
                         session: this._guid
-                    },
+                    }, this._inputs),
                     resolved: true
                 }
             });
@@ -87,6 +87,10 @@ export class HorizontalSidebarSessionsService implements IService {
 
     public getTabsService(): TabsService {
         return this._tabsService;
+    }
+
+    public setCommonInputs(inputs: { [key: string]: any }) {
+        this._inputs = inputs;
     }
 
     private _getSidebarPlugins(): ISidebarPluginInfo[] {

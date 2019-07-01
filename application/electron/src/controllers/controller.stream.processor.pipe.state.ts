@@ -1,7 +1,7 @@
 import ServiceElectron, { IPCMessages as IPCElectronMessages } from '../services/service.electron';
 import Logger from '../tools/env.logger';
 
-const Settings = {
+const CSettings = {
     notificationDelayOnStream: 500,             // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is blocked
     maxPostponedNotificationMessages: 500,      // How many IPC messages to render (client) should be postponed via timer
 };
@@ -20,6 +20,11 @@ export default class PipeState {
     constructor(streamId: string) {
         this._streamId = streamId;
         this._logger = new Logger(`PipeState: ${this._streamId}`);
+    }
+
+    public destroy() {
+        clearTimeout(this._timer);
+        this._names.clear();
     }
 
     public add(id: string, size: number, name: string) {
@@ -68,11 +73,11 @@ export default class PipeState {
 
     private _notify() {
         clearTimeout(this._timer);
-        if (this._postponed < Settings.maxPostponedNotificationMessages) {
+        if (this._postponed < CSettings.maxPostponedNotificationMessages) {
             this._postponed += 1;
             this._timer = setTimeout(() => {
                 this._send();
-            }, Settings.notificationDelayOnStream);
+            }, CSettings.notificationDelayOnStream);
         } else {
             this._postponed = 0;
             this._send();

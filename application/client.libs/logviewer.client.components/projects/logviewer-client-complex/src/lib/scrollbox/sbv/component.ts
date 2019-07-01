@@ -5,7 +5,7 @@
 
 import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, Input, AfterContentInit, HostListener } from '@angular/core';
 
-export type TUpdateFunction = (offset: number, direction: number) => void;
+export type TUpdateFunction = (offset: number, direction: number, outside: boolean) => void;
 export type TGetRowsCount = () => number;
 export type THandler = () => void;
 
@@ -32,6 +32,7 @@ export class ComplexScrollBoxSBVComponent implements OnDestroy, AfterContentInit
     private _start: number = -1;
     private _end: number = -1;
     private _count: number = 0;
+    private _thumbUsage: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef) {
@@ -40,9 +41,12 @@ export class ComplexScrollBoxSBVComponent implements OnDestroy, AfterContentInit
     @HostListener('click', ['$event'])
 
     public onClick(event: MouseEvent) {
-        if (event.clientY < this._offset) {
+        if (this._thumbUsage) {
+            return;
+        }
+        if (event.offsetY < this._offset) {
             this.pgUp();
-        } else if (event.clientY > this._offset + this._thumb) {
+        } else if (event.offsetY > this._offset + this._thumb) {
             this.pgDown();
         }
     }
@@ -70,6 +74,7 @@ export class ComplexScrollBoxSBVComponent implements OnDestroy, AfterContentInit
     }
 
     public _ng_mouseDown(event: MouseEvent) {
+        this._thumbUsage = true;
         this._mouseY = event.y;
         event.preventDefault();
         return false;
@@ -81,6 +86,9 @@ export class ComplexScrollBoxSBVComponent implements OnDestroy, AfterContentInit
         }
         this._mouseY = -1;
         event.preventDefault();
+        setTimeout(() => {
+            this._thumbUsage = false;
+        }, 1);
         return false;
     }
 
@@ -95,7 +103,7 @@ export class ComplexScrollBoxSBVComponent implements OnDestroy, AfterContentInit
         this._mouseY = event.y;
         this._setOffset(this._offset + change);
         this._cdRef.detectChanges();
-        this.update(Math.abs(change / this._rate), change > 0 ? 1 : -1);
+        this.update(Math.abs(change / this._rate), change > 0 ? 1 : -1, true);
         event.preventDefault();
         return false;
     }

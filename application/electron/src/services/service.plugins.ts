@@ -32,10 +32,7 @@ export interface IPlugin {
         process: any;
         render: any;
     };
-    node?: {
-        controller: ControllerPluginProcess;
-        started: number;
-    };
+    sessions: Map<string, ControllerPluginProcess>;
     verified: {
         process: boolean;
         render: boolean;
@@ -46,7 +43,6 @@ export interface IPlugin {
     };
     token: string;
     id: number;
-    streams: string[];
     connections: symbol[];
 }
 
@@ -130,10 +126,9 @@ export class ServicePlugins implements IService {
             this._unsubscribeIPCMessages();
             this._unsubscribeFromStreamEvents();
             this._plugins.forEach((plugin: IPlugin) => {
-                if (plugin.node === undefined) {
-                    return;
-                }
-                plugin.node.controller.kill();
+                plugin.sessions.forEach((controller: ControllerPluginProcess) => {
+                    controller.kill();
+                });
             });
             resolve();
         });
@@ -159,15 +154,16 @@ export class ServicePlugins implements IService {
         return plugin.name;
     }
 
-    public getPluginIPC(token: string): ControllerIPCPlugin | undefined {
+    public getPluginIPC(session: string, token: string): ControllerIPCPlugin | undefined {
         const plugin: IPlugin | undefined = this._getPluginInfoByToken(token);
         if (plugin === undefined) {
             return undefined;
         }
-        if (plugin.node === undefined) {
+        const controller: ControllerPluginProcess | undefined = plugin.sessions.get(session);
+        if (controller === undefined) {
             return undefined;
         }
-        const IPC: ControllerIPCPlugin | Error = plugin.node.controller.getIPC();
+        const IPC: ControllerIPCPlugin | Error = controller.getIPC();
         if (IPC instanceof Error) {
             this._logger.warn(`Fail to get IPC of plugin "${plugin.name}" due error: ${IPC.message}`);
             return undefined;
@@ -183,10 +179,11 @@ export class ServicePlugins implements IService {
         if (target === undefined) {
             return this._logger.error(`Fail to find plugin by token: ${message.token}. Income message: ${message.data}`);
         }
-        if (target.node === undefined) {
-            return this._logger.error(`Fail redirect message by token ${message.token}, because plugin doesn't have process. Income message: ${message.data}`);
+        const controller: ControllerPluginProcess | undefined = target.sessions.get(message.stream);
+        if (controller === undefined) {
+            return this._logger.error(`Fail redirect message by token ${message.token}, because plugin doesn't have process for session "${message.stream}". Income message: ${message.data}`);
         }
-        const ipc = target.node.controller.getIPC();
+        const ipc = controller.getIPC();
         if (ipc instanceof Error) {
             return this._logger.error(`Fail redirect message by token ${message.token} due error: ${ipc.message}`);
         }
@@ -236,17 +233,30 @@ export class ServicePlugins implements IService {
             plugins.push(plugin);
         });
         plugins.forEach((plugin: IPlugin) => {
-            if (plugin.node === undefined) {
-                this._logger.warn(`Plugin ${plugin.name} was defined as transport, but plugin doesn't have nodejs part.`);
-                return;
+            if (plugin.sessions.has(stream.guid)) {
+                this._logger.warn(`Plugin ${plugin.name} was defined as transport for session "${stream.guid}", but plugin is already bound with this session.`);
             }
-            stream.connectionFactory(plugin.name).then((connection: { socket: Net.Socket, file: string }) => {
-                // Send data to plugin
-                (plugin.node as any).controller.addStream(stream.guid, connection);
-                // Add ref to stream
-                plugin.streams.push(stream.guid);
-                // Save data
-                this._plugins.set(plugin.name, plugin);
+            // Create controller
+            const controller: ControllerPluginProcess = new ControllerPluginProcess(plugin);
+            controller.attach().then(() => {
+                // Binding controller
+                stream.connectionFactory(plugin.name).then((connection: { socket: Net.Socket, file: string }) => {
+                    // Send data to plugin
+                    controller.bindStream(stream.guid, connection).then(() => {
+                        plugin.sessions.set(stream.guid, controller);
+                        // Save data
+                        this._plugins.set(plugin.name, plugin);
+                        // Send notification
+                        ServiceElectronService.logStateToRender(`[${plugin.name}]: attached to session "${stream.guid}".`);
+                        this._logger.env(`[${plugin.name}]: attached to session "${stream.guid}"`);
+                    }).catch((bindError: Error) => {
+                        ServiceElectronService.logStateToRender(`[${plugin.name}]: fail to bind due error: ${bindError.message}`);
+                        this._logger.warn(`Fail to bind plugin ${plugin.name} due error: ${bindError.message}.`);
+                    });
+                });
+            }).catch((attachError: Error) => {
+                ServiceElectronService.logStateToRender(`[${plugin.name}]: fail to attach due error: ${attachError.message}`);
+                this._logger.warn(`Fail to attach plugin ${plugin.name} for session "${stream.guid}" due error: ${attachError.message}.`);
             });
         });
     }
@@ -254,23 +264,14 @@ export class ServicePlugins implements IService {
     private _streams_onStreamRemoved(streamId: string) {
         const plugins: IPlugin[] = [];
         // Find all plugins, which are bound with stream
-        this._plugins.forEach((plugin: IPlugin) => {
-            if (plugin.streams.indexOf(streamId) === -1) {
+        this._plugins.forEach((plugin: IPlugin, id: string) => {
+            const controller: ControllerPluginProcess | undefined = plugin.sessions.get(streamId);
+            if (controller === undefined) {
                 return;
             }
-            plugins.push(plugin);
-        });
-        plugins.forEach((plugin: IPlugin) => {
-            if (plugin.node === undefined) {
-                this._logger.warn(`Plugin ${plugin.name} was defined as transport, but plugin doesn't have nodejs part.`);
-                return;
-            }
-            // Send data to plugin
-            plugin.node.controller.removeStream(streamId);
-            // Remove ref to stream
-            plugin.streams.splice(plugin.streams.indexOf(streamId), 1);
-            // Save data
-            this._plugins.set(plugin.name, plugin);
+            controller.kill();
+            plugin.sessions.delete(streamId);
+            this._plugins.set(id, plugin);
         });
     }
 
@@ -378,27 +379,6 @@ export class ServicePlugins implements IService {
     }
 
     /**
-     * Create controller of plugin's process
-     * Controller of plugin's process attachs plugins as forked process and provide communitin within it
-     * @param {IPlugin} plugin description of plugin
-     * @returns { Promise<ControllerPluginProcess> }
-     */
-    private _attachProcessOfPlugin(plugin: IPlugin): Promise<ControllerPluginProcess> {
-        return new Promise((resolve, reject) => {
-            const process: ControllerPluginProcess = new ControllerPluginProcess(plugin);
-            process.attach().then(() => {
-                ServiceElectronService.logStateToRender(`[${plugin.name}]: attached.`);
-                this._logger.env(`[${plugin.name}]: attached.`);
-                resolve(process);
-            }).catch((attachError: Error) => {
-                ServiceElectronService.logStateToRender(`[${plugin.name}]: fail to attach due error: ${attachError.message}`);
-                this._logger.error(`[${plugin.name}]: fail to attach due error: ${attachError.message}`);
-                reject();
-            });
-        });
-    }
-
-    /**
      * Install and init plugin in part of process
      * @param {IPlugin} plugin description of plugin
      * @param {boolean} reinstall flag to force reinstallation process: true - reinstall.
@@ -410,18 +390,9 @@ export class ServicePlugins implements IService {
             this._preinstalationProcessOfPlugin(plugin, reinstall).then((install: boolean) => {
 
                 const initialize = () => {
-                    this._attachProcessOfPlugin(plugin).then((controller: ControllerPluginProcess) => {
-                        // Save ref to controller and define start time
-                        plugin.node = {
-                            controller: controller,
-                            started: Date.now(),
-                        };
-                        plugin.verified.process = true;
-                        this._plugins.set(plugin.name, plugin);
-                        resolve();
-                    }).catch((attachError: Error) => {
-                        reject(attachError);
-                    });
+                    plugin.verified.process = true;
+                    this._plugins.set(plugin.name, plugin);
+                    resolve();
                 };
 
                 if (install) {
@@ -575,8 +546,8 @@ export class ServicePlugins implements IService {
                 },
                 token: guid(),
                 id: ++this._seq,
-                streams: [],
                 connections: [],
+                sessions: new Map(),
             };
             this._ids.set(desc.id, desc.token);
             const tasks = [];

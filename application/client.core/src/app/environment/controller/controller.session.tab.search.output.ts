@@ -1,10 +1,21 @@
 import { IPCMessages } from '../services/service.electron.ipc';
-import { Observable, Subject } from 'rxjs';
+import { Observable, Subject, Subscription } from 'rxjs';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { ControllerSessionTabStreamOutput } from '../controller/controller.session.tab.stream.output';
+import { ControllerSessionTabStreamBookmarks, IBookmark } from './controller.session.tab.stream.bookmarks';
+import { ControllerSessionTabSourcesState } from './controller.session.tab.sources.state';
 import OutputRedirectionsService from '../services/standalone/service.output.redirections';
 
 export type TRequestDataHandler = (start: number, end: number) => Promise<IPCMessages.StreamChunk>;
+
+export type TGetActiveSearchRequestsHandler = () => RegExp[];
+
+export interface IParameters {
+    guid: string;
+    requestDataHandler: TRequestDataHandler;
+    getActiveSearchRequests: TGetActiveSearchRequestsHandler;
+    stream: ControllerSessionTabStreamOutput;
+}
 
 export interface ISearchStreamPacket {
     str: string | undefined;
@@ -13,10 +24,14 @@ export interface ISearchStreamPacket {
     pluginId: number;
     rank: number;
     sessionId: string;
+    bookmarks: ControllerSessionTabStreamBookmarks;
+    sources: ControllerSessionTabSourcesState;
 }
 
 export interface IStreamState {
+    originalCount: number;
     count: number;
+    bookmarksCount: number;
     stored: IRange;
     frame: IRange;
     lastLoadingRequestId: any;
@@ -46,10 +61,16 @@ export class ControllerSessionTabSearchOutput {
     private _logger: Toolkit.Logger;
     private _rows: ISearchStreamPacket[] = [];
     private _requestDataHandler: TRequestDataHandler;
-    private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
+    private _getActiveSearchRequests: TGetActiveSearchRequestsHandler;
+    private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
     private _stream: ControllerSessionTabStreamOutput;
+    private _preloadTimestamp: number = -1;
+    private _bookmakrs: ControllerSessionTabStreamBookmarks;
+    private _sources: ControllerSessionTabSourcesState;
     private _state: IStreamState = {
         count: 0,
+        originalCount: 0,
+        bookmarksCount: 0,
         stored: {
             start: -1,
             end: -1,
@@ -66,15 +87,27 @@ export class ControllerSessionTabSearchOutput {
         onStateUpdated: new Subject<IStreamState>(),
         onReset: new Subject<void>(),
         onRangeLoaded: new Subject<ILoadedRange>(),
+        onBookmarksChanged: new Subject<void>(),
         onScrollTo: new Subject<number>(),
     };
 
-    constructor(guid: string, requestDataHandler: TRequestDataHandler, stream: ControllerSessionTabStreamOutput) {
-        this._guid = guid;
-        this._stream = stream;
-        this._requestDataHandler = requestDataHandler;
+    constructor(params: IParameters) {
+        this._guid = params.guid;
+        this._stream = params.stream;
+        this._bookmakrs = params.stream.getBookmarks();
+        this._sources = new ControllerSessionTabSourcesState(this._guid);
+        this._requestDataHandler = params.requestDataHandler;
+        this._getActiveSearchRequests = params.getActiveSearchRequests;
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearchOutput: ${this._guid}`);
         this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(this._guid, this._onRowSelected.bind(this));
+        this._subscriptions.onAddedBookmark = this._bookmakrs.getObservable().onAdded.subscribe(this._onUpdateBookmarksState.bind(this));
+        this._subscriptions.onRemovedBookmark = this._bookmakrs.getObservable().onRemoved.subscribe(this._onUpdateBookmarksState.bind(this));
+    }
+
+    public destroy() {
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            this._subscriptions[key].unsubscribe();
+        });
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -88,14 +121,23 @@ export class ControllerSessionTabSearchOutput {
     public getObservable(): {
         onStateUpdated: Observable<IStreamState>,
         onRangeLoaded: Observable<ILoadedRange>,
+        onBookmarksChanged: Observable<void>,
         onReset: Observable<void>,
         onScrollTo: Observable<number>,
     } {
         return {
             onStateUpdated: this._subjects.onStateUpdated.asObservable(),
             onRangeLoaded: this._subjects.onRangeLoaded.asObservable(),
+            onBookmarksChanged: this._subjects.onBookmarksChanged.asObservable(),
             onReset: this._subjects.onReset.asObservable(),
             onScrollTo: this._subjects.onScrollTo.asObservable(),
+        };
+    }
+
+    public getFrame(): IRange {
+        return {
+            start: this._state.frame.start >= 0 ? this._state.frame.start : 0,
+            end: this._state.frame.end >= 0 ? this._state.frame.end : 0,
         };
     }
 
@@ -104,24 +146,30 @@ export class ControllerSessionTabSearchOutput {
         if (isNaN(range.start) || isNaN(range.end) || !isFinite(range.start) || !isFinite(range.end)) {
             return new Error(`Range has incorrect format. Start and end shound be finite and not NaN`);
         }
-        const stored = Object.assign({}, this._state.stored);
-        if (this._state.count === 0 || range.start < 0 || range.end < 0) {
+        if (range.start < 0 || range.end < 0) {
             return [];
         }
-        if (stored.start >= 0 && stored.end >= 0) {
-            if (range.start >= stored.start && range.end <= stored.end) {
-                rows = this._getRowsSliced(range.start, range.end + 1);
-            } else if (this._rows.length > 0 && range.end > stored.start && range.start < stored.start && range.end < stored.end) {
-                rows = this._getPendingPackets(range.start, stored.start);
-                rows.push(...this._getRowsSliced(stored.start, range.end + 1));
-            } else if (this._rows.length > 0 && range.start < stored.end && range.start > stored.start && range.end > stored.end) {
-                rows = this._getPendingPackets(stored.end + 1, range.end + 1);
-                rows.unshift(...this._getRowsSliced(range.start, stored.end + 1));
-            } else {
-                rows = this._getPendingPackets(range.start, range.end + 1);
-            }
-        } else {
+        if (this._state.count === 0) {
+            return [];
+        }
+        const offset: number = this._state.stored.start < 0 ? 0 : this._state.stored.start;
+        const indexes = {
+            start: range.start - offset,
+            end: range.end - offset,
+        };
+        const stored = Object.assign({}, this._state.stored);
+        if (indexes.start > this._rows.length - 1) {
             rows = this._getPendingPackets(range.start, range.end + 1);
+        } else if (indexes.start < 0 && indexes.end < 0) {
+            rows = this._getPendingPackets(range.start, range.end + 1);
+        } else if (indexes.start >= 0 && indexes.start <= this._rows.length - 1 && indexes.end <= this._rows.length - 1) {
+            rows = this._rows.slice(indexes.start, indexes.end + 1);
+        } else if (indexes.start >= 0 && indexes.start <= this._rows.length - 1 && indexes.end > this._rows.length - 1) {
+            rows = this._rows.slice(indexes.start, this._rows.length);
+            rows.push(...this._getPendingPackets(this._rows.length, indexes.end + 1));
+        } else if (indexes.start < 0 && indexes.end >= 0  && indexes.end <= this._rows.length - 1) {
+            rows = this._rows.slice(0, indexes.end + 1);
+            rows.unshift(...this._getPendingPackets(0, Math.abs(indexes.start)));
         }
         // Check if state is still same
         if (stored.start !== this._state.stored.start || stored.end !== this._state.stored.end) {
@@ -131,11 +179,16 @@ export class ControllerSessionTabSearchOutput {
         if (rows.length !== range.end - range.start + 1) {
             return new Error(this._logger.error(`Calculation error: gotten ${rows.length} rows; should be: ${range.end - range.start}. State was { start: ${stored.start}, end: ${stored.end}}, became { start: ${this._state.stored.start}, end: ${this._state.stored.end}}.`));
         }
-        this._state.frame = Object.assign({}, range);
+        this.setFrame(range);
         return rows;
     }
 
     public setFrame(range: IRange) {
+        if (this._state.originalCount === 0 || this._state.count === 0) {
+            return;
+        }
+        // Normalize range (to exclude bookmarks)
+        range.end = range.end > this._state.originalCount - 1 ? this._state.originalCount - 1 : range.end;
         this._state.frame = Object.assign({}, range);
         if (!this._load()) {
             // No need to make request, but check buffer
@@ -159,6 +212,8 @@ export class ControllerSessionTabSearchOutput {
         this._rows = [];
         this._state = {
             count: 0,
+            originalCount: 0,
+            bookmarksCount: 0,
             stored: {
                 start: -1,
                 end: -1,
@@ -178,15 +233,39 @@ export class ControllerSessionTabSearchOutput {
      * @param { number } rows - number or rows in stream
      * @returns { IRange | undefined } returns undefined if no need to load rows
      */
-    public updateStreamState(message: IPCMessages.SearchRequestResults): void {
+    public updateStreamState(rowsCount: number): void {
         // Update count of rows
-        this._setTotalStreamCount(message.found);
+        this._setTotalStreamCount(rowsCount);
+        // Update bookmarks state
+        this._updateBookmarksData();
+        // Trigger events
         this._subjects.onStateUpdated.next(Object.assign({}, this._state));
+    }
+
+    public getRowsCount(): number {
+        return this._state.count;
+    }
+
+    public preload(range: IRange): Promise<IRange> {
+        // Normalize range (to exclude bookmarks)
+        range.end = range.end > this._state.originalCount - 1 ? this._state.originalCount - 1 : range.end;
+        return this._preload(range);
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Rows operations
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    private _isRangeStored(range: IRange): boolean {
+        const stored = Object.assign({}, this._state.stored);
+        if (this._state.count === 0 || range.start < 0 || range.end < 0) {
+            return true;
+        }
+        if (range.start >= stored.start && range.end <= stored.end) {
+            return true;
+        }
+        return false;
+    }
+
     private _getRowsSliced(from: number, to: number): ISearchStreamPacket[] {
         const offset: number = this._state.stored.start > 0 ? this._state.stored.start : 0;
         return this._rows.slice(from - offset, to - offset);
@@ -198,7 +277,121 @@ export class ControllerSessionTabSearchOutput {
         }
         this._subjects.onScrollTo.next(row);
     }
+
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+     * Bookmarks
+     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    private _onUpdateBookmarksState(bookmark: IBookmark) {
+        this._updateBookmarksData(bookmark);
+    }
+
+    private _updateBookmarksData(bookmark?: IBookmark) {
+        // Clear from bookmarks
+        this._rows = this._removeBookmarks(this._rows);
+        // Insert bookmarks if exist
+        this._rows = this._insertBookmarks(this._rows);
+        // Setup parameters of storage
+        this._state.stored.start = this._getFirstPosNotBookmarkedRow().position;
+        this._state.stored.end = this._getLastPosNotBookmarkedRow().position;
+        // Remember previous value of count
+        const count: number = this._state.count;
+        // Update count or rows
+        this._setTotalStreamCount(this._state.originalCount);
+        if (this._state.count !== count) {
+            // Emit updating of state event
+            this._subjects.onStateUpdated.next(Object.assign({}, this._state));
+        }
+        if (bookmark !== undefined) {
+            // Emit rerequest event
+            this._subjects.onBookmarksChanged.next();
+        }
+    }
+
+    private _insertBookmarks(rows: ISearchStreamPacket[]): ISearchStreamPacket[] {
+        const add = (target: ISearchStreamPacket[], from: number, to: number) => {
+            const between: number[] = this._getBetween(indexes, from, to);
+            between.forEach((index: number) => {
+                if (index === from || index === to) {
+                    return;
+                }
+                const inserted: IBookmark = bookmarks.get(index);
+                target.push({
+                    str: inserted.str,
+                    rank: inserted.rank,
+                    positionInStream: inserted.position,
+                    position: -1,
+                    pluginId: inserted.pluginId,
+                    sessionId: this._guid,
+                    bookmarks: this._bookmakrs,
+                    sources: this._sources,
+                });
+                this._state.bookmarksCount += 1;
+            });
+        };
+        const bookmarks: Map<number, IBookmark> = this._bookmakrs.get();
+        const indexes: number[] = Array.from(bookmarks.keys());
+        this._state.bookmarksCount = 0;
+        if (indexes.length === 0) {
+            return rows;
+        }
+        indexes.sort((a, b) => a - b);
+        const updated: ISearchStreamPacket[] = [];
+        if (rows.length === 0) {
+            add(updated, -1, Infinity);
+            return updated;
+        }
+        rows.forEach((row: ISearchStreamPacket, i: number) => {
+            if (i ===  rows.length - 1 && row.position !== this._state.originalCount - 1) {
+                updated.push(row);
+                return;
+            } else if (i ===  rows.length - 1 && row.position === this._state.originalCount - 1) {
+                if (i === 0 && row.position === 0) {
+                    add(updated, -1, row.positionInStream);
+                }
+                updated.push(row);
+                add(updated, row.positionInStream, Infinity);
+                return;
+            } else if (i === 0 && row.position === 0) {
+                add(updated, -1, row.positionInStream);
+            }
+            updated.push(row);
+            add(updated, row.positionInStream, rows[i + 1].positionInStream);
+        });
+        return updated;
+    }
+
+    private _removeBookmarks(rows: ISearchStreamPacket[]): ISearchStreamPacket[] {
+        this._state.bookmarksCount = 0;
+        return rows.filter((row: ISearchStreamPacket) => {
+            return row.position !== -1;
+        });
+    }
+
+    private _getFirstPosNotBookmarkedRow(): { position: number, index: number } {
+        for (let i = 0, max = this._rows.length - 1; i <= max; i += 1) {
+            if (this._rows[i].position !== -1) {
+                return { position: this._rows[i].position, index: i };
+            }
+        }
+        return { position: -1, index: -1 };
+    }
+
+    private _getLastPosNotBookmarkedRow(): { position: number, index: number } {
+        for (let i = this._rows.length - 1; i >= 0; i -= 1) {
+            if (this._rows[i].position !== -1) {
+                return { position: this._rows[i].position, index: i };
+            }
+        }
+        return { position: -1, index: -1 };
+    }
+
+    private _getBetween(indexes: number[], from: number, to: number): number[] {
+        return indexes.filter((value: number) => {
+            return value >= from ? (value <= to ? true : false) : false;
+        });
+    }
+
+     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Internal methods / helpers
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     private _load(): boolean {
@@ -218,7 +411,7 @@ export class ControllerSessionTabSearchOutput {
         }
         const distance = {
             toStart: frame.start,
-            toEnd: (this._state.count - 1) - frame.end
+            toEnd: (this._state.originalCount - 1) - frame.end
         };
         if (distance.toStart > (Settings.maxRequestCount / 2)) {
             request.start = distance.toStart - (Settings.maxRequestCount / 2);
@@ -228,7 +421,7 @@ export class ControllerSessionTabSearchOutput {
         if (distance.toEnd > (Settings.maxRequestCount / 2)) {
             request.end = frame.end + (Settings.maxRequestCount / 2);
         } else {
-            request.end = (this._state.count - 1);
+            request.end = (this._state.originalCount - 1);
         }
         this._state.lastLoadingRequestId = setTimeout(() => {
             this._state.lastLoadingRequestId = undefined;
@@ -244,6 +437,8 @@ export class ControllerSessionTabSearchOutput {
                 this._parse(message.data, message.start, message.end);
                 // Check again last requested frame
                 if (stored.start <= frame.start && stored.end >= frame.end) {
+                    // Update bookmarks state
+                    this._updateBookmarksData();
                     // Send notification about update
                     this._subjects.onRangeLoaded.next({
                         range: { start: frame.start, end: frame.end },
@@ -260,6 +455,37 @@ export class ControllerSessionTabSearchOutput {
         return true;
     }
 
+    private _preload(range: IRange): Promise<IRange | null> {
+        return new Promise((resolve, reject) => {
+            const timestamp: number = Date.now();
+            if (this._preloadTimestamp !== -1 && timestamp - this._preloadTimestamp < 500) {
+                return resolve(null);
+            }
+            if (this._isRangeStored(range)) {
+                this._preloadTimestamp = -1;
+                return resolve(range);
+            }
+            this._preloadTimestamp = timestamp;
+            this._requestDataHandler(range.start, range.end).then((message: IPCMessages.StreamChunk) => {
+                // Drop request ID
+                this._preloadTimestamp = -1;
+                // Update size of whole stream (real size - count of rows in stream file)
+                this._setTotalStreamCount(message.rows);
+                // Parse and accept rows
+                this._parse(message.data, message.start, message.end);
+                // Update bookmarks state
+                this._updateBookmarksData();
+                // Return actual preloaded range
+                resolve({ start: message.start, end: message.end});
+            }).catch((error: Error) => {
+                // Drop request ID
+                this._preloadTimestamp = -1;
+                // Reject
+                reject(new Error(this._logger.error(`Fail to preload data (rows from ${range.start} to ${range.end}) due error: ${error.message}`)));
+            });
+        });
+    }
+
     private _buffer() {
         if (this._state.bufferLoadingRequestId !== undefined) {
             // Buffer is already requested
@@ -269,7 +495,7 @@ export class ControllerSessionTabSearchOutput {
         const stored = this._state.stored;
         const extended = {
             start: (frame.start - Settings.trigger) < 0 ? 0 : (frame.start - Settings.trigger),
-            end: (frame.end + Settings.trigger) > (this._state.count - 1) ? (this._state.count - 1) : (frame.end + Settings.trigger),
+            end: (frame.end + Settings.trigger) > (this._state.originalCount - 1) ? (this._state.originalCount - 1) : (frame.end + Settings.trigger),
         };
         const diffs = {
             fromEnd: (extended.end > stored.end) ? (extended.end - stored.end) : -1,
@@ -290,7 +516,7 @@ export class ControllerSessionTabSearchOutput {
         } else {
             // Add buffer to the end
             request.start = stored.end;
-            request.end = (extended.end + Settings.maxRequestCount) > this._state.count - 1 ? (this._state.count - 1) : (extended.end + Settings.maxRequestCount);
+            request.end = (extended.end + Settings.maxRequestCount) > this._state.originalCount - 1 ? (this._state.originalCount - 1) : (extended.end + Settings.maxRequestCount);
         }
         this._state.bufferLoadingRequestId = this._requestDataHandler(request.start, request.end).then((message: IPCMessages.StreamChunk) => {
             this._state.bufferLoadingRequestId = undefined;
@@ -303,6 +529,8 @@ export class ControllerSessionTabSearchOutput {
             this._setTotalStreamCount(message.rows);
             // Parse and accept rows
             this._parse(message.data, message.start, message.end);
+            // Update bookmarks state
+            this._updateBookmarksData();
         }).catch((error: Error) => {
             this._logger.error(`Error during requesting data (rows from ${request.start} to ${request.end}): ${error.message}`);
             this._state.bufferLoadingRequestId = undefined;
@@ -328,6 +556,8 @@ export class ControllerSessionTabSearchOutput {
                 pluginId: this._extractPluginId(str),               // Get plugin id
                 rank: this._stream.getRank(),
                 sessionId: this._guid,
+                bookmarks: this._bookmakrs,
+                sources: this._sources,
             };
         }).filter((packet: ISearchStreamPacket) => {
             return (packet.positionInStream !== -1);
@@ -347,6 +577,8 @@ export class ControllerSessionTabSearchOutput {
                 str: undefined,
                 rank: this._stream.getRank(),
                 sessionId: this._guid,
+                bookmarks: this._bookmakrs,
+                sources: this._sources,
             };
         });
         return rows;
@@ -370,6 +602,7 @@ export class ControllerSessionTabSearchOutput {
         } else if (packet.end < this._state.stored.start) {
             this._rows = packets;
         } else if (packet.start < this._state.stored.start) {
+            this._rows = this._removeBookmarks(this._rows);
             const range = this._state.stored.start - packet.start;
             const injection = packets.slice(0, range);
             this._rows.unshift(...injection);
@@ -380,6 +613,7 @@ export class ControllerSessionTabSearchOutput {
                 this._rows.splice(-toCrop, toCrop);
             }
         } else if (packet.end > this._state.stored.end) {
+            this._rows = this._removeBookmarks(this._rows);
             const range = packet.end - this._state.stored.end;
             const injection = packets.slice(packets.length - range, packets.length);
             this._rows.push(...injection);
@@ -390,8 +624,11 @@ export class ControllerSessionTabSearchOutput {
                 this._rows.splice(0, toCrop);
             }
         }
-        this._state.stored.start = this._rows[0].position;
-        this._state.stored.end = this._rows[this._rows.length - 1].position;
+        // Insert bookmarks if exist
+        this._rows = this._insertBookmarks(this._rows);
+        // Setup parameters of starage
+        this._state.stored.start = this._getFirstPosNotBookmarkedRow().position;
+        this._state.stored.end = this._getLastPosNotBookmarkedRow().position;
     }
 
     /**
@@ -431,7 +668,11 @@ export class ControllerSessionTabSearchOutput {
     }
 
     private _setTotalStreamCount(count: number) {
-        this._state.count = count;
+        this._state.originalCount = count;
+        this._state.count = this._state.originalCount + this._state.bookmarksCount;
+        if (this._state.count === 0) {
+            return this.clearStream();
+        }
     }
 
 }

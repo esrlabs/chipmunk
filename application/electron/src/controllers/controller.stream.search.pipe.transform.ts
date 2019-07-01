@@ -1,38 +1,37 @@
 import * as Stream from 'stream';
-import { IRange } from './controller.stream.search.map';
+import { IRange, IMapItem } from './controller.stream.search.map';
 import Logger from '../tools/env.logger';
-import ServiceElectron, { IPCMessages as IPCElectronMessages } from '../services/service.electron';
 import State from './controller.stream.search.state';
 
 export interface ITransformResult {
     output: string;
     bytesSize: number;
-    rows: IRange;
+    map: IMapItem;
 }
 
-const Settings = {
-    notificationDelayOnStream: 500,             // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is blocked
-    maxPostponedNotificationMessages: 500,      // How many IPC messages to render (client) should be postponed via timer
-};
-
-export function convert(streamId: string, state: State, chunk: Buffer | string): ITransformResult {
-    const transform: Transform = new Transform({}, streamId, state);
-    return transform.convert(chunk);
-}
+export type TBeforeCallbackHandle = (results: ITransformResult) => Promise<void>;
 
 export default class Transform extends Stream.Transform {
 
     private _logger: Logger;
     private _rest: string = '';
     private _streamId: string;
-    private _state: State;
+    private _beforeCallbackHandle: TBeforeCallbackHandle | undefined;
+    private _offsets: { bytes: number, rows: number } = { bytes: 0, rows: 0 };
+    private _map: IMapItem[] = [];
 
-    constructor(options: Stream.TransformOptions, streamId: string, state: State) {
+    constructor(options: Stream.TransformOptions,
+                streamId: string,
+                offsets: { bytes: number, rows: number }) {
+
         super(options);
         this._streamId = streamId;
-        this._state = state;
+        this._offsets = offsets;
         this._logger = new Logger(`ControllerSearchTransformer: ${this._streamId}`);
+    }
 
+    public setBeforeCallbackHandle(handle: TBeforeCallbackHandle | undefined) {
+        this._beforeCallbackHandle = handle;
     }
 
     public _transform(chunk: Buffer | string, encoding: string, callback: Stream.TransformCallback | undefined): ITransformResult {
@@ -49,30 +48,53 @@ export default class Transform extends Stream.Transform {
         output = rest.cleared;
         // Add indexes
         const rows: IRange = {
-            from: this._state.map.getRowsCount(),
-            to: this._state.map.getRowsCount() + output.split(/[\n\r]/gi).length - 1,
+            from: this._offsets.rows,
+            to: this._offsets.rows + output.split(/[\n\r]/gi).length - 1,
         };
         // Store cursor position
         const bytes = {
-            from: this._state.map.getByteLength(),
-            to: this._state.map.getByteLength(),
+            from: this._offsets.bytes,
+            to: this._offsets.bytes,
         };
         const size: number = Buffer.byteLength(output, 'utf8');
         rows.to -= 1;
         bytes.to += size - 1;
-        this._state.map.add({ rows: rows, bytes: bytes });
-        if (callback !== undefined) {
-            callback(undefined, output);
-        }
-        return {
+        const results: ITransformResult = {
             output: output,
             bytesSize: size,
-            rows: rows,
+            map: { rows: rows, bytes: bytes },
         };
+        // Update offsets
+        this._offsets.rows = results.map.rows.to + 1;
+        this._offsets.bytes = results.map.bytes.to + 1;
+        // Store map
+        this._map.push(results.map);
+        // Call callback
+        if (callback !== undefined) {
+            if (typeof this._beforeCallbackHandle === 'function') {
+                this._beforeCallbackHandle(results).then(() => {
+                    callback(undefined, output);
+                }).catch((error: Error) => {
+                    this._logger.warn(`Error from "beforeCallbackHandle": ${error.message}`);
+                    callback(undefined, output);
+                });
+            } else {
+                callback(undefined, output);
+            }
+        } else if (typeof this._beforeCallbackHandle === 'function') {
+            this._beforeCallbackHandle(results).catch((error: Error) => {
+                this._logger.warn(`Error from "beforeCallbackHandle": ${error.message}`);
+            });
+        }
+        return results;
     }
 
     public convert(chunk: Buffer | string): ITransformResult {
         return this._transform(chunk, 'utf8', undefined);
+    }
+
+    public getMap(): IMapItem[] {
+        return this._map;
     }
 
     private _getRest(str: string): { rest: string, cleared: string } {

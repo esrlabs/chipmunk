@@ -143,7 +143,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             ip: this._ng_addr,
             port: this._ng_port,
         }, this.session).then((response) => {
-            console.log(response);
+            // TODO: what to do here?
         });
     }
 
@@ -155,7 +155,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             streamId: this.session,
             command: EHostCommands.disconnect,
         }, this.session).then((response) => {
-            console.log(response);
+            // TODO: what to do here?
         });
     }
 

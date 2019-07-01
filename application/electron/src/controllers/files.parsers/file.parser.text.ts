@@ -11,6 +11,10 @@ export default class FileParser extends AFileParser {
         return 'text format';
     }
 
+    public getAlias(): string {
+        return 'text';
+    }
+
     public getExtnameFilters(): Array<{ name: string, extensions: string[] }> {
         return [
             { name: 'Text files', extensions: ExtNames },

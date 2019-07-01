@@ -4,19 +4,25 @@ import * as fs from 'fs';
 import ControllerStreamFileReader from './controller.stream.file.reader';
 import { RGSearchWrapper } from './controller.stream.search.rg';
 import State from './controller.stream.search.state';
+import StreamState from './controller.stream.state';
 import { IMapItem } from './controller.stream.search.map';
 import Transform from './controller.stream.search.pipe.transform';
 import NullWritableStream from '../classes/stream.writable.null';
 
 export interface IRange {
-    start: number;
-    end: number;
+    from: number;
+    to: number;
 }
 
 export interface IRangeMapItem {
     rows: IRange;
     bytes: IRange;
 }
+
+const CSettings = {
+    delayOnAppend: 250,                 // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is blocked
+    maxPostponedAppendAttempts: 100,     // How many IPC messages to render (client) should be postponed via timer
+};
 
 export default class ControllerStreamSearch {
 
@@ -26,14 +32,32 @@ export default class ControllerStreamSearch {
     private _searchFile: string;
     private _searchReader: ControllerStreamFileReader | undefined;
     private _subscriptions: { [key: string ]: Subscription | undefined } = { };
+    private _engine: RGSearchWrapper;
     private _state: State;
+    private _last: RegExp[] = [];
+    private _streamState: StreamState;
+    private _appendState: {
+        timer: any,
+        attempts: number,
+        bytes: IRange,
+        isBusy: boolean,
+    } = {
+        timer: -1,
+        attempts: 0,
+        bytes: { from: -1, to: -1 },
+        isBusy: false,
+    };
+    private _blocked: boolean = false;
 
-    constructor(guid: string, streamFile: string, searchFile: string) {
+    constructor(guid: string, streamFile: string, searchFile: string, streamState: StreamState) {
         this._guid = guid;
         this._streamFile = streamFile;
         this._searchFile = searchFile;
+        this._streamState = streamState;
         this._logger = new Logger(`ControllerStreamSearch: ${this._guid}`);
         this._state = new State(this._guid);
+        this._engine = new RGSearchWrapper(this._streamFile, this._searchFile);
+        this._subscriptions.onStreamUpdate = this._streamState.getSubject().onStreamUpdated.subscribe(this._stream_onUpdate.bind(this));
         this._ipc_onSearchRequest = this._ipc_onSearchRequest.bind(this);
         this._ipc_onSearchChunkRequested = this._ipc_onSearchChunkRequested.bind(this);
         ServiceElectron.IPC.subscribe(IPCElectronMessages.SearchRequest, this._ipc_onSearchRequest).then((subscription: Subscription) => {
@@ -48,22 +72,103 @@ export default class ControllerStreamSearch {
         });
     }
 
-    public destroy() {
-        // TODO: check is rg works or results mapped. And force to close it
-        if (this._searchReader !== undefined) {
-            this._searchReader.destroy();
+    public destroy(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            // TODO: check is rg works or results mapped. And force to close it
+            if (this._searchReader !== undefined) {
+                this._searchReader.destroy();
+            }
+            // Unsubscribe IPC messages / events
+            Object.keys(this._subscriptions).forEach((key: string) => {
+                (this._subscriptions as any)[key].destroy();
+            });
+            resolve();
+        });
+    }
+
+    public reset(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._blocked = true;
+            // Close stream
+            if (this._searchReader !== undefined) {
+                this._searchReader.destroy();
+                this._searchReader = undefined;
+            }
+            // Drop stream file
+            fs.unlink(this._searchFile, (error: NodeJS.ErrnoException | null) => {
+                if (error) {
+                    return reject(error);
+                }
+                // Drop map
+                this._state.map.drop();
+                this._blocked = false;
+                // Create file
+                fs.open(this._searchFile, 'w', (createFileError: NodeJS.ErrnoException | null, fd: number) => {
+                    if (createFileError) {
+                        return reject(createFileError);
+                    }
+                    fs.close(fd, (closeFileError: NodeJS.ErrnoException | null) => {
+                        if (closeFileError) {
+                            return reject(closeFileError);
+                        }
+                        // Create reader
+                        this._searchReader = new ControllerStreamFileReader(this._guid, this._searchFile);
+                        // Notification
+                        this._state.postman.notification(true);
+                        resolve();
+                    });
+                });
+            });
+        });
+    }
+
+    private _tryToAppend(bytes: IRange) {
+        clearTimeout(this._appendState.timer);
+        this._appendState.attempts += 1;
+        if (this._appendState.bytes.from === -1 || this._appendState.bytes.from > bytes.from) {
+            this._appendState.bytes.from = bytes.from;
         }
-        // Unsubscribe IPC messages / events
-        Object.keys(this._subscriptions).forEach((key: string) => {
-            (this._subscriptions as any)[key].destroy();
+        if (this._appendState.bytes.to < bytes.to) {
+            this._appendState.bytes.to = bytes.to;
+        }
+        if (this._appendState.attempts > CSettings.maxPostponedAppendAttempts && !this._engine.isBusy() && !this._appendState.isBusy) {
+            this._append();
+        } else {
+            this._appendState.timer = setTimeout(() => {
+                this._append();
+            }, CSettings.delayOnAppend);
+        }
+    }
+
+    private _append(): void {
+        if (this._last.length === 0) {
+            return;
+        }
+        if (this._engine.isBusy() || this._appendState.isBusy) {
+            this._tryToAppend(this._appendState.bytes);
+            return;
+        }
+        this._appendState.isBusy = true;
+        const bytes: IRange = { from: this._appendState.bytes.from, to: this._appendState.bytes.to };
+        this._appendState.bytes.from = -1;
+        this._appendState.bytes.to = -1;
+        this._appendState.attempts = 0;
+        this._engine.append(bytes.from, bytes.to).then(() => {
+            this._generateFileMap(true).then(() => {
+                this._appendState.isBusy = false;
+            }).catch((writeError: Error) => {
+                this._logger.warn(`Fail to generate map file due error: ${writeError.message}`);
+            });
+        }).catch((searchError: Error) => {
+            this._logger.warn(`Fail to make a search due error: ${searchError.message}`);
         });
     }
 
     private _search(requests: RegExp[], searchRequestId: string): Promise<number> {
         return new Promise((resolve, reject) => {
-            const rg: RGSearchWrapper = new RGSearchWrapper(this._streamFile, this._searchFile);
-            rg.search(requests).then(() => {
-                this._generateFileMap(this._searchFile).then(() => {
+            this._engine.search(requests).then(() => {
+                this._last = requests;
+                this._generateFileMap().then(() => {
                     resolve(this._state.map.getRowsCount());
                 }).catch((writeError: Error) => {
                     reject(writeError);
@@ -74,26 +179,48 @@ export default class ControllerStreamSearch {
         });
     }
 
-    private _generateFileMap(file: string): Promise<void> {
+    private _generateFileMap(append: boolean = false): Promise<void> {
         return new Promise((resolve, reject) => {
-            // Drop map
-            this._state.map.drop();
+            if (!append) {
+                // Drop map
+                this._state.map.drop();
+            }
+            const options = append ? { start: this._state.map.getByteLength() } : {};
             // Create reader
-            const reader: fs.ReadStream = fs.createReadStream(file);
+            const reader: fs.ReadStream = fs.createReadStream(this._searchFile, options);
             // Create writer
             const writer: NullWritableStream = new NullWritableStream();
             // Create transformer
-            const transform: Transform = new Transform({}, this._guid, this._state);
-            // Listenn end of reading
-            reader.once('end', () => {
+            const transform: Transform = new Transform({}, this._guid, { bytes: this._state.map.getByteLength(), rows: this._state.map.getRowsCount()});
+            // Listen error on reading
+            reader.once('error', (readingError: Error) => {
+                reject(new Error(this._logger.error(`Fail to read file due error: ${readingError.message}`)));
+            });
+            // Listen error on writing
+            reader.once('error', (readingError: Error) => {
+                reject(new Error(this._logger.error(`Fail to write file due error: ${readingError.message}`)));
+            });
+            // Listen end of writing
+            writer.once('finish', () => {
+                if (transform.getMap().length === 0) {
+                    this._logger.warn(`Transformer doesn't have any item of map`);
+                    return resolve();
+                }
+                // Add map
+                this._state.map.add(transform.getMap());
+                // Valid data
+                /*
+                const validate = this._state.map.getInvalid();
+                if (validate !== undefined) {
+                    console.log(`Not valid map items found: ${validate.indexes}`);
+                }
+                */
+                // Notifications is here
+                this._state.postman.notification(true);
                 resolve();
             });
-            // Listen error on reading
-            reader.once('error', (error: Error) => {
-                reject(new Error(this._logger.error(`Fail to read file due error: ${error.message}`)));
-            });
             // Execute operation
-            reader.pipe(transform).pipe(writer, { end: false });
+            reader.pipe(transform).pipe(writer);
         });
     }
 
@@ -109,15 +236,6 @@ export default class ControllerStreamSearch {
                 found: found === undefined ? 0 : found,
                 duration: Date.now() - started,
             }));
-            /*
-            // Notify client
-            ServiceElectron.IPC.send(new IPCElectronMessages.SearchRequestFinished({
-                streamId: message.streamId,
-                requestId: message.requestId,
-                error: error,
-                duration: Date.now() - started,
-            }));
-            */
         };
         // Check target stream
         if (this._guid !== message.streamId) {
@@ -131,6 +249,10 @@ export default class ControllerStreamSearch {
         }
         // Drop results file
         this._dropSearchData().then(() => {
+            if (message.requests.length === 0) {
+                // Only dropping results
+                return done(0);
+            }
             // Create reader
             this._searchReader = new ControllerStreamFileReader(this._guid, this._searchFile);
             // Create regexps
@@ -207,6 +329,10 @@ export default class ControllerStreamSearch {
         }).catch((readError: Error) => {
             this._logger.error(`Fail to read data from storage file due error: ${readError.message}`);
         });
+    }
+
+    private _stream_onUpdate(bytes: IRange) {
+        this._tryToAppend(bytes);
     }
 
 }

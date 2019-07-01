@@ -1,0 +1,6 @@
+<div class="shadow" *ngIf="popups.length > 0"></div>
+<ul class="popups">
+    <li *ngFor="let popup of popups" [attr.class]="'popup'">
+        <app-popup [popup]="popup" [onClose]="onClose.bind(this, popup)"></app-popup>
+    </li>
+</ul>

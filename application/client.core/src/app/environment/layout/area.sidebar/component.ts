@@ -20,29 +20,19 @@ export class LayoutSessionSidebarComponent implements AfterViewInit, OnDestroy {
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
 
     constructor(private _cdRef: ChangeDetectorRef) {
-        // Get tabs service
-        this._setActiveTabsService();
-        // Subscribe to change of current session
-        this._subscriptions.currentSession = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-        /*
-        this.tabsService.add({
-            name: 'Serial port',
-            active: true,
-        });
-        this.tabsService.add({
-            name: 'ADB',
-            active: false,
-        });
-        */
     }
 
     ngAfterViewInit() {
         if (!(this.state)) {
             return;
         }
+        // Subscribe to change of current session
+        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         // Subscribe to state events
         this._subscriptions.minimized = this.state.getObservable().minimized.subscribe(this._onMinimized.bind(this));
         this._subscriptions.updated = this.state.getObservable().updated.subscribe(this._onUpdated.bind(this));
+        // Get tabs service
+        this._setActiveTabsService();
         // Update layout
         this._cdRef.detectChanges();
     }
@@ -71,14 +61,20 @@ export class LayoutSessionSidebarComponent implements AfterViewInit, OnDestroy {
     }
 
     private _onSessionChange(session: ControllerSessionTab) {
+        // Drop old service
+        this._ng_tabsService = undefined;
+        this._cdRef.detectChanges();
+        // Set new service
         this._setActiveTabsService(session);
+        this._cdRef.detectChanges();
     }
 
-    private _setActiveTabsService(session?: ControllerSessionTab) {
-        if (session === undefined) {
+    private _setActiveTabsService(session?: ControllerSessionTab | undefined) {
+        if (session === undefined || session === null) {
             session = TabsSessionsService.getActive();
         }
-        if (session === undefined) {
+        if (session === undefined || session === null) {
+            this._ng_tabsService = undefined;
             return;
         }
         // Get tabs service

@@ -785,6 +785,69 @@ namespace('plugin.dlt', function() {
 
 });
 
+namespace('plugin.dlt-render', function() {
+    const PATH_DEST = path.normalize(path.resolve(__dirname, 'sandbox/dlt-render'));
+    const PATH_CLIENT_SOURCES = path.normalize(path.resolve(__dirname, 'client.plugins'));
+
+    task('link-client-libs', function() {
+        logo();
+        const tasks = [];
+        const sandboxPath = path.normalize(path.resolve(__dirname, PATH_CLIENT_SOURCES));
+        const sandboxNodeModules = path.normalize(path.resolve(sandboxPath, 'node_modules'));
+        const clientLibsPath = path.normalize(path.resolve(__dirname, CLIENT_NPM_LIBS));
+        const clientLibsDist = path.normalize(path.resolve(clientLibsPath, 'dist'));
+        CLIENT_NPM_LIBS_LIST.forEach((alias) => {
+            const clientLib = path.normalize(path.resolve(clientLibsDist, alias));
+            const sandboxLibDest = path.normalize(path.resolve(sandboxNodeModules, alias));
+            if (fs.existsSync(sandboxLibDest)) {
+                console.log(`Project ${sandboxLibDest} is already linked. It will be unlinked before to be linked again.`);
+                tasks.push(echo(colors.blue(`unlink: ${sandboxLibDest}`)));
+                tasks.push(`rm -rf ${sandboxLibDest} & exit 0`);
+            }
+            tasks.push(echo(colors.blue(`Coping: ${sandboxLibDest}`)));
+            tasks.push(`cp -R ${clientLib} ${sandboxLibDest}`);
+            tasks.push(`rm -rf ${path.normalize(path.resolve(sandboxPath, 'etc'))}`);
+        });
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('client.build', function() {
+        logo();
+        const tasks = [];
+        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist'));
+        const clientNodeModules = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'projects/dlt-render/node_modules'));
+        const clientPluginFolder = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'projects/dlt-render'));
+        if (fs.existsSync(clientDist)) {
+            tasks.push(echo(colors.blue(`Remove dist files: ${clientDist}`)));
+            tasks.push(`rm -rf ${clientDist}`);
+        }
+        if (!CLI_FLAGS.skipNpm && fs.existsSync(clientNodeModules)) {
+            tasks.push(echo(colors.blue(`Remove dist files: ${clientNodeModules}`)));
+            tasks.push(`rm -rf ${clientNodeModules}`);
+            tasks.push(`npm install --prefix ${clientPluginFolder}`);
+        }
+        tasks.push(`npm run build:dlt-render --prefix ${PATH_CLIENT_SOURCES}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('client.delivery', function() {
+        logo();
+        const tasks = [];
+        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist/dlt-render/*'));
+        const clientDest = path.normalize(path.resolve(PATH_DEST, 'render/'));
+        if (fs.existsSync(clientDest)) {
+            tasks.push(echo(colors.blue(`Remove dest files: ${clientDest}`)));
+            tasks.push(`rm -rf ${clientDest}`);
+        }
+        tasks.push(`mkdir ${clientDest}`);
+        tasks.push(`cp -R ${clientDist} ${clientDest}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('all', ['plugin.dlt-render:link-client-libs', 'plugin.dlt-render:client.build', 'plugin.dlt-render:client.delivery']);
+
+});
+
 namespace('electron', function() {
 
     task('install', function() {
