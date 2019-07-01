@@ -157,6 +157,13 @@ match: Ok(true)
 
 # Changelog
 
+### [0.21.4] - 07/01/2019
+  * do not panic on invalid dates to parse
+  * more stderr cleanup
+  * added win32 build
+  * add windows cross build
+  * small addition to rakefile
+
 ### [0.21.3] - 06/29/2019
   * use stdout instead of stderr for format to regex results
 
