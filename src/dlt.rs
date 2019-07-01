@@ -48,6 +48,8 @@ pub struct StorageHeader {
     pub timestamp: DltTimeStamp,
     pub ecu_id: String,
 }
+//   EColumn.DATETIME,
+//   EColumn.ECUID,
 impl fmt::Display for StorageHeader {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}{}[{}]", self.timestamp, DLT_COLUMN_SENTINAL, self.ecu_id)
@@ -797,48 +799,71 @@ pub struct Message {
 }
 pub const DLT_COLUMN_SENTINAL: char = '\u{0004}';
 pub const DLT_ARGUMENT_SENTINAL: char = '\u{0005}';
+
+/// will format dlt Message with those fields:
+/// EColumn.DATETIME,
+/// EColumn.ECUID,
+/// EColumn.VERS,
+/// EColumn.SID,
+/// EColumn.MCNT,
+/// EColumn.TMS,
+/// EColumn.EID,
+/// EColumn.APID,
+/// EColumn.CTID,
+/// EColumn.MSTP,
+/// EColumn.PAYLOAD,
 impl fmt::Display for Message {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}{}[cnt:{}]{}---{}",
+            "{}{}{}{}{}{}{}[cnt:{}]{}{}{}{}{}",
+            DLT_COLUMN_SENTINAL,
             self.storage_header
                 .as_ref()
-                .map_or(String::new(), |storage_header| format!(
-                    "{} [{}]: ",
-                    storage_header.timestamp, storage_header.ecu_id
-                )),
+                .map_or(String::new(), |storage_header| storage_header.to_string()),
+            DLT_COLUMN_SENTINAL,
+            self.header.version,
+            DLT_COLUMN_SENTINAL,
+            self.header.session_id.map_or("no session id".to_string(), |sid| sid.to_string()),
             DLT_COLUMN_SENTINAL,
             self.header.message_counter,
+            DLT_COLUMN_SENTINAL,
+            self.header.timestamp.map_or("no timestamp".to_string(), |tmsp| tmsp.to_string()),
             DLT_COLUMN_SENTINAL,
             self.header
                 .ecu_id
                 .as_ref()
                 .map(|id| format!("[{}]", id))
                 .unwrap_or_else(|| "".into()),
+            DLT_COLUMN_SENTINAL,
         )?;
 
+        if let Some(ext) = self.extended_header.as_ref() {
+            write!(
+                f,
+                "{}{}{}{}{}{}",
+                ext.application_id,
+                DLT_COLUMN_SENTINAL,
+                ext.context_id,
+                DLT_COLUMN_SENTINAL,
+                ext.message_type,
+                DLT_COLUMN_SENTINAL,
+            )?;
+        } else {
+            write!(f, "")?;
+        }
         match &self.payload {
             Payload::Verbose(arguments) => {
                 arguments
                     .iter()
-                    .try_for_each(|arg| write!(f, "{}<{}>", DLT_ARGUMENT_SENTINAL, arg))?;
+                    .try_for_each(|arg| write!(f, "{}<{}>", DLT_ARGUMENT_SENTINAL, arg))
             }
             Payload::NonVerbose(id, data) => {
                 let as_string = str::from_utf8(&data).unwrap_or("").trim();
                 f.write_str(
                     &format!("[non-verbose, id:{}]({:?})|{:02X?}", id, as_string, data)[..],
-                )?;
+                )
             }
-        }
-        if let Some(ext) = self.extended_header.as_ref() {
-            write!(
-                f,
-                "|{}|{}|<{}>|",
-                ext.application_id, ext.context_id, ext.message_type
-            )
-        } else {
-            write!(f, "")
         }
     }
 }
