@@ -225,7 +225,7 @@ export class ControllerSessionTabSearch {
         this._subjects.onRequestsUpdated.next(this._stored);
         if (count > 0 && this._stored.length === 0) {
             this.drop(Toolkit.guid()).then(() => {
-                OutputParsersService.setHighlights(this._stored.slice());
+                OutputParsersService.setHighlights(this.getGuid(), this._stored.slice());
                 OutputParsersService.updateRowsView();
             }).catch((error: Error) => {
                 this._logger.error(`Fail to drop search results`);
@@ -242,7 +242,7 @@ export class ControllerSessionTabSearch {
             return;
         }
         this.drop(Toolkit.guid()).then(() => {
-            OutputParsersService.setHighlights(this._stored.slice());
+            OutputParsersService.setHighlights(this.getGuid(), this._stored.slice());
             OutputParsersService.updateRowsView();
         }).catch((error: Error) => {
             this._logger.error(`Fail to drop search results of stored filters`);
@@ -272,7 +272,7 @@ export class ControllerSessionTabSearch {
         if (isUpdateRequired) {
             if (this.getActiveStored().length === 0 && active !== 0) {
                 this.drop(Toolkit.guid()).then(() => {
-                    OutputParsersService.setHighlights(this._stored.slice());
+                    OutputParsersService.setHighlights(this.getGuid(), this._stored.slice());
                     OutputParsersService.updateRowsView();
                 }).catch((error: Error) => {
                     this._logger.error(`Fail to drop search results of stored filters`);
@@ -281,7 +281,7 @@ export class ControllerSessionTabSearch {
                 this._applyFilters();
             }
         } else {
-            OutputParsersService.setHighlights(this._stored.slice());
+            OutputParsersService.setHighlights(this.getGuid(), this._stored.slice());
             OutputParsersService.updateRowsView();
         }
     }
@@ -337,7 +337,7 @@ export class ControllerSessionTabSearch {
         this.search(requestId, active.map((request: IRequest) => {
             return request.reg;
         }), true).then(() => {
-            OutputParsersService.setHighlights(this._stored.slice());
+            OutputParsersService.setHighlights(this.getGuid(), this._stored.slice());
             OutputParsersService.updateRowsView();
         }).catch((error: Error) => {
             this._logger.error(`Cannot apply filters due error: ${error.message}`);

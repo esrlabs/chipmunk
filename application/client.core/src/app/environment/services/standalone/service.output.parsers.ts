@@ -54,7 +54,7 @@ export class OutputParsersService {
     private _typed: Map<string, ITypedRowComponent> = new Map();
     private _plugins: Map<number, IPluginParsers> = new Map();
     private _search: Map<string, IRequest[]> = new Map();
-    private _highlights: IRequest[] = [];
+    private _highlights: Map<string, IRequest[]> = new Map();
     private _history: {
         sources: string[],
         typedComAliases: Map<string, string>
@@ -102,8 +102,8 @@ export class OutputParsersService {
         this._subjects.onUpdatedSearch.next();
     }
 
-    public setHighlights(requests: IRequest[]) {
-        this._highlights = requests;
+    public setHighlights(sessionId: string, requests: IRequest[]) {
+        this._highlights.set(sessionId, requests);
     }
 
     public getRowComponent(sourceName: string): IComponentDesc | undefined {
@@ -155,28 +155,33 @@ export class OutputParsersService {
 
     public matches(sessionId: string, row: number, str: string): { str: string, color?: string, background?: string } {
         const requests: IRequest[] | undefined = this._search.get(sessionId);
-        if (requests === undefined) {
+        const highlights: IRequest[] = this._highlights.get(sessionId);
+        if (requests === undefined && this._highlights === undefined) {
             return {
                 str: str,
             };
         }
         let first: IRequest | undefined;
-        this._highlights.forEach((request: IRequest) => {
-            str = str.replace(request.reg, (match: string) => {
-                if (first === undefined) {
-                    first = request;
-                }
-                return `<span class="noreset match">${match}</span>`;
+        if (highlights instanceof Array) {
+            highlights.forEach((request: IRequest) => {
+                str = str.replace(request.reg, (match: string) => {
+                    if (first === undefined) {
+                        first = request;
+                    }
+                    return `<span class="noreset match">${match}</span>`;
+                });
             });
-        });
-        requests.forEach((request: IRequest) => {
-            str = str.replace(request.reg, (match: string) => {
-                if (first === undefined) {
-                    first = request;
-                }
-                return `<span class="noreset match">${match}</span>`;
+        }
+        if (requests instanceof Array) {
+            requests.forEach((request: IRequest) => {
+                str = str.replace(request.reg, (match: string) => {
+                    if (first === undefined) {
+                        first = request;
+                    }
+                    return `<span class="noreset match">${match}</span>`;
+                });
             });
-        });
+        }
         return {
             str: str,
             color: first === undefined ? undefined : first.color,
