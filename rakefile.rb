@@ -76,11 +76,22 @@ end
 def build_the_release_windows
   sh "cargo build --release --target=x86_64-pc-windows-gnu"
   current_version = get_current_version
-  os_ext = "windows"
   release_folder = "target/x86_64-pc-windows-gnu/release"
+  tgz_file = "indexing@#{current_version}-win64.tgz"
   cd "#{release_folder}" do
-    sh "tar -cvzf indexing@#{current_version}-#{os_ext}.tgz #{EXE_NAME}.exe"
+    sh "tar -cvzf #{tgz_file} #{EXE_NAME}.exe"
   end
+  mv "#{release_folder}/#{tgz_file}", "target/release"
+end
+def build_the_release_windows32
+  sh "cargo build --release --target=i686-pc-windows-gnu"
+  current_version = get_current_version
+  release_folder = "target/i686-pc-windows-gnu/release"
+  tgz_file = "indexing@#{current_version}-win32.tgz"
+  cd "#{release_folder}" do
+    sh "tar -cvzf #{tgz_file} #{EXE_NAME}.exe"
+  end
+  mv "#{release_folder}/#{tgz_file}", "target/release"
 end
 desc "create new version and release"
 task :create_release do
@@ -115,10 +126,7 @@ end
 desc "build release, no version bump"
 task :build_release do
   build_the_release
-end
-desc "build windows release, no version bump"
-task :build_release_windows do
-  build_the_release_windows
+  build_the_release_windows32
 end
 
 namespace :version do
