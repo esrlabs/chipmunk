@@ -149,7 +149,9 @@ export class ControllerSessionTabSearchOutput {
         if (range.start < 0 || range.end < 0) {
             return [];
         }
-        const requested: number = range.end - range.start + 1;
+        if (this._state.count === 0) {
+            return [];
+        }
         const offset: number = this._state.stored.start < 0 ? 0 : this._state.stored.start;
         const indexes = {
             start: range.start - offset,

@@ -124,3 +124,4 @@ export class SidebarAppSearchRequestDetailsComponent implements OnDestroy, After
     }
 
 }
+
