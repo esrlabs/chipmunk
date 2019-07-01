@@ -63,10 +63,12 @@ def build_the_release
   release_folder = "target/release"
   os_ext = "darwin"
   if OS.linux?
-      os_ext = "linux"
+    put "linux"
+    os_ext = "linux"
   elsif OS.windows?
-      os_ext = "windows"
-      release_folder = "target/x86_64-pc-windows-gnu/release"
+    put "windows"
+    os_ext = "windows"
+    release_folder = "target/x86_64-pc-windows-gnu/release"
   end
   cd "#{release_folder}" do
     cp "#{EXE_NAME}","#{HOME}/bin/#{EXE_NAME}"
@@ -126,7 +128,9 @@ end
 desc "build release, no version bump"
 task :build_release do
   build_the_release
-  build_the_release_windows32
+  if OS.linux?
+    build_the_release_windows32
+  end
 end
 
 namespace :version do

@@ -133,7 +133,7 @@ pub fn index_dlt_file(config: IndexingConfig, initial_line_nr: usize) -> Result<
             &mut buf_writer,
             &counted_message, //trimmed_line,
             counted_message.line_index,
-            false,
+            true,
         )?;
         if let Some(chunk) =
             chunk_factory.create_chunk_if_needed(counted_message.line_index + 1, written_bytes_len)
