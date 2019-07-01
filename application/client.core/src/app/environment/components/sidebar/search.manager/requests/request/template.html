@@ -1,0 +1,5 @@
+<span [attr.class]="'switcher small-icon-button fas ' + (_ng_active ? 'fa-check-circle' : 'fa-circle inactive')" (click)="_ng_onChangeState($event)"></span>
+<span class="color" [ngStyle]="{'background': _ng_color}"></span>
+<span class="background" [ngStyle]="{'background': _ng_background}"></span>
+<span class="request t-normal">{{_ng_request}}</span>
+<span class="remove small-icon-button fas fa-times-circle" (click)="_ng_onRemove($event)"></span>

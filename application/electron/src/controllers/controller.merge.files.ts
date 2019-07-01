@@ -12,6 +12,7 @@ export interface IFile {
     year?: number;
     offset: number;
     parser: string;
+    format: string;
 }
 
 export default class MergeFiles {
@@ -48,12 +49,19 @@ export default class MergeFiles {
                     const converted = map.map((item: IFileMapItem) => {
                         return { bytes: { from: item.b[0], to: item.b[1] }, rows: { from: item.r[0], to: item.r[1] } };
                     });
+                    const mapped: number = converted.length === 0 ? 0 : (converted[map.length - 1].bytes.to - converted[0].bytes.from);
                     ServiceStreams.pushToStreamFileMap(this._session, converted);
-                    ServiceStreams.updatePipeSession(converted[map.length - 1].bytes.to, this._session);
+                    ServiceStreams.updatePipeSession(mapped, this._session);
                 });
                 lvin.merge(
                     this._files.map((file: IFile) => {
-                        return { file: file.file, offset: file.offset, sourceId: this._sourceIds[file.file].toString(), year: file.year } as IFileToBeMerged;
+                        return {
+                            file: file.file,
+                            offset: file.offset,
+                            sourceId: this._sourceIds[file.file].toString(),
+                            year: file.year,
+                            format: file.format,
+                        } as IFileToBeMerged;
                     }),
                     {
                         destFile: sessionData.file,
@@ -63,6 +71,8 @@ export default class MergeFiles {
                     ServiceStreams.removePipeSession(this._writeSessionsId);
                     resolve(size);
                 }).catch((error: Error) => {
+                    lvin.removeAllListeners();
+                    ServiceStreams.removePipeSession(this._writeSessionsId);
                     reject(error);
                 });
             }).catch((error: Error) => {

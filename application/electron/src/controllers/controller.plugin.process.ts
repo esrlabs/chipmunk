@@ -27,6 +27,7 @@ export default class ControllerPluginProcess extends Emitter {
     private _plugin: IPlugin;
     private _process: ChildProcess | undefined;
     private _ipc: ControllerIPCPlugin | undefined;
+    private _boundStreamGuid: string | undefined;
 
     constructor(plugin: IPlugin) {
         super();
@@ -111,30 +112,31 @@ export default class ControllerPluginProcess extends Emitter {
         return true;
     }
 
-    public addStream(guid: string, connection: { socket: Net.Socket, file: string }) {
-        if (this._process === undefined) {
-            this._logger.warn(`Attempt to add stream to plugin, which doesn't attached. Stream GUID: ${guid}.`);
-            return;
-        }
-        this._logger.env(`Sent information about stream GUID: ${guid}.`);
-        // Bind socket
-        this._bindRefWithId(connection.socket).then(() => {
+    public bindStream(guid: string, connection: { socket: Net.Socket, file: string }): Promise<void> {
+        return new Promise((resolve, reject) => {
             if (this._process === undefined) {
-                return;
+                return reject(new Error(this._logger.warn(`Attempt to bind stream to plugin, which doesn't attached. Stream GUID: ${guid}.`)));
             }
-            // Send socket to plugin process
-            if (process.platform === 'win32') {
-                // Passing sockets is not supported on Windows.
-                this._process.send(`[socket]:${guid};${connection.file}`);
-            } else {
-                // On all other platforms we can pass socket
-                this._process.send(`[socket]:${guid};${connection.file}`, connection.socket);
+            if (this._boundStreamGuid !== undefined) {
+                return reject(new Error(this._logger.warn(`Plugin process is already bound with stream "${this._boundStreamGuid}"`)));
             }
+            this._logger.env(`Sent information about stream GUID: ${guid}.`);
+            // Bind socket
+            this._bindRefWithId(connection.socket).then(() => {
+                if (this._process === undefined) {
+                    return reject(new Error(this._logger.warn(`Fail to bind stream to plugin, which doesn't attached. Stream GUID: ${guid}.`)));
+                }
+                // Send socket to plugin process
+                if (process.platform === 'win32') {
+                    // Passing sockets is not supported on Windows.
+                    this._process.send(`[socket]:${guid};${connection.file}`);
+                } else {
+                    // On all other platforms we can pass socket
+                    this._process.send(`[socket]:${guid};${connection.file}`, connection.socket);
+                }
+                resolve();
+            }).catch(reject);
         });
-    }
-
-    public removeStream(guid: string) {
-        // TODO: implement message to plugin
     }
 
     private _bindRefWithId(socket: Net.Socket): Promise<void> {

@@ -50,6 +50,23 @@ class Plugin {
                         }
                     }));
                 });
+            case 'stop':
+                return this._income_stop(message).then(() => {
+                    response(new IPCMessages.PluginInternalMessage({
+                        data: {
+                            status: 'done'
+                        },
+                        token: message.token,
+                        stream: message.stream
+                    }));
+                }).catch((error: Error) => {
+                    return response(new IPCMessages.PluginError({
+                        message: error.message,
+                        data: {
+                            command: message.data.command
+                        }
+                    }));
+                });
             case 'write':
                 return this._income_write(message).then(() => {
                     response(new IPCMessages.PluginInternalMessage({
@@ -113,6 +130,23 @@ class Plugin {
             }
             // Ref fork to stream
             StreamsService.refFork(streamId, cmd);
+            resolve();            
+        });
+    }
+
+    private _income_stop(message: IPCMessages.PluginInternalMessage): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const streamId: string | undefined = message.stream;
+            if (streamId === undefined) {
+                return reject(new Error(this._logger.warn(`No target stream ID provided`)));
+            }
+            // Get a target stream
+            const stream: IStreamInfo | undefined = StreamsService.get(streamId);
+            if (stream === undefined) {
+                return reject(new Error(this._logger.warn(`Fail to find a stream "${streamId}" in storage.`)));
+            }
+            // Ref fork to stream
+            StreamsService.unrefFork(streamId);
             resolve();            
         });
     }

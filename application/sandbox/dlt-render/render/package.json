@@ -1,0 +1,21 @@
+{
+  "name": "dlt-render",
+  "version": "0.0.1",
+  "peerDependencies": {
+    "@angular/common": "^7.0.0",
+    "@angular/core": "^7.0.0"
+  },
+  "main": "bundles/dlt-render.umd.js",
+  "module": "fesm5/dlt-render.js",
+  "es2015": "fesm2015/dlt-render.js",
+  "esm5": "esm5/dlt-render.js",
+  "esm2015": "esm2015/dlt-render.js",
+  "fesm5": "fesm5/dlt-render.js",
+  "fesm2015": "fesm2015/dlt-render.js",
+  "typings": "dlt-render.d.ts",
+  "metadata": "dlt-render.metadata.json",
+  "sideEffects": false,
+  "dependencies": {
+    "tslib": "^1.9.0"
+  }
+}

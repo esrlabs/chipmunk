@@ -2,6 +2,8 @@ import { IPCMessages } from '../services/service.electron.ipc';
 import { Observable, Subject } from 'rxjs';
 import * as Toolkit from 'logviewer.client.toolkit';
 import OutputRedirectionsService from '../services/standalone/service.output.redirections';
+import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
+import { ControllerSessionTabSourcesState } from './controller.session.tab.sources.state';
 
 export type TRequestDataHandler = (start: number, end: number) => Promise<IPCMessages.StreamChunk>;
 
@@ -12,6 +14,8 @@ export interface IStreamPacket {
     rank: number;
     sessionId: string;
     controller: ControllerSessionTabStreamOutput;
+    bookmarks: ControllerSessionTabStreamBookmarks;
+    sources: ControllerSessionTabSourcesState;
 }
 
 export interface IStreamState {
@@ -32,15 +36,7 @@ export interface ILoadedRange {
     range: IRange;
     rows: IStreamPacket[];
 }
-/*
-export const Settings = {
-    trigger         : 10000,    // Trigger to load addition chunk
-    maxRequestCount : 50000,    // chunk size in rows
-    maxStoredCount  : 100000,   // limit of rows to have it in RAM. All above should be removed
-    requestDelay    : 250,      // ms, delay before to do request
-};
 
-*/
 export const Settings = {
     trigger         : 1000,     // Trigger to load addition chunk
     maxRequestCount : 5000,     // chunk size in rows
@@ -54,7 +50,10 @@ export class ControllerSessionTabStreamOutput {
     private _logger: Toolkit.Logger;
     private _rows: IStreamPacket[] = [];
     private _requestDataHandler: TRequestDataHandler;
+    private _bookmarks: ControllerSessionTabStreamBookmarks;
+    private _sources: ControllerSessionTabSourcesState;
     private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
+    private _preloadTimestamp: number = -1;
     private _state: IStreamState = {
         count: 0,
         countRank: 1,
@@ -76,11 +75,14 @@ export class ControllerSessionTabStreamOutput {
         onReset: new Subject<void>(),
         onScrollTo: new Subject<number>(),
         onRankChanged: new Subject<number>(),
+        onSourceChanged: new Subject<number>(),
     };
 
-    constructor(guid: string, requestDataHandler: TRequestDataHandler) {
+    constructor(guid: string, requestDataHandler: TRequestDataHandler, bookmarks: ControllerSessionTabStreamBookmarks) {
         this._guid = guid;
         this._requestDataHandler = requestDataHandler;
+        this._bookmarks = bookmarks;
+        this._sources = new ControllerSessionTabSourcesState(this._guid);
         this._logger = new Toolkit.Logger(`ControllerSessionTabStreamOutput: ${this._guid}`);
         this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(this._guid, this._onRowSelected.bind(this));
     }
@@ -105,6 +107,7 @@ export class ControllerSessionTabStreamOutput {
         onReset: Observable<void>,
         onScrollTo: Observable<number>,
         onRankChanged: Observable<number>,
+        onSourceChanged: Observable<number>,
     } {
         return {
             onStateUpdated: this._subjects.onStateUpdated.asObservable(),
@@ -112,6 +115,14 @@ export class ControllerSessionTabStreamOutput {
             onReset: this._subjects.onReset.asObservable(),
             onScrollTo: this._subjects.onScrollTo.asObservable(),
             onRankChanged: this._subjects.onRankChanged.asObservable(),
+            onSourceChanged: this._subjects.onSourceChanged.asObservable(),
+        };
+    }
+
+    public getFrame(): IRange {
+        return {
+            start: this._state.frame.start >= 0 ? this._state.frame.start : 0,
+            end: this._state.frame.end >= 0 ? this._state.frame.end : 0,
         };
     }
 
@@ -124,9 +135,13 @@ export class ControllerSessionTabStreamOutput {
         if (this._state.count === 0 || range.start < 0 || range.end < 0) {
             return [];
         }
+        if (range.start === 0 && range.end === 0) {
+            return [];
+        }
         if (stored.start >= 0 && stored.end >= 0) {
             if (range.start >= stored.start && range.end <= stored.end) {
                 rows = this._getRowsSliced(range.start, range.end + 1);
+                this._subjects.onSourceChanged.next(rows[0].pluginId);
             } else if (range.end > stored.start && range.start < stored.start && range.end < stored.end) {
                 rows = this._getPendingPackets(range.start, stored.start);
                 rows.push(...this._getRowsSliced(stored.start, range.end + 1));
@@ -152,6 +167,9 @@ export class ControllerSessionTabStreamOutput {
     }
 
     public setFrame(range: IRange) {
+        if (this._state.count === 0) {
+            return;
+        }
         this._state.frame = Object.assign({}, range);
         if (!this._load()) {
             // No need to make request, but check buffer
@@ -202,19 +220,35 @@ export class ControllerSessionTabStreamOutput {
     public updateStreamState(message: IPCMessages.StreamUpdated): void {
         // Update count of rows
         this._setTotalStreamCount(message.rowsCount);
-        // Check: shell we add data right now or not
-        if (this._state.frame.end + 1 === message.addedFrom) {
-            // Update size of whole stream (real size - count of rows in stream file)
-            this._setTotalStreamCount(message.rowsCount);
-            // Frame at the end of stream. Makes sense to store data
-            this._parse(message.addedRowsData);
-        }
         this._subjects.onStateUpdated.next(Object.assign({}, this._state));
+    }
+
+    public getBookmarks(): ControllerSessionTabStreamBookmarks {
+        return this._bookmarks;
+    }
+
+    public getRowsCount(): number {
+        return this._state.count;
+    }
+
+    public preload(range: IRange): Promise<IRange> {
+        return this._preload(range);
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Rows operations
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    private _isRangeStored(range: IRange): boolean {
+        const stored = Object.assign({}, this._state.stored);
+        if (this._state.count === 0 || range.start < 0 || range.end < 0) {
+            return true;
+        }
+        if (range.start >= stored.start && range.end <= stored.end) {
+            return true;
+        }
+        return false;
+    }
+
     private _getRowsSliced(from: number, to: number): IStreamPacket[] {
         const offset: number = this._state.stored.start > 0 ? this._state.stored.start : 0;
         return this._rows.slice(from - offset, to - offset);
@@ -289,6 +323,35 @@ export class ControllerSessionTabStreamOutput {
         return true;
     }
 
+    private _preload(range: IRange): Promise<IRange | null> {
+        return new Promise((resolve, reject) => {
+            const timestamp: number = Date.now();
+            if (this._preloadTimestamp !== -1 && timestamp - this._preloadTimestamp < 500) {
+                return resolve(null);
+            }
+            if (this._isRangeStored(range)) {
+                this._preloadTimestamp = -1;
+                return resolve(range);
+            }
+            this._preloadTimestamp = timestamp;
+            this._requestDataHandler(range.start, range.end).then((message: IPCMessages.StreamChunk) => {
+                // Drop request ID
+                this._preloadTimestamp = -1;
+                // Update size of whole stream (real size - count of rows in stream file)
+                this._setTotalStreamCount(message.rows);
+                // Parse and accept rows
+                this._parse(message.data);
+                // Return actual preloaded range
+                resolve({ start: message.start, end: message.end});
+            }).catch((error: Error) => {
+                // Drop request ID
+                this._preloadTimestamp = -1;
+                // Reject
+                reject(new Error(this._logger.error(`Fail to preload data (rows from ${range.start} to ${range.end}) due error: ${error.message}`)));
+            });
+        });
+    }
+
     private _buffer() {
         if (this._state.bufferLoadingRequestId !== undefined) {
             // Buffer is already requested
@@ -358,6 +421,8 @@ export class ControllerSessionTabStreamOutput {
                 rank: this._state.countRank,
                 sessionId: this._guid,
                 controller: this,
+                bookmarks: this._bookmarks,
+                sources: this._sources,
             };
         }).filter((packet: IStreamPacket) => {
             return (packet.position !== -1);
@@ -374,6 +439,8 @@ export class ControllerSessionTabStreamOutput {
                 rank: this._state.countRank,
                 sessionId: this._guid,
                 controller: this,
+                bookmarks: this._bookmarks,
+                sources: this._sources,
             };
         });
         return rows;
@@ -389,6 +456,7 @@ export class ControllerSessionTabStreamOutput {
         if (packets.length === 0) {
             return;
         }
+        const size: number = this._rows.length;
         const packet: IRange = { start: packets[0].position, end: packets[packets.length - 1].position};
         if (this._rows.length === 0) {
             this._rows.push(...packets);
@@ -427,6 +495,9 @@ export class ControllerSessionTabStreamOutput {
         }
         this._state.stored.start = this._rows[0].position;
         this._state.stored.end = this._rows[this._rows.length - 1].position;
+        if (size === 0 && this._rows.length !== 0) {
+            this._subjects.onSourceChanged.next(this._rows[0].pluginId);
+        }
     }
 
     /**
@@ -467,6 +538,9 @@ export class ControllerSessionTabStreamOutput {
 
     private _setTotalStreamCount(count: number) {
         this._state.count = count;
+        if (count === 0) {
+            return this.clearStream();
+        }
         const changed: boolean = this._state.countRank !== count.toString().length;
         this._state.countRank = count.toString().length;
         if (changed) {

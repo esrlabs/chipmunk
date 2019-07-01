@@ -1,9 +1,12 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Subscription, Subject, Observable } from 'rxjs';
 import { ViewSearchOutputComponent } from './output/component';
+import { IComponentDesc } from 'logviewer-client-containers';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
+import { ControllerSessionTabSearchViewState, IViewState } from '../../../controller/controller.session.tab.search.view.state';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
+import LayoutStateService from '../../../services/standalone/service.layout.state';
 import * as Toolkit from 'logviewer.client.toolkit';
 
 @Component({
@@ -14,25 +17,32 @@ import * as Toolkit from 'logviewer.client.toolkit';
 
 export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterContentInit {
 
+    @Input() public injectionIntoTitleBar: Subject<IComponentDesc>;
+
     @ViewChild('output') _ng_outputComponent: ViewSearchOutputComponent;
-    @ViewChild('requestinput') _ng_input: ElementRef;
+    @ViewChild('requestinput') _ng_requestInput: ElementRef;
 
     public _ng_session: ControllerSessionTab | undefined;
     public _ng_searchRequestId: string | undefined;
     public _ng_isRequestValid: boolean = true;
+    public _ng_request: string = '';
+    public _ng_prevRequest: string = '';
+    public _ng_isRequestSaved: boolean = false;
+    // Out of state (stored in controller)
+    public _ng_onSessionChanged: Subject<ControllerSessionTab> = new Subject<ControllerSessionTab>();
 
-    private _subscriptionsSession: { [key: string]: Toolkit.Subscription | Subscription | undefined } = { };
-    private _subscriptionsSearch: { [key: string]: Toolkit.Subscription | Subscription | undefined } = { };
+    private _state: ControllerSessionTabSearchViewState;
+    private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription | undefined } = { };
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef,
                 private _notifications: NotificationsService) {
-        this._onSessionChange = this._onSessionChange.bind(this);
-        this._subscriptionsSession.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange);
+        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._setActiveSession();
     }
 
     ngAfterViewInit() {
+
     }
 
     ngAfterContentInit() {
@@ -42,8 +52,8 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     public ngOnDestroy() {
-        Object.keys(this._subscriptionsSession).forEach((key: string) => {
-            this._subscriptionsSession[key].unsubscribe();
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            this._subscriptions[key].unsubscribe();
         });
     }
 
@@ -51,19 +61,18 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         return this._ng_searchRequestId !== undefined;
     }
 
-    public _ng_onKeyUp(event: KeyboardEvent) {
+    public _ng_onKeyUpRequestInput(event: KeyboardEvent) {
         if (this._ng_searchRequestId !== undefined) {
             return;
         }
-        const value: string = (event.target as HTMLInputElement).value;
-        this._ng_isRequestValid = Toolkit.regTools.isRegStrValid(value);
+        this._ng_isRequestValid = Toolkit.regTools.isRegStrValid(this._ng_request);
         this._cdRef.detectChanges();
         if (event.key !== 'Enter') {
             return;
         }
-        // this._ng_output.clearStream();
-        if (value.trim() === '') {
-            return this._cdRef.detectChanges();
+        if (this._ng_request.trim() === '') {
+            // Drop results
+            return this._ng_onDropRequest();
         }
         if (!this._ng_isRequestValid) {
             return this._notifications.add({
@@ -71,27 +80,82 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
                 message: `Regular expresion isn't valid. Please correct it.`
             });
         }
+        if (this._ng_prevRequest.trim() !== '' && this._ng_request === this._ng_prevRequest) {
+            if (this._ng_isRequestSaved) {
+                return;
+            }
+            this._ng_onStoreRequest();
+            return;
+        }
         this._ng_searchRequestId = Toolkit.guid();
+        this._ng_prevRequest = this._ng_request;
         this._ng_session.getSessionSearch().search(
             this._ng_searchRequestId,
-            [Toolkit.regTools.createFromStr(value, 'gim') as RegExp]
+            [Toolkit.regTools.createFromStr(this._ng_request, 'gim') as RegExp]
         ).then(() => {
             // Search done
             this._ng_searchRequestId = undefined;
+            this._ng_isRequestSaved = this._ng_session.getSessionSearch().isRequestStored(this._ng_request);
+            this._focus();
             this._cdRef.detectChanges();
         }).catch((searchError: Error) => {
             this._ng_searchRequestId = undefined;
             this._cdRef.detectChanges();
             return this._notifications.add({
                 caption: 'Search',
-                message: `Cannot to do due error: ${searchError.message}.`
+                message: `Cannot to do a search due error: ${searchError.message}.`
             });
         });
-        (event.target as HTMLInputElement).value = '';
         this._cdRef.detectChanges();
     }
 
-    private _onSessionChange(session: ControllerSessionTab) {
+    public _ng_onBlurRequestInput() {
+        this._ng_request = this._ng_prevRequest;
+        this._cdRef.detectChanges();
+    }
+
+    public _ng_onDropRequest() {
+        // Drop results
+        this._ng_searchRequestId = Toolkit.guid();
+        this._ng_session.getSessionSearch().drop(this._ng_searchRequestId).then(() => {
+            this._ng_prevRequest = '';
+            this._ng_request = '';
+            this._ng_isRequestSaved = false;
+            this._ng_searchRequestId = undefined;
+            this._focus();
+            this._cdRef.detectChanges();
+        }).catch((droppingError: Error) => {
+            this._ng_searchRequestId = undefined;
+            this._cdRef.detectChanges();
+            return this._notifications.add({
+                caption: 'Search',
+                message: `Cannot drop results due error: ${droppingError.message}.`
+            });
+        });
+        return this._cdRef.detectChanges();
+    }
+
+    public _ng_onStoreRequest() {
+        if (this._ng_isRequestSaved) {
+            return;
+        }
+        this._openSidebarSearchTab();
+        this._ng_session.getSessionSearch().addStored(this._ng_request);
+        this._ng_isRequestSaved = this._ng_session.getSessionSearch().isRequestStored(this._ng_request);
+        this._cdRef.detectChanges();
+    }
+
+    private _openSidebarSearchTab() {
+        LayoutStateService.sidebarMax();
+        TabsSessionsService.openSidebarTab('search');
+    }
+
+    private _onSessionChange(session: ControllerSessionTab | undefined) {
+        if (session === undefined) {
+            this._ng_session = undefined;
+            this._cdRef.detectChanges();
+            return;
+        }
         this._setActiveSession(session);
         this._cdRef.detectChanges();
     }
@@ -103,7 +167,45 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         if (session === undefined) {
             return;
         }
+        this._saveState();
         this._ng_session = session;
+        this._state = this._ng_session.getSessionSearch().getViewState();
+        this._loadState();
+        this._ng_onSessionChanged.next(this._ng_session);
+    }
+
+    private _focus() {
+        setTimeout(() => {
+            if (this._ng_requestInput === undefined || this._ng_requestInput === null) {
+                return;
+            }
+            this._ng_requestInput.nativeElement.focus();
+        }, 150);
+    }
+
+    private _saveState() {
+        if (this._ng_session === undefined || this._state === undefined) {
+            return;
+        }
+        this._state.set({
+            isRequestSaved: this._ng_isRequestSaved,
+            isRequestValid: this._ng_isRequestValid,
+            request: this._ng_request,
+            prevRequest: this._ng_prevRequest,
+            searchRequestId: this._ng_searchRequestId,
+        });
+    }
+
+    private _loadState() {
+        if (this._ng_session === undefined || this._state === undefined) {
+            return;
+        }
+        const state: IViewState = this._state.get();
+        this._ng_isRequestSaved = state.isRequestSaved;
+        this._ng_isRequestValid = state.isRequestValid;
+        this._ng_request = state.request;
+        this._ng_prevRequest = state.prevRequest;
+        this._ng_searchRequestId = state.searchRequestId;
     }
 
 }

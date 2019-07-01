@@ -7,6 +7,11 @@
     padding: 0;
     margin: 0;
     width: 100%;
+    & span.close-button{
+        position: absolute;
+        right: -7px;
+        top: 0;
+    }
     p.file-name{
         position: relative;
         color: @scheme-color-2;
@@ -14,6 +19,62 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+    & div.options-wrapper{
+        position: relative;
+        width: 100%;
+        & div.toggle {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 1rem;
+            height: 100%;
+            & span.toggle-button{
+                position: absolute;
+                right: 0;
+                top: 4px;
+                transition: all 100ms ease-in-out;
+                &.opened{
+                    transform: rotateZ(180deg);
+                }
+            }
+        }
+        & div.options {
+            position: relative;
+            width: ~"calc(100% - 1rem)";
+            margin-left: 1rem;
+        }
+    }
+    & div.format-input-wrapper{
+        position: relative;
+        width: 100%;
+        & div.input-controlls{
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            & span.input-button{
+                position: relative;
+                display: inline-block;
+                color: @scheme-color-1;
+                &:hover{
+                    color: @scheme-color-0;
+                }
+            }
+        }
+        & span.extend-button{
+            display: inline-block;
+            position: absolute;
+            top:2px;
+            right: 8px;
+            color: @scheme-color-0;
+            cursor: pointer;
+            font-weight: 400;
+            &:hover{
+                border-bottom: dotted thin @scheme-color-0;
+                cursor: pointer;
+            }
+        }
     }
     & div.controlls{
         position: relative;
@@ -36,5 +97,72 @@
         display: block;
         width: 100%;
         height: 0.5rem;
+    }
+    & div.preview{
+        & ul.rows{
+            position: relative;
+            display: block;
+            width: 100%;
+            max-height: 7rem;
+            overflow: auto;
+            padding: 0;
+            margin: 0;
+            list-style: none;
+            cursor: default;
+            user-select: text;
+            & li{
+                display: block;
+                font-family: monospace;
+                font-size: 12px;
+                font-variant-numeric: tabular-nums;
+                padding: 0;
+                margin: 0;
+                list-style: none;;
+                line-height: 14px;
+                height: 14px;
+                max-height: 14px;
+                white-space: pre;
+                cursor: text;
+                user-select: text;
+                & span.match{
+                    background: @scheme-color-2;
+                    color: @scheme-color-5;
+                    font-weight: 600;
+                }
+            }
+        }
+    }
+    & div.warning{
+        position: relative;
+        & span.warning-icon{
+            position: absolute;
+            display: block;
+            width: 3rem;
+            top:0;
+            left: 0;
+            font-size: 1rem;
+            line-height: 1rem;
+            color: @scheme-color-warning;
+            text-align: left;
+        }
+        & ul.messages{
+            position: relative;
+            display: block;
+            width: ~"calc(100% - 2.5rem)";
+            max-height: 7rem;
+            overflow: auto;
+            padding: 0 0 0 2.5rem;
+            margin: 0;
+            list-style: none;
+            cursor: default;
+            user-select: text;
+            & li.message{
+                display: block;
+                padding: 0;
+                margin: 0;
+                list-style: none;
+                color: @scheme-color-warning;
+            }
+        }
     }
 }

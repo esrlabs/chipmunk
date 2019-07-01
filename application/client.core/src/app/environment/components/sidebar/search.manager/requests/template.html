@@ -1,0 +1,17 @@
+<div class="requests-wrapper">
+    <p class="caption t-normal padding">Stored filters</p>
+    <ul [attr.class]="'requests '">
+        <li [attr.class]="'request ' + (_ng_selectedIndex === i ? 'selected' : '') + ' ' + (request.request.active ? '' : 'inactive')" *ngFor="let request of _ng_requests; let i = index;">
+            <app-sidebar-app-search-request [request]="request"></app-sidebar-app-search-request>
+        </li>
+    </ul>
+</div>
+<div class="details" *ngIf="_ng_selected !== undefined">
+    <p class="caption t-normal">Filter options:</p>
+    <app-sidebar-app-search-request-details [request]="_ng_selected"></app-sidebar-app-search-request-details>
+</div>
+<div class="controlls">
+    <span class="small-button" (click)="_ng_onRemoveAll()">Remove all</span>
+    <span class="small-button" (click)="_ng_onSave()">Save</span>
+    <span class="small-button" (click)="_ng_onLoad()">Load</span>
+</div>

@@ -1,29 +1,42 @@
-import { TabsService, DockingComponent, DockDef, DocksService } from 'logviewer-client-complex';
+import { TabsService, DockingComponent, DockDef, DocksService, ITab } from 'logviewer-client-complex';
 import { Subscription } from './service.electron.ipc';
-import { ControllerSessionTab } from '../controller/controller.session.tab';
+import { ControllerSessionTab, ISidebarTabOptions } from '../controller/controller.session.tab';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { IService } from '../interfaces/interface.service';
-import { Observable, Subject } from 'rxjs';
-import { ViewOutputComponent } from '../components/views/output/component';
+import { Observable, Subject, Subscription as SubscriptionRX } from 'rxjs';
+import { IDefaultView, IDefaultSideBarApp } from '../states/state.default';
 import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
+import SourcesService from './service.sources';
 
-type TSessionGuid = string;
+export { ControllerSessionTabSearch, IRequest } from '../controller/controller.session.tab.search';
+
+export type TSessionGuid = string;
 
 export class TabsSessionsService implements IService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('TabsSessionsService');
     private _sessions: Map<TSessionGuid, ControllerSessionTab> = new Map();
+    private _sources: Map<TSessionGuid, number> = new Map();
     private _tabsService: TabsService = new TabsService();
-    private _subscriptions: { [key: string]: Subscription | undefined } = { };
+    private _subscriptions: { [key: string]: Subscription | SubscriptionRX | undefined } = { };
     private _currentSessionGuid: string;
-    private _subjects: {
-        onSessionChange: Subject<ControllerSessionTab>
+    private _defaults: {
+        views: IDefaultView[],
+        sidebarApps: IDefaultSideBarApp[],
     } = {
-        onSessionChange: new Subject<ControllerSessionTab>()
+        views: [],
+        sidebarApps: [],
+    };
+    private _subjects: {
+        onSessionChange: Subject<ControllerSessionTab | undefined>,
+    } = {
+        onSessionChange: new Subject<ControllerSessionTab>(),
     };
 
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
+            this._subscriptions.onSessionTabChanged = this._tabsService.getObservable().active.subscribe(this._onSessionTabSwitched.bind(this));
+            this._subscriptions.onSessionTabClosed = this._tabsService.getObservable().removed.subscribe(this._onSessionTabClosed.bind(this));
             resolve();
         });
     }
@@ -34,47 +47,104 @@ export class TabsSessionsService implements IService {
 
     public destroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
-            this._subscriptions[key].destroy();
+            this._subscriptions[key].unsubscribe();
         });
     }
 
-    public create(): void {
+    public setDefaultViews(views: IDefaultView[]) {
+        this._defaults.views = views;
+    }
+
+    public setDefaultSidebarApps(apps: IDefaultSideBarApp[]) {
+        this._defaults.sidebarApps = apps;
+    }
+
+    public add(): void {
         const guid: string = Toolkit.guid();
         const session = new ControllerSessionTab({
             guid: guid,
-            transports: ['processes', 'dlt'],
+            transports: ['processes', 'dlt', 'dlt-render'],
+            defaultsSideBarApps: this._defaults.sidebarApps
         });
+        this._subscriptions[`onSourceChanged:${guid}`] = session.getObservable().onSourceChanged.subscribe(this._onSourceChanged.bind(this, guid));
+        this._sessions.set(guid, session);
         this._tabsService.add({
             guid: guid,
-            name: 'Default',
+            name: 'New',
             active: true,
             content: {
                 factory: DockingComponent,
                 inputs: {
                     service: new DocksService(guid, new DockDef.Container({
-                        a: new DockDef.Dock({ caption: 'Default', component: {
-                            factory: ViewOutputComponent,
+                        a: new DockDef.Dock({ caption: this._defaults.views[0].name, component: {
+                            factory: this._defaults.views[0].component,
                             inputs: {
-                                session: session
+                                session: session,
                             }
                         } })
                     }))
                 }
             }
         });
-        this._sessions.set(guid, session);
         this.setActive(guid);
+    }
+
+    public addSidebarApp(name: string, component: any, inputs: { [key: string]: any }, session?: string, options?: ISidebarTabOptions): string | Error {
+        if (session === undefined) {
+            session = this._currentSessionGuid;
+        }
+        // Get session controller
+        const controller: ControllerSessionTab = this._sessions.get(session);
+        if (controller === undefined) {
+            return new Error(`Fail to find defiend session "${session}"`);
+        }
+        return controller.addSidebarApp(name, component, inputs, options);
+    }
+
+    public openSidebarTab(guid: string, session?: string): Error | undefined {
+        if (session === undefined) {
+            session = this._currentSessionGuid;
+        }
+        // Get session controller
+        const controller: ControllerSessionTab = this._sessions.get(session);
+        if (controller === undefined) {
+            return new Error(`Fail to find defiend session "${session}"`);
+        }
+        controller.openSidebarTab(guid);
+    }
+
+    public removeSidebarApp(guid: string, session?: string): Error | undefined {
+        if (session === undefined) {
+            session = this._currentSessionGuid;
+        }
+        // Get session controller
+        const controller: ControllerSessionTab = this._sessions.get(session);
+        if (controller === undefined) {
+            return new Error(`Fail to find defiend session "${session}"`);
+        }
+        controller.removeSidebarApp(guid);
     }
 
     public getTabsService(): TabsService {
         return this._tabsService;
     }
 
+    public getSessionController(session: string): ControllerSessionTab | Error {
+        if (session === undefined) {
+            session = this._currentSessionGuid;
+        }
+        const controller: ControllerSessionTab = this._sessions.get(session);
+        if (controller === undefined) {
+            return new Error(`Fail to find defiend session "${session}"`);
+        }
+        return controller;
+    }
+
     public getObservable(): {
-        onSessionChange: Observable<ControllerSessionTab>
+        onSessionChange: Observable<ControllerSessionTab | undefined>,
     } {
         return {
-            onSessionChange: this._subjects.onSessionChange.asObservable()
+            onSessionChange: this._subjects.onSessionChange.asObservable(),
         };
     }
 
@@ -83,16 +153,66 @@ export class TabsSessionsService implements IService {
         if (session === undefined) {
             return this._logger.warn(`Cannot fild session ${guid}. Cannot make this session active.`);
         }
+        session.setActive();
         this._currentSessionGuid = guid;
         this._tabsService.setActive(this._currentSessionGuid);
-        this._subjects.onSessionChange.next(session);
-        ElectronIpcService.send(new IPCMessages.StreamSetActive({ guid: this._currentSessionGuid })).catch((error: Error) => {
+        ElectronIpcService.send(new IPCMessages.StreamSetActive({ guid: this._currentSessionGuid })).then(() => {
+            this._subjects.onSessionChange.next(session);
+        }).catch((error: Error) => {
             this._logger.warn(`Fail to send notification about active session due error: ${error.message}`);
         });
     }
 
     public getActive(): ControllerSessionTab | undefined {
         return this._sessions.get(this._currentSessionGuid);
+    }
+
+    private _onSourceChanged(guid: string, sourceId: number) {
+        if (typeof sourceId !== 'number' || sourceId < 0) {
+            return;
+        }
+        const current: number | undefined = this._sources.get(guid);
+        if (current === sourceId) {
+            return;
+        }
+        const name: string | undefined = SourcesService.getSourceName(sourceId);
+        if (typeof name !== 'string' || name.trim() === '') {
+            return;
+        }
+        this._sources.set(guid, sourceId);
+        this._tabsService.setTitle(guid, name);
+    }
+
+    private _onSessionTabSwitched(tab: ITab) {
+        if (this._currentSessionGuid === tab.guid) {
+            return;
+        }
+        this.setActive(tab.guid);
+    }
+
+    private _onSessionTabClosed(session: string) {
+        // Get session controller
+        const controller: ControllerSessionTab = this._sessions.get(session);
+        if (controller === undefined) {
+            return this._logger.warn(`Fail to destroy session "${session}" because cannot find this session.`);
+        }
+        controller.destroy().then(() => {
+            this._removeSession(session);
+            this._logger.env(`Session "${session}" is destroyed`);
+        }).catch((error: Error) => {
+            this._removeSession(session);
+            this._logger.warn(`Fail to destroy session "${session}" due error: ${error.message}`);
+        });
+    }
+
+    private _removeSession(guid: string) {
+        if (this._subscriptions[`onSourceChanged:${guid}`] !== undefined) {
+            this._subscriptions[`onSourceChanged:${guid}`].unsubscribe();
+        }
+        this._sessions.delete(guid);
+        if (this._sessions.size === 0) {
+            this._subjects.onSessionChange.next(undefined);
+        }
     }
 
 }

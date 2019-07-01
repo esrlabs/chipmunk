@@ -1,10 +1,28 @@
-<div *ngIf="_ng_isPending() === false" class="noreset">
-    <span class="source">{{_ng_sourceName}}</span>
-    <span class="number"><span class="filler">{{_ng_number_filler}}</span>{{_ng_number}}</span>
-    <p class="row noreset" [innerHTML]="_ng_safeHtml" (click)="_ng_onRowSelect()"></p>
+<div *ngIf="_ng_isPending() === false" [attr.class]="'wrapper noreset ' + (_ng_bookmarked ? 'bookmarked' : '')">
+    <span   class="source-name" 
+            *ngIf="_ng_source" 
+            (click)="_ng_onToggleSource()">{{_ng_sourceName}}</span>
+    <span   class="source-alias" 
+            *ngIf="!_ng_source" 
+            [ngStyle]="{'background': _ng_sourceColor}"
+            [attr.data-source-name]="_ng_sourceName" 
+            (click)="_ng_onToggleSource()"></span>
+    <span class="number" (click)="_ng_onNumberClick()"><span class="filler">{{_ng_number_filler}}</span>{{_ng_number}}</span>
+    <p  *ngIf="_ng_safeHtml !== null"
+        class="row noreset" 
+        [innerHTML]="_ng_safeHtml" 
+        (click)="_ng_onRowSelect()" 
+        [ngStyle]="{'background': _ng_background, 'color': _ng_color}"></p>
+    <p  *ngIf="_ng_component !== undefined"
+        class="row noreset" 
+        (click)="_ng_onRowSelect()" 
+        [ngStyle]="{'background': _ng_background, 'color': _ng_color}">
+    <lib-containers-dynamic [component]="_ng_component"></lib-containers-dynamic>
+    </p>
 </div>
-<div *ngIf="_ng_isPending() === true" class="noreset">
-    <span class="source">n/d</span>
+<div *ngIf="_ng_isPending() === true" [attr.class]="'wrapper noreset ' + (_ng_bookmarked ? 'bookmarked' : '')">
+    <span class="source-name" *ngIf="_ng_source">n/d</span>
+    <span class="source-alias" *ngIf="!_ng_source"></span>
     <span class="number"><span class="filler">{{_ng_number_filler}}</span>{{_ng_number}}</span>
     <p class="row pending"><span></span></p>
 </div>

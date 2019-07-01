@@ -10,6 +10,7 @@
     right: 0.5rem;
     left:0.5rem;
     top:0.5rem;
+    overflow-y: auto;
     & p.caption{
         color: @scheme-color-2;
     }
@@ -18,6 +19,9 @@
     }
     & p.report{
         color: @scheme-color-3;
+    }
+    & p.warning{
+        color: @scheme-color-warning;
     }
     & ul.files{
         position: relative;
@@ -43,6 +47,9 @@
         text-align: right;
         & .small-button:last-child{
             margin-right: 0;
+        }
+        & .small-button.warning{
+            color: @scheme-color-warning;
         }
     }
     & div.progress-testing{

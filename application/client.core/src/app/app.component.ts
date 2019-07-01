@@ -4,6 +4,7 @@ import ServiceElectronIpc from './environment/services/service.electron.ipc';
 import { IPCMessages, Subscription } from './environment/services/service.electron.ipc';
 import PluginsService from './environment/services/service.plugins';
 import LoaderService from './environment/services/service.loader';
+
 import * as Toolkit from 'logviewer.client.toolkit';
 
 @Component({

@@ -5,24 +5,50 @@
     display: flex;
     flex-flow: column;
     height: 100%;
-    & div.search-input-wrapper{
+    & div.request{
         position: absolute;
-        top:0rem;
+        top:0;
         height: 1.75rem;
         left:0;
         right: 0;
-        & input.not-valid{
-            color: @scheme-color-error!important;
-        }
-        & div.spinner{
+        & div.search-input-wrapper{
             position: absolute;
-            right: 0.25rem;
-            top:0.25rem;
-            bottom: 0.25rem;
-            width: 2rem;
+            top:0;
+            bottom: 0;
+            left:0;
+            right: 0;
+            transition: right 150ms ease-in-out;
+            & input.not-valid{
+                color: @scheme-color-error!important;
+            }
+            & div.spinner{
+                position: absolute;
+                right: 0.25rem;
+                top:0.25rem;
+                bottom: 0.25rem;
+                width: 2rem;
+                overflow: hidden;
+            }
+        }
+        & div.request-buttons{
+            position: absolute;
+            right: 0;
+            top:0;
+            bottom: 0;
+            width: 4rem;
             overflow: hidden;
+            white-space: nowrap;
+            & span.small-icon-button{
+                line-height: 1.5rem;
+            }
+        }
+        &.with-buttons{
+            & div.search-input-wrapper{
+                right: 4rem;
+            }
         }
     }
+
     & div.rows{
         position: absolute;
         padding: 0;

@@ -6,6 +6,8 @@ import { IPCMessagePackage } from './service.electron.ipc.messagepackage';
 import { IService } from '../interfaces/interface.service';
 export { IPCMessages, Subscription, THandler };
 
+export type TResponseFunc = (message: IPCMessages.TMessage) => Promise<IPCMessages.TMessage | undefined>;
+
 class ElectronIpcService implements IService {
 
     private _logger: Logger = new Logger('ElectronIpcService');
@@ -263,6 +265,7 @@ class ElectronIpcService implements IService {
         if (handlers.size === 0) {
             typeof Electron !== 'undefined' && Electron.ipcRenderer.removeAllListeners(signature);
             this._handlers.delete(signature);
+            this._listeners.delete(signature);
         } else {
             this._handlers.set(signature, handlers);
         }

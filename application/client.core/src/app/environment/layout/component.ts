@@ -3,6 +3,7 @@ import { AreaState } from './state';
 import { Subscription } from 'rxjs';
 import ViewsEventsService from '../services/standalone/service.views.events';
 import * as ThemeParams from '../theme/sizes';
+import LayoutStateService from '../services/standalone/service.layout.state';
 
 enum EResizeType {
     nothing = 'nothing',
@@ -43,6 +44,8 @@ export class LayoutComponent implements OnDestroy {
         updated: null,
     };
 
+    private _serviceSunscriptions: { [key: string]: Subscription } = {};
+
     private _sizes: {
         sec: {
             current: number,
@@ -75,6 +78,8 @@ export class LayoutComponent implements OnDestroy {
         this._funcBarStateSubscriptions.updated = this.funcBarState.getObservable().updated.subscribe(this._onFuncStateUpdated.bind(this));
         this._secAreaStateSubscriptions.minimized = this.secAreaState.getObservable().minimized.subscribe(this._onSecAreaMinimized.bind(this));
         this._secAreaStateSubscriptions.updated = this.secAreaState.getObservable().updated.subscribe(this._onSecAreaStateUpdated.bind(this));
+        this._serviceSunscriptions.onSidebarMax = LayoutStateService.getObservable().onSidebarMax.subscribe(this._onSidebarServiceMax.bind(this));
+        this._serviceSunscriptions.onSidebarMin = LayoutStateService.getObservable().onSidebarMin.subscribe(this._onSidebarServiceMin.bind(this));
     }
 
     ngOnDestroy() {
@@ -210,4 +215,24 @@ export class LayoutComponent implements OnDestroy {
         ViewsEventsService.fire().onResize();
     }
 
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+     * Service listener
+     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    private _onSidebarServiceMax() {
+        if (!this.funcBarState.minimized) {
+            return;
+        }
+        this.funcBarState.maximize();
+        ViewsEventsService.fire().onResize();
+        this._cdRef.detectChanges();
+    }
+
+    private _onSidebarServiceMin() {
+        if (this.funcBarState.minimized) {
+            return;
+        }
+        this.funcBarState.minimize();
+        this._cdRef.detectChanges();
+        ViewsEventsService.fire().onResize();
+    }
 }

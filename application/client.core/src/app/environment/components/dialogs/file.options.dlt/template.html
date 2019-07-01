@@ -1,0 +1,11 @@
+<p class="caption t-normal">File: {{fileName}}</p>
+<span class="spliter"></span>
+<p class="caption t-normal">Size: {{_ng_size}}</p>
+<span class="spliter"></span>
+<p class="caption t-normal">Required log level:</p>
+<lib-primitive-dropdownlist #loglevelcom [defaults]="_ng_logLevelDefault" [items]="_ng_logLevels" [onChange]="_ng_onLogLevelChange"></lib-primitive-dropdownlist>
+<span class="spliter"></span>
+<div class="controlls">
+    <span class="small-button" (click)="_ng_onOpen()">Open</span>
+    <span class="small-button" (click)="_ng_onCancel()">Cancel</span>
+</div>

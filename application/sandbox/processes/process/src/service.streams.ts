@@ -58,7 +58,7 @@ class StreamsService extends EventEmitter {
         this._streams.set(streamId, stream);
         // Start forl
         fork.execute();
-        PluginIPCService.sendToPluginHost({
+        PluginIPCService.sendToPluginHost(streamId, {
             event: 'ForkStarted',
             streamId: streamId
         });
@@ -74,7 +74,7 @@ class StreamsService extends EventEmitter {
         }
         stream.fork = undefined;
         this._streams.set(streamId, stream);
-        PluginIPCService.sendToPluginHost({
+        PluginIPCService.sendToPluginHost(streamId, {
             event: 'ForkClosed',
             streamId: streamId
         });
@@ -89,7 +89,7 @@ class StreamsService extends EventEmitter {
             stream.settings = Object.assign({}, settings);
             this._streams.set(streamId, stream);
         }
-        PluginIPCService.sendToPluginHost({
+        PluginIPCService.sendToPluginHost(streamId, {
             event: 'SettingsUpdated',
             settings: stream.settings,
             streamId: streamId

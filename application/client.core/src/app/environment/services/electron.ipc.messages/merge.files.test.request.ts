@@ -1,10 +1,7 @@
 export interface IFile {
     file: string;
     parser: string;
-    offset: number;
     format: string;
-    reg: string;
-    zone: string;
 }
 
 export interface IMergeFilesTestRequest {

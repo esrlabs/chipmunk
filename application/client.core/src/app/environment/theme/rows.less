@@ -1,6 +1,7 @@
 @import './colors.less';
 
 & p.row span{
+    display: inline-block;
     font-family: monospace;
     font-size: 13px;
     font-variant-numeric: tabular-nums;
@@ -11,6 +12,14 @@
     max-height: 16px;
     white-space: pre;
     vertical-align: top;
+    &.match{
+        background: @scheme-color-2;
+        color: @scheme-color-5;
+        font-weight: 600;
+    }
+}
+
+& li.row span{
     &.match{
         background: @scheme-color-2;
         color: @scheme-color-5;
