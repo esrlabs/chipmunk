@@ -96,7 +96,6 @@ pub fn next_line_nr(path: &std::path::Path) -> Option<usize> {
     let file = fs::File::open(path).expect("opening file did not work");
     let file_size = file.metadata().expect("could not read file metadata").len();
     if file_size == 0 {
-        eprintln!("file was empty => next_line_nr was 0");
         return Some(0);
     };
     let mut reader = BufReader::new(file);
