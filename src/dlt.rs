@@ -50,7 +50,7 @@ pub struct StorageHeader {
 }
 impl fmt::Display for StorageHeader {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
-        write!(f, "{}[{}]", self.timestamp, self.ecu_id)
+        write!(f, "{}{}[{}]", self.timestamp, DLT_COLUMN_SENTINAL, self.ecu_id)
     }
 }
 trait BytesMutExt {
@@ -795,18 +795,22 @@ pub struct Message {
     pub extended_header: Option<ExtendedHeader>,
     pub payload: Payload,
 }
+pub const DLT_COLUMN_SENTINAL: char = '\u{0004}';
+pub const DLT_ARGUMENT_SENTINAL: char = '\u{0005}';
 impl fmt::Display for Message {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{} [cnt:{}]---{}",
+            "{}{}[cnt:{}]{}---{}",
             self.storage_header
                 .as_ref()
                 .map_or(String::new(), |storage_header| format!(
                     "{} [{}]: ",
                     storage_header.timestamp, storage_header.ecu_id
                 )),
+            DLT_COLUMN_SENTINAL,
             self.header.message_counter,
+            DLT_COLUMN_SENTINAL,
             self.header
                 .ecu_id
                 .as_ref()
@@ -818,7 +822,7 @@ impl fmt::Display for Message {
             Payload::Verbose(arguments) => {
                 arguments
                     .iter()
-                    .try_for_each(|arg| write!(f, " <{}>", arg))?;
+                    .try_for_each(|arg| write!(f, "{}<{}>", DLT_ARGUMENT_SENTINAL, arg))?;
             }
             Payload::NonVerbose(id, data) => {
                 let as_string = str::from_utf8(&data).unwrap_or("").trim();
