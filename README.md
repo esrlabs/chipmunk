@@ -157,6 +157,10 @@ match: Ok(true)
 
 # Changelog
 
+### [0.22.0] - 07/01/2019
+  * support correct delimiters for DLT indexed file
+  * added missing line endings for dlt index files
+
 ### [0.21.4] - 07/01/2019
   * do not panic on invalid dates to parse
   * more stderr cleanup
