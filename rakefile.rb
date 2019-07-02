@@ -63,10 +63,8 @@ def build_the_release
   release_folder = "target/release"
   os_ext = "darwin"
   if OS.linux?
-    put "linux"
     os_ext = "linux"
   elsif OS.windows?
-    put "windows"
     os_ext = "windows"
     release_folder = "target/x86_64-pc-windows-gnu/release"
   end
