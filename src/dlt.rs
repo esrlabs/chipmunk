@@ -19,6 +19,8 @@ use std::io::{Error};
 
 #[cfg(test)]
 use proptest_derive::Arbitrary;
+#[cfg(test)]
+use proptest::prelude::*;
 // #[cfg(test)]
 // use proptest::arbitrary;
 // #[cfg(test)]
@@ -52,7 +54,11 @@ pub struct StorageHeader {
 //   EColumn.ECUID,
 impl fmt::Display for StorageHeader {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
-        write!(f, "{}{}[{}]", self.timestamp, DLT_COLUMN_SENTINAL, self.ecu_id)
+        write!(
+            f,
+            "{}{}[{}]",
+            self.timestamp, DLT_COLUMN_SENTINAL, self.ecu_id
+        )
     }
 }
 trait BytesMutExt {
@@ -88,6 +94,7 @@ pub struct StandardHeader {
     pub big_endian: bool,
     pub message_counter: u8,
     pub overall_length: u16,
+    #[cfg_attr(test, proptest(strategy = "\"[a-zA-Z]{3,6}\".prop_map(Some)"))]
     pub ecu_id: Option<String>,
     pub session_id: Option<u32>,
     pub timestamp: Option<u32>,
@@ -189,6 +196,7 @@ pub enum NetworkTraceType {
     Most,
     Ethernet,
     Someip,
+    // #[cfg_attr(test, proptest(strategy = "\"0x7..0x15\".prop_map(UserDefined)"))]
     UserDefined(u8),
 }
 impl fmt::Display for NetworkTraceType {
@@ -239,7 +247,10 @@ pub struct ExtendedHeader {
     pub verbose: bool,
     pub argument_count: u8,
     pub message_type: MessageType,
+
+    #[cfg_attr(test, proptest(strategy = "\"[a-zA-Z]{1,3}\""))]
     pub application_id: String,
+    #[cfg_attr(test, proptest(strategy = "\"[a-zA-Z]{1,3}\""))]
     pub context_id: String,
 }
 // #[cfg(test)]
@@ -643,7 +654,11 @@ impl Argument {
                 write_value::<T>(&self.value, &mut buf);
                 buf.to_vec()
             }
-            TypeInfoKind::Array => BytesMut::with_capacity(STORAGE_HEADER_LENGTH).to_vec(),
+            TypeInfoKind::Array => {
+                // TODO dlt array type not yet implemented NYI
+                eprintln!("found dlt array type...not yet supported");
+                BytesMut::with_capacity(STORAGE_HEADER_LENGTH).to_vec()
+            }
             TypeInfoKind::StringType => {
                 match (self.type_info.has_variable_info, &self.name) {
                     (true, Some(var_name)) => {
@@ -770,15 +785,10 @@ impl Payload {
     fn as_bytes<T: ByteOrder>(self: &Payload) -> Vec<u8> {
         let mut buf = BytesMut::with_capacity(STORAGE_HEADER_LENGTH);
         match self {
-            Payload::Verbose(_) => {
-                // for arg in args {
-                //     match arg.value {
-                //         Argument::Value::Bool(v) =>
-                //     }
-                //     T::write_u32(&mut buf, arg.);
-                // }
-                buf.extend_from_slice(b"DLT");
-                buf.put_u8(0x0);
+            Payload::Verbose(args) => {
+                for arg in args {
+                    buf.extend_from_slice(&arg.as_bytes::<T>());
+                }
             }
             Payload::NonVerbose(msg_id, payload) => {
                 #[allow(deprecated)]
@@ -799,6 +809,7 @@ pub struct Message {
 }
 pub const DLT_COLUMN_SENTINAL: char = '\u{0004}';
 pub const DLT_ARGUMENT_SENTINAL: char = '\u{0005}';
+pub const DLT_NEWLINE_SENTINAL: char = '\u{0006}';
 
 /// will format dlt Message with those fields:
 /// EColumn.DATETIME,
@@ -816,24 +827,27 @@ impl fmt::Display for Message {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}{}{}{}{}{}{}[cnt:{}]{}{}{}{}{}",
-            DLT_COLUMN_SENTINAL,
+            "{}{}{}{}{}{}{}{}{}{}{}{}",
             self.storage_header
                 .as_ref()
                 .map_or(String::new(), |storage_header| storage_header.to_string()),
             DLT_COLUMN_SENTINAL,
             self.header.version,
             DLT_COLUMN_SENTINAL,
-            self.header.session_id.map_or("no session id".to_string(), |sid| sid.to_string()),
+            self.header
+                .session_id
+                .map_or("no session id".to_string(), |sid| sid.to_string()),
             DLT_COLUMN_SENTINAL,
             self.header.message_counter,
             DLT_COLUMN_SENTINAL,
-            self.header.timestamp.map_or("no timestamp".to_string(), |tmsp| tmsp.to_string()),
+            self.header
+                .timestamp
+                .map_or("no timestamp".to_string(), |tmsp| tmsp.to_string()),
             DLT_COLUMN_SENTINAL,
             self.header
                 .ecu_id
                 .as_ref()
-                .map(|id| format!("[{}]", id))
+                .map(|id| id.to_string())
                 .unwrap_or_else(|| "".into()),
             DLT_COLUMN_SENTINAL,
         )?;
@@ -853,16 +867,12 @@ impl fmt::Display for Message {
             write!(f, "")?;
         }
         match &self.payload {
-            Payload::Verbose(arguments) => {
-                arguments
-                    .iter()
-                    .try_for_each(|arg| write!(f, "{}<{}>", DLT_ARGUMENT_SENTINAL, arg))
-            }
+            Payload::Verbose(arguments) => arguments
+                .iter()
+                .try_for_each(|arg| write!(f, "{}{}", DLT_ARGUMENT_SENTINAL, arg)),
             Payload::NonVerbose(id, data) => {
                 let as_string = str::from_utf8(&data).unwrap_or("").trim();
-                f.write_str(
-                    &format!("[non-verbose, id:{}]({:?})|{:02X?}", id, as_string, data)[..],
-                )
+                f.write_str(&format!("[non-verbose, id:{}]({:?})|{:02X?}", id, as_string, data)[..])
             }
         }
     }
@@ -911,24 +921,27 @@ impl fmt::Display for Value {
             Value::I128(value) => value.fmt(f),
             Value::F32(value) => value.fmt(f),
             Value::F64(value) => value.fmt(f),
-            Value::StringVal(value) => value.fmt(f),
-            Value::Raw(value) => f.write_str(&format!("{:02X?}", value)[..]),
+            Value::StringVal(s) => write!(
+                f,
+                "{}",
+                s.lines()
+                    .collect::<Vec<&str>>()
+                    .join(&DLT_NEWLINE_SENTINAL.to_string()[..])
+            ),
+            Value::Raw(value) => write!(f, "{:02X?}", value),
         }
     }
 }
 
 impl fmt::Display for Argument {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
-        if let Some(value) = &self.name {
-            value.fmt(f)?;
-            f.write_str(": ")?;
+        if let Some(n) = &self.name {
+            write!(f, "{}: ", n)?;
         }
-
+        if let Some(u) = &self.unit {
+            u.fmt(f)?;
+        }
         self.value.fmt(f)?;
-
-        if let Some(value) = &self.unit {
-            value.fmt(f)?;
-        }
 
         Ok(())
     }
