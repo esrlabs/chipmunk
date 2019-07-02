@@ -17,11 +17,11 @@ clap = "2"
 tokio = "0.1.21"
 log = "0.4.6"
 buf_redux = "0.8.1"
+proptest = "0.9.4"
+proptest-derive = "0.1.2"
 
 [dev-dependencies]
 rand = "0.6.5"
 pretty_assertions = "0.6.1"
 tempdir = "0.3"
 test-generator = "0.2.2"
-proptest = "0.9.4"
-proptest-derive = "0.1.2"

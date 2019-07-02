@@ -329,19 +329,19 @@ fn decode_argument<T: ByteOrder>(buf: &mut Buf) -> Result<dlt::Argument, Error> 
     let type_info = dlt::TypeInfo::try_from(info)?;
     let with_variable_info = type_info.has_variable_info;
 
-    let arg = if type_info.is_fixed_point {
+    let arg = if type_info.is_fixed_point() {
         return Err(Error::new(
             io::ErrorKind::Other,
             "Fixed point is not implemented",
         ));
     } else {
         match type_info.kind {
-            dlt::TypeInfoKind::Array => {
-                return Err(Error::new(
-                    io::ErrorKind::Other,
-                    "Arrays are not implemented",
-                ));
-            }
+            // dlt::TypeInfoKind::Array => {
+            //     return Err(Error::new(
+            //         io::ErrorKind::Other,
+            //         "Arrays are not implemented",
+            //     ));
+            // }
             dlt::TypeInfoKind::Bool => {
                 let name = decode_variable_name::<T>(&mut rdr, with_variable_info)?;
                 dlt::Argument {
@@ -352,7 +352,7 @@ fn decode_argument<T: ByteOrder>(buf: &mut Buf) -> Result<dlt::Argument, Error> 
                     type_info,
                 }
             }
-            dlt::TypeInfoKind::Signed(len) => {
+            dlt::TypeInfoKind::Signed(len, _fp) => { // implementation for fixed point missing
                 let (name, unit) = decode_variable_info::<T>(&mut rdr, with_variable_info)?;
 
                 let value = match len {
@@ -370,7 +370,7 @@ fn decode_argument<T: ByteOrder>(buf: &mut Buf) -> Result<dlt::Argument, Error> 
                     type_info,
                 }
             }
-            dlt::TypeInfoKind::Unsigned(len) => {
+            dlt::TypeInfoKind::Unsigned(len, _fp) => { // implementation for fixed point missing
                 let (name, unit) = decode_variable_info::<T>(&mut rdr, with_variable_info)?;
 
                 let value = match len {

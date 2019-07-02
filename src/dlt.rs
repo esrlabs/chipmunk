@@ -9,6 +9,7 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
+#![allow(clippy::unit_arg)]
 use bytes::{ByteOrder, BytesMut, BufMut};
 use chrono::{NaiveDateTime};
 use chrono::prelude::{Utc, DateTime};
@@ -17,37 +18,41 @@ use std::fmt::{Formatter};
 use std::io;
 use std::io::{Error};
 
-#[cfg(test)]
 use proptest_derive::Arbitrary;
-#[cfg(test)]
 use proptest::prelude::*;
-// #[cfg(test)]
-// use proptest::arbitrary;
-// #[cfg(test)]
-// use proptest::strategy::*;
 
 use std::str;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Arbitrary)]
 pub struct DltTimeStamp {
     pub seconds: u32,
+    #[proptest(strategy = "0..=1_000_000u32")]
     pub microseconds: u32,
 }
 impl fmt::Display for DltTimeStamp {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
-        let naive: NaiveDateTime =
-            NaiveDateTime::from_timestamp(i64::from(self.seconds), self.microseconds * 1000);
-        let datetime: DateTime<Utc> = DateTime::from_utc(naive, Utc);
-
-        // Format the datetime how you want
-        let newdate = datetime.format("%Y/%m/%d %H:%M:%S");
-        write!(f, "{}", newdate)
+        let naive: Option<NaiveDateTime> =
+            NaiveDateTime::from_timestamp_opt(i64::from(self.seconds), self.microseconds * 1000);
+        match naive {
+            Some(n) => {
+                let datetime: DateTime<Utc> = DateTime::from_utc(n, Utc);
+                // Format the datetime how you want
+                let newdate = datetime.format("%Y/%m/%d %H:%M:%S");
+                write!(f, "{}", newdate)
+            }
+            None => write!(
+                f,
+                "no valid timestamp for {}s/{}us",
+                self.seconds, self.microseconds
+            ),
+        }
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Arbitrary)]
 pub struct StorageHeader {
     pub timestamp: DltTimeStamp,
+    #[proptest(strategy = "\"[a-zA-Z 0-9]{4}\"")]
     pub ecu_id: String,
 }
 //   EColumn.DATETIME,
@@ -56,7 +61,7 @@ impl fmt::Display for StorageHeader {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         write!(
             f,
-            "{}{}[{}]",
+            "{}{}{}",
             self.timestamp, DLT_COLUMN_SENTINAL, self.ecu_id
         )
     }
@@ -86,15 +91,17 @@ impl StorageHeader {
         buf.to_vec()
     }
 }
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(test, derive(Arbitrary))]
+#[derive(Debug, Clone, PartialEq, Arbitrary)]
 pub struct StandardHeader {
-    pub version: u8,
     pub has_extended_header: bool,
+    #[proptest(strategy = "0..8u8")]
+    pub version: u8,
     pub big_endian: bool,
     pub message_counter: u8,
     pub overall_length: u16,
-    #[cfg_attr(test, proptest(strategy = "\"[a-zA-Z]{3,6}\".prop_map(Some)"))]
+    #[proptest(
+        strategy = "\"[a-zA-Z]{2,5}\".prop_map(|v| if v.len() == 5 { None } else {Some(v)})"
+    )]
     pub ecu_id: Option<String>,
     pub session_id: Option<u32>,
     pub timestamp: Option<u32>,
@@ -143,8 +150,7 @@ impl StandardHeader {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
-#[cfg_attr(test, derive(Arbitrary))]
+#[derive(Debug, PartialEq, Clone, Arbitrary)]
 pub enum LogLevel {
     Fatal,
     Error,
@@ -166,8 +172,7 @@ impl fmt::Display for LogLevel {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
-#[cfg_attr(test, derive(Arbitrary))]
+#[derive(Debug, PartialEq, Clone, Arbitrary)]
 pub enum ApplicationTraceType {
     Variable,
     FunctionIn,
@@ -187,8 +192,7 @@ impl fmt::Display for ApplicationTraceType {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
-#[cfg_attr(test, derive(Arbitrary))]
+#[derive(Debug, PartialEq, Clone, Arbitrary)]
 pub enum NetworkTraceType {
     Ipc,
     Can,
@@ -196,7 +200,7 @@ pub enum NetworkTraceType {
     Most,
     Ethernet,
     Someip,
-    // #[cfg_attr(test, proptest(strategy = "\"0x7..0x15\".prop_map(UserDefined)"))]
+    #[proptest(strategy = "(7..15u8).prop_map(NetworkTraceType::UserDefined)")]
     UserDefined(u8),
 }
 impl fmt::Display for NetworkTraceType {
@@ -213,8 +217,7 @@ impl fmt::Display for NetworkTraceType {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
-#[cfg_attr(test, derive(Arbitrary))]
+#[derive(Debug, PartialEq, Clone, Arbitrary)]
 pub enum ControlType {
     Request,
     Response,
@@ -228,8 +231,7 @@ impl fmt::Display for ControlType {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
-#[cfg_attr(test, derive(Arbitrary))]
+#[derive(Debug, PartialEq, Clone, Arbitrary)]
 pub enum MessageType {
     Log(LogLevel),
     ApplicationTrace(ApplicationTraceType),
@@ -241,33 +243,17 @@ pub const DLT_TYPE_APP_TRACE: u8 = 0b001;
 pub const DLT_TYPE_NW_TRACE: u8 = 0b010;
 pub const DLT_TYPE_CONTROL: u8 = 0b011;
 
-#[cfg_attr(test, derive(Arbitrary))]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Arbitrary)]
 pub struct ExtendedHeader {
     pub verbose: bool,
     pub argument_count: u8,
     pub message_type: MessageType,
 
-    #[cfg_attr(test, proptest(strategy = "\"[a-zA-Z]{1,3}\""))]
+    #[proptest(strategy = "\"[a-zA-Z]{1,3}\"")]
     pub application_id: String,
-    #[cfg_attr(test, proptest(strategy = "\"[a-zA-Z]{1,3}\""))]
+    #[proptest(strategy = "\"[a-zA-Z]{1,3}\"")]
     pub context_id: String,
 }
-// #[cfg(test)]
-// impl arbitrary::Arbitrary for ExtendedHeader {
-//     type Strategy = ValueTree<Value = ExtendedHeader>;
-//     fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
-//         Just(
-//         ExtendedHeader {
-//             verbose: true,
-//             argument_count: 3,
-//             message_type: MessageType::Log(LogLevel::Warn),
-//             application_id: String::default(),
-//             context_id: String::default(),
-//         }
-//         )
-//     }
-// }
 
 impl ExtendedHeader {
     #[allow(dead_code)]
@@ -283,12 +269,12 @@ impl ExtendedHeader {
 
 /// Fixed-Point representation. only supports 32 bit and 64 bit values
 /// according to the spec 128 bit are possible but we don't support it
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Arbitrary)]
 pub enum FixedPointValue {
     I32(i32),
     I64(i64),
 }
-fn fixed_point_value_width(v: &FixedPointValue) -> usize {
+pub fn fixed_point_value_width(v: &FixedPointValue) -> usize {
     match v {
         FixedPointValue::I32(_) => 4,
         FixedPointValue::I64(_) => 8,
@@ -313,26 +299,18 @@ pub enum Value {
     Raw(Vec<u8>),
 }
 
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(test, derive(Arbitrary))]
+#[derive(Debug, Clone, PartialEq, Arbitrary)]
 pub enum StringCoding {
     ASCII,
     UTF8,
 }
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(test, derive(Arbitrary))]
-pub enum TypeInfoKind {
-    Bool,
-    Signed(TypeLength),
-    Unsigned(TypeLength),
-    Float(TypeLength),
-    Array,
-    StringType,
-    Raw,
+#[derive(Debug, Clone, PartialEq, Copy, Arbitrary)]
+pub enum FloatWidth {
+    Width32 = 32,
+    Width64 = 64,
 }
 
-#[derive(Debug, Clone, PartialEq, Copy)]
-#[cfg_attr(test, derive(Arbitrary))]
+#[derive(Debug, Clone, PartialEq, Copy, Arbitrary)]
 pub enum TypeLength {
     BitLength8 = 8,
     BitLength16 = 16,
@@ -341,20 +319,63 @@ pub enum TypeLength {
     BitLength128 = 128,
 }
 
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(test, derive(Arbitrary))]
+// pub fn type_info_strategy() -> impl Strategy<Value = TypeInfo> {
+//     any::<TypeInfoKind>()
+//         .prop_flat_map(|kind| 
+//             (any::<StringCoding>(), any::<bool>(), Just())
+//         )
+// }
+
+pub fn signed_strategy() -> impl Strategy<Value = TypeInfoKind> {
+    (any::<TypeLength>(), any::<bool>())
+        .prop_filter_map("only permit fixed point for 32 and 64 bit", |(width, fp)| {
+            if fp && !( width == TypeLength::BitLength32 || width == TypeLength::BitLength64) {
+                None
+            } else {
+                Some(TypeInfoKind::Signed(width, fp))
+            }
+        })
+}
+pub fn unsigned_strategy() -> impl Strategy<Value = TypeInfoKind> {
+    (any::<TypeLength>(), any::<bool>())
+        .prop_filter_map("only permit fixed point for 32 and 64 bit", |(width, fp)| {
+            if fp && !( width == TypeLength::BitLength32 || width == TypeLength::BitLength64) {
+                None
+            } else {
+                Some(TypeInfoKind::Unsigned(width, fp))
+            }
+        })
+}
+#[derive(Debug, Clone, PartialEq, Arbitrary)]
+pub enum TypeInfoKind {
+    Bool,
+    #[proptest(strategy = "signed_strategy()")]
+    Signed(TypeLength, bool), // FIXP
+    #[proptest(strategy = "unsigned_strategy()")]
+    Unsigned(TypeLength, bool), // FIXP
+    Float(FloatWidth),
+    // Array,
+    StringType,
+    Raw,
+}
+
+#[derive(Debug, Clone, PartialEq, Arbitrary)]
 pub struct TypeInfo {
     pub kind: TypeInfoKind,
     pub coding: StringCoding,
     pub has_variable_info: bool,
-    pub is_fixed_point: bool,
     pub has_trace_info: bool,
-    // FixedPoint,
     // TraceInfo,
     // TypeStruct,
 }
 impl TypeInfo {
-    fn type_length_bits(self: &TypeInfo, len: TypeLength) -> u32 {
+    pub fn type_length_bits_float(len: FloatWidth) -> u32 {
+        match len {
+            FloatWidth::Width32 => 0b011,
+            FloatWidth::Width64 => 0b100,
+        }
+    }
+    pub fn type_length_bits(len: TypeLength) -> u32 {
         match len {
             TypeLength::BitLength8 => 0b001,
             TypeLength::BitLength16 => 0b010,
@@ -363,36 +384,45 @@ impl TypeInfo {
             TypeLength::BitLength128 => 0b101,
         }
     }
-    fn type_width(self: &TypeInfo) -> usize {
+    pub fn type_width(self: &TypeInfo) -> usize {
         match self.kind {
-            TypeInfoKind::Signed(v) => v as usize,
-            TypeInfoKind::Unsigned(v) => v as usize,
+            TypeInfoKind::Signed(v, _) => v as usize,
+            TypeInfoKind::Unsigned(v, _) => v as usize,
             TypeInfoKind::Float(v) => v as usize,
             _ => 0,
         }
     }
+    pub fn is_fixed_point(self: &TypeInfo) -> bool {
+        match self.kind {
+            TypeInfoKind::Signed(_, fp) => fp,
+            TypeInfoKind::Unsigned(_, fp) => fp,
+            _ => false,
+        }
+    }
     pub fn as_bytes<T: ByteOrder>(self: &TypeInfo) -> Vec<u8> {
         let mut info: u32 = 0;
+        // encode length
+        println!("TypeInfo::as_bytes, {:?}", self);
         match self.kind {
-            TypeInfoKind::Float(len) => info |= self.type_length_bits(len),
-            TypeInfoKind::Signed(len) => info |= self.type_length_bits(len),
-            TypeInfoKind::Unsigned(len) => info |= self.type_length_bits(len),
-            TypeInfoKind::Bool => info |= self.type_length_bits(TypeLength::BitLength8),
+            TypeInfoKind::Float(len) => info |= TypeInfo::type_length_bits_float(len),
+            TypeInfoKind::Signed(len, _) => info |= TypeInfo::type_length_bits(len),
+            TypeInfoKind::Unsigned(len, _) => info |= TypeInfo::type_length_bits(len),
+            TypeInfoKind::Bool => info |= TypeInfo::type_length_bits(TypeLength::BitLength8),
             _ => (),
         }
         match self.kind {
             TypeInfoKind::Bool => info |= TYPE_INFO_BOOL_FLAG,
-            TypeInfoKind::Signed(_) => info |= TYPE_INFO_SINT_FLAG,
-            TypeInfoKind::Unsigned(_) => info |= TYPE_INFO_UINT_FLAG,
+            TypeInfoKind::Signed(_, _) => info |= TYPE_INFO_SINT_FLAG,
+            TypeInfoKind::Unsigned(_, _) => info |= TYPE_INFO_UINT_FLAG,
             TypeInfoKind::Float(_) => info |= TYPE_INFO_FLOAT_FLAG,
-            TypeInfoKind::Array => info |= TYPE_INFO_ARRAY_FLAG,
+            // TypeInfoKind::Array => info |= TYPE_INFO_ARRAY_FLAG,
             TypeInfoKind::StringType => info |= TYPE_INFO_STRING_FLAG,
             TypeInfoKind::Raw => info |= TYPE_INFO_RAW_FLAG,
         }
         if self.has_variable_info {
             info |= TYPE_INFO_VARIABLE_INFO
         }
-        if self.is_fixed_point {
+        if self.is_fixed_point() {
             info |= TYPE_INFO_FIXED_POINT_FLAG
         }
         if self.has_trace_info {
@@ -441,13 +471,24 @@ impl TryFrom<u32> for TypeInfo {
                 )),
             }
         }
+        fn type_len_float(info: u32) -> Result<FloatWidth, Error> {
+            match info & 0b1111 {
+                0x03 => Ok(FloatWidth::Width32),
+                0x04 => Ok(FloatWidth::Width64),
+                v => Err(Error::new(
+                    io::ErrorKind::Other,
+                    format!("Unknown type_len_float in TypeInfo {:b}", v),
+                )),
+            }
+        }
 
+        let is_fixed_point = (info & TYPE_INFO_FIXED_POINT_FLAG) != 0;
         let kind = match (info >> 4) & 0b111_1111 {
             0b000_0001 => Ok(TypeInfoKind::Bool),
-            0b000_0010 => Ok(TypeInfoKind::Signed(type_len(info)?)),
-            0b000_0100 => Ok(TypeInfoKind::Unsigned(type_len(info)?)),
-            0b000_1000 => Ok(TypeInfoKind::Float(type_len(info)?)),
-            0b001_0000 => Ok(TypeInfoKind::Array),
+            0b000_0010 => Ok(TypeInfoKind::Signed(type_len(info)?, is_fixed_point)),
+            0b000_0100 => Ok(TypeInfoKind::Unsigned(type_len(info)?, is_fixed_point)),
+            0b000_1000 => Ok(TypeInfoKind::Float(type_len_float(info)?)),
+            // 0b001_0000 => Ok(TypeInfoKind::Array),
             0b010_0000 => Ok(TypeInfoKind::StringType),
             0b100_0000 => Ok(TypeInfoKind::Raw),
             v => {
@@ -471,24 +512,35 @@ impl TryFrom<u32> for TypeInfo {
         };
         Ok(TypeInfo {
             has_variable_info: (info & TYPE_INFO_VARIABLE_INFO) != 0,
-            is_fixed_point: (info & TYPE_INFO_FIXED_POINT_FLAG) != 0,
             has_trace_info: (info & TYPE_INFO_TRACE_INFO_FLAG) != 0,
             kind,
             coding,
         })
     }
 }
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Arbitrary)]
 pub struct FixedPoint {
     pub quantization: f32,
     pub offset: FixedPointValue,
 }
-#[derive(Debug, Clone, PartialEq)]
+fn my_enum_strategy() -> impl Strategy<Value = Value> {
+    prop_oneof![
+        any::<bool>().prop_map(Value::Bool),
+        // // For cases with data, write a strategy for the interior data, then
+        // // map into the actual enum case.
+        any::<u32>().prop_map(Value::U32),
+        // (any::<u32>(), ".*").prop_map(
+        //   |(a, b)| MyEnum::CaseWithMultipleData(a, b)),
+    ]
+}
+#[derive(Debug, Clone, PartialEq, Arbitrary)]
 pub struct Argument {
     pub type_info: TypeInfo,
     pub name: Option<String>,
     pub unit: Option<String>,
     pub fixed_point: Option<FixedPoint>,
+    // #[proptest(strategy = "Just(Value::U8(22))")]
+    #[proptest(strategy = "my_enum_strategy()")]
     pub value: Value,
 }
 impl Argument {
@@ -530,16 +582,21 @@ impl Argument {
                 buf.put_u8(0x0); // null termination
             }
             if let Some(fp) = fixed_point {
+                println!("as_bytes fixed point: {:?}", fp);
+                println!("as_bytes, quantization f32: \t{:02X?}...add quantization: {:?}", buf.to_vec(), fp.quantization);
                 #[allow(deprecated)]
                 buf.put_f32::<T>(fp.quantization);
+                println!("as_bytes, quantization f32: \t{:02X?}...add offset: {:?}", buf.to_vec(), fp.offset);
                 match fp.offset {
                     FixedPointValue::I32(v) => {
                         #[allow(deprecated)]
                         buf.put_i32::<T>(v);
+                        println!("as_bytes, after put i32: \t{:02X?}", buf.to_vec());
                     }
                     FixedPointValue::I64(v) => {
                         #[allow(deprecated)]
                         buf.put_i64::<T>(v);
+                        println!("as_bytes, after put i64: \t{:02X?}", buf.to_vec());
                     }
                 }
             }
@@ -560,7 +617,7 @@ impl Argument {
                 });
                 buf.to_vec()
             }
-            TypeInfoKind::Signed(_) => {
+            TypeInfoKind::Signed(_, _) => {
                 fn write_value<T: ByteOrder>(value: &Value, buf: &mut BytesMut) {
                     match value {
                         Value::I8(v) => buf.put_i8(*v),
@@ -596,7 +653,7 @@ impl Argument {
                 write_value::<T>(&self.value, &mut buf);
                 buf.to_vec()
             }
-            TypeInfoKind::Unsigned(_) => {
+            TypeInfoKind::Unsigned(_, _) => {
                 let mut buf = mut_buf_with_typeinfo_name_unit::<T>(
                     &self.type_info,
                     &self.name,
@@ -654,11 +711,11 @@ impl Argument {
                 write_value::<T>(&self.value, &mut buf);
                 buf.to_vec()
             }
-            TypeInfoKind::Array => {
-                // TODO dlt array type not yet implemented NYI
-                eprintln!("found dlt array type...not yet supported");
-                BytesMut::with_capacity(STORAGE_HEADER_LENGTH).to_vec()
-            }
+            // TypeInfoKind::Array => {
+            //     // TODO dlt array type not yet implemented NYI
+            //     eprintln!("found dlt array type...not yet supported");
+            //     BytesMut::with_capacity(STORAGE_HEADER_LENGTH).to_vec()
+            // }
             TypeInfoKind::StringType => {
                 match (self.type_info.has_variable_info, &self.name) {
                     (true, Some(var_name)) => {
@@ -775,9 +832,10 @@ impl Argument {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Arbitrary)]
 pub enum Payload {
     Verbose(Vec<Argument>),
+    #[proptest(strategy = "(0..10u32, prop::collection::vec(any::<u8>(), 0..20)).prop_map(|(a, b)| Payload::NonVerbose(a,b))")]
     NonVerbose(u32, Vec<u8>),
 }
 impl Payload {
@@ -979,7 +1037,7 @@ pub const TYPE_INFO_BOOL_FLAG: u32 = 1 << 4;
 pub const TYPE_INFO_SINT_FLAG: u32 = 1 << 5;
 pub const TYPE_INFO_UINT_FLAG: u32 = 1 << 6;
 pub const TYPE_INFO_FLOAT_FLAG: u32 = 1 << 7;
-pub const TYPE_INFO_ARRAY_FLAG: u32 = 1 << 8;
+pub const _TYPE_INFO_ARRAY_FLAG: u32 = 1 << 8;
 pub const TYPE_INFO_STRING_FLAG: u32 = 1 << 9;
 pub const TYPE_INFO_RAW_FLAG: u32 = 1 << 10;
 pub const TYPE_INFO_VARIABLE_INFO: u32 = 1 << 11;
@@ -1053,15 +1111,13 @@ impl TryFrom<u8> for LogLevel {
 
 impl From<&ApplicationTraceType> for u8 {
     fn from(t: &ApplicationTraceType) -> Self {
-        let mut res: u8 = 0;
         match t {
-            ApplicationTraceType::Variable => res |= 0x1 << 4,
-            ApplicationTraceType::FunctionIn => res |= 0x2 << 4,
-            ApplicationTraceType::FunctionOut => res |= 0x3 << 4,
-            ApplicationTraceType::State => res |= 0x4 << 4,
-            ApplicationTraceType::Vfb => res |= 0x5 << 4,
+            ApplicationTraceType::Variable => 0x1 << 4,
+            ApplicationTraceType::FunctionIn => 0x2 << 4,
+            ApplicationTraceType::FunctionOut => 0x3 << 4,
+            ApplicationTraceType::State => 0x4 << 4,
+            ApplicationTraceType::Vfb => 0x5 << 4,
         }
-        res
     }
 }
 
@@ -1087,17 +1143,15 @@ impl TryFrom<u8> for ApplicationTraceType {
 
 impl From<&NetworkTraceType> for u8 {
     fn from(t: &NetworkTraceType) -> Self {
-        let mut res: u8 = 0;
         match t {
-            NetworkTraceType::Ipc => res |= 0x1 << 4,
-            NetworkTraceType::Can => res |= 0x2 << 4,
-            NetworkTraceType::Flexray => res |= 0x3 << 4,
-            NetworkTraceType::Most => res |= 0x4 << 4,
-            NetworkTraceType::Ethernet => res |= 0x5 << 4,
-            NetworkTraceType::Someip => res |= 0x6 << 4,
-            NetworkTraceType::UserDefined(v) => res |= v << 4,
+            NetworkTraceType::Ipc => 0x1 << 4,
+            NetworkTraceType::Can => 0x2 << 4,
+            NetworkTraceType::Flexray => 0x3 << 4,
+            NetworkTraceType::Most => 0x4 << 4,
+            NetworkTraceType::Ethernet => 0x5 << 4,
+            NetworkTraceType::Someip => 0x6 << 4,
+            NetworkTraceType::UserDefined(v) => v << 4,
         }
-        res
     }
 }
 
@@ -1163,14 +1217,16 @@ impl fmt::Display for MessageType {
 }
 impl From<&MessageType> for u8 {
     fn from(t: &MessageType) -> Self {
-        let mut res: u8 = 0;
         match t {
-            MessageType::Log(x) => res |=  /* 0x0 << 1 |*/ u8::from(x),
-            MessageType::ApplicationTrace(x) => res |= 0x1 << 1 | u8::from(x),
-            MessageType::Control(x) => res |= 0x3 << 1 | u8::from(x),
-            MessageType::NetworkTrace(x) => res |= 0x2 << 1 | u8::from(x),
+            MessageType::Log(x) =>
+            /* 0x0 << 1 |*/
+            {
+                u8::from(x)
+            }
+            MessageType::ApplicationTrace(x) => 0x1 << 1 | u8::from(x),
+            MessageType::NetworkTrace(x) => 0x2 << 1 | u8::from(x),
+            MessageType::Control(x) => 0x3 << 1 | u8::from(x),
         }
-        res
     }
 }
 impl TryFrom<u8> for MessageType {
@@ -1250,7 +1306,6 @@ mod tests {
 
     use pretty_assertions::assert_eq;
     use byteorder::{BigEndian, LittleEndian};
-    use proptest::prelude::*;
 
     proptest! {
         #[test]
@@ -1310,8 +1365,8 @@ mod tests {
     #[test]
     fn test_convert_storage_header_to_bytes() {
         let timestamp = DltTimeStamp {
-            seconds: 0x4DC92C26,
-            microseconds: 0x000CA2D8,
+            seconds: 0x4DC9_2C26,
+            microseconds: 0x000C_A2D8,
         };
         let storage_header = StorageHeader {
             timestamp,
@@ -1333,39 +1388,37 @@ mod tests {
             kind: TypeInfoKind::Bool,
             coding: StringCoding::UTF8,
             has_variable_info: true,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let type_info2 = TypeInfo {
-            kind: TypeInfoKind::Unsigned(TypeLength::BitLength32),
+            kind: TypeInfoKind::Unsigned(TypeLength::BitLength32, true),
             coding: StringCoding::ASCII,
             has_variable_info: false,
-            is_fixed_point: true,
             has_trace_info: false,
         };
         let type_info3 = TypeInfo {
             kind: TypeInfoKind::StringType,
             coding: StringCoding::UTF8,
             has_variable_info: false,
-            is_fixed_point: false,
             has_trace_info: false,
         };
+        //                                                        vvvv..type lenght
+        // type array .....................................v      ||||
+        // type string ...................................v|      ||||
+        // type raw .....................................v||      ||||
+        // variable info................................v|||      ||||
+        //0b 1000 0100 0101
         let expected1: u32 = 0b0000_0000_0000_0000_1000_1000_0001_0001;
         let expected2: u32 = 0b0000_0000_0000_0000_0001_0000_0100_0011;
         let expected3: u32 = 0b0000_0000_0000_0000_1000_0010_0000_0000;
-        // string coding .......................^^_^||| |||| |||| ||||
-        // type struct .............................^|| |||| |||| ||||
-        // trace info ...............................^| |||| |||| ||||
-        // fixed point ...............................^ |||| |||| ||||
-        // variable info................................^||| |||| ||||
-        // type raw .....................................^|| |||| ||||
-        // type string ...................................^| |||| ||||
-        // type array .....................................^ |||| ||||
-        // type float .......................................^||| ||||
-        // type unsigned .....................................^|| ||||
-        // type signed ........................................^| ||||
-        // type bool ...........................................^ ||||
-        // type length ...........................................^^^^
+        // string coding .......................^^.^|||      ||||
+        // type struct .............................^||      ||||
+        // trace info ...............................^|      ||||
+        // fixed point ...............................^      ||||
+        //                                         float.....^|||
+        //                                         unsigned...^||
+        //                                         signed......^|
+        //                                         bool.........^
         println!("expected: {:#b}", expected2);
         println!(
             "got     : {:#b}",
@@ -1402,7 +1455,6 @@ mod tests {
             kind: TypeInfoKind::Bool,
             coding: StringCoding::UTF8,
             has_variable_info: true,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let argument = Argument {
@@ -1423,7 +1475,6 @@ mod tests {
             kind: TypeInfoKind::Bool,
             coding: StringCoding::UTF8,
             has_variable_info: true,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let mut expected2 = type_info2.as_bytes::<BigEndian>();
@@ -1440,10 +1491,9 @@ mod tests {
     #[test]
     fn test_convert_uint_argument_to_bytes() {
         let type_info = TypeInfo {
-            kind: TypeInfoKind::Unsigned(TypeLength::BitLength32),
+            kind: TypeInfoKind::Unsigned(TypeLength::BitLength32, false),
             coding: StringCoding::UTF8,
             has_variable_info: true,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let mut expected = type_info.as_bytes::<BigEndian>();
@@ -1465,10 +1515,9 @@ mod tests {
 
         // now without variable info
         let type_info = TypeInfo {
-            kind: TypeInfoKind::Unsigned(TypeLength::BitLength32),
+            kind: TypeInfoKind::Unsigned(TypeLength::BitLength32, false),
             coding: StringCoding::UTF8,
             has_variable_info: false,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let mut expected = type_info.as_bytes::<BigEndian>();
@@ -1488,10 +1537,9 @@ mod tests {
     #[test]
     fn test_convert_sint_argument_to_bytes() {
         let type_info = TypeInfo {
-            kind: TypeInfoKind::Signed(TypeLength::BitLength32),
+            kind: TypeInfoKind::Signed(TypeLength::BitLength32, false),
             coding: StringCoding::UTF8,
             has_variable_info: true,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let mut expected = type_info.as_bytes::<BigEndian>();
@@ -1513,10 +1561,9 @@ mod tests {
 
         // now without variable info
         let type_info = TypeInfo {
-            kind: TypeInfoKind::Signed(TypeLength::BitLength32),
+            kind: TypeInfoKind::Signed(TypeLength::BitLength32, false),
             coding: StringCoding::UTF8,
             has_variable_info: false,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let mut expected = type_info.as_bytes::<BigEndian>();
@@ -1536,10 +1583,9 @@ mod tests {
     #[test]
     fn test_convert_float_argument_to_bytes() {
         let type_info = TypeInfo {
-            kind: TypeInfoKind::Float(TypeLength::BitLength32),
+            kind: TypeInfoKind::Float(FloatWidth::Width32),
             coding: StringCoding::UTF8,
             has_variable_info: true,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let mut expected = type_info.as_bytes::<BigEndian>();
@@ -1561,10 +1607,9 @@ mod tests {
 
         // now without variable info
         let type_info = TypeInfo {
-            kind: TypeInfoKind::Float(TypeLength::BitLength64),
+            kind: TypeInfoKind::Float(FloatWidth::Width64),
             coding: StringCoding::UTF8,
             has_variable_info: false,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let mut expected = type_info.as_bytes::<BigEndian>();
@@ -1586,7 +1631,6 @@ mod tests {
             kind: TypeInfoKind::StringType,
             coding: StringCoding::UTF8,
             has_variable_info: true,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let mut expected = type_info.as_bytes::<BigEndian>();
@@ -1608,7 +1652,6 @@ mod tests {
             kind: TypeInfoKind::StringType,
             coding: StringCoding::UTF8,
             has_variable_info: false,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let mut expected = type_info.as_bytes::<BigEndian>();
@@ -1628,10 +1671,9 @@ mod tests {
     #[test]
     fn test_convert_fixedpoint_argument_to_bytes() {
         let type_info = TypeInfo {
-            kind: TypeInfoKind::Signed(TypeLength::BitLength32),
+            kind: TypeInfoKind::Signed(TypeLength::BitLength32, true),
             coding: StringCoding::UTF8,
             has_variable_info: true,
-            is_fixed_point: true,
             has_trace_info: false,
         };
         let mut expected = type_info.as_bytes::<BigEndian>();
@@ -1660,10 +1702,9 @@ mod tests {
 
         // now without variable info
         let type_info = TypeInfo {
-            kind: TypeInfoKind::Signed(TypeLength::BitLength32),
+            kind: TypeInfoKind::Signed(TypeLength::BitLength32, true),
             coding: StringCoding::UTF8,
             has_variable_info: false,
-            is_fixed_point: true,
             has_trace_info: false,
         };
         let mut expected = type_info.as_bytes::<BigEndian>();
@@ -1692,7 +1733,6 @@ mod tests {
             kind: TypeInfoKind::Raw,
             coding: StringCoding::UTF8,
             has_variable_info: true,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let mut expected = type_info.as_bytes::<BigEndian>();
@@ -1717,7 +1757,6 @@ mod tests {
             kind: TypeInfoKind::Raw,
             coding: StringCoding::UTF8,
             has_variable_info: false,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let mut expected = type_info.as_bytes::<BigEndian>();

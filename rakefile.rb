@@ -28,11 +28,11 @@ task :default do
 end
 desc "run tests"
 task :test do
-  sh "cargo test"
+  sh "cargo test -q"
 end
 desc "run tests with printing to stdout"
 task :test_nocapture do
-  sh "cargo test -- --nocapture"
+  sh "cargo test -q -- --nocapture"
 end
 desc "push tag to github"
 task :push do
@@ -182,7 +182,7 @@ def assert_tag_exists(version)
   raise "tag #{version} missing" if `git tag -l #{version}`.length == 0
 end
 def create_and_tag_new_version(next_version)
-  sh "cargo test"
+  sh "cargo test -q"
   current_version = get_current_version
   assert_tag_exists(current_version)
   create_changelog(current_version, next_version)

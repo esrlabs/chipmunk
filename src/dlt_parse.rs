@@ -361,14 +361,10 @@ fn dlt_sint<T: NomByteOrder>(width: dlt::TypeLength) -> fn(&[u8]) -> IResult<&[u
         dlt::TypeLength::BitLength128 => |i| map(T::parse_i128, dlt::Value::I128)(i),
     }
 }
-fn dlt_fint<T: NomByteOrder>(width: dlt::TypeLength) -> fn(&[u8]) -> IResult<&[u8], dlt::Value> {
+fn dlt_fint<T: NomByteOrder>(width: dlt::FloatWidth) -> fn(&[u8]) -> IResult<&[u8], dlt::Value> {
     match width {
-        dlt::TypeLength::BitLength32 => |i| map(T::parse_f32, dlt::Value::F32)(i),
-        dlt::TypeLength::BitLength64 => |i| map(T::parse_f64, dlt::Value::F64)(i),
-        _ => |i| {
-            eprintln!("dlt_fint no match");
-            Err(nom::Err::Error((i, nom::error::ErrorKind::Verify)))
-        },
+        dlt::FloatWidth::Width32 => |i| map(T::parse_f32, dlt::Value::F32)(i),
+        dlt::FloatWidth::Width64 => |i| map(T::parse_f64, dlt::Value::F64)(i),
     }
 }
 fn dlt_type_info<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], dlt::TypeInfo> {
@@ -380,7 +376,7 @@ fn dlt_type_info<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], dlt::TypeInfo>
             Ok((i, type_info))
         }
         Err(_) => {
-            eprintln!("dlt_type_info no type_info");
+            eprintln!("dlt_type_info no type_info for 0x{:02X?}", info);
             Err(nom::Err::Error((&[], nom::error::ErrorKind::Verify)))
         }
     }
@@ -389,9 +385,12 @@ fn dlt_fixed_point<T: NomByteOrder>(
     input: &[u8],
     width: dlt::TypeLength,
 ) -> IResult<&[u8], dlt::FixedPoint> {
+    println!("width {:?} dlt_fixedpoint,input: \t{:02X?}", width, input);
     let (i, quantization) = T::parse_f32(input)?;
+    println!("parsed quantization: {:?}", quantization);
     if width == dlt::TypeLength::BitLength32 {
         let (rest, offset) = T::parse_i32(i)?;
+        println!("parsed offset: {:?}", offset);
         Ok((
             rest,
             dlt::FixedPoint {
@@ -414,14 +413,19 @@ fn dlt_fixed_point<T: NomByteOrder>(
     }
 }
 fn dlt_argument<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], dlt::Argument> {
+    println!("before dlt_argument, input: \t{:02X?}", input);
     let (i, type_info) = dlt_type_info::<T>(input)?;
+    println!(
+        "after dlt_type_info, input: \t{:02X?}, type_info: {:?}",
+        i, type_info
+    );
     match type_info.kind {
-        dlt::TypeInfoKind::Array => {
-            panic!("TODO: array not yet implemented"); // not yet impemented
-        }
-        dlt::TypeInfoKind::Signed(width) => {
+        // dlt::TypeInfoKind::Array => {
+        //     panic!("TODO: array not yet implemented"); // not yet impemented
+        // }
+        dlt::TypeInfoKind::Signed(width, fixed_point) => {
             let (before_val, (name, unit)) = dlt_variable_name_and_unit::<T>(&type_info)(i)?;
-            let (after_fixed_point, fixed_point) = if type_info.is_fixed_point {
+            let (after_fixed_point, fixed_point) = if fixed_point {
                 let (r, fp) = dlt_fixed_point::<T>(before_val, width)?;
                 (r, Some(fp))
             } else {
@@ -439,18 +443,22 @@ fn dlt_argument<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], dlt::Argument> 
                 },
             ))
         }
-        dlt::TypeInfoKind::Unsigned(width) => {
-            let (rest, ((name, unit), value)) = tuple((
-                dlt_variable_name_and_unit::<T>(&type_info),
-                dlt_uint::<T>(width),
-            ))(i)?;
+        dlt::TypeInfoKind::Unsigned(width, fixed_point) => {
+            let (before_val, (name, unit)) = dlt_variable_name_and_unit::<T>(&type_info)(i)?;
+            let (after_fixed_point, fixed_point) = if fixed_point {
+                let (r, fp) = dlt_fixed_point::<T>(before_val, width)?;
+                (r, Some(fp))
+            } else {
+                (before_val, None)
+            };
+            let (rest, value) = dlt_uint::<T>(width)(after_fixed_point)?;
             Ok((
                 rest,
                 dlt::Argument {
                     name,
                     unit,
                     value,
-                    fixed_point: None,
+                    fixed_point,
                     type_info,
                 },
             ))
@@ -512,7 +520,7 @@ fn dlt_argument<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], dlt::Argument> 
         dlt::TypeInfoKind::StringType => {
             let (i2, size) = T::parse_u16(i)?;
             let (i3, name) = if type_info.has_variable_info {
-                map(dlt_variable_name::<T>, Some)(i)?
+                map(dlt_variable_name::<T>, Some)(i2)?
             } else {
                 (i2, None)
             };
@@ -658,111 +666,222 @@ mod tests {
         assert!(parse_ecu_id(&sparkle_heart).is_err());
     }
 
-    #[test]
-    fn test_dlt_storage_header() {
-        let timestamp = dlt::DltTimeStamp {
-            seconds: 0x4DC9_2C26,
-            microseconds: 0x000C_A2D8,
-        };
-        let header_to_expect = dlt::StorageHeader {
-            timestamp,
-            ecu_id: "abc".to_string(),
-        };
-        println!("header_to_expect: {}", header_to_expect);
-        let mut header_bytes = header_to_expect.as_bytes();
-        println!("header bytes: {:02X?}", header_bytes);
-        header_bytes.extend(b"----");
-        let res: IResult<&[u8], Option<dlt::StorageHeader>> = dlt_storage_header(&header_bytes);
-        if let Ok((_, Some(v))) = res.clone() {
-            println!("parsed header: {}", v)
-        }
-        let expected: IResult<&[u8], Option<dlt::StorageHeader>> =
-            Ok((b"----", Some(header_to_expect)));
-        assert_eq!(expected, res);
+    fn fp_val_strategy(width32bit: bool) -> impl Strategy<Value = dlt::FixedPointValue> {
+        (any::<i32>(), any::<i64>()).prop_map(move |(v32, v64)| {
+            if width32bit {
+                dlt::FixedPointValue::I32(v32)
+            } else {
+                dlt::FixedPointValue::I64(v64)
+            }
+        })
     }
-    #[test]
-    fn test_dlt_faulty_standard_header() {
-        let header_to_expect = dlt::StandardHeader {
-            version: 3,
-            has_extended_header: true,
-            big_endian: true,
-            message_counter: 42,
-            overall_length: 300,
-            ecu_id: Some("ECUB".to_string()),
-            session_id: Some(0),
-            timestamp: Some(400_000),
+
+    fn fixedpoint_strategy(
+        type_info: dlt::TypeInfo,
+    ) -> impl Strategy<Value = Option<dlt::FixedPoint>> {
+        let (is32_bit, is_fp) = match type_info.kind {
+            dlt::TypeInfoKind::Signed(dlt::TypeLength::BitLength32, fp) => (true, fp),
+            dlt::TypeInfoKind::Unsigned(dlt::TypeLength::BitLength32, fp) => (true, fp),
+            dlt::TypeInfoKind::Signed(dlt::TypeLength::BitLength64, fp) => (false, fp),
+            dlt::TypeInfoKind::Unsigned(dlt::TypeLength::BitLength64, fp) => (false, fp),
+            _ => (false, false),
         };
-        let mut header_bytes = header_to_expect.as_bytes();
-        header_bytes.extend(b"----");
-        let res: IResult<&[u8], dlt::StandardHeader> = dlt_standard_header(&header_bytes);
-        let expected: IResult<&[u8], dlt::StandardHeader> = Ok((b"----", header_to_expect));
-        assert_eq!(expected, res);
+        (any::<f32>(), fp_val_strategy(is32_bit)).prop_map(move |(quantization, offset)| {
+            if !is_fp {
+                None
+            } else {
+                Some(dlt::FixedPoint {
+                    quantization,
+                    offset,
+                })
+            }
+        })
     }
-    proptest! {
-    #[test]
-    fn test_dlt_standard_header(header_to_expect: dlt::StandardHeader) {
-        fn is_valid(s: &Option<String>) -> bool {
-            match s {
-                None => true,
-                Some(a) => {
-                    a.is_ascii()
-                    && !a.trim().is_empty()
-                    && a.trim().len() == a.len()
-                    && a.len() <= 4
-                }
+
+    fn argument_strategy() -> impl Strategy<Value = dlt::Argument> {
+        fn has_unit_info(kind: &dlt::TypeInfoKind) -> bool {
+            match kind {
+                dlt::TypeInfoKind::Unsigned(_, _) => true,
+                dlt::TypeInfoKind::Signed(_, _) => true,
+                dlt::TypeInfoKind::Float(_) => true,
+                _ => false,
             }
         }
-        if header_to_expect.version < 8 && is_valid(&header_to_expect.ecu_id) {
+        let type_kind_stategy = any::<dlt::TypeInfoKind>();
+        let val_strategy = type_kind_stategy.prop_flat_map(create_arg_strategy);
+        val_strategy.prop_flat_map(|(type_info, value)| {
+            (
+                fixedpoint_strategy(type_info.clone()),
+                "[a-zA-Z0-9]{1,4}",
+                "[a-zA-Z0-9]{1,4}",
+            )
+                .prop_map(move |(fp, name_val, unit_val)| dlt::Argument {
+                    name: if type_info.has_variable_info {
+                        Some(name_val)
+                    } else {
+                        None
+                    },
+                    fixed_point: fp,
+                    unit: if type_info.has_variable_info && has_unit_info(&type_info.kind) {
+                        Some(unit_val)
+                    } else {
+                        None
+                    },
+                    type_info: type_info.clone(),
+                    value: value.clone(),
+                })
+        })
+    }
+    fn create_arg_strategy(
+        kind: dlt::TypeInfoKind,
+    ) -> impl Strategy<Value = (dlt::TypeInfo, dlt::Value)> {
+        (
+            Just(kind),
+            any::<bool>(),
+            any::<u8>(),
+            any::<u16>(),
+            any::<u32>(),
+            any::<u64>(),
+            any::<u128>(),
+            (
+                any::<i8>(),
+                any::<i16>(),
+                any::<i32>(),
+                any::<i64>(),
+                any::<i128>(),
+                any::<f32>(),
+                any::<f64>(),
+                (
+                    "[a-zA-Z]{1,10}",
+                    any::<Vec<u8>>(),
+                    any::<dlt::StringCoding>(),
+                    any::<bool>(),
+                    any::<bool>(),
+                ),
+            ),
+        )
+            .prop_map(
+                |(
+                    k,
+                    b,
+                    u8val,
+                    u16val,
+                    u32val,
+                    u64val,
+                    u128val,
+                    (
+                        i8val,
+                        i16val,
+                        i32val,
+                        i64val,
+                        i128val,
+                        f32val,
+                        f64val,
+                        (stringval, vecval, coding, has_variable_info, _has_trace_info),
+                    ),
+                )| match k {
+                    dlt::TypeInfoKind::Bool => (
+                        dlt::TypeInfo {
+                            kind: k,
+                            coding,
+                            has_variable_info,
+                            has_trace_info: false,
+                        },
+                        dlt::Value::Bool(b),
+                    ),
+                    dlt::TypeInfoKind::Signed(s, _) => (
+                        dlt::TypeInfo {
+                            kind: k,
+                            coding,
+                            has_variable_info,
+                            has_trace_info: false,
+                        },
+                        match s {
+                            dlt::TypeLength::BitLength8 => dlt::Value::I8(i8val),
+                            dlt::TypeLength::BitLength16 => dlt::Value::I16(i16val),
+                            dlt::TypeLength::BitLength32 => dlt::Value::I32(i32val),
+                            dlt::TypeLength::BitLength64 => dlt::Value::I64(i64val),
+                            dlt::TypeLength::BitLength128 => dlt::Value::I128(i128val),
+                        },
+                    ),
+                    dlt::TypeInfoKind::Unsigned(s, _) => (
+                        dlt::TypeInfo {
+                            kind: k,
+                            coding,
+                            has_variable_info,
+                            has_trace_info: false,
+                        },
+                        match s {
+                            dlt::TypeLength::BitLength8 => dlt::Value::U8(u8val),
+                            dlt::TypeLength::BitLength16 => dlt::Value::U16(u16val),
+                            dlt::TypeLength::BitLength32 => dlt::Value::U32(u32val),
+                            dlt::TypeLength::BitLength64 => dlt::Value::U64(u64val),
+                            dlt::TypeLength::BitLength128 => dlt::Value::U128(u128val),
+                        },
+                    ),
+                    dlt::TypeInfoKind::Float(w) => (
+                        dlt::TypeInfo {
+                            kind: k,
+                            coding,
+                            has_variable_info,
+                            has_trace_info: false,
+                        },
+                        match w {
+                            dlt::FloatWidth::Width32 => dlt::Value::F32(f32val),
+                            dlt::FloatWidth::Width64 => dlt::Value::F64(f64val),
+                        },
+                    ),
+                    dlt::TypeInfoKind::StringType => (
+                        dlt::TypeInfo {
+                            kind: k,
+                            coding,
+                            has_variable_info,
+                            has_trace_info: false,
+                        },
+                        dlt::Value::StringVal(stringval),
+                    ),
+                    dlt::TypeInfoKind::Raw => (
+                        dlt::TypeInfo {
+                            kind: k,
+                            coding,
+                            has_variable_info,
+                            has_trace_info: false,
+                        },
+                        dlt::Value::Raw(vecval),
+                    ),
+                },
+            )
+    }
+    proptest! {
+        #[test]
+        fn test_dlt_all_storage_header(header_to_expect: dlt::StorageHeader) {
+            println!("header_to_expect: {}", header_to_expect);
+            let mut header_bytes = header_to_expect.as_bytes();
+            println!("header bytes: {:02X?}", header_bytes);
+            header_bytes.extend(b"----");
+            let res: IResult<&[u8], Option<dlt::StorageHeader>> = dlt_storage_header(&header_bytes);
+            if let Ok((_, Some(v))) = res.clone() {
+                println!("parsed header: {}", v)
+            }
+            let expected: IResult<&[u8], Option<dlt::StorageHeader>> =
+                Ok((b"----", Some(header_to_expect)));
+            assert_eq!(expected, res);
+        }
+        #[test]
+        fn test_dlt_standard_header(header_to_expect: dlt::StandardHeader) {
             let mut header_bytes = header_to_expect.as_bytes();
             header_bytes.extend(b"----");
             let res: IResult<&[u8], dlt::StandardHeader> = dlt_standard_header(&header_bytes);
             let expected: IResult<&[u8], dlt::StandardHeader> = Ok((b"----", header_to_expect));
             assert_eq!(expected, res);
         }
-    }
-    }
-    // #[test]
-    fn _test_extended_header_faulty() {
-        let header_to_expect = dlt::ExtendedHeader {
-            verbose: false,
-            argument_count: 0,
-            message_type: dlt::MessageType::Log(dlt::LogLevel::Fatal),
-            application_id: "0 0!".to_string(),
-            context_id: "a".to_string(),
-        };
-        let header_to_expect = dlt::ExtendedHeader {
-            verbose: false,
-            argument_count: 0,
-            message_type: dlt::MessageType::NetworkTrace(
-                dlt::NetworkTraceType::UserDefined(
-                    0,
-                ),
-            ),
-            application_id: "A".to_string(),
-            context_id: "A".to_string(),
-        };
-        let mut header_bytes = header_to_expect.as_bytes();
-        header_bytes.extend(b"----");
-        let res: IResult<&[u8], dlt::ExtendedHeader> = dlt_extended_header(&header_bytes);
-        let expected: IResult<&[u8], dlt::ExtendedHeader> = Ok((b"----", header_to_expect));
-        assert_eq!(expected, res);
-    }
-    proptest! {
-        // #[test]
-        fn _test_extended_header(header_to_expect: dlt::ExtendedHeader) {
-            // fn is_valid(a: &String) -> bool {
-            //     a.is_ascii()
-            //     && !a.trim().is_empty()
-            //     && a.trim().len() == a.len()
-            //     && a.len() <= 4
-            // }
-            // if is_valid(&header_to_expect.context_id) && is_valid(&header_to_expect.application_id) {
-                let mut header_bytes = header_to_expect.as_bytes();
-                header_bytes.extend(b"----");
-                let res: IResult<&[u8], dlt::ExtendedHeader> = dlt_extended_header(&header_bytes);
-                let expected: IResult<&[u8], dlt::ExtendedHeader> = Ok((b"----", header_to_expect));
-                assert_eq!(expected, res);
-            // }
+        #[test]
+        fn test_extended_header(header_to_expect: dlt::ExtendedHeader) {
+            let mut header_bytes = header_to_expect.as_bytes();
+            header_bytes.extend(b"----");
+            let res: IResult<&[u8], dlt::ExtendedHeader> = dlt_extended_header(&header_bytes);
+            let expected: IResult<&[u8], dlt::ExtendedHeader> = Ok((b"----", header_to_expect));
+            assert_eq!(expected, res);
         }
         #[test]
         fn test_parse_type_info(type_info: dlt::TypeInfo) {
@@ -773,6 +892,44 @@ mod tests {
             let expected: IResult<&[u8], dlt::TypeInfo> = Ok((b"----", type_info));
             assert_eq!(expected, res);
         }
+        #[test]
+
+        fn test_parse_any_argument(argument in argument_strategy()) {
+            let mut argument_bytes = argument.as_bytes::<BigEndian>();
+            argument_bytes.extend(b"----");
+            let res: IResult<&[u8], dlt::Argument> = dlt_argument::<BigEndian>(&argument_bytes);
+            let expected: IResult<&[u8], dlt::Argument> = Ok((b"----", argument));
+            assert_eq!(expected, res);
+        }
+        #[test]
+        fn test_signed_strategy(kind in dlt::unsigned_strategy()) {
+            println!("signed: {:?}", kind);
+        }
+    }
+    #[test]
+    fn test_parse_offending_argument() {
+        let type_info = dlt::TypeInfo {
+            kind: dlt::TypeInfoKind::Signed(dlt::TypeLength::BitLength64, true),
+            coding: dlt::StringCoding::UTF8,
+            has_variable_info: true,
+            has_trace_info: false,
+        };
+        let argument = dlt::Argument {
+            type_info,
+            name: Some("a".to_string()),
+            unit: Some("a".to_string()),
+            fixed_point: Some(dlt::FixedPoint {
+                quantization: 1.0,
+                offset: dlt::FixedPointValue::I64(1),
+            }),
+            value: dlt::Value::I64(-1_246_093_129_526_187_791),
+        };
+
+        let mut argument_bytes = argument.as_bytes::<BigEndian>();
+        argument_bytes.extend(b"----");
+        let res: IResult<&[u8], dlt::Argument> = dlt_argument::<BigEndian>(&argument_bytes);
+        let expected: IResult<&[u8], dlt::Argument> = Ok((b"----", argument));
+        assert_eq!(expected, res);
     }
     #[test]
     fn test_parse_bool_argument() {
@@ -780,7 +937,6 @@ mod tests {
             kind: dlt::TypeInfoKind::Bool,
             coding: dlt::StringCoding::UTF8,
             has_variable_info: false,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let argument = dlt::Argument {
@@ -801,7 +957,6 @@ mod tests {
             kind: dlt::TypeInfoKind::Bool,
             coding: dlt::StringCoding::UTF8,
             has_variable_info: true,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let argument = dlt::Argument {
@@ -821,10 +976,9 @@ mod tests {
     #[test]
     fn test_parse_unsigned_argument() {
         let type_info = dlt::TypeInfo {
-            kind: dlt::TypeInfoKind::Unsigned(dlt::TypeLength::BitLength32),
+            kind: dlt::TypeInfoKind::Unsigned(dlt::TypeLength::BitLength32, false),
             coding: dlt::StringCoding::UTF8,
             has_variable_info: false,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let argument = dlt::Argument {
@@ -842,10 +996,9 @@ mod tests {
         assert_eq!(expected, res);
         // now with variable info
         let type_info = dlt::TypeInfo {
-            kind: dlt::TypeInfoKind::Unsigned(dlt::TypeLength::BitLength32),
+            kind: dlt::TypeInfoKind::Unsigned(dlt::TypeLength::BitLength32, false),
             coding: dlt::StringCoding::UTF8,
             has_variable_info: true,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let argument = dlt::Argument {
@@ -865,10 +1018,9 @@ mod tests {
     #[test]
     fn test_parse_signed_argument() {
         let type_info = dlt::TypeInfo {
-            kind: dlt::TypeInfoKind::Signed(dlt::TypeLength::BitLength16),
+            kind: dlt::TypeInfoKind::Signed(dlt::TypeLength::BitLength16, false),
             coding: dlt::StringCoding::UTF8,
             has_variable_info: false,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let argument = dlt::Argument {
@@ -886,10 +1038,9 @@ mod tests {
         assert_eq!(expected, res);
         // now with variable info
         let type_info = dlt::TypeInfo {
-            kind: dlt::TypeInfoKind::Signed(dlt::TypeLength::BitLength32),
+            kind: dlt::TypeInfoKind::Signed(dlt::TypeLength::BitLength32, false),
             coding: dlt::StringCoding::UTF8,
             has_variable_info: true,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let argument = dlt::Argument {
@@ -909,10 +1060,9 @@ mod tests {
     #[test]
     fn test_parse_float_argument() {
         let type_info = dlt::TypeInfo {
-            kind: dlt::TypeInfoKind::Float(dlt::TypeLength::BitLength32),
+            kind: dlt::TypeInfoKind::Float(dlt::FloatWidth::Width32),
             coding: dlt::StringCoding::UTF8,
             has_variable_info: false,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let argument = dlt::Argument {
@@ -930,10 +1080,9 @@ mod tests {
         assert_eq!(expected, res);
         // now with variable info
         let type_info = dlt::TypeInfo {
-            kind: dlt::TypeInfoKind::Float(dlt::TypeLength::BitLength64),
+            kind: dlt::TypeInfoKind::Float(dlt::FloatWidth::Width64),
             coding: dlt::StringCoding::UTF8,
             has_variable_info: true,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let argument = dlt::Argument {
@@ -956,7 +1105,6 @@ mod tests {
             kind: dlt::TypeInfoKind::Raw,
             coding: dlt::StringCoding::UTF8,
             has_variable_info: false,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let argument = dlt::Argument {
@@ -976,7 +1124,6 @@ mod tests {
             kind: dlt::TypeInfoKind::Raw,
             coding: dlt::StringCoding::UTF8,
             has_variable_info: true,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let argument = dlt::Argument {
@@ -999,7 +1146,6 @@ mod tests {
             kind: dlt::TypeInfoKind::StringType,
             coding: dlt::StringCoding::UTF8,
             has_variable_info: false,
-            is_fixed_point: false,
             has_trace_info: false,
         };
         let argument = dlt::Argument {
@@ -1075,10 +1221,9 @@ mod tests {
     #[test]
     fn test_parse_fixed_point_argument() {
         let type_info = dlt::TypeInfo {
-            kind: dlt::TypeInfoKind::Signed(dlt::TypeLength::BitLength32),
+            kind: dlt::TypeInfoKind::Signed(dlt::TypeLength::BitLength32, true),
             coding: dlt::StringCoding::UTF8,
             has_variable_info: true,
-            is_fixed_point: true,
             has_trace_info: false,
         };
         let argument = dlt::Argument {
