@@ -129,6 +129,7 @@ desc "build release, no version bump"
 task :build_release do
   build_the_release
   if OS.linux?
+    build_the_release_windows
     build_the_release_windows32
   end
 end
