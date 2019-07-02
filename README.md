@@ -157,6 +157,9 @@ match: Ok(true)
 
 # Changelog
 
+### [0.24.0] - 07/02/2019
+  * remove newlines from dlt arguments
+
 ### [0.23.0] - 07/01/2019
 
 
