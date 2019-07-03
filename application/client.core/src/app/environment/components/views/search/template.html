@@ -15,7 +15,7 @@
     </div>
   </div>
   <div class="request-buttons" *ngIf="_ng_prevRequest !== ''">
-    <span [attr.class]="'small-icon-button fas fa-share-square ' + (_ng_isRequestSaved ? 'disabled' : '')" (click)="_ng_onStoreRequest()"></span>
+    <span [attr.class]="'small-icon-button far fa-save ' + (_ng_isRequestSaved ? 'disabled' : '')" (click)="_ng_onStoreRequest()"></span>
     <span [attr.class]="'small-icon-button fas fa-backspace '" (click)="_ng_onDropRequest()"></span>
   </div>
 </div>

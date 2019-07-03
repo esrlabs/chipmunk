@@ -2,6 +2,9 @@ import * as Toolkit from 'logviewer.client.toolkit';
 import { IComponentDesc } from 'logviewer-client-containers';
 import { Observable, Subject } from 'rxjs';
 import { ComponentFactory, ModuleWithComponentFactories } from '@angular/core';
+import { shadeColor, scheme_color_4, scheme_color_0 } from '../../theme/colors';
+import { CColors } from '../../conts/colors';
+
 export type TParser = (str: string, themeTypeRef?: Toolkit.EThemeType) => string;
 
 export interface ICommonParsers {
@@ -162,18 +165,25 @@ export class OutputParsersService {
             };
         }
         let first: IRequest | undefined;
+        const applied: string[] = [];
         if (highlights instanceof Array) {
             highlights.forEach((request: IRequest) => {
+                const bgcl: string = request.background === CColors[0] ? scheme_color_4 : (request.background === undefined ? scheme_color_4 : shadeColor(request.background, 30));
+                const fgcl: string = request.color === CColors[0] ? scheme_color_0 : (request.color === undefined ? scheme_color_0 : shadeColor(request.color, 30));
                 str = str.replace(request.reg, (match: string) => {
                     if (first === undefined) {
                         first = request;
                     }
-                    return `<span class="noreset match">${match}</span>`;
+                    return `<span class="noreset match" style="background: ${bgcl}; color: ${fgcl};">${match}</span>`;
                 });
+                applied.push(request.reg.source);
             });
         }
         if (requests instanceof Array) {
             requests.forEach((request: IRequest) => {
+                if (applied.indexOf(request.reg.source) !== -1) {
+                    return;
+                }
                 str = str.replace(request.reg, (match: string) => {
                     if (first === undefined) {
                         first = request;

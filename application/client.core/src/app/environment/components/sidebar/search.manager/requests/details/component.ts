@@ -55,7 +55,7 @@ export class SidebarAppSearchRequestDetailsComponent implements OnDestroy, After
 
     public _ng_onColorSelect(index: number) {
         this._ng_color = this._ng_colors[index];
-        this._ng_background = this._colorSettingMode === EColorSetingMode.auto ? this._getGeneratedColor(this._ng_color) : this._ng_background;
+        this._ng_background = this._colorSettingMode === EColorSetingMode.auto ? this._getGeneratedColor(this._ng_color, false) : this._ng_background;
         this._updateIndexes();
         this.request.onChange(this._ng_color, this._ng_background);
         this._cdRef.detectChanges();
@@ -63,7 +63,7 @@ export class SidebarAppSearchRequestDetailsComponent implements OnDestroy, After
 
     public _ng_onBackgroundSelect(index: number) {
         this._ng_background = this._ng_colors[index];
-        this._ng_color = this._colorSettingMode === EColorSetingMode.auto ? this._getGeneratedColor(this._ng_background) : this._ng_color;
+        this._ng_color = this._colorSettingMode === EColorSetingMode.auto ? this._getGeneratedColor(this._ng_background, true) : this._ng_color;
         this._updateIndexes();
         this.request.onChange(this._ng_color, this._ng_background);
         this._cdRef.detectChanges();
@@ -71,6 +71,11 @@ export class SidebarAppSearchRequestDetailsComponent implements OnDestroy, After
 
     public _ng_onColorSettingModeChange(value: EColorSetingMode) {
         this._colorSettingMode = value;
+        if (this._colorSettingMode === EColorSetingMode.manual) {
+            this._ng_background = this._ng_colors[0];
+            this._ng_backgroundIndex = 0;
+        }
+        this._cdRef.detectChanges();
     }
 
     private _update() {
@@ -124,4 +129,3 @@ export class SidebarAppSearchRequestDetailsComponent implements OnDestroy, After
     }
 
 }
-
