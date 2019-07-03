@@ -217,7 +217,7 @@ class Plugin {
                 return reject(new Error(`Cannot make connection for stream "${streamId}" because port of demon isn't defined.`));
             }
             // Notify client about starting connection
-            PluginIPCService.sendToPluginHost({
+            PluginIPCService.sendToPluginHost(message.stream, {
                 event: 'connecting',
                 stream: streamId,
             });    
@@ -261,7 +261,7 @@ class Plugin {
         // Start emulation
         this._emulate(streamId);
         // Notify client
-        PluginIPCService.sendToPluginHost({
+        PluginIPCService.sendToPluginHost(streamId, {
             event: 'connected',
             stream: streamId,
         });
@@ -272,7 +272,7 @@ class Plugin {
     }
 
     private _socket_onError(streamId: string, error: Error) {
-        PluginIPCService.sendToPluginHost({
+        PluginIPCService.sendToPluginHost(streamId, {
             event: 'error',
             stream: streamId,
             error: error.message
@@ -300,7 +300,7 @@ class Plugin {
         connection.packets += 1;
         PluginIPCService.sendToStream(chunk, streamId).then(() => {
             // Send statistic information to plugin host
-            PluginIPCService.sendToPluginHost({
+            PluginIPCService.sendToPluginHost(streamId, {
                 event: 'stat',
                 stream: streamId,
                 bytes: connection.bytes,
@@ -315,7 +315,7 @@ class Plugin {
             // Already closed
             return;
         }
-        PluginIPCService.sendToPluginHost({
+        PluginIPCService.sendToPluginHost(streamId, {
             event: 'disconnected',
             stream: streamId,
         });
