@@ -41,6 +41,11 @@ export class NotificationsComponent implements OnDestroy {
         }
         this._notifications.push(notification);
         this.notifications.push(notification);
+        if (isFinite(notification.options.closeDelay)) {
+            setTimeout(() => {
+                this._close(notification.id);
+            }, notification.options.closeDelay);
+        }
         this._cdRef.detectChanges();
     }
 
