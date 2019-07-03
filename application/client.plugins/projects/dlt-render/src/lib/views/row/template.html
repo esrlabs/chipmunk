@@ -1,4 +1,4 @@
 <span class="wrapper noreset" *ngFor="let column of _ng_columns; let i = index" [ngStyle]="{'width': _ng_getWidth(i)}">
-    <span class="content noreset" [innerHTML]="column.html" (click)="_ng_onSelect()"></span>
+    <span class="content noreset" [innerHTML]="column.html"></span>
     <span class="border" (mousedown)="_ng_onMouseDown(i, $event)"></span>
 </span>
