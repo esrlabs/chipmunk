@@ -25,6 +25,7 @@ export interface IContainer {
 export interface IDock {
     id?: string;
     caption: string;
+    closable?: boolean;
     component?: IComponentDesc;
 }
 
@@ -59,11 +60,13 @@ export class Dock {
     private _id: string = Tools.guid();
     private _caption: string;
     private _component: IComponentDesc | undefined;
+    private _closable: boolean;
 
     constructor( params: IDock) {
         this._id = params.id !== void 0 ? params.id : this._id;
         this._caption = params.caption !== void 0 ? params.caption : this._caption;
         this._component = params.component !== void 0 ? params.component : undefined;
+        this._closable = typeof params.closable === 'boolean' ? params.closable : true;
     }
 
     public isContainer(): boolean {
@@ -84,6 +87,22 @@ export class Dock {
 
     public get component(): IComponentDesc | undefined {
         return this._component;
+    }
+
+    public get closable(): boolean {
+        return this._closable;
+    }
+
+    public set caption(value: string) {
+        this._caption = value;
+    }
+
+    public set component(value: IComponentDesc | undefined) {
+        this._component = value;
+    }
+
+    public set closable(value: boolean) {
+        this._closable = value;
     }
 
 }
