@@ -103,20 +103,13 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
     }
 
     private _onRequestsUpdated(requests: IRequest[]) {
+        const newRequest: IRequest | undefined = this._getNewRequest(requests);
         this._ng_requests = this._getRequestItems(requests);
-        if (this._ng_selected !== undefined) {
-            let exist: boolean = false;
-            this._ng_requests.forEach((request: IRequestItem) => {
-                if (request.request.reg.source === this._ng_selected.request.reg.source) {
-                    exist = true;
-                }
-            });
-            if (!exist) {
-                this._ng_selected = undefined;
-                this._ng_selectedIndex = -1;
-            }
+        if (newRequest === undefined) {
+            this._cdRef.detectChanges();
+        } else {
+            this._onSelect(newRequest);
         }
-        this._cdRef.detectChanges();
     }
 
     private _getRequestItems(requests: IRequest[]): IRequestItem[] {
@@ -128,6 +121,22 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
                 onChangeState: this._onChangeState.bind(this, request)
             };
         });
+    }
+
+    private _getNewRequest(requests: IRequest[]): IRequest | undefined {
+        let result: IRequest | undefined;
+        requests.forEach((request: IRequest) => {
+            let exist: boolean = false;
+            this._ng_requests.forEach((stored: IRequestItem) => {
+                if (stored.request.reg.source === request.reg.source) {
+                    exist = true;
+                }
+            });
+            if (!exist) {
+                result = request;
+            }
+        });
+        return result;
     }
 
     private _onSelect(request: IRequest) {
