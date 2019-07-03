@@ -2,6 +2,7 @@ import { Observable, Subject } from 'rxjs';
 import * as Tools from '../../tools/index';
 import { TabsOptions, ITabsOptions } from './options';
 import { IComponentDesc } from 'logviewer-client-containers';
+import { ControllerSessionsHistroy } from './controller.histroy';
 
 export { IComponentDesc };
 
@@ -27,6 +28,7 @@ export class TabsService {
     private _tabs: Map<string, ITab> = new Map();
     private _options: TabsOptions = new TabsOptions();
     private _minimized: boolean = false;
+    private _history: ControllerSessionsHistroy = new ControllerSessionsHistroy();
 
     constructor(params?: {
         tabs?: Map<string, ITab>,
@@ -63,6 +65,7 @@ export class TabsService {
         tab.active = true;
         this._tabs.set(guid, tab);
         this._subjects.active.next(tab);
+        this._history.add(guid);
     }
 
     public add(tab: ITab) {
@@ -83,8 +86,9 @@ export class TabsService {
             return new Error(`Tab "${guid}" isn't found.`);
         }
         this._tabs.delete(guid);
+        this._history.remove(guid);
         if (tab.active && this._tabs.size > 0) {
-            this.setActive(this._tabs.keys().next().value);
+            this.setActive(this._history.getLast());
         }
         this._subjects.removed.next(guid);
     }

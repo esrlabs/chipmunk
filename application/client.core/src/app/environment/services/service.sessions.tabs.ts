@@ -27,6 +27,7 @@ export class TabsSessionsService implements IService {
         views: [],
         sidebarApps: [],
     };
+
     private _subjects: {
         onSessionChange: Subject<ControllerSessionTab | undefined>,
     } = {
