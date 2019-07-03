@@ -58,6 +58,7 @@ export class HorizontalSidebarSessionsService implements IService {
                 guid: guid,
                 name: defaultView.name,
                 active: i === 0,
+                closable: false,
                 content: {
                     factory: defaultView.factory,
                     inputs: Object.assign(defaultView.inputs, this._inputs),
