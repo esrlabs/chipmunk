@@ -3,6 +3,7 @@ import { TabsService  } from 'logviewer-client-complex';
 import { AreaState } from '../state';
 import { Subscription } from 'rxjs';
 import { LayoutPrimiryAreaControlsComponent } from './controls/component';
+import { LayoutPrimiryAreaNoTabsComponent } from './no-tabs-content/component';
 import TabsSessionsService from '../../services/service.sessions.tabs';
 
 @Component({
@@ -31,6 +32,10 @@ export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
                         onNewTab: this._onNewTab.bind(this)
                     }
                 }
+            },
+            noTabsContent: {
+                factory: LayoutPrimiryAreaNoTabsComponent,
+                inputs: {}
             }
         });
         // Create default session
