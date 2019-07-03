@@ -3,7 +3,6 @@ import { CommonModule                           } from '@angular/common';
 
 import { TabsModule                             } from './tabs/module';
 import { DockingModule                          } from './docking/module';
-import { InfinityOutputModule                   } from './infinityoutput/module';
 import { ScrollBoxModule                        } from './scrollbox/module';
 
 
@@ -11,7 +10,7 @@ import { ScrollBoxModule                        } from './scrollbox/module';
     entryComponents : [  ],
     imports         : [ CommonModule ],
     declarations    : [  ],
-    exports         : [ TabsModule, DockingModule, InfinityOutputModule, ScrollBoxModule ]
+    exports         : [ TabsModule, DockingModule, ScrollBoxModule ]
 })
 
 export class ComplexModule { }

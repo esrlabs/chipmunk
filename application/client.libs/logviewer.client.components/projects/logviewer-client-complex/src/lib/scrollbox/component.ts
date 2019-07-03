@@ -253,6 +253,13 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
     public ngOnChanges() {
     }
 
+    public setFocus() {
+        if (this._ng_nodeContainer === undefined || this._ng_nodeContainer === null) {
+            return;
+        }
+        this._ng_nodeContainer.nativeElement.focus();
+    }
+
     public _ng_onWindowMouseMove(event: MouseEvent) {
         if (!this._selection.going) {
             return;

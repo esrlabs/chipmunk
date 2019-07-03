@@ -78,6 +78,8 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this._subscriptions.onKeepScrollPrevent = EventsHubService.getObservable().onKeepScrollPrevent.subscribe(this._onKeepScrollPrevent.bind(this));
         // Inject controls to caption of dock
         this._ctrl_inject();
+        // Set focus
+        this._scrollBoxCom.setFocus();
     }
 
     ngAfterContentInit() {
