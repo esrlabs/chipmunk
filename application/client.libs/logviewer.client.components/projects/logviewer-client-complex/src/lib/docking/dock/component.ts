@@ -38,6 +38,7 @@ export class DockComponent implements AfterViewInit, OnDestroy, AfterContentInit
         if (this.dock.component.inputs === undefined) {
             this.dock.component.inputs = {};
         }
+        this.dock.closable = typeof this.dock.closable === 'boolean' ? this.dock.closable : true;
         this.dock.component.inputs.injectTitleContent = this._injectTitleContent.bind(this);
         this.dock.component.inputs.rejectTitleContent = this._rejectTitleContent.bind(this);
     }

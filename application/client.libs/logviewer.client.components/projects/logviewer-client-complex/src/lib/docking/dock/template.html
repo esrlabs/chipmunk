@@ -1,6 +1,6 @@
 <div class="caption">
     <span class="move-button fas fa-bars"></span>
-    <div class="wrapper">
+    <div [attr.class]="'wrapper ' + (this.dock.closable ? 'closable' : 'not-closable')">
         <p class="caption">{{dock.caption}}</p>
         <ul class="injections" *ngIf="_ng_titleInjections.length > 0">
             <li class="injection" *ngFor="let injection of _ng_titleInjections">
@@ -8,7 +8,7 @@
             </li>
         </ul>
     </div>
-    <span class="close-button fas fa-times"></span>
+    <span *ngIf="this.dock.closable" class="close-button fas fa-times"></span>
 </div>
 <div class="content">
     <lib-containers-dynamic *ngIf="dock.component !== undefined" [component]="dock.component"></lib-containers-dynamic>
