@@ -175,7 +175,7 @@ class ServiceFileOpener implements IService {
             }
             parser.readAndWrite(file, dest.file, sourceId, (map: IMapItem[]) => {
                 ServiceStreams.pushToStreamFileMap(dest.streamId, map);
-                ServiceStreams.updatePipeSession(map[map.length - 1].bytes.to, dest.streamId);
+                ServiceStreams.updatePipeSession(map[map.length - 1].bytes.to - map[0].bytes.from, dest.streamId);
             }).then((map: IMapItem[]) => {
                 // Doesn't need to update map here, because it's updated on fly
                 // Notify render
