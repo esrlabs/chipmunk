@@ -198,6 +198,7 @@ export class ControllerSessionTab {
                 guid: app.guid !== undefined ? app.guid : Toolkit.guid(),
                 name: app.name,
                 active: index === 0,
+                closable: false,
                 content: {
                     factory: app.component,
                     resolved: false,
