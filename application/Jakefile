@@ -81,7 +81,8 @@ const fsController = new FSController();
 
 const APP_FOLDER = 'application';
 const CLIENT_FOLDER = 'client.core';
-const CLIENT_NPM_LIBS = 'client.libs/logviewer.client.components'
+const CLIENT_NPM_LIBS = 'client.libs/logviewer.client.components';
+const PATH_COMPRESSED_PLUGINS = path.normalize(path.resolve(__dirname, 'electron/dist/compiled/plugins'));
 const PLUGIN_IPC_LIB = 'node.libs/logviewer.plugin.ipc';
 const ELECTRON_FOLDER = 'electron';
 const PLATFORM_FOLDER = 'platform';
@@ -142,6 +143,7 @@ function logo(){
     logo.__show = true;
     return console.log(colors.yellow(buffer.toString('utf8')));
 }
+
 function echo(msg) {
     return `echo "${msg}"`;
 }
@@ -152,6 +154,14 @@ function echoDec(msg, filler = '*', colorFunc = null) {
         return `echo "${colorFunc(`\n${filler.repeat(msg.length - 1)}\n${msg}\n${filler.repeat(msg.length - 1)}\n`)}"` ;
     } else {
         return `echo "\n${filler.repeat(msg.length - 1)}\n${msg}\n${filler.repeat(msg.length - 1)}\n"` ;
+    }
+}
+
+function getCpCmd() {
+    if(process.platform === 'win32') {
+        return 'cp -r';
+    } else {
+        return 'cp -R';
     }
 }
 
@@ -326,7 +336,7 @@ namespace('client', function() {
                 tasks.push(`rm -rf ${clientLibDest} & exit 0`);
             }
             tasks.push(echo(colors.blue(`Coping: ${clientLibDest}`)));
-            tasks.push(`cp -R ${clientLib} ${clientLibDest}`);
+            tasks.push(`${getCpCmd()} ${clientLib} ${clientLibDest}`);
             tasks.push(`rm -rf ${path.normalize(path.resolve(clientPath, 'etc'))}`);
         });
         sh(this, '.', ...tasks);
@@ -343,12 +353,12 @@ namespace('client', function() {
         const srcPluginsIPCPath = path.normalize(path.resolve(electronPath, 'src/controllers/plugin.ipc.messages'));
         tasks.push(echo(colors.blue(`Coping: ${srcElectronIPCPath}`)));
         tasks.push(`rm -rf ${destElectronIPCPath}`);
-        tasks.push(`cp -R ${srcElectronIPCPath} ${destElectronIPCPath}`);
+        tasks.push(`${getCpCmd()} ${srcElectronIPCPath} ${destElectronIPCPath}`);
         tasks.push(`rm -rf ${path.normalize(path.resolve(clientPath, 'etc'))}`);
 
         tasks.push(echo(colors.blue(`Coping: ${srcPluginsIPCPath}`)));
         tasks.push(`rm -rf ${destPluginIPCPath}`);
-        tasks.push(`cp -R ${srcPluginsIPCPath} ${destPluginIPCPath}`);
+        tasks.push(`${getCpCmd()} ${srcPluginsIPCPath} ${destPluginIPCPath}`);
         tasks.push(`rm -rf ${path.normalize(path.resolve(clientPath, 'etc'))}`);
         sh(this, '.', ...tasks);
     }, {async: true});
@@ -467,7 +477,7 @@ namespace('plugin.processes', function() {
                 tasks.push(`rm -rf ${sandboxLibDest} & exit 0`);
             }
             tasks.push(echo(colors.blue(`Coping: ${sandboxLibDest}`)));
-            tasks.push(`cp -R ${clientLib} ${sandboxLibDest}`);
+            tasks.push(`${getCpCmd()} ${clientLib} ${sandboxLibDest}`);
             tasks.push(`rm -rf ${path.normalize(path.resolve(sandboxPath, 'etc'))}`);
         });
         sh(this, '.', ...tasks);
@@ -502,7 +512,7 @@ namespace('plugin.processes', function() {
             tasks.push(`rm -rf ${clientDest}`);
         }
         tasks.push(`mkdir ${clientDest}`);
-        tasks.push(`cp -R ${clientDist} ${clientDest}`);
+        tasks.push(`${getCpCmd()} ${clientDist} ${clientDest}`);
         sh(this, '.', ...tasks);
     }, {async: true});
 
@@ -526,7 +536,21 @@ namespace('plugin.processes', function() {
         sh(this, '.', ...tasks);
     }, {async: true});
 
-    task('all', ['plugin.processes:link-client-libs', 'plugin.processes:client.build', 'plugin.processes:client.delivery', 'plugin.processes:host.build']);
+    task('compress', function() {
+        logo();
+        //tar -cvzf processes@0.0.2-darwin.tgz ./processes
+        const tasks = [];
+        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `processes@0.0.2-${process.platform}.tgz`));
+        if (fs.existsSync(file)) {
+            tasks.push(echo(colors.blue(`Remove file: ${file}`)));
+            tasks.push(`rm -rf ${file}`);
+        }
+
+        tasks.push(`tar -cvzf ${file} ${PATH_DEST}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('all', ['plugin.processes:link-client-libs', 'plugin.processes:client.build', 'plugin.processes:client.delivery', 'plugin.processes:host.build', 'plugin.processes:compress']);
 
 });
 
@@ -552,7 +576,7 @@ namespace('plugin.xterminal', function() {
                 tasks.push(`rm -rf ${sandboxLibDest} & exit 0`);
             }
             tasks.push(echo(colors.blue(`Coping: ${sandboxLibDest}`)));
-            tasks.push(`cp -R ${clientLib} ${sandboxLibDest}`);
+            tasks.push(`${getCpCmd()} ${clientLib} ${sandboxLibDest}`);
             tasks.push(`rm -rf ${path.normalize(path.resolve(sandboxPath, 'etc'))}`);
         });
         sh(this, '.', ...tasks);
@@ -587,7 +611,7 @@ namespace('plugin.xterminal', function() {
             tasks.push(`rm -rf ${clientDest}`);
         }
         tasks.push(`mkdir ${clientDest}`);
-        tasks.push(`cp -R ${clientDist} ${clientDest}`);
+        tasks.push(`${getCpCmd()} ${clientDist} ${clientDest}`);
         sh(this, '.', ...tasks);
     }, {async: true});
 
@@ -611,92 +635,19 @@ namespace('plugin.xterminal', function() {
         sh(this, '.', ...tasks);
     }, {async: true});
 
-    task('all', ['plugin.xterminal:link-client-libs', 'plugin.xterminal:client.build', 'plugin.xterminal:client.delivery', 'plugin.xterminal:host.build']);
-
-});
-
-namespace('plugin.file', function() {
-    const PATH_DEST = path.normalize(path.resolve(__dirname, 'sandbox/file'));
-    const PATH_CLIENT_SOURCES = path.normalize(path.resolve(__dirname, 'client.plugins'));
-    const PATH_HOST_SOURCES = path.normalize(path.resolve(PATH_DEST, 'process'));
-    const HOST_IPC_MOD = path.normalize(path.resolve(__dirname, 'node.libs/logviewer.plugin.ipc'));
-
-    task('link-client-libs', function() {
+    task('compress', function() {
         logo();
         const tasks = [];
-        const sandboxPath = path.normalize(path.resolve(__dirname, PATH_CLIENT_SOURCES));
-        const sandboxNodeModules = path.normalize(path.resolve(sandboxPath, 'node_modules'));
-        const clientLibsPath = path.normalize(path.resolve(__dirname, CLIENT_NPM_LIBS));
-        const clientLibsDist = path.normalize(path.resolve(clientLibsPath, 'dist'));
-        CLIENT_NPM_LIBS_LIST.forEach((alias) => {
-            const clientLib = path.normalize(path.resolve(clientLibsDist, alias));
-            const sandboxLibDest = path.normalize(path.resolve(sandboxNodeModules, alias));
-            if (fs.existsSync(sandboxLibDest)) {
-                console.log(`Project ${sandboxLibDest} is already linked. It will be unlinked before to be linked again.`);
-                tasks.push(echo(colors.blue(`unlink: ${sandboxLibDest}`)));
-                tasks.push(`rm -rf ${sandboxLibDest} & exit 0`);
-            }
-            tasks.push(echo(colors.blue(`Coping: ${sandboxLibDest}`)));
-            tasks.push(`cp -R ${clientLib} ${sandboxLibDest}`);
-            tasks.push(`rm -rf ${path.normalize(path.resolve(sandboxPath, 'etc'))}`);
-        });
+        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `xterminal@0.0.1-${process.platform}.tgz`));
+        if (fs.existsSync(file)) {
+            tasks.push(echo(colors.blue(`Remove file: ${file}`)));
+            tasks.push(`rm -rf ${file}`);
+        }
+        tasks.push(`tar -cvzf ${file} ${PATH_DEST}`);
         sh(this, '.', ...tasks);
     }, {async: true});
 
-    task('client.build', function() {
-        logo();
-        const tasks = [];
-        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist'));
-        const clientNodeModules = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'projects/file/node_modules'));
-        const clientPluginFolder = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'projects/file'));
-        if (fs.existsSync(clientDist)) {
-            tasks.push(echo(colors.blue(`Remove dist files: ${clientDist}`)));
-            tasks.push(`rm -rf ${clientDist}`);
-        }
-        if (!CLI_FLAGS.skipNpm && fs.existsSync(clientNodeModules)) {
-            tasks.push(echo(colors.blue(`Remove dist files: ${clientNodeModules}`)));
-            tasks.push(`rm -rf ${clientNodeModules}`);
-            tasks.push(`npm install --prefix ${clientPluginFolder}`);
-        }
-        tasks.push(`npm run build:file --prefix ${PATH_CLIENT_SOURCES}`);
-        sh(this, '.', ...tasks);
-    }, {async: true});
-
-    task('client.delivery', function() {
-        logo();
-        const tasks = [];
-        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist/file/*'));
-        const clientDest = path.normalize(path.resolve(PATH_DEST, 'render/'));
-        if (fs.existsSync(clientDest)) {
-            tasks.push(echo(colors.blue(`Remove dest files: ${clientDest}`)));
-            tasks.push(`rm -rf ${clientDest}`);
-        }
-        tasks.push(`mkdir ${clientDest}`);
-        tasks.push(`cp -R ${clientDist} ${clientDest}`);
-        sh(this, '.', ...tasks);
-    }, {async: true});
-
-    task('host.build', function() {
-        logo();
-        const tasks = [];
-        const hostDist = path.normalize(path.resolve(PATH_HOST_SOURCES, 'dist'));
-        const hostNodeModules = path.normalize(path.resolve(PATH_HOST_SOURCES, 'node_modules'));
-        if (fs.existsSync(hostDist)) {
-            tasks.push(echo(colors.blue(`Remove dist files: ${hostDist}`)));
-            tasks.push(`rm -rf ${hostDist}`);
-        }
-        if (!CLI_FLAGS.skipNpm && fs.existsSync(hostNodeModules)) {
-            tasks.push(echo(colors.blue(`Remove dist files: ${hostNodeModules}`)));
-            tasks.push(`rm -rf ${hostNodeModules}`);
-        }
-        if (!fs.existsSync(hostNodeModules)) {
-            tasks.push(`npm install --prefix ${PATH_HOST_SOURCES}`);
-        }
-        tasks.push(`npm run build --prefix ${PATH_HOST_SOURCES}`);
-        sh(this, '.', ...tasks);
-    }, {async: true});
-
-    task('all', ['plugin.file:link-client-libs', 'plugin.file:client.build', 'plugin.file:client.delivery', 'plugin.file:host.build']);
+    task('all', ['plugin.xterminal:link-client-libs', 'plugin.xterminal:client.build', 'plugin.xterminal:client.delivery', 'plugin.xterminal:host.build', 'plugin.xterminal:compress']);
 
 });
 
@@ -722,7 +673,7 @@ namespace('plugin.dlt', function() {
                 tasks.push(`rm -rf ${sandboxLibDest} & exit 0`);
             }
             tasks.push(echo(colors.blue(`Coping: ${sandboxLibDest}`)));
-            tasks.push(`cp -R ${clientLib} ${sandboxLibDest}`);
+            tasks.push(`${getCpCmd()} ${clientLib} ${sandboxLibDest}`);
             tasks.push(`rm -rf ${path.normalize(path.resolve(sandboxPath, 'etc'))}`);
         });
         sh(this, '.', ...tasks);
@@ -757,7 +708,7 @@ namespace('plugin.dlt', function() {
             tasks.push(`rm -rf ${clientDest}`);
         }
         tasks.push(`mkdir ${clientDest}`);
-        tasks.push(`cp -R ${clientDist} ${clientDest}`);
+        tasks.push(`${getCpCmd()} ${clientDist} ${clientDest}`);
         sh(this, '.', ...tasks);
     }, {async: true});
 
@@ -781,7 +732,19 @@ namespace('plugin.dlt', function() {
         sh(this, '.', ...tasks);
     }, {async: true});
 
-    task('all', ['plugin.dlt:link-client-libs', 'plugin.dlt:client.build', 'plugin.dlt:client.delivery', 'plugin.dlt:host.build']);
+    task('compress', function() {
+        logo();
+        const tasks = [];
+        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `dlt@0.0.1-${process.platform}.tgz`));
+        if (fs.existsSync(file)) {
+            tasks.push(echo(colors.blue(`Remove file: ${file}`)));
+            tasks.push(`rm -rf ${file}`);
+        }
+        tasks.push(`tar -cvzf ${file} ${PATH_DEST}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('all', ['plugin.dlt:link-client-libs', 'plugin.dlt:client.build', 'plugin.dlt:client.delivery', 'plugin.dlt:host.build', 'plugin.dlt:compress']);
 
 });
 
@@ -805,7 +768,7 @@ namespace('plugin.dlt-render', function() {
                 tasks.push(`rm -rf ${sandboxLibDest} & exit 0`);
             }
             tasks.push(echo(colors.blue(`Coping: ${sandboxLibDest}`)));
-            tasks.push(`cp -R ${clientLib} ${sandboxLibDest}`);
+            tasks.push(`${getCpCmd()} ${clientLib} ${sandboxLibDest}`);
             tasks.push(`rm -rf ${path.normalize(path.resolve(sandboxPath, 'etc'))}`);
         });
         sh(this, '.', ...tasks);
@@ -840,11 +803,81 @@ namespace('plugin.dlt-render', function() {
             tasks.push(`rm -rf ${clientDest}`);
         }
         tasks.push(`mkdir ${clientDest}`);
-        tasks.push(`cp -R ${clientDist} ${clientDest}`);
+        tasks.push(`${getCpCmd()} ${clientDist} ${clientDest}`);
         sh(this, '.', ...tasks);
     }, {async: true});
 
-    task('all', ['plugin.dlt-render:link-client-libs', 'plugin.dlt-render:client.build', 'plugin.dlt-render:client.delivery']);
+    task('compress', function() {
+        logo();
+        const tasks = [];
+        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `dlt-render@0.0.1-${process.platform}.tgz`));
+        if (fs.existsSync(file)) {
+            tasks.push(echo(colors.blue(`Remove file: ${file}`)));
+            tasks.push(`rm -rf ${file}`);
+        }
+        tasks.push(`tar -cvzf ${file} ${PATH_DEST}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('all', ['plugin.dlt-render:link-client-libs', 'plugin.dlt-render:client.build', 'plugin.dlt-render:client.delivery', 'plugin.dlt-render:compress']);
+
+});
+
+namespace('plugin.row.parser.ascii', function() {
+    const PATH_DEST = path.normalize(path.resolve(__dirname, 'sandbox/row.parser.ascii'));
+    const PATH_CLIENT_SOURCES = path.normalize(path.resolve(__dirname, 'client.plugins.standalone/row.parser.ascii'));
+
+    task('client.build', function() {
+        logo();
+        const tasks = [];
+        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist'));
+        const clientNodeModules = path.normalize(path.resolve(PATH_CLIENT_SOURCES, '/node_modules'));
+        if (fs.existsSync(clientDist)) {
+            tasks.push(echo(colors.blue(`Remove dist files: ${clientDist}`)));
+            tasks.push(`rm -rf ${clientDist}`);
+        }
+        if (!CLI_FLAGS.skipNpm && fs.existsSync(clientNodeModules)) {
+            tasks.push(echo(colors.blue(`Remove dist files: ${clientNodeModules}`)));
+            tasks.push(`rm -rf ${clientNodeModules}`);
+            tasks.push(`npm install --prefix ${PATH_CLIENT_SOURCES}`);
+        }
+        tasks.push(`npm run build --prefix ${PATH_CLIENT_SOURCES}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('client.delivery', function() {
+        logo();
+        const tasks = [];
+        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist/*'));
+        const clientDest = path.normalize(path.resolve(PATH_DEST, 'render/dist'));
+        if (fs.existsSync(clientDest)) {
+            tasks.push(echo(colors.blue(`Remove dest files: ${clientDest}`)));
+            tasks.push(`rm -rf ${clientDest}`);
+        }
+        tasks.push(`mkdir ${clientDest}`);
+        tasks.push(`${getCpCmd()} ${clientDist} ${clientDest}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('compress', function() {
+        logo();
+        const tasks = [];
+        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `row.parser.ascii@0.0.1-${process.platform}.tgz`));
+        if (fs.existsSync(file)) {
+            tasks.push(echo(colors.blue(`Remove file: ${file}`)));
+            tasks.push(`rm -rf ${file}`);
+        }
+        tasks.push(`tar -cvzf ${file} ${PATH_DEST}`);
+        sh(this, '.', ...tasks);
+    }, {async: true});
+
+    task('all', ['plugin.row.parser.ascii:client.build', 'plugin.row.parser.ascii:client.delivery', 'plugin.row.parser.ascii:compress']);
+
+});
+
+namespace('plugins', function() {
+
+    task('all', ['plugin.row.parser.ascii:all', 'plugin.dlt-render:all', 'plugin.dlt:all', 'plugin.xterminal:all', 'plugin.processes:all']);
 
 });
 
@@ -945,7 +978,7 @@ namespace('electron', function() {
         const electronDistFolder = path.normalize(path.resolve(electronAppPath, 'dist/compiled/client'));
         tasks.push(echo(colors.blue(`Delivery client to electron: ${clientDist} to ${electronDistFolder}`)));
         tasks.push(`rm -rf ${electronDistFolder} && exit 0`);
-        tasks.push(`cp -R ${clientDist} ${electronDistFolder}`);
+        tasks.push(`${getCpCmd()} ${clientDist} ${electronDistFolder}`);
         sh(this, '.', ...tasks);
     }, {async: true});
 
