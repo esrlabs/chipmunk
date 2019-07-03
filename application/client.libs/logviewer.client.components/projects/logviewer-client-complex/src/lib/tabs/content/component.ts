@@ -1,6 +1,7 @@
 import { Component, Input, OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
 import { ITab, TabsService } from '../service';
 import { Subscription } from 'rxjs';
+import { IComponentDesc } from 'logviewer-client-containers';
 
 @Component({
     selector: 'lib-complex-tab-content',
@@ -12,7 +13,9 @@ export class TabContentComponent implements OnDestroy, AfterViewInit {
 
     @Input() public service: TabsService = null;
 
-    public _tab: ITab | undefined = undefined;
+    public _ng_tab: ITab | undefined = undefined;
+    public _ng_noTabContent: IComponentDesc | undefined;
+
     private _destroyed: boolean = false;
     private _subscriptions: { [key: string]: Subscription } = {};
 
@@ -25,6 +28,7 @@ export class TabContentComponent implements OnDestroy, AfterViewInit {
         }
         this._subscriptions.active = this.service.getObservable().active.subscribe(this.onActiveTabChange.bind(this));
         this._subscriptions.removed = this.service.getObservable().removed.subscribe(this.onRemoveTab.bind(this));
+        this._ng_noTabContent = this.service.getOptions().noTabsContent;
         this._getDefaultTab();
     }
 
@@ -38,15 +42,16 @@ export class TabContentComponent implements OnDestroy, AfterViewInit {
     }
 
     private async _getDefaultTab() {
-        this._tab = await this.service.getActiveTab();
+        this._ng_tab = await this.service.getActiveTab();
         this._forceUpdate();
     }
 
     private async onActiveTabChange(tab: ITab) {
-        const guid = this._tab === undefined ? undefined : this._tab.guid;
+        const guid = this._ng_tab === undefined ? undefined : this._ng_tab.guid;
         const _tab = await tab;
         if (_tab.active && guid !== _tab.guid) {
-            this._tab = _tab;
+            this._ng_tab = _tab;
+            this._ng_noTabContent = undefined;
         }
         this._forceUpdate();
     }
@@ -55,7 +60,8 @@ export class TabContentComponent implements OnDestroy, AfterViewInit {
         if (this.service.getTabs().size !== 0) {
             return;
         }
-        this._tab = undefined;
+        this._ng_tab = undefined;
+        this._ng_noTabContent = this.service.getOptions().noTabsContent;
         this._forceUpdate();
     }
 
