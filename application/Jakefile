@@ -13,22 +13,60 @@ const PLATFORMS = {
     win32   : 'win32',
 };
 
-const sh = function(task, path, ...commands){
+const sh = function(task, ...commands){
     const jake = require('jake');
+    const doCommand = () => {
+        const command = commands[0];
+        jake.exec([command], { printStdout: true, printStderr: true }, () => {
+            commands.splice(0, 1);
+            if (commands.length > 0) {
+                doCommand();
+            } else {
+                task.complete();
+            }
+        });
+    };
+    if (commands.length === 0) {
+        task.complete();
+    } else {
+        doCommand();
+    }
+    /*
     jake.exec(commands.map((command) => {
+        console.log(`\t>>> ${command}`)
         return `(cd ${path} && ${command})`;
     }), { printStdout: true, printStderr: true }, () => {
         task.complete();
     });
+    */
 };
 
-const shNotBreakble = function(task, path, ...commands){
+const shNotBreakble = function(task, ...commands){
+    const jake = require('jake');
+    const doCommand = () => {
+        const command = commands[0];
+        jake.exec([command],  { printStdout: true, printStderr: true, breakOnError: false }, () => {
+            commands.splice(0, 1);
+            if (commands.length > 0) {
+                doCommand();
+            } else {
+                task.complete();
+            }
+        });
+    };
+    if (commands.length === 0) {
+        task.complete();
+    } else {
+        doCommand();
+    }
+    /*
     const jake = require('jake');
     jake.exec(commands.map((command) => {
         return `(cd ${path} && ${command})`;
     }), { printStdout: true, printStderr: true, breakOnError: false }, () => {
         task.complete();
     });
+    */
 };
 
 
@@ -157,14 +195,6 @@ function echoDec(msg, filler = '*', colorFunc = null) {
     }
 }
 
-function getCpCmd() {
-    if(process.platform === 'win32') {
-        return 'cp -r';
-    } else {
-        return 'cp -R';
-    }
-}
-
 namespace('solution', function() {
 
     task('unlink', function() {
@@ -185,7 +215,7 @@ namespace('solution', function() {
             return this.complete();
         }
         console.log(`Found ${tasks.length / 2} bound projects. Projects will be unlinked`);
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('link', function() {
@@ -204,7 +234,7 @@ namespace('solution', function() {
             tasks.push(echo(colors.blue(`link: ${target}`)));
             tasks.push(`ln -s ${platform} ${target}`);
         });
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('clear', function() {
@@ -226,7 +256,7 @@ namespace('solution', function() {
             return this.complete();
         }
         console.log(`Will be uninstalled ${tasks.length} projects.`);
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('npm-install', function() {
@@ -244,7 +274,7 @@ namespace('solution', function() {
             console.log(`No projects to be installed`);
             return this.complete();
         }
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('fix-npm-etc', function() {
@@ -259,7 +289,7 @@ namespace('solution', function() {
             console.log(`No projects to be installed`);
             return this.complete();
         }
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
     
     task('install', ['solution:npm-install', 'solution:fix-npm-etc']);
@@ -278,7 +308,7 @@ namespace('solution', function() {
             console.log(`No projects to be upgraded`);
             return this.complete();
         }
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('actuality', function() {
@@ -317,7 +347,7 @@ namespace('client', function() {
         }
         !CLI_FLAGS.skipNpm && tasks.push(echo(colors.blue(`Installing: ${clientPath}`)));
         !CLI_FLAGS.skipNpm && tasks.push(`npm install --prefix ${clientPath}`);
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('link-client-libs', function() {
@@ -331,15 +361,14 @@ namespace('client', function() {
             const clientLib = path.normalize(path.resolve(clientLibsDist, alias));
             const clientLibDest = path.normalize(path.resolve(clientNodeModules, alias));
             if (fs.existsSync(clientLibDest)) {
-                console.log(`Project ${clientLibDest} is already linked. It will be unlinked before to be linked again.`);
-                tasks.push(echo(colors.blue(`unlink: ${clientLibDest}`)));
+                tasks.push(echo(colors.blue(`removing: ${clientLibDest}`)));
                 tasks.push(`rm -rf ${clientLibDest} & exit 0`);
             }
             tasks.push(echo(colors.blue(`Coping: ${clientLibDest}`)));
-            tasks.push(`${getCpCmd()} ${clientLib} ${clientLibDest}`);
+            tasks.push(`cp -R ${clientLib} ${clientLibDest}`);
             tasks.push(`rm -rf ${path.normalize(path.resolve(clientPath, 'etc'))}`);
         });
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('link-client-ipc', function() {
@@ -352,15 +381,15 @@ namespace('client', function() {
         const srcElectronIPCPath = path.normalize(path.resolve(electronPath, 'src/controllers/electron.ipc.messages'));
         const srcPluginsIPCPath = path.normalize(path.resolve(electronPath, 'src/controllers/plugin.ipc.messages'));
         tasks.push(echo(colors.blue(`Coping: ${srcElectronIPCPath}`)));
-        tasks.push(`rm -rf ${destElectronIPCPath}`);
-        tasks.push(`${getCpCmd()} ${srcElectronIPCPath} ${destElectronIPCPath}`);
+        tasks.push(`rm -rf ${destElectronIPCPath} & exit 0`);
+        tasks.push(`cp -R ${srcElectronIPCPath} ${destElectronIPCPath}`);
         tasks.push(`rm -rf ${path.normalize(path.resolve(clientPath, 'etc'))}`);
 
         tasks.push(echo(colors.blue(`Coping: ${srcPluginsIPCPath}`)));
-        tasks.push(`rm -rf ${destPluginIPCPath}`);
-        tasks.push(`${getCpCmd()} ${srcPluginsIPCPath} ${destPluginIPCPath}`);
+        tasks.push(`rm -rf ${destPluginIPCPath} & exit 0`);
+        tasks.push(`cp -R ${srcPluginsIPCPath} ${destPluginIPCPath}`);
         tasks.push(`rm -rf ${path.normalize(path.resolve(clientPath, 'etc'))}`);
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('build', function() {
@@ -374,7 +403,7 @@ namespace('client', function() {
         }
         tasks.push(echo(colors.blue(`Building: ${clientPath}`)));
         tasks.push(`npm run build --prefix ${clientPath}`);
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('all', ['client:install', 'client.npmlibs:all', 'client:link-client-libs', 'client:link-client-ipc', 'client:build']);
@@ -399,7 +428,7 @@ namespace('plugin.ipc', function() {
         tasks.push(echo(colors.blue(`Building: ${pluginIPCPath}`)));
         !CLI_FLAGS.skipNpm && tasks.push(`npm install --prefix ${pluginIPCPath}`);
         tasks.push(`npm run build --prefix ${pluginIPCPath}`);
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('link-ipc-messages', function() {
@@ -418,7 +447,7 @@ namespace('plugin.ipc', function() {
         tasks.push(echo(colors.blue(`link: ${pluginIPCMessagesFolder}`)));
         tasks.push(`ln -s ${electronMessagesFolder} ${pluginIPCMessagesFolder}`);
         tasks.push(`rm -rf ${path.normalize(path.resolve(pluginIPCPath, 'etc'))}`);
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('all', ['plugin.ipc:link-ipc-messages', 'plugin.ipc:build']);
@@ -448,7 +477,7 @@ namespace('client.npmlibs', function() {
             tasks.push(echo(colors.blue(`Building: ${alias}:: ${libPath}`)));
             tasks.push(`npm run build:${alias} --prefix ${clientLibsPath}`);
         });
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('all', ['client.npmlibs:build']);
@@ -477,10 +506,10 @@ namespace('plugin.processes', function() {
                 tasks.push(`rm -rf ${sandboxLibDest} & exit 0`);
             }
             tasks.push(echo(colors.blue(`Coping: ${sandboxLibDest}`)));
-            tasks.push(`${getCpCmd()} ${clientLib} ${sandboxLibDest}`);
+            tasks.push(`cp -R ${clientLib} ${sandboxLibDest}`);
             tasks.push(`rm -rf ${path.normalize(path.resolve(sandboxPath, 'etc'))}`);
         });
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('client.build', function() {
@@ -499,7 +528,7 @@ namespace('plugin.processes', function() {
             tasks.push(`npm install --prefix ${clientPluginFolder}`);
         }
         tasks.push(`npm run build:processes --prefix ${PATH_CLIENT_SOURCES}`);
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('client.delivery', function() {
@@ -512,8 +541,8 @@ namespace('plugin.processes', function() {
             tasks.push(`rm -rf ${clientDest}`);
         }
         tasks.push(`mkdir ${clientDest}`);
-        tasks.push(`${getCpCmd()} ${clientDist} ${clientDest}`);
-        sh(this, '.', ...tasks);
+        tasks.push(`cp -R ${clientDist} ${clientDest}`);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('host.build', function() {
@@ -533,7 +562,7 @@ namespace('plugin.processes', function() {
             tasks.push(`npm install --prefix ${PATH_HOST_SOURCES}`);
         }
         tasks.push(`npm run build --prefix ${PATH_HOST_SOURCES}`);
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('compress', function() {
@@ -545,7 +574,7 @@ namespace('plugin.processes', function() {
             tasks.push(`rm -rf ${file}`);
         }
         tasks.push(`tar -cvzf ${file} -C ${path.dirname(PATH_DEST)} ${path.basename(PATH_DEST)}`);
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('all', ['plugin.processes:link-client-libs', 'plugin.processes:client.build', 'plugin.processes:client.delivery', 'plugin.processes:host.build', 'plugin.processes:compress']);
@@ -574,10 +603,10 @@ namespace('plugin.xterminal', function() {
                 tasks.push(`rm -rf ${sandboxLibDest} & exit 0`);
             }
             tasks.push(echo(colors.blue(`Coping: ${sandboxLibDest}`)));
-            tasks.push(`${getCpCmd()} ${clientLib} ${sandboxLibDest}`);
+            tasks.push(`cp -R ${clientLib} ${sandboxLibDest}`);
             tasks.push(`rm -rf ${path.normalize(path.resolve(sandboxPath, 'etc'))}`);
         });
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('client.build', function() {
@@ -596,7 +625,7 @@ namespace('plugin.xterminal', function() {
             tasks.push(`npm install --prefix ${clientPluginFolder}`);
         }
         tasks.push(`npm run build:xterminal --prefix ${PATH_CLIENT_SOURCES}`);
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('client.delivery', function() {
@@ -609,8 +638,8 @@ namespace('plugin.xterminal', function() {
             tasks.push(`rm -rf ${clientDest}`);
         }
         tasks.push(`mkdir ${clientDest}`);
-        tasks.push(`${getCpCmd()} ${clientDist} ${clientDest}`);
-        sh(this, '.', ...tasks);
+        tasks.push(`cp -R ${clientDist} ${clientDest}`);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('host.build', function() {
@@ -630,7 +659,7 @@ namespace('plugin.xterminal', function() {
             tasks.push(`npm install --prefix ${PATH_HOST_SOURCES}`);
         }
         tasks.push(`npm run build --prefix ${PATH_HOST_SOURCES}`);
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('compress', function() {
@@ -642,7 +671,7 @@ namespace('plugin.xterminal', function() {
             tasks.push(`rm -rf ${file}`);
         }
         tasks.push(`tar -cvzf ${file} -C ${path.dirname(PATH_DEST)} ${path.basename(PATH_DEST)}`);
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('all', ['plugin.xterminal:link-client-libs', 'plugin.xterminal:client.build', 'plugin.xterminal:client.delivery', 'plugin.xterminal:host.build', 'plugin.xterminal:compress']);
@@ -671,10 +700,10 @@ namespace('plugin.dlt', function() {
                 tasks.push(`rm -rf ${sandboxLibDest} & exit 0`);
             }
             tasks.push(echo(colors.blue(`Coping: ${sandboxLibDest}`)));
-            tasks.push(`${getCpCmd()} ${clientLib} ${sandboxLibDest}`);
+            tasks.push(`cp -R ${clientLib} ${sandboxLibDest}`);
             tasks.push(`rm -rf ${path.normalize(path.resolve(sandboxPath, 'etc'))}`);
         });
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('client.build', function() {
@@ -693,7 +722,7 @@ namespace('plugin.dlt', function() {
             tasks.push(`npm install --prefix ${clientPluginFolder}`);
         }
         tasks.push(`npm run build:dlt --prefix ${PATH_CLIENT_SOURCES}`);
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('client.delivery', function() {
@@ -706,8 +735,8 @@ namespace('plugin.dlt', function() {
             tasks.push(`rm -rf ${clientDest}`);
         }
         tasks.push(`mkdir ${clientDest}`);
-        tasks.push(`${getCpCmd()} ${clientDist} ${clientDest}`);
-        sh(this, '.', ...tasks);
+        tasks.push(`cp -R ${clientDist} ${clientDest}`);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('host.build', function() {
@@ -727,7 +756,7 @@ namespace('plugin.dlt', function() {
             tasks.push(`npm install --prefix ${PATH_HOST_SOURCES}`);
         }
         tasks.push(`npm run build --prefix ${PATH_HOST_SOURCES}`);
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('compress', function() {
@@ -739,7 +768,7 @@ namespace('plugin.dlt', function() {
             tasks.push(`rm -rf ${file}`);
         }
         tasks.push(`tar -cvzf ${file} -C ${path.dirname(PATH_DEST)} ${path.basename(PATH_DEST)}`);
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('all', ['plugin.dlt:link-client-libs', 'plugin.dlt:client.build', 'plugin.dlt:client.delivery', 'plugin.dlt:host.build', 'plugin.dlt:compress']);
@@ -766,10 +795,10 @@ namespace('plugin.dlt-render', function() {
                 tasks.push(`rm -rf ${sandboxLibDest} & exit 0`);
             }
             tasks.push(echo(colors.blue(`Coping: ${sandboxLibDest}`)));
-            tasks.push(`${getCpCmd()} ${clientLib} ${sandboxLibDest}`);
+            tasks.push(`cp -R ${clientLib} ${sandboxLibDest}`);
             tasks.push(`rm -rf ${path.normalize(path.resolve(sandboxPath, 'etc'))}`);
         });
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('client.build', function() {
@@ -788,7 +817,7 @@ namespace('plugin.dlt-render', function() {
             tasks.push(`npm install --prefix ${clientPluginFolder}`);
         }
         tasks.push(`npm run build:dlt-render --prefix ${PATH_CLIENT_SOURCES}`);
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('client.delivery', function() {
@@ -801,8 +830,8 @@ namespace('plugin.dlt-render', function() {
             tasks.push(`rm -rf ${clientDest}`);
         }
         tasks.push(`mkdir ${clientDest}`);
-        tasks.push(`${getCpCmd()} ${clientDist} ${clientDest}`);
-        sh(this, '.', ...tasks);
+        tasks.push(`cp -R ${clientDist} ${clientDest}`);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('compress', function() {
@@ -814,7 +843,7 @@ namespace('plugin.dlt-render', function() {
             tasks.push(`rm -rf ${file}`);
         }
         tasks.push(`tar -cvzf ${file} -C ${path.dirname(PATH_DEST)} ${path.basename(PATH_DEST)}`);
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('all', ['plugin.dlt-render:link-client-libs', 'plugin.dlt-render:client.build', 'plugin.dlt-render:client.delivery', 'plugin.dlt-render:compress']);
@@ -840,7 +869,7 @@ namespace('plugin.row.parser.ascii', function() {
             tasks.push(`npm install --prefix ${PATH_CLIENT_SOURCES}`);
         }
         tasks.push(`npm run build --prefix ${PATH_CLIENT_SOURCES}`);
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('client.delivery', function() {
@@ -853,8 +882,8 @@ namespace('plugin.row.parser.ascii', function() {
             tasks.push(`rm -rf ${clientDest}`);
         }
         tasks.push(`mkdir ${clientDest}`);
-        tasks.push(`${getCpCmd()} ${clientDist} ${clientDest}`);
-        sh(this, '.', ...tasks);
+        tasks.push(`cp -R ${clientDist} ${clientDest}`);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('compress', function() {
@@ -866,7 +895,7 @@ namespace('plugin.row.parser.ascii', function() {
             tasks.push(`rm -rf ${file}`);
         }
         tasks.push(`tar -cvzf ${file} -C ${path.dirname(PATH_DEST)} ${path.basename(PATH_DEST)}`);
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('all', ['plugin.row.parser.ascii:client.build', 'plugin.row.parser.ascii:client.delivery', 'plugin.row.parser.ascii:compress']);
@@ -892,7 +921,7 @@ namespace('electron', function() {
         }
         !CLI_FLAGS.skipNpm && tasks.push(echo(colors.blue(`Installing NPM in: ${electronAppPath}`)));
         !CLI_FLAGS.skipNpm && tasks.push(`npm install --prefix ${electronAppPath}`);
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('compile', function() {
@@ -906,7 +935,7 @@ namespace('electron', function() {
         }
         tasks.push(echo(colors.blue(`Installing NPM in: ${electronAppPath}`)));
         tasks.push(`npm run build-ts`);
-        sh(this, electronAppPath, ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('clean', function() {
@@ -931,7 +960,7 @@ namespace('electron', function() {
         if (tasks.length === 0) {
             return this.complete();
         }
-        sh(this, '.', ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('buildApp', function() {
@@ -953,7 +982,7 @@ namespace('electron', function() {
         tasks.push(`cp ${path.normalize(path.resolve(electronAppPath, 'package.json'))} ${path.normalize(path.resolve(electronCompiledFolder, 'package.json'))}`)
         // Build app
         tasks.push(`npm run build-${prefixes[platform]}`);
-        sh(this, electronAppPath, ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('package.json', function() {
@@ -964,7 +993,7 @@ namespace('electron', function() {
         const electronCompiledFolder = path.normalize(path.resolve(electronDistFolder, 'compiled'));
         // Copy package.json
         tasks.push(`cp ${path.normalize(path.resolve(electronAppPath, 'package.json'))} ${path.normalize(path.resolve(electronCompiledFolder, 'package.json'))}`)
-        sh(this, electronAppPath, ...tasks);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('deliveryClient', function() {
@@ -975,9 +1004,9 @@ namespace('electron', function() {
         const electronAppPath = path.normalize(path.resolve(__dirname, ELECTRON_FOLDER));
         const electronDistFolder = path.normalize(path.resolve(electronAppPath, 'dist/compiled/client'));
         tasks.push(echo(colors.blue(`Delivery client to electron: ${clientDist} to ${electronDistFolder}`)));
-        tasks.push(`rm -rf ${electronDistFolder} && exit 0`);
-        tasks.push(`${getCpCmd()} ${clientDist} ${electronDistFolder}`);
-        sh(this, '.', ...tasks);
+        tasks.push(`rm -rf ${electronDistFolder} & exit 0`);
+        tasks.push(`cp -R ${clientDist} ${electronDistFolder}`);
+        sh(this, ...tasks);
     }, {async: true});
 
     task('build', ['electron:clean', 'solution:link', 'solution:fix-npm-etc', 'electron:install', 'electron:compile', 'client:all', 'electron:deliveryClient', 'plugin.processes:all', 'plugin.xterminal:all', 'plugin.file:all', 'electron:buildApp']);
