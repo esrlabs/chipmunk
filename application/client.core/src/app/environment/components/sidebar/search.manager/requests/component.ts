@@ -106,6 +106,10 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         const newRequest: IRequest | undefined = this._getNewRequest(requests);
         this._ng_requests = this._getRequestItems(requests);
         if (newRequest === undefined) {
+            if (this._ng_requests.length === 0) {
+                this._ng_selected = undefined;
+                this._ng_selectedIndex = -1;
+            }
             this._cdRef.detectChanges();
         } else {
             this._onSelect(newRequest);
