@@ -9,6 +9,8 @@ export const scheme_color_6 = '#111111';
 const colorsCache: Map<string, string> = new Map();
 
 export function shadeColor(color: string, percent: number) {
+    // source: https://stackoverflow.com/questions/5560248/programmatically-lighten-or-darken-a-hex-color-or-rgb-and-blend-colors
+
     const key: string = `${color}${percent}`;
     const cached: string | undefined = colorsCache.get(key);
     if (cached !== undefined) {
