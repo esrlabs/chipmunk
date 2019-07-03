@@ -84,7 +84,8 @@ export class DockingComponent implements OnChanges, OnDestroy, AfterViewInit {
     }
 
     private _subscribeToWinEvents() {
-        window.addEventListener('resize', this._onWindowResize.bind(this));
+        this._onWindowResize = this._onWindowResize.bind(this);
+        window.addEventListener('resize', this._onWindowResize);
     }
 
     private _unsubscribeToWinEvents() {
