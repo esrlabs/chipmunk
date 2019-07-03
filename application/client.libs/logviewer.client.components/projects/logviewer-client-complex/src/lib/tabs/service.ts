@@ -9,6 +9,7 @@ export interface ITab {
     guid?: string;
     name: string;
     active: boolean;
+    closable?: boolean;
     content?: IComponentDesc;
 }
 
@@ -146,6 +147,7 @@ export class TabsService {
             return null;
         }
         tab.guid = typeof tab.guid === 'string' ? (tab.guid.trim() !== '' ? tab.guid : Tools.guid()) : Tools.guid();
+        tab.closable = typeof tab.closable === 'boolean' ? tab.closable : true;
         return tab;
     }
 }

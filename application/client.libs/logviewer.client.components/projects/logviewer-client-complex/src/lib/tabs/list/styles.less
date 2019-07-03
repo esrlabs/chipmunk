@@ -1,11 +1,51 @@
 @import '../../../../../../theme/scheme.less';
 
-@background: lighten(@scheme-color-5, 10%);
+@background: lighten(@scheme-color-5, 15%);
 
 :host {
     position: absolute;
     display: block;
     background: @background;
+    & div.arrow-left{
+        position: absolute;
+        background: @background;
+        display: none;
+        &.top {
+            display: block;
+            width: 1rem;
+            height: 100%;
+            left: 0;
+            z-index: 1;
+            & span{
+                position: absolute;
+                display: block;
+                top: 0;
+                width: 100%;
+                left: 0;
+                padding: 4px 0 0 5px;
+            }
+        }
+    }
+    & div.arrow-right{
+        position: absolute;
+        display: none;
+        background: @background;
+        &.top {
+            display: block;
+            width: 1rem;
+            height: 100%;
+            right: 0;
+            z-index: 1;
+            & span{
+                position: absolute;
+                display: block;
+                top: 0;
+                width: 100%;
+                left: 0;
+                padding: 4px 0 0 5px;
+            }
+        }
+    }
     & div.wrapper{
         position: absolute;
         display: block;
@@ -14,6 +54,7 @@
         list-style: none;
         padding: 0;
         margin: 0;
+        transition: all 150ms ease-in-out;
         & ul.list{
             position: absolute;
             display: block;
@@ -36,11 +77,14 @@
                     white-space: nowrap;
                     color: @scheme-color-1;
                     opacity: 0.5;
+                    max-width: 10rem;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
                 }
                 & span.close-button{
                     font-size: 12px;
                     opacity: 0;
-                    color: @scheme-color-3;
+                    color: @scheme-color-3;                    
                     &:hover {
                         color: @scheme-color-1;
                     }
@@ -53,10 +97,15 @@
                 }
                 &:last-child{
                 }
+                &:hover{
+                    & span.close-button{
+                        opacity: 1;
+                    }
+                }
                 &.active{
                     box-sizing: content-box!important;
+                    background: @scheme-color-5;
                     .border-based-4;
-                    .gradient(linear; lighten(@scheme-color-5, 18%), lighten(@scheme-color-5, 20%));
                     &::after{
                         position: absolute;
                         display: block;
@@ -76,6 +125,9 @@
                 border-bottom: inset thin @scheme-color-5;
                 box-shadow: inset 0px 10px 20px -12px rgba(0, 0, 0, 0.4);
                 box-sizing: content-box!important;
+                &.arrows-offset{
+                    padding: 0 1rem;
+                }
                 & li.tab{
                     padding: 0;
                     margin: 0;
@@ -86,9 +138,10 @@
                         padding: 0.1rem 1rem;
                     }
                     & span.close-button{
-                        padding: 0 0.5rem 0 0;
+                        padding: 0.4rem 0.5rem 0 0;
                         transition: all 150ms ease-in-out;
                         transform: translateY(-16px);
+                        vertical-align: top;
                     }
                     &:not(.active){
                         border-left: thin inset @background;
@@ -102,13 +155,18 @@
                     &:last-child{
                         border-right: thin outset @background;
                     }
+                    &:hover{
+                        & span.close-button{
+                            transform: translateY(0);
+                        }
+                    }
                     &.active{
                         box-sizing: content-box!important;
                         .border-based-4;
                         border-bottom: none;
                         border-top-right-radius: @border-radius;
                         border-top-left-radius: @border-radius;
-                        .gradient(linear; lighten(@scheme-color-5, 18%), lighten(@scheme-color-5, 20%));
+                        background: @scheme-color-5;
                         &::after{
                             width: 100%;
                             height: 2px;
@@ -160,13 +218,19 @@
                     &:last-child{
                         border-bottom: thin outset @background;
                     }
+                    &:hover{
+                        & span.close-button{
+                            transform: translateY(0);
+                            pointer-events: all;
+                        }
+                    }
                     &.active{
                         .border-based-4;
                         border-right: none;
                         border-bottom: none;
                         border-top-left-radius: @border-radius;
                         border-bottom-left-radius: @border-radius;
-                        .gradient(linear; lighten(@scheme-color-5, 18%), lighten(@scheme-color-5, 20%));
+                        background: @scheme-color-5;
                         &::after{
                             width: 100%;
                             height: 2px;

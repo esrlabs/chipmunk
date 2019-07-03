@@ -1,11 +1,17 @@
-<div [attr.class]="'wrapper ' + (_options.injections ? (_options.injections.bar ? 'injection' : '') : '')">
-    <ul [attr.class]="'list ' + _options.direction">
-        <li [attr.class]="'tab ' + (tab.active ? 'active' : '')" *ngFor="let tab of tabs" (click) = "_ng_onClick(tab.guid)">
+<div #holdernode [attr.class]="'wrapper ' + (_ng_options.injections ? (_ng_options.injections.bar ? 'injection' : '') : '')" [ngStyle]="{'margin-left': (_ng_offset + 'px')}">
+    <ul #tabsnode [attr.class]="'list ' + _ng_options.direction + (_ng_isArrowsNeeded() ? ' arrows-offset' : '')">
+        <li #tabnode [attr.class]="'tab ' + (tab.active ? 'active' : '')" *ngFor="let tab of tabs" (click) = "_ng_onClick(tab.guid)">
             <p class="title t-normal">{{tab.name}}</p>
-            <span class="close-button fas fa-times" (click)="_ng_onTabClose($event, tab.guid)"></span>
+            <span *ngIf="tab.closable" class="close-button fas fa-times" (click)="_ng_onTabClose($event, tab.guid)"></span>
         </li>
     </ul>
-    <div *ngIf="_options.injections && _options.injections.bar" class="injection">
-        <lib-containers-dynamic [component]="_options.injections.bar"></lib-containers-dynamic>
+    <div *ngIf="_ng_options.injections && _ng_options.injections.bar" #injectionsnode class="injection">
+        <lib-containers-dynamic [component]="_ng_options.injections.bar"></lib-containers-dynamic>
     </div>
+</div>    
+<div *ngIf="_ng_isArrowsNeeded()" [attr.class]="'arrow-left ' + _ng_options.direction" (click)="_ng_onLeftArrowClick()">
+    <span class="fas fa-caret-left"></span>
+</div>
+<div *ngIf="_ng_isArrowsNeeded()" [attr.class]="'arrow-right ' + _ng_options.direction" (click)="_ng_onRightArrowClick()">
+    <span class="fas fa-caret-right"></span>
 </div>
