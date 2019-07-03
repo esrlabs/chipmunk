@@ -104,6 +104,9 @@ export class SidebarAppSearchRequestDetailsComponent implements OnDestroy, After
             const zeros = new Array(len).join('0');
             return (zeros + str).slice(-len);
         }
+        if (hex === CColors[0]) {
+            hex = CColors[1];
+        }
         if (hex.indexOf('#') === 0) {
             hex = hex.slice(1);
         }
