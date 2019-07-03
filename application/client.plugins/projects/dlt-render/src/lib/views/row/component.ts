@@ -1,6 +1,6 @@
 // tslint:disable:no-inferrable-types
 
-import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, HostListener } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
 import * as Toolkit from 'logviewer.client.toolkit';
@@ -31,6 +31,12 @@ export class DLTRowComponent implements AfterViewInit, OnDestroy {
 
     }
 
+    @HostListener('click', ['$event'])
+
+    public onClick(event: MouseEvent) {
+        ServiceColumns.emit({ selected: this._ng_columns.slice() }).onSelected.next(this._ng_columns);
+    }
+
     public ngOnDestroy() {
         this._unsubscribeToWinEvents();
         Object.keys(this._subscriptions).forEach((key: string) => {
@@ -59,10 +65,6 @@ export class DLTRowComponent implements AfterViewInit, OnDestroy {
             return `${CDefaults.width}px`;
         }
         return `${this._ng_widths[key]}px`;
-    }
-
-    public _ng_onSelect() {
-        ServiceColumns.emit({ selected: this._ng_columns.slice() }).onSelected.next(this._ng_columns);
     }
 
     public _ng_onMouseDown(key: number, event: MouseEvent) {
