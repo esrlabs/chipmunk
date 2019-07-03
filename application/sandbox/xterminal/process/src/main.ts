@@ -100,7 +100,7 @@ class Plugin {
                 env: process.env as any
             });
             this._pty.on('data', (data) => {
-                PluginIPCService.sendToPluginHost({
+                PluginIPCService.sendToPluginHost(message.stream, {
                     event: 'data',
                     data: data,
                     session: this._session,
