@@ -18,10 +18,10 @@ export declare class DLTRowComponent implements AfterViewInit, OnDestroy {
     private _subscriptions;
     private _guid;
     constructor(_cdRef: ChangeDetectorRef, _sanitizer: DomSanitizer);
+    onClick(event: MouseEvent): void;
     ngOnDestroy(): void;
     ngAfterViewInit(): void;
     _ng_getWidth(key: number): string;
-    _ng_onSelect(): void;
     _ng_onMouseDown(key: number, event: MouseEvent): void;
     private _onWindowMouseMove;
     private _onWindowMouseUp;
