@@ -77,12 +77,16 @@ export class TabsSessionsService implements IService {
                 factory: DockingComponent,
                 inputs: {
                     service: new DocksService(guid, new DockDef.Container({
-                        a: new DockDef.Dock({ caption: this._defaults.views[0].name, component: {
-                            factory: this._defaults.views[0].component,
-                            inputs: {
-                                session: session,
+                        a: new DockDef.Dock({
+                            caption: this._defaults.views[0].name,
+                            closable: false,
+                            component: {
+                                factory: this._defaults.views[0].component,
+                                inputs: {
+                                    session: session,
+                                }
                             }
-                        } })
+                        })
                     }))
                 }
             }

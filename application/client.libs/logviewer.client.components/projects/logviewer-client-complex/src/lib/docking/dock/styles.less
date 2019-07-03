@@ -19,7 +19,10 @@
         top:0;
         left: 0;
         width: 100%;
-        .gradient(linear; darken(@scheme-color-4, 2%), lighten(@scheme-color-4, 2%));
+        background: @scheme-color-5;
+        /*
+        .gradient(linear; darken(@scheme-color-5, 2%), lighten(@scheme-color-5, 2%));
+        */
         & div.wrapper{
             position: absolute;
             left: @caption-height;
@@ -29,6 +32,9 @@
             display: flex;
             flex-direction: row;
             align-items: center;
+            &.not-closable{
+                right: 0;
+            }
             & p.caption{
                 font-size: 0.9rem;
                 line-height: 0.9rem;
