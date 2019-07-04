@@ -573,7 +573,7 @@ namespace('plugin.processes', function() {
             tasks.push(echo(colors.blue(`Remove file: ${file}`)));
             tasks.push(`rm -rf ${file}`);
         }
-        tasks.push(`tar -cvzf ${file} -C ${path.dirname(PATH_DEST)} ${path.basename(PATH_DEST)}`);
+        tasks.push(`tar -cvzf ${file} -C ${path.dirname(PATH_DEST)} ${path.basename(PATH_DEST)} --force-local`);
         sh(this, ...tasks);
     }, {async: true});
 
@@ -670,7 +670,7 @@ namespace('plugin.xterminal', function() {
             tasks.push(echo(colors.blue(`Remove file: ${file}`)));
             tasks.push(`rm -rf ${file}`);
         }
-        tasks.push(`tar -cvzf ${file} -C ${path.dirname(PATH_DEST)} ${path.basename(PATH_DEST)}`);
+        tasks.push(`tar -cvzf ${file} -C ${path.dirname(PATH_DEST)} ${path.basename(PATH_DEST)} --force-local`);
         sh(this, ...tasks);
     }, {async: true});
 
@@ -767,7 +767,7 @@ namespace('plugin.dlt', function() {
             tasks.push(echo(colors.blue(`Remove file: ${file}`)));
             tasks.push(`rm -rf ${file}`);
         }
-        tasks.push(`tar -cvzf ${file} -C ${path.dirname(PATH_DEST)} ${path.basename(PATH_DEST)}`);
+        tasks.push(`tar -cvzf ${file} -C ${path.dirname(PATH_DEST)} ${path.basename(PATH_DEST)} --force-local`);
         sh(this, ...tasks);
     }, {async: true});
 
@@ -842,7 +842,7 @@ namespace('plugin.dlt-render', function() {
             tasks.push(echo(colors.blue(`Remove file: ${file}`)));
             tasks.push(`rm -rf ${file}`);
         }
-        tasks.push(`tar -cvzf ${file} -C ${path.dirname(PATH_DEST)} ${path.basename(PATH_DEST)}`);
+        tasks.push(`tar -cvzf ${file} -C ${path.dirname(PATH_DEST)} ${path.basename(PATH_DEST)} --force-local`);
         sh(this, ...tasks);
     }, {async: true});
 
@@ -875,8 +875,8 @@ namespace('plugin.row.parser.ascii', function() {
     task('client.delivery', function() {
         logo();
         const tasks = [];
-        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist/*'));
-        const clientDest = path.normalize(path.resolve(PATH_DEST, 'render/dist'));
+        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist'));
+        const clientDest = path.normalize(path.resolve(PATH_DEST, 'render'));
         if (fs.existsSync(clientDest)) {
             tasks.push(echo(colors.blue(`Remove dest files: ${clientDest}`)));
             tasks.push(`rm -rf ${clientDest}`);
@@ -894,7 +894,7 @@ namespace('plugin.row.parser.ascii', function() {
             tasks.push(echo(colors.blue(`Remove file: ${file}`)));
             tasks.push(`rm -rf ${file}`);
         }
-        tasks.push(`tar -cvzf ${file} -C ${path.dirname(PATH_DEST)} ${path.basename(PATH_DEST)}`);
+        tasks.push(`tar -cvzf ${file} -C ${path.dirname(PATH_DEST)} ${path.basename(PATH_DEST)} --force-local`);
         sh(this, ...tasks);
     }, {async: true});
 
