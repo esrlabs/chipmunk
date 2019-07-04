@@ -335,14 +335,19 @@ fn main() {
                 chunk_size, // used for mapping line numbers to byte positions
             };
             let config_path = path::PathBuf::from(merge_config_file_name);
-            let merged_lines =
-                match merger.merge_files_use_config_file(&config_path, &out_path, append, stdout, status_updates) {
-                    Ok(cnt) => cnt,
-                    Err(e) => {
-                        eprintln!("error merging: {}", e);
-                        std::process::exit(2)
-                    }
-                };
+            let merged_lines = match merger.merge_files_use_config_file(
+                &config_path,
+                &out_path,
+                append,
+                stdout,
+                status_updates,
+            ) {
+                Ok(cnt) => cnt,
+                Err(e) => {
+                    eprintln!("error merging: {}", e);
+                    std::process::exit(2)
+                }
+            };
             if status_updates {
                 duration_report(start, format!("merging {} lines", merged_lines));
             }

@@ -352,7 +352,8 @@ fn decode_argument<T: ByteOrder>(buf: &mut Buf) -> Result<dlt::Argument, Error> 
                     type_info,
                 }
             }
-            dlt::TypeInfoKind::Signed(len, _fp) => { // implementation for fixed point missing
+            dlt::TypeInfoKind::Signed(len, _fp) => {
+                // implementation for fixed point missing
                 let (name, unit) = decode_variable_info::<T>(&mut rdr, with_variable_info)?;
 
                 let value = match len {
@@ -370,7 +371,8 @@ fn decode_argument<T: ByteOrder>(buf: &mut Buf) -> Result<dlt::Argument, Error> 
                     type_info,
                 }
             }
-            dlt::TypeInfoKind::Unsigned(len, _fp) => { // implementation for fixed point missing
+            dlt::TypeInfoKind::Unsigned(len, _fp) => {
+                // implementation for fixed point missing
                 let (name, unit) = decode_variable_info::<T>(&mut rdr, with_variable_info)?;
 
                 let value = match len {

@@ -351,27 +351,23 @@ pub fn to_posix_timestamp(
     };
     match (the_year, offset_result) {
         (Some(y), Ok(offset)) => {
-            let date_time: Option<NaiveDateTime> =
-                NaiveDate::from_ymd_opt(y, month, day).and_then(|d| d.and_hms_milli_opt(hour, minutes, seconds, millis));
+            let date_time: Option<NaiveDateTime> = NaiveDate::from_ymd_opt(y, month, day)
+                .and_then(|d| d.and_hms_milli_opt(hour, minutes, seconds, millis));
             match date_time {
                 Some(dt) => Ok(dt.timestamp_millis() - offset),
-                None => Err(failure::err_msg("error while parsing year/month/day/hour/minute/seconds")),
+                None => Err(failure::err_msg(
+                    "error while parsing year/month/day/hour/minute/seconds",
+                )),
             }
         }
-        (None, Ok(_)) => {
-            Err(failure::err_msg("could not determine the year!"))
-        }
-        (Some(_), Err(e)) => {
-            Err(failure::err_msg(format!(
-                "could not determine the timezone or offset! ({})",
-                e
-            )))
-        }
-        (None, Err(_)) => {
-            Err(failure::err_msg(
-                "could not determine the year and timezone or offset!",
-            ))
-        }
+        (None, Ok(_)) => Err(failure::err_msg("could not determine the year!")),
+        (Some(_), Err(e)) => Err(failure::err_msg(format!(
+            "could not determine the timezone or offset! ({})",
+            e
+        ))),
+        (None, Err(_)) => Err(failure::err_msg(
+            "could not determine the year and timezone or offset!",
+        )),
     }
 }
 pub fn line_to_timed_line(

@@ -160,7 +160,7 @@ impl Merger {
         merger_inputs: Vec<MergerInput>,
         out_path: &PathBuf,
         to_stdout: bool,
-        report_status: bool
+        report_status: bool,
     ) -> Result<usize, failure::Error> {
         let out_file: std::fs::File = if append {
             std::fs::OpenOptions::new()

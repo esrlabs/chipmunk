@@ -321,30 +321,34 @@ pub enum TypeLength {
 
 // pub fn type_info_strategy() -> impl Strategy<Value = TypeInfo> {
 //     any::<TypeInfoKind>()
-//         .prop_flat_map(|kind| 
+//         .prop_flat_map(|kind|
 //             (any::<StringCoding>(), any::<bool>(), Just())
 //         )
 // }
 
 pub fn signed_strategy() -> impl Strategy<Value = TypeInfoKind> {
-    (any::<TypeLength>(), any::<bool>())
-        .prop_filter_map("only permit fixed point for 32 and 64 bit", |(width, fp)| {
-            if fp && !( width == TypeLength::BitLength32 || width == TypeLength::BitLength64) {
+    (any::<TypeLength>(), any::<bool>()).prop_filter_map(
+        "only permit fixed point for 32 and 64 bit",
+        |(width, fp)| {
+            if fp && !(width == TypeLength::BitLength32 || width == TypeLength::BitLength64) {
                 None
             } else {
                 Some(TypeInfoKind::Signed(width, fp))
             }
-        })
+        },
+    )
 }
 pub fn unsigned_strategy() -> impl Strategy<Value = TypeInfoKind> {
-    (any::<TypeLength>(), any::<bool>())
-        .prop_filter_map("only permit fixed point for 32 and 64 bit", |(width, fp)| {
-            if fp && !( width == TypeLength::BitLength32 || width == TypeLength::BitLength64) {
+    (any::<TypeLength>(), any::<bool>()).prop_filter_map(
+        "only permit fixed point for 32 and 64 bit",
+        |(width, fp)| {
+            if fp && !(width == TypeLength::BitLength32 || width == TypeLength::BitLength64) {
                 None
             } else {
                 Some(TypeInfoKind::Unsigned(width, fp))
             }
-        })
+        },
+    )
 }
 #[derive(Debug, Clone, PartialEq, Arbitrary)]
 pub enum TypeInfoKind {
@@ -526,11 +530,7 @@ pub struct FixedPoint {
 fn my_enum_strategy() -> impl Strategy<Value = Value> {
     prop_oneof![
         any::<bool>().prop_map(Value::Bool),
-        // // For cases with data, write a strategy for the interior data, then
-        // // map into the actual enum case.
         any::<u32>().prop_map(Value::U32),
-        // (any::<u32>(), ".*").prop_map(
-        //   |(a, b)| MyEnum::CaseWithMultipleData(a, b)),
     ]
 }
 #[derive(Debug, Clone, PartialEq, Arbitrary)]
@@ -583,10 +583,18 @@ impl Argument {
             }
             if let Some(fp) = fixed_point {
                 println!("as_bytes fixed point: {:?}", fp);
-                println!("as_bytes, quantization f32: \t{:02X?}...add quantization: {:?}", buf.to_vec(), fp.quantization);
+                println!(
+                    "as_bytes, quantization f32: \t{:02X?}...add quantization: {:?}",
+                    buf.to_vec(),
+                    fp.quantization
+                );
                 #[allow(deprecated)]
                 buf.put_f32::<T>(fp.quantization);
-                println!("as_bytes, quantization f32: \t{:02X?}...add offset: {:?}", buf.to_vec(), fp.offset);
+                println!(
+                    "as_bytes, quantization f32: \t{:02X?}...add offset: {:?}",
+                    buf.to_vec(),
+                    fp.offset
+                );
                 match fp.offset {
                     FixedPointValue::I32(v) => {
                         #[allow(deprecated)]
@@ -835,7 +843,9 @@ impl Argument {
 #[derive(Debug, Clone, PartialEq, Arbitrary)]
 pub enum Payload {
     Verbose(Vec<Argument>),
-    #[proptest(strategy = "(0..10u32, prop::collection::vec(any::<u8>(), 0..20)).prop_map(|(a, b)| Payload::NonVerbose(a,b))")]
+    #[proptest(
+        strategy = "(0..10u32, prop::collection::vec(any::<u8>(), 0..20)).prop_map(|(a, b)| Payload::NonVerbose(a,b))"
+    )]
     NonVerbose(u32, Vec<u8>),
 }
 impl Payload {
