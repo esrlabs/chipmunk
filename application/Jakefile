@@ -195,6 +195,14 @@ function echoDec(msg, filler = '*', colorFunc = null) {
     }
 }
 
+function npmInstall(dest) {
+    return `npm --prefix ${path.normalize(dest)} install ${path.normalize(dest)}`
+}
+
+function tar(file, dest) {
+    return `tar -cvzf ${file} -C ${path.dirname(dest)} ${path.basename(dest)} ${process.platform === 'win32' ? '--force-local' : ''}`;
+}
+
 namespace('solution', function() {
 
     task('unlink', function() {
@@ -268,7 +276,7 @@ namespace('solution', function() {
             const target = path.normalize(path.resolve(folder, 'node_modules'));
             fs.existsSync(target) && tasks.push(`rm -rf ${target}`);
             tasks.push(echoDec(`Installing NPM in: ${folder}`, '*', colors.green));
-            tasks.push(`npm install --prefix ${folder}`);
+            tasks.push(npmInstall(folder));
         });
         if (tasks.length === 0) {
             console.log(`No projects to be installed`);
@@ -346,7 +354,7 @@ namespace('client', function() {
             tasks.push(`rm -rf ${clientDist}`);
         }
         !CLI_FLAGS.skipNpm && tasks.push(echo(colors.blue(`Installing: ${clientPath}`)));
-        !CLI_FLAGS.skipNpm && tasks.push(`npm install --prefix ${clientPath}`);
+        !CLI_FLAGS.skipNpm && tasks.push(npmInstall(clientPath));
         sh(this, ...tasks);
     }, {async: true});
 
@@ -426,7 +434,7 @@ namespace('plugin.ipc', function() {
             tasks.push(`rm -rf ${pluginIPCDist}`);
         }
         tasks.push(echo(colors.blue(`Building: ${pluginIPCPath}`)));
-        !CLI_FLAGS.skipNpm && tasks.push(`npm install --prefix ${pluginIPCPath}`);
+        !CLI_FLAGS.skipNpm && tasks.push(npmInstall(pluginIPCPath));
         tasks.push(`npm run build --prefix ${pluginIPCPath}`);
         sh(this, ...tasks);
     }, {async: true});
@@ -473,7 +481,7 @@ namespace('client.npmlibs', function() {
                 tasks.push(`rm -rf ${libNodeModules}`);
             }
             !CLI_FLAGS.skipNpm && tasks.push(echo(colors.blue(`Installing: ${alias}:: ${libPath}`)));
-            !CLI_FLAGS.skipNpm && tasks.push(`npm install --prefix ${libPath}`);
+            !CLI_FLAGS.skipNpm && tasks.push(npmInstall(libPath));
             tasks.push(echo(colors.blue(`Building: ${alias}:: ${libPath}`)));
             tasks.push(`npm run build:${alias} --prefix ${clientLibsPath}`);
         });
@@ -525,7 +533,7 @@ namespace('plugin.processes', function() {
         if (!CLI_FLAGS.skipNpm && fs.existsSync(clientNodeModules)) {
             tasks.push(echo(colors.blue(`Remove dist files: ${clientNodeModules}`)));
             tasks.push(`rm -rf ${clientNodeModules}`);
-            tasks.push(`npm install --prefix ${clientPluginFolder}`);
+            tasks.push(npmInstall(clientPluginFolder));
         }
         tasks.push(`npm run build:processes --prefix ${PATH_CLIENT_SOURCES}`);
         sh(this, ...tasks);
@@ -534,7 +542,7 @@ namespace('plugin.processes', function() {
     task('client.delivery', function() {
         logo();
         const tasks = [];
-        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist/processes/*'));
+        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist/processes/')) + path.sep + '.';
         const clientDest = path.normalize(path.resolve(PATH_DEST, 'render/'));
         if (fs.existsSync(clientDest)) {
             tasks.push(echo(colors.blue(`Remove dest files: ${clientDest}`)));
@@ -559,7 +567,7 @@ namespace('plugin.processes', function() {
             tasks.push(`rm -rf ${hostNodeModules}`);
         }
         if (!fs.existsSync(hostNodeModules)) {
-            tasks.push(`npm install --prefix ${PATH_HOST_SOURCES}`);
+            tasks.push(npmInstall(PATH_HOST_SOURCES));
         }
         tasks.push(`npm run build --prefix ${PATH_HOST_SOURCES}`);
         sh(this, ...tasks);
@@ -573,7 +581,7 @@ namespace('plugin.processes', function() {
             tasks.push(echo(colors.blue(`Remove file: ${file}`)));
             tasks.push(`rm -rf ${file}`);
         }
-        tasks.push(`tar -cvzf ${file} -C ${path.dirname(PATH_DEST)} ${path.basename(PATH_DEST)} --force-local`);
+        tasks.push(tar(file, PATH_DEST));
         sh(this, ...tasks);
     }, {async: true});
 
@@ -622,7 +630,7 @@ namespace('plugin.xterminal', function() {
         if (!CLI_FLAGS.skipNpm && fs.existsSync(clientNodeModules)) {
             tasks.push(echo(colors.blue(`Remove dist files: ${clientNodeModules}`)));
             tasks.push(`rm -rf ${clientNodeModules}`);
-            tasks.push(`npm install --prefix ${clientPluginFolder}`);
+            tasks.push(npmInstall(clientPluginFolder));
         }
         tasks.push(`npm run build:xterminal --prefix ${PATH_CLIENT_SOURCES}`);
         sh(this, ...tasks);
@@ -631,7 +639,7 @@ namespace('plugin.xterminal', function() {
     task('client.delivery', function() {
         logo();
         const tasks = [];
-        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist/xterminal/*'));
+        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist/xterminal/')) + path.sep + '.';
         const clientDest = path.normalize(path.resolve(PATH_DEST, 'render/'));
         if (fs.existsSync(clientDest)) {
             tasks.push(echo(colors.blue(`Remove dest files: ${clientDest}`)));
@@ -656,7 +664,7 @@ namespace('plugin.xterminal', function() {
             tasks.push(`rm -rf ${hostNodeModules}`);
         }
         if (!fs.existsSync(hostNodeModules)) {
-            tasks.push(`npm install --prefix ${PATH_HOST_SOURCES}`);
+            tasks.push(npmInstall(PATH_HOST_SOURCES));
         }
         tasks.push(`npm run build --prefix ${PATH_HOST_SOURCES}`);
         sh(this, ...tasks);
@@ -670,7 +678,7 @@ namespace('plugin.xterminal', function() {
             tasks.push(echo(colors.blue(`Remove file: ${file}`)));
             tasks.push(`rm -rf ${file}`);
         }
-        tasks.push(`tar -cvzf ${file} -C ${path.dirname(PATH_DEST)} ${path.basename(PATH_DEST)} --force-local`);
+        tasks.push(tar(file, PATH_DEST));
         sh(this, ...tasks);
     }, {async: true});
 
@@ -719,7 +727,7 @@ namespace('plugin.dlt', function() {
         if (!CLI_FLAGS.skipNpm && fs.existsSync(clientNodeModules)) {
             tasks.push(echo(colors.blue(`Remove dist files: ${clientNodeModules}`)));
             tasks.push(`rm -rf ${clientNodeModules}`);
-            tasks.push(`npm install --prefix ${clientPluginFolder}`);
+            tasks.push(npmInstall(clientPluginFolder));
         }
         tasks.push(`npm run build:dlt --prefix ${PATH_CLIENT_SOURCES}`);
         sh(this, ...tasks);
@@ -728,7 +736,7 @@ namespace('plugin.dlt', function() {
     task('client.delivery', function() {
         logo();
         const tasks = [];
-        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist/dlt/*'));
+        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist/dlt/')) + path.sep + '.';
         const clientDest = path.normalize(path.resolve(PATH_DEST, 'render/'));
         if (fs.existsSync(clientDest)) {
             tasks.push(echo(colors.blue(`Remove dest files: ${clientDest}`)));
@@ -753,7 +761,7 @@ namespace('plugin.dlt', function() {
             tasks.push(`rm -rf ${hostNodeModules}`);
         }
         if (!fs.existsSync(hostNodeModules)) {
-            tasks.push(`npm install --prefix ${PATH_HOST_SOURCES}`);
+            tasks.push(npmInstall(path.resolve(hostNodeModules, '..')));
         }
         tasks.push(`npm run build --prefix ${PATH_HOST_SOURCES}`);
         sh(this, ...tasks);
@@ -767,7 +775,7 @@ namespace('plugin.dlt', function() {
             tasks.push(echo(colors.blue(`Remove file: ${file}`)));
             tasks.push(`rm -rf ${file}`);
         }
-        tasks.push(`tar -cvzf ${file} -C ${path.dirname(PATH_DEST)} ${path.basename(PATH_DEST)} --force-local`);
+        tasks.push(tar(file, PATH_DEST));
         sh(this, ...tasks);
     }, {async: true});
 
@@ -814,7 +822,7 @@ namespace('plugin.dlt-render', function() {
         if (!CLI_FLAGS.skipNpm && fs.existsSync(clientNodeModules)) {
             tasks.push(echo(colors.blue(`Remove dist files: ${clientNodeModules}`)));
             tasks.push(`rm -rf ${clientNodeModules}`);
-            tasks.push(`npm install --prefix ${clientPluginFolder}`);
+            tasks.push(npmInstall(clientPluginFolder));
         }
         tasks.push(`npm run build:dlt-render --prefix ${PATH_CLIENT_SOURCES}`);
         sh(this, ...tasks);
@@ -823,7 +831,7 @@ namespace('plugin.dlt-render', function() {
     task('client.delivery', function() {
         logo();
         const tasks = [];
-        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist/dlt-render/*'));
+        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist/dlt-render/')) + path.sep + '.';
         const clientDest = path.normalize(path.resolve(PATH_DEST, 'render/'));
         if (fs.existsSync(clientDest)) {
             tasks.push(echo(colors.blue(`Remove dest files: ${clientDest}`)));
@@ -842,7 +850,7 @@ namespace('plugin.dlt-render', function() {
             tasks.push(echo(colors.blue(`Remove file: ${file}`)));
             tasks.push(`rm -rf ${file}`);
         }
-        tasks.push(`tar -cvzf ${file} -C ${path.dirname(PATH_DEST)} ${path.basename(PATH_DEST)} --force-local`);
+        tasks.push(tar(file, PATH_DEST));
         sh(this, ...tasks);
     }, {async: true});
 
@@ -866,7 +874,7 @@ namespace('plugin.row.parser.ascii', function() {
         if (!CLI_FLAGS.skipNpm && fs.existsSync(clientNodeModules)) {
             tasks.push(echo(colors.blue(`Remove dist files: ${clientNodeModules}`)));
             tasks.push(`rm -rf ${clientNodeModules}`);
-            tasks.push(`npm install --prefix ${PATH_CLIENT_SOURCES}`);
+            tasks.push(npmInstall(PATH_CLIENT_SOURCES));
         }
         tasks.push(`npm run build --prefix ${PATH_CLIENT_SOURCES}`);
         sh(this, ...tasks);
@@ -875,14 +883,15 @@ namespace('plugin.row.parser.ascii', function() {
     task('client.delivery', function() {
         logo();
         const tasks = [];
-        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist'));
-        const clientDest = path.normalize(path.resolve(PATH_DEST, 'render'));
+        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist/.'));
+        const clientDest = path.normalize(path.resolve(PATH_DEST, 'render/'));
         if (fs.existsSync(clientDest)) {
             tasks.push(echo(colors.blue(`Remove dest files: ${clientDest}`)));
             tasks.push(`rm -rf ${clientDest}`);
         }
         tasks.push(`mkdir ${clientDest}`);
         tasks.push(`cp -R ${clientDist} ${clientDest}`);
+        tasks.push(`cp ${path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'package.json'))} ${clientDest}`);
         sh(this, ...tasks);
     }, {async: true});
 
@@ -894,7 +903,7 @@ namespace('plugin.row.parser.ascii', function() {
             tasks.push(echo(colors.blue(`Remove file: ${file}`)));
             tasks.push(`rm -rf ${file}`);
         }
-        tasks.push(`tar -cvzf ${file} -C ${path.dirname(PATH_DEST)} ${path.basename(PATH_DEST)} --force-local`);
+        tasks.push(tar(file, PATH_DEST));
         sh(this, ...tasks);
     }, {async: true});
 
@@ -920,7 +929,7 @@ namespace('electron', function() {
             tasks.push(`rm -rf ${electronNodeModules}`);
         }
         !CLI_FLAGS.skipNpm && tasks.push(echo(colors.blue(`Installing NPM in: ${electronAppPath}`)));
-        !CLI_FLAGS.skipNpm && tasks.push(`npm install --prefix ${electronAppPath}`);
+        !CLI_FLAGS.skipNpm && tasks.push(npmInstall(electronAppPath));
         sh(this, ...tasks);
     }, {async: true});
 
