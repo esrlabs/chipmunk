@@ -170,6 +170,7 @@ export class OutputParsersService {
             highlights.forEach((request: IRequest) => {
                 const bgcl: string = request.background === CColors[0] ? scheme_color_4 : (request.background === undefined ? scheme_color_4 : shadeColor(request.background, 30));
                 const fgcl: string = request.color === CColors[0] ? scheme_color_0 : (request.color === undefined ? scheme_color_0 : shadeColor(request.color, -30));
+                // TODO: foreground color should be recalculated based on NEW background color (but not generated on "request.color")
                 str = str.replace(request.reg, (match: string) => {
                     if (first === undefined) {
                         first = request;
