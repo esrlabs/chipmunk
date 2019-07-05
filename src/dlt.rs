@@ -507,11 +507,8 @@ impl TryFrom<u32> for TypeInfo {
             0x00 => (StringCoding::ASCII),
             0x01 => (StringCoding::UTF8),
             _ => {
-                // eprintln!("Unknown coding in TypeIxfo 0x{:02X}, assume UTF8", v);
+                // Unknown coding in TypeInfo, assume UTF8
                 (StringCoding::UTF8)
-                // Err(Error::new(
-                //     io::ErrorKind::Other,
-                //     format!("Unknown coding in TypeInfo {:b}", v),))
             }
         };
         Ok(TypeInfo {

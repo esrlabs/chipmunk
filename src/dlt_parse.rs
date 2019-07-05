@@ -707,9 +707,7 @@ mod tests {
                 _ => false,
             }
         }
-        let type_kind_stategy = any::<dlt::TypeInfoKind>();
-        let val_strategy = type_kind_stategy.prop_flat_map(create_arg_strategy);
-        val_strategy.prop_flat_map(|(type_info, value)| {
+        create_arg_strategy().prop_flat_map(|(type_info, value)| {
             (
                 fixedpoint_strategy(type_info.clone()),
                 "[a-zA-Z0-9]{1,4}",
@@ -732,11 +730,9 @@ mod tests {
                 })
         })
     }
-    fn create_arg_strategy(
-        kind: dlt::TypeInfoKind,
-    ) -> impl Strategy<Value = (dlt::TypeInfo, dlt::Value)> {
+    fn create_arg_strategy() -> impl Strategy<Value = (dlt::TypeInfo, dlt::Value)> {
         (
-            Just(kind),
+            any::<dlt::TypeInfo>(),
             any::<bool>(),
             any::<u8>(),
             any::<u16>(),
@@ -751,51 +747,23 @@ mod tests {
                 any::<i128>(),
                 any::<f32>(),
                 any::<f64>(),
-                (
-                    "[a-zA-Z]{1,10}",
-                    any::<Vec<u8>>(),
-                    any::<dlt::StringCoding>(),
-                    any::<bool>(),
-                    any::<bool>(),
-                ),
+                ("[a-zA-Z]{1,10}", any::<Vec<u8>>()),
             ),
         )
             .prop_map(
                 |(
-                    k,
+                    ti,
                     b,
                     u8val,
                     u16val,
                     u32val,
                     u64val,
                     u128val,
-                    (
-                        i8val,
-                        i16val,
-                        i32val,
-                        i64val,
-                        i128val,
-                        f32val,
-                        f64val,
-                        (stringval, vecval, coding, has_variable_info, _has_trace_info),
-                    ),
-                )| match k {
-                    dlt::TypeInfoKind::Bool => (
-                        dlt::TypeInfo {
-                            kind: k,
-                            coding,
-                            has_variable_info,
-                            has_trace_info: false,
-                        },
-                        dlt::Value::Bool(b),
-                    ),
+                    (i8val, i16val, i32val, i64val, i128val, f32val, f64val, (stringval, vecval)),
+                )| match ti.kind {
+                    dlt::TypeInfoKind::Bool => (ti, dlt::Value::Bool(b)),
                     dlt::TypeInfoKind::Signed(s, _) => (
-                        dlt::TypeInfo {
-                            kind: k,
-                            coding,
-                            has_variable_info,
-                            has_trace_info: false,
-                        },
+                        ti,
                         match s {
                             dlt::TypeLength::BitLength8 => dlt::Value::I8(i8val),
                             dlt::TypeLength::BitLength16 => dlt::Value::I16(i16val),
@@ -805,12 +773,7 @@ mod tests {
                         },
                     ),
                     dlt::TypeInfoKind::Unsigned(s, _) => (
-                        dlt::TypeInfo {
-                            kind: k,
-                            coding,
-                            has_variable_info,
-                            has_trace_info: false,
-                        },
+                        ti,
                         match s {
                             dlt::TypeLength::BitLength8 => dlt::Value::U8(u8val),
                             dlt::TypeLength::BitLength16 => dlt::Value::U16(u16val),
@@ -820,35 +783,14 @@ mod tests {
                         },
                     ),
                     dlt::TypeInfoKind::Float(w) => (
-                        dlt::TypeInfo {
-                            kind: k,
-                            coding,
-                            has_variable_info,
-                            has_trace_info: false,
-                        },
+                        ti,
                         match w {
                             dlt::FloatWidth::Width32 => dlt::Value::F32(f32val),
                             dlt::FloatWidth::Width64 => dlt::Value::F64(f64val),
                         },
                     ),
-                    dlt::TypeInfoKind::StringType => (
-                        dlt::TypeInfo {
-                            kind: k,
-                            coding,
-                            has_variable_info,
-                            has_trace_info: false,
-                        },
-                        dlt::Value::StringVal(stringval),
-                    ),
-                    dlt::TypeInfoKind::Raw => (
-                        dlt::TypeInfo {
-                            kind: k,
-                            coding,
-                            has_variable_info,
-                            has_trace_info: false,
-                        },
-                        dlt::Value::Raw(vecval),
-                    ),
+                    dlt::TypeInfoKind::StringType => (ti, dlt::Value::StringVal(stringval)),
+                    dlt::TypeInfoKind::Raw => (ti, dlt::Value::Raw(vecval)),
                 },
             )
     }
