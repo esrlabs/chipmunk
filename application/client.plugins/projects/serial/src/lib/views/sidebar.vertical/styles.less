@@ -1,0 +1,46 @@
+@import '../../../../../../theme/scheme.less';
+
+:host {
+    position: absolute;
+    display: block;
+    top:0.5rem;
+    left:0.5rem;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+    & div.controlls{
+        text-align: right;
+    }
+    & ul.ports {
+        position: relative;
+        display: block;
+        width: 100%;
+        max-height: 10rem;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        & li.port{
+            position: relative;
+            display: block;
+            width: 100%;
+            max-height: 10rem;
+            list-style: none;
+            margin: 0;
+            padding: 3px 0;
+            &.selected{
+                background: @scheme-color-4;
+            }
+            &:hover{
+                background: @scheme-color-4;
+            }
+        }
+        &.connected{
+            & li.port{
+                &:hover{
+                    background: none;
+                }
+            }
+        }
+    }
+}

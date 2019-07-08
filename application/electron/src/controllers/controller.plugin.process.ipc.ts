@@ -2,7 +2,7 @@ import { ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 import { Readable } from 'stream';
 import { IPCMessagePackage } from './controller.plugin.process.ipc.messagepackage';
-import * as IPCMessages from './plugin.ipc.messages/index';
+import * as IPCMessages from './plugins.ipc.messages/index';
 import ServiceElectron from '../services/service.electron';
 import Logger from '../tools/env.logger';
 import { guid, Subscription, THandler } from '../tools/index';
@@ -170,7 +170,7 @@ export default class ControllerIPCPlugin extends EventEmitter {
             const instance: IPCMessages.TMessage = new (refMessageClass as any)(message.message);
             if (resolver !== undefined) {
                 return resolver(instance);
-            } else if (instance instanceof IPCMessages.PluginInternalMessage) {
+            } else if (instance instanceof IPCMessages.PluginInternalMessage || instance instanceof IPCMessages.PluginError ) {
                 this._redirectToPluginHost(instance, message.sequence);
             } else {
                 const handlers = this._handlers.get(instance.signature);
@@ -186,7 +186,7 @@ export default class ControllerIPCPlugin extends EventEmitter {
         }
     }
 
-    private _redirectToPluginHost(message: IPCMessages.PluginInternalMessage, sequence?: string) {
+    private _redirectToPluginHost(message: IPCMessages.PluginInternalMessage | IPCMessages.PluginError, sequence?: string) {
         ServiceElectron.redirectIPCMessageToPluginRender(message, sequence);
     }
 

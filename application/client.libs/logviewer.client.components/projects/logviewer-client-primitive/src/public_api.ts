@@ -1,6 +1,7 @@
 /*
  * Public API Surface of primitive
  */
+export { CheckSimpleComponent       } from './lib/checkbox/simple/component';
 export { SwitcherSimpleComponent    } from './lib/switchers/simple/component';
 export { ButtonStandardComponent    } from './lib/buttons/standard/component';
 export { InputStandardComponent     } from './lib/inputs/standard/component';

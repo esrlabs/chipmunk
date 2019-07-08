@@ -1,13 +1,18 @@
 import * as Path from 'path';
 import * as FS from '../tools/fs';
 import * as Net from 'net';
-import * as IPCPluginMessages from './plugin.ipc.messages/index';
+import * as IPCPluginMessages from './plugins.ipc.messages/index';
 import { ChildProcess, fork } from 'child_process';
 import { Emitter } from '../tools/index';
 import { IPlugin } from '../services/service.plugins';
 import Logger from '../tools/env.logger';
 import ControllerIPCPlugin from './controller.plugin.process.ipc';
 import ServiceProduction from '../services/service.production';
+
+const CDebugPluginPorts: { [key: string]: number } = {
+    serial: 9240,
+    processes: 9241,
+};
 
 /**
  * @class ControllerPluginProcess
@@ -54,7 +59,7 @@ export default class ControllerPluginProcess extends Emitter {
             }
             const args: string[] = [];
             if (!ServiceProduction.isProduction()) {
-                args.push(`--inspect=127.0.0.1:${9229 + this._plugin.id - 1}`);
+                args.push(`--inspect=127.0.0.1:${CDebugPluginPorts[this._plugin.name] === undefined ? (9229 + this._plugin.id - 1) : CDebugPluginPorts[this._plugin.name]}`);
             }
             this._process = fork(
                 main,

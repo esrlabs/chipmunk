@@ -22,7 +22,7 @@ export function install(target: string, npmPath?: string): Promise<void> {
                     logger.error(`Installation is failed due error: ${error.message}`);
                     return reject(error);
                 }
-                logger.error(`Installation is successful`);
+                logger.env(`Installation is successful`);
                 resolve();
             });
         });

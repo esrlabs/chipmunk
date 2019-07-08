@@ -1,0 +1,21 @@
+{
+  "name": "serial",
+  "version": "0.0.1",
+  "peerDependencies": {
+    "@angular/common": "^7.0.0",
+    "@angular/core": "^7.0.0"
+  },
+  "main": "bundles/serial.umd.js",
+  "module": "fesm5/serial.js",
+  "es2015": "fesm2015/serial.js",
+  "esm5": "esm5/serial.js",
+  "esm2015": "esm2015/serial.js",
+  "fesm5": "fesm5/serial.js",
+  "fesm2015": "fesm2015/serial.js",
+  "typings": "serial.d.ts",
+  "metadata": "serial.metadata.json",
+  "sideEffects": false,
+  "dependencies": {
+    "tslib": "^1.9.0"
+  }
+}

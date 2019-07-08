@@ -53,6 +53,12 @@
       ],
       "dlt-render/*": [
         "dist/dlt-render/*"
+      ],
+      "serial": [
+        "dist/serial"
+      ],
+      "serial/*": [
+        "dist/serial/*"
       ]
     }
   }
