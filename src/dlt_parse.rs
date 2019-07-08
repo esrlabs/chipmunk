@@ -13,10 +13,7 @@ use nom::{
 
 use std::str;
 use std::fmt;
-use std::io::{
-    Read,
-    BufRead
-};
+use std::io::{Read, BufRead};
 use buf_redux::BufReader;
 use buf_redux::policy::MinBuffered;
 

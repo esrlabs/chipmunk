@@ -1,5 +1,5 @@
 use crate::timedline::*;
-use chrono::{NaiveDate, NaiveDateTime};
+use chrono::{NaiveDate, NaiveDateTime, Utc, Datelike};
 use nom::bytes::complete::tag;
 
 use nom::character::complete::{char, digit1};
@@ -286,6 +286,7 @@ pub fn match_format_string_in_file(
         processed_bytes,
     })
 }
+
 pub fn line_matching_format_expression(
     format_expr: &str,
     line: &str,
@@ -293,12 +294,13 @@ pub fn line_matching_format_expression(
     let regex = date_format_str_to_regex(format_expr)?;
     Ok(regex.is_match(line))
 }
+// return the timestamp and wether the year was missing
 pub fn to_posix_timestamp(
     line: &str,
     regex: &Regex,
     year: Option<i32>,
     time_offset: Option<i64>,
-) -> Result<i64, failure::Error> {
+) -> Result<(i64, bool), failure::Error> {
     let caps = regex
         .captures(line)
         .ok_or_else(|| failure::err_msg("no captures in regex"))?;
@@ -306,7 +308,7 @@ pub fn to_posix_timestamp(
         // only one matched group in addition to the full match
         let abs_ms_capt = caps.name(ABSOLUTE_MS_GROUP).expect("was verified");
         let absolute_ms: i64 = abs_ms_capt.as_str().parse()?;
-        return Ok(absolute_ms - time_offset.unwrap_or(0));
+        return Ok((absolute_ms - time_offset.unwrap_or(0), false));
     }
     let day_capt = caps
         .name(DAY_GROUP)
@@ -354,13 +356,23 @@ pub fn to_posix_timestamp(
             let date_time: Option<NaiveDateTime> = NaiveDate::from_ymd_opt(y, month, day)
                 .and_then(|d| d.and_hms_milli_opt(hour, minutes, seconds, millis));
             match date_time {
-                Some(dt) => Ok(dt.timestamp_millis() - offset),
+                Some(dt) => Ok((dt.timestamp_millis() - offset, false)),
                 None => Err(failure::err_msg(
                     "error while parsing year/month/day/hour/minute/seconds",
                 )),
             }
         }
-        (None, Ok(_)) => Err(failure::err_msg("could not determine the year!")),
+        (None, Ok(offset)) => {
+            let y = Utc::now().year();
+            let date_time: Option<NaiveDateTime> = NaiveDate::from_ymd_opt(y, month, day)
+                .and_then(|d| d.and_hms_milli_opt(hour, minutes, seconds, millis));
+            match date_time {
+                Some(dt) => Ok((dt.timestamp_millis() - offset, true)),
+                None => Err(failure::err_msg(
+                    "error while parsing year/month/day/hour/minute/seconds",
+                )),
+            }
+        }
         (Some(_), Err(e)) => Err(failure::err_msg(format!(
             "could not determine the timezone or offset! ({})",
             e
@@ -378,12 +390,13 @@ pub fn line_to_timed_line(
     year: Option<i32>,
     time_offset: Option<i64>,
 ) -> Result<TimedLine, failure::Error> {
-    let posix_timestamp = to_posix_timestamp(line, regex, year, time_offset)?;
+    let (posix_timestamp, year_was_missing) = to_posix_timestamp(line, regex, year, time_offset)?;
     Ok(TimedLine {
         timestamp: posix_timestamp,
         content: line.to_string(),
         tag: tag.to_string(),
         original_length: original_line_length,
+        year_was_missing,
     })
 }
 
@@ -716,7 +729,7 @@ mod tests {
         let regex = date_format_str_to_regex("MM-DD hh:mm:ss.s TZD")
             .expect("format string should produce regex");
 
-        let timestamp = to_posix_timestamp(input, &regex, Some(2017), None)
+        let (timestamp, _) = to_posix_timestamp(input, &regex, Some(2017), None)
             .expect("convert to limed line should work");
         println!("timestamp: {}", timestamp);
         assert_eq!(1_491_299_570_229, timestamp);
@@ -726,7 +739,7 @@ mod tests {
         let input = "04-04 11:52:50 +0200 D/oup.csc(  665): [728] MqttLogger";
         let regex_to_use =
             date_format_str_to_regex("MM-DD hh:mm:ss TZD").expect("should be parsed");
-        let timestamp = to_posix_timestamp(input, &regex_to_use, Some(2017), None)
+        let (timestamp, _) = to_posix_timestamp(input, &regex_to_use, Some(2017), None)
             .expect("convert to limed line should work");
         assert_eq!(1_491_299_570_000, timestamp);
     }
@@ -738,16 +751,17 @@ mod tests {
             "04-04-2017 11:52:50.229 0 0.764564113869644 0.7033032911158661 0.807587397462308";
         let regex = date_format_str_to_regex("MM-DD-YYYY hh:mm:ss.s")
             .expect("format string should produce regex");
-        let timestamp = to_posix_timestamp(input, &regex, None, Some(TWO_HOURS_IN_MS)).unwrap();
+        let (timestamp, _) =
+            to_posix_timestamp(input, &regex, None, Some(TWO_HOURS_IN_MS)).unwrap();
         assert_eq!(1_491_299_570_229, timestamp);
     }
     #[test]
     fn test_parse_date_line_only_millis() {
         let input = "1559831467577 some logging here...";
         let regex = date_format_str_to_regex("sss").expect("format string should produce regex");
-        let timestamp = to_posix_timestamp(input, &regex, None, None).unwrap();
+        let (timestamp, _) = to_posix_timestamp(input, &regex, None, None).unwrap();
         assert_eq!(1_559_831_467_577, timestamp);
-        let timestamp_with_offset =
+        let (timestamp_with_offset, _) =
             to_posix_timestamp(input, &regex, None, Some(-TWO_HOURS_IN_MS)).unwrap();
         assert_eq!(1_559_838_667_577, timestamp_with_offset);
     }

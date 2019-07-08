@@ -11,6 +11,7 @@ pub struct TimedLine {
     pub content: String,
     pub tag: String,
     pub original_length: usize,
+    pub year_was_missing: bool,
 }
 
 impl Ord for TimedLine {
@@ -74,6 +75,7 @@ impl<'a> Iterator for TimedLineIter<'a> {
                     tag: self.tag.to_string(),
                     timestamp: self.last_timestamp,
                     original_length: original_line_length,
+                    year_was_missing: false,
                 });
                 self.last_timestamp = timed_line.timestamp;
                 Some(timed_line)

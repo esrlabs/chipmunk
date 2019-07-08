@@ -96,6 +96,8 @@ impl Merger {
         let mut chunks = vec![];
         let mut chunk_factory = ChunkFactory::new(self.chunk_size, to_stdout, original_file_size);
         let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
+        let mut lines_with_year_missing = 0usize;
+        let mut lines_where_we_reuse_previous_date = 0usize;
 
         for input in merger_inputs {
             // let kind: RegexKind = detect_timestamp_regex(&input.path)?;
@@ -121,16 +123,32 @@ impl Merger {
                     input.year,
                     input.offset,
                 )
-                .unwrap_or_else(|_| TimedLine {
-                    content: trimmed_line.to_string(),
-                    tag: alt_tag.to_string(),
-                    timestamp: last_timestamp,
-                    original_length: len,
+                .unwrap_or_else(|_| {
+                    lines_where_we_reuse_previous_date += 1;
+                    TimedLine {
+                        content: trimmed_line.to_string(),
+                        tag: alt_tag.to_string(),
+                        timestamp: last_timestamp,
+                        original_length: len,
+                        year_was_missing: false,
+                    }
                 });
+                if timed_line.year_was_missing {
+                    lines_with_year_missing += 1
+                }
                 last_timestamp = timed_line.timestamp;
                 heap.push(timed_line);
                 buf = vec![];
             }
+        }
+        if lines_with_year_missing > 0 {
+            eprintln!("year was missing for {} lines", lines_with_year_missing);
+        }
+        if lines_where_we_reuse_previous_date > 0 {
+            eprintln!(
+                "could not determine date for {} lines",
+                lines_where_we_reuse_previous_date
+            );
         }
         let sorted = heap.into_sorted_vec();
         for t in sorted {
@@ -181,6 +199,7 @@ impl Merger {
         let mut chunks = vec![];
         let mut chunk_factory = ChunkFactory::new(self.chunk_size, to_stdout, original_file_size);
         let mut processed_bytes = 0;
+        let mut lines_with_year_missing = 0usize;
         let mut readers: Vec<Peekable<TimedLineIter>> = merger_inputs
             .iter()
             .map(|input| {
@@ -215,6 +234,9 @@ impl Merger {
                         None => {
                             minimum = Some((line.timestamp, i));
                         }
+                    }
+                    if line.year_was_missing {
+                        lines_with_year_missing += 1
                     }
                 }
             }
@@ -258,30 +280,9 @@ impl Merger {
                 break;
             }
         }
-        // while let Some((i, l)) = readers
-        //     .iter_mut()
-        //     .filter_map(|i| {
-        //         println!("iter over readers");
-        //         if let Ok(i) = i {
-        //             let line: TimedLine = if let Some(line) = i.peek() {
-        //                 println!("iter, line: {:?}", line);
-        //                 line.clone()
-        //             } else {
-        //                 return None;
-        //             };
-        //             Some((i, line))
-        //         } else {
-        //             panic!()
-        //         }
-        //     })
-        //     .min_by_key(|(_, s)| (*s).clone())
-        // {
-        //     i.next();
-        //     buf_writer
-        //         .write_all(l.content.as_bytes())
-        //         .expect("Failed to write");
-        //     buf_writer.write_all(&[b'\n']).expect("Failed to write");
-        // }
+        if lines_with_year_missing > 0 {
+            eprintln!("year was missing for {} lines", lines_with_year_missing);
+        }
         buf_writer.flush()?;
         if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunks.is_empty()) {
             chunks.push(chunk);
@@ -307,6 +308,7 @@ impl Merger {
         }
     }
 }
+
 #[cfg(test)]
 mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.

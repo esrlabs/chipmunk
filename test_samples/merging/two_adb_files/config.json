@@ -1,0 +1,16 @@
+[
+  {
+    "name": "a.log",
+    "offset": 0,
+    "format": "MM-DD hh:mm:ss.s TZD",
+    "tag": "A-TAG",
+    "year": 2019
+  },
+  {
+    "name": "b.log",
+    "offset": 0,
+    "tag": "B-TAG",
+    "format": "MM-DD hh:mm:ss.s TZD",
+    "year": 2019
+  }
+]
