@@ -4,6 +4,7 @@ import { Observable, Subject } from 'rxjs';
 import ServiceElectronIpc, { IPCMessages } from './service.electron.ipc';
 import TabsSessionsService from './service.sessions.tabs';
 import LayoutStateService from './standalone/service.layout.state';
+import { stringify } from 'querystring';
 
 export class FileOpenerService implements IService {
 
@@ -41,6 +42,7 @@ export class FileOpenerService implements IService {
             // Single file
             ServiceElectronIpc.request(new IPCMessages.FileOpenRequest({
                 file: (files[0] as any).path,
+                session: TabsSessionsService.getActive().getGuid(),
             }), IPCMessages.FileOpenResponse).then((response: IPCMessages.FileReadResponse) => {
                 if (response.error !== undefined) {
                     // Error message
