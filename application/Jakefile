@@ -982,7 +982,7 @@ namespace('plugin.row.parser.ascii', function() {
 
 namespace('plugins', function() {
 
-    task('all', ['plugin.row.parser.ascii:all', 'plugin.dlt-render:all', 'plugin.dlt:all', 'plugin.xterminal:all', 'plugin.processes:all']);
+    task('all', ['plugin.row.parser.ascii:all', 'plugin.dlt-render:all', 'plugin.dlt:all', 'plugin.xterminal:all', 'plugin.processes:all', 'plugin.serial:all']);
 
 });
 
