@@ -33,7 +33,12 @@ export class DDListStandardComponent implements AfterContentInit {
 
     public _ng_onChange(value: any) {
         this.onChange(value);
+        this._ng_value = value;
         this._cdRef.detectChanges();
+    }
+
+    public getValue(): any {
+        return this._ng_value;
     }
 
 }

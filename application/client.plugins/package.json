@@ -6,6 +6,7 @@
     "start": "ng serve",
     "build": "ng build",
     "build:terminal": "ng build terminal",
+    "build:serial": "ng build serial",
     "build:processes": "ng build processes",
     "build:xterminal": "ng build xterminal",
     "build:file": "ng build file",

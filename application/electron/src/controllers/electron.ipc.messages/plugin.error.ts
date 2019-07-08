@@ -1,7 +1,9 @@
 
 export interface IPluginError {
-    message?: string;
+    message: string;
     data: any;
+    token: string;
+    stream: string;
 }
 
 export class PluginError {
@@ -10,6 +12,8 @@ export class PluginError {
 
     public message: string = '';
     public data: any;
+    public token: string;
+    public stream: string;
 
     constructor(params: IPluginError) {
         if (typeof params !== 'object' || params === null) {
@@ -18,7 +22,12 @@ export class PluginError {
         if (typeof params.message !== 'string') {
             throw new Error(`At least "message" field should be defined for this message`);
         }
-        this.message = typeof params.message === 'string' ? params.message : '';
+        if (typeof params.token !== 'string' || params.token.trim() === '') {
+            throw new Error(`Field "token" should be defined`);
+        }
+        this.message = params.message;
         this.data = params.data;
+        this.stream = params.stream;
+        this.token = params.token;
     }
 }

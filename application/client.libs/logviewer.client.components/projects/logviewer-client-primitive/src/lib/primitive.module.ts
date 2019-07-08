@@ -12,6 +12,12 @@ import { SpinnerRegularComponent                } from './spinners/regular/compo
 
 import { SwitcherSimpleComponent                } from './switchers/simple/component';
 
+import { CheckSimpleComponent                   } from './checkbox/simple/component';
+
+const checkboxes = [
+    CheckSimpleComponent
+];
+
 const switchers = [
     SwitcherSimpleComponent
 ];
@@ -33,10 +39,10 @@ const spinners = [
 ];
 
 @NgModule({
-    entryComponents : [ ...switchers, ...ddlists, ...inputs, ...buttons, ...spinners ],
+    entryComponents : [ ...checkboxes, ...switchers, ...ddlists, ...inputs, ...buttons, ...spinners ],
     imports         : [ CommonModule, FormsModule ],
-    declarations    : [ ...switchers, ...ddlists, ...inputs, ...buttons, ...spinners ],
-    exports         : [ ...switchers, ...ddlists, ...inputs, ...buttons, ...spinners ]
+    declarations    : [ ...checkboxes, ...switchers, ...ddlists, ...inputs, ...buttons, ...spinners ],
+    exports         : [ ...checkboxes, ...switchers, ...ddlists, ...inputs, ...buttons, ...spinners ]
 })
 
 export class PrimitiveModule { }
