@@ -1,0 +1,46 @@
+<ul class="settings">
+    <li class="setting">
+        <p class="t-small color-scheme-2">Baud rate</p>
+        <lib-primitive-dropdownlist #baudRateCom [items]="_ng_baudrateItems" [defaults]="baudRate"></lib-primitive-dropdownlist>
+    </li>
+    <li>
+        <p class="t-small color-scheme-2">Data bits</p>
+        <lib-primitive-dropdownlist #dataBitsCom [items]="_ng_databitsItems" [defaults]="dataBits"></lib-primitive-dropdownlist>
+    </li>
+    <li class="setting">
+        <p class="t-small color-scheme-2">Stop bits</p>
+        <lib-primitive-dropdownlist #stopBitsCom [items]="_ng_stopbitsItems" [defaults]="stopBits"></lib-primitive-dropdownlist>
+    </li>
+    <li class="setting">
+        <p class="t-small color-scheme-2">Parity</p>
+        <lib-primitive-dropdownlist #parityCom [items]="_ng_parityItems" [defaults]="parity"></lib-primitive-dropdownlist>
+    </li>
+    <li class="setting">
+        <p class="t-small color-scheme-2">Encoding</p>
+        <lib-primitive-dropdownlist #encodingCom [items]="_ng_encodingItems" [defaults]="encoding"></lib-primitive-dropdownlist>
+    </li>
+    <li class="setting">
+        <p class="t-small color-scheme-2">High water mark, bytes</p>
+        <lib-primitive-input #highWaterMarkCom [value]="highWaterMark" [type]="'number'"></lib-primitive-input>
+    </li>
+    <li class="setting">
+        <p class="t-small color-scheme-2">Locking</p>
+        <lib-primitive-checkbox-simple #lockCom [labelOn]="'Port will be locked'" [labelOff]="'Port will not be locked'" [checked]="lock"></lib-primitive-checkbox-simple>
+    </li>
+    <li class="setting">
+        <p class="t-small color-scheme-2">RTSCTS</p>
+        <lib-primitive-checkbox-simple #rtsctsCom [labelOn]="'Active (true)'" [labelOff]="'Inactive (false)'" [checked]="rtscts"></lib-primitive-checkbox-simple>
+    </li>
+    <li class="setting">
+        <p class="t-small color-scheme-2">xON</p>
+        <lib-primitive-checkbox-simple #xonCom [labelOn]="'Active (true)'" [labelOff]="'Inactive (false)'" [checked]="xon"></lib-primitive-checkbox-simple>
+    </li>
+    <li class="setting">
+        <p class="t-small color-scheme-2">xOFF</p>
+        <lib-primitive-checkbox-simple #xoffCom [labelOn]="'Active (true)'" [labelOff]="'Inactive (false)'" [checked]="xoff"></lib-primitive-checkbox-simple>
+    </li>
+    <li class="setting">
+        <p class="t-small color-scheme-2">xANY</p>
+        <lib-primitive-checkbox-simple #xanyCom [labelOn]="'Active (true)'" [labelOff]="'Inactive (false)'" [checked]="xany"></lib-primitive-checkbox-simple>
+    </li>
+</ul>

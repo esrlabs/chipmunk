@@ -8,10 +8,10 @@ import { Component, Input, AfterContentInit, ChangeDetectorRef } from '@angular/
 
 export class InputStandardComponent implements AfterContentInit {
 
-    public _ng_value: string = '';
+    public _ng_value: string | number = '';
     public _ng_error: string | undefined;
 
-    @Input() public value: string = '';
+    @Input() public value: string | number = '';
     @Input() public placeholder: string = '';
     @Input() public type: string = '';
     @Input() public disabled: boolean = false;
@@ -20,15 +20,15 @@ export class InputStandardComponent implements AfterContentInit {
     @Input() public onKeyDown: (...args: any[]) => any = () => void 0;
     @Input() public onKeyUp: (...args: any[]) => any = () => void 0;
     @Input() public onEnter: (...args: any[]) => any = () => void 0;
-    @Input() public onChange: (value: string) => any = () => void 0;
-    @Input() public validate: (input: string) => string | undefined = () => undefined;
+    @Input() public onChange: (value: string | number) => any = () => void 0;
+    @Input() public validate: (input: string | number) => string | undefined = () => undefined;
 
     constructor(private _cdRef: ChangeDetectorRef) {
 
     }
 
     public ngAfterContentInit() {
-        if (typeof this.value !== 'string') {
+        if (typeof this.value !== 'string' && typeof this.value !== 'number') {
             return;
         }
         this._ng_value = this.value;
@@ -39,7 +39,7 @@ export class InputStandardComponent implements AfterContentInit {
         this._ng_value = '';
     }
 
-    public _ng_onChange(value: string) {
+    public _ng_onChange(value: string | number) {
         this._ng_error = this.validate(value);
         this.onChange(value);
         this._cdRef.detectChanges();
@@ -59,6 +59,10 @@ export class InputStandardComponent implements AfterContentInit {
     public setValue(value: string) {
         this._ng_value = value;
         this._ng_onChange(value);
+    }
+
+    public getValue(): string | number {
+        return this._ng_value;
     }
 
 }

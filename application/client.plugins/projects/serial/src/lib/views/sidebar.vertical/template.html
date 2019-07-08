@@ -1,0 +1,25 @@
+<div class="container">
+    <p class="t-normal">Available ports</p>
+    <ul class="ports">
+        <li [attr.class]="'port ' + (_ng_isPortSelected(port) ? 'selected' : '')" *ngFor="let port of _ng_ports" (click)="_ng_onPortSelect(port)">
+            <lib-sb-portinfo-com [port]="port" [state]="_ng_getState(port)"></lib-sb-portinfo-com>
+        </li>
+    </ul>
+    <div *ngIf="_ng_options">
+        <lib-sb-port-options-write-com #optionsCom></lib-sb-port-options-write-com>
+    </div>
+    <div class="controlls" *ngIf="_ng_canBeConnected()">
+        <span class="small-button" (click)="_ng_onOptions()">Options</span>
+        <span class="small-button" (click)="_ng_onConnect()">Connect</span>
+    </div>
+</div>
+<div class="container">
+    <p class="t-normal">Connected ports</p>
+    <p class="t-small color-scheme-1" *ngIf="_ng_connected.length === 0">No connected ports for this session</p>
+    <ul class="ports connected" *ngIf="_ng_connected.length > 0">
+        <li class="port" *ngFor="let connected of _ng_connected">
+            <lib-sb-port-connected-com [port]="connected.port" [options]="connected.options" [state]="connected.state" [onDisconnect]="_ng_onDisconnectPort.bind(this, connected.port)"></lib-sb-port-connected-com>
+        </li>
+    </ul>    
+</div>
+
