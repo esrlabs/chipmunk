@@ -33,11 +33,13 @@ export default class MergeFilesWriter {
     private _reject: TRejector | undefined;
     private _writeSessionsId: string = Tools.guid();
     private _written: number = 0;
+    private _session: string = '';
     private _size: number = 0;
     private _read: number = 0;
 
-    constructor(files: IFile[]) {
+    constructor(files: IFile[], session: string) {
         this._files = files;
+        this._session = session;
         this._queue.on(Queue.Events.done, this._onAllChunksRead.bind(this));
         this._queue.on(Queue.Events.finish, this._onAllFilesRead.bind(this));
     }
@@ -69,7 +71,7 @@ export default class MergeFilesWriter {
                     // Set flags
                     this._complited[file.file] = false;
                     // Add new description of source
-                    this._sourceIds[file.file] = ServiceStreamSource.add({ name: path.basename(file.file) });
+                    this._sourceIds[file.file] = ServiceStreamSource.add({ name: path.basename(file.file), session: this._session });
                     // Create reader
                     const reader = fs.createReadStream(file.file);
                     // Attach listeners

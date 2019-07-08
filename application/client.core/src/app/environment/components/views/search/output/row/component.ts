@@ -139,6 +139,10 @@ export class ViewSearchOutputRowComponent implements AfterContentChecked, AfterC
         html = matches.str;
         this._ng_color = matches.color;
         this._ng_background = matches.background;
+        const countOfSessionSources: number = SourcesService.getCountOfSource(this.sessionId);
+        if (this._ng_background === undefined && countOfSessionSources > 1) {
+            this._ng_background = SourcesService.getSourceShadowColor(this.pluginId);
+        }
         // Generate safe html
         this._ng_number = this.positionInStream.toString();
         this._ng_number_filler = this._getNumberFiller();

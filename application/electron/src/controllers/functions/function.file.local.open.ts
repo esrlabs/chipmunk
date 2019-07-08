@@ -1,5 +1,6 @@
 import { dialog } from 'electron';
 import ServiceFileOpener from '../../services/service.file.opener';
+import ServiceStreams from '../../services/service.streams';
 import { AFileParser } from '../files.parsers/interface';
 import Logger from '../../tools/env.logger';
 
@@ -27,7 +28,7 @@ export default class FunctionOpenLocalFile {
                     return;
                 }
                 const file: string = files[0];
-                ServiceFileOpener.open(file, this._parser).catch((error: Error) => {
+                ServiceFileOpener.open(file, ServiceStreams.getActiveStreamId(), this._parser).catch((error: Error) => {
                     this._logger.warn(`Fail open file due error: ${error.message}`);
                 });
             });

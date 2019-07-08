@@ -1,6 +1,7 @@
 export interface IStreamSourceNew {
     id: number;
     name: string;
+    session: string;
 }
 
 export class StreamSourceNew {
@@ -8,6 +9,7 @@ export class StreamSourceNew {
     public signature: string = StreamSourceNew.signature;
     public id: number;
     public name: string;
+    public session: string;
 
     constructor(params: IStreamSourceNew) {
         if (typeof params !== 'object' || params === null) {
@@ -19,7 +21,11 @@ export class StreamSourceNew {
         if (typeof params.id !== 'number' || isNaN(params.id) || !isFinite(params.id)) {
             throw new Error(`Field "id" should be defined as number`);
         }
+        if (typeof params.session !== 'string' || params.session.trim() === '') {
+            throw new Error(`Field "session" should be defined as string`);
+        }
         this.id = params.id;
         this.name = params.name;
+        this.session = params.session;
     }
 }

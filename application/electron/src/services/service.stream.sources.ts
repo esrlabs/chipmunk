@@ -5,6 +5,7 @@ import { IService } from '../interfaces/interface.service';
 export type TSourceId = number;
 export interface ISource {
     name: string;
+    session: string;
 }
 
 export class ServiceStreamSources implements IService  {
@@ -33,7 +34,7 @@ export class ServiceStreamSources implements IService  {
         const id: TSourceId = this._seq ++;
         this._sources.set(id, source);
         // Notify render about new source
-        this._notify(id, source.name);
+        this._notify(id, source);
         return id;
     }
 
@@ -47,14 +48,15 @@ export class ServiceStreamSources implements IService  {
         }
         this._sources.set(id, desc);
         // Notify render about new source
-        this._notify(id, desc.name);
+        this._notify(id, desc);
     }
 
-    private _notify(id: number, name: string) {
+    private _notify(id: number, source: ISource) {
         // Notify render about new source
         ServiceElectron.IPC.send(new IPCElectronMessages.StreamSourceNew({
             id: id,
-            name: name,
+            name: source.name,
+            session: source.session,
         })).catch((error: Error) => {
             this._logger.warn(`Fail to notify render about new source ("${name}") due error: ${error.message}`);
         });
