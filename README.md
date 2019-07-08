@@ -157,6 +157,18 @@ match: Ok(true)
 
 # Changelog
 
+### [0.25.0] - 07/08/2019
+  * test merging adb files
+  * use current year for timestamp when year is missing
+  * also report offending lines (where year was missing)
+  * simplify proptest strategies
+  * reformat
+  * all tests passing with proptests using arbitrary
+  * use proptest for regular build...makes things easier
+  * generate test cases with proptest for Arguments
+  * got rid of reduntancy in TypeInfo (fixed-point)
+  * test aribrary arguments
+
 ### [0.24.0] - 07/02/2019
   * remove newlines from dlt arguments
 
