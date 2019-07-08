@@ -22,7 +22,7 @@ interface IConnected {
 }
 
 const state: Toolkit.ControllerState<IState> = new Toolkit.ControllerState<IState>();
-debugger;
+
 @Component({
     selector: Toolkit.EViewsTypes.sidebarVertical,
     templateUrl: './template.html',
