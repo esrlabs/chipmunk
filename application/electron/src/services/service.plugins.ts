@@ -96,7 +96,7 @@ export class ServicePlugins implements IService {
                     }
                     this._initializeAllPlugins().then(() => {
                         ServiceElectronService.logStateToRender(`All plugins are ready`);
-                        this._logger.error(`All plugins are ready`);
+                        this._logger.env(`All plugins are ready`);
                         this._sendRenderPluginsData();
                         // Subscribe to streams events
                         this._subscribeToStreamEvents();

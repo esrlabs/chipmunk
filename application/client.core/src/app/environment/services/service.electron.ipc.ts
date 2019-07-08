@@ -48,9 +48,12 @@ class ElectronIpcService implements IService {
                 token: token,
                 stream: stream
             });
-            this.request(pluginMessage).then((response: IPCMessages.TMessage | undefined) => {
-                if (!(response instanceof IPCMessages.PluginInternalMessage)) {
+            this.request(pluginMessage, IPCMessages.PluginError).then((response: IPCMessages.TMessage | undefined) => {
+                if (!(response instanceof IPCMessages.PluginInternalMessage) && !(response instanceof IPCMessages.PluginError)) {
                     return reject(new Error(`From plugin host was gotten incorrect responce: ${typeof response}/${response}`));
+                }
+                if (response instanceof IPCMessages.PluginError) {
+                    return reject(response);
                 }
                 resolve(response.data);
             }).catch((sendingError: Error) => {
@@ -177,7 +180,7 @@ class ElectronIpcService implements IService {
         if (resolver !== undefined) {
             return resolver(instance);
         }
-        if (instance instanceof IPCMessages.PluginInternalMessage) {
+        if (instance instanceof IPCMessages.PluginInternalMessage || instance instanceof IPCMessages.PluginError) {
             if (typeof instance.token !== 'string' || instance.token.trim() === '') {
                 return this._logger.warn(`Was gotten message "PluginInternalMessage", but message doesn't have token. Message will be ignored.`, instance);
             }
