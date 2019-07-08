@@ -7,7 +7,9 @@ export type TSourceId = number;
 export interface ISource {
     name: string;
     color: string;
+    shadow: string;
     pluginId: number | undefined;
+    session: string;
 }
 
 export class SourcesService implements IService {
@@ -15,6 +17,7 @@ export class SourcesService implements IService {
     private _logger: Toolkit.Logger = new Toolkit.Logger('SourcesService');
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _sources: Map<TSourceId, ISource> = new Map();
+    private _counts: Map<string, number> = new Map();
 
     constructor() {
         this._ipc_onStreamSourceNew = this._ipc_onStreamSourceNew.bind(this);
@@ -53,6 +56,14 @@ export class SourcesService implements IService {
         return data.color;
     }
 
+    public getSourceShadowColor(id: TSourceId): string | undefined {
+        const data = this._sources.get(id);
+        if (data === undefined) {
+            return undefined;
+        }
+        return data.shadow;
+    }
+
     public getRelatedPlugin(id: TSourceId): IPluginData | undefined {
         const data = this._sources.get(id);
         if (data === undefined) {
@@ -61,15 +72,38 @@ export class SourcesService implements IService {
         return PluginsService.getPluginById(id);
     }
 
+    public getCountOfSource(session: string): number {
+        const count: number | undefined = this._counts.get(session);
+        return count === undefined ? 0 : count;
+    }
+
+    private _setCountOfSource() {
+        this._counts.clear();
+        this._sources.forEach((source: ISource) => {
+            const count: number | undefined = this._counts.get(source.session);
+            if (count === undefined) {
+                this._counts.set(source.session, 1);
+            } else {
+                this._counts.set(source.session, this._counts.get(source.session) + 1);
+            }
+        });
+    }
+
     private _ipc_onStreamSourceNew(message: IPCMessages.StreamSourceNew) {
         if (this._sources.has(message.id)) {
             return;
         }
+        const r: number = Math.round(Math.random() * 154) + 100;
+        const g: number = Math.round(Math.random() * 154) + 100;
+        const b: number = Math.round(Math.random() * 154) + 100;
         this._sources.set(message.id, {
             name: message.name,
-            color: `rgb(${Math.round(Math.random() * 154) + 100},${Math.round(Math.random() * 154) + 100},${Math.round(Math.random() * 154) + 100})`,
-            pluginId: undefined
+            color: `rgb(${r},${g},${b})`,
+            shadow: `rgba(${r},${g},${b}, 0.15)`,
+            pluginId: undefined,
+            session: message.session,
         });
+        this._setCountOfSource();
     }
 
 

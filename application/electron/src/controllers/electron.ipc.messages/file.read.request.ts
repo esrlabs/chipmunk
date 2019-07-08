@@ -1,6 +1,7 @@
 export interface IFileReadRequest {
     file: string;
     bytes: number;
+    session: string;
 }
 
 export class FileReadRequest {
@@ -9,6 +10,7 @@ export class FileReadRequest {
     public signature: string = FileReadRequest.signature;
     public file: string = '';
     public bytes: number = 0;
+    public session: string = '';
 
     constructor(params: IFileReadRequest) {
         if (typeof params !== 'object' || params === null) {
@@ -20,7 +22,11 @@ export class FileReadRequest {
         if (typeof params.bytes !== 'number' || isNaN(params.bytes) || !isFinite(params.bytes)) {
             throw new Error(`file should be defined.`);
         }
+        if (typeof params.session !== 'string' || params.session.trim() === '') {
+            throw new Error(`session should be defined.`);
+        }
         this.file = params.file;
+        this.session = params.session;
         this.bytes = params.bytes;
     }
 }
