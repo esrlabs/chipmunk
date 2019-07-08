@@ -119,35 +119,6 @@ class ServiceMergeFiles implements IService {
         });
     }
 
-    /*
-    private _onMergeFilesRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
-        const req: IPCMessages.MergeFilesRequest = request as IPCMessages.MergeFilesRequest;
-        const writer: MergeFilesWriter = new MergeFilesWriter(req.files.map((file: IMergeFileRequest) => {
-            const regexp: RegExp = new RegExp(file.reg as string, 'gi');
-            return {
-                file: file.file,
-                format: file.format,
-                reg: regexp,
-                offset: file.offset,
-                parser: file.parser,
-                zone: file.zone,
-            };
-        }));
-        writer.write().then((written: number) => {
-            response(new IPCMessages.MergeFilesResponse({
-                written: written,
-                id: req.id,
-            }));
-        }).catch((writeError: Error) => {
-            response(new IPCMessages.MergeFilesResponse({
-                written: 0,
-                id: req.id,
-                error: writeError.message,
-            }));
-        });
-    }
-    */
-
     private _onMergeFilesTestRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.MergeFilesTestRequest = request as IPCMessages.MergeFilesTestRequest;
         const files: ITestFileResponse[] = [];

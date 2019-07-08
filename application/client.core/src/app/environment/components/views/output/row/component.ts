@@ -150,6 +150,10 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         html = matches.str;
         this._ng_color = matches.color;
         this._ng_background = matches.background;
+        const countOfSessionSources: number = SourcesService.getCountOfSource(this.sessionId);
+        if (this._ng_background === undefined && countOfSessionSources > 1) {
+            this._ng_background = SourcesService.getSourceShadowColor(this.pluginId);
+        }
         this._ng_number = this.position.toString();
         this._ng_number_filler = this._getNumberFiller();
         // Check for external render
@@ -173,6 +177,9 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     }
 
     private _getNumberFiller(): string {
+        if (this._ng_number === undefined) {
+            return '';
+        }
         const rank = this.rank - this._ng_number.length;
         return '0'.repeat(rank < 0 ? 0 : rank);
     }

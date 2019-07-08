@@ -280,7 +280,7 @@ export default class ControllerStreamProcessor {
             return false;
         }
         // Add source description
-        ServiceStreamSource.set(id, { name: ServicePlugins.getPluginName(id) as string});
+        ServiceStreamSource.set(id, { name: ServicePlugins.getPluginName(id) as string, session: '*' });
         // Bind plugin ref with plugin ID
         this._pluginRefs.set(ref, id);
         this._logger.env(`Plugin #${id} (${ServicePlugins.getPluginName(id)}) bound with reference "${ref}".`);

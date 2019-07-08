@@ -153,6 +153,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         ElectronIpcService.request(new IPCMessages.MergeFilesRequest({
             files: files,
             id: Toolkit.guid(),
+            session: this._ng_session.getGuid(),
         }), IPCMessages.MergeFilesResponse).then((response: IPCMessages.MergeFilesResponse) => {
             this._ng_busy = false;
             if (typeof response.error === 'string' && response.error.trim() !== '') {
@@ -480,9 +481,13 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
 
     private _getFileContent(file: string): Promise<IFilePreview> {
         return new Promise((resolve, reject) => {
+            if (this._ng_session === undefined) {
+                return reject(new Error(this._logger.error(`Session object isn't available`)));
+            }
             ElectronIpcService.request(new IPCMessages.FileReadRequest({
                 file: file,
                 bytes: 50000,
+                session: this._ng_session.getGuid()
             }), IPCMessages.FileReadResponse).then((response: IPCMessages.FileReadResponse) => {
                 if (response.error !== undefined) {
                     return reject(new Error(response.error));

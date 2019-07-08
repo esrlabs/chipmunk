@@ -42,7 +42,7 @@ export default class MergeFiles {
                 }).join('; '));
                 // Add new description of source
                 this._files.forEach((file: IFile) => {
-                    this._sourceIds[file.file] = ServiceStreamSource.add({ name: path.basename(file.file) });
+                    this._sourceIds[file.file] = ServiceStreamSource.add({ name: path.basename(file.file), session: this._session });
                 });
                 const lvin: Lvin = new Lvin();
                 lvin.on(Lvin.Events.map, (map: IFileMapItem[]) => {

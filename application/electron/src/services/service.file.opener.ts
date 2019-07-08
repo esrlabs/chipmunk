@@ -51,7 +51,7 @@ class ServiceFileOpener implements IService {
         return 'ServiceFileOpener';
     }
 
-    public open(file: string, parser?: AFileParser): Promise<void> {
+    public open(file: string, session: string, parser?: AFileParser): Promise<void> {
         return new Promise((resolve, reject) => {
             fs.stat(file, (error: NodeJS.ErrnoException | null, stats: fs.Stats) => {
                 if (error) {
@@ -67,7 +67,7 @@ class ServiceFileOpener implements IService {
                     ServiceStreams.addPipeSession(pipeSessionId, stats.size, file);
                     if ((parser as AFileParser).readAndWrite === undefined) {
                         // Pipe file. No direct read/write method
-                        this._pipeSource(file, (parser as AFileParser)).then(() => {
+                        this._pipeSource(file, session, (parser as AFileParser)).then(() => {
                             ServiceStreams.removePipeSession(pipeSessionId);
                             resolve();
                         }).catch((pipeError: Error) => {
@@ -78,7 +78,7 @@ class ServiceFileOpener implements IService {
                         // Trigger progress
                         ServiceStreams.updatePipeSession(0);
                         // Parser has direct method of reading and writing
-                        this._directReadWrite(file, (parser as AFileParser)).then(() => {
+                        this._directReadWrite(file, session, (parser as AFileParser)).then(() => {
                             ServiceStreams.removePipeSession(pipeSessionId);
                             ServiceStreams.reattachSessionFileHandle();
                             resolve();
@@ -97,7 +97,7 @@ class ServiceFileOpener implements IService {
 
     private _onFileOpenRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.FileReadRequest = request as IPCMessages.FileReadRequest;
-        this.open(req.file).then(() => {
+        this.open(req.file, req.session).then(() => {
             response(new IPCMessages.FileOpenResponse({}));
         }).catch((openError: Error) => {
             response(new IPCMessages.FileOpenResponse({
@@ -141,10 +141,10 @@ class ServiceFileOpener implements IService {
         });
     }
 
-    private _pipeSource(file: string, parser: AFileParser): Promise<void> {
+    private _pipeSource(file: string, session: string, parser: AFileParser): Promise<void> {
         return new Promise((resolve, reject) => {
             // Add new description of source
-            const sourceId: number = ServiceStreamSource.add({ name: path.basename(file) });
+            const sourceId: number = ServiceStreamSource.add({ name: path.basename(file), session: session });
             // Create read stream
             const reader: fs.ReadStream = fs.createReadStream(file);
             // Pipe file
@@ -161,10 +161,10 @@ class ServiceFileOpener implements IService {
         });
     }
 
-    private _directReadWrite(file: string, parser: AFileParser): Promise<void> {
+    private _directReadWrite(file: string, session: string, parser: AFileParser): Promise<void> {
         return new Promise((resolve, reject) => {
             // Add new description of source
-            const sourceId: number = ServiceStreamSource.add({ name: path.basename(file) });
+            const sourceId: number = ServiceStreamSource.add({ name: path.basename(file), session: session });
             // Get destination file
             const dest: { streamId: string, file: string } | Error = ServiceStreams.getStreamFile();
             if (dest instanceof Error) {
