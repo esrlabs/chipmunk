@@ -33,6 +33,7 @@ export declare class SidebarVerticalComponent implements AfterViewInit, OnDestro
     _ng_onConnect(): void;
     _ng_getState(port: IPortInfo): IPortState;
     _ng_onDisconnectPort(port: IPortInfo): void;
+    _ng_onReloadPortsList(): void;
     private _onIncomeMessage;
     private _onIncomeEvent;
     private _onSessionChange;
@@ -40,9 +41,12 @@ export declare class SidebarVerticalComponent implements AfterViewInit, OnDestro
     private _onSessionClose;
     private _saveState;
     private _loadState;
-    private _initState;
-    private _updateConnectedPortsState;
+    private _requestPortsList;
     private _getOptions;
+    private _error;
+    private _hostEvents_onState;
+    private _hostEvents_onDisconnected;
+    private _hostEvents_onError;
     private _forceUpdate;
 }
 export {};

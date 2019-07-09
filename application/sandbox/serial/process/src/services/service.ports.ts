@@ -164,15 +164,32 @@ class ServicePorts {
             if (stored.size === 0) {
                 // Nobody listen port anymore. Can be removed.
                 this._listeners.delete(port);
-                this._close(port).then(resolve);
-                this._updateConnectedPortsState();
-                this._updateControllerSignatureState(session);
-                return;
+                return this._close(port).then(() => {
+                    this._updateConnectedPortsState();
+                    this._updateControllerSignatureState(session);
+                    resolve();
+                });
             }
             this._listeners.set(port, stored);
             this._updateControllerSignatureState(session);
             this._updateConnectedPortsState();
             resolve();
+        });
+    }
+
+    private _unrefPortAllListeners(port: string): Promise<void> {
+        return new Promise((resolve) => {
+            let stored: Map<string, IListeners> | undefined = this._listeners.get(port);
+            this._listeners.delete(port);
+            this._close(port).then(() => {
+                this._updateConnectedPortsState();
+                if (stored !== undefined) {
+                    Array.from(stored.keys()).forEach((session: string) => {
+                        this._updateControllerSignatureState(session);
+                    });
+                }
+                resolve();
+            });
         });
     }
 
@@ -195,6 +212,7 @@ class ServicePorts {
         listeners.forEach((listeners: IListeners) => {
             listeners.onError(error);
         });
+        this._unrefPortAllListeners(port);
     }
 
     private _onDisconnect(port: string) {
@@ -205,6 +223,7 @@ class ServicePorts {
         listeners.forEach((listeners: IListeners) => {
             listeners.onDisconnect();
         });
+        this._unrefPortAllListeners(port);
     }
 
     private _getConnectionsCount(port: string) {

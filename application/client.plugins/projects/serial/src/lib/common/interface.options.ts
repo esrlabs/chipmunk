@@ -47,7 +47,7 @@ export const COptionsLabes = {
 export const CDefaultOptions: IOptions = {
     path: '',
     options: {
-        baudRate: 9600,
+        baudRate: 921600,
         lock: false,
         dataBits: 8,
         highWaterMark: 65536,
