@@ -157,6 +157,9 @@ match: Ok(true)
 
 # Changelog
 
+### [0.25.1] - 07/09/2019
+  * remove debug println in dlt parsing
+
 ### [0.25.0] - 07/08/2019
   * test merging adb files
   * use current year for timestamp when year is missing
