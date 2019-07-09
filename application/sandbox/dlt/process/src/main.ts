@@ -171,6 +171,8 @@ class Plugin {
                 }).catch((error: Error) => {
                     return response(new IPCMessages.PluginError({
                         message: error.message,
+                        stream: message.stream,
+                        token: message.token,
                         data: {
                             command: message.data.command,
                             stream: message.stream
@@ -190,6 +192,8 @@ class Plugin {
                 }).catch((error: Error) => {
                     return response(new IPCMessages.PluginError({
                         message: error.message,
+                        stream: message.stream,
+                        token: message.token,
                         data: {
                             command: message.data.command,
                             stream: message.stream
