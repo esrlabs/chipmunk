@@ -410,12 +410,12 @@ fn dlt_fixed_point<T: NomByteOrder>(
     }
 }
 fn dlt_argument<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], dlt::Argument> {
-    println!("before dlt_argument, input: \t{:02X?}", input);
+    // println!("before dlt_argument, input: \t{:02X?}", input);
     let (i, type_info) = dlt_type_info::<T>(input)?;
-    println!(
-        "after dlt_type_info, input: \t{:02X?}, type_info: {:?}",
-        i, type_info
-    );
+    // println!(
+    //     "after dlt_type_info, input: \t{:02X?}, type_info: {:?}",
+    //     i, type_info
+    // );
     match type_info.kind {
         // dlt::TypeInfoKind::Array => {
         //     panic!("TODO: array not yet implemented"); // not yet impemented
