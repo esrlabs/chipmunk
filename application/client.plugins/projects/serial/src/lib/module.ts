@@ -6,6 +6,7 @@ import { SidebarVerticalPortInfoComponent } from './views/sidebar.vertical/port.
 import { SidebarVerticalPortConnectedComponent } from './views/sidebar.vertical/port.connected/component';
 import { SidebarVerticalPortOptionsReadComponent } from './views/sidebar.vertical/port.options.read/component';
 import { SidebarVerticalPortOptionsWriteComponent } from './views/sidebar.vertical/port.options.write/component';
+import { SerialRowComponent } from './views/row/component';
 import { PrimitiveModule } from 'logviewer-client-primitive';
 
 const CComponents = [
@@ -13,7 +14,8 @@ const CComponents = [
     SidebarVerticalPortInfoComponent,
     SidebarVerticalPortConnectedComponent,
     SidebarVerticalPortOptionsReadComponent,
-    SidebarVerticalPortOptionsWriteComponent
+    SidebarVerticalPortOptionsWriteComponent,
+    SerialRowComponent
 ];
 @NgModule({
     entryComponents: [ ...CComponents ],

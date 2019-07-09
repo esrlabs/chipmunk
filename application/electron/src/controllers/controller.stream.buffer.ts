@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
 import Logger from '../tools/env.logger';
+import { CRegCarrets, CRegCloseCarret } from '../consts/regs';
 
 export type THandler = (rows: string) => Promise<void>;
 export interface IChunk {
@@ -10,8 +11,8 @@ export interface IChunk {
 }
 
 const REGEXPS = {
-    CARRETS: /[\r?\n|\r]/gi,
-    CLOSE_CARRET: /(\r?\n|\r)$/gi,
+    CARRETS: CRegCarrets,
+    CLOSE_CARRET: CRegCloseCarret,
     PLUGIN_ID: /\u0003(\d*)\u0003/gi,
     REST: /.[^\n\r]*$/gi,
 };
