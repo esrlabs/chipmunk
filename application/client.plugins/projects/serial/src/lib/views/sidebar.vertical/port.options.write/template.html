@@ -1,7 +1,9 @@
 <ul class="settings">
     <li class="setting">
         <p class="t-small color-scheme-2">Baud rate</p>
-        <lib-primitive-dropdownlist #baudRateCom [items]="_ng_baudrateItems" [defaults]="baudRate"></lib-primitive-dropdownlist>
+        <lib-primitive-dropdownlist #baudRateDDCom [items]="_ng_baudrateItems" [defaults]="baudRate" [onChange]="_ng_onBaudRateDDChange"></lib-primitive-dropdownlist>
+        <span *ngIf="_ng_isBaunRateCustom()"  class="delimiter"></span>
+        <lib-primitive-input *ngIf="_ng_isBaunRateCustom()" #baudRateInputCom [value]="baudRate" [type]="'number'"></lib-primitive-input>
     </li>
     <li>
         <p class="t-small color-scheme-2">Data bits</p>
@@ -22,6 +24,10 @@
     <li class="setting">
         <p class="t-small color-scheme-2">High water mark, bytes</p>
         <lib-primitive-input #highWaterMarkCom [value]="highWaterMark" [type]="'number'"></lib-primitive-input>
+    </li>
+    <li class="setting">
+        <p class="t-small color-scheme-2">Line delimiter</p>
+        <lib-primitive-input #delimiterCom [value]="delimiter" [type]="'text'"></lib-primitive-input>
     </li>
     <li class="setting">
         <p class="t-small color-scheme-2">Locking</p>

@@ -1,12 +1,14 @@
-import { OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
+import { OnDestroy, ChangeDetectorRef, AfterViewInit, AfterContentInit } from '@angular/core';
 import { IOptions } from '../../../common/interface.options';
 import { CheckSimpleComponent, InputStandardComponent, DDListStandardComponent } from 'logviewer-client-primitive';
-export declare class SidebarVerticalPortOptionsWriteComponent implements AfterViewInit, OnDestroy {
+export declare class SidebarVerticalPortOptionsWriteComponent implements AfterViewInit, AfterContentInit, OnDestroy {
     private _cdRef;
-    _baudRateCom: DDListStandardComponent;
+    _baudRateInputCom: InputStandardComponent;
+    _baudRateDDCom: DDListStandardComponent;
     _lockCom: CheckSimpleComponent;
     _dataBitsCom: DDListStandardComponent;
     _highWaterMarkCom: InputStandardComponent;
+    _delimiterCom: InputStandardComponent;
     _stopBitsCom: DDListStandardComponent;
     _parityCom: DDListStandardComponent;
     _rtsctsCom: CheckSimpleComponent;
@@ -30,6 +32,7 @@ export declare class SidebarVerticalPortOptionsWriteComponent implements AfterVi
     path: string;
     private _subscriptions;
     private _destroyed;
+    _ng_baudrateListed: number;
     _ng_baudrateItems: Array<{
         caption: string;
         value: any;
@@ -53,6 +56,11 @@ export declare class SidebarVerticalPortOptionsWriteComponent implements AfterVi
     constructor(_cdRef: ChangeDetectorRef);
     ngOnDestroy(): void;
     ngAfterViewInit(): void;
+    ngAfterContentInit(): void;
+    _ng_onBaudRateDDChange(value: string | number): void;
+    _ng_isBaunRateCustom(): boolean;
     getOptions(): IOptions;
+    private _getDelimiter;
+    private _getBaudRate;
     private _forceUpdate;
 }

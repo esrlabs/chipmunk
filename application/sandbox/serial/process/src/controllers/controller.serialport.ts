@@ -79,11 +79,11 @@ export class ControllerSerialPort extends EventEmitter {
             this._port.removeAllListeners();
             this._port.unpipe(this._reader);
             this._port.close((error: Error | null | undefined) => {
+                this._port = undefined;
+                this._reader = undefined;
                 if (error) {
                     return reject(this._logger.error(`Fail correctly close a port due error: ${error.message}`));
                 }
-                this._port = undefined;
-                this._reader = undefined;
                 resolve();
             });
         });

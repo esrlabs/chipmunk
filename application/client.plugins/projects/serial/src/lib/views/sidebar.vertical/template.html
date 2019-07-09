@@ -1,5 +1,6 @@
 <div class="container">
     <p class="t-normal">Available ports</p>
+    <span class="reload-ports small-icon-button fas fa-sync" (click)="_ng_onReloadPortsList()"></span>
     <ul class="ports">
         <li [attr.class]="'port ' + (_ng_isPortSelected(port) ? 'selected' : '')" *ngFor="let port of _ng_ports" (click)="_ng_onPortSelect(port)">
             <lib-sb-portinfo-com [port]="port" [state]="_ng_getState(port)"></lib-sb-portinfo-com>
@@ -21,5 +22,8 @@
             <lib-sb-port-connected-com [port]="connected.port" [options]="connected.options" [state]="connected.state" [onDisconnect]="_ng_onDisconnectPort.bind(this, connected.port)"></lib-sb-port-connected-com>
         </li>
     </ul>    
+</div>
+<div class="error">
+    <p class="t-normal color-scheme-error">{{_ng_error}}</p>
 </div>
 
