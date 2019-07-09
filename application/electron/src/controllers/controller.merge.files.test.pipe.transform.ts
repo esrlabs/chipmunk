@@ -1,6 +1,7 @@
 import * as Stream from 'stream';
 import Logger from '../tools/env.logger';
 import * as moment from 'moment-timezone';
+import { CRegCarrets } from '../consts/regs';
 
 export interface IResults {
     read: number;
@@ -52,7 +53,7 @@ export default class Transform extends Stream.Transform {
             output = `${this._rest}${chunk.toString('utf8')}`;
         }
         // Remove double carret
-        output = output.replace(/[\r?\n|\r]/gi, '\n').replace(/\n{2,}/g, '\n');
+        output = output.replace(CRegCarrets, '\n').replace(/\n{2,}/g, '\n');
         // Get rest from the end
         const rest = this._getRest(output);
         this._rest = rest.rest;
