@@ -1,8 +1,9 @@
 // tslint:disable:no-inferrable-types
+// tslint:disable:max-line-length
 
-import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, HostListener } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, HostListener, AfterContentInit } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { Subscription } from 'rxjs';
+import { Subscription, Subject } from 'rxjs';
 import * as Toolkit from 'logviewer.client.toolkit';
 import ServiceColumns, { IColumnsWidthsChanged, CDefaults, IColumnValue, CDelimiters } from '../../services/service.columns';
 
@@ -12,11 +13,12 @@ import ServiceColumns, { IColumnsWidthsChanged, CDefaults, IColumnValue, CDelimi
     styleUrls: ['./styles.less']
 })
 
-export class DLTRowComponent implements AfterViewInit, OnDestroy {
+export class DLTRowComponent implements AfterViewInit, OnDestroy, AfterContentInit {
 
     @Input() public ipc: Toolkit.PluginIPC;
     @Input() public session: string;
     @Input() public html: string;
+    @Input() public update: Subject<{ [key: string]: any }>;
 
     public _ng_columns: IColumnValue[] = [];
     public _ng_widths: { [key: number]: number } = {};
@@ -28,12 +30,10 @@ export class DLTRowComponent implements AfterViewInit, OnDestroy {
     private _guid: string = Toolkit.guid();
 
     constructor(private _cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
-
+        this._subscribeToWinEvents();
     }
 
-    @HostListener('click', ['$event'])
-
-    public onClick(event: MouseEvent) {
+    @HostListener('click', ['$event']) public onClick(event: MouseEvent) {
         ServiceColumns.emit({ selected: this._ng_columns.slice() }).onSelected.next(this._ng_columns);
     }
 
@@ -48,7 +48,6 @@ export class DLTRowComponent implements AfterViewInit, OnDestroy {
         if (typeof this.html !== 'string') {
             return;
         }
-        this._subscribeToWinEvents();
         this._ng_columns = this.html.split(CDelimiters.columns).map((column: string) => {
             return {
                 html: this._sanitizer.bypassSecurityTrustHtml(column),
@@ -58,6 +57,13 @@ export class DLTRowComponent implements AfterViewInit, OnDestroy {
         this._ng_widths = ServiceColumns.getWidths(this._ng_columns.length);
         this._subscriptions.onColumnsResized = ServiceColumns.getObservable().onColumnsResized.subscribe(this._onColumnsResized.bind(this));
         this._cdRef.detectChanges();
+    }
+
+    public ngAfterContentInit() {
+        if (this.update === undefined) {
+            return;
+        }
+        this._subscriptions.update = this.update.asObservable().subscribe(this._onInputsUpdated.bind(this));
     }
 
     public _ng_getWidth(key: number): string {
@@ -70,6 +76,22 @@ export class DLTRowComponent implements AfterViewInit, OnDestroy {
     public _ng_onMouseDown(key: number, event: MouseEvent) {
         this._cachedMouseX = event.x;
         this._resizedColumnKey = key;
+    }
+
+    private _setColumns(update: boolean = false) {
+        if (typeof this.html !== 'string') {
+            return;
+        }
+        this._ng_columns = this.html.split(CDelimiters.columns).map((column: string) => {
+            return {
+                html: this._sanitizer.bypassSecurityTrustHtml(column),
+                str: column,
+            };
+        });
+        if (!update) {
+            this._ng_widths = ServiceColumns.getWidths(this._ng_columns.length);
+            this._subscriptions.onColumnsResized = ServiceColumns.getObservable().onColumnsResized.subscribe(this._onColumnsResized.bind(this));
+        }
     }
 
     private _onWindowMouseMove(event: MouseEvent) {
@@ -126,6 +148,16 @@ export class DLTRowComponent implements AfterViewInit, OnDestroy {
         }
         this._ng_widths = Object.assign({}, event.widths);
         this._cdRef.detectChanges();
+    }
+
+    private _onInputsUpdated(inputs: any) {
+        if (inputs === undefined || inputs === null) {
+            return;
+        }
+        if (typeof inputs.html === 'string' && inputs.html !== this.html) {
+            this.html = inputs.html;
+            this._setColumns();
+        }
     }
 
 

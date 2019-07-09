@@ -2,6 +2,7 @@ import Logger from '../tools/env.logger';
 import * as moment from 'moment-timezone';
 import { AFileParser, IFileParserFunc } from './files.parsers/index';
 import ServiceFileParsers from '../services/service.file.parsers';
+import { CRegCarrets } from '../consts/regs';
 
 export interface IRow {
     str: string;
@@ -52,7 +53,7 @@ export default class Holder {
                     output = `${this._rest}${chunk.toString('utf8')}`;
                 }
                 // Remove double carret
-                output = output.replace(/[\r?\n|\r]/gi, '\n').replace(/\n{2,}/g, '\n');
+                output = output.replace(CRegCarrets, '\n').replace(/\n{2,}/g, '\n');
                 // Get rest from the end
                 const rest = this._getRest(output);
                 this._rest = rest.rest;

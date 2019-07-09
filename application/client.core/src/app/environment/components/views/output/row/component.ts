@@ -1,6 +1,6 @@
 import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { Subscription } from 'rxjs';
+import { Subscription, Subject } from 'rxjs';
 import { ControllerSessionTabStreamOutput } from '../../../../controller/controller.session.tab.stream.output';
 import { ControllerSessionTabSourcesState } from '../../../../controller/controller.session.tab.sources.state';
 import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../../controller/controller.session.tab.stream.bookmarks';
@@ -40,6 +40,11 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
+    private _subjects: {
+        update: Subject<{ [key: string]: any }>
+    } = {
+        update: new Subject<{ [key: string]: any }>()
+    };
 
     constructor(private _sanitizer: DomSanitizer, private _cdRef: ChangeDetectorRef ) {
         this._onRankChanged = this._onRankChanged.bind(this);
@@ -50,6 +55,9 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     public ngOnDestroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
+        });
+        Object.keys(this._subjects).forEach((key: string) => {
+            this._subjects[key].unsubscribe();
         });
         this._destroyed = true;
     }
@@ -163,10 +171,16 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
             this._ng_safeHtml = this._sanitizer.bypassSecurityTrustHtml(html);
             this._ng_component = undefined;
         } else {
-            component.inputs = Object.assign(component.inputs, {
-                html: html
+            const inputs = Object.assign(component.inputs, {
+                html: html,
+                update: this._subjects.update
             });
-            this._ng_component = component;
+            if (this._ng_component !== undefined) {
+                this._subjects.update.next(inputs);
+            } else {
+                component.inputs = inputs;
+                this._ng_component = component;
+            }
             this._ng_safeHtml = null;
         }
     }

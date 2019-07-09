@@ -1,6 +1,6 @@
 import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { Subscription } from 'rxjs';
+import { Subscription, Subject } from 'rxjs';
 import SourcesService from '../../../../../services/service.sources';
 import OutputParsersService from '../../../../../services/standalone/service.output.parsers';
 import OutputRedirectionsService from '../../../../../services/standalone/service.output.redirections';
@@ -37,6 +37,11 @@ export class ViewSearchOutputRowComponent implements AfterContentChecked, AfterC
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
+    private _subjects: {
+        update: Subject<{ [key: string]: any }>
+    } = {
+        update: new Subject<{ [key: string]: any }>()
+    };
 
     constructor(private _sanitizer: DomSanitizer, private _cdRef: ChangeDetectorRef ) {
         this._subscriptions.onUpdatedSearch = OutputParsersService.getObservable().onUpdatedSearch.subscribe(this._onUpdatedSearch.bind(this));
@@ -46,6 +51,9 @@ export class ViewSearchOutputRowComponent implements AfterContentChecked, AfterC
     ngOnDestroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
+        });
+        Object.keys(this._subjects).forEach((key: string) => {
+            this._subjects[key].unsubscribe();
         });
         this._destroyed = true;
     }
@@ -153,10 +161,16 @@ export class ViewSearchOutputRowComponent implements AfterContentChecked, AfterC
             this._ng_safeHtml = this._sanitizer.bypassSecurityTrustHtml(html);
             this._ng_component = undefined;
         } else {
-            component.inputs = Object.assign(component.inputs, {
-                html: html
+            const inputs = Object.assign(component.inputs, {
+                html: html,
+                update: this._subjects.update
             });
-            this._ng_component = component;
+            if (this._ng_component !== undefined) {
+                this._subjects.update.next(inputs);
+            } else {
+                component.inputs = inputs;
+                this._ng_component = component;
+            }
             this._ng_safeHtml = null;
         }
     }
