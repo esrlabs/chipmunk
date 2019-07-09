@@ -1,6 +1,6 @@
 // tslint:disable:no-inferrable-types
 
-import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, ViewChild } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, AfterContentInit, Input, ViewChild } from '@angular/core';
 import { IOptions } from '../../../common/interface.options';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { CheckSimpleComponent, InputStandardComponent, DDListStandardComponent } from 'logviewer-client-primitive';
@@ -11,12 +11,14 @@ import { CheckSimpleComponent, InputStandardComponent, DDListStandardComponent }
     styleUrls: ['./styles.less']
 })
 
-export class SidebarVerticalPortOptionsWriteComponent implements AfterViewInit, OnDestroy {
+export class SidebarVerticalPortOptionsWriteComponent implements AfterViewInit, AfterContentInit, OnDestroy {
 
-    @ViewChild('baudRateCom') _baudRateCom: DDListStandardComponent;
+    @ViewChild('baudRateInputCom') _baudRateInputCom: InputStandardComponent;
+    @ViewChild('baudRateDDCom') _baudRateDDCom: DDListStandardComponent;
     @ViewChild('lockCom') _lockCom: CheckSimpleComponent;
     @ViewChild('dataBitsCom') _dataBitsCom: DDListStandardComponent;
     @ViewChild('highWaterMarkCom') _highWaterMarkCom: InputStandardComponent;
+    @ViewChild('delimiterCom') _delimiterCom: InputStandardComponent;
     @ViewChild('stopBitsCom') _stopBitsCom: DDListStandardComponent;
     @ViewChild('parityCom') _parityCom: DDListStandardComponent;
     @ViewChild('rtsctsCom') _rtsctsCom: CheckSimpleComponent;
@@ -25,7 +27,7 @@ export class SidebarVerticalPortOptionsWriteComponent implements AfterViewInit, 
     @ViewChild('xanyCom') _xanyCom: CheckSimpleComponent;
     @ViewChild('encodingCom') _encodingCom: DDListStandardComponent;
 
-    @Input() public baudRate: number = 9600;
+    @Input() public baudRate: number = 921600;
     @Input() public lock: boolean = false;
     @Input() public dataBits: number = 8;
     @Input() public highWaterMark: number = 65536;
@@ -35,7 +37,7 @@ export class SidebarVerticalPortOptionsWriteComponent implements AfterViewInit, 
     @Input() public xon: boolean = false;
     @Input() public xoff: boolean = false;
     @Input() public xany: boolean = false;
-    @Input() public delimiter: string = '\n';
+    @Input() public delimiter: string = '\\n';
     @Input() public encoding: string = 'utf8';
     @Input() public includeDelimiter: boolean = false;
     @Input() public path: string;
@@ -43,7 +45,9 @@ export class SidebarVerticalPortOptionsWriteComponent implements AfterViewInit, 
     private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
     private _destroyed: boolean = false;
 
+    public _ng_baudrateListed: number;
     public _ng_baudrateItems: Array<{ caption: string, value: any, }> = [
+        { caption: 'custom', value: -1 },
         { caption: '110', value: 110 },
         { caption: '300', value: 300 },
         { caption: '1200', value: 1200 },
@@ -55,6 +59,7 @@ export class SidebarVerticalPortOptionsWriteComponent implements AfterViewInit, 
         { caption: '38400', value: 38400 },
         { caption: '57600', value: 57600 },
         { caption: '115200', value: 115200 },
+        { caption: '921600', value: 921600 },
     ];
     public _ng_databitsItems: Array<{ caption: string, value: any, }> = [
         { caption: '8', value: 8 },
@@ -85,6 +90,7 @@ export class SidebarVerticalPortOptionsWriteComponent implements AfterViewInit, 
     ];
 
     constructor(private _cdRef: ChangeDetectorRef) {
+        this._ng_onBaudRateDDChange = this._ng_onBaudRateDDChange.bind(this);
     }
 
     ngOnDestroy() {
@@ -95,14 +101,28 @@ export class SidebarVerticalPortOptionsWriteComponent implements AfterViewInit, 
     }
 
     ngAfterViewInit() {
+        this._ng_baudrateListed = this.baudRate;
         this._forceUpdate();
+    }
+
+    ngAfterContentInit() {
+        this.delimiter = this.delimiter.replace(/\n/gi, '\\n').replace(/\r/gi, '\\r').replace(/\t/gi, '\\t');
+    }
+
+    public _ng_onBaudRateDDChange(value: string | number) {
+        this._ng_baudrateListed = parseInt(value as string, 10);
+        this._forceUpdate();
+    }
+
+    public _ng_isBaunRateCustom(): boolean {
+        return this._ng_baudrateListed === -1;
     }
 
     public getOptions(): IOptions {
         return {
             path: this.path,
             options: {
-                baudRate: this._baudRateCom.getValue(),
+                baudRate: this._getBaudRate(),
                 lock: this._lockCom.getValue(),
                 parity: this._parityCom.getValue(),
                 dataBits: this._dataBitsCom.getValue(),
@@ -115,10 +135,20 @@ export class SidebarVerticalPortOptionsWriteComponent implements AfterViewInit, 
             },
             reader: {
                 encoding: this._encodingCom.getValue(),
-                delimiter: '\n',
+                delimiter: this._getDelimiter(),
                 includeDelimiter: false
             }
         };
+    }
+
+    private _getDelimiter(): string {
+        const delimiter: string = this._delimiterCom.getValue() as string;
+        return `${delimiter}`.replace(/\\n/gi, '\n').replace(/\\r/gi, '\r').replace(/\\t/gi, '\t');
+    }
+
+    private _getBaudRate(): number {
+        const value = this._baudRateInputCom !== undefined ? this._baudRateInputCom.getValue() : this._baudRateDDCom.getValue();
+        return typeof value === 'string' ? parseInt(value, 10) : value;
     }
 
     private _forceUpdate() {
