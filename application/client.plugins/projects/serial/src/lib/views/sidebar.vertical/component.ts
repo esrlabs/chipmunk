@@ -152,7 +152,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             this._ng_selected = undefined;
             this._forceUpdate();
         }).catch((error: Error) => {
-            this._logger.error(`Fail to get ports list due error: ${error.message}`);
+            this._logger.error(this._error(`Fail to connect to port "${options.path}" due error: ${error.message}`));
         });
     }
 
@@ -187,11 +187,12 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             this._ng_busy = false;
             this._forceUpdate();
         }).catch((error: Error) => {
-            this._ng_error = `Fail to close port "${port.comName}" due error: ${error.message}`;
-            this._ng_busy = false;
-            this._logger.error(this._ng_error);
-            this._forceUpdate();
+            this._logger.error(this._error(`Fail to close port "${port.comName}" due error: ${error.message}`));
         });
+    }
+
+    public _ng_onReloadPortsList() {
+        this._requestPortsList();
     }
 
     private _onIncomeMessage(message: any) {
@@ -206,11 +207,13 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             case EHostEvents.connected:
                 break;
             case EHostEvents.disconnected:
+                this._hostEvents_onDisconnected(message.port);
                 break;
             case EHostEvents.error:
+                this._hostEvents_onError(message.port, message.error);
                 break;
             case EHostEvents.state:
-                this._updateConnectedPortsState(message.state);
+                this._hostEvents_onState(message.state);
                 break;
         }
         this._forceUpdate();
@@ -247,7 +250,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         this._ng_busy = false;
         const stored: IState | undefined = state.load(this.session);
         if (stored === undefined || stored._ng_ports.length === 0) {
-            this._initState();
+            this._requestPortsList();
         } else {
             Object.keys(stored).forEach((key: string) => {
                 (this as any)[key] = stored[key];
@@ -256,8 +259,9 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         this._forceUpdate();
     }
 
-    private _initState() {
+    private _requestPortsList() {
         // Request list of available ports
+        this._ng_ports = [];
         this.ipc.requestToHost({
             stream: this.session,
             command: EHostCommands.list,
@@ -270,7 +274,24 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         });
     }
 
-    private _updateConnectedPortsState(ports: { [key: string]: IPortState }) {
+    private _getOptions(): IOptions {
+        let options: IOptions = Object.assign({}, CDefaultOptions);
+        if (this._optionsCom !== undefined && this._optionsCom !== null) {
+            options = this._optionsCom.getOptions();
+        }
+        options.path = this._ng_selected.comName;
+        return options;
+    }
+
+    private _error(msg: string): string {
+        this._ng_busy = false;
+        this._ng_error = msg;
+        this._ng_selected = undefined;
+        this._forceUpdate();
+        return msg;
+    }
+
+    private _hostEvents_onState(ports: { [key: string]: IPortState }) {
         this._ng_connected = this._ng_connected.map((connected: IConnected) => {
             if (ports[connected.port.comName] !== undefined) {
                 connected.state = ports[connected.port.comName];
@@ -280,13 +301,16 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         this._forceUpdate();
     }
 
-    private _getOptions(): IOptions {
-        let options: IOptions = Object.assign({}, CDefaultOptions);
-        if (this._optionsCom !== undefined && this._optionsCom !== null) {
-            options = this._optionsCom.getOptions();
-        }
-        options.path = this._ng_selected.comName;
-        return options;
+    private _hostEvents_onDisconnected(port: string) {
+        this._ng_connected = this._ng_connected.filter((connected: IConnected) => {
+            return connected.port.comName !== port;
+        });
+        this._requestPortsList();
+        this._forceUpdate();
+    }
+
+    private _hostEvents_onError(port: string, error: string) {
+        this._error(`Port "${port}" error: ${error}`);
     }
 
     private _forceUpdate() {
