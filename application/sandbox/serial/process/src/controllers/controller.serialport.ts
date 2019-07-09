@@ -157,7 +157,11 @@ export class ControllerSerialPort extends EventEmitter {
         }
         if (typeof chunk === 'string') {
             if (this._signature) {
-                chunk = Buffer.from(`${CDelimiters.name}${this._options.path}${CDelimiters.name}: ${chunk}\n`);
+                chunk = Buffer.from(chunk.split(/[\n\r]/gi).filter((row: string) => {
+                    return row !== '';
+                }).map((row: string) => {
+                    return `${CDelimiters.name}${this._options.path}${CDelimiters.name}: ${row}\n`;
+                }).join(''));
             } else {
                 chunk = Buffer.from(`${chunk}\n`);
             }

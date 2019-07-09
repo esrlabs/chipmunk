@@ -3,6 +3,7 @@ import * as Stream from 'stream';
 import { IRange, IMapItem } from './controller.stream.processor.map';
 import * as StreamMarkers from '../consts/stream.markers';
 import Logger from '../tools/env.logger';
+import { CRegCarrets } from '../consts/regs';
 
 export interface ITransformResult {
     output: string;
@@ -59,7 +60,7 @@ export default class Transform extends Stream.Transform {
             output = `${this._rest}${chunk.toString('utf8')}`;
         }
         // Remove double carret
-        output = output.replace(/[\r?\n|\r]/gi, '\n').replace(/\n{2,}/g, '\n');
+        output = output.replace(CRegCarrets, '\n').replace(/\n{2,}/g, '\n');
         // Get rest from the end
         const rest = this._getRest(output);
         this._rest = rest.rest;
@@ -74,7 +75,7 @@ export default class Transform extends Stream.Transform {
             from: this._offsets.bytes,
             to: this._offsets.bytes,
         };
-        output = output.replace(/[\r?\n|\r]/gi, () => {
+        output = output.replace(CRegCarrets, () => {
             return `${getSourceMarker(this._pluginId)}${StreamMarkers.RowNumber}${rows.to++}${StreamMarkers.RowNumber}\n`;
         });
         const size: number = Buffer.byteLength(output, 'utf8');
