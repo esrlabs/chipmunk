@@ -37,6 +37,12 @@ export class DLTRowComponent implements AfterViewInit, OnDestroy, AfterContentIn
         ServiceColumns.emit({ selected: this._ng_columns.slice() }).onSelected.next(this._ng_columns);
     }
 
+    @HostListener('click', ['$event'])
+
+    public onClick(event: MouseEvent) {
+        ServiceColumns.emit({ selected: this._ng_columns.slice() }).onSelected.next(this._ng_columns);
+    }
+
     public ngOnDestroy() {
         this._unsubscribeToWinEvents();
         Object.keys(this._subscriptions).forEach((key: string) => {
