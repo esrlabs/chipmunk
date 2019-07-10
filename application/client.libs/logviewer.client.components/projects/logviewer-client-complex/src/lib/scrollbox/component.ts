@@ -149,6 +149,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
     private _settings: ISettings = DefaultSettings;
     private _storageInfo: IStorageInformation | undefined;
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
+    private _destroyed: boolean = false;
     private _selection: {
         focus: ISelectedNodeInfo,
         anchor: ISelectedNodeInfo,
@@ -236,7 +237,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         // Update vertical scroll bar
         this._updateSbvPosition();
         // Update
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     public ngAfterViewChecked() {
@@ -244,6 +245,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
     }
 
     public ngOnDestroy() {
+        this._destroyed = true;
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
@@ -341,7 +343,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         }
         if (this._ng_horOffset !== 0) {
             this._ng_horOffset = 0;
-            this._cdRef.detectChanges();
+            this._forceUpdate();
         }
         return false;
     }
@@ -441,7 +443,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
             offset = this._holderSize.width - this._containerSize.width + this._ng_sbhCom.getMinOffset();
         }
         this._ng_horOffset = offset;
-        this._cdRef.detectChanges();
+        this._forceUpdate();
         if (setOffsetOnBar) {
             this._ng_sbhCom.setOffset(this._ng_horOffset);
         }
@@ -574,7 +576,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         }
         this._holderSize.hash = hash;
         this._holderSize.width = (this._ng_nodeHolder.nativeElement as HTMLElement).getBoundingClientRect().width;
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     private _updateSbvPosition() {
@@ -593,7 +595,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         // Replace rows
         this._ng_rows = packet.rows;
         // Force update
-        this._cdRef.detectChanges();
+        this._forceUpdate();
         // Update holder size
         this._updateHolderSize(true);
     }
@@ -616,7 +618,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         // Update vertical scroll bar
         this._updateSbvPosition();
         // Update
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     private _onScrollTo(outside: boolean, row: number, noOffset: boolean = false) {
@@ -711,7 +713,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         if (!this._isStateValid() || ((this._state.end - this._state.start) === 0 && (this._state.end !== 0 || this._state.start !== 0))) {
             // This case can be in case of asynch calls usage
             this._ng_rows = [];
-            return this._cdRef.detectChanges();
+            return this._forceUpdate();
         }
         let requested: number = this._state.end - this._state.start + 1;
         // Correct frame if it's needed
@@ -738,7 +740,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         }
         this._ng_rows = rows;
         this._updateSbvPosition();
-        this._cdRef.detectChanges();
+        this._forceUpdate();
         // Notification: scroll is done
         this.API.updatingDone({ start: this._state.start, end: this._state.end });
         // Update holder size
@@ -1012,6 +1014,13 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         this._selection.restored = true;
         this._selection_save(selection);
         return focusNode;
+    }
+
+    private _forceUpdate() {
+        if (this._destroyed) {
+            return;
+        }
+        this._cdRef.detectChanges();
     }
 
 }
