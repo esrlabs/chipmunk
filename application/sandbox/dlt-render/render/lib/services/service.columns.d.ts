@@ -15,6 +15,10 @@ export declare const CDefaults: {
     width: number;
     min: number;
 };
+export declare const CDefaultByColumns: {
+    width: number;
+    min: number;
+}[];
 export declare const CDelimiters: {
     columns: string;
     arguments: string;
