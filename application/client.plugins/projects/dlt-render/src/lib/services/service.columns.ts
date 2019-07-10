@@ -20,11 +20,37 @@ export const CDefaults = {
     min: 30,
 };
 
+export const CDefaultByColumns = [
+    { width: 150, min: 30 },
+    { width: 50, min: 30 },
+    { width: 20, min: 20 },
+    { width: 50, min: 30 },
+    { width: 40, min: 30 },
+    { width: 70, min: 30 },
+    { width: 50, min: 30 },
+    { width: 50, min: 30 },
+    { width: 50, min: 30 },
+    { width: 50, min: 30 },
+    { width: 1000, min: 100 },
+];
+
 export const CDelimiters = {
     columns: '\u0004',
     arguments: '\u0005',
 };
-
+/*
+/// EColumn.DATETIME,
+/// EColumn.ECUID,
+/// EColumn.VERS,
+/// EColumn.SID,
+/// EColumn.MCNT,
+/// EColumn.TMS,
+/// EColumn.EID,
+/// EColumn.APID,
+/// EColumn.CTID,
+/// EColumn.MSTP,
+/// EColumn.PAYLOAD
+*/
 
 class ServiceColumns {
 
@@ -41,7 +67,8 @@ class ServiceColumns {
     public getWidths(columns: number): IColumnsWidths {
         if (Object.keys(this._widths).length < columns) {
             for (let i = Object.keys(this._widths).length; i <= columns; i += 1) {
-                this._widths[i] = CDefaults.width;
+                const defaults = CDefaultByColumns[i] !== undefined ? CDefaultByColumns[i] : CDefaults;
+                this._widths[i] = defaults.width;
             }
         }
         return Object.assign({}, this._widths);
