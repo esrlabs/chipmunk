@@ -1,7 +1,6 @@
 /*
  * Public API Surface of terminal
  */
-debugger;
 export * from './lib/views/sidebar.vertical/component';
 export * from './lib/module';
 
