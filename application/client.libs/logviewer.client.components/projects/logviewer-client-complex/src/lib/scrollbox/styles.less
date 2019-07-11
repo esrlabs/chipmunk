@@ -20,6 +20,17 @@
         overflow: hidden;
         outline: none;
         user-select: none;
+        lib-complex-scrollbox-sbh {
+            opacity: 0.001;
+            transition: opacity 150ms ease-in-out;
+            &.visible {
+                opacity: 1;
+            }
+            &:hover{
+                opacity: 1;
+                transition: opacity 150ms ease-in-out;
+            }
+        }
         & ul.holder{
             position: absolute;
             display: block;

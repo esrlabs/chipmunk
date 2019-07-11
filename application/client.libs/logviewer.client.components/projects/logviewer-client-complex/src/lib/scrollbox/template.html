@@ -19,13 +19,15 @@
             <div *ngIf="_ng_isRowPending(row)" class="pending"><span>{{row}}</span></div>
         </li>
     </ul>
-    <lib-complex-scrollbox-sbv *ngIf="_ng_isSBVVisible()" 
+    <lib-complex-scrollbox-sbv *ngIf="_ng_isSBVVisible()"
         [rowHeight]="_ng_rowHeight"
         [getRowsCount]="_ng_sbv_getRowsCount"
         [pgUp]="_ng_sbv_pgUp"
         [pgDown]="_ng_sbv_pgDown"
         [update]="_ng_sbv_update"></lib-complex-scrollbox-sbv>
-    <lib-complex-scrollbox-sbh *ngIf="_ng_isSBHVisible()"
+    <lib-complex-scrollbox-sbh
+        (mouseover)="_ng_sbh_onMouseOver()"
+        [attr.class]="_ng_horScrolling ? 'visible' : ''"
         [width]="_containerSize.width"
         [length]="_holderSize.width"
         [left]="_ng_sbh_left"
