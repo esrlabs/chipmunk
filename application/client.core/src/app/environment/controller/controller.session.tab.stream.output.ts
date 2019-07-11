@@ -170,7 +170,7 @@ export class ControllerSessionTabStreamOutput {
         if (this._state.count === 0) {
             return;
         }
-        this._state.frame = Object.assign({}, range);
+        this._state.frame = { start: range.start, end: range.end };
         if (!this._load()) {
             // No need to make request, but check buffer
             this._buffer();
