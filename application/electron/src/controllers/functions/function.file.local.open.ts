@@ -23,7 +23,7 @@ export default class FunctionOpenLocalFile {
             dialog.showOpenDialog({
                 properties: ['openFile', 'showHiddenFiles'],
                 filters: this._parser.getExtnameFilters(),
-            }, (files: string[]) => {
+            }, (files: string[] | undefined) => {
                 if (!(files instanceof Array) || files.length !== 1) {
                     return;
                 }

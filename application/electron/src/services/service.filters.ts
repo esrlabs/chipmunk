@@ -49,7 +49,7 @@ class ServiceFilters implements IService {
         dialog.showOpenDialog({
             properties: ['openFile', 'showHiddenFiles'],
             filters: [{ name: 'Text Files', extensions: ['txt']}],
-        }, (files: string[]) => {
+        }, (files: string[] | undefined) => {
             if (!(files instanceof Array) || files.length !== 1) {
                 return;
             }
@@ -96,7 +96,10 @@ class ServiceFilters implements IService {
         dialog.showSaveDialog({
             title: 'Saving filters',
             filters: [{ name: 'Text Files', extensions: ['txt']}],
-        }, (filename: string) => {
+        }, (filename: string | undefined) => {
+            if (filename === undefined) {
+                return;
+            }
             fs.writeFile(filename, content, (error: NodeJS.ErrnoException | null) => {
                 if (error) {
                     this._logger.warn(`Error during saving filters into file "${filename}": ${error.message}`);
