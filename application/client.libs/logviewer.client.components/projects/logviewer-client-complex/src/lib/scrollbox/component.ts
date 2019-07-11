@@ -130,6 +130,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
     public _ng_factory: any;
     public _ng_rowHeight: number = 0;
     public _ng_horOffset: number = 0;
+    public _ng_horScrolling: boolean = false;
     public _containerSize: IBoxSize | undefined;
     public _holderSize: { width: number, hash: string } = { width: 0, hash: '' };
 
@@ -150,6 +151,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
     private _storageInfo: IStorageInformation | undefined;
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _destroyed: boolean = false;
+    private _horScrollingTimer: any = -1;
     private _selection: {
         focus: ISelectedNodeInfo,
         anchor: ISelectedNodeInfo,
@@ -337,17 +339,6 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         return this._state.count < this._storageInfo.count;
     }
 
-    public _ng_isSBHVisible(): boolean {
-        if (this._holderSize.width > this._containerSize.width) {
-            return true;
-        }
-        if (this._ng_horOffset !== 0) {
-            this._ng_horOffset = 0;
-            this._forceUpdate();
-        }
-        return false;
-    }
-
     public _ng_onBrowserWindowResize(event?: Event) {
         // Update data about sizes
         this._updateContainerSize(true);
@@ -425,24 +416,37 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
     }
 
     public _ng_sbh_left() {
+        this._updateHolderSize();
         this._ng_sbhCom.toLeft();
     }
 
     public _ng_sbh_right() {
+        this._updateHolderSize();
         this._ng_sbhCom.toRight();
+    }
+
+    public _ng_sbh_onMouseOver() {
+        this._updateHolderSize();
     }
 
     public _ng_sbh_update(offset: number, setOffsetOnBar: boolean = false) {
         if (this._ng_sbhCom === undefined || this._ng_sbhCom === null) {
             return;
         }
+        this._updateHolderSize();
+        clearTimeout(this._horScrollingTimer);
+        this._ng_horScrolling = true;
         if (offset < 0) {
             offset = 0;
         }
         if (offset > this._holderSize.width - this._containerSize.width + this._ng_sbhCom.getMinOffset()) {
             offset = this._holderSize.width - this._containerSize.width + this._ng_sbhCom.getMinOffset();
         }
-        this._ng_horOffset = offset;
+        this._ng_horOffset = isNaN(offset) ? 0 : (isFinite(offset) ? offset : 0);
+        this._horScrollingTimer = setTimeout(() => {
+            this._ng_horScrolling = false;
+            this._forceUpdate();
+        }, 1000);
         this._forceUpdate();
         if (setOffsetOnBar) {
             this._ng_sbhCom.setOffset(this._ng_horOffset);
@@ -576,7 +580,6 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         }
         this._holderSize.hash = hash;
         this._holderSize.width = (this._ng_nodeHolder.nativeElement as HTMLElement).getBoundingClientRect().width;
-        this._forceUpdate();
     }
 
     private _updateSbvPosition() {
@@ -744,7 +747,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         // Notification: scroll is done
         this.API.updatingDone({ start: this._state.start, end: this._state.end });
         // Update holder size
-        this._updateHolderSize();
+        // this._updateHolderSize();
         // Restore selection
         this._selection_restore();
     }
