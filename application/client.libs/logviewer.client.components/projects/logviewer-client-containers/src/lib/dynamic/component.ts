@@ -10,6 +10,8 @@ export interface IComponentDesc {
     inputs?: any;
 }
 
+const CCachedFactories: Map<string, any> = new Map();
+
 @Component({
     selector        : 'lib-containers-dynamic',
     entryComponents : [],
@@ -36,16 +38,23 @@ export class DynamicComponent {
         let component;
         if (!desc.resolved) {
             // Factory of component isn't resolved
-            const inputProviders = Object.keys(desc.inputs).map((inputName) => {
-                return {
-                    provide: inputName,
-                    useValue: desc.inputs[inputName],
-                };
-            });
-            const resolvedInputs = ReflectiveInjector.resolve(inputProviders);
-            const injector = ReflectiveInjector.fromResolvedProviders(resolvedInputs, this.viewContainerRef.injector);
-            const factory = this.resolver.resolveComponentFactory(desc.factory);
-            component = factory.create(injector);
+            const name: string = desc.factory.name;
+            let factory = CCachedFactories.get(name);
+            if (factory === undefined || typeof name !== 'string' || name.trim() === '') {
+                const inputProviders = Object.keys(desc.inputs).map((inputName) => {
+                    return {
+                        provide: inputName,
+                        useValue: desc.inputs[inputName],
+                    };
+                });
+                const resolvedInputs = ReflectiveInjector.resolve(inputProviders);
+                const injector = ReflectiveInjector.fromResolvedProviders(resolvedInputs, this.viewContainerRef.injector);
+                factory = this.resolver.resolveComponentFactory(desc.factory);
+                component = factory.create(injector);
+                CCachedFactories.set(name, { factory: factory, injector: injector });
+            } else {
+                component = factory.factory.create(factory.injector);
+            }
             Object.keys(desc.inputs).forEach((key: string) => {
                 component.instance[key] = desc.inputs[key];
             });
