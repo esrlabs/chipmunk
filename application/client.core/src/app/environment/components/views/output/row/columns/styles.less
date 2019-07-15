@@ -1,0 +1,35 @@
+@import '../../../../../theme/scheme.less';
+
+:host {
+    display: inline-block;
+    position: relative;
+    padding: 0;
+    margin: 0;
+    line-height: 16px;
+    height: 16px;
+    max-height: 16px;
+    white-space: pre;
+    vertical-align: top;
+    user-select: text;
+    cursor: text;
+    & span.column{
+        font-family: monospace;
+        font-size: 14px;
+        font-variant-numeric: tabular-nums;
+        padding: 0 6px;
+        box-sizing: content-box;
+        margin: 0;
+        line-height: 16px;
+        height: 16px;
+        max-height: 16px;
+        white-space: pre;
+        vertical-align: top;
+        color: @scheme-color-0;
+        font-weight: 600;
+        user-select: text;
+        cursor: text;
+        border-right: 1px solid @scheme-color-4;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}

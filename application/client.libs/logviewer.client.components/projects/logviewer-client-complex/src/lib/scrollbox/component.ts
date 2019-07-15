@@ -136,6 +136,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
 
     private _subjects = {
         onScrolled: new Subject<IRange>(),
+        onOffset: new Subject<number>(),
     };
 
     private _injected: {
@@ -442,7 +443,11 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         if (offset > this._holderSize.width - this._containerSize.width + this._ng_sbhCom.getMinOffset()) {
             offset = this._holderSize.width - this._containerSize.width + this._ng_sbhCom.getMinOffset();
         }
-        this._ng_horOffset = isNaN(offset) ? 0 : (isFinite(offset) ? offset : 0);
+        offset = isNaN(offset) ? 0 : (isFinite(offset) ? offset : 0);
+        if (this._ng_horOffset !== offset) {
+            this._subjects.onOffset.next(offset);
+        }
+        this._ng_horOffset = offset;
         this._horScrollingTimer = setTimeout(() => {
             this._ng_horScrolling = false;
             this._forceUpdate();
@@ -459,9 +464,11 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
 
     public getObservable(): {
         onScrolled: Observable<IRange>,
+        onOffset: Observable<number>,
     } {
         return {
             onScrolled: this._subjects.onScrolled.asObservable(),
+            onOffset: this._subjects.onOffset.asObservable(),
         };
     }
 

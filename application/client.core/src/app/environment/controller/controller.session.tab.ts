@@ -1,6 +1,6 @@
 import PluginsService, { IPluginData } from '../services/service.plugins';
 import ServiceElectronIpc, { IPCMessages, Subscription as IPCSubscription } from '../services/service.electron.ipc';
-import { Subscription, Observable } from 'rxjs';
+import { Subscription, Observable, Subject } from 'rxjs';
 import { ControllerSessionTabStream } from './controller.session.tab.stream';
 import { ControllerSessionTabSearch } from './controller.session.tab.search';
 import { ControllerSessionTabStates } from './controller.session.tab.states';
@@ -14,13 +14,18 @@ export interface IControllerSession {
     defaultsSideBarApps: Array<{ guid: string, name: string, component: any }>;
 }
 
-export interface IComponentInjection {
-    factory: any;
-    inputs: { [key: string]: any };
-}
-
 export interface ISidebarTabOptions {
     active?: boolean;
+}
+
+export interface IInjectionAddEvent {
+    injection: Toolkit.IComponentInjection;
+    type: Toolkit.EViewsTypes;
+}
+
+export interface IInjectionRemoveEvent {
+    id: string;
+    type: Toolkit.EViewsTypes;
 }
 
 export class ControllerSessionTab {
@@ -34,6 +39,13 @@ export class ControllerSessionTab {
     private _sidebarTabsService: TabsService;
     private _defaultsSideBarApps: Array<{ guid: string, name: string, component: any }>;
     private _subscriptions: { [key: string]: Subscription | IPCSubscription } = { };
+    private _subjects: {
+        onOutputInjectionAdd: Subject<IInjectionAddEvent>,
+        onOutputInjectionRemove: Subject<IInjectionRemoveEvent>
+    } = {
+        onOutputInjectionAdd: new Subject<IInjectionAddEvent>(),
+        onOutputInjectionRemove: new Subject<IInjectionRemoveEvent>()
+    };
 
     constructor(params: IControllerSession) {
         this._sessionId = params.guid;
@@ -52,6 +64,8 @@ export class ControllerSessionTab {
         this._defaultsSideBarApps = params.defaultsSideBarApps;
         this._sidebar_update();
         PluginsService.fire().onSessionOpen(this._sessionId);
+        this.addOutputInjection = this.addOutputInjection.bind(this);
+        this.removeOutputInjection = this.removeOutputInjection.bind(this);
     }
 
     public destroy(): Promise<void> {
@@ -86,9 +100,13 @@ export class ControllerSessionTab {
 
     public getObservable(): {
         onSourceChanged: Observable<number>,
+        onOutputInjectionAdd: Observable<IInjectionAddEvent>,
+        onOutputInjectionRemove: Observable<IInjectionRemoveEvent>
     } {
         return {
             onSourceChanged: this._stream.getObservable().onSourceChanged,
+            onOutputInjectionAdd: this._subjects.onOutputInjectionAdd.asObservable(),
+            onOutputInjectionRemove: this._subjects.onOutputInjectionRemove.asObservable(),
         };
     }
 
@@ -116,19 +134,20 @@ export class ControllerSessionTab {
         return this._sidebarTabsService;
     }
 
-    public getOutputBottomInjections(): Map<string, IComponentInjection> {
-        const injections: Map<string, IComponentInjection> = new Map();
+    public getOutputInjections(type: Toolkit.EViewsTypes): Map<string, Toolkit.IComponentInjection> {
+        const injections: Map<string, Toolkit.IComponentInjection> = new Map();
         this._transports.forEach((pluginName: string) => {
             const plugin: IPluginData | undefined = PluginsService.getPlugin(pluginName);
             if (plugin === undefined) {
                 this._logger.warn(`Plugin "${pluginName}" is defined as transport, but doesn't exist in storage.`);
                 return;
             }
-            if (plugin.factories[Toolkit.EViewsTypes.outputBottom] === undefined) {
+            if (plugin.factories[type] === undefined) {
                 return;
             }
             injections.set(plugin.name, {
-                factory: plugin.factories[Toolkit.EViewsTypes.outputBottom],
+                id: Toolkit.guid(),
+                factory: plugin.factories[type],
                 inputs: {
                     ipc: plugin.ipc,
                     session: this._sessionId
@@ -136,6 +155,27 @@ export class ControllerSessionTab {
             });
         });
         return injections;
+    }
+
+    public addOutputInjection(injection: Toolkit.IComponentInjection, type: Toolkit.EViewsTypes) {
+        this._subjects.onOutputInjectionAdd.next({
+            injection: injection,
+            type: type,
+        });
+    }
+
+    public removeOutputInjection(id: string, type: Toolkit.EViewsTypes) {
+        this._subjects.onOutputInjectionRemove.next({
+            id: id,
+            type: type,
+        });
+    }
+
+    public getComponentAPI(): Toolkit.IAPI {
+        return {
+            addOutputInjection: this.addOutputInjection,
+            removeOutputInjection: this.removeOutputInjection,
+        };
     }
 
     public addSidebarApp(name: string, component: any, inputs: { [key: string]: any }, options?: ISidebarTabOptions): string {

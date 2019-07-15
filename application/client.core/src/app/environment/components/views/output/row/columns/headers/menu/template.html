@@ -1,0 +1,6 @@
+<div class="column" *ngFor="let column of _ng_columns; let i=index" (mousedown)="_ng_onMouseDown($event)">
+    <lib-primitive-checkbox-simple [labelOn]="column" [labelOff]="column" [checked]="_ng_visibility[i]" [onChange]="_ng_onChange.bind(this, i)"></lib-primitive-checkbox-simple>
+</div>
+<div class="controls">
+    <span class="small-button" (mousedown)="_ng_apply()">Apply</span>
+</div>

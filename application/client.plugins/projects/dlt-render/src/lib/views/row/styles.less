@@ -11,36 +11,21 @@
     & span.wrapper{
         position: relative;
         display: inline-block;
-        padding: 0 8px;
+        font-family: monospace;
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+        padding: 0 6px;
         margin: 0;
-        white-space: nowrap;
+        line-height: 16px;
+        height: 16px;
+        max-height: 16px;
+        white-space: pre;
+        vertical-align: top;
+        z-index: 0;
+        width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
-        & span.content{
-            position: relative;
-            display: inline-block;
-            font-family: monospace;
-            font-size: 13px;
-            font-variant-numeric: tabular-nums;
-            padding: 0;
-            margin: 0;
-            line-height: 16px;
-            height: 16px;
-            max-height: 16px;
-            white-space: pre;
-            vertical-align: top;
-            z-index: 0;
-            width: 100%;
-        }
-        & span.border{
-            position: absolute;
-            height: 100%;
-            width: 2px;
-            top:0;
-            right: 0;
-            border-right: thin solid @scheme-color-4;
-            cursor: col-resize;
-            z-index: 1;
-        }
+        border-right: 1px solid @scheme-color-4;
+        box-sizing: content-box;
     }
 }

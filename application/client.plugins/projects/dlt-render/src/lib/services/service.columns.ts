@@ -1,5 +1,9 @@
+// tslint:disable:no-inferrable-types
+
 import { Subject, Observable } from 'rxjs';
 import { SafeHtml } from '@angular/platform-browser';
+import * as Toolkit from 'logviewer.client.toolkit';
+import { DLTColumnsComponent } from '../views/columns/component';
 
 export interface IColumnsWidths {
     [key: number]: number;
@@ -38,24 +42,27 @@ export const CDelimiters = {
     columns: '\u0004',
     arguments: '\u0005',
 };
-/*
-/// EColumn.DATETIME,
-/// EColumn.ECUID,
-/// EColumn.VERS,
-/// EColumn.SID,
-/// EColumn.MCNT,
-/// EColumn.TMS,
-/// EColumn.EID,
-/// EColumn.APID,
-/// EColumn.CTID,
-/// EColumn.MSTP,
-/// EColumn.PAYLOAD
-*/
+
+export const CColumnsTitles = [
+    'Datetime',
+    'ECUID',
+    'VERS',
+    'SID',
+    'MCNT',
+    'TMS',
+    'EID',
+    'APID',
+    'CTID',
+    'MSTP',
+    'PAYLOAD',
+];
 
 class ServiceColumns {
 
     private _widths: IColumnsWidths = {};
     private _selected: IColumnValue[] = [];
+    private _titles: boolean = false;
+    private _columns: string[] = [];
     private _subjects: {
         onColumnsResized: Subject<IColumnsWidthsChanged>,
         onSelected: Subject<IColumnValue[]>,
@@ -63,6 +70,10 @@ class ServiceColumns {
         onColumnsResized: new Subject<IColumnsWidthsChanged>(),
         onSelected: new Subject<IColumnValue[]>(),
     };
+
+    constructor() {
+        this._columns = CColumnsTitles.slice();
+    }
 
     public getWidths(columns: number): IColumnsWidths {
         if (Object.keys(this._widths).length < columns) {
@@ -102,6 +113,25 @@ class ServiceColumns {
             this._selected = options.selected;
         }
         return this._subjects;
+    }
+
+    public setTitles(api: Toolkit.IAPI) {
+        if (this._titles) {
+            return;
+        }
+        if (api === undefined) {
+            return;
+        }
+        api.addOutputInjection({
+            id: 'dlt-columns-titles',
+            factory: DLTColumnsComponent,
+            resolved: false,
+            inputs: {}
+        }, Toolkit.EViewsTypes.outputTop);
+    }
+
+    public getColumnsTitles(): string[] {
+        return this._columns;
     }
 }
 

@@ -13,6 +13,7 @@ export enum EParsers {
     pluginRowParser = 'pluginRowParser',
     pluginRestParser = 'pluginRestParser',
     typedRowComponent = 'typedRowComponent',
+    customTypedRowRender = 'customTypedRowRender',
     commonRowParser = 'commonRowParser',
     commonRestParser = 'commonRestParser',
 }
