@@ -7,6 +7,7 @@ import OutputRedirectionsService from '../../../../../services/standalone/servic
 import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../../../controller/controller.session.tab.stream.bookmarks';
 import { ControllerSessionTabSourcesState } from '../../../../../controller/controller.session.tab.sources.state';
 import { IComponentDesc } from 'logviewer-client-containers';
+import TabsSessionsService from '../../../../../services/service.sessions.tabs';
 
 @Component({
     selector: 'app-views-search-output-row',
@@ -163,6 +164,7 @@ export class ViewSearchOutputRowComponent implements AfterContentChecked, AfterC
         } else {
             const inputs = Object.assign(component.inputs, {
                 html: html,
+                api: TabsSessionsService.getActive().getComponentAPI(),
                 update: this._subjects.update
             });
             if (this._ng_component !== undefined) {

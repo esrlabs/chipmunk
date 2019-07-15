@@ -2,6 +2,7 @@ import ServiceElectronIpc, { IPCMessages, Subscription as IPCSubscription } from
 import { Observable, Subject, Subscription } from 'rxjs';
 import { ControllerSessionTabStreamOutput, IStreamPacket } from './controller.session.tab.stream.output';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
+import { ControllerSessionScope } from './controller.session.tab.scope';
 import QueueService, { IQueueController } from '../services/standalone/service.queue';
 import * as Toolkit from 'logviewer.client.toolkit';
 
@@ -20,21 +21,20 @@ export class ControllerSessionTabStream {
     private _guid: string;
     private _transports: string[];
     private _subjects = {
-        write: new Subject<void>(),
-        next: new Subject<void>(),
-        clear: new Subject<void>(),
         onSourceChanged: new Subject<number>(),
     };
     private _subscriptions: { [key: string]: Subscription | IPCSubscription } = { };
     private _output: ControllerSessionTabStreamOutput;
     private _bookmarks: ControllerSessionTabStreamBookmarks;
+    private _scope: ControllerSessionScope;
 
     constructor(params: IControllerSessionStream) {
         this._guid = params.guid;
         this._transports = params.transports;
         this._logger = new Toolkit.Logger(`ControllerSessionTabStream: ${params.guid}`);
+        this._scope = new ControllerSessionScope(params.guid);
         this._bookmarks = new ControllerSessionTabStreamBookmarks(params.guid);
-        this._output = new ControllerSessionTabStreamOutput(params.guid, this._requestData.bind(this), this._bookmarks);
+        this._output = new ControllerSessionTabStreamOutput(params.guid, this._requestData.bind(this), this._bookmarks, this._scope);
         this._queue = new Toolkit.Queue(this._logger.error.bind(this._logger), 0);
         // Notify electron about new stream
         ServiceElectronIpc.send(new IPCMessages.StreamAdd({
@@ -71,15 +71,9 @@ export class ControllerSessionTabStream {
     }
 
     public getObservable(): {
-        write: Observable<void>,
-        next: Observable<void>,
-        clear: Observable<void>,
         onSourceChanged: Observable<number>,
     } {
         return {
-            write: this._subjects.write.asObservable(),
-            next: this._subjects.next.asObservable(),
-            clear: this._subjects.clear.asObservable(),
             onSourceChanged: this._output.getObservable().onSourceChanged,
         };
     }

@@ -1,5 +1,6 @@
 import { Subject, Observable } from 'rxjs';
 import { SafeHtml } from '@angular/platform-browser';
+import * as Toolkit from 'logviewer.client.toolkit';
 export interface IColumnsWidths {
     [key: number]: number;
 }
@@ -23,10 +24,14 @@ export declare const CDelimiters: {
     columns: string;
     arguments: string;
 };
+export declare const CColumnsTitles: string[];
 declare class ServiceColumns {
     private _widths;
     private _selected;
+    private _titles;
+    private _columns;
     private _subjects;
+    constructor();
     getWidths(columns: number): IColumnsWidths;
     getSelected(): IColumnValue[];
     getObservable(): {
@@ -40,6 +45,8 @@ declare class ServiceColumns {
         onColumnsResized: Subject<IColumnsWidthsChanged>;
         onSelected: Subject<IColumnValue[]>;
     };
+    setTitles(api: Toolkit.IAPI): void;
+    getColumnsTitles(): string[];
 }
 declare const _default: ServiceColumns;
 export default _default;

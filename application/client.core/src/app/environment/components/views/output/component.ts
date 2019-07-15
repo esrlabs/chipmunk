@@ -1,15 +1,17 @@
-import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, ComponentFactory } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
-import { ControllerSessionTab, IComponentInjection } from '../../../controller/controller.session.tab';
+import { ControllerSessionTab, IInjectionAddEvent, IInjectionRemoveEvent } from '../../../controller/controller.session.tab';
 import { ControllerSessionTabStreamOutput, IStreamPacket, IStreamState, ILoadedRange } from '../../../controller/controller.session.tab.stream.output';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 import { IDataAPI, IRange, IRow, IRowsPacket, IStorageInformation, DockDef, ComplexScrollBoxComponent } from 'logviewer-client-complex';
-import { ViewOutputRowComponent } from './row/component';
+import { ViewOutputRowComponent, IScope } from './row/component';
 import { ViewOutputControlsComponent, IButton } from './controls/component';
 import ViewsEventsService from '../../../services/standalone/service.views.events';
 import FileOpenerService from '../../../services/service.file.opener';
 import EventsHubService from '../../../services/standalone/service.eventshub';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
+import PluginsService from '../../../services/service.plugins';
+import * as Toolkit from 'logviewer.client.toolkit';
 
 const CSettings: {
     preloadCount: number,
@@ -33,13 +35,17 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
 
     public _ng_outputAPI: IDataAPI;
     public _ng_injections: {
-        bottom: Map<string, IComponentInjection>,
+        bottom: Map<string, Toolkit.IComponentInjection>,
+        top: Map<string, Toolkit.IComponentInjection>,
     } = {
-        bottom: new Map()
+        bottom: new Map(),
+        top: new Map(),
     };
+
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _output: ControllerSessionTabStreamOutput | undefined;
     private _dragdrop: ControllerComponentsDragDropFiles | undefined;
+    private _destroyed: boolean = false;
     private _controls: {
         update: Subject<IButton[]>,
         keepScrollDown: boolean,
@@ -73,6 +79,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
             return;
         }
         this._subscriptions.onScrolled = this._scrollBoxCom.getObservable().onScrolled.subscribe(this._onScrolled.bind(this));
+        this._subscriptions.onOffset = this._scrollBoxCom.getObservable().onOffset.subscribe(this._onOffset.bind(this));
         this._dragdrop = new ControllerComponentsDragDropFiles(this._vcRef.element.nativeElement);
         this._subscriptions.onFiles = this._dragdrop.getObservable().onFiles.subscribe(this._onFilesDropped.bind(this));
         this._subscriptions.onKeepScrollPrevent = EventsHubService.getObservable().onKeepScrollPrevent.subscribe(this._onKeepScrollPrevent.bind(this));
@@ -89,16 +96,20 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         // Get reference to stream wrapper
         this._output = this.session.getSessionStream().getOutputStream();
         // Get injections
-        this._ng_injections.bottom = this.session.getOutputBottomInjections();
+        this._ng_injections.bottom = this.session.getOutputInjections(Toolkit.EViewsTypes.outputBottom);
+        this._ng_injections.top = this.session.getOutputInjections(Toolkit.EViewsTypes.outputTop);
         // Make subscriptions
         this._subscriptions.onStateUpdated = this._output.getObservable().onStateUpdated.subscribe(this._onStateUpdated.bind(this));
         this._subscriptions.onRangeLoaded = this._output.getObservable().onRangeLoaded.subscribe(this._onRangeLoaded.bind(this));
         this._subscriptions.onReset = this._output.getObservable().onReset.subscribe(this._onReset.bind(this));
         this._subscriptions.onScrollTo = this._output.getObservable().onScrollTo.subscribe(this._onScrollTo.bind(this));
         this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(this._onResize.bind(this));
+        this._subscriptions.onOutputInjectionAdd = this.session.getObservable().onOutputInjectionAdd.subscribe(this._inj_onOutputInjectionAdd.bind(this));
+        this._subscriptions.onOutputInjectionRemove = this.session.getObservable().onOutputInjectionRemove.subscribe(this._inj_onOutputInjectionRemove.bind(this));
     }
 
     public ngOnDestroy() {
+        this._destroyed = true;
         this._ctrl_reject();
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
@@ -169,7 +180,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     private _onResize() {
-        this._cdRef.detectChanges();
+        this._forceUpdate();
         this._ng_outputAPI.onRedraw.next();
     }
 
@@ -182,6 +193,10 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
             this._controls.keepScrollDown = false;
             this._controls.update.next(this._ctrl_getButtons());
         }
+    }
+
+    private _onOffset(offset: number) {
+        this._output.setHorScrollOffset(offset);
     }
 
     private _onFilesDropped(files: File[]) {
@@ -282,6 +297,72 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                 message: `Fail to reset session due error: ${error.message}`
             });
         });
+    }
+
+    private _getInjections(type: Toolkit.EViewsTypes): Map<string, Toolkit.IComponentInjection> | undefined {
+        let injections: Map<string, Toolkit.IComponentInjection> | undefined;
+        switch (type) {
+            case Toolkit.EViewsTypes.outputTop:
+                injections = this._ng_injections.top;
+                break;
+            case Toolkit.EViewsTypes.outputBottom:
+                injections = this._ng_injections.bottom;
+                break;
+        }
+        return injections;
+    }
+
+    private _inj_onOutputInjectionAdd(event: IInjectionAddEvent) {
+        // Get injections storage
+        const injections: Map<string, Toolkit.IComponentInjection> | undefined = this._getInjections(event.type);
+        if (injections === undefined) {
+            return false;
+        }
+        // Check is injection already exist
+        if (injections.has(event.injection.id)) {
+            return;
+        }
+        // Check factory
+        if (typeof event.injection.factory.name === 'string') {
+            // This reference to component, but not factory of it (check plugins)
+            const factory = PluginsService.getStoredFactoryByName(event.injection.factory.name);
+            if (factory !== undefined) {
+                event.injection.factory = factory;
+                event.injection.resolved = true;
+            } else {
+                event.injection.resolved = false;
+            }
+        } else {
+            // Will try to use as it is
+            event.injection.resolved = false;
+        }
+        if (event.injection.factory === undefined) {
+            return;
+        }
+        // Add new injection
+        injections.set(event.injection.id, event.injection);
+        this._forceUpdate();
+    }
+
+    private _inj_onOutputInjectionRemove(event: IInjectionRemoveEvent) {
+        // Get injections storage
+        const injections: Map<string, Toolkit.IComponentInjection> | undefined = this._getInjections(event.type);
+        if (injections === undefined) {
+            return false;
+        }
+        // Check is injection already exist
+        if (!injections.has(event.id)) {
+            return;
+        }
+        injections.delete(event.id);
+        this._forceUpdate();
+    }
+
+    private _forceUpdate() {
+        if (this._destroyed) {
+            return;
+        }
+        this._cdRef.detectChanges();
     }
 
 }

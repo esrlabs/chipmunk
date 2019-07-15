@@ -1,4 +1,4 @@
-import { Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, HostListener } from '@angular/core';
 import { AreaState } from './state';
 import { Subscription } from 'rxjs';
 import ViewsEventsService from '../services/standalone/service.views.events';

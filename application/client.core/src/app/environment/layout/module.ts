@@ -4,6 +4,7 @@ import { ContainersModule                       } from 'logviewer-client-contain
 
 import { LayoutComponent                        } from './component';
 import { LayoutStatusBarComponent               } from './bar.status/component';
+import { LayoutContextMenuComponent             } from './contextmenu/component';
 import { LayoutSessionSidebarComponent          } from './area.sidebar/component';
 import { LayoutPrimaryAreaComponent             } from './area.primary/component';
 import { LayoutPrimiryAreaControlsComponent     } from './area.primary/controls/component';
@@ -18,6 +19,7 @@ import { AppsBarStatusModule                    } from '../apps/bar.status/modul
 
 const entryComponents = [
     LayoutStatusBarComponent,
+    LayoutContextMenuComponent,
     LayoutSessionSidebarComponent,
     LayoutPrimaryAreaComponent,
     LayoutPrimiryAreaControlsComponent,

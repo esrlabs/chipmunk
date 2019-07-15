@@ -1,13 +1,29 @@
-import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit } from '@angular/core';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
 import { ControllerSessionTabStreamOutput } from '../../../../controller/controller.session.tab.stream.output';
 import { ControllerSessionTabSourcesState } from '../../../../controller/controller.session.tab.sources.state';
 import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../../controller/controller.session.tab.stream.bookmarks';
+import { ControllerSessionScope } from '../../../../controller/controller.session.tab.scope';
 import SourcesService from '../../../../services/service.sources';
 import OutputParsersService, { ITypedRowComponent } from '../../../../services/standalone/service.output.parsers';
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
 import { IComponentDesc } from 'logviewer-client-containers';
+import { AOutputRenderComponent } from '../../../../interfaces/interface.output.render';
+
+enum ERenderType {
+    standard = 'standard',
+    external = 'external',
+    columns = 'columns',
+}
+
+export interface IScope { [key: string]: any; }
+
+export interface IRowNumberWidthData {
+    rank: number;
+    width: number;
+}
+
+export const CRowNumberWidthKey = 'row-number-width-key';
 
 @Component({
     selector: 'app-views-output-row',
@@ -16,7 +32,10 @@ import { IComponentDesc } from 'logviewer-client-containers';
     // encapsulation: ViewEncapsulation.None
 })
 
-export class ViewOutputRowComponent implements AfterContentInit, AfterContentChecked, OnDestroy {
+export class ViewOutputRowComponent implements AfterContentInit, AfterContentChecked, OnDestroy, AfterViewInit {
+
+    @ViewChild('rendercomp') rendercomp: AOutputRenderComponent;
+    @ViewChild('numbernode') numbernode: ElementRef;
 
     @Input() public str: string | undefined;
     @Input() public sessionId: string | undefined;
@@ -25,18 +44,18 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     @Input() public controller: ControllerSessionTabStreamOutput | undefined;
     @Input() public bookmarks: ControllerSessionTabStreamBookmarks | undefined;
     @Input() public sources: ControllerSessionTabSourcesState | undefined;
+    @Input() public scope: ControllerSessionScope | undefined;
     @Input() public rank: number = 1;
 
-    public _ng_safeHtml: SafeHtml = null;
     public _ng_sourceName: string | undefined;
     public _ng_number: string | undefined;
     public _ng_number_filler: string | undefined;
     public _ng_bookmarked: boolean = false;
-    public _ng_color: string | undefined;
-    public _ng_background: string | undefined;
     public _ng_sourceColor: string | undefined;
     public _ng_source: boolean = false;
     public _ng_component: IComponentDesc | undefined;
+    public _ng_render: ERenderType = ERenderType.standard;
+    public _ng_render_api: any;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
@@ -46,7 +65,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         update: new Subject<{ [key: string]: any }>()
     };
 
-    constructor(private _sanitizer: DomSanitizer, private _cdRef: ChangeDetectorRef ) {
+    constructor(private _cdRef: ChangeDetectorRef ) {
         this._onRankChanged = this._onRankChanged.bind(this);
         this._subscriptions.onUpdatedSearch = OutputParsersService.getObservable().onUpdatedSearch.subscribe(this._onUpdatedSearch.bind(this));
         this._subscriptions.onRepain = OutputParsersService.getObservable().onRepain.subscribe(this._onRepain.bind(this));
@@ -82,10 +101,14 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         }
         this._ng_bookmarked = this.bookmarks.isBookmarked(this.position);
         if (this.str === undefined) {
-            this._acceptPendingRow();
+            this._pending();
         } else {
-            this._acceptRowWithContent();
+            this._render();
         }
+    }
+
+    public ngAfterViewInit() {
+        this._checkNumberNodeWidth();
     }
 
     public _ng_onToggleSource() {
@@ -137,57 +160,49 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         }
     }
 
-    private _acceptRowWithContent() {
+    private _render() {
         if (this.pluginId === -1) {
             return;
         }
+        this._ng_render = ERenderType.standard;
+        this._ng_component = undefined;
+        this._ng_render_api = undefined;
         const sourceName: string = SourcesService.getSourceName(this.pluginId);
-        let html = this.str;
         this._ng_sourceColor = SourcesService.getSourceColor(this.pluginId);
         if (sourceName === undefined) {
             this._ng_sourceName = 'n/d';
         } else {
             this._ng_sourceName = sourceName;
         }
-        // Apply plugin parser
-        html = OutputParsersService.row(html, this.pluginId);
-        // Apply common parser
-        html = OutputParsersService.row(html);
-        // Apply search matches parser
-        const matches = OutputParsersService.matches(this.sessionId, this.position, html);
-        html = matches.str;
-        this._ng_color = matches.color;
-        this._ng_background = matches.background;
-        const countOfSessionSources: number = SourcesService.getCountOfSource(this.sessionId);
-        if (this._ng_background === undefined && countOfSessionSources > 1) {
-            this._ng_background = SourcesService.getSourceShadowColor(this.pluginId);
-        }
         this._ng_number = this.position.toString();
         this._ng_number_filler = this._getNumberFiller();
         // Check for external render
-        const component: IComponentDesc | undefined = OutputParsersService.getRowComponent(sourceName);
-        if (component === undefined) {
-            // Generate safe html
-            this._ng_safeHtml = this._sanitizer.bypassSecurityTrustHtml(html);
-            this._ng_component = undefined;
-        } else {
-            const inputs = Object.assign(component.inputs, {
-                html: html,
-                update: this._subjects.update
-            });
-            if (this._ng_component !== undefined) {
-                this._subjects.update.next(inputs);
-            } else {
-                component.inputs = inputs;
-                this._ng_component = component;
-            }
-            this._ng_safeHtml = null;
+        this._ng_component = OutputParsersService.getRowComponent(sourceName);
+        if (this._ng_component !== undefined) {
+            this._ng_render = ERenderType.external;
+            // Update render component
+            this._updateRenderComp();
+            // No need to check other types
+            return;
         }
+        // Check custom render
+        const custom = OutputParsersService.getCustomRowRender(sourceName);
+        if (custom !== undefined) {
+            switch (custom.type) {
+                case ERenderType.columns:
+                    this._ng_render = ERenderType.columns;
+                    this._ng_render_api = custom.api;
+                    break;
+            }
+        }
+        // Update render component
+        this._updateRenderComp();
     }
 
-    private _acceptPendingRow() {
+    private _pending() {
         this._ng_number = this.position.toString();
         this._ng_number_filler = this._getNumberFiller();
+        this._ng_component = undefined;
     }
 
     private _getNumberFiller(): string {
@@ -202,7 +217,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         if (this.str === undefined) {
             return;
         }
-        this._acceptRowWithContent();
+        this._render();
         this._cdRef.detectChanges();
     }
 
@@ -210,7 +225,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         if (this.str === undefined) {
             return;
         }
-        this._acceptRowWithContent();
+        this._render();
         this._cdRef.detectChanges();
     }
 
@@ -218,11 +233,50 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         this.rank = rank;
         this._ng_number_filler = this._getNumberFiller();
         this._cdRef.detectChanges();
+        this._checkNumberNodeWidth();
     }
 
     private _onSourceChange(source: boolean) {
         this._ng_source = source;
         this._cdRef.detectChanges();
+    }
+
+    private _updateRenderComp() {
+        if (this.rendercomp === undefined || this.rendercomp === null) {
+            return;
+        }
+        this.rendercomp.update({
+            str: this.str,
+            sessionId: this.sessionId,
+            pluginId: this.pluginId,
+            position: this.position,
+            scope: this.scope,
+            output: this.controller,
+        });
+    }
+
+    private _checkNumberNodeWidth() {
+        if (this.numbernode === undefined) {
+            return;
+        }
+        if (this.scope === undefined) {
+            return;
+        }
+        const info: IRowNumberWidthData | undefined = this.scope.get(CRowNumberWidthKey);
+        if (info === undefined || info.rank !== this.rank) {
+            const size: ClientRect = (this.numbernode.nativeElement as HTMLElement).getBoundingClientRect();
+            if (size.width === 0) {
+                return;
+            }
+            if (info !== undefined && (info.width - 21.1) >= size.width) {
+                // Node isn't updated yet
+                return;
+            }
+            this.scope.set(CRowNumberWidthKey, {
+                rank: this.rank,
+                width: size.width + 21.1
+            });
+        }
     }
 
 }

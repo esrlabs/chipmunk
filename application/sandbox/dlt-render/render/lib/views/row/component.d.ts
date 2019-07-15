@@ -7,6 +7,7 @@ export declare class DLTRowComponent implements AfterViewInit, OnDestroy, AfterC
     private _cdRef;
     private _sanitizer;
     ipc: Toolkit.PluginIPC;
+    api: Toolkit.IAPI;
     session: string;
     html: string;
     update: Subject<{
@@ -16,24 +17,18 @@ export declare class DLTRowComponent implements AfterViewInit, OnDestroy, AfterC
     _ng_widths: {
         [key: number]: number;
     };
-    private _cachedMouseX;
-    private _resizedColumnKey;
-    private _values;
     private _subscriptions;
     private _guid;
+    private _destroyed;
+    private _inited;
     constructor(_cdRef: ChangeDetectorRef, _sanitizer: DomSanitizer);
     onClick(event: MouseEvent): void;
     ngOnDestroy(): void;
     ngAfterViewInit(): void;
     ngAfterContentInit(): void;
     _ng_getWidth(key: number): string;
-    _ng_onMouseDown(key: number, event: MouseEvent): void;
     private _setColumns;
-    private _onWindowMouseMove;
-    private _onWindowMouseUp;
-    private _subscribeToWinEvents;
-    private _unsubscribeToWinEvents;
-    private _offsetResizedColumnWidth;
     private _onColumnsResized;
     private _onInputsUpdated;
+    private _forceUpdate;
 }

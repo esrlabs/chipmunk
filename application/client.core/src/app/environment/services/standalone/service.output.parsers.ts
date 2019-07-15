@@ -22,9 +22,16 @@ export interface ITypedRowComponentDesc {
         inputs: { [key: string]: any }
     };
 }
+
 export interface ITypedRowComponent {
     isTypeMatch: TTypeHandler;
     component: IComponentDesc;
+}
+
+export interface ITypedCustomRowComponent {
+    isTypeMatch: TTypeHandler;
+    type: string;   // TODO: enum
+    api: any;       // TODO: dynamic type like ICustomAPI<Type>
 }
 
 export interface IPluginParsers {
@@ -56,15 +63,20 @@ export class OutputParsersService {
         rest: [],
     };
     private _typed: Map<string, ITypedRowComponent> = new Map();
+    private _custom: Map<string, ITypedCustomRowComponent> = new Map();
     private _plugins: Map<number, IPluginParsers> = new Map();
     private _search: Map<string, IRequest[]> = new Map();
     private _highlights: Map<string, IRequest[]> = new Map();
     private _history: {
-        sources: string[],
-        typedComAliases: Map<string, string>
+        typedComSources: string[],
+        typedComAliases: Map<string, string>,
+        typedCustSources: string[],
+        typedCustAliases: Map<string, string>
     } = {
-        sources: [],
+        typedComSources: [],
         typedComAliases: new Map(),
+        typedCustSources: [],
+        typedCustAliases: new Map(),
     };
     private _subjects: {
         onUpdatedSearch: Subject<void>,
@@ -94,6 +106,8 @@ export class OutputParsersService {
         this._setCommonParsers(module);
         // Check row components
         this._setTypedRowComponent(module, mwcf);
+        // Check custom row renders
+        this._setTypedCustomRowRender(module);
     }
 
     public setSearchResults(sessionId: string, requests: IRequest[] ) {
@@ -111,8 +125,12 @@ export class OutputParsersService {
     }
 
     public getRowComponent(sourceName: string): IComponentDesc | undefined {
-        const typeComponent: ITypedRowComponent | undefined = this._getTypedComponent(sourceName);
-        return typeComponent === undefined ? undefined : typeComponent.component;
+        const component: ITypedRowComponent | undefined = this._getTypedComponent(sourceName);
+        return component === undefined ? undefined : component.component;
+    }
+
+    public getCustomRowRender(sourceName: string): ITypedCustomRowComponent | undefined {
+        return this._getTypedCustomComponent(sourceName);
     }
 
     public row(str: string, pluginId?: number): string {
@@ -266,27 +284,71 @@ export class OutputParsersService {
         });
     }
 
+    private _setTypedCustomRowRender(module: { [key: string]: ITypedCustomRowComponent }) {
+        if (typeof module[Toolkit.EParsers.customTypedRowRender] !== 'object' || module[Toolkit.EParsers.customTypedRowRender] === null) {
+            return;
+        }
+        if (typeof module[Toolkit.EParsers.customTypedRowRender].isTypeMatch !== 'function') {
+            return;
+        }
+        if (typeof module[Toolkit.EParsers.customTypedRowRender].type !== 'string') {
+            return;
+        }
+        if (typeof module[Toolkit.EParsers.customTypedRowRender].api !== 'object' || module[Toolkit.EParsers.customTypedRowRender].api === null) {
+            return;
+        }
+        const guid: string = Toolkit.guid();
+        this._custom.set(guid, {
+            isTypeMatch: module[Toolkit.EParsers.customTypedRowRender].isTypeMatch,
+            type: module[Toolkit.EParsers.customTypedRowRender].type,
+            api: module[Toolkit.EParsers.customTypedRowRender].api,
+        });
+    }
+
     private _getTypedComponent(sourceName: string): ITypedRowComponent | undefined {
-        const isSrcInHistory: boolean = this._history.sources.indexOf(sourceName) !== -1;
+        const isSrcInHistory: boolean = this._history.typedComSources.indexOf(sourceName) !== -1;
         if (isSrcInHistory) {
-            const guid: string | undefined = this._history.typedComAliases.get(sourceName);
-            if (guid === undefined) {
+            const storedGuid: string | undefined = this._history.typedComAliases.get(sourceName);
+            if (storedGuid === undefined) {
                 return undefined;
             }
-            return this._typed.get(guid);
+            return this._typed.get(storedGuid);
         }
-        this._history.sources.push(sourceName);
-        let targetTypedRowComponentGuid: string | undefined;
+        this._history.typedComSources.push(sourceName);
+        let guid: string | undefined;
         this._typed.forEach((typedRowComponent: ITypedRowComponent, alias: string) => {
             if (typedRowComponent.isTypeMatch(sourceName)) {
-                targetTypedRowComponentGuid = alias;
+                guid = alias;
             }
         });
-        if (targetTypedRowComponentGuid === undefined) {
+        if (guid === undefined) {
             return undefined;
         }
-        this._history.typedComAliases.set(sourceName, targetTypedRowComponentGuid);
-        return this._typed.get(targetTypedRowComponentGuid);
+        this._history.typedComAliases.set(sourceName, guid);
+        return this._typed.get(guid);
+    }
+
+    private _getTypedCustomComponent(sourceName: string): ITypedCustomRowComponent | undefined {
+        const isSrcInHistory: boolean = this._history.typedCustSources.indexOf(sourceName) !== -1;
+        if (isSrcInHistory) {
+            const storedGuid: string | undefined = this._history.typedCustAliases.get(sourceName);
+            if (storedGuid === undefined) {
+                return undefined;
+            }
+            return this._custom.get(storedGuid);
+        }
+        this._history.typedCustSources.push(sourceName);
+        let guid: string | undefined;
+        this._custom.forEach((typedRowComponent: ITypedCustomRowComponent, alias: string) => {
+            if (typedRowComponent.isTypeMatch(sourceName)) {
+                guid = alias;
+            }
+        });
+        if (guid === undefined) {
+            return undefined;
+        }
+        this._history.typedCustAliases.set(sourceName, guid);
+        return this._custom.get(guid);
     }
 
 }
