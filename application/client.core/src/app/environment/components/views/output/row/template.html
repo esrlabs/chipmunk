@@ -7,18 +7,37 @@
             [ngStyle]="{'background': _ng_sourceColor}"
             [attr.data-source-name]="_ng_sourceName"
             (click)="_ng_onToggleSource()"></span>
-    <span class="number" (click)="_ng_onNumberClick()"><span class="filler">{{_ng_number_filler}}</span>{{_ng_number}}</span>
-    <p  *ngIf="_ng_safeHtml !== null"
-        class="row noreset" 
-        [innerHTML]="_ng_safeHtml" 
-        (click)="_ng_onRowSelect()" 
-        [ngStyle]="{'background': _ng_background, 'color': _ng_color}"></p>
-    <p  *ngIf="_ng_component !== undefined"
-        class="row noreset" 
-        (click)="_ng_onRowSelect()" 
-        [ngStyle]="{'background': _ng_background, 'color': _ng_color}">
-        <lib-containers-dynamic [component]="_ng_component"></lib-containers-dynamic>
-    </p>
+    <span #numbernode class="number" (click)="_ng_onNumberClick()"><span class="filler">{{_ng_number_filler}}</span>{{_ng_number}}</span>
+    <app-views-output-row-standard
+        #rendercomp  
+        *ngIf="_ng_render === 'standard'"
+        [str]="str" 
+        [sessionId]="sessionId" 
+        [position]="position" 
+        [pluginId]="pluginId"
+        [scope]="scope"
+        (click)="_ng_onRowSelect()"></app-views-output-row-standard>
+    <app-views-output-row-columns
+        #rendercomp  
+        *ngIf="_ng_render === 'columns'"
+        [str]="str" 
+        [sessionId]="sessionId" 
+        [position]="position" 
+        [pluginId]="pluginId"
+        [scope]="scope"
+        [output]="controller"
+        [api]="_ng_render_api" 
+        (click)="_ng_onRowSelect()"></app-views-output-row-columns>
+    <app-views-output-row-custom
+        #rendercomp
+        *ngIf="_ng_component !== undefined"
+        [str]="str" 
+        [sessionId]="sessionId" 
+        [position]="position" 
+        [pluginId]="pluginId" 
+        [scope]="scope"
+        [component]="_ng_component"
+        (click)="_ng_onRowSelect()"></app-views-output-row-custom>
 </div>
 <div *ngIf="_ng_isPending() === true" [attr.class]="'wrapper noreset ' + (_ng_bookmarked ? 'bookmarked' : '')">
     <span class="source-name" *ngIf="_ng_source">n/d</span>

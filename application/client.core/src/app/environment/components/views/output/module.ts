@@ -4,13 +4,20 @@ import { ScrollingModule                        } from '@angular/cdk/scrolling';
 
 import { ViewOutputComponent                    } from './component';
 import { ViewOutputRowComponent                 } from './row/component';
+import { ViewOutputRowStandardComponent         } from './row/standard/component';
+import { ViewOutputRowCustomComponent           } from './row/custom/component';
+import { ViewOutputRowColumnsComponent          } from './row/columns/component';
+import { ViewOutputRowColumnsHeadersComponent   } from './row/columns/headers/component';
+import { ViewOutputRowColumnsHeadersMenuComponent   } from './row/columns/headers/menu/component';
+
 import { ViewOutputControlsComponent            } from './controls/component';
 
 import { PrimitiveModule                        } from 'logviewer-client-primitive';
 import { ContainersModule                       } from 'logviewer-client-containers';
 import { ComplexModule                          } from 'logviewer-client-complex';
 
-const entryComponents = [ ViewOutputComponent, ViewOutputRowComponent, ViewOutputControlsComponent ];
+const rows = [ ViewOutputRowStandardComponent, ViewOutputRowCustomComponent, ViewOutputRowColumnsComponent, ViewOutputRowColumnsHeadersComponent, ViewOutputRowColumnsHeadersMenuComponent ];
+const entryComponents = [ ViewOutputComponent, ViewOutputRowComponent, ViewOutputControlsComponent, ...rows ];
 const components = [ ViewOutputComponent, ...entryComponents ];
 
 @NgModule({

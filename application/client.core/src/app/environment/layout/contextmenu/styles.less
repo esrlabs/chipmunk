@@ -1,0 +1,18 @@
+@import '../../theme/scheme.less';
+
+:host {
+    position: fixed;
+    display: block;
+    z-index: 100;
+    top: 0;
+    left: 0;
+    & div.wrapper{
+        position: fixed;
+        display: block;
+        box-sizing: border-box;
+        z-index: 100;
+        box-shadow: 3px 3px 6px rgba(0,0,0,0.4);
+        .gradient(linear; darken(@scheme-color-5, 2%), lighten(@scheme-color-5, 2%));
+        .border-based-5;
+    }
+}

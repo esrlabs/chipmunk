@@ -16,6 +16,7 @@ import ServiceColumns, { IColumnsWidthsChanged, CDefaults, IColumnValue, CDelimi
 export class DLTRowComponent implements AfterViewInit, OnDestroy, AfterContentInit {
 
     @Input() public ipc: Toolkit.PluginIPC;
+    @Input() public api: Toolkit.IAPI;
     @Input() public session: string;
     @Input() public html: string;
     @Input() public update: Subject<{ [key: string]: any }>;
@@ -23,14 +24,13 @@ export class DLTRowComponent implements AfterViewInit, OnDestroy, AfterContentIn
     public _ng_columns: IColumnValue[] = [];
     public _ng_widths: { [key: number]: number } = {};
 
-    private _cachedMouseX: number = -1;
-    private _resizedColumnKey: number = -1;
-    private _values: string[] = [];
     private _subscriptions: { [key: string]: Subscription } = {};
     private _guid: string = Toolkit.guid();
+    private _destroyed: boolean = false;
+    private _inited: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
-        this._subscribeToWinEvents();
+        this._subscriptions.onColumnsResized = ServiceColumns.getObservable().onColumnsResized.subscribe(this._onColumnsResized.bind(this));
     }
 
     @HostListener('click', ['$event']) public onClick(event: MouseEvent) {
@@ -38,7 +38,7 @@ export class DLTRowComponent implements AfterViewInit, OnDestroy, AfterContentIn
     }
 
     public ngOnDestroy() {
-        this._unsubscribeToWinEvents();
+        this._destroyed = true;
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
@@ -48,15 +48,18 @@ export class DLTRowComponent implements AfterViewInit, OnDestroy, AfterContentIn
         if (typeof this.html !== 'string') {
             return;
         }
-        this._ng_columns = this.html.split(CDelimiters.columns).map((column: string) => {
+        const columns: string[] = this.html.split(CDelimiters.columns);
+        this._ng_columns = columns.map((column: string, index: number) => {
+            if (index === columns.length - 1) {
+                column = column.replace(/\u0005/gi, '');
+            }
             return {
                 html: this._sanitizer.bypassSecurityTrustHtml(column),
                 str: column,
             };
         });
         this._ng_widths = ServiceColumns.getWidths(this._ng_columns.length);
-        this._subscriptions.onColumnsResized = ServiceColumns.getObservable().onColumnsResized.subscribe(this._onColumnsResized.bind(this));
-        this._cdRef.detectChanges();
+        this._inited = true;
     }
 
     public ngAfterContentInit() {
@@ -64,6 +67,7 @@ export class DLTRowComponent implements AfterViewInit, OnDestroy, AfterContentIn
             return;
         }
         this._subscriptions.update = this.update.asObservable().subscribe(this._onInputsUpdated.bind(this));
+        ServiceColumns.setTitles(this.api);
     }
 
     public _ng_getWidth(key: number): string {
@@ -71,11 +75,6 @@ export class DLTRowComponent implements AfterViewInit, OnDestroy, AfterContentIn
             return `${CDefaults.width}px`;
         }
         return `${this._ng_widths[key]}px`;
-    }
-
-    public _ng_onMouseDown(key: number, event: MouseEvent) {
-        this._cachedMouseX = event.x;
-        this._resizedColumnKey = key;
     }
 
     private _setColumns(update: boolean = false) {
@@ -94,52 +93,10 @@ export class DLTRowComponent implements AfterViewInit, OnDestroy, AfterContentIn
         }
     }
 
-    private _onWindowMouseMove(event: MouseEvent) {
-        if (this._cachedMouseX === -1) {
-            return;
-        }
-        const change: number = this._cachedMouseX - event.x;
-        this._cachedMouseX = event.x;
-        this._offsetResizedColumnWidth(change);
-    }
-
-    private _onWindowMouseUp(event: MouseEvent) {
-        if (this._cachedMouseX === -1) {
-            return;
-        }
-        this._cachedMouseX = -1;
-        this._resizedColumnKey = -1;
-    }
-
-    private _subscribeToWinEvents() {
-        this._onWindowMouseMove = this._onWindowMouseMove.bind(this);
-        this._onWindowMouseUp = this._onWindowMouseUp.bind(this);
-        window.addEventListener('mousemove', this._onWindowMouseMove);
-        window.addEventListener('mouseup', this._onWindowMouseUp);
-    }
-
-    private _unsubscribeToWinEvents() {
-        window.removeEventListener('mousemove', this._onWindowMouseMove);
-        window.removeEventListener('mouseup', this._onWindowMouseUp);
-    }
-
-    private _offsetResizedColumnWidth(offset: number) {
-        if (this._resizedColumnKey === -1) {
-            return;
-        }
-        if (this._ng_widths[this._resizedColumnKey] === undefined) {
-            return;
-        }
-        const width: number = this._ng_widths[this._resizedColumnKey] - offset;
-        this._ng_widths[this._resizedColumnKey] = width < CDefaults.min ? CDefaults.min : width;
-        ServiceColumns.emit({ widths: this._ng_widths }).onColumnsResized.next({
-            emitter: this._guid,
-            widths: this._ng_widths,
-        });
-        this._cdRef.detectChanges();
-    }
-
     private _onColumnsResized(event: IColumnsWidthsChanged) {
+        if (!this._inited || this._destroyed) {
+            return;
+        }
         if (event.emitter === this._guid) {
             return;
         }
@@ -147,7 +104,7 @@ export class DLTRowComponent implements AfterViewInit, OnDestroy, AfterContentIn
             return;
         }
         this._ng_widths = Object.assign({}, event.widths);
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     private _onInputsUpdated(inputs: any) {
@@ -158,6 +115,13 @@ export class DLTRowComponent implements AfterViewInit, OnDestroy, AfterContentIn
             this.html = inputs.html;
             this._setColumns();
         }
+    }
+
+    private _forceUpdate() {
+        if (this._destroyed) {
+            return;
+        }
+        this._cdRef.detectChanges();
     }
 
 

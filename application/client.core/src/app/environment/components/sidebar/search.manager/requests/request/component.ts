@@ -30,9 +30,7 @@ export class SidebarAppSearchRequestComponent implements OnDestroy, AfterContent
 
     }
 
-    @HostListener('click', ['$event'])
-
-    public onClick(event: MouseEvent) {
+    @HostListener('click', ['$event']) public onClick(event: MouseEvent) {
         this.request.onSelect();
     }
 

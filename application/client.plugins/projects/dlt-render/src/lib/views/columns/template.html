@@ -1,0 +1,5 @@
+<span class="offset" [ngStyle]="{'width': _ng_getOffset()}"></span>
+<span class="wrapper" *ngFor="let column of _ng_columns; let i = index" [ngStyle]="{'width': _ng_getWidth(i)}">
+    <span class="title">{{column}}</span>
+    <span class="border" (mousedown)="_ng_onMouseDown(i, $event)"></span>
+</span>

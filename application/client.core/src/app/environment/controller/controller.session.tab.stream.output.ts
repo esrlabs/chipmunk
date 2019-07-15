@@ -4,6 +4,7 @@ import * as Toolkit from 'logviewer.client.toolkit';
 import OutputRedirectionsService from '../services/standalone/service.output.redirections';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 import { ControllerSessionTabSourcesState } from './controller.session.tab.sources.state';
+import { ControllerSessionScope } from './controller.session.tab.scope';
 
 export type TRequestDataHandler = (start: number, end: number) => Promise<IPCMessages.StreamChunk>;
 
@@ -13,6 +14,7 @@ export interface IStreamPacket {
     pluginId: number;
     rank: number;
     sessionId: string;
+    scope: ControllerSessionScope;
     controller: ControllerSessionTabStreamOutput;
     bookmarks: ControllerSessionTabStreamBookmarks;
     sources: ControllerSessionTabSourcesState;
@@ -52,8 +54,10 @@ export class ControllerSessionTabStreamOutput {
     private _requestDataHandler: TRequestDataHandler;
     private _bookmarks: ControllerSessionTabStreamBookmarks;
     private _sources: ControllerSessionTabSourcesState;
+    private _scope: ControllerSessionScope;
     private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
     private _preloadTimestamp: number = -1;
+    private _horScrollOffset: number = 0;
     private _state: IStreamState = {
         count: 0,
         countRank: 1,
@@ -76,12 +80,14 @@ export class ControllerSessionTabStreamOutput {
         onScrollTo: new Subject<number>(),
         onRankChanged: new Subject<number>(),
         onSourceChanged: new Subject<number>(),
+        onHorScrollOffset: new Subject<number>(),
     };
 
-    constructor(guid: string, requestDataHandler: TRequestDataHandler, bookmarks: ControllerSessionTabStreamBookmarks) {
+    constructor(guid: string, requestDataHandler: TRequestDataHandler, bookmarks: ControllerSessionTabStreamBookmarks, scope: ControllerSessionScope) {
         this._guid = guid;
         this._requestDataHandler = requestDataHandler;
         this._bookmarks = bookmarks;
+        this._scope = scope;
         this._sources = new ControllerSessionTabSourcesState(this._guid);
         this._logger = new Toolkit.Logger(`ControllerSessionTabStreamOutput: ${this._guid}`);
         this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(this._guid, this._onRowSelected.bind(this));
@@ -108,6 +114,7 @@ export class ControllerSessionTabStreamOutput {
         onScrollTo: Observable<number>,
         onRankChanged: Observable<number>,
         onSourceChanged: Observable<number>,
+        onHorScrollOffset: Observable<number>,
     } {
         return {
             onStateUpdated: this._subjects.onStateUpdated.asObservable(),
@@ -116,6 +123,7 @@ export class ControllerSessionTabStreamOutput {
             onScrollTo: this._subjects.onScrollTo.asObservable(),
             onRankChanged: this._subjects.onRankChanged.asObservable(),
             onSourceChanged: this._subjects.onSourceChanged.asObservable(),
+            onHorScrollOffset: this._subjects.onHorScrollOffset.asObservable(),
         };
     }
 
@@ -233,6 +241,15 @@ export class ControllerSessionTabStreamOutput {
 
     public preload(range: IRange): Promise<IRange> {
         return this._preload(range);
+    }
+
+    public setHorScrollOffset(offset: number) {
+        this._horScrollOffset = offset;
+        this._subjects.onHorScrollOffset.next(offset);
+    }
+
+    public getHorScrollOffset(): number {
+        return this._horScrollOffset;
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -423,6 +440,7 @@ export class ControllerSessionTabStreamOutput {
                 controller: this,
                 bookmarks: this._bookmarks,
                 sources: this._sources,
+                scope: this._scope,
             };
         }).filter((packet: IStreamPacket) => {
             return (packet.position !== -1);
@@ -441,6 +459,7 @@ export class ControllerSessionTabStreamOutput {
                 controller: this,
                 bookmarks: this._bookmarks,
                 sources: this._sources,
+                scope: this._scope,
             };
         });
         return rows;

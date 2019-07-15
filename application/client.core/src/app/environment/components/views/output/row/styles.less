@@ -99,9 +99,6 @@
         & p.row {
             display: inline-block;
             position: relative;
-            font-family: monospace;
-            font-size: 14px;
-            font-variant-numeric: tabular-nums;
             padding: 0;
             margin: 0;
             line-height: 16px;
@@ -109,19 +106,6 @@
             max-height: 16px;
             white-space: pre;
             vertical-align: top;
-            color: @scheme-color-0;
-            font-weight: 600;
-            &:hover::after{
-                position: absolute;
-                display: block;
-                content: '';
-                top:0;
-                left:0;
-                right: 0;
-                bottom: 0;
-                border-top: thin dotted @scheme-color-1;
-                border-bottom: thin dotted @scheme-color-1;
-            }
             &.pending{
                 width: 100%;
                 background: @scheme-color-4;

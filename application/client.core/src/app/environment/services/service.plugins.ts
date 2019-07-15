@@ -60,6 +60,7 @@ export class PluginsService extends Toolkit.Emitter implements IService {
     private _plugins: Map<string, IPluginData> = new Map();
     private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription | undefined } = { };
     private _idsCache: { [key: number]: IPluginData } = {};
+    private _factories: AngularCore.ComponentFactory<any>[] = [];
 
     constructor() {
         super();
@@ -130,6 +131,14 @@ export class PluginsService extends Toolkit.Emitter implements IService {
             onSessionOpen: this._fire.bind(this, CPluginEvents.onSessionOpen),
             onSessionClose: this._fire.bind(this, CPluginEvents.onSessionClose),
         };
+    }
+
+    public getStoredFactoryBySelector(selector: string): AngularCore.ComponentFactory<any> | undefined {
+        return this._factories.find(e => e.selector === selector);
+    }
+
+    public getStoredFactoryByName(name: string): AngularCore.ComponentFactory<any> | undefined {
+        return this._factories.find(e => e.componentType.name === name);
     }
 
     private _fire(event: string, ...args: any) {
@@ -241,6 +250,19 @@ export class PluginsService extends Toolkit.Emitter implements IService {
                         };
                         // Setup parsers
                         OutputParsersService.setParsers(exports, id, mwcf);
+                        // Store factories of plugin
+                        const selectors: string[] = Object.keys(Toolkit.EViewsTypes).map((key: string) => {
+                            return Toolkit.EViewsTypes[key];
+                        });
+                        this._factories.push(...mwcf.componentFactories.filter((factory: AngularCore.ComponentFactory<any>) => {
+                            if (selectors.indexOf(factory.selector) !== -1) {
+                                return false;
+                            }
+                            if (factory.selector.indexOf('lib-primitive') !== -1 || factory.selector.indexOf('lib-complex') !== -1 || factory.selector.indexOf('lib-containers') !== -1) {
+                                return false;
+                            }
+                            return !this._isComponentFactoryStored(factory);
+                        }));
                         // Check views
                         Object.keys(Toolkit.EViewsTypes).forEach((alias: string) => {
                             const selector: string = Toolkit.EViewsTypes[alias];
@@ -350,6 +372,10 @@ export class PluginsService extends Toolkit.Emitter implements IService {
                 done();
             });
         });
+    }
+
+    private _isComponentFactoryStored(factory: AngularCore.ComponentFactory<any>): boolean {
+        return this._factories.find(e => e.selector === factory.selector) !== undefined;
     }
 
 }
