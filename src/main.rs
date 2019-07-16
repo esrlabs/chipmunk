@@ -1,5 +1,6 @@
+#![feature(test)]
+extern crate test;
 use crate::chunks::serialize_chunks;
-// use crate::dlt_tokio::{DltFileCodec};
 use crate::parse::{
     line_matching_format_expression, match_format_string_in_file, read_format_string_options,
     FormatTestOptions,
@@ -9,11 +10,8 @@ use crate::parse::{
 extern crate clap;
 use clap::{App, Arg, SubCommand};
 use std::fs;
-// use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::path;
 use std::time::Instant;
-// use tokio::codec::{FramedRead, FramedWrite};
-// use tokio::prelude::{Future, Sink};
 
 mod chunks;
 mod dlt;
@@ -290,6 +288,17 @@ fn main() {
                 to_stdout: stdout,
                 status_updates,
             }) {
+                // match processor::create_index_and_mapping(processor::IndexingConfig {
+                //     tag,
+                //     max_lines,
+                //     chunk_size,
+                //     in_file: f,
+                //     out_path: &out_path,
+                //     append,
+                //     source_file_size,
+                //     to_stdout: stdout,
+                //     status_updates,
+                // }) {
                 Err(why) => {
                     eprintln!("couldn't process: {}", why);
                     std::process::exit(2)

@@ -10,6 +10,7 @@
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
 #![allow(clippy::unit_arg)]
+
 use bytes::{ByteOrder, BytesMut, BufMut};
 use chrono::{NaiveDateTime};
 use chrono::prelude::{Utc, DateTime};
@@ -17,6 +18,8 @@ use std::fmt;
 use std::fmt::{Formatter};
 use std::io;
 use std::io::{Error};
+use chrono::Datelike;
+use chrono::Timelike;
 
 use proptest_derive::Arbitrary;
 use proptest::prelude::*;
@@ -36,9 +39,17 @@ impl fmt::Display for DltTimeStamp {
         match naive {
             Some(n) => {
                 let datetime: DateTime<Utc> = DateTime::from_utc(n, Utc);
-                // Format the datetime how you want
-                let newdate = datetime.format("%Y/%m/%d %H:%M:%S");
-                write!(f, "{}", newdate)
+                write!(
+                    f,
+                    "{}/{}/{} {}:{}:{} {}",
+                    datetime.year(),
+                    datetime.month0(),
+                    datetime.day0(),
+                    datetime.hour(),
+                    datetime.minute(),
+                    datetime.second(),
+                    datetime.timezone(),
+                )
             }
             None => write!(
                 f,
@@ -890,32 +901,42 @@ pub const DLT_NEWLINE_SENTINAL: char = '\u{0006}';
 /// EColumn.PAYLOAD,
 impl fmt::Display for Message {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match &self.storage_header {
+            Some(h) => {
+                write!(f, "{}", h)?;
+            }
+            None => (),
+        }
         write!(
             f,
-            "{}{}{}{}{}{}{}{}{}{}{}{}",
-            self.storage_header
-                .as_ref()
-                .map_or(String::new(), |storage_header| storage_header.to_string()),
-            DLT_COLUMN_SENTINAL,
-            self.header.version,
-            DLT_COLUMN_SENTINAL,
-            self.header
-                .session_id
-                .map_or("no session id".to_string(), |sid| sid.to_string()),
-            DLT_COLUMN_SENTINAL,
-            self.header.message_counter,
-            DLT_COLUMN_SENTINAL,
-            self.header
-                .timestamp
-                .map_or("no timestamp".to_string(), |tmsp| tmsp.to_string()),
-            DLT_COLUMN_SENTINAL,
-            self.header
-                .ecu_id
-                .as_ref()
-                .map(|id| id.to_string())
-                .unwrap_or_else(|| "".into()),
-            DLT_COLUMN_SENTINAL,
+            "{}{}{}",
+            DLT_COLUMN_SENTINAL, self.header.version, DLT_COLUMN_SENTINAL,
         )?;
+        match &self.header.session_id {
+            Some(id) => {
+                write!(f, "{}", id)?;
+            }
+            None => (),
+        }
+        write!(
+            f,
+            "{}{}{}",
+            DLT_COLUMN_SENTINAL, self.header.message_counter, DLT_COLUMN_SENTINAL,
+        )?;
+        match &self.header.timestamp {
+            Some(t) => {
+                write!(f, "{}", t)?;
+            }
+            None => (),
+        }
+        write!(f, "{}", DLT_COLUMN_SENTINAL,)?;
+        match &self.header.ecu_id {
+            Some(id) => {
+                write!(f, "{}", id)?;
+            }
+            None => (),
+        }
+        write!(f, "{}", DLT_COLUMN_SENTINAL,)?;
 
         if let Some(ext) = self.extended_header.as_ref() {
             write!(
@@ -928,8 +949,6 @@ impl fmt::Display for Message {
                 ext.message_type,
                 DLT_COLUMN_SENTINAL,
             )?;
-        } else {
-            write!(f, "")?;
         }
         match &self.payload {
             Payload::Verbose(arguments) => arguments
@@ -1261,7 +1280,10 @@ impl TryFrom<u8> for MessageType {
 
 #[allow(dead_code)]
 #[inline]
-pub fn create_message_line(out_buffer: &mut std::io::Write, msg: Message) -> std::io::Result<()> {
+pub fn create_message_line(
+    out_buffer: &mut dyn std::io::Write,
+    msg: Message,
+) -> std::io::Result<()> {
     // Messages without extended header (non-verbose) are unimplemented
     if let Some(ext) = msg.extended_header {
         let _level = match ext.message_type {
@@ -1313,6 +1335,69 @@ mod tests {
 
     use pretty_assertions::assert_eq;
     use byteorder::{BigEndian, LittleEndian};
+    use test::Bencher;
+
+    #[bench]
+    fn bench_formate_header(b: &mut Bencher) {
+        let timestamp = DltTimeStamp {
+            seconds: 0x4DC9_2C26,
+            microseconds: 0x000C_A2D8,
+        };
+        // let storage_header = StorageHeader {
+        //     timestamp,
+        //     ecu_id: "abc".to_string(),
+        // };
+        b.iter(|| format!("{}", timestamp));
+    }
+    #[bench]
+    fn bench_format_msg(b: &mut Bencher) {
+        let timestamp = DltTimeStamp {
+            seconds: 0x4DC9_2C26,
+            microseconds: 0x000C_A2D8,
+        };
+        let storage_header = StorageHeader {
+            timestamp,
+            ecu_id: "abc".to_string(),
+        };
+        let header: StandardHeader = StandardHeader {
+            version: 1,
+            has_extended_header: true,
+            big_endian: true,
+            message_counter: 0x33,
+            overall_length: 0x1,
+            ecu_id: Some("abc".to_string()),
+            session_id: None,
+            timestamp: Some(5),
+        };
+        let extended_header = ExtendedHeader {
+            argument_count: 2,
+            verbose: true,
+            message_type: MessageType::Log(LogLevel::Warn),
+            application_id: "abc".to_string(),
+            context_id: "CON".to_string(),
+        };
+        let type_info = TypeInfo {
+            kind: TypeInfoKind::Bool,
+            coding: StringCoding::UTF8,
+            has_variable_info: true,
+            has_trace_info: false,
+        };
+        let argument = Argument {
+            type_info: type_info.clone(),
+            name: Some("foo".to_string()),
+            unit: None,
+            fixed_point: None,
+            value: Value::Bool(true),
+        };
+        let payload = Payload::Verbose(vec![argument]);
+        let message = Message {
+            storage_header: Some(storage_header),
+            header,
+            extended_header: Some(extended_header),
+            payload,
+        };
+        b.iter(|| format!("{}", message));
+    }
 
     proptest! {
         #[test]

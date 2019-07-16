@@ -12,85 +12,85 @@ use nom::{
 };
 
 use std::str;
-use std::fmt;
-use std::io::{Read, BufRead};
-use buf_redux::BufReader;
-use buf_redux::policy::MinBuffered;
+// use std::fmt;
+// use std::io::{Read, BufRead};
+// use buf_redux::BufReader;
+// use buf_redux::policy::MinBuffered;
 
-pub struct MessageIter<'a, T: Read> {
-    reader: BufReader<T, MinBuffered>,
-    #[allow(dead_code)]
-    tag: &'a str,
-    #[allow(dead_code)]
-    processed_bytes: usize,
-    #[allow(dead_code)]
-    processed_lines: usize,
-}
-impl<'a, T: Read> MessageIter<'a, T> {
-    pub fn new(fh: T, tag: &'a str, processed_lines: usize) -> MessageIter<'a, T> {
-        let reader =
-            BufReader::with_capacity(10 * 1024 * 1024, fh).set_policy(MinBuffered(10 * 1024));
-        MessageIter {
-            reader,
-            tag,
-            processed_bytes: 0,
-            processed_lines,
-        }
-    }
-}
+// pub struct MessageIter<'a, T: Read> {
+//     reader: BufReader<T, MinBuffered>,
+//     #[allow(dead_code)]
+//     tag: &'a str,
+//     #[allow(dead_code)]
+//     processed_bytes: usize,
+//     #[allow(dead_code)]
+//     processed_lines: usize,
+// }
+// impl<'a, T: Read> MessageIter<'a, T> {
+//     pub fn new(fh: T, tag: &'a str, processed_lines: usize) -> MessageIter<'a, T> {
+//         let reader =
+//             BufReader::with_capacity(10 * 1024 * 1024, fh).set_policy(MinBuffered(10 * 1024));
+//         MessageIter {
+//             reader,
+//             tag,
+//             processed_bytes: 0,
+//             processed_lines,
+//         }
+//     }
+// }
 
-pub struct CountedMessage {
-    pub dlt_message: dlt::Message,
-    pub line_index: usize,
-    pub byte_index: usize,
-}
-impl fmt::Display for CountedMessage {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.dlt_message.fmt(f)
-    }
-}
-impl<'a, T: Read> Iterator for MessageIter<'a, T> {
-    type Item = CountedMessage;
-    fn next(&mut self) -> Option<Self::Item> {
-        let res = loop {
-            match self.reader.fill_buf() {
-                Ok(content) => {
-                    // println!("content: {}", content.len());
-                    if content.is_empty() {
-                        return None;
-                    }
-                    let available = content.len();
-                    let res: IResult<&[u8], dlt::Message> = dlt_message(content);
-                    match res {
-                        Ok(r) => {
-                            let consumed = available - r.0.len();
-                            break (consumed, r.1);
-                        }
-                        e => {
-                            if let Err(nom::Err::Incomplete(_)) = e {
-                                continue;
-                            } else {
-                                panic!(format!("error while iterating...{:?}", e));
-                            }
-                        }
-                    }
-                }
-                Err(e) => {
-                    panic!("error while iterating...{}", e);
-                }
-            }
-        };
-        self.reader.consume(res.0);
-        let result = Some(CountedMessage {
-            dlt_message: res.1,
-            line_index: self.processed_lines,
-            byte_index: self.processed_bytes,
-        });
-        self.processed_lines += 1;
-        self.processed_bytes += res.0;
-        result
-    }
-}
+// pub struct CountedMessage {
+//     pub dlt_message: dlt::Message,
+//     pub line_index: usize,
+//     pub byte_index: usize,
+// }
+// impl fmt::Display for CountedMessage {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         self.dlt_message.fmt(f)
+//     }
+// }
+// impl<'a, T: Read> Iterator for MessageIter<'a, T> {
+//     type Item = CountedMessage;
+//     fn next(&mut self) -> Option<Self::Item> {
+//         let res = loop {
+//             match self.reader.fill_buf() {
+//                 Ok(content) => {
+//                     // println!("content: {}", content.len());
+//                     if content.is_empty() {
+//                         return None;
+//                     }
+//                     let available = content.len();
+//                     let res: IResult<&[u8], dlt::Message> = dlt_message(content);
+//                     match res {
+//                         Ok(r) => {
+//                             let consumed = available - r.0.len();
+//                             break (consumed, r.1);
+//                         }
+//                         e => {
+//                             if let Err(nom::Err::Incomplete(_)) = e {
+//                                 continue;
+//                             } else {
+//                                 panic!(format!("error while iterating...{:?}", e));
+//                             }
+//                         }
+//                     }
+//                 }
+//                 Err(e) => {
+//                     panic!("error while iterating...{}", e);
+//                 }
+//             }
+//         };
+//         self.reader.consume(res.0);
+//         let result = Some(CountedMessage {
+//             dlt_message: res.1,
+//             line_index: self.processed_lines,
+//             byte_index: self.processed_bytes,
+//         });
+//         self.processed_lines += 1;
+//         self.processed_bytes += res.0;
+//         result
+//     }
+// }
 fn parse_ecu_id(input: &[u8]) -> IResult<&[u8], &str> {
     dlt_zero_terminated_string(input, 4)
 }
@@ -206,7 +206,7 @@ pub fn is_null(chr: u8) -> bool {
     chr == 0x0
 }
 #[allow(clippy::type_complexity)]
-pub fn zeros(max: usize) -> Box<Fn(&[u8]) -> IResult<&[u8], &[u8]>> {
+pub fn zeros(max: usize) -> Box<dyn Fn(&[u8]) -> IResult<&[u8], &[u8]>> {
     Box::new(move |input| nom::bytes::streaming::take_while_m_n(max, max, is_null)(input))
 }
 fn dlt_zero_terminated_string(s: &[u8], size: usize) -> IResult<&[u8], &str> {
@@ -587,7 +587,7 @@ fn dlt_payload<T: NomByteOrder>(
 /// payload: 1100 00000472 656D6F
 ///
 #[allow(dead_code)]
-fn dlt_message(input: &[u8]) -> IResult<&[u8], dlt::Message> {
+pub fn dlt_message(input: &[u8]) -> IResult<&[u8], dlt::Message> {
     let (after_storage_and_normal_header, (storage_header, header)) =
         tuple((dlt_storage_header, dlt_standard_header))(input)?;
 

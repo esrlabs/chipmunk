@@ -1,67 +1,15 @@
 use crate::chunks::{Chunk, ChunkFactory};
+use crate::dlt_parse;
+use crate::dlt;
 use crate::utils;
-use crate::dlt_parse::*;
+use std::path;
 use failure::{err_msg, Error};
 use std::fs;
-use std::path;
-use std::io::{BufRead, BufReader, BufWriter, Read, Write};
+use std::io::{BufRead, BufReader, BufWriter, Write, Read};
+use buf_redux::BufReader as ReduxReader;
+use buf_redux::policy::MinBuffered;
 
-const REPORT_PROGRESS_LINE_BLOCK: usize = 1_000_000;
-
-pub trait IndexedIter: Iterator<Item = TaggedLine> {}
-
-#[derive(Eq, PartialEq, Debug)]
-pub struct TaggedLine {
-    pub content: String,
-    pub line_nr: usize,
-    pub processed_bytes: usize,
-    pub has_newline: bool,
-}
-pub struct IndexedLineIter<T: Read> {
-    reader: BufReader<T>,
-    processed_bytes: usize,
-    processed_lines: usize,
-}
-impl<T: Read> IndexedIter for IndexedLineIter<T> {}
-
-impl<T: Read> IndexedLineIter<T> {
-    pub fn new(reader: T, processed_bytes: usize, processed_lines: usize) -> IndexedLineIter<T> {
-        IndexedLineIter {
-            reader: BufReader::new(reader),
-            processed_bytes,
-            processed_lines,
-        }
-    }
-}
-impl<T: Read> Iterator for IndexedLineIter<T> {
-    type Item = TaggedLine;
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut buf = vec![];
-
-        while let Ok(len) = self.reader.read_until(b'\n', &mut buf) {
-            if len == 0 {
-                break;
-            } else {
-                let s = unsafe { std::str::from_utf8_unchecked(&buf) };
-                let trimmed_line = s.trim_matches(utils::is_newline);
-                let trimmed_len = trimmed_line.len();
-                self.processed_bytes += len;
-                if trimmed_len != 0 {
-                    let had_newline = trimmed_len != len;
-                    let res = Some(TaggedLine {
-                        content: trimmed_line.to_string(),
-                        line_nr: self.processed_lines,
-                        has_newline: had_newline,
-                        processed_bytes: self.processed_bytes,
-                    });
-                    self.processed_lines += 1;
-                    return res;
-                }
-            }
-        }
-        None
-    }
-}
+const REPORT_PROGRESS_LINE_BLOCK: usize = 250_000;
 
 pub struct IndexingConfig<'a> {
     pub tag: &'a str,
@@ -74,33 +22,6 @@ pub struct IndexingConfig<'a> {
     pub to_stdout: bool,
     pub status_updates: bool,
 }
-pub fn create_index_and_mapping_dlt(config: IndexingConfig) -> Result<Vec<Chunk>, Error> {
-    let initial_line_nr = match utils::next_line_nr(config.out_path) {
-        Some(nr) => nr,
-        None => {
-            eprintln!(
-                "could not determine last line number of {:?}",
-                config.out_path
-            );
-            std::process::exit(2)
-        }
-    };
-    index_dlt_file(config, initial_line_nr)
-}
-pub fn create_index_and_mapping(config: IndexingConfig) -> Result<Vec<Chunk>, Error> {
-    let initial_line_nr = match utils::next_line_nr(config.out_path) {
-        Some(nr) => nr,
-        None => {
-            eprintln!(
-                "could not determine last line number of {:?}",
-                config.out_path
-            );
-            std::process::exit(2)
-        }
-    };
-    index_file(config, initial_line_nr)
-}
-
 #[inline]
 fn report_progress(
     line_nr: usize,
@@ -117,57 +38,31 @@ fn report_progress(
         );
     }
 }
-pub fn index_dlt_file(config: IndexingConfig, initial_line_nr: usize) -> Result<Vec<Chunk>, Error> {
-    let (out_file, current_out_file_size) = get_out_file_and_size(config.append, &config.out_path)?;
-
-    let mut chunks = vec![];
-    let mut processed_lines = 0usize;
-    let mut chunk_factory =
-        ChunkFactory::new(config.chunk_size, config.to_stdout, current_out_file_size);
-    let mut buf_writer = BufWriter::with_capacity(100 * 1024 * 1024, out_file);
-    let reader: BufReader<&std::fs::File> = BufReader::new(&config.in_file);
-    let message_iter = MessageIter::new(reader, config.tag, initial_line_nr);
-    for counted_message in message_iter {
-        let written_bytes_len = utils::create_tagged_line_d(
-            config.tag,
-            &mut buf_writer,
-            &counted_message, //trimmed_line,
-            counted_message.line_index,
-            true,
-        )?;
-        if let Some(chunk) =
-            chunk_factory.create_chunk_if_needed(counted_message.line_index + 1, written_bytes_len)
-        {
-            chunks.push(chunk);
-            buf_writer.flush()?;
-        }
-        processed_lines = counted_message.line_index;
-        if config.status_updates {
-            report_progress(
-                processed_lines,
-                chunk_factory.get_current_byte_index(),
-                counted_message.byte_index,
-                config.source_file_size,
+pub fn create_index_and_mapping(config: IndexingConfig) -> Result<Vec<Chunk>, Error> {
+    let initial_line_nr = match utils::next_line_nr(config.out_path) {
+        Some(nr) => nr,
+        None => {
+            eprintln!(
+                "could not determine last line number of {:?}",
+                config.out_path
             );
+            std::process::exit(2)
         }
-    }
-
-    buf_writer.flush()?;
-    if let Some(chunk) = chunk_factory.create_last_chunk(processed_lines + 1, chunks.is_empty()) {
-        chunks.push(chunk);
-    }
-    last_chunk_integrity_check(&chunks, &config.out_path)?;
-    Ok(chunks)
+    };
+    index_file(config, initial_line_nr)
 }
-fn get_processed_bytes(append: bool, out: &path::PathBuf) -> u64 {
-    if append {
-        match fs::metadata(out) {
-            Ok(metadata) => metadata.len(),
-            Err(_) => 0,
+pub fn create_index_and_mapping_dlt(config: IndexingConfig) -> Result<Vec<Chunk>, Error> {
+    let initial_line_nr = match utils::next_line_nr(config.out_path) {
+        Some(nr) => nr,
+        None => {
+            eprintln!(
+                "could not determine last line number of {:?}",
+                config.out_path
+            );
+            std::process::exit(2)
         }
-    } else {
-        0
-    }
+    };
+    index_dlt_file(config, initial_line_nr)
 }
 fn get_out_file_and_size(
     append: bool,
@@ -184,68 +79,198 @@ fn get_out_file_and_size(
     let current_out_file_size = out_file.metadata().map(|md| md.len() as usize)?;
     Ok((out_file, current_out_file_size))
 }
-
+fn get_processed_bytes(append: bool, out: &path::PathBuf) -> u64 {
+    if append {
+        match fs::metadata(out) {
+            Ok(metadata) => metadata.len(),
+            Err(_) => 0,
+        }
+    } else {
+        0
+    }
+}
 pub fn index_file(config: IndexingConfig, initial_line_nr: usize) -> Result<Vec<Chunk>, Error> {
     let (out_file, current_out_file_size) = get_out_file_and_size(config.append, &config.out_path)?;
 
     let mut chunks = vec![];
-    let mut processed_lines = 0usize;
     let mut chunk_factory =
         ChunkFactory::new(config.chunk_size, config.to_stdout, current_out_file_size);
-    let mut buf_writer = BufWriter::with_capacity(100 * 1024 * 1024, out_file);
-    let indexed_iter = IndexedLineIter::new(
-        BufReader::new(&config.in_file),
-        get_processed_bytes(config.append, &config.out_path) as usize,
-        initial_line_nr,
-    );
-    for tagged_line in indexed_iter {
-        let written_bytes_len = utils::create_tagged_line_d(
-            config.tag,
-            &mut buf_writer,
-            tagged_line.content, //trimmed_line,
-            tagged_line.line_nr,
-            tagged_line.has_newline,
-        )?;
-        if let Some(chunk) =
-            chunk_factory.create_chunk_if_needed(tagged_line.line_nr + 1, written_bytes_len)
-        {
-            chunks.push(chunk);
-            buf_writer.flush()?;
-        }
-        processed_lines = tagged_line.line_nr;
-        if config.status_updates {
+
+    let mut reader = BufReader::new(config.in_file);
+    let mut line_nr = initial_line_nr;
+    let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
+
+    let mut buf = vec![];
+    let mut processed_bytes = get_processed_bytes(config.append, &config.out_path) as usize;
+    while let Ok(len) = reader.read_until(b'\n', &mut buf) {
+        let s = unsafe { std::str::from_utf8_unchecked(&buf) };
+        let trimmed_line = s.trim_matches(utils::is_newline);
+        let trimmed_len = trimmed_line.len();
+        let had_newline = trimmed_len != len;
+        processed_bytes += len;
+        if len == 0 {
+            // no more content
+            break;
+        };
+        // only use non-empty lines, others will be dropped
+        if trimmed_len != 0 {
+            if had_newline {
+                writeln!(
+                    buf_writer,
+                    "{}{}{}{}{}{}{}",
+                    trimmed_line,
+                    utils::PLUGIN_ID_SENTINAL,
+                    config.tag,
+                    utils::PLUGIN_ID_SENTINAL,
+                    utils::ROW_NUMBER_SENTINAL,
+                    line_nr,
+                    utils::ROW_NUMBER_SENTINAL,
+                )?;
+            } else {
+                write!(
+                    buf_writer,
+                    "{}{}{}{}{}{}{}",
+                    trimmed_line,
+                    utils::PLUGIN_ID_SENTINAL,
+                    config.tag,
+                    utils::PLUGIN_ID_SENTINAL,
+                    utils::ROW_NUMBER_SENTINAL,
+                    line_nr,
+                    utils::ROW_NUMBER_SENTINAL,
+                )?;
+            }
+            let additional_bytes =
+                utils::extended_line_length(trimmed_len, config.tag.len(), line_nr, had_newline);
+            line_nr += 1;
+
+            if let Some(chunk) = chunk_factory.create_chunk_if_needed(line_nr, additional_bytes) {
+                chunks.push(chunk);
+                buf_writer.flush()?;
+            }
             report_progress(
-                processed_lines,
+                line_nr,
                 chunk_factory.get_current_byte_index(),
-                tagged_line.processed_bytes,
+                processed_bytes,
                 config.source_file_size,
             );
+        }
+        buf = vec![];
+    }
+    buf_writer.flush()?;
+    if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunks.is_empty()) {
+        chunks.push(chunk);
+    }
+    match chunks.last() {
+        Some(last_chunk) => {
+            let last_expected_byte_index =
+                fs::metadata(config.out_path).map(|md| md.len() as usize)?;
+            if last_expected_byte_index != last_chunk.b.1 {
+                return Err(err_msg(format!(
+                    "error in computation! last byte in chunks is {} but should be {}",
+                    last_chunk.b.1, last_expected_byte_index
+                )));
+            }
+        }
+        None => eprintln!("no content found"),
+    }
+    Ok(chunks)
+}
+fn read_one_dlt_message<T: Read>(
+    reader: &mut ReduxReader<T, MinBuffered>,
+) -> Result<Option<(usize, dlt::Message)>, Error> {
+    loop {
+        match reader.fill_buf() {
+            Ok(content) => {
+                if content.is_empty() {
+                    return Ok(None);
+                }
+                let available = content.len();
+                let res: nom::IResult<&[u8], dlt::Message> = dlt_parse::dlt_message(content);
+                match res {
+                    Ok(r) => {
+                        let consumed = available - r.0.len();
+                        break Ok(Some((consumed, r.1)));
+                    }
+                    e => {
+                        if let Err(nom::Err::Incomplete(_)) = e {
+                            continue;
+                        } else {
+                            panic!(format!("error while iterating...{:?}", e));
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                panic!("error while iterating...{}", e);
+            }
+        }
+    }
+}
+pub fn index_dlt_file(config: IndexingConfig, initial_line_nr: usize) -> Result<Vec<Chunk>, Error> {
+    let (out_file, current_out_file_size) = get_out_file_and_size(config.append, &config.out_path)?;
+
+    let mut chunks = vec![];
+    let mut chunk_factory =
+        ChunkFactory::new(config.chunk_size, config.to_stdout, current_out_file_size);
+
+    let mut reader =
+            ReduxReader::with_capacity(10 * 1024 * 1024, config.in_file).set_policy(MinBuffered(10 * 1024));
+    let mut line_nr = initial_line_nr;
+    let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
+
+    let mut processed_bytes = get_processed_bytes(config.append, &config.out_path) as usize;
+    loop {
+        match read_one_dlt_message(&mut reader) {
+            Ok(Some((consumed, msg))) => {
+                // println!("consumed: {}", consumed);
+                reader.consume(consumed);
+                let written_bytes_len =
+                    utils::create_tagged_line_d(config.tag, &mut buf_writer, &msg, line_nr, true)?;
+                processed_bytes += consumed;
+                line_nr += 1;
+                if let Some(chunk) =
+                    chunk_factory.create_chunk_if_needed(line_nr, written_bytes_len)
+                {
+                    chunks.push(chunk);
+                    buf_writer.flush()?;
+                }
+                if config.status_updates {
+                    report_progress(
+                        line_nr,
+                        chunk_factory.get_current_byte_index(),
+                        processed_bytes,
+                        config.source_file_size,
+                    );
+                }
+            }
+            Ok(None) => {
+                println!("nothing more to parse");
+                break;
+            }
+            Err(e) => return Err(err_msg(format!("error while parsing dlt messages: {}", e))),
         }
     }
 
     buf_writer.flush()?;
-    if let Some(chunk) = chunk_factory.create_last_chunk(processed_lines + 1, chunks.is_empty()) {
+    if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunks.is_empty()) {
         chunks.push(chunk);
     }
-    last_chunk_integrity_check(&chunks, &config.out_path)?;
-    Ok(chunks)
-}
-fn last_chunk_integrity_check(chunks: &[Chunk], out_path: &path::PathBuf) -> Result<(), Error> {
     match chunks.last() {
         Some(last_chunk) => {
-            let last_expected_byte_index = fs::metadata(out_path).map(|md| md.len() as usize)?;
+            let last_expected_byte_index =
+                fs::metadata(config.out_path).map(|md| md.len() as usize)?;
             if last_expected_byte_index != last_chunk.b.1 {
-                Err(err_msg(format!(
+                eprintln!(
                     "error in computation! last byte in chunks is {} but should be {}",
                     last_chunk.b.1, last_expected_byte_index
-                )))
-            } else {
-                Ok(())
+                );
             }
         }
-        None => Ok(()),
+        None => eprintln!("no content found"),
     }
+    Ok(chunks)
 }
+
 #[cfg(test)]
 mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
@@ -260,8 +285,8 @@ mod tests {
 
     fn get_chunks(
         test_content: &str,
-        chunk_size: usize,
-        tag: &str,
+        chunksize: usize,
+        tag_name: &str,
         tmp_file_name: Option<&str>,
     ) -> (Vec<Chunk>, String) {
         let tmp_dir = TempDir::new("test_dir").expect("could not create temp dir");
@@ -273,9 +298,9 @@ mod tests {
         let f = File::open(&test_file_path).unwrap();
         let source_file_size = f.metadata().unwrap().len() as usize;
         let chunks = create_index_and_mapping(IndexingConfig {
-            tag,
+            tag: tag_name,
             max_lines: 5,
-            chunk_size,
+            chunk_size: chunksize,
             in_file: f,
             out_path: &out_file_path,
             append: tmp_file_name.is_some(),
@@ -290,6 +315,8 @@ mod tests {
         // cleanup
         let _ = tmp_dir.close();
 
+        // println!("out_file_content: {}", out_file_content);
+        // println!("got chunks: {:?}", chunks);
         (chunks, out_file_content)
     }
     type Pair = (usize, usize);
@@ -310,14 +337,22 @@ mod tests {
 
     #[test]
     fn test_append_to_empty_output() {
-        let tmp_dir = TempDir::new("my_directory_prefix").unwrap();
-        let empty_file = std::fs::OpenOptions::new()
-            .append(true)
-            .create(true)
-            .open(tmp_dir.path().join("empty.log"))
-            .unwrap();
+        let tmp_dir = TempDir::new("my_directory_prefix").expect("could not create temp dir");
+        let nonempty_file_path = tmp_dir.path().join("not_empty.log");
+        let empty_file_path = tmp_dir.path().join("empty.log");
+        fs::write(&nonempty_file_path, "A").unwrap();
+        // call our function
+        fs::write(&empty_file_path, "").expect("testfile could not be written");
+        let empty_file = File::open(empty_file_path).unwrap();
         let out_path = tmp_dir.path().join("test_append_to_empty_output.log.out");
+        // let indexer = Indexer {
+        //     source_id: "tag".to_string(), // tag to append to each line
+        //     max_lines: 5,                 // how many lines to collect before writing out
+        //     chunk_size: 1,                // used for mapping line numbers to byte positions
+        // };
         let source_file_size = empty_file.metadata().unwrap().len() as usize;
+        // let chunks = indexer
+        //     .index_file(&empty_file, &out_path, false, source_file_size, false)
         let chunks = create_index_and_mapping(IndexingConfig {
             tag: "tag",
             max_lines: 5,
@@ -337,15 +372,10 @@ mod tests {
             out_file_content.len(),
             "empty file should produce empty output"
         );
-    }
-    #[test]
-    fn test_append_to_nonempty_output() {
-        let tmp_dir = TempDir::new("my_directory_prefix").expect("could not create temp dir");
-        let out_path = tmp_dir.path().join("test_append_to_empty_output.log.out");
-        let nonempty_file_path = tmp_dir.path().join("not_empty.log");
-        fs::write(&nonempty_file_path, "A").unwrap();
         let nonempty_file = File::open(nonempty_file_path).unwrap();
-        let nonempty_file_size = nonempty_file.metadata().unwrap().len() as usize;
+        // let chunks2 = indexer
+        //     .index_file(&nonempty_file, &out_path, true, nonempty_file_size, false)
+        //     .expect("could not index file");
         let chunks2 = create_index_and_mapping(IndexingConfig {
             tag: "tag",
             max_lines: 5,
@@ -353,11 +383,11 @@ mod tests {
             in_file: nonempty_file,
             out_path: &out_path,
             append: true,
-            source_file_size: nonempty_file_size,
+            source_file_size,
             to_stdout: false,
             status_updates: true,
         })
-        .expect("could not index file");
+        .unwrap();
         let out_file_content: String = fs::read_to_string(out_path).expect("could not read file");
         println!("outfile: {}\nchunks: {:?}", out_file_content, chunks2);
         assert_eq!(
@@ -431,6 +461,11 @@ mod tests {
     fn test_input_output(dir_name: &str) {
         let in_path = PathBuf::from(&dir_name).join("in.txt");
         let in_file = File::open(in_path).unwrap();
+        // let indexer = Indexer {
+        //     source_id: "TAG".to_string(),
+        //     max_lines: 5,
+        //     chunk_size: 1,
+        // };
         let tmp_dir = TempDir::new("test_dir").expect("could not create temp dir");
         let out_file_path = tmp_dir.path().join("tmpTestFile.txt.out");
         let in_file_size = in_file.metadata().unwrap().len() as usize;
@@ -447,6 +482,16 @@ mod tests {
             let content2 = fs::read_to_string(&out_file_path).expect("could not read file");
             println!("copied content was: {:?}", content2);
         }
+        // let chunks = indexer
+        //     .index_file(
+        //         &in_file,
+        //         &out_file_path,
+        //         append_use_case,
+        //         in_file_size,
+        //         false,
+        //     )
+        //     .unwrap();
+
         let chunks = create_index_and_mapping(IndexingConfig {
             tag: "TAG",
             max_lines: 5,
@@ -468,7 +513,7 @@ mod tests {
             "comparing\n{}\nto expected:\n{}",
             out_file_content, expected_content
         );
-        assert_eq!(expected_content, out_file_content);
+        assert_eq!(expected_content.trim_end(), out_file_content.trim_end());
         assert_eq!(true, chunks_fit_together(&chunks), "chunks need to fit");
     }
 

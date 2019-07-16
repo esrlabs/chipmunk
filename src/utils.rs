@@ -1,9 +1,13 @@
 use std::fs;
+use std::str;
+use std::char;
 use std::fmt::Display;
 use std::io::{BufReader, Read, Seek, SeekFrom};
 
 pub const ROW_NUMBER_SENTINAL: char = '\u{0002}';
+// pub const ROW_NUMBER_SENTINAL_SLICE: &[u8] = &[0x2];
 pub const PLUGIN_ID_SENTINAL: char = '\u{0003}';
+// pub const PLUGIN_ID_SENTINAL_SLICE: &[u8] = &[0x3];
 pub const SENTINAL_LENGTH: usize = 1;
 const PEEK_END_SIZE: usize = 12;
 
@@ -19,7 +23,7 @@ pub fn is_newline(c: char) -> bool {
 #[inline]
 pub fn create_tagged_line_d<T: Display>(
     tag: &str,
-    out_buffer: &mut std::io::Write,
+    out_buffer: &mut dyn std::io::Write,
     trimmed_line: T,
     line_nr: usize,
     with_newline: bool,
@@ -43,28 +47,52 @@ pub fn create_tagged_line_d<T: Display>(
 #[inline]
 pub fn create_tagged_line(
     tag: &str,
-    out_buffer: &mut std::io::Write,
+    out_buffer: &mut dyn std::io::Write,
     trimmed_line: &str,
     line_nr: usize,
     with_newline: bool,
 ) -> std::io::Result<usize> {
-    write!(
-        out_buffer,
-        "{}{}{}{}{}{}{}{}",
-        trimmed_line, //trimmed_line,
-        PLUGIN_ID_SENTINAL,
-        tag,
-        PLUGIN_ID_SENTINAL,
-        ROW_NUMBER_SENTINAL,
-        line_nr,
-        ROW_NUMBER_SENTINAL,
-        if with_newline { "\n" } else { "" },
-    )?;
-    Ok(trimmed_line.len()
-        + 4 * SENTINAL_LENGTH
-        + tag.len()
-        + linenr_length(line_nr)
-        + if with_newline { 1 } else { 0 })
+    // // let line_tag = &[trimmed_line, tag].join([PLUGIN_ID_SENTINAL]);
+    // let v: &[u8] = &[0x3];
+    // let mut tmp = [0; 4];
+    // let p = PLUGIN_ID_SENTINAL.encode_utf8(&mut tmp);
+    // let mut tmp2 = [0; 4];
+    // let p2 = ROW_NUMBER_SENTINAL.encode_utf8(&mut tmp2);
+    // let nr = line_nr.to_string();
+    // // let p = unsafe { str::from_utf8_unchecked(v) };
+    // // let line_tag = &[trimmed_line, p, tag, p, p2, &nr[..], p2].join("");
+    if with_newline {
+        writeln!(
+            out_buffer,
+            "{}",
+            format_args!(
+                "{}{}{}{}{}{}{}",
+                trimmed_line,
+                PLUGIN_ID_SENTINAL,
+                tag,
+                PLUGIN_ID_SENTINAL,
+                ROW_NUMBER_SENTINAL,
+                line_nr,
+                ROW_NUMBER_SENTINAL,
+            ),
+        )?;
+    } else {
+        write!(
+            out_buffer,
+            "{}",
+            format_args!(
+                "{}{}{}{}{}{}{}",
+                trimmed_line,
+                PLUGIN_ID_SENTINAL,
+                tag,
+                PLUGIN_ID_SENTINAL,
+                ROW_NUMBER_SENTINAL,
+                line_nr,
+                ROW_NUMBER_SENTINAL,
+            ),
+        )?;
+    }
+    Ok(trimmed_line.len() + 4 * SENTINAL_LENGTH + tag.len() + linenr_length(line_nr) + 1) // nl
 }
 
 #[inline]

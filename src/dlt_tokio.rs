@@ -133,7 +133,7 @@ impl Encoder for Codec {
 }
 
 fn decode_message(
-    buf: &mut Buf,
+    buf: &mut dyn Buf,
     header_type: u8,
     message_counter: u8,
     overall_message_length: usize,
@@ -174,7 +174,7 @@ fn decode_message(
 }
 
 fn decode_payload<T: ByteOrder>(
-    buf: &mut Buf,
+    buf: &mut dyn Buf,
     verbose: bool,
     arg_count: usize,
     payload_length: usize,
@@ -228,7 +228,7 @@ fn decode_storage_header(src: &mut BytesMut) -> Result<Option<dlt::StorageHeader
 }
 
 fn decode_header(
-    buf: &mut Buf,
+    buf: &mut dyn Buf,
     header_type: u8,
     message_counter: u8,
     overall_message_length: u16,
@@ -265,7 +265,7 @@ fn decode_header(
     })
 }
 
-fn decode_extended_header(buf: &mut Buf) -> Result<dlt::ExtendedHeader, Error> {
+fn decode_extended_header(buf: &mut dyn Buf) -> Result<dlt::ExtendedHeader, Error> {
     let message_info = buf.get_u8();
     let argument_count = buf.get_u8();
     let application_id = dlt::zero_terminated_string(&buf.bytes()[..4])?;
@@ -287,7 +287,7 @@ fn decode_extended_header(buf: &mut Buf) -> Result<dlt::ExtendedHeader, Error> {
 }
 
 fn decode_variable_name<T: ByteOrder>(
-    rdr: &mut Read,
+    rdr: &mut dyn Read,
     with_variable_info: bool,
 ) -> Result<Option<String>, Error> {
     if with_variable_info {
@@ -301,7 +301,7 @@ fn decode_variable_name<T: ByteOrder>(
 }
 
 fn decode_variable_info<T: ByteOrder>(
-    rdr: &mut Read,
+    rdr: &mut dyn Read,
     with_variable_info: bool,
 ) -> Result<(Option<String>, Option<String>), Error> {
     if with_variable_info {
@@ -322,7 +322,7 @@ fn decode_variable_info<T: ByteOrder>(
     }
 }
 
-fn decode_argument<T: ByteOrder>(buf: &mut Buf) -> Result<dlt::Argument, Error> {
+fn decode_argument<T: ByteOrder>(buf: &mut dyn Buf) -> Result<dlt::Argument, Error> {
     let mut rdr = buf.reader();
 
     let info = rdr.read_u32::<T>()?;
