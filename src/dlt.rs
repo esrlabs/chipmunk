@@ -885,7 +885,12 @@ pub struct Message {
 }
 pub const DLT_COLUMN_SENTINAL: char = '\u{0004}';
 pub const DLT_ARGUMENT_SENTINAL: char = '\u{0005}';
-pub const DLT_NEWLINE_SENTINAL: char = '\u{0006}';
+pub const DLT_NEWLINE_SENTINAL_SLICE: &[u8] = &[0x6];
+
+lazy_static! {
+    static ref DLT_NEWLINE_SENTINAL_STR: &'static str =
+        unsafe { str::from_utf8_unchecked(DLT_NEWLINE_SENTINAL_SLICE) };
+}
 
 /// will format dlt Message with those fields:
 /// EColumn.DATETIME,
@@ -1010,7 +1015,7 @@ impl fmt::Display for Value {
                 "{}",
                 s.lines()
                     .collect::<Vec<&str>>()
-                    .join(&DLT_NEWLINE_SENTINAL.to_string()[..])
+                    .join(&DLT_NEWLINE_SENTINAL_STR)
             ),
             Value::Raw(value) => write!(f, "{:02X?}", value),
         }
@@ -1343,10 +1348,6 @@ mod tests {
             seconds: 0x4DC9_2C26,
             microseconds: 0x000C_A2D8,
         };
-        // let storage_header = StorageHeader {
-        //     timestamp,
-        //     ecu_id: "abc".to_string(),
-        // };
         b.iter(|| format!("{}", timestamp));
     }
     #[bench]

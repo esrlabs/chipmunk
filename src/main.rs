@@ -1,5 +1,7 @@
 #![feature(test)]
 extern crate test;
+#[macro_use]
+extern crate lazy_static;
 use crate::chunks::serialize_chunks;
 use crate::parse::{
     line_matching_format_expression, match_format_string_in_file, read_format_string_options,

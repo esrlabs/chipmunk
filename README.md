@@ -157,6 +157,10 @@ match: Ok(true)
 
 # Changelog
 
+### [0.26.0] - 07/16/2019
+  * loop over parse results instead of using an iterator
+  * with an iterator we create too many heap allocations for strings
+
 ### [0.25.1] - 07/09/2019
   * remove debug println in dlt parsing
 

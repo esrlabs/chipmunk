@@ -1,5 +1,6 @@
 use crate::timedline::*;
 use chrono::{NaiveDate, NaiveDateTime, Utc, Datelike};
+use std::borrow::Cow;
 use nom::bytes::complete::tag;
 
 use nom::character::complete::{char, digit1};
@@ -122,23 +123,23 @@ fn any_date_format(input: &str) -> IResult<&str, FormatPiece> {
         seperator,
     ))(input)
 }
-fn escape_metacharacters(c: char) -> String {
+fn escape_metacharacters(c: char) -> Cow<'static, str> {
     match c {
         //  .|?*+(){}[]DD
-        ' ' => r"\s+".to_string(),
-        '.' => r"\.".to_string(),
-        '|' => r"\|".to_string(),
-        '?' => r"\?".to_string(),
-        '+' => r"\+".to_string(),
-        '(' => r"\(".to_string(),
-        ')' => r"\)".to_string(),
-        '[' => r"\[".to_string(),
-        '{' => r"\{".to_string(),
-        '^' => r"\^".to_string(),
-        '$' => r"\$".to_string(),
-        '*' => r"\*".to_string(),
-        c => c.to_string(),
-    }
+        ' ' => r"\s+",
+        '.' => r"\.",
+        '|' => r"\|",
+        '?' => r"\?",
+        '+' => r"\+",
+        '(' => r"\(",
+        ')' => r"\)",
+        '[' => r"\[",
+        '{' => r"\{",
+        '^' => r"\^",
+        '$' => r"\$",
+        '*' => r"\*",
+        _ => return c.to_string().into(),
+    }.into()
 }
 fn date_expression(input: &str) -> IResult<&str, Vec<FormatPiece>> {
     let parser = fold_many0(
@@ -146,7 +147,7 @@ fn date_expression(input: &str) -> IResult<&str, Vec<FormatPiece>> {
         (String::from(""), Vec::new()),
         |mut acc: (String, Vec<_>), item| {
             match item {
-                FormatPiece::SeperatorChar(c) => acc.0.push_str(escape_metacharacters(c).as_str()),
+                FormatPiece::SeperatorChar(c) => acc.0.push_str(&escape_metacharacters(c)),
                 _ => {
                     if !acc.0.is_empty() {
                         acc.1.push(FormatPiece::Seperator(acc.0));
