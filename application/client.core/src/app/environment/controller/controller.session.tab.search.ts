@@ -3,6 +3,7 @@ import { ControllerSessionTabSearchOutput } from './controller.session.tab.searc
 import { ControllerSessionTabStreamOutput } from './controller.session.tab.stream.output';
 import { ControllerSessionTabSearchState} from './controller.session.tab.search.state';
 import { ControllerSessionTabSearchViewState } from './controller.session.tab.search.view.state';
+import { ControllerSessionScope } from './controller.session.tab.scope';
 import QueueService, { IQueueController } from '../services/standalone/service.queue';
 import * as Toolkit from 'logviewer.client.toolkit';
 import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
@@ -13,6 +14,7 @@ export interface IControllerSessionStream {
     guid: string;
     stream: ControllerSessionTabStreamOutput;
     transports: string[];
+    scope: ControllerSessionScope;
 }
 
 export interface IRequest {
@@ -35,6 +37,7 @@ export class ControllerSessionTabSearch {
         onRequestsUpdated: new Subject<IRequest[]>(),
     };
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
+    private _scope: ControllerSessionScope;
     private _output: ControllerSessionTabSearchOutput;
     private _state: ControllerSessionTabSearchState;
     private _view: ControllerSessionTabSearchViewState;
@@ -47,11 +50,13 @@ export class ControllerSessionTabSearch {
     constructor(params: IControllerSessionStream) {
         this._guid = params.guid;
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearch: ${params.guid}`);
+        this._scope = params.scope;
         this._output = new ControllerSessionTabSearchOutput({
             guid: params.guid,
             requestDataHandler: this._requestStreamData.bind(this),
             stream: params.stream,
             getActiveSearchRequests: this._getActiveSearchRequests.bind(this),
+            scope: this._scope,
         });
         this._queue = new Toolkit.Queue(this._logger.error.bind(this._logger), 0);
         this._state = new ControllerSessionTabSearchState(params.guid);

@@ -1,15 +1,15 @@
 import * as Toolkit from 'logviewer.client.toolkit';
 import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
-import { ControllerSessionTabStreamOutput } from '../../../../controller/controller.session.tab.stream.output';
-import { ControllerSessionTabSourcesState } from '../../../../controller/controller.session.tab.sources.state';
-import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../../controller/controller.session.tab.stream.bookmarks';
-import { ControllerSessionScope } from '../../../../controller/controller.session.tab.scope';
-import SourcesService from '../../../../services/service.sources';
-import OutputParsersService from '../../../../services/standalone/service.output.parsers';
-import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
+import { ControllerSessionTabStreamOutput } from '../../../controller/controller.session.tab.stream.output';
+import { ControllerSessionTabSourcesState } from '../../../controller/controller.session.tab.sources.state';
+import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../controller/controller.session.tab.stream.bookmarks';
+import { ControllerSessionScope } from '../../../controller/controller.session.tab.scope';
+import SourcesService from '../../../services/service.sources';
+import OutputParsersService from '../../../services/standalone/service.output.parsers';
+import OutputRedirectionsService from '../../../services/standalone/service.output.redirections';
 import { IComponentDesc } from 'logviewer-client-containers';
-import { AOutputRenderComponent } from '../../../../interfaces/interface.output.render';
+import { AOutputRenderComponent } from '../../../interfaces/interface.output.render';
 
 enum ERenderType {
     standard = 'standard',
@@ -41,12 +41,14 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     @Input() public str: string | undefined;
     @Input() public sessionId: string | undefined;
     @Input() public position: number | undefined;
+    @Input() public positionInStream: number | undefined;
     @Input() public pluginId: number | undefined;
     @Input() public controller: ControllerSessionTabStreamOutput | undefined;
     @Input() public bookmarks: ControllerSessionTabStreamBookmarks | undefined;
     @Input() public sources: ControllerSessionTabSourcesState | undefined;
     @Input() public scope: ControllerSessionScope | undefined;
     @Input() public rank: number = 1;
+    @Input() public parent: string;
 
     public _ng_sourceName: string | undefined;
     public _ng_number: string | undefined;
@@ -57,6 +59,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     public _ng_component: IComponentDesc | undefined;
     public _ng_render: ERenderType = ERenderType.standard;
     public _ng_render_api: any;
+    public _ng_numberDelimiter: string = '\u0008';
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
@@ -97,10 +100,10 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     }
 
     public ngAfterContentChecked() {
-        if (this.position.toString() === this._ng_number) {
+        if (this._getPosition().toString() === this._ng_number) {
             return;
         }
-        this._ng_bookmarked = this.bookmarks.isBookmarked(this.position);
+        this._ng_bookmarked = this.bookmarks.isBookmarked(this._getPosition());
         if (this.str === undefined) {
             this._pending();
         } else {
@@ -121,20 +124,20 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     }
 
     public _ng_onRowSelect() {
-        OutputRedirectionsService.select('stream', this.sessionId, this.position);
+        OutputRedirectionsService.select(this.parent, this.sessionId, this._getPosition());
     }
 
     public _ng_onNumberClick() {
         if (this.bookmarks === undefined) {
             return;
         }
-        if (this.bookmarks.isBookmarked(this.position)) {
-            this.bookmarks.remove(this.position);
+        if (this.bookmarks.isBookmarked(this._getPosition())) {
+            this.bookmarks.remove(this._getPosition());
             this._ng_bookmarked = false;
         } else {
             this.bookmarks.add({
                 str: this.str,
-                position: this.position,
+                position: this._getPosition(),
                 pluginId: this.pluginId,
                 rank: this.rank,
             });
@@ -145,9 +148,17 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         }
     }
 
+    private _getPosition(): number | undefined {
+        if (this.parent === 'stream') {
+            return this.position;
+        } else if (this.parent === 'search') {
+            return this.positionInStream;
+        }
+    }
+
     private _onAddedBookmark(bookmark: IBookmark) {
         const prev: boolean = this._ng_bookmarked;
-        this._ng_bookmarked = this.position === bookmark.position ? true : this._ng_bookmarked;
+        this._ng_bookmarked = this._getPosition() === bookmark.position ? true : this._ng_bookmarked;
         if (prev !== this._ng_bookmarked) {
             this._cdRef.detectChanges();
         }
@@ -155,7 +166,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
 
     private _onRemovedBookmark(index: number) {
         const prev: boolean = this._ng_bookmarked;
-        this._ng_bookmarked = this.position === index ? false : this._ng_bookmarked;
+        this._ng_bookmarked = this._getPosition() === index ? false : this._ng_bookmarked;
         if (prev !== this._ng_bookmarked) {
             this._cdRef.detectChanges();
         }
@@ -175,7 +186,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         } else {
             this._ng_sourceName = sourceName;
         }
-        this._ng_number = this.position.toString();
+        this._ng_number = this._getPosition().toString();
         this._ng_number_filler = this._getNumberFiller();
         const render: Toolkit.ATypedRowRender<any> | undefined = OutputParsersService.getTypedRowRender(sourceName);
         if (render === undefined) {
@@ -201,7 +212,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     }
 
     private _pending() {
-        this._ng_number = this.position.toString();
+        this._ng_number = this._getPosition().toString();
         this._ng_number_filler = this._getNumberFiller();
         this._ng_component = undefined;
     }
@@ -250,7 +261,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
             str: this.str,
             sessionId: this.sessionId,
             pluginId: this.pluginId,
-            position: this.position,
+            position: this._getPosition(),
             scope: this.scope,
             output: this.controller,
         });

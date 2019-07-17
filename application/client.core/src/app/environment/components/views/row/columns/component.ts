@@ -1,14 +1,14 @@
 import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import SourcesService from '../../../../../services/service.sources';
-import OutputParsersService from '../../../../../services/standalone/service.output.parsers';
-import { ControllerSessionScope } from '../../../../../controller/controller.session.tab.scope';
-import { AOutputRenderComponent, IOutputRenderInputs } from '../../../../../interfaces/interface.output.render';
+import SourcesService from '../../../../services/service.sources';
+import OutputParsersService from '../../../../services/standalone/service.output.parsers';
+import { ControllerSessionScope } from '../../../../controller/controller.session.tab.scope';
+import { AOutputRenderComponent, IOutputRenderInputs } from '../../../../interfaces/interface.output.render';
 import { ControllerColumns, IColumn, IColumns } from './controller.columns';
 import { Subscription, Subject } from 'rxjs';
-import TabsSessionsService from '../../../../../services/service.sessions.tabs';
-import { ControllerSessionTab } from '../../../../../controller/controller.session.tab';
-import { ControllerSessionTabStreamOutput } from '../../../../../controller/controller.session.tab.stream.output';
+import TabsSessionsService from '../../../../services/service.sessions.tabs';
+import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
+import { ControllerSessionTabStreamOutput } from '../../../../controller/controller.session.tab.stream.output';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { ViewOutputRowColumnsHeadersComponent, CColumnsHeadersKey } from './headers/component';
 

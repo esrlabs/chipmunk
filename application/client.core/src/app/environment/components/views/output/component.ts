@@ -4,7 +4,7 @@ import { ControllerSessionTab, IInjectionAddEvent, IInjectionRemoveEvent } from 
 import { ControllerSessionTabStreamOutput, IStreamPacket, IStreamState, ILoadedRange } from '../../../controller/controller.session.tab.stream.output';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 import { IDataAPI, IRange, IRow, IRowsPacket, IStorageInformation, DockDef, ComplexScrollBoxComponent } from 'logviewer-client-complex';
-import { ViewOutputRowComponent, IScope } from './row/component';
+import { ViewOutputRowComponent, IScope } from '../row/component';
 import { ViewOutputControlsComponent, IButton } from './controls/component';
 import ViewsEventsService from '../../../services/standalone/service.views.events';
 import FileOpenerService from '../../../services/service.file.opener';
@@ -12,6 +12,7 @@ import EventsHubService from '../../../services/standalone/service.eventshub';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import PluginsService from '../../../services/service.plugins';
 import * as Toolkit from 'logviewer.client.toolkit';
+import { removeRowNumber } from '../row/helpers';
 
 const CSettings: {
     preloadCount: number,
@@ -64,6 +65,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
             getRange: this._api_getRange.bind(this),
             getStorageInfo: this._api_getStorageInfo.bind(this),
             updatingDone: this._api_updatingDone.bind(this),
+            cleanUpClipboard: this._api_cleanUpClipboard.bind(this),
             onSourceUpdated: new Subject<void>(),
             onStorageUpdated: new Subject<IStorageInformation>(),
             onScrollTo: new Subject<number>(),
@@ -153,6 +155,10 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
 
     private _api_updatingDone(range: IRange): void {
         this._output.setFrame(range);
+    }
+
+    private _api_cleanUpClipboard(str: string): string {
+        return removeRowNumber(str);
     }
 
     private _onReset() {

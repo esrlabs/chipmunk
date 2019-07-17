@@ -18,6 +18,7 @@ export interface IStreamPacket {
     controller: ControllerSessionTabStreamOutput;
     bookmarks: ControllerSessionTabStreamBookmarks;
     sources: ControllerSessionTabSourcesState;
+    parent: string;
 }
 
 export interface IStreamState {
@@ -441,6 +442,7 @@ export class ControllerSessionTabStreamOutput {
                 bookmarks: this._bookmarks,
                 sources: this._sources,
                 scope: this._scope,
+                parent: 'stream',
             };
         }).filter((packet: IStreamPacket) => {
             return (packet.position !== -1);
@@ -460,6 +462,7 @@ export class ControllerSessionTabStreamOutput {
                 bookmarks: this._bookmarks,
                 sources: this._sources,
                 scope: this._scope,
+                parent: 'stream',
             };
         });
         return rows;
