@@ -1,3 +1,4 @@
+import * as Toolkit from 'logviewer.client.toolkit';
 import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
 import { ControllerSessionTabStreamOutput } from '../../../../controller/controller.session.tab.stream.output';
@@ -5,7 +6,7 @@ import { ControllerSessionTabSourcesState } from '../../../../controller/control
 import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../../controller/controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope } from '../../../../controller/controller.session.tab.scope';
 import SourcesService from '../../../../services/service.sources';
-import OutputParsersService, { ITypedRowComponent } from '../../../../services/standalone/service.output.parsers';
+import OutputParsersService from '../../../../services/standalone/service.output.parsers';
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
 import { IComponentDesc } from 'logviewer-client-containers';
 import { AOutputRenderComponent } from '../../../../interfaces/interface.output.render';
@@ -176,24 +177,24 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         }
         this._ng_number = this.position.toString();
         this._ng_number_filler = this._getNumberFiller();
-        // Check for external render
-        this._ng_component = OutputParsersService.getRowComponent(sourceName);
-        if (this._ng_component !== undefined) {
-            this._ng_render = ERenderType.external;
-            // Update render component
-            this._updateRenderComp();
-            // No need to check other types
-            return;
+        const render: Toolkit.ATypedRowRender<any> | undefined = OutputParsersService.getTypedRowRender(sourceName);
+        if (render === undefined) {
+            this._ng_render = ERenderType.standard;
+            return this._updateRenderComp();
         }
-        // Check custom render
-        const custom = OutputParsersService.getCustomRowRender(sourceName);
-        if (custom !== undefined) {
-            switch (custom.type) {
-                case ERenderType.columns:
-                    this._ng_render = ERenderType.columns;
-                    this._ng_render_api = custom.api;
-                    break;
-            }
+        switch (render.getType()) {
+            case Toolkit.ETypedRowRenders.columns:
+                this._ng_render = ERenderType.columns;
+                this._ng_render_api = render.getAPI();
+                break;
+            case Toolkit.ETypedRowRenders.external:
+                this._ng_render = ERenderType.external;
+                this._ng_component = {
+                    factory: (render.getAPI() as Toolkit.ATypedRowRenderAPIExternal).getFactory(),
+                    resolved: true,
+                    inputs: (render.getAPI() as Toolkit.ATypedRowRenderAPIExternal).getInputs()
+                };
+                break;
         }
         // Update render component
         this._updateRenderComp();

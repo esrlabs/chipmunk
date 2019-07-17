@@ -28,7 +28,7 @@
         [output]="controller"
         [api]="_ng_render_api" 
         (click)="_ng_onRowSelect()"></app-views-output-row-columns>
-    <app-views-output-row-custom
+    <app-views-output-row-external
         #rendercomp
         *ngIf="_ng_component !== undefined"
         [str]="str" 
@@ -37,7 +37,7 @@
         [pluginId]="pluginId" 
         [scope]="scope"
         [component]="_ng_component"
-        (click)="_ng_onRowSelect()"></app-views-output-row-custom>
+        (click)="_ng_onRowSelect()"></app-views-output-row-external>
 </div>
 <div *ngIf="_ng_isPending() === true" [attr.class]="'wrapper noreset ' + (_ng_bookmarked ? 'bookmarked' : '')">
     <span class="source-name" *ngIf="_ng_source">n/d</span>

@@ -7,6 +7,8 @@ import { Observable, Subject, Subscription as SubscriptionRX } from 'rxjs';
 import { IDefaultView, IDefaultSideBarApp } from '../states/state.default';
 import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
 import SourcesService from './service.sources';
+import PluginsService from './service.plugins';
+import { IAPI } from 'logviewer.client.toolkit';
 
 export { ControllerSessionTabSearch, IRequest } from '../controller/controller.session.tab.search';
 
@@ -20,6 +22,7 @@ export class TabsSessionsService implements IService {
     private _tabsService: TabsService = new TabsService();
     private _subscriptions: { [key: string]: Subscription | SubscriptionRX | undefined } = { };
     private _currentSessionGuid: string;
+    private _sessionsEventsHub: Toolkit.ControllerSessionsEvents = new Toolkit.ControllerSessionsEvents();
     private _defaults: {
         views: IDefaultView[],
         sidebarApps: IDefaultSideBarApp[],
@@ -170,6 +173,33 @@ export class TabsSessionsService implements IService {
 
     public getActive(): ControllerSessionTab | undefined {
         return this._sessions.get(this._currentSessionGuid);
+    }
+
+    public getPluginAPI(pluginId: number): IAPI {
+        return {
+            getIPC: () => {
+                const plugin = PluginsService.getPluginById(pluginId);
+                if (plugin === undefined) {
+                    return undefined;
+                }
+                return plugin.ipc;
+            },
+            getActiveSessionId: () => {
+                return this._currentSessionGuid;
+            },
+            addOutputInjection: (injection: Toolkit.IComponentInjection, type: Toolkit.EViewsTypes) => {
+                return this.getActive().addOutputInjection(injection, type);
+            },
+            removeOutputInjection: (id: string, type: Toolkit.EViewsTypes) => {
+                return this.getActive().removeOutputInjection(id, type);
+            },
+            getViewportEventsHub: () => {
+                return this.getActive().getViewportEventsHub();
+            },
+            getSessionsEventsHub: () => {
+                return this._sessionsEventsHub;
+            },
+        };
     }
 
     private _onSourceChanged(guid: string, sourceId: number) {

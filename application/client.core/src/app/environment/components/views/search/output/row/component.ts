@@ -155,6 +155,10 @@ export class ViewSearchOutputRowComponent implements AfterContentChecked, AfterC
         // Generate safe html
         this._ng_number = this.positionInStream.toString();
         this._ng_number_filler = this._getNumberFiller();
+        // Generate safe html
+        this._ng_safeHtml = this._sanitizer.bypassSecurityTrustHtml(html);
+        this._ng_component = undefined;
+        /*
         // Check for external render
         const component: IComponentDesc | undefined = OutputParsersService.getRowComponent(sourceName);
         if (component === undefined) {
@@ -164,7 +168,7 @@ export class ViewSearchOutputRowComponent implements AfterContentChecked, AfterC
         } else {
             const inputs = Object.assign(component.inputs, {
                 html: html,
-                api: TabsSessionsService.getActive().getComponentAPI(),
+                api: TabsSessionsService.getPluginAPI(this.pluginId),
                 update: this._subjects.update
             });
             if (this._ng_component !== undefined) {
@@ -175,6 +179,7 @@ export class ViewSearchOutputRowComponent implements AfterContentChecked, AfterC
             }
             this._ng_safeHtml = null;
         }
+        */
     }
 
     private _acceptPendingRow() {

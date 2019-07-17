@@ -11,7 +11,7 @@ export class ControllerSessionsEvents {
         onSessionChange: 'onSessionChange',
         onSessionOpen: 'onSessionOpen',
         onSessionClose: 'onSessionClose',
-    }
+    };
 
     private _emitter: Emitter = new Emitter();
 

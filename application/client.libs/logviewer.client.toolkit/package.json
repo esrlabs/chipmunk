@@ -1,6 +1,6 @@
 {
   "name": "logviewer.client.toolkit",
-  "version": "0.0.28",
+  "version": "0.0.43",
   "description": "Toolkit for developing render part of plugin of logviewer ",
   "main": "./dist/plugin.toolkit.js",
   "types": "./dist/plugin.toolkit.d.ts",
@@ -20,7 +20,7 @@
     "jasmine-ts": "^0.3.0",
     "ts-node": "^7.0.1",
     "tslint": "^5.11.0",
-    "typescript": "^3.1.3"
+    "typescript": "^3.5.3"
   },
   "dependencies": {
     "rxjs": "^6.5.2",

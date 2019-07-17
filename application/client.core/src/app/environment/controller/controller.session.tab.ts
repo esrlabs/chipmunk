@@ -36,6 +36,7 @@ export class ControllerSessionTab {
     private _stream: ControllerSessionTabStream;
     private _search: ControllerSessionTabSearch;
     private _states: ControllerSessionTabStates;
+    private _viewportEventsHub: Toolkit.ControllerViewportEvents;
     private _sidebarTabsService: TabsService;
     private _defaultsSideBarApps: Array<{ guid: string, name: string, component: any }>;
     private _subscriptions: { [key: string]: Subscription | IPCSubscription } = { };
@@ -61,6 +62,7 @@ export class ControllerSessionTab {
             stream: this._stream.getOutputStream()
         });
         this._states = new ControllerSessionTabStates(params.guid);
+        this._viewportEventsHub = new Toolkit.ControllerViewportEvents();
         this._defaultsSideBarApps = params.defaultsSideBarApps;
         this._sidebar_update();
         PluginsService.fire().onSessionOpen(this._sessionId);
@@ -73,6 +75,7 @@ export class ControllerSessionTab {
             Object.keys(this._subscriptions).forEach((key: string) => {
                 this._subscriptions[key].unsubscribe();
             });
+            this._viewportEventsHub.destroy();
             this._sidebarTabsService.clear();
             this._sidebarTabsService = undefined;
             Promise.all([
@@ -171,11 +174,8 @@ export class ControllerSessionTab {
         });
     }
 
-    public getComponentAPI(): Toolkit.IAPI {
-        return {
-            addOutputInjection: this.addOutputInjection,
-            removeOutputInjection: this.removeOutputInjection,
-        };
+    public getViewportEventsHub(): Toolkit.ControllerViewportEvents {
+        return this._viewportEventsHub;
     }
 
     public addSidebarApp(name: string, component: any, inputs: { [key: string]: any }, options?: ISidebarTabOptions): string {
