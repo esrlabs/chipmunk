@@ -68,7 +68,8 @@ export class TabsSessionsService implements IService {
         const session = new ControllerSessionTab({
             guid: guid,
             transports: ['processes', 'serial', 'dlt', 'dlt-render'],
-            defaultsSideBarApps: this._defaults.sidebarApps
+            defaultsSideBarApps: this._defaults.sidebarApps,
+            sessionsEventsHub: this._sessionsEventsHub,
         });
         this._subscriptions[`onSourceChanged:${guid}`] = session.getObservable().onSourceChanged.subscribe(this._onSourceChanged.bind(this, guid));
         this._sessions.set(guid, session);
@@ -176,30 +177,7 @@ export class TabsSessionsService implements IService {
     }
 
     public getPluginAPI(pluginId: number): IAPI {
-        return {
-            getIPC: () => {
-                const plugin = PluginsService.getPluginById(pluginId);
-                if (plugin === undefined) {
-                    return undefined;
-                }
-                return plugin.ipc;
-            },
-            getActiveSessionId: () => {
-                return this._currentSessionGuid;
-            },
-            addOutputInjection: (injection: Toolkit.IComponentInjection, type: Toolkit.EViewsTypes) => {
-                return this.getActive().addOutputInjection(injection, type);
-            },
-            removeOutputInjection: (id: string, type: Toolkit.EViewsTypes) => {
-                return this.getActive().removeOutputInjection(id, type);
-            },
-            getViewportEventsHub: () => {
-                return this.getActive().getViewportEventsHub();
-            },
-            getSessionsEventsHub: () => {
-                return this._sessionsEventsHub;
-            },
-        };
+        return this.getActive().getPluginAPI(pluginId);
     }
 
     private _onSourceChanged(guid: string, sourceId: number) {

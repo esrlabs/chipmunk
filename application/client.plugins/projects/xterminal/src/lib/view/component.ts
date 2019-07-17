@@ -16,7 +16,7 @@ export class SidebarViewComponent implements AfterViewInit, OnDestroy {
 
     @ViewChild('xtermholder') _ng_xtermholder: ElementRef;
 
-    @Input() public ipc: Toolkit.PluginIPC;
+    @Input() public api: Toolkit.IAPI;
     @Input() public session: string;
 
     private _subscription: any;
@@ -30,7 +30,7 @@ export class SidebarViewComponent implements AfterViewInit, OnDestroy {
         if (this._subscription !== undefined) {
             this._subscription.destroy();
             // Send command to host to destroy pty
-            this.ipc.sentToHost({
+            this.api.getIPC().sentToHost({
                 session: this.session,
                 command: EHostCommands.destroy
             }).then((response) => {
@@ -42,7 +42,7 @@ export class SidebarViewComponent implements AfterViewInit, OnDestroy {
 
     ngAfterViewInit() {
         // Subscription to income events
-        this._subscription = this.ipc.subscribeToHost((message: any) => {
+        this._subscription = this.api.getIPC().subscribeToHost((message: any) => {
             if (typeof message !== 'object' && message === null) {
                 // Unexpected format of message
                 return;
@@ -67,7 +67,7 @@ export class SidebarViewComponent implements AfterViewInit, OnDestroy {
         this._xterm.open(this._ng_xtermholder.nativeElement);
         this._setTheme(this._xterm);
         this._xterm.on('data', (data) => {
-            this.ipc.requestToHost({
+            this.api.getIPC().requestToHost({
                 session: this.session,
                 command: EHostCommands.write,
                 data: data
@@ -76,7 +76,7 @@ export class SidebarViewComponent implements AfterViewInit, OnDestroy {
             });
         });
         // Send command to host to create instance of pty
-        this.ipc.requestToHost({
+        this.api.getIPC().requestToHost({
             session: this.session,
             command: EHostCommands.create
         }).then((response) => {

@@ -30,7 +30,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
 
     @ViewChild('cmdinput') _ng_input: ElementRef;
 
-    @Input() public ipc: Toolkit.PluginIPC;
+    @Input() public api: Toolkit.IAPI;
     @Input() public session: string;
     @Input() public sessions: Toolkit.ControllerSessionsEvents;
 
@@ -56,7 +56,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
 
     ngAfterViewInit() {
         // Subscription to income events
-        this._subscriptions.incomeIPCHostMessage = this.ipc.subscribeToHost((message: any) => {
+        this._subscriptions.incomeIPCHostMessage = this.api.getIPC().subscribeToHost((message: any) => {
             if (typeof message !== 'object' && message === null) {
                 // Unexpected format of message
                 return;
@@ -94,7 +94,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         if (this._ng_cmd.trim() === '') {
             return;
         }
-        this.ipc.requestToHost({
+        this.api.getIPC().requestToHost({
             stream: this.session,
             command: EHostCommands.command,
             cmd: this._ng_cmd,
@@ -107,7 +107,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         if (!this._ng_working) {
             return;
         }
-        this.ipc.requestToHost({
+        this.api.getIPC().requestToHost({
             stream: this.session,
             command: EHostCommands.stop,
         }, this.session).catch((error: Error) => {
@@ -116,7 +116,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     }
 
     private _sendInput(event: KeyboardEvent) {
-        this.ipc.requestToHost({
+        this.api.getIPC().requestToHost({
             stream: this.session,
             command: EHostCommands.write,
             input: event.key
@@ -215,14 +215,14 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
 
     private _initState() {
         // Request current settings
-        this.ipc.requestToHost({
+        this.api.getIPC().requestToHost({
             stream: this.session,
             command: EHostCommands.getSettings,
         }, this.session).then((response) => {
             this._settingsUpdated(response.settings);
         });
         // Request current cwd
-        this.ipc.requestToHost({
+        this.api.getIPC().requestToHost({
             stream: this.session,
             command: EHostCommands.getSettings,
         }, this.session).then((response) => {

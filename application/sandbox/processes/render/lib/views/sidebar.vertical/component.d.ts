@@ -8,7 +8,7 @@ export interface IEnvVar {
 export declare class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     private _cdRef;
     _ng_input: ElementRef;
-    ipc: Toolkit.PluginIPC;
+    api: Toolkit.IAPI;
     session: string;
     sessions: Toolkit.ControllerSessionsEvents;
     _ng_envvars: IEnvVar[];
