@@ -1,13 +1,4 @@
-export declare const customTypedRowRender: {
-    isTypeMatch: (sourceName: string) => boolean;
-    type: string;
-    api: {
-        getHeaders: () => string[];
-        getColumns: (str: string) => string[];
-        getDefaultWidths: () => {
-            width: number;
-            min: number;
-        }[];
-    };
-};
+import { DLTRowColumns } from './lib/render/row.columns';
+declare const customRowRender: DLTRowColumns;
+export { customRowRender };
 export * from './lib/module';

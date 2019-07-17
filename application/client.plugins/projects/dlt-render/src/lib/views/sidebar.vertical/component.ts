@@ -3,7 +3,6 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, ElementRef, ViewChild } from '@angular/core';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { Subscription } from 'rxjs';
-import ServiceColumns, { IColumnValue, CDelimiters } from '../../services/service.columns';
 import { SafeHtml, DomSanitizer } from '@angular/platform-browser';
 
 @Component({
@@ -17,7 +16,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     @Input() public ipc: Toolkit.PluginIPC;
     @Input() public session: string;
 
-    public _ng_columns: IColumnValue[] = [];
+    public _ng_columns: Array<{ name: string, html: SafeHtml }> = [];
     public _ng_arguments: SafeHtml[] = [];
 
     private _subscriptions: { [key: string]: Subscription } = {};
@@ -32,11 +31,11 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     }
 
     public ngAfterViewInit() {
-        this._setColumns(ServiceColumns.getSelected());
-        this._subscriptions.onSelected = ServiceColumns.getObservable().onSelected.subscribe(this._onSelected.bind(this));
+        // this._setColumns(ServiceColumns.getSelected());
+        // this._subscriptions.onSelected = ServiceColumns.getObservable().onSelected.subscribe(this._onSelected.bind(this));
         this._cdRef.detectChanges();
     }
-
+    /*
     private _onSelected(columns: IColumnValue[]) {
         this._setColumns(columns);
         this._cdRef.detectChanges();
@@ -61,5 +60,5 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     private _hasArguments(str: string): boolean {
         return str.indexOf(CDelimiters.arguments) !== -1;
     }
-
+    */
 }

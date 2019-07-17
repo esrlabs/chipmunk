@@ -1,15 +1,13 @@
 import { NgModule } from '@angular/core';
-import { DLTRowComponent } from './views/row/component';
-import { DLTColumnsComponent } from './views/columns/component';
 import { SidebarVerticalComponent } from './views/sidebar.vertical/component';
 
 import { CommonModule } from '@angular/common';
 
 @NgModule({
-    entryComponents: [ DLTRowComponent, DLTColumnsComponent, SidebarVerticalComponent ],
-    declarations: [ DLTRowComponent, DLTColumnsComponent, SidebarVerticalComponent ],
+    entryComponents: [ SidebarVerticalComponent ],
+    declarations: [ SidebarVerticalComponent ],
     imports: [ CommonModule ],
-    exports: [ DLTRowComponent, DLTColumnsComponent, SidebarVerticalComponent ]
+    exports: [ SidebarVerticalComponent ]
 })
 
 export class PluginModule {
