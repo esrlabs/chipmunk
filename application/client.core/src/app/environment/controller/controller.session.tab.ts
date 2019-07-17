@@ -5,6 +5,7 @@ import { ControllerSessionTabStream } from './controller.session.tab.stream';
 import { ControllerSessionTabSearch } from './controller.session.tab.search';
 import { ControllerSessionTabStates } from './controller.session.tab.states';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
+import { ControllerSessionScope } from './controller.session.tab.scope';
 import { TabsService } from 'logviewer-client-complex';
 import * as Toolkit from 'logviewer.client.toolkit';
 
@@ -37,6 +38,7 @@ export class ControllerSessionTab {
     private _stream: ControllerSessionTabStream;
     private _search: ControllerSessionTabSearch;
     private _states: ControllerSessionTabStates;
+    private _scope: ControllerSessionScope;
     private _viewportEventsHub: Toolkit.ControllerViewportEvents;
     private _sidebarTabsService: TabsService;
     private _defaultsSideBarApps: Array<{ guid: string, name: string, component: any }>;
@@ -54,15 +56,18 @@ export class ControllerSessionTab {
         this._sessionId = params.guid;
         this._transports = params.transports;
         this._sessionsEventsHub = params.sessionsEventsHub;
+        this._scope = new ControllerSessionScope(this._sessionId);
         this._logger = new Toolkit.Logger(`ControllerSession: ${params.guid}`);
         this._stream = new ControllerSessionTabStream({
             guid: params.guid,
-            transports: params.transports.slice()
+            transports: params.transports.slice(),
+            scope: this._scope,
         });
         this._search = new ControllerSessionTabSearch({
             guid: params.guid,
             transports: params.transports.slice(),
-            stream: this._stream.getOutputStream()
+            stream: this._stream.getOutputStream(),
+            scope: this._scope,
         });
         this._states = new ControllerSessionTabStates(params.guid);
         this._viewportEventsHub = new Toolkit.ControllerViewportEvents();

@@ -4,6 +4,7 @@ import * as Toolkit from 'logviewer.client.toolkit';
 import { ControllerSessionTabStreamOutput } from '../controller/controller.session.tab.stream.output';
 import { ControllerSessionTabStreamBookmarks, IBookmark } from './controller.session.tab.stream.bookmarks';
 import { ControllerSessionTabSourcesState } from './controller.session.tab.sources.state';
+import { ControllerSessionScope } from './controller.session.tab.scope';
 import OutputRedirectionsService from '../services/standalone/service.output.redirections';
 
 export type TRequestDataHandler = (start: number, end: number) => Promise<IPCMessages.StreamChunk>;
@@ -15,6 +16,7 @@ export interface IParameters {
     requestDataHandler: TRequestDataHandler;
     getActiveSearchRequests: TGetActiveSearchRequestsHandler;
     stream: ControllerSessionTabStreamOutput;
+    scope: ControllerSessionScope;
 }
 
 export interface ISearchStreamPacket {
@@ -24,8 +26,11 @@ export interface ISearchStreamPacket {
     pluginId: number;
     rank: number;
     sessionId: string;
+    scope: ControllerSessionScope;
+    controller: ControllerSessionTabStreamOutput;
     bookmarks: ControllerSessionTabStreamBookmarks;
     sources: ControllerSessionTabSourcesState;
+    parent: string;
 }
 
 export interface IStreamState {
@@ -64,6 +69,7 @@ export class ControllerSessionTabSearchOutput {
     private _getActiveSearchRequests: TGetActiveSearchRequestsHandler;
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
     private _stream: ControllerSessionTabStreamOutput;
+    private _scope: ControllerSessionScope;
     private _preloadTimestamp: number = -1;
     private _bookmakrs: ControllerSessionTabStreamBookmarks;
     private _sources: ControllerSessionTabSourcesState;
@@ -98,6 +104,7 @@ export class ControllerSessionTabSearchOutput {
         this._sources = new ControllerSessionTabSourcesState(this._guid);
         this._requestDataHandler = params.requestDataHandler;
         this._getActiveSearchRequests = params.getActiveSearchRequests;
+        this._scope = params.scope;
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearchOutput: ${this._guid}`);
         this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(this._guid, this._onRowSelected.bind(this));
         this._subscriptions.onAddedBookmark = this._bookmakrs.getObservable().onAdded.subscribe(this._onUpdateBookmarksState.bind(this));
@@ -324,6 +331,9 @@ export class ControllerSessionTabSearchOutput {
                     sessionId: this._guid,
                     bookmarks: this._bookmakrs,
                     sources: this._sources,
+                    parent: 'search',
+                    scope: this._scope,
+                    controller: this._stream
                 });
                 this._state.bookmarksCount += 1;
             });
@@ -558,6 +568,9 @@ export class ControllerSessionTabSearchOutput {
                 sessionId: this._guid,
                 bookmarks: this._bookmakrs,
                 sources: this._sources,
+                parent: 'search',
+                scope: this._scope,
+                controller: this._stream
             };
         }).filter((packet: ISearchStreamPacket) => {
             return (packet.positionInStream !== -1);
@@ -579,6 +592,9 @@ export class ControllerSessionTabSearchOutput {
                 sessionId: this._guid,
                 bookmarks: this._bookmakrs,
                 sources: this._sources,
+                parent: 'search',
+                scope: this._scope,
+                controller: this._stream
             };
         });
         return rows;

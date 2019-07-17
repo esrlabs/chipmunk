@@ -37,6 +37,7 @@ export interface IDataAPI {
     getComponentFactory: () => any;
     getItemHeight: () => number;
     updatingDone: (range: IRange) => void;
+    cleanUpClipboard?: (str: string) => string;
     onStorageUpdated: Subject<IStorageInformation>;
     onScrollTo: Subject<number>;
     onScrollUntil: Subject<number>;
@@ -970,7 +971,11 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         if (this._selection.focus.index === -1) {
             return undefined;
         }
-        copyTextToClipboard(this._selection.selection);
+        let selection: string = this._selection.selection;
+        if (this.API.cleanUpClipboard !== undefined) {
+            selection = this.API.cleanUpClipboard(selection);
+        }
+        copyTextToClipboard(selection);
         this._selection_restore();
     }
 

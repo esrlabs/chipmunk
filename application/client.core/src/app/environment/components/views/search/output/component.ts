@@ -4,10 +4,11 @@ import { ControllerSessionTab } from '../../../../controller/controller.session.
 import { ControllerSessionTabSearchOutput, ISearchStreamPacket, IStreamState, ILoadedRange } from '../../../../controller/controller.session.tab.search.output';
 import { IDataAPI, IRange, IRowsPacket, IStorageInformation, ComplexScrollBoxComponent } from 'logviewer-client-complex';
 import { IComponentDesc } from 'logviewer-client-containers';
-import { ViewSearchOutputRowComponent } from './row/component';
+import { ViewOutputRowComponent } from '../../row/component';
 import { ViewSearchControlsComponent, IButton } from './controls/component';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 import EventsHubService from '../../../../services/standalone/service.eventshub';
+import { removeRowNumber } from '../../row/helpers';
 
 const CSettings: {
     preloadCount: number,
@@ -53,6 +54,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
             getRange: this._api_getRange.bind(this),
             getStorageInfo: this._api_getStorageInfo.bind(this),
             updatingDone: this._api_updatingDone.bind(this),
+            cleanUpClipboard: this._api_cleanUpClipboard.bind(this),
             onSourceUpdated: new Subject<void>(),
             onStorageUpdated: new Subject<IStorageInformation>(),
             onScrollTo: new Subject<number>(),
@@ -109,7 +111,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
     }
 
     private _api_getComponentFactory(): any {
-        return ViewSearchOutputRowComponent;
+        return ViewOutputRowComponent;
     }
 
     private _api_getItemHeight(): number {
@@ -142,6 +144,10 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
 
     private _api_updatingDone(range: IRange): void {
         this._output.setFrame(range);
+    }
+
+    private _api_cleanUpClipboard(str: string): string {
+        return removeRowNumber(str);
     }
 
     private _onSessionChanged(session: ControllerSessionTab) {
