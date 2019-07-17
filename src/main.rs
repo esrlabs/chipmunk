@@ -484,7 +484,11 @@ fn main() {
                 source_file_size,
                 to_stdout: stdout,
                 status_updates,
-            }) {
+            },
+            dlt::DltFilterConfig {
+                min_log_level: dlt::LogLevel::Error,
+            },
+            ) {
                 Err(why) => {
                     eprintln!("couldn't process: {}", why);
                     std::process::exit(2)

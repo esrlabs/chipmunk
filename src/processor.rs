@@ -51,7 +51,7 @@ pub fn create_index_and_mapping(config: IndexingConfig) -> Result<Vec<Chunk>, Er
     };
     index_file(config, initial_line_nr)
 }
-pub fn create_index_and_mapping_dlt(config: IndexingConfig) -> Result<Vec<Chunk>, Error> {
+pub fn create_index_and_mapping_dlt(config: IndexingConfig, filter_conf: dlt::DltFilterConfig) -> Result<Vec<Chunk>, Error> {
     let initial_line_nr = match utils::next_line_nr(config.out_path) {
         Some(nr) => nr,
         None => {
@@ -62,7 +62,7 @@ pub fn create_index_and_mapping_dlt(config: IndexingConfig) -> Result<Vec<Chunk>
             std::process::exit(2)
         }
     };
-    index_dlt_file(config, initial_line_nr)
+    index_dlt_file(config, filter_conf, initial_line_nr)
 }
 fn get_out_file_and_size(
     append: bool,
@@ -177,7 +177,8 @@ pub fn index_file(config: IndexingConfig, initial_line_nr: usize) -> Result<Vec<
 }
 fn read_one_dlt_message<T: Read>(
     reader: &mut ReduxReader<T, MinBuffered>,
-) -> Result<Option<(usize, dlt::Message)>, Error> {
+    dlt_filter: &dlt::DltFilterConfig,
+) -> Result<Option<(usize, Option<dlt::Message>)>, Error> {
     loop {
         match reader.fill_buf() {
             Ok(content) => {
@@ -185,7 +186,7 @@ fn read_one_dlt_message<T: Read>(
                     return Ok(None);
                 }
                 let available = content.len();
-                let res: nom::IResult<&[u8], dlt::Message> = dlt_parse::dlt_message(content);
+                let res: nom::IResult<&[u8], Option<dlt::Message>> = dlt_parse::dlt_message(content, dlt_filter.min_log_level);
                 match res {
                     Ok(r) => {
                         let consumed = available - r.0.len();
@@ -206,7 +207,7 @@ fn read_one_dlt_message<T: Read>(
         }
     }
 }
-pub fn index_dlt_file(config: IndexingConfig, initial_line_nr: usize) -> Result<Vec<Chunk>, Error> {
+pub fn index_dlt_file(config: IndexingConfig, dlt_filter: dlt::DltFilterConfig, initial_line_nr: usize) -> Result<Vec<Chunk>, Error> {
     let (out_file, current_out_file_size) = get_out_file_and_size(config.append, &config.out_path)?;
 
     let mut chunks = vec![];
@@ -220,8 +221,8 @@ pub fn index_dlt_file(config: IndexingConfig, initial_line_nr: usize) -> Result<
 
     let mut processed_bytes = get_processed_bytes(config.append, &config.out_path) as usize;
     loop {
-        match read_one_dlt_message(&mut reader) {
-            Ok(Some((consumed, msg))) => {
+        match read_one_dlt_message(&mut reader, &dlt_filter) {
+            Ok(Some((consumed, Some(msg)))) => {
                 // println!("consumed: {}", consumed);
                 reader.consume(consumed);
                 let written_bytes_len =
@@ -234,6 +235,19 @@ pub fn index_dlt_file(config: IndexingConfig, initial_line_nr: usize) -> Result<
                     chunks.push(chunk);
                     buf_writer.flush()?;
                 }
+                if config.status_updates {
+                    report_progress(
+                        line_nr,
+                        chunk_factory.get_current_byte_index(),
+                        processed_bytes,
+                        config.source_file_size,
+                    );
+                }
+            },
+            Ok(Some((consumed, None))) => {
+                reader.consume(consumed);
+                processed_bytes += consumed;
+                line_nr += 1;
                 if config.status_updates {
                     report_progress(
                         line_nr,

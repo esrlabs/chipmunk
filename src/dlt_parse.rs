@@ -587,7 +587,7 @@ fn dlt_payload<T: NomByteOrder>(
 /// payload: 1100 00000472 656D6F
 ///
 #[allow(dead_code)]
-pub fn dlt_message(input: &[u8]) -> IResult<&[u8], dlt::Message> {
+pub fn dlt_message(input: &[u8], min_log_level: dlt::LogLevel) -> IResult<&[u8], Option<dlt::Message>> {
     let (after_storage_and_normal_header, (storage_header, header)) =
         tuple((dlt_storage_header, dlt_standard_header))(input)?;
 
@@ -613,6 +613,18 @@ pub fn dlt_message(input: &[u8]) -> IResult<&[u8], dlt::Message> {
     } else {
         (after_storage_and_normal_header, None)
     };
+    if let Some(h) = &extended_header {
+        if h.filter_with_level(min_log_level) {
+            // no need to parse further
+            let len_header_ext_header_payload = header.overall_length as usize;
+            let header_type = header.header_type();
+            let header_len = dlt::calculate_standard_header_length(header_type);
+            let len_ext_header_payload = len_header_ext_header_payload - header_len as usize;
+
+            let (after_message, _) = take(len_ext_header_payload)(after_headers)?;
+            return Ok((after_message, None)); 
+        }
+    }
     let (i, payload) = if header.big_endian {
         dlt_payload::<BigEndian>(after_headers, verbose, payload_length, arg_count)?
     } else {
@@ -620,12 +632,12 @@ pub fn dlt_message(input: &[u8]) -> IResult<&[u8], dlt::Message> {
     };
     Ok((
         i,
-        dlt::Message {
+        Some(dlt::Message {
             storage_header,
             header,
             extended_header,
             payload,
-        },
+        }),
     ))
 }
 
@@ -1152,9 +1164,9 @@ mod tests {
             0x30, 0x78, 0x00, 0x42, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x82, 0x00, 0x00, 0x02,
             0x00, 0x29, 0x00,
         ];
-        let res1: IResult<&[u8], dlt::Message> = dlt_message(&raw1[..]);
+        let res1: IResult<&[u8], Option<dlt::Message>> = dlt_message(&raw1[..], dlt::LogLevel::Debug);
         println!("res1 was: {:?}", res1);
-        let res: IResult<&[u8], dlt::Message> = dlt_message(&raw[..]);
+        let res: IResult<&[u8], Option<dlt::Message>> = dlt_message(&raw[..], dlt::LogLevel::Debug);
         println!("res was: {:?}", res);
     }
     #[test]

@@ -27,6 +27,10 @@ use proptest::prelude::*;
 use std::str;
 
 #[derive(Debug, Clone, PartialEq, Arbitrary)]
+pub struct DltFilterConfig {
+    pub min_log_level: LogLevel,
+}
+#[derive(Debug, Clone, PartialEq, Arbitrary)]
 pub struct DltTimeStamp {
     pub seconds: u32,
     #[proptest(strategy = "0..=1_000_000u32")]
@@ -161,7 +165,7 @@ impl StandardHeader {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Arbitrary)]
+#[derive(Debug, PartialEq, PartialOrd , Clone, Copy, Arbitrary)]
 pub enum LogLevel {
     Fatal,
     Error,
@@ -275,6 +279,14 @@ impl ExtendedHeader {
         buf.put_zero_terminated_string(&self.application_id[..], 4);
         buf.put_zero_terminated_string(&self.context_id[..], 4);
         buf.to_vec()
+    }
+    pub fn filter_with_level(self: &ExtendedHeader, level: LogLevel) -> bool {
+        match self.message_type {
+            MessageType::Log(n) => {
+                level < n
+            },
+            _ => false,
+        }
     }
 }
 
@@ -1429,6 +1441,31 @@ mod tests {
             ],
             header.as_bytes()
         );
+    }
+    #[test]
+    fn test_filter_out_non_relevant_ext_headers() {
+        let extended_header = ExtendedHeader {
+            argument_count: 1,
+            verbose: true,
+            message_type: MessageType::Log(LogLevel::Debug),
+            application_id: "abc".to_string(),
+            context_id: "CON".to_string(),
+        };
+        assert!(!extended_header.filter_with_level(LogLevel::Verbose));
+        assert!(!extended_header.filter_with_level(LogLevel::Debug));
+        assert!(extended_header.filter_with_level(LogLevel::Info));
+        assert!(extended_header.filter_with_level(LogLevel::Warn));
+        assert!(extended_header.filter_with_level(LogLevel::Error));
+        assert!(extended_header.filter_with_level(LogLevel::Fatal));
+        let extended_header = ExtendedHeader {
+            argument_count: 1,
+            verbose: true,
+            message_type: MessageType::Control(ControlType::Request),
+            application_id: "abc".to_string(),
+            context_id: "CON".to_string(),
+        };
+        // other message types should not be fitered
+        assert!(!extended_header.filter_with_level(LogLevel::Fatal));
     }
     #[test]
     fn test_convert_extended_header_to_bytes() {
