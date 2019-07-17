@@ -2,8 +2,15 @@
  * Public API Surface of terminal
  */
 
-import { DLTRowComponent } from './lib/views/row/component';
-/*
+import { DLTRowColumns } from './lib/render/row.columns';
+debugger;
+const customRowRender = new DLTRowColumns();
+
+export { customRowRender };
+
+export * from './lib/module';
+
+ /*
 export const typedRowComponent = {
     isTypeMatch: (sourceName: string): boolean => {
         if (typeof sourceName !== 'string') {
@@ -22,7 +29,7 @@ export const typedRowComponent = {
     }
 };
 */
-
+/*
 export const customTypedRowRender = {
     isTypeMatch: (sourceName: string): boolean => {
         if (typeof sourceName !== 'string') {
@@ -70,5 +77,4 @@ export const customTypedRowRender = {
         }
     }
 };
-
-export * from './lib/module';
+*/

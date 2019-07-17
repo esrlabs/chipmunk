@@ -1,5 +1,4 @@
 import * as Toolkit from 'logviewer.client.toolkit';
-import { IComponentDesc } from 'logviewer-client-containers';
 import { Observable, Subject } from 'rxjs';
 import { ComponentFactory, ModuleWithComponentFactories } from '@angular/core';
 import { shadeColor, scheme_color_4, scheme_color_0 } from '../../theme/colors';
@@ -14,19 +13,6 @@ export interface ICommonParsers {
 }
 
 export type TTypeHandler = (sourceName: string) => boolean;
-
-export interface ITypedRowComponentDesc {
-    isTypeMatch: TTypeHandler;
-    component: {
-        selector: string;
-        inputs: { [key: string]: any }
-    };
-}
-
-export interface ITypedRowComponent {
-    isTypeMatch: TTypeHandler;
-    component: IComponentDesc;
-}
 
 export interface ITypedCustomRowComponent {
     isTypeMatch: TTypeHandler;
@@ -62,21 +48,16 @@ export class OutputParsersService {
         row: [],
         rest: [],
     };
-    private _typed: Map<string, ITypedRowComponent> = new Map();
-    private _custom: Map<string, ITypedCustomRowComponent> = new Map();
     private _plugins: Map<number, IPluginParsers> = new Map();
     private _search: Map<string, IRequest[]> = new Map();
     private _highlights: Map<string, IRequest[]> = new Map();
-    private _history: {
-        typedComSources: string[],
-        typedComAliases: Map<string, string>,
-        typedCustSources: string[],
-        typedCustAliases: Map<string, string>
+    private _typedRowRenders: Map<string, Toolkit.ATypedRowRender<any>> = new Map();
+    private _typedRowRendersHistory: {
+        sources: string[],
+        aliases: Map<string, string>,
     } = {
-        typedComSources: [],
-        typedComAliases: new Map(),
-        typedCustSources: [],
-        typedCustAliases: new Map(),
+        sources: [],
+        aliases: new Map(),
     };
     private _subjects: {
         onUpdatedSearch: Subject<void>,
@@ -105,7 +86,7 @@ export class OutputParsersService {
         // Check common
         this._setCommonParsers(module);
         // Check row components
-        this._setTypedRowComponent(module, mwcf);
+        this._setTypedRowExternalComponent(module, mwcf);
         // Check custom row renders
         this._setTypedCustomRowRender(module);
     }
@@ -124,13 +105,8 @@ export class OutputParsersService {
         this._highlights.set(sessionId, requests);
     }
 
-    public getRowComponent(sourceName: string): IComponentDesc | undefined {
-        const component: ITypedRowComponent | undefined = this._getTypedComponent(sourceName);
-        return component === undefined ? undefined : component.component;
-    }
-
-    public getCustomRowRender(sourceName: string): ITypedCustomRowComponent | undefined {
-        return this._getTypedCustomComponent(sourceName);
+    public getTypedRowRender(sourceName: string): Toolkit.ATypedRowRender<any> | undefined {
+        return this._getTypedRowRenderBySource(sourceName);
     }
 
     public row(str: string, pluginId?: number): string {
@@ -250,73 +226,75 @@ export class OutputParsersService {
         });
     }
 
-    private _setTypedRowComponent(module: { [key: string]: ITypedRowComponentDesc }, mwcf: ModuleWithComponentFactories<any>) {
+    private _setTypedRowExternalComponent(module: any, mwcf: ModuleWithComponentFactories<any>) {
         if (mwcf === undefined) {
             return;
         }
-        if (typeof module[Toolkit.EParsers.typedRowComponent] !== 'object' || module[Toolkit.EParsers.typedRowComponent] === null) {
+        const render: Toolkit.ATypedRowRender<Toolkit.ATypedRowRenderAPIExternal> = this._getTypedRowRender(module);
+        if (render === undefined) {
             return;
         }
-        if (typeof module[Toolkit.EParsers.typedRowComponent].isTypeMatch !== 'function') {
+        if (render.getType() !== Toolkit.ETypedRowRenders.external) {
             return;
         }
-        if (typeof module[Toolkit.EParsers.typedRowComponent].component !== 'object' || module[Toolkit.EParsers.typedRowComponent].component === null) {
+        if (!(render.getAPI() instanceof Toolkit.ATypedRowRenderAPIExternal)) {
+            this._logger.error(`Fail to set external render for row, because plugin doesn't have API<ATypedRowRenderAPIExternal> `);
             return;
         }
-        if (typeof module[Toolkit.EParsers.typedRowComponent].component.selector !== 'string') {
-            return;
-        }
-        const selector: string = module[Toolkit.EParsers.typedRowComponent].component.selector;
+        const selector: string = render.getAPI().getSelector();
         // Try to find component factory
         const factory: ComponentFactory<any> | undefined = mwcf.componentFactories.find(e => e.selector === selector);
         if (factory === undefined) {
             this._logger.warn(`Fail to find factory by selector "${selector}"`);
             return;
         }
-        const guid: string = Toolkit.guid();
-        this._typed.set(guid, {
-            isTypeMatch: module[Toolkit.EParsers.typedRowComponent].isTypeMatch,
-            component: {
-                factory: factory,
-                inputs: module[Toolkit.EParsers.typedRowComponent].component.inputs,
-                resolved: true,
-            },
-        });
+        render.getAPI().setFactory(factory);
+        this._typedRowRenders.set(Toolkit.guid(), render);
     }
 
     private _setTypedCustomRowRender(module: { [key: string]: ITypedCustomRowComponent }) {
-        if (typeof module[Toolkit.EParsers.customTypedRowRender] !== 'object' || module[Toolkit.EParsers.customTypedRowRender] === null) {
+        const render: Toolkit.ATypedRowRender<Toolkit.ATypedRowRenderAPIColumns> = this._getTypedRowRender(module);
+        if (render === undefined) {
             return;
         }
-        if (typeof module[Toolkit.EParsers.customTypedRowRender].isTypeMatch !== 'function') {
+        if (render.getType() === Toolkit.ETypedRowRenders.external) {
             return;
         }
-        if (typeof module[Toolkit.EParsers.customTypedRowRender].type !== 'string') {
+        const CTypedRowAPITable = {
+            [Toolkit.ETypedRowRenders.columns]: Toolkit.ATypedRowRenderAPIColumns,
+        };
+        if (CTypedRowAPITable[render.getType()] === undefined) {
+            this._logger.error(`Fail to find expected class for typed row render.`);
             return;
         }
-        if (typeof module[Toolkit.EParsers.customTypedRowRender].api !== 'object' || module[Toolkit.EParsers.customTypedRowRender].api === null) {
+        if (!(render.getAPI() instanceof CTypedRowAPITable[render.getType()])) {
+            this._logger.error(`Fail to set external render for row, because plugin doesn't have API<${CTypedRowAPITable[render.getType()].name}> `);
             return;
         }
-        const guid: string = Toolkit.guid();
-        this._custom.set(guid, {
-            isTypeMatch: module[Toolkit.EParsers.customTypedRowRender].isTypeMatch,
-            type: module[Toolkit.EParsers.customTypedRowRender].type,
-            api: module[Toolkit.EParsers.customTypedRowRender].api,
-        });
+        this._typedRowRenders.set(Toolkit.guid(), render);
     }
 
-    private _getTypedComponent(sourceName: string): ITypedRowComponent | undefined {
-        const isSrcInHistory: boolean = this._history.typedComSources.indexOf(sourceName) !== -1;
-        if (isSrcInHistory) {
-            const storedGuid: string | undefined = this._history.typedComAliases.get(sourceName);
+    private _getTypedRowRender(module: any): Toolkit.ATypedRowRender<any> | undefined {
+        let render: Toolkit.ATypedRowRender<any> | undefined;
+        Object.keys(module).forEach((key: string) => {
+            if (module[key] instanceof Toolkit.ATypedRowRender) {
+                render = module[key];
+            }
+        });
+        return render;
+    }
+
+    private _getTypedRowRenderBySource(sourceName: string): Toolkit.ATypedRowRender<any> | undefined {
+        if (this._typedRowRendersHistory.sources.indexOf(sourceName) !== -1) {
+            const storedGuid: string | undefined = this._typedRowRendersHistory.aliases.get(sourceName);
             if (storedGuid === undefined) {
                 return undefined;
             }
-            return this._typed.get(storedGuid);
+            return this._typedRowRenders.get(storedGuid);
         }
-        this._history.typedComSources.push(sourceName);
+        this._typedRowRendersHistory.sources.push(sourceName);
         let guid: string | undefined;
-        this._typed.forEach((typedRowComponent: ITypedRowComponent, alias: string) => {
+        this._typedRowRenders.forEach((typedRowComponent: any, alias: string) => {
             if (typedRowComponent.isTypeMatch(sourceName)) {
                 guid = alias;
             }
@@ -324,31 +302,8 @@ export class OutputParsersService {
         if (guid === undefined) {
             return undefined;
         }
-        this._history.typedComAliases.set(sourceName, guid);
-        return this._typed.get(guid);
-    }
-
-    private _getTypedCustomComponent(sourceName: string): ITypedCustomRowComponent | undefined {
-        const isSrcInHistory: boolean = this._history.typedCustSources.indexOf(sourceName) !== -1;
-        if (isSrcInHistory) {
-            const storedGuid: string | undefined = this._history.typedCustAliases.get(sourceName);
-            if (storedGuid === undefined) {
-                return undefined;
-            }
-            return this._custom.get(storedGuid);
-        }
-        this._history.typedCustSources.push(sourceName);
-        let guid: string | undefined;
-        this._custom.forEach((typedRowComponent: ITypedCustomRowComponent, alias: string) => {
-            if (typedRowComponent.isTypeMatch(sourceName)) {
-                guid = alias;
-            }
-        });
-        if (guid === undefined) {
-            return undefined;
-        }
-        this._history.typedCustAliases.set(sourceName, guid);
-        return this._custom.get(guid);
+        this._typedRowRendersHistory.aliases.set(sourceName, guid);
+        return this._typedRowRenders.get(guid);
     }
 
 }

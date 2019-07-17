@@ -9,4 +9,5 @@ export class ControllerState<IState> {
     public save(session: string, state: IState) {
         this._states.set(session, state);
     }
+
 }

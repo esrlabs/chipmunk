@@ -12,10 +12,13 @@ export enum EViewsTypes {
 export enum EParsers {
     pluginRowParser = 'pluginRowParser',
     pluginRestParser = 'pluginRestParser',
-    typedRowComponent = 'typedRowComponent',
-    customTypedRowRender = 'customTypedRowRender',
     commonRowParser = 'commonRowParser',
     commonRestParser = 'commonRestParser',
+}
+
+export enum ETypedRowRenders {
+    columns = 'columns',
+    external = 'external',
 }
 
 export enum EThemeType {

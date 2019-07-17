@@ -1,19 +1,21 @@
 {
   "compilerOptions": {
-    "declaration":true,
-    "outDir": "./dist/",
+    "baseUrl": "./",
+    "outDir": "./dist",
     "sourceMap": true,
-    "noImplicitAny": true,
+    "declaration": true,
     "module": "commonjs",
-    "target": "es6",
+    "target": "es5",
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "strict": true,
-    "baseUrl": ".",
-    "paths": {
-      "*": [
-          "./node_modules/*"
-      ]
-    }
+    "typeRoots": [
+      "node_modules/@types"
+    ],
+    "lib": [
+      "es2018",
+      "dom"
+    ]
   },
   "files": [
     "./src/plugin.toolkit.ts"
