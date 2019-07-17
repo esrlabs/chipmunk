@@ -11,6 +11,7 @@ export { ControllerSessionTabStreamOutput, IStreamPacket };
 export interface IControllerSessionStream {
     guid: string;
     transports: string[];
+    scope: ControllerSessionScope;
 }
 
 export class ControllerSessionTabStream {
@@ -32,7 +33,7 @@ export class ControllerSessionTabStream {
         this._guid = params.guid;
         this._transports = params.transports;
         this._logger = new Toolkit.Logger(`ControllerSessionTabStream: ${params.guid}`);
-        this._scope = new ControllerSessionScope(params.guid);
+        this._scope = params.scope;
         this._bookmarks = new ControllerSessionTabStreamBookmarks(params.guid);
         this._output = new ControllerSessionTabStreamOutput(params.guid, this._requestData.bind(this), this._bookmarks, this._scope);
         this._queue = new Toolkit.Queue(this._logger.error.bind(this._logger), 0);

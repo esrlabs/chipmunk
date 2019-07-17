@@ -1,10 +1,10 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, HostListener, AfterContentInit } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
 import { ControllerColumns, IColumn, IColumns } from '../controller.columns';
-import { ControllerSessionScope } from '../../../../../../controller/controller.session.tab.scope';
-import { ControllerSessionTabStreamOutput } from '../../../../../../controller/controller.session.tab.stream.output';
+import { ControllerSessionScope } from '../../../../../controller/controller.session.tab.scope';
+import { ControllerSessionTabStreamOutput } from '../../../../../controller/controller.session.tab.stream.output';
 import { IRowNumberWidthData, CRowNumberWidthKey } from '../../component';
-import ContextMenuService from '../../../../../../services/standalone/service.contextmenu';
+import ContextMenuService from '../../../../../services/standalone/service.contextmenu';
 import { ViewOutputRowColumnsHeadersMenuComponent } from './menu/component';
 
 export const CColumnsHeadersKey = 'CColumnsHeadersKey';

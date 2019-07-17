@@ -1,9 +1,9 @@
 import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import SourcesService from '../../../../../services/service.sources';
-import OutputParsersService from '../../../../../services/standalone/service.output.parsers';
-import { AOutputRenderComponent, IOutputRenderInputs } from '../../../../../interfaces/interface.output.render';
-import { ControllerSessionScope } from '../../../../../controller/controller.session.tab.scope';
+import SourcesService from '../../../../services/service.sources';
+import OutputParsersService from '../../../../services/standalone/service.output.parsers';
+import { AOutputRenderComponent, IOutputRenderInputs } from '../../../../interfaces/interface.output.render';
+import { ControllerSessionScope } from '../../../../controller/controller.session.tab.scope';
 
 @Component({
     selector: 'app-views-output-row-standard',

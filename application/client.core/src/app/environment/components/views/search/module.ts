@@ -6,14 +6,13 @@ import { ScrollingModule                        } from '@angular/cdk/scrolling';
 import { ViewSearchComponent                    } from './component';
 import { ViewSearchOutputComponent              } from './output/component';
 import { ViewSearchControlsComponent            } from './output/controls/component';
-import { ViewSearchOutputRowComponent           } from './output/row/component';
 
 import { PrimitiveModule                        } from 'logviewer-client-primitive';
 import { ContainersModule                       } from 'logviewer-client-containers';
 import { ComplexModule                          } from 'logviewer-client-complex';
 
 
-const entryComponents = [ ViewSearchComponent, ViewSearchOutputComponent, ViewSearchOutputRowComponent, ViewSearchControlsComponent ];
+const entryComponents = [ ViewSearchComponent, ViewSearchOutputComponent, ViewSearchControlsComponent ];
 const components = [ ViewSearchComponent, ...entryComponents ];
 
 @NgModule({
@@ -27,3 +26,4 @@ export class ViewSearchModule {
     constructor() {
     }
 }
+
