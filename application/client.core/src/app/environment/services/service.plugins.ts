@@ -153,7 +153,6 @@ export class PluginsService extends Toolkit.Emitter implements IService {
 
     private _loadAndInit(name: string, token: string, id: number, location: string): Promise<IPluginData> {
         return new Promise((resolve, reject) => {
-            debugger;
             Toolkit.sequences([
                 // Step 1. Delivery sources of module
                 this._loadAndInit_FetchPlugin.bind(this, name, token, id, location),        // Returns { string } - code of module

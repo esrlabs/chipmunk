@@ -15,7 +15,7 @@ export declare class SidebarVerticalComponent implements AfterViewInit, OnDestro
     private _cdRef;
     _ng_input_ip: InputStandardComponent;
     _ng_input_port: InputStandardComponent;
-    ipc: Toolkit.PluginIPC;
+    api: Toolkit.IAPI;
     session: string;
     _ng_state: EState;
     _ng_bytes: number;

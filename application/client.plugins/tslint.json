@@ -3,6 +3,7 @@
     "node_modules/codelyzer"
   ],
   "rules": {
+    "no-inferrable-types": false,
     "arrow-return-shorthand": true,
     "callable-types": true,
     "class-name": true,

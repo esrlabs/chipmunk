@@ -35,6 +35,6 @@ function createPort(name: string) {
 }
 
 export function test() {
-    // createPort(CPortA);
-    // createPort(CPortB);
+    createPort(CPortA);
+    createPort(CPortB);
 }

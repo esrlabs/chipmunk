@@ -11,7 +11,7 @@ interface IConnected {
 export declare class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     private _cdRef;
     _optionsCom: SidebarVerticalPortOptionsWriteComponent;
-    ipc: Toolkit.PluginIPC;
+    api: Toolkit.IAPI;
     session: string;
     sessions: Toolkit.ControllerSessionsEvents;
     private _subscriptions;

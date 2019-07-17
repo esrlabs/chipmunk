@@ -5,7 +5,7 @@ import { Subject } from 'rxjs';
 export declare class SerialRowComponent implements AfterViewInit, OnDestroy, AfterContentInit {
     private _cdRef;
     private _sanitizer;
-    ipc: Toolkit.PluginIPC;
+    api: Toolkit.IAPI;
     session: string;
     html: string;
     update: Subject<{
