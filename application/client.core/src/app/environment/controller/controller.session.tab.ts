@@ -12,6 +12,7 @@ export interface IControllerSession {
     guid: string;
     transports: string[];
     defaultsSideBarApps: Array<{ guid: string, name: string, component: any }>;
+    sessionsEventsHub: Toolkit.ControllerSessionsEvents;
 }
 
 export interface ISidebarTabOptions {
@@ -39,6 +40,7 @@ export class ControllerSessionTab {
     private _viewportEventsHub: Toolkit.ControllerViewportEvents;
     private _sidebarTabsService: TabsService;
     private _defaultsSideBarApps: Array<{ guid: string, name: string, component: any }>;
+    private _sessionsEventsHub: Toolkit.ControllerSessionsEvents;
     private _subscriptions: { [key: string]: Subscription | IPCSubscription } = { };
     private _subjects: {
         onOutputInjectionAdd: Subject<IInjectionAddEvent>,
@@ -51,6 +53,7 @@ export class ControllerSessionTab {
     constructor(params: IControllerSession) {
         this._sessionId = params.guid;
         this._transports = params.transports;
+        this._sessionsEventsHub = params.sessionsEventsHub;
         this._logger = new Toolkit.Logger(`ControllerSession: ${params.guid}`);
         this._stream = new ControllerSessionTabStream({
             guid: params.guid,
@@ -224,6 +227,33 @@ export class ControllerSessionTab {
         PluginsService.fire().onSessionChange(this._sessionId);
     }
 
+    public getPluginAPI(pluginId: number): Toolkit.IAPI {
+        return {
+            getIPC: () => {
+                const plugin = PluginsService.getPluginById(pluginId);
+                if (plugin === undefined) {
+                    return undefined;
+                }
+                return plugin.ipc;
+            },
+            getActiveSessionId: () => {
+                return this._sessionId;
+            },
+            addOutputInjection: (injection: Toolkit.IComponentInjection, type: Toolkit.EViewsTypes) => {
+                return this.addOutputInjection(injection, type);
+            },
+            removeOutputInjection: (id: string, type: Toolkit.EViewsTypes) => {
+                return this.removeOutputInjection(id, type);
+            },
+            getViewportEventsHub: () => {
+                return this.getViewportEventsHub();
+            },
+            getSessionsEventsHub: () => {
+                return this._sessionsEventsHub;
+            },
+        };
+    }
+
     private _sidebar_update() {
         if (this._sidebarTabsService !== undefined) {
             // Drop previous if was defined
@@ -268,7 +298,7 @@ export class ControllerSessionTab {
                     resolved: true,
                     inputs: {
                         session: this._sessionId,
-                        ipc: plugin.ipc,
+                        api: this.getPluginAPI(plugin.id),
                         sessions: plugin.controllers.sessions,
                     }
                 }

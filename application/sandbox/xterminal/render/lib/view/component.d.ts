@@ -3,7 +3,7 @@ import * as Toolkit from 'logviewer.client.toolkit';
 export declare class SidebarViewComponent implements AfterViewInit, OnDestroy {
     private _cdRef;
     _ng_xtermholder: ElementRef;
-    ipc: Toolkit.PluginIPC;
+    api: Toolkit.IAPI;
     session: string;
     private _subscription;
     private _xterm;

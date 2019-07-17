@@ -13,7 +13,7 @@ import { SafeHtml, DomSanitizer } from '@angular/platform-browser';
 
 export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
 
-    @Input() public ipc: Toolkit.PluginIPC;
+    @Input() public api: Toolkit.PluginIPC;
     @Input() public session: string;
 
     public _ng_columns: Array<{ name: string, html: SafeHtml }> = [];

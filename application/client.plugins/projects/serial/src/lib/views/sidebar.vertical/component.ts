@@ -32,7 +32,7 @@ const state: Toolkit.ControllerState<IState> = new Toolkit.ControllerState<IStat
 export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     @ViewChild('optionsCom') _optionsCom: SidebarVerticalPortOptionsWriteComponent;
 
-    @Input() public ipc: Toolkit.PluginIPC;
+    @Input() public api: Toolkit.IAPI;
     @Input() public session: string;
     @Input() public sessions: Toolkit.ControllerSessionsEvents;
 
@@ -60,7 +60,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
 
     ngAfterViewInit() {
         // Subscription to income events
-        this._subscriptions.incomeIPCHostMessage = this.ipc.subscribeToHost((message: any) => {
+        this._subscriptions.incomeIPCHostMessage = this.api.getIPC().subscribeToHost((message: any) => {
             if (typeof message !== 'object' && message === null) {
                 // Unexpected format of message
                 return;
@@ -135,7 +135,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         this._ng_error = undefined;
         this._ng_options = false;
         this._forceUpdate();
-        this.ipc.requestToHost({
+        this.api.getIPC().requestToHost({
             stream: this.session,
             command: EHostCommands.open,
             options: options,
@@ -179,7 +179,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         this._ng_options = false;
         this._forceUpdate();
         // Request list of available ports
-        this.ipc.requestToHost({
+        this.api.getIPC().requestToHost({
             stream: this.session,
             command: EHostCommands.close,
             path: port.comName,
@@ -262,7 +262,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     private _requestPortsList() {
         // Request list of available ports
         this._ng_ports = [];
-        this.ipc.requestToHost({
+        this.api.getIPC().requestToHost({
             stream: this.session,
             command: EHostCommands.list,
         }, this.session).then((response) => {

@@ -14,7 +14,7 @@ import { Subscription, Subject } from 'rxjs';
 
 export class SerialRowComponent implements AfterViewInit, OnDestroy, AfterContentInit {
 
-    @Input() public ipc: Toolkit.PluginIPC;
+    @Input() public api: Toolkit.IAPI;
     @Input() public session: string;
     @Input() public html: string;
     @Input() public update: Subject<{ [key: string]: any }>;
