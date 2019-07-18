@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
+import * as Toolkit from 'logviewer.client.toolkit';
 
 export enum ENotificationType {
     info = 'info',
@@ -12,6 +13,7 @@ export interface IOptions {
     closeDelay?: number;
     closable?: boolean;
     type?: ENotificationType;
+    once?: boolean;
 }
 
 export interface IButton {
@@ -41,6 +43,7 @@ export class NotificationsService {
 
     private subject = new Subject<INotification>();
     private _subscriptions: { [key: string]: Subscription } = {};
+    private _onceHashes: Map<string, boolean> = new Map();
 
     constructor() {
         this._subscriptions.onProcessNotification = ServiceElectronIpc.subscribe(IPCMessages.Notification, this._onProcessNotification.bind(this));
@@ -53,6 +56,9 @@ export class NotificationsService {
     }
 
     add(notification: INotification) {
+        if (this._isIgnored(notification)) {
+            return;
+        }
         this.subject.next(notification);
     }
 
@@ -74,5 +80,20 @@ export class NotificationsService {
                 closable: true,
             }
         });
+    }
+
+    private _isIgnored(notification: INotification): boolean {
+        if (notification.options === undefined) {
+            return false;
+        }
+        if (notification.options.once !== true) {
+            return false;
+        }
+        const hash: string = Toolkit.hash(notification.caption + notification.message);
+        if (this._onceHashes.has(hash)) {
+            return true;
+        }
+        this._onceHashes.set(hash, true);
+        return false;
     }
 }

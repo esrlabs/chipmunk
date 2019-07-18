@@ -11,6 +11,16 @@
     user-select: text;
     cursor: text;
     & div.wrapper{
+        position: relative;
+        & span.error {
+            position: absolute;
+            display: inline-block;
+            top: 2px;
+            margin-left: -15px;
+            color: @scheme-color-warning;
+            font-size: 10px;
+            line-height: 10px;
+        }
         & span.source-name {
             display: inline-block;
             position: relative;
