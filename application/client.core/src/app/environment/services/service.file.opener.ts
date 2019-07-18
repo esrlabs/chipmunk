@@ -4,7 +4,6 @@ import { Observable, Subject } from 'rxjs';
 import ServiceElectronIpc, { IPCMessages } from './service.electron.ipc';
 import TabsSessionsService from './service.sessions.tabs';
 import LayoutStateService from './standalone/service.layout.state';
-import { stringify } from 'querystring';
 
 export class FileOpenerService implements IService {
 
