@@ -6,4 +6,5 @@ import { LoggerParameters } from './tools.logger.parameters';
 import Subscription, { THandler } from './tools.subscription';
 import { sequences } from './tools.sequences';
 import * as regTools from './tools.regexp';
-export { guid, Emitter, Logger, LoggerParameters, Subscription, THandler, sequences, regTools, Queue };
+import { hash } from './tools.hash';
+export { guid, hash, Emitter, Logger, LoggerParameters, Subscription, THandler, sequences, regTools, Queue };
