@@ -54,5 +54,5 @@ application/electron/**/*.js
 application/electron/*.js
 **/platform
 !application/platform
-external
+./external
 TODO.md
