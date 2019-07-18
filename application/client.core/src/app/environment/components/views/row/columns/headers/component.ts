@@ -175,6 +175,12 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
         }
         const info: IRowNumberWidthData | undefined = this.scope.get(CRowNumberWidthKey);
         if (info === undefined) {
+            if (count < 25) {
+                this._timer = setTimeout(() => {
+                    // Update with short timeout, because root row component isn't update yet
+                    this._getOffset(true, count + 1);
+                });
+            }
             return;
         }
         if (this._ng_offset >= info.width) {
