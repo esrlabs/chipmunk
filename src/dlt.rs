@@ -28,7 +28,7 @@ use std::str;
 
 #[derive(Debug, Clone, PartialEq, Arbitrary)]
 pub struct DltFilterConfig {
-    pub min_log_level: LogLevel,
+    pub min_log_level: Option<LogLevel>,
 }
 #[derive(Debug, Clone, PartialEq, Arbitrary)]
 pub struct DltTimeStamp {
@@ -173,6 +173,8 @@ pub enum LogLevel {
     Info,
     Debug,
     Verbose,
+    #[proptest(strategy = "(7..=15u8).prop_map(LogLevel::Invalid)")]
+    Invalid(u8),
 }
 impl fmt::Display for LogLevel {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
@@ -183,6 +185,7 @@ impl fmt::Display for LogLevel {
             LogLevel::Info => f.write_str("INFO"),
             LogLevel::Debug => f.write_str("DEBUG"),
             LogLevel::Verbose => f.write_str("VERBOSE"),
+            LogLevel::Invalid(v) => write!(f, "INVALID (0x{:02X?})", v),
         }
     }
 }
@@ -252,6 +255,8 @@ pub enum MessageType {
     ApplicationTrace(ApplicationTraceType),
     NetworkTrace(NetworkTraceType),
     Control(ControlType),
+    #[proptest(strategy = "((0b100u8..0b111u8),(0..0b1111u8)).prop_map(MessageType::Unknown)")]
+    Unknown((u8, u8)),
 }
 pub const DLT_TYPE_LOG: u8 = 0b000;
 pub const DLT_TYPE_APP_TRACE: u8 = 0b001;
@@ -989,6 +994,7 @@ impl From<&LogLevel> for u8 {
             LogLevel::Info => res |= 0x4 << 4,
             LogLevel::Debug => res |= 0x5 << 4,
             LogLevel::Verbose => res |= 0x6 << 4,
+            LogLevel::Invalid(v) => res |= (v & 0b1111) << 4,
         }
         res
     }
@@ -1002,6 +1008,7 @@ impl Into<log::Level> for LogLevel {
             LogLevel::Info => log::Level::Info,
             LogLevel::Debug => log::Level::Debug,
             LogLevel::Verbose => log::Level::Trace,
+            LogLevel::Invalid(_) => log::Level::Trace,
         }
     }
 }
@@ -1141,12 +1148,9 @@ impl TryFrom<u8> for LogLevel {
             LEVEL_INFO => Ok(LogLevel::Info),
             LEVEL_DEBUG => Ok(LogLevel::Debug),
             LEVEL_VERBOSE => Ok(LogLevel::Verbose),
-            _ => {
-                eprintln!("Invalid LogLevel");
-                Err(Error::new(
-                    io::ErrorKind::Other,
-                    format!("Unknown log level {}", message_info >> 4),
-                ))
+            v => {
+                eprintln!("unexpected LogLevel: {} in message info {:b}", v, message_info);
+                Ok(LogLevel::Invalid(v))
             }
         }
     }
@@ -1253,8 +1257,8 @@ impl fmt::Display for MessageType {
             MessageType::ApplicationTrace(app_type) => app_type.fmt(f),
             MessageType::Control(c) => c.fmt(f),
             MessageType::Log(log_level) => log_level.fmt(f),
-            MessageType::NetworkTrace(log_level) => log_level.fmt(f),
-            // Value::Raw(value) => f.write_str(&format!("{:#X?}", value)[..]),
+            MessageType::NetworkTrace(trace_type) => trace_type.fmt(f),
+            MessageType::Unknown(v) => write!(f, "Unkown MSTP {:?}", v),
         }
     }
 }
@@ -1269,6 +1273,7 @@ impl From<&MessageType> for u8 {
             MessageType::ApplicationTrace(x) => 0x1 << 1 | u8::from(x),
             MessageType::NetworkTrace(x) => 0x2 << 1 | u8::from(x),
             MessageType::Control(x) => 0x3 << 1 | u8::from(x),
+            MessageType::Unknown((mstp,mtin)) => mstp << 1 | mtin << 4,
         }
     }
 }
@@ -1284,12 +1289,13 @@ impl TryFrom<u8> for MessageType {
                 message_info,
             )?)),
             DLT_TYPE_CONTROL => Ok(MessageType::Control(ControlType::try_from(message_info)?)),
-            _ => {
-                eprintln!("Unknown message trace type {}", (message_info >> 1) & 0b111);
-                Err(Error::new(
-                    io::ErrorKind::Other,
-                    format!("Unknown message trace type {}", (message_info >> 1) & 0b111),
-                ))
+            v => {
+                eprintln!("Unknown MSTP in Message Info (MSIN) {}", (message_info >> 1) & 0b111);
+                Ok(MessageType::Unknown((v, (message_info >> 4) & 0b1111)))
+                // Err(Error::new(
+                //     io::ErrorKind::Other,
+                //     format!("Unknown MSTP in Message Info (MSIN) {}", (message_info >> 1) & 0b111),
+                // ))
             }
         }
     }

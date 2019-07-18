@@ -193,10 +193,11 @@ fn read_one_dlt_message<T: Read>(
                         break Ok(Some((consumed, r.1)));
                     }
                     e => {
-                        if let Err(nom::Err::Incomplete(_)) = e {
-                            continue;
-                        } else {
-                            panic!(format!("error while iterating...{:?}", e));
+                        match e {
+                            Err(nom::Err::Incomplete(_)) => continue,
+                            Err(nom::Err::Error(_)) => panic!("nom error"),
+                            Err(nom::Err::Failure(_)) => panic!("nom failure"),
+                            _ => panic!("error while iterating..."),
                         }
                     }
                 }
@@ -221,6 +222,7 @@ pub fn index_dlt_file(config: IndexingConfig, dlt_filter: dlt::DltFilterConfig, 
 
     let mut processed_bytes = get_processed_bytes(config.append, &config.out_path) as usize;
     loop {
+        println!("line index: {}", line_nr);
         match read_one_dlt_message(&mut reader, &dlt_filter) {
             Ok(Some((consumed, Some(msg)))) => {
                 // println!("consumed: {}", consumed);

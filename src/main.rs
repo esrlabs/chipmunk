@@ -486,7 +486,8 @@ fn main() {
                 status_updates,
             },
             dlt::DltFilterConfig {
-                min_log_level: dlt::LogLevel::Error,
+                // min_log_level: Some(dlt::LogLevel::Error),
+                min_log_level: None,
             },
             ) {
                 Err(why) => {

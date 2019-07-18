@@ -157,6 +157,11 @@ match: Ok(true)
 
 # Changelog
 
+### [0.26.1] - 07/18/2019
+  * dlt parser: allow invalid values for some message info fields
+  * also: cope with invalid utf-8 encodings
+  * enable filter for log level
+
 ### [0.26.0] - 07/16/2019
   * loop over parse results instead of using an iterator
   * with an iterator we create too many heap allocations for strings

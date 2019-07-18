@@ -12,85 +12,7 @@ use nom::{
 };
 
 use std::str;
-// use std::fmt;
-// use std::io::{Read, BufRead};
-// use buf_redux::BufReader;
-// use buf_redux::policy::MinBuffered;
 
-// pub struct MessageIter<'a, T: Read> {
-//     reader: BufReader<T, MinBuffered>,
-//     #[allow(dead_code)]
-//     tag: &'a str,
-//     #[allow(dead_code)]
-//     processed_bytes: usize,
-//     #[allow(dead_code)]
-//     processed_lines: usize,
-// }
-// impl<'a, T: Read> MessageIter<'a, T> {
-//     pub fn new(fh: T, tag: &'a str, processed_lines: usize) -> MessageIter<'a, T> {
-//         let reader =
-//             BufReader::with_capacity(10 * 1024 * 1024, fh).set_policy(MinBuffered(10 * 1024));
-//         MessageIter {
-//             reader,
-//             tag,
-//             processed_bytes: 0,
-//             processed_lines,
-//         }
-//     }
-// }
-
-// pub struct CountedMessage {
-//     pub dlt_message: dlt::Message,
-//     pub line_index: usize,
-//     pub byte_index: usize,
-// }
-// impl fmt::Display for CountedMessage {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         self.dlt_message.fmt(f)
-//     }
-// }
-// impl<'a, T: Read> Iterator for MessageIter<'a, T> {
-//     type Item = CountedMessage;
-//     fn next(&mut self) -> Option<Self::Item> {
-//         let res = loop {
-//             match self.reader.fill_buf() {
-//                 Ok(content) => {
-//                     // println!("content: {}", content.len());
-//                     if content.is_empty() {
-//                         return None;
-//                     }
-//                     let available = content.len();
-//                     let res: IResult<&[u8], dlt::Message> = dlt_message(content);
-//                     match res {
-//                         Ok(r) => {
-//                             let consumed = available - r.0.len();
-//                             break (consumed, r.1);
-//                         }
-//                         e => {
-//                             if let Err(nom::Err::Incomplete(_)) = e {
-//                                 continue;
-//                             } else {
-//                                 panic!(format!("error while iterating...{:?}", e));
-//                             }
-//                         }
-//                     }
-//                 }
-//                 Err(e) => {
-//                     panic!("error while iterating...{}", e);
-//                 }
-//             }
-//         };
-//         self.reader.consume(res.0);
-//         let result = Some(CountedMessage {
-//             dlt_message: res.1,
-//             line_index: self.processed_lines,
-//             byte_index: self.processed_bytes,
-//         });
-//         self.processed_lines += 1;
-//         self.processed_bytes += res.0;
-//         result
-//     }
-// }
 fn parse_ecu_id(input: &[u8]) -> IResult<&[u8], &str> {
     dlt_zero_terminated_string(input, 4)
 }
@@ -181,16 +103,18 @@ fn dlt_extended_header(input: &[u8]) -> IResult<&[u8], dlt::ExtendedHeader> {
 
     let verbose = (message_info & dlt::VERBOSE_FLAG) != 0;
     match dlt::MessageType::try_from(message_info) {
-        Ok(message_type) => Ok((
-            i,
-            dlt::ExtendedHeader {
-                verbose,
-                argument_count,
-                message_type,
-                application_id: app_id.to_string(),
-                context_id: context_id.to_string(),
-            },
-        )),
+        Ok(message_type) => {
+            Ok((
+                i,
+                dlt::ExtendedHeader {
+                    verbose,
+                    argument_count,
+                    message_type,
+                    application_id: app_id.to_string(),
+                    context_id: context_id.to_string(),
+                },
+            ))
+        }
         Err(e) => {
             eprintln!("Invalid message type: {}", e);
             Err(nom::Err::Error((i, nom::error::ErrorKind::Verify)))
@@ -201,23 +125,20 @@ fn dlt_extended_header(input: &[u8]) -> IResult<&[u8], dlt::ExtendedHeader> {
 pub fn is_not_null(chr: u8) -> bool {
     chr != 0x0
 }
-#[inline]
-pub fn is_null(chr: u8) -> bool {
-    chr == 0x0
-}
-#[allow(clippy::type_complexity)]
-pub fn zeros(max: usize) -> Box<dyn Fn(&[u8]) -> IResult<&[u8], &[u8]>> {
-    Box::new(move |input| nom::bytes::streaming::take_while_m_n(max, max, is_null)(input))
-}
 fn dlt_zero_terminated_string(s: &[u8], size: usize) -> IResult<&[u8], &str> {
-    let id_parser = map(take_while_m_n(0, size, is_not_null), |x| unsafe {
-        nom::lib::std::str::from_utf8_unchecked(x)
-    });
-    let (rest, non_null) = id_parser(s)?;
-    let missing = size - non_null.len();
-    let (rest2, _) = zeros(missing)(rest)?;
-    Ok((rest2, non_null))
+    let (rest_with_null, content_without_null) = take_while_m_n(0, size, is_not_null)(s)?;
+    let res_str = match nom::lib::std::str::from_utf8(content_without_null) {
+        Ok(content) => content,
+        Err(e) => {
+            let (valid, _) = content_without_null.split_at(e.valid_up_to());
+            unsafe { nom::lib::std::str::from_utf8_unchecked(valid) }
+        },
+    };
+    let missing = size - content_without_null.len();
+    let (rest, _) = take(missing)(rest_with_null)?;
+    Ok((rest, res_str))
 }
+
 #[allow(clippy::type_complexity)]
 fn dlt_variable_name_and_unit<T: NomByteOrder>(
     type_info: &dlt::TypeInfo,
@@ -234,11 +155,8 @@ fn dlt_variable_name_and_unit<T: NomByteOrder>(
     }
 }
 fn dlt_variable_name<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], String> {
-    // println!("{:02X?}", input);
     let (i, size) = T::parse_u16(input)?;
-    // println!("{}", size);
     let (i2, name) = dlt_zero_terminated_string(i, size as usize)?;
-    // println!("name: {}", name);
     Ok((i2, name.to_string()))
 }
 pub trait NomByteOrder: Clone + Copy + Eq + Ord + PartialEq + PartialOrd {
@@ -366,10 +284,8 @@ fn dlt_fint<T: NomByteOrder>(width: dlt::FloatWidth) -> fn(&[u8]) -> IResult<&[u
 }
 fn dlt_type_info<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], dlt::TypeInfo> {
     let (i, info) = T::parse_u32(input)?;
-    // println!("get type info for {:b}", info);
     match dlt::TypeInfo::try_from(info) {
         Ok(type_info) => {
-            // println!("was type_info {:?}", type_info);
             Ok((i, type_info))
         }
         Err(_) => {
@@ -382,12 +298,12 @@ fn dlt_fixed_point<T: NomByteOrder>(
     input: &[u8],
     width: dlt::TypeLength,
 ) -> IResult<&[u8], dlt::FixedPoint> {
-    println!("width {:?} dlt_fixedpoint,input: \t{:02X?}", width, input);
+    // println!("width {:?} dlt_fixedpoint,input: \t{:02X?}", width, input);
     let (i, quantization) = T::parse_f32(input)?;
-    println!("parsed quantization: {:?}", quantization);
+    // println!("parsed quantization: {:?}", quantization);
     if width == dlt::TypeLength::BitLength32 {
         let (rest, offset) = T::parse_i32(i)?;
-        println!("parsed offset: {:?}", offset);
+        // println!("parsed offset: {:?}", offset);
         Ok((
             rest,
             dlt::FixedPoint {
@@ -587,7 +503,10 @@ fn dlt_payload<T: NomByteOrder>(
 /// payload: 1100 00000472 656D6F
 ///
 #[allow(dead_code)]
-pub fn dlt_message(input: &[u8], min_log_level: dlt::LogLevel) -> IResult<&[u8], Option<dlt::Message>> {
+pub fn dlt_message(
+    input: &[u8],
+    min_log_level: Option<dlt::LogLevel>,
+) -> IResult<&[u8], Option<dlt::Message>> {
     let (after_storage_and_normal_header, (storage_header, header)) =
         tuple((dlt_storage_header, dlt_standard_header))(input)?;
 
@@ -613,16 +532,18 @@ pub fn dlt_message(input: &[u8], min_log_level: dlt::LogLevel) -> IResult<&[u8],
     } else {
         (after_storage_and_normal_header, None)
     };
-    if let Some(h) = &extended_header {
-        if h.filter_with_level(min_log_level) {
-            // no need to parse further
-            let len_header_ext_header_payload = header.overall_length as usize;
-            let header_type = header.header_type();
-            let header_len = dlt::calculate_standard_header_length(header_type);
-            let len_ext_header_payload = len_header_ext_header_payload - header_len as usize;
+    if let Some(min_filter_level) = min_log_level {
+        if let Some(h) = &extended_header {
+            if h.filter_with_level(min_filter_level) {
+                // no need to parse further
+                let len_header_ext_header_payload = header.overall_length as usize;
+                let header_type = header.header_type();
+                let header_len = dlt::calculate_standard_header_length(header_type);
+                let len_ext_header_payload = len_header_ext_header_payload - header_len as usize;
 
-            let (after_message, _) = take(len_ext_header_payload)(after_headers)?;
-            return Ok((after_message, None)); 
+                let (after_message, _) = take(len_ext_header_payload)(after_headers)?;
+                return Ok((after_message, None));
+            }
         }
     }
     let (i, payload) = if header.big_endian {
@@ -649,6 +570,7 @@ mod tests {
     use proptest::prelude::*;
     use bytes::{BytesMut};
     use byteorder::{BigEndian};
+    use test::Bencher;
 
     static VALID_ECU_ID_FORMAT: &str = "[0-9a-zA-Z]{4}";
 
@@ -671,8 +593,6 @@ mod tests {
             Err(nom::Err::Incomplete(nom::Needed::Size(1))),
             parse_ecu_id(b"ecu")
         );
-        let sparkle_heart = vec![0, 159, 146, 150];
-        assert!(parse_ecu_id(&sparkle_heart).is_err());
     }
 
     fn fp_val_strategy(width32bit: bool) -> impl Strategy<Value = dlt::FixedPointValue> {
@@ -1148,7 +1068,7 @@ mod tests {
             0x82, 0x00, 0x00, 0x14, 0x00, 0x31, 0x36, 0x30, 0x2E, 0x34, 0x38, 0x2E, 0x31, 0x39,
             0x39, 0x2E, 0x31, 0x36, 0x2C, 0x33, 0x30, 0x35, 0x30, 0x31, 0x00,
         ];
-        let raw: Vec<u8> = vec![
+        let raw2: Vec<u8> = vec![
             0x44, 0x4C, 0x54, 0x01, 0x56, 0xA2, 0x91, 0x5C, 0x9C, 0x91, 0x0B, 0x00, 0x45, 0x43,
             0x55, 0x31, 0x3D, 0x41, 0x00, 0xA9, 0x45, 0x43, 0x55, 0x31, 0x00, 0x00, 0x01, 0x7F,
             0x00, 0x5B, 0xF7, 0x16, 0x51, 0x09, 0x56, 0x53, 0x6F, 0x6D, 0x76, 0x73, 0x73, 0x64,
@@ -1164,10 +1084,11 @@ mod tests {
             0x30, 0x78, 0x00, 0x42, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x82, 0x00, 0x00, 0x02,
             0x00, 0x29, 0x00,
         ];
-        let res1: IResult<&[u8], Option<dlt::Message>> = dlt_message(&raw1[..], dlt::LogLevel::Debug);
+        let res1: IResult<&[u8], Option<dlt::Message>> =
+            dlt_message(&raw1[..], Some(dlt::LogLevel::Debug));
         println!("res1 was: {:?}", res1);
-        let res: IResult<&[u8], Option<dlt::Message>> = dlt_message(&raw[..], dlt::LogLevel::Debug);
-        println!("res was: {:?}", res);
+        let res2: IResult<&[u8], Option<dlt::Message>> = dlt_message(&raw2[..], None);
+        println!("res was: {:?}", res2);
     }
     #[test]
     fn test_parse_fixed_point_argument() {
@@ -1194,6 +1115,16 @@ mod tests {
         let expected: IResult<&[u8], dlt::Argument> = Ok((b"----", argument));
         assert_eq!(expected, res);
     }
+
+
+    #[bench]
+    fn bench_dlt_zero_terminated_string(b: &mut Bencher) {
+        let mut buf = BytesMut::with_capacity(4);
+        let broken = vec![0x41, 0, 146, 150];
+        buf.extend_from_slice(&broken);
+        b.iter(|| dlt_zero_terminated_string(&buf, 4));
+    }
+
     #[test]
     fn test_dlt_zero_terminated_string_exact() {
         let mut buf = BytesMut::with_capacity(4);
@@ -1214,9 +1145,11 @@ mod tests {
     fn test_dlt_zero_terminated_string_less_data() {
         let mut buf = BytesMut::with_capacity(4);
         buf.extend_from_slice(b"id\0");
-        assert_eq!(
-            Err(nom::Err::Incomplete(nom::Needed::Size(1))),
-            dlt_zero_terminated_string(&buf, 4)
+        assert!(
+            match dlt_zero_terminated_string(&buf, 4) {
+                Err(nom::Err::Incomplete(nom::Needed::Size(_))) => true,
+                _ => false,
+            }
         );
         buf.clear();
         buf.extend_from_slice(b"id\0\0");
@@ -1235,10 +1168,11 @@ mod tests {
     #[test]
     fn test_dlt_zero_terminated_string_non_utf8() {
         let mut buf = BytesMut::with_capacity(4);
-        let sparkle_heart = vec![0, 159, 146, 150];
-        buf.extend_from_slice(&sparkle_heart);
+        let broken = vec![0x41, 0, 146, 150];
+        buf.extend_from_slice(&broken);
         let res: IResult<&[u8], &str> = dlt_zero_terminated_string(&buf, 4);
-        assert!(res.is_err());
+        let expected: IResult<&[u8], &str> = Ok((b"", "A"));
+        assert_eq!(expected, res);
     }
 
 }
