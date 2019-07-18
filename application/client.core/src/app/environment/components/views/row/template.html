@@ -8,6 +8,9 @@
             [attr.data-source-name]="_ng_sourceName"
             (click)="_ng_onToggleSource()"></span>
     <span #numbernode class="number" (click)="_ng_onNumberClick()"><span class="filler">{{_ng_number_filler}}</span>{{_ng_number}}{{_ng_numberDelimiter}}</span>
+    <span   class="error fas fa-exclamation-circle" 
+            *ngIf="_ng_error !== undefined"
+            [attr.title]="_ng_error"></span>
     <app-views-output-row-standard
         #rendercomp  
         *ngIf="_ng_render === 'standard'"
