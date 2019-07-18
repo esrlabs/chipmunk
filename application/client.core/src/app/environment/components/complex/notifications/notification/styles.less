@@ -21,6 +21,20 @@
             cursor: default;
             font-size: 0.95rem;
             .gradient(linear; darken(@scheme-color-5, 2%), lighten(@scheme-color-5, 2%));
+            & span.error-icon,
+            & span.warning-icon{
+                position: relative;
+                display: inline;
+                font-size: 13px;
+                line-height: 13px;
+                margin-right: 3px;
+            }
+            & span.error-icon{
+                color: @scheme-color-error;
+            }
+            & span.warning-icon{
+                color: @scheme-color-warning;
+            }
             & span.close-button{
                 position: absolute;
                 display: block;
