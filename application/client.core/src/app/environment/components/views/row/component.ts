@@ -11,6 +11,7 @@ import OutputRedirectionsService from '../../../services/standalone/service.outp
 import { IComponentDesc } from 'logviewer-client-containers';
 import { AOutputRenderComponent } from '../../../interfaces/interface.output.render';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
+import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 
 enum ERenderType {
     standard = 'standard',
@@ -26,6 +27,7 @@ export interface IRowNumberWidthData {
 }
 
 export const CRowNumberWidthKey = 'row-number-width-key';
+export const CRowLengthLimit = 10000;
 
 @Component({
     selector: 'app-views-output-row',
@@ -61,6 +63,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     public _ng_render: ERenderType = ERenderType.standard;
     public _ng_render_api: any;
     public _ng_numberDelimiter: string = '\u0008';
+    public _ng_error: string | undefined;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
@@ -70,7 +73,8 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         update: new Subject<{ [key: string]: any }>()
     };
 
-    constructor(private _cdRef: ChangeDetectorRef ) {
+    constructor(private _cdRef: ChangeDetectorRef,
+                private _notifications: NotificationsService) {
         this._onRankChanged = this._onRankChanged.bind(this);
         this._subscriptions.onUpdatedSearch = OutputParsersService.getObservable().onUpdatedSearch.subscribe(this._onUpdatedSearch.bind(this));
         this._subscriptions.onRepain = OutputParsersService.getObservable().onRepain.subscribe(this._onRepain.bind(this));
@@ -92,6 +96,19 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         }
         if (this._subscriptions.onRankChanged !== undefined) {
             return;
+        }
+        if (typeof this.str === 'string' && this.str.length > CRowLengthLimit) {
+            const length: number = this.str.length;
+            this.str = `${this.str.substr(0, CRowLengthLimit)}... [this line has ${length} chars. It's cropped to ${CRowLengthLimit}]`;
+            this._ng_error = `Row #${this._getPosition()} has length ${length} chars. Row is cropped to ${CRowLengthLimit}.`;
+            this._notifications.add({
+                caption: 'Length limit',
+                message: this._ng_error,
+                options: {
+                    closeDelay: 5000,
+                    once: true,
+                }
+            });
         }
         this._ng_source = this.sources.isVisible();
         this._subscriptions.onRankChanged = this.controller.getObservable().onRankChanged.subscribe(this._onRankChanged);
