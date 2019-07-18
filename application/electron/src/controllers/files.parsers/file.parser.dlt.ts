@@ -2,14 +2,9 @@ import { AFileParser, IFileParserFunc, IMapItem } from './interface';
 import { Transform } from 'stream';
 import * as path from 'path';
 import { Lvin, IIndexResult, IFileMapItem } from 'logviewer.lvin';
+import ServiceElectron from '../../services/service.electron';
 
 const ExtNames = ['dlt'];
-
-const CDelimiters = {
-    columns: '\u0004',
-    arguments: '\u0005',
-    linebr:  '\u0006',
-};
 
 export default class FileParser extends AFileParser {
 
@@ -74,6 +69,11 @@ export default class FileParser extends AFileParser {
                     return { rows: { from: item.r[0], to: item.r[1] }, bytes: { from: item.b[0], to: item.b[1] }};
                 }));
             }).catch((error: Error) => {
+                ServiceElectron.IPC.send(new ServiceElectron.IPCMessages.Notification({
+                    caption: `Error with: ${path.basename(srcFile)}`,
+                    message: error.message.length > 1500 ? `${error.message.substr(0, 1500)}...` : error.message,
+                    type: ServiceElectron.IPCMessages.Notification.Types.error,
+                }));
                 reject(error);
             });
         });
