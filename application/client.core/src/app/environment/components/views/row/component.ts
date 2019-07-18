@@ -10,6 +10,7 @@ import OutputParsersService from '../../../services/standalone/service.output.pa
 import OutputRedirectionsService from '../../../services/standalone/service.output.redirections';
 import { IComponentDesc } from 'logviewer-client-containers';
 import { AOutputRenderComponent } from '../../../interfaces/interface.output.render';
+import TabsSessionsService from '../../../services/service.sessions.tabs';
 
 enum ERenderType {
     standard = 'standard',
@@ -125,6 +126,22 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
 
     public _ng_onRowSelect() {
         OutputRedirectionsService.select(this.parent, this.sessionId, this._getPosition());
+        if (this.pluginId === -1) {
+            return;
+        }
+        const API: Toolkit.IAPI = TabsSessionsService.getPluginAPI(this.pluginId);
+        if (API === undefined) {
+            return;
+        }
+        API.getViewportEventsHub().getSubject().onRowSelected.next({
+            session: this.sessionId,
+            source: {
+                id: this.pluginId,
+                name: this._ng_sourceName,
+            },
+            str: this.str,
+            row: this._getPosition(),
+        });
     }
 
     public _ng_onNumberClick() {

@@ -1,5 +1,24 @@
 import * as Toolkit from 'logviewer.client.toolkit';
 
+export const CDelimiters = {
+    columns: '\u0004',
+    arguments: '\u0005',
+};
+
+export const CColumnsHeaders = [
+    'Datetime',
+    'ECUID',
+    'VERS',
+    'SID',
+    'MCNT',
+    'TMS',
+    'EID',
+    'APID',
+    'CTID',
+    'MSTP',
+    'PAYLOAD',
+];
+
 export class DLTRowColumnsAPI extends Toolkit.ATypedRowRenderAPIColumns {
 
     constructor() {
@@ -7,19 +26,7 @@ export class DLTRowColumnsAPI extends Toolkit.ATypedRowRenderAPIColumns {
     }
 
     public getHeaders(): string[] {
-        return [
-            'Datetime',
-            'ECUID',
-            'VERS',
-            'SID',
-            'MCNT',
-            'TMS',
-            'EID',
-            'APID',
-            'CTID',
-            'MSTP',
-            'PAYLOAD',
-        ];
+        return CColumnsHeaders;
     }
 
     public getColumns(str: string): string[] {
