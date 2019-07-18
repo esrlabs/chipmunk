@@ -1,14 +1,13 @@
 <p class="t-normal">All fields</p>
 <ul class="columns">
     <li class="column" *ngFor="let column of _ng_columns; let i = index">
-        <p class="field">Field</p>
+        <p class="field">{{column.name}}</p>
         <p class="content noreset" [innerHTML]="column.html"></p>
     </li>
 </ul>
 <p *ngIf="_ng_arguments.length > 0" class="t-normal payload-title">Payload arguments</p>
 <ul *ngIf="_ng_arguments.length > 0" class="columns">
     <li class="column" *ngFor="let argument of _ng_arguments; let i = index">
-        <p class="field">Argument</p>
         <p class="content noreset" [innerHTML]="argument"></p>
     </li>
 </ul>

@@ -35,7 +35,12 @@ export class ControllerSessionTabStream {
         this._logger = new Toolkit.Logger(`ControllerSessionTabStream: ${params.guid}`);
         this._scope = params.scope;
         this._bookmarks = new ControllerSessionTabStreamBookmarks(params.guid);
-        this._output = new ControllerSessionTabStreamOutput(params.guid, this._requestData.bind(this), this._bookmarks, this._scope);
+        this._output = new ControllerSessionTabStreamOutput({
+            guid: params.guid,
+            requestDataHandler: this._requestData.bind(this),
+            bookmarks: this._bookmarks,
+            scope: this._scope,
+        });
         this._queue = new Toolkit.Queue(this._logger.error.bind(this._logger), 0);
         // Notify electron about new stream
         ServiceElectronIpc.send(new IPCMessages.StreamAdd({

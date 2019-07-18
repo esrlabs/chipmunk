@@ -2,7 +2,7 @@ import { Subscription, Observable, Subject} from 'rxjs-compat';
 
 export interface ISourceInfo {
     id: number;
-    name: string;
+    name: string | undefined;
 }
 
 export interface IOnRowSelectedEvent {

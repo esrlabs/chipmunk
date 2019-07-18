@@ -8,6 +8,13 @@ import { ControllerSessionScope } from './controller.session.tab.scope';
 
 export type TRequestDataHandler = (start: number, end: number) => Promise<IPCMessages.StreamChunk>;
 
+export interface IParamerters {
+    guid: string;
+    requestDataHandler: TRequestDataHandler;
+    bookmarks: ControllerSessionTabStreamBookmarks;
+    scope: ControllerSessionScope;
+}
+
 export interface IStreamPacket {
     str: string | undefined;
     position: number;
@@ -84,11 +91,11 @@ export class ControllerSessionTabStreamOutput {
         onHorScrollOffset: new Subject<number>(),
     };
 
-    constructor(guid: string, requestDataHandler: TRequestDataHandler, bookmarks: ControllerSessionTabStreamBookmarks, scope: ControllerSessionScope) {
-        this._guid = guid;
-        this._requestDataHandler = requestDataHandler;
-        this._bookmarks = bookmarks;
-        this._scope = scope;
+    constructor(params: IParamerters) {
+        this._guid = params.guid;
+        this._requestDataHandler = params.requestDataHandler;
+        this._bookmarks = params.bookmarks;
+        this._scope = params.scope;
         this._sources = new ControllerSessionTabSourcesState(this._guid);
         this._logger = new Toolkit.Logger(`ControllerSessionTabStreamOutput: ${this._guid}`);
         this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(this._guid, this._onRowSelected.bind(this));
