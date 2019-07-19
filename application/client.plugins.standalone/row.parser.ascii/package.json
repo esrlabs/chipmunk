@@ -1,6 +1,6 @@
 {
   "name": "logviewer.plugin.rowparser.ascii",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Parser to convert ASCII colors to HTML",
   "main": "./dist/bundle.js",
   "scripts": {
