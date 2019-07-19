@@ -49,7 +49,7 @@ export default class FileParser extends AFileParser {
         };
     }
 
-    public readAndWrite(srcFile: string, destFile: string, sourceId: string, onMapUpdated?: (map: IMapItem[]) => void): Promise<IMapItem[]> {
+    public readAndWrite(srcFile: string, destFile: string, sourceId: string, options: { [key: string]: any }, onMapUpdated?: (map: IMapItem[]) => void): Promise<IMapItem[]> {
         return new Promise((resolve, reject) => {
             const lvin: Lvin = new Lvin();
             if (onMapUpdated !== undefined) {

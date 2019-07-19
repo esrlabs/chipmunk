@@ -67,7 +67,7 @@ class ServiceFileOpener implements IService {
                     ServiceStreams.addPipeSession(pipeSessionId, stats.size, file);
                     if ((parser as AFileParser).readAndWrite === undefined) {
                         // Pipe file. No direct read/write method
-                        this._pipeSource(file, session, (parser as AFileParser)).then(() => {
+                        this._pipeSource(file, session, (parser as AFileParser), options).then(() => {
                             ServiceStreams.removePipeSession(pipeSessionId);
                             resolve();
                         }).catch((pipeError: Error) => {
@@ -78,7 +78,7 @@ class ServiceFileOpener implements IService {
                         // Trigger progress
                         ServiceStreams.updatePipeSession(0);
                         // Parser has direct method of reading and writing
-                        this._directReadWrite(file, session, (parser as AFileParser)).then(() => {
+                        this._directReadWrite(file, session, (parser as AFileParser), options).then(() => {
                             ServiceStreams.removePipeSession(pipeSessionId);
                             ServiceStreams.reattachSessionFileHandle();
                             resolve();
@@ -141,7 +141,7 @@ class ServiceFileOpener implements IService {
         });
     }
 
-    private _pipeSource(file: string, session: string, parser: AFileParser): Promise<void> {
+    private _pipeSource(file: string, session: string, parser: AFileParser, options: any): Promise<void> {
         return new Promise((resolve, reject) => {
             // Add new description of source
             const sourceId: number = ServiceStreamSource.add({ name: path.basename(file), session: session });
@@ -161,7 +161,7 @@ class ServiceFileOpener implements IService {
         });
     }
 
-    private _directReadWrite(file: string, session: string, parser: AFileParser): Promise<void> {
+    private _directReadWrite(file: string, session: string, parser: AFileParser, options: { [key: string]: any }): Promise<void> {
         return new Promise((resolve, reject) => {
             // Add new description of source
             const sourceId: number = ServiceStreamSource.add({ name: path.basename(file), session: session });
@@ -173,7 +173,7 @@ class ServiceFileOpener implements IService {
             if (parser.readAndWrite === undefined) {
                 return reject(new Error(`This case isn't possible, but typescript compile.`));
             }
-            parser.readAndWrite(file, dest.file, sourceId, (map: IMapItem[]) => {
+            parser.readAndWrite(file, dest.file, sourceId, options, (map: IMapItem[]) => {
                 ServiceStreams.pushToStreamFileMap(dest.streamId, map);
                 ServiceStreams.updatePipeSession(map[map.length - 1].bytes.to - map[0].bytes.from, dest.streamId);
             }).then((map: IMapItem[]) => {

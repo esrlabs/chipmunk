@@ -28,15 +28,6 @@ export enum EMTIN {
     UNDEFINED               = 'UNDEFINED',
 }
 
-const CLogsLevels = {
-    [EMTIN.DLT_LOG_VERBOSE]: [ EMTIN.DLT_LOG_VERBOSE, EMTIN.DLT_LOG_DEBUG, EMTIN.DLT_LOG_INFO, EMTIN.DLT_LOG_WARN, EMTIN.DLT_LOG_ERROR, EMTIN.DLT_LOG_FATAL ],
-    [EMTIN.DLT_LOG_DEBUG]: [ EMTIN.DLT_LOG_DEBUG, EMTIN.DLT_LOG_INFO, EMTIN.DLT_LOG_WARN, EMTIN.DLT_LOG_ERROR, EMTIN.DLT_LOG_FATAL ],
-    [EMTIN.DLT_LOG_INFO]: [ EMTIN.DLT_LOG_INFO, EMTIN.DLT_LOG_WARN, EMTIN.DLT_LOG_ERROR, EMTIN.DLT_LOG_FATAL ],
-    [EMTIN.DLT_LOG_WARN]: [ EMTIN.DLT_LOG_WARN, EMTIN.DLT_LOG_ERROR, EMTIN.DLT_LOG_FATAL ],
-    [EMTIN.DLT_LOG_ERROR]: [ EMTIN.DLT_LOG_ERROR, EMTIN.DLT_LOG_FATAL ],
-    [EMTIN.DLT_LOG_FATAL]: [ EMTIN.DLT_LOG_FATAL ],
-};
-
 const CRestMTINTypes = [
     EMTIN.DLT_TRACE_VARIABLE,
     EMTIN.DLT_TRACE_FUNCTION_IN,
@@ -53,6 +44,15 @@ const CRestMTINTypes = [
     EMTIN.DLT_CONTROL_TIME,
     EMTIN.UNDEFINED,
 ];
+
+const CLogLevel = {
+    [EMTIN.DLT_LOG_FATAL]: 1,
+    [EMTIN.DLT_LOG_ERROR]: 2,
+    [EMTIN.DLT_LOG_WARN]: 3,
+    [EMTIN.DLT_LOG_INFO]: 4,
+    [EMTIN.DLT_LOG_DEBUG]: 5,
+    [EMTIN.DLT_LOG_VERBOSE]: 6,
+};
 
 @Component({
     selector: 'app-views-dialogs-file-options-dlt',
@@ -98,7 +98,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
 
     public _ng_onOpen() {
         this.onDone({
-            MTIN: [...CLogsLevels[this._logLevel], ...CRestMTINTypes]
+            logLevel: CLogLevel[this._logLevel]
         });
     }
 
