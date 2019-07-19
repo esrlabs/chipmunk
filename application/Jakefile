@@ -572,7 +572,8 @@ namespace('plugin.serial', function() {
     task('compress', function() {
         logo();
         const tasks = [];
-        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `serial@1.0.0-${process.platform}.tgz`));
+        const pkfile = JSON.parse(fs.readFileSync(path.normalize(path.resolve(PATH_HOST_SOURCES, 'package.json'))));
+        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `serial@${pkfile.version}-${process.platform}.tgz`));
         if (fs.existsSync(file)) {
             tasks.push(echo(colors.blue(`Remove file: ${file}`)));
             tasks.push(`rm -rf ${file}`);
