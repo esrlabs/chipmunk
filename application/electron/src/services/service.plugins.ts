@@ -7,10 +7,11 @@ import ServiceElectron from './service.electron';
 import ServiceStreams, { IStreamInfo } from './service.streams';
 import ServicePaths from './service.paths';
 import ServiceElectronService from './service.electron.state';
-import ControllerPluginProcess from '../controllers/controller.plugin.process';
+import ControllerPluginProcessMultiple from '../controllers/controller.plugin.process.multiple';
+import ControllerPluginProcessSingle from '../controllers/controller.plugin.process.single';
 import ControllerIPCPlugin from '../controllers/controller.plugin.process.ipc';
 import ControllerPluginDefaults, { IPluginDefaultInfo } from '../controllers/controller.plugin.defaults';
-import ControllerPluginPackage from '../controllers/controller.plugin.package';
+import ControllerPluginPackage, { EProcessPluginType } from '../controllers/controller.plugin.package';
 import ControllerPluginInstalled, { IPluginBasic, TPluginName } from '../controllers/controller.plugin.installed';
 import ControllerPluginVersions from '../controllers/controller.plugin.versions';
 
@@ -26,7 +27,7 @@ export interface IPlugin {
         process: ControllerPluginPackage | undefined;
         render: ControllerPluginPackage | undefined;
     };
-    sessions: Map<string, ControllerPluginProcess>;
+    sessions: Map<string, ControllerPluginProcessMultiple>;
     verified: {
         process: boolean;
         render: boolean;
@@ -38,6 +39,7 @@ export interface IPlugin {
     token: string;
     id: number;
     connections: symbol[];
+    single: ControllerPluginProcessSingle | undefined;
 }
 
 /**
@@ -47,7 +49,6 @@ export interface IPlugin {
 export class ServicePlugins implements IService {
 
     private _logger: Logger = new Logger('ServicePluginNode');
-    private _path: string = ServicePaths.getPlugins();
     private _plugins: Map<TPluginName, IPlugin> = new Map();
     private _electronVersion: string = '';
     private _subscriptions: { [key: string ]: Subscription | undefined } = { };
@@ -146,7 +147,11 @@ export class ServicePlugins implements IService {
                                 this._sendRenderPluginsData();
                                 // Subscribe to streams events
                                 this._subscribeToStreamEvents();
-                                resolve();
+                                // Attach single plugins
+                                this._initSingleSessionPlugins().then(() => {
+                                    // All done now
+                                    resolve();
+                                });
                             }).catch((initializationError: Error) => {
                                 ServiceElectronService.logStateToRender(this._logger.error(`Error during initialization of plugins: ${initializationError.message}`));
                                 this._sendRenderPluginsData();
@@ -179,7 +184,7 @@ export class ServicePlugins implements IService {
             this._unsubscribeIPCMessages();
             this._unsubscribeFromStreamEvents();
             this._plugins.forEach((plugin: IPlugin) => {
-                plugin.sessions.forEach((controller: ControllerPluginProcess) => {
+                plugin.sessions.forEach((controller: ControllerPluginProcessMultiple) => {
                     controller.kill();
                 });
             });
@@ -212,7 +217,7 @@ export class ServicePlugins implements IService {
         if (plugin === undefined) {
             return undefined;
         }
-        const controller: ControllerPluginProcess | undefined = plugin.sessions.get(session);
+        const controller: ControllerPluginProcessMultiple | undefined = plugin.sessions.get(session);
         if (controller === undefined) {
             return undefined;
         }
@@ -232,7 +237,12 @@ export class ServicePlugins implements IService {
         if (target === undefined) {
             return this._logger.error(`Fail to find plugin by token: ${message.token}. Income message: ${message.data}`);
         }
-        const controller: ControllerPluginProcess | undefined = target.sessions.get(message.stream);
+        let controller: ControllerPluginProcessMultiple | ControllerPluginProcessSingle | undefined;
+        if (target.single instanceof ControllerPluginProcessSingle) {
+            controller = target.single;
+        } else {
+            controller = target.sessions.get(message.stream);
+        }
         if (controller === undefined) {
             return this._logger.error(`Fail redirect message by token ${message.token}, because plugin doesn't have process for session "${message.stream}". Income message: ${message.data}`);
         }
@@ -290,7 +300,7 @@ export class ServicePlugins implements IService {
                 this._logger.warn(`Plugin ${plugin.name} was defined as transport for session "${stream.guid}", but plugin is already bound with this session.`);
             }
             // Create controller
-            const controller: ControllerPluginProcess = new ControllerPluginProcess(plugin);
+            const controller: ControllerPluginProcessMultiple = new ControllerPluginProcessMultiple(plugin);
             controller.attach().then(() => {
                 // Binding controller
                 stream.connectionFactory(plugin.name).then((connection: { socket: Net.Socket, file: string }) => {
@@ -317,7 +327,7 @@ export class ServicePlugins implements IService {
     private _streams_onStreamRemoved(streamId: string) {
         // Find all plugins, which are bound with stream
         this._plugins.forEach((plugin: IPlugin, id: string) => {
-            const controller: ControllerPluginProcess | undefined = plugin.sessions.get(streamId);
+            const controller: ControllerPluginProcessMultiple | undefined = plugin.sessions.get(streamId);
             if (controller === undefined) {
                 return;
             }
@@ -518,6 +528,7 @@ export class ServicePlugins implements IService {
             id: ++this._seq,
             connections: [],
             sessions: new Map(),
+            single: undefined,
         };
         this._ids.set(obj.id, obj.token);
         return obj;
@@ -589,6 +600,41 @@ export class ServicePlugins implements IService {
         }).catch((sendingError: Error) => {
             ServiceElectronService.logStateToRender(`Fail to send information to render about plugin "${names}" due error: ${sendingError.message}`);
             this._logger.error(`Fail to send information to render about plugin "${names}" due error: ${sendingError.message}`);
+        });
+    }
+
+    private _initSingleSessionPlugins(): Promise<void> {
+        return new Promise((resolve) => {
+            const plugins: IPlugin[] = [];
+            this._plugins.forEach((plugin: IPlugin) => {
+                if (plugin.packages.process === undefined) {
+                    return;
+                }
+                if (plugin.packages.process.getPackageJson().logviewer.type !== EProcessPluginType.single) {
+                    return;
+                }
+                plugins.push(plugin);
+            });
+            if (plugins.length === 0) {
+                return resolve();
+            }
+            Promise.all(plugins.map((plugin: IPlugin) => {
+                return new Promise((resolvePlugin) => {
+                    const controller = new ControllerPluginProcessSingle(plugin);
+                    controller.attach().then(() => {
+                        plugin.single = controller;
+                        this._plugins.set(plugin.name, plugin);
+                        this._logger.env(`Plugin "${plugin.name}" is attached as single plugin.`);
+                        resolvePlugin();
+                    }).catch((attachError: Error) => {
+                        this._logger.warn(`Fail to attach plugin "${plugin.name}" due error: ${attachError.message}`);
+                        // Resolve in any way
+                        resolvePlugin();
+                    });
+                });
+            })).then(() => {
+                resolve();
+            });
         });
     }
 

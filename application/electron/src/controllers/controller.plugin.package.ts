@@ -3,9 +3,20 @@ import * as FS from '../tools/fs';
 import Logger from '../tools/env.logger';
 import * as Objects from '../tools/env.objects';
 
+export enum EProcessPluginType {
+    single = 'single',
+    multiple = 'multiple',
+}
+
+export interface ILogviewer {
+    version: string;
+    type: EProcessPluginType;
+}
+
 export interface IPackageJson {
     version: string;
     main: string;
+    logviewer: ILogviewer;
     [key: string]: any;
  }
 
@@ -58,7 +69,7 @@ export default class ControllerPluginPackage {
                 if (missed.length > 0) {
                     return reject(new Error(this._logger.error(`Next field(s) in "${packageFile}" wasn't found: ${missed.join(', ')}`)));
                 }
-                this._package = json;
+                this._package = this._setPluginsSettings(json);
                 resolve(json);
             }).catch((error: Error) => {
                 reject(new Error(this._logger.error(`Fail to read package at "${packageFile}" due error: ${error.message}`)));
@@ -72,6 +83,17 @@ export default class ControllerPluginPackage {
 
     public getPath(): string {
         return this._folder;
+    }
+
+    private _setPluginsSettings(packageJson: IPackageJson): IPackageJson {
+        if (typeof packageJson.logviewer !== 'object' || packageJson.logviewer === null) {
+            packageJson.logviewer = {
+                version: '',
+                type: EProcessPluginType.multiple,
+            };
+        }
+        packageJson.logviewer.type = packageJson.logviewer.type === undefined ? EProcessPluginType.multiple : packageJson.logviewer.type;
+        return packageJson;
     }
 
 }
