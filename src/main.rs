@@ -1,4 +1,7 @@
-#![feature(test)]
+// #![feature(rustc_attrs)]
+// #[rustc::since(1.38)]
+#![cfg_attr(feature = "nightly", feature(test))]
+#[cfg(all(feature = "nightly", test))]
 extern crate test;
 #[macro_use]
 extern crate lazy_static;
@@ -22,9 +25,11 @@ mod dlt_tokio;
 mod merger;
 mod parse;
 mod processor;
-
 mod timedline;
 mod utils;
+
+#[cfg(all(test, not(target_os = "windows")))]
+mod tests;
 
 fn main() {
     let start = Instant::now();
@@ -201,7 +206,7 @@ fn main() {
                 .arg(
                     Arg::with_name("chunk_size")
                         .short("c")
-                        .long("chunk_siz")
+                        .long("chunk_size")
                         .help("How many lines should be in a chunk (used for access later)")
                         .required(false)
                         .default_value("500"),
@@ -218,6 +223,19 @@ fn main() {
                         .long("out")
                         .value_name("OUT")
                         .help("Output file, \"<file_to_index>.out\" if not present"),
+                )
+                .arg(
+                    Arg::with_name("logverbosity")
+                        .short("v")
+                        .value_name("LEVEL")
+                        .help("only select log entries with level MIN_LEVEL and more severe\n\
+                               1 => FATAL\n\
+                               2 => ERROR\n\
+                               3 => WARN\n\
+                               4 => INFO\n\
+                               5 => DEBUG\n\
+                               6 => VERBOSE\n\
+                               "),
                 )
                 .arg(
                     Arg::with_name("stdout")
@@ -470,6 +488,11 @@ fn main() {
                 }
             };
 
+            let verbosity_log_level: Option<u8> = value_t!(matches.value_of("logverbosity"), u8).ok();
+            let min_log_level: Option<dlt::LogLevel> = match verbosity_log_level {
+                Some(ll) => dlt::u8_to_log_level(ll),
+                None => None,
+            };
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
             let max_lines = value_t_or_exit!(matches.value_of("max_lines"), usize);
             let append: bool = matches.is_present("append");
@@ -485,10 +508,7 @@ fn main() {
                 to_stdout: stdout,
                 status_updates,
             },
-            dlt::DltFilterConfig {
-                // min_log_level: Some(dlt::LogLevel::Error),
-                min_log_level: None,
-            },
+            dlt::DltFilterConfig { min_log_level },
             ) {
                 Err(why) => {
                     eprintln!("couldn't process: {}", why);

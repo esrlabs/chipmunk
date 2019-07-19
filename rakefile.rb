@@ -30,6 +30,10 @@ desc "run tests"
 task :test do
   sh "cargo test -q"
 end
+desc "run benchmarks"
+task :bench do
+  sh "cargo bench --features nightly"
+end
 desc "run tests with printing to stdout"
 task :test_nocapture do
   sh "cargo test -q -- --nocapture"

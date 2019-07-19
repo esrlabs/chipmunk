@@ -165,7 +165,7 @@ impl StandardHeader {
     }
 }
 
-#[derive(Debug, PartialEq, PartialOrd , Clone, Copy, Arbitrary)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Arbitrary)]
 pub enum LogLevel {
     Fatal,
     Error,
@@ -285,11 +285,9 @@ impl ExtendedHeader {
         buf.put_zero_terminated_string(&self.context_id[..], 4);
         buf.to_vec()
     }
-    pub fn filter_with_level(self: &ExtendedHeader, level: LogLevel) -> bool {
+    pub fn skip_with_level(self: &ExtendedHeader, level: LogLevel) -> bool {
         match self.message_type {
-            MessageType::Log(n) => {
-                level < n
-            },
+            MessageType::Log(n) => level < n,
             _ => false,
         }
     }
@@ -1138,19 +1136,30 @@ pub const LEVEL_INFO: u8 = 0x4;
 pub const LEVEL_DEBUG: u8 = 0x5;
 pub const LEVEL_VERBOSE: u8 = 0x6;
 
+pub fn u8_to_log_level(v: u8) -> Option<LogLevel> {
+    match v {
+        LEVEL_FATAL => Some(LogLevel::Fatal),
+        LEVEL_ERROR => Some(LogLevel::Error),
+        LEVEL_WARN => Some(LogLevel::Warn),
+        LEVEL_INFO => Some(LogLevel::Info),
+        LEVEL_DEBUG => Some(LogLevel::Debug),
+        LEVEL_VERBOSE => Some(LogLevel::Verbose),
+        _ => None,
+    }
+}
 impl TryFrom<u8> for LogLevel {
     type Error = Error;
     fn try_from(message_info: u8) -> Result<LogLevel, Error> {
-        match message_info >> 4 {
-            LEVEL_FATAL => Ok(LogLevel::Fatal),
-            LEVEL_ERROR => Ok(LogLevel::Error),
-            LEVEL_WARN => Ok(LogLevel::Warn),
-            LEVEL_INFO => Ok(LogLevel::Info),
-            LEVEL_DEBUG => Ok(LogLevel::Debug),
-            LEVEL_VERBOSE => Ok(LogLevel::Verbose),
-            v => {
-                eprintln!("unexpected LogLevel: {} in message info {:b}", v, message_info);
-                Ok(LogLevel::Invalid(v))
+        let raw = message_info >> 4;
+        let level = u8_to_log_level(raw);
+        match level {
+            Some(n) => Ok(n),
+            None => {
+                eprintln!(
+                    "unexpected LogLevel: {} in message info {:b}",
+                    raw, message_info
+                );
+                Ok(LogLevel::Invalid(raw))
             }
         }
     }
@@ -1273,7 +1282,7 @@ impl From<&MessageType> for u8 {
             MessageType::ApplicationTrace(x) => 0x1 << 1 | u8::from(x),
             MessageType::NetworkTrace(x) => 0x2 << 1 | u8::from(x),
             MessageType::Control(x) => 0x3 << 1 | u8::from(x),
-            MessageType::Unknown((mstp,mtin)) => mstp << 1 | mtin << 4,
+            MessageType::Unknown((mstp, mtin)) => mstp << 1 | mtin << 4,
         }
     }
 }
@@ -1290,7 +1299,10 @@ impl TryFrom<u8> for MessageType {
             )?)),
             DLT_TYPE_CONTROL => Ok(MessageType::Control(ControlType::try_from(message_info)?)),
             v => {
-                eprintln!("Unknown MSTP in Message Info (MSIN) {}", (message_info >> 1) & 0b111);
+                eprintln!(
+                    "Unknown MSTP in Message Info (MSIN) {}",
+                    (message_info >> 1) & 0b111
+                );
                 Ok(MessageType::Unknown((v, (message_info >> 4) & 0b1111)))
                 // Err(Error::new(
                 //     io::ErrorKind::Other,
@@ -1358,65 +1370,6 @@ mod tests {
 
     use pretty_assertions::assert_eq;
     use byteorder::{BigEndian, LittleEndian};
-    use test::Bencher;
-
-    #[bench]
-    fn bench_formate_header(b: &mut Bencher) {
-        let timestamp = DltTimeStamp {
-            seconds: 0x4DC9_2C26,
-            microseconds: 0x000C_A2D8,
-        };
-        b.iter(|| format!("{}", timestamp));
-    }
-    #[bench]
-    fn bench_format_msg(b: &mut Bencher) {
-        let timestamp = DltTimeStamp {
-            seconds: 0x4DC9_2C26,
-            microseconds: 0x000C_A2D8,
-        };
-        let storage_header = StorageHeader {
-            timestamp,
-            ecu_id: "abc".to_string(),
-        };
-        let header: StandardHeader = StandardHeader {
-            version: 1,
-            has_extended_header: true,
-            big_endian: true,
-            message_counter: 0x33,
-            overall_length: 0x1,
-            ecu_id: Some("abc".to_string()),
-            session_id: None,
-            timestamp: Some(5),
-        };
-        let extended_header = ExtendedHeader {
-            argument_count: 2,
-            verbose: true,
-            message_type: MessageType::Log(LogLevel::Warn),
-            application_id: "abc".to_string(),
-            context_id: "CON".to_string(),
-        };
-        let type_info = TypeInfo {
-            kind: TypeInfoKind::Bool,
-            coding: StringCoding::UTF8,
-            has_variable_info: true,
-            has_trace_info: false,
-        };
-        let argument = Argument {
-            type_info: type_info.clone(),
-            name: Some("foo".to_string()),
-            unit: None,
-            fixed_point: None,
-            value: Value::Bool(true),
-        };
-        let payload = Payload::Verbose(vec![argument]);
-        let message = Message {
-            storage_header: Some(storage_header),
-            header,
-            extended_header: Some(extended_header),
-            payload,
-        };
-        b.iter(|| format!("{}", message));
-    }
 
     proptest! {
         #[test]
@@ -1457,12 +1410,12 @@ mod tests {
             application_id: "abc".to_string(),
             context_id: "CON".to_string(),
         };
-        assert!(!extended_header.filter_with_level(LogLevel::Verbose));
-        assert!(!extended_header.filter_with_level(LogLevel::Debug));
-        assert!(extended_header.filter_with_level(LogLevel::Info));
-        assert!(extended_header.filter_with_level(LogLevel::Warn));
-        assert!(extended_header.filter_with_level(LogLevel::Error));
-        assert!(extended_header.filter_with_level(LogLevel::Fatal));
+        assert!(!extended_header.skip_with_level(LogLevel::Verbose));
+        assert!(!extended_header.skip_with_level(LogLevel::Debug));
+        assert!(extended_header.skip_with_level(LogLevel::Info));
+        assert!(extended_header.skip_with_level(LogLevel::Warn));
+        assert!(extended_header.skip_with_level(LogLevel::Error));
+        assert!(extended_header.skip_with_level(LogLevel::Fatal));
         let extended_header = ExtendedHeader {
             argument_count: 1,
             verbose: true,
@@ -1471,7 +1424,7 @@ mod tests {
             context_id: "CON".to_string(),
         };
         // other message types should not be fitered
-        assert!(!extended_header.filter_with_level(LogLevel::Fatal));
+        assert!(!extended_header.skip_with_level(LogLevel::Fatal));
     }
     #[test]
     fn test_convert_extended_header_to_bytes() {
@@ -1909,5 +1862,69 @@ mod tests {
         expected.extend(vec![0x0, 0x4]); // length of raw data bytes
         expected.extend(vec![0xD, 0xE, 0xA, 0xD]);
         assert_eq!(expected, argument.as_bytes::<BigEndian>());
+    }
+}
+
+#[cfg(all(feature = "nightly", test))]
+mod benchs {
+    use super::*;
+    use test::Bencher;
+
+    #[bench]
+    fn bench_formate_header(b: &mut Bencher) {
+        let timestamp = DltTimeStamp {
+            seconds: 0x4DC9_2C26,
+            microseconds: 0x000C_A2D8,
+        };
+        b.iter(|| format!("{}", timestamp));
+    }
+    #[bench]
+    fn bench_format_msg(b: &mut Bencher) {
+        let timestamp = DltTimeStamp {
+            seconds: 0x4DC9_2C26,
+            microseconds: 0x000C_A2D8,
+        };
+        let storage_header = StorageHeader {
+            timestamp,
+            ecu_id: "abc".to_string(),
+        };
+        let header: StandardHeader = StandardHeader {
+            version: 1,
+            has_extended_header: true,
+            big_endian: true,
+            message_counter: 0x33,
+            overall_length: 0x1,
+            ecu_id: Some("abc".to_string()),
+            session_id: None,
+            timestamp: Some(5),
+        };
+        let extended_header = ExtendedHeader {
+            argument_count: 2,
+            verbose: true,
+            message_type: MessageType::Log(LogLevel::Warn),
+            application_id: "abc".to_string(),
+            context_id: "CON".to_string(),
+        };
+        let type_info = TypeInfo {
+            kind: TypeInfoKind::Bool,
+            coding: StringCoding::UTF8,
+            has_variable_info: true,
+            has_trace_info: false,
+        };
+        let argument = Argument {
+            type_info: type_info.clone(),
+            name: Some("foo".to_string()),
+            unit: None,
+            fixed_point: None,
+            value: Value::Bool(true),
+        };
+        let payload = Payload::Verbose(vec![argument]);
+        let message = Message {
+            storage_header: Some(storage_header),
+            header,
+            extended_header: Some(extended_header),
+            payload,
+        };
+        b.iter(|| format!("{}", message));
     }
 }
