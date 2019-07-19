@@ -77,6 +77,8 @@ export class ViewOutputRowExternalComponent extends AOutputRenderComponent imple
     }
 
     private _getHTML(str: string): string {
+        // Rid of HTML
+        str = OutputParsersService.serialize(str);
         // Apply plugin parser
         str = OutputParsersService.row(str, this.pluginId);
         // Apply common parser
