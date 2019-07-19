@@ -1,5 +1,4 @@
 import * as Path from 'path';
-import * as Objects from '../tools/env.objects';
 import * as FS from '../tools/fs';
 import * as Net from 'net';
 import Logger from '../tools/env.logger';
@@ -10,27 +9,22 @@ import ServicePaths from './service.paths';
 import ServiceElectronService from './service.electron.state';
 import ControllerPluginProcess from '../controllers/controller.plugin.process';
 import ControllerIPCPlugin from '../controllers/controller.plugin.process.ipc';
-import ControllerPluginDefaults from '../controllers/controller.plugin.defaults';
+import ControllerPluginDefaults, { IPluginDefaultInfo } from '../controllers/controller.plugin.defaults';
+import ControllerPluginPackage from '../controllers/controller.plugin.package';
+import ControllerPluginInstalled, { IPluginBasic, TPluginName } from '../controllers/controller.plugin.installed';
+import ControllerPluginVersions from '../controllers/controller.plugin.versions';
+
 import * as npm from '../tools/npm.tools';
 import { IService } from '../interfaces/interface.service';
 import { IPCMessages, Subscription } from './service.electron';
 
-const PROCESS_FOLDER = 'process';
-const RENDER_FOLDER = 'render';
-
 export interface IPlugin {
     name: string;
     root: string;
-    path: {
-        process: string;
-        render: string;
-    };
-    process: boolean;
-    render: boolean;
     error?: Error;
     packages: {
-        process: any;
-        render: any;
+        process: ControllerPluginPackage | undefined;
+        render: ControllerPluginPackage | undefined;
     };
     sessions: Map<string, ControllerPluginProcess>;
     verified: {
@@ -46,8 +40,6 @@ export interface IPlugin {
     connections: symbol[];
 }
 
-export type TPluginPath = string;
-
 /**
  * @class ServicePluginNode
  * @description Looking for plugins, which should be attached on nodejs level
@@ -56,12 +48,14 @@ export class ServicePlugins implements IService {
 
     private _logger: Logger = new Logger('ServicePluginNode');
     private _path: string = ServicePaths.getPlugins();
-    private _plugins: Map<TPluginPath, IPlugin> = new Map();
+    private _plugins: Map<TPluginName, IPlugin> = new Map();
     private _electronVersion: string = '';
     private _subscriptions: { [key: string ]: Subscription | undefined } = { };
     private _isRenderReady: boolean = false;
     private _seq: number = 0;
     private _ids: Map<number, string> = new Map();
+    private _controllerInstalled: ControllerPluginInstalled = new ControllerPluginInstalled();
+    private _controllerDefaults: ControllerPluginDefaults = new ControllerPluginDefaults();
 
     constructor() {
         this._ipc_onRenderState = this._ipc_onRenderState.bind(this);
@@ -83,39 +77,98 @@ export class ServicePlugins implements IService {
                 return reject(version);
             }
             this._electronVersion = version;
-            // Delivery default plugins first
-            this._deliveryDefaultPlugins().then(() => {
-                // Get description of all plugins
-                this._getAllPluginDescription().then((plugins: Map<TPluginPath, IPlugin>) => {
-                    this._plugins = plugins;
-                    if (plugins.size === 0) {
-                        // No plugins to be initialized
-                        ServiceElectronService.logStateToRender(`No plugins installed`);
-                        this._logger.env(`No plugins installed`);
-                        return resolve();
+            let installed: IPluginBasic[] = [];
+            let defaults: IPluginDefaultInfo[] = [];
+            Promise.all([
+                new Promise((resolveInstalledPlugins, rejectInstalledPlugins) => {
+                    this._controllerInstalled.getAll().then((plugins: IPluginBasic[]) => {
+                        installed = plugins;
+                        resolveInstalledPlugins();
+                    }).catch((readingDescriptionsError: Error) => {
+                        ServiceElectronService.logStateToRender(`Fail to get description of available plugins due error: ${readingDescriptionsError.message}`);
+                        rejectInstalledPlugins(new Error(this._logger.error(`Fail to get description of available plugins due error: ${readingDescriptionsError.message}`)));
+                    });
+                }),
+                new Promise((resolveIncludedPlugins, rejectIncludedPlugins) => {
+                    this._controllerDefaults.getAll().then((plugins: IPluginDefaultInfo[]) => {
+                        defaults = plugins;
+                        resolveIncludedPlugins();
+                    }).catch((readingDescriptionsError: Error) => {
+                        ServiceElectronService.logStateToRender(`Fail to get description of available plugins due error: ${readingDescriptionsError.message}`);
+                        rejectIncludedPlugins(new Error(this._logger.error(`Fail to get description of available plugins due error: ${readingDescriptionsError.message}`)));
+                    });
+                }),
+            ]).then(() => {
+                // Checks versions of plugins
+                const hasToBeUpdated: IPluginBasic[] = [];
+                const toBeDelivered: IPluginDefaultInfo[] = [];
+                defaults.forEach((defaultPlugin: IPluginDefaultInfo) => {
+                    let found: boolean = false;
+                    installed.forEach((plugin: IPluginBasic) => {
+                        if (defaultPlugin.name === plugin.name) {
+                            found = true;
+                            const deafultPluginRate: number = ControllerPluginVersions.getVersionRate(defaultPlugin.version);
+                            // Note: controller.plugin.installed do not allow undefined process and render. So, if process === undefined, render cannot be undefined anyhow
+                            const installedPluginVersion: string = plugin.process !== undefined ? plugin.process.getPackageJson().version : (plugin.render as ControllerPluginPackage).getPackageJson().version;
+                            const installedPlulingRate: number = ControllerPluginVersions.getVersionRate(installedPluginVersion);
+                            if (deafultPluginRate > installedPlulingRate) {
+                                // Plugin has to be updated
+                                hasToBeUpdated.push(plugin);
+                                toBeDelivered.push(defaultPlugin);
+                            }
+                        }
+                    });
+                    if (!found) {
+                        toBeDelivered.push(defaultPlugin);
                     }
-                    this._initializeAllPlugins().then(() => {
-                        ServiceElectronService.logStateToRender(`All plugins are ready`);
-                        this._logger.env(`All plugins are ready`);
-                        this._sendRenderPluginsData();
-                        // Subscribe to streams events
-                        this._subscribeToStreamEvents();
-                        resolve();
-                    }).catch((initializationError: Error) => {
-                        ServiceElectronService.logStateToRender(`Error during initialization of plugins: ${initializationError.message}`);
-                        this._logger.error(`Error during initialization of plugins: ${initializationError.message}`);
-                        this._sendRenderPluginsData();
+                });
+                // Remove plugins, which should be updated
+                Promise.all(hasToBeUpdated.map((plugin: IPluginBasic) => {
+                    return FS.rmdir(plugin.path).then(() => {
+                        ServiceElectronService.logStateToRender(this._logger.env(`Plugin "${plugin.name}" was removed because new version is in package.`));
+                    });
+                })).then(() => {
+                    this._controllerDefaults.delivery(toBeDelivered).then(() => {
+                        // Read all plugins once again
+                        this._controllerInstalled.getAll().then((plugins: IPluginBasic[]) => {
+                            if (plugins.length === 0) {
+                                // No plugins to be initialized
+                                ServiceElectronService.logStateToRender(this._logger.env(`No plugins installed`));
+                                return resolve();
+                            }
+                            // Store plugins data
+                            plugins.forEach((plugin: IPluginBasic) => {
+                                this._plugins.set(plugin.name, this._getPluginObj(plugin));
+                            });
+                            // Initialize plugins
+                            this._initializeAllPlugins().then(() => {
+                                ServiceElectronService.logStateToRender(this._logger.env(`All plugins are ready`));
+                                this._sendRenderPluginsData();
+                                // Subscribe to streams events
+                                this._subscribeToStreamEvents();
+                                resolve();
+                            }).catch((initializationError: Error) => {
+                                ServiceElectronService.logStateToRender(this._logger.error(`Error during initialization of plugins: ${initializationError.message}`));
+                                this._sendRenderPluginsData();
+                                resolve();
+                            });
+                        }).catch((rereadingError: Error) => {
+                            ServiceElectronService.logStateToRender(this._logger.warn(`Fail to reread available plugins due error: ${rereadingError.message}`));
+                            resolve();
+                        });
+                    }).catch((deliveryError: Error) => {
+                        // Resolve in any way to continue
+                        ServiceElectronService.logStateToRender(this._logger.warn(`Fail to delivery updated plugins due error: ${deliveryError.message}`));
                         resolve();
                     });
-                }).catch((readingDescriptionsError: Error) => {
-                    ServiceElectronService.logStateToRender(`Fail to get description of available plugins due error: ${readingDescriptionsError.message}`);
-                    this._logger.error(`Fail to get description of available plugins due error: ${readingDescriptionsError.message}`);
-                    this._sendRenderPluginsData();
+                }).catch((removeError: Error) => {
+                    // Resolve in any way to continue
+                    ServiceElectronService.logStateToRender(this._logger.warn(`Fail to update plugins due error: ${removeError.message}`));
                     resolve();
                 });
-            }).catch((deliveryError: Error) => {
-                ServiceElectronService.logStateToRender(`Fail to delivery default plugins due error: ${deliveryError.message}`);
-                this._logger.error(`Fail to delivery default plugins due error: ${deliveryError.message}`);
+            }).catch((error: Error) => {
+                // Resolve in any way to continue
+                ServiceElectronService.logStateToRender(this._logger.warn(`Fail to initialize plugins due error: ${error.message}`));
                 resolve();
             });
         });
@@ -262,7 +315,6 @@ export class ServicePlugins implements IService {
     }
 
     private _streams_onStreamRemoved(streamId: string) {
-        const plugins: IPlugin[] = [];
         // Find all plugins, which are bound with stream
         this._plugins.forEach((plugin: IPlugin, id: string) => {
             const controller: ControllerPluginProcess | undefined = plugin.sessions.get(streamId);
@@ -307,11 +359,11 @@ export class ServicePlugins implements IService {
     private _initializePlugin(plugin: IPlugin): Promise<void> {
         return new Promise((resolve, reject) => {
             const tasks: Array<Promise<void>> = [];
-            if (plugin.process) {
+            if (plugin.packages.process !== undefined) {
                 tasks.push(this._initializeProcessOfPlugin(plugin));
                 // tasks.push(this._initializeProcessOfPlugin(plugin, true)); // Force reintall (debug)
             }
-            if (plugin.render) {
+            if (plugin.packages.render !== undefined) {
                 tasks.push(this._initializeRenderOfPlugin(plugin));
             }
             Promise.all(tasks).then(() => {
@@ -329,21 +381,6 @@ export class ServicePlugins implements IService {
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     *   Initialization of plugins: process part
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    private _deliveryDefaultPlugins(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            const controller: ControllerPluginDefaults = new ControllerPluginDefaults();
-            controller.isNeeded().then((needed: boolean) => {
-                if (!needed) {
-                    return resolve();
-                }
-                controller.delivery().then(() => {
-                    resolve();
-                }).catch((deliveryError: Error) => {
-                    this._logger.error(`Fail to delivery default plugins due error: ${deliveryError.message}`);
-                });
-            }).catch(reject);
-        });
-    }
     /**
      * Does preinstalations checks:
      * - is plugin installed or not
@@ -357,7 +394,7 @@ export class ServicePlugins implements IService {
      */
     private _preinstalationProcessOfPlugin(plugin: IPlugin, reinstall: boolean = false): Promise<boolean> {
         return new Promise((resolve, reject) => {
-            const nodeModulesPath: string = Path.resolve(plugin.path.process, './node_modules');
+            const nodeModulesPath: string = Path.resolve((plugin.packages.process as ControllerPluginPackage).getPath(), './node_modules');
             if (FS.isExist(nodeModulesPath) && !reinstall) {
                 ServiceElectronService.logStateToRender(`[${plugin.name}]: plugin is already installed.`);
                 this._logger.env(`[${plugin.name}]: plugin is already installed.`);
@@ -398,7 +435,7 @@ export class ServicePlugins implements IService {
                 if (install) {
                     ServiceElectronService.logStateToRender(`[${plugin.name}]: installing`);
                     this._logger.env(`[${plugin.name}]: installing`);
-                    npm.install(plugin.path.process).then(() => {
+                    npm.install((plugin.packages.process as ControllerPluginPackage).getPath()).then(() => {
                         ServiceElectronService.logStateToRender(`[${plugin.name}]: installation is complited.`);
                         ServiceElectronService.logStateToRender(`[${plugin.name}]: rebuild.`);
                         this._logger.env(`[${plugin.name}]: installation is complited.`);
@@ -431,20 +468,20 @@ export class ServicePlugins implements IService {
     private _initializeRenderOfPlugin(plugin: IPlugin): Promise<void> {
         return new Promise((resolve, reject) => {
             // Check "main" field of package.json
-            if (typeof plugin.packages.render.main !== 'string' || plugin.packages.render.main.trim() === '') {
-                ServiceElectronService.logStateToRender(`[${plugin.name}]: Fail to find field "main" in package.json of plugin.`);
-                return reject(new Error(this._logger.error(`[${plugin.name}]: Fail to find field "main" in package.json of plugin.`)));
+            if (plugin.packages.render === undefined) {
+                return reject(new Error(this._logger.error(`[${plugin.name}]: plugin doesn't have render part.`)));
             }
+            const mainField: string = plugin.packages.render.getPackageJson().main;
             // Check main file of plugin
-            const main: string = Path.normalize(Path.resolve(plugin.path.render, plugin.packages.render.main));
-            if (!FS.isExist(main)) {
-                ServiceElectronService.logStateToRender(`[${plugin.name}]: Fail to find main file: "${plugin.packages.render.main}" / "${main}"`);
-                return reject(new Error(this._logger.error(`[${plugin.name}]: Fail to find main file: "${plugin.packages.render.main}" / "${main}"`)));
+            const mainFile: string = Path.normalize(Path.resolve((plugin.packages.render as ControllerPluginPackage).getPath(), mainField));
+            if (!FS.isExist(mainFile)) {
+                ServiceElectronService.logStateToRender(`[${plugin.name}]: Fail to find main file: "${mainField}" / "${mainFile}"`);
+                return reject(new Error(this._logger.error(`[${plugin.name}]: Fail to find main file: "${mainField}" / "${mainFile}"`)));
             }
             // Mark plugin as verified
             plugin.verified.render = true;
             // Save location
-            plugin.info.renderLocation = main;
+            plugin.info.renderLocation = mainFile;
             // Update plugin info
             this._plugins.set(plugin.name, plugin);
             resolve();
@@ -454,66 +491,6 @@ export class ServicePlugins implements IService {
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     *   Reading plugin's data
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    /**
-     * Walking plugin's folder and read all plugins inside and scans package.json file
-     * @returns { Promise<Map<TPluginPath, IPlugin>> }
-     */
-    private _getAllPluginDescription(): Promise<Map<TPluginPath, IPlugin>> {
-        return new Promise((resolve, reject) => {
-            const plugins: Map<TPluginPath, IPlugin> = new Map();
-            // Get all sub folders from plugins folder. Expecting: there are plugins folders
-            FS.readFolders(this._path).then((folders: string[]) => {
-                if (folders.length === 0) {
-                    // No any plugins
-                    ServiceElectronService.logStateToRender(`No any plugins were found. Target folder: ${this._path}`);
-                    this._logger.env(`No any plugins were found. Target folder: ${this._path}`);
-                    return resolve(plugins);
-                }
-                const errors: Error[] = [];
-                // Check each plugin folder and read package.json of render and process apps
-                Promise.all(folders.map((folder: string) => {
-                    return this._getPluginDescription(folder, Path.resolve(this._path, folder)).then((desc: IPlugin) => {
-                        if (desc.error) {
-                            errors.push(desc.error);
-                        } else {
-                            plugins.set(desc.name, desc);
-                        }
-                    });
-                })).then(() => {
-                    if (errors.length > 0) {
-                        ServiceElectronService.logStateToRender(`Not all plugins were initialized due next errors: \n\t-\t${errors.map((e: Error) => e.message).join('\n\t-\t')}`);
-                        this._logger.error(`Not all plugins were initialized due next errors: \n\t-\t${errors.map((e: Error) => e.message).join('\n\t-\t')}`);
-                    }
-                    const list: {
-                        failed: string[],
-                        success: string[],
-                    } = {
-                        failed: [],
-                        success: [],
-                    };
-                    plugins.forEach((desc: IPlugin) => {
-                        if (desc.error) {
-                            list.failed.push(desc.root);
-                        } else {
-                            list.success.push(desc.root);
-                        }
-                    });
-                    list.success.length > 0 && this._logger.env(`Successfuly read plugins: \n\t-\t${list.success.join(';\n\t-\t')}`);
-                    list.failed.length > 0 && this._logger.env(`Failed to read plugins: \n\t-\t${list.failed.join(';\n\t-\t')}`);
-                    resolve(plugins);
-                }).catch((error: Error) => {
-                    ServiceElectronService.logStateToRender(`Unexpected error during initialization of plugin: ${error.message}`);
-                    this._logger.error(`Unexpected error during initialization of plugin: ${error.message}`);
-                    resolve(plugins);
-                });
-            }).catch((error: Error) => {
-                ServiceElectronService.logStateToRender(`Fail to read plugins folder (${this._path}) due error: ${error.message}. Application will continue work, but plugins weren't inited.`);
-                this._logger.error(`Fail to read plugins folder (${this._path}) due error: ${error.message}. Application will continue work, but plugins weren't inited.`);
-                // Plugins should not block application
-                reject(plugins);
-            });
-        });
-    }
 
     /**
      * Scan plugin folder for two subfolders: "process" (electron part) and "render" (render part). Search for each package.json; read it; save it into description
@@ -521,85 +498,29 @@ export class ServicePlugins implements IService {
      * @param {string} path path to process's plugin
      * @returns { Promise<IPlugin> }
      */
-    private _getPluginDescription(name: string, path: string): Promise<IPlugin> {
-        return new Promise((resolve) => {
-            const desc: IPlugin = {
-                name: name,
-                packages: {
-                    process: undefined,
-                    render: undefined,
-                },
-                path: {
-                    process: Path.resolve(path, PROCESS_FOLDER),
-                    render: Path.resolve(path, RENDER_FOLDER),
-                },
-                process: FS.isExist(Path.resolve(path, PROCESS_FOLDER)),
-                render: FS.isExist(Path.resolve(path, RENDER_FOLDER)),
-                root: path,
-                verified: {
-                    process: false,
-                    render: false,
-                },
-                info: {
-                    renderLocation: '',
-                    renderSent: false,
-                },
-                token: guid(),
-                id: ++this._seq,
-                connections: [],
-                sessions: new Map(),
-            };
-            this._ids.set(desc.id, desc.token);
-            const tasks = [];
-            if (desc.process) {
-                tasks.push(this._readPackage(Path.resolve(path, PROCESS_FOLDER)).then((data: any) => {
-                    desc.packages.process = data;
-                }).catch((error: Error) => {
-                    desc.error = new Error(`Fail to read plugin's package.json files for process due error: ${error.message}.`);
-                }));
-            }
-            if (desc.render) {
-                tasks.push(this._readPackage(Path.resolve(path, RENDER_FOLDER)).then((data: any) => {
-                    desc.packages.render = data;
-                }).catch((error: Error) => {
-                    desc.error = new Error(`Fail to read plugin's package.json files for render due error: ${error.message}.`);
-                }));
-            }
-            Promise.all(tasks).then(() => {
-                resolve(desc);
-            }).catch((error: Error) => {
-                resolve(desc);
-            });
-        });
-    }
-
-    /**
-     * Read package.json and try to parse as JSON
-     * @param {string} folder destination folder with package.json file
-     * @returns { Promise<any> }
-     */
-    private _readPackage(folder: string): Promise<any> {
-        return new Promise((resolve, reject) => {
-            if (!FS.isExist(folder)) {
-                return reject(new Error(this._logger.error(`Folder "${folder}" doesn't exist`)));
-            }
-            const packageFile: string = Path.resolve(folder, 'package.json');
-            if (!FS.isExist(packageFile)) {
-                ServiceElectronService.logStateToRender(`Package.json file "${packageFile}" doesn't exist`);
-                return reject(new Error(this._logger.error(`Package.json file "${packageFile}" doesn't exist`)));
-            }
-            FS.readTextFile(packageFile).then((content: string) => {
-                const json = Objects.getJSON(content);
-                if (json instanceof Error) {
-                    ServiceElectronService.logStateToRender(`Cannot parse package file "${packageFile}" due error: ${json.message}`);
-                    return reject(new Error(this._logger.error(`Cannot parse package file "${packageFile}" due error: ${json.message}`)));
-                }
-                resolve(json);
-            }).catch((error: Error) => {
-                ServiceElectronService.logStateToRender(`Fail to read package at "${packageFile}" due error: ${error.message}`);
-                this._logger.error(`Fail to read package at "${packageFile}" due error: ${error.message}`);
-            });
-        });
+    private _getPluginObj(basic: IPluginBasic): IPlugin {
+        const obj: IPlugin = {
+            name: basic.name,
+            packages: {
+                process: basic.process,
+                render: basic.render,
+            },
+            root: basic.path,
+            verified: {
+                process: false,
+                render: false,
+            },
+            info: {
+                renderLocation: '',
+                renderSent: false,
+            },
+            token: guid(),
+            id: ++this._seq,
+            connections: [],
+            sessions: new Map(),
+        };
+        this._ids.set(obj.id, obj.token);
+        return obj;
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *

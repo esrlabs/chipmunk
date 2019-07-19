@@ -50,19 +50,20 @@ export default class ControllerPluginProcess extends Emitter {
      */
     public attach(): Promise<void> {
         return new Promise((resolve, reject) => {
-            if (typeof this._plugin.packages.process.main !== 'string' || this._plugin.packages.process.main.trim() === '') {
-                return reject(new Error(this._logger.error(`Field "main" of package.json isn't defined.`)));
+            if (this._plugin.packages.process === undefined) {
+                return reject(new Error(this._logger.error(`package.json of plugin isn't found.`)));
             }
-            const main: string = Path.resolve(this._plugin.path.process, this._plugin.packages.process.main);
-            if (!FS.isExist(main)) {
-                return reject(new Error(this._logger.error(`Cannot find file defined in "main" of package.json. File: ${main}.`)));
+            const mainField: string = this._plugin.packages.process.getPackageJson().main;
+            const mainFile: string = Path.resolve(this._plugin.packages.process.getPath(), mainField);
+            if (!FS.isExist(mainFile)) {
+                return reject(new Error(this._logger.error(`Cannot find file defined in "main" of package.json. File: ${mainFile}.`)));
             }
             const args: string[] = [];
             if (!ServiceProduction.isProduction()) {
                 args.push(`--inspect=127.0.0.1:${CDebugPluginPorts[this._plugin.name] === undefined ? (9229 + this._plugin.id - 1) : CDebugPluginPorts[this._plugin.name]}`);
             }
             this._process = fork(
-                main,
+                mainFile,
                 args,
                 { stdio: [
                     'pipe', // stdin  - doesn't used by parent process
