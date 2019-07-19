@@ -1,6 +1,5 @@
 import * as Path from 'path';
 import * as FS from '../tools/fs';
-import * as Net from 'net';
 import * as IPCPluginMessages from './plugins.ipc.messages/index';
 import { ChildProcess, fork } from 'child_process';
 import { Emitter } from '../tools/index';
@@ -15,11 +14,11 @@ const CDebugPluginPorts: { [key: string]: number } = {
 };
 
 /**
- * @class ControllerPluginProcess
+ * @class ControllerPluginProcessSingle
  * @description Execute plugin node process and provide access to it
  */
 
-export default class ControllerPluginProcess extends Emitter {
+export default class ControllerPluginProcessSingle extends Emitter {
 
     public static Events = {
         close: Symbol(),
@@ -32,7 +31,6 @@ export default class ControllerPluginProcess extends Emitter {
     private _plugin: IPlugin;
     private _process: ChildProcess | undefined;
     private _ipc: ControllerIPCPlugin | undefined;
-    private _boundStreamGuid: string | undefined;
 
     constructor(plugin: IPlugin) {
         super();
@@ -60,7 +58,7 @@ export default class ControllerPluginProcess extends Emitter {
             }
             const args: string[] = [];
             if (!ServiceProduction.isProduction()) {
-                args.push(`--inspect=127.0.0.1:${CDebugPluginPorts[this._plugin.name] === undefined ? (9229 + this._plugin.id - 1) : CDebugPluginPorts[this._plugin.name]}`);
+                args.push(`--inspect=127.0.0.1:${CDebugPluginPorts[this._plugin.name] === undefined ? (9300 + this._plugin.id - 1) : CDebugPluginPorts[this._plugin.name]}`);
             }
             this._process = fork(
                 mainFile,
@@ -70,7 +68,6 @@ export default class ControllerPluginProcess extends Emitter {
                     'pipe', // stdout - listened by parent process. Whole output from it goes to logs of parent process
                     'pipe', // stderr - listened by parent process. Whole output from it goes to logs of parent process
                     'ipc',  // ipc    - used by parent process as command sender / reciever
-                    // 'pipe', // Stream is deliveried as UNIX socket. We don't need it at the moment. But probably in th future it will be used as channel for sending big data
                 ] });
             // Getting data events
             this._process.stderr.on('data', this._onSTDData);
@@ -118,44 +115,6 @@ export default class ControllerPluginProcess extends Emitter {
         return true;
     }
 
-    public bindStream(guid: string, connection: { socket: Net.Socket, file: string }): Promise<void> {
-        return new Promise((resolve, reject) => {
-            if (this._process === undefined) {
-                return reject(new Error(this._logger.warn(`Attempt to bind stream to plugin, which doesn't attached. Stream GUID: ${guid}.`)));
-            }
-            if (this._boundStreamGuid !== undefined) {
-                return reject(new Error(this._logger.warn(`Plugin process is already bound with stream "${this._boundStreamGuid}"`)));
-            }
-            this._logger.env(`Sent information about stream GUID: ${guid}.`);
-            // Bind socket
-            this._bindRefWithId(connection.socket).then(() => {
-                if (this._process === undefined) {
-                    return reject(new Error(this._logger.warn(`Fail to bind stream to plugin, which doesn't attached. Stream GUID: ${guid}.`)));
-                }
-                // Send socket to plugin process
-                if (process.platform === 'win32') {
-                    // Passing sockets is not supported on Windows.
-                    this._process.send(`[socket]:${guid};${connection.file}`);
-                } else {
-                    // On all other platforms we can pass socket
-                    this._process.send(`[socket]:${guid};${connection.file}`, connection.socket);
-                }
-                resolve();
-            }).catch(reject);
-        });
-    }
-
-    private _bindRefWithId(socket: Net.Socket): Promise<void> {
-        return new Promise((resolve, reject) => {
-            socket.write(`[plugin:${this._plugin.id}]`, (error: Error) => {
-                if (error) {
-                    return reject(new Error(this._logger.error(`Cannot send binding message into socket due error: ${error.message}`)));
-                }
-                resolve();
-            });
-        });
-    }
-
     /**
      * Handler to listen stdout and stderr of plugin process
      * @returns void
@@ -163,7 +122,7 @@ export default class ControllerPluginProcess extends Emitter {
     private _onSTDData(chunk: Buffer): void {
         const str: string = chunk.toString();
         this._logger.debug(str);
-        this.emit(ControllerPluginProcess.Events.output);
+        this.emit(ControllerPluginProcessSingle.Events.output);
     }
 
     /**
@@ -172,7 +131,7 @@ export default class ControllerPluginProcess extends Emitter {
      */
     private _onClose(...args: any[]): void {
         this.kill();
-        this.emit(ControllerPluginProcess.Events.close, ...args);
+        this.emit(ControllerPluginProcessSingle.Events.close, ...args);
     }
 
     /**
@@ -181,7 +140,7 @@ export default class ControllerPluginProcess extends Emitter {
      */
     private _onError(...args: any[]): void {
         this.kill();
-        this.emit(ControllerPluginProcess.Events.error, ...args);
+        this.emit(ControllerPluginProcessSingle.Events.error, ...args);
     }
 
     /**
@@ -190,7 +149,7 @@ export default class ControllerPluginProcess extends Emitter {
      */
     private _onDisconnect(...args: any[]): void {
         this.kill();
-        this.emit(ControllerPluginProcess.Events.disconnect, ...args);
+        this.emit(ControllerPluginProcessSingle.Events.disconnect, ...args);
     }
 
 }
