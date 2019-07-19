@@ -4,7 +4,7 @@ import * as Toolkit from 'logviewer.client.toolkit';
 import { IService } from '../interfaces/interface.service';
 import PluginsService, { IPluginData } from './service.plugins';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
-
+import TabsSessionsService from './service.sessions.tabs';
 import { ViewSearchComponent } from '../components/views/search/component';
 
 const DefaultViews = [
@@ -16,6 +16,7 @@ const DefaultViews = [
 ];
 
 export interface ISidebarPluginInfo {
+    id: number;
     name: string;
     factory: any;
     ipc: ControllerPluginIPC;
@@ -77,7 +78,7 @@ export class HorizontalSidebarSessionsService implements IService {
                 content: {
                     factory: pluginInfo.factory,
                     inputs: Object.assign({
-                        ipc: pluginInfo.ipc,
+                        api: TabsSessionsService.getPluginAPI(pluginInfo.id),
                         session: this._guid
                     }, this._inputs),
                     resolved: true
@@ -106,6 +107,7 @@ export class HorizontalSidebarSessionsService implements IService {
                 return this._logger.warn(`Plugin "${pluginName}" is defined ot be injected into SidebarHorizontal, but target view isn't detected.`);
             }
             info.push({
+                id: plugin.id,
                 name: pluginName,
                 factory: plugin.factories[Toolkit.EViewsTypes.sidebarHorizontal],
                 ipc: plugin.ipc
