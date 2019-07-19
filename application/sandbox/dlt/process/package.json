@@ -1,6 +1,6 @@
 {
   "name": "logviewer.plugin.transport.dlt",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "logviewer_version": "1.0.0",
   "description": "",
   "main": "./dist/main.js",

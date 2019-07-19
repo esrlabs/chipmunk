@@ -572,7 +572,7 @@ namespace('plugin.serial', function() {
     task('compress', function() {
         logo();
         const tasks = [];
-        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `serial@0.0.1-${process.platform}.tgz`));
+        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `serial@1.0.0-${process.platform}.tgz`));
         if (fs.existsSync(file)) {
             tasks.push(echo(colors.blue(`Remove file: ${file}`)));
             tasks.push(`rm -rf ${file}`);
@@ -663,7 +663,8 @@ namespace('plugin.processes', function() {
     task('compress', function() {
         logo();
         const tasks = [];
-        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `processes@0.0.2-${process.platform}.tgz`));
+        const pkfile = JSON.parse(fs.readFileSync(path.normalize(path.resolve(PATH_HOST_SOURCES, 'package.json'))));
+        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `processes@${pkfile.version}-${process.platform}.tgz`));
         if (fs.existsSync(file)) {
             tasks.push(echo(colors.blue(`Remove file: ${file}`)));
             tasks.push(`rm -rf ${file}`);
@@ -754,7 +755,8 @@ namespace('plugin.xterminal', function() {
     task('compress', function() {
         logo();
         const tasks = [];
-        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `xterminal@0.0.1-${process.platform}.tgz`));
+        const pkfile = JSON.parse(fs.readFileSync(path.normalize(path.resolve(PATH_HOST_SOURCES, 'package.json'))));
+        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `xterminal@${pkfile.version}-${process.platform}.tgz`));
         if (fs.existsSync(file)) {
             tasks.push(echo(colors.blue(`Remove file: ${file}`)));
             tasks.push(`rm -rf ${file}`);
@@ -845,7 +847,8 @@ namespace('plugin.dlt', function() {
     task('compress', function() {
         logo();
         const tasks = [];
-        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `dlt@0.0.1-${process.platform}.tgz`));
+        const pkfile = JSON.parse(fs.readFileSync(path.normalize(path.resolve(PATH_HOST_SOURCES, 'package.json'))));
+        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `dlt@${pkfile.version}-${process.platform}.tgz`));
         if (fs.existsSync(file)) {
             tasks.push(echo(colors.blue(`Remove file: ${file}`)));
             tasks.push(`rm -rf ${file}`);
@@ -914,7 +917,8 @@ namespace('plugin.dlt-render', function() {
     task('compress', function() {
         logo();
         const tasks = [];
-        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `dlt-render@0.0.1-${process.platform}.tgz`));
+        const pkfile = JSON.parse(fs.readFileSync(path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist/dlt-render/package.json'))));
+        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `dlt-render@${pkfile.version}-${process.platform}.tgz`));
         if (fs.existsSync(file)) {
             tasks.push(echo(colors.blue(`Remove file: ${file}`)));
             tasks.push(`rm -rf ${file}`);
@@ -967,7 +971,8 @@ namespace('plugin.row.parser.ascii', function() {
     task('compress', function() {
         logo();
         const tasks = [];
-        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `row.parser.ascii@0.0.1-${process.platform}.tgz`));
+        const pkfile = JSON.parse(fs.readFileSync(path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'package.json'))));
+        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `row.parser.ascii@${pkfile.version}-${process.platform}.tgz`));
         if (fs.existsSync(file)) {
             tasks.push(echo(colors.blue(`Remove file: ${file}`)));
             tasks.push(`rm -rf ${file}`);
