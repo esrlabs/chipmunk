@@ -18,6 +18,8 @@ SUBCOMMANDS:
     merge     command for merging multiple log files
 ```
 
+## Indexing regular log files
+
 For indexing a log file use the `index` subcommand:
 
 ```
@@ -43,6 +45,8 @@ ARGS:
     <input>    Sets the input file to be indexed
 ```
 
+## Merging multiple files
+
 For merging log-files use the `merge` subcommand:
 
 ```
@@ -66,6 +70,8 @@ OPTIONS:
 ARGS:
     <merge_config>    input file is a json file that defines all files to be merged
 ```
+
+## Testing format expressions
 
 For testing a format string use the `format` subcommand.
 
@@ -103,6 +109,38 @@ and this will result in a json string to stderr like this:
   "nonmatching_lines":2,
   "processed_bytes":320
 }
+```
+
+## Indexing DLT files
+
+```
+logviewer_parser-dlt
+handling dtl input
+
+USAGE:
+    logviewer_parser dlt [FLAGS] [OPTIONS] <input> --tag <TAG>
+
+FLAGS:
+    -a, --append     append to file if exists
+    -h, --help       Prints help information
+    -s, --stdout     put out chunk information on stdout
+    -V, --version    Prints version information
+
+OPTIONS:
+    -c, --chunk_size <chunk_size>    How many lines should be in a chunk (used for access later) [default: 500]
+    -v <LEVEL>                       only select log entries with level MIN_LEVEL and more severe
+                                     1 => FATAL
+                                     2 => ERROR
+                                     3 => WARN
+                                     4 => INFO
+                                     5 => DEBUG
+                                     6 => VERBOSE
+    -n, --max_lines <max_lines>      How many lines to collect before dumping [default: 1000000]
+    -o, --out <OUT>                  Output file, "<file_to_index>.out" if not present
+    -t, --tag <TAG>                  tag for each log entry
+
+ARGS:
+    <input>    the DLT file to parse
 ```
 
 ## Date Format for timestamps
@@ -156,6 +194,11 @@ match: Ok(true)
 
 
 # Changelog
+
+### [0.26.2] - 07/19/2019
+  * rearrange tests (integration style tests moved to "tests")
+  * add feature flag for running benchmarks so nightly is not required to build
+  * fixed filtering by log level
 
 ### [0.26.1] - 07/18/2019
   * dlt parser: allow invalid values for some message info fields
