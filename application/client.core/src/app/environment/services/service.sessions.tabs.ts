@@ -7,7 +7,6 @@ import { Observable, Subject, Subscription as SubscriptionRX } from 'rxjs';
 import { IDefaultView, IDefaultSideBarApp } from '../states/state.default';
 import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
 import SourcesService from './service.sources';
-import PluginsService from './service.plugins';
 import { IAPI } from 'logviewer.client.toolkit';
 
 export { ControllerSessionTabSearch, IRequest } from '../controller/controller.session.tab.search';
