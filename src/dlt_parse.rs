@@ -103,18 +103,16 @@ fn dlt_extended_header(input: &[u8]) -> IResult<&[u8], dlt::ExtendedHeader> {
 
     let verbose = (message_info & dlt::VERBOSE_FLAG) != 0;
     match dlt::MessageType::try_from(message_info) {
-        Ok(message_type) => {
-            Ok((
-                i,
-                dlt::ExtendedHeader {
-                    verbose,
-                    argument_count,
-                    message_type,
-                    application_id: app_id.to_string(),
-                    context_id: context_id.to_string(),
-                },
-            ))
-        }
+        Ok(message_type) => Ok((
+            i,
+            dlt::ExtendedHeader {
+                verbose,
+                argument_count,
+                message_type,
+                application_id: app_id.to_string(),
+                context_id: context_id.to_string(),
+            },
+        )),
         Err(e) => {
             eprintln!("Invalid message type: {}", e);
             Err(nom::Err::Error((i, nom::error::ErrorKind::Verify)))
@@ -132,7 +130,7 @@ fn dlt_zero_terminated_string(s: &[u8], size: usize) -> IResult<&[u8], &str> {
         Err(e) => {
             let (valid, _) = content_without_null.split_at(e.valid_up_to());
             unsafe { nom::lib::std::str::from_utf8_unchecked(valid) }
-        },
+        }
     };
     let missing = size - content_without_null.len();
     let (rest, _) = take(missing)(rest_with_null)?;
@@ -285,9 +283,7 @@ fn dlt_fint<T: NomByteOrder>(width: dlt::FloatWidth) -> fn(&[u8]) -> IResult<&[u
 fn dlt_type_info<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], dlt::TypeInfo> {
     let (i, info) = T::parse_u32(input)?;
     match dlt::TypeInfo::try_from(info) {
-        Ok(type_info) => {
-            Ok((i, type_info))
-        }
+        Ok(type_info) => Ok((i, type_info)),
         Err(_) => {
             eprintln!("dlt_type_info no type_info for 0x{:02X?}", info);
             Err(nom::Err::Error((&[], nom::error::ErrorKind::Verify)))
@@ -1136,12 +1132,10 @@ mod tests {
     fn test_dlt_zero_terminated_string_less_data() {
         let mut buf = BytesMut::with_capacity(4);
         buf.extend_from_slice(b"id\0");
-        assert!(
-            match dlt_zero_terminated_string(&buf, 4) {
-                Err(nom::Err::Incomplete(nom::Needed::Size(_))) => true,
-                _ => false,
-            }
-        );
+        assert!(match dlt_zero_terminated_string(&buf, 4) {
+            Err(nom::Err::Incomplete(nom::Needed::Size(_))) => true,
+            _ => false,
+        });
         buf.clear();
         buf.extend_from_slice(b"id\0\0");
         let expected: IResult<&[u8], &str> = Ok((b"", "id"));

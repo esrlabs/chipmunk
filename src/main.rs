@@ -228,14 +228,16 @@ fn main() {
                     Arg::with_name("logverbosity")
                         .short("v")
                         .value_name("LEVEL")
-                        .help("only select log entries with level MIN_LEVEL and more severe\n\
-                               1 => FATAL\n\
-                               2 => ERROR\n\
-                               3 => WARN\n\
-                               4 => INFO\n\
-                               5 => DEBUG\n\
-                               6 => VERBOSE\n\
-                               "),
+                        .help(
+                            "only select log entries with level MIN_LEVEL and more severe\n\
+                             1 => FATAL\n\
+                             2 => ERROR\n\
+                             3 => WARN\n\
+                             4 => INFO\n\
+                             5 => DEBUG\n\
+                             6 => VERBOSE\n\
+                             ",
+                        ),
                 )
                 .arg(
                     Arg::with_name("stdout")
@@ -488,7 +490,8 @@ fn main() {
                 }
             };
 
-            let verbosity_log_level: Option<u8> = value_t!(matches.value_of("logverbosity"), u8).ok();
+            let verbosity_log_level: Option<u8> =
+                value_t!(matches.value_of("logverbosity"), u8).ok();
             let min_log_level: Option<dlt::LogLevel> = match verbosity_log_level {
                 Some(ll) => dlt::u8_to_log_level(ll),
                 None => None,
@@ -497,18 +500,19 @@ fn main() {
             let max_lines = value_t_or_exit!(matches.value_of("max_lines"), usize);
             let append: bool = matches.is_present("append");
             let stdout: bool = matches.is_present("stdout");
-            match processor::create_index_and_mapping_dlt(processor::IndexingConfig {
-                tag,
-                max_lines,
-                chunk_size,
-                in_file: f,
-                out_path: &out_path,
-                append,
-                source_file_size,
-                to_stdout: stdout,
-                status_updates,
-            },
-            dlt::DltFilterConfig { min_log_level },
+            match processor::create_index_and_mapping_dlt(
+                processor::IndexingConfig {
+                    tag,
+                    max_lines,
+                    chunk_size,
+                    in_file: f,
+                    out_path: &out_path,
+                    append,
+                    source_file_size,
+                    to_stdout: stdout,
+                    status_updates,
+                },
+                dlt::DltFilterConfig { min_log_level },
             ) {
                 Err(why) => {
                     eprintln!("couldn't process: {}", why);

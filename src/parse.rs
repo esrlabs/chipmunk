@@ -139,7 +139,8 @@ fn escape_metacharacters(c: char) -> Cow<'static, str> {
         '$' => r"\$",
         '*' => r"\*",
         _ => return c.to_string().into(),
-    }.into()
+    }
+    .into()
 }
 pub fn date_expression(input: &str) -> IResult<&str, Vec<FormatPiece>> {
     let parser = fold_many0(

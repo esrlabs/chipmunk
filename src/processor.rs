@@ -51,7 +51,10 @@ pub fn create_index_and_mapping(config: IndexingConfig) -> Result<Vec<Chunk>, Er
     };
     index_file(config, initial_line_nr)
 }
-pub fn create_index_and_mapping_dlt(config: IndexingConfig, filter_conf: dlt::DltFilterConfig) -> Result<Vec<Chunk>, Error> {
+pub fn create_index_and_mapping_dlt(
+    config: IndexingConfig,
+    filter_conf: dlt::DltFilterConfig,
+) -> Result<Vec<Chunk>, Error> {
     let initial_line_nr = match utils::next_line_nr(config.out_path) {
         Some(nr) => nr,
         None => {
@@ -186,20 +189,19 @@ fn read_one_dlt_message<T: Read>(
                     return Ok(None);
                 }
                 let available = content.len();
-                let res: nom::IResult<&[u8], Option<dlt::Message>> = dlt_parse::dlt_message(content, dlt_filter.min_log_level);
+                let res: nom::IResult<&[u8], Option<dlt::Message>> =
+                    dlt_parse::dlt_message(content, dlt_filter.min_log_level);
                 match res {
                     Ok(r) => {
                         let consumed = available - r.0.len();
                         break Ok(Some((consumed, r.1)));
                     }
-                    e => {
-                        match e {
-                            Err(nom::Err::Incomplete(_)) => continue,
-                            Err(nom::Err::Error(_)) => panic!("nom error"),
-                            Err(nom::Err::Failure(_)) => panic!("nom failure"),
-                            _ => panic!("error while iterating..."),
-                        }
-                    }
+                    e => match e {
+                        Err(nom::Err::Incomplete(_)) => continue,
+                        Err(nom::Err::Error(_)) => panic!("nom error"),
+                        Err(nom::Err::Failure(_)) => panic!("nom failure"),
+                        _ => panic!("error while iterating..."),
+                    },
                 }
             }
             Err(e) => {
@@ -208,15 +210,19 @@ fn read_one_dlt_message<T: Read>(
         }
     }
 }
-pub fn index_dlt_file(config: IndexingConfig, dlt_filter: dlt::DltFilterConfig, initial_line_nr: usize) -> Result<Vec<Chunk>, Error> {
+pub fn index_dlt_file(
+    config: IndexingConfig,
+    dlt_filter: dlt::DltFilterConfig,
+    initial_line_nr: usize,
+) -> Result<Vec<Chunk>, Error> {
     let (out_file, current_out_file_size) = get_out_file_and_size(config.append, &config.out_path)?;
 
     let mut chunks = vec![];
     let mut chunk_factory =
         ChunkFactory::new(config.chunk_size, config.to_stdout, current_out_file_size);
 
-    let mut reader =
-            ReduxReader::with_capacity(10 * 1024 * 1024, config.in_file).set_policy(MinBuffered(10 * 1024));
+    let mut reader = ReduxReader::with_capacity(10 * 1024 * 1024, config.in_file)
+        .set_policy(MinBuffered(10 * 1024));
     let mut line_nr = initial_line_nr;
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
 
@@ -245,7 +251,7 @@ pub fn index_dlt_file(config: IndexingConfig, dlt_filter: dlt::DltFilterConfig, 
                         config.source_file_size,
                     );
                 }
-            },
+            }
             Ok(Some((consumed, None))) => {
                 reader.consume(consumed);
                 processed_bytes += consumed;
