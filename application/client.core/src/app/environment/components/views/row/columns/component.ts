@@ -97,6 +97,8 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
             if (!this._columns[index].visible) {
                 return null;
             }
+            // Rid of HTML
+            column = OutputParsersService.serialize(column);
             // Apply plugin parser
             column = OutputParsersService.row(column, this.pluginId);
             // Apply common parser

@@ -198,6 +198,10 @@ export class OutputParsersService {
         this._subjects.onRepain.next();
     }
 
+    public serialize(str: string): string {
+        return str.replace(/</gi, '&lt;').replace(/>/gi, '&gt;');
+    }
+
     public _setPluginParsers(parsers: { [key: string]: TParser }, pluginId: number): boolean {
         if (pluginId === undefined) {
             return;

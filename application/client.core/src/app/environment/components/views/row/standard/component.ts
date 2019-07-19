@@ -34,6 +34,8 @@ export class ViewOutputRowStandardComponent extends AOutputRenderComponent imple
             return;
         }
         let html = this.str;
+        // Rid of HTML
+        html = OutputParsersService.serialize(html);
         // Apply plugin parser
         html = OutputParsersService.row(html, this.pluginId);
         // Apply common parser
