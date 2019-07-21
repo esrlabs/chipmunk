@@ -3,6 +3,7 @@
 #![cfg_attr(feature = "nightly", feature(test))]
 #[cfg(all(feature = "nightly", test))]
 extern crate test;
+
 #[macro_use]
 extern crate lazy_static;
 use crate::chunks::serialize_chunks;
@@ -246,6 +247,31 @@ fn main() {
                         .help("put out chunk information on stdout"),
                 ),
         )
+        .subcommand(
+            SubCommand::with_name("dlt-stats")
+                .about("dtl statistics")
+                .arg(
+                    Arg::with_name("input")
+                        .short("i")
+                        .long("input")
+                        .help("the DLT file to parse")
+                        .required(true)
+                        .index(1),
+                )
+                .arg(
+                    Arg::with_name("output")
+                        .short("o")
+                        .long("out")
+                        .value_name("OUT")
+                        .help("Output file, \"<file_to_index>.out\" if not present"),
+                )
+                .arg(
+                    Arg::with_name("stdout")
+                        .short("s")
+                        .long("stdout")
+                        .help("put out chunk information on stdout"),
+                ),
+        )
         .get_matches();
 
     // Vary the output based on how many times the user used the "verbose" flag
@@ -260,6 +286,8 @@ fn main() {
         handle_format_subcommand(matches, start, use_stderr_for_status_updates)
     } else if let Some(matches) = matches.subcommand_matches("dlt") {
         handle_dlt_subcommand(matches, start, use_stderr_for_status_updates)
+    } else if let Some(matches) = matches.subcommand_matches("dlt-stats") {
+        handle_dlt_stats_subcommand(matches, start, use_stderr_for_status_updates)
     }
 
     fn handle_index_subcommand(
@@ -310,17 +338,6 @@ fn main() {
                 to_stdout: stdout,
                 status_updates,
             }) {
-                // match processor::create_index_and_mapping(processor::IndexingConfig {
-                //     tag,
-                //     max_lines,
-                //     chunk_size,
-                //     in_file: f,
-                //     out_path: &out_path,
-                //     append,
-                //     source_file_size,
-                //     to_stdout: stdout,
-                //     status_updates,
-                // }) {
                 Err(why) => {
                     eprintln!("couldn't process: {}", why);
                     std::process::exit(2)
@@ -463,9 +480,9 @@ fn main() {
         start: std::time::Instant,
         status_updates: bool,
     ) {
-        if matches.is_present("input") {
-            let tag = matches.value_of("tag").expect("tag must be present");
-            let file_name = matches.value_of("input").expect("input must be present");
+        if let (Some(file_name), Some(tag)) = (matches.value_of("input"), matches.value_of("tag")) {
+            let append: bool = matches.is_present("append");
+            let stdout: bool = matches.is_present("stdout");
             let source_file_size = match fs::metadata(file_name) {
                 Ok(file_meta) => file_meta.len() as usize,
                 Err(_) => {
@@ -473,13 +490,13 @@ fn main() {
                     std::process::exit(2);
                 }
             };
-            let file_path = path::PathBuf::from(file_name);
             let fallback_out = file_name.to_string() + ".out";
             let out_path = path::PathBuf::from(
                 matches
                     .value_of("output")
                     .unwrap_or_else(|| fallback_out.as_str()),
             );
+            let file_path = path::PathBuf::from(file_name);
             let mapping_out_path: path::PathBuf =
                 path::PathBuf::from(file_name.to_string() + ".map.json");
             let f = match fs::File::open(&file_path) {
@@ -498,8 +515,6 @@ fn main() {
             };
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
             let max_lines = value_t_or_exit!(matches.value_of("max_lines"), usize);
-            let append: bool = matches.is_present("append");
-            let stdout: bool = matches.is_present("stdout");
             match processor::create_index_and_mapping_dlt(
                 processor::IndexingConfig {
                     tag,
@@ -529,6 +544,37 @@ fn main() {
                             "MB".to_string(),
                         )
                     }
+                }
+            }
+            std::process::exit(0)
+        }
+    }
+    fn handle_dlt_stats_subcommand(
+        matches: &clap::ArgMatches,
+        start: std::time::Instant,
+        status_updates: bool,
+    ) {
+        let file_name = matches.value_of("input").expect("input must be present");
+        let file_path = path::PathBuf::from(file_name);
+        let f = match fs::File::open(&file_path) {
+            Ok(file) => file,
+            Err(_) => {
+                eprintln!("could not open {:?}", file_path);
+                std::process::exit(2)
+            }
+        };
+        match processor::get_dlt_file_info(&f) {
+            Err(why) => {
+                eprintln!("couldn't collect statistics: {}", why);
+                std::process::exit(2)
+            }
+            Ok(res) => {
+                if status_updates {
+                    println!("statistics: {:?}", res);
+                    let elapsed = start.elapsed();
+                    let ms = elapsed.as_millis();
+                    let duration_in_s = ms as f64 / 1000.0;
+                    eprintln!("collecting statistics took {:.3}s!", duration_in_s);
                 }
             }
         }

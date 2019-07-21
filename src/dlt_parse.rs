@@ -498,7 +498,6 @@ fn dlt_payload<T: NomByteOrder>(
 /// --------------------------------------------
 /// payload: 1100 00000472 656D6F
 ///
-#[allow(dead_code)]
 pub fn dlt_message(
     input: &[u8],
     min_log_level: Option<dlt::LogLevel>,
@@ -506,17 +505,15 @@ pub fn dlt_message(
     let (after_storage_and_normal_header, (storage_header, header)) =
         tuple((dlt_storage_header, dlt_standard_header))(input)?;
 
-    let message_length = header.overall_length as usize;
-    let headers_length = dlt::calculate_all_headers_length(header.header_type());
-    if message_length < headers_length {
-        eprintln!("Invalid header length");
-        return Err(nom::Err::Error((
-            after_storage_and_normal_header,
-            nom::error::ErrorKind::Verify,
-        )));
-    }
-
-    let payload_length = message_length - headers_length;
+    let payload_length = match validated_payload_length(&header) {
+        Some(length) => length,
+        None => {
+            return Err(nom::Err::Error((
+                after_storage_and_normal_header,
+                nom::error::ErrorKind::Verify,
+            )));
+        }
+    };
 
     let mut verbose: bool = false;
     let mut arg_count = 0;
@@ -531,14 +528,8 @@ pub fn dlt_message(
     if let Some(min_filter_level) = min_log_level {
         if let Some(h) = &extended_header {
             if h.skip_with_level(min_filter_level) {
-                // no need to parse further
-                let len_header_ext_header_payload = header.overall_length as usize;
-                let header_len = dlt::calculate_standard_header_length(header.header_type());
-                let len_ext_header_payload = len_header_ext_header_payload - header_len as usize;
-                let len_payload = len_ext_header_payload - dlt::EXTENDED_HEADER_LENGTH;
-
-                // skip payload
-                let (after_message, _) = take(len_payload)(after_headers)?;
+                // no need to parse further, skip payload
+                let (after_message, _) = take(payload_length)(after_headers)?;
                 return Ok((after_message, None));
             }
         }
@@ -557,6 +548,42 @@ pub fn dlt_message(
             payload,
         }),
     ))
+}
+fn validated_payload_length(header: &dlt::StandardHeader) -> Option<usize> {
+    let message_length = header.overall_length as usize;
+    let headers_length = dlt::calculate_all_headers_length(header.header_type());
+    if message_length < headers_length {
+        eprintln!("Invalid header length");
+        return None;
+    }
+    Some(message_length - headers_length)
+}
+#[allow(dead_code)]
+pub fn dlt_app_id(
+    input: &[u8],
+) -> IResult<&[u8], Option<String>> {
+    let (after_storage_and_normal_header, (_, header)) =
+        tuple((dlt_storage_header, dlt_standard_header))(input)?;
+
+    let payload_length = match validated_payload_length(&header) {
+        Some(length) => length,
+        None => {
+            return Err(nom::Err::Error((
+                after_storage_and_normal_header,
+                nom::error::ErrorKind::Verify,
+            )));
+        }
+    };
+    if !header.has_extended_header {
+        // no app id, skip rest
+        let (after_message, _) = take(payload_length)(after_storage_and_normal_header)?;
+        return Ok((after_message, None));
+    }
+
+    let (after_headers, extended_header) = dlt_extended_header(after_storage_and_normal_header)?;
+    // skip payload
+    let (after_message, _) = take(payload_length)(after_headers)?;
+    Ok((after_message, Some(extended_header.application_id )))
 }
 
 #[cfg(test)]

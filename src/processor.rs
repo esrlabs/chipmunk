@@ -3,9 +3,10 @@ use crate::dlt_parse;
 use crate::dlt;
 use crate::utils;
 use std::path;
-use failure::{err_msg, Error};
 use std::fs;
+use std::collections::HashSet;
 use std::io::{BufRead, BufReader, BufWriter, Write, Read};
+use failure::{err_msg, Error};
 use buf_redux::BufReader as ReduxReader;
 use buf_redux::policy::MinBuffered;
 
@@ -266,7 +267,7 @@ pub fn index_dlt_file(
                 }
             }
             Ok(None) => {
-                println!("nothing more to parse");
+                // println!("nothing more to parse");
                 break;
             }
             Err(e) => return Err(err_msg(format!("error while parsing dlt messages: {}", e))),
@@ -291,4 +292,63 @@ pub fn index_dlt_file(
         None => eprintln!("no content found"),
     }
     Ok(chunks)
+}
+#[allow(dead_code)]
+pub fn get_dlt_file_info(
+    in_file: &fs::File,
+) -> Result<HashSet<String>, Error> {
+    let mut reader = ReduxReader::with_capacity(10 * 1024 * 1024, in_file)
+        .set_policy(MinBuffered(10 * 1024));
+
+    let mut app_ids = HashSet::new();
+    loop {
+        // println!("line index: {}", line_nr);
+        match read_one_dlt_message_info(&mut reader) {
+            Ok(Some((consumed, Some(app_id)))) => {
+                // println!("consumed: {}", consumed);
+                reader.consume(consumed);
+                app_ids.insert(app_id);
+            }
+            Ok(Some((consumed, None))) => {
+                reader.consume(consumed);
+            }
+            Ok(None) => {
+                // println!("nothing more to parse");
+                break;
+            }
+            Err(e) => return Err(err_msg(format!("error while parsing dlt messages: {}", e))),
+        }
+    }
+    Ok(app_ids)
+}
+fn read_one_dlt_message_info<T: Read>(
+    reader: &mut ReduxReader<T, MinBuffered>,
+) -> Result<Option<(usize, Option<String>)>, Error> {
+    loop {
+        match reader.fill_buf() {
+            Ok(content) => {
+                if content.is_empty() {
+                    return Ok(None);
+                }
+                let available = content.len();
+                let res: nom::IResult<&[u8], Option<String>> =
+                    dlt_parse::dlt_app_id(content);
+                match res {
+                    Ok(r) => {
+                        let consumed = available - r.0.len();
+                        break Ok(Some((consumed, r.1)));
+                    }
+                    e => match e {
+                        Err(nom::Err::Incomplete(_)) => continue,
+                        Err(nom::Err::Error(_)) => panic!("nom error"),
+                        Err(nom::Err::Failure(_)) => panic!("nom failure"),
+                        _ => panic!("error while iterating..."),
+                    },
+                }
+            }
+            Err(e) => {
+                panic!("error while iterating...{}", e);
+            }
+        }
+    }
 }
