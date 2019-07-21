@@ -195,6 +195,10 @@ match: Ok(true)
 
 # Changelog
 
+### [0.26.3] - 07/21/2019
+  * fix: use correct mapping when filtering out entries
+  * added support for listing available components of dlt files
+
 ### [0.26.2] - 07/19/2019
   * rearrange tests (integration style tests moved to "tests")
   * add feature flag for running benchmarks so nightly is not required to build
