@@ -1,6 +1,6 @@
 {
   "name": "logviewer",
-  "version": "1.13.1",
+  "version": "1.14.0",
   "description": "LogViewer",
   "main": "./dist/compiled/main.js",
   "copyright": "Copyright © 2019 year E.S.R.Labs",
@@ -58,8 +58,8 @@
     "@types/uuid": "^3.4.4",
     "dmg-builder": "^6.0.0",
     "electron": "4.0.3",
-    "electron-builder": "^20.29.0",
     "electron-rebuild": "^1.8.2",
+    "electron-builder": "^20.29.0",
     "tslint": "^5.11.0",
     "typescript": "^3.1.3"
   },
