@@ -225,6 +225,7 @@ pub fn index_dlt_file(
     let mut reader = ReduxReader::with_capacity(10 * 1024 * 1024, config.in_file)
         .set_policy(MinBuffered(10 * 1024));
     let mut line_nr = initial_line_nr;
+    let mut processed_lines = 0usize;
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
 
     let mut processed_bytes = get_processed_bytes(config.append, &config.out_path) as usize;
@@ -238,6 +239,7 @@ pub fn index_dlt_file(
                     utils::create_tagged_line_d(config.tag, &mut buf_writer, &msg, line_nr, true)?;
                 processed_bytes += consumed;
                 line_nr += 1;
+                processed_lines += 1;
                 if let Some(chunk) =
                     chunk_factory.create_chunk_if_needed(line_nr, written_bytes_len)
                 {
@@ -246,7 +248,7 @@ pub fn index_dlt_file(
                 }
                 if config.status_updates {
                     report_progress(
-                        line_nr,
+                        processed_lines,
                         chunk_factory.get_current_byte_index(),
                         processed_bytes,
                         config.source_file_size,
@@ -256,10 +258,10 @@ pub fn index_dlt_file(
             Ok(Some((consumed, None))) => {
                 reader.consume(consumed);
                 processed_bytes += consumed;
-                line_nr += 1;
+                processed_lines += 1;
                 if config.status_updates {
                     report_progress(
-                        line_nr,
+                        processed_lines,
                         chunk_factory.get_current_byte_index(),
                         processed_bytes,
                         config.source_file_size,

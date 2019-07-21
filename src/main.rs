@@ -570,11 +570,23 @@ fn main() {
             }
             Ok(res) => {
                 if status_updates {
+                    let source_file_size = match f.metadata() {
+                        Ok(file_meta) => file_meta.len() as usize,
+                        Err(_) => {
+                            eprintln!("could not find out size of source file");
+                            std::process::exit(2);
+                        }
+                    };
+                    let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
                     println!("statistics: {:?}", res);
                     let elapsed = start.elapsed();
                     let ms = elapsed.as_millis();
                     let duration_in_s = ms as f64 / 1000.0;
-                    eprintln!("collecting statistics took {:.3}s!", duration_in_s);
+                    eprintln!(
+                        "collecting statistics for ~{} MB took {:.3}s!",
+                        file_size_in_mb.round(),
+                        duration_in_s
+                    );
                 }
             }
         }
