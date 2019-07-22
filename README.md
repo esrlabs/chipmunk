@@ -115,7 +115,7 @@ and this will result in a json string to stderr like this:
 
 ```
 logviewer_parser-dlt
-handling dtl input
+handling dlt input
 
 USAGE:
     logviewer_parser dlt [FLAGS] [OPTIONS] <input> --tag <TAG>

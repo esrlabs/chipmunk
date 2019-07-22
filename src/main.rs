@@ -249,7 +249,7 @@ fn main() {
         )
         .subcommand(
             SubCommand::with_name("dlt-stats")
-                .about("dtl statistics")
+                .about("dlt statistics")
                 .arg(
                     Arg::with_name("input")
                         .short("i")
