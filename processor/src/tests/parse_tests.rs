@@ -4,8 +4,8 @@ mod tests {
 
     use pretty_assertions::assert_eq;
     use regex::Regex;
-    use std::path::PathBuf;
     use std::fs;
+    use std::path::PathBuf;
 
     #[test]
     fn test_date_parsers_escapes() {
@@ -206,18 +206,18 @@ mod tests {
         assert_eq!(1_559_838_667_577, timestamp_with_offset);
     }
 
-    test_generator::test_expand_paths! { test_detect_regex; "test_samples/detecting/*" }
+    test_generator::test_expand_paths! { test_detect_regex; "processor/test_samples/detecting/*" }
 
     fn test_detect_regex(dir_name: &str) {
         let possible_formats: Vec<String> = vec![
             "MM-DD hh:mm:ss.s TZD".to_string(),
             "MM-DD-YYYY hh:mm:ss.s".to_string(),
         ];
-        let in_path = PathBuf::from(&dir_name).join("in.log");
+        let in_path = PathBuf::from("..").join(&dir_name).join("in.log");
         let res = detect_timestamp_format(&in_path, &possible_formats)
             .expect("could not detect regex type");
 
-        let mut format_path = PathBuf::from(&dir_name);
+        let mut format_path = PathBuf::from("..").join(&dir_name);
         format_path.push("expected.format");
         let contents =
             fs::read_to_string(format_path).expect("Something went wrong reading the file");

@@ -1,4 +1,4 @@
-use crate::timedline::TimedLine;
+use indexer_base::timedline::TimedLine;
 use chrono::{NaiveDate, NaiveDateTime, Utc, Datelike};
 use std::borrow::Cow;
 use nom::bytes::complete::tag;

@@ -4,7 +4,8 @@ mod tests {
     extern crate rand;
     extern crate tempdir;
     use crate::processor::*;
-    use crate::chunks::{Chunk};
+    use indexer_base::chunks::Chunk;
+    use indexer_base::config::IndexingConfig;
     use pretty_assertions::assert_eq;
     use std::fs;
     use std::fs::File;
@@ -184,20 +185,15 @@ mod tests {
         }
     }
 
-    test_generator::test_expand_paths! { test_input_output; "test_samples/indexing/*" }
+    test_generator::test_expand_paths! { test_input_output; "processor/test_samples/indexing/*" }
 
     fn test_input_output(dir_name: &str) {
-        let in_path = PathBuf::from(&dir_name).join("in.txt");
-        let in_file = File::open(in_path).unwrap();
-        // let indexer = Indexer {
-        //     source_id: "TAG".to_string(),
-        //     max_lines: 5,
-        //     chunk_size: 1,
-        // };
+        let in_path = PathBuf::from("..").join(&dir_name).join("in.txt");
+        let in_file = File::open(in_path).expect("in.txt file not found");
         let tmp_dir = TempDir::new("test_dir").expect("could not create temp dir");
         let out_file_path = tmp_dir.path().join("tmpTestFile.txt.out");
         let in_file_size = in_file.metadata().unwrap().len() as usize;
-        let append_to_this = PathBuf::from(&dir_name).join("append_here.log");
+        let append_to_this = PathBuf::from("..").join(&dir_name).join("append_here.log");
         let append_use_case = append_to_this.exists();
 
         if append_use_case {
@@ -210,16 +206,6 @@ mod tests {
             let content2 = fs::read_to_string(&out_file_path).expect("could not read file");
             println!("copied content was: {:?}", content2);
         }
-        // let chunks = indexer
-        //     .index_file(
-        //         &in_file,
-        //         &out_file_path,
-        //         append_use_case,
-        //         in_file_size,
-        //         false,
-        //     )
-        //     .unwrap();
-
         let chunks = create_index_and_mapping(IndexingConfig {
             tag: "TAG",
             max_lines: 5,
@@ -234,7 +220,7 @@ mod tests {
         .unwrap();
         let out_file_content_bytes = fs::read(out_file_path).expect("could not read file");
         let out_file_content = String::from_utf8_lossy(&out_file_content_bytes[..]);
-        let expected_path = PathBuf::from(&dir_name).join("expected.output");
+        let expected_path = PathBuf::from("..").join(&dir_name).join("expected.output");
         let expected_content_bytes = fs::read(expected_path).expect("could not read expected file");
         let expected_content = String::from_utf8_lossy(&expected_content_bytes[..]);
         println!(

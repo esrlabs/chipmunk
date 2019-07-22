@@ -1,8 +1,12 @@
-use std::fs;
-use std::str;
+use failure::Error;
 use std::char;
 use std::fmt::Display;
+use std::fs;
 use std::io::{BufReader, Read, Seek, SeekFrom};
+use std::path;
+use std::str;
+
+const REPORT_PROGRESS_LINE_BLOCK: usize = 250_000;
 
 pub const ROW_NUMBER_SENTINAL: char = '\u{0002}';
 // pub const ROW_NUMBER_SENTINAL_SLICE: &[u8] = &[0x2];
@@ -152,4 +156,47 @@ pub fn next_line_nr(path: &std::path::Path) -> Option<usize> {
         }
     }
     None
+}
+pub fn get_out_file_and_size(
+    append: bool,
+    out_path: &path::PathBuf,
+) -> Result<(fs::File, usize), Error> {
+    let out_file: std::fs::File = if append {
+        std::fs::OpenOptions::new()
+            .append(true)
+            .create(true)
+            .open(out_path)?
+    } else {
+        std::fs::File::create(out_path)?
+    };
+    let current_out_file_size = out_file.metadata().map(|md| md.len() as usize)?;
+    Ok((out_file, current_out_file_size))
+}
+
+#[inline]
+pub fn report_progress(
+    line_nr: usize,
+    current_byte_index: usize,
+    processed_bytes: usize,
+    source_file_size: usize,
+) {
+    if line_nr % REPORT_PROGRESS_LINE_BLOCK == 0 {
+        eprintln!(
+            "processed {} lines -- byte-index {} ({} %)",
+            line_nr,
+            current_byte_index,
+            (processed_bytes as f32 / source_file_size as f32 * 100.0).round()
+        );
+    }
+}
+
+pub fn get_processed_bytes(append: bool, out: &path::PathBuf) -> u64 {
+    if append {
+        match fs::metadata(out) {
+            Ok(metadata) => metadata.len(),
+            Err(_) => 0,
+        }
+    } else {
+        0
+    }
 }

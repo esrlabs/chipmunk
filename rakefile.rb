@@ -1,4 +1,5 @@
 require 'rake'
+CLI_EXE_NAME="indexer_cli"
 EXE_NAME="logviewer_parser"
 HOME=ENV['HOME']
 module OS
@@ -73,6 +74,7 @@ def build_the_release
     release_folder = "target/x86_64-pc-windows-gnu/release"
   end
   cd "#{release_folder}" do
+    cp "#{CLI_EXE_NAME}","#{EXE_NAME}"
     cp "#{EXE_NAME}","#{HOME}/bin/#{EXE_NAME}"
     sh "tar -cvzf indexing@#{current_version}-#{os_ext}.tgz #{EXE_NAME}"
   end
@@ -83,6 +85,7 @@ def build_the_release_windows
   release_folder = "target/x86_64-pc-windows-gnu/release"
   tgz_file = "indexing@#{current_version}-win64.tgz"
   cd "#{release_folder}" do
+    cp "#{CLI_EXE_NAME}.exe","#{EXE_NAME}.exe"
     sh "tar -cvzf #{tgz_file} #{EXE_NAME}.exe"
   end
   mv "#{release_folder}/#{tgz_file}", "target/release"
@@ -93,6 +96,7 @@ def build_the_release_windows32
   release_folder = "target/i686-pc-windows-gnu/release"
   tgz_file = "indexing@#{current_version}-win32.tgz"
   cd "#{release_folder}" do
+    cp "#{CLI_EXE_NAME}.exe","#{EXE_NAME}.exe"
     sh "tar -cvzf #{tgz_file} #{EXE_NAME}.exe"
   end
   mv "#{release_folder}/#{tgz_file}", "target/release"
@@ -165,11 +169,13 @@ end
 
 def get_current_version
   current_version = nil
-  ['Cargo.toml'].each do |file|
-    text = File.read(file)
-    if match = text.match(/^version\s=\s\"(.*)\"/i)
-      current_version = match.captures[0]
-      puts "version was: #{current_version}"
+  cd CLI_EXE_NAME do
+    ['Cargo.toml'].each do |file|
+      text = File.read(file)
+      if match = text.match(/^version\s=\s\"(.*)\"/i)
+        current_version = match.captures[0]
+        puts "version was: #{current_version}"
+      end
     end
   end
   current_version

@@ -1,0 +1,23 @@
+[package]
+name = "processor"
+version = "0.1.0"
+authors = ["Oliver Mueller <oliver.mueller@esrlabs.com>"]
+edition = "2018"
+
+[dependencies]
+regex = "1"
+chrono = "0.4"
+nom = "5.0"
+failure = "0.1.5"
+buf_redux = "0.8.1"
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+indexer_base = { path = "../indexer_base" }
+
+[dev-dependencies]
+proptest = "0.9.4"
+proptest-derive = "0.1.2"
+pretty_assertions = "0.6"
+tempdir = "0.3"
+test-generator = "0.2.2"
+rand = "0.7"

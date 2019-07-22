@@ -1,6 +1,15 @@
 use crate::dlt;
 use crate::dlt::TryFrom;
+use indexer_base::config::IndexingConfig;
+use indexer_base::chunks::{Chunk, ChunkFactory};
+use indexer_base::utils;
 
+use std::collections::HashSet;
+use std::fs;
+use failure::{err_msg, Error};
+use std::io::{BufRead, BufWriter, Write, Read};
+use buf_redux::BufReader as ReduxReader;
+use buf_redux::policy::MinBuffered;
 use nom::bytes::streaming::{tag, take, take_while_m_n};
 use byteorder::{BigEndian, LittleEndian};
 use nom::{
@@ -1201,5 +1210,197 @@ mod benchs {
         let broken = vec![0x41, 0, 146, 150];
         buf.extend_from_slice(&broken);
         b.iter(|| dlt_zero_terminated_string(&buf, 4));
+    }
+}
+
+fn read_one_dlt_message<T: Read>(
+    reader: &mut ReduxReader<T, MinBuffered>,
+    dlt_filter: &dlt::DltFilterConfig,
+) -> Result<Option<(usize, Option<dlt::Message>)>, Error> {
+    loop {
+        match reader.fill_buf() {
+            Ok(content) => {
+                if content.is_empty() {
+                    return Ok(None);
+                }
+                let available = content.len();
+                let res: nom::IResult<&[u8], Option<dlt::Message>> =
+                    dlt_message(content, dlt_filter.min_log_level);
+                match res {
+                    Ok(r) => {
+                        let consumed = available - r.0.len();
+                        break Ok(Some((consumed, r.1)));
+                    }
+                    e => match e {
+                        Err(nom::Err::Incomplete(_)) => continue,
+                        Err(nom::Err::Error(_)) => panic!("nom error"),
+                        Err(nom::Err::Failure(_)) => panic!("nom failure"),
+                        _ => panic!("error while iterating..."),
+                    },
+                }
+            }
+            Err(e) => {
+                panic!("error while iterating...{}", e);
+            }
+        }
+    }
+}
+pub fn create_index_and_mapping_dlt(
+    config: IndexingConfig,
+    filter_conf: dlt::DltFilterConfig,
+) -> Result<Vec<Chunk>, Error> {
+    let initial_line_nr = match utils::next_line_nr(config.out_path) {
+        Some(nr) => nr,
+        None => {
+            eprintln!(
+                "could not determine last line number of {:?}",
+                config.out_path
+            );
+            std::process::exit(2)
+        }
+    };
+    index_dlt_file(config, filter_conf, initial_line_nr)
+}
+pub fn index_dlt_file(
+    config: IndexingConfig,
+    dlt_filter: dlt::DltFilterConfig,
+    initial_line_nr: usize,
+) -> Result<Vec<Chunk>, Error> {
+    let (out_file, current_out_file_size) = utils::get_out_file_and_size(config.append, &config.out_path)?;
+
+    let mut chunks = vec![];
+    let mut chunk_factory =
+        ChunkFactory::new(config.chunk_size, config.to_stdout, current_out_file_size);
+
+    let mut reader = ReduxReader::with_capacity(10 * 1024 * 1024, config.in_file)
+        .set_policy(MinBuffered(10 * 1024));
+    let mut line_nr = initial_line_nr;
+    let mut processed_lines = 0usize;
+    let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
+
+    let mut processed_bytes = utils::get_processed_bytes(config.append, &config.out_path) as usize;
+    loop {
+        // println!("line index: {}", line_nr);
+        match read_one_dlt_message(&mut reader, &dlt_filter) {
+            Ok(Some((consumed, Some(msg)))) => {
+                // println!("consumed: {}", consumed);
+                reader.consume(consumed);
+                let written_bytes_len =
+                    utils::create_tagged_line_d(config.tag, &mut buf_writer, &msg, line_nr, true)?;
+                processed_bytes += consumed;
+                line_nr += 1;
+                processed_lines += 1;
+                if let Some(chunk) =
+                    chunk_factory.create_chunk_if_needed(line_nr, written_bytes_len)
+                {
+                    chunks.push(chunk);
+                    buf_writer.flush()?;
+                }
+                if config.status_updates {
+                    utils::report_progress(
+                        processed_lines,
+                        chunk_factory.get_current_byte_index(),
+                        processed_bytes,
+                        config.source_file_size,
+                    );
+                }
+            }
+            Ok(Some((consumed, None))) => {
+                reader.consume(consumed);
+                processed_bytes += consumed;
+                processed_lines += 1;
+                if config.status_updates {
+                    utils::report_progress(
+                        processed_lines,
+                        chunk_factory.get_current_byte_index(),
+                        processed_bytes,
+                        config.source_file_size,
+                    );
+                }
+            }
+            Ok(None) => {
+                // println!("nothing more to parse");
+                break;
+            }
+            Err(e) => return Err(err_msg(format!("error while parsing dlt messages: {}", e))),
+        }
+    }
+
+    buf_writer.flush()?;
+    if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunks.is_empty()) {
+        chunks.push(chunk);
+    }
+    match chunks.last() {
+        Some(last_chunk) => {
+            let last_expected_byte_index =
+                fs::metadata(config.out_path).map(|md| md.len() as usize)?;
+            if last_expected_byte_index != last_chunk.b.1 {
+                eprintln!(
+                    "error in computation! last byte in chunks is {} but should be {}",
+                    last_chunk.b.1, last_expected_byte_index
+                );
+            }
+        }
+        None => eprintln!("no content found"),
+    }
+    Ok(chunks)
+}
+#[allow(dead_code)]
+pub fn get_dlt_file_info(
+    in_file: &fs::File,
+) -> Result<HashSet<String>, Error> {
+    let mut reader = ReduxReader::with_capacity(10 * 1024 * 1024, in_file)
+        .set_policy(MinBuffered(10 * 1024));
+
+    let mut app_ids = HashSet::new();
+    loop {
+        // println!("line index: {}", line_nr);
+        match read_one_dlt_message_info(&mut reader) {
+            Ok(Some((consumed, Some(app_id)))) => {
+                // println!("consumed: {}", consumed);
+                reader.consume(consumed);
+                app_ids.insert(app_id);
+            }
+            Ok(Some((consumed, None))) => {
+                reader.consume(consumed);
+            }
+            Ok(None) => {
+                // println!("nothing more to parse");
+                break;
+            }
+            Err(e) => return Err(err_msg(format!("error while parsing dlt messages: {}", e))),
+        }
+    }
+    Ok(app_ids)
+}
+fn read_one_dlt_message_info<T: Read>(
+    reader: &mut ReduxReader<T, MinBuffered>,
+) -> Result<Option<(usize, Option<String>)>, Error> {
+    loop {
+        match reader.fill_buf() {
+            Ok(content) => {
+                if content.is_empty() {
+                    return Ok(None);
+                }
+                let available = content.len();
+                let res: nom::IResult<&[u8], Option<String>> =
+                    dlt_app_id(content);
+                match res {
+                    Ok(r) => {
+                        let consumed = available - r.0.len();
+                        break Ok(Some((consumed, r.1)));
+                    }
+                    e => match e {
+                        Err(nom::Err::Incomplete(_)) => continue,
+                        Err(nom::Err::Error(_)) => panic!("nom error"),
+                        Err(nom::Err::Failure(_)) => panic!("nom failure"),
+                        _ => panic!("error while iterating..."),
+                    },
+                }
+            }
+            Err(e) => {
+                panic!("error while iterating...{}", e);
+            }
+        }
     }
 }

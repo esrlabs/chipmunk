@@ -4,16 +4,16 @@ mod tests {
     use crate::merger::*;
     use pretty_assertions::assert_eq;
     use std::fs;
+    use std::path::PathBuf;
     use tempdir::TempDir;
-    use std::path::{PathBuf};
 
-    test_generator::test_expand_paths! { test_merge_files; "test_samples/merging/*" }
+    test_generator::test_expand_paths! { test_merge_files; "merging/test_samples/*" }
 
     fn test_merge_files(dir_name: &str) {
         let tmp_dir = TempDir::new("test_dir").expect("could not create temp dir");
         let out_file_path = tmp_dir.path().join("tmpTestFile.txt.out");
-        let option_path = PathBuf::from(&dir_name).join("config.json");
-        let append_to_this = PathBuf::from(&dir_name).join("append_here.log");
+        let option_path = PathBuf::from("..").join(&dir_name).join("config.json");
+        let append_to_this = PathBuf::from("..").join(&dir_name).join("append_here.log");
         let append_use_case = append_to_this.exists();
         if append_use_case {
             fs::copy(&append_to_this, &out_file_path).expect("copy content failed");
@@ -29,6 +29,12 @@ mod tests {
             max_lines: 5,
             chunk_size: 5,
         };
+        // println!(
+        //     "config file path: {:?} exitst: {} (current dir: {:?})",
+        //     config_path,
+        //     config_path.exists(),
+        //     std::env::current_dir()
+        // );
         let merged_lines_cnt = merger.merge_files_use_config_file(
             &option_path,
             &out_file_path,
@@ -40,7 +46,7 @@ mod tests {
 
         let out_file_content_bytes = fs::read(out_file_path).expect("could not read file");
         let out_file_content = String::from_utf8_lossy(&out_file_content_bytes[..]);
-        let mut expected_path = PathBuf::from(&dir_name);
+        let mut expected_path = PathBuf::from("..").join(&dir_name);
         expected_path.push("expected.merged");
         let expected_content_bytes = fs::read(expected_path).expect("could not read expected file");
         let expected_content = String::from_utf8_lossy(&expected_content_bytes[..]);

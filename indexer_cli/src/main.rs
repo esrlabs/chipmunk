@@ -1,16 +1,24 @@
-// #![feature(rustc_attrs)]
-// #[rustc::since(1.38)]
+// use dlt;
+// fn main() {
+//     let num = 10;
+//     // println!("Hello, world! {} plus one is {}!", num, dlt::add_one(num));
+//     println!("Hello, world! {} plus two is {}!", num, processor::add_two(num));
+// }
 #![cfg_attr(feature = "nightly", feature(test))]
 #[cfg(all(feature = "nightly", test))]
 extern crate test;
+extern crate processor;
+extern crate indexer_base;
+extern crate dlt;
+extern crate merging;
 
-#[macro_use]
-extern crate lazy_static;
-use crate::chunks::serialize_chunks;
-use crate::parse::{
+
+use indexer_base::chunks::serialize_chunks;
+use processor::parse::{
     line_matching_format_expression, match_format_string_in_file, read_format_string_options,
     FormatTestOptions,
 };
+use indexer_base::config::IndexingConfig;
 
 #[macro_use]
 extern crate clap;
@@ -19,18 +27,9 @@ use std::fs;
 use std::path;
 use std::time::Instant;
 
-mod chunks;
-mod dlt;
-mod dlt_parse;
-mod dlt_tokio;
-mod merger;
-mod parse;
-mod processor;
-mod timedline;
-mod utils;
 
-#[cfg(all(test, not(target_os = "windows")))]
-mod tests;
+// #[cfg(all(test, not(target_os = "windows")))]
+// mod tests;
 
 fn main() {
     let start = Instant::now();
@@ -327,7 +326,7 @@ fn main() {
             let append: bool = matches.is_present("append");
             let stdout: bool = matches.is_present("stdout");
 
-            match processor::create_index_and_mapping(processor::IndexingConfig {
+            match processor::processor::create_index_and_mapping(IndexingConfig {
                 tag,
                 max_lines,
                 chunk_size,
@@ -378,7 +377,7 @@ fn main() {
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
             let append: bool = matches.is_present("append");
             let stdout: bool = matches.is_present("stdout");
-            let merger = merger::Merger {
+            let merger = merging::merger::Merger {
                 max_lines,  // how many lines to collect before writing out
                 chunk_size, // used for mapping line numbers to byte positions
             };
@@ -509,14 +508,14 @@ fn main() {
 
             let verbosity_log_level: Option<u8> =
                 value_t!(matches.value_of("logverbosity"), u8).ok();
-            let min_log_level: Option<dlt::LogLevel> = match verbosity_log_level {
-                Some(ll) => dlt::u8_to_log_level(ll),
+            let min_log_level: Option<dlt::dlt::LogLevel> = match verbosity_log_level {
+                Some(ll) => dlt::dlt::u8_to_log_level(ll),
                 None => None,
             };
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
             let max_lines = value_t_or_exit!(matches.value_of("max_lines"), usize);
-            match processor::create_index_and_mapping_dlt(
-                processor::IndexingConfig {
+            match dlt::dlt_parse::create_index_and_mapping_dlt(
+                IndexingConfig {
                     tag,
                     max_lines,
                     chunk_size,
@@ -527,7 +526,7 @@ fn main() {
                     to_stdout: stdout,
                     status_updates,
                 },
-                dlt::DltFilterConfig { min_log_level },
+                dlt::dlt::DltFilterConfig { min_log_level },
             ) {
                 Err(why) => {
                     eprintln!("couldn't process: {}", why);
@@ -563,7 +562,7 @@ fn main() {
                 std::process::exit(2)
             }
         };
-        match processor::get_dlt_file_info(&f) {
+        match dlt::dlt_parse::get_dlt_file_info(&f) {
             Err(why) => {
                 eprintln!("couldn't collect statistics: {}", why);
                 std::process::exit(2)

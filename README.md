@@ -195,6 +195,10 @@ match: Ok(true)
 
 # Changelog
 
+### [0.27.0] - 07/22/2019
+  * convert project to cargo workspace
+  * spelling error
+
 ### [0.26.3] - 07/21/2019
   * fix: use correct mapping when filtering out entries
   * added support for listing available components of dlt files
