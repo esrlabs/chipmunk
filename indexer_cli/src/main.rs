@@ -1,17 +1,10 @@
-// use dlt;
-// fn main() {
-//     let num = 10;
-//     // println!("Hello, world! {} plus one is {}!", num, dlt::add_one(num));
-//     println!("Hello, world! {} plus two is {}!", num, processor::add_two(num));
-// }
-#![cfg_attr(feature = "nightly", feature(test))]
-#[cfg(all(feature = "nightly", test))]
+#![feature(test)]
+#[cfg(test)]
 extern crate test;
 extern crate processor;
 extern crate indexer_base;
 extern crate dlt;
 extern crate merging;
-
 
 use indexer_base::chunks::serialize_chunks;
 use processor::parse::{
@@ -26,10 +19,6 @@ use clap::{App, Arg, SubCommand};
 use std::fs;
 use std::path;
 use std::time::Instant;
-
-
-// #[cfg(all(test, not(target_os = "windows")))]
-// mod tests;
 
 fn main() {
     let start = Instant::now();

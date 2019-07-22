@@ -20,6 +20,8 @@ indexer_base = { path = "../indexer_base" }
 [dev-dependencies]
 rand = "0.7"
 pretty_assertions = "0.6"
+criterion = "0.2"
 
-[features]
-nightly = []
+[[bench]]
+name = "dlt_benchmarks"
+harness = false

@@ -132,7 +132,7 @@ fn dlt_extended_header(input: &[u8]) -> IResult<&[u8], dlt::ExtendedHeader> {
 pub fn is_not_null(chr: u8) -> bool {
     chr != 0x0
 }
-fn dlt_zero_terminated_string(s: &[u8], size: usize) -> IResult<&[u8], &str> {
+pub fn dlt_zero_terminated_string(s: &[u8], size: usize) -> IResult<&[u8], &str> {
     let (rest_with_null, content_without_null) = take_while_m_n(0, size, is_not_null)(s)?;
     let res_str = match nom::lib::std::str::from_utf8(content_without_null) {
         Ok(content) => content,
@@ -1196,21 +1196,6 @@ mod tests {
         assert_eq!(expected, res);
     }
 
-}
-
-#[cfg(all(feature = "nightly", test))]
-mod benchs {
-    use super::*;
-    use test::Bencher;
-    use bytes::{BytesMut};
-
-    #[bench]
-    fn bench_dlt_zero_terminated_string(b: &mut Bencher) {
-        let mut buf = BytesMut::with_capacity(4);
-        let broken = vec![0x41, 0, 146, 150];
-        buf.extend_from_slice(&broken);
-        b.iter(|| dlt_zero_terminated_string(&buf, 4));
-    }
 }
 
 fn read_one_dlt_message<T: Read>(

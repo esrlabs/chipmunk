@@ -33,7 +33,11 @@ task :test do
 end
 desc "run benchmarks"
 task :bench do
-  sh "cargo bench --features nightly"
+  sh "cargo bench --bench dlt_benchmarks"
+end
+desc "record new baseline"
+task :baseline do
+  sh "cargo bench --bench dlt_benchmarks -- --save-baseline"
 end
 desc "run tests with printing to stdout"
 task :test_nocapture do
