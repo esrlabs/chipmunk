@@ -2,6 +2,7 @@
 
 members = [
     "indexer_cli",
+    "indexer_server",
     "dlt",
     "processor",
     "indexer_base",

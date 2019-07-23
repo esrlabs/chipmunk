@@ -253,3 +253,20 @@ class Version < Array
     self.join(".")
   end
 end
+
+desc "test server"
+task :server do
+  require 'socket'        # Sockets are in standard library
+
+  hostname = 'localhost'
+  port = 8080
+
+  s = TCPSocket.open(hostname, port)
+
+  s.puts("hi")
+  s.puts("ho")
+  while line = s.gets     # Read lines from the socket
+    puts line.chop       # And print with platform line terminator
+  end
+  s.close                 # Cl
+end
