@@ -8,6 +8,7 @@ import { SidebarVerticalPortOptionsReadComponent } from './views/sidebar.vertica
 import { SidebarVerticalPortOptionsWriteComponent } from './views/sidebar.vertical/port.options.write/component';
 import { SerialRowComponent } from './views/row/component';
 import { PrimitiveModule } from 'logviewer-client-primitive';
+import * as Toolkit from 'logviewer.client.toolkit';
 
 const CComponents = [
     SidebarVerticalComponent,
@@ -17,6 +18,7 @@ const CComponents = [
     SidebarVerticalPortOptionsWriteComponent,
     SerialRowComponent
 ];
+
 @NgModule({
     entryComponents: [ ...CComponents ],
     declarations: [ ...CComponents ],
@@ -24,12 +26,10 @@ const CComponents = [
     exports: [ ...CComponents ]
 })
 
-export class PluginModule {
+export class PluginModule extends Toolkit.PluginNgModule {
 
-    private _api: string | undefined;
-
-    public setAPI(api: any) {
-        this._api = api;
+    constructor() {
+        super('Serial Ports', 'Provides accees to local serial ports');
     }
 
 }

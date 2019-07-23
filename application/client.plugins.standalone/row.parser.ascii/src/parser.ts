@@ -1,4 +1,5 @@
 // tslint:disable:object-literal-sort-keys
+import * as Toolkit from 'logviewer.client.toolkit';
 
 const STYLES: { [key: string]: string } = {
     1   : 'font-weight: bold;',
@@ -22,16 +23,10 @@ const STYLES: { [key: string]: string } = {
     47  : 'background-color: white;',
 };
 
-enum EThemeType {
-    dark = 'dark',
-    light = 'light',
-    undefined = 'undefined',
-}
-
 const CBlockedStyles: { [key: string]: number[] } = {
-    [EThemeType.dark]: [30, 47],
-    [EThemeType.light]: [37, 40],
-    [EThemeType.undefined]: [],
+    [Toolkit.EThemeType.dark]: [30, 47],
+    [Toolkit.EThemeType.light]: [37, 40],
+    [Toolkit.EThemeType.undefined]: [],
 };
 
 const REGS = {
@@ -41,32 +36,34 @@ const REGS = {
     BEGIN           : /^[^\033]*/g,
 };
 
-const getHTMLFromASCII = (str: string, themeTypeRef: EThemeType = EThemeType.undefined) => {
-    const themeType: number[] | undefined = CBlockedStyles[themeTypeRef] === undefined ? [] : CBlockedStyles[themeTypeRef];
-    const parts: RegExpMatchArray | null = str.match(REGS.COLORS);
-    if (parts instanceof Array && parts.length > 1) {
-        const _begin: RegExpMatchArray | null = str.match(REGS.BEGIN);
-        let result: string = _begin instanceof Array ? (_begin.length > 0 ? _begin[0] : '') : '';
-        parts.forEach((part: string) => {
-            const values: RegExpMatchArray | null = part.match(REGS.COLORS_VALUE);
-            const value: string | null = values instanceof Array ? (values.length === 1 ? values[0].replace(REGS.CLEAR_COLORS, '') : null) : null;
-            let text: string = part.replace(REGS.COLORS_VALUE, '');
-            let inlineStyle: string = '';
-            if (value !== null) {
-                value.split(';').forEach((def: string) => {
-                    const num: number = parseInt(def, 10);
-                    if (themeType.indexOf(num) !== -1) {
-                        return;
-                    }
-                    STYLES[def] !== void 0 && (inlineStyle += ' ' + STYLES[def]);
-                });
-                text = inlineStyle !== '' ? ('<span class="noreset" style="' + inlineStyle + '">' + text + '</span>') : text;
-            }
-            result = result + text;
-        });
-        return result;
-    }
-    return str;
-};
+export class ASCIIColorsParser extends Toolkit.ARowCommonParser {
 
-export { getHTMLFromASCII };
+    public parse(str: string, themeTypeRef: Toolkit.EThemeType): string {
+        const themeType: number[] | undefined = CBlockedStyles[themeTypeRef] === undefined ? [] : CBlockedStyles[themeTypeRef];
+        const parts: RegExpMatchArray | null = str.match(REGS.COLORS);
+        if (parts instanceof Array && parts.length > 1) {
+            const _begin: RegExpMatchArray | null = str.match(REGS.BEGIN);
+            let result: string = _begin instanceof Array ? (_begin.length > 0 ? _begin[0] : '') : '';
+            parts.forEach((part: string) => {
+                const values: RegExpMatchArray | null = part.match(REGS.COLORS_VALUE);
+                const value: string | null = values instanceof Array ? (values.length === 1 ? values[0].replace(REGS.CLEAR_COLORS, '') : null) : null;
+                let text: string = part.replace(REGS.COLORS_VALUE, '');
+                let inlineStyle: string = '';
+                if (value !== null) {
+                    value.split(';').forEach((def: string) => {
+                        const num: number = parseInt(def, 10);
+                        if (themeType.indexOf(num) !== -1) {
+                            return;
+                        }
+                        STYLES[def] !== void 0 && (inlineStyle += ' ' + STYLES[def]);
+                    });
+                    text = inlineStyle !== '' ? ('<span class="noreset" style="' + inlineStyle + '">' + text + '</span>') : text;
+                }
+                result = result + text;
+            });
+            return result;
+        }
+        return str;
+    }
+
+}

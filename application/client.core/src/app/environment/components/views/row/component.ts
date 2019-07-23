@@ -110,6 +110,12 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
                 }
             });
         }
+        const sourceName: string | undefined = SourcesService.getSourceName(this.pluginId);
+        if (sourceName === undefined) {
+            this._ng_sourceName = 'n/d';
+        } else {
+            this._ng_sourceName = sourceName;
+        }
         this._ng_source = this.sources.isVisible();
         this._subscriptions.onRankChanged = this.controller.getObservable().onRankChanged.subscribe(this._onRankChanged);
         this._subscriptions.onAddedBookmark = this.bookmarks.getObservable().onAdded.subscribe(this._onAddedBookmark.bind(this));
@@ -213,16 +219,10 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         this._ng_render = ERenderType.standard;
         this._ng_component = undefined;
         this._ng_render_api = undefined;
-        const sourceName: string = SourcesService.getSourceName(this.pluginId);
         this._ng_sourceColor = SourcesService.getSourceColor(this.pluginId);
-        if (sourceName === undefined) {
-            this._ng_sourceName = 'n/d';
-        } else {
-            this._ng_sourceName = sourceName;
-        }
         this._ng_number = this._getPosition().toString();
         this._ng_number_filler = this._getNumberFiller();
-        const render: Toolkit.ATypedRowRender<any> | undefined = OutputParsersService.getTypedRowRender(sourceName);
+        const render: Toolkit.ATypedRowRender<any> | undefined = OutputParsersService.getTypedRowRender(this._ng_sourceName);
         if (render === undefined) {
             this._ng_render = ERenderType.standard;
             return this._updateRenderComp();

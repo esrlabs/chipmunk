@@ -1,8 +1,14 @@
-import { ETypedRowRenders } from '../consts/enums';
+const CSignature = 'PluginNgModule';
 
-const CSignature = 'ATypedRowRender';
+export class PluginNgModule {
 
-export abstract class ATypedRowRender<T> {
+    private _name: string;
+    private _description: string;
+
+    constructor(name: string, description: string) {
+        this._name = name;
+        this._description = description;
+    }
 
     public getClassSignature(): string {
         return CSignature;
@@ -17,9 +23,5 @@ export abstract class ATypedRowRender<T> {
         }
         return smth.getClassSignature() === CSignature;
     }
-
-    public abstract isTypeMatch(sourceName: string): boolean;
-    public abstract getType(): ETypedRowRenders;
-    public abstract getAPI(): T;
 
 }

@@ -18,6 +18,7 @@
         [sessionId]="sessionId" 
         [position]="position" 
         [pluginId]="pluginId"
+        [source]="_ng_sourceName"
         [scope]="scope"
         (click)="_ng_onRowSelect()"></app-views-output-row-standard>
     <app-views-output-row-columns
@@ -27,6 +28,7 @@
         [sessionId]="sessionId" 
         [position]="position" 
         [pluginId]="pluginId"
+        [source]="_ng_sourceName"
         [scope]="scope"
         [output]="controller"
         [api]="_ng_render_api" 
@@ -37,7 +39,8 @@
         [str]="str" 
         [sessionId]="sessionId" 
         [position]="position" 
-        [pluginId]="pluginId" 
+        [pluginId]="pluginId"
+        [source]="_ng_sourceName"
         [scope]="scope"
         [component]="_ng_component"
         (click)="_ng_onRowSelect()"></app-views-output-row-external>
