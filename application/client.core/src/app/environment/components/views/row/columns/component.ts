@@ -33,6 +33,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
     @Input() public sessionId: string | undefined;
     @Input() public position: number | undefined;
     @Input() public pluginId: number | undefined;
+    @Input() public source: string | undefined;
     @Input() public api: IAPI | undefined;
     @Input() public scope: ControllerSessionScope | undefined;
     @Input() public output: ControllerSessionTabStreamOutput | undefined;
@@ -100,9 +101,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
             // Rid of HTML
             column = OutputParsersService.serialize(column);
             // Apply plugin parser
-            column = OutputParsersService.row(column, this.pluginId);
-            // Apply common parser
-            column = OutputParsersService.row(column);
+            column = OutputParsersService.row(column, this.pluginId, this.source);
             // Apply search matches parser
             const matches = OutputParsersService.matches(this.sessionId, this.position, column);
             if (this.background === undefined || this.color === undefined) {

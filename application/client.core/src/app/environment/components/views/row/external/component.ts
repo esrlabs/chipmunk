@@ -21,6 +21,7 @@ export class ViewOutputRowExternalComponent extends AOutputRenderComponent imple
     @Input() public sessionId: string | undefined;
     @Input() public position: number | undefined;
     @Input() public pluginId: number | undefined;
+    @Input() public source: string | undefined;
     @Input() public component: IComponentDesc | undefined;
     @Input() public scope: ControllerSessionScope | undefined;
 
@@ -80,9 +81,7 @@ export class ViewOutputRowExternalComponent extends AOutputRenderComponent imple
         // Rid of HTML
         str = OutputParsersService.serialize(str);
         // Apply plugin parser
-        str = OutputParsersService.row(str, this.pluginId);
-        // Apply common parser
-        str = OutputParsersService.row(str);
+        str = OutputParsersService.row(str, this.pluginId, this.source);
         // Apply search matches parser
         const matches = OutputParsersService.matches(this.sessionId, this.position, str);
         // Set colors

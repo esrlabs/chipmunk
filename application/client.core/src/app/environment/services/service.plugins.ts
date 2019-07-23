@@ -21,6 +21,7 @@ import PluginsIPCService from './service.plugins.ipc';
 import OutputParsersService from './standalone/service.output.parsers';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
 import { IService } from '../interfaces/interface.service';
+import { ControllerPluginGate } from '../controller/controller.plugin.gate';
 
 type TPluginModule = any;
 
@@ -33,7 +34,7 @@ export interface IPluginControllers {
 export interface IPluginData {
     name: string;                       // Name of plugin
     token: string;                      // Plugin token
-    module: TPluginModule;              // Instance of plugin module
+    exports: Toolkit.IPluginExports;    // Exports of plugin
     ipc: ControllerPluginIPC;           // Related to plugin IPC
     controllers: IPluginControllers;    // Collection of controllers to plugin listents
     id: number;                         // ID of plugin
@@ -156,10 +157,12 @@ export class PluginsService extends Toolkit.Emitter implements IService {
             Toolkit.sequences([
                 // Step 1. Delivery sources of module
                 this._loadAndInit_FetchPlugin.bind(this, name, token, id, location),        // Returns { string } - code of module
-                // Steps 2 - 4. Prepare environment and init code of module
+                // Steps 2 - 3. Prepare environment and init code of module
                 this._loadAndInit_InitPlugin.bind(this, name, token, id, location),         // Returns { [key: string]: any } - all exports of module
-                // Steps 5 - 7. Compile code as Angular module, discover shares of module
+                // Steps 4 - 6. Compile code as Angular module, discover shares of module
                 this._loadAndInit_CompilePlugin.bind(this, name, token, id, location),      // Returns { IPluginData } - plugin data
+                // Steps 7. Setup access to API for plugin's service (if it exists)
+                this._loadAndInit_SetupPluginService.bind(this, name, token, id, location), // Returns { IPluginData } - plugin data
             ]).then((pluginData: IPluginData) => {
                 resolve(pluginData);
             }).catch((error: Error) => {
@@ -185,28 +188,17 @@ export class PluginsService extends Toolkit.Emitter implements IService {
 
     private _loadAndInit_InitPlugin(name: string, token: string, id: number, location: string, code: string): Promise<{[key: string]: any}> {
         return new Promise((resolve, reject) => {
-            // debugger;
             // Step 2. Prepare environment for plugin initialization
             this._logger.env(`Sources of plugin "${name}" was fetch correctly.`);
-            const exports: any = {};
-            // Loader for nonAngular modules
-            (window as any).setPluginModule = (module: any) => {
-                if (typeof module !== 'object' || module === null) {
-                    return;
-                }
-                exports[Toolkit.CNonAngularModuleName] = {};
-                Object.keys(module).forEach((prop: string) => {
-                    exports[Toolkit.CNonAngularModuleName][prop] = module[prop];
-                });
-            };
-            (window as any).getModules = () => {
-                return modules;
-            };
-            (window as any).getRequire = () => {
-                return require;
-            };
             const modules: any = this._getAvailablePluginModules();
             const require = (module) => modules[module]; // shim 'require'
+            let exports: Toolkit.IPluginExports = {};
+            // Create gate in global scope
+            const gate: ControllerPluginGate = new ControllerPluginGate(
+                modules,
+                require
+            );
+            (window as any).logviewer = gate;
             // Step 3. Execute code of plugin to initialize
             try {
                 // tslint:disable-next-line:no-eval
@@ -214,32 +206,50 @@ export class PluginsService extends Toolkit.Emitter implements IService {
             } catch (executeError) {
                 return reject(new Error(this._logger.error(`Fail to execute plugin "${name}" due error: ${executeError.message}`)));
             }
-            // Step 4. Check plugin module
-            if (exports[Toolkit.CModuleName] === undefined && exports[Toolkit.CNonAngularModuleName] === undefined) {
-                return reject(new Error(this._logger.error(`Fail to compile plugin "${name}" because module "${Toolkit.CModuleName}" or "${Toolkit.CNonAngularModuleName}" were not found.`)));
+            // Get exports (if it was injected)
+            if (Object.keys(exports).length === 0) {
+                exports = gate.getPluginExports();
             }
+            // Remove gate from global scope
+            delete (window as any).logviewer;
+            // Done
             resolve(exports);
         });
     }
 
-    private _loadAndInit_CompilePlugin(name: string, token: string, id: number, location: string, exports: {[key: string]: any}): Promise<IPluginData> {
+    private _loadAndInit_CompilePlugin(name: string, token: string, id: number, location: string, exports: Toolkit.IPluginExports): Promise<IPluginData> {
         return new Promise((resolve, reject) => {
-            // Step 5. Compile
-            if (exports[Toolkit.CModuleName] !== undefined) {
+            const ngModule: AngularCore.Type<any> | undefined = this._getNgModule(exports);
+            if (ngModule === undefined) {
+                // This is not angular module. Store plugin
+                const pluginData: IPluginData = {
+                    name: name,
+                    token: token,
+                    exports: exports,
+                    ipc: new ControllerPluginIPC(name, token),
+                    controllers: {
+                        sessions: new Toolkit.ControllerSessionsEvents(),
+                    },
+                    id: id,
+                    factories: {}
+                };
+                // Setup common parsers
+                OutputParsersService.setParsers(exports, id);
+                resolve(pluginData);
+            } else {
                 // This is Angular module
-                this._compiler.compileModuleAndAllComponentsAsync<any>(exports[Toolkit.CModuleName]).then((mwcf: AngularCore.ModuleWithComponentFactories<any>) => {
-                    // Ok. From here we have access to plugin components. Also all components should be already initialized
-                    // Step 6. Create plugin module
+                this._compiler.compileModuleAndAllComponentsAsync<any>(ngModule).then((mwcf: AngularCore.ModuleWithComponentFactories<any>) => {
+                    // Step 5. Create plugin module
                     try {
                         const module = mwcf.ngModuleFactory.create(this._injector);
-                        if (!(module.instance instanceof exports[Toolkit.CModuleName])) {
+                        if (!(module.instance instanceof ngModule)) {
                             return reject(new Error(this._logger.error(`Fail to compile main module of plugin "${name}".`)));
                         }
-                        // Step 7. Search views of apps
+                        // Store plugin data
                         const pluginData: IPluginData = {
                             name: name,
                             token: token,
-                            module: module.instance,
+                            exports: exports,
                             ipc: new ControllerPluginIPC(name, token),
                             controllers: {
                                 sessions: new Toolkit.ControllerSessionsEvents(),
@@ -254,6 +264,7 @@ export class PluginsService extends Toolkit.Emitter implements IService {
                         const selectors: string[] = Object.keys(Toolkit.EViewsTypes).map((key: string) => {
                             return Toolkit.EViewsTypes[key];
                         });
+                        // Init all factories
                         this._factories.push(...mwcf.componentFactories.filter((factory: AngularCore.ComponentFactory<any>) => {
                             if (selectors.indexOf(factory.selector) !== -1) {
                                 return false;
@@ -278,25 +289,47 @@ export class PluginsService extends Toolkit.Emitter implements IService {
                 }).catch((compileError: Error) => {
                     reject(new Error(this._logger.error(`Fail to compile plugin "${name}" due error: ${compileError.message}`)));
                 });
-            } else {
-                // This is nonAngular module
-                // Step 7. Search views of apps
-                const pluginData: IPluginData = {
-                    name: name,
-                    token: token,
-                    module: exports[Toolkit.CNonAngularModuleName],
-                    ipc: new ControllerPluginIPC(name, token),
-                    controllers: {
-                        sessions: new Toolkit.ControllerSessionsEvents(),
-                    },
-                    id: id,
-                    factories: {}
-                };
-                // Setup common parsers
-                OutputParsersService.setParsers(exports[Toolkit.CNonAngularModuleName], id);
-                resolve(pluginData);
             }
         });
+    }
+
+    private _loadAndInit_SetupPluginService(name: string, token: string, id: number, location: string, pluginData: IPluginData): Promise<IPluginData> {
+        return new Promise((resolve) => {
+            const service: Toolkit.APluginService | undefined = this._getPluginService(pluginData.exports);
+            if (service === undefined) {
+                return resolve(pluginData);
+            }
+            // Setup API of plugin
+            service.setAPIGetter(this._getPluginAPI.bind(this, id));
+            // Finish
+            resolve(pluginData);
+        });
+    }
+
+    private _getPluginAPI(id: number): Toolkit.IAPI {
+        // TODO: resolve circle dependencies and implement this functionlity
+        // return TabsSessionsService.getPluginAPI(id);
+        return undefined;
+    }
+
+    private _getNgModule(exports: Toolkit.IPluginExports): AngularCore.Type<any> | undefined {
+        let module: Toolkit.PluginNgModule | undefined;
+        Object.keys(exports).forEach((key: string) => {
+            if (module === undefined && Toolkit.PluginNgModule.isPrototypeOf(exports[key])) {
+                module = (exports as any)[key] as Toolkit.PluginNgModule;
+            }
+        });
+        return module as any;
+    }
+
+    private _getPluginService(exports: Toolkit.IPluginExports): Toolkit.APluginService | undefined {
+        let service: Toolkit.APluginService | undefined;
+        Object.keys(exports).forEach((key: string) => {
+            if (service === undefined && exports[key] instanceof Toolkit.APluginService) {
+                service = exports[key] as Toolkit.APluginService;
+            }
+        });
+        return service;
     }
 
     private _getAvailablePluginModules(): { [key: string]: any } {
@@ -314,20 +347,6 @@ export class PluginsService extends Toolkit.Emitter implements IService {
             'xterm/lib/addons/fit/fit': XTermAddonFit,
             'electron': Electron
         };
-    }
-
-    private _deliveryApps(pluginData: IPluginData, name: string, token: string): Promise<IPluginData> {
-        return new Promise((resolve) => {
-            // Store IPC instance
-            PluginsIPCService.addPlugin(token, pluginData.ipc);
-            // Setup plugin API
-            if (typeof pluginData.module.setAPI === 'function') {
-                pluginData.module.setAPI({
-                    ipc: pluginData.ipc
-                });
-            }
-            resolve(pluginData);
-        });
     }
 
     private _inspectComponentsOfPlugins() {
@@ -357,16 +376,12 @@ export class PluginsService extends Toolkit.Emitter implements IService {
         event.plugins.forEach((pluginInfo: IPCMessages.IRenderMountPluginInfo) => {
             this._logger.env(`Information about plugin "${pluginInfo.name}" has been gotten. Starting loading & initialization.`);
             this._loadAndInit(pluginInfo.name, pluginInfo.token, pluginInfo.id, pluginInfo.location).then((pluginData: IPluginData) => {
-                // Delivery applications of plugin into main application
-                this._deliveryApps(pluginData, pluginInfo.name, pluginInfo.token).then((plugin: IPluginData) => {
-                    // Save plugin
-                    this._plugins.set(plugin.name, plugin);
-                    this._logger.env(`Plugin "${pluginInfo.name}" is successfully mount.`);
-                    done();
-                }).catch((deliveryError: Error) => {
-                    this._logger.error(`Fail to delivery applications of plugin "${pluginInfo.name}" due error: ${deliveryError.message}`);
-                    done();
-                });
+                // Store IPC
+                PluginsIPCService.addPlugin(pluginInfo.token, pluginData.ipc);
+                // Save plugin
+                this._plugins.set(pluginData.name, pluginData);
+                this._logger.env(`Plugin "${pluginInfo.name}" is successfully mount.`);
+                done();
             }).catch((loadError: Error) => {
                 this._logger.error(`Fail to load and initialize plugin "${pluginInfo.name}" due error: ${loadError.message}`);
                 done();

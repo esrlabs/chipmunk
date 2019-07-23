@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { SidebarVerticalComponent } from './views/sidebar.vertical/component';
 import { CommonModule } from '@angular/common';
 import { PrimitiveModule } from 'logviewer-client-primitive';
+import * as Toolkit from 'logviewer.client.toolkit';
 
 @NgModule({
     entryComponents: [ SidebarVerticalComponent],
@@ -10,12 +11,10 @@ import { PrimitiveModule } from 'logviewer-client-primitive';
     exports: [ SidebarVerticalComponent]
 })
 
-export class PluginModule {
+export class PluginModule extends Toolkit.PluginNgModule {
 
-    private _api: string | undefined;
-
-    public setAPI(api: any) {
-        this._api = api;
+    constructor() {
+        super('DLT tcp', 'Conenctor to DLT tcp demon');
     }
 
 }

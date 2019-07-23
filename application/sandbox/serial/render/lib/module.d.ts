@@ -1,4 +1,4 @@
-export declare class PluginModule {
-    private _api;
-    setAPI(api: any): void;
+import * as Toolkit from 'logviewer.client.toolkit';
+export declare class PluginModule extends Toolkit.PluginNgModule {
+    constructor();
 }

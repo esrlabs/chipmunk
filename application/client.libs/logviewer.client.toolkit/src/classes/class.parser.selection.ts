@@ -1,8 +1,9 @@
-import { ETypedRowRenders } from '../consts/enums';
+import { EThemeType } from '../consts/enums';
+import { THTMLString } from '../types/index';
 
-const CSignature = 'ATypedRowRender';
+const CSignature = 'ASelectionParser';
 
-export abstract class ATypedRowRender<T> {
+export abstract class ASelectionParser {
 
     public getClassSignature(): string {
         return CSignature;
@@ -18,8 +19,8 @@ export abstract class ATypedRowRender<T> {
         return smth.getClassSignature() === CSignature;
     }
 
-    public abstract isTypeMatch(sourceName: string): boolean;
-    public abstract getType(): ETypedRowRenders;
-    public abstract getAPI(): T;
+    public abstract parse(str: string, themeTypeRef: EThemeType): string | THTMLString;
+
+    public abstract getParserName(str: string): string | undefined;
 
 }
