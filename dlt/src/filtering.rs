@@ -6,6 +6,8 @@ use std::fs;
 pub struct DltFilterConfig {
     pub min_log_level: Option<u8>,
     pub components: Option<Vec<String>>,
+    pub ecu_ids: Option<Vec<String>>,
+    pub context_ids: Option<Vec<String>>,
 }
 
 /// only select log entries with level MIN_LEVEL and more severe

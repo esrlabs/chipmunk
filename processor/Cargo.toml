@@ -12,6 +12,7 @@ failure = "0.1.5"
 buf_redux = "0.8.1"
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
+rustc-hash = "1.0"
 indexer_base = { path = "../indexer_base" }
 
 [dev-dependencies]

@@ -11,7 +11,7 @@ use nom::IResult;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use std::collections::{HashMap, HashSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::fs;
 
 use std::io::{BufRead, BufReader, Read};
@@ -412,8 +412,8 @@ pub fn detect_timestamp_format(
 
     let mut buf = vec![];
     let mut inspected_lines = 0;
-    let mut matched_lines: HashMap<&String, usize> = HashMap::new();
-    let formats_to_check: HashSet<&String> = possible_formats
+    let mut matched_lines: FxHashMap<&String, usize> = FxHashMap::default();
+    let formats_to_check: FxHashSet<&String> = possible_formats
         .iter()
         .filter(|s| date_format_str_to_regex(s).is_ok())
         .collect();
