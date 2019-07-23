@@ -1,8 +1,8 @@
-import { ETypedRowRenders } from '../consts/enums';
+import { EThemeType } from '../consts/enums';
 
-const CSignature = 'ATypedRowRender';
+const CSignature = 'ARowBoundParser';
 
-export abstract class ATypedRowRender<T> {
+export abstract class ARowBoundParser {
 
     public getClassSignature(): string {
         return CSignature;
@@ -18,8 +18,6 @@ export abstract class ATypedRowRender<T> {
         return smth.getClassSignature() === CSignature;
     }
 
-    public abstract isTypeMatch(sourceName: string): boolean;
-    public abstract getType(): ETypedRowRenders;
-    public abstract getAPI(): T;
+    public abstract parse(str: string, themeTypeRef: EThemeType): string;
 
 }

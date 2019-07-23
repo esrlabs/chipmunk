@@ -9,13 +9,6 @@ export enum EViewsTypes {
     sidebarVertical     = 'lib-sidebar-ver',
 }
 
-export enum EParsers {
-    pluginRowParser = 'pluginRowParser',
-    pluginRestParser = 'pluginRestParser',
-    commonRowParser = 'commonRowParser',
-    commonRestParser = 'commonRestParser',
-}
-
 export enum ETypedRowRenders {
     columns = 'columns',
     external = 'external',

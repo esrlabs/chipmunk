@@ -5,13 +5,6 @@ import { shadeColor, scheme_color_4, scheme_color_0 } from '../../theme/colors';
 import { CColors } from '../../conts/colors';
 import { getContrastColor } from '../../theme/colors';
 
-export type TParser = (str: string, themeTypeRef?: Toolkit.EThemeType) => string;
-
-export interface ICommonParsers {
-    row: TParser[];
-    rest: TParser[];
-}
-
 export type TTypeHandler = (sourceName: string) => boolean;
 
 export interface ITypedCustomRowComponent {
@@ -20,35 +13,24 @@ export interface ITypedCustomRowComponent {
     api: any;       // TODO: dynamic type like ICustomAPI<Type>
 }
 
-export interface IPluginParsers {
-    row: TParser | undefined;
-    rest: TParser | undefined;
-}
-
 export interface IRequest {
     reg: RegExp;
     color: string | undefined;
     background: string | undefined;
 }
 
-const PluginParsersNamesMap = {
-    [Toolkit.EParsers.pluginRowParser]: 'row',
-    [Toolkit.EParsers.pluginRestParser]: 'rest',
-};
-
-const CommonParsersNamesMap = {
-    [Toolkit.EParsers.commonRowParser]: 'row',
-    [Toolkit.EParsers.commonRestParser]: 'rest',
-};
-
 export class OutputParsersService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('OutputParsersService');
-    private _common: ICommonParsers = {
-        row: [],
-        rest: [],
+    private _parsers: {
+        bound: Map<number, Toolkit.ARowBoundParser>,
+        common: Map<number, Toolkit.ARowCommonParser>,
+        typed: Map<number, Toolkit.ARowTypedParser>,
+    } = {
+        bound: new Map(),
+        common: new Map(),
+        typed: new Map(),
     };
-    private _plugins: Map<number, IPluginParsers> = new Map();
     private _search: Map<string, IRequest[]> = new Map();
     private _highlights: Map<string, IRequest[]> = new Map();
     private _typedRowRenders: Map<string, Toolkit.ATypedRowRender<any>> = new Map();
@@ -77,18 +59,20 @@ export class OutputParsersService {
         };
     }
 
-    public setParsers(module: any, pluginId: number, mwcf?: ModuleWithComponentFactories<any>) {
-        if (typeof module !== 'object' || module === null) {
+    public setParsers(exports: Toolkit.IPluginExports, pluginId: number, mwcf?: ModuleWithComponentFactories<any>) {
+        if (typeof exports !== 'object' || exports === null) {
             return new Error(this._logger.warn(`Fail to setup parser because module isn't an object.`));
         }
         // Check plugin's parsers
-        this._setPluginParsers(module, pluginId);
+        this._setBoundParsers(exports, pluginId);
         // Check common
-        this._setCommonParsers(module);
+        this._setCommonParsers(exports, pluginId);
+        // Check typed parsers
+        this._setTypedParsers(exports, pluginId);
         // Check row components
-        this._setTypedRowExternalComponent(module, mwcf);
+        this._setTypedRowExternalComponent(exports, mwcf);
         // Check custom row renders
-        this._setTypedCustomRowRender(module);
+        this._setTypedCustomRowRender(exports);
     }
 
     public setSearchResults(sessionId: string, requests: IRequest[] ) {
@@ -109,46 +93,23 @@ export class OutputParsersService {
         return this._getTypedRowRenderBySource(sourceName);
     }
 
-    public row(str: string, pluginId?: number): string {
-        if (pluginId === undefined) {
-            if (this._common.row.length === 0) {
-                return str;
-            }
-            this._common.row.forEach((parser: TParser) => {
-                str = parser(str, Toolkit.EThemeType.light);
-            });
-            return str;
-        } else {
-            const plugin: IPluginParsers | undefined = this._plugins.get(pluginId);
-            if (plugin === undefined) {
-                return str;
-            }
-            if (plugin.row === undefined) {
-                return str;
-            }
-            return plugin.row(str, Toolkit.EThemeType.light);
+    public row(str: string, pluginId: number | undefined, source: string | undefined): string {
+        // Apply bound parsers
+        const bound: Toolkit.ARowBoundParser | undefined = this._parsers.bound.get(pluginId);
+        if (bound !== undefined) {
+            str = bound.parse(str, Toolkit.EThemeType.dark);
         }
-    }
-
-    public rest(str: string, pluginId?: number): string {
-        if (pluginId === undefined) {
-            if (this._common.rest.length === 0) {
-                return str;
+        // Apply typed parser
+        this._parsers.typed.forEach((typed: Toolkit.ARowTypedParser) => {
+            if (typed.isTypeMatch(source)) {
+                str = typed.parse(str, Toolkit.EThemeType.dark);
             }
-            this._common.rest.forEach((parser: TParser) => {
-                str = parser(str, Toolkit.EThemeType.light);
-            });
-            return str;
-        } else {
-            const plugin: IPluginParsers | undefined = this._plugins.get(pluginId);
-            if (plugin === undefined) {
-                return str;
-            }
-            if (plugin.rest === undefined) {
-                return str;
-            }
-            return plugin.rest(str, Toolkit.EThemeType.light);
-        }
+        });
+        // Apply common parser
+        this._parsers.common.forEach((common: Toolkit.ARowCommonParser) => {
+            str = common.parse(str, Toolkit.EThemeType.dark);
+        });
+        return str;
     }
 
     public matches(sessionId: string, row: number, str: string): { str: string, color?: string, background?: string } {
@@ -202,39 +163,61 @@ export class OutputParsersService {
         return str.replace(/</gi, '&lt;').replace(/>/gi, '&gt;');
     }
 
-    public _setPluginParsers(parsers: { [key: string]: TParser }, pluginId: number): boolean {
-        if (pluginId === undefined) {
-            return;
-        }
-        if (this._plugins.has(pluginId)) {
+    public _setBoundParsers(exports: Toolkit.IPluginExports, pluginId: number): boolean {
+        if (pluginId === undefined || this._parsers.bound.has(pluginId)) {
             return false;
         }
-        const result: any = {};
-        Object.keys(PluginParsersNamesMap).forEach((key: string) => {
-            if (typeof parsers[key] === 'function') {
-                result[PluginParsersNamesMap[key]] = parsers[key];
-            }
-        });
-        if (Object.keys(result).length === 0) {
+        const parser: Toolkit.ARowBoundParser | undefined = this._findExportEntity(exports, Toolkit.ARowBoundParser);
+        if (parser === undefined) {
             return false;
         }
-        this._plugins.set(pluginId, result);
+        this._parsers.bound.set(pluginId, parser);
         return true;
     }
 
-    private _setCommonParsers(module: { [key: string]: TParser }) {
-        Object.keys(CommonParsersNamesMap).forEach((key: string) => {
-            if (typeof module[key] === 'function') {
-                this._common[CommonParsersNamesMap[key]].push(module[key]);
-            }
-        });
+    private _setCommonParsers(exports: Toolkit.IPluginExports, pluginId: number) {
+        if (pluginId === undefined || this._parsers.common.has(pluginId)) {
+            return false;
+        }
+        const parser: Toolkit.ARowCommonParser | undefined = this._findExportEntity(exports, Toolkit.ARowCommonParser);
+        if (parser === undefined) {
+            return false;
+        }
+        this._parsers.common.set(pluginId, parser);
+        return true;
     }
 
-    private _setTypedRowExternalComponent(module: any, mwcf: ModuleWithComponentFactories<any>) {
+    private _setTypedParsers(exports: Toolkit.IPluginExports, pluginId: number) {
+        if (pluginId === undefined || this._parsers.typed.has(pluginId)) {
+            return false;
+        }
+        const parser: Toolkit.ARowTypedParser | undefined = this._findExportEntity(exports, Toolkit.ARowTypedParser);
+        if (parser === undefined) {
+            return false;
+        }
+        this._parsers.typed.set(pluginId, parser);
+        return true;
+    }
+
+    private _findExportEntity(exports: Toolkit.IPluginExports, classDef: any): any {
+        let result: Toolkit.TPluginExportEntity | undefined;
+        Object.keys(exports).forEach((key: string) => {
+            const entity: Toolkit.TPluginExportEntity = exports[key];
+            if (result !== undefined) {
+                return;
+            }
+            if ((typeof classDef.isInstance === 'function' && classDef.isInstance(entity)) || entity instanceof classDef) {
+                result = entity;
+            }
+        });
+        return result;
+    }
+
+    private _setTypedRowExternalComponent(exports: Toolkit.IPluginExports, mwcf: ModuleWithComponentFactories<any>) {
         if (mwcf === undefined) {
             return;
         }
-        const render: Toolkit.ATypedRowRender<Toolkit.ATypedRowRenderAPIExternal> = this._getTypedRowRender(module);
+        const render: Toolkit.ATypedRowRender<Toolkit.ATypedRowRenderAPIExternal> = this._getTypedRowRender(exports);
         if (render === undefined) {
             return;
         }
@@ -256,8 +239,8 @@ export class OutputParsersService {
         this._typedRowRenders.set(Toolkit.guid(), render);
     }
 
-    private _setTypedCustomRowRender(module: { [key: string]: ITypedCustomRowComponent }) {
-        const render: Toolkit.ATypedRowRender<Toolkit.ATypedRowRenderAPIColumns> = this._getTypedRowRender(module);
+    private _setTypedCustomRowRender(exports: Toolkit.IPluginExports) {
+        const render: Toolkit.ATypedRowRender<Toolkit.ATypedRowRenderAPIColumns> = this._getTypedRowRender(exports);
         if (render === undefined) {
             return;
         }
@@ -278,11 +261,11 @@ export class OutputParsersService {
         this._typedRowRenders.set(Toolkit.guid(), render);
     }
 
-    private _getTypedRowRender(module: any): Toolkit.ATypedRowRender<any> | undefined {
+    private _getTypedRowRender(exports: Toolkit.IPluginExports): Toolkit.ATypedRowRender<any> | undefined {
         let render: Toolkit.ATypedRowRender<any> | undefined;
-        Object.keys(module).forEach((key: string) => {
-            if (module[key] instanceof Toolkit.ATypedRowRender) {
-                render = module[key];
+        Object.keys(exports).forEach((key: string) => {
+            if (exports[key] instanceof Toolkit.ATypedRowRender) {
+                render = exports[key] as Toolkit.ATypedRowRender<any>;
             }
         });
         return render;

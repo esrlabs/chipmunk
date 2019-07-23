@@ -17,6 +17,7 @@ export class ViewOutputRowStandardComponent extends AOutputRenderComponent imple
     @Input() public sessionId: string | undefined;
     @Input() public position: number | undefined;
     @Input() public pluginId: number | undefined;
+    @Input() public source: string | undefined;
     @Input() public scope: ControllerSessionScope | undefined;
 
     private _safeHtml: SafeHtml = null;
@@ -37,9 +38,7 @@ export class ViewOutputRowStandardComponent extends AOutputRenderComponent imple
         // Rid of HTML
         html = OutputParsersService.serialize(html);
         // Apply plugin parser
-        html = OutputParsersService.row(html, this.pluginId);
-        // Apply common parser
-        html = OutputParsersService.row(html);
+        html = OutputParsersService.row(html, this.pluginId, this.source);
         // Apply search matches parser
         const matches = OutputParsersService.matches(this.sessionId, this.position, html);
         html = matches.str;
