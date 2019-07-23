@@ -214,19 +214,11 @@ fn main() {
                         .help("Output file, \"<file_to_index>.out\" if not present"),
                 )
                 .arg(
-                    Arg::with_name("logverbosity")
-                        .short("v")
-                        .value_name("LEVEL")
-                        .help(
-                            "only select log entries with level MIN_LEVEL and more severe\n\
-                             1 => FATAL\n\
-                             2 => ERROR\n\
-                             3 => WARN\n\
-                             4 => INFO\n\
-                             5 => DEBUG\n\
-                             6 => VERBOSE\n\
-                             ",
-                        ),
+                    Arg::with_name("filter_config")
+                        .short("f")
+                        .long("filter")
+                        .value_name("FILTER_CONFIG")
+                        .help("json file that defines dlt filter settings"),
                 )
                 .arg(
                     Arg::with_name("stdout")
@@ -245,13 +237,6 @@ fn main() {
                         .help("the DLT file to parse")
                         .required(true)
                         .index(1),
-                )
-                .arg(
-                    Arg::with_name("output")
-                        .short("o")
-                        .long("out")
-                        .value_name("OUT")
-                        .help("Output file, \"<file_to_index>.out\" if not present"),
                 )
                 .arg(
                     Arg::with_name("stdout")
@@ -469,6 +454,21 @@ fn main() {
         status_updates: bool,
     ) {
         if let (Some(file_name), Some(tag)) = (matches.value_of("input"), matches.value_of("tag")) {
+            let filter_conf: Option<dlt::filtering::DltFilterConfig> =
+                match matches.value_of("filter_config") {
+                    Some(filter_config_file_name) => {
+                        let config_path = path::PathBuf::from(filter_config_file_name);
+                        let mut cnf_file = match fs::File::open(&config_path) {
+                            Ok(file) => file,
+                            Err(_) => {
+                                eprintln!("could not open filter config {:?}", config_path);
+                                std::process::exit(2)
+                            }
+                        };
+                        dlt::filtering::read_filter_options(&mut cnf_file).ok()
+                    }
+                    None => None,
+                };
             let append: bool = matches.is_present("append");
             let stdout: bool = matches.is_present("stdout");
             let source_file_size = match fs::metadata(file_name) {
@@ -495,12 +495,6 @@ fn main() {
                 }
             };
 
-            let verbosity_log_level: Option<u8> =
-                value_t!(matches.value_of("logverbosity"), u8).ok();
-            let min_log_level: Option<dlt::dlt::LogLevel> = match verbosity_log_level {
-                Some(ll) => dlt::dlt::u8_to_log_level(ll),
-                None => None,
-            };
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
             let max_lines = value_t_or_exit!(matches.value_of("max_lines"), usize);
             match dlt::dlt_parse::create_index_and_mapping_dlt(
@@ -515,7 +509,11 @@ fn main() {
                     to_stdout: stdout,
                     status_updates,
                 },
-                dlt::dlt::DltFilterConfig { min_log_level },
+                filter_conf,
+                // dlt::filtering::DltFilterConfig {
+                //     min_log_level: verbosity_log_level,
+                //     components: None,
+                // },
             ) {
                 Err(why) => {
                     eprintln!("couldn't process: {}", why);

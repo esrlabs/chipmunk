@@ -27,10 +27,6 @@ use proptest::prelude::*;
 use std::str;
 
 #[derive(Debug, Clone, PartialEq, Arbitrary)]
-pub struct DltFilterConfig {
-    pub min_log_level: Option<LogLevel>,
-}
-#[derive(Debug, Clone, PartialEq, Arbitrary)]
 pub struct DltTimeStamp {
     pub seconds: u32,
     #[proptest(strategy = "0..=1_000_000u32")]
