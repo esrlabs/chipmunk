@@ -3,8 +3,9 @@ import * as Toolkit from 'logviewer.client.toolkit';
 import { IComponentDesc } from 'logviewer-client-containers';
 
 export interface IMenuItem {
-    caption: string;
-    handler: () => void;
+    caption?: string;
+    handler?: () => void;
+    disabled?: boolean;
 }
 
 export interface IMenu {
