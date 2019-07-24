@@ -24,6 +24,8 @@ use nom::{
 
 use std::str;
 
+const REPORT_PROGRESS_LINE_BLOCK: usize = 250_000;
+
 fn parse_ecu_id(input: &[u8]) -> IResult<&[u8], &str> {
     dlt_zero_terminated_string(input, 4)
 }
@@ -732,6 +734,7 @@ pub fn index_dlt_file(
                         chunk_factory.get_current_byte_index(),
                         processed_bytes,
                         config.source_file_size,
+                        REPORT_PROGRESS_LINE_BLOCK
                     );
                 }
             }
@@ -745,6 +748,7 @@ pub fn index_dlt_file(
                         chunk_factory.get_current_byte_index(),
                         processed_bytes,
                         config.source_file_size,
+                        REPORT_PROGRESS_LINE_BLOCK
                     );
                 }
             }

@@ -324,11 +324,12 @@ impl Merger {
                         }
 
                         if report_status {
-                            self.report_progress(
+                            utils::report_progress(
                                 line_nr,
                                 chunk_factory.get_current_byte_index(),
                                 processed_bytes,
                                 combined_source_file_size as usize,
+                                REPORT_PROGRESS_LINE_BLOCK
                             );
                         }
                     }
@@ -347,23 +348,5 @@ impl Merger {
             chunks.push(chunk);
         }
         Ok(line_nr)
-    }
-
-    #[inline]
-    fn report_progress(
-        &self,
-        line_nr: usize,
-        current_byte_index: usize,
-        processed_bytes: usize,
-        source_file_size: usize,
-    ) {
-        if line_nr % REPORT_PROGRESS_LINE_BLOCK == 0 {
-            eprintln!(
-                "processed {} lines -- byte-index {} ({} %)",
-                line_nr,
-                current_byte_index,
-                (processed_bytes as f32 / source_file_size as f32 * 100.0).round()
-            );
-        }
     }
 }

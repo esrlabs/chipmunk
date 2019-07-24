@@ -6,8 +6,6 @@ use std::io::{BufReader, Read, Seek, SeekFrom};
 use std::path;
 use std::str;
 
-const REPORT_PROGRESS_LINE_BLOCK: usize = 250_000;
-
 pub const ROW_NUMBER_SENTINAL: char = '\u{0002}';
 // pub const ROW_NUMBER_SENTINAL_SLICE: &[u8] = &[0x2];
 pub const PLUGIN_ID_SENTINAL: char = '\u{0003}';
@@ -179,8 +177,9 @@ pub fn report_progress(
     current_byte_index: usize,
     processed_bytes: usize,
     source_file_size: usize,
+    progress_every_n_lines: usize,
 ) {
-    if line_nr % REPORT_PROGRESS_LINE_BLOCK == 0 {
+    if line_nr % progress_every_n_lines == 0 {
         eprintln!(
             "processed {} lines -- byte-index {} ({} %)",
             line_nr,

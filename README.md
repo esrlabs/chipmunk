@@ -239,6 +239,9 @@ match: Ok(true)
 
 # Changelog
 
+### [0.27.1] - 07/24/2019
+  * [](fix): avoid writing to stderr when not specified
+
 ### [0.27.0] - 07/24/2019
   * implemented filtering for app_ids, ecu_ids and context_ids
   * change hash function for merging for better performance

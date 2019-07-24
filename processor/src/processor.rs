@@ -5,6 +5,8 @@ use indexer_base::utils;
 use std::fs;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 
+const REPORT_PROGRESS_LINE_BLOCK: usize = 1_000_000;
+
 pub fn create_index_and_mapping(config: IndexingConfig) -> Result<Vec<Chunk>, Error> {
     let initial_line_nr = match utils::next_line_nr(config.out_path) {
         Some(nr) => nr,
@@ -83,6 +85,7 @@ pub fn index_file(config: IndexingConfig, initial_line_nr: usize) -> Result<Vec<
                     chunk_factory.get_current_byte_index(),
                     processed_bytes,
                     config.source_file_size,
+                    REPORT_PROGRESS_LINE_BLOCK,
                 );
             }
         }
