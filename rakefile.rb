@@ -107,6 +107,11 @@ def build_the_release_windows32
 end
 desc "create new version and release"
 task :create_release do
+  current_tag = `git describe --tags`
+  current_toml_version = get_current_version
+  if !current_tag.start_with?(current_toml_version)
+    raise "current tag #{current_tag} does not match with current toml version: #{current_toml_version}"
+  end
   require 'highline'
   cli = HighLine.new
   cli.choose do |menu|
@@ -178,7 +183,6 @@ def get_current_version
       text = File.read(file)
       if match = text.match(/^version\s=\s\"(.*)\"/i)
         current_version = match.captures[0]
-        puts "version was: #{current_version}"
       end
     end
   end

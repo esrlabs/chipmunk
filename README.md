@@ -12,10 +12,12 @@ FLAGS:
     -V, --version    Prints version information
 
 SUBCOMMANDS:
-    format    test format string
-    help      Prints this message or the help of the given subcommand(s)
-    index     command for creating an index file
-    merge     command for merging multiple log files
+    dlt          handling dtl input
+    dlt-stats    dlt statistics
+    format       test format string
+    help         Prints this message or the help of the given subcommand(s)
+    index        command for creating an index file
+    merge        command for merging multiple log files
 ```
 
 ## Indexing regular log files
@@ -113,9 +115,39 @@ and this will result in a json string to stderr like this:
 
 ## Indexing DLT files
 
+we can filter dlt log entries with:
+
+* `min_log_level`
+* `app_ids`
+* `context_ids`
+* `ecu_ids`
+
+example filter config file looks like this:
+
+```
+{
+  "min_log_level": 3,
+  "app_ids":["APP"],
+  "context_ids":["TES1"],
+  "ecu_ids":["ECU"]
+}
+```
+
+When filtering with a log level, only log entries with level `min_log_level` and more severe are
+kept.
+
+### Available Log Levels
+
+* 1 => `FATAL`
+* 2 => `ERROR`
+* 3 => `WARN`
+* 4 => `INFO`
+* 5 => `DEBUG`
+* 6 => `VERBOSE`
+
 ```
 logviewer_parser-dlt
-handling dlt input
+handling dtl input
 
 USAGE:
     logviewer_parser dlt [FLAGS] [OPTIONS] <input> --tag <TAG>
@@ -128,16 +160,28 @@ FLAGS:
 
 OPTIONS:
     -c, --chunk_size <chunk_size>    How many lines should be in a chunk (used for access later) [default: 500]
-    -v <LEVEL>                       only select log entries with level MIN_LEVEL and more severe
-                                     1 => FATAL
-                                     2 => ERROR
-                                     3 => WARN
-                                     4 => INFO
-                                     5 => DEBUG
-                                     6 => VERBOSE
+    -f, --filter <FILTER_CONFIG>     json file that defines dlt filter settings
     -n, --max_lines <max_lines>      How many lines to collect before dumping [default: 1000000]
     -o, --out <OUT>                  Output file, "<file_to_index>.out" if not present
     -t, --tag <TAG>                  tag for each log entry
+
+ARGS:
+    <input>    the DLT file to parse
+```
+
+## get statistics for DLT file
+
+```
+logviewer_parser-dlt-stats
+dlt statistics
+
+USAGE:
+    logviewer_parser dlt-stats [FLAGS] <input>
+
+FLAGS:
+    -h, --help       Prints help information
+    -s, --stdout     put out chunk information on stdout
+    -V, --version    Prints version information
 
 ARGS:
     <input>    the DLT file to parse
@@ -194,6 +238,16 @@ match: Ok(true)
 
 
 # Changelog
+
+### [0.27.0] - 07/24/2019
+  * implemented filtering for app_ids, ecu_ids and context_ids
+  * change hash function for merging for better performance
+  * support filtering with components
+  * added first start of server frontend
+  * use criterion for benchmarks
+  * convert project to cargo workspace
+  * version bump from 0.26.3 => 0.27.0
+  * spelling error
 
 ### [0.27.0] - 07/22/2019
   * convert project to cargo workspace

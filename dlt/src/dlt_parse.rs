@@ -4,10 +4,9 @@ use crate::filtering;
 use indexer_base::config::IndexingConfig;
 use indexer_base::chunks::{Chunk, ChunkFactory};
 use indexer_base::utils;
+use serde::Serialize;
 
 use rustc_hash::FxHashSet;
-use std::iter::FromIterator;
-use std::collections::HashSet;
 use std::fs;
 use failure::{err_msg, Error};
 use std::io::{BufRead, BufWriter, Write, Read};
@@ -512,8 +511,7 @@ fn dlt_payload<T: NomByteOrder>(
 ///
 pub fn dlt_message<'a>(
     input: &'a [u8],
-    min_log_level: Option<dlt::LogLevel>,
-    components: Option<&'a FxHashSet<String>>,
+    filter_config_opt: Option<&filtering::ProcessedDltFilterConfig>,
 ) -> IResult<&'a [u8], Option<dlt::Message>> {
     let (after_storage_and_normal_header, (storage_header, header)) =
         tuple((dlt_storage_header, dlt_standard_header))(input)?;
@@ -538,19 +536,37 @@ pub fn dlt_message<'a>(
     } else {
         (after_storage_and_normal_header, None)
     };
-    if let Some(h) = &extended_header {
-        if let Some(min_filter_level) = min_log_level {
-            if h.skip_with_level(min_filter_level) {
-                // no need to parse further, skip payload
-                let (after_message, _) = take(payload_length)(after_headers)?;
-                return Ok((after_message, None));
+    if let Some(filter_config) = filter_config_opt {
+        if let Some(h) = &extended_header {
+            if let Some(min_filter_level) = filter_config.min_log_level {
+                if h.skip_with_level(min_filter_level) {
+                    // no need to parse further, skip payload
+                    let (after_message, _) = take(payload_length)(after_headers)?;
+                    return Ok((after_message, None));
+                }
             }
-        }
-        if let Some(only_these_components) = components {
-            if !only_these_components.contains(&h.application_id) {
-                // no need to parse further, skip payload
-                let (after_message, _) = take(payload_length)(after_headers)?;
-                return Ok((after_message, None));
+            if let Some(only_these_components) = &filter_config.app_ids {
+                if !only_these_components.contains(&h.application_id) {
+                    // no need to parse further, skip payload
+                    let (after_message, _) = take(payload_length)(after_headers)?;
+                    return Ok((after_message, None));
+                }
+            }
+            if let Some(only_these_context_ids) = &filter_config.context_ids {
+                if !only_these_context_ids.contains(&h.context_id) {
+                    // no need to parse further, skip payload
+                    let (after_message, _) = take(payload_length)(after_headers)?;
+                    return Ok((after_message, None));
+                }
+            }
+            if let Some(only_these_ecu_ids) = &filter_config.ecu_ids {
+                if let Some(ecu_id) = &header.ecu_id {
+                    if !only_these_ecu_ids.contains(ecu_id) {
+                        // no need to parse further, skip payload
+                        let (after_message, _) = take(payload_length)(after_headers)?;
+                        return Ok((after_message, None));
+                    }
+                }
             }
         }
     }
@@ -579,7 +595,7 @@ fn validated_payload_length(header: &dlt::StandardHeader) -> Option<usize> {
     Some(message_length - headers_length)
 }
 #[allow(dead_code)]
-pub fn dlt_app_id(input: &[u8]) -> IResult<&[u8], Option<String>> {
+pub fn dlt_app_id_context_id(input: &[u8]) -> IResult<&[u8], StatisticRowInfo> {
     let (after_storage_and_normal_header, (_, header)) =
         tuple((dlt_storage_header, dlt_standard_header))(input)?;
 
@@ -595,19 +611,30 @@ pub fn dlt_app_id(input: &[u8]) -> IResult<&[u8], Option<String>> {
     if !header.has_extended_header {
         // no app id, skip rest
         let (after_message, _) = take(payload_length)(after_storage_and_normal_header)?;
-        return Ok((after_message, None));
+        return Ok((
+            after_message,
+            StatisticRowInfo {
+                app_id_context_id: None,
+                ecu_id: header.ecu_id,
+            },
+        ));
     }
 
     let (after_headers, extended_header) = dlt_extended_header(after_storage_and_normal_header)?;
     // skip payload
     let (after_message, _) = take(payload_length)(after_headers)?;
-    Ok((after_message, Some(extended_header.application_id)))
+    Ok((
+        after_message,
+        StatisticRowInfo {
+            app_id_context_id: Some((extended_header.application_id, extended_header.context_id)),
+            ecu_id: header.ecu_id,
+        },
+    ))
 }
 
 fn read_one_dlt_message<T: Read>(
     reader: &mut ReduxReader<T, MinBuffered>,
-    min_log_level: Option<dlt::LogLevel>,
-    filtered_components: Option<&FxHashSet<String>>,
+    filter_config: Option<&filtering::ProcessedDltFilterConfig>,
 ) -> Result<Option<(usize, Option<dlt::Message>)>, Error> {
     loop {
         match reader.fill_buf() {
@@ -618,7 +645,7 @@ fn read_one_dlt_message<T: Read>(
                 let available = content.len();
 
                 let res: nom::IResult<&[u8], Option<dlt::Message>> =
-                    dlt_message(content, min_log_level, filtered_components);
+                    dlt_message(content, filter_config);
                 match res {
                     Ok(r) => {
                         let consumed = available - r.0.len();
@@ -659,7 +686,6 @@ pub fn index_dlt_file(
     dlt_filter: Option<filtering::DltFilterConfig>,
     initial_line_nr: usize,
 ) -> Result<Vec<Chunk>, Error> {
-    println!("filter config: {:?}", dlt_filter);
     let (out_file, current_out_file_size) =
         utils::get_out_file_and_size(config.append, &config.out_path)?;
 
@@ -674,18 +700,18 @@ pub fn index_dlt_file(
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
 
     let mut processed_bytes = utils::get_processed_bytes(config.append, &config.out_path) as usize;
-    let (filter_level, filtered_component_map): (Option<dlt::LogLevel>, Option<FxHashSet<String>>) =
-        match dlt_filter {
-            Some(flt) => (
-                flt.min_log_level.and_then(dlt::u8_to_log_level),
-                flt.components
-                    .and_then(|cmp_list| Some(HashSet::from_iter(cmp_list))),
-            ),
-            None => (None, None),
-        };
+    // let (filter_level, filtered_component_map, cntx_id_map, ecu_id_map):
+    // (
+    //     Option<dlt::LogLevel>,
+    //     Option<FxHashSet<String>>,
+    //     Option<FxHashSet<String>>,
+    //     Option<FxHashSet<String>>,
+    // ) = match dlt_filter {
+    let filter_config: Option<filtering::ProcessedDltFilterConfig> =
+        dlt_filter.map(filtering::process_filter_config);
     loop {
         // println!("line index: {}", line_nr);
-        match read_one_dlt_message(&mut reader, filter_level, filtered_component_map.as_ref()) {
+        match read_one_dlt_message(&mut reader, filter_config.as_ref()) {
             Ok(Some((consumed, Some(msg)))) => {
                 // println!("consumed: {}", consumed);
                 reader.consume(consumed);
@@ -749,36 +775,67 @@ pub fn index_dlt_file(
     }
     Ok(chunks)
 }
+#[derive(Serialize, Debug)]
+pub struct StatisticInfo {
+    app_ids: Vec<String>,
+    context_ids: Vec<String>,
+    ecu_ids: Vec<String>,
+}
 #[allow(dead_code)]
-pub fn get_dlt_file_info(in_file: &fs::File) -> Result<FxHashSet<String>, Error> {
+pub fn get_dlt_file_info(in_file: &fs::File) -> Result<StatisticInfo, Error> {
     let mut reader =
         ReduxReader::with_capacity(10 * 1024 * 1024, in_file).set_policy(MinBuffered(10 * 1024));
 
-    // let mut app_ids = HashSet::new();
     let mut app_ids: FxHashSet<String> = FxHashSet::default();
+    let mut context_ids: FxHashSet<String> = FxHashSet::default();
+    let mut ecu_ids: FxHashSet<String> = FxHashSet::default();
     loop {
         // println!("line index: {}", line_nr);
         match read_one_dlt_message_info(&mut reader) {
-            Ok(Some((consumed, Some(app_id)))) => {
-                // println!("consumed: {}", consumed);
+            Ok(Some((
+                consumed,
+                StatisticRowInfo {
+                    app_id_context_id: Some((app_id, context_id)),
+                    ecu_id: ecu,
+                },
+            ))) => {
                 reader.consume(consumed);
                 app_ids.insert(app_id);
+                context_ids.insert(context_id);
+                if let Some(id) = ecu {
+                    ecu_ids.insert(id);
+                };
             }
-            Ok(Some((consumed, None))) => {
+            Ok(Some((
+                consumed,
+                StatisticRowInfo {
+                    app_id_context_id: None,
+                    ..
+                },
+            ))) => {
                 reader.consume(consumed);
             }
             Ok(None) => {
-                // println!("nothing more to parse");
                 break;
             }
             Err(e) => return Err(err_msg(format!("error while parsing dlt messages: {}", e))),
         }
     }
-    Ok(app_ids)
+    Ok(StatisticInfo {
+        app_ids: app_ids.iter().cloned().collect::<Vec<String>>(),
+        context_ids: context_ids.iter().cloned().collect::<Vec<String>>(),
+        ecu_ids: ecu_ids.iter().cloned().collect::<Vec<String>>(),
+    })
+}
+
+#[derive(Serialize, Debug)]
+pub struct StatisticRowInfo {
+    app_id_context_id: Option<(String, String)>,
+    ecu_id: Option<String>,
 }
 fn read_one_dlt_message_info<T: Read>(
     reader: &mut ReduxReader<T, MinBuffered>,
-) -> Result<Option<(usize, Option<String>)>, Error> {
+) -> Result<Option<(usize, StatisticRowInfo)>, Error> {
     loop {
         match reader.fill_buf() {
             Ok(content) => {
@@ -786,7 +843,7 @@ fn read_one_dlt_message_info<T: Read>(
                     return Ok(None);
                 }
                 let available = content.len();
-                let res: nom::IResult<&[u8], Option<String>> = dlt_app_id(content);
+                let res: nom::IResult<&[u8], StatisticRowInfo> = dlt_app_id_context_id(content);
                 match res {
                     Ok(r) => {
                         let consumed = available - r.0.len();
