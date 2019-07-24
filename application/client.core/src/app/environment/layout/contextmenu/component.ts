@@ -41,6 +41,16 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
         this._subscribeToWinEvents();
     }
 
+    public _ng_onMouseDown(item: IMenuItem) {
+        if (typeof item.handler !== 'function') {
+            return;
+        }
+        if (item.disabled) {
+            return;
+        }
+        item.handler();
+    }
+
     private _onShow(menu: IMenu) {
         this._ng_component = menu.component;
         this._ng_items = menu.items;

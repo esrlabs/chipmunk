@@ -1,9 +1,9 @@
-import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, ComponentFactory } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
 import { ControllerSessionTab, IInjectionAddEvent, IInjectionRemoveEvent } from '../../../controller/controller.session.tab';
 import { ControllerSessionTabStreamOutput, IStreamPacket, IStreamState, ILoadedRange } from '../../../controller/controller.session.tab.stream.output';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
-import { IDataAPI, IRange, IRow, IRowsPacket, IStorageInformation, DockDef, ComplexScrollBoxComponent } from 'logviewer-client-complex';
+import { IDataAPI, IRange, IRow, IRowsPacket, IStorageInformation, DockDef, ComplexScrollBoxComponent, IScrollBoxSelection } from 'logviewer-client-complex';
 import { ViewOutputRowComponent, IScope } from '../row/component';
 import { ViewOutputControlsComponent, IButton } from './controls/component';
 import ViewsEventsService from '../../../services/standalone/service.views.events';
@@ -13,6 +13,8 @@ import { NotificationsService } from '../../../services.injectable/injectable.se
 import PluginsService from '../../../services/service.plugins';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { removeRowNumber } from '../row/helpers';
+import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
+import SelectionParsersService, { ISelectionParser } from '../../../services/standalone/service.selection.parsers';
 
 const CSettings: {
     preloadCount: number,
@@ -120,6 +122,55 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
             this._dragdrop.destroy();
         }
     }
+
+    public _ng_onContexMenu(event: MouseEvent) {
+        if (this._scrollBoxCom === undefined || this._scrollBoxCom === null) {
+            return;
+        }
+        const selection: IScrollBoxSelection | undefined = this._scrollBoxCom.getSelection();
+        const items: IMenuItem[] = [
+            {
+                caption: 'Copy',
+                handler: () => {},
+                disabled: selection === undefined,
+            }
+        ];
+        if (selection !== undefined && selection.anchor === selection.focus) {
+            items.push(...[
+                { /* delimiter */ },
+                {
+                    caption: `Show row #${selection.anchor}`,
+                    handler: () => {
+                        const row: IStreamPacket | undefined = this._output.getRowByPosition(selection.anchor);
+                        if (row === undefined) {
+                            return;
+                        }
+                        SelectionParsersService.memo(row.str, `Row #${selection.anchor}`);
+                        console.log(row.str, `Row #${selection.anchor}`);
+                    },
+                },
+            ]);
+        }
+        if (selection !== undefined) {
+            const parsers: ISelectionParser[] = SelectionParsersService.getParsers(selection.selection);
+            if (parsers.length > 0) {
+                items.push(...[
+                    { /* delimiter */ },
+                    ...parsers.map((parser: ISelectionParser) => {
+                        return {
+                            caption: parser.name,
+                            handler: () => { }
+                        };
+                    })
+                ]);
+            }
+        }
+        ContextMenuService.show({
+            items: items,
+            x: event.pageX,
+            y: event.pageY,
+        });
+    }
 
     private _api_getComponentFactory(): any {
         return ViewOutputRowComponent;

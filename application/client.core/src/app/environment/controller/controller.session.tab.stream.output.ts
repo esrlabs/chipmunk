@@ -260,6 +260,12 @@ export class ControllerSessionTabStreamOutput {
         return this._horScrollOffset;
     }
 
+    public getRowByPosition(position: number): IStreamPacket | undefined {
+        return this._rows.find((row: IStreamPacket) => {
+            return row.position === position;
+        });
+    }
+
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Rows operations
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
