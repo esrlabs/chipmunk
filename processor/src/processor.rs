@@ -77,12 +77,14 @@ pub fn index_file(config: IndexingConfig, initial_line_nr: usize) -> Result<Vec<
                 chunks.push(chunk);
                 buf_writer.flush()?;
             }
-            utils::report_progress(
-                line_nr,
-                chunk_factory.get_current_byte_index(),
-                processed_bytes,
-                config.source_file_size,
-            );
+            if config.status_updates {
+                utils::report_progress(
+                    line_nr,
+                    chunk_factory.get_current_byte_index(),
+                    processed_bytes,
+                    config.source_file_size,
+                );
+            }
         }
         buf = vec![];
     }
