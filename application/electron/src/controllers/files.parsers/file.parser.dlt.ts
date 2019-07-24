@@ -59,11 +59,23 @@ export default class FileParser extends AFileParser {
                     }));
                 });
             }
+            const dltOptions: { [key: string]: any } = {
+                logLevel: options.logLevel,
+            };
+            if (options.filters !== undefined && options.filters.app_ids instanceof Array) {
+                dltOptions.APID = options.filters.app_ids;
+            }
+            if (options.filters !== undefined && options.filters.context_ids instanceof Array) {
+                dltOptions.CTID = options.filters.context_ids;
+            }
+            if (options.filters !== undefined && options.filters.ecu_ids instanceof Array) {
+                dltOptions.ECUID = options.filters.ecu_ids;
+            }
             lvin.dlt({
                 srcFile: srcFile,
                 destFile: destFile,
                 injection: sourceId.toString(),
-            }, { logLevel: options.logLevel }).then((results: IIndexResult) => {
+            }, dltOptions).then((results: IIndexResult) => {
                 lvin.removeAllListeners();
                 resolve(results.map.map((item: IFileMapItem) => {
                     return { rows: { from: item.r[0], to: item.r[1] }, bytes: { from: item.b[0], to: item.b[1] }};
