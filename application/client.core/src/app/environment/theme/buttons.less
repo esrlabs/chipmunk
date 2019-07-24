@@ -37,3 +37,20 @@
         .gradient(linear; lighten(@scheme-color-4, 4%), @scheme-color-4);
     }
 }
+
+.smallest-button {
+    position: relative;
+    display: inline-block;
+    font-size: 0.8rem;
+    color:@scheme-color-1;
+    padding: 0.15rem 0.4rem;
+    margin: 0.25rem;
+    cursor: default;
+    .gradient(linear; @scheme-color-4, lighten(@scheme-color-4, 4%));
+    .border-based-4;
+    border-radius: 2px;
+    &:hover{
+        color: @scheme-color-0;
+        .gradient(linear; lighten(@scheme-color-4, 4%), @scheme-color-4);
+    }
+}

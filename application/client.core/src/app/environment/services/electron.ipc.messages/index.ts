@@ -124,6 +124,12 @@ export { IFiltersSaveResponse, FiltersSaveResponse };
 import { INotification, Notification } from './notification';
 export { INotification, Notification };
 
+import { IDLTStatsRequest, DLTStatsRequest } from './dlt.filestats.request';
+export { IDLTStatsRequest, DLTStatsRequest };
+
+import { IDLTStatsResponse, DLTStatsResponse, IDLTStats } from './dlt.filestats.response';
+export { IDLTStatsResponse, DLTStatsResponse, IDLTStats };
+
 // Common type for expected message implementation
 export type TMessage =  HostState |
                         HostStateHistory |
@@ -164,7 +170,9 @@ export type TMessage =  HostState |
                         FiltersLoadResponse |
                         FiltersSaveRequest |
                         FiltersSaveResponse |
-                        Notification;
+                        Notification |
+                        DLTStatsRequest |
+                        DLTStatsResponse;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -221,5 +229,8 @@ export const Map = {
     [FiltersSaveResponse.signature          ]: FiltersSaveResponse,
 
     [Notification.signature                 ]: Notification,
+
+    [DLTStatsRequest.signature              ]: DLTStatsRequest,
+    [DLTStatsResponse.signature             ]: DLTStatsResponse,
 
 };

@@ -19,6 +19,7 @@ import ServiceFileOpener from './services/service.file.opener';
 import ServiceStreamSources from './services/service.stream.sources';
 import ServiceFilters from './services/service.filters';
 import ServiceAppState from './services/service.app.state';
+import ServiceDLTFiles from './services/service.dlt.files';
 
 const InitializeStages = [
     // Stage #1
@@ -38,7 +39,7 @@ const InitializeStages = [
     // Stage #8. Detect OS env
     [ServiceEnv],
     // Stage #9, Render functionality
-    [ServiceFileParsers, ServiceMergeFiles, ServiceFilters, ServiceFileReader, ServiceFileOpener, ServiceAppState],
+    [ServiceFileParsers, ServiceMergeFiles, ServiceFilters, ServiceFileReader, ServiceFileOpener, ServiceAppState, ServiceDLTFiles],
     // Stage #10. Init plugins
     [ServicePlugins],
     // (last service should startup service and should be single always)

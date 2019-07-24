@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { SidebarViewComponent } from './view/component';
 import { CommonModule } from '@angular/common';
 import { PrimitiveModule } from 'logviewer-client-primitive';
+import * as Toolkit from 'logviewer.client.toolkit';
 
 @NgModule({
     entryComponents: [SidebarViewComponent],
@@ -10,12 +11,11 @@ import { PrimitiveModule } from 'logviewer-client-primitive';
     exports: [SidebarViewComponent]
 })
 
-export class PluginModule {
 
-    private _api: string | undefined;
+export class PluginModule extends Toolkit.PluginNgModule {
 
-    public setAPI(api: any) {
-        this._api = api;
+    constructor() {
+        super('XTerminal', 'Show terminal');
     }
 
 }
