@@ -1,0 +1,8 @@
+<div *ngIf="_ng_selection !== undefined" [attr.class]="'selection ' + (_ng_parsed === undefined ? 'only' : '')">
+    <div *ngIf="_ng_parsed === undefined" class="caption">{{_ng_caption}}</div>
+    <div class="content" [innerHTML]="_ng_selection"></div>
+</div>
+<div *ngIf="_ng_parsed !== undefined" class="parsed">
+    <div class="caption">{{_ng_caption}}</div>
+    <div class="content" [innerHTML]="_ng_parsed"></div>
+</div>

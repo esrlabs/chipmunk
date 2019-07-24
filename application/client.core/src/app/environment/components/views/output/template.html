@@ -3,7 +3,7 @@
     <lib-containers-dynamic [component]="{ factory: injection.value.factory, inputs: injection.value.inputs, resolved: injection.value.resolved }"></lib-containers-dynamic>
   </li>
 </ul>
-<div class="rows-container noreset">
+<div class="rows-container noreset" (contextmenu)="_ng_onContexMenu($event)">
   <lib-complex-scrollbox class="noreset" [API]="_ng_outputAPI"></lib-complex-scrollbox>
 </div>
 <ul class="injections-bottom">

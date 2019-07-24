@@ -5,14 +5,6 @@ import { shadeColor, scheme_color_4, scheme_color_0 } from '../../theme/colors';
 import { CColors } from '../../conts/colors';
 import { getContrastColor } from '../../theme/colors';
 
-export type TTypeHandler = (sourceName: string) => boolean;
-
-export interface ITypedCustomRowComponent {
-    isTypeMatch: TTypeHandler;
-    type: string;   // TODO: enum
-    api: any;       // TODO: dynamic type like ICustomAPI<Type>
-}
-
 export interface IRequest {
     reg: RegExp;
     color: string | undefined;

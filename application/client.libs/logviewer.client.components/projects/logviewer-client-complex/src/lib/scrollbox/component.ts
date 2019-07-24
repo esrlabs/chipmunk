@@ -7,6 +7,12 @@ import { Subscription, Subject, Observable } from 'rxjs';
 import { ComplexScrollBoxSBVComponent } from './sbv/component';
 import { ComplexScrollBoxSBHComponent } from './sbh/component';
 
+export interface IScrollBoxSelection {
+    selection: string;
+    anchor: number;
+    focus: number;
+}
+
 export interface IRange {
     start: number;
     end: number;
@@ -302,6 +308,9 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
     }
 
     public _ng_onMouseDownHolder(event: MouseEvent) {
+        if (event.button !== 0) {
+            return;
+        }
         this._selection_drop(true);
     }
 
@@ -475,6 +484,25 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
 
     public getFrame(): IRange {
         return { start: this._state.start, end: this._state.end };
+    }
+
+    public getSelection(): IScrollBoxSelection | undefined {
+        if (this._selection.focus.index === -1) {
+            return undefined;
+        }
+        let selection: string = this._selection.selection;
+        if (this.API.cleanUpClipboard !== undefined) {
+            selection = this.API.cleanUpClipboard(selection);
+        }
+        return {
+            selection: selection,
+            anchor: this._selection.anchor.index,
+            focus: this._selection.focus.index,
+        };
+    }
+
+    public copySelection() {
+        this._selection_copy();
     }
 
     private _setFrame(start: number, outside: boolean) {

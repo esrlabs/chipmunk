@@ -1,4 +1,4 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, HostBinding, AfterContentInit } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
 import { ControllerColumns, IColumn, IColumns } from '../../controller.columns';
 
 export const CColumnsHeadersKey = 'CColumnsHeadersKey';

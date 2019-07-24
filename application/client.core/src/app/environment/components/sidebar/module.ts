@@ -1,6 +1,8 @@
 import { NgModule                               } from '@angular/core';
 import { CommonModule                           } from '@angular/common';
 
+import { SidebarAppParsingModule                } from './parsing/module';
+
 import { SidebarAppMergeFilesModule             } from './merge/module';
 import { SidebarAppMergeFilesComponent          } from './merge/component';
 
@@ -11,7 +13,7 @@ import { SidebarAppSearchManagerComponent       } from './search.manager/compone
     entryComponents : [  ],
     imports         : [ CommonModule ],
     declarations    : [  ],
-    exports         : [ SidebarAppMergeFilesModule, SidebarAppSearchManagerModule ]
+    exports         : [ SidebarAppMergeFilesModule, SidebarAppSearchManagerModule, SidebarAppParsingModule ]
 })
 
 export class EnvironmentSidebarAppsModule {
