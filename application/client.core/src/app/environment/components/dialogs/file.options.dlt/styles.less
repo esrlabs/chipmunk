@@ -22,4 +22,34 @@
             margin-right: 0;
         }
     }
+    & div.scanning{
+        position: relative;
+        & div.progress{
+            position: absolute;
+            right: 0;
+            top:0;
+            bottom: 0;
+            width: 2rem;
+        }
+    }
+    & div.filters{
+        p.name {
+            color: @scheme-color-3;
+        }
+        & ul.values{
+            position: relative;
+            padding: 0;
+            margin: 0;
+            list-style: none;
+            max-height: 10rem;
+            overflow-x: hidden;
+            overflow-y: auto;
+            & li.value{
+                position: relative;
+                padding: 0;
+                margin: 0;
+                list-style: none;
+            }
+        }
+    }
 }

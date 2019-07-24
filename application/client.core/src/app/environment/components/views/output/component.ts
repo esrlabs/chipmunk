@@ -146,7 +146,6 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                             return;
                         }
                         SelectionParsersService.memo(row.str, `Row #${selection.anchor}`);
-                        console.log(row.str, `Row #${selection.anchor}`);
                     },
                 },
             ]);

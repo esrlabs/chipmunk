@@ -1,10 +1,31 @@
-<p class="caption t-normal">File: {{fileName}}</p>
-<span class="spliter"></span>
-<p class="caption t-normal">Size: {{_ng_size}}</p>
+<p class="caption t-normal">File: {{fileName}} ({{_ng_size}})</p>
 <span class="spliter"></span>
 <p class="caption t-normal">Required log level:</p>
 <lib-primitive-dropdownlist #loglevelcom [defaults]="_ng_logLevelDefault" [items]="_ng_logLevels" [onChange]="_ng_onLogLevelChange"></lib-primitive-dropdownlist>
 <span class="spliter"></span>
+<div *ngIf="_ng_scanning" class="scanning">
+    <p class="t-small">Scanning file</p>
+    <div class="progress">
+        <lib-primitive-spinner-regular></lib-primitive-spinner-regular>
+    </div>
+</div>
+<div *ngIf="_ng_filters !== undefined" class="filters">
+    <div *ngFor="let filter of _ng_filters | keyvalue">
+        <p class="name t-normal">{{filter.value.caption}}</p>
+        <ul class="values">
+            <li class="value" *ngFor="let item of filter.value.items; let i = index;">
+                <lib-primitive-checkbox-simple [labelOn]="item.name" [labelOff]="item.name" [checked]="item.state" [onChange]="_ng_onChangeFilter.bind(this, filter.key, i)"></lib-primitive-checkbox-simple>
+            </li>
+        </ul>
+        <div class="controlls">
+            <span class="smallest-button" (click)="_ng_onSelect(filter.key)">Select All</span>
+            <span class="smallest-button" (click)="_ng_onUnselect(filter.key)">Unselect All</span>
+            <span class="smallest-button" (click)="_ng_onReverse(filter.key)">Reverse</span>
+        </div>
+    </div>
+
+    <span class="spliter"></span>
+</div>
 <div class="controlls">
     <span class="small-button" (click)="_ng_onOpen()">Open</span>
     <span class="small-button" (click)="_ng_onCancel()">Cancel</span>
