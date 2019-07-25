@@ -986,9 +986,63 @@ namespace('plugin.row.parser.ascii', function() {
 
 });
 
+namespace('plugin.parsers.selection', function() {
+    const PATH_DEST = path.normalize(path.resolve(__dirname, 'sandbox/parsers.selection'));
+    const PATH_CLIENT_SOURCES = path.normalize(path.resolve(__dirname, 'client.plugins.standalone/parsers.selection'));
+
+    task('client.build', function() {
+        logo();
+        const tasks = [];
+        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist'));
+        const clientNodeModules = path.normalize(path.resolve(PATH_CLIENT_SOURCES, '/node_modules'));
+        if (fs.existsSync(clientDist)) {
+            tasks.push(echo(colors.blue(`Remove dist files: ${clientDist}`)));
+            tasks.push(`rm -rf ${clientDist}`);
+        }
+        if (!CLI_FLAGS.skipNpm && fs.existsSync(clientNodeModules)) {
+            tasks.push(echo(colors.blue(`Remove dist files: ${clientNodeModules}`)));
+            tasks.push(`rm -rf ${clientNodeModules}`);
+            tasks.push(npmInstall(PATH_CLIENT_SOURCES));
+        }
+        tasks.push(`npm run build --prefix ${PATH_CLIENT_SOURCES}`);
+        sh(this, ...tasks);
+    }, {async: true});
+
+    task('client.delivery', function() {
+        logo();
+        const tasks = [];
+        const clientDist = path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'dist/.'));
+        const clientDest = path.normalize(path.resolve(PATH_DEST, 'render/'));
+        if (fs.existsSync(clientDest)) {
+            tasks.push(echo(colors.blue(`Remove dest files: ${clientDest}`)));
+            tasks.push(`rm -rf ${clientDest}`);
+        }
+        tasks.push(`mkdir ${clientDest}`);
+        tasks.push(`cp -R ${clientDist} ${clientDest}`);
+        tasks.push(`cp ${path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'package.json'))} ${clientDest}`);
+        sh(this, ...tasks);
+    }, {async: true});
+
+    task('compress', function() {
+        logo();
+        const tasks = [];
+        const pkfile = JSON.parse(fs.readFileSync(path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'package.json'))));
+        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `parsers.selection@${pkfile.version}-${process.platform}.tgz`));
+        if (fs.existsSync(file)) {
+            tasks.push(echo(colors.blue(`Remove file: ${file}`)));
+            tasks.push(`rm -rf ${file}`);
+        }
+        tasks.push(tar(file, PATH_DEST));
+        sh(this, ...tasks);
+    }, {async: true});
+
+    task('all', ['plugin.parsers.selection:client.build', 'plugin.parsers.selection:client.delivery', 'plugin.parsers.selection:compress']);
+
+});
+
 namespace('plugins', function() {
 
-    task('all', ['plugin.row.parser.ascii:all', 'plugin.dlt-render:all', 'plugin.dlt:all', 'plugin.xterminal:all', 'plugin.processes:all', 'plugin.serial:all']);
+    task('all', ['plugin.row.parser.ascii:all', 'plugin.parsers.selection:all', 'plugin.dlt-render:all', 'plugin.dlt:all', 'plugin.xterminal:all', 'plugin.processes:all', 'plugin.serial:all']);
 
 });
 

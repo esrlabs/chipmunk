@@ -1,14 +1,16 @@
-import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, HostListener } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { ControllerSessionTabSearchOutput, ISearchStreamPacket, IStreamState, ILoadedRange } from '../../../../controller/controller.session.tab.search.output';
-import { IDataAPI, IRange, IRowsPacket, IStorageInformation, ComplexScrollBoxComponent } from 'logviewer-client-complex';
+import { IDataAPI, IRange, IRowsPacket, IStorageInformation, ComplexScrollBoxComponent, IScrollBoxSelection } from 'logviewer-client-complex';
 import { IComponentDesc } from 'logviewer-client-containers';
 import { ViewOutputRowComponent } from '../../row/component';
 import { ViewSearchControlsComponent, IButton } from './controls/component';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 import EventsHubService from '../../../../services/standalone/service.eventshub';
 import { removeRowNumber } from '../../row/helpers';
+import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
+import SelectionParsersService, { ISelectionParser } from '../../../../services/standalone/service.selection.parsers';
 
 const CSettings: {
     preloadCount: number,
@@ -63,6 +65,57 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
             onRerequest: new Subject<void>(),
             onRedraw: new Subject<void>(),
         };
+    }
+
+    @HostListener('contextmenu', ['$event']) public onContexMenu(event: MouseEvent) {
+        if (this._scrollBoxCom === undefined || this._scrollBoxCom === null) {
+            return;
+        }
+        const selection: IScrollBoxSelection | undefined = this._scrollBoxCom.getSelection();
+        const items: IMenuItem[] = [
+            {
+                caption: 'Copy',
+                handler: () => {
+                    this._scrollBoxCom.copySelection();
+                },
+                disabled: selection === undefined,
+            }
+        ];
+        if (selection !== undefined && selection.anchor === selection.focus) {
+            const row: ISearchStreamPacket | undefined = this._output.getRowByPosition(selection.anchor);
+            if (row !== undefined) {
+                items.push(...[
+                    { /* delimiter */ },
+                    {
+                        caption: `Show row #${row.positionInStream}`,
+                        handler: () => {
+                            SelectionParsersService.memo(row.str, `Row #${row.positionInStream}`);
+                        },
+                    },
+                ]);
+            }
+        }
+        if (selection !== undefined) {
+            const parsers: ISelectionParser[] = SelectionParsersService.getParsers(selection.selection);
+            if (parsers.length > 0) {
+                items.push(...[
+                    { /* delimiter */ },
+                    ...parsers.map((parser: ISelectionParser) => {
+                        return {
+                            caption: parser.name,
+                            handler: () => {
+                                SelectionParsersService.parse(selection.selection, parser.guid, parser.name);
+                            }
+                        };
+                    })
+                ]);
+            }
+        }
+        ContextMenuService.show({
+            items: items,
+            x: event.pageX,
+            y: event.pageY,
+        });
     }
 
     ngAfterViewInit() {

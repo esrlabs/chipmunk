@@ -72,11 +72,13 @@ export class SelectionParsersService {
         if (parser === undefined) {
             return;
         }
-        this._subjects.onUpdate.next({
+        const event: IUpdateEvent = {
             caption: caption,
             selection: selection,
             parsed: parser.parser.parse(selection, Toolkit.EThemeType.dark),
-        });
+        };
+        this._subjects.onUpdate.next(event);
+        this._show(event);
     }
 
     public memo(content: string, caption: string) {

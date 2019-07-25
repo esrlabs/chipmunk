@@ -259,6 +259,12 @@ export class ControllerSessionTabSearchOutput {
         return this._preload(range);
     }
 
+    public getRowByPosition(position: number): ISearchStreamPacket | undefined {
+        return this._rows.find((row: ISearchStreamPacket) => {
+            return row.position === position;
+        });
+    }
+
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Rows operations
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
