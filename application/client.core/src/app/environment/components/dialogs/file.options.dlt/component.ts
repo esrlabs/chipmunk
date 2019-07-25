@@ -81,6 +81,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     public _ng_size: string = '';
     public _ng_logLevelDefault: EMTIN = EMTIN.DLT_LOG_VERBOSE;
     public _ng_scanning: boolean = true;
+    public _ng_more: boolean = false;
     public _ng_logLevels: Array<{ value: string; caption: string}> = [
         { value: EMTIN.DLT_LOG_FATAL, caption: 'Fatal' },
         { value: EMTIN.DLT_LOG_ERROR, caption: 'Error' },
@@ -159,6 +160,11 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
 
     public _ng_onLogLevelChange(value: EMTIN) {
         this._logLevel = value;
+    }
+
+    public _ng_onFilters() {
+        this._ng_more = !this._ng_more;
+        this._forceUpdate();
     }
 
     public _ng_onOpen() {

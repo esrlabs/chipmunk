@@ -1,29 +1,34 @@
 <p class="caption t-normal">File: {{fileName}} ({{_ng_size}})</p>
 <span class="spliter"></span>
 <p class="caption t-normal">Required log level:</p>
-<lib-primitive-dropdownlist #loglevelcom [defaults]="_ng_logLevelDefault" [items]="_ng_logLevels" [onChange]="_ng_onLogLevelChange"></lib-primitive-dropdownlist>
-<span class="spliter"></span>
-<div *ngIf="_ng_scanning" class="scanning">
-    <p class="t-small">Scanning file</p>
-    <div class="progress">
+<div class="settings">
+    <div *ngIf="!_ng_scanning" class="toggle">
+        <span   [attr.class]="'toggle-button small-icon-button fas fa-angle-double-down' + (_ng_more ? ' opened' : '')"
+                title="Open/Hide Filters"
+                (click)="_ng_onFilters()"></span>
+    </div>    
+    <div *ngIf="_ng_scanning" class="progress">
         <lib-primitive-spinner-regular></lib-primitive-spinner-regular>
     </div>
+    <div [attr.class]="'logs ' + (_ng_scanning ? 'in-progress' : '')">
+        <lib-primitive-dropdownlist #loglevelcom [defaults]="_ng_logLevelDefault" [items]="_ng_logLevels" [onChange]="_ng_onLogLevelChange"></lib-primitive-dropdownlist>
+    </div>
 </div>
-<div *ngIf="_ng_filters !== undefined" class="filters">
-    <div *ngFor="let filter of _ng_filters | keyvalue">
+<div *ngIf="_ng_filters !== undefined && _ng_more" class="filters">
+    <span class="spliter"></span>
+    <div *ngFor="let filter of _ng_filters | keyvalue" class="group">
         <p class="name t-normal">{{filter.value.caption}}</p>
+        <div class="sub-controlls">
+            <span class="small-icon-button fas fa-plus-circle" (click)="_ng_onSelect(filter.key)"><span class="label">Select All</span></span>
+            <span class="small-icon-button fas fa-minus-circle" (click)="_ng_onUnselect(filter.key)"><span class="label">Unselect All</span></span>
+            <span class="small-icon-button fas fa-retweet" (click)="_ng_onReverse(filter.key)"><span class="label">Reverse</span></span>
+        </div>
         <ul class="values">
             <li class="value" *ngFor="let item of filter.value.items; let i = index;">
                 <lib-primitive-checkbox-simple [labelOn]="item.name" [labelOff]="item.name" [checked]="item.state" [onChange]="_ng_onChangeFilter.bind(this, filter.key, i)"></lib-primitive-checkbox-simple>
             </li>
         </ul>
-        <div class="controlls">
-            <span class="smallest-button" (click)="_ng_onSelect(filter.key)">Select All</span>
-            <span class="smallest-button" (click)="_ng_onUnselect(filter.key)">Unselect All</span>
-            <span class="smallest-button" (click)="_ng_onReverse(filter.key)">Reverse</span>
-        </div>
     </div>
-
     <span class="spliter"></span>
 </div>
 <div class="controlls">
