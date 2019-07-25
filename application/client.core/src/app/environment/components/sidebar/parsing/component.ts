@@ -3,6 +3,7 @@ import * as Toolkit from 'logviewer.client.toolkit';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import SelectionParsersService, { IUpdateEvent } from '../../../services/standalone/service.selection.parsers';
+import OutputParsersService from '../../../services/standalone/service.output.parsers';
 
 @Component({
     selector: 'app-sidebar-app-parsing',
@@ -36,8 +37,8 @@ export class SidebarAppParsingComponent implements OnDestroy, AfterContentInit, 
 
     public ngAfterContentInit() {
         this._ng_caption = this.caption;
-        this._ng_parsed = this._sanitizer.bypassSecurityTrustHtml(this.parsed);
-        this._ng_selection = this._sanitizer.bypassSecurityTrustHtml(this.selection);
+        this._ng_parsed = this.parsed === undefined ? undefined : this._sanitizer.bypassSecurityTrustHtml(this._html(this.parsed));
+        this._ng_selection = this._sanitizer.bypassSecurityTrustHtml(this._html(this.selection));
         this._cdRef.detectChanges();
     }
 
@@ -47,9 +48,17 @@ export class SidebarAppParsingComponent implements OnDestroy, AfterContentInit, 
 
     private _onUpdate(event: IUpdateEvent) {
         this._ng_caption = event.caption;
-        this._ng_parsed = this._sanitizer.bypassSecurityTrustHtml(event.parsed);
-        this._ng_selection = this._sanitizer.bypassSecurityTrustHtml(event.selection);
+        this._ng_parsed = event.parsed === undefined ? undefined : this._sanitizer.bypassSecurityTrustHtml(this._html(event.parsed));
+        this._ng_selection = this._sanitizer.bypassSecurityTrustHtml(this._html(event.selection));
         this._cdRef.detectChanges();
+    }
+
+    private _html(str): string {
+        // Rid of HTML
+        str = OutputParsersService.serialize(str);
+        // Apply plugin parser
+        str = OutputParsersService.row(str, undefined, undefined);
+        return str;
     }
 
 

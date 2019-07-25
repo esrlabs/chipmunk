@@ -1,5 +1,7 @@
 import * as Toolkit from 'logviewer.client.toolkit';
 import { Observable, Subject } from 'rxjs';
+import HorizontalSidebarSessionsService from '../service.sessions.sidebar.horizontal';
+import { SidebarAppParsingComponent } from '../../components/sidebar/parsing/component';
 
 export interface ISelectionParser {
     guid: string;
@@ -23,6 +25,7 @@ export class SelectionParsersService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('SelectionParsersService');
     private _parsers: Map<TGuid, IStoredSelectionParser> = new Map();
+    private _tabGuid: string = Toolkit.guid();
     private _subjects: {
         onUpdate: Subject<IUpdateEvent>,
     } = {
@@ -77,15 +80,29 @@ export class SelectionParsersService {
     }
 
     public memo(content: string, caption: string) {
-        this._subjects.onUpdate.next({
+        const event: IUpdateEvent = {
             caption: caption,
             selection: content,
             parsed: undefined
-        });
+        };
+        this._subjects.onUpdate.next(event);
+        this._show(event);
     }
 
-    private _show() {
-        // fd
+    private _show(event: IUpdateEvent) {
+        if (HorizontalSidebarSessionsService.has(this._tabGuid)) {
+            HorizontalSidebarSessionsService.setActive(this._tabGuid);
+            return;
+        }
+        HorizontalSidebarSessionsService.add('Details', {
+            factory: SidebarAppParsingComponent,
+            inputs: {
+                selection: event.selection,
+                parsed: event.parsed,
+                caption: event.caption
+            },
+            resolved: false,
+        }, this._tabGuid);
     }
 }
 

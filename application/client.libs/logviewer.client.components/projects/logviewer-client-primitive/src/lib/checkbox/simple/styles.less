@@ -7,18 +7,27 @@
     color: @scheme-color-1;
     padding: 0.1rem 0.2rem;
     box-sizing: border-box;
+    line-height: 0.9rem;
     & span.checkbox{
-        position: absolute;
-        top:3px;
+        position: relative;
+        display: inline-block;
         left:0;
         width: 1.5rem;
         bottom: 0;
         cursor: pointer;
+        vertical-align: top;
+        line-height: 0.9rem;
     }
     & span.label{
         position: relative;
-        display: block;
-        padding: 0 0 0 1.5rem;
+        display: inline-block;
+        padding: 0;
         cursor: default;
+        color: @scheme-color-2;
+        vertical-align: top;
+        line-height: 0.9rem;
+        &.checked{
+            color:@scheme-color-0;
+        }
     }
 }
