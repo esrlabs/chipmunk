@@ -2,8 +2,9 @@ import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, After
 import * as Toolkit from 'logviewer.client.toolkit';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import SelectionParsersService, { IUpdateEvent } from '../../../services/standalone/service.selection.parsers';
+import SelectionParsersService, { IUpdateEvent, ISelectionParser } from '../../../services/standalone/service.selection.parsers';
 import OutputParsersService from '../../../services/standalone/service.output.parsers';
+import ContextMenuService, { IMenu, IMenuItem } from '../../../services/standalone/service.contextmenu';
 
 @Component({
     selector: 'app-sidebar-app-parsing',
@@ -44,6 +45,29 @@ export class SidebarAppParsingComponent implements OnDestroy, AfterContentInit, 
 
     public ngAfterViewInit() {
 
+    }
+
+    public _ng_onContexMenu(event: MouseEvent) {
+        const selection: string = document.getSelection().toString();
+        if (selection === '') {
+            return;
+        }
+        const parsers: ISelectionParser[] = SelectionParsersService.getParsers(selection);
+        if (parsers.length === 0) {
+            return;
+        }
+        ContextMenuService.show({
+            items: parsers.map((parser: ISelectionParser) => {
+                return {
+                    caption: parser.name,
+                    handler: () => {
+                        SelectionParsersService.parse(selection, parser.guid, parser.name);
+                    }
+                };
+            }),
+            x: event.pageX,
+            y: event.pageY,
+        });
     }
 
     private _onUpdate(event: IUpdateEvent) {

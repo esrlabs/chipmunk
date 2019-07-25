@@ -131,7 +131,9 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         const items: IMenuItem[] = [
             {
                 caption: 'Copy',
-                handler: () => {},
+                handler: () => {
+                    this._scrollBoxCom.copySelection();
+                },
                 disabled: selection === undefined,
             }
         ];
@@ -158,7 +160,9 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                     ...parsers.map((parser: ISelectionParser) => {
                         return {
                             caption: parser.name,
-                            handler: () => { }
+                            handler: () => {
+                                SelectionParsersService.parse(selection.selection, parser.guid, parser.name);
+                            }
                         };
                     })
                 ]);

@@ -19,6 +19,7 @@ import ElectronIpcService from './service.electron.ipc';
 import { IPCMessages } from './service.electron.ipc';
 import PluginsIPCService from './service.plugins.ipc';
 import OutputParsersService from './standalone/service.output.parsers';
+import SelectionParsersService from './standalone/service.selection.parsers';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
 import { IService } from '../interfaces/interface.service';
 import { ControllerPluginGate } from '../controller/controller.plugin.gate';
@@ -235,6 +236,8 @@ export class PluginsService extends Toolkit.Emitter implements IService {
                 };
                 // Setup common parsers
                 OutputParsersService.setParsers(exports, id);
+                // Setup selection parsers
+                SelectionParsersService.setParsers(exports, id);
                 resolve(pluginData);
             } else {
                 // This is Angular module
@@ -260,6 +263,8 @@ export class PluginsService extends Toolkit.Emitter implements IService {
                         };
                         // Setup parsers
                         OutputParsersService.setParsers(exports, id, mwcf);
+                        // Setup selection parsers
+                        SelectionParsersService.setParsers(exports, id);
                         // Store factories of plugin
                         const selectors: string[] = Object.keys(Toolkit.EViewsTypes).map((key: string) => {
                             return Toolkit.EViewsTypes[key];
