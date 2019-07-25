@@ -14,6 +14,36 @@
         width: 100%;
         height: 0.5rem;
     }
+    & div.settings{
+        position: relative;
+        & div.toggle{
+            position: absolute;
+            left:-6px;
+            top:2px;
+            width: 1rem;
+            height: 100%;
+            z-index: 1;
+            & span.toggle-button{
+                transition: all 100ms ease-in-out;
+                &.opened{
+                    transform: rotateZ(180deg);
+                }
+            }
+        }
+        & div.progress {
+            position: absolute;
+            left:0;
+            width: 2rem;
+            height: 100%;
+        }
+        & div.logs{
+            position: relative;
+            padding-left: 1rem;
+            &.in-progress{
+                padding-left: 2.5rem;
+            }
+        }
+    }
     & div.controlls{
         position: relative;
         width: 100%;
@@ -22,33 +52,50 @@
             margin-right: 0;
         }
     }
-    & div.scanning{
-        position: relative;
-        & div.progress{
-            position: absolute;
-            right: 0;
-            top:0;
-            bottom: 0;
-            width: 2rem;
-        }
-    }
+
     & div.filters{
-        p.name {
-            color: @scheme-color-3;
-        }
-        & ul.values{
+        & div.group{
             position: relative;
-            padding: 0;
-            margin: 0;
-            list-style: none;
-            max-height: 10rem;
-            overflow-x: hidden;
-            overflow-y: auto;
-            & li.value{
+            p.name {
+                color: @scheme-color-3;
+            }
+            & ul.values{
                 position: relative;
-                padding: 2px 0;
+                border-top: 1px dotted @scheme-color-3;
+                border-bottom: 1px dotted @scheme-color-3;
+                padding: 0.25rem 0;
+                box-shadow: 0 0 1rem rgba(0,0,0,0.4) inset;
                 margin: 0;
                 list-style: none;
+                max-height: 10rem;
+                overflow-x: hidden;
+                overflow-y: auto;
+                & li.value{
+                    position: relative;
+                    padding: 2px 0;
+                    margin: 0;
+                    list-style: none;
+                }
+            }
+            & div.sub-controlls{
+                position: absolute;
+                right:0;
+                top:0;
+                white-space: nowrap;
+                & span{
+                    display: inline-block;
+                    position: relative;
+                    cursor: default;
+                    & span.label{
+                        position: relative;
+                        font-size: 0.7rem;
+                        color: @scheme-color-2;
+                        padding-left: 0.5rem;
+                        text-transform: capitalize;
+                        font-weight: 400;
+                        cursor: default;
+                    }
+                }
             }
         }
     }
