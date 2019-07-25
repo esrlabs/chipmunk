@@ -11,7 +11,7 @@ class ServiceProduction implements IService {
 
     private _logger: Logger = new Logger('ServiceProduction');
     // Should detect by executable file
-    private _production: boolean = false;
+    private _production: boolean = true;
 
     /**
      * Initialization function
