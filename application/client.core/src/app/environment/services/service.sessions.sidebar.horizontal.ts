@@ -1,4 +1,4 @@
-import { TabsService } from 'logviewer-client-complex';
+import { TabsService, IComponentDesc } from 'logviewer-client-complex';
 import { Subscription } from './service.electron.ipc';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { IService } from '../interfaces/interface.service';
@@ -93,6 +93,29 @@ export class HorizontalSidebarSessionsService implements IService {
 
     public setCommonInputs(inputs: { [key: string]: any }) {
         this._inputs = inputs;
+    }
+
+    public add(name: string, content: IComponentDesc, guid?: string): string {
+        guid = typeof guid !== 'string' ? Toolkit.guid() : guid;
+        this._tabsService.add({
+            guid: guid,
+            name: name,
+            active: true,
+            content: content,
+        });
+        return guid;
+    }
+
+    public remove(guid: string): void {
+        this._tabsService.remove(guid);
+    }
+
+    public has(guid: string): boolean {
+        return this._tabsService.has(guid);
+    }
+
+    public setActive(guid: string) {
+        this._tabsService.setActive(guid);
     }
 
     private _getSidebarPlugins(): ISidebarPluginInfo[] {

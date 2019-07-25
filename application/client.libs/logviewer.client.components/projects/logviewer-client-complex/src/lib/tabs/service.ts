@@ -93,6 +93,16 @@ export class TabsService {
         this._subjects.removed.next(guid);
     }
 
+    public has(guid: string): boolean {
+        let result: boolean = false;
+        this._tabs.forEach((tab) => {
+            if (tab.guid === guid) {
+                result = true;
+            }
+        });
+        return result;
+    }
+
     public getTabs(): Map<string, ITab> {
         return this._tabs;
     }
