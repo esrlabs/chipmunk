@@ -14,6 +14,7 @@ export interface IColumn {
     minWidth: number;
     visible: boolean;
     header: string;
+    color: string | undefined;
 }
 
 export interface IColumns { [key: number]: IColumn; }
@@ -26,10 +27,10 @@ export class ControllerColumns {
     private _hash: string;
     private _subjects: {
         onResized: Subject<IColumns>,
-        onVisibility: Subject<IColumns>,
+        onUpdated: Subject<IColumns>,
     } = {
         onResized: new Subject<IColumns>(),
-        onVisibility: new Subject<IColumns>(),
+        onUpdated: new Subject<IColumns>(),
     };
 
     constructor(widths: Array<{ width: number, min: number}>, headers: string[]) {
@@ -50,11 +51,11 @@ export class ControllerColumns {
 
     public getObservable(): {
         onResized: Observable<IColumns>,
-        onVisibility: Observable<IColumns>,
+        onUpdated: Observable<IColumns>,
     } {
         return {
             onResized: this._subjects.onResized.asObservable(),
-            onVisibility: this._subjects.onVisibility.asObservable(),
+            onUpdated: this._subjects.onUpdated.asObservable(),
         };
     }
 
@@ -67,15 +68,10 @@ export class ControllerColumns {
         this._subjects.onResized.next(this._columns);
     }
 
-    public setColumnsVisibility(visibility: boolean[]) {
-        visibility.forEach((visibile: boolean, index: number) => {
-            if (this._columns[index] === undefined) {
-                return;
-            }
-            this._columns[index].visible = visibile;
-        });
+    public setColumns(columns: IColumns) {
+        this._columns = columns;
         this._setStored();
-        this._subjects.onVisibility.next(this._columns);
+        this._subjects.onUpdated.next(this._columns);
     }
 
     private _getStored(headers: string[]): IColumns | undefined {
@@ -110,6 +106,7 @@ export class ControllerColumns {
                 header: header,
                 visible: true,
                 index: index,
+                color: undefined,
             };
         });
     }

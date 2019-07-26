@@ -14,6 +14,7 @@ export class CheckSimpleComponent implements AfterContentInit {
     @Input() public labelOff: string = '';
     @Input() public checked: boolean = false;
     @Input() public disabled: boolean = false;
+    @Input() public color: string = '';
     @Input() public onChange: (value: boolean) => any = () => void 0;
 
     constructor(private _cdRef: ChangeDetectorRef) {

@@ -7,11 +7,69 @@
     padding: 0.5rem 1rem;
     margin: 0;
     min-width: 7rem;
-    & div.column{
+    & div.wrapper{
         position: relative;
-        display: block;
-        padding: 4px 0;
+        white-space: nowrap;
+        & ul.columns{
+            position: relative;
+            display: inline-block;
+            vertical-align: top;
+            padding: 0;
+            margin: 0;
+            list-style: none;
+            & li.column{
+                position: relative;
+                display: block;
+                padding: 4px 0;
+                margin: 0;
+                list-style: none;
+                width: 100%;
+                &:hover{
+                    background: @scheme-color-4;
+                }
+                &.selected {
+                    background: @scheme-color-4;
+                }
+                &::after{
+                    position: absolute;
+                    display: block;
+                    content: '';
+                    width: ~"calc(100% - 1.5rem)";
+                    right: 0;
+                    top: 0;
+                    height: 100%;
+                    background: rgba(0,0,0,0.001);
+                }
+            }
+        }
+        & ul.colors{
+            position: relative;
+            display: inline-block;
+            vertical-align: top;
+            padding: 0;
+            margin: 0 0 0 1rem;
+            list-style: none;
+            width: 5.6rem;
+            white-space: normal;
+            & li.color{
+                position: relative;
+                display: inline-block;
+                height: 1.25rem;
+                width: 1.25rem;
+                margin: 0 0.15rem 0.15rem 0;
+                padding: 0;
+                list-style: none;
+                line-height: 0;
+                box-sizing: border-box;
+                vertical-align: top;
+                &:hover,
+                &.selected{
+                    border: 2px solid @scheme-color-0;
+                }
+            }
+        }
     }
+
     & div.controls{
         position: relative;
         display: block;

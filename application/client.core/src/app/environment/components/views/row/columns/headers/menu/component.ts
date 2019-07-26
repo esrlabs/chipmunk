@@ -1,5 +1,6 @@
 import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
 import { ControllerColumns, IColumn, IColumns } from '../../controller.columns';
+import { CColors } from '../../../../../../conts/colors';
 
 export const CColumnsHeadersKey = 'CColumnsHeadersKey';
 
@@ -13,8 +14,9 @@ export class ViewOutputRowColumnsHeadersMenuComponent implements OnDestroy, Afte
 
     @Input() public controller: ControllerColumns;
 
-    public _ng_columns: string[] = [];
-    public _ng_visibility: boolean[] = [];
+    public _ng_columns: IColumns = {};
+    public _ng_selected: number | undefined = undefined;
+    public _ng_colors: string[] = CColors;
 
     private _destroyed: boolean = false;
 
@@ -29,27 +31,40 @@ export class ViewOutputRowColumnsHeadersMenuComponent implements OnDestroy, Afte
         if (this.controller === undefined) {
             return;
         }
-        const columns: IColumns = this.controller.getColumns();
-        Object.keys(columns).forEach((key: string) => {
-            this._ng_columns.push((columns[key].header));
-            this._ng_visibility.push((columns[key].visible));
-        });
+        this._ng_columns = this.controller.getColumns();
         this._forceUpdate();
     }
 
-    public _ng_onMouseDown(event: MouseEvent) {
+    public _ng_onColorMouseDown(event: MouseEvent, color: string) {
+        if (this._ng_selected !== undefined) {
+            this._ng_columns[this._ng_selected].color = CColors[0] === color ? undefined : color;
+        }
         event.stopImmediatePropagation();
         event.stopPropagation();
         event.preventDefault();
+        this._forceUpdate();
+        return false;
+    }
+
+    public _ng_onColumnMouseDown(event: MouseEvent, index: number) {
+        if (this._ng_selected === index) {
+            this._ng_selected = undefined;
+        } else {
+            this._ng_selected = index;
+        }
+        event.stopImmediatePropagation();
+        event.stopPropagation();
+        event.preventDefault();
+        this._forceUpdate();
         return false;
     }
 
     public _ng_onChange(index: number) {
-        this._ng_visibility[index] = !this._ng_visibility[index];
+        this._ng_columns[index].visible = !this._ng_columns[index].visible;
     }
 
     public _ng_apply() {
-        this.controller.setColumnsVisibility(this._ng_visibility);
+        this.controller.setColumns(this._ng_columns);
     }
 
     private _forceUpdate() {
