@@ -65,7 +65,7 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
         }
         this._subscriptions.onHorScrollOffset = this.output.getObservable().onHorScrollOffset.subscribe(this._onHorScrollOffset.bind(this));
         this._subscriptions.onResized = this.controller.getObservable().onResized.subscribe(this._onResized.bind(this));
-        this._subscriptions.onVisibility = this.controller.getObservable().onVisibility.subscribe(this._onVisibility.bind(this));
+        this._subscriptions.onUpdated = this.controller.getObservable().onUpdated.subscribe(this._onUpdated.bind(this));
         this._subscriptions.onRankChanged = this.output.getObservable().onRankChanged.subscribe(this._onRankChanged.bind(this));
         this._columns = this.controller.getColumns();
         this._setColumns();
@@ -154,7 +154,7 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
         this._forceUpdate();
     }
 
-    private _onVisibility(columns: IColumns) {
+    private _onUpdated(columns: IColumns) {
         if (this._destroyed) {
             return;
         }

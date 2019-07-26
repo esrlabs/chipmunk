@@ -1,7 +1,6 @@
 // tslint:disable:member-ordering
 
 import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, OnChanges } from '@angular/core';
-import * as Toolkit from 'logviewer.client.toolkit';
 import { IRequest } from '../../../../../controller/controller.session.tab.search';
 import { CColors } from '../../../../../conts/colors';
 import { getContrastColor } from '../../../../../theme/colors';
