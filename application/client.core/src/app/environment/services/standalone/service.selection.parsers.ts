@@ -1,5 +1,6 @@
 import * as Toolkit from 'logviewer.client.toolkit';
 import { Observable, Subject } from 'rxjs';
+import OutputParsersService from './service.output.parsers';
 
 export interface ISelectionParser {
     guid: string;
@@ -23,7 +24,6 @@ export class SelectionParsersService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('SelectionParsersService');
     private _parsers: Map<TGuid, IStoredSelectionParser> = new Map();
-    private _tabGuid: string = Toolkit.guid();
     private _subjects: {
         onUpdate: Subject<IUpdateEvent>,
     } = {
@@ -73,7 +73,7 @@ export class SelectionParsersService {
         const event: IUpdateEvent = {
             caption: caption,
             selection: selection,
-            parsed: parser.parser.parse(selection, Toolkit.EThemeType.dark),
+            parsed: parser.parser.parse(OutputParsersService.serialize(selection), Toolkit.EThemeType.dark),
         };
         this._subjects.onUpdate.next(event);
     }
