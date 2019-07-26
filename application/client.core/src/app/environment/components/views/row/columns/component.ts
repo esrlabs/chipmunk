@@ -63,7 +63,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
             return;
         }
         this._subscriptions.onResized = controller.getObservable().onResized.subscribe(this._onResized.bind(this));
-        this._subscriptions.onVisibility = controller.getObservable().onVisibility.subscribe(this._onVisibility.bind(this));
+        this._subscriptions.onUpdated = controller.getObservable().onUpdated.subscribe(this._onUpdated.bind(this));
         // Get widths
         this._columns = controller.getColumns();
         // Set headers
@@ -140,7 +140,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
         this._cdRef.detectChanges();
     }
 
-    private _onVisibility(columns: IColumns) {
+    private _onUpdated(columns: IColumns) {
         this._columns = columns;
         this._render();
         this._cdRef.detectChanges();
