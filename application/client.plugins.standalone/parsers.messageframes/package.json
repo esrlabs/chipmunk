@@ -1,7 +1,7 @@
 {
-  "name": "logviewer.plugin.parsers.selection",
+  "name": "logviewer.plugin.parsers.messageframes",
   "version": "1.0.0",
-  "description": "Parsing selected text",
+  "description": "Parser to decode hex-text as message-frames",
   "main": "./dist/bundle.js",
   "scripts": {
     "build-ts": "tsc -p ./tsconfig.json",
@@ -9,7 +9,7 @@
     "build:watch": "tsc -p ./tsconfig.json -w",
     "tslint": "./node_modules/.bin/tslint -c tslint.json './src/**/*{.ts,.tsx}'"
   },
-  "author": "Dmitry Astafyev (dmitry.astafyev@esrlabs.com)",
+  "author": "Andreas Knipl (andreas.knipl@esrlabs.com)",
   "license": "MIT",
   "devDependencies": {
     "@types/jasmine": "^2.8.9",
