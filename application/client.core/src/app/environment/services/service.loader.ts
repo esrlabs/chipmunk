@@ -7,8 +7,10 @@ import HorizontalSidebarSessionsService from './service.sessions.sidebar.horizon
 import TabsSessionsService from './service.sessions.tabs';
 import SearchSessionsService from './service.sessions.search';
 import FileOpenerService from './service.file.opener';
+import TabSelectionParserService from './tabs/service.tab.selection.parser';
 import * as Defaults from '../states/state.default';
 import * as Toolkit from 'logviewer.client.toolkit';
+
 
 const InitializeStages = [
     // Stage #1
@@ -20,7 +22,7 @@ const InitializeStages = [
     // Stage #4
     [TabsSessionsService, HorizontalSidebarSessionsService, FileOptionsService, FileOpenerService ],
     // Stage #5
-    [SearchSessionsService]
+    [SearchSessionsService, TabSelectionParserService]
 ];
 
 // TODO: Destroy method, even dummy
