@@ -78,8 +78,6 @@ export class SidebarAppParsingComponent implements OnDestroy, AfterContentInit, 
     }
 
     private _getParsed(str: string): SafeHtml {
-        // Rid of HTML
-        str = OutputParsersService.serialize(str);
         // Add minimal HTML
         str = str.replace(/[\n\r]/gi, '<br/>');
         // Apply plugin parser
@@ -88,8 +86,6 @@ export class SidebarAppParsingComponent implements OnDestroy, AfterContentInit, 
     }
 
     private _getSelection(str: string): SafeHtml {
-        // Rid of HTML
-        str = OutputParsersService.serialize(str);
         // Apply plugin parser
         str = OutputParsersService.row(str, undefined, undefined);
         return this._sanitizer.bypassSecurityTrustHtml(str);
