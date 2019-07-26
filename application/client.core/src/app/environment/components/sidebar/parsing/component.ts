@@ -27,7 +27,7 @@ export class SidebarAppParsingComponent implements OnDestroy, AfterContentInit, 
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _sanitizer: DomSanitizer) {
-        this._subscriptions.onFilesToBeMerged = SelectionParsersService.getObservable().onUpdate.subscribe(this._onUpdate.bind(this));
+        this._subscriptions.onUpdate = SelectionParsersService.getObservable().onUpdate.subscribe(this._onUpdate.bind(this));
     }
 
     public ngOnDestroy() {
