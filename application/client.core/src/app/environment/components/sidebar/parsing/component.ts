@@ -38,8 +38,8 @@ export class SidebarAppParsingComponent implements OnDestroy, AfterContentInit, 
 
     public ngAfterContentInit() {
         this._ng_caption = this.caption;
-        this._ng_parsed = this.parsed === undefined ? undefined : this._sanitizer.bypassSecurityTrustHtml(this._html(this.parsed));
-        this._ng_selection = this._sanitizer.bypassSecurityTrustHtml(this._html(this.selection));
+        this._ng_parsed = this.parsed === undefined ? undefined : this._getParsed(this.parsed);
+        this._ng_selection = this._getSelection(this.selection);
         this._cdRef.detectChanges();
     }
 
@@ -72,18 +72,27 @@ export class SidebarAppParsingComponent implements OnDestroy, AfterContentInit, 
 
     private _onUpdate(event: IUpdateEvent) {
         this._ng_caption = event.caption;
-        this._ng_parsed = event.parsed === undefined ? undefined : this._sanitizer.bypassSecurityTrustHtml(this._html(event.parsed));
-        this._ng_selection = this._sanitizer.bypassSecurityTrustHtml(this._html(event.selection));
+        this._ng_parsed = event.parsed === undefined ? undefined : this._getParsed(event.parsed);
+        this._ng_selection = this._getSelection(event.selection);
         this._cdRef.detectChanges();
     }
 
-    private _html(str): string {
+    private _getParsed(str: string): SafeHtml {
+        // Rid of HTML
+        str = OutputParsersService.serialize(str);
+        // Add minimal HTML
+        str = str.replace(/[\n\r]/gi, '<br/>');
+        // Apply plugin parser
+        str = OutputParsersService.row(str, undefined, undefined);
+        return this._sanitizer.bypassSecurityTrustHtml(str);
+    }
+
+    private _getSelection(str: string): SafeHtml {
         // Rid of HTML
         str = OutputParsersService.serialize(str);
         // Apply plugin parser
         str = OutputParsersService.row(str, undefined, undefined);
-        return str;
+        return this._sanitizer.bypassSecurityTrustHtml(str);
     }
-
 
 }
