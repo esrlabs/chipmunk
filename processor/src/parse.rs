@@ -1,4 +1,5 @@
 use indexer_base::timedline::TimedLine;
+use indexer_base::error_reporter::*;
 use chrono::{NaiveDate, NaiveDateTime, Utc, Datelike};
 use std::borrow::Cow;
 use nom::bytes::complete::tag;
@@ -192,7 +193,7 @@ pub fn date_format_str_to_regex(date_format: &str) -> Result<Regex, failure::Err
             }
             return Err(failure::err_msg("could not create regex"));
         }
-        Err(e) => eprintln!("{:?}", e),
+        Err(e) => report_error(format!("{:?}", e)),
     }
     Err(failure::err_msg("could not detect timestamp in"))
 }
@@ -341,13 +342,12 @@ pub fn to_posix_timestamp(
 
     let timezone_n = caps.name(TIMEZONE_GROUP);
     if time_offset.is_none() && timezone_n.is_none() {
-        eprintln!("timestamp cannot be applied");
         return Err(failure::err_msg("timestamp cannot be applied"));
     }
     let offset_result = if time_offset.is_none() {
         parse_timezone(&caps[TIMEZONE_GROUP])
     } else {
-        time_offset.ok_or_else(|| failure::err_msg("could not detect timestamp in"))
+        time_offset.ok_or_else(|| failure::err_msg("could not detect timestamp in (line {})"))
     };
     let the_year: Option<i32> = match caps.name(YEAR_GROUP) {
         Some(year_str) => year_str.as_str().parse().ok(),
@@ -384,6 +384,7 @@ pub fn to_posix_timestamp(
         )),
     }
 }
+#[allow(clippy::too_many_arguments)]
 pub fn line_to_timed_line(
     line: &str,
     original_line_length: usize,
@@ -391,15 +392,26 @@ pub fn line_to_timed_line(
     regex: &Regex,
     year: Option<i32>,
     time_offset: Option<i64>,
+    line_nr: usize,
+    reporter: &mut Reporter,
 ) -> Result<TimedLine, failure::Error> {
-    let (posix_timestamp, year_was_missing) = to_posix_timestamp(line, regex, year, time_offset)?;
-    Ok(TimedLine {
-        timestamp: posix_timestamp,
-        content: line.to_string(),
-        tag: tag.to_string(),
-        original_length: original_line_length,
-        year_was_missing,
-    })
+    match to_posix_timestamp(line, regex, year, time_offset) {
+        Ok((posix_timestamp, year_was_missing)) => Ok(TimedLine {
+            timestamp: posix_timestamp,
+            content: line.to_string(),
+            tag: tag.to_string(),
+            original_length: original_line_length,
+            year_was_missing,
+            line_nr,
+        }),
+        Err(e) => {
+            reporter.add_to_report(
+                Severity::WARNING,
+                format!("{}: could not extract timestamp: {}", line_nr, e),
+            );
+            Err(e)
+        }
+    }
 }
 
 #[allow(dead_code)]
@@ -460,7 +472,7 @@ pub fn detect_timestamp_format(
         }
     }
 
-    eprintln!("could not detect timestamp in {:?}", path);
+    report_warning(format!("could not detect timestamp in {:?}", path));
     Err(failure::err_msg(format!(
         "could not detect timestamp in {:?}",
         path

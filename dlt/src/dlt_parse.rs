@@ -4,6 +4,7 @@ use crate::filtering;
 use indexer_base::config::IndexingConfig;
 use indexer_base::chunks::{Chunk, ChunkFactory};
 use indexer_base::utils;
+use indexer_base::error_reporter::*;
 use serde::Serialize;
 
 use rustc_hash::FxHashSet;
@@ -127,7 +128,7 @@ fn dlt_extended_header(input: &[u8]) -> IResult<&[u8], dlt::ExtendedHeader> {
             },
         )),
         Err(e) => {
-            eprintln!("Invalid message type: {}", e);
+            report_error(format!("Invalid message type: {}", e));
             Err(nom::Err::Error((i, nom::error::ErrorKind::Verify)))
         }
     }
@@ -298,7 +299,7 @@ fn dlt_type_info<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], dlt::TypeInfo>
     match dlt::TypeInfo::try_from(info) {
         Ok(type_info) => Ok((i, type_info)),
         Err(_) => {
-            eprintln!("dlt_type_info no type_info for 0x{:02X?}", info);
+            report_error(format!("dlt_type_info no type_info for 0x{:02X?}", info));
             Err(nom::Err::Error((&[], nom::error::ErrorKind::Verify)))
         }
     }
@@ -330,7 +331,7 @@ fn dlt_fixed_point<T: NomByteOrder>(
             },
         ))
     } else {
-        eprintln!("error in dlt_fixed_point");
+        report_error("error in dlt_fixed_point");
         Err(nom::Err::Error((input, nom::error::ErrorKind::Verify)))
     }
 }
@@ -591,7 +592,7 @@ fn validated_payload_length(header: &dlt::StandardHeader) -> Option<usize> {
     let message_length = header.overall_length as usize;
     let headers_length = dlt::calculate_all_headers_length(header.header_type());
     if message_length < headers_length {
-        eprintln!("Invalid header length");
+        report_error("Invalid header length");
         return None;
     }
     Some(message_length - headers_length)
@@ -674,10 +675,10 @@ pub fn create_index_and_mapping_dlt(
     let initial_line_nr = match utils::next_line_nr(config.out_path) {
         Some(nr) => nr,
         None => {
-            eprintln!(
+            report_error(format!(
                 "could not determine last line number of {:?}",
                 config.out_path
-            );
+            ));
             std::process::exit(2)
         }
     };
@@ -734,7 +735,7 @@ pub fn index_dlt_file(
                         chunk_factory.get_current_byte_index(),
                         processed_bytes,
                         config.source_file_size,
-                        REPORT_PROGRESS_LINE_BLOCK
+                        REPORT_PROGRESS_LINE_BLOCK,
                     );
                 }
             }
@@ -748,7 +749,7 @@ pub fn index_dlt_file(
                         chunk_factory.get_current_byte_index(),
                         processed_bytes,
                         config.source_file_size,
-                        REPORT_PROGRESS_LINE_BLOCK
+                        REPORT_PROGRESS_LINE_BLOCK,
                     );
                 }
             }
@@ -769,13 +770,13 @@ pub fn index_dlt_file(
             let last_expected_byte_index =
                 fs::metadata(config.out_path).map(|md| md.len() as usize)?;
             if last_expected_byte_index != last_chunk.b.1 {
-                eprintln!(
+                report_error(format!(
                     "error in computation! last byte in chunks is {} but should be {}",
                     last_chunk.b.1, last_expected_byte_index
-                );
+                ));
             }
         }
-        None => eprintln!("no content found"),
+        None => report_warning("output was empty!"),
     }
     Ok(chunks)
 }

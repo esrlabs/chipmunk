@@ -1,6 +1,7 @@
 use failure::{err_msg, Error};
 use indexer_base::chunks::{Chunk, ChunkFactory};
 use indexer_base::config::IndexingConfig;
+use indexer_base::error_reporter::*;
 use indexer_base::utils;
 use std::fs;
 use std::io::{BufRead, BufReader, BufWriter, Write};
@@ -11,10 +12,10 @@ pub fn create_index_and_mapping(config: IndexingConfig) -> Result<Vec<Chunk>, Er
     let initial_line_nr = match utils::next_line_nr(config.out_path) {
         Some(nr) => nr,
         None => {
-            eprintln!(
+            report_error(format!(
                 "could not determine last line number of {:?}",
                 config.out_path
-            );
+            ));
             std::process::exit(2)
         }
     };
@@ -106,7 +107,7 @@ pub fn index_file(config: IndexingConfig, initial_line_nr: usize) -> Result<Vec<
                 )));
             }
         }
-        None => eprintln!("no content found"),
+        None => report_warning("output was empty"),
     }
     Ok(chunks)
 }

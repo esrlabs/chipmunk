@@ -11,6 +11,7 @@
 // from E.S.R.Labs.
 #![allow(clippy::unit_arg)]
 
+use indexer_base::error_reporter::*;
 use bytes::{ByteOrder, BytesMut, BufMut};
 use chrono::{NaiveDateTime};
 use chrono::prelude::{Utc, DateTime};
@@ -518,7 +519,7 @@ impl TryFrom<u32> for TypeInfo {
             0b010_0000 => Ok(TypeInfoKind::StringType),
             0b100_0000 => Ok(TypeInfoKind::Raw),
             v => {
-                eprintln!("Unknown TypeInfoKind in TypeInfo {:b}", v);
+                report_warning(format!("Unknown TypeInfoKind in TypeInfo {:b}", v));
                 Err(Error::new(
                     io::ErrorKind::Other,
                     format!("Unknown TypeInfoKind in TypeInfo {:b}", v),
@@ -768,7 +769,7 @@ impl Argument {
                                 buf.to_vec()
                             }
                             _ => {
-                                eprintln!("found invalid dlt entry ({:?}", self);
+                                report_error(format!("found invalid dlt entry ({:?}", self));
                                 BytesMut::with_capacity(0).to_vec()
                             }
                         }
@@ -789,13 +790,13 @@ impl Argument {
                                 buf.to_vec()
                             }
                             _ => {
-                                eprintln!("found invalid dlt entry ({:?}", self);
+                                report_error(format!("found invalid dlt entry ({:?}", self));
                                 BytesMut::with_capacity(0).to_vec()
                             }
                         }
                     }
                     _ => {
-                        eprintln!("found invalid dlt entry ({:?}", self);
+                        report_error(format!("found invalid dlt entry ({:?}", self));
                         BytesMut::with_capacity(0).to_vec()
                     }
                 }
@@ -824,7 +825,7 @@ impl Argument {
                                 buf.to_vec()
                             }
                             _ => {
-                                eprintln!("found invalid dlt entry ({:?}", self);
+                                report_error(format!("found invalid dlt entry ({:?}", self));
                                 BytesMut::with_capacity(0).to_vec()
                             }
                         }
@@ -844,13 +845,13 @@ impl Argument {
                                 buf.to_vec()
                             }
                             _ => {
-                                eprintln!("found invalid dlt entry ({:?}", self);
+                                report_error(format!("found invalid dlt entry ({:?}", self));
                                 BytesMut::with_capacity(0).to_vec()
                             }
                         }
                     }
                     _ => {
-                        eprintln!("found invalid dlt entry ({:?}", self);
+                        report_error(format!("found invalid dlt entry ({:?}", self));
                         BytesMut::with_capacity(0).to_vec()
                     }
                 }
@@ -1120,7 +1121,7 @@ pub fn zero_terminated_string(raw: &[u8]) -> Result<String, Error> {
     str::from_utf8(&raw[0..nul_range_end])
         .map(|v| v.to_owned())
         .map_err(|e| {
-            eprintln!("Invalid zero_terminated_string: {}", e);
+            report_warning(format!("Invalid zero_terminated_string: {}", e));
             Error::new(io::ErrorKind::Other, e)
         })
 }
@@ -1151,10 +1152,10 @@ impl TryFrom<u8> for LogLevel {
         match level {
             Some(n) => Ok(n),
             None => {
-                eprintln!(
+                report_warning(format!(
                     "unexpected LogLevel: {} in message info {:b}",
                     raw, message_info
-                );
+                ));
                 Ok(LogLevel::Invalid(raw))
             }
         }
@@ -1183,7 +1184,7 @@ impl TryFrom<u8> for ApplicationTraceType {
             4 => Ok(ApplicationTraceType::State),
             5 => Ok(ApplicationTraceType::Vfb),
             _ => {
-                eprintln!("Invalid ApplicationTraceType");
+                report_warning("Invalid ApplicationTraceType");
                 Err(Error::new(
                     io::ErrorKind::Other,
                     format!("Unknown application trace type {}", message_info >> 4),
@@ -1212,7 +1213,7 @@ impl TryFrom<u8> for NetworkTraceType {
     fn try_from(message_info: u8) -> Result<NetworkTraceType, Error> {
         match message_info >> 4 {
             0 => {
-                eprintln!("Unknown network trace type 0");
+                report_warning("Unknown network trace type 0");
                 Err(Error::new(
                     io::ErrorKind::Other,
                     "Unknown network trace type 0",
@@ -1246,7 +1247,7 @@ impl TryFrom<u8> for ControlType {
             1 => Ok(ControlType::Request),
             2 => Ok(ControlType::Response),
             _ => {
-                eprintln!("Unknown control type {}", message_info >> 4);
+                report_warning(format!("Unknown control type {}", message_info >> 4));
                 Err(Error::new(
                     io::ErrorKind::Other,
                     format!("Unknown control type {}", message_info >> 4),
@@ -1295,10 +1296,10 @@ impl TryFrom<u8> for MessageType {
             )?)),
             DLT_TYPE_CONTROL => Ok(MessageType::Control(ControlType::try_from(message_info)?)),
             v => {
-                eprintln!(
+                report_warning(format!(
                     "Unknown MSTP in Message Info (MSIN) {}",
                     (message_info >> 1) & 0b111
-                );
+                ));
                 Ok(MessageType::Unknown((v, (message_info >> 4) & 0b1111)))
                 // Err(Error::new(
                 //     io::ErrorKind::Other,
@@ -1350,7 +1351,7 @@ pub fn create_message_line(
                 .iter()
                 .try_for_each(|arg| write!(out_buffer, " {}", arg))
                 .map_err(|e| {
-                    eprintln!("error iterating over messages: {}", e);
+                    report_error(format!("error iterating over messages: {}", e));
                     Error::new(io::ErrorKind::Other, e)
                 })?;
         }

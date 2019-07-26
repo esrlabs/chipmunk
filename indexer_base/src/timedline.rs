@@ -7,6 +7,7 @@ pub struct TimedLine {
     pub tag: String,
     pub original_length: usize,
     pub year_was_missing: bool,
+    pub line_nr: usize,
 }
 
 impl Ord for TimedLine {

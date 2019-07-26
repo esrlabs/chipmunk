@@ -1,5 +1,6 @@
 use indexer_base::chunks::ChunkFactory;
 use indexer_base::timedline::*;
+use indexer_base::error_reporter::*;
 use indexer_base::utils;
 use processor::parse::{date_format_str_to_regex, line_to_timed_line};
 use regex::Regex;
@@ -49,6 +50,8 @@ pub struct TimedLineIter<'a> {
     year: Option<i32>,
     time_offset: Option<i64>,
     last_timestamp: i64,
+    pub current_line_nr: usize,
+    reporter: Reporter,
 }
 impl<'a> TimedLineIter<'a> {
     pub fn new(
@@ -57,6 +60,7 @@ impl<'a> TimedLineIter<'a> {
         regex: Regex,
         year: Option<i32>,
         time_offset: Option<i64>,
+        current_line_nr: usize,
     ) -> TimedLineIter<'a> {
         TimedLineIter {
             reader: BufReader::new(fh),
@@ -65,6 +69,8 @@ impl<'a> TimedLineIter<'a> {
             year,
             time_offset,
             last_timestamp: 0,
+            current_line_nr,
+            reporter: Default::default(),
         }
     }
 }
@@ -75,6 +81,7 @@ impl<'a> Iterator for TimedLineIter<'a> {
         match self.reader.read_until(b'\n', &mut buf) {
             Ok(len) => {
                 if len == 0 {
+                    self.reporter.flush();
                     return None;
                 }
                 let original_line_length = len;
@@ -87,6 +94,8 @@ impl<'a> Iterator for TimedLineIter<'a> {
                     &self.regex,
                     self.year,
                     self.time_offset,
+                    self.current_line_nr,
+                    &mut self.reporter,
                 )
                 .unwrap_or_else(|_| TimedLine {
                     content: trimmed_line.to_string(),
@@ -94,8 +103,10 @@ impl<'a> Iterator for TimedLineIter<'a> {
                     timestamp: self.last_timestamp,
                     original_length: original_line_length,
                     year_was_missing: false,
+                    line_nr: self.current_line_nr,
                 });
                 self.last_timestamp = timed_line.timestamp;
+                self.current_line_nr += 1;
                 Some(timed_line)
             }
             Err(_) => None,
@@ -133,7 +144,7 @@ impl Merger {
         self.merge_files_iter(append, inputs, &out_path, use_stdout, report_status)
     }
     #[allow(dead_code)]
-    pub fn merge_files(
+    pub fn merge_and_sort_files(
         &self,
         merger_inputs: Vec<MergerInput>,
         out_path: &PathBuf,
@@ -157,6 +168,7 @@ impl Merger {
         let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
         let mut lines_with_year_missing = 0usize;
         let mut lines_where_we_reuse_previous_date = 0usize;
+        let mut reporter: Reporter = Default::default();
 
         for input in merger_inputs {
             // let kind: RegexKind = detect_timestamp_regex(&input.path)?;
@@ -181,6 +193,8 @@ impl Merger {
                     &r,
                     input.year,
                     input.offset,
+                    line_nr,
+                    &mut reporter,
                 )
                 .unwrap_or_else(|_| {
                     lines_where_we_reuse_previous_date += 1;
@@ -190,6 +204,7 @@ impl Merger {
                         timestamp: last_timestamp,
                         original_length: len,
                         year_was_missing: false,
+                        line_nr,
                     }
                 });
                 if timed_line.year_was_missing {
@@ -201,18 +216,20 @@ impl Merger {
             }
         }
         if lines_with_year_missing > 0 {
-            eprintln!("year was missing for {} lines", lines_with_year_missing);
+            report_warning(format!(
+                "year was missing for {} lines",
+                lines_with_year_missing
+            ));
         }
         if lines_where_we_reuse_previous_date > 0 {
-            eprintln!(
+            report_warning(format!(
                 "could not determine date for {} lines",
                 lines_where_we_reuse_previous_date
-            );
+            ));
         }
         let sorted = heap.into_sorted_vec();
         for t in sorted {
-            utils::create_tagged_line(&t.tag[..], &mut buf_writer, &t.content[..], line_nr, true)
-                .expect("could not create tagged line");
+            utils::create_tagged_line(&t.tag[..], &mut buf_writer, &t.content[..], line_nr, true)?;
             let trimmed_len = t.content.len();
             let additional_bytes =
                 utils::extended_line_length(trimmed_len, t.tag.len(), line_nr, true);
@@ -266,10 +283,15 @@ impl Merger {
                     .map_err(failure::Error::from)
                     .and_then(|f| {
                         let r: Regex = date_format_str_to_regex(&input.format)?;
-                        Ok(
-                            TimedLineIter::new(f, input.tag.as_str(), r, input.year, input.offset)
-                                .peekable(),
+                        Ok(TimedLineIter::new(
+                            f,
+                            input.tag.as_str(),
+                            r,
+                            input.year,
+                            input.offset,
+                            line_nr,
                         )
+                        .peekable())
                     })
             })
             .filter_map(Result::ok) // TODO better error handling
@@ -310,8 +332,7 @@ impl Merger {
                             &line.content,
                             line_nr,
                             true,
-                        )
-                        .expect("could not create tagged line");
+                        )?;
                         let additional_bytes =
                             utils::extended_line_length(trimmed_len, line.tag.len(), line_nr, true);
                         line_nr += 1;
@@ -329,7 +350,7 @@ impl Merger {
                                 chunk_factory.get_current_byte_index(),
                                 processed_bytes,
                                 combined_source_file_size as usize,
-                                REPORT_PROGRESS_LINE_BLOCK
+                                REPORT_PROGRESS_LINE_BLOCK,
                             );
                         }
                     }
@@ -341,7 +362,10 @@ impl Merger {
             }
         }
         if lines_with_year_missing > 0 {
-            eprintln!("year was missing for {} lines", lines_with_year_missing);
+            report_warning(format!(
+                "year was missing for {} lines",
+                lines_with_year_missing
+            ));
         }
         buf_writer.flush()?;
         if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunks.is_empty()) {

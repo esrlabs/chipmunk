@@ -1,6 +1,3 @@
-#![feature(test)]
-#[cfg(test)]
-extern crate test;
 extern crate processor;
 extern crate indexer_base;
 extern crate dlt;
@@ -12,6 +9,7 @@ use processor::parse::{
     FormatTestOptions,
 };
 use indexer_base::config::IndexingConfig;
+use indexer_base::error_reporter::*;
 
 #[macro_use]
 extern crate clap;
@@ -285,7 +283,7 @@ fn main() {
             let f = match fs::File::open(&file) {
                 Ok(file) => file,
                 Err(_) => {
-                    eprintln!("could not open {}", file);
+                    report_error(format!("could not open {}", file));
                     std::process::exit(2)
                 }
             };
@@ -293,7 +291,7 @@ fn main() {
             let source_file_size = match f.metadata() {
                 Ok(file_meta) => file_meta.len() as usize,
                 Err(_) => {
-                    eprintln!("could not find out size of source file");
+                    report_error("could not find out size of source file");
                     std::process::exit(2);
                 }
             };
@@ -312,7 +310,7 @@ fn main() {
                 status_updates,
             }) {
                 Err(why) => {
-                    eprintln!("couldn't process: {}", why);
+                    report_error(format!("couldn't process: {}", why));
                     std::process::exit(2)
                 }
                 Ok(chunks) => {
@@ -343,7 +341,7 @@ fn main() {
             let out_path: path::PathBuf = match matches.value_of("output") {
                 Some(path) => path::PathBuf::from(path),
                 None => {
-                    eprintln!("no output file specified");
+                    report_error("no output file specified");
                     std::process::exit(2)
                 }
             };
@@ -365,7 +363,7 @@ fn main() {
             ) {
                 Ok(cnt) => cnt,
                 Err(e) => {
-                    eprintln!("error merging: {}", e);
+                    report_error(format!("error merging: {}", e));
                     std::process::exit(2)
                 }
             };
@@ -394,7 +392,7 @@ fn main() {
             match line_matching_format_expression(format_string, test_string) {
                 Ok(res) => println!("match: {:?}", res),
                 Err(e) => {
-                    eprintln!("error matching: {}", e);
+                    report_error(format!("error matching: {}", e));
                     std::process::exit(2)
                 }
             }
@@ -406,7 +404,7 @@ fn main() {
             let mut test_config_file = match fs::File::open(&config_path) {
                 Ok(file) => file,
                 Err(_) => {
-                    eprintln!("could not open {}", test_config_name);
+                    report_error(format!("could not open {}", test_config_name));
                     std::process::exit(2)
                 }
             };
@@ -414,7 +412,7 @@ fn main() {
             {
                 Ok(o) => o,
                 Err(e) => {
-                    eprintln!("could not parse format config file: {}", e);
+                    report_error(format!("could not parse format config file: {}", e));
                     std::process::exit(2)
                 }
             };
@@ -437,12 +435,12 @@ fn main() {
                         }
                     }
                     Err(e) => {
-                        eprintln!("serializing result failed: {}", e);
+                        report_error(format!("serializing result failed: {}", e));
                         std::process::exit(2)
                     }
                 },
                 Err(e) => {
-                    eprintln!("could not match format string file: {}", e);
+                    report_error(format!("could not match format string file: {}", e));
                     std::process::exit(2)
                 }
             }
@@ -454,27 +452,28 @@ fn main() {
         status_updates: bool,
     ) {
         if let (Some(file_name), Some(tag)) = (matches.value_of("input"), matches.value_of("tag")) {
-            let filter_conf: Option<dlt::filtering::DltFilterConfig> =
-                match matches.value_of("filter_config") {
-                    Some(filter_config_file_name) => {
-                        let config_path = path::PathBuf::from(filter_config_file_name);
-                        let mut cnf_file = match fs::File::open(&config_path) {
-                            Ok(file) => file,
-                            Err(_) => {
-                                eprintln!("could not open filter config {:?}", config_path);
-                                std::process::exit(2)
-                            }
-                        };
-                        dlt::filtering::read_filter_options(&mut cnf_file).ok()
-                    }
-                    None => None,
-                };
+            let filter_conf: Option<dlt::filtering::DltFilterConfig> = match matches
+                .value_of("filter_config")
+            {
+                Some(filter_config_file_name) => {
+                    let config_path = path::PathBuf::from(filter_config_file_name);
+                    let mut cnf_file = match fs::File::open(&config_path) {
+                        Ok(file) => file,
+                        Err(_) => {
+                            report_error(format!("could not open filter config {:?}", config_path));
+                            std::process::exit(2)
+                        }
+                    };
+                    dlt::filtering::read_filter_options(&mut cnf_file).ok()
+                }
+                None => None,
+            };
             let append: bool = matches.is_present("append");
             let stdout: bool = matches.is_present("stdout");
             let source_file_size = match fs::metadata(file_name) {
                 Ok(file_meta) => file_meta.len() as usize,
                 Err(_) => {
-                    eprintln!("could not find out size of source file");
+                    report_error("could not find out size of source file");
                     std::process::exit(2);
                 }
             };
@@ -490,7 +489,7 @@ fn main() {
             let f = match fs::File::open(&file_path) {
                 Ok(file) => file,
                 Err(_) => {
-                    eprintln!("could not open {:?}", file_path);
+                    report_error(format!("could not open {:?}", file_path));
                     std::process::exit(2)
                 }
             };
@@ -516,7 +515,7 @@ fn main() {
                 // },
             ) {
                 Err(why) => {
-                    eprintln!("couldn't process: {}", why);
+                    report_error(format!("couldn't process: {}", why));
                     std::process::exit(2)
                 }
                 Ok(chunks) => {
@@ -545,27 +544,27 @@ fn main() {
         let f = match fs::File::open(&file_path) {
             Ok(file) => file,
             Err(_) => {
-                eprintln!("could not open {:?}", file_path);
+                report_error(format!("could not open {:?}", file_path));
                 std::process::exit(2)
             }
         };
         match dlt::dlt_parse::get_dlt_file_info(&f) {
             Err(why) => {
-                eprintln!("couldn't collect statistics: {}", why);
+                report_error(format!("couldn't collect statistics: {}", why));
                 std::process::exit(2)
             }
             Ok(res) => {
                 let source_file_size = match f.metadata() {
                     Ok(file_meta) => file_meta.len() as usize,
                     Err(_) => {
-                        eprintln!("could not find out size of source file");
+                        report_error("could not find out size of source file");
                         std::process::exit(2);
                     }
                 };
                 match serde_json::to_string(&res) {
                     Ok(stats) => println!("{}", stats),
                     Err(e) => {
-                        eprintln!("serializing result {:?} failed: {}", res, e);
+                        report_error(format!("serializing result {:?} failed: {}", res, e));
                         std::process::exit(2)
                     }
                 }
