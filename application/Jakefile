@@ -986,9 +986,9 @@ namespace('plugin.row.parser.ascii', function() {
 
 });
 
-namespace('plugin.parsers.selection', function() {
-    const PATH_DEST = path.normalize(path.resolve(__dirname, 'sandbox/parsers.selection'));
-    const PATH_CLIENT_SOURCES = path.normalize(path.resolve(__dirname, 'client.plugins.standalone/parsers.selection'));
+namespace('plugin.parsers.messageframes', function() {
+    const PATH_DEST = path.normalize(path.resolve(__dirname, 'sandbox/parsers.messageframes'));
+    const PATH_CLIENT_SOURCES = path.normalize(path.resolve(__dirname, 'client.plugins.standalone/parsers.messageframes'));
 
     task('client.build', function() {
         logo();
@@ -1027,7 +1027,7 @@ namespace('plugin.parsers.selection', function() {
         logo();
         const tasks = [];
         const pkfile = JSON.parse(fs.readFileSync(path.normalize(path.resolve(PATH_CLIENT_SOURCES, 'package.json'))));
-        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `parsers.selection@${pkfile.version}-${process.platform}.tgz`));
+        const file = path.normalize(path.resolve(PATH_COMPRESSED_PLUGINS, `parsers.messageframes@${pkfile.version}-${process.platform}.tgz`));
         if (fs.existsSync(file)) {
             tasks.push(echo(colors.blue(`Remove file: ${file}`)));
             tasks.push(`rm -rf ${file}`);
@@ -1036,13 +1036,13 @@ namespace('plugin.parsers.selection', function() {
         sh(this, ...tasks);
     }, {async: true});
 
-    task('all', ['plugin.parsers.selection:client.build', 'plugin.parsers.selection:client.delivery', 'plugin.parsers.selection:compress']);
+    task('all', ['plugin.parsers.messageframes:client.build', 'plugin.parsers.messageframes:client.delivery', 'plugin.parsers.messageframes:compress']);
 
 });
 
 namespace('plugins', function() {
 
-    task('all', ['plugin.row.parser.ascii:all', 'plugin.parsers.selection:all', 'plugin.dlt-render:all', 'plugin.dlt:all', 'plugin.xterminal:all', 'plugin.processes:all', 'plugin.serial:all']);
+    task('all', ['plugin.row.parser.ascii:all', 'plugin.parsers.messageframes:all', 'plugin.dlt-render:all', 'plugin.dlt:all', 'plugin.xterminal:all', 'plugin.processes:all', 'plugin.serial:all']);
 
 });
 
