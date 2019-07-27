@@ -23,11 +23,20 @@
             <span class="small-icon-button fas fa-minus-circle" (click)="_ng_onUnselect(filter.key)"><span class="label">Unselect All</span></span>
             <span class="small-icon-button fas fa-retweet" (click)="_ng_onReverse(filter.key)"><span class="label">Reverse</span></span>
         </div>
-        <ul class="values">
-            <li class="value" *ngFor="let item of filter.value.items; let i = index;">
-                <lib-primitive-checkbox-simple [labelOn]="item.name" [labelOff]="item.name" [checked]="item.state" [onChange]="_ng_onChangeFilter.bind(this, filter.key, i)"></lib-primitive-checkbox-simple>
-            </li>
-        </ul>
+        <div class="wrapper">
+            <table>
+                <tr>
+                    <th></th>
+                    <th *ngFor="let header of _ng_headers" title="header.full">{{header.short}}</th>
+                </tr>
+                <tr *ngFor="let item of filter.value.items; let i = index;">
+                    <td>
+                        <lib-primitive-checkbox-simple [labelOn]="item.name" [labelOff]="item.name" [checked]="item.state" [onChange]="_ng_onChangeFilter.bind(this, filter.key, i)"></lib-primitive-checkbox-simple>
+                    </td>
+                    <td *ngFor="let stat of item.stats; let i = index;" [ngStyle]="{'color': _ng_getStatColor(i, stat)}">{{stat}}</td>
+                </tr>
+            </table>
+        </div>
     </div>
     <span class="spliter"></span>
 </div>

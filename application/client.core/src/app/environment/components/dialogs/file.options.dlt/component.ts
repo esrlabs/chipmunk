@@ -1,8 +1,9 @@
-import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewChild } from '@angular/core';
+import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit } from '@angular/core';
 import { DDListStandardComponent } from 'logviewer-client-primitive';
 import ElectronIpcService, { IPCMessages, Subscription } from '../../../services/service.electron.ipc';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
+import * as ThemeColors from '../../../theme/colors';
 
 export enum EMTIN {
     // If MSTP == DLT_TYPE_LOG
@@ -64,6 +65,49 @@ const CStatCaptions = {
 
 };
 
+const CLevels = {
+    non_log: 'non_log',
+    log_fatal: 'log_fatal',
+    log_error: 'log_error',
+    log_warning: 'log_warning',
+    log_info: 'log_info',
+    log_debug: 'log_debug',
+    log_verbose: 'log_verbose',
+    log_invalid: 'log_invalid',
+};
+
+const CLevelsColors = {
+    [CLevels.non_log]: ThemeColors.scheme_color_3,
+    [CLevels.log_fatal]: ThemeColors.scheme_color_error,
+    [CLevels.log_error]: ThemeColors.scheme_color_error,
+    [CLevels.log_warning]: ThemeColors.scheme_color_warning,
+    [CLevels.log_debug]: ThemeColors.scheme_color_2,
+    [CLevels.log_verbose]: ThemeColors.scheme_color_3,
+    [CLevels.log_invalid]: ThemeColors.scheme_color_warning,
+};
+
+const CLevelCaptions = {
+    [CLevels.non_log]: { short: 'n/d', full: 'no data' },
+    [CLevels.log_fatal]: { short: 'F', full: 'FATAL' },
+    [CLevels.log_error]: { short: 'E', full: 'ERROR' },
+    [CLevels.log_warning]: { short: 'W', full: 'WARNING' },
+    [CLevels.log_info]: { short: 'I', full: 'INFO' },
+    [CLevels.log_debug]: { short: 'D', full: 'DEBUG' },
+    [CLevels.log_verbose]: { short: 'V', full: 'VERBOSE' },
+    [CLevels.log_invalid]: { short: 'inv', full: 'invalid value' },
+};
+
+const CLevelOrder = [
+    CLevels.log_fatal,
+    CLevels.log_error,
+    CLevels.log_warning,
+    CLevels.log_info,
+    CLevels.log_debug,
+    CLevels.log_verbose,
+    CLevels.non_log,
+    CLevels.log_invalid,
+];
+
 @Component({
     selector: 'app-views-dialogs-file-options-dlt',
     templateUrl: './template.html',
@@ -92,8 +136,10 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     ];
     public _ng_filters: { [key: string]: {
         caption: string,
-        items: Array<{ name: string, state: boolean }>
+        items: Array<{ name: string, state: boolean, stats: number[] }>
      } } | undefined = undefined;
+    public _ng_headers: Array<{ short: string, full: string }> = [];
+
     private _logLevel: EMTIN = EMTIN.DLT_LOG_VERBOSE;
     private _stats: IPCMessages.IDLTStats | undefined;
     private _destroyed: boolean = false;
@@ -105,6 +151,9 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
 
     public ngAfterContentInit() {
         this._ng_size = `${(this.size / 1024 / 1024).toFixed(2)}Mb`;
+        this._ng_headers = CLevelOrder.map((key: string) => {
+            return CLevelCaptions[key];
+        });
         ElectronIpcService.request(new IPCMessages.DLTStatsRequest({
             file: this.fullFileName,
             id: Toolkit.guid(),
@@ -131,8 +180,19 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
                 }
                 this._ng_filters[section] = {
                     caption: CStatCaptions[section],
-                    items: response.stats[section].map((item: string) => {
-                        return { name: item, state: true };
+                    items: response.stats[section].filter((item: Array<string | IPCMessages.IDLTStatsRecord>) => {
+                        if (item.length !== 2) {
+                            return false;
+                        }
+                        if (typeof item[0] !== 'string' || typeof item[1] !== 'object' || item[1] === null) {
+                            return false;
+                        }
+                        return true;
+                    }).map((item: Array<string | IPCMessages.IDLTStatsRecord>) => {
+                        const stats: number[] = CLevelOrder.map((key: string) => {
+                            return item[1][key] === undefined ? 0 : item[1][key];
+                        });
+                        return { name: item[0], state: true, stats: stats };
                     }),
                 };
             });
@@ -144,7 +204,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
             this._ng_scanning = false;
             this._forceUpdate();
             this._notifications.add({
-                caption: `Fail scan ${this.fileName}`,
+                caption: `Fail to scan ${this.fileName}`,
                 message: error.message,
                 options: {
                     type: ENotificationType.error,
@@ -213,6 +273,13 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
             return item;
         });
         this._forceUpdate();
+    }
+
+    public _ng_getStatColor(index: number, value: number): string {
+        if (value === 0) {
+            return ThemeColors.scheme_color_3;
+        }
+        return CLevelsColors[CLevelOrder[index]];
     }
 
     private _forceUpdate() {

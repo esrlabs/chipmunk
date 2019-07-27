@@ -59,22 +59,54 @@
             p.name {
                 color: @scheme-color-3;
             }
-            & ul.values{
+            & div.wrapper{
                 position: relative;
                 border-top: 1px dotted @scheme-color-3;
                 border-bottom: 1px dotted @scheme-color-3;
-                padding: 0.25rem 0;
+                padding: 0;
                 box-shadow: 0 0 1rem rgba(0,0,0,0.4) inset;
                 margin: 0;
                 list-style: none;
                 max-height: 10rem;
-                overflow-x: hidden;
-                overflow-y: auto;
-                & li.value{
+                overflow: auto;
+                & table{
                     position: relative;
-                    padding: 2px 0;
-                    margin: 0;
-                    list-style: none;
+                    border-collapse: collapse;
+                    margin: 0 0 0.25rem 0;
+                    & tr {
+                        &:first-child{
+                            position: sticky;
+                            top: 0;
+                            z-index: 1;
+                            padding: 4px 0;
+                            & th {
+                                position: sticky;
+                                top: 0;
+                                z-index: 1;
+                                background: @scheme-color-5;
+                                color: @scheme-color-0;
+                                font-weight: 400;
+                            }
+                        }
+                        & td:first-child,
+                        & th:first-child{
+                            width: 100%;
+                            text-align: left;
+                        }
+                        & td,
+                        & th {
+                            min-width: 1.75rem;
+                            border-right: dotted 1px @scheme-color-4;
+                            padding: 0 0.25rem;
+                            box-sizing: border-box;
+                        }
+                        & th{
+                            text-align: center;
+                        }
+                        & td{
+                            text-align: right;
+                        }
+                    }
                 }
             }
             & div.sub-controlls{
