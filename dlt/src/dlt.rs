@@ -21,6 +21,7 @@ use std::io;
 use std::io::{Error};
 use chrono::Datelike;
 use chrono::Timelike;
+use serde::Serialize;
 
 use proptest_derive::Arbitrary;
 use proptest::prelude::*;
@@ -162,7 +163,7 @@ impl StandardHeader {
     }
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Arbitrary)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Arbitrary)]
 pub enum LogLevel {
     Fatal,
     Error,

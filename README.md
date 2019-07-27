@@ -239,6 +239,15 @@ match: Ok(true)
 
 # Changelog
 
+### [0.28.0] - 07/27/2019
+  * [](chore): version bump from 0.27.1 => 0.28.0
+  * [#362](feat): provide log level distribution for statistics
+  * report errors and warnings as json objects
+
+### [0.28.0] - 07/27/2019
+  * [#362](feat): provide log level distribution for statistics
+  * report errors and warnings as json objects
+
 ### [0.27.1] - 07/24/2019
   * [](fix): avoid writing to stderr when not specified
 

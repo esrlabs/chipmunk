@@ -7,7 +7,7 @@ use indexer_base::utils;
 use indexer_base::error_reporter::*;
 use serde::Serialize;
 
-use rustc_hash::FxHashSet;
+use rustc_hash::FxHashMap;
 use std::fs;
 use failure::{err_msg, Error};
 use std::io::{BufRead, BufWriter, Write, Read};
@@ -597,7 +597,6 @@ fn validated_payload_length(header: &dlt::StandardHeader) -> Option<usize> {
     }
     Some(message_length - headers_length)
 }
-#[allow(dead_code)]
 pub fn dlt_app_id_context_id(input: &[u8]) -> IResult<&[u8], StatisticRowInfo> {
     let (after_storage_and_normal_header, (_, header)) =
         tuple((dlt_storage_header, dlt_standard_header))(input)?;
@@ -619,6 +618,7 @@ pub fn dlt_app_id_context_id(input: &[u8]) -> IResult<&[u8], StatisticRowInfo> {
             StatisticRowInfo {
                 app_id_context_id: None,
                 ecu_id: header.ecu_id,
+                level: None,
             },
         ));
     }
@@ -626,11 +626,16 @@ pub fn dlt_app_id_context_id(input: &[u8]) -> IResult<&[u8], StatisticRowInfo> {
     let (after_headers, extended_header) = dlt_extended_header(after_storage_and_normal_header)?;
     // skip payload
     let (after_message, _) = take(payload_length)(after_headers)?;
+    let level = match extended_header.message_type {
+        dlt::MessageType::Log(level) => Some(level),
+        _ => None,
+    };
     Ok((
         after_message,
         StatisticRowInfo {
             app_id_context_id: Some((extended_header.application_id, extended_header.context_id)),
             ecu_id: header.ecu_id,
+            level,
         },
     ))
 }
@@ -703,13 +708,6 @@ pub fn index_dlt_file(
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
 
     let mut processed_bytes = utils::get_processed_bytes(config.append, &config.out_path) as usize;
-    // let (filter_level, filtered_component_map, cntx_id_map, ecu_id_map):
-    // (
-    //     Option<dlt::LogLevel>,
-    //     Option<FxHashSet<String>>,
-    //     Option<FxHashSet<String>>,
-    //     Option<FxHashSet<String>>,
-    // ) = match dlt_filter {
     let filter_config: Option<filtering::ProcessedDltFilterConfig> =
         dlt_filter.map(filtering::process_filter_config);
     loop {
@@ -780,20 +778,128 @@ pub fn index_dlt_file(
     }
     Ok(chunks)
 }
+#[derive(Serialize, Debug, Default)]
+struct LevelDistribution {
+    non_log: usize,
+    log_fatal: usize,
+    log_error: usize,
+    log_warning: usize,
+    log_info: usize,
+    log_debug: usize,
+    log_verbose: usize,
+    log_invalid: usize,
+}
+impl LevelDistribution {
+    pub fn new(level: Option<dlt::LogLevel>) -> LevelDistribution {
+        let all_zero = Default::default();
+        match level {
+            None => LevelDistribution {
+                non_log: 1,
+                ..all_zero
+            },
+            Some(dlt::LogLevel::Fatal) => LevelDistribution {
+                log_fatal: 1,
+                ..all_zero
+            },
+            Some(dlt::LogLevel::Error) => LevelDistribution {
+                log_error: 1,
+                ..all_zero
+            },
+            Some(dlt::LogLevel::Warn) => LevelDistribution {
+                log_warning: 1,
+                ..all_zero
+            },
+            Some(dlt::LogLevel::Info) => LevelDistribution {
+                log_info: 1,
+                ..all_zero
+            },
+            Some(dlt::LogLevel::Debug) => LevelDistribution {
+                log_debug: 1,
+                ..all_zero
+            },
+            Some(dlt::LogLevel::Verbose) => LevelDistribution {
+                log_verbose: 1,
+                ..all_zero
+            },
+            _ => LevelDistribution {
+                log_invalid: 1,
+                ..all_zero
+            },
+        }
+    }
+}
+type IdMap = FxHashMap<String, LevelDistribution>;
+
+fn add_for_level(level: Option<dlt::LogLevel>, ids: &mut IdMap, id: String) {
+    if let Some(n) = ids.get_mut(&id) {
+        match level {
+            Some(dlt::LogLevel::Fatal) => {
+                *n = LevelDistribution {
+                    log_fatal: n.log_fatal + 1,
+                    ..*n
+                }
+            }
+            Some(dlt::LogLevel::Error) => {
+                *n = LevelDistribution {
+                    log_error: n.log_error + 1,
+                    ..*n
+                }
+            }
+            Some(dlt::LogLevel::Warn) => {
+                *n = LevelDistribution {
+                    log_warning: n.log_warning + 1,
+                    ..*n
+                }
+            }
+            Some(dlt::LogLevel::Info) => {
+                *n = LevelDistribution {
+                    log_info: n.log_info + 1,
+                    ..*n
+                }
+            }
+            Some(dlt::LogLevel::Debug) => {
+                *n = LevelDistribution {
+                    log_debug: n.log_debug + 1,
+                    ..*n
+                };
+            }
+            Some(dlt::LogLevel::Verbose) => {
+                *n = LevelDistribution {
+                    log_verbose: n.log_verbose + 1,
+                    ..*n
+                };
+            }
+            Some(dlt::LogLevel::Invalid(_)) => {
+                *n = LevelDistribution {
+                    log_invalid: n.log_invalid + 1,
+                    ..*n
+                };
+            }
+            None => {
+                *n = LevelDistribution {
+                    non_log: n.non_log + 1,
+                    ..*n
+                };
+            }
+        }
+    } else {
+        ids.insert(id, LevelDistribution::new(level));
+    }
+}
 #[derive(Serialize, Debug)]
 pub struct StatisticInfo {
-    app_ids: Vec<String>,
-    context_ids: Vec<String>,
-    ecu_ids: Vec<String>,
+    app_ids: Vec<(String, LevelDistribution)>,
+    context_ids: Vec<(String, LevelDistribution)>,
+    ecu_ids: Vec<(String, LevelDistribution)>,
 }
 #[allow(dead_code)]
 pub fn get_dlt_file_info(in_file: &fs::File) -> Result<StatisticInfo, Error> {
     let mut reader =
         ReduxReader::with_capacity(10 * 1024 * 1024, in_file).set_policy(MinBuffered(10 * 1024));
 
-    let mut app_ids: FxHashSet<String> = FxHashSet::default();
-    let mut context_ids: FxHashSet<String> = FxHashSet::default();
-    let mut ecu_ids: FxHashSet<String> = FxHashSet::default();
+    let mut app_ids: IdMap = FxHashMap::default();
+    let mut context_ids: IdMap = FxHashMap::default();
+    let mut ecu_ids: IdMap = FxHashMap::default();
     loop {
         // println!("line index: {}", line_nr);
         match read_one_dlt_message_info(&mut reader) {
@@ -802,13 +908,14 @@ pub fn get_dlt_file_info(in_file: &fs::File) -> Result<StatisticInfo, Error> {
                 StatisticRowInfo {
                     app_id_context_id: Some((app_id, context_id)),
                     ecu_id: ecu,
+                    level,
                 },
             ))) => {
                 reader.consume(consumed);
-                app_ids.insert(app_id);
-                context_ids.insert(context_id);
+                add_for_level(level, &mut app_ids, app_id);
+                add_for_level(level, &mut context_ids, context_id);
                 if let Some(id) = ecu {
-                    ecu_ids.insert(id);
+                    add_for_level(level, &mut ecu_ids, id);
                 };
             }
             Ok(Some((
@@ -827,9 +934,15 @@ pub fn get_dlt_file_info(in_file: &fs::File) -> Result<StatisticInfo, Error> {
         }
     }
     Ok(StatisticInfo {
-        app_ids: app_ids.iter().cloned().collect::<Vec<String>>(),
-        context_ids: context_ids.iter().cloned().collect::<Vec<String>>(),
-        ecu_ids: ecu_ids.iter().cloned().collect::<Vec<String>>(),
+        app_ids: app_ids
+            .into_iter()
+            .collect::<Vec<(String, LevelDistribution)>>(),
+        context_ids: context_ids
+            .into_iter()
+            .collect::<Vec<(String, LevelDistribution)>>(),
+        ecu_ids: ecu_ids
+            .into_iter()
+            .collect::<Vec<(String, LevelDistribution)>>(),
     })
 }
 
@@ -837,6 +950,7 @@ pub fn get_dlt_file_info(in_file: &fs::File) -> Result<StatisticInfo, Error> {
 pub struct StatisticRowInfo {
     app_id_context_id: Option<(String, String)>,
     ecu_id: Option<String>,
+    level: Option<dlt::LogLevel>,
 }
 fn read_one_dlt_message_info<T: Read>(
     reader: &mut ReduxReader<T, MinBuffered>,

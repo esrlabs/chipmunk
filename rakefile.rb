@@ -77,7 +77,7 @@ def build_the_release
     os_ext = "windows"
     release_folder = "target/x86_64-pc-windows-gnu/release"
   end
-  cd "#{release_folder}" do
+  cd "#{release_folder}", :verbose => false do
     cp "#{CLI_EXE_NAME}","#{EXE_NAME}"
     cp "#{EXE_NAME}","#{HOME}/bin/#{EXE_NAME}"
     sh "tar -cvzf indexing@#{current_version}-#{os_ext}.tgz #{EXE_NAME}"
@@ -88,7 +88,7 @@ def build_the_release_windows
   current_version = get_current_version
   release_folder = "target/x86_64-pc-windows-gnu/release"
   tgz_file = "indexing@#{current_version}-win64.tgz"
-  cd "#{release_folder}" do
+  cd "#{release_folder}", :verbose => false do
     cp "#{CLI_EXE_NAME}.exe","#{EXE_NAME}.exe"
     sh "tar -cvzf #{tgz_file} #{EXE_NAME}.exe"
   end
@@ -99,7 +99,7 @@ def build_the_release_windows32
   current_version = get_current_version
   release_folder = "target/i686-pc-windows-gnu/release"
   tgz_file = "indexing@#{current_version}-win32.tgz"
-  cd "#{release_folder}" do
+  cd "#{release_folder}", :verbose => false do
     cp "#{CLI_EXE_NAME}.exe","#{EXE_NAME}.exe"
     sh "tar -cvzf #{tgz_file} #{EXE_NAME}.exe"
   end
@@ -178,7 +178,7 @@ end
 
 def get_current_version
   current_version = nil
-  cd CLI_EXE_NAME do
+  cd CLI_EXE_NAME, :verbose => false do
     ['Cargo.toml'].each do |file|
       text = File.read(file)
       if match = text.match(/^version\s=\s\"(.*)\"/i)
@@ -189,10 +189,12 @@ def get_current_version
   current_version
 end
 def update_toml(new_version)
-  ['Cargo.toml'].each do |file|
-    text = File.read(file)
-    new_contents = text.gsub(/^version\s=\s\"\d+\.\d+\.\d+\"/, "version = \"#{new_version}\"")
-    File.open(file, "w") { |f| f.puts new_contents }
+  cd CLI_EXE_NAME, :verbose => false do
+    ['Cargo.toml'].each do |file|
+      text = File.read(file)
+      new_contents = text.gsub(/^version\s=\s\"\d+\.\d+\.\d+\"/, "version = \"#{new_version}\"")
+      File.open(file, "w") { |f| f.puts new_contents }
+    end
   end
 end
 
