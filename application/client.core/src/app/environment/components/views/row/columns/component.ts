@@ -4,7 +4,7 @@ import SourcesService from '../../../../services/service.sources';
 import OutputParsersService from '../../../../services/standalone/service.output.parsers';
 import { ControllerSessionScope } from '../../../../controller/controller.session.tab.scope';
 import { AOutputRenderComponent, IOutputRenderInputs } from '../../../../interfaces/interface.output.render';
-import { ControllerColumns, IColumn, IColumns } from './controller.columns';
+import { ControllerColumns, IColumn } from './controller.columns';
 import { Subscription, Subject } from 'rxjs';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
@@ -41,7 +41,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
     public _ng_columns: Array<{ html: SafeHtml, index: number }> = [];
 
     private _subscriptions: { [key: string]: Subscription } = {};
-    private _columns: IColumns = {};
+    private _columns: IColumn[] = [];
 
     constructor(private _sanitizer: DomSanitizer, private _cdRef: ChangeDetectorRef ) {
         super();
@@ -83,8 +83,11 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
         this._render();
     }
 
-    public _ng_getWidth(key: number): string {
-        return `${this._columns[key].width}px`;
+    public _ng_getStyles(key: number): { [key: string]: string } {
+        return {
+            width: `${this._columns[key].width}px`,
+            color: this._columns[key].color,
+        };
     }
 
     private _render() {
@@ -135,12 +138,12 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
         return controller as ControllerColumns;
     }
 
-    private _onResized(columns: IColumns) {
+    private _onResized(columns: IColumn[]) {
         this._columns = columns;
         this._cdRef.detectChanges();
     }
 
-    private _onUpdated(columns: IColumns) {
+    private _onUpdated(columns: IColumn[]) {
         this._columns = columns;
         this._render();
         this._cdRef.detectChanges();

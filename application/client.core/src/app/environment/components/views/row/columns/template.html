@@ -1,1 +1,4 @@
-<span class="column" *ngFor="let column of _ng_columns" [ngStyle]="{'width': _ng_getWidth(column.index)}" [innerHTML]="column.html"></span>
+<span class="column" 
+      *ngFor="let column of _ng_columns" 
+      [ngStyle]="_ng_getStyles(column.index)" 
+      [innerHTML]="column.html"></span>

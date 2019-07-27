@@ -17,25 +17,26 @@ export interface IColumn {
     color: string | undefined;
 }
 
-export interface IColumns { [key: number]: IColumn; }
-
 const CLocalStorageKey = '__logviewer.row.render.custom.columns';
 
 export class ControllerColumns {
 
-    private _columns: IColumns = {};
+    private _columns: IColumn[] = [];
     private _hash: string;
     private _subjects: {
-        onResized: Subject<IColumns>,
-        onUpdated: Subject<IColumns>,
+        onResized: Subject<IColumn[]>,
+        onUpdated: Subject<IColumn[]>,
     } = {
-        onResized: new Subject<IColumns>(),
-        onUpdated: new Subject<IColumns>(),
+        onResized: new Subject<IColumn[]>(),
+        onUpdated: new Subject<IColumn[]>(),
     };
 
     constructor(widths: Array<{ width: number, min: number}>, headers: string[]) {
         this._hash = Toolkit.hash(headers.join(','));
         this._columns = this._getStored(headers);
+        if (!(this._columns instanceof Array)) {
+            this._columns = undefined;
+        }
         if (this._columns === undefined) {
             this._initColumns(widths, headers);
         }
@@ -45,13 +46,15 @@ export class ControllerColumns {
 
     }
 
-    public getColumns(): IColumns {
-        return this._columns;
+    public getColumns(): IColumn[] {
+        return this._columns.map((column: IColumn) => {
+            return Object.assign({}, column);
+        });
     }
 
     public getObservable(): {
-        onResized: Observable<IColumns>,
-        onUpdated: Observable<IColumns>,
+        onResized: Observable<IColumn[]>,
+        onUpdated: Observable<IColumn[]>,
     } {
         return {
             onResized: this._subjects.onResized.asObservable(),
@@ -68,14 +71,14 @@ export class ControllerColumns {
         this._subjects.onResized.next(this._columns);
     }
 
-    public setColumns(columns: IColumns) {
+    public setColumns(columns: IColumn[]) {
         this._columns = columns;
         this._setStored();
         this._subjects.onUpdated.next(this._columns);
     }
 
-    private _getStored(headers: string[]): IColumns | undefined {
-        let columns: IColumns;
+    private _getStored(headers: string[]): IColumn[] | undefined {
+        let columns: IColumn[];
         try {
             columns = JSON.parse(localStorage.getItem(this._getStorageKey()));
         } catch (e) {
@@ -98,16 +101,16 @@ export class ControllerColumns {
     }
 
     private _initColumns(widths: Array<{ width: number, min: number}>, headers: string[]) {
-        this._columns = {};
+        this._columns = [];
         headers.forEach((header: string, index: number) => {
-            this._columns[index] = {
+            this._columns.push({
                 width: widths[index].width,
                 minWidth: widths[index].min,
                 header: header,
                 visible: true,
                 index: index,
                 color: undefined,
-            };
+            });
         });
     }
 
