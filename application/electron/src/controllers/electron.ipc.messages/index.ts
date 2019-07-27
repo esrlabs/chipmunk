@@ -127,8 +127,8 @@ export { INotification, Notification };
 import { IDLTStatsRequest, DLTStatsRequest } from './dlt.filestats.request';
 export { IDLTStatsRequest, DLTStatsRequest };
 
-import { IDLTStatsResponse, DLTStatsResponse, IDLTStats } from './dlt.filestats.response';
-export { IDLTStatsResponse, DLTStatsResponse, IDLTStats };
+import { IDLTStatsResponse, DLTStatsResponse, IDLTStats, IDLTStatsRecord } from './dlt.filestats.response';
+export { IDLTStatsResponse, DLTStatsResponse, IDLTStats, IDLTStatsRecord };
 
 // Common type for expected message implementation
 export type TMessage =  HostState |

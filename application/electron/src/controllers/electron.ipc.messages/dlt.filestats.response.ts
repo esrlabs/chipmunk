@@ -1,7 +1,18 @@
+export interface IDLTStatsRecord {
+    non_log: number;
+    log_fatal: number;
+    log_error: number;
+    log_warning: number;
+    log_info: number;
+    log_debug: number;
+    log_verbose: number;
+    log_invalid: number;
+}
+
 export interface IDLTStats {
-    app_ids?: string[];
-    context_ids?: string[];
-    ecu_ids?: string[];
+    app_ids?: Array<string | IDLTStatsRecord>;
+    context_ids?: Array<string | IDLTStatsRecord>;
+    ecu_ids?: Array<string | IDLTStatsRecord>;
 }
 
 export interface IDLTStatsResponse {

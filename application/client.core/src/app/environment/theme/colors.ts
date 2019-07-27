@@ -5,6 +5,9 @@ export const scheme_color_3 = '#979797';
 export const scheme_color_4 = '#555555';
 export const scheme_color_5 = '#333333';
 export const scheme_color_6 = '#111111';
+export const scheme_color_error = 'rgb(253, 21, 21)';
+export const scheme_color_accent = '#617cff';
+export const scheme_color_warning = '#fffd71';
 
 const colorsCache: Map<string, string> = new Map();
 
