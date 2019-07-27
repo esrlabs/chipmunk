@@ -1,5 +1,5 @@
 import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
-import { ControllerColumns, IColumn, IColumns } from '../../controller.columns';
+import { ControllerColumns, IColumn } from '../../controller.columns';
 import { CColors } from '../../../../../../conts/colors';
 
 export const CColumnsHeadersKey = 'CColumnsHeadersKey';
@@ -14,7 +14,7 @@ export class ViewOutputRowColumnsHeadersMenuComponent implements OnDestroy, Afte
 
     @Input() public controller: ControllerColumns;
 
-    public _ng_columns: IColumns = {};
+    public _ng_columns: IColumn[] = [];
     public _ng_selected: number | undefined = undefined;
     public _ng_colors: string[] = CColors;
 
