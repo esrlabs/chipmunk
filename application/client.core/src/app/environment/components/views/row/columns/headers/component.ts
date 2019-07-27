@@ -1,6 +1,6 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, HostListener, AfterContentInit } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
-import { ControllerColumns, IColumn, IColumns } from '../controller.columns';
+import { ControllerColumns, IColumn } from '../controller.columns';
 import { ControllerSessionScope } from '../../../../../controller/controller.session.tab.scope';
 import { ControllerSessionTabStreamOutput } from '../../../../../controller/controller.session.tab.stream.output';
 import { IRowNumberWidthData, CRowNumberWidthKey } from '../../component';
@@ -25,7 +25,7 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
     public _ng_horScrollOffset: number = 0;
     public _ng_columns: IColumn[] = [];
 
-    private _columns: IColumns = {};
+    private _columns: IColumn[] = [];
     private _cachedMouseX: number = -1;
     private _resizedColumnKey: number = -1;
     private _subscriptions: { [key: string]: Subscription } = {};
@@ -146,7 +146,7 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
         this._forceUpdate();
     }
 
-    private _onResized(columns: IColumns) {
+    private _onResized(columns: IColumn[]) {
         if (this._destroyed) {
             return;
         }
@@ -154,7 +154,7 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
         this._forceUpdate();
     }
 
-    private _onUpdated(columns: IColumns) {
+    private _onUpdated(columns: IColumn[]) {
         if (this._destroyed) {
             return;
         }
