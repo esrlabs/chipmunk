@@ -6,37 +6,41 @@
     display: block;
     list-style: none;
     padding: 0!important;
-    margin: 0 -12rem 0 0!important;
+    margin: 0 ;
     top: 0.5rem;
-    right: 50%;
-    width: 24rem;
+    left: 0;
+    width: 100%;
     z-index: 100;
     & div.shadow{
-            position: fixed;
-            top:0;
-            left:0;
-            bottom: 0;
-            right: 0;
-            background: rgba(0,0,0,0.4);
-            -webkit-animation: opacity-in 250ms both;
-            animation: opacity-in 250ms both;
-            opacity: 0;
+      position: fixed;
+      top:0;
+      left:0;
+      bottom: 0;
+      right: 0;
+      background: rgba(0,0,0,0.4);
+      -webkit-animation: opacity-in 250ms both;
+      animation: opacity-in 250ms both;
+      opacity: 0;
     }
     & ul.popups{
-        & li.popup{
-                position: relative;
-                display: block;
-                list-style: none;
-                padding: 0;
-                margin: 0;
-                width: 100%;
-                -webkit-animation: bounce-in-top 250ms both;
-                animation: bounce-in-top 250ms both;
-                &.closing{
-                        -webkit-animation: slide-in-top 0.5s cubic-bezier(0.250, 0.460, 0.450, 0.940) reverse both;
-                        animation: slide-in-top 0.5s cubic-bezier(0.250, 0.460, 0.450, 0.940) reverse both;
-                }
+      width: 100%;
+      position: absolute;
+      display: block;
+      left:0;
+      & li.popup{
+        position: relative;
+        display: block;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        width: 100%;
+        -webkit-animation: bounce-in-top 250ms both;
+        animation: bounce-in-top 250ms both;
+        &.closing{
+                -webkit-animation: slide-in-top 0.5s cubic-bezier(0.250, 0.460, 0.450, 0.940) reverse both;
+                animation: slide-in-top 0.5s cubic-bezier(0.250, 0.460, 0.450, 0.940) reverse both;
         }
+      }
     }
 
 }
