@@ -87,14 +87,14 @@ const CLevelsColors = {
 };
 
 const CLevelCaptions = {
-    [CLevels.non_log]: { short: 'n/d', full: 'no data' },
-    [CLevels.log_fatal]: { short: 'F', full: 'FATAL' },
-    [CLevels.log_error]: { short: 'E', full: 'ERROR' },
-    [CLevels.log_warning]: { short: 'W', full: 'WARNING' },
-    [CLevels.log_info]: { short: 'I', full: 'INFO' },
-    [CLevels.log_debug]: { short: 'D', full: 'DEBUG' },
-    [CLevels.log_verbose]: { short: 'V', full: 'VERBOSE' },
-    [CLevels.log_invalid]: { short: 'inv', full: 'invalid value' },
+    [CLevels.non_log]: { short: 'n/d', full: 'No Data' },
+    [CLevels.log_fatal]: { short: 'FATAL', full: 'FATAL' },
+    [CLevels.log_error]: { short: 'ERR', full: 'ERROR' },
+    [CLevels.log_warning]: { short: 'WARN', full: 'WARNING' },
+    [CLevels.log_info]: { short: 'INFO', full: 'INFO' },
+    [CLevels.log_debug]: { short: 'DEBUG', full: 'DEBUG' },
+    [CLevels.log_verbose]: { short: 'VERBOSE', full: 'VERBOSE' },
+    [CLevels.log_invalid]: { short: 'invalid', full: 'invalid value' },
 };
 
 const CLevelOrder = [

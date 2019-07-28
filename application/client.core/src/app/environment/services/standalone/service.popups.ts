@@ -3,6 +3,7 @@ import * as Toolkit from 'logviewer.client.toolkit';
 
 export interface IOptions {
     closable?: boolean;
+    width?: number;
 }
 
 export interface IButton {
