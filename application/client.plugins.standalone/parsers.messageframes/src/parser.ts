@@ -549,7 +549,6 @@ export class MessageFrameParsing extends Toolkit.ASelectionParser {
     }
 
     public getParserName(str: string): string | undefined {
-        debugger
         return isParsable(str) ? "Parse as MessageFrame" : undefined;
     }
 }
