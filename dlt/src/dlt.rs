@@ -923,7 +923,7 @@ impl fmt::Display for Message {
             Some(h) => {
                 write!(f, "{}", h)?;
             }
-            None => (),
+            None => write!(f, "{}", DLT_COLUMN_SENTINAL)?,
         }
         write!(
             f,
@@ -956,8 +956,8 @@ impl fmt::Display for Message {
         }
         write!(f, "{}", DLT_COLUMN_SENTINAL,)?;
 
-        if let Some(ext) = self.extended_header.as_ref() {
-            write!(
+        match self.extended_header.as_ref() {
+            Some(ext) => write!(
                 f,
                 "{}{}{}{}{}{}",
                 ext.application_id,
@@ -966,7 +966,12 @@ impl fmt::Display for Message {
                 DLT_COLUMN_SENTINAL,
                 ext.message_type,
                 DLT_COLUMN_SENTINAL,
-            )?;
+            )?,
+            None => write!(
+                f,
+                "-{}-{}-{}",
+                DLT_COLUMN_SENTINAL, DLT_COLUMN_SENTINAL, DLT_COLUMN_SENTINAL,
+            )?,
         }
         match &self.payload {
             Payload::Verbose(arguments) => arguments
@@ -974,7 +979,17 @@ impl fmt::Display for Message {
                 .try_for_each(|arg| write!(f, "{}{}", DLT_ARGUMENT_SENTINAL, arg)),
             Payload::NonVerbose(id, data) => {
                 let as_string = str::from_utf8(&data).unwrap_or("").trim();
-                f.write_str(&format!("[non-verbose, id:{}]({:?})|{:02X?}", id, as_string, data)[..])
+                f.write_str(
+                    &format!(
+                        "{}id:{}{}({:?}){}{:02X?}",
+                        DLT_ARGUMENT_SENTINAL,
+                        id,
+                        DLT_ARGUMENT_SENTINAL,
+                        as_string,
+                        DLT_ARGUMENT_SENTINAL,
+                        data
+                    )[..],
+                )
             }
         }
     }
