@@ -32,23 +32,6 @@ export enum EMTIN {
     UNDEFINED               = 'UNDEFINED',
 }
 
-const CRestMTINTypes = [
-    EMTIN.DLT_TRACE_VARIABLE,
-    EMTIN.DLT_TRACE_FUNCTION_IN,
-    EMTIN.DLT_TRACE_FUNCTION_OUT,
-    EMTIN.DLT_TRACE_STATE,
-    EMTIN.DLT_TRACE_STATE,
-    EMTIN.DLT_TRACE_VFB,
-    EMTIN.DLT_NW_TRACE_IPC,
-    EMTIN.DLT_NW_TRACE_CAN,
-    EMTIN.DLT_NW_TRACE_FLEXRAY,
-    EMTIN.DLT_NW_TRACE_MOST,
-    EMTIN.DLT_CONTROL_REQUEST,
-    EMTIN.DLT_CONTROL_RESPONSE,
-    EMTIN.DLT_CONTROL_TIME,
-    EMTIN.UNDEFINED,
-];
-
 const CLogLevel = {
     [EMTIN.DLT_LOG_FATAL]: 1,
     [EMTIN.DLT_LOG_ERROR]: 2,
@@ -126,6 +109,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     public _ng_logLevelDefault: EMTIN = EMTIN.DLT_LOG_VERBOSE;
     public _ng_scanning: boolean = true;
     public _ng_more: boolean = false;
+    public _ng_sortByLogLevel: number = -1;
     public _ng_logLevels: Array<{ value: string; caption: string}> = [
         { value: EMTIN.DLT_LOG_FATAL, caption: 'Fatal' },
         { value: EMTIN.DLT_LOG_ERROR, caption: 'Error' },
@@ -173,33 +157,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
                 return;
             }
             this._stats = response.stats;
-            this._ng_filters = {};
-            Object.keys(response.stats).forEach((section: string) => {
-                if (CStatCaptions[section] === undefined || !(response.stats[section] instanceof Array)) {
-                    return;
-                }
-                this._ng_filters[section] = {
-                    caption: CStatCaptions[section],
-                    items: response.stats[section].filter((item: Array<string | IPCMessages.IDLTStatsRecord>) => {
-                        if (item.length !== 2) {
-                            return false;
-                        }
-                        if (typeof item[0] !== 'string' || typeof item[1] !== 'object' || item[1] === null) {
-                            return false;
-                        }
-                        return true;
-                    }).map((item: Array<string | IPCMessages.IDLTStatsRecord>) => {
-                        const stats: number[] = CLevelOrder.map((key: string) => {
-                            return item[1][key] === undefined ? 0 : item[1][key];
-                        });
-                        return { name: item[0], state: true, stats: stats };
-                    }),
-                };
-            });
-            if (Object.keys(this._ng_filters).length === 0) {
-                this._ng_filters = undefined;
-            }
-            this._forceUpdate();
+            this._setFilters();
         }).catch((error: Error) => {
             this._ng_scanning = false;
             this._forceUpdate();
@@ -280,6 +238,59 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
             return ThemeColors.scheme_color_3;
         }
         return CLevelsColors[CLevelOrder[index]];
+    }
+
+    public _ng_onSortClick(index: number) {
+        if (index === this._ng_sortByLogLevel) {
+            this._ng_sortByLogLevel = -1;
+        } else {
+            this._ng_sortByLogLevel = index;
+        }
+        this._setFilters();
+    }
+
+    private _getEntityKeyByIndex(index: number): string | undefined {
+        return CLevelOrder[index];
+    }
+
+    private _setFilters() {
+        this._ng_filters = {};
+        Object.keys(this._stats).forEach((section: string) => {
+            if (CStatCaptions[section] === undefined || !(this._stats[section] instanceof Array)) {
+                return;
+            }
+            let items = this._stats[section].filter((item: Array<string | IPCMessages.IDLTStatsRecord>) => {
+                if (item.length !== 2) {
+                    return false;
+                }
+                if (typeof item[0] !== 'string' || typeof item[1] !== 'object' || item[1] === null) {
+                    return false;
+                }
+                return true;
+            }).sort((a: Array<string | IPCMessages.IDLTStatsRecord>, b: Array<string | IPCMessages.IDLTStatsRecord>) => {
+                return a[0] > b[0] ? 1 : -1;
+            });
+            if (this._ng_sortByLogLevel !== -1 && this._getEntityKeyByIndex(this._ng_sortByLogLevel) !== undefined) {
+                const key: string = this._getEntityKeyByIndex(this._ng_sortByLogLevel);
+                items = items.sort((a: Array<string | IPCMessages.IDLTStatsRecord>, b: Array<string | IPCMessages.IDLTStatsRecord>) => {
+                    return a[1][key] < b[1][key] ? 1 : -1;
+                });
+            }
+            items = items.map((item: Array<string | IPCMessages.IDLTStatsRecord>) => {
+                const stats: number[] = CLevelOrder.map((key: string) => {
+                    return item[1][key] === undefined ? 0 : item[1][key];
+                });
+                return { name: item[0], state: true, stats: stats };
+            });
+            this._ng_filters[section] = {
+                caption: CStatCaptions[section],
+                items: items,
+            };
+        });
+        if (Object.keys(this._ng_filters).length === 0) {
+            this._ng_filters = undefined;
+        }
+        this._forceUpdate();
     }
 
     private _forceUpdate() {
