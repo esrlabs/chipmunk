@@ -72,6 +72,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
             return;
         }
         const selection: IScrollBoxSelection | undefined = this._scrollBoxCom.getSelection();
+        const contextRowNumber: number = SelectionParsersService.getContextRowNumber();
         const items: IMenuItem[] = [
             {
                 caption: 'Copy',
@@ -81,15 +82,18 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
                 disabled: selection === undefined,
             }
         ];
-        if (selection !== undefined && selection.anchor === selection.focus) {
-            const row: ISearchStreamPacket | undefined = this._output.getRowByPosition(selection.anchor);
+        if (selection === undefined) {
+            window.getSelection().removeAllRanges();
+        }
+        if (contextRowNumber !== -1) {
+            const row: ISearchStreamPacket | undefined = this._output.getRowByPosition(contextRowNumber);
             if (row !== undefined) {
                 items.push(...[
                     { /* delimiter */ },
                     {
-                        caption: `Show row #${row.positionInStream}`,
+                        caption: `Show row #${contextRowNumber}`,
                         handler: () => {
-                            SelectionParsersService.memo(row.str, `Row #${row.positionInStream}`);
+                            SelectionParsersService.memo(row.str, `Row #${contextRowNumber}`);
                         },
                     },
                 ]);

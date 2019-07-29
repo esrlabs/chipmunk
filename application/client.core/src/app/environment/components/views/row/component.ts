@@ -7,6 +7,7 @@ import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../control
 import { ControllerSessionScope } from '../../../controller/controller.session.tab.scope';
 import SourcesService from '../../../services/service.sources';
 import OutputParsersService from '../../../services/standalone/service.output.parsers';
+import SelectionParsersService from '../../../services/standalone/service.selection.parsers';
 import OutputRedirectionsService from '../../../services/standalone/service.output.redirections';
 import { IComponentDesc } from 'logviewer-client-containers';
 import { AOutputRenderComponent } from '../../../interfaces/interface.output.render';
@@ -137,6 +138,10 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
 
     public ngAfterViewInit() {
         this._checkNumberNodeWidth();
+    }
+
+    public _ng_onContextMenu(event: MouseEvent) {
+        SelectionParsersService.setContextRowNumber(this._getPosition());
     }
 
     public _ng_onToggleSource() {

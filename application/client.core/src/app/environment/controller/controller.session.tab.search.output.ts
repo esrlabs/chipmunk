@@ -261,7 +261,7 @@ export class ControllerSessionTabSearchOutput {
 
     public getRowByPosition(position: number): ISearchStreamPacket | undefined {
         return this._rows.find((row: ISearchStreamPacket) => {
-            return row.position === position;
+            return row.positionInStream === position;
         });
     }
 
