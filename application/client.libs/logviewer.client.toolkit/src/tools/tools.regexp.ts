@@ -2,12 +2,12 @@ const isValidRegExpCache: { [key: string]: boolean } = {};
 const safelyCreateRegExpCache: { [key: string]: RegExp | Error } = {};
 
 export function serializeRegStr(str: string): string {
-    let chars = '\\{}[]+$^/!.*|():?,=';
+    const chars = '\\{}[]+$^/!.*|():?,=';
     Array.prototype.forEach.call(chars, (char: string) => {
         str = str.replace(new RegExp('\\' + char, 'gi'), '\\' + char);
     });
     return str;
-};
+}
 
 export function isRegStrValid(strRegExp: string, parameters: string = 'gi'): boolean {
     if (typeof strRegExp !== 'string') {
@@ -22,12 +22,11 @@ export function isRegStrValid(strRegExp: string, parameters: string = 'gi'): boo
         if (regExp instanceof RegExp) {
             isValidRegExpCache[key] = true;
         }
-    } catch (error){
+    } catch (error) {
         isValidRegExpCache[key] = false;
     }
     return isValidRegExpCache[key];
 }
-
 
 export function createFromStr(strRegExp: string, parameters: string = 'gi'): RegExp | Error {
     if (typeof strRegExp !== 'string') {
@@ -46,4 +45,12 @@ export function createFromStr(strRegExp: string, parameters: string = 'gi'): Reg
         safelyCreateRegExpCache[key] = new Error(`Invalid regular expresion`);
     }
     return safelyCreateRegExpCache[key];
+}
+
+export function createFromSerializedStr(strRegExp: string, parameters: string = 'gi'): RegExp | Error {
+    if (typeof strRegExp !== 'string') {
+        return new Error(`Invalid regular expresion. String should be as source.`);
+    }
+    strRegExp = strRegExp.replace(/</gi, '&lt;').replace(/>/gi, '&gt;');
+    return createFromStr(strRegExp, parameters);
 }
