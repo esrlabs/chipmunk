@@ -661,14 +661,29 @@ fn read_one_dlt_message<T: Read>(
                     }
                     e => match e {
                         Err(nom::Err::Incomplete(_)) => continue,
-                        Err(nom::Err::Error(_)) => panic!("nom error"),
-                        Err(nom::Err::Failure(_)) => panic!("nom failure"),
-                        _ => panic!("error while iterating..."),
+                        Err(nom::Err::Error(_e)) => {
+                            return Err(err_msg(format!(
+                                "parsing error for dlt messages: {:?}",
+                                _e
+                            )));
+                        }
+                        Err(nom::Err::Failure(_e)) => {
+                            return Err(err_msg(format!(
+                                "parsing failure for dlt messages: {:?}",
+                                _e
+                            )));
+                        }
+                        _ => {
+                            return Err(err_msg(format!(
+                                "error while parsing dlt messages: {:?}",
+                                e
+                            )))
+                        }
                     },
                 }
             }
             Err(e) => {
-                panic!("error while iterating...{}", e);
+                return Err(err_msg(format!("parsing error for dlt messages: {:?}", e)));
             }
         }
     }
@@ -914,18 +929,26 @@ pub fn get_dlt_file_info(in_file: &fs::File) -> Result<StatisticInfo, Error> {
                 reader.consume(consumed);
                 add_for_level(level, &mut app_ids, app_id);
                 add_for_level(level, &mut context_ids, context_id);
-                if let Some(id) = ecu {
-                    add_for_level(level, &mut ecu_ids, id);
+                match ecu {
+                    Some(id) => add_for_level(level, &mut ecu_ids, id),
+                    None => add_for_level(level, &mut ecu_ids, "NONE".to_string()),
                 };
             }
             Ok(Some((
                 consumed,
                 StatisticRowInfo {
                     app_id_context_id: None,
-                    ..
+                    ecu_id: ecu,
+                    level,
                 },
             ))) => {
                 reader.consume(consumed);
+                add_for_level(level, &mut app_ids, "NONE".to_string());
+                add_for_level(level, &mut context_ids, "NONE".to_string());
+                match ecu {
+                    Some(id) => add_for_level(level, &mut ecu_ids, id),
+                    None => add_for_level(level, &mut ecu_ids, "NONE".to_string()),
+                };
             }
             Ok(None) => {
                 break;
@@ -970,14 +993,29 @@ fn read_one_dlt_message_info<T: Read>(
                     }
                     e => match e {
                         Err(nom::Err::Incomplete(_)) => continue,
-                        Err(nom::Err::Error(_)) => panic!("nom error"),
-                        Err(nom::Err::Failure(_)) => panic!("nom failure"),
-                        _ => panic!("error while iterating..."),
+                        Err(nom::Err::Error(_e)) => {
+                            return Err(err_msg(format!(
+                                "parsing error for dlt messages: {:?}",
+                                _e
+                            )));
+                        }
+                        Err(nom::Err::Failure(_e)) => {
+                            return Err(err_msg(format!(
+                                "parsing failure for dlt messages: {:?}",
+                                _e
+                            )));
+                        }
+                        _ => {
+                            return Err(err_msg(format!(
+                                "error while parsing dlt messages: {:?}",
+                                e
+                            )))
+                        }
                     },
                 }
             }
             Err(e) => {
-                panic!("error while iterating...{}", e);
+                return Err(err_msg(format!("error while parsing dlt messages: {}", e)));
             }
         }
     }

@@ -5,6 +5,7 @@ use std::fs;
 use std::io::{BufReader, Read, Seek, SeekFrom};
 use std::path;
 use std::str;
+use crate::error_reporter;
 
 pub const ROW_NUMBER_SENTINAL: char = '\u{0002}';
 // pub const ROW_NUMBER_SENTINAL_SLICE: &[u8] = &[0x2];
@@ -132,7 +133,10 @@ pub fn next_line_nr(path: &std::path::Path) -> Option<usize> {
     let seek_offset: i64 = -(std::cmp::min(file_size - 1, PEEK_END_SIZE as u64) as i64);
     match reader.seek(SeekFrom::End(seek_offset as i64)) {
         Ok(_) => (),
-        Err(e) => panic!("could not read last entry in file {:?}", e),
+        Err(e) => {
+            error_reporter::report_error(format!("could not read last entry in file {:?}", e));
+            return None;
+        }
     };
     let size_of_slice = seek_offset.abs() as usize;
     let mut buf: Vec<u8> = vec![0; size_of_slice];
