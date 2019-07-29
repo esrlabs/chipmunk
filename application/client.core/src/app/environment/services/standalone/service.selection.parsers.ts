@@ -24,6 +24,7 @@ export class SelectionParsersService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('SelectionParsersService');
     private _parsers: Map<TGuid, IStoredSelectionParser> = new Map();
+    private _contextRowNumber: number = -1;
     private _subjects: {
         onUpdate: Subject<IUpdateEvent>,
     } = {
@@ -85,6 +86,14 @@ export class SelectionParsersService {
             parsed: undefined
         };
         this._subjects.onUpdate.next(event);
+    }
+
+    public setContextRowNumber(position: number) {
+        this._contextRowNumber = position;
+    }
+
+    public getContextRowNumber(): number {
+        return this._contextRowNumber;
     }
 
 }
