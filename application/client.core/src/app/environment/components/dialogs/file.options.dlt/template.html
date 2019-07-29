@@ -27,7 +27,7 @@
             <table>
                 <tr>
                     <th></th>
-                    <th *ngFor="let header of _ng_headers" title="header.full">{{header.short}}</th>
+                    <th *ngFor="let header of _ng_headers; let i = index;" title="header.full" (click)="_ng_onSortClick(i)"><span class="sorted fas fa-caret-down" *ngIf="i === _ng_sortByLogLevel"></span>{{header.short}}</th>
                 </tr>
                 <tr *ngFor="let item of filter.value.items; let i = index;">
                     <td>
