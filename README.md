@@ -239,6 +239,10 @@ match: Ok(true)
 
 # Changelog
 
+### [0.29.0] - 07/29/2019
+  * [](feat): more robust error handling for invalid DLT files
+  * [](fix) add missing dlt column markers for some cases
+
 ### [0.28.0] - 07/27/2019
   * [](chore): version bump from 0.27.1 => 0.28.0
   * [#362](feat): provide log level distribution for statistics
