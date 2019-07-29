@@ -19,6 +19,7 @@ export class ViewOutputRowColumnsHeadersMenuComponent implements OnDestroy, Afte
     public _ng_colors: string[] = CColors;
 
     private _destroyed: boolean = false;
+    private _checkBoxClicked: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef) {
     }
@@ -47,16 +48,23 @@ export class ViewOutputRowColumnsHeadersMenuComponent implements OnDestroy, Afte
     }
 
     public _ng_onColumnMouseDown(event: MouseEvent, index: number) {
-        if (this._ng_selected === index) {
-            this._ng_selected = undefined;
-        } else {
-            this._ng_selected = index;
+        if (!this._checkBoxClicked) {
+            if (this._ng_selected === index) {
+                this._ng_selected = undefined;
+            } else {
+                this._ng_selected = index;
+            }
         }
+        this._checkBoxClicked = false;
         event.stopImmediatePropagation();
         event.stopPropagation();
         event.preventDefault();
         this._forceUpdate();
         return false;
+    }
+
+    public _ng_onCheckBoxMouseDown(event: MouseEvent, index: number) {
+        this._checkBoxClicked = true;
     }
 
     public _ng_onChange(index: number) {

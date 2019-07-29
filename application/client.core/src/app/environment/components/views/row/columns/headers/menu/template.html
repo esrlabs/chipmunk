@@ -1,7 +1,12 @@
 <div class="wrapper">
     <ul class="columns">
         <li [attr.class]="'column ' + (_ng_selected == i ? 'selected' : '')" *ngFor="let column of _ng_columns; let i = index;" (mousedown)="_ng_onColumnMouseDown($event, i)">
-            <lib-primitive-checkbox-simple [color]="column.color" [labelOn]="column.header" [labelOff]="column.header" [checked]="column.visible" [onChange]="_ng_onChange.bind(this, i)"></lib-primitive-checkbox-simple>
+            <lib-primitive-checkbox-simple  [color]="column.color" 
+                                            [labelOn]="column.header" 
+                                            [labelOff]="column.header" 
+                                            [checked]="column.visible" 
+                                            [onChange]="_ng_onChange.bind(this, i)"
+                                            (mousedown)="_ng_onCheckBoxMouseDown($event, i)"></lib-primitive-checkbox-simple>
         </li>
     </ul>
     <ul *ngIf="_ng_selected !== undefined" class="colors">
