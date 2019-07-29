@@ -128,6 +128,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
             return;
         }
         const selection: IScrollBoxSelection | undefined = this._scrollBoxCom.getSelection();
+        const contextRowNumber: number = SelectionParsersService.getContextRowNumber();
         const items: IMenuItem[] = [
             {
                 caption: 'Copy',
@@ -137,20 +138,22 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                 disabled: selection === undefined,
             }
         ];
-        if (selection !== undefined && selection.anchor === selection.focus) {
-            items.push(...[
-                { /* delimiter */ },
-                {
-                    caption: `Show row #${selection.anchor}`,
-                    handler: () => {
-                        const row: IStreamPacket | undefined = this._output.getRowByPosition(selection.anchor);
-                        if (row === undefined) {
-                            return;
-                        }
-                        SelectionParsersService.memo(row.str, `Row #${selection.anchor}`);
+        if (selection === undefined) {
+            window.getSelection().removeAllRanges();
+        }
+        if (contextRowNumber !== -1) {
+            const row: IStreamPacket | undefined = this._output.getRowByPosition(contextRowNumber);
+            if (row !== undefined) {
+                items.push(...[
+                    { /* delimiter */ },
+                    {
+                        caption: `Show row #${contextRowNumber}`,
+                        handler: () => {
+                            SelectionParsersService.memo(row.str, `Row #${contextRowNumber}`);
+                        },
                     },
-                },
-            ]);
+                ]);
+            }
         }
         if (selection !== undefined) {
             const parsers: ISelectionParser[] = SelectionParsersService.getParsers(selection.selection);
