@@ -20,6 +20,9 @@ end
 
 desc "install"
 task :install do
+  cd "application" do
+    sh "npm install"
+  end
   cd "application/client.core" do
     sh "npm install"
   end
@@ -38,5 +41,40 @@ task :install do
   cd "application" do
     sh "jake client:all --skip-npm"
     sh "jake electron:quick --skip-npm"
+  end
+end
+
+desc "install plugins"
+task :installplugins do
+  cd "application/client.plugins.standalone/row.parser.ascii" do
+    sh "npm install"
+  end
+  cd "application/sandbox/dlt/process" do
+    sh "npm install"
+    sh "npm install electron@4.0.3 electron-rebuild@^1.8.2"
+    sh "./node_modules/.bin/electron-rebuild"
+    sh "npm uninstall electron electron-rebuild"
+  end
+  cd "application/sandbox/serial/process" do
+    sh "npm install"
+    sh "npm install electron@4.0.3 electron-rebuild@^1.8.2"
+    sh "./node_modules/.bin/electron-rebuild"
+    sh "npm uninstall electron electron-rebuild"
+  end
+  cd "application/sandbox/processes/process" do
+    sh "npm install"
+    sh "npm install electron@4.0.3 electron-rebuild@^1.8.2"
+    sh "./node_modules/.bin/electron-rebuild"
+    sh "npm uninstall electron electron-rebuild"
+  end
+  cd "application/sandbox/xterminal/process" do
+    sh "npm install"
+    sh "npm install electron@4.0.3 electron-rebuild@^1.8.2"
+    sh "./node_modules/.bin/electron-rebuild"
+    sh "npm uninstall electron electron-rebuild"
+  end
+  cd "application" do
+    sh "jake client:all --skip-npm"
+    sh "jake plugns:all --skip-npm"
   end
 end
