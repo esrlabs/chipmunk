@@ -241,7 +241,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     }
 
     public _ng_onSortClick(index: number) {
-        if (index === this._ng_sortByLogLevel) {
+        if (index === this._ng_sortByLogLevel || index === -1) {
             this._ng_sortByLogLevel = -1;
         } else {
             this._ng_sortByLogLevel = index;
