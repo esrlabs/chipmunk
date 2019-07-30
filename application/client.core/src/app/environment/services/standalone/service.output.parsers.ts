@@ -68,7 +68,13 @@ export class OutputParsersService {
     }
 
     public setSearchResults(sessionId: string, requests: IRequest[] ) {
-        this._search.set(sessionId, requests);
+        this._search.set(sessionId, requests.map((request: IRequest) => {
+            return {
+                reg: new RegExp(this.serialize(request.reg.source), request.reg.flags),
+                color: request.color,
+                background: request.background,
+            };
+        }));
         this._subjects.onUpdatedSearch.next();
     }
 
@@ -78,7 +84,13 @@ export class OutputParsersService {
     }
 
     public setHighlights(sessionId: string, requests: IRequest[]) {
-        this._highlights.set(sessionId, requests);
+        this._highlights.set(sessionId, requests.map((request: IRequest) => {
+            return {
+                reg: new RegExp(this.serialize(request.reg.source), request.reg.flags),
+                color: request.color,
+                background: request.background,
+            };
+        }));
     }
 
     public getTypedRowRender(sourceName: string): Toolkit.ATypedRowRender<any> | undefined {
