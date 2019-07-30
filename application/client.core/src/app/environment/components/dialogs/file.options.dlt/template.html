@@ -17,16 +17,10 @@
 <div *ngIf="_ng_filters !== undefined && _ng_more" class="filters">
     <span class="spliter"></span>
     <div *ngFor="let filter of _ng_filters | keyvalue" class="group">
-        <p class="name t-normal">{{filter.value.caption}}</p>
-        <div class="sub-controlls">
-            <span class="small-icon-button fas fa-plus-circle" (click)="_ng_onSelect(filter.key)"><span class="label">Select All</span></span>
-            <span class="small-icon-button fas fa-minus-circle" (click)="_ng_onUnselect(filter.key)"><span class="label">Unselect All</span></span>
-            <span class="small-icon-button fas fa-retweet" (click)="_ng_onReverse(filter.key)"><span class="label">Reverse</span></span>
-        </div>
         <div class="wrapper">
             <table>
                 <tr>
-                    <th></th>
+                    <th (click)="_ng_onSortClick(-1)"><span class="sorted fas fa-caret-down" *ngIf="_ng_sortByLogLevel === -1"></span>{{filter.value.caption}}</th>
                     <th *ngFor="let header of _ng_headers; let i = index;" title="header.full" (click)="_ng_onSortClick(i)"><span class="sorted fas fa-caret-down" *ngIf="i === _ng_sortByLogLevel"></span>{{header.short}}</th>
                 </tr>
                 <tr *ngFor="let item of filter.value.items; let i = index;">
@@ -36,6 +30,11 @@
                     <td *ngFor="let stat of item.stats; let i = index;" [ngStyle]="{'color': _ng_getStatColor(i, stat)}">{{stat}}</td>
                 </tr>
             </table>
+        </div>
+        <div class="sub-controlls">
+            <span class="small-icon-button fas fa-plus-circle" (click)="_ng_onSelect(filter.key)"><span class="label">Select All</span></span>
+            <span class="small-icon-button fas fa-minus-circle" (click)="_ng_onUnselect(filter.key)"><span class="label">Unselect All</span></span>
+            <span class="small-icon-button fas fa-retweet" (click)="_ng_onReverse(filter.key)"><span class="label">Reverse</span></span>
         </div>
     </div>
     <span class="spliter"></span>

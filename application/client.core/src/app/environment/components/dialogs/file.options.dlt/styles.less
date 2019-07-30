@@ -95,6 +95,9 @@
                             text-align: left;
                             white-space: nowrap;
                         }
+                        & th:first-child{
+                            text-align: right;
+                        }
                         & td,
                         & th {
                             min-width: 1.75rem;
@@ -120,10 +123,9 @@
                 }
             }
             & div.sub-controlls{
-                position: absolute;
-                right:0;
-                top:0;
+                position: relative;
                 white-space: nowrap;
+                text-align: right;
                 & span{
                     display: inline-block;
                     position: relative;
