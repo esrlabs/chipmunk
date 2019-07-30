@@ -152,6 +152,7 @@ export class OutputParsersService {
     }
 
     public serialize(str: string): string {
+        // Serialize input string to prevent brocken HTML
         return str.replace(/</gi, '&lt;').replace(/>/gi, '&gt;');
     }
 
