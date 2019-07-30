@@ -75,6 +75,6 @@ task :installplugins do
   end
   cd "application" do
     sh "jake client:all --skip-npm"
-    sh "jake plugns:all --skip-npm"
+    sh "jake plugins:all --skip-npm"
   end
 end
