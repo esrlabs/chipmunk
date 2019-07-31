@@ -20,6 +20,13 @@ export interface IDLTStatsResponse {
     session: string;
     stats: IDLTStats | undefined;
     error?: string;
+    logs?: IDLTLogMessage[];
+}
+
+export interface IDLTLogMessage {
+    severity: string;
+    text: string;
+    line_nr: string;
 }
 
 export class DLTStatsResponse {
@@ -30,6 +37,7 @@ export class DLTStatsResponse {
     public stats: IDLTStats | undefined;
     public session: string = '';
     public error: string | undefined;
+    public logs: IDLTLogMessage[] | undefined;
 
     constructor(params: IDLTStatsResponse) {
         if (typeof params !== 'object' || params === null) {
@@ -43,6 +51,7 @@ export class DLTStatsResponse {
         }
         this.id = params.id;
         this.error = params.error;
+        this.logs = params.logs;
         this.stats = params.stats;
         this.session = params.session;
     }

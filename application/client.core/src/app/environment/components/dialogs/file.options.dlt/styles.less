@@ -29,6 +29,9 @@
                     transform: rotateZ(180deg);
                 }
             }
+            & span.error-button{
+                color: @scheme-color-warning;
+            }
         }
         & div.progress {
             position: absolute;
@@ -41,6 +44,9 @@
             padding-left: 1rem;
             &.in-progress{
                 padding-left: 2.5rem;
+            }
+            &.with-error{
+                padding-left: 1.5rem;
             }
         }
     }

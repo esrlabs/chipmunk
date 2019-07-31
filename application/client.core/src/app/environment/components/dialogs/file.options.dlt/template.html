@@ -3,14 +3,18 @@
 <p class="caption t-normal">Required log level:</p>
 <div class="settings">
     <div *ngIf="!_ng_scanning" class="toggle">
-        <span   [attr.class]="'toggle-button small-icon-button fas fa-angle-double-down' + (_ng_more ? ' opened' : '')"
+        <span   *ngIf="_ng_error === undefined"
+                [attr.class]="'toggle-button small-icon-button fas fa-angle-double-down' + (_ng_more ? ' opened' : '')"
                 title="Open/Hide Filters"
                 (click)="_ng_onFilters()"></span>
-    </div>    
+        <span   *ngIf="_ng_error !== undefined"
+                [attr.class]="'error-button small-icon-button fas fa-exclamation-triangle'"
+                [attr.title]="_ng_error"></span>
+    </div>
     <div *ngIf="_ng_scanning" class="progress">
         <lib-primitive-spinner-regular></lib-primitive-spinner-regular>
     </div>
-    <div [attr.class]="'logs ' + (_ng_scanning ? 'in-progress' : '')">
+    <div [attr.class]="'logs ' + (_ng_scanning ? 'in-progress' : '') + (_ng_error !== undefined ? 'with-error' : '')">
         <lib-primitive-dropdownlist #loglevelcom [defaults]="_ng_logLevelDefault" [items]="_ng_logLevels" [onChange]="_ng_onLogLevelChange"></lib-primitive-dropdownlist>
     </div>
 </div>

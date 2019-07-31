@@ -2,7 +2,7 @@ import ServiceElectron, { IPCMessages } from './service.electron';
 import Logger from '../tools/env.logger';
 import { Subscription } from '../tools/index';
 import { IService } from '../interfaces/interface.service';
-import { Lvin, IDLTStats } from 'logviewer.lvin';
+import { Lvin, IDLTStatsResults, IDLTLogMessage } from 'logviewer.lvin';
 
 /**
  * @class ServiceDLTFiles
@@ -47,11 +47,21 @@ class ServiceDLTFiles implements IService {
     private _onDLTStatsRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.DLTStatsRequest = request as IPCMessages.DLTStatsRequest;
         const lvin: Lvin = new Lvin();
-        lvin.dltStat({ srcFile: req.file }).then((stats: IDLTStats) => {
+        lvin.dltStat({ srcFile: req.file }).then((results: IDLTStatsResults) => {
+            if (results.logs instanceof Array) {
+                results.logs.forEach((log: IDLTLogMessage) => {
+                    ServiceElectron.IPC.send(new IPCMessages.Notification({
+                        type: log.severity,
+                        message: `[line: ${log.line_nr}]: ${log.text}`,
+                        caption: req.file,
+                    }));
+                });
+            }
             response(new IPCMessages.DLTStatsResponse({
-                stats: stats,
+                stats: results.stats,
                 id: req.id,
                 session: req.session,
+                logs: results.logs,
             }));
         }).catch((error: Error) => {
             response(new IPCMessages.DLTStatsResponse({

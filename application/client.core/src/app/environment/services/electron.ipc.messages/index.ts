@@ -121,8 +121,8 @@ export { IFiltersSaveRequest, FiltersSaveRequest };
 import { IFiltersSaveResponse, FiltersSaveResponse } from './file.filters.save.response';
 export { IFiltersSaveResponse, FiltersSaveResponse };
 
-import { INotification, Notification } from './notification';
-export { INotification, Notification };
+import { INotification, Notification, ENotificationType } from './notification';
+export { INotification, Notification, ENotificationType };
 
 import { IDLTStatsRequest, DLTStatsRequest } from './dlt.filestats.request';
 export { IDLTStatsRequest, DLTStatsRequest };
