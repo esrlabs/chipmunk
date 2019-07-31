@@ -403,7 +403,7 @@ dependencies = [
 
 [[package]]
 name = "indexer_cli"
-version = "0.29.0"
+version = "0.30.0"
 dependencies = [
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "dlt 0.1.0",

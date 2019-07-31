@@ -239,6 +239,10 @@ match: Ok(true)
 
 # Changelog
 
+### [0.30.0] - 07/31/2019
+  * using humantime package for date formating for improved perfomance
+  * added copyright comments
+
 ### [0.29.0] - 07/29/2019
   * [](feat): more robust error handling for invalid DLT files
   * [](fix) add missing dlt column markers for some cases
