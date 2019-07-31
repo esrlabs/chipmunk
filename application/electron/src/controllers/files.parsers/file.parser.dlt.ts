@@ -80,8 +80,8 @@ export default class FileParser extends AFileParser {
                     results.logs.forEach((log: IDLTLogMessage) => {
                         ServiceElectron.IPC.send(new IPCMessages.Notification({
                             type: log.severity,
-                            message: `[line: ${log.line_nr}]: ${log.text}`,
-                            caption: srcFile,
+                            message: `${log.line_nr !== null ? `[line: ${log.line_nr}]: ` : ''}${log.text}`,
+                            caption: path.basename(srcFile),
                         }));
                     });
                 }
