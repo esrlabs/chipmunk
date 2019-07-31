@@ -1,8 +1,8 @@
 import { AFileParser, IFileParserFunc, IMapItem } from './interface';
 import { Transform } from 'stream';
 import * as path from 'path';
-import { Lvin, IIndexResult, IFileMapItem } from 'logviewer.lvin';
-import ServiceElectron from '../../services/service.electron';
+import { Lvin, IIndexResult, IFileMapItem, IDLTLogMessage } from 'logviewer.lvin';
+import ServiceElectron, { IPCMessages } from '../../services/service.electron';
 
 const ExtNames = ['dlt'];
 
@@ -76,6 +76,15 @@ export default class FileParser extends AFileParser {
                 destFile: destFile,
                 injection: sourceId.toString(),
             }, dltOptions).then((results: IIndexResult) => {
+                if (results.logs instanceof Array) {
+                    results.logs.forEach((log: IDLTLogMessage) => {
+                        ServiceElectron.IPC.send(new IPCMessages.Notification({
+                            type: log.severity,
+                            message: `[line: ${log.line_nr}]: ${log.text}`,
+                            caption: srcFile,
+                        }));
+                    });
+                }
                 lvin.removeAllListeners();
                 resolve(results.map.map((item: IFileMapItem) => {
                     return { rows: { from: item.r[0], to: item.r[1] }, bytes: { from: item.b[0], to: item.b[1] }};

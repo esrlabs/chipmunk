@@ -123,6 +123,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
         items: Array<{ name: string, state: boolean, stats: number[] }>
      } } | undefined = undefined;
     public _ng_headers: Array<{ short: string, full: string }> = [];
+    public _ng_error: string | undefined;
 
     private _logLevel: EMTIN = EMTIN.DLT_LOG_VERBOSE;
     private _stats: IPCMessages.IDLTStats | undefined;
@@ -145,12 +146,13 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
         }), IPCMessages.DLTStatsResponse).then((response: IPCMessages.DLTStatsResponse) => {
             this._ng_scanning = false;
             if (typeof response.error === 'string' && response.error.trim() !== '') {
+                this._ng_error = response.error;
                 this._notifications.add({
-                    caption: `Fail scan ${this.fileName}`,
+                    caption: `Errors during scan ${this.fileName}`,
                     message: response.error,
                     options: {
                         type: ENotificationType.error,
-                        closeDelay: -1,
+                        closeDelay: Infinity,
                     }
                 });
                 this._forceUpdate();
@@ -160,13 +162,14 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
             this._setFilters();
         }).catch((error: Error) => {
             this._ng_scanning = false;
+            this._ng_error = error.message;
             this._forceUpdate();
             this._notifications.add({
                 caption: `Fail to scan ${this.fileName}`,
                 message: error.message,
                 options: {
                     type: ENotificationType.error,
-                    closeDelay: -1,
+                    closeDelay: Infinity,
                 }
             });
         });
