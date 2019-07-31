@@ -45,11 +45,15 @@ export class RGSearchWrapper {
             if (!(regExp instanceof Array)) {
                 regExp = [regExp];
             }
-            let reg: string = '';
+            const regs: string[] = [];
+            const numeric: string[] = [];
             regExp.forEach((regexp: RegExp, i: number) => {
-                reg += `${i !== 0 ? '|' : ''}(${regexp.source})`;
+                regs.push(`(${regexp.source})`);
+                if (regexp.source.replace(/\d/gi, '') === '') {
+                    numeric.push(`(${regexp.source})`);
+                }
             });
-            reg = `(?!\\d*${reg}\\d*\u0002$)(${reg})`;
+            const reg = `(?!\\d*${numeric.join('|')}\\d*\u0002$)(${regs.join('|')})`;
             const args: string[] = [
                 '-N',
                 '--text', // https://github.com/BurntSushi/ripgrep/issues/306 this issue is about a case, when not printable symble is in a file
