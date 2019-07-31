@@ -49,9 +49,11 @@ export class RGSearchWrapper {
             regExp.forEach((regexp: RegExp, i: number) => {
                 reg += `${i !== 0 ? '|' : ''}(${regexp.source})`;
             });
+            reg = `(?!\\d*${reg}\\d*\u0002$)(${reg})`;
             const args: string[] = [
                 '-N',
                 '--text', // https://github.com/BurntSushi/ripgrep/issues/306 this issue is about a case, when not printable symble is in a file
+                '--pcre2',
                 '-i',
                 '-e',
                 reg,
