@@ -4,7 +4,7 @@ import { Subscription, Subject } from 'rxjs';
 import { ControllerSessionTabStreamOutput } from '../../../controller/controller.session.tab.stream.output';
 import { ControllerSessionTabSourcesState } from '../../../controller/controller.session.tab.sources.state';
 import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../controller/controller.session.tab.stream.bookmarks';
-import { ControllerSessionScope } from '../../../controller/controller.session.tab.scope';
+import { ControllerSessionScope, IRowNumberWidthData } from '../../../controller/controller.session.tab.scope';
 import SourcesService from '../../../services/service.sources';
 import OutputParsersService from '../../../services/standalone/service.output.parsers';
 import SelectionParsersService from '../../../services/standalone/service.selection.parsers';
@@ -22,12 +22,6 @@ enum ERenderType {
 
 export interface IScope { [key: string]: any; }
 
-export interface IRowNumberWidthData {
-    rank: number;
-    width: number;
-}
-
-export const CRowNumberWidthKey = 'row-number-width-key';
 export const CRowLengthLimit = 10000;
 
 @Component({
@@ -313,21 +307,26 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         if (this.scope === undefined) {
             return;
         }
-        const info: IRowNumberWidthData | undefined = this.scope.get(CRowNumberWidthKey);
-        if (info === undefined || info.rank !== this.rank) {
-            const size: ClientRect = (this.numbernode.nativeElement as HTMLElement).getBoundingClientRect();
-            if (size.width === 0) {
-                return;
-            }
-            if (info !== undefined && info.width >= size.width) {
-                // Node isn't updated yet
-                return;
-            }
-            this.scope.set(CRowNumberWidthKey, {
-                rank: this.rank,
-                width: size.width
-            });
+        const info: IRowNumberWidthData | undefined = this.scope.get(ControllerSessionScope.Keys.CRowNumberWidth);
+        if (info === undefined) {
+            return;
         }
+        if (info.rank === this.rank && info.width !== 0) {
+            return;
+        }
+        const size: ClientRect = (this.numbernode.nativeElement as HTMLElement).getBoundingClientRect();
+        if (size.width === 0) {
+            return;
+        }
+        if (info !== undefined && info.width === size.width) {
+            // Node isn't updated yet
+            return;
+        }
+        this.scope.set<any>(ControllerSessionScope.Keys.CRowNumberWidth, {
+            rank: this.rank,
+            width: size.width,
+        }, false);
+        info.onChanged.next();
     }
 
 }

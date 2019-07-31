@@ -1,9 +1,8 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, HostListener, AfterContentInit } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
 import { ControllerColumns, IColumn } from '../controller.columns';
-import { ControllerSessionScope } from '../../../../../controller/controller.session.tab.scope';
+import { ControllerSessionScope, IRowNumberWidthData } from '../../../../../controller/controller.session.tab.scope';
 import { ControllerSessionTabStreamOutput } from '../../../../../controller/controller.session.tab.stream.output';
-import { IRowNumberWidthData, CRowNumberWidthKey } from '../../component';
 import ContextMenuService from '../../../../../services/standalone/service.contextmenu';
 import { ViewOutputRowColumnsHeadersMenuComponent } from './menu/component';
 
@@ -30,7 +29,6 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
     private _resizedColumnKey: number = -1;
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
-    private _timer: any = -1;
 
     constructor(private _cdRef: ChangeDetectorRef) {
     }
@@ -51,7 +49,6 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
 
     public ngOnDestroy() {
         this._destroyed = true;
-        clearTimeout(this._timer);
         this._unsubscribeToWinEvents();
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
@@ -69,6 +66,7 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
         this._subscriptions.onRankChanged = this.output.getObservable().onRankChanged.subscribe(this._onRankChanged.bind(this));
         this._columns = this.controller.getColumns();
         this._setColumns();
+        this._getOffset();
         this._forceUpdate();
     }
 
@@ -168,28 +166,18 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
         this._forceUpdate();
     }
 
-    private _getOffset(repeatOnNoChange: boolean = false, count: number = 0) {
-        clearTimeout(this._timer);
+    private _getOffset() {
         if (this.scope === undefined) {
             return;
         }
-        const info: IRowNumberWidthData | undefined = this.scope.get(CRowNumberWidthKey);
+        const info: IRowNumberWidthData | undefined = this.scope.get<IRowNumberWidthData>(ControllerSessionScope.Keys.CRowNumberWidth);
         if (info === undefined) {
-            if (count < 25) {
-                this._timer = setTimeout(() => {
-                    // Update with short timeout, because root row component isn't update yet
-                    this._getOffset(true, count + 1);
-                });
-            }
             return;
         }
-        if (this._ng_offset >= info.width) {
-            if (repeatOnNoChange && count < 25) {
-                this._timer = setTimeout(() => {
-                    // Update with short timeout, because root row component isn't update yet
-                    this._getOffset(true, count + 1);
-                });
-            }
+        if (this._subscriptions.onOffsetChange === undefined) {
+            this._subscriptions.onOffsetChange = info.onChanged.asObservable().subscribe(this._getOffset.bind(this));
+        }
+        if (this._ng_offset === info.width) {
             return;
         }
         this._ng_offset = info.width;
@@ -197,7 +185,7 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
     }
 
     private _onRankChanged() {
-        this._getOffset(true);
+        this._getOffset();
     }
 
     private _forceUpdate() {
