@@ -12,7 +12,7 @@ import EventsHubService from '../../../services/standalone/service.eventshub';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import PluginsService from '../../../services/service.plugins';
 import * as Toolkit from 'logviewer.client.toolkit';
-import { removeRowNumber } from '../row/helpers';
+import { cleanupOutput } from '../row/helpers';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import SelectionParsersService, { ISelectionParser } from '../../../services/standalone/service.selection.parsers';
 
@@ -215,7 +215,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     private _api_cleanUpClipboard(str: string): string {
-        return removeRowNumber(str);
+        return cleanupOutput(str);
     }
 
     private _onReset() {

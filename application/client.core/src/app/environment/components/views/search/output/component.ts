@@ -8,7 +8,7 @@ import { ViewOutputRowComponent } from '../../row/component';
 import { ViewSearchControlsComponent, IButton } from './controls/component';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 import EventsHubService from '../../../../services/standalone/service.eventshub';
-import { removeRowNumber } from '../../row/helpers';
+import { cleanupOutput } from '../../row/helpers';
 import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import SelectionParsersService, { ISelectionParser } from '../../../../services/standalone/service.selection.parsers';
 
@@ -204,7 +204,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
     }
 
     private _api_cleanUpClipboard(str: string): string {
-        return removeRowNumber(str);
+        return cleanupOutput(str);
     }
 
     private _onSessionChanged(session: ControllerSessionTab) {
