@@ -3,6 +3,7 @@ import Logger from '../tools/env.logger';
 import { Subscription } from '../tools/index';
 import { IService } from '../interfaces/interface.service';
 import { Lvin, IDLTStatsResults, IDLTLogMessage } from 'logviewer.lvin';
+import * as path from 'path';
 
 /**
  * @class ServiceDLTFiles
@@ -52,8 +53,8 @@ class ServiceDLTFiles implements IService {
                 results.logs.forEach((log: IDLTLogMessage) => {
                     ServiceElectron.IPC.send(new IPCMessages.Notification({
                         type: log.severity,
-                        message: `[line: ${log.line_nr}]: ${log.text}`,
-                        caption: req.file,
+                        message: `${log.line_nr !== null ? `[line: ${log.line_nr}]: ` : ''}${log.text}`,
+                        caption: path.basename(req.file),
                     }));
                 });
             }
