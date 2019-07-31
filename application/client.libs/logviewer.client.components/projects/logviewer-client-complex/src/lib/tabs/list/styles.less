@@ -80,6 +80,8 @@
                     max-width: 10rem;
                     overflow: hidden;
                     text-overflow: ellipsis;
+                    font-weight: 600;
+                    text-shadow: 0px 1px 0px @scheme-color-7;
                 }
                 & span.close-button{
                     font-size: 12px;
@@ -105,7 +107,6 @@
                 &.active{
                     box-sizing: content-box!important;
                     background: @scheme-color-5;
-                    .border-based-4;
                     &::after{
                         position: absolute;
                         display: block;
@@ -162,7 +163,8 @@
                     }
                     &.active{
                         box-sizing: content-box!important;
-                        .border-based-4;
+                        box-shadow: 0px 0px 6px 3px rgba(0,0,0,0.4);
+                        border: 1px solid @scheme-color-4;
                         border-bottom: none;
                         border-top-right-radius: @border-radius;
                         border-top-left-radius: @border-radius;
@@ -226,7 +228,8 @@
                         }
                     }
                     &.active{
-                        .border-based-4;
+                        box-shadow: 0px 0px 6px 3px rgba(0,0,0,0.4);
+                        border: 1px solid @scheme-color-4;
                         border-right: none;
                         border-bottom: none;
                         border-top-left-radius: @border-radius;

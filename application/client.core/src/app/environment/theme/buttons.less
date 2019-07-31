@@ -26,15 +26,19 @@
     display: inline-block;
     font-size: 0.8rem;
     color:@scheme-color-1;
-    padding: 0.25rem 0.4rem;
+    padding: 3px 12px 4px 12px;
     margin: 0.25rem;
     cursor: default;
-    .gradient(linear; @scheme-color-4, lighten(@scheme-color-4, 4%));
-    .border-based-4;
-    border-radius: 2px;
+    .gradient(linear; @scheme-color-4, lighten(@scheme-color-4, 7%));
+    border-radius: 6px;
+    overflow: hidden;
+    font-weight: 600;
+    -webkit-font-smoothing: antialiased;
+    text-shadow: 0px 1px 0px @scheme-color-7;
+    box-shadow: inset 0px 1px 0px 0px @scheme-color-3;
     &:hover{
         color: @scheme-color-0;
-        .gradient(linear; lighten(@scheme-color-4, 4%), @scheme-color-4);
+        .gradient(linear; lighten(@scheme-color-4, 7%), @scheme-color-4);
     }
 }
 

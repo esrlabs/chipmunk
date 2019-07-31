@@ -1,5 +1,6 @@
 @import './colors.less';
 @import './support.less';
+@import './borders.less';
 
 .small-icon-button {
     position: relative;
@@ -12,6 +13,12 @@
     &:hover{
         color: @scheme-color-3;
     }
+    &.disabled{
+        color: @scheme-color-4;
+        &:hover{
+            color: @scheme-color-4;
+        }
+    }
 }
 
 .small-button {
@@ -19,12 +26,35 @@
     display: inline-block;
     font-size: 0.8rem;
     color:@scheme-color-1;
-    padding: 0.25rem 0.4rem;
-    margin: 0;
+    padding: 3px 12px 4px 12px;
+    margin: 0.25rem;
     cursor: default;
-    .gradient(linear; @scheme-color-5, lighten(@scheme-color-5, 4%));
+    .gradient(linear; @scheme-color-4, lighten(@scheme-color-4, 7%));
+    border-radius: 6px;
+    overflow: hidden;
+    font-weight: 600;
+    -webkit-font-smoothing: antialiased;
+    text-shadow: 0px 1px 0px @scheme-color-7;
+    box-shadow: inset 0px 1px 0px 0px @scheme-color-3;
     &:hover{
-        color: @scheme-color-3;
-        .gradient(linear; lighten(@scheme-color-5, 4%), @scheme-color-5);
+        color: @scheme-color-0;
+        .gradient(linear; lighten(@scheme-color-4, 7%), @scheme-color-4);
+    }
+}
+
+.smallest-button {
+    position: relative;
+    display: inline-block;
+    font-size: 0.8rem;
+    color:@scheme-color-1;
+    padding: 0.15rem 0.4rem;
+    margin: 0.25rem;
+    cursor: default;
+    .gradient(linear; @scheme-color-4, lighten(@scheme-color-4, 4%));
+    .border-based-4;
+    border-radius: 2px;
+    &:hover{
+        color: @scheme-color-0;
+        .gradient(linear; lighten(@scheme-color-4, 4%), @scheme-color-4);
     }
 }
