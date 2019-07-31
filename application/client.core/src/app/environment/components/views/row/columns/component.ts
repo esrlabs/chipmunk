@@ -127,7 +127,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
         if (this.scope === undefined) {
             return undefined;
         }
-        let controller: ControllerColumns | undefined = this.scope.get(CControllerColumnsKey);
+        let controller: ControllerColumns | undefined = this.scope.get<ControllerColumns>(CControllerColumnsKey);
         if (!(controller instanceof ControllerColumns)) {
             controller = new ControllerColumns(
                 this.api.getDefaultWidths(),

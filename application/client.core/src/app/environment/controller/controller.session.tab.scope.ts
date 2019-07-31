@@ -1,21 +1,45 @@
-import { Observable, Subject } from 'rxjs';
-import * as Toolkit from 'logviewer.client.toolkit';
+import { Subject } from 'rxjs';
+
+export interface IRowNumberWidthData {
+    rank: number;
+    width: number;
+    onChanged: Subject<void>;
+}
 
 export class ControllerSessionScope {
+
+    public static Keys = {
+        CRowNumberWidth: 'CRowNumberWidth',
+        CViewState: 'CViewState',
+    };
 
     private _sessionId: string;
     private _scope: Map<string, any> = new Map();
 
     constructor(sessionId: string) {
         this._sessionId = sessionId;
+        this._defaults();
     }
 
-    public set(key: string, value: any) {
-        this._scope.set(key, value);
+    public set<T>(key: string, value: T, overwrite: boolean = true) {
+        if (!overwrite) {
+            const stored: T | undefined = this.get(key);
+            this._scope.set(key, Object.assign(stored !== undefined ? stored : {}, value));
+        } else {
+            this._scope.set(key, value);
+        }
     }
 
-    public get(key: string): any {
+    public get<T>(key: string): T | undefined {
         return this._scope.get(key);
+    }
+
+    private _defaults() {
+        this.set<IRowNumberWidthData>(ControllerSessionScope.Keys.CRowNumberWidth, {
+            width: 0,
+            rank: 0,
+            onChanged: new Subject(),
+        });
     }
 
 }
