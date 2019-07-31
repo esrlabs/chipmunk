@@ -19,8 +19,6 @@ use std::fmt;
 use std::fmt::{Formatter};
 use std::io;
 use std::io::{Error};
-use chrono::Datelike;
-use chrono::Timelike;
 use serde::Serialize;
 
 use proptest_derive::Arbitrary;
@@ -41,17 +39,8 @@ impl fmt::Display for DltTimeStamp {
         match naive {
             Some(n) => {
                 let datetime: DateTime<Utc> = DateTime::from_utc(n, Utc);
-                write!(
-                    f,
-                    "{}/{}/{} {}:{}:{} {}",
-                    datetime.year(),
-                    datetime.month0(),
-                    datetime.day0(),
-                    datetime.hour(),
-                    datetime.minute(),
-                    datetime.second(),
-                    datetime.timezone(),
-                )
+                let system_time: std::time::SystemTime = std::time::SystemTime::from(datetime);
+                write!(f, "{}", humantime::format_rfc3339(system_time))
             }
             None => write!(
                 f,

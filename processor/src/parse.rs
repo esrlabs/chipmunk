@@ -1,8 +1,20 @@
+// Copyright (c) 2019 E.S.R.Labs. All rights reserved.
+//
+// NOTICE:  All information contained herein is, and remains
+// the property of E.S.R.Labs and its suppliers, if any.
+// The intellectual and technical concepts contained herein are
+// proprietary to E.S.R.Labs and its suppliers and may be covered
+// by German and Foreign Patents, patents in process, and are protected
+// by trade secret or copyright law.
+// Dissemination of this information or reproduction of this material
+// is strictly forbidden unless prior written permission is obtained
+// from E.S.R.Labs.
 use indexer_base::timedline::TimedLine;
 use indexer_base::error_reporter::*;
 use chrono::{NaiveDate, NaiveDateTime, Utc, Datelike};
 use std::borrow::Cow;
 use nom::bytes::complete::tag;
+use humantime::*;
 
 use nom::character::complete::{char, digit1};
 use nom::combinator::{map, map_res, opt};
@@ -414,6 +426,19 @@ pub fn line_to_timed_line(
     }
 }
 
+pub fn detect_timestamp_in_string(input: &str) -> Result<std::time::SystemTime, failure::Error> {
+    match parse_rfc3339_weak(input) {
+        Ok(d) => Ok(d),
+        Err(e) => {
+            report_warning(format!("could not parse timestamp: {}", e));
+
+            Err(failure::err_msg(format!(
+                "could not parse timestamp: {}",
+                e
+            )))
+        }
+    }
+}
 #[allow(dead_code)]
 pub fn detect_timestamp_format(
     path: &Path,

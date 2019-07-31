@@ -1,3 +1,14 @@
+// Copyright (c) 2019 E.S.R.Labs. All rights reserved.
+//
+// NOTICE:  All information contained herein is, and remains
+// the property of E.S.R.Labs and its suppliers, if any.
+// The intellectual and technical concepts contained herein are
+// proprietary to E.S.R.Labs and its suppliers and may be covered
+// by German and Foreign Patents, patents in process, and are protected
+// by trade secret or copyright law.
+// Dissemination of this information or reproduction of this material
+// is strictly forbidden unless prior written permission is obtained
+// from E.S.R.Labs.
 extern crate processor;
 extern crate indexer_base;
 extern crate dlt;
@@ -17,6 +28,7 @@ use clap::{App, Arg, SubCommand};
 use std::fs;
 use std::path;
 use std::time::Instant;
+use processor::parse::detect_timestamp_in_string;
 
 fn main() {
     let start = Instant::now();
@@ -164,6 +176,19 @@ fn main() {
                 ),
         )
         .subcommand(
+            SubCommand::with_name("discover")
+                .about("test date discovery")
+                .arg(
+                    Arg::with_name("input-string")
+                        .short("i")
+                        .help("string to extract date from")
+                        .long("input")
+                        .value_name("INPUT")
+                        .required(true)
+                        .index(1),
+                ),
+        )
+        .subcommand(
             SubCommand::with_name("dlt")
                 .about("handling dtl input")
                 .arg(
@@ -259,6 +284,8 @@ fn main() {
         handle_dlt_subcommand(matches, start, use_stderr_for_status_updates)
     } else if let Some(matches) = matches.subcommand_matches("dlt-stats") {
         handle_dlt_stats_subcommand(matches, start, use_stderr_for_status_updates)
+    } else if let Some(matches) = matches.subcommand_matches("discover") {
+        handle_discover_subcommand(matches)
     }
 
     fn handle_index_subcommand(
@@ -534,6 +561,17 @@ fn main() {
             std::process::exit(0)
         }
     }
+
+    fn handle_discover_subcommand(matches: &clap::ArgMatches) {
+        let test_string = matches
+            .value_of("input-string")
+            .expect("input must be present");
+        match detect_timestamp_in_string(test_string) {
+            Ok(timestamp) => println!("detected timestamp: {:?}", timestamp),
+            Err(e) => println!("no timestamp found in {} ({})", test_string, e),
+        }
+    }
+
     fn handle_dlt_stats_subcommand(
         matches: &clap::ArgMatches,
         start: std::time::Instant,

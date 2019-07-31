@@ -1,3 +1,14 @@
+// Copyright (c) 2019 E.S.R.Labs. All rights reserved.
+//
+// NOTICE:  All information contained herein is, and remains
+// the property of E.S.R.Labs and its suppliers, if any.
+// The intellectual and technical concepts contained herein are
+// proprietary to E.S.R.Labs and its suppliers and may be covered
+// by German and Foreign Patents, patents in process, and are protected
+// by trade secret or copyright law.
+// Dissemination of this information or reproduction of this material
+// is strictly forbidden unless prior written permission is obtained
+// from E.S.R.Labs.
 use failure::Error;
 use std::char;
 use std::fmt::Display;
@@ -8,9 +19,7 @@ use std::str;
 use crate::error_reporter;
 
 pub const ROW_NUMBER_SENTINAL: char = '\u{0002}';
-// pub const ROW_NUMBER_SENTINAL_SLICE: &[u8] = &[0x2];
 pub const PLUGIN_ID_SENTINAL: char = '\u{0003}';
-// pub const PLUGIN_ID_SENTINAL_SLICE: &[u8] = &[0x3];
 pub const SENTINAL_LENGTH: usize = 1;
 const PEEK_END_SIZE: usize = 12;
 
@@ -32,7 +41,6 @@ pub fn create_tagged_line_d<T: Display>(
     with_newline: bool,
 ) -> std::io::Result<usize> {
     let s = format!(
-        // out_buffer,
         "{}{}{}{}{}{}{}{}",
         trimmed_line, //trimmed_line,
         PLUGIN_ID_SENTINAL,
@@ -55,15 +63,6 @@ pub fn create_tagged_line(
     line_nr: usize,
     with_newline: bool,
 ) -> std::io::Result<usize> {
-    // // let line_tag = &[trimmed_line, tag].join([PLUGIN_ID_SENTINAL]);
-    // let v: &[u8] = &[0x3];
-    // let mut tmp = [0; 4];
-    // let p = PLUGIN_ID_SENTINAL.encode_utf8(&mut tmp);
-    // let mut tmp2 = [0; 4];
-    // let p2 = ROW_NUMBER_SENTINAL.encode_utf8(&mut tmp2);
-    // let nr = line_nr.to_string();
-    // // let p = unsafe { str::from_utf8_unchecked(v) };
-    // // let line_tag = &[trimmed_line, p, tag, p, p2, &nr[..], p2].join("");
     if with_newline {
         writeln!(
             out_buffer,
