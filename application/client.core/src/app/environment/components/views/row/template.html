@@ -1,16 +1,18 @@
 <div *ngIf="_ng_isPending() === false" [attr.class]="'wrapper noreset ' + (_ng_bookmarked ? 'bookmarked' : '')" (contextmenu)="_ng_onContextMenu($event)">
-    <span   class="source-name" 
-            *ngIf="_ng_source" 
-            (click)="_ng_onToggleSource()">{{_ng_sourceName}}</span>
-    <span   class="source-alias" 
-            *ngIf="!_ng_source" 
-            [ngStyle]="{'background': _ng_sourceColor}"
-            [attr.data-source-name]="_ng_sourceName"
-            (click)="_ng_onToggleSource()"></span>
-    <span #numbernode class="number" (click)="_ng_onNumberClick()"><span class="filler">{{_ng_number_filler}}</span>{{_ng_number}}{{_ng_numberDelimiter}}</span>
-    <span   class="error fas fa-exclamation-circle" 
-            *ngIf="_ng_error !== undefined"
-            [attr.title]="_ng_error"></span>
+    <div class="container" #numbernode>
+        <span   class="source-name" 
+                *ngIf="_ng_source" 
+                (click)="_ng_onToggleSource()">{{_ng_sourceName}}</span>
+        <span   class="source-alias" 
+                *ngIf="!_ng_source" 
+                [ngStyle]="{'background': _ng_sourceColor}"
+                [attr.data-source-name]="_ng_sourceName"
+                (click)="_ng_onToggleSource()"></span>
+        <span class="number" (click)="_ng_onNumberClick()"><span class="filler">{{_ng_number_filler}}</span>{{_ng_number}}{{_ng_numberDelimiter}}</span>
+        <span   class="error fas fa-exclamation-circle" 
+                *ngIf="_ng_error !== undefined"
+                [attr.title]="_ng_error"></span>
+    </div>
     <app-views-output-row-standard
         #rendercomp  
         *ngIf="_ng_render === 'standard'"
@@ -46,9 +48,11 @@
         (click)="_ng_onRowSelect()"></app-views-output-row-external>
 </div>
 <div *ngIf="_ng_isPending() === true" [attr.class]="'wrapper noreset ' + (_ng_bookmarked ? 'bookmarked' : '')">
-    <span class="source-name" *ngIf="_ng_source">n/d</span>
-    <span class="source-alias" *ngIf="!_ng_source"></span>
-    <span class="number"><span class="filler">{{_ng_number_filler}}</span>{{_ng_number}}</span>
+    <div class="container">
+        <span class="source-name" *ngIf="_ng_source">n/d</span>
+        <span class="source-alias" *ngIf="!_ng_source"></span>
+        <span class="number"><span class="filler">{{_ng_number_filler}}</span>{{_ng_number}}</span>
+    </div>
     <p class="row pending"><span></span></p>
 </div>
     

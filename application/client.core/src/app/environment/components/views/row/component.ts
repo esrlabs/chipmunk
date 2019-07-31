@@ -319,13 +319,13 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
             if (size.width === 0) {
                 return;
             }
-            if (info !== undefined && (info.width - 21.05) >= size.width) {
+            if (info !== undefined && info.width >= size.width) {
                 // Node isn't updated yet
                 return;
             }
             this.scope.set(CRowNumberWidthKey, {
                 rank: this.rank,
-                width: size.width + 21.05
+                width: size.width
             });
         }
     }

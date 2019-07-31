@@ -12,98 +12,118 @@
     cursor: text;
     & div.wrapper{
         position: relative;
-        & span.error {
-            position: absolute;
-            display: inline-block;
-            top: 2px;
-            margin-left: -14px;
-            color: @scheme-color-warning;
-            font-size: 10px;
-            line-height: 10px;
-        }
-        & span.source-name {
+        white-space: nowrap;
+        & div.container{
             display: inline-block;
             position: relative;
-            font-family: 'console', monospace;
-            width: 5rem;
-            overflow: hidden;
-            line-height: 16px;
-            height: 16px;
-            max-height: 16px;
-            font-size: 10px;
-            vertical-align: top;
-            user-select: none;
-            cursor: pointer;
-        }
-        & span.source-alias {
-            display: inline-block;
-            position: relative;
-            width: 4px;
-            line-height: 16px;
-            height: 16px;
-            max-height: 16px;
-            vertical-align: top;
-            user-select: none;
-            cursor: pointer;
-            &::after{
-                background: inherit;
+            white-space: nowrap;
+            & span.error {
                 position: absolute;
-                display: block;
-                height: 100%;
-                top:0;
-                width: 0;
-                left: 100%;
-                content: attr(data-source-name);
-                cursor: default;
-                overflow: hidden;
-                z-index: 1;
-                font-size: 0.8rem;
-                line-height: 0.9rem;
-                color: @scheme-color-6;
-                padding: 0 0.5rem;
-                opacity: 0;
+                display: inline-block;
+                top: 2px;
+                margin-left: -14px;
+                color: @scheme-color-warning;
+                font-size: 10px;
+                line-height: 10px;
             }
-            &:hover{
+            & span.source-name {
+                display: inline-block;
+                position: relative;
+                font-family: 'console', monospace;
+                width: 5rem;
+                overflow: hidden;
+                line-height: 16px;
+                height: 16px;
+                max-height: 16px;
+                font-size: 10px;
+                vertical-align: top;
+                user-select: none;
+                cursor: pointer;
+            }
+            & span.source-alias {
+                display: inline-block;
+                position: relative;
+                width: 4px;
+                line-height: 16px;
+                height: 16px;
+                max-height: 16px;
+                vertical-align: top;
+                user-select: none;
+                cursor: pointer;
                 &::after{
-                    width: auto;
-                    opacity: 1;
+                    background: inherit;
+                    position: absolute;
+                    display: block;
+                    height: 100%;
+                    top:0;
+                    width: 0;
+                    left: 100%;
+                    content: attr(data-source-name);
+                    cursor: default;
+                    overflow: hidden;
+                    z-index: 1;
+                    font-size: 0.8rem;
+                    line-height: 0.9rem;
+                    color: @scheme-color-6;
+                    padding: 0 0.5rem;
+                    opacity: 0;
+                }
+                &:hover{
+                    &::after{
+                        width: auto;
+                        opacity: 1;
+                    }
                 }
             }
-        }
-        & span.number{
-            display: inline-block;
-            position: relative;
-            font-family: 'console', monospace;
-            font-variant-numeric: tabular-nums;
-            overflow: hidden;
-            line-height: 16px;
-            height: 16px;
-            max-height: 16px;
-            font-size: 13px;
-            vertical-align: top;
-            margin: 0 8px;
-            padding: 0 8px 0 0;
-            border-right: thin @scheme-color-4 solid;
-            cursor: default;
-            user-select: none;
-            & span.filler{
-                color: @scheme-color-4;
+            & span.number{
+                display: inline-block;
+                position: relative;
+                font-family: 'console', monospace;
                 font-variant-numeric: tabular-nums;
+                overflow: hidden;
                 line-height: 16px;
                 height: 16px;
                 max-height: 16px;
                 font-size: 13px;
-                font-family: 'console', monospace;
+                vertical-align: top;
+                margin: 0 8px;
+                padding: 0 8px 0 0;
+                border-right: thin @scheme-color-4 solid;
+                cursor: default;
+                user-select: none;
+                & span.filler{
+                    color: @scheme-color-4;
+                    font-variant-numeric: tabular-nums;
+                    line-height: 16px;
+                    height: 16px;
+                    max-height: 16px;
+                    font-size: 13px;
+                    font-family: 'console', monospace;
+                }
+                &:hover::after{
+                    position: absolute;
+                    display: block;
+                    content: '';
+                    top:0;
+                    bottom: 0;
+                    right: 0;
+                    width: 4px;
+                    .gradient(linear; @scheme-color-2, lighten(@scheme-color-2, 4%));
+                }
             }
-            &:hover::after{
-                position: absolute;
-                display: block;
-                content: '';
-                top:0;
-                bottom: 0;
-                right: 0;
-                width: 4px;
-                .gradient(linear; @scheme-color-2, lighten(@scheme-color-2, 4%));
+            &.bookmarked {
+                & span.number {
+                    &::after{
+                        position: absolute;
+                        display: block;
+                        content: '';
+                        top:0;
+                        bottom: 0;
+                        right: 0;
+                        width: 4px;
+                        background: @scheme-color-accent;
+                    }
+                }
             }
         }
         & p.row {
@@ -123,20 +143,6 @@
                 line-height: 10px;
                 height: 10px;
                 max-height: 10px;
-            }
-        }
-        &.bookmarked {
-            & span.number {
-                &::after{
-                    position: absolute;
-                    display: block;
-                    content: '';
-                    top:0;
-                    bottom: 0;
-                    right: 0;
-                    width: 4px;
-                    background: @scheme-color-accent;
-                }
             }
         }
     }
