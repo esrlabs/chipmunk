@@ -22,7 +22,7 @@
     "webpack-cli": "^3.1.2"
   },
   "dependencies": {
-    "logviewer.client.toolkit": "latest"
+    "logviewer.client.toolkit": "0.0.62"
   },
   "repository": {
     "type": "git",

@@ -120,7 +120,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
                 pluginId: this.pluginId,
                 source: this.source,
                 position: this.position,
-                match: (matches.color !== undefined) || (matches.background !== undefined),
+                hasOwnStyles: (matches.color !== undefined) || (matches.background !== undefined),
             });
             return {
                 html: this._sanitizer.bypassSecurityTrustHtml(matches.str),

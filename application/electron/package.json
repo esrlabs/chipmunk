@@ -46,7 +46,7 @@
     "@types/moment-timezone": "^0.5.12",
     "@types/tar": "^4.0.0",
     "dltreader": "latest",
-    "logviewer.lvin": "latest",
+    "logviewer.lvin": "0.0.51",
     "moment-timezone": "^0.5.25",
     "tar": "^4.4.8",
     "uuid": "latest",
