@@ -4,6 +4,8 @@ export interface IRowNumberWidthData {
     rank: number;
     width: number;
     onChanged: Subject<void>;
+    onSizeRequested: Subject<void>;
+    checked: boolean;
 }
 
 export class ControllerSessionScope {
@@ -39,6 +41,8 @@ export class ControllerSessionScope {
             width: 0,
             rank: 0,
             onChanged: new Subject(),
+            onSizeRequested: new Subject(),
+            checked: false,
         });
     }
 

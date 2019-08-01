@@ -116,6 +116,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         this._subscriptions.onAddedBookmark = this.bookmarks.getObservable().onAdded.subscribe(this._onAddedBookmark.bind(this));
         this._subscriptions.onRemovedBookmark = this.bookmarks.getObservable().onRemoved.subscribe(this._onRemovedBookmark.bind(this));
         this._subscriptions.onSourceChange = this.sources.getObservable().onChanged.subscribe(this._onSourceChange.bind(this));
+        this._subscriptions.onSizeRequested = this.scope.get<IRowNumberWidthData>(ControllerSessionScope.Keys.CRowNumberWidth).onSizeRequested.asObservable().subscribe(this._onSizeRequested.bind(this));
     }
 
     public ngAfterContentChecked() {
@@ -300,7 +301,21 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         });
     }
 
-    private _checkNumberNodeWidth() {
+    private _onSizeRequested() {
+        const info: IRowNumberWidthData | undefined = this.scope.get(ControllerSessionScope.Keys.CRowNumberWidth);
+        if (info === undefined) {
+            return;
+        }
+        if (info.checked) {
+            return;
+        }
+        this.scope.set<any>(ControllerSessionScope.Keys.CRowNumberWidth, {
+            checked: true,
+        }, false);
+        this._checkNumberNodeWidth(true);
+    }
+
+    private _checkNumberNodeWidth(force: boolean = false) {
         if (this.numbernode === undefined) {
             return;
         }
@@ -311,15 +326,11 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         if (info === undefined) {
             return;
         }
-        if (info.rank === this.rank && info.width !== 0) {
+        if (info.rank === this.rank && info.width !== 0 && !force) {
             return;
         }
         const size: ClientRect = (this.numbernode.nativeElement as HTMLElement).getBoundingClientRect();
-        if (size.width === 0) {
-            return;
-        }
-        if (info !== undefined && info.width === size.width) {
-            // Node isn't updated yet
+        if (size.width === 0 || info.width === size.width) {
             return;
         }
         this.scope.set<any>(ControllerSessionScope.Keys.CRowNumberWidth, {
