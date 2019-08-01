@@ -103,8 +103,6 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
             }
             // Rid of HTML
             column = OutputParsersService.serialize(column);
-            // Apply plugin parser
-            column = OutputParsersService.row(column, this.pluginId, this.source, this.position);
             // Apply search matches parser
             const matches = OutputParsersService.matches(this.sessionId, this.position, column);
             if (this.background === undefined || this.color === undefined) {
@@ -116,6 +114,14 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
                     this.background = SourcesService.getSourceShadowColor(this.pluginId);
                 }
             }
+            // Apply plugin parser
+            column = OutputParsersService.row({
+                str: column,
+                pluginId: this.pluginId,
+                source: this.source,
+                position: this.position,
+                match: (matches.color !== undefined) || (matches.background !== undefined),
+            });
             return {
                 html: this._sanitizer.bypassSecurityTrustHtml(matches.str),
                 index: index,

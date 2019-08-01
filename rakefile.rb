@@ -84,16 +84,20 @@ end
 desc "full update"
 task :update do
   cd "application/client.core" do
-    sh "npm update logviewer.client.toolkit"
+    sh "npm uninstall logviewer.client.toolkit"
+    sh "npm install logviewer.client.toolkit@latest"
   end
   cd "application/client.plugins" do
-    sh "npm update logviewer.client.toolkit"
+    sh "npm uninstall logviewer.client.toolkit"
+    sh "npm install logviewer.client.toolkit@latest"
   end
   cd "application/client.plugins.standalone/row.parser.ascii" do
-    sh "npm update logviewer.client.toolkit"
+    sh "npm uninstall logviewer.client.toolkit"
+    sh "npm install logviewer.client.toolkit@latest"
   end
   cd "application/electron" do
-    sh "npm update logviewer.lvin"
+    sh "npm uninstall logviewer.lvin"
+    sh "npm install logviewer.lvin@latest"
   end
   cd "application" do
     sh "jake client:all --skip-npm"

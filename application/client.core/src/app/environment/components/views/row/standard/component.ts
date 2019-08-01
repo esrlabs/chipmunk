@@ -37,13 +37,19 @@ export class ViewOutputRowStandardComponent extends AOutputRenderComponent imple
         let html = this.str;
         // Rid of HTML
         html = OutputParsersService.serialize(html);
-        // Apply plugin parser
-        html = OutputParsersService.row(html, this.pluginId, this.source, this.position);
         // Apply search matches parser
         const matches = OutputParsersService.matches(this.sessionId, this.position, html);
         html = matches.str;
         this.color = matches.color;
         this.background = matches.background;
+        // Apply plugin parser html, this.pluginId, this.source, this.position
+        html = OutputParsersService.row({
+            str: html,
+            pluginId: this.pluginId,
+            source: this.source,
+            position: this.position,
+            match: (matches.color !== undefined) || (matches.background !== undefined),
+        });
         // Apply colors for sources (if more than 1)
         const countOfSessionSources: number = SourcesService.getCountOfSource(this.sessionId);
         if (this.background === undefined && countOfSessionSources > 1) {

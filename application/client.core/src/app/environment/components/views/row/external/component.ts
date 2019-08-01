@@ -80,13 +80,19 @@ export class ViewOutputRowExternalComponent extends AOutputRenderComponent imple
     private _getHTML(str: string): string {
         // Rid of HTML
         str = OutputParsersService.serialize(str);
-        // Apply plugin parser
-        str = OutputParsersService.row(str, this.pluginId, this.source, this.position);
         // Apply search matches parser
         const matches = OutputParsersService.matches(this.sessionId, this.position, str);
         // Set colors
         this.color = matches.color;
         this.background = matches.background;
+        // Apply plugin parser
+        str = OutputParsersService.row({
+            str: str,
+            pluginId: this.pluginId,
+            source: this.source,
+            position: this.position,
+            match: (matches.color !== undefined) || (matches.background !== undefined),
+        });
         // Apply colors for sources (if more than 1)
         const countOfSessionSources: number = SourcesService.getCountOfSource(this.sessionId);
         if (this.background === undefined && countOfSessionSources > 1) {

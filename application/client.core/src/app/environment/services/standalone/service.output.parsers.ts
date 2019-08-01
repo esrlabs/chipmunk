@@ -11,6 +11,14 @@ export interface IRequest {
     background: string | undefined;
 }
 
+export interface IRow {
+    str: string;
+    pluginId?: number;
+    source?: string;
+    position?: number;
+    match?: boolean;
+}
+
 export class OutputParsersService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('OutputParsersService');
@@ -97,27 +105,28 @@ export class OutputParsersService {
         return this._getTypedRowRenderBySource(sourceName);
     }
 
-    public row(str: string, pluginId: number | undefined, source: string | undefined, position: number | undefined): string {
+    public row(row: IRow): string {
         const rowInfo: Toolkit.IRowInfo = {
-            sourceName: source,
-            position: position,
+            sourceName: row.source,
+            position: row.position,
+            match: row.match,
         };
         // Apply bound parsers
-        const bound: Toolkit.ARowBoundParser | undefined = this._parsers.bound.get(pluginId);
+        const bound: Toolkit.ARowBoundParser | undefined = this._parsers.bound.get(row.pluginId);
         if (bound !== undefined) {
-            str = bound.parse(str, Toolkit.EThemeType.dark, rowInfo);
+            row.str = bound.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
         }
         // Apply typed parser
         this._parsers.typed.forEach((typed: Toolkit.ARowTypedParser) => {
-            if (typed.isTypeMatch(source)) {
-                str = typed.parse(str, Toolkit.EThemeType.dark, rowInfo);
+            if (typed.isTypeMatch(row.source)) {
+                row.str = typed.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
             }
         });
         // Apply common parser
         this._parsers.common.forEach((common: Toolkit.ARowCommonParser) => {
-            str = common.parse(str, Toolkit.EThemeType.dark, rowInfo);
+            row.str = common.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
         });
-        return str;
+        return row.str;
     }
 
     public matches(sessionId: string, row: number, str: string): { str: string, color?: string, background?: string } {
@@ -161,6 +170,10 @@ export class OutputParsersService {
             color: first === undefined ? undefined : (first.color === CColors[0] ? undefined : first.color),
             background: first === undefined ? undefined : (first.background === CColors[0] ? undefined : first.background)
         };
+    }
+
+    public escapeHTML(html: string): string {
+        return html.replace(/<.*?>/gi, '');
     }
 
     public updateRowsView() {
