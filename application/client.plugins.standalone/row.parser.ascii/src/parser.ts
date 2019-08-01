@@ -38,7 +38,8 @@ const REGS = {
 
 export class ASCIIColorsParser extends Toolkit.ARowCommonParser {
 
-    public parse(str: string, themeTypeRef: Toolkit.EThemeType): string {
+    public parse(str: string, themeTypeRef: Toolkit.EThemeType, row: Toolkit.IRowInfo): string {
+        console.log(row);
         const themeType: number[] | undefined = CBlockedStyles[themeTypeRef] === undefined ? [] : CBlockedStyles[themeTypeRef];
         const parts: RegExpMatchArray | null = str.match(REGS.COLORS);
         if (parts instanceof Array && parts.length > 1) {
