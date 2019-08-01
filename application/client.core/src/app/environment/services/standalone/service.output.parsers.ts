@@ -16,7 +16,7 @@ export interface IRow {
     pluginId?: number;
     source?: string;
     position?: number;
-    match?: boolean;
+    hasOwnStyles?: boolean;
 }
 
 export class OutputParsersService {
@@ -109,7 +109,7 @@ export class OutputParsersService {
         const rowInfo: Toolkit.IRowInfo = {
             sourceName: row.source,
             position: row.position,
-            match: row.match,
+            hasOwnStyles: row.hasOwnStyles,
         };
         // Apply bound parsers
         const bound: Toolkit.ARowBoundParser | undefined = this._parsers.bound.get(row.pluginId);

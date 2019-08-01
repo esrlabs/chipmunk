@@ -91,7 +91,7 @@ export class ViewOutputRowExternalComponent extends AOutputRenderComponent imple
             pluginId: this.pluginId,
             source: this.source,
             position: this.position,
-            match: (matches.color !== undefined) || (matches.background !== undefined),
+            hasOwnStyles: (matches.color !== undefined) || (matches.background !== undefined),
         });
         // Apply colors for sources (if more than 1)
         const countOfSessionSources: number = SourcesService.getCountOfSource(this.sessionId);
