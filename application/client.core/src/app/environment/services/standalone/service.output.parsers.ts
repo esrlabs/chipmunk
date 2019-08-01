@@ -158,8 +158,8 @@ export class OutputParsersService {
         }
         return {
             str: str,
-            color: first === undefined ? undefined : first.color,
-            background: first === undefined ? undefined : first.background
+            color: first === undefined ? undefined : (first.color === CColors[0] ? undefined : first.color),
+            background: first === undefined ? undefined : (first.background === CColors[0] ? undefined : first.background)
         };
     }
 

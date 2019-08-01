@@ -86,7 +86,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
     public _ng_getStyles(key: number): { [key: string]: string } {
         return {
             width: `${this._columns[key].width}px`,
-            color: this.color === undefined ? this._columns[key].color : undefined,
+            color: this.color === undefined ? this._columns[key].color : this.color,
         };
     }
 
