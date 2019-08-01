@@ -87,7 +87,7 @@ export class SidebarAppParsingComponent implements OnDestroy, AfterContentInit, 
 
     private _getSelection(str: string): SafeHtml {
         // Apply plugin parser
-        str = OutputParsersService.row({ str: str });
+        str = OutputParsersService.row({ str: str, source: 'details', hasOwnStyles: false });
         return this._sanitizer.bypassSecurityTrustHtml(str);
     }
 
