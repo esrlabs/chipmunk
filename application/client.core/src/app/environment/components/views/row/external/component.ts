@@ -81,7 +81,7 @@ export class ViewOutputRowExternalComponent extends AOutputRenderComponent imple
         // Rid of HTML
         str = OutputParsersService.serialize(str);
         // Apply plugin parser
-        str = OutputParsersService.row(str, this.pluginId, this.source);
+        str = OutputParsersService.row(str, this.pluginId, this.source, this.position);
         // Apply search matches parser
         const matches = OutputParsersService.matches(this.sessionId, this.position, str);
         // Set colors

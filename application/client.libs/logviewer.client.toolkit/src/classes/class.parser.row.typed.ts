@@ -1,4 +1,5 @@
 import { EThemeType } from '../consts/enums';
+import { IRowInfo } from '../interfaces/row';
 
 const CSignature = 'ARowTypedParser';
 
@@ -18,7 +19,7 @@ export abstract class ARowTypedParser {
         return smth.getClassSignature() === CSignature;
     }
 
-    public abstract parse(str: string, themeTypeRef: EThemeType): string;
+    public abstract parse(str: string, themeTypeRef: EThemeType, row: IRowInfo): string;
     public abstract isTypeMatch(sourceName: string): boolean;
 
 }

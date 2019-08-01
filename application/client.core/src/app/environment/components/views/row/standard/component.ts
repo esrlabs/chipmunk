@@ -38,7 +38,7 @@ export class ViewOutputRowStandardComponent extends AOutputRenderComponent imple
         // Rid of HTML
         html = OutputParsersService.serialize(html);
         // Apply plugin parser
-        html = OutputParsersService.row(html, this.pluginId, this.source);
+        html = OutputParsersService.row(html, this.pluginId, this.source, this.position);
         // Apply search matches parser
         const matches = OutputParsersService.matches(this.sessionId, this.position, html);
         html = matches.str;

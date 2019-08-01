@@ -97,21 +97,25 @@ export class OutputParsersService {
         return this._getTypedRowRenderBySource(sourceName);
     }
 
-    public row(str: string, pluginId: number | undefined, source: string | undefined): string {
+    public row(str: string, pluginId: number | undefined, source: string | undefined, position: number | undefined): string {
+        const rowInfo: Toolkit.IRowInfo = {
+            sourceName: source,
+            position: position,
+        };
         // Apply bound parsers
         const bound: Toolkit.ARowBoundParser | undefined = this._parsers.bound.get(pluginId);
         if (bound !== undefined) {
-            str = bound.parse(str, Toolkit.EThemeType.dark);
+            str = bound.parse(str, Toolkit.EThemeType.dark, rowInfo);
         }
         // Apply typed parser
         this._parsers.typed.forEach((typed: Toolkit.ARowTypedParser) => {
             if (typed.isTypeMatch(source)) {
-                str = typed.parse(str, Toolkit.EThemeType.dark);
+                str = typed.parse(str, Toolkit.EThemeType.dark, rowInfo);
             }
         });
         // Apply common parser
         this._parsers.common.forEach((common: Toolkit.ARowCommonParser) => {
-            str = common.parse(str, Toolkit.EThemeType.dark);
+            str = common.parse(str, Toolkit.EThemeType.dark, rowInfo);
         });
         return str;
     }

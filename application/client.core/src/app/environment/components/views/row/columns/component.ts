@@ -104,7 +104,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
             // Rid of HTML
             column = OutputParsersService.serialize(column);
             // Apply plugin parser
-            column = OutputParsersService.row(column, this.pluginId, this.source);
+            column = OutputParsersService.row(column, this.pluginId, this.source, this.position);
             // Apply search matches parser
             const matches = OutputParsersService.matches(this.sessionId, this.position, column);
             if (this.background === undefined || this.color === undefined) {
