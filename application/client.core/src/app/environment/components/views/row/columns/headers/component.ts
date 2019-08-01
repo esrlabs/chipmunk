@@ -63,11 +63,11 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
         this._subscriptions.onHorScrollOffset = this.output.getObservable().onHorScrollOffset.subscribe(this._onHorScrollOffset.bind(this));
         this._subscriptions.onResized = this.controller.getObservable().onResized.subscribe(this._onResized.bind(this));
         this._subscriptions.onUpdated = this.controller.getObservable().onUpdated.subscribe(this._onUpdated.bind(this));
-        this._subscriptions.onRankChanged = this.output.getObservable().onRankChanged.subscribe(this._onRankChanged.bind(this));
         this._columns = this.controller.getColumns();
         this._setColumns();
         this._getOffset();
         this._forceUpdate();
+        this._requestOffset();
     }
 
     public ngAfterContentInit() {
@@ -184,8 +184,14 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
         this._forceUpdate();
     }
 
-    private _onRankChanged() {
-        this._getOffset();
+    private _requestOffset() {
+        setTimeout(() => {
+            const info: IRowNumberWidthData | undefined = this.scope.get<IRowNumberWidthData>(ControllerSessionScope.Keys.CRowNumberWidth);
+            if (info === undefined) {
+                return;
+            }
+            info.onSizeRequested.next();
+        }, 500);
     }
 
     private _forceUpdate() {
@@ -194,6 +200,5 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
         }
         this._cdRef.detectChanges();
     }
-
 
 }
