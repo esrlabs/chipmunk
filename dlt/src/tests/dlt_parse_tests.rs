@@ -56,9 +56,9 @@ mod tests {
             0x00, 0x29, 0x00,
         ];
         let res1: IResult<&[u8], Option<dlt::Message>> =
-            dlt_message(&raw1[..], None);
+            dlt_message(&raw1[..], None, None);
         println!("res1 was: {:?}", res1);
-        let res2: IResult<&[u8], Option<dlt::Message>> = dlt_message(&raw2[..], None);
+        let res2: IResult<&[u8], Option<dlt::Message>> = dlt_message(&raw2[..], None, None);
         println!("res was: {:?}", res2);
     }
 

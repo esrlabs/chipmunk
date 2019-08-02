@@ -14,7 +14,6 @@ use indexer_base::error_reporter::*;
 use chrono::{NaiveDate, NaiveDateTime, Utc, Datelike};
 use std::borrow::Cow;
 use nom::bytes::complete::tag;
-use humantime::*;
 
 use nom::character::complete::{char, digit1};
 use nom::combinator::{map, map_res, opt};
@@ -32,6 +31,19 @@ use std::path::{Path, PathBuf};
 
 const LINES_TO_INSPECT: usize = 10;
 const LINE_DETECTION_THRESHOLD: usize = 5;
+
+lazy_static! {
+    static ref REGEX_REGISTRY: Vec<Regex> = {
+        let mut m = Vec::new();
+        m.push(date_format_str_to_regex("YYYY-MM-DD hh:mm:ss.s TZD").unwrap());
+        m.push(date_format_str_to_regex("YYYY-MM-DD hh:mm:ss.s").unwrap());
+        m.push(date_format_str_to_regex("YYYY-MM-DDThh:mm:ss.s TZD").unwrap());
+        m.push(date_format_str_to_regex("YYYY-MM-DDThh:mm:ss.s").unwrap());
+        m.push(date_format_str_to_regex("MM-DDThh:mm:ss.s").unwrap());
+        m.push(date_format_str_to_regex("MM-DD hh:mm:ss.s").unwrap());
+        m
+    };
+}
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum FormatPiece {
@@ -354,7 +366,9 @@ pub fn to_posix_timestamp(
 
     let timezone_n = caps.name(TIMEZONE_GROUP);
     if time_offset.is_none() && timezone_n.is_none() {
-        return Err(failure::err_msg("timestamp cannot be applied"));
+        return Err(failure::err_msg(
+            "timestamp cannot be applied, timezone not known",
+        ));
     }
     let offset_result = if time_offset.is_none() {
         parse_timezone(&caps[TIMEZONE_GROUP])
@@ -419,30 +433,31 @@ pub fn line_to_timed_line(
         Err(e) => {
             reporter.add_to_report(
                 Severity::WARNING,
-                format!("{}: could not extract timestamp: {}", line_nr, e),
+                format!("could not extract timestamp: {}", e),
             );
             Err(e)
         }
     }
 }
 
-pub fn detect_timestamp_in_string(input: &str) -> Result<std::time::SystemTime, failure::Error> {
-    match parse_rfc3339_weak(input) {
-        Ok(d) => Ok(d),
-        Err(e) => {
-            report_warning(format!("could not parse timestamp: {}", e));
-
-            Err(failure::err_msg(format!(
-                "could not parse timestamp: {}",
-                e
-            )))
+pub fn detect_timestamp_in_string(input: &str) -> Result<(i64, bool), failure::Error> {
+    for regex in REGEX_REGISTRY.iter() {
+        println!("checking...");
+        if regex.is_match(input.trim()) {
+            let timestamp = to_posix_timestamp(input, regex, None, Some(0));
+            println!(
+                "matching regex {} =>\nmatching timestamp: {:?}",
+                regex, timestamp
+            );
+            return Ok(timestamp.unwrap());
         }
     }
+    Err(failure::err_msg("no match"))
 }
-#[allow(dead_code)]
 pub fn detect_timestamp_format(
     path: &Path,
     possible_formats: &[String],
+    index: Option<usize>,
 ) -> Result<String, failure::Error> {
     let f: fs::File = fs::File::open(path)?;
     let mut reader: BufReader<&std::fs::File> = BufReader::new(&f);
@@ -497,7 +512,7 @@ pub fn detect_timestamp_format(
         }
     }
 
-    report_warning(format!("could not detect timestamp in {:?}", path));
+    report_warning_ln(format!("could not detect timestamp in {:?}", path), index);
     Err(failure::err_msg(format!(
         "could not detect timestamp in {:?}",
         path

@@ -118,7 +118,7 @@ fn dlt_standard_header(input: &[u8]) -> IResult<&[u8], dlt::StandardHeader> {
     ))
 }
 
-fn dlt_extended_header(input: &[u8]) -> IResult<&[u8], dlt::ExtendedHeader> {
+fn dlt_extended_header(input: &[u8], index: Option<usize>) -> IResult<&[u8], dlt::ExtendedHeader> {
     let (i, (message_info, argument_count, app_id, context_id)) = tuple((
         streaming::be_u8,
         streaming::be_u8,
@@ -127,7 +127,7 @@ fn dlt_extended_header(input: &[u8]) -> IResult<&[u8], dlt::ExtendedHeader> {
     ))(input)?;
 
     let verbose = (message_info & dlt::VERBOSE_FLAG) != 0;
-    match dlt::MessageType::try_from(message_info) {
+    match dlt::MessageType::try_from(message_info, index) {
         Ok(message_type) => Ok((
             i,
             dlt::ExtendedHeader {
@@ -139,7 +139,7 @@ fn dlt_extended_header(input: &[u8]) -> IResult<&[u8], dlt::ExtendedHeader> {
             },
         )),
         Err(e) => {
-            report_error(format!("Invalid message type: {}", e));
+            report_error_ln(format!("Invalid message type: {}", e), index);
             Err(nom::Err::Error((i, nom::error::ErrorKind::Verify)))
         }
     }
@@ -307,7 +307,7 @@ fn dlt_fint<T: NomByteOrder>(width: dlt::FloatWidth) -> fn(&[u8]) -> IResult<&[u
 }
 fn dlt_type_info<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], dlt::TypeInfo> {
     let (i, info) = T::parse_u32(input)?;
-    match dlt::TypeInfo::try_from(info) {
+    match dlt::TypeInfo::try_from(info, None) {
         Ok(type_info) => Ok((i, type_info)),
         Err(_) => {
             report_error(format!("dlt_type_info no type_info for 0x{:02X?}", info));
@@ -474,6 +474,10 @@ fn dlt_argument<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], dlt::Argument> 
     }
 }
 
+struct DltArgumentParser {
+    current_index: Option<usize>,
+}
+
 fn dlt_payload<T: NomByteOrder>(
     input: &[u8],
     verbose: bool,
@@ -526,11 +530,12 @@ fn dlt_payload<T: NomByteOrder>(
 pub fn dlt_message<'a>(
     input: &'a [u8],
     filter_config_opt: Option<&filtering::ProcessedDltFilterConfig>,
+    index: Option<usize>,
 ) -> IResult<&'a [u8], Option<dlt::Message>> {
     let (after_storage_and_normal_header, (storage_header, header)) =
         tuple((dlt_storage_header, dlt_standard_header))(input)?;
 
-    let payload_length = match validated_payload_length(&header) {
+    let payload_length = match validated_payload_length(&header, index) {
         Some(length) => length,
         None => {
             return Err(nom::Err::Error((
@@ -543,7 +548,7 @@ pub fn dlt_message<'a>(
     let mut verbose: bool = false;
     let mut arg_count = 0;
     let (after_headers, extended_header) = if header.has_extended_header {
-        let (rest, ext_header) = dlt_extended_header(after_storage_and_normal_header)?;
+        let (rest, ext_header) = dlt_extended_header(after_storage_and_normal_header, index)?;
         verbose = ext_header.verbose;
         arg_count = ext_header.argument_count;
         (rest, Some(ext_header))
@@ -599,20 +604,23 @@ pub fn dlt_message<'a>(
         }),
     ))
 }
-fn validated_payload_length(header: &dlt::StandardHeader) -> Option<usize> {
+fn validated_payload_length(header: &dlt::StandardHeader, index: Option<usize>) -> Option<usize> {
     let message_length = header.overall_length as usize;
     let headers_length = dlt::calculate_all_headers_length(header.header_type());
     if message_length < headers_length {
-        report_error("Invalid header length");
+        report_error_ln("Invalid header length", index);
         return None;
     }
     Some(message_length - headers_length)
 }
-pub fn dlt_app_id_context_id(input: &[u8]) -> IResult<&[u8], StatisticRowInfo> {
+pub fn dlt_app_id_context_id(
+    input: &[u8],
+    index: Option<usize>,
+) -> IResult<&[u8], StatisticRowInfo> {
     let (after_storage_and_normal_header, (_, header)) =
         tuple((dlt_storage_header, dlt_standard_header))(input)?;
 
-    let payload_length = match validated_payload_length(&header) {
+    let payload_length = match validated_payload_length(&header, index) {
         Some(length) => length,
         None => {
             return Err(nom::Err::Error((
@@ -634,7 +642,8 @@ pub fn dlt_app_id_context_id(input: &[u8]) -> IResult<&[u8], StatisticRowInfo> {
         ));
     }
 
-    let (after_headers, extended_header) = dlt_extended_header(after_storage_and_normal_header)?;
+    let (after_headers, extended_header) =
+        dlt_extended_header(after_storage_and_normal_header, index)?;
     // skip payload
     let (after_message, _) = take(payload_length)(after_headers)?;
     let level = match extended_header.message_type {
@@ -654,6 +663,7 @@ pub fn dlt_app_id_context_id(input: &[u8]) -> IResult<&[u8], StatisticRowInfo> {
 fn read_one_dlt_message<T: Read>(
     reader: &mut ReduxReader<T, MinBuffered>,
     filter_config: Option<&filtering::ProcessedDltFilterConfig>,
+    index: Option<usize>,
 ) -> Result<Option<(usize, Option<dlt::Message>)>, Error> {
     loop {
         match reader.fill_buf() {
@@ -664,7 +674,7 @@ fn read_one_dlt_message<T: Read>(
                 let available = content.len();
 
                 let res: nom::IResult<&[u8], Option<dlt::Message>> =
-                    dlt_message(content, filter_config);
+                    dlt_message(content, filter_config, index);
                 match res {
                     Ok(r) => {
                         let consumed = available - r.0.len();
@@ -738,7 +748,7 @@ pub fn index_dlt_file(
         dlt_filter.map(filtering::process_filter_config);
     loop {
         // println!("line index: {}", line_nr);
-        match read_one_dlt_message(&mut reader, filter_config.as_ref()) {
+        match read_one_dlt_message(&mut reader, filter_config.as_ref(), Some(line_nr)) {
             Ok(Some((consumed, Some(msg)))) => {
                 // println!("consumed: {}", consumed);
                 reader.consume(consumed);
@@ -926,9 +936,10 @@ pub fn get_dlt_file_info(in_file: &fs::File) -> Result<StatisticInfo, Error> {
     let mut app_ids: IdMap = FxHashMap::default();
     let mut context_ids: IdMap = FxHashMap::default();
     let mut ecu_ids: IdMap = FxHashMap::default();
+    let mut index = 0usize;
     loop {
         // println!("line index: {}", line_nr);
-        match read_one_dlt_message_info(&mut reader) {
+        match read_one_dlt_message_info(&mut reader, Some(index)) {
             Ok(Some((
                 consumed,
                 StatisticRowInfo {
@@ -966,6 +977,7 @@ pub fn get_dlt_file_info(in_file: &fs::File) -> Result<StatisticInfo, Error> {
             }
             Err(e) => return Err(err_msg(format!("error while parsing dlt messages: {}", e))),
         }
+        index += 1;
     }
     Ok(StatisticInfo {
         app_ids: app_ids
@@ -988,6 +1000,7 @@ pub struct StatisticRowInfo {
 }
 fn read_one_dlt_message_info<T: Read>(
     reader: &mut ReduxReader<T, MinBuffered>,
+    index: Option<usize>,
 ) -> Result<Option<(usize, StatisticRowInfo)>, Error> {
     loop {
         match reader.fill_buf() {
@@ -996,7 +1009,8 @@ fn read_one_dlt_message_info<T: Read>(
                     return Ok(None);
                 }
                 let available = content.len();
-                let res: nom::IResult<&[u8], StatisticRowInfo> = dlt_app_id_context_id(content);
+                let res: nom::IResult<&[u8], StatisticRowInfo> =
+                    dlt_app_id_context_id(content, index);
                 match res {
                     Ok(r) => {
                         let consumed = available - r.0.len();
@@ -1219,7 +1233,7 @@ mod tests {
         fn test_extended_header(header_to_expect: dlt::ExtendedHeader) {
             let mut header_bytes = header_to_expect.as_bytes();
             header_bytes.extend(b"----");
-            let res: IResult<&[u8], dlt::ExtendedHeader> = dlt_extended_header(&header_bytes);
+            let res: IResult<&[u8], dlt::ExtendedHeader> = dlt_extended_header(&header_bytes, None);
             let expected: IResult<&[u8], dlt::ExtendedHeader> = Ok((b"----", header_to_expect));
             assert_eq!(expected, res);
         }

@@ -474,7 +474,7 @@ impl TypeInfo {
 ///    type length ...........................................^^^^
 impl TryFrom<u32> for TypeInfo {
     type Error = Error;
-    fn try_from(info: u32) -> Result<TypeInfo, Error> {
+    fn try_from(info: u32, index: Option<usize>) -> Result<TypeInfo, Error> {
         fn type_len(info: u32) -> Result<TypeLength, Error> {
             match info & 0b1111 {
                 0x01 => Ok(TypeLength::BitLength8),
@@ -509,7 +509,7 @@ impl TryFrom<u32> for TypeInfo {
             0b010_0000 => Ok(TypeInfoKind::StringType),
             0b100_0000 => Ok(TypeInfoKind::Raw),
             v => {
-                report_warning(format!("Unknown TypeInfoKind in TypeInfo {:b}", v));
+                report_warning_ln(format!("Unknown TypeInfoKind in TypeInfo {:b}", v), index);
                 Err(Error::new(
                     io::ErrorKind::Other,
                     format!("Unknown TypeInfoKind in TypeInfo {:b}", v),
@@ -1059,8 +1059,9 @@ pub trait TryFrom<T>: Sized {
     /// The type returned in the event of a conversion error.
     type Error;
 
-    /// Performs the conversion.
-    fn try_from(value: T) -> Result<Self, Self::Error>;
+    /// Performs the conversion. optionally supply an index to identify the
+    /// dlt message in a log or stream
+    fn try_from(value: T, line_nr: Option<usize>) -> Result<Self, Self::Error>;
 }
 
 // StorageHeader
@@ -1151,16 +1152,19 @@ pub fn u8_to_log_level(v: u8) -> Option<LogLevel> {
 }
 impl TryFrom<u8> for LogLevel {
     type Error = Error;
-    fn try_from(message_info: u8) -> Result<LogLevel, Error> {
+    fn try_from(message_info: u8, index: Option<usize>) -> Result<LogLevel, Error> {
         let raw = message_info >> 4;
         let level = u8_to_log_level(raw);
         match level {
             Some(n) => Ok(n),
             None => {
-                report_warning(format!(
-                    "unexpected LogLevel: {} in message info {:b}",
-                    raw, message_info
-                ));
+                report_warning_ln(
+                    format!(
+                        "unexpected LogLevel: {} in message info {:b}",
+                        raw, message_info
+                    ),
+                    index,
+                );
                 Ok(LogLevel::Invalid(raw))
             }
         }
@@ -1181,7 +1185,7 @@ impl From<&ApplicationTraceType> for u8 {
 
 impl TryFrom<u8> for ApplicationTraceType {
     type Error = Error;
-    fn try_from(message_info: u8) -> Result<ApplicationTraceType, Error> {
+    fn try_from(message_info: u8, index: Option<usize>) -> Result<ApplicationTraceType, Error> {
         match message_info >> 4 {
             1 => Ok(ApplicationTraceType::Variable),
             2 => Ok(ApplicationTraceType::FunctionIn),
@@ -1189,7 +1193,7 @@ impl TryFrom<u8> for ApplicationTraceType {
             4 => Ok(ApplicationTraceType::State),
             5 => Ok(ApplicationTraceType::Vfb),
             _ => {
-                report_warning("Invalid ApplicationTraceType");
+                report_warning_ln("Invalid ApplicationTraceType", index);
                 Err(Error::new(
                     io::ErrorKind::Other,
                     format!("Unknown application trace type {}", message_info >> 4),
@@ -1215,10 +1219,10 @@ impl From<&NetworkTraceType> for u8 {
 
 impl TryFrom<u8> for NetworkTraceType {
     type Error = Error;
-    fn try_from(message_info: u8) -> Result<NetworkTraceType, Error> {
+    fn try_from(message_info: u8, index: Option<usize>) -> Result<NetworkTraceType, Error> {
         match message_info >> 4 {
             0 => {
-                report_warning("Unknown network trace type 0");
+                report_warning_ln("Unknown network trace type 0", index);
                 Err(Error::new(
                     io::ErrorKind::Other,
                     "Unknown network trace type 0",
@@ -1247,12 +1251,12 @@ impl From<&ControlType> for u8 {
 }
 impl TryFrom<u8> for ControlType {
     type Error = Error;
-    fn try_from(message_info: u8) -> Result<ControlType, Error> {
+    fn try_from(message_info: u8, index: Option<usize>) -> Result<ControlType, Error> {
         match message_info >> 4 {
             1 => Ok(ControlType::Request),
             2 => Ok(ControlType::Response),
             _ => {
-                report_warning(format!("Unknown control type {}", message_info >> 4));
+                report_warning_ln(format!("Unknown control type {}", message_info >> 4), index);
                 Err(Error::new(
                     io::ErrorKind::Other,
                     format!("Unknown control type {}", message_info >> 4),
@@ -1290,26 +1294,29 @@ impl From<&MessageType> for u8 {
 }
 impl TryFrom<u8> for MessageType {
     type Error = Error;
-    fn try_from(message_info: u8) -> Result<MessageType, Error> {
+    fn try_from(message_info: u8, index: Option<usize>) -> Result<MessageType, Error> {
         match (message_info >> 1) & 0b111 {
-            DLT_TYPE_LOG => Ok(MessageType::Log(LogLevel::try_from(message_info)?)),
+            DLT_TYPE_LOG => Ok(MessageType::Log(LogLevel::try_from(message_info, index)?)),
             DLT_TYPE_APP_TRACE => Ok(MessageType::ApplicationTrace(
-                ApplicationTraceType::try_from(message_info)?,
+                ApplicationTraceType::try_from(message_info, index)?,
             )),
             DLT_TYPE_NW_TRACE => Ok(MessageType::NetworkTrace(NetworkTraceType::try_from(
                 message_info,
+                index,
             )?)),
-            DLT_TYPE_CONTROL => Ok(MessageType::Control(ControlType::try_from(message_info)?)),
+            DLT_TYPE_CONTROL => Ok(MessageType::Control(ControlType::try_from(
+                message_info,
+                index,
+            )?)),
             v => {
-                report_warning(format!(
-                    "Unknown MSTP in Message Info (MSIN) {}",
-                    (message_info >> 1) & 0b111
-                ));
+                report_warning_ln(
+                    format!(
+                        "Unknown MSTP in Message Info (MSIN) {}",
+                        (message_info >> 1) & 0b111
+                    ),
+                    index,
+                );
                 Ok(MessageType::Unknown((v, (message_info >> 4) & 0b1111)))
-                // Err(Error::new(
-                //     io::ErrorKind::Other,
-                //     format!("Unknown MSTP in Message Info (MSIN) {}", (message_info >> 1) & 0b111),
-                // ))
             }
         }
     }

@@ -11,6 +11,9 @@
 // from E.S.R.Labs.
 use serde::Serialize;
 use std::borrow::Cow;
+use rustc_hash::FxHashMap;
+
+type IncidentMap = FxHashMap<String, usize>;
 
 #[derive(Serialize, Debug)]
 pub struct Incident<'a> {
@@ -39,26 +42,38 @@ pub enum Severity {
 }
 #[derive(Default)]
 pub struct Reporter {
-    warnings: Vec<String>,
-    errors: Vec<String>,
+    warning_incidents: IncidentMap,
+    error_incidents: IncidentMap,
 }
 
 impl Reporter {
     pub fn add_to_report(self: &mut Reporter, severity: Severity, text: String) {
         match severity {
-            Severity::WARNING => self.warnings.push(text),
-            Severity::ERROR => self.errors.push(text),
+            Severity::WARNING => {
+                if let Some(n) = self.warning_incidents.get_mut(&text) {
+                    *n += 1
+                } else {
+                    self.warning_incidents.insert(text, 1);
+                }
+            }
+            Severity::ERROR => {
+                if let Some(n) = self.error_incidents.get_mut(&text) {
+                    *n += 1
+                } else {
+                    self.error_incidents.insert(text, 1);
+                }
+            }
         }
     }
     pub fn flush(self: &mut Reporter) {
-        if !self.errors.is_empty() {
-            report_warning(self.errors.join("\n"));
-            self.errors.clear();
+        for (error, count) in self.error_incidents.iter() {
+            report_error(format!("{} ({} times)", error, count));
         }
-        if !self.warnings.is_empty() {
-            report_warning(self.warnings.join("\n"));
-            self.warnings.clear();
+        self.error_incidents.clear();
+        for (warning, count) in self.warning_incidents.iter() {
+            report_warning(format!("{} ({} times)", warning, count));
         }
+        self.warning_incidents.clear();
     }
 }
 pub fn report_warning<'a, S: Into<Cow<'a, str>>>(text: S) {
@@ -68,17 +83,14 @@ pub fn report_warning<'a, S: Into<Cow<'a, str>>>(text: S) {
         serde_json::to_string(&incident).unwrap_or_else(|_| "".to_string())
     )
 }
-pub fn report_warning_ln<'a, S: Into<Cow<'a, str>>>(text: S, line_nr: usize) {
-    eprintln!(
-        "{}",
-        create_incident(Severity::WARNING, text, Some(line_nr))
-    )
+pub fn report_warning_ln<'a, S: Into<Cow<'a, str>>>(text: S, line_nr: Option<usize>) {
+    eprintln!("{}", create_incident(Severity::WARNING, text, line_nr))
 }
 pub fn report_error<'a, S: Into<Cow<'a, str>>>(text: S) {
     eprintln!("{}", create_incident(Severity::ERROR, text, None))
 }
-pub fn report_error_ln<'a, S: Into<Cow<'a, str>>>(text: S, line_nr: usize) {
-    eprintln!("{}", create_incident(Severity::ERROR, text, Some(line_nr)))
+pub fn report_error_ln<'a, S: Into<Cow<'a, str>>>(text: S, line_nr: Option<usize>) {
+    eprintln!("{}", create_incident(Severity::ERROR, text, line_nr))
 }
 fn create_incident<'a, S: Into<Cow<'a, str>>>(
     severity: Severity,

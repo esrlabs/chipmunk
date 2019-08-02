@@ -205,6 +205,20 @@ mod tests {
             to_posix_timestamp(input, &regex, None, Some(-TWO_HOURS_IN_MS)).unwrap();
         assert_eq!(1_559_838_667_577, timestamp_with_offset);
     }
+    #[test]
+    fn test_detect_timestamp_in_string() {
+        for input in [
+            "2019-07-30T10:08:02.555",
+            "2019-07-30 10:08:02.555",
+            "07-30T10:08:02.555",
+            "07-30 10:08:02.555",
+        ]
+        .iter()
+        {
+            let (timestamp, _) = detect_timestamp_in_string(input).unwrap();
+            assert_eq!(1_564_481_282_555, timestamp);
+        }
+    }
 
     test_generator::test_expand_paths! { test_detect_regex; "processor/test_samples/detecting/*" }
 
@@ -214,7 +228,7 @@ mod tests {
             "MM-DD-YYYY hh:mm:ss.s".to_string(),
         ];
         let in_path = PathBuf::from("..").join(&dir_name).join("in.log");
-        let res = detect_timestamp_format(&in_path, &possible_formats)
+        let res = detect_timestamp_format(&in_path, &possible_formats, None)
             .expect("could not detect regex type");
 
         let mut format_path = PathBuf::from("..").join(&dir_name);
