@@ -9,11 +9,14 @@ import { SidebarAppMergeFilesComponent          } from './merge/component';
 import { SidebarAppSearchManagerModule          } from './search.manager/module';
 import { SidebarAppSearchManagerComponent       } from './search.manager/component';
 
+import { SidebarAppNotificationsModule          } from './notifications/module';
+import { SidebarAppNotificationsComponent       } from './notifications/component';
+
 @NgModule({
     entryComponents : [  ],
     imports         : [ CommonModule ],
     declarations    : [  ],
-    exports         : [ SidebarAppMergeFilesModule, SidebarAppSearchManagerModule, SidebarAppParsingModule ]
+    exports         : [ SidebarAppMergeFilesModule, SidebarAppSearchManagerModule, SidebarAppParsingModule, SidebarAppNotificationsModule ]
 })
 
 export class EnvironmentSidebarAppsModule {

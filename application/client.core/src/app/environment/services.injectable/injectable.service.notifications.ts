@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
 import * as Toolkit from 'logviewer.client.toolkit';
+import TabsSessionsService from '../services/service.sessions.tabs';
 
 export enum ENotificationType {
     info = 'info',
@@ -27,6 +28,7 @@ export interface IComponent {
 }
 
 export interface INotification {
+    session?: string;
     id?: string;
     caption: string;
     message?: string;
@@ -37,6 +39,14 @@ export interface INotification {
     closing?: boolean;
 }
 
+const CCloseDelay = {
+    [ENotificationType.error]: 4000,
+    [ENotificationType.warning]: 3000,
+    [ENotificationType.info]: 2000,
+};
+
+type TSession = string;
+
 @Injectable({ providedIn: 'root' })
 
 export class NotificationsService {
@@ -44,30 +54,38 @@ export class NotificationsService {
     private subject = new Subject<INotification>();
     private _subscriptions: { [key: string]: Subscription } = {};
     private _onceHashes: Map<string, boolean> = new Map();
+    private _storage: Map<TSession, INotification[]> = new Map();
 
     constructor() {
         this._subscriptions.onProcessNotification = ServiceElectronIpc.subscribe(IPCMessages.Notification, this._onProcessNotification.bind(this));
     }
 
-    destroy() {
+    public destroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].destroy();
         });
     }
 
-    add(notification: INotification) {
+    public add(notification: INotification) {
+        notification = this._validate(notification);
+        this._store(notification);
         if (this._isIgnored(notification)) {
             return;
         }
         this.subject.next(notification);
     }
 
-    clear() {
-        this.subject.next();
+    public clear(session: TSession) {
+        this._storage.delete(session);
     }
 
-    getObservable(): Observable<INotification> {
+    public getObservable(): Observable<INotification> {
         return this.subject.asObservable();
+    }
+
+    public get(session: TSession): INotification[] {
+        const storage: INotification[] | undefined = this._storage.get(session);
+        return storage === undefined ? [] : storage;
     }
 
     private _onProcessNotification(message: IPCMessages.Notification) {
@@ -76,10 +94,21 @@ export class NotificationsService {
             message: message.message.length > 1500 ? `${message.message.substr(0, 1500)}...` : message.message,
             options: {
                 type: message.type,
-                closeDelay: message.type === ENotificationType.info ? undefined : Infinity,
                 closable: true,
             }
         });
+    }
+
+    private _validate(notification: INotification): INotification {
+        notification.session = notification.session === undefined ? TabsSessionsService.getActive().getGuid() : notification.session;
+        if (notification.options === undefined) {
+            notification.options = {};
+        }
+        if (CCloseDelay[notification.options.type] === undefined) {
+            notification.options.type = ENotificationType.info;
+        }
+        notification.options.closeDelay = CCloseDelay[notification.options.type];
+        return notification;
     }
 
     private _isIgnored(notification: INotification): boolean {
@@ -96,4 +125,28 @@ export class NotificationsService {
         this._onceHashes.set(hash, true);
         return false;
     }
+
+    private _store(notification: INotification) {
+        if (notification.progress) {
+            return;
+        }
+        if (typeof notification.message !== 'string' || notification.message.trim() === '') {
+            return;
+        }
+        if (notification.session === undefined) {
+            this._storage.forEach((storage: INotification[], session: TSession) => {
+                storage.push(notification);
+                this._storage.set(session, storage);
+            });
+        } else {
+            let stored: INotification[] | undefined = this._storage.get(notification.session);
+            if (stored === undefined) {
+                stored = [notification];
+            } else {
+                stored.push(notification);
+            }
+            this._storage.set(notification.session, stored);
+        }
+    }
+
 }

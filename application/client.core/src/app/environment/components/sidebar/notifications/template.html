@@ -1,0 +1,25 @@
+<div class="controls">
+    <table>
+        <tr>
+            <td>
+                <lib-primitive-input [type]="'text'"
+                                     [value]="_ng_filter"
+                                     [placeholder]="'filter'" 
+                                     [onChange]="_ng_onFilterChange"></lib-primitive-input>
+            </td>
+            <td>
+                <lib-primitive-dropdownlist [defaults]="_ng_level" [items]="_ng_levels" [onChange]="_ng_onLevelChange"></lib-primitive-dropdownlist>
+            </td>
+            <td>
+                <div class="buttons">
+                    <span class="small-icon-button far fa-trash-alt" title="cleanup" (click)="_ng_onCleanup()"></span>
+                </div>
+            </td>
+        </tr>
+    </table>
+</div>
+<ul class="notifications">
+    <li class="notification" *ngFor="let notification of _ng_notifications">
+        <app-sidebar-app-notificatio [notification]="notification"></app-sidebar-app-notificatio>
+    </li>
+</ul>

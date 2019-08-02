@@ -4,6 +4,7 @@ import ElectronIpcService, { IPCMessages, Subscription } from '../../../services
 import * as Toolkit from 'logviewer.client.toolkit';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 import * as ThemeColors from '../../../theme/colors';
+import TabsSessionsService from '../../../services/service.sessions.tabs';
 
 export enum EMTIN {
     // If MSTP == DLT_TYPE_LOG
@@ -139,6 +140,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
         this._ng_headers = CLevelOrder.map((key: string) => {
             return CLevelCaptions[key];
         });
+        const session: string = TabsSessionsService.getActive().getGuid();
         ElectronIpcService.request(new IPCMessages.DLTStatsRequest({
             file: this.fullFileName,
             id: Toolkit.guid(),
@@ -150,9 +152,9 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
                 this._notifications.add({
                     caption: `Errors during scan ${this.fileName}`,
                     message: response.error,
+                    session: response.session,
                     options: {
                         type: ENotificationType.error,
-                        closeDelay: Infinity,
                     }
                 });
                 this._forceUpdate();
@@ -167,9 +169,9 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
             this._notifications.add({
                 caption: `Fail to scan ${this.fileName}`,
                 message: error.message,
+                session: session,
                 options: {
                     type: ENotificationType.error,
-                    closeDelay: Infinity,
                 }
             });
         });

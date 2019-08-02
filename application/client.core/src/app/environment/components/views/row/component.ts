@@ -13,6 +13,7 @@ import { IComponentDesc } from 'logviewer-client-containers';
 import { AOutputRenderComponent } from '../../../interfaces/interface.output.render';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
+import { ENotificationType } from 'src/app/environment/services/electron.ipc.messages';
 
 enum ERenderType {
     standard = 'standard',
@@ -100,7 +101,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
                 caption: 'Length limit',
                 message: this._ng_error,
                 options: {
-                    closeDelay: 5000,
+                    type: ENotificationType.warning,
                     once: true,
                 }
             });
