@@ -6,13 +6,19 @@ import PluginsService, { IPluginData } from './service.plugins';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
 import TabsSessionsService from './service.sessions.tabs';
 import { ViewSearchComponent } from '../components/views/search/component';
+import { SidebarAppNotificationsComponent } from '../components/sidebar/notifications/component';
 
 const DefaultViews = [
     {
         name: 'Search',
         factory: ViewSearchComponent,
         inputs: { }
-    }
+    },
+    {
+        name: 'Notifications',
+        factory: SidebarAppNotificationsComponent,
+        inputs: { }
+    },
 ];
 
 export interface ISidebarPluginInfo {

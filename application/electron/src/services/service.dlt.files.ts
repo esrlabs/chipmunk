@@ -55,6 +55,7 @@ class ServiceDLTFiles implements IService {
                         type: log.severity,
                         message: `${log.line_nr !== null ? `[line: ${log.line_nr}]: ` : ''}${log.text}`,
                         caption: path.basename(req.file),
+                        session: req.session,
                     }));
                 });
             }

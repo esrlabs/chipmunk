@@ -1,0 +1,46 @@
+@import '../../../../theme/scheme.less';
+
+:host {
+    position: relative;
+    display: block;
+    white-space: nowrap;
+    & p.caption{
+        position: relative;
+        display: inline-block;
+        margin: 0;
+        padding: 0 1rem 0 0;
+        color: @scheme-color-1;
+        cursor: default;
+        font-size: 0.95rem;
+        width: 5rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: top;
+        user-select: all!important;
+        & span.error-icon,
+        & span.warning-icon{
+            position: relative;
+            display: inline;
+            font-size: 13px;
+            line-height: 13px;
+            margin-right: 3px;
+        }
+        & span.error-icon{
+            color: @scheme-color-error;
+        }
+        & span.warning-icon{
+            color: @scheme-color-warning;
+        }
+    }
+    & p.content{
+        position: relative;
+        display: inline-block;
+        margin: 0;
+        padding: 0;
+        color: @scheme-color-1;
+        font-size: 0.95rem;
+        white-space: normal;
+        vertical-align: top;
+        user-select: all!important;
+    }
+}

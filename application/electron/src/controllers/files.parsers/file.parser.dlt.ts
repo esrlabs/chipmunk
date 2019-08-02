@@ -3,6 +3,7 @@ import { Transform } from 'stream';
 import * as path from 'path';
 import { Lvin, IIndexResult, IFileMapItem, IDLTLogMessage } from 'logviewer.lvin';
 import ServiceElectron, { IPCMessages } from '../../services/service.electron';
+import ServiceStreams from '../../services/service.streams';
 
 const ExtNames = ['dlt'];
 
@@ -52,6 +53,7 @@ export default class FileParser extends AFileParser {
     public readAndWrite(srcFile: string, destFile: string, sourceId: string, options: { [key: string]: any }, onMapUpdated?: (map: IMapItem[]) => void): Promise<IMapItem[]> {
         return new Promise((resolve, reject) => {
             const lvin: Lvin = new Lvin();
+            const session: string = ServiceStreams.getActiveStreamId();
             if (onMapUpdated !== undefined) {
                 lvin.on(Lvin.Events.map, (map: IFileMapItem[]) => {
                     onMapUpdated(map.map((item: IFileMapItem) => {
@@ -82,6 +84,7 @@ export default class FileParser extends AFileParser {
                             type: log.severity,
                             message: `${log.line_nr !== null ? `[line: ${log.line_nr}]: ` : ''}${log.text}`,
                             caption: path.basename(srcFile),
+                            session: session,
                         }));
                     });
                 }
@@ -94,6 +97,7 @@ export default class FileParser extends AFileParser {
                     caption: `Error with: ${path.basename(srcFile)}`,
                     message: error.message.length > 1500 ? `${error.message.substr(0, 1500)}...` : error.message,
                     type: ServiceElectron.IPCMessages.Notification.Types.error,
+                    session: session,
                 }));
                 reject(error);
             });

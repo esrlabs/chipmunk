@@ -1,0 +1,6 @@
+<p class="caption" [attr.title]="notification.caption">
+    <span *ngIf="notification.options.type === 'error'" class="error-icon fas fa-exclamation-triangle"></span>
+    <span *ngIf="notification.options.type === 'warning'" class="warning-icon fas fa-exclamation-triangle"></span>
+    {{notification.caption}}
+</p>
+<p class="content">{{notification.message}}</p>

@@ -7,6 +7,7 @@ export enum ENotificationType {
 export interface INotification {
     message: string;
     caption: string;
+    session?: string;
     data?: any;
     type?: ENotificationType | string;
 }
@@ -20,6 +21,7 @@ export class Notification {
     public caption: string = '';
     public type: ENotificationType = ENotificationType.info;
     public data: any;
+    public session: string | undefined;
 
     constructor(params: INotification) {
         if (typeof params !== 'object' || params === null) {
@@ -28,6 +30,7 @@ export class Notification {
         this.message = typeof params.message === 'string' ? params.message : '';
         this.caption = typeof params.caption === 'string' ? params.caption : '';
         this.data = params.data;
+        this.session = params.session;
         this.type = typeof params.type === 'string' ? this._getNotificationType(params.type) : ENotificationType.info;
     }
 

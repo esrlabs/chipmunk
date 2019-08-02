@@ -1,4 +1,4 @@
-import { Component, Input, AfterContentInit, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, AfterContentInit, ChangeDetectorRef, OnChanges, SimpleChanges } from '@angular/core';
 
 @Component({
     selector: 'lib-primitive-input',
@@ -6,7 +6,7 @@ import { Component, Input, AfterContentInit, ChangeDetectorRef } from '@angular/
     styleUrls: ['./styles.less']
 })
 
-export class InputStandardComponent implements AfterContentInit {
+export class InputStandardComponent implements AfterContentInit, OnChanges {
 
     public _ng_value: string | number = '';
     public _ng_error: string | undefined;
@@ -32,6 +32,23 @@ export class InputStandardComponent implements AfterContentInit {
             return;
         }
         this._ng_value = this.value;
+        this._cdRef.detectChanges();
+    }
+
+    ngOnChanges(changes: SimpleChanges) {
+        if (changes.value !== undefined) {
+            this.value = changes.value.currentValue;
+            this._ng_value = this.value;
+        }
+        if (changes.placeholder !== undefined) {
+            this.placeholder = changes.placeholder.currentValue;
+        }
+        if (changes.type !== undefined) {
+            this.type = changes.type.currentValue;
+        }
+        if (changes.disabled !== undefined) {
+            this.disabled = changes.disabled.currentValue;
+        }
         this._cdRef.detectChanges();
     }
 

@@ -125,6 +125,10 @@ export class ControllerSessionTab {
         return this._sessionId;
     }
 
+    public getScope(): ControllerSessionScope {
+        return this._scope;
+    }
+
     public getSessionStream(): ControllerSessionTabStream {
         return this._stream;
     }

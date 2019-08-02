@@ -1,4 +1,4 @@
-import { Component, Input, AfterContentInit, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, AfterContentInit, ChangeDetectorRef, SimpleChanges, OnChanges } from '@angular/core';
 
 @Component({
     selector: 'lib-primitive-dropdownlist',
@@ -6,7 +6,7 @@ import { Component, Input, AfterContentInit, ChangeDetectorRef } from '@angular/
     styleUrls: ['./styles.less']
 })
 
-export class DDListStandardComponent implements AfterContentInit {
+export class DDListStandardComponent implements AfterContentInit, OnChanges {
 
     public _ng_value: any;
     public _ng_error: string | undefined;
@@ -28,6 +28,17 @@ export class DDListStandardComponent implements AfterContentInit {
             return;
         }
         this._ng_value = this.defaults;
+        this._cdRef.detectChanges();
+    }
+
+    ngOnChanges(changes: SimpleChanges) {
+        if (changes.defaults !== undefined) {
+            this.defaults = changes.defaults.currentValue;
+            this._ng_value = this.defaults;
+        }
+        if (changes.items !== undefined) {
+            this.items = changes.items.currentValue;
+        }
         this._cdRef.detectChanges();
     }
 
