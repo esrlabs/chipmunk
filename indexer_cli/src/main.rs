@@ -21,6 +21,7 @@ use processor::parse::{
 };
 use indexer_base::config::IndexingConfig;
 use indexer_base::error_reporter::*;
+use serde::{Serialize};
 
 #[macro_use]
 extern crate clap;
@@ -29,6 +30,7 @@ use std::fs;
 use std::path;
 use std::time::Instant;
 use processor::parse::detect_timestamp_in_string;
+use processor::parse::detect_timestamp_format_in_file;
 
 fn main() {
     let start = Instant::now();
@@ -177,15 +179,24 @@ fn main() {
         )
         .subcommand(
             SubCommand::with_name("discover")
-                .about("test date discovery")
+                .about("test date discovery, either from a string or from a file")
                 .arg(
                     Arg::with_name("input-string")
                         .short("i")
                         .help("string to extract date from")
                         .long("input")
                         .value_name("INPUT")
-                        .required(true)
-                        .index(1),
+                        .required_unless("input-file")
+                        .conflicts_with("input-file"),
+                )
+                .arg(
+                    Arg::with_name("input-file")
+                        .takes_value(true)
+                        .conflicts_with("input-string")
+                        .required_unless("input-string")
+                        .short("f")
+                        .help("file where the timeformat should be detected")
+                        .long("file"),
                 ),
         )
         .subcommand(
@@ -562,13 +573,34 @@ fn main() {
         }
     }
 
+    #[derive(Serialize, Debug)]
+    pub struct TimestampFormatResult {
+        pub format: Option<String>,
+    }
     fn handle_discover_subcommand(matches: &clap::ArgMatches) {
-        let test_string = matches
-            .value_of("input-string")
-            .expect("input must be present");
-        match detect_timestamp_in_string(test_string) {
-            Ok(timestamp) => println!("detected timestamp: {:?}", timestamp),
-            Err(e) => println!("no timestamp found in {} ({})", test_string, e),
+        if let Some(test_string) = matches.value_of("input-string") {
+            match detect_timestamp_in_string(test_string, None) {
+                Ok(timestamp) => println!("detected timestamp: {:?}", timestamp),
+                Err(e) => println!("no timestamp found in {} ({})", test_string, e),
+            }
+        } else if let Some(file_name) = matches.value_of("input-file") {
+            println!("checking {}", file_name);
+            let file_path = path::PathBuf::from(file_name);
+            match detect_timestamp_format_in_file(&file_path) {
+                Ok(res) => {
+                    let timestamp_result = TimestampFormatResult { format: Some(res) };
+                    let json =
+                        serde_json::to_string(&timestamp_result).unwrap_or_else(|_| "".to_string());
+                    println!("{:?}", json);
+                }
+                Err(e) => {
+                    let timestamp_result = TimestampFormatResult { format: None };
+                    let json =
+                        serde_json::to_string(&timestamp_result).unwrap_or_else(|_| "".to_string());
+                    println!("{:?}", json);
+                    report_error(format!("executed with error: {}", e))
+                }
+            }
         }
     }
 

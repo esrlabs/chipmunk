@@ -419,7 +419,6 @@ impl TypeInfo {
     pub fn as_bytes<T: ByteOrder>(self: &TypeInfo) -> Vec<u8> {
         let mut info: u32 = 0;
         // encode length
-        println!("TypeInfo::as_bytes, {:?}", self);
         match self.kind {
             TypeInfoKind::Float(len) => info |= TypeInfo::type_length_bits_float(len),
             TypeInfoKind::Signed(len, _) => info |= TypeInfo::type_length_bits(len),
@@ -454,7 +453,6 @@ impl TypeInfo {
         let mut b = [0; 4];
         T::write_u32(&mut b, info);
         buf.put_slice(&b);
-        // println!("TypeInfo::as_bytes {:?} => {:#b} {:02X?}", self, info, buf);
         buf.to_vec()
     }
 }
@@ -592,29 +590,16 @@ impl Argument {
                 buf.put_u8(0x0); // null termination
             }
             if let Some(fp) = fixed_point {
-                println!("as_bytes fixed point: {:?}", fp);
-                println!(
-                    "as_bytes, quantization f32: \t{:02X?}...add quantization: {:?}",
-                    buf.to_vec(),
-                    fp.quantization
-                );
                 #[allow(deprecated)]
                 buf.put_f32::<T>(fp.quantization);
-                println!(
-                    "as_bytes, quantization f32: \t{:02X?}...add offset: {:?}",
-                    buf.to_vec(),
-                    fp.offset
-                );
                 match fp.offset {
                     FixedPointValue::I32(v) => {
                         #[allow(deprecated)]
                         buf.put_i32::<T>(v);
-                        println!("as_bytes, after put i32: \t{:02X?}", buf.to_vec());
                     }
                     FixedPointValue::I64(v) => {
                         #[allow(deprecated)]
                         buf.put_i64::<T>(v);
-                        println!("as_bytes, after put i64: \t{:02X?}", buf.to_vec());
                     }
                 }
             }

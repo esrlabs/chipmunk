@@ -1286,6 +1286,30 @@ mod tests {
         assert_eq!(expected, res);
     }
     #[test]
+    fn test2_parse_offending_argument() {
+        let argument = dlt::Argument {
+            type_info: dlt::TypeInfo {
+                kind: dlt::TypeInfoKind::Signed(dlt::TypeLength::BitLength32, true),
+                coding: dlt::StringCoding::UTF8,
+                has_variable_info: true,
+                has_trace_info: false,
+            },
+            name: Some("a".to_string()),
+            unit: Some("A".to_string()),
+            fixed_point: Some(dlt::FixedPoint {
+                quantization: 0.1,
+                offset: dlt::FixedPointValue::I32(0),
+            }),
+            value: dlt::Value::I32(1_319_631_541),
+        };
+
+        let mut argument_bytes = argument.as_bytes::<BigEndian>();
+        argument_bytes.extend(b"----");
+        let res: IResult<&[u8], dlt::Argument> = dlt_argument::<BigEndian>(&argument_bytes);
+        let expected: IResult<&[u8], dlt::Argument> = Ok((b"----", argument));
+        assert_eq!(expected, res);
+    }
+    #[test]
     fn test_parse_bool_argument() {
         let type_info = dlt::TypeInfo {
             kind: dlt::TypeInfoKind::Bool,

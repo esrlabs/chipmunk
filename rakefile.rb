@@ -31,13 +31,23 @@ desc "run tests"
 task :test do
   sh "cargo test -q"
 end
-desc "run benchmarks"
-task :bench do
-  sh "cargo bench --bench dlt_benchmarks"
-end
-desc "record new baseline"
-task :baseline do
-  sh "cargo bench --bench dlt_benchmarks -- --save-baseline"
+namespace :bench do
+  desc "run dlt benchmarks"
+  task :dlt do
+    sh "cargo bench --bench dlt_benchmarks"
+  end
+  desc "run parse benchmarks"
+  task :parse do
+    sh "cargo bench --bench parse_benchmarks"
+  end
+  desc "record new dlt baseline"
+  task :dlt_baseline do
+    sh "cargo bench --bench dlt_benchmarks -- --save-baseline"
+  end
+  desc "record new parse baseline"
+  task :dlt_baseline do
+    sh "cargo bench --bench parse_benchmarks -- --save-baseline"
+  end
 end
 desc "run tests with printing to stdout"
 task :test_nocapture do

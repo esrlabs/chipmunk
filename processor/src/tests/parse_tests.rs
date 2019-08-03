@@ -84,7 +84,7 @@ mod tests {
         // 05-22 12:36:36.506 +0100 I/GKI_LINUX1
         let input = "DD-MM hh:mm:ss.s TZD";
         let regex = date_format_str_to_regex(input).expect("should be parsed");
-        assert_eq!(Regex::new(r"(?P<d>\d{2})-(?P<m>\d{2})\s+(?P<H>\d{2}):(?P<M>\d{2}):(?P<S>\d{2})\.(?P<millis>\d+)\s+(?P<timezone>[\+\-]\d+)").unwrap().as_str(), regex.as_str());
+        assert_eq!(Regex::new(r"(?P<d>\d{2})-(?P<m>\d{2})\s+(?P<H>\d{2}):(?P<M>\d{2}):(?P<S>\d{2})\.(?P<millis>\d+)\s+(?P<timezone>[\+\-]\d\d:?\d\d)").unwrap().as_str(), regex.as_str());
     }
     #[test]
     fn test_date_format_str_to_regex2() {
@@ -92,6 +92,17 @@ mod tests {
         let input2 = "DD-MM-YYYY hh:mm:ss.s";
         let regex2 = date_format_str_to_regex(input2).expect("should be parsed");
         assert_eq!(Regex::new(r"(?P<d>\d{2})-(?P<m>\d{2})-(?P<Y>\d{4})\s+(?P<H>\d{2}):(?P<M>\d{2}):(?P<S>\d{2})\.(?P<millis>\d+)").unwrap().as_str(), regex2.as_str());
+    }
+    #[test]
+    fn test_date_format_str_to_regex_with_short_month_token() {
+        // 23/Jan/2019:23:58:13
+        let regex = date_format_str_to_regex("DD/MMM/YYYY:hh:mm:ss").expect("should be parsed");
+        assert_eq!(
+            Regex::new(r"(?P<d>\d{2})/(?P<MMM>(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))/(?P<Y>\d{4}):(?P<H>\d{2}):(?P<M>\d{2}):(?P<S>\d{2})")
+                .unwrap()
+                .as_str(),
+            regex.as_str()
+        );
     }
     #[test]
     fn test_date_format_str_to_regex_with_escape_characters() {
@@ -196,6 +207,17 @@ mod tests {
         assert_eq!(1_491_299_570_229, timestamp);
     }
     #[test]
+    fn test_parse_date_line_with_short_month_str() {
+        let input = "109.169.248.247 - - [04/Apr/2017:11:52:50 +0200] xyz";
+        let regex = date_format_str_to_regex("DD/MMM/YYYY:hh:mm:ss TZD")
+            .expect("format string should produce regex");
+        let (timestamp, _) =
+            to_posix_timestamp(input, &regex, None, Some(TWO_HOURS_IN_MS)).unwrap();
+        assert_eq!(1_491_299_570_000, timestamp);
+    }
+
+    // match detect_timestamp_in_string("109.169.248.247 - - [30/Jul/2019:10:08:02 +0200] xyz") {
+    #[test]
     fn test_parse_date_line_only_millis() {
         let input = "1559831467577 some logging here...";
         let regex = date_format_str_to_regex("sss").expect("format string should produce regex");
@@ -206,30 +228,81 @@ mod tests {
         assert_eq!(1_559_838_667_577, timestamp_with_offset);
     }
     #[test]
-    fn test_detect_timestamp_in_string() {
-        for input in [
-            "2019-07-30T10:08:02.555",
-            "2019-07-30 10:08:02.555",
-            "07-30T10:08:02.555",
-            "07-30 10:08:02.555",
-        ]
-        .iter()
+    fn test_detect_timestamp_in_string_simple() {
+        match detect_timestamp_in_string("2019-07-30 10:08:02.555", Some(0)) {
+            Ok((timestamp, _, _)) => assert_eq!(1_564_481_282_555, timestamp),
+            Err(e) => panic!(format!("error happened in detection: {}", e)),
+        }
+        match detect_timestamp_in_string("2019-07-30 09:38:02.555 -00:30", None) {
+            Ok((timestamp, _, _)) => assert_eq!(1_564_481_282_555, timestamp),
+            Err(e) => panic!(format!("error happened in detection: {}", e)),
+        }
+    }
+    #[test]
+    fn test_detect_timestamp_in_string_with_t() {
+        match detect_timestamp_in_string("2019-07-30T10:08:02.555", Some(0)) {
+            Ok((timestamp, _, _)) => assert_eq!(1_564_481_282_555, timestamp),
+            Err(e) => panic!(format!("error happened in detection: {}", e)),
+        }
+        match detect_timestamp_in_string("2019-07-30T04:38:02.555 -05:30", None) {
+            Ok((timestamp, _, _)) => assert_eq!(1_564_481_282_555, timestamp),
+            Err(e) => panic!(format!("error happened in detection: {}", e)),
+        }
+    }
+    #[test]
+    fn test_detect_timestamp_in_string_no_year() {
+        match detect_timestamp_in_string("07-30 10:08:02.555", Some(0)) {
+            Ok((timestamp, _, _)) => assert_eq!(1_564_481_282_555, timestamp),
+            Err(e) => panic!(format!("error happened in detection: {}", e)),
+        }
+        match detect_timestamp_in_string("07-30 12:08:02.555 +0200", None) {
+            Ok((timestamp, _, _)) => assert_eq!(1_564_481_282_555, timestamp),
+            Err(e) => panic!(format!("error happened in detection: {}", e)),
+        }
+    }
+    #[test]
+    fn test_detect_timestamp_in_string_no_year_with_t() {
+        match detect_timestamp_in_string("07-30T10:08:02.555", Some(0)) {
+            Ok((timestamp, _, _)) => assert_eq!(1_564_481_282_555, timestamp),
+            Err(e) => panic!(format!("error happened in detection: {}", e)),
+        }
+        match detect_timestamp_in_string("07-30T15:08:02.555 +05:00", None) {
+            Ok((timestamp, _, _)) => assert_eq!(1_564_481_282_555, timestamp),
+            Err(e) => panic!(format!("error happened in detection: {}", e)),
+        }
+    }
+    #[test]
+    fn test_detect_timestamp_in_string_year_last() {
+        match detect_timestamp_in_string("07-30-2019 10:08:02.555", Some(0)) {
+            Ok((timestamp, _, _)) => assert_eq!(1_564_481_282_555, timestamp),
+            Err(e) => panic!(format!("error happened in detection: {}", e)),
+        }
+        match detect_timestamp_in_string("07-30-2019 08:08:02.555 -0200", None) {
+            Ok((timestamp, _, _)) => assert_eq!(1_564_481_282_555, timestamp),
+            Err(e) => panic!(format!("error happened in detection: {}", e)),
+        }
+    }
+    #[test]
+    fn test_detect_timestamp_in_string_short_month_name() {
+        match detect_timestamp_in_string("109.169.248.247 - - [30/Jul/2019:10:08:02] xyz", Some(0))
         {
-            let (timestamp, _) = detect_timestamp_in_string(input).unwrap();
-            assert_eq!(1_564_481_282_555, timestamp);
+            Ok((timestamp, _, _)) => assert_eq!(1_564_481_282_000, timestamp),
+            Err(e) => panic!(format!("error happened in detection: {}", e)),
+        }
+        match detect_timestamp_in_string(
+            "109.169.248.247 - - [30/Jul/2019:12:08:02 +0200] xyz",
+            None,
+        ) {
+            Ok((timestamp, _, _)) => assert_eq!(1_564_481_282_000, timestamp),
+            Err(e) => panic!(format!("error happened in detection: {}", e)),
         }
     }
 
     test_generator::test_expand_paths! { test_detect_regex; "processor/test_samples/detecting/*" }
 
     fn test_detect_regex(dir_name: &str) {
-        let possible_formats: Vec<String> = vec![
-            "MM-DD hh:mm:ss.s TZD".to_string(),
-            "MM-DD-YYYY hh:mm:ss.s".to_string(),
-        ];
         let in_path = PathBuf::from("..").join(&dir_name).join("in.log");
-        let res = detect_timestamp_format(&in_path, &possible_formats, None)
-            .expect("could not detect regex type");
+        let res = detect_timestamp_format_in_file(&in_path).expect("could not detect regex type");
 
         let mut format_path = PathBuf::from("..").join(&dir_name);
         format_path.push("expected.format");

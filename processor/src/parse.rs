@@ -23,25 +23,40 @@ use nom::IResult;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use rustc_hash::{FxHashMap, FxHashSet};
+use std::collections::BTreeMap;
 use std::fs;
 
 use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
 
-const LINES_TO_INSPECT: usize = 10;
+const MAX_LINES_TO_INSPECT: usize = 1_000_000;
 const LINE_DETECTION_THRESHOLD: usize = 5;
 
+fn add(format: &'static str, map: &mut BTreeMap<&str, Regex>) {
+    map.insert(format, date_format_str_to_regex(format).unwrap());
+}
 lazy_static! {
-    static ref REGEX_REGISTRY: Vec<Regex> = {
-        let mut m = Vec::new();
-        m.push(date_format_str_to_regex("YYYY-MM-DD hh:mm:ss.s TZD").unwrap());
-        m.push(date_format_str_to_regex("YYYY-MM-DD hh:mm:ss.s").unwrap());
-        m.push(date_format_str_to_regex("YYYY-MM-DDThh:mm:ss.s TZD").unwrap());
-        m.push(date_format_str_to_regex("YYYY-MM-DDThh:mm:ss.s").unwrap());
-        m.push(date_format_str_to_regex("MM-DDThh:mm:ss.s").unwrap());
-        m.push(date_format_str_to_regex("MM-DD hh:mm:ss.s").unwrap());
-        m
+    static ref FORMAT_REGEX_MAPPING_WITH_TZD: BTreeMap<&'static str, Regex> = {
+        let mut format_map: BTreeMap<&str, Regex> = BTreeMap::default();
+        add("YYYY-MM-DD hh:mm:ss.s TZD", &mut format_map);
+        add("YYYY-MM-DD hh:mm:ss.s TZD", &mut format_map);
+        add("YYYY-MM-DDThh:mm:ss.s TZD", &mut format_map);
+        add("MM-DDThh:mm:ss.s TZD", &mut format_map);
+        add("MM-DD hh:mm:ss.s TZD", &mut format_map);
+        add("MM-DD-YYYY hh:mm:ss.s TZD", &mut format_map);
+        add("DD/MMM/YYYY:hh:mm:ss TZD", &mut format_map);
+        format_map
+    };
+    static ref FORMAT_REGEX_MAPPING: BTreeMap<&'static str, Regex> = {
+        let mut format_map: BTreeMap<&str, Regex> = BTreeMap::default();
+        add("YYYY-MM-DD hh:mm:ss.s", &mut format_map);
+        add("YYYY-MM-DD hh:mm:ss.s", &mut format_map);
+        add("YYYY-MM-DDThh:mm:ss.s", &mut format_map);
+        add("MM-DDThh:mm:ss.s", &mut format_map);
+        add("MM-DD hh:mm:ss.s", &mut format_map);
+        add("MM-DD-YYYY hh:mm:ss.s", &mut format_map);
+        add("DD/MMM/YYYY:hh:mm:ss", &mut format_map);
+        format_map
     };
 }
 
@@ -49,6 +64,7 @@ lazy_static! {
 pub enum FormatPiece {
     Day,
     Month,
+    MonthName,
     Year,
     Hour,
     Minute,
@@ -64,6 +80,7 @@ impl std::fmt::Display for FormatPiece {
         match self {
             FormatPiece::Day => write!(f, "Day"),
             FormatPiece::Month => write!(f, "Month"),
+            FormatPiece::MonthName => write!(f, "MonthName"),
             FormatPiece::Year => write!(f, "Year"),
             FormatPiece::Hour => write!(f, "Hour"),
             FormatPiece::Minute => write!(f, "Minute"),
@@ -80,6 +97,7 @@ impl std::fmt::Display for FormatPiece {
 /// into it's individual elements
 /// e.g. "DD-MM" => [Day,Seperator("-"),Month]
 ///      YYYY = four-digit year
+///      MMM  = short month form (Jan, Feb, Mar, ..., Dec)
 ///      MM   = two-digit month (01=January, etc.)
 ///      DD   = two-digit day of month (01 through 31)
 ///      hh   = two digits of hour (00 through 23) (am/pm NOT allowed)
@@ -88,6 +106,7 @@ impl std::fmt::Display for FormatPiece {
 ///      s    = one or more digits representing a decimal fraction of a second
 ///      TZD  = time zone designator (Z or +hh:mm or -hh:mm)
 static DAY_FORMAT_TAG: &str = "DD";
+static MONTH_FORMAT_SHORT_NAME_TAG: &str = "MMM";
 static MONTH_FORMAT_TAG: &str = "MM";
 static YEAR_FORMAT_TAG: &str = "YYYY";
 static HOURS_FORMAT_TAG: &str = "hh";
@@ -98,6 +117,9 @@ const FRACTION_FORMAT_CHAR: char = 's';
 
 fn days(input: &str) -> IResult<&str, FormatPiece> {
     map(tag(DAY_FORMAT_TAG), |_| FormatPiece::Day)(input)
+}
+fn month_short(input: &str) -> IResult<&str, FormatPiece> {
+    map(tag(MONTH_FORMAT_SHORT_NAME_TAG), |_| FormatPiece::MonthName)(input)
 }
 fn month(input: &str) -> IResult<&str, FormatPiece> {
     map(tag(MONTH_FORMAT_TAG), |_| FormatPiece::Month)(input)
@@ -137,6 +159,7 @@ fn seperator(input: &str) -> IResult<&str, FormatPiece> {
 fn any_date_format(input: &str) -> IResult<&str, FormatPiece> {
     nom::branch::alt((
         days,
+        month_short,
         month,
         year,
         hours,
@@ -200,11 +223,12 @@ pub fn date_format_str_to_regex(date_format: &str) -> Result<Regex, failure::Err
         return Err(failure::err_msg("cannot construct regex from empty string"));
     }
     let format_pieces = date_expression(date_format);
-
     match format_pieces {
         Ok(r) => {
             if r.1.is_empty() {
-                return Err(failure::err_msg("could not create regex"));
+                return Err(failure::err_msg(
+                    "could not create regex, problems with format pieces",
+                ));
             }
             let s = r.1.iter().fold(String::from(r""), |mut acc, x| {
                 let part = format_piece_as_regex_string(x);
@@ -212,10 +236,10 @@ pub fn date_format_str_to_regex(date_format: &str) -> Result<Regex, failure::Err
                 acc
             });
 
-            if let Ok(regex) = Regex::new(s.as_str()) {
-                return Ok(regex);
-            }
-            return Err(failure::err_msg("could not create regex"));
+            return match Regex::new(s.as_str()) {
+                Ok(regex) => Ok(regex),
+                Err(e) => Err(failure::err_msg(format!("could not create regex: {}", e))),
+            };
         }
         Err(e) => report_error(format!("{:?}", e)),
     }
@@ -223,6 +247,7 @@ pub fn date_format_str_to_regex(date_format: &str) -> Result<Regex, failure::Err
 }
 static DAY_GROUP: &str = "d";
 static MONTH_GROUP: &str = "m";
+static MONTH_SHORT_NAME_GROUP: &str = "MMM";
 static YEAR_GROUP: &str = "Y";
 static HOUR_GROUP: &str = "H";
 static MINUTE_GROUP: &str = "M";
@@ -239,12 +264,16 @@ fn format_piece_as_regex_string(p: &FormatPiece) -> String {
     match p {
         FormatPiece::Day => named_group(r"\d{2}", DAY_GROUP),
         FormatPiece::Month => named_group(r"\d{2}", MONTH_GROUP),
+        FormatPiece::MonthName => named_group(
+            r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)",
+            MONTH_SHORT_NAME_GROUP,
+        ),
         FormatPiece::Year => named_group(r"\d{4}", YEAR_GROUP),
         FormatPiece::Hour => named_group(r"\d{2}", HOUR_GROUP),
         FormatPiece::Minute => named_group(r"\d{2}", MINUTE_GROUP),
         FormatPiece::Second => named_group(r"\d{2}", SECONDS_GROUP),
         FormatPiece::Fraction => named_group(r"\d+", FRACTION_GROUP),
-        FormatPiece::TimeZone => named_group(r"[\+\-]\d+", TIMEZONE_GROUP),
+        FormatPiece::TimeZone => named_group(r"[\+\-]\d\d:?\d\d", TIMEZONE_GROUP),
         FormatPiece::AbsoluteMilliseconds => named_group(r"\d+", ABSOLUTE_MS_GROUP),
         FormatPiece::SeperatorChar(c) => {
             let mut s = String::from("");
@@ -321,6 +350,23 @@ pub fn line_matching_format_expression(
     let regex = date_format_str_to_regex(format_expr)?;
     Ok(regex.is_match(line))
 }
+fn parse_from_month(mmm: &str) -> Result<u32, failure::Error> {
+    match mmm {
+        "Jan" => Ok(1),
+        "Feb" => Ok(2),
+        "Mar" => Ok(3),
+        "Apr" => Ok(4),
+        "May" => Ok(5),
+        "Jun" => Ok(6),
+        "Jul" => Ok(7),
+        "Aug" => Ok(8),
+        "Sep" => Ok(9),
+        "Oct" => Ok(10),
+        "Nov" => Ok(11),
+        "Dec" => Ok(12),
+        _ => Err(failure::err_msg(format!("could not parse month {:?}", mmm))),
+    }
+}
 // return the timestamp and wether the year was missing
 pub fn to_posix_timestamp(
     line: &str,
@@ -340,10 +386,17 @@ pub fn to_posix_timestamp(
     let day_capt = caps
         .name(DAY_GROUP)
         .ok_or_else(|| failure::err_msg("no group for days found in regex"))?;
-    let month_capt = caps
-        .name(MONTH_GROUP)
-        .ok_or_else(|| failure::err_msg("no group for month found in regex"))?;
-    let (day, month): (u32, u32) = (day_capt.as_str().parse()?, month_capt.as_str().parse()?);
+    let day: u32 = day_capt.as_str().parse()?;
+    let month = match caps.name(MONTH_GROUP) {
+        Some(month_capt) => month_capt
+            .as_str()
+            .parse()
+            .map_err(|e| failure::err_msg(format!("could not parse month: {}", e))),
+        None => match caps.name(MONTH_SHORT_NAME_GROUP) {
+            Some(month_short_name) => parse_from_month(month_short_name.as_str()),
+            None => Err(failure::err_msg("no group for month found in regex")),
+        },
+    }?;
     let hour_capt = caps
         .name(HOUR_GROUP)
         .ok_or_else(|| failure::err_msg("no group for hour found in regex"))?;
@@ -439,65 +492,36 @@ pub fn line_to_timed_line(
         }
     }
 }
-
-pub fn detect_timestamp_in_string(input: &str) -> Result<(i64, bool), failure::Error> {
-    for regex in REGEX_REGISTRY.iter() {
-        println!("checking...");
-        if regex.is_match(input.trim()) {
-            let timestamp = to_posix_timestamp(input, regex, None, Some(0));
-            println!(
-                "matching regex {} =>\nmatching timestamp: {:?}",
-                regex, timestamp
-            );
-            return Ok(timestamp.unwrap());
-        }
-    }
-    Err(failure::err_msg("no match"))
-}
-pub fn detect_timestamp_format(
-    path: &Path,
-    possible_formats: &[String],
-    index: Option<usize>,
-) -> Result<String, failure::Error> {
+pub fn detect_timestamp_format_in_file(path: &Path) -> Result<String, failure::Error> {
     let f: fs::File = fs::File::open(path)?;
     let mut reader: BufReader<&std::fs::File> = BufReader::new(&f);
 
     let mut buf = vec![];
     let mut inspected_lines = 0;
-    let mut matched_lines: FxHashMap<&String, usize> = FxHashMap::default();
-    let formats_to_check: FxHashSet<&String> = possible_formats
-        .iter()
-        .filter(|s| date_format_str_to_regex(s).is_ok())
-        .collect();
+    let mut matched_format: BTreeMap<String, usize> = BTreeMap::default();
+    let mut last_match: Option<String> = None;
 
-    for format_string in formats_to_check {
-        matched_lines.insert(format_string, 0usize);
-    }
     while let Ok(len) = reader.read_until(b'\n', &mut buf) {
         if len == 0 {
             break; // file is done
         }
-        let s = unsafe { std::str::from_utf8_unchecked(&buf) };
-        if !s.trim().is_empty() {
-            for (format_to_check, _) in matched_lines.clone().iter() {
-                if let Ok(did_match) = line_matching_format_expression(format_to_check.as_str(), s)
-                {
-                    if did_match {
-                        *matched_lines.entry(format_to_check).or_insert(0) += 1;
-                    }
-                }
+        let s = unsafe { std::str::from_utf8_unchecked(&buf) }.trim();
+        if !s.is_empty() {
+            if let Ok(format) = detect_timeformat_in_string(s, last_match.as_ref()) {
+                last_match = Some(format.clone());
+                *matched_format.entry(format).or_insert(0) += 1;
             }
             inspected_lines += 1;
         }
         buf = vec![];
-        if inspected_lines > LINES_TO_INSPECT {
+        if inspected_lines > MAX_LINES_TO_INSPECT {
             break;
         }
     }
     let best_format_string =
-        matched_lines.iter().fold(
+        matched_format.into_iter().fold(
             (None, 0usize),
-            |acc, (&k, &v)| {
+            |acc, (k, v)| {
                 if acc.1 < v {
                     (Some(k), v)
                 } else {
@@ -509,14 +533,83 @@ pub fn detect_timestamp_format(
     if let (Some(s), n) = best_format_string {
         if n >= min_matched_lines {
             return Ok(s.clone());
+        } else {
+            let warning = format!(
+                "could not verify enough timestamps in {:?}, only found {}",
+                path, n
+            );
+            return Err(failure::err_msg(warning));
         }
     }
 
-    report_warning_ln(format!("could not detect timestamp in {:?}", path), index);
     Err(failure::err_msg(format!(
         "could not detect timestamp in {:?}",
         path
     )))
+}
+/// Trys to detect a valid timestamp in a string
+/// Returns the a pair of the timestamp as posix timestamp and if the year was missing
+/// in case the year was missing, we assume the current year (local time)
+///
+/// # Arguments
+///
+/// * `input` - A string slice that should be parsed
+pub fn detect_timestamp_in_string(
+    input: &str,
+    offset: Option<i64>,
+) -> Result<(i64, bool, String), failure::Error> {
+    let trimmed = input.trim();
+    for (format, regex) in FORMAT_REGEX_MAPPING_WITH_TZD.iter() {
+        if regex.is_match(trimmed) {
+            if let Ok((timestamp, year_missing)) = to_posix_timestamp(input, regex, None, offset) {
+                return Ok((timestamp, year_missing, format.to_string()));
+            }
+        }
+    }
+    for (format, regex) in FORMAT_REGEX_MAPPING.iter() {
+        if regex.is_match(trimmed) {
+            if let Ok((timestamp, year_missing)) = to_posix_timestamp(input, regex, None, offset) {
+                return Ok((timestamp, year_missing, format.to_string()));
+            }
+        }
+    }
+    Err(failure::err_msg("try to detect timestamp but no match"))
+}
+/// Trys to detect a valid time-format in a string
+/// Returns the found format if any
+///
+/// # Arguments
+///
+/// * `input` - A string slice that should be examined
+pub fn detect_timeformat_in_string(
+    input: &str,
+    last_match: Option<&String>,
+) -> Result<String, failure::Error> {
+    let trimmed = input.trim();
+    if let Some(last) = last_match {
+        let l: &str = last.as_ref();
+        if let Some(regex) = FORMAT_REGEX_MAPPING_WITH_TZD.get(l) {
+            if regex.is_match(trimmed) {
+                return Ok(last.clone());
+            }
+        }
+        if let Some(regex) = FORMAT_REGEX_MAPPING.get(l) {
+            if regex.is_match(trimmed) {
+                return Ok(last.clone());
+            }
+        }
+    }
+    for (format, regex) in FORMAT_REGEX_MAPPING_WITH_TZD.iter() {
+        if regex.is_match(trimmed) {
+            return Ok(format.to_string());
+        }
+    }
+    for (format, regex) in FORMAT_REGEX_MAPPING.iter() {
+        if regex.is_match(trimmed) {
+            return Ok(format.to_string());
+        }
+    }
+    Err(failure::err_msg("no match"))
 }
 
 /// should parse timezone string, valid formats are
@@ -567,6 +660,7 @@ mod tests {
 
     #[test]
     fn test_date_parsers() {
+        assert_eq!(any_date_format("MMM23"), Ok(("23", FormatPiece::MonthName)));
         assert_eq!(any_date_format("DD23"), Ok(("23", FormatPiece::Day)));
         assert_eq!(
             any_date_format("sss23"),
@@ -594,7 +688,7 @@ mod tests {
     #[test]
     fn test_timezone_parser() {
         if let Ok(res) = parse_timezone("+01:00") {
-            println!("res: {:?}", res);
+            dbg!(res);
         } else {
             println!("could not parse");
         }
@@ -618,6 +712,10 @@ mod tests {
         assert_eq!(
             -2 * 3600 * 1000,
             parse_timezone("-0200").expect("could not parse")
+        );
+        assert_eq!(
+            -30 * 60 * 1000,
+            parse_timezone("-00:30").expect("could not parse")
         );
     }
 }

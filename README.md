@@ -72,6 +72,29 @@ OPTIONS:
 ARGS:
     <merge_config>    input file is a json file that defines all files to be merged
 ```
+## discover timestamp format
+
+The result will be a json object that looks like this:
+```
+{
+    "format": "DD/MMM/YYYY:hh:mm:ss TZD"
+}
+```
+
+```
+test date discovery, either from a string or from a file
+
+USAGE:
+    logviewer_parser discover --file <input-file> --input <INPUT>
+
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+
+OPTIONS:
+    -f, --file <input-file>    file where the timeformat should be detected
+    -i, --input <INPUT>        string to extract date from
+```
 
 ## Testing format expressions
 
@@ -200,6 +223,7 @@ To support different formats, it is possible to define a custom date-time format
 
 ```
 YYYY = four-digit year
+MMM  = short 3-letter month string (Jan, Feb, ..., Dec)
 MM   = two-digit month (01=January, etc.)
 DD   = two-digit day of month (01 through 31)
 hh   = two digits of hour (00 through 23) (am/pm NOT allowed)
