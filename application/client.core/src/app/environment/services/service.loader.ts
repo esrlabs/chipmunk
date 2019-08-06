@@ -7,6 +7,7 @@ import HorizontalSidebarSessionsService from './service.sessions.sidebar.horizon
 import TabsSessionsService from './service.sessions.tabs';
 import SearchSessionsService from './service.sessions.search';
 import FileOpenerService from './service.file.opener';
+import HotkeysService from './service.hotkeys';
 import TabSelectionParserService from './tabs/service.tab.selection.parser';
 import * as Defaults from '../states/state.default';
 import * as Toolkit from 'logviewer.client.toolkit';
@@ -20,7 +21,7 @@ const InitializeStages = [
     // Stage #3
     [PluginsIPCService],
     // Stage #4
-    [TabsSessionsService, HorizontalSidebarSessionsService, FileOptionsService, FileOpenerService ],
+    [TabsSessionsService, HorizontalSidebarSessionsService, FileOptionsService, FileOpenerService, HotkeysService ],
     // Stage #5
     [SearchSessionsService, TabSelectionParserService]
 ];

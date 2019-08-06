@@ -6,6 +6,7 @@ import { ControllerSessionTab } from '../../../controller/controller.session.tab
 import { ControllerSessionTabSearchViewState, IViewState } from '../../../controller/controller.session.tab.search.view.state';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
+import HotkeysService from '../../../services/service.hotkeys';
 import LayoutStateService from '../../../services/standalone/service.layout.state';
 import * as Toolkit from 'logviewer.client.toolkit';
 
@@ -38,6 +39,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
                 private _vcRef: ViewContainerRef,
                 private _notifications: NotificationsService) {
         this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSearchFocusHotKey = HotkeysService.getObservable().onSearchFocus.subscribe(this._onSearchFocusHotKey.bind(this));
         this._setActiveSession();
     }
 
@@ -145,6 +147,10 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._cdRef.detectChanges();
     }
 
+    private _onSearchFocusHotKey() {
+        this._focus();
+    }
+
     private _openSidebarSearchTab() {
         LayoutStateService.sidebarMax();
         TabsSessionsService.openSidebarTab('search');
@@ -174,13 +180,13 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._ng_onSessionChanged.next(this._ng_session);
     }
 
-    private _focus() {
+    private _focus(delay: number = 150) {
         setTimeout(() => {
             if (this._ng_requestInput === undefined || this._ng_requestInput === null) {
                 return;
             }
             this._ng_requestInput.nativeElement.focus();
-        }, 150);
+        }, delay);
     }
 
     private _saveState() {
