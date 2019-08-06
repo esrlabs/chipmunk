@@ -7,6 +7,7 @@ import { Observable, Subject, Subscription as SubscriptionRX } from 'rxjs';
 import { IDefaultView, IDefaultSideBarApp } from '../states/state.default';
 import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
 import SourcesService from './service.sources';
+import HotkeysService from './service.hotkeys';
 import { IAPI } from 'logviewer.client.toolkit';
 
 export { ControllerSessionTabSearch, IRequest } from '../controller/controller.session.tab.search';
@@ -40,6 +41,7 @@ export class TabsSessionsService implements IService {
         return new Promise((resolve, reject) => {
             this._subscriptions.onSessionTabChanged = this._tabsService.getObservable().active.subscribe(this._onSessionTabSwitched.bind(this));
             this._subscriptions.onSessionTabClosed = this._tabsService.getObservable().removed.subscribe(this._onSessionTabClosed.bind(this));
+            this._subscriptions.onNewTabHotKey = HotkeysService.getObservable().onNewTab.subscribe(this._onNewTabHotKey.bind(this));
             resolve();
         });
     }
@@ -225,6 +227,10 @@ export class TabsSessionsService implements IService {
         if (this._sessions.size === 0) {
             this._subjects.onSessionChange.next(undefined);
         }
+    }
+
+    private _onNewTabHotKey() {
+        this.add();
     }
 
 }
