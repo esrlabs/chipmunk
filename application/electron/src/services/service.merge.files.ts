@@ -1,24 +1,14 @@
 import ServiceElectron, { IPCMessages } from './service.electron';
-import ServiceFileParsers from './service.file.parsers';
-import { AFileParser } from '../controllers/files.parsers/index';
 import Logger from '../tools/env.logger';
-import * as fs from 'fs';
 import { Subscription } from '../tools/index';
 import { IService } from '../interfaces/interface.service';
-import TestTransform, { IResults as ITestResults} from '../controllers/controller.merge.files.test.pipe.transform';
-import NullWritableStream from '../classes/stream.writable.null';
 import { IFile as ITestFileRequest } from '../controllers/electron.ipc.messages/merge.files.test.request';
 import { IFile as ITestFileResponse } from '../controllers/electron.ipc.messages/merge.files.test.response';
 import { IFile as IMergeFileRequest } from '../controllers/electron.ipc.messages/merge.files.request';
-import * as Stream from 'stream';
 import * as moment from 'moment-timezone';
-import MergeFilesWriter from '../controllers/controller.merge.files.writer';
 import MergeFiles from '../controllers/controller.merge.files';
+import MergeDiscover, { IDatetimeDiscoverResult } from '../controllers/controller.merge.discover';
 import MergeTest, { IFileTestResults } from '../controllers/controller.merge.test';
-
-const Settings = {
-    readBytesForTest: 64 * 1024,
-};
 
 /**
  * @class ServiceMergeFiles
@@ -59,6 +49,15 @@ class ServiceMergeFiles implements IService {
                 new Promise((resolveSubscription, rejectSubscription) => {
                     ServiceElectron.IPC.subscribe(IPCMessages.MergeFilesTimezonesRequest, this._onMergeFilesTimezonesRequest.bind(this)).then((subscription: Subscription) => {
                         this._subscription.MergeFilesTimezonesRequest = subscription;
+                        resolveSubscription();
+                    }).catch((error: Error) => {
+                        this._logger.error(`Fail to init module due error: ${error.message}`);
+                        rejectSubscription(error);
+                    });
+                }),
+                new Promise((resolveSubscription, rejectSubscription) => {
+                    ServiceElectron.IPC.subscribe(IPCMessages.MergeFilesDiscoverRequest, this._onMergeFilesDiscoverRequest.bind(this)).then((subscription: Subscription) => {
+                        this._subscription.MergeFilesDiscoverRequest = subscription;
                         resolveSubscription();
                     }).catch((error: Error) => {
                         this._logger.error(`Fail to init module due error: ${error.message}`);
@@ -119,6 +118,23 @@ class ServiceMergeFiles implements IService {
         });
     }
 
+    private _onMergeFilesDiscoverRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        const req: IPCMessages.MergeFilesDiscoverRequest = request as IPCMessages.MergeFilesDiscoverRequest;
+        const files: ITestFileResponse[] = [];
+        this._discover(req.files).then((results: IDatetimeDiscoverResult[]) => {
+            response(new IPCMessages.MergeFilesDiscoverResponse({
+                id: req.id,
+                files: results,
+            }));
+        }).catch((error: Error) => {
+            response(new IPCMessages.MergeFilesDiscoverResponse({
+                id: req.id,
+                files: [],
+                error: error.message,
+            }));
+        });
+    }
+
     private _onMergeFilesTestRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.MergeFilesTestRequest = request as IPCMessages.MergeFilesTestRequest;
         const files: ITestFileResponse[] = [];
@@ -167,6 +183,17 @@ class ServiceMergeFiles implements IService {
                     size: results.size,
                     regExpStr: results.results.regExpStr,
                 });
+            }).catch((error: Error) => {
+                reject(error);
+            });
+        });
+    }
+
+    private _discover(files: string[]): Promise<IDatetimeDiscoverResult[]> {
+        return new Promise((resolve, reject) => {
+            const controller: MergeDiscover = new MergeDiscover(files);
+            controller.discover().then((results: IDatetimeDiscoverResult[]) => {
+                resolve(results);
             }).catch((error: Error) => {
                 reject(error);
             });

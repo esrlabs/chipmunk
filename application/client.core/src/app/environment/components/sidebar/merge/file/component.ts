@@ -244,6 +244,13 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
         return this._ng_format;
     }
 
+    public setFormat(format: string) {
+        this._ng_format = format;
+        if (this._formatComRef !== null && this._formatComRef !== undefined) {
+            this._formatComRef.setValue(format);
+        }
+    }
+
     public setTestResults(results: ITestResult | undefined) {
         this._ng_testResults = results;
         this._ng_rows = this._getReadRows();
