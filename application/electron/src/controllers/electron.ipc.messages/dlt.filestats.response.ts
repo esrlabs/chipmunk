@@ -20,13 +20,14 @@ export interface IDLTStatsResponse {
     session: string;
     stats: IDLTStats | undefined;
     error?: string;
-    logs?: IDLTLogMessage[];
+    logs?: ILogMessage[];
 }
 
-export interface IDLTLogMessage {
+export interface ILogMessage {
     severity: string;
     text: string;
-    line_nr: string;
+    line_nr: number | null;
+    file_name?: string;
 }
 
 export class DLTStatsResponse {
@@ -37,7 +38,7 @@ export class DLTStatsResponse {
     public stats: IDLTStats | undefined;
     public session: string = '';
     public error: string | undefined;
-    public logs: IDLTLogMessage[] | undefined;
+    public logs: ILogMessage[] | undefined;
 
     constructor(params: IDLTStatsResponse) {
         if (typeof params !== 'object' || params === null) {

@@ -14,17 +14,24 @@ const COptionButton = {
     hide: 'Less Options'
 };
 
-const CDateTimeAliases = ['YYYY', 'MM', 'DD', 'hh', 'mm', 'ss', '.s', 'sss'];
+const CPreviewButton = {
+    show: 'Show preview of file',
+    hide: 'Hide preview of file'
+};
+
+const CDateTimeAliases = ['YYYY', 'MM', 'MMM', 'DD', 'hh', 'mm', 'ss', '.s', 'sss', 'TZD'];
 
 enum EDataTimeAliases {
     YYYY = 'YYYY',
     MM = 'MM',
+    MMM = 'MMM',
     DD = 'DD',
     hh = 'hh',
     mm = 'mm',
     ss = 'ss',
     s = '.s',
     sss = 'sss',
+    tzd = 'TZD'
 }
 
 @Component({
@@ -46,7 +53,7 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
     @Input() public parser: string = '';
     @Input() public zones: string[] = [];
     @Input() public defaultFormat: string | undefined;
-    @Input() public onUpdated: () => any = () => void 0;
+    @Input() public onUpdated: (warn: boolean, err: boolean) => any = () => void 0;
     @Input() public onRemove: () => any = () => void 0;
     @Input() public onTest: () => any = () => void 0;
     @Input() public onExtendObs: Observable<string>;
@@ -61,12 +68,15 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
     public _ng_rows: SafeHtml[] = [];
     public _ng_warnings: string[] = [];
     public _ng_format: string = '';
+    public _ng_previewButtonTitle: string = CPreviewButton.show;
 
     private _valid: boolean = false;
+    private _previewRows: string[] = [];
     private _year: number = -1;
     private _offset: number = 0;
     private _zone: string = '';
     private _subscriptions: { [key: string]: Subscription } = {};
+    private _destroyed: boolean = false;
 
     constructor(private _sanitizer: DomSanitizer, private _cdRef: ChangeDetectorRef) {
         this._ng_onZoneChange = this._ng_onZoneChange.bind(this);
@@ -82,10 +92,10 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
         this._ng_zones = this.zones.map((zone: string) => {
             return { value: zone, caption: zone };
         });
+        this._previewRows = this.preview.split(/[\n\r]/gi);
         this._ng_zones.unshift({ value: ListOffsetValue, caption: 'Set time offset in ms' });
         this._ng_zones.unshift({ value: '', caption: 'Select time zone or offset' });
         this._ng_rows = this._getReadRows();
-        this._cdRef.detectChanges();
     }
 
     public ngAfterViewInit() {
@@ -98,6 +108,7 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
     }
 
     public ngOnDestroy() {
+        this._destroyed = true;
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
@@ -110,11 +121,21 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
             this._zone = '';
             this._year = -1;
         }
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     public _ng_isMoreOpened(): boolean {
         return this._ng_moreButtonTitle === COptionButton.hide;
+    }
+
+    public _ng_onPreviewToggle() {
+        this._ng_previewButtonTitle = this._ng_previewButtonTitle === CPreviewButton.show ? CPreviewButton.hide : CPreviewButton.show;
+        this._ng_rows = this._getReadRows();
+        this._forceUpdate();
+    }
+
+    public _ng_isPreviewOpened(): boolean {
+        return this._ng_previewButtonTitle === CPreviewButton.hide;
     }
 
     public _ng_onOffsetValidate(value: string): string | undefined {
@@ -130,11 +151,8 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
     }
 
     public _ng_onFormatValidate(value: string): string | undefined {
+        this._valid = value.trim() !== '';
         this._updateWarningMsg();
-        if (value !== '') {
-            return undefined;
-        }
-        this._valid = false;
         return undefined;
     }
 
@@ -148,11 +166,10 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
         this._zone = value;
         if (this._zone === ListOffsetValue) {
             this._ng_offset = 0;
-            this._cdRef.detectChanges();
         } else if (this._ng_offset !== undefined) {
             this._ng_offset = undefined;
-            this._cdRef.detectChanges();
         }
+        this._forceUpdate();
     }
 
     public _ng_onYearValidate(value: string): string | undefined {
@@ -173,6 +190,9 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
     }
 
     public _ng_onTest() {
+        if (!this._ng_isPreviewOpened()) {
+            this._ng_onPreviewToggle();
+        }
         this.onTest();
     }
 
@@ -195,8 +215,9 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
         }
         if (this._formatComRef !== null && this._formatComRef !== undefined) {
             this._formatComRef.refresh();
+        } else {
+            this._updateWarningMsg();
         }
-        this._updateWarningMsg();
     }
 
     public getFile(): string {
@@ -226,23 +247,26 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
     public setTestResults(results: ITestResult | undefined) {
         this._ng_testResults = results;
         this._ng_rows = this._getReadRows();
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     public dropTestResults() {
+        if (this._ng_testResults === undefined) {
+            return;
+        }
         this._ng_testResults = undefined;
         this._ng_rows = this._getReadRows();
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     public disable() {
         this._ng_disabled = true;
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     public enable() {
         this._ng_disabled = false;
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     public hasWarnings(): boolean {
@@ -250,15 +274,15 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
     }
 
     private _onExtendedFormat(format: string) {
-        if (this._ng_format.trim() !== '') {
-            return;
-        }
         this._ng_format = format;
         this._formatComRef.setValue(format);
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     private _getReadRows(): SafeHtml[]  {
+        if (!this._ng_isPreviewOpened()) {
+            return [];
+        }
         let reg: RegExp | Error | undefined;
         if (this._ng_testResults !== undefined && this._ng_testResults.error === undefined) {
             reg = Toolkit.regTools.createFromStr(this._ng_testResults.regExpStr, 'i');
@@ -266,8 +290,7 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
                 reg = undefined;
             }
         }
-        const rows: string[] = this.preview.split(/[\n\r]/gi);
-        return rows.map((row: string) => {
+        return this._previewRows.map((row: string) => {
             let html: string = row;
             if (reg !== undefined) {
                 html = row.replace(reg as RegExp, (match: string, ...args: any[]) => {
@@ -279,9 +302,9 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
     }
 
     private _updateWarningMsg() {
-        const warings: boolean = this.hasWarnings();
         const format: string | undefined = this._getFormatValidMsg();
         const complite: string | undefined = this._getFormatCompliteMsg();
+        const was: number = this._ng_warnings.length;
         this._ng_warnings = [];
         if (format !== undefined) {
             this._ng_warnings.push(format);
@@ -289,9 +312,9 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
         if (complite !== undefined) {
             this._ng_warnings.push(complite);
         }
-        this._cdRef.detectChanges();
-        if (warings && !this.hasWarnings()) {
-            this.onUpdated();
+        this.onUpdated(this.hasWarnings(), !this._valid);
+        if (was !== this._ng_warnings.length) {
+            this._forceUpdate();
         }
     }
 
@@ -354,6 +377,13 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
             return undefined;
         }
         return `Date format isn't full`;
+    }
+
+    private _forceUpdate() {
+        if (this._destroyed) {
+            return;
+        }
+        this._cdRef.detectChanges();
     }
 
 }

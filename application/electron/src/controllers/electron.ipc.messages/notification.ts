@@ -8,6 +8,8 @@ export interface INotification {
     message: string;
     caption: string;
     session?: string;
+    file?: string;
+    row?: number;
     data?: any;
     type?: ENotificationType | string;
 }
@@ -22,6 +24,8 @@ export class Notification {
     public type: ENotificationType = ENotificationType.info;
     public data: any;
     public session: string | undefined;
+    public file: string | undefined;
+    public row: number | undefined;
 
     constructor(params: INotification) {
         if (typeof params !== 'object' || params === null) {
@@ -31,6 +35,8 @@ export class Notification {
         this.caption = typeof params.caption === 'string' ? params.caption : '';
         this.data = params.data;
         this.session = params.session;
+        this.file = params.file;
+        this.row = params.row;
         this.type = typeof params.type === 'string' ? this._getNotificationType(params.type) : ENotificationType.info;
     }
 

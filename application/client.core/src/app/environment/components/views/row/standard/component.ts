@@ -1,6 +1,5 @@
 import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import SourcesService from '../../../../services/service.sources';
 import OutputParsersService from '../../../../services/standalone/service.output.parsers';
 import { AOutputRenderComponent, IOutputRenderInputs } from '../../../../interfaces/interface.output.render';
 import { ControllerSessionScope } from '../../../../controller/controller.session.tab.scope';
@@ -50,11 +49,6 @@ export class ViewOutputRowStandardComponent extends AOutputRenderComponent imple
             position: this.position,
             hasOwnStyles: (matches.color !== undefined) || (matches.background !== undefined),
         });
-        // Apply colors for sources (if more than 1)
-        const countOfSessionSources: number = SourcesService.getCountOfSource(this.sessionId);
-        if (this.background === undefined && countOfSessionSources > 1) {
-            this.background = SourcesService.getSourceShadowColor(this.pluginId);
-        }
         // Generate html
         this._safeHtml = this._sanitizer.bypassSecurityTrustHtml(html);
     }

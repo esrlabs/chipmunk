@@ -1,7 +1,7 @@
 import { AFileParser, IFileParserFunc, IMapItem } from './interface';
 import { Transform } from 'stream';
 import * as path from 'path';
-import { Lvin, IIndexResult, IFileMapItem, IDLTLogMessage } from 'logviewer.lvin';
+import { Lvin, IIndexResult, IFileMapItem, ILogMessage } from 'logviewer.lvin';
 import ServiceElectron, { IPCMessages } from '../../services/service.electron';
 import ServiceStreams from '../../services/service.streams';
 
@@ -79,10 +79,12 @@ export default class FileParser extends AFileParser {
                 injection: sourceId.toString(),
             }, dltOptions).then((results: IIndexResult) => {
                 if (results.logs instanceof Array) {
-                    results.logs.forEach((log: IDLTLogMessage) => {
+                    results.logs.forEach((log: ILogMessage) => {
                         ServiceElectron.IPC.send(new IPCMessages.Notification({
                             type: log.severity,
-                            message: `${log.line_nr !== null ? `[line: ${log.line_nr}]: ` : ''}${log.text}`,
+                            row: log.line_nr === null ? undefined : log.line_nr,
+                            file: log.file_name,
+                            message: log.text,
                             caption: path.basename(srcFile),
                             session: session,
                         }));

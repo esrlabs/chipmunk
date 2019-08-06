@@ -20,10 +20,13 @@
         & span.error-icon,
         & span.warning-icon{
             position: relative;
-            display: inline;
-            font-size: 13px;
-            line-height: 13px;
-            margin-right: 3px;
+            display: inline-block;
+            font-size: 10px;
+            line-height: 10px;
+            margin-right: 2px;
+            vertical-align: top;
+            margin-top: 4px;
+            margin-left: 4px;
         }
         & span.error-icon{
             color: @scheme-color-error;
@@ -31,6 +34,20 @@
         & span.warning-icon{
             color: @scheme-color-warning;
         }
+    }
+    & p.line{
+        position: relative;
+        display: inline-block;
+        margin: 0;
+        padding: 0 1rem 0 0;
+        color: @scheme-color-1;
+        cursor: default;
+        font-size: 0.95rem;
+        width: 5rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: top;
+        user-select: all!important;
     }
     & p.content{
         position: relative;
@@ -42,5 +59,6 @@
         white-space: normal;
         vertical-align: top;
         user-select: all!important;
+        width: ~"calc(100% - 12rem)";
     }
 }
