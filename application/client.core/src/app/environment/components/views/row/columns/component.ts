@@ -1,6 +1,5 @@
 import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import SourcesService from '../../../../services/service.sources';
 import OutputParsersService from '../../../../services/standalone/service.output.parsers';
 import { ControllerSessionScope } from '../../../../controller/controller.session.tab.scope';
 import { AOutputRenderComponent, IOutputRenderInputs } from '../../../../interfaces/interface.output.render';
@@ -108,11 +107,6 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
             if (this.background === undefined || this.color === undefined) {
                 this.color = matches.color;
                 this.background = matches.background;
-                // Apply colors for sources (if more than 1)
-                const countOfSessionSources: number = SourcesService.getCountOfSource(this.sessionId);
-                if (this.background === undefined && countOfSessionSources > 1) {
-                    this.background = SourcesService.getSourceShadowColor(this.pluginId);
-                }
             }
             // Apply plugin parser
             column = OutputParsersService.row({

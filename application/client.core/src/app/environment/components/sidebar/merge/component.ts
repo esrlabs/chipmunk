@@ -73,6 +73,8 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     private _dragdrop: ControllerComponentsDragDropFiles | undefined;
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppMergeFilesComponent');
+    private _errors: { [key: string]: boolean } = {};
+    private _warnings: { [key: string]: boolean } = {};
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef) {
@@ -111,17 +113,29 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
             return;
         }
         this._files.splice(index, 1);
+        delete this._errors[file];
+        delete this._warnings[file];
+        this._ng_report = undefined;
         this._dropWarnings();
         this._cdRef.detectChanges();
     }
 
-    public _ng_onFileFieldUpdated(file: string) {
-        this._setWarnings();
-        this._validate();
+    public _ng_onFileFieldUpdated(file: string, warn: boolean, err: boolean) {
+        if (warn) {
+            this._warnings[file] = true;
+        } else {
+            delete this._warnings[file];
+        }
+        if (err) {
+            this._errors[file] = true;
+        } else {
+            delete this._errors[file];
+        }
+        this._updateWarnings();
+        this._updateErrors();
     }
 
     public _ng_onAddFile() {
-        this._ng_error = undefined;
         this._ng_report = undefined;
         this._dropWarnings();
         this._cdRef.detectChanges();
@@ -131,17 +145,21 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
             if (!(files instanceof Array) || files.length !== 1) {
                 return;
             }
-            this._openFile(files[0]);
+            this._openFile(files[0]).then(() => {
+                this._cdRef.detectChanges();
+            }).catch((error: Error) => {
+                this._ng_error = error.message;
+                this._cdRef.detectChanges();
+            });
         });
     }
 
     public _ng_onMerge() {
-        if (!this._validate()) {
+        this._forceFilesState();
+        if (!this._updateErrors()) {
             return;
         }
-        const hasWarnings: boolean = this._hasWarnings();
-        this._setWarnings();
-        if (!hasWarnings && this._hasWarnings()) {
+        if (this._hasWarnings()) {
             // Wait for confirmation
             return;
         }
@@ -198,7 +216,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     }
 
     public _ng_onTest(file?: IRequestFile) {
-        if (!this._validate() && file === undefined) {
+        if (!this._updateErrors() && file === undefined) {
             return;
         }
         this._ng_busy = true;
@@ -305,34 +323,38 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         if (files.length === 0) {
             return;
         }
-        files.forEach((file: File) => {
-            this._openFile((file as any).path);
+        Promise.all(files.map((file: File) => {
+            return this._openFile((file as any).path);
+        })).then(() => {
+            this._cdRef.detectChanges();
+        }).catch((error: Error) => {
+            this._ng_error = error.message;
+            this._cdRef.detectChanges();
         });
     }
 
-    private _openFile(file: string) {
-        if (this._doesExist(file)) {
-            this._ng_error = 'This file is already added.';
-            return this._cdRef.detectChanges();
-        }
-        this._getFileParser(file).then((info: IFileInfo) => {
-            this._getFileContent(file).then((preview: IFilePreview) => {
-                this._files.push({
-                    file: file,
-                    name: info.shortname,
-                    parser: info.parser,
-                    size: preview.size,
-                    preview: preview.preview,
-                    defaultFormat: this._files.length === 0 ? undefined : this._getDefaultFormat()
+    private _openFile(file: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (this._doesExist(file)) {
+                return reject(new Error('This file is already added.'));
+            }
+            this._getFileParser(file).then((info: IFileInfo) => {
+                this._getFileContent(file).then((preview: IFilePreview) => {
+                    this._files.push({
+                        file: file,
+                        name: info.shortname,
+                        parser: info.parser,
+                        size: preview.size,
+                        preview: preview.preview,
+                        defaultFormat: this._files.length === 0 ? undefined : this._getDefaultFormat()
+                    });
+                    resolve();
+                }).catch((previewError: Error) => {
+                    reject(`Fail read preview of file due error: ${previewError.message}`);
                 });
-                this._cdRef.detectChanges();
-            }).catch((previewError: Error) => {
-                this._ng_error = `Fail read preview of file due error: ${previewError.message}`;
-                this._cdRef.detectChanges();
+            }).catch((parserError: Error) => {
+                reject(`Fail detect file parser due error: ${parserError.message}`);
             });
-        }).catch((parserError: Error) => {
-            this._ng_error = `Fail detect file parser due error: ${parserError.message}`;
-            this._cdRef.detectChanges();
         });
     }
 
@@ -363,19 +385,17 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         });
     }
 
-    private _validate(): boolean {
-        let error: boolean = false;
-        this._ng_error = '';
-        this._filesComps.forEach((com: SidebarAppMergeFilesItemComponent) => {
-            if (!com.isValid()) {
-                error = true;
-                com.refresh();
-            }
-        });
+    private _updateErrors(): boolean {
+        const error: boolean = Object.keys(this._errors).length > 0;
+        const prev: string | undefined = this._ng_error;
         if (error) {
             this._ng_error = `Please check settings of files.`;
+        } else {
+            this._ng_error = undefined;
         }
-        this._cdRef.detectChanges();
+        if (prev !== this._ng_error) {
+            this._cdRef.detectChanges();
+        }
         return !error;
     }
 
@@ -383,14 +403,9 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         return this._ng_warning !== undefined;
     }
 
-    private _setWarnings(): void {
-        let warning: boolean = false;
-        this._filesComps.forEach((com: SidebarAppMergeFilesItemComponent) => {
-            if (com.hasWarnings()) {
-                warning = true;
-                com.refresh();
-            }
-        });
+    private _updateWarnings(): void {
+        const warning: boolean = Object.keys(this._warnings).length > 0;
+        const prev: string | undefined = this._ng_warning;
         if (warning) {
             this._ng_warning = `Something isn't okay with your configuration. Are you sure, you would like to merge?`;
             this._ng_mergeButtonTitle = EMergeButtonTitle.confirm;
@@ -398,13 +413,21 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
             this._ng_mergeButtonTitle = EMergeButtonTitle.merge;
             this._ng_warning = undefined;
         }
-        this._cdRef.detectChanges();
+        if (prev !== this._ng_warning) {
+            this._cdRef.detectChanges();
+        }
     }
 
     private _dropWarnings() {
         this._ng_mergeButtonTitle = EMergeButtonTitle.merge;
         this._ng_warning = undefined;
         this._cdRef.detectChanges();
+    }
+
+    private _forceFilesState() {
+        this._filesComps.forEach((com: SidebarAppMergeFilesItemComponent) => {
+            com.refresh();
+        });
     }
 
     private _getFileComp(file: string): SidebarAppMergeFilesItemComponent | undefined {
@@ -486,7 +509,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
             }
             ElectronIpcService.request(new IPCMessages.FileReadRequest({
                 file: file,
-                bytes: 50000,
+                bytes: 25000,
                 session: this._ng_session.getGuid()
             }), IPCMessages.FileReadResponse).then((response: IPCMessages.FileReadResponse) => {
                 if (response.error !== undefined) {

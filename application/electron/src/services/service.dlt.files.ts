@@ -2,7 +2,7 @@ import ServiceElectron, { IPCMessages } from './service.electron';
 import Logger from '../tools/env.logger';
 import { Subscription } from '../tools/index';
 import { IService } from '../interfaces/interface.service';
-import { Lvin, IDLTStatsResults, IDLTLogMessage } from 'logviewer.lvin';
+import { Lvin, IDLTStatsResults, ILogMessage } from 'logviewer.lvin';
 import * as path from 'path';
 
 /**
@@ -50,10 +50,12 @@ class ServiceDLTFiles implements IService {
         const lvin: Lvin = new Lvin();
         lvin.dltStat({ srcFile: req.file }).then((results: IDLTStatsResults) => {
             if (results.logs instanceof Array) {
-                results.logs.forEach((log: IDLTLogMessage) => {
+                results.logs.forEach((log: ILogMessage) => {
                     ServiceElectron.IPC.send(new IPCMessages.Notification({
                         type: log.severity,
-                        message: `${log.line_nr !== null ? `[line: ${log.line_nr}]: ` : ''}${log.text}`,
+                        row: log.line_nr === null ? undefined : log.line_nr,
+                        file: log.file_name,
+                        message: log.text,
                         caption: path.basename(req.file),
                         session: req.session,
                     }));

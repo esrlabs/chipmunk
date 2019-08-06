@@ -3,8 +3,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import ServiceStreams from '../services/service.streams';
 import ServiceStreamSource from '../services/service.stream.sources';
+import ServiceElectron, { IPCMessages } from '../services/service.electron';
 import * as Tools from '../tools/index';
-import { Lvin, IIndexResult, IFileToBeMerged, IFileMapItem } from 'logviewer.lvin';
+import { Lvin, IIndexResult, IFileToBeMerged, IFileMapItem, ILogMessage } from 'logviewer.lvin';
 import Logger from '../tools/env.logger';
 
 export interface IFile {
@@ -30,6 +31,8 @@ export default class MergeFiles {
 
     public write(): Promise<number> {
         return new Promise((resolve, reject) => {
+            // Remember active session
+            const session: string = ServiceStreams.getActiveStreamId();
             // Get common file size
             this._getSize().then((size: number) => {
                 const sessionData = ServiceStreams.getStreamFile(this._session);
@@ -53,20 +56,32 @@ export default class MergeFiles {
                     ServiceStreams.pushToStreamFileMap(this._session, converted);
                     ServiceStreams.updatePipeSession(mapped, this._session);
                 });
-                lvin.merge(
-                    this._files.map((file: IFile) => {
-                        return {
-                            file: file.file,
-                            offset: file.offset,
-                            sourceId: this._sourceIds[file.file].toString(),
-                            year: file.year,
-                            format: file.format,
-                        } as IFileToBeMerged;
-                    }),
+                const files = this._files.map((file: IFile) => {
+                    return {
+                        file: file.file,
+                        offset: file.offset,
+                        sourceId: this._sourceIds[file.file].toString(),
+                        year: file.year,
+                        format: file.format,
+                    } as IFileToBeMerged;
+                });
+                lvin.merge(files,
                     {
                         destFile: sessionData.file,
                     },
-                ).then(() => {
+                ).then((results: IIndexResult) => {
+                    if (results.logs instanceof Array) {
+                        results.logs.forEach((log: ILogMessage) => {
+                            ServiceElectron.IPC.send(new IPCMessages.Notification({
+                                type: log.severity,
+                                row: log.line_nr === null ? undefined : log.line_nr,
+                                file: log.file_name,
+                                message: log.text,
+                                caption: log.file_name === undefined ? 'Mergin Error' : log.file_name,
+                                session: session,
+                            }));
+                        });
+                    }
                     lvin.removeAllListeners();
                     ServiceStreams.removePipeSession(this._writeSessionsId);
                     resolve(size);

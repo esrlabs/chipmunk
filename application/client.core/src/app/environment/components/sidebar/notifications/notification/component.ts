@@ -1,12 +1,11 @@
 // tslint:disable:member-ordering
 
 import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, AfterViewInit } from '@angular/core';
-import * as Toolkit from 'logviewer.client.toolkit';
 import { Subscription, Observable, Subject } from 'rxjs';
 import { INotification } from '../../../../services.injectable/injectable.service.notifications';
 
 @Component({
-    selector: 'app-sidebar-app-notificatio',
+    selector: 'app-sidebar-app-notification',
     templateUrl: './template.html',
     styleUrls: ['./styles.less']
 })

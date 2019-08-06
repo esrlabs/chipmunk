@@ -8,14 +8,21 @@ import TabsSessionsService from './service.sessions.tabs';
 import { ViewSearchComponent } from '../components/views/search/component';
 import { SidebarAppNotificationsComponent } from '../components/sidebar/notifications/component';
 
+export const CDefaultTabsGuids = {
+    search: Toolkit.guid(),
+    notification: Toolkit.guid(),
+};
+
 const DefaultViews = [
     {
         name: 'Search',
+        guid: CDefaultTabsGuids.search,
         factory: ViewSearchComponent,
         inputs: { }
     },
     {
         name: 'Notifications',
+        guid: CDefaultTabsGuids.notification,
         factory: SidebarAppNotificationsComponent,
         inputs: { }
     },
@@ -62,7 +69,7 @@ export class HorizontalSidebarSessionsService implements IService {
         DefaultViews.forEach((defaultView, i) => {
             const guid: string = Toolkit.guid();
             this._tabsService.add({
-                guid: guid,
+                guid: defaultView.guid,
                 name: defaultView.name,
                 active: i === 0,
                 closable: false,

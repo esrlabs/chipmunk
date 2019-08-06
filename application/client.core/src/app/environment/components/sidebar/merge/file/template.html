@@ -1,19 +1,19 @@
 <span class="close-button small-icon-button fas fa-times" (click)="_ng_onRemove()"></span>
-<table>
-    <tr>
-        <td class="t-normal title">Name: </td>
-        <td class="t-normal value">{{name}}</td>
-    </tr>
-    <tr>
-        <td class="t-normal title">Size: </td>
-        <td class="t-normal value">{{(size / 1024 / 1024).toFixed(2)}} Mb</td>
-    </tr>
-</table>
-<span class="spliter"></span>
-<div class="preview">
-    <ul class="rows">
-        <li class="row" *ngFor="let row of _ng_rows" [innerHTML]="row"></li>
-    </ul>
+<div class="options-wrapper">
+    <div class="toggle">
+        <span   [attr.class]="'toggle-button small-icon-button fas fa-angle-double-down' + (_ng_isPreviewOpened() ? ' opened' : '')"
+                [attr.title]="_ng_previewButtonTitle"
+                (click)="_ng_onPreviewToggle()"></span>
+    </div>
+    <div class="options">
+        <p class="t-small file-name">{{name}} ({{(size / 1024 / 1024).toFixed(2)}} Mb)</p>
+        <div class="preview" *ngIf="_ng_isPreviewOpened()">
+            <span class="spliter"></span>
+            <ul class="rows">
+                <li class="row" *ngFor="let row of _ng_rows" [innerHTML]="row"></li>
+            </ul>
+        </div>
+    </div>
 </div>
 <span class="spliter"></span>
 <div class="options-wrapper">
@@ -63,21 +63,8 @@
 
 <div class="test-results" *ngIf="_ng_testResults !== undefined">
     <span class="spliter"></span>
-    <p class="file-name t-small">Test results:</p>
-    <span class="spliter"></span>
-    <div *ngIf="_ng_testResults.error === undefined">
-        <table>
-            <tr>
-                <td class="t-small title">Found matches in: </td>
-                <td class="t-small value">{{_ng_testResults.found}} rows</td>
-            </tr>
-            <tr>
-                <td class="t-small title">Was read: </td>
-                <td class="t-small value">{{_ng_testResults.readRows}} rows</td>
-            </tr>
-        </table>
-        <span class="spliter"></span>
-    </div>
-    <p class="error t-normal" *ngIf="_ng_testResults.error !== undefined">{{_ng_testResults.error}}</p>
+    <p *ngIf="_ng_testResults.error === undefined && _ng_testResults.found > 0" class="t-small">Found: {{_ng_testResults.found}} rows from {{_ng_testResults.readRows}}</p>
+    <p *ngIf="_ng_testResults.error === undefined && _ng_testResults.found === 0" class="t-small color-scheme-warning">Nothing found in {{_ng_testResults.readRows}} rows</p>
+    <p *ngIf="_ng_testResults.error !== undefined" class="error t-normal">Error: {{_ng_testResults.error}}</p>
 </div>
 <span class="spliter"></span>

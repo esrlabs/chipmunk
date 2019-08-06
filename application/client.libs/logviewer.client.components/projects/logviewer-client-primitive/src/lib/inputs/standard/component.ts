@@ -35,7 +35,7 @@ export class InputStandardComponent implements AfterContentInit, OnChanges {
         this._cdRef.detectChanges();
     }
 
-    ngOnChanges(changes: SimpleChanges) {
+    public ngOnChanges(changes: SimpleChanges) {
         if (changes.value !== undefined) {
             this.value = changes.value.currentValue;
             this._ng_value = this.value;
@@ -73,9 +73,13 @@ export class InputStandardComponent implements AfterContentInit, OnChanges {
         this._ng_onChange(this._ng_value);
     }
 
-    public setValue(value: string) {
+    public setValue(value: string, silence: boolean = false) {
         this._ng_value = value;
-        this._ng_onChange(value);
+        if (silence) {
+            this._cdRef.detectChanges();
+        } else {
+            this._ng_onChange(value);
+        }
     }
 
     public getValue(): string | number {
