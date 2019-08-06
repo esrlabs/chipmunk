@@ -81,8 +81,16 @@ task :installplugins do
   end
 end
 
-desc "full update"
-task :update do
+desc "update indexer"
+task :updateindexer do
+  cd "application/electron" do
+    sh "npm uninstall logviewer.lvin"
+    sh "npm install logviewer.lvin@latest"
+  end
+end
+
+desc "update toolkit"
+task :updatetoolkit do
   cd "application/client.core" do
     sh "npm uninstall logviewer.client.toolkit"
     sh "npm install logviewer.client.toolkit@latest"
@@ -95,13 +103,12 @@ task :update do
     sh "npm uninstall logviewer.client.toolkit"
     sh "npm install logviewer.client.toolkit@latest"
   end
-  cd "application/electron" do
-    sh "npm uninstall logviewer.lvin"
-    sh "npm install logviewer.lvin@latest"
-  end
   cd "application" do
     sh "jake client:all --skip-npm"
     sh "jake plugins:all --skip-npm"
     sh "jake electron:quick --skip-npm"
   end
 end
+
+desc "full update"
+task :update => [:updateindexer, :updatetoolkit]
