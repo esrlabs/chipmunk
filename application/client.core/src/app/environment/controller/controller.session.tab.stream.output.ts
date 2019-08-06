@@ -48,10 +48,10 @@ export interface ILoadedRange {
 }
 
 export const Settings = {
-    trigger         : 1000,     // Trigger to load addition chunk
-    maxRequestCount : 5000,     // chunk size in rows
-    maxStoredCount  : 10000,    // limit of rows to have it in RAM. All above should be removed
-    requestDelay    : 250,      // ms, delay before to do request
+    trigger         : 400,       // Trigger to load addition chunk
+    maxRequestCount : 2000,      // chunk size in rows
+    maxStoredCount  : 2000,      // limit of rows to have it in RAM. All above should be removed
+    requestDelay    : 0,         // ms, delay before to do request
 };
 
 export class ControllerSessionTabStreamOutput {
@@ -66,6 +66,7 @@ export class ControllerSessionTabStreamOutput {
     private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
     private _preloadTimestamp: number = -1;
     private _horScrollOffset: number = 0;
+    private _lastRequestedRows: IStreamPacket[] = [];
     private _state: IStreamState = {
         count: 0,
         countRank: 1,
@@ -189,7 +190,7 @@ export class ControllerSessionTabStreamOutput {
         this._state.frame = { start: range.start, end: range.end };
         if (!this._load()) {
             // No need to make request, but check buffer
-            this._buffer();
+            // this._buffer();
         }
     }
 
@@ -299,7 +300,7 @@ export class ControllerSessionTabStreamOutput {
         // First step: drop previos request
         clearTimeout(this._state.lastLoadingRequestId);
         // Check: do we need to load something at all
-        const frame = this._state.frame;
+        const frame = Object.assign({}, this._state.frame);
         const stored = this._state.stored;
         if (stored.start <= frame.start && stored.end >= frame.end) {
             // Frame in borders of stored data. No need to request
@@ -330,6 +331,8 @@ export class ControllerSessionTabStreamOutput {
                 // Check: do we already have other request
                 if (this._state.lastLoadingRequestId !== undefined) {
                     // No need to parse - new request was created
+                    this._lastRequestedRows = [];
+                    this._parse(message.data, this._lastRequestedRows, frame);
                     return;
                 }
                 // Update size of whole stream (real size - count of rows in stream file)
@@ -440,35 +443,57 @@ export class ControllerSessionTabStreamOutput {
      * @param { number } count - total count of rows in whole stream (not in input, but in whole stream)
      * @returns void
      */
-    private _parse(input: string): void {
+    private _parse(input: string, dest?: IStreamPacket[], frame?: IRange): void {
         // TODO: filter here should be removed -> bad data comes from process, it should be resolved there
         const rows: string[] = input.split(/\n/gi);
+        let packets: IStreamPacket[] = [];
         // Conver rows to packets
-        const packets: IStreamPacket[] = rows.map((str: string) => {
-            return {
-                str: this._clearRowStr(str),                // Get cleared string
-                position: this._extractRowPosition(str),    // Get position
-                pluginId: this._extractPluginId(str),       // Get plugin id
-                rank: this._state.countRank,
-                sessionId: this._guid,
-                controller: this,
-                bookmarks: this._bookmarks,
-                sources: this._sources,
-                scope: this._scope,
-                parent: 'stream',
-            };
-        }).filter((packet: IStreamPacket) => {
+        try {
+            rows.forEach((str: string, i: number) => {
+                const position: number = this._extractRowPosition(str); // Get position
+                const pluginId: number = this._extractPluginId(str);    // Get plugin id
+                if (frame !== undefined) {
+                    // Frame is defined. We do not need to parse all, just range in frame
+                    if (frame.end < position) {
+                        throw new Error('No need to parse');
+                    }
+                    if (frame.start > position) {
+                        return;
+                    }
+                }
+                packets.push({
+                    str: this._clearRowStr(str),
+                    position: position,
+                    pluginId: pluginId,
+                    rank: this._state.countRank,
+                    sessionId: this._guid,
+                    controller: this,
+                    bookmarks: this._bookmarks,
+                    sources: this._sources,
+                    scope: this._scope,
+                    parent: 'stream',
+                });
+            });
+        } catch (e) {
+            // do nothing
+        }
+        packets = packets.filter((packet: IStreamPacket) => {
             return (packet.position !== -1);
         });
-        this._acceptPackets(packets);
+        if (dest !== undefined) {
+            // Destination storage is defined: we don't need to store rows (accept it)
+            dest.push(...packets);
+        } else {
+            this._acceptPackets(packets);
+        }
     }
 
     private _getPendingPackets(first: number, last: number): IStreamPacket[] {
         const rows: IStreamPacket[] = Array.from({ length: last - first}).map((_, i) => {
             return {
-                pluginId: -1,
+                pluginId: this._lastRequestedRows[i] === undefined ? -1 : this._lastRequestedRows[i].pluginId,
                 position: first + i,
-                str: undefined,
+                str: this._lastRequestedRows[i] === undefined ? undefined : this._lastRequestedRows[i].str,
                 rank: this._state.countRank,
                 sessionId: this._guid,
                 controller: this,
