@@ -242,6 +242,31 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         });
     }
 
+    public _ng_onDetect() {
+        if (this._files.length === 0) {
+            return;
+        }
+        this._ng_busy = true;
+        this._disable(true);
+        this._cdRef.detectChanges();
+        ElectronIpcService.request(new IPCMessages.MergeFilesDiscoverRequest({
+            files: this._files.map((file: IFileItem) => {
+                return file.file;
+            }),
+            id: Toolkit.guid(),
+        }), IPCMessages.MergeFilesDiscoverResponse).then((response: IPCMessages.MergeFilesDiscoverResponse) => {
+            this._ng_busy = false;
+            this._disable(false);
+            this._setDiscoverResults(response.files);
+            this._cdRef.detectChanges();
+        }).catch((testError: Error) => {
+            this._ng_error = testError.message;
+            this._ng_busy = false;
+            this._disable(false);
+            this._cdRef.detectChanges();
+        });
+    }
+
     private _loadState(): void {
         if (this._ng_session === undefined) {
             return;
@@ -327,6 +352,8 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
             return this._openFile((file as any).path);
         })).then(() => {
             this._cdRef.detectChanges();
+            // Try to make auto detection
+            this._ng_onDetect();
         }).catch((error: Error) => {
             this._ng_error = error.message;
             this._cdRef.detectChanges();
@@ -460,6 +487,19 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
                 return;
             }
             component.setTestResults(file);
+        });
+    }
+
+    private _setDiscoverResults(files: IPCMessages.IMergeFilesDiscoverResult[]) {
+        files.forEach((file: IPCMessages.IMergeFilesDiscoverResult) => {
+            if (file.error !== undefined || file.format.trim() === '') {
+                return;
+            }
+            const comp: SidebarAppMergeFilesItemComponent | undefined = this._getFileComp(file.path);
+            if (comp === undefined) {
+                return;
+            }
+            comp.setFormat(file.format);
         });
     }
 

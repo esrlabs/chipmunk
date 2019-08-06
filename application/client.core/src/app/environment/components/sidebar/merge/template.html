@@ -22,6 +22,7 @@
     <div class="controlls" *ngIf="!_ng_busy">
         <span class="small-button" (click)="_ng_onAddFile()">Add file</span>
         <span *ngIf="_files.length > 1" class="small-button" (click)="_ng_onTest()">Test All</span>
+        <span *ngIf="_files.length > 0" class="small-button" (click)="_ng_onDetect()" title="Detect date format automatically">Detect</span>
         <span *ngIf="_files.length > 1" [attr.class]="'small-button ' + (_ng_warning !== undefined ? 'warning' : '')" (click)="_ng_onMerge()">{{_ng_mergeButtonTitle}}</span>
     </div>
     <div class="progress-testing" *ngIf="_ng_busy">

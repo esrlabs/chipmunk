@@ -103,6 +103,12 @@ export { IMergeFilesTestRequest, MergeFilesTestRequest };
 import { IMergeFilesTestResponse, MergeFilesTestResponse } from './merge.files.test.response';
 export { IMergeFilesTestResponse, MergeFilesTestResponse };
 
+import { IMergeFilesDiscoverRequest, MergeFilesDiscoverRequest } from './merge.files.discover.request';
+export { IMergeFilesDiscoverRequest, MergeFilesDiscoverRequest };
+
+import { IMergeFilesDiscoverResponse, MergeFilesDiscoverResponse, IMergeFilesDiscoverResult } from './merge.files.discover.response';
+export { IMergeFilesDiscoverResponse, MergeFilesDiscoverResponse, IMergeFilesDiscoverResult };
+
 import { MergeFilesTimezonesRequest } from './merge.files.timezone.request';
 export { MergeFilesTimezonesRequest };
 
@@ -166,6 +172,8 @@ export type TMessage =  HostState |
                         MergeFilesTestResponse |
                         MergeFilesTimezonesRequest |
                         MergeFilestimezoneResponse |
+                        MergeFilesDiscoverRequest |
+                        MergeFilesDiscoverResponse |
                         FiltersLoadRequest |
                         FiltersLoadResponse |
                         FiltersSaveRequest |
@@ -222,6 +230,8 @@ export const Map = {
     [MergeFilesTestResponse.signature       ]: MergeFilesTestResponse,
     [MergeFilesTimezonesRequest.signature   ]: MergeFilesTimezonesRequest,
     [MergeFilestimezoneResponse.signature   ]: MergeFilestimezoneResponse,
+    [MergeFilesDiscoverRequest.signature    ]: MergeFilesDiscoverRequest,
+    [MergeFilesDiscoverResponse.signature   ]: MergeFilesDiscoverResponse,
 
     [FiltersLoadRequest.signature           ]: FiltersLoadRequest,
     [FiltersLoadResponse.signature          ]: FiltersLoadResponse,
