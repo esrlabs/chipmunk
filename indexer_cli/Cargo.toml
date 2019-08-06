@@ -1,6 +1,6 @@
 [package]
 name = "indexer_cli"
-version = "0.31.0"
+version = "0.31.1"
 authors = ["Oliver Mueller <oliver.mueller@esrlabs.com>"]
 edition = "2018"
 

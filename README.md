@@ -263,6 +263,10 @@ match: Ok(true)
 
 # Changelog
 
+### [0.31.1] - 08/06/2019
+  * fixed: order of checked regular expressions was incorrect
+  * and we did not detect timestamps correctly
+
 ### [0.31.0] - 08/06/2019
   * detect time format in file
   * most cases are detected correctly
