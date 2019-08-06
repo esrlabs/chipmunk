@@ -643,15 +643,15 @@ fn main() {
             };
             let mut results: Vec<TimestampFormatResult> = Vec::new();
             for item in items {
-                let file_path = path::PathBuf::from(item.path);
+                let file_path = path::PathBuf::from(&item.path);
                 match detect_timestamp_format_in_file(&file_path) {
                     Ok(res) => results.push(TimestampFormatResult {
-                        path: file_name.to_string(),
+                        path: item.path.to_string(),
                         format: Some(res),
                     }),
                     Err(e) => {
                         results.push(TimestampFormatResult {
-                            path: file_name.to_string(),
+                            path: item.path.to_string(),
                             format: None,
                         });
                         report_error(format!("executed with error: {}", e))
@@ -659,7 +659,7 @@ fn main() {
                 }
             }
             let json = serde_json::to_string(&results).unwrap_or_else(|_| "".to_string());
-            println!("{:?}", json);
+            println!("{}", json);
         }
     }
 

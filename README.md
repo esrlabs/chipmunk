@@ -74,24 +74,30 @@ ARGS:
 ```
 ## discover timestamp format
 
-The result will be a json object that looks like this:
+A single result will be a json object that looks like this:
 ```
 {
     "format": "DD/MMM/YYYY:hh:mm:ss TZD"
 }
 ```
 
+in case of the config file option, the result will be a json array that looks like this:
+```
+{"path":"2019-07-15_06.26.01.log","format":"YYYY-MM-DD hh:mm:ss.s"}]
+```
+
 ```
 test date discovery, either from a string or from a file
 
 USAGE:
-    logviewer_parser discover --file <input-file> --input <INPUT>
+    logviewer_parser discover --config <CONFIG> --file <input-file> --input <INPUT>
 
 FLAGS:
     -h, --help       Prints help information
     -V, --version    Prints version information
 
 OPTIONS:
+    -c, --config <CONFIG>      file that contains a list of files to analyze
     -f, --file <input-file>    file where the timeformat should be detected
     -i, --input <INPUT>        string to extract date from
 ```

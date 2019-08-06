@@ -53,8 +53,10 @@ lazy_static! {
         add_twice!("YYYY-MM-DDThh:mm:ss.s", &mut arr, &mut v);
         add_twice!("MM-DDThh:mm:ss.s", &mut arr, &mut v);
         add_twice!("MM-DD hh:mm:ss.s", &mut arr, &mut v);
+        add_twice!("MM-DD-YYYYThh:mm:ss.s", &mut arr, &mut v);
         add_twice!("MM-DD-YYYY hh:mm:ss.s", &mut arr, &mut v);
         add_twice!("DD/MMM/YYYY:hh:mm:ss", &mut arr, &mut v);
+        add_twice!("DD/MMM/YYYYThh:mm:ss", &mut arr, &mut v);
         (arr, v)
     };
     static ref AVAILABLE_REGEXES: Vec<&'static str> = FORMAT_REGEX_MAPPINGS.0.clone();
@@ -561,13 +563,6 @@ pub fn detect_timestamp_in_string(
     offset: Option<i64>,
 ) -> Result<(i64, bool, String), failure::Error> {
     let trimmed = input.trim();
-    // for (format, regex) in FORMAT_REGEX_MAPPING_WITH_TZD.iter() {
-    //     if regex.is_match(trimmed) {
-    //         if let Ok((timestamp, year_missing)) = to_posix_timestamp(input, regex, None, offset) {
-    //             return Ok((timestamp, year_missing, format.to_string()));
-    //         }
-    //     }
-    // }
     for format in AVAILABLE_REGEXES.iter() {
         let regex = &FORMAT_REGEX_MAPPING[format];
         if regex.is_match(trimmed) {

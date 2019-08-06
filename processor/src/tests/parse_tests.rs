@@ -227,6 +227,37 @@ mod tests {
             to_posix_timestamp(input, &regex, None, Some(-TWO_HOURS_IN_MS)).unwrap();
         assert_eq!(1_559_838_667_577, timestamp_with_offset);
     }
+    #[allow(clippy::cognitive_complexity)]
+    macro_rules! assert_format {
+        ($input:expr, $exp:expr) => {
+            match detect_timeformat_in_string($input, None) {
+                Ok(format) => assert_eq!($exp, format),
+                Err(e) => panic!(format!("error happened in detection: {}", e)),
+            }
+        };
+    }
+    #[test]
+    fn test_detect_timeformat_in_string() {
+        assert_format!("2019-07-30 10:08:02.555", "YYYY-MM-DD hh:mm:ss.s");
+        assert_format!("2019-07-30T10:08:02.555", "YYYY-MM-DDThh:mm:ss.s");
+        assert_format!("2019-07-30 10:08:02.555 +0200", "YYYY-MM-DD hh:mm:ss.s TZD");
+        assert_format!("2019-07-30T10:08:02.555 +0200", "YYYY-MM-DDThh:mm:ss.s TZD");
+
+        assert_format!("07-30 10:08:02.555", "MM-DD hh:mm:ss.s");
+        assert_format!("07-30T10:08:02.555", "MM-DDThh:mm:ss.s");
+        assert_format!("07-30 10:08:02.555 +0200", "MM-DD hh:mm:ss.s TZD");
+        assert_format!("07-30T10:08:02.555 +0200", "MM-DDThh:mm:ss.s TZD");
+
+        assert_format!("07-30-2019 10:08:02.555", "MM-DD-YYYY hh:mm:ss.s");
+        assert_format!("07-30-2019T10:08:02.555", "MM-DD-YYYYThh:mm:ss.s");
+        assert_format!("07-30-2019 10:08:02.555 +0200", "MM-DD-YYYY hh:mm:ss.s TZD");
+        assert_format!("07-30-2019T10:08:02.555 +0200", "MM-DD-YYYYThh:mm:ss.s TZD");
+
+        assert_format!("30/Jul/2019:10:08:02", "DD/MMM/YYYY:hh:mm:ss");
+        assert_format!("30/Jul/2019:10:08:02 +0200", "DD/MMM/YYYY:hh:mm:ss TZD");
+        assert_format!("30/Jul/2019T10:08:02", "DD/MMM/YYYYThh:mm:ss");
+        assert_format!("30/Jul/2019T10:08:02 +0200", "DD/MMM/YYYYThh:mm:ss TZD");
+    }
     #[test]
     fn test_detect_timestamp_in_string_simple() {
         match detect_timestamp_in_string("2019-07-30 10:08:02.555", Some(0)) {
