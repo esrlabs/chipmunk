@@ -32,32 +32,34 @@ use std::path::{Path, PathBuf};
 const MAX_LINES_TO_INSPECT: usize = 1_000_000;
 const LINE_DETECTION_THRESHOLD: usize = 5;
 
-fn add(format: &'static str, map: &mut BTreeMap<&str, Regex>) {
-    map.insert(format, date_format_str_to_regex(format).unwrap());
+/// add a format string in normal form and with TZD for a possible timezone match
+macro_rules! add_twice {
+    ($var:expr, $a:expr, $m:expr) => {
+        $a.push(concat!($var, " TZD"));
+        $a.push($var);
+        $m.insert(
+            concat!($var, " TZD"),
+            date_format_str_to_regex(concat!($var, " TZD")).unwrap(),
+        );
+        $m.insert($var, date_format_str_to_regex($var).unwrap());
+    };
 }
+
 lazy_static! {
-    static ref FORMAT_REGEX_MAPPING_WITH_TZD: BTreeMap<&'static str, Regex> = {
-        let mut format_map: BTreeMap<&str, Regex> = BTreeMap::default();
-        add("YYYY-MM-DD hh:mm:ss.s TZD", &mut format_map);
-        add("YYYY-MM-DD hh:mm:ss.s TZD", &mut format_map);
-        add("YYYY-MM-DDThh:mm:ss.s TZD", &mut format_map);
-        add("MM-DDThh:mm:ss.s TZD", &mut format_map);
-        add("MM-DD hh:mm:ss.s TZD", &mut format_map);
-        add("MM-DD-YYYY hh:mm:ss.s TZD", &mut format_map);
-        add("DD/MMM/YYYY:hh:mm:ss TZD", &mut format_map);
-        format_map
+    static ref FORMAT_REGEX_MAPPINGS: (Vec<&'static str>, BTreeMap<&'static str, Regex>) = {
+        let mut arr = Vec::new();
+        let mut v = BTreeMap::default();
+        add_twice!("YYYY-MM-DD hh:mm:ss.s", &mut arr, &mut v);
+        add_twice!("YYYY-MM-DDThh:mm:ss.s", &mut arr, &mut v);
+        add_twice!("MM-DDThh:mm:ss.s", &mut arr, &mut v);
+        add_twice!("MM-DD hh:mm:ss.s", &mut arr, &mut v);
+        add_twice!("MM-DD-YYYY hh:mm:ss.s", &mut arr, &mut v);
+        add_twice!("DD/MMM/YYYY:hh:mm:ss", &mut arr, &mut v);
+        (arr, v)
     };
-    static ref FORMAT_REGEX_MAPPING: BTreeMap<&'static str, Regex> = {
-        let mut format_map: BTreeMap<&str, Regex> = BTreeMap::default();
-        add("YYYY-MM-DD hh:mm:ss.s", &mut format_map);
-        add("YYYY-MM-DD hh:mm:ss.s", &mut format_map);
-        add("YYYY-MM-DDThh:mm:ss.s", &mut format_map);
-        add("MM-DDThh:mm:ss.s", &mut format_map);
-        add("MM-DD hh:mm:ss.s", &mut format_map);
-        add("MM-DD-YYYY hh:mm:ss.s", &mut format_map);
-        add("DD/MMM/YYYY:hh:mm:ss", &mut format_map);
-        format_map
-    };
+    static ref AVAILABLE_REGEXES: Vec<&'static str> = FORMAT_REGEX_MAPPINGS.0.clone();
+    static ref FORMAT_REGEX_MAPPING: BTreeMap<&'static str, Regex> =
+        FORMAT_REGEX_MAPPINGS.1.clone();
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -559,14 +561,15 @@ pub fn detect_timestamp_in_string(
     offset: Option<i64>,
 ) -> Result<(i64, bool, String), failure::Error> {
     let trimmed = input.trim();
-    for (format, regex) in FORMAT_REGEX_MAPPING_WITH_TZD.iter() {
-        if regex.is_match(trimmed) {
-            if let Ok((timestamp, year_missing)) = to_posix_timestamp(input, regex, None, offset) {
-                return Ok((timestamp, year_missing, format.to_string()));
-            }
-        }
-    }
-    for (format, regex) in FORMAT_REGEX_MAPPING.iter() {
+    // for (format, regex) in FORMAT_REGEX_MAPPING_WITH_TZD.iter() {
+    //     if regex.is_match(trimmed) {
+    //         if let Ok((timestamp, year_missing)) = to_posix_timestamp(input, regex, None, offset) {
+    //             return Ok((timestamp, year_missing, format.to_string()));
+    //         }
+    //     }
+    // }
+    for format in AVAILABLE_REGEXES.iter() {
+        let regex = &FORMAT_REGEX_MAPPING[format];
         if regex.is_match(trimmed) {
             if let Ok((timestamp, year_missing)) = to_posix_timestamp(input, regex, None, offset) {
                 return Ok((timestamp, year_missing, format.to_string()));
@@ -586,25 +589,17 @@ pub fn detect_timeformat_in_string(
     last_match: Option<&String>,
 ) -> Result<String, failure::Error> {
     let trimmed = input.trim();
+    // if we already had a match, try this first
     if let Some(last) = last_match {
         let l: &str = last.as_ref();
-        if let Some(regex) = FORMAT_REGEX_MAPPING_WITH_TZD.get(l) {
-            if regex.is_match(trimmed) {
-                return Ok(last.clone());
-            }
-        }
         if let Some(regex) = FORMAT_REGEX_MAPPING.get(l) {
             if regex.is_match(trimmed) {
                 return Ok(last.clone());
             }
         }
     }
-    for (format, regex) in FORMAT_REGEX_MAPPING_WITH_TZD.iter() {
-        if regex.is_match(trimmed) {
-            return Ok(format.to_string());
-        }
-    }
-    for (format, regex) in FORMAT_REGEX_MAPPING.iter() {
+    for format in AVAILABLE_REGEXES.iter() {
+        let regex = &FORMAT_REGEX_MAPPING[format];
         if regex.is_match(trimmed) {
             return Ok(format.to_string());
         }

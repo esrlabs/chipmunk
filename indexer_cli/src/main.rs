@@ -21,12 +21,13 @@ use processor::parse::{
 };
 use indexer_base::config::IndexingConfig;
 use indexer_base::error_reporter::*;
-use serde::{Serialize};
+use serde::{Serialize, Deserialize};
 
 #[macro_use]
 extern crate clap;
 use clap::{App, Arg, SubCommand};
 use std::fs;
+use std::io::{Read};
 use std::path;
 use std::time::Instant;
 use processor::parse::detect_timestamp_in_string;
@@ -186,14 +187,23 @@ fn main() {
                         .help("string to extract date from")
                         .long("input")
                         .value_name("INPUT")
-                        .required_unless("input-file")
-                        .conflicts_with("input-file"),
+                        .required_unless_one(&["config-file", "input-file"])
+                        .conflicts_with_all(&["config-file", "input-file"]),
+                )
+                .arg(
+                    Arg::with_name("config-file")
+                        .short("c")
+                        .help("file that contains a list of files to analyze")
+                        .long("config")
+                        .value_name("CONFIG")
+                        .required_unless_one(&["input-file", "input-string"])
+                        .conflicts_with_all(&["input-file", "input-string"]),
                 )
                 .arg(
                     Arg::with_name("input-file")
                         .takes_value(true)
-                        .conflicts_with("input-string")
-                        .required_unless("input-string")
+                        .conflicts_with_all(&["config-file", "input-string"])
+                        .required_unless_one(&["config-file", "input-string"])
                         .short("f")
                         .help("file where the timeformat should be detected")
                         .long("file"),
@@ -575,7 +585,12 @@ fn main() {
 
     #[derive(Serialize, Debug)]
     pub struct TimestampFormatResult {
+        pub path: String,
         pub format: Option<String>,
+    }
+    #[derive(Deserialize, Debug)]
+    pub struct DiscoverItem {
+        pub path: String,
     }
     fn handle_discover_subcommand(matches: &clap::ArgMatches) {
         if let Some(test_string) = matches.value_of("input-string") {
@@ -584,23 +599,67 @@ fn main() {
                 Err(e) => println!("no timestamp found in {} ({})", test_string, e),
             }
         } else if let Some(file_name) = matches.value_of("input-file") {
-            println!("checking {}", file_name);
             let file_path = path::PathBuf::from(file_name);
             match detect_timestamp_format_in_file(&file_path) {
                 Ok(res) => {
-                    let timestamp_result = TimestampFormatResult { format: Some(res) };
+                    let timestamp_result = TimestampFormatResult {
+                        path: file_name.to_string(),
+                        format: Some(res),
+                    };
                     let json =
                         serde_json::to_string(&timestamp_result).unwrap_or_else(|_| "".to_string());
                     println!("{:?}", json);
                 }
                 Err(e) => {
-                    let timestamp_result = TimestampFormatResult { format: None };
+                    let timestamp_result = TimestampFormatResult {
+                        path: file_name.to_string(),
+                        format: None,
+                    };
                     let json =
                         serde_json::to_string(&timestamp_result).unwrap_or_else(|_| "".to_string());
                     println!("{:?}", json);
                     report_error(format!("executed with error: {}", e))
                 }
             }
+        } else if let Some(file_name) = matches.value_of("config-file") {
+            let config_file_path = path::PathBuf::from(file_name);
+            let mut discover_config_file = match fs::File::open(&config_file_path) {
+                Ok(file) => file,
+                Err(_) => {
+                    report_error(format!("could not open {:?}", config_file_path));
+                    std::process::exit(2)
+                }
+            };
+            let mut contents = String::new();
+            discover_config_file
+                .read_to_string(&mut contents)
+                .expect("something went wrong reading the file");
+            let items: Vec<DiscoverItem> = match serde_json::from_str(&contents[..]) {
+                Ok(items) => items,
+                Err(e) => {
+                    report_error(format!("could not read discover config {}", e));
+                    std::process::exit(2)
+                }
+            };
+            let mut results: Vec<TimestampFormatResult> = Vec::new();
+            for item in items {
+                let file_path = path::PathBuf::from(item.path);
+                match detect_timestamp_format_in_file(&file_path) {
+                    Ok(res) => results.push(TimestampFormatResult {
+                        path: file_name.to_string(),
+                        format: Some(res),
+                    }),
+                    Err(e) => {
+                        results.push(TimestampFormatResult {
+                            path: file_name.to_string(),
+                            format: None,
+                        });
+                        report_error(format!("executed with error: {}", e))
+                    }
+                }
+            }
+            let json = serde_json::to_string(&results).unwrap_or_else(|_| "".to_string());
+            println!("{:?}", json);
         }
     }
 
