@@ -263,6 +263,14 @@ match: Ok(true)
 
 # Changelog
 
+### [0.31.0] - 08/06/2019
+  * detect time format in file
+  * most cases are detected correctly
+  * support short month in date stamps
+  * better error reporting (with lines when possible)
+  * removed unused old parsing
+  * do not report same timestamp parsing error so often, collect all
+
 ### [0.30.0] - 07/31/2019
   * using humantime package for date formating for improved perfomance
   * added copyright comments
