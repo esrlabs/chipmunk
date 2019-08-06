@@ -269,6 +269,10 @@ match: Ok(true)
 
 # Changelog
 
+### [0.31.2] - 08/06/2019
+  * fix: report correct path in results for discover
+  * fix: remove unnecessary quotation marks in json output
+
 ### [0.31.1] - 08/06/2019
   * fixed: order of checked regular expressions was incorrect
   * and we did not detect timestamps correctly
