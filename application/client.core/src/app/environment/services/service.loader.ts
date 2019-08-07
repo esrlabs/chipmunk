@@ -3,7 +3,7 @@ import PluginsIPCService from './service.plugins.ipc';
 import PluginsService from './service.plugins';
 import SourcesService from './service.sources';
 import FileOptionsService from './service.file.options';
-import HorizontalSidebarSessionsService from './service.sessions.sidebar.horizontal';
+import ToolbarSessionsService from './service.sessions.toolbar';
 import TabsSessionsService from './service.sessions.tabs';
 import SearchSessionsService from './service.sessions.search';
 import FileOpenerService from './service.file.opener';
@@ -21,7 +21,7 @@ const InitializeStages = [
     // Stage #3
     [PluginsIPCService],
     // Stage #4
-    [TabsSessionsService, HorizontalSidebarSessionsService, FileOptionsService, FileOpenerService, HotkeysService ],
+    [TabsSessionsService, ToolbarSessionsService, FileOptionsService, FileOpenerService, HotkeysService ],
     // Stage #5
     [SearchSessionsService, TabSelectionParserService]
 ];

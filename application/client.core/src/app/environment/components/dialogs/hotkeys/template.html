@@ -1,0 +1,16 @@
+<div class="group" *ngFor="let group of _ng_groups">
+    <table>
+        <tr>
+            <th colspan="2"><p class="t-normal color-scheme-0">{{group.name}}</p></th>
+        </tr>
+        <tr *ngFor="let key of group.keys">
+            <td><p class="t-normal color-scheme-2">{{key.description}}</p></td>
+            <td>
+                <span *ngFor="let shortkey of key.shortkeys; let i = index;">
+                    <span class="t-small shortkey color-scheme-0">{{shortkey}}</span>
+                    <span *ngIf="key.shortkeys.length - 1 !== i"> or </span>
+                </span>
+            </td>
+        </tr>
+    </table>
+</div>

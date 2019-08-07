@@ -1,8 +1,12 @@
 import ServiceElectron, { IPCMessages } from './service.electron';
 import ServiceStreams from '../services/service.streams';
 import ServiceStreamSource from '../services/service.stream.sources';
+import ServiceHotkeys from '../services/service.hotkeys';
 import { FileParsers, AFileParser } from '../controllers/files.parsers/index';
+import FileParserText from '../controllers/files.parsers/file.parser.text';
+import FileParserDlt from '../controllers/files.parsers/file.parser.dlt';
 import { IMapItem } from '../controllers/files.parsers/interface';
+import { dialog } from 'electron';
 import Logger from '../tools/env.logger';
 import * as Tools from '../tools/index';
 import * as fs from 'fs';
@@ -35,6 +39,8 @@ class ServiceFileOpener implements IService {
                 this._logger.error(`Fail to init module due error: ${error.message}`);
                 reject(error);
             });
+            this._subscription.openTextFile = ServiceHotkeys.getSubject().openTextFile.subscribe(this._hotkey_openTextFile.bind(this));
+            this._subscription.openDltFile = ServiceHotkeys.getSubject().openDltFile.subscribe(this._hotkey_openDltFile.bind(this));
         });
     }
 
@@ -185,6 +191,29 @@ class ServiceFileOpener implements IService {
             });
         });
 
+    }
+
+    private _openFile(parser: AFileParser) {
+        dialog.showOpenDialog({
+            properties: ['openFile', 'showHiddenFiles'],
+            filters: parser.getExtnameFilters(),
+        }, (files: string[] | undefined) => {
+            if (!(files instanceof Array) || files.length !== 1) {
+                return;
+            }
+            const file: string = files[0];
+            this.open(file, ServiceStreams.getActiveStreamId(), parser).catch((error: Error) => {
+                this._logger.warn(`Fail open file due error: ${error.message}`);
+            });
+        });
+    }
+
+    private _hotkey_openTextFile() {
+        this._openFile(new FileParserText());
+    }
+
+    private _hotkey_openDltFile() {
+        this._openFile(new FileParserDlt());
     }
 
 }

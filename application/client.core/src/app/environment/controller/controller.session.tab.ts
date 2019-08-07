@@ -8,6 +8,8 @@ import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.st
 import { ControllerSessionScope } from './controller.session.tab.scope';
 import { TabsService } from 'logviewer-client-complex';
 import * as Toolkit from 'logviewer.client.toolkit';
+import HotkeysService from '../services/service.hotkeys';
+import LayoutStateService from '../services/standalone/service.layout.state';
 
 export interface IControllerSession {
     guid: string;
@@ -76,6 +78,8 @@ export class ControllerSessionTab {
         PluginsService.fire().onSessionOpen(this._sessionId);
         this.addOutputInjection = this.addOutputInjection.bind(this);
         this.removeOutputInjection = this.removeOutputInjection.bind(this);
+        this._subscriptions.onOpenSearchFiltersTab = HotkeysService.getObservable().openSearchFiltersTab.subscribe(this._onOpenSearchFiltersTab.bind(this));
+        this._subscriptions.onOpenMergeTab = HotkeysService.getObservable().openMergeTab.subscribe(this._onOpenMergeTab.bind(this));
     }
 
     public destroy(): Promise<void> {
@@ -313,6 +317,16 @@ export class ControllerSessionTab {
                 }
             });
         });
+    }
+
+    private _onOpenSearchFiltersTab() {
+        LayoutStateService.sidebarMax();
+        this._sidebarTabsService.setActive('search');
+    }
+
+    private _onOpenMergeTab() {
+        LayoutStateService.sidebarMax();
+        this._sidebarTabsService.setActive('merging');
     }
 
 }

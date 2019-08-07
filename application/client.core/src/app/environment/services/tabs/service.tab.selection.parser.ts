@@ -1,6 +1,6 @@
 import * as Toolkit from 'logviewer.client.toolkit';
 import { Subscription } from 'rxjs';
-import HorizontalSidebarSessionsService from '../service.sessions.sidebar.horizontal';
+import ToolbarSessionsService from '../service.sessions.toolbar';
 import { SidebarAppParsingComponent } from '../../components/sidebar/parsing/component';
 import SelectionParsersService, { IUpdateEvent } from '../standalone/service.selection.parsers';
 import { IService } from '../../interfaces/interface.service';
@@ -35,11 +35,11 @@ export class TabSelectionParserService implements IService {
     }
 
     private _onUpdate(event: IUpdateEvent) {
-        if (HorizontalSidebarSessionsService.has(this._tabGuid)) {
-            HorizontalSidebarSessionsService.setActive(this._tabGuid);
+        if (ToolbarSessionsService.has(this._tabGuid)) {
+            ToolbarSessionsService.setActive(this._tabGuid);
             return;
         }
-        HorizontalSidebarSessionsService.add('Details', {
+        ToolbarSessionsService.add('Details', {
             factory: SidebarAppParsingComponent,
             inputs: {
                 selection: event.selection,

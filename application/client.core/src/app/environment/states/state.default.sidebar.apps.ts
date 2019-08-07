@@ -1,14 +1,19 @@
 import { SidebarAppMergeFilesComponent          } from '../components/sidebar/merge/component';
 import { SidebarAppSearchManagerComponent       } from '../components/sidebar/search.manager/component';
 
+export const CGuids = {
+    search: 'search',
+    merging: 'merging',
+};
+
 export const DefaultSidebarApps: IDefaultSideBarApp[] = [
     {
-        guid: 'search',
+        guid: CGuids.search,
         name: 'Search',
         component: SidebarAppSearchManagerComponent,
     },
     {
-        guid: 'merging',
+        guid: CGuids.merging,
         name: 'Merging',
         component: SidebarAppMergeFilesComponent,
     },

@@ -5,7 +5,6 @@ import Logger from '../tools/env.logger';
 import { guid } from '../tools/index';
 import ServiceElectron from './service.electron';
 import ServiceStreams, { IStreamInfo } from './service.streams';
-import ServicePaths from './service.paths';
 import ServiceElectronService from './service.electron.state';
 import ControllerPluginProcessMultiple from '../controllers/controller.plugin.process.multiple';
 import ControllerPluginProcessSingle from '../controllers/controller.plugin.process.single';

@@ -39,12 +39,12 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
                 private _vcRef: ViewContainerRef,
                 private _notifications: NotificationsService) {
         this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-        this._subscriptions.onSearchFocusHotKey = HotkeysService.getObservable().onSearchFocus.subscribe(this._onSearchFocusHotKey.bind(this));
+        this._subscriptions.onFocusSearchInput = HotkeysService.getObservable().focusSearchInput.subscribe(this._onFocusSearchInput.bind(this));
         this._setActiveSession();
     }
 
     ngAfterViewInit() {
-
+        this._focus();
     }
 
     ngAfterContentInit() {
@@ -111,6 +111,9 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._cdRef.detectChanges();
     }
 
+    public _ng_onFocusRequestInput() {
+    }
+
     public _ng_onBlurRequestInput() {
         this._ng_request = this._ng_prevRequest;
         this._cdRef.detectChanges();
@@ -147,7 +150,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._cdRef.detectChanges();
     }
 
-    private _onSearchFocusHotKey() {
+    private _onFocusSearchInput() {
         this._focus();
     }
 

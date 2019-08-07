@@ -41,7 +41,8 @@ export class TabsSessionsService implements IService {
         return new Promise((resolve, reject) => {
             this._subscriptions.onSessionTabChanged = this._tabsService.getObservable().active.subscribe(this._onSessionTabSwitched.bind(this));
             this._subscriptions.onSessionTabClosed = this._tabsService.getObservable().removed.subscribe(this._onSessionTabClosed.bind(this));
-            this._subscriptions.onNewTabHotKey = HotkeysService.getObservable().onNewTab.subscribe(this._onNewTabHotKey.bind(this));
+            this._subscriptions.onNewTab = HotkeysService.getObservable().newTab.subscribe(this._onNewTab.bind(this));
+            this._subscriptions.onCloseTab = HotkeysService.getObservable().closeTab.subscribe(this._onCloseTab.bind(this));
             resolve();
         });
     }
@@ -229,8 +230,12 @@ export class TabsSessionsService implements IService {
         }
     }
 
-    private _onNewTabHotKey() {
+    private _onNewTab() {
         this.add();
+    }
+
+    private _onCloseTab() {
+        this._tabsService.remove(this._currentSessionGuid);
     }
 
 }

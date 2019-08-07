@@ -5,6 +5,7 @@ import Logger from './tools/env.logger';
 import ServiceElectron from './services/service.electron';
 import ServicePackage from './services/service.package';
 import ServiceEnv from './services/service.env';
+import ServiceHotkeys from './services/service.hotkeys';
 import ServicePaths from './services/service.paths';
 import ServicePlugins from './services/service.plugins';
 import ServiceStreams from './services/service.streams';
@@ -39,7 +40,7 @@ const InitializeStages = [
     // Stage #8. Detect OS env
     [ServiceEnv],
     // Stage #9, Render functionality
-    [ServiceFileParsers, ServiceMergeFiles, ServiceFilters, ServiceFileReader, ServiceFileOpener, ServiceAppState, ServiceDLTFiles],
+    [ServiceFileParsers, ServiceMergeFiles, ServiceFilters, ServiceFileReader, ServiceFileOpener, ServiceAppState, ServiceDLTFiles, ServiceHotkeys],
     // Stage #10. Init plugins
     [ServicePlugins],
     // (last service should startup service and should be single always)
