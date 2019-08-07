@@ -25,7 +25,6 @@ use std::path::{Path, PathBuf};
 const REPORT_PROGRESS_LINE_BLOCK: usize = 500_000;
 
 pub struct Merger {
-    pub max_lines: usize,  // how many lines to collect before writing out
     pub chunk_size: usize, // used for mapping line numbers to byte positions
 }
 
@@ -334,9 +333,9 @@ impl Merger {
             }
             if let Some((_, min_index)) = minimum {
                 if let Some(line) = readers[min_index].next() {
+                    processed_bytes += line.original_length;
                     let trimmed_len = line.content.len();
                     if trimmed_len > 0 {
-                        processed_bytes += line.original_length;
                         utils::create_tagged_line(
                             &line.tag,
                             &mut buf_writer,

@@ -519,6 +519,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "merging"
 version = "0.1.0"
 dependencies = [
+ "dlt 0.1.0",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "indexer_base 0.1.0",
  "pretty_assertions 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",

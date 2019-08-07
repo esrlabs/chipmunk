@@ -102,14 +102,22 @@ fn main() {
         )
         .subcommand(
             SubCommand::with_name("merge")
-                .about("command for merging multiple log files")
+                .about("command for merging/concatenating multiple log files")
                 .arg(
                     Arg::with_name("merge_config")
                         .short("m")
                         .long("merge")
-                        .help("input file is a json file that defines all files to be merged")
-                        .required(true)
-                        .index(1),
+                        .help("json file that defines all files to be merged")
+                        .value_name("MERGE_CONFIG")
+                        .required_unless("concat_config"),
+                )
+                .arg(
+                    Arg::with_name("concat_config")
+                        .short("j")
+                        .long("concat")
+                        .help("json file that defines all files to be concatenated")
+                        .value_name("CONCAT_CONFIG")
+                        .required_unless("merge_config"),
                 )
                 .arg(
                     Arg::with_name("output")
@@ -118,14 +126,6 @@ fn main() {
                         .value_name("OUT")
                         .required(true)
                         .help("Output file"),
-                )
-                .arg(
-                    Arg::with_name("max_lines")
-                        .short("n")
-                        .long("max_lines")
-                        .help("How many lines to collect before dumping")
-                        .required(false)
-                        .default_value("1000000"),
                 )
                 .arg(
                     Arg::with_name("chunk_size")
@@ -325,7 +325,6 @@ fn main() {
             );
             let mapping_out_path: path::PathBuf =
                 path::PathBuf::from(file.to_string() + ".map.json");
-            let max_lines = value_t_or_exit!(matches.value_of("max_lines"), usize);
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
 
             let f = match fs::File::open(&file) {
@@ -348,7 +347,6 @@ fn main() {
 
             match processor::processor::create_index_and_mapping(IndexingConfig {
                 tag,
-                max_lines,
                 chunk_size,
                 in_file: f,
                 out_path: &out_path,
@@ -393,16 +391,48 @@ fn main() {
                     std::process::exit(2)
                 }
             };
-            let max_lines = value_t_or_exit!(matches.value_of("max_lines"), usize);
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
             let append: bool = matches.is_present("append");
             let stdout: bool = matches.is_present("stdout");
             let merger = merging::merger::Merger {
-                max_lines,  // how many lines to collect before writing out
                 chunk_size, // used for mapping line numbers to byte positions
             };
             let config_path = path::PathBuf::from(merge_config_file_name);
             let merged_lines = match merger.merge_files_use_config_file(
+                &config_path,
+                &out_path,
+                append,
+                stdout,
+                status_updates,
+            ) {
+                Ok(cnt) => cnt,
+                Err(e) => {
+                    report_error(format!("error merging: {}", e));
+                    std::process::exit(2)
+                }
+            };
+            if status_updates {
+                duration_report(start, format!("merging {} lines", merged_lines));
+            }
+        } else if matches.is_present("concat_config") {
+            let concat_config_file_name: &str = matches
+                .value_of("concat_config")
+                .expect("concat_config must be present");
+            let out_path: path::PathBuf = match matches.value_of("output") {
+                Some(path) => path::PathBuf::from(path),
+                None => {
+                    report_error("no output file specified");
+                    std::process::exit(2)
+                }
+            };
+            let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
+            let append: bool = matches.is_present("append");
+            let stdout: bool = matches.is_present("stdout");
+            let concatenator = merging::concatenator::Concatenator {
+                chunk_size, // used for mapping line numbers to byte positions
+            };
+            let config_path = path::PathBuf::from(concat_config_file_name);
+            let merged_lines = match concatenator.concat_files_use_config_file(
                 &config_path,
                 &out_path,
                 append,
@@ -543,11 +573,9 @@ fn main() {
             };
 
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
-            let max_lines = value_t_or_exit!(matches.value_of("max_lines"), usize);
             match dlt::dlt_parse::create_index_and_mapping_dlt(
                 IndexingConfig {
                     tag,
-                    max_lines,
                     chunk_size,
                     in_file: f,
                     out_path: &out_path,

@@ -26,15 +26,8 @@ mod tests {
         }
 
         let merger = Merger {
-            max_lines: 5,
             chunk_size: 5,
         };
-        // println!(
-        //     "config file path: {:?} exitst: {} (current dir: {:?})",
-        //     config_path,
-        //     config_path.exists(),
-        //     std::env::current_dir()
-        // );
         let merged_lines_cnt = merger.merge_files_use_config_file(
             &option_path,
             &out_file_path,

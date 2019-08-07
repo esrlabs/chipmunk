@@ -11,6 +11,7 @@ serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 indexer_base = { path = "../indexer_base" }
 processor = { path = "../processor" }
+dlt = { path = "../dlt" }
 
 [dev-dependencies]
 tempdir = "0.3"

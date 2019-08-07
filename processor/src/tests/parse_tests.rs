@@ -1,3 +1,4 @@
+#[allow(clippy::cognitive_complexity)]
 #[cfg(test)]
 mod tests {
     use crate::parse::*;
@@ -227,7 +228,6 @@ mod tests {
             to_posix_timestamp(input, &regex, None, Some(-TWO_HOURS_IN_MS)).unwrap();
         assert_eq!(1_559_838_667_577, timestamp_with_offset);
     }
-    #[allow(clippy::cognitive_complexity)]
     macro_rules! assert_format {
         ($input:expr, $exp:expr) => {
             match detect_timeformat_in_string($input, None) {

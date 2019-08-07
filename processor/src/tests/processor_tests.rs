@@ -28,7 +28,6 @@ mod tests {
         let source_file_size = f.metadata().unwrap().len() as usize;
         let chunks = create_index_and_mapping(IndexingConfig {
             tag: tag_name,
-            max_lines: 5,
             chunk_size: chunksize,
             in_file: f,
             out_path: &out_file_path,
@@ -76,7 +75,6 @@ mod tests {
         let out_path = tmp_dir.path().join("test_append_to_empty_output.log.out");
         // let indexer = Indexer {
         //     source_id: "tag".to_string(), // tag to append to each line
-        //     max_lines: 5,                 // how many lines to collect before writing out
         //     chunk_size: 1,                // used for mapping line numbers to byte positions
         // };
         let source_file_size = empty_file.metadata().unwrap().len() as usize;
@@ -84,7 +82,6 @@ mod tests {
         //     .index_file(&empty_file, &out_path, false, source_file_size, false)
         let chunks = create_index_and_mapping(IndexingConfig {
             tag: "tag",
-            max_lines: 5,
             chunk_size: 1,
             in_file: empty_file,
             out_path: &out_path,
@@ -107,7 +104,6 @@ mod tests {
         //     .expect("could not index file");
         let chunks2 = create_index_and_mapping(IndexingConfig {
             tag: "tag",
-            max_lines: 5,
             chunk_size: 1,
             in_file: nonempty_file,
             out_path: &out_path,
@@ -208,7 +204,6 @@ mod tests {
         }
         let chunks = create_index_and_mapping(IndexingConfig {
             tag: "TAG",
-            max_lines: 5,
             chunk_size: 1,
             in_file,
             out_path: &out_file_path,
