@@ -67,10 +67,10 @@ impl Concatenator {
                 tag: o.tag,
             })
             .collect();
-        self.concat_and_sort_files(inputs, &out_path, use_stdout, append, report_status)
+        self.concat_files(inputs, &out_path, report_status, append, use_stdout)
     }
     #[allow(dead_code)]
-    pub fn concat_and_sort_files(
+    pub fn concat_files(
         &self,
         concat_inputs: Vec<ConcatenatorInput>,
         out_path: &PathBuf,
