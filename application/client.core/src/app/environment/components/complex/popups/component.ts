@@ -90,6 +90,7 @@ export class PopupsComponent implements OnDestroy {
 
     private _remove(id: string) {
         this.popups = this.popups.filter(popup => popup.id !== id);
+        PopupsService.clear(id);
         this._cdRef.detectChanges();
     }
 

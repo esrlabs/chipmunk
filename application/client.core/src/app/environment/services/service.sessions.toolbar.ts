@@ -1,5 +1,5 @@
 import { TabsService, IComponentDesc } from 'logviewer-client-complex';
-import { Subscription } from './service.electron.ipc';
+import { Subscription } from 'rxjs';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { IService } from '../interfaces/interface.service';
 import PluginsService, { IPluginData } from './service.plugins';
@@ -7,6 +7,8 @@ import ControllerPluginIPC from '../controller/controller.plugin.ipc';
 import TabsSessionsService from './service.sessions.tabs';
 import { ViewSearchComponent } from '../components/views/search/component';
 import { SidebarAppNotificationsComponent } from '../components/sidebar/notifications/component';
+import HotkeysService from './service.hotkeys';
+import LayoutStateService from './standalone/service.layout.state';
 
 export const CDefaultTabsGuids = {
     search: Toolkit.guid(),
@@ -35,13 +37,13 @@ export interface ISidebarPluginInfo {
     ipc: ControllerPluginIPC;
 }
 
-export class HorizontalSidebarSessionsService implements IService {
+export class ToolbarSessionsService implements IService {
 
-    private _logger: Toolkit.Logger = new Toolkit.Logger('HorizontalSidebarSessionsService');
+    private _logger: Toolkit.Logger = new Toolkit.Logger('ToolbarSessionsService');
     private _plugins: ISidebarPluginInfo[] = [];
     private _guid: string = Toolkit.guid();
     private _tabsService: TabsService = new TabsService();
-    private _subscriptions: { [key: string]: Subscription | undefined } = {};
+    private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = {};
     private _inputs: { [key: string]: any } = {};
 
     constructor() {
@@ -50,17 +52,18 @@ export class HorizontalSidebarSessionsService implements IService {
 
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
+            this._subscriptions.onFocusSearchInput = HotkeysService.getObservable().focusSearchInput.subscribe(this._onFocusSearchInput.bind(this));
             resolve();
         });
     }
 
     public getName(): string {
-        return 'HorizontalSidebarSessionsService';
+        return 'ToolbarSessionsService';
     }
 
     public destroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
-            this._subscriptions[key].destroy();
+            this._subscriptions[key].unsubscribe();
         });
     }
 
@@ -152,6 +155,11 @@ export class HorizontalSidebarSessionsService implements IService {
         return info;
     }
 
+    private _onFocusSearchInput() {
+        LayoutStateService.toolbarMax();
+        this._tabsService.setActive(CDefaultTabsGuids.search);
+    }
+
 }
 
-export default (new HorizontalSidebarSessionsService());
+export default (new ToolbarSessionsService());

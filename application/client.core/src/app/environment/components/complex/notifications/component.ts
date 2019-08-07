@@ -1,7 +1,7 @@
 import { Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Subscription } from 'rxjs';
 import * as Toolkit from 'logviewer.client.toolkit';
-import HorizontalSidebarSessionsService, { CDefaultTabsGuids } from '../../../services/service.sessions.sidebar.horizontal';
+import ToolbarSessionsService, { CDefaultTabsGuids } from '../../../services/service.sessions.toolbar';
 import { NotificationsService, INotification } from '../../../services.injectable/injectable.service.notifications';
 
 const DEFAULT_OPTIONS = {
@@ -35,7 +35,7 @@ export class NotificationsComponent implements OnDestroy {
 
     private _onNotification(notification: INotification) {
         if (this.notifications.length > 5) {
-            HorizontalSidebarSessionsService.setActive(CDefaultTabsGuids.notification);
+            ToolbarSessionsService.setActive(CDefaultTabsGuids.notification);
             return;
         }
         notification = this._normalize(notification);

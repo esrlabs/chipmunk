@@ -39,7 +39,7 @@ const MENU_TEMPLATE = [
         role: 'window',
         submenu: [
             { role: 'minimize' },
-            { role: 'close' },
+            { role: 'close', accelerator: 'Shift+CmdOrCtrl+W' },
         ],
     },
 ];

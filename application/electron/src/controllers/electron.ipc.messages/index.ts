@@ -130,6 +130,15 @@ export { IFiltersSaveResponse, FiltersSaveResponse };
 import { INotification, Notification, ENotificationType } from './notification';
 export { INotification, Notification, ENotificationType };
 
+import { IHotkeyCall, HotkeyCall, EHotkeyActionRef } from './hotkey';
+export { IHotkeyCall, HotkeyCall, EHotkeyActionRef };
+
+import { HotkeyPause } from './hotkey.pause';
+export { HotkeyPause };
+
+import { HotkeyResume } from './hotkey.resume';
+export { HotkeyResume };
+
 import { IDLTStatsRequest, DLTStatsRequest } from './dlt.filestats.request';
 export { IDLTStatsRequest, DLTStatsRequest };
 
@@ -179,6 +188,9 @@ export type TMessage =  HostState |
                         FiltersSaveRequest |
                         FiltersSaveResponse |
                         Notification |
+                        HotkeyCall |
+                        HotkeyPause |
+                        HotkeyResume |
                         DLTStatsRequest |
                         DLTStatsResponse;
 
@@ -239,6 +251,10 @@ export const Map = {
     [FiltersSaveResponse.signature          ]: FiltersSaveResponse,
 
     [Notification.signature                 ]: Notification,
+
+    [HotkeyCall.signature                   ]: HotkeyCall,
+    [HotkeyPause.signature                  ]: HotkeyPause,
+    [HotkeyResume.signature                 ]: HotkeyResume,
 
     [DLTStatsRequest.signature              ]: DLTStatsRequest,
     [DLTStatsResponse.signature             ]: DLTStatsResponse,

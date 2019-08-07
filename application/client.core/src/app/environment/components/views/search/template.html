@@ -7,6 +7,7 @@
         [attr.placeholder]="_ng_isWorking() ? 'working ...' : 'type regular expression to search'"
         [attr.disabled]="_ng_isWorking() ? '' : null"
         [(ngModel)]="_ng_request"
+        (focus)="_ng_onFocusRequestInput()"
         (blur)="_ng_onBlurRequestInput()"
         (keyup)="_ng_onKeyUpRequestInput($event)"/>
         <div class="spinner" *ngIf="_ng_isWorking()">

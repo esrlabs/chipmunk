@@ -4,6 +4,7 @@ import * as Toolkit from 'logviewer.client.toolkit';
 export interface IOptions {
     closable?: boolean;
     width?: number;
+    once?: boolean;
 }
 
 export interface IButton {
@@ -35,6 +36,12 @@ export class PopupsService {
         onRemove: new Subject<string>(),
     };
 
+    private _opened: Map<string, boolean> = new Map();
+
+    constructor() {
+        this._onKeyUp = this._onKeyUp.bind(this);
+        window.addEventListener('keyup', this._onKeyUp, true);
+    }
 
     public getObservable(): {
         onNew: Observable<IPopup>,
@@ -46,16 +53,37 @@ export class PopupsService {
         };
     }
 
-    add(popup: IPopup): string {
+    public add(popup: IPopup): string {
+        if (popup.options !== undefined) {
+            if (popup.options.once === true && this._opened.has(popup.id)) {
+                return;
+            }
+        }
         if (typeof popup.id !== 'string' || popup.id.trim() === '') {
             popup.id = Toolkit.guid();
         }
         this._subjects.onNew.next(popup);
+        this._opened.set(popup.id, true);
         return popup.id;
     }
 
-    remove(guid: string) {
+    public remove(guid: string) {
         this._subjects.onRemove.next(guid);
+        this._opened.delete(guid);
+    }
+
+    public clear(guid: string) {
+        this._opened.delete(guid);
+    }
+
+    private _onKeyUp(event: KeyboardEvent) {
+        if (event.keyCode !== 27) {
+            return;
+        }
+        if (this._opened.size === 0) {
+            return;
+        }
+        this.remove(this._opened.keys().next().value);
     }
 
 }

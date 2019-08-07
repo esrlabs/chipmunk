@@ -4,6 +4,7 @@ import { Subscription } from 'rxjs';
 import ViewsEventsService from '../services/standalone/service.views.events';
 import * as ThemeParams from '../theme/sizes';
 import LayoutStateService from '../services/standalone/service.layout.state';
+import HotkeysService from '../services/service.hotkeys';
 
 enum EResizeType {
     nothing = 'nothing',
@@ -80,6 +81,10 @@ export class LayoutComponent implements OnDestroy {
         this._secAreaStateSubscriptions.updated = this.secAreaState.getObservable().updated.subscribe(this._onSecAreaStateUpdated.bind(this));
         this._serviceSunscriptions.onSidebarMax = LayoutStateService.getObservable().onSidebarMax.subscribe(this._onSidebarServiceMax.bind(this));
         this._serviceSunscriptions.onSidebarMin = LayoutStateService.getObservable().onSidebarMin.subscribe(this._onSidebarServiceMin.bind(this));
+        this._serviceSunscriptions.onToolbarMax = LayoutStateService.getObservable().onToolbarMax.subscribe(this._onToolbarServiceMax.bind(this));
+        this._serviceSunscriptions.onToolbarMin = LayoutStateService.getObservable().onToolbarMin.subscribe(this._onToolbarServiceMin.bind(this));
+        this._serviceSunscriptions.onToolbarToggle = HotkeysService.getObservable().toolbarToggle.subscribe(this._onToolbarToggle.bind(this));
+        this._serviceSunscriptions.onSidebarToggle = HotkeysService.getObservable().sidebarToggle.subscribe(this._onSidebarToggle.bind(this));
     }
 
     ngOnDestroy() {
@@ -235,4 +240,39 @@ export class LayoutComponent implements OnDestroy {
         this._cdRef.detectChanges();
         ViewsEventsService.fire().onResize();
     }
+
+    private _onSidebarToggle() {
+        if (this.funcBarState.minimized) {
+            this._onSidebarServiceMax();
+        } else {
+            this._onSidebarServiceMin();
+        }
+    }
+
+    private _onToolbarServiceMax() {
+        if (!this.secAreaState.minimized) {
+            return;
+        }
+        this.secAreaState.maximize();
+        ViewsEventsService.fire().onResize();
+        this._cdRef.detectChanges();
+    }
+
+    private _onToolbarServiceMin() {
+        if (this.secAreaState.minimized) {
+            return;
+        }
+        this.secAreaState.minimize();
+        this._cdRef.detectChanges();
+        ViewsEventsService.fire().onResize();
+    }
+
+    private _onToolbarToggle() {
+        if (this.secAreaState.minimized) {
+            this._onToolbarServiceMax();
+        } else {
+            this._onToolbarServiceMin();
+        }
+    }
+
 }

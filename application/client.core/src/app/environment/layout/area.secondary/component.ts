@@ -3,7 +3,7 @@ import { TabsService, TabsOptions, ETabsListDirection } from 'logviewer-client-c
 import { AreaState } from '../state';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { LayoutSecondaryAreaControlsComponent } from './controls/component';
-import HorizontalSidebarSessionsService from '../../services/service.sessions.sidebar.horizontal';
+import ToolbarSessionsService from '../../services/service.sessions.toolbar';
 import { IComponentDesc } from 'logviewer-client-containers';
 
 @Component({
@@ -33,7 +33,7 @@ export class LayoutSecondaryAreaComponent implements AfterViewInit, OnDestroy {
     };
 
     constructor(private _cdRef: ChangeDetectorRef) {
-        this.tabsService = HorizontalSidebarSessionsService.getTabsService();
+        this.tabsService = ToolbarSessionsService.getTabsService();
     }
 
     ngAfterViewInit() {
@@ -42,7 +42,7 @@ export class LayoutSecondaryAreaComponent implements AfterViewInit, OnDestroy {
         }
         this.state.maximize();
         // Add common inputs for all tabs
-        HorizontalSidebarSessionsService.setCommonInputs({
+        ToolbarSessionsService.setCommonInputs({
             injectionIntoTitleBar: this._subjects.injectionIntoTitleBar,
         });
         // Set options area
@@ -54,7 +54,7 @@ export class LayoutSecondaryAreaComponent implements AfterViewInit, OnDestroy {
             }
         }}}));
         // Create default session
-        HorizontalSidebarSessionsService.create();
+        ToolbarSessionsService.create();
         this._subscriptions.minimized = this.state.getObservable().minimized.subscribe(this._onMinimized.bind(this));
         this._subscriptions.updated = this.state.getObservable().updated.subscribe(this._onUpdated.bind(this));
     }
