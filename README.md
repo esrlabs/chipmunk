@@ -267,6 +267,9 @@ match: Ok(true)
 
 # Changelog
 
+### [0.32.1] - 08/07/2019
+  * fix merge/concat command: -s did not write to stdout
+
 ### [0.32.0] - 08/07/2019
   * feature: concatenate files
   * wip removed unused arguments
