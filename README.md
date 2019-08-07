@@ -53,10 +53,10 @@ For merging log-files use the `merge` subcommand:
 
 ```
 logviewer_parser-merge
-command for merging multiple log files
+command for merging/concatenating multiple log files
 
 USAGE:
-    logviewer_parser merge [FLAGS] [OPTIONS] <merge_config> --out <OUT>
+    logviewer_parser merge [FLAGS] [OPTIONS] --concat <CONCAT_CONFIG> --merge <MERGE_CONFIG> --out <OUT>
 
 FLAGS:
     -a, --append     append to file if exists
@@ -66,11 +66,9 @@ FLAGS:
 
 OPTIONS:
     -c, --chunk_siz <chunk_size>    How many lines should be in a chunk (used for access later) [default: 500]
-    -n, --max_lines <max_lines>     How many lines to collect before dumping [default: 1000000]
+    -j, --concat <CONCAT_CONFIG>    json file that defines all files to be concatenated
+    -m, --merge <MERGE_CONFIG>      json file that defines all files to be merged
     -o, --out <OUT>                 Output file
-
-ARGS:
-    <merge_config>    input file is a json file that defines all files to be merged
 ```
 ## discover timestamp format
 
@@ -268,6 +266,11 @@ match: Ok(true)
 
 
 # Changelog
+
+### [0.32.0] - 08/07/2019
+  * feature: concatenate files
+  * wip removed unused arguments
+  * wip: concat files
 
 ### [0.31.2] - 08/06/2019
   * fix: report correct path in results for discover
