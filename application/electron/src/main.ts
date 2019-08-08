@@ -57,11 +57,11 @@ class Application {
      */
     public init(): Promise<Application> {
         return new Promise((resolve, reject) => {
+            this._bindProcessEvents();
             this._init(0, (error?: Error) => {
                 if (error instanceof Error) {
                     return reject(error);
                 }
-                this._bindProcessEvents();
                 resolve(this);
             });
         });
@@ -129,7 +129,16 @@ class Application {
     private _bindProcessEvents() {
         process.on('exit', this._process_onExit.bind(this));
         process.on('SIGINT', this._process_onExit.bind(this));
-        process.on('uncaughtException', this._process_onException.bind(this));
+        process.on('uncaughtException', this._onUncaughtException.bind(this));
+        process.on('unhandledRejection', this._onUnhandledRejection.bind(this));
+    }
+
+    private _onUnhandledRejection(error: Error) {
+        this.logger.error(`[BAD] UnhandledRejection: ${error.message}`);
+    }
+
+    private _onUncaughtException(error: Error) {
+        this.logger.error(`[BAD] UncaughtException: ${error.message}`);
     }
 
     private _process_onExit() {
@@ -142,10 +151,6 @@ class Application {
             this.logger.env(`Application are ready to be closed.`);
             process.exit(0);
         });
-    }
-
-    private _process_onException(error: Error) {
-        this.logger.error(`Uncaught Exception: ${error.message}`, error.stack);
     }
 
 }

@@ -23,6 +23,13 @@ const CHotkeyMap = {
     [IPCMessages.EHotkeyActionRef.showHotkeysMapDialog]:    {                               other: ['?'] },
 };
 
+const CInputRelatedHotkeys = [
+    'j',
+    'k',
+    '/',
+    '?',
+];
+
 /**
  * @class ServiceHotkeys
  * @description Listens hotkeys
@@ -50,11 +57,17 @@ class ServiceHotkeys implements IService {
                 ServiceElectron.IPC.subscribe(IPCMessages.HotkeyResume, this._onHotkeyResume.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.onHotkeyResume = subscription;
                 }),
-                ServiceElectron.IPC.subscribe(IPCMessages.HotkeyPause, this._onHotkeyPause.bind(this)).then((subscription: Subscription) => {
+                ServiceElectron.IPC.subscribe(IPCMessages.HotkeyPause, this._onHotkeyPause.bind(this, false)).then((subscription: Subscription) => {
                     this._subscriptions.onHotkeyPause = subscription;
                 }),
+                ServiceElectron.IPC.subscribe(IPCMessages.HotkeyInputOut, this._onHotkeyResume.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.onHotkeyInputOut = subscription;
+                }),
+                ServiceElectron.IPC.subscribe(IPCMessages.HotkeyInputIn, this._onHotkeyPause.bind(this, true)).then((subscription: Subscription) => {
+                    this._subscriptions.onHotkeyInputIn = subscription;
+                }),
             ]).then(() => {
-                app.on('browser-window-blur', this._unbind.bind(this));
+                app.on('browser-window-blur', this._unbind.bind(this, false));
                 app.on('browser-window-focus', this._bind.bind(this));
                 this._bind();
                 resolve();
@@ -87,30 +100,44 @@ class ServiceHotkeys implements IService {
             const all: any = (CHotkeyMap as any)[action];
             const keys: string[] = all[process.platform] !== undefined ? all[process.platform] : all.other;
             keys.forEach((shortcut: string) => {
-                globalShortcut.register(shortcut, () => {
-                    if ((this._subjects as any)[action] !== undefined) {
-                        (this._subjects as any)[action].emit();
-                    }
-                    ServiceElectron.IPC.send(new IPCMessages.HotkeyCall({
-                        session: ServiceStreams.getActiveStreamId(),
-                        unixtime: Date.now(),
-                        action: action,
-                    }));
-                });
+                if (globalShortcut.isRegistered(shortcut)) {
+                    return;
+                }
+                globalShortcut.register(shortcut, this._send.bind(this, action, shortcut));
             });
         });
     }
 
-    private _unbind() {
-        globalShortcut.unregisterAll();
+    private _unbind(input: boolean = false) {
+        if (!input) {
+            globalShortcut.unregisterAll();
+        } else {
+            CInputRelatedHotkeys.forEach((shortcut: string) => {
+                globalShortcut.unregister(shortcut);
+            });
+        }
     }
 
     private _onHotkeyResume() {
         this._bind();
     }
 
-    private _onHotkeyPause() {
-        this._unbind();
+    private _onHotkeyPause(input: boolean = false) {
+        this._unbind(input);
+    }
+
+    private _send(action: string, shortcut: string) {
+        if ((this._subjects as any)[action] !== undefined) {
+            (this._subjects as any)[action].emit();
+        }
+        ServiceElectron.IPC.send(new IPCMessages.HotkeyCall({
+            session: ServiceStreams.getActiveStreamId(),
+            unixtime: Date.now(),
+            action: action,
+            shortcut: shortcut,
+        })).catch((error: Error) => {
+            this._logger.error(error.message);
+        });
     }
 
 }

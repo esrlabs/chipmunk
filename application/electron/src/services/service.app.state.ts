@@ -1,9 +1,9 @@
 import Logger from '../tools/env.logger';
-
+import ServiceProduction from './service.production';
 import { IService } from '../interfaces/interface.service';
 
 const CSettings = {
-    delay: 1000,
+    delay: 10000,
 };
 
 /**
@@ -43,6 +43,9 @@ class ServiceAppState implements IService {
     }
 
     private _check() {
+        if (ServiceProduction.isProduction()) {
+            return;
+        }
         this._timer = setTimeout(() => {
             const mem = process.memoryUsage();
             const change = mem.heapUsed - this._memory.prev;
