@@ -45,6 +45,7 @@ export class HotkeysService implements IService {
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
     private _dialogGuid: string = Toolkit.guid();
     private _paused: boolean = false;
+    private _input: boolean = false;
 
     private _subjects = {
         newTab: new Subject<IHotkeyEvent>(),
@@ -139,6 +140,18 @@ export class HotkeysService implements IService {
         });
     }
 
+    public inputIn() {
+        ElectronIpcService.send(new IPCMessages.HotkeyInputIn()).then(() => {
+            this._input = true;
+        });
+    }
+
+    public inputOut() {
+        ElectronIpcService.send(new IPCMessages.HotkeyInputOut()).then(() => {
+            this._input = false;
+        });
+    }
+
     private _cleanupShortcuts() {
         const platform: string = Electron.remote.process.platform;
         Object.keys(CKeysMap).forEach((key: string) => {
@@ -154,6 +167,9 @@ export class HotkeysService implements IService {
 
     private _onHotkeyCall(message: IPCMessages.HotkeyCall) {
         if (this._paused) {
+            return;
+        }
+        if (this._input && message.shortcut.length === 1) {
             return;
         }
         if (this._subjects[message.action] === undefined) {
@@ -187,9 +203,9 @@ export class HotkeysService implements IService {
     private _checkFocusedElement() {
         const tag: string = document.activeElement.tagName.toLowerCase();
         if (['input', 'textarea'].indexOf(tag) !== -1) {
-            this.pause();
+            this.inputIn();
         } else {
-            this.resume();
+            this.inputOut();
         }
     }
 

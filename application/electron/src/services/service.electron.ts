@@ -39,6 +39,7 @@ class ServiceElectron implements IService {
     private _controllerBrowserWindow: ControllerBrowserWindow | undefined;
     private _controllerElectronMenu: ControllerElectronMenu | undefined;
     private _onReadyResolve: THandler | null = null;
+    private _ipc: ControllerElectronIpc | undefined;
     private _ready: {
         electron: boolean;
         service: boolean;
@@ -89,15 +90,11 @@ class ServiceElectron implements IService {
     }
 
     public redirectIPCMessageToPluginRender(message: IPCMessages.PluginInternalMessage | IPCMessages.PluginError, sequence?: string) {
-        if (this._controllerBrowserWindow === undefined) {
-            return this._logger.error(`Fail to redirect message of plugin by token: ${message.token}, because BrowserWindow is undefined. Income message: ${message.data}`);
+        if (this._ipc === undefined) {
+            return this._logger.error(`Fail to redirect message of plugin by token: ${message.token}, because IPC is undefined. Income message: ${message.data}`);
         }
-        this._controllerBrowserWindow.getIpc().then((ipc: ControllerElectronIpc) => {
-            ipc.send(message, sequence).catch((sendingError: Error) => {
-                this._logger.error(`Fail redirect message by token ${message.token} due error: ${sendingError.message}`);
-            });
-        }).catch((error: Error) => {
-            this._logger.error(`Fail redirect message by token ${message.token} due error: ${error.message}`);
+        this._ipc.send(message, sequence).catch((sendingError: Error) => {
+            this._logger.error(`Fail redirect message by token ${message.token} due error: ${sendingError.message}`);
         });
     }
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -105,52 +102,40 @@ class ServiceElectron implements IService {
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     private _subscribe(event: Function, handler: (event: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) => any): Promise<Subscription> {
         return new Promise((resolve, reject) => {
-            if (this._controllerBrowserWindow === undefined) {
-                return reject(new Error(`Browser window isn't inited yet, cannot delivery IPC controller.`));
+            if (this._ipc === undefined) {
+                return reject(new Error(`IPC isn't inited yet, cannot delivery IPC controller.`));
             }
-            this._controllerBrowserWindow.getIpc().then((ipc: ControllerElectronIpc) => {
-                ipc.subscribe(event, handler).then((subscription: Subscription) => {
-                    resolve(subscription);
-                }).catch((subscribeError: Error) => {
-                    this._logger.warn(`Fail to subscribe due error: ${subscribeError.message}`);
-                    return reject(subscribeError);
-                });
-            }).catch((error: Error) => {
-                reject(error);
+            this._ipc.subscribe(event, handler).then((subscription: Subscription) => {
+                resolve(subscription);
+            }).catch((subscribeError: Error) => {
+                this._logger.warn(`Fail to subscribe due error: ${subscribeError.message}`);
+                return reject(subscribeError);
             });
         });
     }
 
-    private _send(instance: IPCMessages.TMessage, sequence?: string): Promise<void> {
+    private _send(instance: IPCMessages.TMessage): Promise<void> {
         return new Promise((resolve, reject) => {
-            if (this._controllerBrowserWindow === undefined) {
-                return reject(new Error(`Browser window isn't inited yet, cannot delivery IPC controller.`));
+            if (this._ipc === undefined) {
+                return reject(new Error(`IPC controller isn't inited yet, cannot delivery IPC controller.`));
             }
-            this._controllerBrowserWindow.getIpc().then((ipc: ControllerElectronIpc) => {
-                ipc.send(instance).then(() => {
-                    resolve();
-                }).catch((sendingError: Error) => {
-                    return reject(new Error(this._logger.warn(`Fail to send message via IPC due error: ${sendingError.message}`)));
-                });
-            }).catch((error: Error) => {
-                reject(error);
+            this._ipc.send(instance).then(() => {
+                resolve();
+            }).catch((sendingError: Error) => {
+                return reject(new Error(this._logger.warn(`Fail to send message via IPC due error: ${sendingError.message}`)));
             });
         });
     }
 
     private _request(instance: IPCMessages.TMessage, expected?: IPCMessages.TMessage): Promise<any> {
         return new Promise((resolve, reject) => {
-            if (this._controllerBrowserWindow === undefined) {
-                return reject(new Error(`Browser window isn't inited yet, cannot delivery IPC controller.`));
+            if (this._ipc === undefined) {
+                return reject(new Error(`IPC controller isn't inited yet, cannot delivery IPC controller.`));
             }
-            this._controllerBrowserWindow.getIpc().then((ipc: ControllerElectronIpc) => {
-                ipc.request(instance, expected).then((response: any) => {
-                    resolve(response);
-                }).catch((sendingError: Error) => {
-                    return reject(new Error(this._logger.warn(`Fail to send message via IPC due error: ${sendingError.message}`)));
-                });
-            }).catch((error: Error) => {
-                reject(error);
+            this._ipc.request(instance, expected).then((response: any) => {
+                resolve(response);
+            }).catch((sendingError: Error) => {
+                return reject(new Error(this._logger.warn(`Fail to send message via IPC due error: ${sendingError.message}`)));
             });
         });
     }
@@ -194,6 +179,11 @@ class ServiceElectron implements IService {
         this._logger.env(`Creating new browser window`);
         this._controllerBrowserWindow = new ControllerBrowserWindow(uuid.v4());
         this._controllerBrowserWindow.subscribe(ControllerBrowserWindow.Events.closed, this._onWindowClosed);
+        this._controllerBrowserWindow.getIpc().then((ipc: ControllerElectronIpc) => {
+            this._ipc = ipc;
+        }).catch((error: Error) => {
+            this._logger.error(`Fail to get IPC: ${error.message}`);
+        });
     }
 
     private _destroyBrowserWindow() {

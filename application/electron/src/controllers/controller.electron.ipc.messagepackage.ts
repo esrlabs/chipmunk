@@ -8,7 +8,7 @@ export interface IMessagePackage {
 export const getSequence: () => string = (function() {
     let sequence: number = Date.now();
     return function() {
-        return `${Date.now()}:${sequence++}`;
+        return `${sequence++}`;
     };
 }());
 
@@ -31,6 +31,14 @@ export class IPCMessagePackage {
         this.sequence = params.sequence;
         this.message = params.message;
         this.created = params.created;
+    }
+
+    public serialize(): any {
+        return {
+            sequence: this.sequence,
+            created: this.created,
+            message: JSON.parse(JSON.stringify(this.message)),
+        };
     }
 
 }

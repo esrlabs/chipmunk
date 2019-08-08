@@ -171,7 +171,7 @@ export default class ControllerElectronIpc {
                 this._pending.set(messagePackage.sequence, resolve);
             }
             // Format:         | channel  |  event  | instance |
-            this._contents.send(signature, signature, messagePackage);
+            this._contents.send(signature, signature, messagePackage.serialize());
             if (!expectResponse) {
                 return resolve();
             }

@@ -139,6 +139,12 @@ export { HotkeyPause };
 import { HotkeyResume } from './hotkey.resume';
 export { HotkeyResume };
 
+import { HotkeyInputIn } from './hotkey.input.in';
+export { HotkeyInputIn };
+
+import { HotkeyInputOut } from './hotkey.input.out';
+export { HotkeyInputOut };
+
 import { IDLTStatsRequest, DLTStatsRequest } from './dlt.filestats.request';
 export { IDLTStatsRequest, DLTStatsRequest };
 
@@ -190,6 +196,8 @@ export type TMessage =  HostState |
                         Notification |
                         HotkeyCall |
                         HotkeyPause |
+                        HotkeyInputIn |
+                        HotkeyInputOut |
                         HotkeyResume |
                         DLTStatsRequest |
                         DLTStatsResponse;
@@ -255,6 +263,8 @@ export const Map = {
     [HotkeyCall.signature                   ]: HotkeyCall,
     [HotkeyPause.signature                  ]: HotkeyPause,
     [HotkeyResume.signature                 ]: HotkeyResume,
+    [HotkeyInputIn.signature                ]: HotkeyInputIn,
+    [HotkeyInputOut.signature               ]: HotkeyInputOut,
 
     [DLTStatsRequest.signature              ]: DLTStatsRequest,
     [DLTStatsResponse.signature             ]: DLTStatsResponse,

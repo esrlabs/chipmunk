@@ -18,6 +18,7 @@ export enum EHotkeyActionRef {
 export interface IHotkeyCall {
     unixtime: number;
     session: string;
+    shortcut: string;
     action: EHotkeyActionRef | string;
 }
 
@@ -28,6 +29,7 @@ export class HotkeyCall {
     public signature: string = HotkeyCall.signature;
     public action: EHotkeyActionRef | string;
     public session: string | undefined;
+    public shortcut: string | undefined;
     public unixtime: number | undefined;
 
     constructor(params: IHotkeyCall) {
@@ -36,6 +38,7 @@ export class HotkeyCall {
         }
         this.session = params.session;
         this.action = params.action;
+        this.shortcut = params.shortcut;
         this.unixtime = params.unixtime;
     }
 
