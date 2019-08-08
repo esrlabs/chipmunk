@@ -199,17 +199,11 @@ mod tests {
     // MM/dd/yy*HH:mm:ss	08/10/11*13:33:56
     // MM/dd/yyyy*HH:mm:ss	11/22/2017*05:13:11
     // MM/dd/yyyy*HH:mm:ss*SSS	05/09/2017*08:22:14*612
-    // MM/dd/yy HH:mm:ss ZZZZ	04/23/17 04:34:22 +0000
-    // MM/dd/yyyy HH:mm:ss ZZZZ 	10/03/2017 07:29:46 -0700
     // HH:mm:ss	11:42:35
     // HH:mm:ss.SSS	11:42:35.173
     // HH:mm:ss,SSS	11:42:35,173
     // dd/MMM HH:mm:ss,SSS	23/Apr 11:42:35,173
-    // dd/MMM/yyyy:HH:mm:ss	23/Apr/2017:11:42:35
-    // dd/MMM/yyyy HH:mm:ss	23/Apr/2017 11:42:35
-    // dd-MMM-yyyy HH:mm:ss	23-Apr-2017 11:42:35
     // dd-MMM-yyyy HH:mm:ss.SSS	23-Apr-2017 11:42:35.883
-    // dd MMM yyyy HH:mm:ss	23 Apr 2017 11:42:35
     // dd MMM yyyy HH:mm:ss*SSS	23 Apr 2017 10:32:35*311
     // MMdd_HH:mm:ss	0423_11:42:35
     // MMdd_HH:mm:ss.SSS	0423_11:42:35.883
@@ -220,8 +214,13 @@ mod tests {
         derive_format_and_check!("2019-07-30T10:08:02.555", "YYYY-MM-DDThh:mm:ss.s");
         derive_format_and_check!("2019-07-30 10:08:02.555 +0200", "YYYY-MM-DD hh:mm:ss.s TZD");
         derive_format_and_check!("2019-07-30T10:08:02.555 +0200", "YYYY-MM-DDThh:mm:ss.s TZD");
+        // 	04/23/17 04:34:22 +0000
+        // MM/dd/yyyy HH:mm:ss ZZZZ 	10/03/2017 07:29:46 -0700
 
-        // derive_format_and_check!("9/28/2011 2:23:15 PM", "MM/dd/yyyy hh:mm:ss a");
+        derive_format_and_check!("04/23/17 04:34:22 +0000", "MM/DD/yy hh:mm:ss TZD");
+        derive_format_and_check!("9/28/2011 2:23:15 PM", "MM/DD/YYYY hh:mm:ss a");
+        derive_format_and_check!("9/28/2011 2:23:15 AM", "MM/DD/YYYY hh:mm:ss a");
+        derive_format_and_check!("23 Apr 2017 11:42:35", "DD MMM YYYY hh:mm:ss");
 
         derive_format_and_check!("07-30 10:08:02.555", "MM-DD hh:mm:ss.s");
         derive_format_and_check!("07-30T10:08:02.555", "MM-DDThh:mm:ss.s");
@@ -233,6 +232,8 @@ mod tests {
         derive_format_and_check!("07-30-2019 10:08:02.555 +0200", "MM-DD-YYYY hh:mm:ss.s TZD");
         derive_format_and_check!("07-30-2019T10:08:02.555 +0200", "MM-DD-YYYYThh:mm:ss.s TZD");
 
+        derive_format_and_check!("30-Jul-2019 10:08:02", "DD-MMM-YYYY hh:mm:ss");
+        derive_format_and_check!("30/Jul/2019 10:08:02", "DD/MMM/YYYY hh:mm:ss");
         derive_format_and_check!("30/Jul/2019:10:08:02", "DD/MMM/YYYY:hh:mm:ss");
         derive_format_and_check!("30/Jul/2019:10:08:02 +0200", "DD/MMM/YYYY:hh:mm:ss TZD");
         derive_format_and_check!("30/Jul/2019T10:08:02", "DD/MMM/YYYYThh:mm:ss");

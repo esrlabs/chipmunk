@@ -57,8 +57,12 @@ lazy_static! {
         add_twice!("MM-DD-YYYYThh:mm:ss.s", &mut arr, &mut v);
         add_twice!("MM-DD-YYYY hh:mm:ss.s", &mut arr, &mut v);
         add_twice!("MM/DD/YYYY hh:mm:ss a", &mut arr, &mut v);
+        add_twice!("MM/DD/yy hh:mm:ss", &mut arr, &mut v);
         add_twice!("DD/MMM/YYYY:hh:mm:ss", &mut arr, &mut v);
+        add_twice!("DD/MMM/YYYY hh:mm:ss", &mut arr, &mut v);
+        add_twice!("DD-MMM-YYYY hh:mm:ss", &mut arr, &mut v);
         add_twice!("DD/MMM/YYYYThh:mm:ss", &mut arr, &mut v);
+        add_twice!("DD MMM YYYY hh:mm:ss", &mut arr, &mut v);
         (arr, v)
     };
     static ref AVAILABLE_REGEXES: Vec<&'static str> = FORMAT_REGEX_MAPPINGS.0.clone();
@@ -72,11 +76,13 @@ pub enum FormatPiece {
     Month,
     MonthName,
     Year,
+    YearShort,
     Hour,
     Minute,
     Second,
     Fraction,
     TimeZone,
+    AmPm,
     AbsoluteMilliseconds,
     SeperatorChar(char),
     Seperator(String),
@@ -88,10 +94,12 @@ impl std::fmt::Display for FormatPiece {
             FormatPiece::Month => write!(f, "Month"),
             FormatPiece::MonthName => write!(f, "MonthName"),
             FormatPiece::Year => write!(f, "Year"),
+            FormatPiece::YearShort => write!(f, "YearShort"),
             FormatPiece::Hour => write!(f, "Hour"),
             FormatPiece::Minute => write!(f, "Minute"),
             FormatPiece::Second => write!(f, "Second"),
             FormatPiece::Fraction => write!(f, "Fraction"),
+            FormatPiece::AmPm => write!(f, "AmPm"),
             FormatPiece::TimeZone => write!(f, "TimeZone"),
             FormatPiece::AbsoluteMilliseconds => write!(f, "AbsoluteMilliseconds"),
             FormatPiece::SeperatorChar(_) => write!(f, "SeperatorChar"),
@@ -115,11 +123,13 @@ static DAY_FORMAT_TAG: &str = "DD";
 static MONTH_FORMAT_SHORT_NAME_TAG: &str = "MMM";
 static MONTH_FORMAT_TAG: &str = "MM";
 static YEAR_FORMAT_TAG: &str = "YYYY";
+static YEAR_SHORT_FORMAT_TAG: &str = "yy";
 static HOURS_FORMAT_TAG: &str = "hh";
 static MINUTES_FORMAT_TAG: &str = "mm";
 static SECONDS_FORMAT_TAG: &str = "ss";
 static TIMEZONE_FORMAT_TAG: &str = "TZD";
 const FRACTION_FORMAT_CHAR: char = 's';
+const AM_PM_TAG: char = 'a';
 
 fn days(input: &str) -> IResult<&str, FormatPiece> {
     map(tag(DAY_FORMAT_TAG), |_| FormatPiece::Day)(input)
@@ -133,6 +143,9 @@ fn month(input: &str) -> IResult<&str, FormatPiece> {
 fn year(input: &str) -> IResult<&str, FormatPiece> {
     map(tag(YEAR_FORMAT_TAG), |_| FormatPiece::Year)(input)
 }
+fn year_short(input: &str) -> IResult<&str, FormatPiece> {
+    map(tag(YEAR_SHORT_FORMAT_TAG), |_| FormatPiece::YearShort)(input)
+}
 fn hours(input: &str) -> IResult<&str, FormatPiece> {
     map(tag(HOURS_FORMAT_TAG), |_| FormatPiece::Hour)(input)
 }
@@ -145,6 +158,11 @@ fn seconds(input: &str) -> IResult<&str, FormatPiece> {
 fn fraction(input: &str) -> IResult<&str, FormatPiece> {
     map(nom::character::complete::char(FRACTION_FORMAT_CHAR), |_| {
         FormatPiece::Fraction
+    })(input)
+}
+fn am_pm(input: &str) -> IResult<&str, FormatPiece> {
+    map(nom::character::complete::char(AM_PM_TAG), |_| {
+        FormatPiece::AmPm
     })(input)
 }
 fn timezone(input: &str) -> IResult<&str, FormatPiece> {
@@ -168,11 +186,13 @@ fn any_date_format(input: &str) -> IResult<&str, FormatPiece> {
         month_short,
         month,
         year,
+        year_short,
         hours,
         minutes,
         absolute_millis,
         seconds,
         fraction,
+        am_pm,
         timezone,
         seperator,
     ))(input)
@@ -255,10 +275,12 @@ static DAY_GROUP: &str = "d";
 static MONTH_GROUP: &str = "m";
 static MONTH_SHORT_NAME_GROUP: &str = "MMM";
 static YEAR_GROUP: &str = "Y";
+static YEAR_SHORT_GROUP: &str = "y";
 static HOUR_GROUP: &str = "H";
 static MINUTE_GROUP: &str = "M";
 static SECONDS_GROUP: &str = "S";
 static FRACTION_GROUP: &str = "millis";
+static AM_PM_GROUP: &str = "am_pm";
 static TIMEZONE_GROUP: &str = "timezone";
 static ABSOLUTE_MS_GROUP: &str = "absolute";
 
@@ -269,16 +291,18 @@ fn named_group(regex: &str, capture_id: &str) -> String {
 fn format_piece_as_regex_string(p: &FormatPiece) -> String {
     match p {
         FormatPiece::Day => named_group(r"([0-2]\d|3[01])", DAY_GROUP),
-        FormatPiece::Month => named_group(r"(0\d|1[0-2])", MONTH_GROUP),
+        FormatPiece::Month => named_group(r"(0?\d|1[0-2])", MONTH_GROUP),
         FormatPiece::MonthName => named_group(
             r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)",
             MONTH_SHORT_NAME_GROUP,
         ),
         FormatPiece::Year => named_group(r"[0-2]\d{3}", YEAR_GROUP),
-        FormatPiece::Hour => named_group(r"(0\d|1\d|2[0-3])", HOUR_GROUP),
+        FormatPiece::YearShort => named_group(r"\d{2}", YEAR_SHORT_GROUP),
+        FormatPiece::Hour => named_group(r"(0?\d|1\d|2[0-3])", HOUR_GROUP),
         FormatPiece::Minute => named_group(r"[0-5]\d", MINUTE_GROUP),
         FormatPiece::Second => named_group(r"[0-5]\d", SECONDS_GROUP),
         FormatPiece::Fraction => named_group(r"\d+", FRACTION_GROUP),
+        FormatPiece::AmPm => named_group(r"(AM|PM)", AM_PM_GROUP),
         FormatPiece::TimeZone => named_group(r"[\+\-](0\d|1[0-4]):?(00|30|45)", TIMEZONE_GROUP),
         FormatPiece::AbsoluteMilliseconds => named_group(r"\d+", ABSOLUTE_MS_GROUP),
         FormatPiece::SeperatorChar(c) => {
@@ -417,8 +441,18 @@ pub fn to_posix_timestamp(
         Some(m) => m.as_str(),
         None => "0",
     };
+    let am_pm_hour_offset: u32 = match caps.name(AM_PM_GROUP) {
+        Some(m) => match m.as_str() {
+            "PM" => 12,
+            _ => 0,
+        },
+        None => 0,
+    };
     let (hour, minutes, seconds, millis): (u32, u32, u32, u32) = (
-        hour_capt.as_str().parse()?,
+        hour_capt
+            .as_str()
+            .parse()
+            .map(|h: u32| h + am_pm_hour_offset)?,
         min_capt.as_str().parse()?,
         sec_capt.as_str().parse()?,
         mil_str.parse()?,
@@ -435,9 +469,17 @@ pub fn to_posix_timestamp(
     } else {
         time_offset.ok_or_else(|| failure::err_msg("could not detect timestamp in (line {})"))
     };
+    // for the year first try YYYY, then yy, then fallback on the supplied year
     let the_year: Option<i32> = match caps.name(YEAR_GROUP) {
         Some(year_str) => year_str.as_str().parse().ok(),
-        None => year,
+        None => match caps.name(YEAR_SHORT_GROUP) {
+            Some(year_short_str) => year_short_str
+                .as_str()
+                .parse()
+                .map(|ys: i32| ys + 2000i32)
+                .ok(),
+            None => year,
+        },
     };
     match (the_year, offset_result) {
         (Some(y), Ok(offset)) => {
@@ -598,11 +640,15 @@ pub fn detect_timeformat_in_string(
     }
     for format in AVAILABLE_REGEXES.iter() {
         let regex = &FORMAT_REGEX_MAPPING[format];
+        // println!("check with regex: {}", regex.to_string());
         if regex.is_match(trimmed) {
             return Ok(format.to_string());
         }
     }
-    Err(failure::err_msg("no match"))
+    Err(failure::err_msg(format!(
+        "no timestamp match found in {}",
+        input
+    )))
 }
 
 /// should parse timezone string, valid formats are
@@ -662,6 +708,7 @@ mod tests {
         assert_eq!(any_date_format("MM23"), Ok(("23", FormatPiece::Month)));
         assert_eq!(any_date_format("DDMM"), Ok(("MM", FormatPiece::Day)));
         assert_eq!(any_date_format("YYYY-"), Ok(("-", FormatPiece::Year)));
+        assert_eq!(any_date_format("yy-"), Ok(("-", FormatPiece::YearShort)));
 
         assert_eq!(
             any_date_format("-YYYY"),
