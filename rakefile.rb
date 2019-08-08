@@ -45,7 +45,7 @@ namespace :bench do
     sh "cargo bench --bench dlt_benchmarks -- --save-baseline"
   end
   desc "record new parse baseline"
-  task :dlt_baseline do
+  task :parse_baseline do
     sh "cargo bench --bench parse_benchmarks -- --save-baseline"
   end
 end

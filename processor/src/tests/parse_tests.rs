@@ -4,7 +4,6 @@ mod tests {
     use crate::parse::*;
 
     use pretty_assertions::assert_eq;
-    use regex::Regex;
     use std::fs;
     use std::path::PathBuf;
 
@@ -16,7 +15,7 @@ mod tests {
                 "",
                 vec![
                     FormatPiece::Month,
-                    FormatPiece::Seperator(String::from(r"\s+\.\|\?\*\+\(\)\{}\[]\^\$")),
+                    FormatPiece::Seperator(String::from(r"\s?\.\|\?\*\+\(\)\{}\[]\^\$")),
                     FormatPiece::Day
                 ]
             ))
@@ -32,7 +31,7 @@ mod tests {
                     FormatPiece::Day,
                     FormatPiece::Seperator(String::from("-")),
                     FormatPiece::Month,
-                    FormatPiece::Seperator(String::from(r"\s+--->\s+")),
+                    FormatPiece::Seperator(String::from(r"\s?--->\s?")),
                     FormatPiece::Hour,
                     FormatPiece::Seperator(String::from(":")),
                     FormatPiece::Minute,
@@ -40,7 +39,7 @@ mod tests {
                     FormatPiece::Second,
                     FormatPiece::Seperator(String::from(":")),
                     FormatPiece::Fraction,
-                    FormatPiece::Seperator(String::from(r"\s+")),
+                    FormatPiece::Seperator(String::from(r"\s?")),
                     FormatPiece::TimeZone,
                 ]
             ))
@@ -81,99 +80,9 @@ mod tests {
     }
 
     #[test]
-    fn test_date_format_str_to_regex1() {
-        // 05-22 12:36:36.506 +0100 I/GKI_LINUX1
-        let input = "DD-MM hh:mm:ss.s TZD";
-        let regex = date_format_str_to_regex(input).expect("should be parsed");
-        assert_eq!(Regex::new(r"(?P<d>\d{2})-(?P<m>\d{2})\s+(?P<H>\d{2}):(?P<M>\d{2}):(?P<S>\d{2})\.(?P<millis>\d+)\s+(?P<timezone>[\+\-]\d\d:?\d\d)").unwrap().as_str(), regex.as_str());
-    }
-    #[test]
-    fn test_date_format_str_to_regex2() {
-        // 05-22-2019 12:36:04.344 A0
-        let input2 = "DD-MM-YYYY hh:mm:ss.s";
-        let regex2 = date_format_str_to_regex(input2).expect("should be parsed");
-        assert_eq!(Regex::new(r"(?P<d>\d{2})-(?P<m>\d{2})-(?P<Y>\d{4})\s+(?P<H>\d{2}):(?P<M>\d{2}):(?P<S>\d{2})\.(?P<millis>\d+)").unwrap().as_str(), regex2.as_str());
-    }
-    #[test]
-    fn test_date_format_str_to_regex_with_short_month_token() {
-        // 23/Jan/2019:23:58:13
-        let regex = date_format_str_to_regex("DD/MMM/YYYY:hh:mm:ss").expect("should be parsed");
-        assert_eq!(
-            Regex::new(r"(?P<d>\d{2})/(?P<MMM>(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))/(?P<Y>\d{4}):(?P<H>\d{2}):(?P<M>\d{2}):(?P<S>\d{2})")
-                .unwrap()
-                .as_str(),
-            regex.as_str()
-        );
-    }
-    #[test]
-    fn test_date_format_str_to_regex_with_escape_characters() {
-        // 05|22|2019
-        let regex = date_format_str_to_regex("DD|MM|YYYY").expect("should be parsed");
-        assert_eq!(
-            Regex::new(r"(?P<d>\d{2})\|(?P<m>\d{2})\|(?P<Y>\d{4})")
-                .unwrap()
-                .as_str(),
-            regex.as_str()
-        );
-    }
-    #[test]
-    fn test_date_format_str_to_regex_minus_after() {
-        // 2019-
-        let regex = date_format_str_to_regex("YYYY-").expect("should be parsed");
-        assert_eq!(
-            Regex::new(r"(?P<Y>\d{4})-").unwrap().as_str(),
-            regex.as_str()
-        );
-    }
-    #[test]
     fn test_date_format_str_to_regex_empty() {
         let regex = date_format_str_to_regex("");
         assert!(regex.is_err());
-    }
-    #[test]
-    fn test_date_format_str_to_regex_other() {
-        assert!(line_matching_format_expression("-YYYY", "-1997").unwrap_or(false));
-        assert!(
-            line_matching_format_expression("YYYY-MM-DDThh:mmTZD", "1997-07-16T19:20+01:00")
-                .unwrap_or(false)
-        );
-        assert!(line_matching_format_expression("YYYY", "1997").unwrap_or(false));
-        assert!(line_matching_format_expression("YYYY", "1997  some other crap").unwrap_or(false));
-        assert!(
-            line_matching_format_expression("YYYY", "something before: [1997]").unwrap_or(false)
-        );
-
-        // assert!(line_matching_format_expression("sss", "1559831467577").unwrap_or(false));
-
-        assert!(line_matching_format_expression("YYYY-MM", "1997-07").unwrap_or(false));
-
-        assert!(line_matching_format_expression("YYYY-MM-DD", "1997-07-16").unwrap_or(false));
-
-        assert!(
-            line_matching_format_expression("YYYY-MM-DDThh:mmTZD", "1997-07-16T19:20+01:00")
-                .unwrap_or(false)
-        );
-
-        assert!(line_matching_format_expression(
-            "YYYY-MM-DDThh:mm:ssTZD",
-            "1997-07-16T19:20:30+01:00"
-        )
-        .unwrap_or(false));
-
-        assert!(line_matching_format_expression(
-            "YYYY-MM-DDThh:mm:ss.sTZD",
-            "1997-07-16T19:20:30.45+01:00"
-        )
-        .unwrap_or(false));
-        assert!(line_matching_format_expression(
-            "YYYY-MM-DDThh:mm:ss.sTZD",
-            "1997-07-16T19:20:30.45+01:00"
-        )
-        .unwrap_or(false));
-        assert!(
-            line_matching_format_expression("YYYYMMDDhhmmsssTZD", "1997071619203045+01:00")
-                .unwrap_or(false)
-        );
     }
     #[test]
     fn test_parse_date_line_no_year_with_timezone() {
@@ -228,35 +137,130 @@ mod tests {
             to_posix_timestamp(input, &regex, None, Some(-TWO_HOURS_IN_MS)).unwrap();
         assert_eq!(1_559_838_667_577, timestamp_with_offset);
     }
-    macro_rules! assert_format {
+    macro_rules! derive_format_and_check {
         ($input:expr, $exp:expr) => {
             match detect_timeformat_in_string($input, None) {
-                Ok(format) => assert_eq!($exp, format),
+                Ok(format) => {
+                    println!("found format was: {}", format);
+                    assert_eq!($exp, format)
+                }
                 Err(e) => panic!(format!("error happened in detection: {}", e)),
             }
+            assert!(line_matching_format_expression($exp, $input).unwrap_or(false));
         };
     }
+    macro_rules! match_format {
+        ($example:expr, $format:expr) => {
+            assert!(line_matching_format_expression($format, $example).unwrap_or(false));
+        };
+    }
+    macro_rules! no_match_format {
+        ($format:expr, $example:expr) => {
+            assert!(
+                !line_matching_format_expression($format, $example).unwrap_or(true),
+                "should not match"
+            );
+        };
+    }
+    // yyyy-MM-dd'T'HH:mm:ss*SSSZZZZ	2018-08-20'T'13:20:10*633+0000
+    // yyyy MMM dd HH:mm:ss.SSS zzz	2017 Mar 03 05:12:41.211 PDT
+    // MMM dd HH:mm:ss ZZZZ yyyy	Jan 21 18:20:11 +0000 2017
+    // dd/MMM/yyyy:HH:mm:ss ZZZZ	19/Apr/2017:06:36:15 -0700
+    // MMM dd, yyyy hh:mm:ss a	Dec 2, 2017 2:39:58 AM
+    // MMM dd yyyy HH:mm:ss	Jun 09 2018 15:28:14
+    // MMM dd HH:mm:ss yyyy	Apr 20 00:00:35 2010
+    // MMM dd HH:mm:ss ZZZZ	Sep 28 19:00:00 +0000
+    // MMM dd HH:mm:ss	Mar 16 08:12:04
+    // yyyy-MM-dd'T'HH:mm:ssZZZZ	2017-10-14T22:11:20+0000
+    // yyyy-MM-dd'T'HH:mm:ss.SSS'Z'	2017-07-01T14:59:55.711'+0000'
+    // 2017-07-01T14:59:55.711Z
+    // yyyy-MM-dd HH:mm:ss ZZZZ	2017-08-19 12:17:55 -0400
+    // yyyy-MM-dd HH:mm:ssZZZZ	2017-08-19 12:17:55-0400
+    // yyyy-MM-dd HH:mm:ss,SSS	2017-06-26 02:31:29,573
+    // yyyy/MM/dd*HH:mm:ss	2017/04/12*19:37:50
+    // yyyy MMM dd HH:mm:ss.SSS*zzz	2018 Apr 13 22:08:13.211*PDT
+    // yyyy MMM dd HH:mm:ss.SSS	2017 Mar 10 01:44:20.392
+    // yyyy-MM-dd HH:mm:ss,SSSZZZZ	2017-03-10 14:30:12,655+0000
+    // yyyy-MM-dd HH:mm:ss.SSS	2018-02-27 15:35:20.311
+    // yyyy-MM-dd HH:mm:ss.SSSZZZZ	2017-03-12 13:11:34.222-0700
+    // yyyy-MM-dd'T'HH:mm:ss.SSS	2017-07-22'T'16:28:55.444
+    // yyyy-MM-dd'T'HH:mm:ss	2017-09-08'T'03:13:10
+    // yyyy-MM-dd'T'HH:mm:ss'Z'	2017-03-12'T'17:56:22'-0700'
+    // yyyy-MM-dd'T'HH:mm:ss.SSS	2017-11-22'T'10:10:15.455
+    // yyyy-MM-dd'T'HH:mm:ss	2017-02-11'T'18:31:44
+    // yyyy-MM-dd*HH:mm:ss:SSS	2017-10-30*02:47:33:899
+    // yyyy-MM-dd*HH:mm:ss	2017-07-04*13:23:55
+    // yy-MM-dd HH:mm:ss,SSS ZZZZ	11-02-11 16:47:35,985 +0000
+    // yy-MM-dd HH:mm:ss,SSS	10-06-26 02:31:29,573
+    // yy-MM-dd HH:mm:ss	10-04-19 12:00:17
+    // yy/MM/dd HH:mm:ss	06/01/22 04:11:05
+    // yyMMdd HH:mm:ss	150423 11:42:35
+    // yyyyMMdd HH:mm:ss.SSS	20150423 11:42:35.173
+    // MM/dd/yy*HH:mm:ss	08/10/11*13:33:56
+    // MM/dd/yyyy*HH:mm:ss	11/22/2017*05:13:11
+    // MM/dd/yyyy*HH:mm:ss*SSS	05/09/2017*08:22:14*612
+    // MM/dd/yy HH:mm:ss ZZZZ	04/23/17 04:34:22 +0000
+    // MM/dd/yyyy HH:mm:ss ZZZZ 	10/03/2017 07:29:46 -0700
+    // HH:mm:ss	11:42:35
+    // HH:mm:ss.SSS	11:42:35.173
+    // HH:mm:ss,SSS	11:42:35,173
+    // dd/MMM HH:mm:ss,SSS	23/Apr 11:42:35,173
+    // dd/MMM/yyyy:HH:mm:ss	23/Apr/2017:11:42:35
+    // dd/MMM/yyyy HH:mm:ss	23/Apr/2017 11:42:35
+    // dd-MMM-yyyy HH:mm:ss	23-Apr-2017 11:42:35
+    // dd-MMM-yyyy HH:mm:ss.SSS	23-Apr-2017 11:42:35.883
+    // dd MMM yyyy HH:mm:ss	23 Apr 2017 11:42:35
+    // dd MMM yyyy HH:mm:ss*SSS	23 Apr 2017 10:32:35*311
+    // MMdd_HH:mm:ss	0423_11:42:35
+    // MMdd_HH:mm:ss.SSS	0423_11:42:35.883
+    // MM/dd/yyyy hh:mm:ss a:SSS	8/5/2011 3:31:18 AM:234
     #[test]
-    fn test_detect_timeformat_in_string() {
-        assert_format!("2019-07-30 10:08:02.555", "YYYY-MM-DD hh:mm:ss.s");
-        assert_format!("2019-07-30T10:08:02.555", "YYYY-MM-DDThh:mm:ss.s");
-        assert_format!("2019-07-30 10:08:02.555 +0200", "YYYY-MM-DD hh:mm:ss.s TZD");
-        assert_format!("2019-07-30T10:08:02.555 +0200", "YYYY-MM-DDThh:mm:ss.s TZD");
+    fn test_detect_timeformat_in_string_and_match_regex() {
+        derive_format_and_check!("2019-07-30 10:08:02.555", "YYYY-MM-DD hh:mm:ss.s");
+        derive_format_and_check!("2019-07-30T10:08:02.555", "YYYY-MM-DDThh:mm:ss.s");
+        derive_format_and_check!("2019-07-30 10:08:02.555 +0200", "YYYY-MM-DD hh:mm:ss.s TZD");
+        derive_format_and_check!("2019-07-30T10:08:02.555 +0200", "YYYY-MM-DDThh:mm:ss.s TZD");
 
-        assert_format!("07-30 10:08:02.555", "MM-DD hh:mm:ss.s");
-        assert_format!("07-30T10:08:02.555", "MM-DDThh:mm:ss.s");
-        assert_format!("07-30 10:08:02.555 +0200", "MM-DD hh:mm:ss.s TZD");
-        assert_format!("07-30T10:08:02.555 +0200", "MM-DDThh:mm:ss.s TZD");
+        // derive_format_and_check!("9/28/2011 2:23:15 PM", "MM/dd/yyyy hh:mm:ss a");
 
-        assert_format!("07-30-2019 10:08:02.555", "MM-DD-YYYY hh:mm:ss.s");
-        assert_format!("07-30-2019T10:08:02.555", "MM-DD-YYYYThh:mm:ss.s");
-        assert_format!("07-30-2019 10:08:02.555 +0200", "MM-DD-YYYY hh:mm:ss.s TZD");
-        assert_format!("07-30-2019T10:08:02.555 +0200", "MM-DD-YYYYThh:mm:ss.s TZD");
+        derive_format_and_check!("07-30 10:08:02.555", "MM-DD hh:mm:ss.s");
+        derive_format_and_check!("07-30T10:08:02.555", "MM-DDThh:mm:ss.s");
+        derive_format_and_check!("07-30 10:08:02.555 +0200", "MM-DD hh:mm:ss.s TZD");
+        derive_format_and_check!("07-30T10:08:02.555 +0200", "MM-DDThh:mm:ss.s TZD");
 
-        assert_format!("30/Jul/2019:10:08:02", "DD/MMM/YYYY:hh:mm:ss");
-        assert_format!("30/Jul/2019:10:08:02 +0200", "DD/MMM/YYYY:hh:mm:ss TZD");
-        assert_format!("30/Jul/2019T10:08:02", "DD/MMM/YYYYThh:mm:ss");
-        assert_format!("30/Jul/2019T10:08:02 +0200", "DD/MMM/YYYYThh:mm:ss TZD");
+        derive_format_and_check!("07-30-2019 10:08:02.555", "MM-DD-YYYY hh:mm:ss.s");
+        derive_format_and_check!("07-30-2019T10:08:02.555", "MM-DD-YYYYThh:mm:ss.s");
+        derive_format_and_check!("07-30-2019 10:08:02.555 +0200", "MM-DD-YYYY hh:mm:ss.s TZD");
+        derive_format_and_check!("07-30-2019T10:08:02.555 +0200", "MM-DD-YYYYThh:mm:ss.s TZD");
+
+        derive_format_and_check!("30/Jul/2019:10:08:02", "DD/MMM/YYYY:hh:mm:ss");
+        derive_format_and_check!("30/Jul/2019:10:08:02 +0200", "DD/MMM/YYYY:hh:mm:ss TZD");
+        derive_format_and_check!("30/Jul/2019T10:08:02", "DD/MMM/YYYYThh:mm:ss");
+        derive_format_and_check!("30/Jul/2019T10:08:02 +0200", "DD/MMM/YYYYThh:mm:ss TZD");
+        derive_format_and_check!("23/Jan/2019:23:58:13", "DD/MMM/YYYY:hh:mm:ss");
+        derive_format_and_check!("1997-07-16T19:20:59 +01:00", "YYYY-MM-DDThh:mm:ss TZD");
+        derive_format_and_check!("1997-07-16T19:20:30.45+01:00", "YYYY-MM-DDThh:mm:ss.s TZD");
+    }
+
+    #[test]
+    fn test_detect_timeformat_only() {
+        match_format!("22-05 12:36:36.506 +0100", "DD-MM hh:mm:ss.s TZD");
+        match_format!("15-05-2019 12:36:04.344 A0", "DD-MM-YYYY hh:mm:ss.s");
+        match_format!("23|05|2019", "DD|MM|YYYY");
+        match_format!("1997  some other crap", "YYYY");
+        match_format!("something before: [1997]", "YYYY");
+        // match_format!("1559831467577", "sss");
+        match_format!("1997-07", "YYYY-MM");
+        match_format!("1997-07-16", "YYYY-MM-DD");
+        match_format!("1997071619203045+12:00", "YYYYMMDDhhmmsssTZD");
+        no_match_format!("YYYY", "3000"); // invalid year
+        no_match_format!("DD-MM hh:mm:ss.s TZD", "05-22 12:36:36.506 +0100"); // invalid month
+        no_match_format!("YYYY-MM-DDThh:mm:ss.sTZD", "1997-07-36T19:20:30.45+01:00"); // "invalid day"
+        no_match_format!("YYYY-MM-DDThh:mmTZD", "1997-07-16T24:20+01:00"); // invalid hours
+        no_match_format!("YYYY-MM-DDThh:mmTZD", "1997-07-16T14:60+01:00"); // invalid minutes
+        no_match_format!("YYYY-MM-DDThh:mm:ssTZD", "1997-07-16T19:20:60+01:00"); // invalid seconds
+        no_match_format!("YYYYMMDDhhmmsssTZD", "1997071619203045+15:00"); // "invalid timezone"
+        no_match_format!("YYYYMMDDhhmmsssTZD", "1997071619203045+10:02"); // "invalid timezone"
     }
     #[test]
     fn test_detect_timestamp_in_string_simple() {
@@ -342,5 +346,4 @@ mod tests {
         let expected_format_string: String = contents.trim().to_string();
         assert_eq!(expected_format_string, res);
     }
-
 }

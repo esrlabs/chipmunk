@@ -6,9 +6,27 @@ use processor::parse::*;
 use criterion::Criterion;
 
 fn parse_benchmark(c: &mut Criterion) {
-    c.bench_function("zero_termitated_string broken input", |b| {
-        let input = "05-02-2019 12:36:36.506 0 0.764564113869644 0.7033032911158661 0.807587397462308";
-        b.iter(|| detect_timeformat_in_string(input, None))
+    let inputs = [
+        "2019-05-02 00:06:26.506 abc",
+        "2019-05-02T01:36:36.506 abc",
+        "05-02 23:46:46.506 abc",
+        "05-02T12:56:56.506 abc",
+        "05-02-2019 12:16:06.506 abc",
+        "05-02-2019T12:26:36.506 abc",
+        "02/May/2019:12:36:36 abc",
+        "02/May/2019T12:36:36 abc",
+        "some stuff before: 05-02-2019T12:36:36.506 0 0.764564113869644",
+        "non matching line 02-02-2019 12_36_379 bllllllllllah",
+    ];
+    c.bench_function("detect_timeformat_in_string", move |b| {
+        for input in inputs.iter() {
+            b.iter(|| detect_timeformat_in_string(input, None))
+        }
+    });
+    c.bench_function("detect_timestamp_in_string", move |b| {
+        for input in inputs.iter() {
+            b.iter(|| detect_timestamp_in_string(input, None))
+        }
     });
 }
 

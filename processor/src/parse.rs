@@ -51,10 +51,12 @@ lazy_static! {
         let mut v = BTreeMap::default();
         add_twice!("YYYY-MM-DD hh:mm:ss.s", &mut arr, &mut v);
         add_twice!("YYYY-MM-DDThh:mm:ss.s", &mut arr, &mut v);
+        add_twice!("YYYY-MM-DDThh:mm:ss", &mut arr, &mut v);
         add_twice!("MM-DDThh:mm:ss.s", &mut arr, &mut v);
         add_twice!("MM-DD hh:mm:ss.s", &mut arr, &mut v);
         add_twice!("MM-DD-YYYYThh:mm:ss.s", &mut arr, &mut v);
         add_twice!("MM-DD-YYYY hh:mm:ss.s", &mut arr, &mut v);
+        add_twice!("MM/DD/YYYY hh:mm:ss a", &mut arr, &mut v);
         add_twice!("DD/MMM/YYYY:hh:mm:ss", &mut arr, &mut v);
         add_twice!("DD/MMM/YYYYThh:mm:ss", &mut arr, &mut v);
         (arr, v)
@@ -178,7 +180,7 @@ fn any_date_format(input: &str) -> IResult<&str, FormatPiece> {
 fn escape_metacharacters(c: char) -> Cow<'static, str> {
     match c {
         //  .|?*+(){}[]DD
-        ' ' => r"\s+",
+        ' ' => r"\s?",
         '.' => r"\.",
         '|' => r"\|",
         '?' => r"\?",
@@ -266,18 +268,18 @@ fn named_group(regex: &str, capture_id: &str) -> String {
 
 fn format_piece_as_regex_string(p: &FormatPiece) -> String {
     match p {
-        FormatPiece::Day => named_group(r"\d{2}", DAY_GROUP),
-        FormatPiece::Month => named_group(r"\d{2}", MONTH_GROUP),
+        FormatPiece::Day => named_group(r"([0-2]\d|3[01])", DAY_GROUP),
+        FormatPiece::Month => named_group(r"(0\d|1[0-2])", MONTH_GROUP),
         FormatPiece::MonthName => named_group(
             r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)",
             MONTH_SHORT_NAME_GROUP,
         ),
-        FormatPiece::Year => named_group(r"\d{4}", YEAR_GROUP),
-        FormatPiece::Hour => named_group(r"\d{2}", HOUR_GROUP),
-        FormatPiece::Minute => named_group(r"\d{2}", MINUTE_GROUP),
-        FormatPiece::Second => named_group(r"\d{2}", SECONDS_GROUP),
+        FormatPiece::Year => named_group(r"[0-2]\d{3}", YEAR_GROUP),
+        FormatPiece::Hour => named_group(r"(0\d|1\d|2[0-3])", HOUR_GROUP),
+        FormatPiece::Minute => named_group(r"[0-5]\d", MINUTE_GROUP),
+        FormatPiece::Second => named_group(r"[0-5]\d", SECONDS_GROUP),
         FormatPiece::Fraction => named_group(r"\d+", FRACTION_GROUP),
-        FormatPiece::TimeZone => named_group(r"[\+\-]\d\d:?\d\d", TIMEZONE_GROUP),
+        FormatPiece::TimeZone => named_group(r"[\+\-](0\d|1[0-4]):?(00|30|45)", TIMEZONE_GROUP),
         FormatPiece::AbsoluteMilliseconds => named_group(r"\d+", ABSOLUTE_MS_GROUP),
         FormatPiece::SeperatorChar(c) => {
             let mut s = String::from("");
@@ -352,7 +354,8 @@ pub fn line_matching_format_expression(
     line: &str,
 ) -> Result<bool, failure::Error> {
     let regex = date_format_str_to_regex(format_expr)?;
-    Ok(regex.is_match(line))
+    let res = regex.is_match(line);
+    Ok(res)
 }
 fn parse_from_month(mmm: &str) -> Result<u32, failure::Error> {
     match mmm {
