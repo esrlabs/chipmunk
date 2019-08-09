@@ -13,15 +13,13 @@ extern crate processor;
 extern crate indexer_base;
 extern crate dlt;
 extern crate merging;
+extern crate chrono;
 
 use indexer_base::chunks::serialize_chunks;
-use processor::parse::{
-    line_matching_format_expression, match_format_string_in_file, read_format_string_options,
-    FormatTestOptions,
-};
 use indexer_base::config::IndexingConfig;
 use indexer_base::error_reporter::*;
 use serde::{Serialize, Deserialize};
+use chrono::prelude::*;
 
 #[macro_use]
 extern crate clap;
@@ -32,6 +30,11 @@ use std::path;
 use std::time::Instant;
 use processor::parse::detect_timestamp_in_string;
 use processor::parse::detect_timestamp_format_in_file;
+use processor::parse::timespan_in_file;
+use processor::parse::{
+    line_matching_format_expression, match_format_string_in_file, read_format_string_options,
+    FormatTestOptions,
+};
 
 fn main() {
     let start = Instant::now();
@@ -620,10 +623,25 @@ fn main() {
     pub struct DiscoverItem {
         pub path: String,
     }
+    fn posix_timestamp_as_string(timestamp_ms: i64) -> String {
+        match NaiveDateTime::from_timestamp_opt(
+            (timestamp_ms as f64 / 1000.0) as i64,
+            (timestamp_ms as f64 % 1000.0) as u32 * 1000,
+        ) {
+            Some(naive_datetime_max) => {
+                let t: DateTime<Utc> = DateTime::from_utc(naive_datetime_max, Utc);
+                format!("{}", t)
+            },
+            None => format!("could not parse: {}", timestamp_ms),
+        }
+    }
     fn handle_discover_subcommand(matches: &clap::ArgMatches) {
         if let Some(test_string) = matches.value_of("input-string") {
             match detect_timestamp_in_string(test_string, None) {
-                Ok(timestamp) => println!("detected timestamp: {:?}", timestamp),
+                Ok((timestamp, _, _)) => println!(
+                    "detected timestamp: {}",
+                    posix_timestamp_as_string(timestamp)
+                ),
                 Err(e) => println!("no timestamp found in {} ({})", test_string, e),
             }
         } else if let Some(file_name) = matches.value_of("input-file") {
@@ -632,11 +650,19 @@ fn main() {
                 Ok(res) => {
                     let timestamp_result = TimestampFormatResult {
                         path: file_name.to_string(),
-                        format: Some(res),
+                        format: Some(res.clone()),
                     };
                     let json =
                         serde_json::to_string(&timestamp_result).unwrap_or_else(|_| "".to_string());
                     println!("{:?}", json);
+                    match timespan_in_file(&res, &file_path) {
+                        Ok(span) => println!(
+                            "timespan min: {}, max: {}",
+                            posix_timestamp_as_string(span.0),
+                            posix_timestamp_as_string(span.1)
+                        ),
+                        _ => (),
+                    }
                 }
                 Err(e) => {
                     let timestamp_result = TimestampFormatResult {

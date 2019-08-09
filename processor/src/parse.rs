@@ -25,6 +25,7 @@ use serde::{Deserialize, Serialize};
 
 use std::collections::BTreeMap;
 use std::fs;
+use std::io::Seek;
 
 use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
@@ -65,7 +66,7 @@ lazy_static! {
         add_twice!("DD MMM YYYY hh:mm:ss", &mut arr, &mut v);
         (arr, v)
     };
-    static ref AVAILABLE_REGEXES: Vec<&'static str> = FORMAT_REGEX_MAPPINGS.0.clone();
+    static ref AVAILABLE_FORMATS: Vec<&'static str> = FORMAT_REGEX_MAPPINGS.0.clone();
     static ref FORMAT_REGEX_MAPPING: BTreeMap<&'static str, Regex> =
         FORMAT_REGEX_MAPPINGS.1.clone();
 }
@@ -111,6 +112,7 @@ impl std::fmt::Display for FormatPiece {
 /// into it's individual elements
 /// e.g. "DD-MM" => [Day,Seperator("-"),Month]
 ///      YYYY = four-digit year
+///      yy   = two-digit year
 ///      MMM  = short month form (Jan, Feb, Mar, ..., Dec)
 ///      MM   = two-digit month (01=January, etc.)
 ///      DD   = two-digit day of month (01 through 31)
@@ -119,6 +121,7 @@ impl std::fmt::Display for FormatPiece {
 ///      ss   = two digits of second (00 through 59)
 ///      s    = one or more digits representing a decimal fraction of a second
 ///      TZD  = time zone designator (Z or +hh:mm or -hh:mm)
+///      a    = support for 12-hour clock format (AM or PM)
 static DAY_FORMAT_TAG: &str = "DD";
 static MONTH_FORMAT_SHORT_NAME_TAG: &str = "MMM";
 static MONTH_FORMAT_TAG: &str = "MM";
@@ -199,7 +202,6 @@ fn any_date_format(input: &str) -> IResult<&str, FormatPiece> {
 }
 fn escape_metacharacters(c: char) -> Cow<'static, str> {
     match c {
-        //  .|?*+(){}[]DD
         ' ' => r"\s?",
         '.' => r"\.",
         '|' => r"\|",
@@ -244,7 +246,13 @@ pub fn date_expression(input: &str) -> IResult<&str, Vec<FormatPiece>> {
     })(input)
 }
 
-pub fn date_format_str_to_regex(date_format: &str) -> Result<Regex, failure::Error> {
+pub fn lookup_regex_for_format_str(date_format: &str) -> Result<Regex, failure::Error> {
+    match FORMAT_REGEX_MAPPING.get(date_format) {
+        Some(r) => Ok(r.clone()),
+        None => date_format_str_to_regex(date_format),
+    }
+}
+fn date_format_str_to_regex(date_format: &str) -> Result<Regex, failure::Error> {
     if date_format.is_empty() {
         return Err(failure::err_msg("cannot construct regex from empty string"));
     }
@@ -335,12 +343,105 @@ pub fn read_format_string_options(f: &mut fs::File) -> Result<FormatTestOptions,
     Ok(v)
 }
 
+/// find out the lower and upper timestamp of a file
+pub fn timespan_in_file(format_expr: &str, path: &PathBuf) -> Result<(i64, i64), failure::Error> {
+    fn scan_lines(
+        f: &std::fs::File,
+        line_cnt: &mut usize,
+        regex: &Regex,
+        min_timestamp: &mut i64,
+        max_timestamp: &mut i64,
+        limit: Option<usize>,
+        start: Option<u64>,
+    ) -> Result<(), failure::Error> {
+        let mut buf = vec![];
+        let mut reader: BufReader<&std::fs::File> = BufReader::new(&f);
+        if let Some(n) = start {
+            reader.seek(std::io::SeekFrom::Start(n))?;
+        }
+        let mut inspected_lines = 0usize;
+        while let Ok(len) = reader.read_until(b'\n', &mut buf) {
+            if len == 0 {
+                break; // file is done
+            }
+            let line = String::from_utf8_lossy(&buf);
+            *line_cnt += 1;
+            let trimmed = line.trim();
+            if !trimmed.is_empty() {
+                inspected_lines += 1;
+                if regex.is_match(trimmed) {
+                    match to_posix_timestamp(trimmed, &regex, None, Some(0)) {
+                        Ok((timestamp, _)) => {
+                            *min_timestamp = std::cmp::min(*min_timestamp, timestamp);
+                            *max_timestamp = std::cmp::max(*max_timestamp, timestamp);
+                        }
+                        Err(e) => {
+                            report_warning_ln(
+                                format!("error converting timestamp: {:?}", e),
+                                Some(*line_cnt),
+                            );
+                        }
+                    }
+                } else {
+                    report_warning_ln("format did not match", Some(*line_cnt));
+                }
+            }
+            buf = vec![];
+            if let Some(limit) = limit {
+                if inspected_lines > limit {
+                    break;
+                }
+            }
+        }
+        Ok(())
+    }
+    let regex = lookup_regex_for_format_str(format_expr)?;
+    let f: fs::File = fs::File::open(path)?;
+    let mut min_timestamp = std::i64::MAX;
+    let mut max_timestamp = 0i64;
+    let file_size = f.metadata()?.len();
+    let min_buf_size = 256 * 1024; // 256k
+    let used_buf_size = if min_buf_size > file_size {
+        file_size
+    } else {
+        min_buf_size
+    };
+    let mut line_cnt = 0usize;
+    scan_lines(
+        &f,
+        &mut line_cnt,
+        &regex,
+        &mut min_timestamp,
+        &mut max_timestamp,
+        // Some(1000),
+        None,
+        None,
+    )?;
+    println!("scanned {} lines", line_cnt);
+    let unchecked = file_size - used_buf_size;
+    if unchecked > 0 {
+        // also read from end
+        let start = file_size - (std::cmp::min(unchecked, min_buf_size));
+        scan_lines(
+            &f,
+            &mut line_cnt,
+            &regex,
+            &mut min_timestamp,
+            &mut max_timestamp,
+            None,
+            Some(start),
+        )?;
+    }
+    println!("scanned {} lines", line_cnt);
+    Ok((min_timestamp, max_timestamp))
+}
+/// find out how often a format string matches a timestamp in a file
 pub fn match_format_string_in_file(
     format_expr: &str,
     file_name: &str,
     max_lines: i64,
 ) -> Result<FormatStringMatches, failure::Error> {
-    let regex = date_format_str_to_regex(format_expr)?;
+    let regex = lookup_regex_for_format_str(format_expr)?;
     let path = PathBuf::from(file_name);
     let f: fs::File = fs::File::open(path)?;
     let mut reader: BufReader<&std::fs::File> = BufReader::new(&f);
@@ -373,11 +474,12 @@ pub fn match_format_string_in_file(
     })
 }
 
+/// check a new format expression that was not precompiled
 pub fn line_matching_format_expression(
     format_expr: &str,
     line: &str,
 ) -> Result<bool, failure::Error> {
-    let regex = date_format_str_to_regex(format_expr)?;
+    let regex = lookup_regex_for_format_str(format_expr)?;
     let res = regex.is_match(line);
     Ok(res)
 }
@@ -470,6 +572,7 @@ pub fn to_posix_timestamp(
         time_offset.ok_or_else(|| failure::err_msg("could not detect timestamp in (line {})"))
     };
     // for the year first try YYYY, then yy, then fallback on the supplied year
+    // if even this is not here, use the current year
     let the_year: Option<i32> = match caps.name(YEAR_GROUP) {
         Some(year_str) => year_str.as_str().parse().ok(),
         None => match caps.name(YEAR_SHORT_GROUP) {
@@ -478,7 +581,7 @@ pub fn to_posix_timestamp(
                 .parse()
                 .map(|ys: i32| ys + 2000i32)
                 .ok(),
-            None => year,
+            None => year.or(Some(Utc::now().year())),
         },
     };
     match (the_year, offset_result) {
@@ -608,7 +711,7 @@ pub fn detect_timestamp_in_string(
     offset: Option<i64>,
 ) -> Result<(i64, bool, String), failure::Error> {
     let trimmed = input.trim();
-    for format in AVAILABLE_REGEXES.iter() {
+    for format in AVAILABLE_FORMATS.iter() {
         let regex = &FORMAT_REGEX_MAPPING[format];
         if regex.is_match(trimmed) {
             if let Ok((timestamp, year_missing)) = to_posix_timestamp(input, regex, None, offset) {
@@ -638,7 +741,7 @@ pub fn detect_timeformat_in_string(
             }
         }
     }
-    for format in AVAILABLE_REGEXES.iter() {
+    for format in AVAILABLE_FORMATS.iter() {
         let regex = &FORMAT_REGEX_MAPPING[format];
         // println!("check with regex: {}", regex.to_string());
         if regex.is_match(trimmed) {

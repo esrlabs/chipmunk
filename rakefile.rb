@@ -36,17 +36,25 @@ namespace :bench do
   task :dlt do
     sh "cargo bench --bench dlt_benchmarks"
   end
+  desc "run dlt benchmarks, compare against baseline"
+  task :dlt_master do
+    sh "cargo bench --bench dlt_benchmarks -- --baseline master"
+  end
   desc "run parse benchmarks"
   task :parse do
     sh "cargo bench --bench parse_benchmarks"
   end
+  desc "run parse benchmarks, compare to baseline"
+  task :parse_master do
+    sh "cargo bench --bench parse_benchmarks -- --baseline master"
+  end
   desc "record new dlt baseline"
   task :dlt_baseline do
-    sh "cargo bench --bench dlt_benchmarks -- --save-baseline"
+    sh "cargo bench --bench dlt_benchmarks -- --save-baseline master"
   end
   desc "record new parse baseline"
   task :parse_baseline do
-    sh "cargo bench --bench parse_benchmarks -- --save-baseline"
+    sh "cargo bench --bench parse_benchmarks -- --save-baseline master"
   end
 end
 desc "run tests with printing to stdout"

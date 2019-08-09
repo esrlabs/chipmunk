@@ -28,6 +28,11 @@ fn parse_benchmark(c: &mut Criterion) {
             b.iter(|| detect_timestamp_in_string(input, None))
         }
     });
+    c.bench_function("create_timestamp_from_string", move |b| {
+        let regex = lookup_regex_for_format_str("DD/MMM/YYYY:hh:mm:ss TZD").unwrap();
+        let sample = "109.169.248.247 - - [12/Dec/2015:18:25:11 +0100] GET /administrator";
+        b.iter(|| to_posix_timestamp(sample, &regex, None, None))
+    });
 }
 
 criterion_group!(benches, parse_benchmark);

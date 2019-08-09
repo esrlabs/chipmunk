@@ -405,6 +405,7 @@ dependencies = [
 name = "indexer_cli"
 version = "0.32.1"
 dependencies = [
+ "chrono 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "dlt 0.1.0",
  "indexer_base 0.1.0",

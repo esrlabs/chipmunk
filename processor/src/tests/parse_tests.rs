@@ -81,13 +81,13 @@ mod tests {
 
     #[test]
     fn test_date_format_str_to_regex_empty() {
-        let regex = date_format_str_to_regex("");
+        let regex = lookup_regex_for_format_str("");
         assert!(regex.is_err());
     }
     #[test]
     fn test_parse_date_line_no_year_with_timezone() {
         let input = "04-04 11:52:50.229 +0200 D/oup.csc(  665): [728] MqttLogger";
-        let regex = date_format_str_to_regex("MM-DD hh:mm:ss.s TZD")
+        let regex = lookup_regex_for_format_str("MM-DD hh:mm:ss.s TZD")
             .expect("format string should produce regex");
 
         let (timestamp, _) = to_posix_timestamp(input, &regex, Some(2017), None)
@@ -99,7 +99,7 @@ mod tests {
     fn test_parse_date_line_no_year_no_millis() {
         let input = "04-04 11:52:50 +0200 D/oup.csc(  665): [728] MqttLogger";
         let regex_to_use =
-            date_format_str_to_regex("MM-DD hh:mm:ss TZD").expect("should be parsed");
+            lookup_regex_for_format_str("MM-DD hh:mm:ss TZD").expect("should be parsed");
         let (timestamp, _) = to_posix_timestamp(input, &regex_to_use, Some(2017), None)
             .expect("convert to limed line should work");
         assert_eq!(1_491_299_570_000, timestamp);
@@ -110,7 +110,7 @@ mod tests {
     fn test_parse_date_line_year_no_timezone() {
         let input =
             "04-04-2017 11:52:50.229 0 0.764564113869644 0.7033032911158661 0.807587397462308";
-        let regex = date_format_str_to_regex("MM-DD-YYYY hh:mm:ss.s")
+        let regex = lookup_regex_for_format_str("MM-DD-YYYY hh:mm:ss.s")
             .expect("format string should produce regex");
         let (timestamp, _) =
             to_posix_timestamp(input, &regex, None, Some(TWO_HOURS_IN_MS)).unwrap();
@@ -119,7 +119,7 @@ mod tests {
     #[test]
     fn test_parse_date_line_with_short_month_str() {
         let input = "109.169.248.247 - - [04/Apr/2017:11:52:50 +0200] xyz";
-        let regex = date_format_str_to_regex("DD/MMM/YYYY:hh:mm:ss TZD")
+        let regex = lookup_regex_for_format_str("DD/MMM/YYYY:hh:mm:ss TZD")
             .expect("format string should produce regex");
         let (timestamp, _) =
             to_posix_timestamp(input, &regex, None, Some(TWO_HOURS_IN_MS)).unwrap();
@@ -130,7 +130,7 @@ mod tests {
     #[test]
     fn test_parse_date_line_only_millis() {
         let input = "1559831467577 some logging here...";
-        let regex = date_format_str_to_regex("sss").expect("format string should produce regex");
+        let regex = lookup_regex_for_format_str("sss").expect("format string should produce regex");
         let (timestamp, _) = to_posix_timestamp(input, &regex, None, None).unwrap();
         assert_eq!(1_559_831_467_577, timestamp);
         let (timestamp_with_offset, _) =

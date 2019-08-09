@@ -13,7 +13,7 @@ use indexer_base::chunks::ChunkFactory;
 use indexer_base::timedline::*;
 use indexer_base::error_reporter::*;
 use indexer_base::utils;
-use processor::parse::{date_format_str_to_regex, line_to_timed_line};
+use processor::parse::{lookup_regex_for_format_str, line_to_timed_line};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::BinaryHeap;
@@ -183,7 +183,7 @@ impl Merger {
         for input in merger_inputs {
             // let kind: RegexKind = detect_timestamp_regex(&input.path)?;
             // let r: &Regex = &REGEX_REGISTRY[&kind];
-            let r = date_format_str_to_regex(&input.format)?;
+            let r = lookup_regex_for_format_str(&input.format)?;
             let f: fs::File = fs::File::open(input.path)?;
             let mut reader: BufReader<&std::fs::File> = BufReader::new(&f);
             let mut buf = vec![];
@@ -292,7 +292,7 @@ impl Merger {
                 fs::File::open(&input.path)
                     .map_err(failure::Error::from)
                     .and_then(|f| {
-                        let r: Regex = date_format_str_to_regex(&input.format)?;
+                        let r: Regex = lookup_regex_for_format_str(&input.format)?;
                         Ok(TimedLineIter::new(
                             f,
                             input.tag.as_str(),
