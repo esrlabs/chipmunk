@@ -82,8 +82,8 @@ impl Concatenator {
         let out_file: std::fs::File = if append {
             std::fs::OpenOptions::new()
                 .append(true)
-                .open(out_path)
-                .expect("could not open file to append")
+                .create(true)
+                .open(out_path)?
         } else {
             std::fs::File::create(&out_path).unwrap()
         };
