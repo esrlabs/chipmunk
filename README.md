@@ -272,6 +272,14 @@ match: Ok(true)
 
 # Changelog
 
+### [0.33.0] - 08/12/2019
+  * when detecting format in file, also report min and max timestamp
+  * allow using the append option when concatenating even when out file does not exist
+  * limit lines that need to be checked when timespan is queried
+  * when creating a regex for a format string check the pre-filled map first
+  * added more timeformats to be recognized
+  * timestamp recognition more exact
+
 ### [0.32.1] - 08/07/2019
   * fix merge/concat command: -s did not write to stdout
 
