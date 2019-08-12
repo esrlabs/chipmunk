@@ -147,12 +147,8 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
 
     public _ng_onMerge() {
         this._forceFilesState();
-        if (!this._hasErrors()) {
+        if (this._hasErrors()) {
             this._notifications.add({ caption: 'Merging', message: `Please check fields, some of your file setting has an error`, options: { type: ENotificationType.warning }});
-            return;
-        }
-        if (this._hasWarnings()) {
-            // Wait for confirmation
             return;
         }
         this._ng_busy = true;
@@ -203,7 +199,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     }
 
     public _ng_onTest(file?: IRequestFile) {
-        if (!this._hasErrors() && file === undefined) {
+        if (this._hasErrors() && file === undefined) {
             this._notifications.add({ caption: 'Merging', message: `Please check fields, some of your file setting has an error`, options: { type: ENotificationType.warning }});
             return;
         }
@@ -409,10 +405,6 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
 
     private _hasErrors(): boolean {
         return Object.keys(this._errors).length > 0;
-    }
-
-    private _hasWarnings(): boolean {
-        return Object.keys(this._warnings).length > 0;
     }
 
     private _dropWarnings() {
