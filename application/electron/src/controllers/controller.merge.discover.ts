@@ -1,7 +1,9 @@
 // tslint:disable:max-classes-per-file
 import ServiceStreams from '../services/service.streams';
-import { Lvin, IDatetimeDiscoverResult } from 'logviewer.lvin';
+import { Lvin, IDatetimeDiscoverResult, ILogMessage } from 'logviewer.lvin';
 import Logger from '../tools/env.logger';
+import ServiceElectron, { IPCMessages } from '../services/service.electron';
+import { IDatetimeDiscoverFileResult } from 'logviewer.lvin/dist/wrapper';
 
 export { IDatetimeDiscoverResult };
 
@@ -16,11 +18,25 @@ export default class MergeDiscover {
         this._session = session === undefined ? ServiceStreams.getActiveStreamId() : session;
     }
 
-    public discover(): Promise<IDatetimeDiscoverResult[]> {
+    public discover(): Promise<IDatetimeDiscoverFileResult[]> {
         return new Promise((resolve, reject) => {
+            // Remember active session
+            const session: string = ServiceStreams.getActiveStreamId();
             const lvin: Lvin = new Lvin();
-            lvin.datetimeDiscover(this._files).then((results: IDatetimeDiscoverResult[]) => {
-                resolve(results);
+            lvin.datetimeDiscover(this._files).then((results: IDatetimeDiscoverResult) => {
+                if (results.logs instanceof Array) {
+                    results.logs.forEach((log: ILogMessage) => {
+                        ServiceElectron.IPC.send(new IPCMessages.Notification({
+                            type: log.severity,
+                            row: log.line_nr === null ? undefined : log.line_nr,
+                            file: log.file_name,
+                            message: log.text,
+                            caption: log.file_name === undefined ? 'Mergin Error' : log.file_name,
+                            session: session,
+                        }));
+                    });
+                }
+                resolve(results.files);
             }).catch((error: Error) => {
                 reject(error);
             });

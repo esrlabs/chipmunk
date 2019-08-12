@@ -10,7 +10,7 @@
     <div class="content">
         <lib-containers-dynamic [component]="popup.component"></lib-containers-dynamic>
     </div>
-    <div *ngIf="popup.buttons !== undefined" class="buttons">
+    <div *ngIf="popup.buttons !== undefined && popup.buttons.length > 0" class="buttons">
         <lib-primitive-button *ngFor="let button of popup.buttons" [caption]="button.caption" [handler]="button.handler"></lib-primitive-button>
     </div>
 </div>

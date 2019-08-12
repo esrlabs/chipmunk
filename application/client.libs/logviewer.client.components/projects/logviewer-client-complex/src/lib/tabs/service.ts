@@ -85,6 +85,9 @@ export class TabsService {
         if (tab === undefined) {
             return new Error(`Tab "${guid}" isn't found.`);
         }
+        if (tab.content !== undefined && tab.content.inputs !== undefined && tab.content.inputs.onBeforeTabRemove !== undefined) {
+            (tab.content.inputs.onBeforeTabRemove as Subject<void>).next();
+        }
         this._tabs.delete(guid);
         this._history.remove(guid);
         if (tab.active && this._tabs.size > 0) {
@@ -162,6 +165,14 @@ export class TabsService {
         }
         tab.guid = typeof tab.guid === 'string' ? (tab.guid.trim() !== '' ? tab.guid : Tools.guid()) : Tools.guid();
         tab.closable = typeof tab.closable === 'boolean' ? tab.closable : true;
+        if (tab.content !== undefined) {
+            if (typeof tab.content.inputs !== 'object' || tab.content.inputs === null) {
+                tab.content.inputs = {};
+            }
+            if (tab.content.inputs.onBeforeTabRemove === undefined) {
+                tab.content.inputs.onBeforeTabRemove = new Subject();
+            }
+        }
         return tab;
     }
 }

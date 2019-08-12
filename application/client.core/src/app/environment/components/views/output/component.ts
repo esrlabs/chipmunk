@@ -7,7 +7,7 @@ import { IDataAPI, IRange, IRow, IRowsPacket, IStorageInformation, DockDef, Comp
 import { ViewOutputRowComponent, IScope } from '../row/component';
 import { ViewOutputControlsComponent, IButton } from './controls/component';
 import ViewsEventsService from '../../../services/standalone/service.views.events';
-import FileOpenerService from '../../../services/service.file.opener';
+import FileOpenerService, { IFile } from '../../../services/service.file.opener';
 import EventsHubService from '../../../services/standalone/service.eventshub';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import PluginsService from '../../../services/service.plugins';
@@ -262,7 +262,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this._output.setHorScrollOffset(offset);
     }
 
-    private _onFilesDropped(files: File[]) {
+    private _onFilesDropped(files: IFile[]) {
         FileOpenerService.open(files);
     }
 
