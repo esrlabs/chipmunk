@@ -618,6 +618,8 @@ fn main() {
     pub struct TimestampFormatResult {
         pub path: String,
         pub format: Option<String>,
+        pub min_time: Option<String>,
+        pub max_time: Option<String>,
     }
     #[derive(Deserialize, Debug)]
     pub struct DiscoverItem {
@@ -631,7 +633,7 @@ fn main() {
             Some(naive_datetime_max) => {
                 let t: DateTime<Utc> = DateTime::from_utc(naive_datetime_max, Utc);
                 format!("{}", t)
-            },
+            }
             None => format!("could not parse: {}", timestamp_ms),
         }
     }
@@ -648,30 +650,33 @@ fn main() {
             let file_path = path::PathBuf::from(file_name);
             match detect_timestamp_format_in_file(&file_path) {
                 Ok(res) => {
+                    let (min, max) = match timespan_in_file(&res, &file_path) {
+                        Ok(span) => (
+                            Some(posix_timestamp_as_string(span.0)),
+                            Some(posix_timestamp_as_string(span.1)),
+                        ),
+                        _ => (None, None),
+                    };
                     let timestamp_result = TimestampFormatResult {
                         path: file_name.to_string(),
                         format: Some(res.clone()),
+                        min_time: min,
+                        max_time: max,
                     };
                     let json =
                         serde_json::to_string(&timestamp_result).unwrap_or_else(|_| "".to_string());
-                    println!("{:?}", json);
-                    match timespan_in_file(&res, &file_path) {
-                        Ok(span) => println!(
-                            "timespan min: {}, max: {}",
-                            posix_timestamp_as_string(span.0),
-                            posix_timestamp_as_string(span.1)
-                        ),
-                        _ => (),
-                    }
+                    println!("{}", json);
                 }
                 Err(e) => {
                     let timestamp_result = TimestampFormatResult {
                         path: file_name.to_string(),
                         format: None,
+                        min_time: None,
+                        max_time: None,
                     };
                     let json =
                         serde_json::to_string(&timestamp_result).unwrap_or_else(|_| "".to_string());
-                    println!("{:?}", json);
+                    println!("{}", json);
                     report_error(format!("executed with error: {}", e))
                 }
             }
@@ -702,11 +707,15 @@ fn main() {
                     Ok(res) => results.push(TimestampFormatResult {
                         path: item.path.to_string(),
                         format: Some(res),
+                        min_time: None,
+                        max_time: None,
                     }),
                     Err(e) => {
                         results.push(TimestampFormatResult {
                             path: item.path.to_string(),
                             format: None,
+                            min_time: None,
+                            max_time: None,
                         });
                         report_error(format!("executed with error: {}", e))
                     }

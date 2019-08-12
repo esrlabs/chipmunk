@@ -81,7 +81,12 @@ A single result will be a json object that looks like this:
 
 in case of the config file option, the result will be a json array that looks like this:
 ```
-{"path":"2019-07-15_06.26.01.log","format":"YYYY-MM-DD hh:mm:ss.s"}]
+{
+  "path": "access_huge.log",
+  "format": "DD/MMM/YYYY:hh:mm:ss TZD",
+  "min_time": "2015-12-12 18:25:11 UTC",
+  "max_time": "2019-04-16 18:45:13 UTC"
+}
 ```
 
 ```
