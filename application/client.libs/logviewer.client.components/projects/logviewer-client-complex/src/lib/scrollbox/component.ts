@@ -365,6 +365,10 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
             // Notification: update is done
             this.API.updatingDone({ start: this._state.start, end: this._state.end });
         }
+        // Update scrollbar
+        if (this._ng_sbvCom !== undefined && this._ng_sbvCom !== null) {
+            this._ng_sbvCom.recalc();
+        }
     }
 
     public _ng_onWheel(event: WheelEvent) {

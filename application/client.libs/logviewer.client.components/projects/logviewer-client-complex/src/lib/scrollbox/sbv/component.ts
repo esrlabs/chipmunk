@@ -61,9 +61,7 @@ export class ComplexScrollBoxSBVComponent implements OnDestroy, AfterContentInit
     }
 
     public _ng_onBrowserWindowResize(event?: Event) {
-        this._setHeight();
-        this._update();
-        this.setFrame(this._start, this._end, this._count);
+        this.recalc();
     }
 
     public _ng_getStyles(): { [key: string]: any } {
@@ -106,6 +104,12 @@ export class ComplexScrollBoxSBVComponent implements OnDestroy, AfterContentInit
         this.update(Math.abs(change / this._rate), change > 0 ? 1 : -1, true);
         event.preventDefault();
         return false;
+    }
+
+    public recalc() {
+        this._setHeight();
+        this._update();
+        this.setFrame(this._start, this._end, this._count);
     }
 
     public setFrame(start: number, end: number, count: number) {
