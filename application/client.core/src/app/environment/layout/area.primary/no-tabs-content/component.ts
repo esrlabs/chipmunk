@@ -1,5 +1,5 @@
 import { Component, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef } from '@angular/core';
-import FileOpenerService from '../../../services/service.file.opener';
+import FileOpenerService, { IFile } from '../../../services/service.file.opener';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 import { Subscription } from 'rxjs';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
@@ -30,7 +30,7 @@ export class LayoutPrimiryAreaNoTabsComponent implements AfterViewInit, OnDestro
         });
     }
 
-    private _onFilesDropped(files: File[]) {
+    private _onFilesDropped(files: IFile[]) {
         TabsSessionsService.add();
         FileOpenerService.open(files);
     }

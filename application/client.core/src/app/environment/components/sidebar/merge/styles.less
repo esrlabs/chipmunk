@@ -30,6 +30,12 @@
         padding: 0;
         margin: 0;
         list-style: none;
+        height: calc(100% - 54px);
+        overflow-x: hidden;
+        overflow-y: auto;
+        box-shadow: 0 0 1rem rgba(0,0,0,0.4) inset;
+        border-top: 1px dotted @scheme-color-3;
+        border-bottom: 1px dotted @scheme-color-3;
         & li.file{
             position: relative;
             display: block;
@@ -46,6 +52,7 @@
         position: relative;
         width: 100%;
         text-align: right;
+        white-space: nowrap;
         & .small-button:last-child{
             margin-right: 0;
         }

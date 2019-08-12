@@ -4,15 +4,16 @@ import Logger from '../tools/env.logger';
 import * as path from 'path';
 import { Subscription } from '../tools/index';
 import { IService } from '../interfaces/interface.service';
+import * as fs from 'fs';
 
 /**
- * @class ServiceFileParsers
+ * @class ServiceFileInfo
  * @description Providers access to file parsers from render
  */
 
-class ServiceFileParsers implements IService {
+class ServiceFileInfo implements IService {
 
-    private _logger: Logger = new Logger('ServiceFileParsers');
+    private _logger: Logger = new Logger('ServiceFileInfo');
     // Should detect by executable file
     private _subscription: { [key: string]: Subscription } = {};
 
@@ -22,7 +23,7 @@ class ServiceFileParsers implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
-            ServiceElectron.IPC.subscribe(IPCMessages.FileGetParserRequest, this._onFileGetParserRequest.bind(this)).then((subscription: Subscription) => {
+            ServiceElectron.IPC.subscribe(IPCMessages.FileInfoRequest, this._onFileInfoRequest.bind(this)).then((subscription: Subscription) => {
                 this._subscription.FileGetParserRequest = subscription;
                 resolve();
             }).catch((error: Error) => {
@@ -42,7 +43,7 @@ class ServiceFileParsers implements IService {
     }
 
     public getName(): string {
-        return 'ServiceFileParsers';
+        return 'ServiceFileInfo';
     }
 
     public getParser(name: string): any {
@@ -58,8 +59,8 @@ class ServiceFileParsers implements IService {
         return parserClass;
     }
 
-    private _onFileGetParserRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
-        const req: IPCMessages.FileGetParserRequest = request as IPCMessages.FileGetParserRequest;
+    private _onFileInfoRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        const req: IPCMessages.FileInfoRequest = request as IPCMessages.FileInfoRequest;
         let parserName: string | undefined;
         FileParsers.forEach((parser) => {
             if (parserName !== undefined) {
@@ -70,25 +71,38 @@ class ServiceFileParsers implements IService {
                 parserName = parser.name;
             }
         });
+        const info: { size: number, created: number; changed: number } = { size: -1, created: -1, changed: -1 };
+        if (fs.existsSync(req.file)) {
+            const stats: fs.Stats = fs.statSync(req.file);
+            info.size = stats.size;
+            info.created = stats.birthtimeMs;
+            info.changed = stats.mtimeMs;
+        }
         if (parserName === undefined) {
-            return response(new IPCMessages.FileGetParserResponse({
-                file: req.file,
-                shortname: path.basename(req.file),
+            return response(new IPCMessages.FileInfoResponse({
+                path: req.file,
+                name: path.basename(req.file),
                 parsers: FileParsers.map((parser) => {
                     return {
                         name: parser.name,
                         desc: parser.desc,
                     };
                 }),
+                size: info.size,
+                created: info.created,
+                changed: info.changed,
             }));
         }
-        response(new IPCMessages.FileGetParserResponse({
-            file: req.file,
-            shortname: path.basename(req.file),
+        response(new IPCMessages.FileInfoResponse({
+            path: req.file,
+            name: path.basename(req.file),
             parser: parserName,
+            size: info.size,
+            created: info.created,
+            changed: info.changed,
         }));
     }
 
 }
 
-export default (new ServiceFileParsers());
+export default (new ServiceFileInfo());

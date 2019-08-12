@@ -8,4 +8,4 @@
         (focus)="onFocus"
         (blur)="onBlur"
         (keyup)="_ng_onKeyUp($event)"/>
-<p class="error t-small" *ngIf="_ng_error !== undefined">{{_ng_error}}</p>
+<p [attr.class]="'error t-small ' + (inlineErrors ? 'inline' : '')" *ngIf="_ng_error !== undefined">{{_ng_error}}</p>

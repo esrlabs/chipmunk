@@ -1,7 +1,7 @@
 import Logger from '../tools/env.logger';
 import * as moment from 'moment-timezone';
 import { AFileParser, IFileParserFunc } from './files.parsers/index';
-import ServiceFileParsers from '../services/service.file.parsers';
+import ServiceFileInfo from '../services/service.file.info';
 import { CRegCarrets } from '../consts/regs';
 
 export interface IRow {
@@ -158,7 +158,7 @@ export default class Holder {
 
     private _getParserFunc(parserName: string): IFileParserFunc | undefined {
         // Get file parser
-        const parserClass = ServiceFileParsers.getParser(parserName);
+        const parserClass = ServiceFileInfo.getParser(parserName);
         if (parserClass === undefined) {
             return undefined;
         }

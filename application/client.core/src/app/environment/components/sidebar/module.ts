@@ -6,6 +6,9 @@ import { SidebarAppParsingModule                } from './parsing/module';
 import { SidebarAppMergeFilesModule             } from './merge/module';
 import { SidebarAppMergeFilesComponent          } from './merge/component';
 
+import { SidebarAppConcatFilesModule            } from './concat/module';
+import { SidebarAppConcatFilesComponent         } from './concat/component';
+
 import { SidebarAppSearchManagerModule          } from './search.manager/module';
 import { SidebarAppSearchManagerComponent       } from './search.manager/component';
 
@@ -16,7 +19,7 @@ import { SidebarAppNotificationsComponent       } from './notifications/componen
     entryComponents : [  ],
     imports         : [ CommonModule ],
     declarations    : [  ],
-    exports         : [ SidebarAppMergeFilesModule, SidebarAppSearchManagerModule, SidebarAppParsingModule, SidebarAppNotificationsModule ]
+    exports         : [ SidebarAppMergeFilesModule, SidebarAppSearchManagerModule, SidebarAppParsingModule, SidebarAppNotificationsModule, SidebarAppConcatFilesModule ]
 })
 
 export class EnvironmentSidebarAppsModule {

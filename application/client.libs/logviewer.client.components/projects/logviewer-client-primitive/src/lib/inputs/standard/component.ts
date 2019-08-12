@@ -15,6 +15,7 @@ export class InputStandardComponent implements AfterContentInit, OnChanges {
     @Input() public placeholder: string = '';
     @Input() public type: string = '';
     @Input() public disabled: boolean = false;
+    @Input() public inlineErrors: boolean = false;
     @Input() public onFocus: (...args: any[]) => any = () => void 0;
     @Input() public onBlur: (...args: any[]) => any = () => void 0;
     @Input() public onKeyDown: (...args: any[]) => any = () => void 0;

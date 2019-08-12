@@ -9,6 +9,7 @@ import * as moment from 'moment-timezone';
 import MergeFiles from '../controllers/controller.merge.files';
 import MergeDiscover, { IDatetimeDiscoverResult } from '../controllers/controller.merge.discover';
 import MergeTest, { IFileTestResults } from '../controllers/controller.merge.test';
+import { IDatetimeDiscoverFileResult } from 'logviewer.lvin/dist/wrapper';
 
 /**
  * @class ServiceMergeFiles
@@ -120,11 +121,10 @@ class ServiceMergeFiles implements IService {
 
     private _onMergeFilesDiscoverRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.MergeFilesDiscoverRequest = request as IPCMessages.MergeFilesDiscoverRequest;
-        const files: ITestFileResponse[] = [];
-        this._discover(req.files).then((results: IDatetimeDiscoverResult[]) => {
+        this._discover(req.files).then((processed: IDatetimeDiscoverFileResult[]) => {
             response(new IPCMessages.MergeFilesDiscoverResponse({
                 id: req.id,
-                files: results,
+                files: processed,
             }));
         }).catch((error: Error) => {
             response(new IPCMessages.MergeFilesDiscoverResponse({
@@ -189,11 +189,11 @@ class ServiceMergeFiles implements IService {
         });
     }
 
-    private _discover(files: string[]): Promise<IDatetimeDiscoverResult[]> {
+    private _discover(files: string[]): Promise<IDatetimeDiscoverFileResult[]> {
         return new Promise((resolve, reject) => {
             const controller: MergeDiscover = new MergeDiscover(files);
-            controller.discover().then((results: IDatetimeDiscoverResult[]) => {
-                resolve(results);
+            controller.discover().then((processed: IDatetimeDiscoverFileResult[]) => {
+                resolve(processed);
             }).catch((error: Error) => {
                 reject(error);
             });

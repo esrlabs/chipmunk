@@ -1,6 +1,6 @@
 import { TabsService, DockingComponent, DockDef, DocksService, ITab } from 'logviewer-client-complex';
 import { Subscription } from './service.electron.ipc';
-import { ControllerSessionTab, ISidebarTabOptions } from '../controller/controller.session.tab';
+import { ControllerSessionTab } from '../controller/controller.session.tab';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { IService } from '../interfaces/interface.service';
 import { Observable, Subject, Subscription as SubscriptionRX } from 'rxjs';
@@ -100,7 +100,7 @@ export class TabsSessionsService implements IService {
         this.setActive(guid);
     }
 
-    public addSidebarApp(name: string, component: any, inputs: { [key: string]: any }, session?: string, options?: ISidebarTabOptions): string | Error {
+    public addSidebarApp(tab: ITab, session?: string): string | Error {
         if (session === undefined) {
             session = this._currentSessionGuid;
         }
@@ -109,7 +109,19 @@ export class TabsSessionsService implements IService {
         if (controller === undefined) {
             return new Error(`Fail to find defiend session "${session}"`);
         }
-        return controller.addSidebarApp(name, component, inputs, options);
+        return controller.addSidebarApp(tab);
+    }
+
+    public hasSidebarTab(guid: string, session?: string): Error | boolean {
+        if (session === undefined) {
+            session = this._currentSessionGuid;
+        }
+        // Get session controller
+        const controller: ControllerSessionTab = this._sessions.get(session);
+        if (controller === undefined) {
+            return new Error(`Fail to find defiend session "${session}"`);
+        }
+        return controller.hasSidebarTab(guid);
     }
 
     public openSidebarTab(guid: string, session?: string): Error | undefined {

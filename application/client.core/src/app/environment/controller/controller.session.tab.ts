@@ -6,7 +6,7 @@ import { ControllerSessionTabSearch } from './controller.session.tab.search';
 import { ControllerSessionTabStates } from './controller.session.tab.states';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope } from './controller.session.tab.scope';
-import { TabsService } from 'logviewer-client-complex';
+import { TabsService, ITab } from 'logviewer-client-complex';
 import * as Toolkit from 'logviewer.client.toolkit';
 import HotkeysService from '../services/service.hotkeys';
 import LayoutStateService from '../services/standalone/service.layout.state';
@@ -14,12 +14,8 @@ import LayoutStateService from '../services/standalone/service.layout.state';
 export interface IControllerSession {
     guid: string;
     transports: string[];
-    defaultsSideBarApps: Array<{ guid: string, name: string, component: any }>;
+    defaultsSideBarApps: Array<{ guid: string, name: string, component: any, closable: boolean }>;
     sessionsEventsHub: Toolkit.ControllerSessionsEvents;
-}
-
-export interface ISidebarTabOptions {
-    active?: boolean;
 }
 
 export interface IInjectionAddEvent {
@@ -43,7 +39,7 @@ export class ControllerSessionTab {
     private _scope: ControllerSessionScope;
     private _viewportEventsHub: Toolkit.ControllerViewportEvents;
     private _sidebarTabsService: TabsService;
-    private _defaultsSideBarApps: Array<{ guid: string, name: string, component: any }>;
+    private _defaultsSideBarApps: Array<{ guid: string, name: string, component: any, closable: boolean }>;
     private _sessionsEventsHub: Toolkit.ControllerSessionsEvents;
     private _subscriptions: { [key: string]: Subscription | IPCSubscription } = { };
     private _subjects: {
@@ -194,25 +190,20 @@ export class ControllerSessionTab {
         return this._viewportEventsHub;
     }
 
-    public addSidebarApp(name: string, component: any, inputs: { [key: string]: any }, options?: ISidebarTabOptions): string {
-        if (options === undefined) {
-            options = {};
+    public addSidebarApp(tab: ITab): string {
+        if (typeof tab !== 'object' || tab === null) {
+            return;
         }
-        // Set defaut options
-        options.active = typeof options.active === 'boolean' ? options.active : true;
-        // Create tab guid
-        const guid: string = Toolkit.guid();
+        if (tab.guid === undefined) {
+            tab.guid = Toolkit.guid();
+        }
         // Add sidebar tab
-        this._sidebarTabsService.add({
-            guid: guid,
-            name: name,
-            active: options.active,
-            content: {
-                factory: component,
-                inputs: inputs
-            }
-        });
-        return guid;
+        this._sidebarTabsService.add(tab);
+        return tab.guid;
+    }
+
+    public hasSidebarTab(guid: string): boolean {
+        return this._sidebarTabsService.has(guid);
     }
 
     public openSidebarTab(guid: string): void {
@@ -281,7 +272,7 @@ export class ControllerSessionTab {
                 guid: app.guid !== undefined ? app.guid : Toolkit.guid(),
                 name: app.name,
                 active: index === 0,
-                closable: false,
+                closable: app.closable,
                 content: {
                     factory: app.component,
                     resolved: false,

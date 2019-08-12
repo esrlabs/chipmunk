@@ -2,6 +2,7 @@ import { Component, OnDestroy, ChangeDetectorRef, HostBinding, AfterViewInit } f
 import { Subscription, Subject } from 'rxjs';
 import { IComponentDesc } from 'logviewer-client-containers';
 import ContextMenuService, { IMenu, IMenuItem } from '../../services/standalone/service.contextmenu';
+import * as Toolkit from 'logviewer.client.toolkit';
 
 @Component({
     selector: 'app-layout-contextmenu',
@@ -13,7 +14,7 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
 
     public _ng_component: IComponentDesc | undefined;
     public _ng_items: IMenuItem[] | undefined;
-
+    public _ng_guid: string = Toolkit.guid();
     private _subscriptions: { [key: string]: Subscription } = {};
     private _top: number = 0;
     private _left: number = 0;
@@ -49,6 +50,7 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
             return;
         }
         item.handler();
+        this._remove();
     }
 
     private _onShow(menu: IMenu) {
@@ -61,19 +63,39 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
 
     private _subscribeToWinEvents() {
         this._onWindowMouseDown = this._onWindowMouseDown.bind(this);
-        window.addEventListener('mousedown', this._onWindowMouseDown);
+        window.addEventListener('mousedown', this._onWindowMouseDown, true);
     }
 
     private _unsubscribeToWinEvents() {
         window.removeEventListener('mousedown', this._onWindowMouseDown);
     }
 
-    private _onWindowMouseDown() {
+    private _onWindowMouseDown(event: MouseEvent) {
+        if (this._isContextMenuNode(event.target as HTMLElement)) {
+            return false;
+        }
+        this._remove();
+    }
+
+    private _remove() {
         this._ng_component = undefined;
         this._ng_items = undefined;
         this._top = 0;
         this._left = 0;
         this._cdRef.detectChanges();
+    }
+
+    private _isContextMenuNode(node: HTMLElement): boolean {
+        if (typeof node.nodeName === 'string' && node.nodeName.toLowerCase() === 'body') {
+            return false;
+        }
+        if (typeof node.getAttribute === 'function' && node.getAttribute('id') === this._ng_guid) {
+            return true;
+        }
+        if (node.parentNode !== undefined && node.parentNode !== null) {
+            return this._isContextMenuNode(node.parentNode as HTMLElement);
+        }
+        return false;
     }
 
 }

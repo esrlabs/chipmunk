@@ -67,17 +67,11 @@ export { ISearchRequest, SearchRequest, IRegExpStr };
 import { ISearchRequestResults, SearchRequestResults } from './search.request.results';
 export { ISearchRequestResults, SearchRequestResults };
 
-import { IFileGetParserRequest, FileGetParserRequest } from './file.getparser.request';
-export { IFileGetParserRequest, FileGetParserRequest };
-
 import { IFileGetOptionsRequest, FileGetOptionsRequest } from './file.getoptions.request';
 export { IFileGetOptionsRequest, FileGetOptionsRequest };
 
 import { IFileGetOptionsResponse, FileGetOptionsResponse } from './file.getoptions.response';
 export { IFileGetOptionsResponse, FileGetOptionsResponse };
-
-import { IFileGetParserResponse, FileGetParserResponse } from './file.getparser.response';
-export { IFileGetParserResponse, FileGetParserResponse };
 
 import { IFileReadRequest, FileReadRequest } from './file.read.request';
 export { IFileReadRequest, FileReadRequest };
@@ -90,6 +84,24 @@ export { IFileOpenRequest, FileOpenRequest };
 
 import { IFileOpenResponse, FileOpenResponse } from './file.open.response';
 export { IFileOpenResponse, FileOpenResponse };
+
+import { IFileInfoRequest, FileInfoRequest } from './file.fileinfo.request';
+export { IFileInfoRequest, FileInfoRequest };
+
+import { IFileInfoResponse, FileInfoResponse } from './file.fileinfo.response';
+export { IFileInfoResponse, FileInfoResponse };
+
+import { IFilesSearchRequest, FilesSearchRequest } from './files.search.request';
+export { IFilesSearchRequest, FilesSearchRequest };
+
+import { IFilesSearchResponse, FilesSearchResponse } from './files.search.response';
+export { IFilesSearchResponse, FilesSearchResponse };
+
+import { IConcatFilesRequest, ConcatFilesRequest } from './concat.files.request';
+export { IConcatFilesRequest, ConcatFilesRequest };
+
+import { IConcatFilesResponse, ConcatFilesResponse } from './concat.files.response';
+export { IConcatFilesResponse, ConcatFilesResponse };
 
 import { IMergeFilesRequest, MergeFilesRequest } from './merge.files.request';
 export { IMergeFilesRequest, MergeFilesRequest };
@@ -175,12 +187,16 @@ export type TMessage =  HostState |
                         SearchRequestResults |
                         SearchUpdated |
                         SearchChunk |
-                        FileGetParserRequest |
-                        FileGetParserResponse |
                         FileReadRequest |
                         FileReadResponse |
                         FileOpenRequest |
                         FileOpenResponse |
+                        FilesSearchRequest |
+                        FilesSearchResponse |
+                        FileInfoRequest |
+                        FileInfoResponse |
+                        ConcatFilesRequest |
+                        ConcatFilesResponse |
                         MergeFilesRequest |
                         MergeFilesResponse |
                         MergeFilesTestRequest |
@@ -235,14 +251,19 @@ export const Map = {
     [SearchChunk.signature                  ]: SearchChunk,
     [SearchUpdated.signature                ]: SearchUpdated,
 
-    [FileGetParserRequest.signature         ]: FileGetParserRequest,
-    [FileGetParserResponse.signature        ]: FileGetParserResponse,
     [FileGetOptionsRequest.signature        ]: FileGetOptionsRequest,
     [FileGetOptionsResponse.signature       ]: FileGetOptionsResponse,
     [FileReadRequest.signature              ]: FileReadRequest,
     [FileReadResponse.signature             ]: FileReadResponse,
     [FileOpenRequest.signature              ]: FileOpenRequest,
     [FileOpenResponse.signature             ]: FileOpenResponse,
+    [FilesSearchRequest.signature           ]: FilesSearchRequest,
+    [FilesSearchResponse.signature          ]: FilesSearchResponse,
+    [FileInfoRequest.signature              ]: FileInfoRequest,
+    [FileInfoResponse.signature             ]: FileInfoResponse,
+
+    [ConcatFilesRequest.signature           ]: ConcatFilesRequest,
+    [ConcatFilesResponse.signature          ]: ConcatFilesResponse,
 
     [MergeFilesRequest.signature            ]: MergeFilesRequest,
     [MergeFilesResponse.signature           ]: MergeFilesResponse,

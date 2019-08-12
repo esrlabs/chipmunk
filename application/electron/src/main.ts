@@ -13,9 +13,11 @@ import ServiceSettings from './services/service.settings';
 import ServiceWindowState from './services/service.window.state';
 import ServiceElectronState from './services/service.electron.state';
 import ServiceProduction from './services/service.production';
-import ServiceFileParsers from './services/service.file.parsers';
+import ServiceFileInfo from './services/service.file.info';
 import ServiceMergeFiles from './services/service.merge.files';
+import ServiceConcatFiles from './services/service.concat.files';
 import ServiceFileReader from './services/service.file.reader';
+import ServiceFileSearch from './services/service.file.search';
 import ServiceFileOpener from './services/service.file.opener';
 import ServiceStreamSources from './services/service.stream.sources';
 import ServiceFilters from './services/service.filters';
@@ -40,7 +42,7 @@ const InitializeStages = [
     // Stage #8. Detect OS env
     [ServiceEnv],
     // Stage #9, Render functionality
-    [ServiceFileParsers, ServiceMergeFiles, ServiceFilters, ServiceFileReader, ServiceFileOpener, ServiceAppState, ServiceDLTFiles, ServiceHotkeys],
+    [ServiceFileInfo, ServiceMergeFiles, ServiceConcatFiles, ServiceFileSearch, ServiceFilters, ServiceFileReader, ServiceFileOpener, ServiceAppState, ServiceDLTFiles, ServiceHotkeys],
     // Stage #10. Init plugins
     [ServicePlugins],
     // (last service should startup service and should be single always)
