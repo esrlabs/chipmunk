@@ -90,7 +90,7 @@ mod tests {
         let regex = lookup_regex_for_format_str("MM-DD hh:mm:ss.s TZD")
             .expect("format string should produce regex");
 
-        let (timestamp, _) = to_posix_timestamp(input, &regex, Some(2017), None)
+        let (timestamp, _) = extract_posix_timestamp(input, &regex, Some(2017), None)
             .expect("convert to limed line should work");
         println!("timestamp: {}", timestamp);
         assert_eq!(1_491_299_570_229, timestamp);
@@ -100,7 +100,7 @@ mod tests {
         let input = "04-04 11:52:50 +0200 D/oup.csc(  665): [728] MqttLogger";
         let regex_to_use =
             lookup_regex_for_format_str("MM-DD hh:mm:ss TZD").expect("should be parsed");
-        let (timestamp, _) = to_posix_timestamp(input, &regex_to_use, Some(2017), None)
+        let (timestamp, _) = extract_posix_timestamp(input, &regex_to_use, Some(2017), None)
             .expect("convert to limed line should work");
         assert_eq!(1_491_299_570_000, timestamp);
     }
@@ -113,7 +113,7 @@ mod tests {
         let regex = lookup_regex_for_format_str("MM-DD-YYYY hh:mm:ss.s")
             .expect("format string should produce regex");
         let (timestamp, _) =
-            to_posix_timestamp(input, &regex, None, Some(TWO_HOURS_IN_MS)).unwrap();
+            extract_posix_timestamp(input, &regex, None, Some(TWO_HOURS_IN_MS)).unwrap();
         assert_eq!(1_491_299_570_229, timestamp);
     }
     #[test]
@@ -122,7 +122,7 @@ mod tests {
         let regex = lookup_regex_for_format_str("DD/MMM/YYYY:hh:mm:ss TZD")
             .expect("format string should produce regex");
         let (timestamp, _) =
-            to_posix_timestamp(input, &regex, None, Some(TWO_HOURS_IN_MS)).unwrap();
+            extract_posix_timestamp(input, &regex, None, Some(TWO_HOURS_IN_MS)).unwrap();
         assert_eq!(1_491_299_570_000, timestamp);
     }
 
@@ -131,10 +131,10 @@ mod tests {
     fn test_parse_date_line_only_millis() {
         let input = "1559831467577 some logging here...";
         let regex = lookup_regex_for_format_str("sss").expect("format string should produce regex");
-        let (timestamp, _) = to_posix_timestamp(input, &regex, None, None).unwrap();
+        let (timestamp, _) = extract_posix_timestamp(input, &regex, None, None).unwrap();
         assert_eq!(1_559_831_467_577, timestamp);
         let (timestamp_with_offset, _) =
-            to_posix_timestamp(input, &regex, None, Some(-TWO_HOURS_IN_MS)).unwrap();
+            extract_posix_timestamp(input, &regex, None, Some(-TWO_HOURS_IN_MS)).unwrap();
         assert_eq!(1_559_838_667_577, timestamp_with_offset);
     }
     macro_rules! derive_format_and_check {

@@ -369,7 +369,7 @@ fn scan_lines(
         if !trimmed.is_empty() {
             inspected_lines += 1;
             if regex.is_match(trimmed) {
-                match to_posix_timestamp(trimmed, &regex, None, Some(0)) {
+                match extract_posix_timestamp(trimmed, &regex, None, Some(0)) {
                     Ok((timestamp, _)) => {
                         *min_timestamp = std::cmp::min(*min_timestamp, timestamp);
                         *max_timestamp = std::cmp::max(*max_timestamp, timestamp);
@@ -408,7 +408,8 @@ pub fn timespan_in_file(format_expr: &str, path: &PathBuf) -> Result<(i64, i64),
         &regex,
         &mut min_timestamp,
         &mut max_timestamp,
-        Some(lines_to_scan),
+        // Some(lines_to_scan),
+        None,
         None,
     )?;
     // also read from end
@@ -489,7 +490,7 @@ fn parse_from_month(mmm: &str) -> Result<u32, failure::Error> {
     }
 }
 // return the timestamp and wether the year was missing
-pub fn to_posix_timestamp(
+pub fn extract_posix_timestamp(
     line: &str,
     regex: &Regex,
     year: Option<i32>,
@@ -614,7 +615,7 @@ pub fn line_to_timed_line(
     line_nr: usize,
     reporter: &mut Reporter,
 ) -> Result<TimedLine, failure::Error> {
-    match to_posix_timestamp(line, regex, year, time_offset) {
+    match extract_posix_timestamp(line, regex, year, time_offset) {
         Ok((posix_timestamp, year_was_missing)) => Ok(TimedLine {
             timestamp: posix_timestamp,
             content: line.to_string(),
@@ -702,7 +703,7 @@ pub fn detect_timestamp_in_string(
     for format in AVAILABLE_FORMATS.iter() {
         let regex = &FORMAT_REGEX_MAPPING[format];
         if regex.is_match(trimmed) {
-            if let Ok((timestamp, year_missing)) = to_posix_timestamp(input, regex, None, offset) {
+            if let Ok((timestamp, year_missing)) = extract_posix_timestamp(input, regex, None, offset) {
                 return Ok((timestamp, year_missing, format.to_string()));
             }
         }
@@ -761,6 +762,11 @@ fn timezone_parser(input: &str) -> IResult<&str, i64> {
         let absolute = 1000 * (3600 * hour + 60 * min.unwrap_or(0));
         (if positiv { 1 } else { -1 }) * absolute
     })(input)
+}
+// 46.72.213.133 - - [12/Dec/2015:18:39:27 +0100]
+// DD/MMM/YYYY:hh:mm:ss
+fn parse_full_timestamp(input: &str) -> Result<i64, failure::Error> {
+    Err(failure::err_msg("nyi"))
 }
 fn parse_timezone(input: &str) -> Result<i64, failure::Error> {
     match timezone_parser(input) {
