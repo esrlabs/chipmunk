@@ -11,12 +11,13 @@
 // from E.S.R.Labs.
 use indexer_base::timedline::TimedLine;
 use indexer_base::error_reporter::*;
-use chrono::{NaiveDate, NaiveDateTime, Utc, Datelike};
+use chrono::{NaiveDate, NaiveDateTime, Utc, Datelike, DateTime};
 
 use nom::bytes::complete::tag;
 use nom::character::complete::{char, digit1};
 use nom::combinator::{map, map_res, opt};
 use nom::multi::{fold_many0, many1};
+use nom::bytes::complete::take;
 use nom::IResult;
 
 use regex::Regex;
@@ -70,6 +71,18 @@ lazy_static! {
         FORMAT_REGEX_MAPPINGS.1.clone();
 }
 
+pub fn posix_timestamp_as_string(timestamp_ms: i64) -> String {
+    match NaiveDateTime::from_timestamp_opt(
+        (timestamp_ms as f64 / 1000.0) as i64,
+        (timestamp_ms as f64 % 1000.0) as u32 * 1000,
+    ) {
+        Some(naive_datetime_max) => {
+            let t: DateTime<Utc> = DateTime::from_utc(naive_datetime_max, Utc);
+            format!("{}", t)
+        }
+        None => format!("could not parse: {}", timestamp_ms),
+    }
+}
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum FormatPiece {
     Day,
@@ -368,22 +381,24 @@ fn scan_lines(
         let trimmed = line.trim();
         if !trimmed.is_empty() {
             inspected_lines += 1;
-            if regex.is_match(trimmed) {
-                match extract_posix_timestamp(trimmed, &regex, None, Some(0)) {
-                    Ok((timestamp, _)) => {
-                        *min_timestamp = std::cmp::min(*min_timestamp, timestamp);
-                        *max_timestamp = std::cmp::max(*max_timestamp, timestamp);
-                    }
-                    Err(e) => {
-                        report_warning_ln(
-                            format!("error converting timestamp: {:?}", e),
-                            Some(scanned_cnt),
-                        );
-                    }
+            // if regex.is_match(trimmed) {
+            match extract_posix_timestamp(trimmed, &regex, None, Some(0)) {
+                // TODO work on fast parsers to replace regex parsing
+                // match parse_full_timestamp(trimmed, &regex) {
+                Ok((timestamp, _)) => {
+                    *min_timestamp = std::cmp::min(*min_timestamp, timestamp);
+                    *max_timestamp = std::cmp::max(*max_timestamp, timestamp);
                 }
-            } else {
-                report_warning_ln("format did not match", Some(scanned_cnt));
+                Err(e) => {
+                    report_warning_ln(
+                        format!("error converting timestamp: {:?}", e),
+                        Some(scanned_cnt),
+                    );
+                }
             }
+            // } else {
+            //     report_warning_ln("format did not match", Some(scanned_cnt));
+            // }
         }
         buf = vec![];
         if let Some(limit) = limit {
@@ -408,8 +423,7 @@ pub fn timespan_in_file(format_expr: &str, path: &PathBuf) -> Result<(i64, i64),
         &regex,
         &mut min_timestamp,
         &mut max_timestamp,
-        // Some(lines_to_scan),
-        None,
+        Some(lines_to_scan),
         None,
     )?;
     // also read from end
@@ -529,10 +543,6 @@ pub fn extract_posix_timestamp(
     let sec_capt = caps
         .name(SECONDS_GROUP)
         .ok_or_else(|| failure::err_msg("no group for seconds found in regex"))?;
-    let mil_str = match caps.name(FRACTION_GROUP) {
-        Some(m) => m.as_str(),
-        None => "0",
-    };
     let am_pm_hour_offset: u32 = match caps.name(AM_PM_GROUP) {
         Some(m) => match m.as_str() {
             "PM" => Ok(12),
@@ -548,7 +558,10 @@ pub fn extract_posix_timestamp(
             .map(|h: u32| h + am_pm_hour_offset)?,
         min_capt.as_str().parse()?,
         sec_capt.as_str().parse()?,
-        mil_str.parse()?,
+        match caps.name(FRACTION_GROUP) {
+            Some(m) => m.as_str().parse()?,
+            None => 0,
+        },
     );
 
     let timezone_n = caps.name(TIMEZONE_GROUP);
@@ -691,8 +704,11 @@ pub fn detect_timestamp_format_in_file(path: &Path) -> Result<String, failure::E
     )))
 }
 /// Trys to detect a valid timestamp in a string
-/// Returns the a pair of the timestamp as posix timestamp and if the year was missing
-/// in case the year was missing, we assume the current year (local time)
+/// Returns the a tuple of
+/// * the timestamp as posix timestamp
+/// * if the year was missing
+///   (we assume the current year (local time) if true)
+/// * the format string that was used
 ///
 /// # Arguments
 ///
@@ -706,7 +722,7 @@ pub fn detect_timestamp_in_string(
         let regex = &FORMAT_REGEX_MAPPING[format];
         if regex.is_match(trimmed) {
             if let Ok((timestamp, year_missing)) =
-                extract_posix_timestamp(input, regex, None, offset)
+                extract_posix_timestamp(trimmed, regex, None, offset)
             {
                 return Ok((timestamp, year_missing, format.to_string()));
             }
@@ -767,10 +783,80 @@ fn timezone_parser(input: &str) -> IResult<&str, i64> {
         (if positiv { 1 } else { -1 }) * absolute
     })(input)
 }
+fn two_digits(input: &str) -> IResult<&str, u32> {
+    map_res(take2, |s: &str| s.parse())(input)
+}
+fn four_digits(input: &str) -> IResult<&str, u32> {
+    map_res(take4, |s: &str| s.parse())(input)
+}
+
+fn parse_short_month(input: &str) -> IResult<&str, u32> {
+    map_res(take(3usize), |s: &str| match s {
+        "Jan" => Ok(1),
+        "Feb" => Ok(2),
+        "Mar" => Ok(3),
+        "Apr" => Ok(4),
+        "May" => Ok(5),
+        "Jun" => Ok(6),
+        "Jul" => Ok(7),
+        "Aug" => Ok(8),
+        "Sep" => Ok(9),
+        "Oct" => Ok(10),
+        "Nov" => Ok(11),
+        "Dec" => Ok(12),
+        _ => Err(failure::err_msg(format!("could not parse month {:?}", s))),
+    })(input)
+}
+fn take1(s: &str) -> IResult<&str, &str> {
+    take(1usize)(s)
+}
+fn take2(s: &str) -> IResult<&str, &str> {
+    take(2usize)(s)
+}
+fn take4(s: &str) -> IResult<&str, &str> {
+    take(4usize)(s)
+}
 // 46.72.213.133 - - [12/Dec/2015:18:39:27 +0100]
 // DD/MMM/YYYY:hh:mm:ss
-fn parse_full_timestamp(input: &str) -> Result<i64, failure::Error> {
-    Err(failure::err_msg("nyi"))
+pub fn parse_full_timestamp(input: &str, regex: &Regex) -> Result<(i64, bool), failure::Error> {
+    match regex.find(input) {
+        Some(mat) => {
+            let parser = nom::sequence::tuple((
+                two_digits,
+                take1,
+                parse_short_month,
+                take1,
+                four_digits,
+                take1,
+                two_digits,
+                take1,
+                two_digits,
+                take1,
+                two_digits,
+                take1,
+                timezone_parser,
+            ));
+            let mapped = map(parser, |r| (r.0, r.2, r.4, r.6, r.8, r.10, r.12));
+            match mapped(mat.as_str()) {
+                Ok((_, (day, month, year, hour, minutes, seconds, offset))) => {
+                    let date_time: Option<NaiveDateTime> =
+                        NaiveDate::from_ymd_opt(year as i32, month, day)
+                            .and_then(|d| d.and_hms_milli_opt(hour, minutes, seconds, 0));
+                    match date_time {
+                        Some(dt) => Ok((dt.timestamp_millis() - offset, false)),
+                        None => Err(failure::err_msg(
+                            "error while parsing year/month/day/hour/minute/seconds",
+                        )),
+                    }
+                }
+                Err(e) => Err(failure::err_msg(format!("error while parsing: {:?}", e))),
+            }
+        }
+        None => Err(failure::err_msg(format!(
+            "no timestamp found using regex {}",
+            regex.as_str()
+        ))),
+    }
 }
 fn parse_timezone(input: &str) -> Result<i64, failure::Error> {
     match timezone_parser(input) {
@@ -796,6 +882,19 @@ mod tests {
         fn parses_all_valid_dates(s in VALID_TIMESTAMP_FORMAT) {
             parse_timezone(&s).unwrap();
         }
+    }
+    #[test]
+    fn test_full_timestamp_parser() {
+        let input = "109.169.248.247 - - [13/Dec/2015:18:25:11 +0100] GET /administrator";
+        let regex = lookup_regex_for_format_str("DD/MMM/YYYY:hh:mm:ss TZD").unwrap();
+        let res = parse_full_timestamp(input, &regex);
+        if let Ok((expected, _, _)) = detect_timestamp_in_string(input, None) {
+            if let Ok((time, _)) = res {
+                assert_eq!(expected, time);
+                println!("{}", posix_timestamp_as_string(time));
+            }
+        };
+        println!("res: {:?}", res);
     }
 
     #[test]

@@ -16,10 +16,15 @@ use indexer_base::error_reporter::*;
 use indexer_base::utils;
 use std::fs;
 use std::io::{BufRead, BufReader, BufWriter, Write};
+use crate::parse;
+use parse::detect_timestamp_in_string;
 
 const REPORT_PROGRESS_LINE_BLOCK: usize = 1_000_000;
 
-pub fn create_index_and_mapping(config: IndexingConfig) -> Result<Vec<Chunk>, Error> {
+pub fn create_index_and_mapping(
+    config: IndexingConfig,
+    parse_timestamps: bool,
+) -> Result<Vec<Chunk>, Error> {
     let initial_line_nr = match utils::next_line_nr(config.out_path) {
         Some(nr) => nr,
         None => {
@@ -30,9 +35,13 @@ pub fn create_index_and_mapping(config: IndexingConfig) -> Result<Vec<Chunk>, Er
             std::process::exit(2)
         }
     };
-    index_file(config, initial_line_nr)
+    index_file(config, initial_line_nr, parse_timestamps)
 }
-pub fn index_file(config: IndexingConfig, initial_line_nr: usize) -> Result<Vec<Chunk>, Error> {
+pub fn index_file(
+    config: IndexingConfig,
+    initial_line_nr: usize,
+    timestamps: bool,
+) -> Result<Vec<Chunk>, Error> {
     let (out_file, current_out_file_size) =
         utils::get_out_file_and_size(config.append, &config.out_path)?;
 
@@ -56,35 +65,83 @@ pub fn index_file(config: IndexingConfig, initial_line_nr: usize) -> Result<Vec<
             // no more content
             break;
         };
+        let additional_bytes: usize;
         // only use non-empty lines, others will be dropped
         if trimmed_len != 0 {
-            if had_newline {
-                writeln!(
-                    buf_writer,
-                    "{}{}{}{}{}{}{}",
-                    trimmed_line,
-                    utils::PLUGIN_ID_SENTINAL,
-                    config.tag,
-                    utils::PLUGIN_ID_SENTINAL,
-                    utils::ROW_NUMBER_SENTINAL,
+            if timestamps {
+                let ts = match detect_timestamp_in_string(trimmed_line, None) {
+                    Ok((time, _, _)) => time,
+                    Err(_) => 0,
+                };
+                if had_newline {
+                    writeln!(
+                        buf_writer,
+                        "{}{}{}{}{}{}{}{}{}",
+                        trimmed_line,
+                        utils::PLUGIN_ID_SENTINAL,
+                        config.tag,
+                        utils::PLUGIN_ID_SENTINAL,
+                        utils::ROW_NUMBER_SENTINAL,
+                        line_nr,
+                        utils::ROW_NUMBER_SENTINAL,
+                        ts,
+                        utils::ROW_NUMBER_SENTINAL,
+                    )?;
+                } else {
+                    write!(
+                        buf_writer,
+                        "{}{}{}{}{}{}{}{}{}",
+                        trimmed_line,
+                        utils::PLUGIN_ID_SENTINAL,
+                        config.tag,
+                        utils::PLUGIN_ID_SENTINAL,
+                        utils::ROW_NUMBER_SENTINAL,
+                        line_nr,
+                        utils::ROW_NUMBER_SENTINAL,
+                        ts,
+                        utils::ROW_NUMBER_SENTINAL,
+                    )?;
+                }
+                additional_bytes = utils::extended_line_length(
+                    trimmed_len,
+                    config.tag.len(),
                     line_nr,
-                    utils::ROW_NUMBER_SENTINAL,
-                )?;
+                    had_newline,
+                ) + utils::linenr_length(ts as usize)
+                    + 1;
             } else {
-                write!(
-                    buf_writer,
-                    "{}{}{}{}{}{}{}",
-                    trimmed_line,
-                    utils::PLUGIN_ID_SENTINAL,
-                    config.tag,
-                    utils::PLUGIN_ID_SENTINAL,
-                    utils::ROW_NUMBER_SENTINAL,
+                if had_newline {
+                    writeln!(
+                        buf_writer,
+                        "{}{}{}{}{}{}{}",
+                        trimmed_line,
+                        utils::PLUGIN_ID_SENTINAL,
+                        config.tag,
+                        utils::PLUGIN_ID_SENTINAL,
+                        utils::ROW_NUMBER_SENTINAL,
+                        line_nr,
+                        utils::ROW_NUMBER_SENTINAL,
+                    )?;
+                } else {
+                    write!(
+                        buf_writer,
+                        "{}{}{}{}{}{}{}",
+                        trimmed_line,
+                        utils::PLUGIN_ID_SENTINAL,
+                        config.tag,
+                        utils::PLUGIN_ID_SENTINAL,
+                        utils::ROW_NUMBER_SENTINAL,
+                        line_nr,
+                        utils::ROW_NUMBER_SENTINAL,
+                    )?;
+                }
+                additional_bytes = utils::extended_line_length(
+                    trimmed_len,
+                    config.tag.len(),
                     line_nr,
-                    utils::ROW_NUMBER_SENTINAL,
-                )?;
+                    had_newline,
+                );
             }
-            let additional_bytes =
-                utils::extended_line_length(trimmed_len, config.tag.len(), line_nr, had_newline);
             line_nr += 1;
 
             if let Some(chunk) = chunk_factory.create_chunk_if_needed(line_nr, additional_bytes) {

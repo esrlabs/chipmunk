@@ -1,6 +1,6 @@
 require 'rake'
 CLI_EXE_NAME="indexer_cli"
-EXE_NAME="logviewer_parser"
+EXE_NAME="chip"
 HOME=ENV['HOME']
 module OS
   def OS.windows?

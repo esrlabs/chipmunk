@@ -21,6 +21,8 @@ use crate::error_reporter;
 pub const ROW_NUMBER_SENTINAL: char = '\u{0002}';
 pub const PLUGIN_ID_SENTINAL: char = '\u{0003}';
 pub const SENTINAL_LENGTH: usize = 1;
+// 1449941111000
+pub const POSIX_TIMESTAMP_LENGTH: usize = 13;
 const PEEK_END_SIZE: usize = 12;
 
 #[inline]
@@ -94,7 +96,8 @@ pub fn create_tagged_line(
             ),
         )?;
     }
-    Ok(trimmed_line.len() + 4 * SENTINAL_LENGTH + tag.len() + linenr_length(line_nr) + 1) // nl
+    Ok(trimmed_line.len() + 4 * SENTINAL_LENGTH + tag.len() + linenr_length(line_nr) + 1)
+    // nl
 }
 
 #[inline]

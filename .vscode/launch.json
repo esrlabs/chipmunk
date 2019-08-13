@@ -7,15 +7,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'logviewer_parser'",
+            "name": "Debug executable 'chip'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=logviewer_parser",
-                    "--package=logviewer_parser"
+                    "--bin=chip",
+                    "--package=chip"
                 ],
                 "filter": {
-                    "name": "logviewer_parser",
+                    "name": "chip",
                     "kind": "bin"
                 }
             },
@@ -30,16 +30,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'logviewer_parser'",
+            "name": "Debug unit tests in executable 'chip'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=logviewer_parser",
-                    "--package=logviewer_parser"
+                    "--bin=chip",
+                    "--package=chip"
                 ],
                 "filter": {
-                    "name": "logviewer_parser",
+                    "name": "chip",
                     "kind": "bin"
                 }
             },

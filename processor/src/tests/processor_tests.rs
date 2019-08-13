@@ -35,7 +35,7 @@ mod tests {
             source_file_size,
             to_stdout: false,
             status_updates: true,
-        })
+        }, false)
         .unwrap();
         let out_file_content: String =
             fs::read_to_string(out_file_path).expect("could not read file");
@@ -89,7 +89,7 @@ mod tests {
             source_file_size,
             to_stdout: false,
             status_updates: true,
-        })
+        }, false)
         .expect("could not index file");
         assert_eq!(0, chunks.len(), "empty file should produce 0 chunks");
         let out_file_content: String = fs::read_to_string(&out_path).expect("could not read file");
@@ -111,7 +111,7 @@ mod tests {
             source_file_size,
             to_stdout: false,
             status_updates: true,
-        })
+        }, false)
         .unwrap();
         let out_file_content: String = fs::read_to_string(out_path).expect("could not read file");
         println!("outfile: {}\nchunks: {:?}", out_file_content, chunks2);
@@ -211,7 +211,7 @@ mod tests {
             source_file_size: in_file_size,
             to_stdout: false,
             status_updates: true,
-        })
+        }, false)
         .unwrap();
         let out_file_content_bytes = fs::read(out_file_path).expect("could not read file");
         let out_file_content = String::from_utf8_lossy(&out_file_content_bytes[..]);

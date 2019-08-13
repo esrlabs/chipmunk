@@ -19,7 +19,6 @@ use indexer_base::chunks::serialize_chunks;
 use indexer_base::config::IndexingConfig;
 use indexer_base::error_reporter::*;
 use serde::{Serialize, Deserialize};
-use chrono::prelude::*;
 
 #[macro_use]
 extern crate clap;
@@ -28,6 +27,7 @@ use std::fs;
 use std::io::{Read};
 use std::path;
 use std::time::Instant;
+use processor::parse::posix_timestamp_as_string;
 use processor::parse::detect_timestamp_in_string;
 use processor::parse::detect_timestamp_format_in_file;
 use processor::parse::timespan_in_file;
@@ -38,10 +38,10 @@ use processor::parse::{
 
 fn main() {
     let start = Instant::now();
-    let matches = App::new("logviewer_parser")
+    let matches = App::new("chip")
         .version(crate_version!())
         .author(crate_authors!())
-        .about("Create index file and mapping file for logviewer")
+        .about("Create index file and mapping file for chipmunk")
         .arg(
             Arg::with_name("v")
                 .short("v")
@@ -89,6 +89,11 @@ fn main() {
                         .help("How many lines should be in a chunk (used for access later)")
                         .required(false)
                         .default_value("500"),
+                )
+                .arg(
+                    Arg::with_name("timestamp")
+                        .short("w")
+                        .help("add timestamp info if available"),
                 )
                 .arg(
                     Arg::with_name("append")
@@ -347,6 +352,7 @@ fn main() {
             };
             let append: bool = matches.is_present("append");
             let stdout: bool = matches.is_present("stdout");
+            let timestamps: bool = matches.is_present("timestamp");
 
             match processor::processor::create_index_and_mapping(IndexingConfig {
                 tag,
@@ -357,7 +363,7 @@ fn main() {
                 source_file_size,
                 to_stdout: stdout,
                 status_updates,
-            }) {
+            }, timestamps) {
                 Err(why) => {
                     report_error(format!("couldn't process: {}", why));
                     std::process::exit(2)
@@ -624,18 +630,6 @@ fn main() {
     #[derive(Deserialize, Debug)]
     pub struct DiscoverItem {
         pub path: String,
-    }
-    fn posix_timestamp_as_string(timestamp_ms: i64) -> String {
-        match NaiveDateTime::from_timestamp_opt(
-            (timestamp_ms as f64 / 1000.0) as i64,
-            (timestamp_ms as f64 % 1000.0) as u32 * 1000,
-        ) {
-            Some(naive_datetime_max) => {
-                let t: DateTime<Utc> = DateTime::from_utc(naive_datetime_max, Utc);
-                format!("{}", t)
-            }
-            None => format!("could not parse: {}", timestamp_ms),
-        }
     }
     fn handle_discover_subcommand(matches: &clap::ArgMatches) {
         if let Some(test_string) = matches.value_of("input-string") {

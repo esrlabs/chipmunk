@@ -1,9 +1,9 @@
-#[macro_use]
 extern crate criterion;
 extern crate processor;
 
 use processor::parse::*;
 use criterion::Criterion;
+use criterion::*;
 
 fn parse_benchmark(c: &mut Criterion) {
     let inputs = [
@@ -23,15 +23,59 @@ fn parse_benchmark(c: &mut Criterion) {
             b.iter(|| detect_timeformat_in_string(input, None))
         }
     });
-    c.bench_function("detect_timestamp_in_string", move |b| {
+    c.bench_function("detect_timestamp_in_string multiple inputs", move |b| {
         for input in inputs.iter() {
             b.iter(|| detect_timestamp_in_string(input, None))
         }
     });
     c.bench_function("create_timestamp_from_string", move |b| {
         let regex = lookup_regex_for_format_str("DD/MMM/YYYY:hh:mm:ss TZD").unwrap();
-        let sample = "109.169.248.247 - - [12/Dec/2015:18:25:11 +0100] GET /administrator";
-        b.iter(|| extract_posix_timestamp(sample, &regex, None, None))
+        let samples = [
+            "109.169.248.247 - - [12/Dec/2015:18:25:11 +0100] GET /administrator",
+            "109.169.248.247 - - no match here, not in the whole line 12/Dec/2015 is not enough",
+            "31.202.233.212 - - [12/Dec/2015:18:46:21 +0100] GET /administrator",
+        ];
+        for sample in samples.iter() {
+            b.iter(|| extract_posix_timestamp(sample, &regex, None, None))
+        }
+    });
+    c.bench_function("parse_full_timestamp", move |b| {
+        let regex = lookup_regex_for_format_str("DD/MMM/YYYY:hh:mm:ss TZD").unwrap();
+        let samples = [
+            "109.169.248.247 - - [12/Dec/2015:18:25:11 +0100] GET /administrator",
+            "109.169.248.247 - - no match here, not in the whole line 12/Dec/2015 is not enough",
+            "31.202.233.212 - - [12/Dec/2015:18:46:21 +0100] GET /administrator",
+        ];
+        for sample in samples.iter() {
+            b.iter(|| parse_full_timestamp(sample, &regex))
+        }
+    });
+    // c.bench(
+    //     let regex = lookup_regex_for_format_str("DD/MMM/YYYY:hh:mm:ss TZD").unwrap();
+
+    //     "parse timestamps",
+    //     ParameterizedBenchmark::new(
+    //         "Recursive",
+    //         |b, i| b.iter(|| detect_timeformat_in_string(&regex, *i)),
+    //         samples,
+    //     )
+    //     .with_function("Iterative", |b, i| b.iter(|| parse_full_timestamp(&regex, *i))),
+    // );
+    let samples = [
+        "109.169.248.247 - - [12/Dec/2015:18:25:11 +0100] GET /administrator",
+        "109.169.248.247 - - no match here, not in the whole line 12/Dec/2015 is not enough",
+        "31.202.233.212 - - [12/Dec/2015:18:46:21 +0100] GET /administrator",
+    ];
+    let ts_regex = lookup_regex_for_format_str("DD/MMM/YYYY:hh:mm:ss TZD").unwrap();
+    Benchmark::new("detect_timestamp_in_string", move |b| {
+        for sample in samples.iter() {
+            b.iter(|| detect_timestamp_in_string(sample, None))
+        }
+    })
+    .with_function("parse_full_timestamp", move |b| {
+        for sample in samples.iter() {
+            b.iter(|| parse_full_timestamp(sample, &ts_regex))
+        }
     });
 }
 

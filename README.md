@@ -1,10 +1,10 @@
-# logviewer indexer
+# chipmunk indexer
 
-Create index file and mapping file for logviewer
+Create index file and mapping file for chipmunk
 
 ```
 USAGE:
-    logviewer_parser [FLAGS] [SUBCOMMAND]
+    chip [FLAGS] [SUBCOMMAND]
 
 FLAGS:
     -h, --help       Prints help information
@@ -25,11 +25,11 @@ SUBCOMMANDS:
 For indexing a log file use the `index` subcommand:
 
 ```
-logviewer_parser-index
+chip-index
 command for creating an index file
 
 USAGE:
-    logviewer_parser index [FLAGS] [OPTIONS] <input> --tag <TAG>
+    chip index [FLAGS] [OPTIONS] <input> --tag <TAG>
 
 FLAGS:
     -a, --append     append to file if exists
@@ -52,11 +52,11 @@ ARGS:
 For merging log-files use the `merge` subcommand:
 
 ```
-logviewer_parser-merge
+chip-merge
 command for merging/concatenating multiple log files
 
 USAGE:
-    logviewer_parser merge [FLAGS] [OPTIONS] --concat <CONCAT_CONFIG> --merge <MERGE_CONFIG> --out <OUT>
+    chip merge [FLAGS] [OPTIONS] --concat <CONCAT_CONFIG> --merge <MERGE_CONFIG> --out <OUT>
 
 FLAGS:
     -a, --append     append to file if exists
@@ -93,7 +93,7 @@ in case of the config file option, the result will be a json array that looks li
 test date discovery, either from a string or from a file
 
 USAGE:
-    logviewer_parser discover --config <CONFIG> --file <input-file> --input <INPUT>
+    chip discover --config <CONFIG> --file <input-file> --input <INPUT>
 
 FLAGS:
     -h, --help       Prints help information
@@ -110,11 +110,11 @@ OPTIONS:
 For testing a format string use the `format` subcommand.
 
 ```
-logviewer_parser-format
+chip-format
 test format string
 
 USAGE:
-    logviewer_parser format [OPTIONS]
+    chip format [OPTIONS]
 
 FLAGS:
     -h, --help       Prints help information
@@ -178,11 +178,11 @@ kept.
 * 6 => `VERBOSE`
 
 ```
-logviewer_parser-dlt
+chip-dlt
 handling dtl input
 
 USAGE:
-    logviewer_parser dlt [FLAGS] [OPTIONS] <input> --tag <TAG>
+    chip dlt [FLAGS] [OPTIONS] <input> --tag <TAG>
 
 FLAGS:
     -a, --append     append to file if exists
@@ -204,11 +204,11 @@ ARGS:
 ## get statistics for DLT file
 
 ```
-logviewer_parser-dlt-stats
+chip-dlt-stats
 dlt statistics
 
 USAGE:
-    logviewer_parser dlt-stats [FLAGS] <input>
+    chip dlt-stats [FLAGS] <input>
 
 FLAGS:
     -h, --help       Prints help information
@@ -263,7 +263,7 @@ Complete date plus hours, minutes, seconds and a decimal fraction of a second
 To test it, you can use the logviwer_parser like this:
 
 ```
-logviewer_parser -f "DD.MM.YYYY" -x "22.12.1972"
+chip -f "DD.MM.YYYY" -x "22.12.1972"
 got format str: DD.MM.YYYY
 got format example: 22.12.1972
 match: Ok(true)
@@ -271,6 +271,13 @@ match: Ok(true)
 
 
 # Changelog
+
+### [0.34.0] - 08/27/2019
+  * rename completed
+  * added optional parsing of timestamp
+  * wip
+  * handle wrong AM PM settings
+  * rename to extract_posix_timestamp
 
 ### [0.33.0] - 08/12/2019
   * when detecting format in file, also report min and max timestamp
