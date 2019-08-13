@@ -499,11 +499,12 @@ pub fn extract_posix_timestamp(
     let caps = regex
         .captures(line)
         .ok_or_else(|| failure::err_msg("no captures in regex"))?;
-    if caps.name(ABSOLUTE_MS_GROUP).is_some() && caps.len() == 1 + 1 {
-        // only one matched group in addition to the full match
-        let abs_ms_capt = caps.name(ABSOLUTE_MS_GROUP).expect("was verified");
-        let absolute_ms: i64 = abs_ms_capt.as_str().parse()?;
-        return Ok((absolute_ms - time_offset.unwrap_or(0), false));
+    /* only one matched group in addition to the full match */
+    if caps.len() == 1 + 1 {
+        if let Some(abs_ms_capt) = caps.name(ABSOLUTE_MS_GROUP) {
+            let absolute_ms: i64 = abs_ms_capt.as_str().parse()?;
+            return Ok((absolute_ms - time_offset.unwrap_or(0), false));
+        }
     }
     let day_capt = caps
         .name(DAY_GROUP)
@@ -534,11 +535,12 @@ pub fn extract_posix_timestamp(
     };
     let am_pm_hour_offset: u32 = match caps.name(AM_PM_GROUP) {
         Some(m) => match m.as_str() {
-            "PM" => 12,
-            _ => 0,
+            "PM" => Ok(12),
+            "AM" => Ok(0),
+            _ => Err(failure::err_msg("no valid AM or PM designation")),
         },
-        None => 0,
-    };
+        None => Ok(0),
+    }?;
     let (hour, minutes, seconds, millis): (u32, u32, u32, u32) = (
         hour_capt
             .as_str()
@@ -703,7 +705,9 @@ pub fn detect_timestamp_in_string(
     for format in AVAILABLE_FORMATS.iter() {
         let regex = &FORMAT_REGEX_MAPPING[format];
         if regex.is_match(trimmed) {
-            if let Ok((timestamp, year_missing)) = extract_posix_timestamp(input, regex, None, offset) {
+            if let Ok((timestamp, year_missing)) =
+                extract_posix_timestamp(input, regex, None, offset)
+            {
                 return Ok((timestamp, year_missing, format.to_string()));
             }
         }
