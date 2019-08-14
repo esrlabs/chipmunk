@@ -56,3 +56,5 @@ application/electron/*.js
 !application/platform
 ./external
 TODO.md
+vim-markdown-preview.html
+
