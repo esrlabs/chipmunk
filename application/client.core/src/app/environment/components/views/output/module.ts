@@ -4,12 +4,13 @@ import { ScrollingModule                        } from '@angular/cdk/scrolling';
 import { ViewRowModule                          } from '../row/module';
 import { ViewOutputComponent                    } from './component';
 import { ViewOutputControlsComponent            } from './controls/component';
+import { ViewContentMapComponent                } from './map/component';
 
 import { PrimitiveModule                        } from 'logviewer-client-primitive';
 import { ContainersModule                       } from 'logviewer-client-containers';
 import { ComplexModule                          } from 'logviewer-client-complex';
 
-const entryComponents = [ ViewOutputComponent, ViewOutputControlsComponent ];
+const entryComponents = [ ViewOutputComponent, ViewOutputControlsComponent, ViewContentMapComponent ];
 const components = [ ViewOutputComponent, ...entryComponents ];
 
 @NgModule({

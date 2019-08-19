@@ -7,6 +7,7 @@ import State from './controller.stream.search.state';
 import StreamState from './controller.stream.state';
 import { IMapItem } from './controller.stream.search.map';
 import Transform from './controller.stream.search.pipe.transform';
+import TransformMatches from './controller.stream.search.pipe.matches';
 import NullWritableStream from '../classes/stream.writable.null';
 
 export interface IRange {
@@ -159,6 +160,9 @@ export default class ControllerStreamSearch {
             }).catch((writeError: Error) => {
                 this._logger.warn(`Fail to generate map file due error: ${writeError.message}`);
             });
+            this._getMatchesMap(true).catch((matchesError: Error) => {
+                this._logger.error(`Fail to get matches map due error: ${matchesError.message}`);
+            });
         }).catch((searchError: Error) => {
             this._logger.warn(`Fail to make a search due error: ${searchError.message}`);
         });
@@ -166,12 +170,22 @@ export default class ControllerStreamSearch {
 
     private _search(requests: RegExp[], searchRequestId: string): Promise<number> {
         return new Promise((resolve, reject) => {
+            const searchDone = this._logger.measure(`search`);
             this._engine.search(requests).then(() => {
+                searchDone();
                 this._last = requests;
+                const mapDone = this._logger.measure(`mapping`);
                 this._generateFileMap().then(() => {
+                    mapDone();
                     resolve(this._state.map.getRowsCount());
                 }).catch((writeError: Error) => {
                     reject(writeError);
+                });
+                const matchesMapDone = this._logger.measure(`getting matches map`);
+                this._getMatchesMap().then((transform: TransformMatches) => {
+                    matchesMapDone();
+                }).catch((matchesError: Error) => {
+                    this._logger.error(`Fail to get matches map due error: ${matchesError.message}`);
                 });
             }).catch((searchError: Error) => {
                 reject(searchError);
@@ -208,16 +222,47 @@ export default class ControllerStreamSearch {
                 }
                 // Add map
                 this._state.map.add(transform.getMap());
-                // Valid data
-                /*
-                const validate = this._state.map.getInvalid();
-                if (validate !== undefined) {
-                    console.log(`Not valid map items found: ${validate.indexes}`);
-                }
-                */
                 // Notifications is here
                 this._state.postman.notification(true);
                 resolve();
+            });
+            // Execute operation
+            reader.pipe(transform).pipe(writer);
+        });
+    }
+
+    private _getMatchesMap(append: boolean = false): Promise<TransformMatches> {
+        return new Promise((resolve, reject) => {
+            if (!append) {
+                // Drop map
+                // this._state.map.drop();
+            }
+            const options = append ? { start: this._state.map.getByteLength() } : {};
+            // Create reader
+            const reader: fs.ReadStream = fs.createReadStream(this._searchFile, options);
+            // Create writer
+            const writer: NullWritableStream = new NullWritableStream();
+            // Create transformer
+            const transform: TransformMatches = new TransformMatches({}, this._guid, this._last);
+            // Listen error on reading
+            reader.once('error', (readingError: Error) => {
+                reject(new Error(this._logger.error(`Fail to read file due error: ${readingError.message}`)));
+            });
+            // Listen error on writing
+            reader.once('error', (readingError: Error) => {
+                reject(new Error(this._logger.error(`Fail to write file due error: ${readingError.message}`)));
+            });
+            // Listen end of writing
+            writer.once('finish', () => {
+                ServiceElectron.IPC.send(new IPCElectronMessages.SearchResultMap({
+                    streamId: this._guid,
+                    append: append,
+                    map: transform.getMap(),
+                    stats: transform.getStats(),
+                })).catch((error: Error) => {
+                    this._logger.warn(`Fail send notification to render due error: ${error.message}`);
+                });
+                resolve(transform);
             });
             // Execute operation
             reader.pipe(transform).pipe(writer);

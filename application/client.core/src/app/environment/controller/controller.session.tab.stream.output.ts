@@ -47,6 +47,11 @@ export interface ILoadedRange {
     rows: IStreamPacket[];
 }
 
+export interface IPositionData {
+    start: number;
+    count: number;
+}
+
 export const Settings = {
     trigger         : 400,       // Trigger to load addition chunk
     maxRequestCount : 2000,      // chunk size in rows
@@ -90,6 +95,7 @@ export class ControllerSessionTabStreamOutput {
         onRankChanged: new Subject<number>(),
         onSourceChanged: new Subject<number>(),
         onHorScrollOffset: new Subject<number>(),
+        onPositionChanged: new Subject<IPositionData>(),
     };
 
     constructor(params: IParamerters) {
@@ -124,6 +130,7 @@ export class ControllerSessionTabStreamOutput {
         onRankChanged: Observable<number>,
         onSourceChanged: Observable<number>,
         onHorScrollOffset: Observable<number>,
+        onPositionChanged: Observable<IPositionData>,
     } {
         return {
             onStateUpdated: this._subjects.onStateUpdated.asObservable(),
@@ -133,6 +140,7 @@ export class ControllerSessionTabStreamOutput {
             onRankChanged: this._subjects.onRankChanged.asObservable(),
             onSourceChanged: this._subjects.onSourceChanged.asObservable(),
             onHorScrollOffset: this._subjects.onHorScrollOffset.asObservable(),
+            onPositionChanged: this._subjects.onPositionChanged.asObservable(),
         };
     }
 
@@ -150,9 +158,17 @@ export class ControllerSessionTabStreamOutput {
         }
         const stored = Object.assign({}, this._state.stored);
         if (this._state.count === 0 || range.start < 0 || range.end < 0) {
+            this._subjects.onPositionChanged.next({
+                start: 0,
+                count: 0,
+            });
             return [];
         }
         if (range.start === 0 && range.end === 0) {
+            this._subjects.onPositionChanged.next({
+                start: 0,
+                count: 0,
+            });
             return [];
         }
         if (stored.start >= 0 && stored.end >= 0) {
@@ -180,6 +196,11 @@ export class ControllerSessionTabStreamOutput {
             return new Error(this._logger.error(`Calculation error: gotten ${rows.length} rows; should be: ${range.end - range.start}. State was { start: ${stored.start}, end: ${stored.end}}, became { start: ${this._state.stored.start}, end: ${this._state.stored.end}}.`));
         }
         this._state.frame = Object.assign({}, range);
+        // Trigger position event
+        this._subjects.onPositionChanged.next({
+            start: range.start,
+            count: range.end - range.start,
+        });
         return rows;
     }
 

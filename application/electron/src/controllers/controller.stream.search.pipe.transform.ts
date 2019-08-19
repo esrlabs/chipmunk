@@ -1,7 +1,6 @@
 import * as Stream from 'stream';
 import { IRange, IMapItem } from './controller.stream.search.map';
 import Logger from '../tools/env.logger';
-import State from './controller.stream.search.state';
 
 export interface ITransformResult {
     output: string;

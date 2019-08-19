@@ -1,6 +1,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
 import { ControllerSessionTab, IInjectionAddEvent, IInjectionRemoveEvent } from '../../../controller/controller.session.tab';
+import { ControllerSessionTabMap } from '../../../controller/controller.session.tab.map';
 import { ControllerSessionTabStreamOutput, IStreamPacket, IStreamState, ILoadedRange } from '../../../controller/controller.session.tab.stream.output';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 import { IDataAPI, IRange, IRow, IRowsPacket, IStorageInformation, DockDef, ComplexScrollBoxComponent, IScrollBoxSelection } from 'logviewer-client-complex';
@@ -44,6 +45,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         bottom: new Map(),
         top: new Map(),
     };
+    public _ng_mapService: ControllerSessionTabMap;
 
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _output: ControllerSessionTabStreamOutput | undefined;
@@ -110,6 +112,10 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(this._onResize.bind(this));
         this._subscriptions.onOutputInjectionAdd = this.session.getObservable().onOutputInjectionAdd.subscribe(this._inj_onOutputInjectionAdd.bind(this));
         this._subscriptions.onOutputInjectionRemove = this.session.getObservable().onOutputInjectionRemove.subscribe(this._inj_onOutputInjectionRemove.bind(this));
+        // Get map service
+        this._ng_mapService = this.session.getStreamMap();
+        // Other events
+        this._subscriptions.onRepainted = this._ng_mapService.getObservable().onRepainted.subscribe(this._onResize.bind(this));
     }
 
     public ngOnDestroy() {
