@@ -19,6 +19,11 @@ export interface IRow {
     hasOwnStyles?: boolean;
 }
 
+interface ICachedKey {
+    key: string;
+    regExp: RegExp;
+}
+
 export class OutputParsersService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('OutputParsersService');
@@ -48,6 +53,7 @@ export class OutputParsersService {
         onUpdatedSearch: new Subject<void>(),
         onRepain: new Subject<void>(),
     };
+    private _cache: { [key: string]: ICachedKey } = {};
 
     public getObservable(): {
         onUpdatedSearch: Observable<void>,
@@ -130,6 +136,24 @@ export class OutputParsersService {
     }
 
     public matches(sessionId: string, row: number, str: string): { str: string, color?: string, background?: string } {
+        const map: { [key: string]: { value: string, reg: RegExp} } = {};
+        const getReplacedStr = (openWith: string, closeWith: string, replaceWith: string): string => {
+            const openKey = this._getCachedKeyForValue(openWith).key;
+            const closeKey = this._getCachedKeyForValue(closeWith).key;
+            if (map[openKey] === undefined) {
+                map[openKey] = {
+                    value: openWith,
+                    reg: this._getCachedKeyForValue(openWith).regExp,
+                };
+            }
+            if (map[closeKey] === undefined) {
+                map[closeKey] = {
+                    value: closeWith,
+                    reg: this._getCachedKeyForValue(closeWith).regExp,
+                };
+            }
+            return `${openKey}${replaceWith}${closeKey}`;
+        };
         const requests: IRequest[] | undefined = this._search.get(sessionId);
         const highlights: IRequest[] = this._highlights.get(sessionId);
         if (requests === undefined && this._highlights === undefined) {
@@ -147,7 +171,7 @@ export class OutputParsersService {
                     if (first === undefined) {
                         first = request;
                     }
-                    return `<span class="noreset match" style="background: ${bgcl}; color: ${fgcl};">${match}</span>`;
+                    return getReplacedStr(`<span class="noreset match" style="background: ${bgcl}; color: ${fgcl};">`, `</span>`, match);
                 });
                 applied.push(request.reg.source);
             });
@@ -161,10 +185,13 @@ export class OutputParsersService {
                     if (first === undefined) {
                         first = request;
                     }
-                    return `<span class="noreset match">${match}</span>`;
+                    return getReplacedStr(`<span class="noreset match">`, `</span>`, match);
                 });
             });
         }
+        Object.keys(map).forEach((key: string) => {
+            str = str.replace(map[key].reg, map[key].value);
+        });
         return {
             str: str,
             color: first === undefined ? undefined : (first.color === CColors[0] ? undefined : first.color),
@@ -313,6 +340,18 @@ export class OutputParsersService {
         }
         this._typedRowRendersHistory.aliases.set(sourceName, guid);
         return this._typedRowRenders.get(guid);
+    }
+
+    private _getCachedKeyForValue(value: string): ICachedKey {
+        if (this._cache[value] === undefined) {
+            const key: string = Toolkit.guid();
+            this._cache[value] = {
+                key: key,
+                regExp: new RegExp(key, 'gi'),
+            };
+
+        }
+        return this._cache[value];
     }
 
 }
