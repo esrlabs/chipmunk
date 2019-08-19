@@ -1,4 +1,4 @@
-import { Component, OnDestroy, ChangeDetectorRef, HostBinding, AfterViewInit } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, ViewChild, AfterViewInit, ElementRef } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
 import { IComponentDesc } from 'logviewer-client-containers';
 import ContextMenuService, { IMenu, IMenuItem } from '../../services/standalone/service.contextmenu';
@@ -11,6 +11,8 @@ import * as Toolkit from 'logviewer.client.toolkit';
 })
 
 export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
+
+    @ViewChild('menu') _ng_menu: ElementRef;
 
     public _ng_component: IComponentDesc | undefined;
     public _ng_items: IMenuItem[] | undefined;
@@ -59,6 +61,22 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
         this._top = menu.y;
         this._left = menu.x;
         this._cdRef.detectChanges();
+        // Recheck position
+        setTimeout(() => {
+            if (this._ng_menu === undefined || this._ng_menu === null) {
+                return;
+            }
+            const size: ClientRect = (this._ng_menu.nativeElement as HTMLElement).getBoundingClientRect();
+            if (window.innerWidth < (size.width + menu.x)) {
+                this._left = window.innerWidth - size.width;
+            }
+            if (window.innerHeight < (size.height + menu.y)) {
+                this._top = window.innerHeight - size.height;
+            }
+            if (this._top !== menu.y || this._left !== menu.x) {
+                this._cdRef.detectChanges();
+            }
+        }, 0);
     }
 
     private _subscribeToWinEvents() {
