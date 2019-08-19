@@ -33,8 +33,12 @@ export class ControllerSessionTabSearch {
     private _guid: string;
     private _active: RegExp[] = [];
     private _stored: IRequest[] = [];
-    private _subjects = {
+    private _subjects: {
+        onRequestsUpdated: Subject<IRequest[]>,
+        onDropped: Subject<void>,
+    } = {
         onRequestsUpdated: new Subject<IRequest[]>(),
+        onDropped: new Subject<void>(),
     };
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _scope: ControllerSessionScope;
@@ -55,7 +59,7 @@ export class ControllerSessionTabSearch {
             guid: params.guid,
             requestDataHandler: this._requestStreamData.bind(this),
             stream: params.stream,
-            getActiveSearchRequests: this._getActiveSearchRequests.bind(this),
+            getActiveSearchRequests: this.getActiveAsRegs.bind(this),
             scope: this._scope,
         });
         this._queue = new Toolkit.Queue(this._logger.error.bind(this._logger), 0);
@@ -91,9 +95,11 @@ export class ControllerSessionTabSearch {
 
     public getObservable(): {
         onRequestsUpdated: Observable<IRequest[]>,
+        onDropped: Observable<void>,
     } {
         return {
             onRequestsUpdated: this._subjects.onRequestsUpdated.asObservable(),
+            onDropped: this._subjects.onDropped.asObservable(),
         };
     }
 
@@ -160,6 +166,8 @@ export class ControllerSessionTabSearch {
             };
             // Drop output
             this._output.clearStream();
+            // Trigger event
+            this._subjects.onDropped.next();
             // Start search
             ServiceElectronIpc.request(new IPCMessages.SearchRequest({
                 requests: [],
@@ -299,6 +307,21 @@ export class ControllerSessionTabSearch {
         return this._stored.filter((request: IRequest) => request.active);
     }
 
+    public getActiveAsRegs(): RegExp[] {
+        return this._active;
+    }
+
+    public getAppliedRequests(): IRequest[] {
+        if (this._active.length > 0) {
+            return this._active.map((reg: RegExp) => {
+                const stored: IRequest | undefined = this._stored.find(s => s.reg.source === reg.source);
+                return stored !== undefined ? stored : { reg: reg, color: '', background: '', active: false };
+            });
+        } else {
+            return this._stored;
+        }
+    }
+
     public getCloseToMatch(row: number): { row: number, index: number } {
         if (this._results.matches.length === 0) {
             return { row: -1, index: -1 };
@@ -323,13 +346,6 @@ export class ControllerSessionTabSearch {
         return this._view;
     }
 
-    private _ipc_onSearchUpdated(message: IPCMessages.StreamUpdated) {
-        if (this._guid !== message.guid) {
-            return;
-        }
-        this._output.updateStreamState(message.rowsCount);
-    }
-
     private _applyFilters() {
         if (this._active.length > 0) {
             return;
@@ -347,33 +363,6 @@ export class ControllerSessionTabSearch {
         }).catch((error: Error) => {
             this._logger.error(`Cannot apply filters due error: ${error.message}`);
         });
-    }
-
-    private _getRequestToShare(): Array<{ reg: RegExp, color: string | undefined, background: string | undefined }> {
-        const active: IRequest[] = this.getActiveStored();
-        if (this._active.length > 0) {
-            return this._active.map((reg: RegExp) => {
-                return {
-                    reg: reg,
-                    color: undefined,
-                    background: undefined,
-                };
-            });
-        } else if (active.length > 0) {
-            return active.map((request: IRequest) => {
-                return {
-                    reg: request.reg,
-                    color: request.color,
-                    background: request.background,
-                };
-            });
-        } else {
-            return [];
-        }
-    }
-
-    private _getActiveSearchRequests(): RegExp[] {
-        return this._active;
     }
 
     private _requestStreamData(start: number, end: number): Promise<IPCMessages.SearchChunk> {
@@ -408,6 +397,13 @@ export class ControllerSessionTabSearch {
         }
         this._queueController.done();
         this._queueController = undefined;
+    }
+
+    private _ipc_onSearchUpdated(message: IPCMessages.StreamUpdated) {
+        if (this._guid !== message.guid) {
+            return;
+        }
+        this._output.updateStreamState(message.rowsCount);
     }
 
 }

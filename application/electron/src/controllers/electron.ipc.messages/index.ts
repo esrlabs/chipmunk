@@ -55,6 +55,9 @@ export { IStreamResetRequest, StreamResetRequest };
 import { IStreamResetResponse, StreamResetResponse } from './stream.reset.response';
 export { IStreamResetResponse, StreamResetResponse };
 
+import { ISearchResultMap, SearchResultMap, ISearchResultMapData } from './search.results.map';
+export { ISearchResultMap, SearchResultMap, ISearchResultMapData };
+
 import { ISearchChunk, SearchChunk } from './search.chunk';
 export { ISearchChunk, SearchChunk };
 
@@ -183,6 +186,7 @@ export type TMessage =  HostState |
                         StreamSourceNew |
                         StreamResetRequest |
                         StreamResetResponse |
+                        SearchResultMap |
                         SearchRequest |
                         SearchRequestResults |
                         SearchUpdated |
@@ -246,6 +250,7 @@ export const Map = {
     [StreamResetRequest.signature           ]: StreamResetRequest,
     [StreamResetResponse.signature          ]: StreamResetResponse,
 
+    [SearchResultMap.signature              ]: SearchResultMap,
     [SearchRequest.signature                ]: SearchRequest,
     [SearchRequestResults.signature         ]: SearchRequestResults,
     [SearchChunk.signature                  ]: SearchChunk,

@@ -4,6 +4,7 @@ import { Subscription, Observable, Subject } from 'rxjs';
 import { ControllerSessionTabStream } from './controller.session.tab.stream';
 import { ControllerSessionTabSearch } from './controller.session.tab.search';
 import { ControllerSessionTabStates } from './controller.session.tab.states';
+import { ControllerSessionTabMap } from './controller.session.tab.map';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope } from './controller.session.tab.scope';
 import { TabsService, ITab } from 'logviewer-client-complex';
@@ -37,6 +38,7 @@ export class ControllerSessionTab {
     private _search: ControllerSessionTabSearch;
     private _states: ControllerSessionTabStates;
     private _scope: ControllerSessionScope;
+    private _map: ControllerSessionTabMap;
     private _viewportEventsHub: Toolkit.ControllerViewportEvents;
     private _sidebarTabsService: TabsService;
     private _defaultsSideBarApps: Array<{ guid: string, name: string, component: any, closable: boolean }>;
@@ -66,6 +68,11 @@ export class ControllerSessionTab {
             transports: params.transports.slice(),
             stream: this._stream.getOutputStream(),
             scope: this._scope,
+        });
+        this._map = new ControllerSessionTabMap({
+            guid: params.guid,
+            search: this._search,
+            stream: this._stream,
         });
         this._states = new ControllerSessionTabStates(params.guid);
         this._viewportEventsHub = new Toolkit.ControllerViewportEvents();
@@ -143,6 +150,10 @@ export class ControllerSessionTab {
 
     public getSessionsStates(): ControllerSessionTabStates {
         return this._states;
+    }
+
+    public getStreamMap(): ControllerSessionTabMap {
+        return this._map;
     }
 
     public getSidebarTabsService(): TabsService {

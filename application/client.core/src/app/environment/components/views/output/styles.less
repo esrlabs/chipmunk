@@ -12,22 +12,40 @@
         padding: 0;
         margin: 0;
         width: 100%;
+        height: 100%;
         top:0;
         left:0;
         user-select: text;
         cursor: text;
-        & .rows{
-            display: block;
+        & div.columns{
             position: absolute;
-            padding: 0;
-            margin: 0;
-            width: 100%;
-            height: 100%;
+            display: flex;
             top:0;
             left:0;
+            right: 0;
+            bottom: 0;
             overflow: hidden;
-            user-select: text;
-            cursor: text;
+            justify-content: space-around;
+            flex-flow: row wrap;
+            align-items: stretch;
+            & div.column{
+                display: block;
+                position: relative;
+                padding: 0;
+                margin: 0;
+                height: 100%;
+                top:0;
+                left:0;
+                overflow: hidden;
+                &.rows{
+                    user-select: text;
+                    cursor: text;
+                    flex: 1 1 auto;
+                }
+                &.map{
+
+                }
+            }
         }
     }
     & .injections-top{

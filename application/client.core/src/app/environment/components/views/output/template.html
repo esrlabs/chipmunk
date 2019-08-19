@@ -3,8 +3,15 @@
     <lib-containers-dynamic [component]="{ factory: injection.value.factory, inputs: injection.value.inputs, resolved: injection.value.resolved }"></lib-containers-dynamic>
   </li>
 </ul>
-<div class="rows-container noreset" (contextmenu)="_ng_onContexMenu($event)">
-  <lib-complex-scrollbox class="noreset" [API]="_ng_outputAPI"></lib-complex-scrollbox>
+<div class="rows-container noreset">
+  <div class="columns">
+    <div class="column rows" (contextmenu)="_ng_onContexMenu($event)">
+      <lib-complex-scrollbox class="noreset" [API]="_ng_outputAPI"></lib-complex-scrollbox>
+    </div>
+    <div class="column map">
+      <app-views-content-map [service]="_ng_mapService"></app-views-content-map>
+    </div>
+  </div>
 </div>
 <ul class="injections-bottom">
   <li class="injection" *ngFor="let injection of _ng_injections.bottom | keyvalue">

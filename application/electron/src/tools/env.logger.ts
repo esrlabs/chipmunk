@@ -1,5 +1,6 @@
 import { inspect } from 'util';
 import { LoggerParameters } from './env.logger.parameters';
+import guid from './tools.guid';
 import * as FS from './fs';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -32,7 +33,7 @@ export default class Logger {
 
     private _signature: string = '';
     private _parameters: LoggerParameters = new LoggerParameters({});
-
+    private _unixtimes: { [key: string]: number } = { };
     /**
      * @constructor
      * @param {string} signature        - Signature of logger instance
@@ -95,6 +96,16 @@ export default class Logger {
      */
     public env(...args: any[]) {
         return this._log(this._getMessage(...args), ELogLevels.ENV);
+    }
+
+    public measure(operation: string): () => void {
+        const id: string = guid();
+        this._unixtimes[id] = Date.now();
+        this.info(`starting "${operation}"`);
+        return () => {
+            this.info(`"${operation}" finished in: ${((Date.now() - this._unixtimes[id]) / 1000).toFixed(2)} sec`);
+            delete this._unixtimes[id];
+        };
     }
 
     private _console(message: string, level: ELogLevels) {
