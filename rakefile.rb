@@ -48,6 +48,9 @@ end
 
 desc "install plugins"
 task :installplugins do
+  cd "application/electron/dist/compiled/plugins" do
+    sh "rm -rf *"
+  end
   cd "application/client.plugins.standalone/row.parser.ascii" do
     sh "npm install"
   end
@@ -112,3 +115,14 @@ end
 
 desc "full update"
 task :update => [:updateindexer, :updatetoolkit]
+
+desc "build"
+task :build, [:platform] do |task, args|
+  cd "application/electron/dist/release" do
+    sh "rm -rf *"
+  end
+  cd "application/electron" do
+    sh "npm run build-ts"
+    sh "./node_modules/.bin/build --#{args[:platform]}"
+  end
+end
