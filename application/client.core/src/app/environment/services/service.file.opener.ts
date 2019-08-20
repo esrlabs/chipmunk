@@ -73,6 +73,7 @@ export class FileOpenerService implements IService {
                 session: TabsSessionsService.getActive().getGuid(),
             }), IPCMessages.FileOpenResponse).then((response: IPCMessages.FileReadResponse) => {
                 if (response.error !== undefined) {
+                    console.log(response.error);
                     // Error message
                 }
             }).catch((error: Error) => {

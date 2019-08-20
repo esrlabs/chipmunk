@@ -1,5 +1,5 @@
 import ServiceElectron, { IPCMessages } from './service.electron';
-import { FileParsers, AFileParser } from '../controllers/files.parsers/index';
+import { FileParsers, AFileParser, getParserForFile } from '../controllers/files.parsers/index';
 import Logger from '../tools/env.logger';
 import * as path from 'path';
 import { Subscription } from '../tools/index';
@@ -61,25 +61,9 @@ class ServiceFileInfo implements IService {
 
     private _onFileInfoRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.FileInfoRequest = request as IPCMessages.FileInfoRequest;
-        let parserName: string | undefined;
-        FileParsers.forEach((parser) => {
-            if (parserName !== undefined) {
-                return;
-            }
-            const inst = new parser.class();
-            if (inst.isSupported(req.file)) {
-                parserName = parser.name;
-            }
-        });
         const info: { size: number, created: number; changed: number } = { size: -1, created: -1, changed: -1 };
-        if (fs.existsSync(req.file)) {
-            const stats: fs.Stats = fs.statSync(req.file);
-            info.size = stats.size;
-            info.created = stats.birthtimeMs;
-            info.changed = stats.mtimeMs;
-        }
-        if (parserName === undefined) {
-            return response(new IPCMessages.FileInfoResponse({
+        const noParserFoundResponce = () => {
+            response(new IPCMessages.FileInfoResponse({
                 path: req.file,
                 name: path.basename(req.file),
                 parsers: FileParsers.map((parser) => {
@@ -92,15 +76,29 @@ class ServiceFileInfo implements IService {
                 created: info.created,
                 changed: info.changed,
             }));
+        };
+        if (fs.existsSync(req.file)) {
+            const stats: fs.Stats = fs.statSync(req.file);
+            info.size = stats.size;
+            info.created = stats.birthtimeMs;
+            info.changed = stats.mtimeMs;
         }
-        response(new IPCMessages.FileInfoResponse({
-            path: req.file,
-            name: path.basename(req.file),
-            parser: parserName,
-            size: info.size,
-            created: info.created,
-            changed: info.changed,
-        }));
+        getParserForFile(req.file).then((parser: AFileParser | undefined) => {
+            if (parser === undefined) {
+                return noParserFoundResponce();
+            }
+            response(new IPCMessages.FileInfoResponse({
+                path: req.file,
+                name: path.basename(req.file),
+                parser: parser.getName(),
+                size: info.size,
+                created: info.created,
+                changed: info.changed,
+            }));
+        }).catch((gettingParserError: Error) => {
+            this._logger.warn(`Fail to find parser for file "${req.file}" due error: ${gettingParserError.message}`);
+            noParserFoundResponce();
+        });
     }
 
 }

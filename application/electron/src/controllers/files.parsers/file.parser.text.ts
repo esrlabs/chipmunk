@@ -4,8 +4,10 @@ import * as path from 'path';
 import { Lvin, IIndexResult, IFileMapItem, ILogMessage } from 'logviewer.lvin';
 import ServiceElectron, { IPCMessages } from '../../services/service.electron';
 import ServiceStreams from '../../services/service.streams';
+import * as ft from 'file-type';
+import * as fs from 'fs';
 
-const ExtNames = ['txt', 'log', 'logs'];
+const ExtNames = ['txt', 'log', 'logs', 'json', 'less', 'css', 'sass', 'ts', 'js'];
 
 export default class FileParser extends AFileParser {
 
@@ -23,9 +25,28 @@ export default class FileParser extends AFileParser {
         ];
     }
 
-    public isSupported(file: string): boolean {
-        const extname: string = path.extname(file).toLowerCase().replace('.', '');
-        return ExtNames.indexOf(extname) !== -1;
+    public isSupported(file: string): Promise<boolean> {
+        return new Promise((resolve, reject) => {
+            fs.open(file, 'r', (openError: NodeJS.ErrnoException | null, fd: number) => {
+                if (openError) {
+                    return reject(openError);
+                }
+                const buffer: Buffer = Buffer.alloc(ft.minimumBytes);
+                fs.read(fd, buffer, 0, ft.minimumBytes, 0, (readError: NodeJS.ErrnoException | null, read: number, buf: Buffer) => {
+                    if (readError) {
+                        return reject(readError);
+                    }
+                    const type: ft.FileTypeResult | undefined = ft(buf);
+                    if (type === undefined) {
+                        const extname: string = path.extname(file).toLowerCase().replace('.', '');
+                        resolve(ExtNames.indexOf(extname) !== -1);
+                    } else if (type.mime.indexOf('text') !== -1 || type.mime.indexOf('application') !== -1) {
+                        resolve(true);
+                    }
+                    resolve(false);
+                });
+            });
+        });
     }
 
     public getTransform(): Transform | undefined {

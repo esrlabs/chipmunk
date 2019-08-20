@@ -23,9 +23,11 @@ export default class FileParser extends AFileParser {
         ];
     }
 
-    public isSupported(file: string): boolean {
-        const extname: string = path.extname(file).toLowerCase().replace('.', '');
-        return ExtNames.indexOf(extname) !== -1;
+    public isSupported(file: string): Promise<boolean> {
+        return new Promise((resolve, reject) => {
+            const extname: string = path.extname(file).toLowerCase().replace('.', '');
+            resolve(ExtNames.indexOf(extname) !== -1);
+        });
     }
 
     public getTransform(): Transform | undefined {
