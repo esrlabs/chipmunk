@@ -43,6 +43,7 @@ task :install do
   end
   cd "application/electron" do
     sh "mkdir ./dist/compiled/plugins & exit 0"
+    sh "mkdir ./dist/release & exit 0"
   end
 end
 
