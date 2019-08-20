@@ -3,8 +3,10 @@
         #container 
         (wheel)="_ng_onWheel($event)" 
         (window:resize)="_ng_onBrowserWindowResize($event)"
+        (window:mousedown)="_ng_onBrowserWindowMouseDown($event)"
         (keydown)="_ng_onKeyDown($event)">
     <ul class="holder" 
+        [attr.id]="_ng_guid"
         #holder 
         [ngStyle]="_ng_getHolderStyles()" 
         (selectstart)="_ng_onSelectStart($event)" 

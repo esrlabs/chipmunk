@@ -6,6 +6,7 @@ import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, ViewChild, I
 import { Subscription, Subject, Observable } from 'rxjs';
 import { ComplexScrollBoxSBVComponent } from './sbv/component';
 import { ComplexScrollBoxSBHComponent } from './sbh/component';
+import guid from '../../tools/tools.guid';
 
 export interface IScrollBoxSelection {
     selection: string;
@@ -96,7 +97,7 @@ const DefaultSettings = {
     scrollBarSize           : 8,            // Size of scroll bar: height for horizontal; width for vertical. In px.
 };
 
-const RowIndexAttr = 'data-sb-row-index';
+const CRowIndexAttr = 'data-sb-row-index';
 
 export function copyTextToClipboard(text: string) {
     const selection         = document.getSelection();
@@ -139,6 +140,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
     public _ng_rowHeight: number = 0;
     public _ng_horOffset: number = 0;
     public _ng_horScrolling: boolean = false;
+    public _ng_guid: string = guid();
     public _containerSize: IBoxSize | undefined;
     public _holderSize: { width: number, hash: string } = { width: 0, hash: '' };
 
@@ -161,6 +163,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _destroyed: boolean = false;
     private _horScrollingTimer: any = -1;
+    private _localMouseDown: boolean = false;
     private _selection: {
         focus: ISelectedNodeInfo,
         anchor: ISelectedNodeInfo,
@@ -168,6 +171,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         out: boolean;
         selection: string | undefined;
         restored: boolean;
+        style: HTMLStyleElement | undefined;
     } = {
         focus: { index: -1, path: '', offset: -1, node: undefined, fragment: '' },
         anchor: { index: -1, path: '', offset: -1, node: undefined, fragment: '' },
@@ -175,6 +179,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         out: false,
         selection: undefined,
         restored: true,
+        style: undefined,
     };
 
     private _item: {
@@ -285,12 +290,30 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         this._ng_nodeHolder.nativeElement.focus();
         this._selection_drop(true);
         this._selection.going = true;
+        /*
+        this._selection.style = document.createElement('style');
+        this._selection.style.type = 'text/css';
+        this._selection.style.innerHTML = `
+            *:not(#${this._ng_guid}) { user-select: none; }
+            ul#${this._ng_guid} * { user-select: text; }
+        `;
+        document.getElementsByTagName('head')[0].appendChild(this._selection.style);
+        */
     }
 
     public _ng_onWindowMouseUp(event: MouseEvent) {
         if (!this._selection.going) {
             return;
         }
+        /*
+        // Remove extra styles
+        if (this._selection.style !== undefined) {
+            if (this._selection.style.parentNode !== null) {
+                this._selection.style.parentNode.removeChild(this._selection.style);
+            }
+            this._selection.style = undefined;
+        }
+        */
         // Set selection as started
         this._selection.going = false;
         // Check selection
@@ -309,6 +332,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
     }
 
     public _ng_onMouseDownHolder(event: MouseEvent) {
+        this._localMouseDown = true;
         if (event.button !== 0) {
             return;
         }
@@ -349,6 +373,13 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
 
     public _ng_isSBVVisible(): boolean {
         return this._state.count < this._storageInfo.count;
+    }
+
+    public _ng_onBrowserWindowMouseDown(event: MouseEvent) {
+        if (!this._localMouseDown) {
+            this._selection_drop(true);
+        }
+        this._localMouseDown = false;
     }
 
     public _ng_onBrowserWindowResize(event?: Event) {
@@ -802,12 +833,12 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
             this._selection.focus.offset = 0;
             if (this._selection.focus.index > this._selection.anchor.index) {
                 // Direction: down
-                this._selection.focus.path = `li[${RowIndexAttr}="${this._state.end}"]`;
+                this._selection.focus.path = `li[${CRowIndexAttr}="${this._state.end}"]`;
                 this._selection.focus.index = this._state.end;
                 this._selection.focus.node = this._selection_restore();
             } else if (this._selection.focus.index < this._selection.anchor.index) {
                 // Direction: up
-                this._selection.focus.path = `li[${RowIndexAttr}="${this._state.start}"]`;
+                this._selection.focus.path = `li[${CRowIndexAttr}="${this._state.start}"]`;
                 this._selection.focus.index = this._state.start;
                 this._selection.focus.node = this._selection_restore();
             }
@@ -824,12 +855,12 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
                 this._selection.focus.offset = 0;
                 if (this._selection.focus.index > this._selection.anchor.index) {
                     // Direction: down
-                    this._selection.focus.path = `li[${RowIndexAttr}="${this._state.end}"]`;
+                    this._selection.focus.path = `li[${CRowIndexAttr}="${this._state.end}"]`;
                     this._selection.focus.index = this._state.end;
                     this._selection.focus.node = this._selection_restore();
                 } else if (this._selection.focus.index < this._selection.anchor.index) {
                     // Direction: up
-                    this._selection.focus.path = `li[${RowIndexAttr}="${this._state.start}"]`;
+                    this._selection.focus.path = `li[${CRowIndexAttr}="${this._state.start}"]`;
                     this._selection.focus.index = this._state.start;
                     this._selection.focus.node = this._selection_restore();
                 }
@@ -891,12 +922,21 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         if (node.nodeName.toLowerCase() === 'body') {
             return undefined;
         }
-        let rowIndex: string | undefined = node.getAttribute === undefined ? undefined : node.getAttribute(RowIndexAttr);
+        let rowIndex: string | undefined = node.getAttribute === undefined ? undefined : node.getAttribute(CRowIndexAttr);
         rowIndex = rowIndex === null ? undefined : (rowIndex === '' ? undefined : rowIndex);
         if (rowIndex !== undefined) {
-            path = `${node.nodeName.toLowerCase()}[${RowIndexAttr}="${rowIndex}"]${path !== '' ? ' ' : ''}${path}`;
+            path = `${node.nodeName.toLowerCase()}[${CRowIndexAttr}="${rowIndex}"]${path !== '' ? ' ' : ''}${path}`;
         } else if (node.nodeType === Node.TEXT_NODE) {
-            return this._selection_getRowInfo(node.parentNode as HTMLElement, '#text');
+            let textNodeIndex: number = -1;
+            Array.prototype.forEach.call(node.parentNode.childNodes, (child: Node, index: number) => {
+                if (textNodeIndex === -1 && node === child) {
+                    textNodeIndex = index;
+                }
+            });
+            if (textNodeIndex === -1) {
+                return undefined;
+            }
+            return this._selection_getRowInfo(node.parentNode as HTMLElement, `#text:${textNodeIndex}`);
         } else if (node.parentNode.children.length !== 0 && rowIndex === undefined) {
             let index: number = -1;
             Array.prototype.forEach.call(node.parentNode.children, (children: Node, i: number) => {
@@ -911,8 +951,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         } else {
             path = `${node.nodeName.toLowerCase()}${path !== '' ? ' ' : ''}${path}`;
         }
-        //  &&
-        const attr: string | null | undefined = node.getAttribute === undefined ? undefined : node.getAttribute(RowIndexAttr);
+        const attr: string | null | undefined = node.getAttribute === undefined ? undefined : node.getAttribute(CRowIndexAttr);
         if (attr === null || attr === undefined) {
             return this._selection_getRowInfo(node.parentNode as HTMLElement, path);
         }
@@ -972,20 +1011,28 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
             return undefined;
         }
         let selector: string = path;
-        let textNode: boolean = false;
+        let textNodeIndex: number = -1;
         if (selector.indexOf('#text') !== -1) {
-            textNode = true;
-            selector = selector.replace(' #text', '');
+            const parts: string[] = selector.split(`#text:`);
+            if (parts.length !== 2) {
+                return undefined;
+            }
+            textNodeIndex = parseInt(parts[1], 10);
+            if (isNaN(textNodeIndex) || !isFinite(textNodeIndex)) {
+                return undefined;
+            }
+            selector = selector.replace(/#text:\d*/gi, '').trim();
         }
         let node: Node = this._ng_nodeHolder.nativeElement.querySelector(selector);
         if (node === undefined || node === null) {
             return undefined;
         }
-        if (textNode && node.childNodes.length === 0) {
+        if (textNodeIndex !== -1 && node.childNodes.length === 0) {
             return undefined;
         }
-        if (textNode && node.childNodes.length !== 0) {
-            node = node.childNodes[0];
+        if (textNodeIndex !== -1 && node.childNodes.length !== 0) {
+            node = node.childNodes[textNodeIndex] === undefined ? undefined : node.childNodes[textNodeIndex];
+            node = node === undefined ? undefined : (node.nodeType !== Node.TEXT_NODE ? undefined : node);
         }
         return node;
     }
@@ -1013,6 +1060,15 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
     }
 
     private _selection_restore(): Node | undefined {
+        const getMaxOffset = (node: Node): number => {
+            if (node.nodeType === Node.TEXT_NODE) {
+                return node.textContent.length - 1;
+            } else if (node.childNodes !== undefined && node.childNodes !== null) {
+                return node.childNodes.length - 1;
+            } else {
+                return 0;
+            }
+        };
         if (this._selection.focus.index === -1) {
             this._selection.restored = true;
             return;
@@ -1037,15 +1093,15 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         } else if (this._selection.focus.index > this._selection.anchor.index) {
             // Direction: down
             anchorOffset = this._selection.anchor.index < this._state.start ? 0 : this._selection.anchor.offset;
-            focusOffset = this._selection.focus.index > this._state.end ? 0 : this._selection.focus.offset;
-            anchorPath = this._selection.anchor.index < this._state.start ? `li[${RowIndexAttr}="${this._state.start}"]` : this._selection.anchor.path;
-            focusPath = this._selection.focus.index > this._state.end ? `li[${RowIndexAttr}="${this._state.end}"]` : this._selection.focus.path;
+            focusOffset = this._selection.focus.index > this._state.end ? Infinity : this._selection.focus.offset;
+            anchorPath = this._selection.anchor.index < this._state.start ? `li[${CRowIndexAttr}="${this._state.start}"]` : this._selection.anchor.path;
+            focusPath = this._selection.focus.index > this._state.end ? `li[${CRowIndexAttr}="${this._state.end}"]` : this._selection.focus.path;
         } else if (this._selection.focus.index < this._selection.anchor.index) {
             // Direction: up
-            anchorOffset = this._selection.anchor.index > this._state.end ? 0 : this._selection.anchor.offset;
+            anchorOffset = this._selection.anchor.index > this._state.end ? Infinity : this._selection.anchor.offset;
             focusOffset = this._selection.focus.index < this._state.start ? 0 : this._selection.focus.offset;
-            anchorPath = this._selection.anchor.index > this._state.end ? `li[${RowIndexAttr}="${this._state.end}"]` : this._selection.anchor.path;
-            focusPath = this._selection.focus.index < this._state.start ? `li[${RowIndexAttr}="${this._state.start}"]` : this._selection.focus.path;
+            anchorPath = this._selection.anchor.index > this._state.end ? `li[${CRowIndexAttr}="${this._state.end}"]` : this._selection.anchor.path;
+            focusPath = this._selection.focus.index < this._state.start ? `li[${CRowIndexAttr}="${this._state.start}"]` : this._selection.focus.path;
         }
         const selection: Selection = document.getSelection();
         selection.removeAllRanges();
@@ -1054,10 +1110,29 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         if (anchorNode === undefined || focusNode === undefined) {
             return;
         }
+        if (!isFinite(anchorOffset)) {
+            anchorOffset = getMaxOffset(anchorNode);
+        }
+        if (!isFinite(focusOffset)) {
+            focusOffset = getMaxOffset(focusNode);
+        }
         try {
             selection.setBaseAndExtent(anchorNode, anchorOffset, focusNode, focusOffset);
         } catch (e) {
-            console.log(`Fail to restore selection due error: ${e.message}`);
+            let details: string = 'Error with restoring selection:';
+            details += `\n\t-\tanchorPath: ${anchorPath}`;
+            details += `\n\t-\tfocusNode: ${focusPath}`;
+            if (typeof anchorNode.textContent === 'string') {
+                details += `\n\t-\t${anchorNode.textContent.length <= anchorOffset ? '[WRONG]' : ''}anchor (${anchorNode.nodeName}): "${anchorNode.textContent}" (${anchorNode.textContent.length}): ${anchorOffset}`;
+            }
+            if (typeof focusNode.textContent === 'string') {
+                details += `\n\t-\t${focusNode.textContent.length <= focusOffset ? '[WRONG]' : ''}focus (${focusNode.nodeName}): "${focusNode.textContent}" (${focusNode.textContent.length}): ${focusOffset}`;
+            }
+            details += `\n\t-\terror: ${e.message}`;
+            console.log(anchorNode);
+            console.log(focusNode);
+            console.warn(details);
+
         }
         this._selection.restored = true;
         this._selection_save(selection);
