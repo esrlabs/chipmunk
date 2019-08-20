@@ -2,7 +2,7 @@ import ServiceElectron, { IPCMessages } from './service.electron';
 import ServiceStreams from '../services/service.streams';
 import ServiceStreamSource from '../services/service.stream.sources';
 import ServiceHotkeys from '../services/service.hotkeys';
-import { FileParsers, AFileParser } from '../controllers/files.parsers/index';
+import { getDefaultFileParser, AFileParser, getParserForFile } from '../controllers/files.parsers/index';
 import FileParserText from '../controllers/files.parsers/file.parser.text';
 import FileParserDlt from '../controllers/files.parsers/file.parser.dlt';
 import { IMapItem } from '../controllers/files.parsers/interface';
@@ -63,39 +63,46 @@ class ServiceFileOpener implements IService {
                 if (error) {
                     return reject(error);
                 }
-                parser = parser === undefined ? this._getFileParser(file) : parser;
-                if (parser === undefined) {
-                    return reject(new Error(`Fail to find parser for file`));
-                }
-                // Request options to open file
-                this._getOptions(file, path.basename(file), parser, stats.size).then((options: any) => {
-                    const pipeSessionId: string = Tools.guid();
-                    ServiceStreams.addPipeSession(pipeSessionId, stats.size, file);
-                    if ((parser as AFileParser).readAndWrite === undefined) {
-                        // Pipe file. No direct read/write method
-                        this._pipeSource(file, session, (parser as AFileParser), options).then(() => {
-                            ServiceStreams.removePipeSession(pipeSessionId);
-                            resolve();
-                        }).catch((pipeError: Error) => {
-                            ServiceStreams.removePipeSession(pipeSessionId);
-                            reject(new Error(this._logger.error(`Fail to pipe file "${file}" due error: ${pipeError.message}`)));
-                        });
-                    } else {
-                        // Trigger progress
-                        ServiceStreams.updatePipeSession(0);
-                        // Parser has direct method of reading and writing
-                        this._directReadWrite(file, session, (parser as AFileParser), options).then(() => {
-                            ServiceStreams.removePipeSession(pipeSessionId);
-                            ServiceStreams.reattachSessionFileHandle();
-                            resolve();
-                        }).catch((pipeError: Error) => {
-                            ServiceStreams.removePipeSession(pipeSessionId);
-                            ServiceStreams.reattachSessionFileHandle();
-                            reject(new Error(this._logger.error(`Fail to directly read file "${file}" due error: ${pipeError.message}`)));
-                        });
+                getParserForFile(file, parser).then((detectedParser: AFileParser | undefined) => {
+                    if (detectedParser === undefined) {
+                        detectedParser = getDefaultFileParser();
                     }
-                }).catch((getOptionsError: Error) => {
-                    reject(new Error(this._logger.error(`File "${file}" (${(parser as AFileParser).getAlias()}) will not be opened due error: ${getOptionsError.message}`)));
+                    if (detectedParser === undefined) {
+                        return reject(new Error(this._logger.warn(`Fail to find parser for file "${file}"`)));
+                    }
+                    // Request options to open file
+                    this._getOptions(file, path.basename(file), detectedParser, stats.size).then((options: any) => {
+                        detectedParser = detectedParser as AFileParser;
+                        const pipeSessionId: string = Tools.guid();
+                        ServiceStreams.addPipeSession(pipeSessionId, stats.size, file);
+                        if (detectedParser.readAndWrite === undefined) {
+                            // Pipe file. No direct read/write method
+                            this._pipeSource(file, session, detectedParser, options).then(() => {
+                                ServiceStreams.removePipeSession(pipeSessionId);
+                                resolve();
+                            }).catch((pipeError: Error) => {
+                                ServiceStreams.removePipeSession(pipeSessionId);
+                                reject(new Error(this._logger.error(`Fail to pipe file "${file}" due error: ${pipeError.message}`)));
+                            });
+                        } else {
+                            // Trigger progress
+                            ServiceStreams.updatePipeSession(0);
+                            // Parser has direct method of reading and writing
+                            this._directReadWrite(file, session, detectedParser, options).then(() => {
+                                ServiceStreams.removePipeSession(pipeSessionId);
+                                ServiceStreams.reattachSessionFileHandle();
+                                resolve();
+                            }).catch((pipeError: Error) => {
+                                ServiceStreams.removePipeSession(pipeSessionId);
+                                ServiceStreams.reattachSessionFileHandle();
+                                reject(new Error(this._logger.error(`Fail to directly read file "${file}" due error: ${pipeError.message}`)));
+                            });
+                        }
+                    }).catch((getOptionsError: Error) => {
+                        reject(new Error(this._logger.error(`File "${file}" (${(detectedParser as AFileParser).getAlias()}) will not be opened due error: ${getOptionsError.message}`)));
+                    });
+                }).catch((gettingParserError: Error) => {
+                    reject(new Error(this._logger.warn(`Fail to find parser due error: ${gettingParserError.message}`)));
                 });
             });
         });
@@ -110,20 +117,6 @@ class ServiceFileOpener implements IService {
                 error: openError.message,
             }));
         });
-    }
-
-    private _getFileParser(file: string): AFileParser | undefined {
-        let parser: AFileParser | undefined;
-        FileParsers.forEach((desc) => {
-            if (parser !== undefined) {
-                return;
-            }
-            parser = new desc.class();
-            if (parser !== undefined && !parser.isSupported(file)) {
-                parser = undefined;
-            }
-        });
-        return parser;
     }
 
     private _getOptions(fullFileName: string, fileName: string, parser: AFileParser, size: number ): Promise<any> {

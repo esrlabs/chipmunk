@@ -25,7 +25,7 @@ export abstract class AFileParser {
 
     public abstract getAlias(): string;
 
-    public abstract isSupported(file: string): boolean;
+    public abstract isSupported(file: string): Promise<boolean>;
 
     public abstract getTransform(options?: any): Transform | undefined;
 
