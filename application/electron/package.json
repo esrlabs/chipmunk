@@ -1,13 +1,13 @@
 {
-  "name": "logviewer",
+  "name": "chipmunk",
   "version": "1.19.1",
   "description": "LogViewer",
   "main": "./dist/compiled/main.js",
   "copyright": "Copyright © 2019 year E.S.R.Labs",
   "build": {
     "asar": false,
-    "appId": "com.logviewer.de",
-    "productName": "",
+    "appId": "com.chipmunk.de",
+    "productName": "Chipmunk",
     "copyright": "Copyright © 2019 year E.S.R.Labs",
     "files": [
       "./dist/compiled/**"
@@ -19,7 +19,7 @@
       {
         "provider": "github",
         "owner": "esrlabs",
-        "repo": "logviewer"
+        "repo": "chipmunk"
       }
     ],
     "npmRebuild": true,
