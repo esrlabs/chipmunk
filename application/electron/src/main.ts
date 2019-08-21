@@ -135,8 +135,12 @@ class Application {
         process.on('unhandledRejection', this._onUnhandledRejection.bind(this));
     }
 
-    private _onUnhandledRejection(error: Error) {
-        this.logger.error(`[BAD] UnhandledRejection: ${error.message}`);
+    private _onUnhandledRejection(reason: Error | any, promise: Promise<any>) {
+        if (reason instanceof Error) {
+            this.logger.error(`[BAD] UnhandledRejection: ${reason.message}`);
+        } else {
+            this.logger.error(`[BAD] UnhandledRejection happened. No reason as error was provided.`);
+        }
     }
 
     private _onUncaughtException(error: Error) {
