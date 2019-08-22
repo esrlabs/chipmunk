@@ -223,7 +223,7 @@ export class ControllerSessionTabMap {
         this._search.getAppliedRequests().forEach((request: IRequest) => {
             map[request.reg.source] = request;
         });
-        const data = message.getData();
+        const data: IPCMessages.ISearchResultMapData = message.getData();
         // Remove search colums
         this._columns = this._columns.filter(c => !c.search);
         let index: number = 0;
@@ -231,34 +231,39 @@ export class ControllerSessionTabMap {
             // Expanded
             const columns: {[key: string]: number } = {};
             Object.keys(data.map).forEach((key: number | string) => {
-                if (columns[data.map[key]] === undefined) {
-                    columns[data.map[key]] = index;
-                    this._columns.unshift({
-                        description: data.map[key],
-                        index: index,
-                        search: true,
-                        guid: Toolkit.guid(),
-                    });
-                    index += 1;
-                }
-                const point: IMapPoint = {
-                    position: typeof key === 'number' ? key : parseInt(key, 10),
-                    color: map[data.map[key]] === undefined ? '' : (map[data.map[key]].background !== '' ? map[data.map[key]].background : map[data.map[key]].color),
-                    column: columns[data.map[key]],
-                    description: data.map[key],
-                    reg: data.map[key],
-                };
-                this._state.points.push(point);
+                const matches: string[] = data.map[key];
+                matches.forEach((match: string) => {
+                    if (columns[match] === undefined) {
+                        columns[match] = index;
+                        this._columns.unshift({
+                            description: match,
+                            index: index,
+                            search: true,
+                            guid: Toolkit.guid(),
+                        });
+                        index += 1;
+                    }
+                    const point: IMapPoint = {
+                        position: typeof key === 'number' ? key : parseInt(key, 10),
+                        color: map[match] === undefined ? '' : (map[match].background !== '' ? map[match].background : map[match].color),
+                        column: columns[match],
+                        description: match,
+                        reg: match,
+                    };
+                    this._state.points.push(point);
+                });
             });
         } else {
             // Single
             Object.keys(data.map).forEach((key: number | string) => {
+                const matches: string[] = data.map[key];
+                const match: string = matches[0];
                 const point: IMapPoint = {
                     position: typeof key === 'number' ? key : parseInt(key, 10),
-                    color: map[data.map[key]] === undefined ? '' : (map[data.map[key]].background !== '' ? map[data.map[key]].background : map[data.map[key]].color),
+                    color: map[match] === undefined ? '' : (map[match].background !== '' ? map[match].background : map[match].color),
                     column: index,
-                    description: data.map[key],
-                    reg: data.map[key],
+                    description: matches.join(', '),
+                    reg: match,
                 };
                 this._state.points.push(point);
             });

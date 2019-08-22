@@ -2,13 +2,13 @@ export interface ISearchResultMap {
     streamId: string;
     append: boolean;
     stats: { [key: string]: number };
-    map: { [key: number]: string };
+    map: { [key: number]: string[] };
     data?: string;
 }
 
 export interface ISearchResultMapData {
     stats: { [key: string]: number };
-    map: { [key: number]: string };
+    map: { [key: number]: string[] };
 }
 
 export class SearchResultMap {
