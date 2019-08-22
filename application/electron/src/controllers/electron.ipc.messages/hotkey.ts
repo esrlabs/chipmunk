@@ -5,7 +5,6 @@ export enum EHotkeyActionRef {
     openDltFile = 'openDltFile',
     focusSearchInput = 'focusSearchInput',
     openSearchFiltersTab = 'openSearchFiltersTab',
-    openMergeTab = 'openMergeTab',
     selectNextRow = 'selectNextRow',
     selectPrevRow = 'selectPrevRow',
     focusMainView = 'focusMainView',

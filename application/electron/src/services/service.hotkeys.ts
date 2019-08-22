@@ -13,7 +13,6 @@ const CHotkeyMap = {
     [IPCMessages.EHotkeyActionRef.openDltFile]:             { darwin: ['Cmd+D'],            other: ['Ctrl+D'] },
     [IPCMessages.EHotkeyActionRef.focusSearchInput]:        { darwin: ['Cmd+F', '/'],       other: ['Ctrl+F', '/'] },
     [IPCMessages.EHotkeyActionRef.openSearchFiltersTab]:    { darwin: ['Shift+Cmd+F'],      other: ['Shift+Ctrl+F'] },
-    [IPCMessages.EHotkeyActionRef.openMergeTab]:            { darwin: ['Shift+Cmd+M'],      other: ['Shift+Ctrl+M'] },
     [IPCMessages.EHotkeyActionRef.selectNextRow]:           {                               other: ['j'] },
     [IPCMessages.EHotkeyActionRef.selectPrevRow]:           {                               other: ['k'] },
     [IPCMessages.EHotkeyActionRef.focusMainView]:           { darwin: ['Cmd+1'],            other: ['Ctrl+1'] },
