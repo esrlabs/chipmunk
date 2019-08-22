@@ -6,7 +6,7 @@ export default class Transform extends Stream.Transform {
     private _logger: Logger;
     private _rest: string = '';
     private _request: RegExp;
-    private _map: { [key: number]: string } = {};
+    private _map: { [key: number]: string[] } = {};
     private _stats: { [key: string]: number } = {};
     private _keys: { [key: string]: string } = {};
 
@@ -25,7 +25,7 @@ export default class Transform extends Stream.Transform {
         }).join('|')}`, 'i');
     }
 
-    public getMap(): { [key: number]: string } {
+    public getMap(): { [key: number]: string[] } {
         return this._map;
     }
 
@@ -63,7 +63,10 @@ export default class Transform extends Stream.Transform {
             }
             Object.keys(requestsMatch.groups).forEach((key: string, i: number) => {
                 if ((requestsMatch.groups as any)[key] !== undefined) {
-                    this._map[position] = this._getKey(key);
+                    if (this._map[position] === undefined) {
+                        this._map[position] = [];
+                    }
+                    this._map[position].push(this._getKey(key));
                     this._setStats(this._getKey(key));
                 }
             });
