@@ -4,7 +4,7 @@ import * as Net from 'net';
 import Logger from '../tools/env.logger';
 import { guid } from '../tools/index';
 import ServiceElectron from './service.electron';
-import ServiceStreams, { IStreamInfo } from './service.streams';
+import ServiceStreams, { IStreamInfo, INewSessionEvent } from './service.streams';
 import ServiceElectronService from './service.electron.state';
 import ControllerPluginProcessMultiple from '../controllers/controller.plugin.process.multiple';
 import ControllerPluginProcessSingle from '../controllers/controller.plugin.process.single';
@@ -50,7 +50,7 @@ export class ServicePlugins implements IService {
     private _logger: Logger = new Logger('ServicePluginNode');
     private _plugins: Map<TPluginName, IPlugin> = new Map();
     private _electronVersion: string = '';
-    private _subscriptions: { [key: string ]: Subscription | undefined } = { };
+    private _subscriptions: { [key: string ]: Subscription } = { };
     private _isRenderReady: boolean = false;
     private _seq: number = 0;
     private _ids: Map<number, string> = new Map();
@@ -180,8 +180,9 @@ export class ServicePlugins implements IService {
 
     public destroy(): Promise<void> {
         return new Promise((resolve) => {
-            this._unsubscribeIPCMessages();
-            this._unsubscribeFromStreamEvents();
+            Object.keys(this._subscriptions).forEach((key: string) => {
+                (this._subscriptions as any)[key].destroy();
+            });
             this._plugins.forEach((plugin: IPlugin) => {
                 plugin.sessions.forEach((controller: ControllerPluginProcessMultiple) => {
                     controller.kill();
@@ -274,20 +275,15 @@ export class ServicePlugins implements IService {
     *   Streams
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     private _subscribeToStreamEvents() {
-        ServiceStreams.on(ServiceStreams.EVENTS.streamAdded, this._streams_onStreamAdded);
-        ServiceStreams.on(ServiceStreams.EVENTS.streamRemoved, this._streams_onStreamRemoved);
+        this._subscriptions.onSessionCreated = ServiceStreams.getSubjects().onSessionCreated.subscribe(this._streams_onStreamAdded.bind(this));
+        this._subscriptions.onSessionClosed = ServiceStreams.getSubjects().onSessionClosed.subscribe(this._streams_onStreamRemoved.bind(this));
     }
 
-    private _unsubscribeFromStreamEvents() {
-        ServiceStreams.removeListener(ServiceStreams.EVENTS.streamAdded, this._streams_onStreamAdded);
-        ServiceStreams.removeListener(ServiceStreams.EVENTS.streamRemoved, this._streams_onStreamRemoved);
-    }
-
-    private _streams_onStreamAdded(stream: IStreamInfo, transports: string[]) {
+    private _streams_onStreamAdded(event: INewSessionEvent) {
         const plugins: IPlugin[] = [];
-        this._logger.env(`New stream is created ${stream.guid}. Sending information to plugins.`);
+        this._logger.env(`New stream is created ${event.stream.guid}. Sending information to plugins.`);
         // Get all related transports (plugins)
-        transports.forEach((pluginName: string) => {
+        event.transports.forEach((pluginName: string) => {
             const plugin: IPlugin | undefined = this._plugins.get(pluginName);
             if (plugin === undefined) {
                 return;
@@ -295,22 +291,22 @@ export class ServicePlugins implements IService {
             plugins.push(plugin);
         });
         plugins.forEach((plugin: IPlugin) => {
-            if (plugin.sessions.has(stream.guid)) {
-                this._logger.warn(`Plugin ${plugin.name} was defined as transport for session "${stream.guid}", but plugin is already bound with this session.`);
+            if (plugin.sessions.has(event.stream.guid)) {
+                this._logger.warn(`Plugin ${plugin.name} was defined as transport for session "${event.stream.guid}", but plugin is already bound with this session.`);
             }
             // Create controller
             const controller: ControllerPluginProcessMultiple = new ControllerPluginProcessMultiple(plugin);
             controller.attach().then(() => {
                 // Binding controller
-                stream.connectionFactory(plugin.name).then((connection: { socket: Net.Socket, file: string }) => {
+                event.stream.connectionFactory(plugin.name).then((connection: { socket: Net.Socket, file: string }) => {
                     // Send data to plugin
-                    controller.bindStream(stream.guid, connection).then(() => {
-                        plugin.sessions.set(stream.guid, controller);
+                    controller.bindStream(event.stream.guid, connection).then(() => {
+                        plugin.sessions.set(event.stream.guid, controller);
                         // Save data
                         this._plugins.set(plugin.name, plugin);
                         // Send notification
-                        ServiceElectronService.logStateToRender(`[${plugin.name}]: attached to session "${stream.guid}".`);
-                        this._logger.env(`[${plugin.name}]: attached to session "${stream.guid}"`);
+                        ServiceElectronService.logStateToRender(`[${plugin.name}]: attached to session "${event.stream.guid}".`);
+                        this._logger.env(`[${plugin.name}]: attached to session "${event.stream.guid}"`);
                     }).catch((bindError: Error) => {
                         ServiceElectronService.logStateToRender(`[${plugin.name}]: fail to bind due error: ${bindError.message}`);
                         this._logger.warn(`Fail to bind plugin ${plugin.name} due error: ${bindError.message}.`);
@@ -318,7 +314,7 @@ export class ServicePlugins implements IService {
                 });
             }).catch((attachError: Error) => {
                 ServiceElectronService.logStateToRender(`[${plugin.name}]: fail to attach due error: ${attachError.message}`);
-                this._logger.warn(`Fail to attach plugin ${plugin.name} for session "${stream.guid}" due error: ${attachError.message}.`);
+                this._logger.warn(`Fail to attach plugin ${plugin.name} for session "${event.stream.guid}" due error: ${attachError.message}.`);
             });
         });
     }
@@ -544,11 +540,6 @@ export class ServicePlugins implements IService {
         });
     }
 
-    private _unsubscribeIPCMessages() {
-        Object.keys(this._subscriptions).forEach((key: string) => {
-            (this._subscriptions as any)[key].destroy();
-        });
-    }
     /**
      * Handler render's state
      * @returns void

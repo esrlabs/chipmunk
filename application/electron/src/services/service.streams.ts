@@ -36,6 +36,17 @@ export interface IPipeOptions {
     decoder?: Stream.Transform;
 }
 
+export interface INewSessionEvent {
+    stream: IStreamInfo;
+    transports: string[];
+}
+
+export interface IServiceSubjects {
+    onSessionChanged: Tools.Subject<string>;
+    onSessionClosed: Tools.Subject<string>;
+    onSessionCreated: Tools.Subject<INewSessionEvent>;
+}
+
 type TGuid = string;
 
 /**
@@ -43,20 +54,19 @@ type TGuid = string;
  * @description Controlls data streams of application
  */
 
-class ServiceStreams extends EventEmitter implements IService  {
-
-    public EVENTS = {
-        streamAdded: 'streamAdded',
-        streamRemoved: 'streamRemoved',
-    };
+class ServiceStreams implements IService  {
 
     private _logger: Logger = new Logger('ServiceStreams');
     private _streams: Map<TGuid, IStreamInfo> = new Map();
     private _activeStreamGuid: string = '';
     private _subscriptions: { [key: string ]: Subscription | undefined } = { };
+    private _subjects: IServiceSubjects = {
+        onSessionChanged: new Tools.Subject('onSessionChanged'),
+        onSessionClosed: new Tools.Subject('onSessionClosed'),
+        onSessionCreated: new Tools.Subject('onSessionCreated'),
+    };
 
     constructor() {
-        super();
         // Binding
         this._ipc_onStreamSetActive = this._ipc_onStreamSetActive.bind(this);
         this._ipc_onStreamAdd = this._ipc_onStreamAdd.bind(this);
@@ -127,6 +137,10 @@ class ServiceStreams extends EventEmitter implements IService  {
         });
     }
 
+    public getSubjects(): IServiceSubjects {
+        return this._subjects;
+    }
+
     public writeTo(chunk: Buffer, sourceId: number, streamId?: string): Promise<void> {
         return new Promise((resolve, reject) => {
             // Get stream id
@@ -168,6 +182,10 @@ class ServiceStreams extends EventEmitter implements IService  {
 
     public getActiveStreamId(): string {
         return this._activeStreamGuid;
+    }
+
+    public isStreamExist(streamId: string): boolean {
+        return this._streams.has(streamId);
     }
 
     public getStreamFile(streamId?: string): { streamId: string, file: string } | Error {
@@ -419,7 +437,10 @@ class ServiceStreams extends EventEmitter implements IService  {
                 this._activeStreamGuid = stream.guid;
             }
             // Notify plugins server about new stream
-            this.emit(this.EVENTS.streamAdded, stream, message.transports);
+            this._subjects.onSessionCreated.emit({
+                stream: stream,
+                transports: message.transports,
+            });
         }).catch((streamCreateError: Error) => {
             this._logger.error(`Fail to create stream due error: ${streamCreateError.message}`);
         });
@@ -430,7 +451,7 @@ class ServiceStreams extends EventEmitter implements IService  {
             return;
         }
         this._destroyStream(message.guid).then(() => {
-            this.emit(this.EVENTS.streamRemoved);
+            this._subjects.onSessionClosed.emit(message.guid);
             response(new IPCElectronMessages.StreamRemoveResponse({ guid: message.guid }));
         }).catch((destroyError: Error) => {
             this._logger.warn(`Fail to correctly destroy session "${message.guid}" due error: ${destroyError.message}.`);
@@ -442,7 +463,11 @@ class ServiceStreams extends EventEmitter implements IService  {
         if (!(message instanceof IPCElectronMessages.StreamSetActive)) {
             return;
         }
+        if (this._activeStreamGuid === message.guid) {
+            return;
+        }
         this._activeStreamGuid = message.guid;
+        this._subjects.onSessionChanged.emit(message.guid);
         this._logger.env(`Active session is set to: ${this._activeStreamGuid}`);
     }
 

@@ -3,9 +3,9 @@ import guid from './tools.guid';
 
 const CSignature = '__subject_handler_guid';
 
-export default class Subject {
+export default class Subject<T> {
 
-    private _handlers: Array<(...args: any[]) => any> = [];
+    private _handlers: Array<(value: T) => any> = [];
     private _name: string = '';
 
     constructor(name?: string) {
@@ -14,7 +14,7 @@ export default class Subject {
         }
     }
 
-    public subscribe(handler: (...args: any[]) => void): Subscription {
+    public subscribe(handler: (value: T) => void): Subscription {
         if (typeof handler !== 'function') {
             throw new Error(`Handler of event should be a function.`);
         }
@@ -30,9 +30,9 @@ export default class Subject {
         this._handlers = [];
     }
 
-    public emit(...args: any[]) {
-        this._handlers.forEach((handler: (...args: any[]) => void) => {
-            handler(...args);
+    public emit(value: T) {
+        this._handlers.forEach((handler: (value: T) => void) => {
+            handler(value);
         });
     }
 

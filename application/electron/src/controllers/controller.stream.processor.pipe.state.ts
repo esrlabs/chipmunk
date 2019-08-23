@@ -25,6 +25,7 @@ export default class PipeState {
     public destroy() {
         clearTimeout(this._timer);
         this._names.clear();
+        this._send();
     }
 
     public add(id: string, size: number, name: string) {

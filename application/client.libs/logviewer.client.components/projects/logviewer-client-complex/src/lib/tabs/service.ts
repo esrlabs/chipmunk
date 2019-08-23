@@ -12,6 +12,7 @@ export interface ITab {
     active: boolean;
     closable?: boolean;
     content?: IComponentDesc;
+    unshift?: boolean;
 }
 
 export class TabsService {
@@ -74,6 +75,24 @@ export class TabsService {
             return;
         }
         this._tabs.set(tab.guid, tab);
+        this._subjects.new.next(tab);
+        if (tab.active) {
+            this.setActive(tab.guid);
+        }
+    }
+
+    public unshift(tab: ITab) {
+        tab = this._normalize(tab);
+        if (tab === null) {
+            return;
+        }
+        tab.unshift = true;
+        const tabs: Map<string, ITab> = new Map();
+        tabs.set(tab.guid, tab);
+        this._tabs.forEach((t: ITab, k: string) => {
+            tabs.set(k, t);
+        });
+        this._tabs = tabs;
         this._subjects.new.next(tab);
         if (tab.active) {
             this.setActive(tab.guid);

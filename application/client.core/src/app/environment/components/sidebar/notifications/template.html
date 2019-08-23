@@ -1,4 +1,4 @@
-<div class="controls">
+<div class="controls" *ngIf="_ng_session !== undefined">
     <table>
         <tr>
             <td>
@@ -18,7 +18,7 @@
         </tr>
     </table>
 </div>
-<ul class="notifications">
+<ul class="notifications" *ngIf="_ng_session !== undefined">
     <li class="notification" *ngFor="let notification of _ng_notifications">
         <app-sidebar-app-notification [notification]="notification"></app-sidebar-app-notification>
     </li>

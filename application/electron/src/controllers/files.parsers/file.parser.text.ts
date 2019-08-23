@@ -6,10 +6,26 @@ import ServiceElectron, { IPCMessages } from '../../services/service.electron';
 import ServiceStreams from '../../services/service.streams';
 import * as ft from 'file-type';
 import * as fs from 'fs';
+import { Subscription } from '../../tools/index';
 
 const ExtNames = ['txt', 'log', 'logs', 'json', 'less', 'css', 'sass', 'ts', 'js'];
 
 export default class FileParser extends AFileParser {
+
+    private _subscriptions: { [key: string ]: Subscription } = { };
+    private _guid: string | undefined;
+    private _closed: boolean = false;
+
+    constructor() {
+        super();
+        this._subscriptions.onSessionClosed = ServiceStreams.getSubjects().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
+    }
+
+    public destroy() {
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            (this._subscriptions as any)[key].destroy();
+        });
+    }
 
     public getName(): string {
         return 'text format';
@@ -74,9 +90,12 @@ export default class FileParser extends AFileParser {
     public readAndWrite(srcFile: string, destFile: string, sourceId: string, options: { [key: string]: any }, onMapUpdated?: (map: IMapItem[]) => void): Promise<IMapItem[]> {
         return new Promise((resolve, reject) => {
             const lvin: Lvin = new Lvin();
-            const session: string = ServiceStreams.getActiveStreamId();
+            this._guid = ServiceStreams.getActiveStreamId();
             if (onMapUpdated !== undefined) {
                 lvin.on(Lvin.Events.map, (map: IFileMapItem[]) => {
+                    if (this._closed) {
+                        return;
+                    }
                     onMapUpdated(map.map((item: IFileMapItem) => {
                         return { bytes: { from: item.b[0], to: item.b[1] }, rows: { from: item.r[0], to: item.r[1] } };
                     }));
@@ -87,6 +106,9 @@ export default class FileParser extends AFileParser {
                 destFile: destFile,
                 injection: sourceId.toString(),
             }).then((results: IIndexResult) => {
+                if (this._closed) {
+                    return resolve([]);
+                }
                 if (results.logs instanceof Array) {
                     results.logs.forEach((log: ILogMessage) => {
                         ServiceElectron.IPC.send(new IPCMessages.Notification({
@@ -95,7 +117,7 @@ export default class FileParser extends AFileParser {
                             file: log.file_name,
                             message: log.text,
                             caption: path.basename(srcFile),
-                            session: session,
+                            session: this._guid,
                         }));
                     });
                 }
@@ -104,15 +126,25 @@ export default class FileParser extends AFileParser {
                     return { rows: { from: item.r[0], to: item.r[1] }, bytes: { from: item.b[0], to: item.b[1] }};
                 }));
             }).catch((error: Error) => {
+                if (this._closed) {
+                    return resolve([]);
+                }
                 ServiceElectron.IPC.send(new ServiceElectron.IPCMessages.Notification({
                     caption: `Error with: ${path.basename(srcFile)}`,
                     message: error.message.length > 1500 ? `${error.message.substr(0, 1500)}...` : error.message,
                     type: ServiceElectron.IPCMessages.Notification.Types.error,
-                    session: session,
+                    session: this._guid,
                 }));
                 reject(error);
             });
         });
+    }
+
+    private _onSessionClosed(guid: string) {
+        if (this._guid !== guid) {
+            return;
+        }
+        this._closed = true;
     }
 
 }
