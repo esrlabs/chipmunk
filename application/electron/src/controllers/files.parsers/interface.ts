@@ -21,6 +21,8 @@ export interface AFileParser {
 
 export abstract class AFileParser {
 
+    public abstract destroy(): void;
+
     public abstract getName(): string;
 
     public abstract getAlias(): string;

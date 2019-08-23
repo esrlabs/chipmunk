@@ -17,15 +17,15 @@ export const CDefaultTabsGuids = {
 
 const DefaultViews = [
     {
-        name: 'Search',
-        guid: CDefaultTabsGuids.search,
-        factory: ViewSearchComponent,
-        inputs: { }
-    },
-    {
         name: 'Notifications',
         guid: CDefaultTabsGuids.notification,
         factory: SidebarAppNotificationsComponent,
+        inputs: { }
+    },
+    {
+        name: 'Search',
+        guid: CDefaultTabsGuids.search,
+        factory: ViewSearchComponent,
         inputs: { }
     },
 ];
@@ -53,6 +53,8 @@ export class ToolbarSessionsService implements IService {
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
             this._subscriptions.onFocusSearchInput = HotkeysService.getObservable().focusSearchInput.subscribe(this._onFocusSearchInput.bind(this));
+            this._subscriptions.onSessionClosed = TabsSessionsService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
+            this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
             resolve();
         });
     }
@@ -69,20 +71,7 @@ export class ToolbarSessionsService implements IService {
 
     public create(): void {
         // Add default views
-        DefaultViews.forEach((defaultView, i) => {
-            const guid: string = Toolkit.guid();
-            this._tabsService.add({
-                guid: defaultView.guid,
-                name: defaultView.name,
-                active: i === 0,
-                closable: false,
-                content: {
-                    factory: defaultView.factory,
-                    inputs: Object.assign(defaultView.inputs, this._inputs),
-                    resolved: false
-                }
-            });
-        });
+        this._addDefaultTabs();
         // Add views of plugins
         this._plugins = this._getSidebarPlugins();
         this._plugins.forEach((pluginInfo: ISidebarPluginInfo, i: number) => {
@@ -155,9 +144,55 @@ export class ToolbarSessionsService implements IService {
         return info;
     }
 
+    private _addDefaultTabs() {
+        // Add default views
+        DefaultViews.forEach((defaultView, i) => {
+            if (this._tabsService.has(defaultView.guid)) {
+                return;
+            }
+            this._tabsService.unshift({
+                guid: defaultView.guid,
+                name: defaultView.name,
+                active: i === DefaultViews.length - 1,
+                closable: false,
+                content: {
+                    factory: defaultView.factory,
+                    inputs: Object.assign(defaultView.inputs, this._inputs),
+                    resolved: false
+                }
+            });
+        });
+    }
+
+    private _removeDefaultTabs() {
+        // Add default views
+        DefaultViews.forEach((defaultView, i) => {
+            if (!this._tabsService.has(defaultView.guid)) {
+                return;
+            }
+            this._tabsService.remove(defaultView.guid);
+        });
+    }
+
     private _onFocusSearchInput() {
         LayoutStateService.toolbarMax();
         this._tabsService.setActive(CDefaultTabsGuids.search);
+    }
+
+    private _onSessionClosed(session: string) {
+        if (TabsSessionsService.getActive() !== undefined) {
+            return;
+        }
+        // No any active sessions
+        this._removeDefaultTabs();
+    }
+
+    private _onSessionChange(session: string) {
+        if (TabsSessionsService.getActive() === undefined) {
+            // No any active sessions
+            return;
+        }
+        this._addDefaultTabs();
     }
 
 }

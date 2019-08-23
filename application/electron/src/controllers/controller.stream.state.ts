@@ -1,7 +1,8 @@
 import Subject from '../tools/subject';
+import { IRange } from './controller.stream.processor.map';
 
 interface ISubjects {
-    onStreamUpdated: Subject;
+    onStreamBytesMapUpdated: Subject<IRange>;
 }
 
 export default class State {
@@ -12,7 +13,7 @@ export default class State {
     constructor(streamId: string) {
         this._streamId = streamId;
         this._subjects = {
-            onStreamUpdated: new Subject(`onStreamUpdated: ${streamId}`),
+            onStreamBytesMapUpdated: new Subject(`onStreamBytesMapUpdated: ${streamId}`),
         };
     }
 

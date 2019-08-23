@@ -139,7 +139,11 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
 
     private async onNewTab(tab: ITab) {
         this._tabs.set(tab.guid, await tab);
-        this.tabs.push(tab);
+        if (tab.unshift === true) {
+            this.tabs.unshift(tab);
+        } else {
+            this.tabs.push(tab);
+        }
         this._forceUpdate(true);
     }
 

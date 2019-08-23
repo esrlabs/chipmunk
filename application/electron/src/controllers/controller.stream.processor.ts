@@ -115,7 +115,7 @@ export default class ControllerStreamProcessor {
                         // Send notification to render
                         this._state.postman.notification();
                         // Trigger event on stream was updated
-                        this._streamState.getSubject().onStreamUpdated.emit(converted.map.bytes);
+                        this._streamState.getSubject().onStreamBytesMapUpdated.emit(converted.map.bytes);
                         if (writeError) {
                             const error: Error = new Error(this._logger.error(`Fail to write data into stream file due error: ${writeError.message}`));
                             rejectBeforeCallback(error);
@@ -161,7 +161,7 @@ export default class ControllerStreamProcessor {
             // Send notification to render
             this._state.postman.notification();
             // Trigger event on stream was updated
-            this._streamState.getSubject().onStreamUpdated.emit({ from: map[0].bytes.from, to: map[map.length - 1].bytes.to });
+            this._streamState.getSubject().onStreamBytesMapUpdated.emit({ from: map[0].bytes.from, to: map[map.length - 1].bytes.to });
         });
         if (options.decoder !== undefined) {
             options.reader.pipe(options.decoder).pipe(transform).pipe(stream);
@@ -380,7 +380,7 @@ export default class ControllerStreamProcessor {
         this._state.postman.notification();
         if (bytes !== undefined) {
             // Trigger event on stream was updated
-            this._streamState.getSubject().onStreamUpdated.emit(bytes);
+            this._streamState.getSubject().onStreamBytesMapUpdated.emit(bytes);
         }
     }
 

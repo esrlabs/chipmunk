@@ -59,7 +59,11 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
     }
 
     public ngAfterContentInit() {
-        this._ng_session = TabsSessionsService.getActive().getGuid();
+        const session: ControllerSessionTab | undefined = TabsSessionsService.getActive();
+        if (session === undefined) {
+            return;
+        }
+        this._ng_session = session.getGuid();
         this._loadState();
     }
 

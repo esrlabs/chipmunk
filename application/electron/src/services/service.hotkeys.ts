@@ -29,6 +29,11 @@ const CInputRelatedHotkeys = [
     '?',
 ];
 
+export interface IServiceSubjects {
+    openTextFile: Subject<void>;
+    openDltFile: Subject<void>;
+}
+
 /**
  * @class ServiceHotkeys
  * @description Listens hotkeys
@@ -38,10 +43,7 @@ class ServiceHotkeys implements IService {
 
     private _logger: Logger = new Logger('ServiceHotkeys');
     private _subscriptions: { [key: string ]: Subscription | undefined } = { };
-    private _subjects: {
-        openTextFile: Subject,
-        openDltFile: Subject,
-    } = {
+    private _subjects: IServiceSubjects = {
         openTextFile: new Subject('openTextFile'),
         openDltFile: new Subject('openDltFile'),
     };
@@ -87,10 +89,7 @@ class ServiceHotkeys implements IService {
         return 'ServiceHotkeys';
     }
 
-    public getSubject(): {
-        openTextFile: Subject,
-        openDltFile: Subject,
-    } {
+    public getSubject(): IServiceSubjects {
         return this._subjects;
     }
 

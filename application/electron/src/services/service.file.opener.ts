@@ -90,11 +90,13 @@ class ServiceFileOpener implements IService {
                             // Parser has direct method of reading and writing
                             this._directReadWrite(file, session, detectedParser, options).then(() => {
                                 ServiceStreams.removePipeSession(pipeSessionId);
-                                ServiceStreams.reattachSessionFileHandle();
+                                ServiceStreams.reattachSessionFileHandle(session);
+                                (detectedParser as AFileParser).destroy();
                                 resolve();
                             }).catch((pipeError: Error) => {
                                 ServiceStreams.removePipeSession(pipeSessionId);
-                                ServiceStreams.reattachSessionFileHandle();
+                                ServiceStreams.reattachSessionFileHandle(session);
+                                (detectedParser as AFileParser).destroy();
                                 reject(new Error(this._logger.error(`Fail to directly read file "${file}" due error: ${pipeError.message}`)));
                             });
                         }

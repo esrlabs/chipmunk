@@ -1,9 +1,6 @@
 import * as Toolkit from 'logviewer.client.toolkit';
 import { IService } from '../interfaces/interface.service';
 import { Observable, Subject } from 'rxjs';
-import ServiceElectronIpc, { IPCMessages } from './service.electron.ipc';
-import TabsSessionsService from './service.sessions.tabs';
-import LayoutStateService from './standalone/service.layout.state';
 
 export type TSidebarGUID = string;
 

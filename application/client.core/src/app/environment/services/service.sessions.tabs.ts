@@ -14,6 +14,11 @@ export { ControllerSessionTabSearch, IRequest } from '../controller/controller.s
 
 export type TSessionGuid = string;
 
+export interface IServiceSubjects {
+    onSessionChange: Subject<ControllerSessionTab | undefined>;
+    onSessionClosed: Subject<string>;
+}
+
 export class TabsSessionsService implements IService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('TabsSessionsService');
@@ -31,10 +36,9 @@ export class TabsSessionsService implements IService {
         sidebarApps: [],
     };
 
-    private _subjects: {
-        onSessionChange: Subject<ControllerSessionTab | undefined>,
-    } = {
+    private _subjects: IServiceSubjects = {
         onSessionChange: new Subject<ControllerSessionTab>(),
+        onSessionClosed: new Subject<string>(),
     };
 
     public init(): Promise<void> {
@@ -165,9 +169,11 @@ export class TabsSessionsService implements IService {
 
     public getObservable(): {
         onSessionChange: Observable<ControllerSessionTab | undefined>,
+        onSessionClosed: Observable<string>,
     } {
         return {
             onSessionChange: this._subjects.onSessionChange.asObservable(),
+            onSessionClosed: this._subjects.onSessionClosed.asObservable(),
         };
     }
 
@@ -240,6 +246,7 @@ export class TabsSessionsService implements IService {
         if (this._sessions.size === 0) {
             this._subjects.onSessionChange.next(undefined);
         }
+        this._subjects.onSessionClosed.next(guid);
     }
 
     private _onNewTab() {

@@ -58,7 +58,7 @@ export default class ControllerStreamSearch {
         this._logger = new Logger(`ControllerStreamSearch: ${this._guid}`);
         this._state = new State(this._guid);
         this._engine = new RGSearchWrapper(this._streamFile, this._searchFile);
-        this._subscriptions.onStreamUpdate = this._streamState.getSubject().onStreamUpdated.subscribe(this._stream_onUpdate.bind(this));
+        this._subscriptions.onStreamBytesMapUpdated = this._streamState.getSubject().onStreamBytesMapUpdated.subscribe(this._stream_onUpdate.bind(this));
         this._ipc_onSearchRequest = this._ipc_onSearchRequest.bind(this);
         this._ipc_onSearchChunkRequested = this._ipc_onSearchChunkRequested.bind(this);
         ServiceElectron.IPC.subscribe(IPCElectronMessages.SearchRequest, this._ipc_onSearchRequest).then((subscription: Subscription) => {
