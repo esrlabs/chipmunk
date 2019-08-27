@@ -129,17 +129,21 @@ class StreamsService extends EventEmitter {
     }
 
     private _createStream(streamId: string, cwd: string, env: EnvModule.TEnvVars) {
-        this._streams.set(streamId, {
-            fork: undefined,
-            streamId: streamId,
-            settings: {
-                cwd: cwd,
-                shell: true,
-                env: env
-            }
+        EnvModule.defaultShell().then((userShell: string) => {
+            this._streams.set(streamId, {
+                fork: undefined,
+                streamId: streamId,
+                settings: {
+                    cwd: cwd,
+                    shell: userShell,
+                    env: env
+                }
+            });
+            this.emit(this.Events.onStreamOpened, streamId);
+            this._logger.env(`Stream "${streamId}" is bound with cwd "${cwd}".`)
+        }).catch((gettingShellErr: Error) => {
+            this._logger.env(`Failed to create stream "${streamId}" due to error: ${gettingShellErr.message}.`)
         });
-        this.emit(this.Events.onStreamOpened, streamId);
-        this._logger.env(`Stream "${streamId}" is bound with cwd "${cwd}".`)
     }
 }
 

@@ -10,6 +10,9 @@
     "test:unit": "./node_modules/.bin/jasmine-ts"
   },
   "author": "Dmitry Astafyev (dmitry.astafyev@esrlabs.com)",
+  "contributors": [
+    "Andreas Knipl (andreas.knipl@esrlabs.com)"
+  ],
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^10.12.21",
