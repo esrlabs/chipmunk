@@ -98,6 +98,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             stream: this.session,
             command: EHostCommands.command,
             cmd: this._ng_cmd,
+            shell: this._ng_settings.shell,
         }, this.session).catch((error: Error) => {
             console.error(error);
         });

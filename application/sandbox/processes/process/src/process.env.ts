@@ -67,6 +67,43 @@ export function getOSEnvVars(): Promise<TEnvVars> {
     });
 }
 
+export function defaultShell(): Promise<string> {
+    return new Promise((resolve) => {
+        let shellPath: string | undefined = '';
+        let command: string = '';
+
+        switch (OS.platform()) {
+            case EPlatforms.aix:
+            case EPlatforms.android:
+            case EPlatforms.darwin:
+            case EPlatforms.freebsd:
+            case EPlatforms.linux:
+            case EPlatforms.openbsd:
+            case EPlatforms.sunos:
+                shellPath = process.env.SHELL;
+                command = 'echo $SHELL';
+                break;
+            case EPlatforms.win32:
+                shellPath = process.env.COMSPEC;
+                command = 'ECHO %COMSPEC%';
+                break;
+        }
+
+        if (shellPath) {
+            return resolve(shellPath);
+        }
+
+        // process didn't resolve shell, so we query it manually
+        shell(command).then((stdout: string) => {
+            resolve(stdout.trim());
+        }).catch((error: Error) => {
+            // COMSPEC should always be available on windows.
+            // Therefore: we will try to use /bin/sh as error-mitigation
+            resolve("/bin/sh");
+        });
+    });
+}
+
 export function shells(): Promise<string[]> {
     return new Promise((resolve) => {
         let command: string = '';
