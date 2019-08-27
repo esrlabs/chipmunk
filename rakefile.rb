@@ -64,6 +64,9 @@ end
 
 desc "install plugins"
 task :installplugins do
+  cd "application/electron/dist/compiled" do
+    sh "mkdir ./plugins & exit 0"
+  end
   cd "application/electron/dist/compiled/plugins" do
     sh "rm -rf *"
   end
