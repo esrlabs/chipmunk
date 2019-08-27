@@ -32,23 +32,12 @@ export type TEnvVars = { [key: string]: string };
 
 export function getOSEnvVars(): Promise<TEnvVars> {
     return new Promise((resolve) => {
-        let command: string = '';
-        switch (OS.platform()) {
-            case EPlatforms.aix:
-            case EPlatforms.android:
-            case EPlatforms.darwin:
-            case EPlatforms.freebsd:
-            case EPlatforms.linux:
-            case EPlatforms.openbsd:
-            case EPlatforms.sunos:
-                command = 'printenv';
-                break;
-            case EPlatforms.win32:
-                // TODO: Find solution for win
-                command = 'printenv';
-                break;
+        if (OS.platform() !== EPlatforms.darwin) {
+            return resolve(Object.assign({}, process.env) as TEnvVars);
         }
-        shell(command).then((stdout: string) => {
+
+        // GUI-Apps don't inherit all environment-variables on darwin
+        shell('printenv').then((stdout: string) => {
             const pairs: TEnvVars = {};
             stdout.split(/[\n\r]/gi).forEach((row: string) => {
                 const pair: string[] = row.split('=');
