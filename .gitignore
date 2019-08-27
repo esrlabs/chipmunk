@@ -47,6 +47,7 @@ Thumbs.db
 **/.DS_store
 **/dist
 **/build
+application/apps/updater/target/*
 .vscode
 !webpack.config.js
 .idea

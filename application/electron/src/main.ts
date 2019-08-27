@@ -22,30 +22,37 @@ import ServiceFileOpener from './services/service.file.opener';
 import ServiceStreamSources from './services/service.stream.sources';
 import ServiceFilters from './services/service.filters';
 import ServiceAppState from './services/service.app.state';
+import ServiceUpdate from './services/service.update';
 import ServiceDLTFiles from './services/service.dlt.files';
 
 const InitializeStages = [
     // Stage #1
-    [ServiceProduction],
+    [   ServiceProduction],
     // Stage #2
-    [ServicePaths],
+    [   ServicePaths],
     // Stage #3
-    [ServicePackage],
+    [   ServicePackage],
     // Stage #4
-    [ServiceSettings, ServiceWindowState],
+    [   ServiceSettings, ServiceWindowState],
     // Stage #5. Init electron. Prepare browser window
-    [ServiceElectron],
+    [   ServiceElectron],
     // Stage #6. Init services and helpers
-    [ServiceElectronState],
+    [   ServiceElectronState],
     // Stage #7. Stream service
-    [ServiceStreamSources, ServiceStreams],
+    [   ServiceStreamSources, ServiceStreams],
     // Stage #8. Detect OS env
-    [ServiceEnv],
-    // Stage #9, Render functionality
-    [ServiceFileInfo, ServiceMergeFiles, ServiceConcatFiles, ServiceFileSearch, ServiceFilters, ServiceFileReader, ServiceFileOpener, ServiceAppState, ServiceDLTFiles, ServiceHotkeys],
+    [   ServiceEnv],
+    // Stage #9. Common functionality
+    [   ServiceFileInfo, ServiceMergeFiles,
+        ServiceConcatFiles, ServiceFileSearch,
+        ServiceFilters, ServiceFileReader,
+        ServiceFileOpener, ServiceAppState,
+        ServiceDLTFiles, ServiceHotkeys,
+    ],
     // Stage #10. Init plugins
-    [ServicePlugins],
+    [   ServicePlugins],
     // (last service should startup service and should be single always)
+    [   ServiceUpdate],
 ];
 
 class Application {
@@ -71,6 +78,8 @@ class Application {
 
     public destroy(): Promise<void> {
         return new Promise((resolve, reject) => {
+            // Remove existing handlers
+            process.removeAllListeners();
             this._destroy(InitializeStages.length - 1, (error?: Error) => {
                 if (error instanceof Error) {
                     return reject(error);
@@ -90,7 +99,7 @@ class Application {
         const services: any[] = InitializeStages[stage];
         const tasks: Array<Promise<any>> = services.map((ref: any) => {
             this.logger.env(`Init: ${ref.getName()}`);
-            return ref.init();
+            return ref.init(this);
         });
         if (tasks.length === 0) {
             return this._init(stage + 1, callback);

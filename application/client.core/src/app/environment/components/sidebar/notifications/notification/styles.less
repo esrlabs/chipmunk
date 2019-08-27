@@ -49,7 +49,7 @@
         vertical-align: top;
         user-select: all!important;
     }
-    & p.content{
+    & div.content{
         position: relative;
         display: inline-block;
         margin: 0;
@@ -60,5 +60,25 @@
         vertical-align: top;
         user-select: all!important;
         width: ~"calc(100% - 12rem)";
+        & p{
+            padding: 0;
+            &.more{
+                padding-left: 1rem;
+            }
+        }
+        & span.toggle-button{
+            position: absolute;
+            top: 2px;
+            left: -6px;
+            transition: all 100ms ease-in-out;
+            &.opened{
+                transform: rotateZ(180deg);
+            }
+        }
+        & div.more{
+            position: relative;
+            text-align: right;
+        }
+
     }
 }

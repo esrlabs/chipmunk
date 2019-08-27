@@ -142,8 +142,8 @@ export { IFiltersSaveRequest, FiltersSaveRequest };
 import { IFiltersSaveResponse, FiltersSaveResponse } from './file.filters.save.response';
 export { IFiltersSaveResponse, FiltersSaveResponse };
 
-import { INotification, Notification, ENotificationType } from './notification';
-export { INotification, Notification, ENotificationType };
+import { INotification, Notification, ENotificationType, INotificationAction, ENotificationActionType } from './notification';
+export { INotification, Notification, ENotificationType, INotificationAction, ENotificationActionType };
 
 import { IHotkeyCall, HotkeyCall, EHotkeyActionRef } from './hotkey';
 export { IHotkeyCall, HotkeyCall, EHotkeyActionRef };
@@ -165,6 +165,9 @@ export { IDLTStatsRequest, DLTStatsRequest };
 
 import { IDLTStatsResponse, DLTStatsResponse, IDLTStats, IDLTStatsRecord } from './dlt.filestats.response';
 export { IDLTStatsResponse, DLTStatsResponse, IDLTStats, IDLTStatsRecord };
+
+import { UpdateRequest } from './update.request';
+export { UpdateRequest };
 
 // Common type for expected message implementation
 export type TMessage =  HostState |
@@ -220,7 +223,8 @@ export type TMessage =  HostState |
                         HotkeyInputOut |
                         HotkeyResume |
                         DLTStatsRequest |
-                        DLTStatsResponse;
+                        DLTStatsResponse |
+                        UpdateRequest;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -294,5 +298,7 @@ export const Map = {
 
     [DLTStatsRequest.signature              ]: DLTStatsRequest,
     [DLTStatsResponse.signature             ]: DLTStatsResponse,
+
+    [UpdateRequest.signature                ]: UpdateRequest,
 
 };

@@ -1,5 +1,7 @@
+import { IMainApp } from './interface.main';
+
 export interface IService {
-    init: () => Promise<void>;
+    init: (main?: IMainApp) => Promise<void>;
     destroy: () => Promise<void>;
     getName: () => string;
 }

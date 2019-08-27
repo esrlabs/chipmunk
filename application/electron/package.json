@@ -7,7 +7,7 @@
   "build": {
     "asar": false,
     "appId": "com.chipmunk.de",
-    "productName": "Chipmunk",
+    "productName": "chipmunk",
     "copyright": "Copyright © 2019 year E.S.R.Labs",
     "files": [
       "./dist/compiled/**"
@@ -47,6 +47,7 @@
     "@types/tar": "^4.0.0",
     "dltreader": "latest",
     "file-type": "^12.2.0",
+    "github-releases": "^0.4.2",
     "logviewer.lvin": "0.0.62",
     "moment-timezone": "^0.5.25",
     "tar": "^4.4.8",

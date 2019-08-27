@@ -92,7 +92,7 @@ export class NotificationsService {
 
     private _onProcessNotification(message: IPCMessages.Notification) {
         const row: number | undefined = typeof message.row === 'string' ? parseInt(message.row, 10) : (typeof message.row === 'number' ? message.row : undefined);
-        this.add({
+        const notification: INotification = {
             caption: message.caption.length > 150 ? `${message.caption.substr(0, 150)}...` : message.caption,
             message: message.message.length > 1500 ? `${message.message.substr(0, 1500)}...` : message.message,
             row: isNaN(row) ? undefined : (!isFinite(row) ? undefined : row),
@@ -101,7 +101,11 @@ export class NotificationsService {
                 type: message.type,
                 closable: true,
             }
-        });
+        };
+        if (message.actions instanceof Array) {
+            notification.buttons = this._actionsToButtons(message.actions);
+        }
+        this.add(notification);
     }
 
     private _validate(notification: INotification): INotification {
@@ -152,6 +156,33 @@ export class NotificationsService {
             }
             this._storage.set(notification.session, stored);
         }
+    }
+
+    private _actionsToButtons(actions: IPCMessages.INotificationAction[]): IButton[] {
+        return actions.map((action: IPCMessages.INotificationAction) => {
+            switch (action.type) {
+                case IPCMessages.ENotificationActionType.ipc:
+                    return {
+                        caption: action.caption,
+                        handler: this._sendActionIPCMessage.bind(this, action.value),
+                    };
+                case IPCMessages.ENotificationActionType.close:
+                    return {
+                        caption: action.caption,
+                        handler: () => { },
+                    };
+                default:
+                    return undefined;
+            }
+        }).filter( b => b !== undefined);
+    }
+
+    private _sendActionIPCMessage(classname: string) {
+        debugger;
+        if (IPCMessages[classname] === undefined) {
+            return;
+        }
+        ServiceElectronIpc.send(new IPCMessages[classname]());
     }
 
 }

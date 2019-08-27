@@ -47,6 +47,21 @@ task :install do
   end
 end
 
+desc "install updater"
+task :installupdater do
+  cd "application/apps/updater" do
+    sh "cargo build --release"
+  end
+  cd "application/electron" do
+    sh "mkdir ./dist & exit 0"
+    sh "mkdir ./dist/compiled & exit 0"
+    sh "mkdir ./dist/compiled/apps & exit 0"
+  end
+  cd "application" do
+    sh "cp ./apps/updater/target/release/launcher ./electron/dist/compiled/apps/launcher"
+  end
+end
+
 desc "install plugins"
 task :installplugins do
   cd "application/electron/dist/compiled/plugins" do
@@ -114,8 +129,24 @@ task :updatetoolkit do
   end
 end
 
+desc "update updater"
+task :updateupdater do
+  cd "application/apps/updater" do
+    sh "cargo build --release"
+  end
+  cd "application/electron" do
+    sh "mkdir ./dist & exit 0"
+    sh "mkdir ./dist/compiled & exit 0"
+    sh "mkdir ./dist/compiled/apps & exit 0"
+    sh "rm -rf ./dist/compiled/apps/*"
+  end
+  cd "application" do
+    sh "cp ./apps/updater/target/release/launcher ./electron/dist/compiled/apps/launcher"
+  end
+end
+
 desc "full update"
-task :update => [:updateindexer, :updatetoolkit]
+task :update => [:updateindexer, :updatetoolkit, :updateupdater]
 
 desc "build"
 task :build, [:platform] do |task, args|
