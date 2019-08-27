@@ -125,3 +125,7 @@ export function shells(): Promise<string[]> {
 export function getExecutedModulePath(): string {
     return Path.normalize(`${Path.dirname(require.main === void 0 ? __dirname : require.main.filename)}`);
 }
+
+export function getHomePath(): string {
+    return Path.normalize(`${OS.homedir()}`);
+}

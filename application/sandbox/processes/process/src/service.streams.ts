@@ -107,10 +107,10 @@ class StreamsService extends EventEmitter {
         }
         EnvModule.getOSEnvVars().then((env: EnvModule.TEnvVars) => {
             //Apply default terminal color scheme
-            this._createStream(streamId, EnvModule.getExecutedModulePath(), this._getInitialOSEnv(env));
+            this._createStream(streamId, EnvModule.getHomePath(), this._getInitialOSEnv(env));
         }).catch((error: Error) => {
-            this._logger.warn(`Fail to get OS env vars  for stream ${streamId} due error: ${error.message}. Will be used default node values.`);
-            this._createStream(streamId, EnvModule.getExecutedModulePath(), this._getInitialOSEnv(Object.assign({}, process.env) as EnvModule.TEnvVars));
+            this._logger.warn(`Failed to get OS env vars for stream ${streamId} due to error: ${error.message}. Default node-values will be used .`);
+            this._createStream(streamId, EnvModule.getHomePath(), this._getInitialOSEnv(Object.assign({}, process.env) as EnvModule.TEnvVars));
         });
     }
 
