@@ -4,6 +4,17 @@ export enum ENotificationType {
     warning = 'warning',
 }
 
+export enum ENotificationActionType {
+    ipc = 'ipc',
+    close = 'close',
+}
+
+export interface INotificationAction {
+    type: ENotificationActionType;
+    caption: string;
+    value: any;
+}
+
 export interface INotification {
     message: string;
     caption: string;
@@ -12,6 +23,7 @@ export interface INotification {
     row?: number;
     data?: any;
     type?: ENotificationType | string;
+    actions?: INotificationAction[];
 }
 
 export class Notification {
@@ -26,6 +38,7 @@ export class Notification {
     public session: string | undefined;
     public file: string | undefined;
     public row: number | undefined;
+    public actions: INotificationAction[] | undefined;
 
     constructor(params: INotification) {
         if (typeof params !== 'object' || params === null) {
@@ -37,6 +50,7 @@ export class Notification {
         this.session = params.session;
         this.file = params.file;
         this.row = params.row;
+        this.actions = params.actions;
         this.type = typeof params.type === 'string' ? this._getNotificationType(params.type) : ENotificationType.info;
     }
 

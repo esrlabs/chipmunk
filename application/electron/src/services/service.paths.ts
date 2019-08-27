@@ -11,7 +11,9 @@ const HOME_FOLDER = '.logviewer';
 const PLUGINS_FOLDER = 'plugins';
 const SOCKETS_FOLDER = 'sockets';
 const STREAMS_FOLDER = 'streams';
-
+const DOWNLOADS_FOLDER = 'downloads';
+const APPS_FOLDER = 'apps';
+const APPLICATION_FILE = 'chipmunk';
 /**
  * @class ServicePaths
  * @description Gives paths to electron instance
@@ -24,16 +26,21 @@ class ServicePaths implements IService {
     private _plugins: string;
     private _app: string;
     private _root: string;
+    private _exec: string;
     private _appModules: string;
     private _resources: string;
     private _sockets: string;
     private _streams: string;
+    private _downloads: string;
+    private _apps: string;
     private _defaultPlugins: string;
 
     constructor() {
         this._home = Path.resolve(OS.homedir(), HOME_FOLDER);
         this._sockets = Path.resolve(this._home, SOCKETS_FOLDER);
         this._streams = Path.resolve(this._home, STREAMS_FOLDER);
+        this._downloads = Path.resolve(this._home, DOWNLOADS_FOLDER);
+        this._apps = Path.resolve(this._home, APPS_FOLDER);
         const resources: Error | string = this._getResourcePath();
         if (resources instanceof Error) {
             throw resources;
@@ -50,6 +57,11 @@ class ServicePaths implements IService {
         }
         this._app = root;
         this._root = root;
+        const exec: string | Error = this._getExecPath();
+        if (exec instanceof Error) {
+            throw exec;
+        }
+        this._exec = exec;
         this._defaultPlugins = Path.resolve(this._root, 'plugins');
         this._appModules = Path.resolve(this._root, '../../node_modules');
     }
@@ -61,10 +73,10 @@ class ServicePaths implements IService {
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
             this._createHomeFolder().then(() => {
-                Promise.all([this._home, this._plugins, this._sockets, this._streams].map((folder: string) => {
+                Promise.all([this._home, this._plugins, this._sockets, this._streams, this._downloads, this._apps].map((folder: string) => {
                     return this._mkdir(folder);
                 })).then(() => {
-                    this._logger.env(`Paths:\n\thome: ${this._home}\n\troot: ${this._root}\n\tapp: ${this._app}\n\tresources ${this._resources}\n\tplugins ${this._plugins}\n\tdefault plugins ${this._defaultPlugins}\n\tsockets ${this._sockets}\n\tstreams ${this._streams}\n\tmodules ${this._appModules}`);
+                    this._logger.env(`Paths:\n\thome: ${this._home}\n\troot: ${this._root}\n\tapp: ${this._app}\n\texec ${this._exec}\n\tresources ${this._resources}\n\tplugins ${this._plugins}\n\tdefault plugins ${this._defaultPlugins}\n\tsockets ${this._sockets}\n\tstreams ${this._streams}\n\tmodules ${this._appModules}`);
                     resolve();
                 }).catch((error: Error) => {
                     this._logger.error(`Fail to initialize paths due error: ${error.message}`);
@@ -141,6 +153,30 @@ class ServicePaths implements IService {
     }
 
     /**
+     * Returns path to downloads folder
+     * @returns string
+     */
+    public getDownloads(): string {
+        return this._downloads;
+    }
+
+    /**
+     * Returns path to apps folder
+     * @returns string
+     */
+    public getApps(): string {
+        return this._apps;
+    }
+
+    /**
+     * Returns path to executable file
+     * @returns string
+     */
+    public getExec(): string {
+        return this._exec;
+    }
+
+    /**
      * Returns path from home perspective
      * @param {string} folder path to folder
      * @returns string
@@ -213,6 +249,29 @@ class ServicePaths implements IService {
             return Path.dirname(Path.resolve(process.cwd(), sourceFile));
         }
         return new Error(`Fail to detect application root folder`);
+    }
+
+    private _getExecPath(): string | Error {
+        if (!ServiceProduction.isProduction()) {
+            return this._root;
+        }
+        switch (OS.platform()) {
+            case 'darwin':
+                if (this._root.indexOf(`${APPLICATION_FILE}.app` ) === -1) {
+                    return new Error(`Cannot find target file name in path: "${APPLICATION_FILE}.app"`);
+                }
+                return `${this._root.replace(new RegExp(`(\\b${APPLICATION_FILE}\\.app\\b)(?!.*\\b\\1\\b)(.*)`, 'gi'), '')}${APPLICATION_FILE}.app`;
+            case 'win32':
+                if (this._root.indexOf(`${APPLICATION_FILE}.exe` ) === -1) {
+                    return new Error(`Cannot find target file name in path: "${APPLICATION_FILE}.exe"`);
+                }
+                return `${this._root.replace(new RegExp(`(\\b${APPLICATION_FILE}\\.exe\\b)(?!.*\\b\\1\\b)(.*)`, 'gi'), '')}${APPLICATION_FILE}.exe`;
+            default:
+                if (this._root.indexOf(`${APPLICATION_FILE}` ) === -1) {
+                    return new Error(`Cannot find target file name in path: "${APPLICATION_FILE}"`);
+                }
+                return `${this._root.replace(new RegExp(`(\\b${APPLICATION_FILE}\\b)(?!.*\\b\\1\\b)(.*)`, 'gi'), '')}${APPLICATION_FILE}`;
+        }
     }
 
     private _getResourcePath(): string | Error {

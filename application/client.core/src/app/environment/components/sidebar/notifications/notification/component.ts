@@ -15,6 +15,8 @@ export class SidebarAppNotificationComponent implements OnDestroy, AfterContentI
 
     @Input() public notification: INotification;
 
+    public _ng_more: boolean = false;
+
     private _subscriptions: { [key: string]: Subscription } = {};
 
     constructor(private _cdRef: ChangeDetectorRef) {
@@ -35,5 +37,13 @@ export class SidebarAppNotificationComponent implements OnDestroy, AfterContentI
         });
     }
 
+    public _ng_onMore() {
+        this._ng_more = !this._ng_more;
+        this._cdRef.detectChanges();
+    }
+
+    public _ng_onButtonClick(handler: () => void) {
+        handler();
+    }
 
 }
