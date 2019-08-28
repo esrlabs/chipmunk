@@ -135,8 +135,8 @@ fn main() {
             .stdout(Stdio::piped())
             .spawn();
         match child {
-            log(format!("App is started ({})", to_be_started));
             Ok(mut child) => {
+                log(format!("App is started ({})", to_be_started));
                 match child.wait() {
                     Ok(result) => {
                         log(format!("App is finished: {}", result));
