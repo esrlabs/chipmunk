@@ -45,7 +45,7 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
                 private _vcRef: ViewContainerRef,
                 private _notifications: NotificationsService) {
         this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-        this._subscriptions.onNewNotification = this._notifications.getObservable().subscribe(this._onNewNotification.bind(this));
+        this._subscriptions.onNewNotification = this._notifications.getObservable().new.subscribe(this._onNewNotification.bind(this));
         this._ng_onFilterChange = this._ng_onFilterChange.bind(this);
         this._ng_onLevelChange = this._ng_onLevelChange.bind(this);
     }

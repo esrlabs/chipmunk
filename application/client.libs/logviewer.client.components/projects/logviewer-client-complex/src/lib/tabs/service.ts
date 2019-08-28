@@ -12,6 +12,7 @@ export interface ITab {
     active: boolean;
     closable?: boolean;
     content?: IComponentDesc;
+    tabCaptionInjection?: IComponentDesc;
     unshift?: boolean;
 }
 

@@ -24,11 +24,9 @@ const CAssetFilePattern = `${CHooks.alias}@${CHooks.version}-${CHooks.platform}-
 const CSettings: {
     user: string,
     repo: string,
-    version: string,
 } = {
     user: 'esrlabs',
     repo: 'chipmunk',
-    version: '0.33.0',
 };
 export enum EPlatforms {
     aix = 'aix',

@@ -135,6 +135,7 @@ fn main() {
             .stdout(Stdio::piped())
             .spawn();
         match child {
+            log(format!("App is started ({})", to_be_started));
             Ok(mut child) => {
                 match child.wait() {
                     Ok(result) => {
@@ -144,20 +145,11 @@ fn main() {
                         log(format!("Error during running app: {}", e));
                     }
                 }
-                log(format!("App is started ({})", to_be_started));
             },
             Err(e) => {
                 log(format!("Fail to start app due error: {}", e));
             },
         };
     }
-
-
-    // std::process::exit(0);
-    // Ok(());
-    // fs::remove_dir_all("/some/dir")?;
-    // /Users/dmitry.astafyev/WebstormProjects/logviewer/test/logviewer/chipmunk.app
-    // /Users/dmitry.astafyev/WebstormProjects/logviewer/test/chipmank@1.19.4-portable.tgz
-    // ./target/release/launcher /Users/dmitry.astafyev/WebstormProjects/logviewer/test/logviewer/chipmunk.app /Users/dmitry.astafyev/WebstormProjects/logviewer/test/chipmank@1.19.4-portable.tgz
 
 }

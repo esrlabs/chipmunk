@@ -20,6 +20,6 @@
 </div>
 <ul class="notifications" *ngIf="_ng_session !== undefined">
     <li class="notification" *ngFor="let notification of _ng_notifications">
-        <app-sidebar-app-notification [notification]="notification"></app-sidebar-app-notification>
+        <app-sidebar-app-notification [notification]="notification" [session]="_ng_session"></app-sidebar-app-notification>
     </li>
 </ul>

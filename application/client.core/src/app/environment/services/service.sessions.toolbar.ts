@@ -7,6 +7,7 @@ import ControllerPluginIPC from '../controller/controller.plugin.ipc';
 import TabsSessionsService from './service.sessions.tabs';
 import { ViewSearchComponent } from '../components/views/search/component';
 import { SidebarAppNotificationsComponent } from '../components/sidebar/notifications/component';
+import { SidebarAppNotificationsCounterComponent } from '../components/sidebar/notifications/counter/component';
 import HotkeysService from './service.hotkeys';
 import LayoutStateService from './standalone/service.layout.state';
 
@@ -20,6 +21,7 @@ const DefaultViews = [
         name: 'Notifications',
         guid: CDefaultTabsGuids.notification,
         factory: SidebarAppNotificationsComponent,
+        tabCaptionInjection: SidebarAppNotificationsCounterComponent,
         inputs: { }
     },
     {
@@ -154,6 +156,11 @@ export class ToolbarSessionsService implements IService {
                 guid: defaultView.guid,
                 name: defaultView.name,
                 active: i === DefaultViews.length - 1,
+                tabCaptionInjection: defaultView.tabCaptionInjection === undefined ? undefined : {
+                    factory: defaultView.tabCaptionInjection,
+                    inputs: Object.assign(defaultView.inputs, this._inputs),
+                    resolved: false
+                },
                 closable: false,
                 content: {
                     factory: defaultView.factory,

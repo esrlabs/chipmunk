@@ -9,7 +9,7 @@
     <span   *ngIf="notification.buttons !== undefined"
             [attr.class]="'toggle-button small-icon-button fas fa-angle-double-down' + (_ng_more ? ' opened' : '')"
             (click)="_ng_onMore()"></span>
-    <div class="more" *ngIf="_ng_more">
+    <div class="more" *ngIf="_ng_more && notification.buttons !== undefined">
         <span *ngFor="let button of notification.buttons" class="small-button" (click)="_ng_onButtonClick(button.handler)">{{button.caption}}</span>
     </div>
 </div>
