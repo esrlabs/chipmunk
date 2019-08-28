@@ -39,6 +39,7 @@ export interface INotification {
     buttons?: IButton[];
     options?: IOptions;
     closing?: boolean;
+    read?: boolean;
 }
 
 const CCloseDelay = {
@@ -53,7 +54,13 @@ type TSession = string;
 
 export class NotificationsService {
 
-    private subject = new Subject<INotification>();
+    private subjects: {
+        new: Subject<INotification>,
+        updated: Subject<string>,
+    } = {
+        new: new Subject<INotification>(),
+        updated: new Subject<string>(),
+    };
     private _subscriptions: { [key: string]: Subscription } = {};
     private _onceHashes: Map<string, boolean> = new Map();
     private _storage: Map<TSession, INotification[]> = new Map();
@@ -74,15 +81,22 @@ export class NotificationsService {
         if (this._isIgnored(notification)) {
             return;
         }
-        this.subject.next(notification);
+        this.subjects.new.next(notification);
     }
 
     public clear(session: TSession) {
         this._storage.delete(session);
+        this.subjects.updated.next(session);
     }
 
-    public getObservable(): Observable<INotification> {
-        return this.subject.asObservable();
+    public getObservable(): {
+        new: Observable<INotification>,
+        updated: Observable<string>
+    } {
+        return {
+            new: this.subjects.new.asObservable(),
+            updated: this.subjects.updated.asObservable(),
+        };
     }
 
     public get(session: TSession): INotification[] {
@@ -90,13 +104,41 @@ export class NotificationsService {
         return storage === undefined ? [] : storage;
     }
 
+    public getNotReadCount(session: TSession): number {
+        const storage: INotification[] | undefined = this._storage.get(session);
+        if (storage === undefined) {
+            return -1;
+        }
+        let count: number = 0;
+        storage.forEach((notification: INotification) => {
+            count += (notification.read !== true ? 1 : 0);
+        });
+        return count;
+    }
+
+    public setAsRead(session: TSession, id: string) {
+        const storage: INotification[] | undefined = this._storage.get(session);
+        if (storage === undefined) {
+            return;
+        }
+        this._storage.set(session, storage.map((notification: INotification) => {
+            if (notification.id === id) {
+                notification.read = true;
+            }
+            return notification;
+        }));
+        this.subjects.updated.next(session);
+    }
+
     private _onProcessNotification(message: IPCMessages.Notification) {
         const row: number | undefined = typeof message.row === 'string' ? parseInt(message.row, 10) : (typeof message.row === 'number' ? message.row : undefined);
         const notification: INotification = {
+            id: Toolkit.guid(),
             caption: message.caption.length > 150 ? `${message.caption.substr(0, 150)}...` : message.caption,
             message: message.message.length > 1500 ? `${message.message.substr(0, 1500)}...` : message.message,
             row: isNaN(row) ? undefined : (!isFinite(row) ? undefined : row),
             file: message.file,
+            read: false,
             options: {
                 type: message.type,
                 closable: true,
@@ -117,6 +159,10 @@ export class NotificationsService {
             notification.options.type = ENotificationType.info;
         }
         notification.options.closeDelay = CCloseDelay[notification.options.type];
+        notification.read = false;
+        if (notification.id === undefined) {
+            notification.id = Toolkit.guid();
+        }
         return notification;
     }
 
@@ -178,7 +224,6 @@ export class NotificationsService {
     }
 
     private _sendActionIPCMessage(classname: string) {
-        debugger;
         if (IPCMessages[classname] === undefined) {
             return;
         }

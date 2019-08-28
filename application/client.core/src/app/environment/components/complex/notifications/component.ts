@@ -22,7 +22,7 @@ export class NotificationsComponent implements OnDestroy {
     public notifications: INotification[] = [];
 
     constructor(private _notificationsService: NotificationsService, private _cdRef: ChangeDetectorRef) {
-        this._subscription = this._notificationsService.getObservable().subscribe(this._onNotification.bind(this));
+        this._subscription = this._notificationsService.getObservable().new.subscribe(this._onNotification.bind(this));
     }
 
     public ngOnDestroy() {
