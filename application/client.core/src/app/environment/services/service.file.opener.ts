@@ -33,7 +33,18 @@ export interface IFile {
     type: string;
 }
 
-export class FileOpenerService implements IService {
+export interface IFileOpenerService {
+    merge: (files: IFile[]) => void;
+    concat: (files: IFile[]) => void;
+    getObservable: () => {
+        onFilesToBeMerged: Observable<IFile[]>,
+        onFilesToBeConcat: Observable<IFile[]>,
+    };
+    getPendingFiles: () => IFile[];
+    dropPendingFiles: () => void;
+}
+
+export class FileOpenerService implements IService, IFileOpenerService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('FileOpenerService');
     private _pending: IFile[] = [];
@@ -148,6 +159,7 @@ export class FileOpenerService implements IService {
                 content: {
                     factory: CTabs[guid].component,
                     inputs: {
+                        service: this,
                         close: () => {
                             TabsSessionsService.removeSidebarApp(guid);
                         }
