@@ -5,7 +5,7 @@ import ElectronIpcService, { IPCMessages } from '../../../services/service.elect
 import { SidebarAppMergeFilesItemComponent } from './file/component';
 import { IFile as ITestResponseFile } from '../../../services/electron.ipc.messages/merge.files.test.response';
 import { IFile as IRequestFile } from '../../../services/electron.ipc.messages/merge.files.request';
-import FileOpenerService, { IFile } from '../../../services/service.file.opener';
+import { IFile, IFileOpenerService } from '../../../services/service.file.opener';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 import SessionsService from '../../../services/service.sessions.tabs';
 import EventsHubService from '../../../services/standalone/service.eventshub';
@@ -50,6 +50,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
 
     public static StateKey = 'side-bar-merge-view';
 
+    @Input() public service: IFileOpenerService;
     @Input() public onBeforeTabRemove: Subject<void>;
     @Input() public close: () => void;
 
@@ -74,7 +75,6 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
                 private _vcRef: ViewContainerRef,
                 private _notifications: NotificationsService) {
         this._ng_session = SessionsService.getActive();
-        this._subscriptions.onFilesToBeMerged = FileOpenerService.getObservable().onFilesToBeMerged.subscribe(this._onFilesToBeMerged.bind(this));
         this._subscriptions.onSessionChange = SessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
     }
 
@@ -87,7 +87,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     }
 
     public ngAfterContentInit() {
-
+        this._subscriptions.onFilesToBeMerged = this.service.getObservable().onFilesToBeMerged.subscribe(this._onFilesToBeMerged.bind(this));
     }
 
     public ngAfterViewInit() {
@@ -265,7 +265,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
                 this._logger.warn(`Fail init timezones due error: ${error.message}`);
             });
         }
-        this._onFilesToBeMerged(FileOpenerService.getPendingFiles());
+        this._onFilesToBeMerged(this.service.getPendingFiles());
     }
 
     private _saveState(): void {
@@ -331,11 +331,11 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     }
 
     private _onFilesDropped(files: IFile[]) {
-        FileOpenerService.merge(files);
+        this.service.merge(files);
     }
 
     private _onFilesToBeMerged(files: IFile[]) {
-        FileOpenerService.dropPendingFiles();
+        this.service.dropPendingFiles();
         if (files.length === 0) {
             return;
         }
