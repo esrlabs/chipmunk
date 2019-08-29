@@ -13,7 +13,10 @@ jobs:
   include:
     - stage: "Build for mac"
       os: osx
-      install: npm install jake typescript --global
+      install:
+        - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+        - rustup install stable
+        - npm install jake typescript --global
       script:
         - rake full_pipeline[mac]
       before_deploy:
@@ -27,7 +30,10 @@ jobs:
         file: application/electron/dist/release/chipmunk@${CHIPMUNK_VERSION}-darwin-portable.tgz
     - stage: "Build for linux"
       os: linux
-      install: npm install jake typescript --global
+      install:
+        - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+        - rustup install stable
+        - npm install jake typescript --global
       script:
         - rake full_pipeline[linux]
       before_deploy:
@@ -38,7 +44,10 @@ jobs:
         file: application/electron/dist/release/chipmunk@${CHIPMUNK_VERSION}-linux-portable.tgz
     - stage: "Build for windows"
       os: windows
-      install: npm install jake typescript --global
+      install:
+        - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+        - rustup install stable
+        - npm install jake typescript --global
       script:
         - rake full_pipeline[win]
       before_deploy:
