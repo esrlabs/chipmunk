@@ -1,6 +1,7 @@
 import * as OS from 'os';
 import * as Path from 'path';
 import * as FS from '../tools/fs';
+import { app } from 'electron';
 
 import Logger from '../tools/env.logger';
 import ServiceProduction from './service.production';
@@ -255,22 +256,18 @@ class ServicePaths implements IService {
         if (!ServiceProduction.isProduction()) {
             return this._root;
         }
+        const exec: string = app.getPath('exe');
+        console.log(exec);
         switch (OS.platform()) {
             case 'darwin':
                 if (this._root.indexOf(`${APPLICATION_FILE}.app` ) === -1) {
-                    return new Error(`Cannot find target file name in path: "${APPLICATION_FILE}.app"`);
+                    return new Error(`Cannot find target file name "${APPLICATION_FILE}.app" in path: ${this._root}`);
                 }
                 return `${this._root.replace(new RegExp(`(\\b${APPLICATION_FILE}\\.app\\b)(?!.*\\b\\1\\b)(.*)`, 'gi'), '')}${APPLICATION_FILE}.app`;
             case 'win32':
-                if (this._root.indexOf(`${APPLICATION_FILE}.exe` ) === -1) {
-                    return new Error(`Cannot find target file name in path: "${APPLICATION_FILE}.exe"`);
-                }
-                return `${this._root.replace(new RegExp(`(\\b${APPLICATION_FILE}\\.exe\\b)(?!.*\\b\\1\\b)(.*)`, 'gi'), '')}${APPLICATION_FILE}.exe`;
+                return exec;
             default:
-                if (this._root.indexOf(`${APPLICATION_FILE}` ) === -1) {
-                    return new Error(`Cannot find target file name in path: "${APPLICATION_FILE}"`);
-                }
-                return `${this._root.replace(new RegExp(`(\\b${APPLICATION_FILE}\\b)(?!.*\\b\\1\\b)(.*)`, 'gi'), '')}${APPLICATION_FILE}`;
+                return exec;
         }
     }
 

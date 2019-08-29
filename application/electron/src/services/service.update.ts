@@ -131,6 +131,7 @@ class ServiceUpdate implements IService {
                 this._logger.env(`Current version "${current}" is newest, no update needed.`);
                 return;
             }
+            this._logger.env(`New version is released: ${info.name}`);
             const targets: string[] | Error = this._getAssetFileName(latest);
             if (targets instanceof Error) {
                 return this._logger.warn(`Fail to get targets due error: ${targets.message}`);
@@ -142,7 +143,7 @@ class ServiceUpdate implements IService {
                 }
             });
             if (tgzfile === undefined) {
-                return;
+                return this._logger.warn(`Fail to find tgz file with release for current platform.`);
             }
             this._target = latest;
             const file: string = path.resolve(ServicePaths.getDownloads(), tgzfile);
