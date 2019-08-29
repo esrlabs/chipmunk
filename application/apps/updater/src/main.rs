@@ -32,7 +32,7 @@ fn log(msg: String) {
             .open(log_file)
             .unwrap();
         if let Err(e) = writeln!(file, "{}", format!("{}", msg)) {
-            eprintln!("Couldn't write to file: {}", e);
+            log(format!("Couldn't write to file: {}", e));
         }  
     }
 }
@@ -82,7 +82,7 @@ fn main() {
     log(format!("Next folder will be removed: {}", to_be_removed.to_str().unwrap()));
 
     if let Err(err) = std::fs::remove_dir_all(&to_be_removed) {
-        eprintln!("Unable to delete directory {}: {}", to_be_removed.display(), err);
+        log(format!("Unable to delete directory {}: {}", to_be_removed.display(), err));
         std::process::exit(1);
     }
 
@@ -93,7 +93,7 @@ fn main() {
         dest = to_be_removed.parent().unwrap();
     } else {
         if let Err(err) = std::fs::create_dir(&to_be_removed) {
-            eprintln!("Unable to create directory {}: {}", to_be_removed.display(), err);
+            log(format!("Unable to create directory {}: {}", to_be_removed.display(), err));
             std::process::exit(1);
         }
         log(format!("Folder {} is cleaned", to_be_removed.to_str().unwrap()));
