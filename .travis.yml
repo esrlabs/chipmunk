@@ -1,0 +1,47 @@
+---
+language: node_js
+
+node_js: 10
+
+env:
+  - USE_HARD_LINKS=false
+
+jobs:
+  include:
+    - stage: "Build for mac"
+      os: osx
+      install: npm install jake typescript --global
+      script:
+        - rake full_pipeline[mac]
+      before_deploy:
+        - export CHIPMUNK_VERSION=$(cat application/electron/package.json | sed -n 3p | cut -d '"' -f 4)
+        - ls -la application/electron/dist/release/*
+      deploy: &deploy_base
+        provider: releases
+        api_key: $GITHUB_TOKEN
+        draft: true
+        skip_cleanup: true
+        file: application/electron/dist/release/chipmunk@${CHIPMUNK_VERSION}-darwin-portable.tgz
+    - stage: "Build for linux"
+      os: linux
+      install: npm install jake typescript --global
+      script:
+        - rake full_pipeline[linux]
+      before_deploy:
+        - export CHIPMUNK_VERSION=$(cat application/electron/package.json | sed -n 3p | cut -d '"' -f 4)
+        - ls -la application/electron/dist/release/*
+      deploy:
+        <<: *deploy_base
+        file: application/electron/dist/release/chipmunk@${CHIPMUNK_VERSION}-linux-portable.tgz
+    - stage: "Build for windows"
+      os: windows
+      install: npm install jake typescript --global
+      script:
+        - rake full_pipeline[win]
+      before_deploy:
+        - export CHIPMUNK_VERSION=$(cat application/electron/package.json | sed -n 3p | cut -d '"' -f 4)
+        - ls -la application/electron/dist/release/*
+      deploy:
+        <<: *deploy_base
+        file: application/electron/dist/release/chipmunk@${CHIPMUNK_VERSION}-win64-portable.tgz
+        draft: false
