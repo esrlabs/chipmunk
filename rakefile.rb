@@ -246,11 +246,13 @@ task :prepare_to_deploy do
           sh "tar -cvzf ../#{release_name}.tgz ./chipmunk.app"
         end
       when "linux"
-        FileUtils.mv("#{TARGET_PLATFORM_ALIAS}-unpacked", release_name)
-        sh "tar -cvzf #{release_name}.tgz #{release_name}"
+        cd "#{TARGET_PLATFORM_ALIAS}-unpacked" do
+          sh "tar -cvzf ../#{release_name}.tgz *"
+        end
       when "win"
-        FileUtils.mv("#{TARGET_PLATFORM_ALIAS}-unpacked", release_name)
-        sh "tar -cvzf #{release_name}.tgz #{release_name}"
+        cd "#{TARGET_PLATFORM_ALIAS}-unpacked" do
+          sh "tar -cvzf ../#{release_name}.tgz ./*"
+        end
     end
   end
 end
