@@ -1,5 +1,7 @@
 ---
-language: node_js
+language:
+  - node_js
+  - rust
 
 node_js: 10
 rust: 1.36
