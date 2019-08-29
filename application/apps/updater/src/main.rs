@@ -86,10 +86,21 @@ fn main() {
         std::process::exit(1);
     }
 
-    log(format!("Folder {} is removed", to_be_removed.to_str().unwrap()));
+    let dest;
+
+    if cfg!(target_os = "macos") {
+        log(format!("Folder {} is removed", to_be_removed.to_str().unwrap()));
+        dest = to_be_removed.parent().unwrap();
+    } else {
+        if let Err(err) = std::fs::create_dir(&to_be_removed) {
+            eprintln!("Unable to create directory {}: {}", to_be_removed.display(), err);
+            std::process::exit(1);
+        }
+        log(format!("Folder {} is cleaned", to_be_removed.to_str().unwrap()));
+        dest = to_be_removed;
+    }
 
     // Unpack
-    let dest = to_be_removed.parent().unwrap();
     log(format!("File {} will be unpacked into {}", tgz.to_str().unwrap(), dest.to_str().unwrap()));
 
     let tar_gz = match File::open(&tgz) {
@@ -112,7 +123,7 @@ fn main() {
     log(format!("File {} is unpacked into {}", tgz.to_str().unwrap(), dest.to_str().unwrap()));
 
     // Starting
-    let mut to_be_started;
+    let to_be_started;
 
     if cfg!(target_os = "macos") {
         to_be_started = format!("{}/Contents/MacOS/chipmunk", app.to_str().unwrap());
