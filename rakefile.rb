@@ -292,7 +292,7 @@ task :prepare_to_deploy do
         end
       when "win"
         cd "#{TARGET_PLATFORM_ALIAS}-unpacked" do
-          sh "tar -cvzf ../#{release_name}.tgz ./*"
+          sh "tar -cvzf ../#{release_name}.tgz ./* --force-local"
         end
     end
   end
