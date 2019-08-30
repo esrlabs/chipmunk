@@ -1,7 +1,9 @@
 extern crate flate2;
 extern crate tar;
 extern crate dirs;
+extern crate chrono;
 
+use chrono::{Utc};
 use std::io::Write;
 use std::fs::File;
 use std::path::Path;
@@ -12,9 +14,10 @@ use std::{thread, time};
 use std::fs::OpenOptions;
 
 fn log(msg: String) {
-    println!("{}", msg);
+    let now = Utc::now();
+    println!("{}:: {}", now, msg);
     let home_dir = dirs::home_dir();
-    let log_file = format!("{}/.logviewer/logviewer.launcher.log", home_dir.unwrap().as_path().to_str().unwrap());
+    let log_file = format!("{}/.logviewer/logviewer.updater.log", home_dir.unwrap().as_path().to_str().unwrap());
     let log_path = Path::new(&log_file);
     if !log_path.exists() {
         let mut file = match File::create(&log_path) {
@@ -24,24 +27,28 @@ fn log(msg: String) {
             }
             Ok(file) => file
         };
-        file.write_all(msg.as_bytes()).unwrap();
+        file.write_all(format!("{}:: {}\n", now, msg).as_bytes()).unwrap();
     } else {
         let mut file = OpenOptions::new()
             .write(true)
             .append(true)
             .open(log_file)
             .unwrap();
-        if let Err(e) = writeln!(file, "{}", format!("{}", msg)) {
-            log(format!("Couldn't write to file: {}", e));
+        if let Err(e) = writeln!(file, "{}", format!("{}:: {}", now, msg)) {
+            writeln!(std::io::stderr(), "{}", format!("Couldn't write to file: {}", e)).unwrap();
         }  
     }
 }
 
 fn main() {
 
+    log(format!("Started"));
+
     // Extract arguments
     let mut args = Vec::new();
 
+    log(format!("Parsing arguments"));
+    
     for arg in std::env::args().skip(1) {
         args.push(arg);
     }
@@ -49,7 +56,7 @@ fn main() {
     log(format!("Next arguments are parsered {:?}", args));
     
     if args.len() != 2 {
-        writeln!(std::io::stderr(), "Expecting 2 arguments").unwrap();
+        log(format!("Expecting 2 arguments"));
         std::process::exit(1);
     }
     
