@@ -3,15 +3,19 @@ extern crate tar;
 extern crate dirs;
 extern crate chrono;
 
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
 use chrono::{Utc};
 use std::io::Write;
 use std::fs::File;
 use std::path::Path;
-use std::process::{Command, Stdio};
+use std::process::{Command, Child};
 use flate2::read::GzDecoder;
 use tar::Archive;
 use std::{thread, time};
 use std::fs::OpenOptions;
+use std::io::Error;
 
 fn log(msg: String) {
     let now = Utc::now();
@@ -38,6 +42,16 @@ fn log(msg: String) {
             writeln!(std::io::stderr(), "{}", format!("Couldn't write to file: {}", e)).unwrap();
         }  
     }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn spawn(exe: &str, args: &[&str]) -> Result<Child, Error> {
+    Command::new(exe).args(args).spawn()
+}
+
+#[cfg(target_os = "windows")]
+fn spawn(exe: &str, args: &[&str]) -> Result<Child, Error> {
+    Command::new(exe).args(args).creation_flags(0x00000008 & 0x00000200).spawn()
 }
 
 fn main() {
@@ -90,7 +104,12 @@ fn main() {
 
     if let Err(err) = std::fs::remove_dir_all(&to_be_removed) {
         log(format!("Unable to delete directory {}: {}", to_be_removed.display(), err));
-        std::process::exit(1);
+        if cfg!(target_os = "windows") {
+            log(format!("Continue process event previos error."));
+        } else {
+            log(format!("Cannot continue updating. Process is stopped."));
+            std::process::exit(1);
+        }
     }
 
     let dest;
@@ -101,7 +120,12 @@ fn main() {
     } else {
         if let Err(err) = std::fs::create_dir(&to_be_removed) {
             log(format!("Unable to create directory {}: {}", to_be_removed.display(), err));
-            std::process::exit(1);
+            if cfg!(target_os = "windows") {
+                log(format!("Continue process event previos error."));
+            } else {
+                log(format!("Cannot continue updating. Process is stopped."));
+                std::process::exit(1);
+            }
         }
         log(format!("Folder {} is cleaned", to_be_removed.to_str().unwrap()));
         dest = to_be_removed;
@@ -147,11 +171,7 @@ fn main() {
             log(format!("Fail to remove file {} due error {}", tgz.to_str().unwrap(), err));
         }
         log(format!("Starting: {}", &to_be_started));
-        let child = Command::new(&to_be_started)
-            .stdin(Stdio::piped())
-            .stderr(Stdio::piped())
-            .stdout(Stdio::piped())
-            .spawn();
+        let child = spawn(&to_be_started, &[]);
         match child {
             Ok(mut child) => {
                 log(format!("App is started ({})", to_be_started));
