@@ -1,59 +1,61 @@
 ---
-language:
-  - node_js
-  - rust
+language: rust
 
-node_js: 10
-rust: 1.36
+rust: stable
 
 env:
   - USE_HARD_LINKS=false
+  - export CHIPMUNK_VERSION=$(cat application/electron/package.json | sed -n 3p | cut -d '"' -f 4)
 
 jobs:
   include:
     - stage: "Build for mac"
       os: osx
       install:
-        - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-        - rustup install stable
+        - nvm install 10.16.3
+        - nvm use 10.16.3
         - npm install jake typescript --global
       script:
         - rake full_pipeline[mac]
-      before_deploy:
-        - export CHIPMUNK_VERSION=$(cat application/electron/package.json | sed -n 3p | cut -d '"' -f 4)
-        - ls -la application/electron/dist/release/*
       deploy: &deploy_base
         provider: releases
         api_key: $GITHUB_TOKEN
         draft: true
         skip_cleanup: true
+        on:
+          tags: true
         file: application/electron/dist/release/chipmunk@${CHIPMUNK_VERSION}-darwin-portable.tgz
     - stage: "Build for linux"
       os: linux
       install:
-        - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-        - rustup install stable
+        - nvm install 10.16.3
+        - nvm use 10.16.3
         - npm install jake typescript --global
       script:
         - rake full_pipeline[linux]
-      before_deploy:
-        - export CHIPMUNK_VERSION=$(cat application/electron/package.json | sed -n 3p | cut -d '"' -f 4)
-        - ls -la application/electron/dist/release/*
       deploy:
         <<: *deploy_base
         file: application/electron/dist/release/chipmunk@${CHIPMUNK_VERSION}-linux-portable.tgz
-    - stage: "Build for windows"
-      os: windows
-      install:
-        - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-        - rustup install stable
-        - npm install jake typescript --global
-      script:
-        - rake full_pipeline[win]
-      before_deploy:
-        - export CHIPMUNK_VERSION=$(cat application/electron/package.json | sed -n 3p | cut -d '"' -f 4)
-        - ls -la application/electron/dist/release/*
-      deploy:
-        <<: *deploy_base
-        file: application/electron/dist/release/chipmunk@${CHIPMUNK_VERSION}-win64-portable.tgz
         draft: false
+      notifications:
+        email:
+          recipients:
+            - arthur.braga@esrlabs.com
+            - dmitry.astafyev@esrlabs.com
+            - oliver.mueller@esrlabs.com
+          on_success: never
+    # - stage: "Build for windows"
+    #   os: windows
+    #   install:
+    #     - nvm install 10.16.3
+    #     - nvm use 10.16.3
+    #     - npm install jake typescript --global
+    #   script:
+    #     - rake full_pipeline[win]
+    #   before_deploy:
+    #     - export CHIPMUNK_VERSION=$(cat application/electron/package.json | sed -n 3p | cut -d '"' -f 4)
+    #     - ls -la application/electron/dist/release/*
+    #   deploy:
+    #     <<: *deploy_base
+    #     file: application/electron/dist/release/chipmunk@${CHIPMUNK_VERSION}-win64-portable.tgz
+    #     draft: false
