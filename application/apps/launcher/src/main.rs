@@ -1,14 +1,20 @@
+#![windows_subsystem = "windows"]
+
 extern crate chrono;
 extern crate flate2;
 extern crate dirs;
+
+#[cfg(not(target_os = "windows"))]
+use std::os::unix::process::CommandExt;
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 
 use chrono::{Utc};
 use std::io::Write;
 use std::fs::{File};
 use std::path::{Path};
-use std::process::{Command, Stdio};
+use std::process::{Command, Child};
 use std::fs::OpenOptions;
-use std::os::unix::process::CommandExt;
 use std::io::Error;
 use std::time::{SystemTime};
 
@@ -39,8 +45,24 @@ fn log(msg: String) {
     }
 }
 
+#[cfg(not(target_os = "windows"))]
 fn execute(exe: &str, args: &[&str]) -> Error {
     Command::new(exe).args(args).exec()
+}
+
+#[cfg(target_os = "windows")]
+fn execute(exe: &str, args: &[&str]) -> Result<Child, Error> {
+    Command::new(exe).args(args).creation_flags(0x00000008 & 0x00000200).spawn()
+}
+
+#[cfg(not(target_os = "windows"))]
+fn spawn(exe: &str, args: &[&str]) -> Result<Child, Error> {
+    Command::new(exe).args(args).spawn()
+}
+
+#[cfg(target_os = "windows")]
+fn spawn(exe: &str, args: &[&str]) -> Result<Child, Error> {
+    Command::new(exe).args(args).creation_flags(0x00000008 & 0x00000200).spawn()
 }
 
 fn get_app_path_str() -> String {
@@ -72,6 +94,18 @@ fn get_exe_path() -> String {
         app = format!("{}/{}", root_path.display(), "app");
     }
     return app;
+}
+
+fn get_updater_path() -> String {
+    let home_dir = dirs::home_dir();
+    let updater = format!("{}/.logviewer/apps/updater", home_dir.unwrap().as_path().to_str().unwrap());
+    let updater_exe;
+    if cfg!(target_os = "windows") {
+        updater_exe = format!("{}.exe", updater);
+    } else {
+        updater_exe = format!("{}", updater);
+    }
+    return updater_exe;
 }
 
 fn get_app_updating_tgz_path_str() -> String {
@@ -110,8 +144,7 @@ fn get_app_updating_tgz_path_str() -> String {
 
 fn update() {
 
-    let home_dir = dirs::home_dir();
-    let updater = format!("{}/.logviewer/apps/updater", home_dir.unwrap().as_path().to_str().unwrap());
+    let updater = get_updater_path();
     let updater_path = Path::new(&updater);
 
     if !updater_path.exists() {
@@ -149,14 +182,11 @@ fn main() {
 
     log(format!("Starting application: {}", app));
 
-    let child = Command::new(&app_path)
-        .stdin(Stdio::piped())
-        .stderr(Stdio::piped())
-        .stdout(Stdio::piped())
-        .spawn();
+    let child = spawn(&app, &[]);
     match child {
         Ok(mut child) => {
             log(format!("Application is started ({})", app_path.to_str().unwrap()));
+            // std::process::exit(0);
             match child.wait() {
                 Ok(result) => {
                     let code = result.code().unwrap();
