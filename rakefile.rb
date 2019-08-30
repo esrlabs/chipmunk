@@ -195,14 +195,15 @@ task :updatetoolkit do
   end
 end
 
-desc "build launcher"
-task :buildlauncher do
+desc "build updater"
+task :buildupdater do
   Rake::Task["folders"].invoke
 
   SRC_APP_DIR = "application/apps/updater/target/release/"
-  APP_FILE = "launcher"
+  APP_FILE = "updater"
+
   if OS.windows? == true
-    APP_FILE = "launcher.exe"
+    APP_FILE = "updater.exe"
   end
 
   cd "application/apps/updater" do
@@ -217,8 +218,31 @@ task :buildlauncher do
 
 end
 
+desc "build launcher"
+task :buildlauncher do
+  Rake::Task["folders"].invoke
+
+  SRC_APP_DIR = "application/apps/launcher/target/release/"
+  APP_FILE = "launcher"
+
+  if OS.windows? == true
+    APP_FILE = "launcher.exe"
+  end
+
+  cd "application/apps/launcher" do
+    puts 'Build launcher'
+    sh "cargo build --release"
+  end
+
+  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}#{APP_FILE}"
+  FileUtils.rm("#{INCLUDED_APPS_FOLDER}#{APP_FILE}") unless !File.exists?("#{INCLUDED_APPS_FOLDER}#{APP_FILE}")
+  puts "Updating app from: #{SRC_APP_DIR}#{APP_FILE}"
+  FileUtils.cp("#{SRC_APP_DIR}#{APP_FILE}", "#{INCLUDED_APPS_FOLDER}#{APP_FILE}")
+
+end
+
 desc "full update"
-task :update => [:updateindexer, :updatetoolkit, :buildlauncher]
+task :update => [:updateindexer, :updatetoolkit, :buildlauncher, :buildupdater]
 
 desc "build"
 task :build do
@@ -230,6 +254,23 @@ task :build do
     sh "npm run build-ts"
     sh "./node_modules/.bin/build --#{TARGET_PLATFORM_ALIAS}"
   end
+
+  SRC_LAUNCHER = "application/apps/launcher/target/release/launcher"
+  RELEASE_PATH = "application/electron/dist/release/"
+
+  case TARGET_PLATFORM_ALIAS
+    when "mac"
+      FileUtils.mv("#{RELEASE_PATH}mac/chipmunk.app/Contents/MacOS/chipmunk", "#{RELEASE_PATH}mac/chipmunk.app/Contents/MacOS/app")
+      FileUtils.cp("#{SRC_LAUNCHER}", "#{RELEASE_PATH}mac/chipmunk.app/Contents/MacOS/chipmunk")
+    when "linux"
+      FileUtils.mv("#{RELEASE_PATH}linux-unpacked/chipmunk", "#{RELEASE_PATH}linux-unpacked/app")
+      FileUtils.cp("#{SRC_LAUNCHER}", "#{RELEASE_PATH}linux-unpacked/chipmunk")
+    when "win"
+      FileUtils.mv("#{RELEASE_PATH}win-unpacked/chipmunk.exe", "#{RELEASE_PATH}win-unpacked/app.exe")
+      FileUtils.cp("#{SRC_LAUNCHER}.exe", "#{RELEASE_PATH}win-unpacked/chipmunk.exe")
+  end
+
+
 end
 
 desc "Prepare package to deploy on Github"
