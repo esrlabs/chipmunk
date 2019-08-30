@@ -326,20 +326,20 @@ class ServiceUpdate implements IService {
     private _getLauncherFile(): Promise<string> {
         return new Promise((resolve, reject) => {
             // process.noAsar = true;
-            const launcher: string = path.resolve(ServicePaths.getRoot(), `apps/${os.platform() === 'win32' ? 'launcher.exe' : 'launcher'}`);
-            if (!fs.existsSync(launcher)) {
-                return reject(new Error(`Fail to find an launcher in package "${launcher}".`));
+            const updater: string = path.resolve(ServicePaths.getRoot(), `apps/${os.platform() === 'win32' ? 'updater.exe' : 'updater'}`);
+            if (!fs.existsSync(updater)) {
+                return reject(new Error(`Fail to find an updater in package "${updater}".`));
             }
-            const existed: string = path.resolve(ServicePaths.getApps(), (os.platform() === 'win32' ? 'launcher.exe' : 'launcher'));
+            const existed: string = path.resolve(ServicePaths.getApps(), (os.platform() === 'win32' ? 'updater.exe' : 'updater'));
             if (fs.existsSync(existed)) {
                 try {
-                    this._logger.env(`Found existed launcher "${existed}". It will be removed.`);
+                    this._logger.env(`Found existed updater "${existed}". It will be removed.`);
                     fs.unlinkSync(existed);
                 } catch (e) {
                     return reject(e);
                 }
             }
-            fs.copyFile(launcher, existed, (error: NodeJS.ErrnoException | null) => {
+            fs.copyFile(updater, existed, (error: NodeJS.ErrnoException | null) => {
                 if (error) {
                     return reject(error);
                 }
@@ -353,30 +353,32 @@ class ServiceUpdate implements IService {
         if (this._tgzfile === undefined) {
             return;
         }
-        this._getLauncherFile().then((launcher: string) => {
-            this._update(launcher);
+        this._getLauncherFile().then((updater: string) => {
+            this._update(updater);
         }).catch((gettingLauncherErr: Error) => {
-            this._logger.error(`Fail to get launcher due error: ${gettingLauncherErr.message}`);
+            this._logger.error(`Fail to get updater due error: ${gettingLauncherErr.message}`);
         });
     }
 
-    private _update(launcher: string) {
+    private _update(updater: string) {
         if (this._tgzfile === undefined || this._main === undefined) {
             return;
         }
         const exec: string = ServicePaths.getExec();
         this._logger.env(`Prepare app to be closed`);
         this._main.destroy().then(() => {
+            const exitCode: number = 131;
             this._logger.env(`Application is ready to be closed`);
-            this._logger.env(`Starting launcher:\n\t- ${launcher} ${exec} ${this._tgzfile}`);
-            const child: ChildProcess = spawn(launcher, [exec, this._tgzfile as string], {
+            /*
+            this._logger.env(`Starting updater:\n\t- ${updater} ${exec} ${this._tgzfile}`);
+            const child: ChildProcess = spawn(updater, [exec, this._tgzfile as string], {
                 detached: true,
                 stdio: 'ignore',
             });
             child.unref();
-            this._logger.env(`Force closing of app.`);
-            process.exit(1);
-            ServiceElectron.quit();
+            */
+            this._logger.env(`Force closing of app with code ${exitCode}`);
+            ServiceElectron.quit(exitCode);
         }).catch((destroyErr: Error) => {
             this._logger.error(`Fail to prepare app to be closed due error: ${destroyErr.message}`);
         });

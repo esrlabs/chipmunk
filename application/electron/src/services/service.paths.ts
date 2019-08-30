@@ -257,7 +257,6 @@ class ServicePaths implements IService {
             return this._root;
         }
         const exec: string = app.getPath('exe');
-        console.log(exec);
         switch (OS.platform()) {
             case 'darwin':
                 if (this._root.indexOf(`${APPLICATION_FILE}.app` ) === -1) {

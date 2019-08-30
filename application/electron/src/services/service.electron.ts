@@ -98,9 +98,10 @@ class ServiceElectron implements IService {
         });
     }
 
-    public quit() {
-        app.exit(0);
-        process.exit(0);
+    public quit(code = 0) {
+        this._logger.env(`Closing app with code: ${code}`);
+        app.exit(code);
+        process.exit(code);
     }
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Electron IPC
