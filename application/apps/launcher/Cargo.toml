@@ -1,11 +1,12 @@
 [package]
-name = "updater"
+name = "launcher"
 version = "0.1.0"
 authors = ["dmitry.astafyev <dmitry.astafyev@esrlabs.com>"]
 edition = "2018"
 
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
 [dependencies]
-flate2 = "1.0.11"
-tar = "0.4.26"
-dirs = "2.0.2"
 chrono = "0.4.7"
+flate2 = "1.0.11"
+dirs = "2.0.2"
