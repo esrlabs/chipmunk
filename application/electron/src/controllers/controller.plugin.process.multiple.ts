@@ -8,11 +8,17 @@ import { IPlugin } from '../services/service.plugins';
 import Logger from '../tools/env.logger';
 import ControllerIPCPlugin from './controller.plugin.process.ipc';
 import ServiceProduction from '../services/service.production';
+import { CStdoutSocketAliases } from '../consts/controller.plugin.process';
 
 const CDebugPluginPorts: { [key: string]: number } = {
     serial: 9240,
     processes: 9241,
 };
+
+interface IConnection {
+    socket: Net.Socket;
+    file: string;
+}
 
 /**
  * @class ControllerPluginProcessMultiple
@@ -32,7 +38,7 @@ export default class ControllerPluginProcessMultiple extends Emitter {
     private _plugin: IPlugin;
     private _process: ChildProcess | undefined;
     private _ipc: ControllerIPCPlugin | undefined;
-    private _boundStreamGuid: string | undefined;
+    private _connection: IConnection | undefined;
 
     constructor(plugin: IPlugin) {
         super();
@@ -115,16 +121,17 @@ export default class ControllerPluginProcessMultiple extends Emitter {
         this._ipc.destroy();
         !this._process.killed && this._process.kill(signal);
         this._process = undefined;
+        this._connection = undefined;
         return true;
     }
 
-    public bindStream(guid: string, connection: { socket: Net.Socket, file: string }): Promise<void> {
+    public bindStream(guid: string, connection: IConnection): Promise<void> {
         return new Promise((resolve, reject) => {
             if (this._process === undefined) {
                 return reject(new Error(this._logger.warn(`Attempt to bind stream to plugin, which doesn't attached. Stream GUID: ${guid}.`)));
             }
-            if (this._boundStreamGuid !== undefined) {
-                return reject(new Error(this._logger.warn(`Plugin process is already bound with stream "${this._boundStreamGuid}"`)));
+            if (this._connection !== undefined) {
+                return reject(new Error(this._logger.warn(`Plugin process is already bound with stream "${this._connection}"`)));
             }
             this._logger.env(`Sent information about stream GUID: ${guid}.`);
             // Bind socket
@@ -133,12 +140,13 @@ export default class ControllerPluginProcessMultiple extends Emitter {
                     return reject(new Error(this._logger.warn(`Fail to bind stream to plugin, which doesn't attached. Stream GUID: ${guid}.`)));
                 }
                 // Send socket to plugin process
+                this._connection = connection;
                 if (process.platform === 'win32') {
                     // Passing sockets is not supported on Windows.
-                    this._process.send(`[socket]:${guid};${connection.file}`);
+                    this._process.send(`${CStdoutSocketAliases.bind}${guid};${connection.file}`);
                 } else {
                     // On all other platforms we can pass socket
-                    this._process.send(`[socket]:${guid};${connection.file}`, connection.socket);
+                    this._process.send(`${CStdoutSocketAliases.bind}${guid};${connection.file}`, connection.socket);
                 }
                 resolve();
             }).catch(reject);

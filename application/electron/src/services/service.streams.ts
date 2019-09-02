@@ -3,7 +3,6 @@ import * as fs from 'fs';
 import * as Net from 'net';
 import * as FS from '../tools/fs';
 import * as Stream from 'stream';
-import { EventEmitter } from 'events';
 import ServicePaths from './service.paths';
 import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from './service.electron';
 import Logger from '../tools/env.logger';
@@ -83,10 +82,10 @@ class ServiceStreams implements IService  {
             // Cleanup folder with sockets files
             this._cleanUp().then(resolve).catch(reject);
             // Subscribe to IPC messages / errors
-            ServiceElectron.IPC.subscribe(IPCElectronMessages.StreamAdd, this._ipc_onStreamAdd).then((subscription: Subscription) => {
+            ServiceElectron.IPC.subscribe(IPCElectronMessages.StreamAddRequest, this._ipc_onStreamAdd).then((subscription: Subscription) => {
                 this._subscriptions.streamAdd = subscription;
             }).catch((error: Error) => {
-                this._logger.warn(`Fail to subscribe to render event "StreamAdd" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+                this._logger.warn(`Fail to subscribe to render event "StreamAddRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
             });
             ServiceElectron.IPC.subscribe(IPCElectronMessages.StreamRemoveRequest, this._ipc_onStreamRemoveRequest).then((subscription: Subscription) => {
                 this._subscriptions.StreamRemoveRequest = subscription;
@@ -359,11 +358,17 @@ class ServiceStreams implements IService  {
             };
             const unlinkFile = (file: string): Promise<void> => {
                 return new Promise((resolveUnlink) => {
-                    fs.unlink(file, (removeSocketFileError: NodeJS.ErrnoException | null) => {
-                        if (removeSocketFileError) {
-                            this._logger.warn(`Fail to remove stream file ${file} due error: ${removeSocketFileError.message}`);
+                    fs.exists(file, (exists: boolean) => {
+                        if (!exists) {
+                            this._logger.env(`No need to remove file ${file} because it wasn't created.`);
+                            return resolveUnlink();
                         }
-                        resolveUnlink();
+                        fs.unlink(file, (removeSocketFileError: NodeJS.ErrnoException | null) => {
+                            if (removeSocketFileError) {
+                                this._logger.warn(`Fail to remove stream file ${file} due error: ${removeSocketFileError.message}`);
+                            }
+                            resolveUnlink();
+                        });
                     });
                 });
             };
@@ -426,8 +431,8 @@ class ServiceStreams implements IService  {
         });
     }
 
-    private _ipc_onStreamAdd(message: IPCElectronMessages.TMessage) {
-        if (!(message instanceof IPCElectronMessages.StreamAdd)) {
+    private _ipc_onStreamAdd(message: IPCElectronMessages.TMessage, response: (res: IPCElectronMessages.TMessage) => any) {
+        if (!(message instanceof IPCElectronMessages.StreamAddRequest)) {
             return;
         }
         // Create stream
@@ -441,8 +446,19 @@ class ServiceStreams implements IService  {
                 stream: stream,
                 transports: message.transports,
             });
+            // Response
+            response(new IPCElectronMessages.StreamAddResponse({
+                guid: message.guid,
+            }));
         }).catch((streamCreateError: Error) => {
-            this._logger.error(`Fail to create stream due error: ${streamCreateError.message}`);
+            const errMsg: string = `Fail to create stream due error: ${streamCreateError.message}`;
+            // Response
+            response(new IPCElectronMessages.StreamAddResponse({
+                guid: message.guid,
+                error: errMsg,
+            }));
+            this._logger.error(errMsg);
+
         });
     }
 

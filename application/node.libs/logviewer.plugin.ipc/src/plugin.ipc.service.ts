@@ -1,4 +1,3 @@
-import * as FS from 'fs';
 import * as Net from 'net';
 import * as Stream from 'stream';
 import { EventEmitter } from 'events';
@@ -19,6 +18,11 @@ export interface IPipedStreamInfo {
     size: number;
     name: string;
 }
+
+export const CStdoutSocketAliases = {
+    bind: '[socket]:',
+    unbind: '[socket_unbind]:',
+};
 
 /**
  * @class PluginIPCService
@@ -301,16 +305,24 @@ export class PluginIPCService extends EventEmitter {
     private _onMessage(data: any, socket?: Net.Socket) {
         try {
             // Check socket before
-            if (typeof data === 'string' && data.indexOf('[socket]:') === 0) {
-                if (socket === undefined && process.platform !== 'win32') {
-                    return console.error(`Has gotten socket information "${data}", but handle to socket is undefined. Platform: ${process.platform}`);
+            if (typeof data === 'string') {
+                if (data.indexOf(CStdoutSocketAliases.bind) === 0) {
+                    if (socket === undefined && process.platform !== 'win32') {
+                        return console.error(`Has gotten socket information "${data}", but handle to socket is undefined. Platform: ${process.platform}`);
+                    }
+                    const parts: string[] = data.replace(CStdoutSocketAliases.bind, '').split(';');
+                    if (parts.length !== 2) {
+                        return console.error(`Has gotten socket information "${data}", but there error with extracting stream ID and filename of socket.`);
+                    }
+                    const info: IStreamInfo = { id: parts[0], file: parts[1], socket: socket };
+                    return this._acceptSocket(info);
+                } else if (data.indexOf(CStdoutSocketAliases.unbind) === 0) {
+                    const streamId: string = data.replace(CStdoutSocketAliases.unbind, '');
+                    if (streamId.trim() === '') {
+                        return console.error(`Has gotten unbind socket information "${data}", but there error with extracting stream ID.`);
+                    }
+                    return this._removeSocket(streamId);
                 }
-                const parts: string[] = data.replace('[socket]:', '').split(';');
-                if (parts.length !== 2) {
-                    return console.error(`Has gotten socket information "${data}", but there error with extracting stream ID and filename of socket.`);
-                }
-                const info: IStreamInfo = { id: parts[0], file: parts[1], socket: socket };
-                return this._acceptSocket(info);
             }
             const messagePackage: IPCMessagePackage = new IPCMessagePackage(data);
             if (this._token !== undefined && messagePackage.token !== null && messagePackage.token !== this._token) {
@@ -363,7 +375,13 @@ export class PluginIPCService extends EventEmitter {
         }
     }
 
-    // TODO: Removing (closing) stream
+    private _removeSocket(streamId: string) {
+        this._sockets.delete(streamId);
+        this.emit(this.Events.closeStream, streamId);
+        console.log(`Socket of stream "${streamId}" is unbound from plugin`);
+    }
+
+    // TODO: Removing (closing) stream. Without it single mode will not work as should
 
     private _getRefToMessageClass(message: IPCMessages.TMessage): Function | undefined {
         let ref: Function | undefined;

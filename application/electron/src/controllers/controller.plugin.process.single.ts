@@ -1,5 +1,6 @@
 import * as Path from 'path';
 import * as FS from '../tools/fs';
+import * as Net from 'net';
 import * as IPCPluginMessages from './plugins.ipc.messages/index';
 import { ChildProcess, fork } from 'child_process';
 import { Emitter } from '../tools/index';
@@ -7,11 +8,17 @@ import { IPlugin } from '../services/service.plugins';
 import Logger from '../tools/env.logger';
 import ControllerIPCPlugin from './controller.plugin.process.ipc';
 import ServiceProduction from '../services/service.production';
+import { CStdoutSocketAliases } from '../consts/controller.plugin.process';
 
 const CDebugPluginPorts: { [key: string]: number } = {
     serial: 9240,
     processes: 9241,
 };
+
+interface IConnection {
+    socket: Net.Socket;
+    file: string;
+}
 
 /**
  * @class ControllerPluginProcessSingle
@@ -31,6 +38,7 @@ export default class ControllerPluginProcessSingle extends Emitter {
     private _plugin: IPlugin;
     private _process: ChildProcess | undefined;
     private _ipc: ControllerIPCPlugin | undefined;
+    private _connections: Map<string, IConnection> = new Map();
 
     constructor(plugin: IPlugin) {
         super();
@@ -112,7 +120,61 @@ export default class ControllerPluginProcessSingle extends Emitter {
         this._ipc.destroy();
         !this._process.killed && this._process.kill(signal);
         this._process = undefined;
+        this._connections.clear();
         return true;
+    }
+
+    public bindStream(guid: string, connection: IConnection): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (this._process === undefined) {
+                return reject(new Error(this._logger.warn(`Attempt to bind stream to plugin, which doesn't attached. Stream GUID: ${guid}.`)));
+            }
+            if (this._connections.has(guid)) {
+                return reject(new Error(this._logger.warn(`Plugin process is already bound with stream "${guid}"`)));
+            }
+            this._logger.env(`Sent information about stream GUID: ${guid}.`);
+            // Bind socket
+            this._bindRefWithId(connection.socket).then(() => {
+                if (this._process === undefined) {
+                    return reject(new Error(this._logger.warn(`Fail to bind stream to plugin, which doesn't attached. Stream GUID: ${guid}.`)));
+                }
+                this._connections.set(guid, connection);
+                // Send socket to plugin process
+                if (process.platform === 'win32') {
+                    // Passing sockets is not supported on Windows.
+                    this._process.send(`${CStdoutSocketAliases.bind}${guid};${connection.file}`);
+                } else {
+                    // On all other platforms we can pass socket
+                    this._process.send(`${CStdoutSocketAliases.bind}${guid};${connection.file}`, connection.socket);
+                }
+                resolve();
+            }).catch(reject);
+        });
+    }
+
+    public unbindStream(guid: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (this._process === undefined) {
+                return reject(new Error(this._logger.warn(`Attempt to unbind stream to plugin, which doesn't attached. Stream GUID: ${guid}.`)));
+            }
+            if (!this._connections.has(guid)) {
+                return reject(new Error(this._logger.warn(`Plugin process is already unbound from stream "${guid}"`)));
+            }
+            // Passing sockets is not supported on Windows.
+            this._process.send(`${CStdoutSocketAliases.unbind}${guid}`);
+            resolve();
+        });
+    }
+
+    private _bindRefWithId(socket: Net.Socket): Promise<void> {
+        return new Promise((resolve, reject) => {
+            socket.write(`[plugin:${this._plugin.id}]`, (error: Error) => {
+                if (error) {
+                    return reject(new Error(this._logger.error(`Cannot send binding message into socket due error: ${error.message}`)));
+                }
+                resolve();
+            });
+        });
     }
 
     /**
