@@ -12,11 +12,12 @@ import * as Toolkit from 'logviewer.client.toolkit';
 import HotkeysService from '../services/service.hotkeys';
 import LayoutStateService from '../services/standalone/service.layout.state';
 
+export type TPluginAPIGetter = (pluginId: number) => Toolkit.IAPI;
 export interface IControllerSession {
     guid: string;
     transports: string[];
     defaultsSideBarApps: Array<{ guid: string, name: string, component: any, closable: boolean }>;
-    sessionsEventsHub: Toolkit.ControllerSessionsEvents;
+    getPluginAPI: TPluginAPIGetter;
 }
 
 export interface IInjectionAddEvent {
@@ -42,7 +43,7 @@ export class ControllerSessionTab {
     private _viewportEventsHub: Toolkit.ControllerViewportEvents;
     private _sidebarTabsService: TabsService;
     private _defaultsSideBarApps: Array<{ guid: string, name: string, component: any, closable: boolean }>;
-    private _sessionsEventsHub: Toolkit.ControllerSessionsEvents;
+    private _getPluginAPI: TPluginAPIGetter;
     private _subscriptions: { [key: string]: Subscription | IPCSubscription } = { };
     private _subjects: {
         onOutputInjectionAdd: Subject<IInjectionAddEvent>,
@@ -55,7 +56,7 @@ export class ControllerSessionTab {
     constructor(params: IControllerSession) {
         this._sessionId = params.guid;
         this._transports = params.transports;
-        this._sessionsEventsHub = params.sessionsEventsHub;
+        this._getPluginAPI = params.getPluginAPI;
         this._scope = new ControllerSessionScope(this._sessionId);
         this._logger = new Toolkit.Logger(`ControllerSession: ${params.guid}`);
         this._stream = new ControllerSessionTabStream({
@@ -77,8 +78,6 @@ export class ControllerSessionTab {
         this._states = new ControllerSessionTabStates(params.guid);
         this._viewportEventsHub = new Toolkit.ControllerViewportEvents();
         this._defaultsSideBarApps = params.defaultsSideBarApps;
-        this._sidebar_update();
-        PluginsService.fire().onSessionOpen(this._sessionId);
         this.addOutputInjection = this.addOutputInjection.bind(this);
         this.removeOutputInjection = this.removeOutputInjection.bind(this);
         this._subscriptions.onOpenSearchFiltersTab = HotkeysService.getObservable().openSearchFiltersTab.subscribe(this._onOpenSearchFiltersTab.bind(this));
@@ -89,28 +88,41 @@ export class ControllerSessionTab {
             Object.keys(this._subscriptions).forEach((key: string) => {
                 this._subscriptions[key].unsubscribe();
             });
-            this._viewportEventsHub.destroy();
-            this._sidebarTabsService.clear();
-            this._sidebarTabsService = undefined;
-            Promise.all([
-                this._stream.destroy(),
-                this._search.destroy(),
-                this._states.destroy()
-            ]).then(() => {
-                ServiceElectronIpc.request(
-                    new IPCMessages.StreamRemoveRequest({ guid: this.getGuid() }),
-                    IPCMessages.StreamRemoveResponse
-                ).then((response: IPCMessages.StreamRemoveResponse) => {
-                    if (response.error) {
-                        return reject(new Error(this._logger.warn(`Fail to destroy session "${this.getGuid()}" due error: ${response.error}`)));
-                    }
-                    PluginsService.fire().onSessionClose(this._sessionId);
+            ServiceElectronIpc.request(
+                new IPCMessages.StreamRemoveRequest({ guid: this.getGuid() }),
+                IPCMessages.StreamRemoveResponse
+            ).then((response: IPCMessages.StreamRemoveResponse) => {
+                if (response.error) {
+                    return reject(new Error(this._logger.warn(`Fail to destroy session "${this.getGuid()}" due error: ${response.error}`)));
+                }
+                PluginsService.fire().onSessionClose(this._sessionId);
+                this._viewportEventsHub.destroy();
+                this._sidebarTabsService.clear();
+                this._sidebarTabsService = undefined;
+                Promise.all([
+                    this._stream.destroy(),
+                    this._search.destroy(),
+                    this._states.destroy()
+                ]).then(() => {
                     resolve();
-                }).catch((sendingError: Error) => {
-                    reject(new Error(this._logger.warn(`Fail to destroy session "${this.getGuid()}" due IPC error: ${sendingError.message}`)));
+                }).catch((error: Error) => {
+                    reject(error);
                 });
+            }).catch((sendingError: Error) => {
+                reject(new Error(this._logger.warn(`Fail to destroy session "${this.getGuid()}" due IPC error: ${sendingError.message}`)));
+            });
+
+        });
+    }
+
+    public init(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._stream.init().then(() => {
+                PluginsService.fire().onSessionOpen(this._sessionId);
+                this._sidebar_update();
+                resolve();
             }).catch((error: Error) => {
-                reject(error);
+                reject(new Error(this._logger.error(`Fail to init controller due error: ${error.message}`)));
             });
         });
     }
@@ -241,33 +253,6 @@ export class ControllerSessionTab {
         PluginsService.fire().onSessionChange(this._sessionId);
     }
 
-    public getPluginAPI(pluginId: number): Toolkit.IAPI {
-        return {
-            getIPC: () => {
-                const plugin = PluginsService.getPluginById(pluginId);
-                if (plugin === undefined) {
-                    return undefined;
-                }
-                return plugin.ipc;
-            },
-            getActiveSessionId: () => {
-                return this._sessionId;
-            },
-            addOutputInjection: (injection: Toolkit.IComponentInjection, type: Toolkit.EViewsTypes) => {
-                return this.addOutputInjection(injection, type);
-            },
-            removeOutputInjection: (id: string, type: Toolkit.EViewsTypes) => {
-                return this.removeOutputInjection(id, type);
-            },
-            getViewportEventsHub: () => {
-                return this.getViewportEventsHub();
-            },
-            getSessionsEventsHub: () => {
-                return this._sessionsEventsHub;
-            },
-        };
-    }
-
     private _sidebar_update() {
         if (this._sidebarTabsService !== undefined) {
             // Drop previous if was defined
@@ -312,7 +297,7 @@ export class ControllerSessionTab {
                     resolved: true,
                     inputs: {
                         session: this._sessionId,
-                        api: this.getPluginAPI(plugin.id),
+                        api: this._getPluginAPI(plugin.id),
                         sessions: plugin.controllers.sessions,
                     }
                 }

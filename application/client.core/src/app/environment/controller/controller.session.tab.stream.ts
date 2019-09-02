@@ -32,8 +32,8 @@ export class ControllerSessionTabStream {
     constructor(params: IControllerSessionStream) {
         this._guid = params.guid;
         this._transports = params.transports;
-        this._logger = new Toolkit.Logger(`ControllerSessionTabStream: ${params.guid}`);
         this._scope = params.scope;
+        this._logger = new Toolkit.Logger(`ControllerSessionTabStream: ${params.guid}`);
         this._bookmarks = new ControllerSessionTabStreamBookmarks(params.guid);
         this._output = new ControllerSessionTabStreamOutput({
             guid: params.guid,
@@ -42,11 +42,6 @@ export class ControllerSessionTabStream {
             scope: this._scope,
         });
         this._queue = new Toolkit.Queue(this._logger.error.bind(this._logger), 0);
-        // Notify electron about new stream
-        ServiceElectronIpc.send(new IPCMessages.StreamAdd({
-            guid: this._guid,
-            transports: this._transports.slice(),
-        }));
         // Subscribe to queue events
         this._queue_onDone = this._queue_onDone.bind(this);
         this._queue_onNext = this._queue_onNext.bind(this);
@@ -65,6 +60,24 @@ export class ControllerSessionTabStream {
             this._bookmarks.destroy();
             this._queue.unsubscribeAll();
             resolve();
+        });
+    }
+
+    public init(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            // Notify electron about new stream
+            ServiceElectronIpc.request(new IPCMessages.StreamAddRequest({
+                guid: this._guid,
+                transports: this._transports.slice(),
+            }), IPCMessages.StreamAddResponse).then((response: IPCMessages.StreamAddResponse) => {
+                if (response.error) {
+                    return reject(new Error(`Fail to init stream due error: ${response.error}`));
+                }
+                this._logger.env(`Stream "${response.guid}" is inited`);
+                resolve();
+            }).catch((error: Error) => {
+                reject(error);
+            });
         });
     }
 

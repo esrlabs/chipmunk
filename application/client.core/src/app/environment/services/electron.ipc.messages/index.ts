@@ -22,8 +22,11 @@ export { IPluginInternalMessage, PluginInternalMessage };
 import { IPluginError, PluginError } from './plugin.error';
 export { IPluginError, PluginError };
 
-import { IStreamAdd, StreamAdd } from './stream.add';
-export { IStreamAdd, StreamAdd };
+import { IStreamAddRequest, StreamAddRequest } from './stream.add.request';
+export { IStreamAddRequest, StreamAddRequest };
+
+import { IStreamAddResponse, StreamAddResponse } from './stream.add.responce';
+export { IStreamAddResponse, StreamAddResponse };
 
 import { IStreamSetActive, StreamSetActive } from './stream.setactive';
 export { IStreamSetActive, StreamSetActive };
@@ -179,7 +182,8 @@ export type TMessage =  HostState |
                         PluginInternalMessage |
                         PluginError |
                         StreamSetActive |
-                        StreamAdd |
+                        StreamAddRequest |
+                        StreamAddResponse |
                         StreamRemoveRequest |
                         StreamRemoveResponse |
                         StreamData |
@@ -243,7 +247,8 @@ export const Map = {
     [PluginError.signature                  ]: PluginError,
 
     [StreamSetActive.signature              ]: StreamSetActive,
-    [StreamAdd.signature                    ]: StreamAdd,
+    [StreamAddRequest.signature             ]: StreamAddRequest,
+    [StreamAddResponse.signature            ]: StreamAddResponse,
     [StreamRemoveRequest.signature          ]: StreamRemoveRequest,
     [StreamRemoveResponse.signature         ]: StreamRemoveResponse,
     [StreamData.signature                   ]: StreamData,
