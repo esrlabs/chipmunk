@@ -15,6 +15,11 @@ const STREAMS_FOLDER = 'streams';
 const DOWNLOADS_FOLDER = 'downloads';
 const APPS_FOLDER = 'apps';
 const APPLICATION_FILE = 'chipmunk';
+
+export function getHomeFolder(): string {
+    return Path.resolve(OS.homedir(), HOME_FOLDER);
+}
+
 /**
  * @class ServicePaths
  * @description Gives paths to electron instance
@@ -37,7 +42,7 @@ class ServicePaths implements IService {
     private _defaultPlugins: string;
 
     constructor() {
-        this._home = Path.resolve(OS.homedir(), HOME_FOLDER);
+        this._home = getHomeFolder();
         this._sockets = Path.resolve(this._home, SOCKETS_FOLDER);
         this._streams = Path.resolve(this._home, STREAMS_FOLDER);
         this._downloads = Path.resolve(this._home, DOWNLOADS_FOLDER);

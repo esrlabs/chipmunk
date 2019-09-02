@@ -1,12 +1,13 @@
 // Libs
 import Logger from './tools/env.logger';
-
+import { app as electronApp, dialog } from 'electron';
+import * as FS from './tools/fs';
 // Services
 import ServiceElectron from './services/service.electron';
 import ServicePackage from './services/service.package';
 import ServiceEnv from './services/service.env';
 import ServiceHotkeys from './services/service.hotkeys';
-import ServicePaths from './services/service.paths';
+import ServicePaths, { getHomeFolder } from './services/service.paths';
 import ServicePlugins from './services/service.plugins';
 import ServiceStreams from './services/service.streams';
 import ServiceSettings from './services/service.settings';
@@ -69,6 +70,29 @@ class Application {
             this._bindProcessEvents();
             this._init(0, (error?: Error) => {
                 if (error instanceof Error) {
+                    const dialogOpts = {
+                        type: 'info',
+                        buttons: ['Drop settings and close', 'Close'],
+                        title: 'Error',
+                        message: `Sorry, it looks like we have a problems with starting. You can try to drop settings and start it again.`,
+                        detail: `Error: ${error.message}`,
+                    };
+                    dialog.showMessageBox(dialogOpts, (response: number) => {
+                        this.logger.env(`Selected option: ${response}`);
+                        switch (response) {
+                            case 0:
+                                FS.rmdir(getHomeFolder()).then(() => {
+                                    electronApp.quit();
+                                }).catch((errorRmdir: Error) => {
+                                    this.logger.error(`Fail to drop settings due error: ${errorRmdir.message}`);
+                                    electronApp.quit();
+                                });
+                                break;
+                            case 1:
+                                electronApp.quit();
+                                break;
+                        }
+                    });
                     return reject(error);
                 }
                 resolve(this);
