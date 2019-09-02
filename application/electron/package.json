@@ -1,6 +1,6 @@
 {
   "name": "chipmunk",
-  "version": "1.20.1",
+  "version": "1.20.2",
   "description": "LogViewer",
   "main": "./dist/compiled/main.js",
   "copyright": "Copyright © 2019 year E.S.R.Labs",
@@ -28,24 +28,32 @@
       "icon": "./build/mac/icon.icns",
       "target": [
         {
-          "target": "dmg"
-        },
-        {
           "target": "zip"
         }
       ]
     },
     "linux": {
-      "icon": "./build/png"
+      "icon": "./build/png",
+      "target": [
+        {
+          "target": "zip"
+        }
+      ]
     },
     "win": {
-      "icon": "./build/win/icon.ico"
+      "icon": "./build/win/icon.ico",
+      "target": [
+        {
+          "target": "zip"
+        }
+      ]
     }
   },
   "dependencies": {
     "@types/moment-timezone": "^0.5.12",
     "@types/tar": "^4.0.0",
     "dltreader": "latest",
+    "electron-updater": "^4.1.2",
     "file-type": "^12.2.0",
     "github-releases": "^0.4.2",
     "logviewer.lvin": "0.0.62",
