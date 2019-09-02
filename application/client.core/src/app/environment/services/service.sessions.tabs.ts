@@ -9,6 +9,7 @@ import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
 import SourcesService from './service.sources';
 import HotkeysService from './service.hotkeys';
 import { IAPI } from 'logviewer.client.toolkit';
+import PluginsService from './service.plugins';
 
 export { ControllerSessionTabSearch, IRequest } from '../controller/controller.session.tab.search';
 
@@ -75,33 +76,42 @@ export class TabsSessionsService implements IService {
             guid: guid,
             transports: ['processes', 'serial', 'dlt', 'dlt-render'],
             defaultsSideBarApps: this._defaults.sidebarApps,
-            sessionsEventsHub: this._sessionsEventsHub,
+            getPluginAPI: this.getPluginAPI,
         });
-        this._subscriptions[`onSourceChanged:${guid}`] = session.getObservable().onSourceChanged.subscribe(this._onSourceChanged.bind(this, guid));
-        this._sessions.set(guid, session);
-        this._tabsService.add({
-            guid: guid,
-            name: 'New',
-            active: true,
-            content: {
-                factory: DockingComponent,
-                inputs: {
-                    service: new DocksService(guid, new DockDef.Container({
-                        a: new DockDef.Dock({
-                            caption: this._defaults.views[0].name,
-                            closable: false,
-                            component: {
-                                factory: this._defaults.views[0].component,
-                                inputs: {
-                                    session: session,
+        session.init().then(() => {
+            this._subscriptions[`onSourceChanged:${guid}`] = session.getObservable().onSourceChanged.subscribe(this._onSourceChanged.bind(this, guid));
+            this._sessions.set(guid, session);
+            this._tabsService.add({
+                guid: guid,
+                name: 'New',
+                active: true,
+                content: {
+                    factory: DockingComponent,
+                    inputs: {
+                        service: new DocksService(guid, new DockDef.Container({
+                            a: new DockDef.Dock({
+                                caption: this._defaults.views[0].name,
+                                closable: false,
+                                component: {
+                                    factory: this._defaults.views[0].component,
+                                    inputs: {
+                                        session: session,
+                                    }
                                 }
-                            }
-                        })
-                    }))
+                            })
+                        }))
+                    }
                 }
-            }
+            });
+            this.setActive(guid);
+        }).catch((error: Error) => {
+            session.destroy().catch((destroyErr: Error) => {
+                this._logger.error(`Fail to destroy incorrectly created session due error: ${destroyErr.message}`);
+            }).finally(() => {
+                this._logger.error(`Fail to create new session due error: ${error.message}`);
+            });
         });
-        this.setActive(guid);
+
     }
 
     public addSidebarApp(tab: ITab, session?: string): string | Error {
@@ -197,7 +207,34 @@ export class TabsSessionsService implements IService {
     }
 
     public getPluginAPI(pluginId: number): IAPI {
-        return this.getActive().getPluginAPI(pluginId);
+        return {
+            getIPC: () => {
+                const plugin = PluginsService.getPluginById(pluginId);
+                if (plugin === undefined) {
+                    return undefined;
+                }
+                return plugin.ipc;
+            },
+            getActiveSessionId: () => {
+                const controller: ControllerSessionTab | undefined = this.getActive();
+                return controller === undefined ? undefined : controller.getGuid();
+            },
+            addOutputInjection: (injection: Toolkit.IComponentInjection, type: Toolkit.EViewsTypes) => {
+                const controller: ControllerSessionTab | undefined = this.getActive();
+                return controller === undefined ? undefined : controller.addOutputInjection(injection, type);
+            },
+            removeOutputInjection: (id: string, type: Toolkit.EViewsTypes) => {
+                const controller: ControllerSessionTab | undefined = this.getActive();
+                return controller === undefined ? undefined : controller.removeOutputInjection(id, type);
+            },
+            getViewportEventsHub: () => {
+                const controller: ControllerSessionTab | undefined = this.getActive();
+                return controller === undefined ? undefined : controller.getViewportEventsHub();
+            },
+            getSessionsEventsHub: () => {
+                return this._sessionsEventsHub;
+            },
+        };
     }
 
     private _onSourceChanged(guid: string, sourceId: number) {

@@ -6,6 +6,7 @@ import { IComponentDesc } from 'logviewer-client-containers';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import { Subject } from 'rxjs';
 import { ControllerSessionScope } from '../../../../controller/controller.session.tab.scope';
+import * as Toolkit from 'logviewer.client.toolkit';
 
 @Component({
     selector: 'app-views-output-row-external',
@@ -64,6 +65,9 @@ export class ViewOutputRowExternalComponent extends AOutputRenderComponent imple
             return;
         }
         if (this.component === undefined) {
+            return;
+        }
+        if (TabsSessionsService.getActive() === undefined) {
             return;
         }
         // Define inputs for custom render

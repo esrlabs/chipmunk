@@ -153,11 +153,10 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         if (this.pluginId === -1) {
             return;
         }
-        const API: Toolkit.IAPI = TabsSessionsService.getPluginAPI(this.pluginId);
-        if (API === undefined) {
+        if (TabsSessionsService.getActive() === undefined) {
             return;
         }
-        API.getViewportEventsHub().getSubject().onRowSelected.next({
+        TabsSessionsService.getPluginAPI(this.pluginId).getViewportEventsHub().getSubject().onRowSelected.next({
             session: this.sessionId,
             source: {
                 id: this.pluginId,
