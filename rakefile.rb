@@ -168,6 +168,30 @@ task :updateindexer do
   end
 end
 
+desc "update plugin.ipc"
+task :updatepluginipc do
+  cd "application/sandbox/dlt/process" do
+    puts "Update toolkits for: dlt plugin"
+    sh "npm uninstall logviewer.plugin.ipc"
+    sh "npm install logviewer.plugin.ipc@latest"
+  end
+  cd "application/sandbox/serial/process" do
+    puts "Update toolkits for: serial plugin"
+    sh "npm uninstall logviewer.plugin.ipc"
+    sh "npm install logviewer.plugin.ipc@latest"
+  end
+  cd "application/sandbox/processes/process" do
+    puts "Update toolkits for: xterminal pluginplugin"
+    sh "npm uninstall logviewer.plugin.ipc"
+    sh "npm install logviewer.plugin.ipc@latest"
+  end
+  cd "application/sandbox/xterminal/process" do
+    puts "Update toolkits for: xterminal plugin"
+    sh "npm uninstall logviewer.plugin.ipc"
+    sh "npm install logviewer.plugin.ipc@latest"
+  end
+end
+
 desc "update toolkit"
 task :updatetoolkit do
   cd "application/client.core" do
