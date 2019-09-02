@@ -58,4 +58,5 @@ application/electron/*.js
 ./external
 TODO.md
 vim-markdown-preview.html
+local/**/*
 
