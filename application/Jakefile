@@ -455,7 +455,7 @@ namespace('plugin.ipc', function() {
             tasks.push(`rm -rf ${pluginIPCMessagesFolder} & exit 0`);
         }
         tasks.push(echo(colors.blue(`link: ${pluginIPCMessagesFolder}`)));
-        tasks.push(`ln -s ${electronMessagesFolder} ${pluginIPCMessagesFolder}`);
+        tasks.push(`cp -R ${electronMessagesFolder} ${pluginIPCMessagesFolder}`);
         tasks.push(`rm -rf ${path.normalize(path.resolve(pluginIPCPath, 'etc'))}`);
         sh(this, ...tasks);
     }, {async: true});
