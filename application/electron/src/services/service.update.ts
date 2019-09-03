@@ -2,7 +2,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as util from 'util';
 import * as os from 'os';
-import { spawn, ChildProcess } from 'child_process';
 import ServicePaths from '../services/service.paths';
 import Logger from '../tools/env.logger';
 import { IService } from '../interfaces/interface.service';

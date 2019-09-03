@@ -3,7 +3,7 @@ import * as FS from '../tools/fs';
 import * as Net from 'net';
 import * as IPCPluginMessages from './plugins.ipc.messages/index';
 import { ChildProcess, fork } from 'child_process';
-import { Emitter } from '../tools/index';
+import { Emitter, Subscription } from '../tools/index';
 import { IPlugin } from '../services/service.plugins';
 import Logger from '../tools/env.logger';
 import ControllerIPCPlugin from './controller.plugin.process.ipc';
@@ -13,6 +13,10 @@ import { CStdoutSocketAliases } from '../consts/controller.plugin.process';
 const CDebugPluginPorts: { [key: string]: number } = {
     serial: 9240,
     processes: 9241,
+};
+
+const CSettings = {
+    resolverTimeout: 3000,
 };
 
 interface IConnection {
@@ -39,6 +43,14 @@ export default class ControllerPluginProcessSingle extends Emitter {
     private _process: ChildProcess | undefined;
     private _ipc: ControllerIPCPlugin | undefined;
     private _connections: Map<string, IConnection> = new Map();
+    private _subscriptions: { [key: string]: Subscription } = {};
+    private _resolvers: {
+        bind: Map<string, () => void>,
+        unbind: Map<string, () => void>,
+    } = {
+        bind: new Map(),
+        unbind: new Map(),
+    };
 
     constructor(plugin: IPlugin) {
         super();
@@ -94,7 +106,20 @@ export default class ControllerPluginProcessSingle extends Emitter {
             })).catch((sendingError: Error) => {
                 this._logger.error(`Fail delivery plugin token due error: ${sendingError.message}`);
             });
-            resolve();
+            Promise.all([
+                this._ipc.subscribe(IPCPluginMessages.SessionStreamBound, this._onSessionStreamBound.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.SessionStreamBound = subscription;
+                }),
+                this._ipc.subscribe(IPCPluginMessages.SessionStreamUnbound, this._onSessionStreamUnbound.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.SessionStreamUnbound = subscription;
+                }),
+            ]).then(() => {
+                resolve();
+            }).catch((error: Error) => {
+                const err: string = `Fail to subscribe to plugin's IPC events due error: ${error.message}`;
+                this._logger.warn(err);
+                reject(new Error(err));
+            });
         });
     }
 
@@ -117,6 +142,9 @@ export default class ControllerPluginProcessSingle extends Emitter {
         if (this._process === undefined || this._ipc === undefined) {
             return false;
         }
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            this._subscriptions[key].destroy();
+        });
         this._ipc.destroy();
         !this._process.killed && this._process.kill(signal);
         this._process = undefined;
@@ -147,7 +175,7 @@ export default class ControllerPluginProcessSingle extends Emitter {
                     // On all other platforms we can pass socket
                     this._process.send(`${CStdoutSocketAliases.bind}${guid};${connection.file}`, connection.socket);
                 }
-                resolve();
+                this._setBindResolver(guid, resolve);
             }).catch(reject);
         });
     }
@@ -158,11 +186,12 @@ export default class ControllerPluginProcessSingle extends Emitter {
                 return reject(new Error(this._logger.warn(`Attempt to unbind stream to plugin, which doesn't attached. Stream GUID: ${guid}.`)));
             }
             if (!this._connections.has(guid)) {
-                return reject(new Error(this._logger.warn(`Plugin process is already unbound from stream "${guid}"`)));
+                this._logger.warn(`Plugin process is already unbound from stream "${guid}" or it wasn't bound at all, because plugin doesn't listen "openStream" event`);
+                return resolve();
             }
             // Passing sockets is not supported on Windows.
             this._process.send(`${CStdoutSocketAliases.unbind}${guid}`);
-            resolve();
+            this._setUnbindResolver(guid, resolve);
         });
     }
 
@@ -175,6 +204,34 @@ export default class ControllerPluginProcessSingle extends Emitter {
                 resolve();
             });
         });
+    }
+
+    private _setBindResolver(guid: string, resolver: () => void) {
+        this._resolvers.bind.set(guid, resolver);
+        setTimeout(this._applyBindResolver.bind(this, guid), CSettings.resolverTimeout);
+    }
+
+    private _setUnbindResolver(guid: string, resolver: () => void) {
+        this._resolvers.unbind.set(guid, resolver);
+        setTimeout(this._applyUnbindResolver.bind(this, guid), CSettings.resolverTimeout);
+    }
+
+    private _applyBindResolver(guid: string) {
+        const resolver = this._resolvers.bind.get(guid);
+        if (resolver === undefined) {
+            return;
+        }
+        resolver();
+        this._resolvers.bind.delete(guid);
+    }
+
+    private _applyUnbindResolver(guid: string) {
+        const resolver = this._resolvers.unbind.get(guid);
+        if (resolver === undefined) {
+            return;
+        }
+        resolver();
+        this._resolvers.bind.delete(guid);
     }
 
     /**
@@ -212,6 +269,20 @@ export default class ControllerPluginProcessSingle extends Emitter {
     private _onDisconnect(...args: any[]): void {
         this.kill();
         this.emit(ControllerPluginProcessSingle.Events.disconnect, ...args);
+    }
+
+    private _onSessionStreamBound(message: IPCPluginMessages.SessionStreamBound) {
+        if (message.error) {
+            this._logger.warn(`Fail to bind stream due error: ${message.error}`);
+        }
+        this._applyBindResolver(message.streamId);
+    }
+
+    private _onSessionStreamUnbound(message: IPCPluginMessages.SessionStreamUnbound) {
+        if (message.error) {
+            this._logger.warn(`Fail to unbind stream due error: ${message.error}`);
+        }
+        this._applyUnbindResolver(message.streamId);
     }
 
 }

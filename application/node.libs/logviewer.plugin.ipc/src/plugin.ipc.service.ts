@@ -364,20 +364,32 @@ export class PluginIPCService extends EventEmitter {
                     }
                     console.log(`ID of plugin was sent to main process.`);
                 });
-                // Notify listeners.
-                this.emit(this.Events.openStream, stream.id);
                 console.log(`Created new connection UNIX socket: ${stream.file} for plugin stream "${stream.id}".`);
             });
         } else if (stream.socket !== undefined) {
             this._sockets.set(stream.id, stream.socket);
-            this.emit(this.Events.openStream, stream.id);
             console.log(`Accepted socket of stream "${stream.id}"`);
         }
+        // Notify listeners.
+        this.emit(this.Events.openStream, stream.id);
+        // Notify host
+        this._send(new IPCMessagePackage({
+            message: new IPCMessages.SessionStreamBound({
+                streamId: stream.id,
+            }),
+        }), false);
     }
 
     private _removeSocket(streamId: string) {
         this._sockets.delete(streamId);
+        // Notify listeners.
         this.emit(this.Events.closeStream, streamId);
+        // Notify host
+        this._send(new IPCMessagePackage({
+            message: new IPCMessages.SessionStreamUnbound({
+                streamId: streamId,
+            }),
+        }), false);
         console.log(`Socket of stream "${streamId}" is unbound from plugin`);
     }
 
