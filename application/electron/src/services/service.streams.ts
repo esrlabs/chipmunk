@@ -4,6 +4,7 @@ import * as Net from 'net';
 import * as FS from '../tools/fs';
 import * as Stream from 'stream';
 import ServicePaths from './service.paths';
+import ServicePlugins from './service.plugins';
 import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from './service.electron';
 import Logger from '../tools/env.logger';
 import ControllerStreamSearch from '../controllers/controller.stream.search';
@@ -441,15 +442,26 @@ class ServiceStreams implements IService  {
             if (this._activeStreamGuid === '') {
                 this._activeStreamGuid = stream.guid;
             }
-            // Notify plugins server about new stream
-            this._subjects.onSessionCreated.emit({
-                stream: stream,
-                transports: message.transports,
+            // Prepare plugins
+            ServicePlugins.addStream(stream.guid, stream.connectionFactory, message.transports).then(() => {
+                // Emit event
+                this._subjects.onSessionCreated.emit({
+                    stream: stream,
+                    transports: message.transports,
+                });
+                // Response
+                response(new IPCElectronMessages.StreamAddResponse({
+                    guid: message.guid,
+                }));
+            }).catch((pluginsError: Error) => {
+                const errMsg: string = `Fail to create stream due error: ${pluginsError.message}`;
+                // Response
+                response(new IPCElectronMessages.StreamAddResponse({
+                    guid: message.guid,
+                    error: errMsg,
+                }));
+                this._logger.error(errMsg);
             });
-            // Response
-            response(new IPCElectronMessages.StreamAddResponse({
-                guid: message.guid,
-            }));
         }).catch((streamCreateError: Error) => {
             const errMsg: string = `Fail to create stream due error: ${streamCreateError.message}`;
             // Response
@@ -467,8 +479,13 @@ class ServiceStreams implements IService  {
             return;
         }
         this._destroyStream(message.guid).then(() => {
-            this._subjects.onSessionClosed.emit(message.guid);
-            response(new IPCElectronMessages.StreamRemoveResponse({ guid: message.guid }));
+            ServicePlugins.removedStream(message.guid).then(() => {
+                this._subjects.onSessionClosed.emit(message.guid);
+                response(new IPCElectronMessages.StreamRemoveResponse({ guid: message.guid }));
+            }).catch((plugingsError: Error) => {
+                this._logger.warn(`Fail to correctly destroy session "${message.guid}" due error: ${plugingsError.message}.`);
+                response(new IPCElectronMessages.StreamRemoveResponse({ guid: message.guid, error: plugingsError.message }));
+            });
         }).catch((destroyError: Error) => {
             this._logger.warn(`Fail to correctly destroy session "${message.guid}" due error: ${destroyError.message}.`);
             response(new IPCElectronMessages.StreamRemoveResponse({ guid: message.guid, error: destroyError.message }));

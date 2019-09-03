@@ -50,6 +50,18 @@ export default class ControllerPluginProcessMultiple extends Emitter {
         this._onDisconnect = this._onDisconnect.bind(this);
     }
 
+    public canBeAttached(): boolean {
+        if (this._plugin.packages.process === undefined) {
+            return false;
+        }
+        const mainField: string = this._plugin.packages.process.getPackageJson().main;
+        const mainFile: string = Path.resolve(this._plugin.packages.process.getPath(), mainField);
+        if (!FS.isExist(mainFile)) {
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Attempt to fork plugin process
      * @returns { Promise<void> }

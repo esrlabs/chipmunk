@@ -22,6 +22,12 @@ export { ISessionStreamPipeStarted, SessionStreamPipeStarted };
 import { ISessionStreamPipeFinished, SessionStreamPipeFinished } from './session.stream.pipe.finished';
 export { ISessionStreamPipeFinished, SessionStreamPipeFinished };
 
+import { ISessionStreamBound, SessionStreamBound } from './session.stream.bound';
+export { ISessionStreamBound, SessionStreamBound };
+
+import { ISessionStreamUnbound, SessionStreamUnbound } from './session.stream.unbound';
+export { ISessionStreamUnbound, SessionStreamUnbound };
+
 // Common type for expected message implementation
 export type TMessage =  PluginState |
                         PluginInternalMessage |
@@ -30,7 +36,9 @@ export type TMessage =  PluginState |
                         PluginStreamAdd |
                         SessionStreamState |
                         SessionStreamPipeStarted |
-                        SessionStreamPipeFinished;
+                        SessionStreamPipeFinished |
+                        SessionStreamBound |
+                        SessionStreamUnbound;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -45,5 +53,7 @@ export const Map = {
     [SessionStreamState.signature           ]: SessionStreamState,
     [SessionStreamPipeStarted.signature     ]: SessionStreamPipeStarted,
     [SessionStreamPipeFinished.signature    ]: SessionStreamPipeFinished,
+    [SessionStreamBound.signature           ]: SessionStreamBound,
+    [SessionStreamUnbound.signature         ]: SessionStreamUnbound,
 
 };
