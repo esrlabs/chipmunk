@@ -17,6 +17,6 @@
   },
   "dependencies": {
     "dltreader": "latest",
-    "logviewer.plugin.ipc": "0.0.29"
+    "logviewer.plugin.ipc": "0.0.30"
   }
 }
