@@ -5,6 +5,7 @@ rust: stable
 
 env:
   - USE_HARD_LINKS=false
+  - GITHUB_TOKEN=$GITHUB_TOKEN
 
 jobs:
   include:
