@@ -79,19 +79,23 @@ export function getEnvVar(name: string, ignoreCache: boolean = false): Promise<s
                 cmd = `echo %${name}%`;
                 break;
         }
+        let output: string = '';
         shell(cmd, ignoreCache).then((stdout: string) => {
-            stdout = stdout.replace(/[\n\r]/gi, '').trim();
-            if (os.platform() === EPlatforms.win32 && stdout === `%${name}%`) {
+            output = stdout.replace(/[\n\r]/gi, '').trim();
+            if (os.platform() === EPlatforms.win32 && output === `%${name}%`) {
                 // Try unix way
                 cmd = `echo $${name}`;
                 shell(cmd, ignoreCache).then((stdoutUnixWay: string) => {
-                    stdoutUnixWay = stdoutUnixWay.replace(/[\n\r]/gi, '').trim();
-                    resolve(stdoutUnixWay);
+                    output = stdoutUnixWay.replace(/[\n\r]/gi, '').trim();
+                    if (os.platform() === EPlatforms.win32 && output === `$${name}`) {
+                        output = '';
+                    }
+                    resolve(output);
                 }).catch((error: Error) => {
                     reject(error);
                 });
             } else {
-                resolve(stdout);
+                resolve(output);
             }
         }).catch((error: Error) => {
             reject(error);
