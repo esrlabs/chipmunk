@@ -40,7 +40,7 @@ jobs:
     - stage: "Build for windows"
       os: windows
       install:
-        - choco install nodejs.install --version 10.16.3 --install-directory=c:\nodejs
+        - choco install nodejs.install --version 10.16.3 --install-directory "c:\nodejs"
         - dir c:\nodejs
       script:
         - rake full_pipeline[win]
