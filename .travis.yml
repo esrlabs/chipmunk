@@ -13,7 +13,6 @@ jobs:
       install:
         - nvm install 10.16.3
         - nvm use 10.16.3
-        - npm install jake typescript --global
       script:
         - rake full_pipeline[mac]
       before_deploy:
@@ -31,7 +30,6 @@ jobs:
       install:
         - nvm install 10.16.3
         - nvm use 10.16.3
-        - npm install jake typescript --global
       script:
         - rake full_pipeline[linux]
       before_deploy:
@@ -43,8 +41,6 @@ jobs:
       os: windows
       install:
         - choco install nodejs.install --version 10.16.3
-        - node --version
-        - npm --version
       script:
         - rake full_pipeline[win]
       before_deploy:
