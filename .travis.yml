@@ -43,8 +43,6 @@ jobs:
       os: windows
       install:
         - choco install nodejs.install --version 10.16.3
-        - refreshenv
-        - npm install jake typescript --global
       script:
         - rake full_pipeline[win]
       before_deploy:
