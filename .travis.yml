@@ -41,10 +41,10 @@ jobs:
       os: windows
       sudo: required
       before_install:
-        - set PATH=%PATH%;C:\Program Files\nodejs;C:\nodejs
+        - setx path "%path%;C:\Program Files\nodejs;C:\nodejs"
       install:
         - msiexec.exe /a https://nodejs.org/dist/latest-v10.x/node-v10.16.3-x64.msi /qn /quiet
-        - set PATH=%PATH%;C:\Program Files\nodejs;C:\nodejs
+        - setx path "%path%;C:\Program Files\nodejs;C:\nodejs"
       script:
         - rake full_pipeline[win]
       before_deploy:
