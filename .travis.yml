@@ -42,7 +42,7 @@ jobs:
     - stage: "Build for windows"
       os: windows
       install:
-        - msiexec.exe /a https://nodejs.org/dist/latest-v10.x/node-v10.16.3-x64.msi /quiet
+        - scoop install nodejs
         - npm install jake typescript --global
       script:
         - rake full_pipeline[win]
