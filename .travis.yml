@@ -3,6 +3,8 @@ language: rust
 
 rust: stable
 
+node_js: lts/*
+
 env:
   - USE_HARD_LINKS=false
 
@@ -10,9 +12,6 @@ jobs:
   include:
     - stage: "Build for mac"
       os: osx
-      install:
-        - nvm install 10.16.3
-        - nvm use 10.16.3
       script:
         - rake full_pipeline[mac]
       before_deploy:
@@ -27,9 +26,6 @@ jobs:
         file: application/electron/dist/release/chipmunk@${CHIPMUNK_VERSION}-darwin-portable.tgz
     - stage: "Build for linux"
       os: linux
-      install:
-        - nvm install 10.16.3
-        - nvm use 10.16.3
       script:
         - rake full_pipeline[linux]
       before_deploy:
@@ -40,10 +36,6 @@ jobs:
     - stage: "Build for windows"
       os: windows
       sudo: required
-      before_install:
-        - export PATH="$PATH:C:\Program Files\nodejs;C:\nodejs;"
-      install:
-        - choco install nodejs.install --version 10.16.3
       script:
         - rake full_pipeline --trace
       before_deploy:
