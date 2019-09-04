@@ -44,6 +44,7 @@ jobs:
         - setx path "%path%;C:\Program Files\nodejs;"
       install:
         - choco install nodejs.install --version 10.16.3
+        - dir C:\Program Files
         - setx path "%path%;C:\Program Files\nodejs;"
       script:
         - rake full_pipeline[win]
