@@ -42,7 +42,7 @@ jobs:
     - stage: "Build for windows"
       os: windows
       install:
-        - choco install nodejs.install --version 10.16.3
+        - runas /user:Administrator "choco install nodejs.install --version 10.16.3"
         - npm install jake typescript --global
       script:
         - rake full_pipeline[win]
