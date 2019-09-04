@@ -6,7 +6,7 @@
   "scripts": {
     "build-client": "jake client:all --skip-npm",
     "build-electron": "jake electron:quick --skip-npm",
-    "build-plugins": "jake plugins:all --skip-npm",
+    "build-plugins": "jake plugins:all --skip-npm"
   },
   "author": "Dmitry Astafyev",
   "license": "MIT",
