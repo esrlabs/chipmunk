@@ -42,9 +42,10 @@ jobs:
       sudo: required
       before_install:
         - setx path "%path%;C:\Program Files\nodejs;"
+        - export PATH="$PATH:C:\Program Files\nodejs;C:\nodejs"
       install:
         - choco install nodejs.install --version 10.16.3
-        - dir C:\Program Files
+        - dir "C:\Program Files"
         - setx path "%path%;C:\Program Files\nodejs;"
       script:
         - rake full_pipeline[win]
