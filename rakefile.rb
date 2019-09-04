@@ -50,8 +50,8 @@ task :quick do
     sh "npm update logviewer.client.toolkit"
   end
   cd "application" do
-    sh "jake client:all --skip-npm"
-    sh "jake electron:quick --skip-npm"
+    sh "npm run build-client"
+    sh "npm run build-electron"
   end
   rm_rf "~/.logviewer"
 end
@@ -108,9 +108,9 @@ task :install do
   end
   cd "application" do
     puts "Building: client"
-    sh "jake client:all --skip-npm"
+    sh "npm run build-client"
     puts "Building: electron"
-    sh "jake electron:quick --skip-npm"
+    sh "npm run build-electron"
   end
 end
 
@@ -153,9 +153,9 @@ task :plugins do
   end
   cd "application" do
     puts "Build: all libs"
-    sh "jake client:all --skip-npm"
+    sh "npm run build-client"
     puts "Build: all plugins"
-    sh "jake plugins:all --skip-npm"
+    sh "npm run build-plugins"
   end
 end
 
@@ -211,11 +211,11 @@ task :updatetoolkit do
   end
   cd "application" do
     puts "Rebuild: client"
-    sh "jake client:all --skip-npm"
+    sh "npm run build-client"
     puts "Rebuild: plugins"
-    sh "jake plugins:all --skip-npm"
+    sh "npm run build-plugins"
     puts "Rebuild: electron"
-    sh "jake electron:quick --skip-npm"
+    sh "npm run build-electron"
   end
 end
 
