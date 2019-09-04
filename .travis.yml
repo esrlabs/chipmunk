@@ -4,7 +4,7 @@ language: rust
 rust: stable
 
 env:
-  - USE_HARD_LINKS=false GITHUB_TOKEN=$GITHUB_TOKEN
+  - USE_HARD_LINKS=false
 
 jobs:
   include:
