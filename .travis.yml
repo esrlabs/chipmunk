@@ -45,7 +45,7 @@ jobs:
       install:
         - choco install nodejs.install --version 10.16.3
       script:
-        - rake full_pipeline[win]
+        - rake full_pipeline --trace
       before_deploy:
         - export CHIPMUNK_VERSION=$(cat application/electron/package.json | sed -n 3p | cut -d '"' -f 4)
       deploy:
