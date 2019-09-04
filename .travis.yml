@@ -42,7 +42,7 @@ jobs:
     - stage: "Build for windows"
       os: windows
       install:
-        - scoop install nodejs
+        - cinst nodejs.install
         - npm install jake typescript --global
       script:
         - rake full_pipeline[win]
