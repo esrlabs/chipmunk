@@ -42,6 +42,7 @@ jobs:
     - stage: "Build for windows"
       os: windows
       install:
+        - cinst nodejs.install
         - npm install -g n
         - n lts
         - npm install jake typescript --global
