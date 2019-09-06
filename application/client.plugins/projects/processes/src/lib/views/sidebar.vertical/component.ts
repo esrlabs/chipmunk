@@ -14,8 +14,78 @@ export interface IEnvVar {
 interface IState {
     _ng_envvars: IEnvVar[];
     _ng_settings: IForkSettings | undefined;
-    _ng_working: boolean;
-    _ng_cmd: string;
+    _ng_processes: Process[];
+}
+
+export class Process {
+    private static _processSerial: number = 0;
+    public _ng_id: number = Process._processSerial++;
+    public _ng_envvars: IEnvVar[] = [];
+    public _ng_settings: IForkSettings | undefined;
+    public _ng_working: boolean = false;
+    public _ng_cmd: string = '';
+
+    constructor(private _session: string, private _api: Toolkit.IAPI) {
+    }
+
+    commandStarted() {
+        this._ng_working = true;
+    }
+
+    public _ng_onKeyUp(event: KeyboardEvent) {
+        if (this._ng_working) {
+            this._sendInput(event);
+        } else {
+            this._sendCommand(event);
+        }
+    }
+
+    private _sendInput(event: KeyboardEvent) {
+        this._api.getIPC().requestToHost({
+            stream: this._session,
+            command: EHostCommands.write,
+            input: event.key,
+            id: this._ng_id,
+        }, this._session).catch((error: Error) => {
+            console.error(error);
+        });
+        this._ng_cmd = '';
+    }
+
+    private _sendCommand(event: KeyboardEvent) {
+        if (event.key !== 'Enter') {
+            return;
+        }
+        if (this._ng_cmd.trim() === '') {
+            return;
+        }
+        this._api.getIPC().requestToHost({
+            stream: this._session,
+            command: EHostCommands.command,
+            cmd: this._ng_cmd,
+            shell: this._ng_settings.shell,
+            id: this._ng_id,
+        }, this._session).catch((error: Error) => {
+            console.error(error);
+        });
+    }
+
+    public _ng_onStop(event: MouseEvent) {
+        this._sendStop();
+    }
+
+    private _sendStop() {
+        if (!this._ng_working) {
+            return;
+        }
+        this._api.getIPC().requestToHost({
+            stream: this._session,
+            command: EHostCommands.stop,
+            id: this._ng_id,
+        }, this._session).catch((error: Error) => {
+            console.error(error);
+        });
+    }
 }
 
 const state: Toolkit.ControllerState<IState> = new Toolkit.ControllerState<IState>();
@@ -36,8 +106,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
 
     public _ng_envvars: IEnvVar[] = [];
     public _ng_settings: IForkSettings | undefined;
-    public _ng_working: boolean = false;
-    public _ng_cmd: string = '';
+    public _ng_processes: Process[] = [];
 
     private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger(`Plugin: processes: inj_output_bot:`);
@@ -75,58 +144,6 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         this._loadState();
     }
 
-    public _ng_onKeyUp(event: KeyboardEvent) {
-        if (this._ng_working) {
-            this._sendInput(event);
-        } else {
-            this._sendCommand(event);
-        }
-    }
-
-    public _ng_onStop(event: MouseEvent) {
-        this._sendStop();
-    }
-
-    private _sendCommand(event: KeyboardEvent) {
-        if (event.key !== 'Enter') {
-            return;
-        }
-        if (this._ng_cmd.trim() === '') {
-            return;
-        }
-        this.api.getIPC().requestToHost({
-            stream: this.session,
-            command: EHostCommands.command,
-            cmd: this._ng_cmd,
-            shell: this._ng_settings.shell,
-        }, this.session).catch((error: Error) => {
-            console.error(error);
-        });
-    }
-
-    private _sendStop() {
-        if (!this._ng_working) {
-            return;
-        }
-        this.api.getIPC().requestToHost({
-            stream: this.session,
-            command: EHostCommands.stop,
-        }, this.session).catch((error: Error) => {
-            console.error(error);
-        });
-    }
-
-    private _sendInput(event: KeyboardEvent) {
-        this.api.getIPC().requestToHost({
-            stream: this.session,
-            command: EHostCommands.write,
-            input: event.key
-        }, this.session).catch((error: Error) => {
-            console.error(error);
-        });
-        this._ng_cmd = '';
-    }
-
     private _onIncomeMessage(message: any) {
         if (typeof message.event === 'string') {
             // Process events
@@ -135,20 +152,34 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     }
 
     private _onIncomeEvent(message: any) {
-        switch (message.event) {
-            case EHostEvents.ForkStarted:
-                this._ng_working = true;
-                break;
-            case EHostEvents.ForkClosed:
-                this._ng_working = false;
-                this._ng_cmd = '';
-                break;
-            case EHostEvents.SettingsUpdated:
-                this._ng_settings = message.settings;
-                this._settingsUpdated();
-                break;
-        }
-        this._forceUpdate();
+        new Promise((resolve) => {
+            switch (message.event) {
+                case EHostEvents.ForkStarted:
+                    this._ng_processes.find((process) => {
+                        return process._ng_id === message.data.id;
+                    }).commandStarted();
+
+                    let process = new Process(this.session, this.api);
+                    process._ng_envvars = this._ng_envvars;
+                    process._ng_settings = this._ng_settings;
+                    this._ng_processes.push(process);
+                    resolve();
+                    break;
+                case EHostEvents.ForkClosed:
+                    let procIndex = this._ng_processes.findIndex((process) => {
+                        return process._ng_id === message.data.id;
+                    });
+                    this._ng_processes.splice(procIndex, 1);
+                    resolve();
+                    break;
+                case EHostEvents.SettingsUpdated:
+                    this._ng_settings = message.settings;
+                    this._settingsUpdated();
+                    // will force update automatically
+                    // no reason to trigger it a second time
+                    break;
+            }
+        }).then(() => {this._forceUpdate()});
     }
 
     private _settingsUpdated(settings?: IForkSettings) {
@@ -164,6 +195,10 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                 key: key,
                 value: this._ng_settings.env[key]
             });
+        });
+        this._ng_processes.forEach(process => {
+            process._ng_settings = this._ng_settings;
+            process._ng_envvars = this._ng_envvars;
         });
         this._forceUpdate();
     }
@@ -190,16 +225,15 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         state.save(this.session, {
             _ng_envvars: this._ng_envvars,
             _ng_settings: this._ng_settings,
-            _ng_working: this._ng_working,
-            _ng_cmd: this._ng_cmd === undefined ? '' : this._ng_cmd,
+            _ng_processes: this._ng_processes,
         });
     }
 
     private _loadState() {
         this._ng_envvars  = [];
         this._ng_settings = undefined;
-        this._ng_working = false;
-        this._ng_cmd = '';
+        this._ng_processes = [new Process(this.session, this.api)];
+
         const stored: IState | undefined = state.load(this.session);
         if (stored === undefined) {
             this._initState();
@@ -207,9 +241,6 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             Object.keys(stored).forEach((key: string) => {
                 (this as any)[key] = stored[key];
             });
-        }
-        if (this._ng_input !== null && this._ng_input !== undefined) {
-            this._ng_input.nativeElement.value = this._ng_cmd;
         }
         this._forceUpdate();
     }
@@ -229,7 +260,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         }, this.session).then((response) => {
             this._forceUpdate();
         }).catch((error: Error) => {
-            this._logger.env(`Cannot get current setting. It could be stream just not created yet. Error message: ${error.message}`);
+            this._logger.env(`Cannot get current settings. The stream might just not yet be created. Error message: ${error.message}`);
         });
     }
 
