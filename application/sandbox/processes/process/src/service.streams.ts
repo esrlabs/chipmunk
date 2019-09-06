@@ -5,7 +5,7 @@ import * as EnvModule from './process.env';
 import { EventEmitter } from 'events';
 
 export interface IStreamInfo {
-    fork: Fork | undefined;
+    forks: Map<number, Fork>;
     streamId: string;
     settings: IForkSettings;
 }
@@ -32,56 +32,64 @@ class StreamsService extends EventEmitter {
         return this._streams.get(streamId);
     }
 
-    public refFork(streamId: string, command: string): Error | undefined {
-        const stream: IStreamInfo | undefined = this._streams.get(streamId);
+    public refFork(streamId: string, command: string, commandId: number): Error | undefined {
+        const stream: IStreamInfo | undefined = this.get(streamId);
         if (stream === undefined) {
             return new Error(`Stream ${streamId} is not found. Cannot set fork.`);
         }
         // Check: does fork already exist (previous commands still running)
-        if (stream.fork !== undefined) {
-            return new Error(`Stream ${streamId} has running fork, cannot start other.`);
+        if (stream.forks.get(commandId)) {
+            return new Error(`Stream ${streamId}|${commandId} has a running fork, cannot start another.`);
         }
         // Create fork to execute command
-        const fork: Fork = new Fork({ 
+        const newFork: Fork = new Fork({
             cmd: command,
             settings: stream.settings
         });
         // Attach listeners
-        fork.on(Fork.Events.data, (chunk) => {
+        newFork.on(Fork.Events.data, (chunk) => {
             PluginIPCService.sendToStream(chunk, streamId);
         });
-        fork.on(Fork.Events.exit, () => {
-            this.unrefFork(streamId);
+        newFork.on(Fork.Events.exit, () => {
+            this.unrefFork(streamId, commandId);
         });
         // Save fork
-        stream.fork = fork;
+        stream.forks.set(commandId, newFork);
         this._streams.set(streamId, stream);
         // Start forl
-        fork.execute();
+        newFork.execute();
         PluginIPCService.sendToPluginHost(streamId, {
             event: 'ForkStarted',
-            streamId: streamId
+            streamId: streamId,
+            data: {
+                id: commandId,
+            },
         });
     }
 
-    public unrefFork(streamId: string): Error | undefined {
-        const stream: IStreamInfo | undefined = this._streams.get(streamId);
+    public unrefFork(streamId: string, commandId: number): Error | undefined {
+        const stream: IStreamInfo | undefined = this.get(streamId);
         if (stream === undefined) {
             return new Error(`Stream ${streamId} is not found. Cannot set fork.`);
         }
-        if (stream.fork !== undefined && !stream.fork.isClosed()) {
-            stream.fork.destroy();
+
+        let fork = stream.forks.get(commandId);
+        if (fork && !fork.isClosed()) {
+            fork.destroy();
         }
-        stream.fork = undefined;
+        stream.forks.delete(commandId);
         this._streams.set(streamId, stream);
         PluginIPCService.sendToPluginHost(streamId, {
             event: 'ForkClosed',
-            streamId: streamId
+            streamId: streamId,
+            data: {
+                id: commandId,
+            },
         });
     }
 
     public updateSettings(streamId: string, settings?: IForkSettings): Error | undefined {
-        const stream: IStreamInfo | undefined = this._streams.get(streamId);
+        const stream: IStreamInfo | undefined = this.get(streamId);
         if (stream === undefined) {
             return new Error(`Stream ${streamId} is not found. Cannot update settings.`);
         }
@@ -115,15 +123,13 @@ class StreamsService extends EventEmitter {
     }
 
     private _onCloseStream(streamId: string) {
-        const stream: IStreamInfo | undefined = this._streams.get(streamId);
+        const stream: IStreamInfo | undefined = this.get(streamId);
         if (stream === undefined) {
             return this._logger.warn(`Stream ${streamId} is already closed.`);
         }
-        // Check fork before (if it's still working)
-        if (stream.fork !== undefined) {
-            stream.fork.destroy();
-        }
-        // Remove stream now
+
+        // Destroy forks, that are still working)
+        stream.forks.forEach(process => process.destroy());
         this._streams.delete(streamId);
         this.emit(this.Events.onStreamClosed, streamId);
     }
@@ -131,7 +137,7 @@ class StreamsService extends EventEmitter {
     private _createStream(streamId: string, cwd: string, env: EnvModule.TEnvVars) {
         EnvModule.defaultShell().then((userShell: string) => {
             this._streams.set(streamId, {
-                fork: undefined,
+                forks: new Map(),
                 streamId: streamId,
                 settings: {
                     cwd: cwd,

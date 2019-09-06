@@ -37,6 +37,7 @@ class Plugin {
                 return this._income_command(message).then(() => {
                     response(new IPCMessages.PluginInternalMessage({
                         data: {
+                            id: message.data.id,
                             status: 'done'
                         },
                         token: message.token,
@@ -48,6 +49,7 @@ class Plugin {
                         stream: message.stream,
                         token: message.token,
                         data: {
+                            id: message.data.id,
                             command: message.data.command
                         }
                     }));
@@ -56,6 +58,7 @@ class Plugin {
                 return this._income_stop(message).then(() => {
                     response(new IPCMessages.PluginInternalMessage({
                         data: {
+                            id: message.data.id,
                             status: 'done'
                         },
                         token: message.token,
@@ -67,6 +70,7 @@ class Plugin {
                         stream: message.stream,
                         token: message.token,
                         data: {
+                            id: message.data.id,
                             command: message.data.command
                         }
                     }));
@@ -75,6 +79,7 @@ class Plugin {
                 return this._income_write(message).then(() => {
                     response(new IPCMessages.PluginInternalMessage({
                         data: {
+                            id: message.data.id,
                             status: 'done'
                         },
                         token: message.token,
@@ -86,6 +91,7 @@ class Plugin {
                         stream: message.stream,
                         token: message.token,
                         data: {
+                            id: message.data.id,
                             command: message.data.command
                         }
                     }));
@@ -137,8 +143,8 @@ class Plugin {
                 return reject(cd);
             }
             // Ref fork to stream
-            StreamsService.refFork(streamId, cmd);
-            resolve();            
+            StreamsService.refFork(streamId, cmd, message.data.id);
+            resolve();
         });
     }
 
@@ -154,8 +160,8 @@ class Plugin {
                 return reject(new Error(this._logger.warn(`Fail to find a stream "${streamId}" in storage.`)));
             }
             // Ref fork to stream
-            StreamsService.unrefFork(streamId);
-            resolve();            
+            StreamsService.unrefFork(streamId, message.data.id);
+            resolve();
         });
     }
 
@@ -175,11 +181,12 @@ class Plugin {
                 return reject(new Error(this._logger.warn(`Fail to write into stream "${streamId}" because input is undefined.`)));
             }
             // Check: is fork still running
-            if (stream.fork === undefined || stream.fork.isClosed()) {
-                return reject(new Error(this._logger.warn(`Fail to write into stream "${streamId}" because fork is closed.`)));
+            let process = stream.forks.get(message.data.id);
+            if (process === undefined || process.isClosed()) {
+                return reject(new Error(this._logger.warn(`Fail to write into process "${streamId}|${message.data.id}" because fork is closed.`)));
             }
             // Write data
-            stream.fork.write(input).then(resolve).catch(reject);
+            process.write(input).then(resolve).catch(reject);
         });
     }
 
@@ -194,7 +201,7 @@ class Plugin {
             if (stream === undefined) {
                 return reject(new Error(this._logger.warn(`Fail to find a stream "${streamId}" in storage.`)));
             }
-            resolve(stream.settings);            
+            resolve(stream.settings);
         });
     }
 
@@ -207,10 +214,11 @@ class Plugin {
         if (match.length !== 2) {
             return false;
         }
+
         try {
             stream.settings.cwd = path.resolve(stream.settings.cwd, match[1]);
         } catch (e) {
-            this._logger.error(`Fail to make "cd" due error: ${e.message}`);
+            this._logger.error(`Failed to change directory due to error: ${e.message}`);
             return e;
         }
         StreamsService.updateSettings(stream.streamId, stream.settings);
