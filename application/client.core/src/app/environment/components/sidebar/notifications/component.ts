@@ -1,4 +1,4 @@
-import { Component, OnDestroy, ChangeDetectorRef, ViewChildren, QueryList, AfterContentInit, AfterViewInit, ViewContainerRef } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, AfterViewInit, ViewContainerRef } from '@angular/core';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { Subscription } from 'rxjs';
 import TabsSessionsService from '../../../services/service.sessions.tabs';

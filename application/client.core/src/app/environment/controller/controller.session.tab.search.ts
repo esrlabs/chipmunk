@@ -103,96 +103,77 @@ export class ControllerSessionTabSearch {
         };
     }
 
-    public search(requestId: string, requests: RegExp[], filters: boolean = false): Promise<number> {
+    public search(requestId: string, requests: RegExp[], filters: boolean = false, cancelPrev: boolean = true): Promise<number | undefined> {
         return new Promise((resolve, reject) => {
-            if (!this._state.isDone()) {
+            if (!this._state.isDone() && !cancelPrev) {
                 return reject(new Error(`Cannot start new search request while current isn't finished.`));
             }
-            this._state.start(requestId);
-            if (!filters) {
-                // Save active requests
-                this._active = requests;
+            if (!this._state.isDone() && cancelPrev) {
+                const toBeCancelReq: string = this._state.getId();
+                this.cancel(toBeCancelReq).then(() => {
+                    this._search(requestId, requests, filters).then((res: number | undefined) => {
+                        resolve(res);
+                    }).catch((err: Error) => {
+                        reject(err);
+                    });
+                }).catch((cancelErr: Error) => {
+                    this._logger.warn(`Fail to cancel request ${toBeCancelReq} due error: ${cancelErr.message}`);
+                    reject(cancelErr);
+                });
+            } else {
+                this._search(requestId, requests, filters).then((res: number | undefined) => {
+                    resolve(res);
+                }).catch((err: Error) => {
+                    reject(err);
+                });
             }
-            // Drop results
-            this._results = {
-                matches: [],
-            };
-            // Drop output
-            this._output.clearStream();
-            // Start search
-            ServiceElectronIpc.request(new IPCMessages.SearchRequest({
-                requests: requests.map((reg: RegExp) => {
-                    return {
-                        source: reg.source,
-                        flags: reg.flags
-                    };
-                }),
+        });
+    }
+
+    public cancel(requestId: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (!this._state.equal(requestId)) {
+                this._logger.env(`Request ${requestId} isn't actual. No need to cancel.`);
+                return resolve();
+            }
+            ServiceElectronIpc.request(new IPCMessages.SearchRequestCancelRequest({
                 streamId: this._guid,
                 requestId: requestId,
-            }), IPCMessages.SearchRequestResults).then((results: IPCMessages.SearchRequestResults) => {
-                this._logger.env(`Search request ${results.requestId} was finished in ${((results.duration) / 1000).toFixed(2)}s.`);
+            }), IPCMessages.SearchRequestCancelResponse).then((results: IPCMessages.SearchRequestCancelResponse) => {
                 if (results.error !== undefined) {
-                    // Some error during processing search request
-                    this._logger.error(`Search request id ${results.requestId} was finished with error: ${results.error}`);
+                    this._logger.error(`Search request id ${results.requestId} fail to cancel with error: ${results.error}`);
                     return reject(new Error(results.error));
                 }
-                // Request is finished successful
-                resolve(results.found);
-                // Share results
-                OutputParsersService.setSearchResults(this._guid, requests.map((reg: RegExp) => {
-                    return { reg: reg, color: undefined, background: undefined };
-                }));
-                // Update stream for render
-                this._output.updateStreamState(results.found);
-                // Done
-                this._state.done();
+                // Cancel
+                this._state.cancel();
+                resolve();
             }).catch((error: Error) => {
                 reject(error);
             });
         });
     }
 
-    public drop(requestId: string): Promise<void> {
+    public drop(requestId: string): Promise<number | undefined> {
         return new Promise((resolve, reject) => {
-            // Drop active requests
-            this._active = [];
             if (!this._state.isDone()) {
-                return reject(new Error(`Cannot start new search request while current isn't finished.`));
+                const toBeCancelReq: string = this._state.getId();
+                this.cancel(toBeCancelReq).then(() => {
+                    this._drop(requestId).then((res: number | undefined) => {
+                        resolve(res);
+                    }).catch((err: Error) => {
+                        reject(err);
+                    });
+                }).catch((cancelErr: Error) => {
+                    this._logger.warn(`Fail to cancel request ${toBeCancelReq} due error: ${cancelErr.message}`);
+                    reject(cancelErr);
+                });
+            } else {
+                this._drop(requestId).then((res: number | undefined) => {
+                    resolve(res);
+                }).catch((err: Error) => {
+                    reject(err);
+                });
             }
-            this._state.start(requestId);
-            // Drop results
-            this._results = {
-                matches: [],
-            };
-            // Drop output
-            this._output.clearStream();
-            // Trigger event
-            this._subjects.onDropped.next();
-            // Start search
-            ServiceElectronIpc.request(new IPCMessages.SearchRequest({
-                requests: [],
-                streamId: this._guid,
-                requestId: requestId,
-            }), IPCMessages.SearchRequestResults).then((results: IPCMessages.SearchRequestResults) => {
-                this._logger.env(`Search request ${results.requestId} was finished in ${((results.duration) / 1000).toFixed(2)}s.`);
-                if (results.error !== undefined) {
-                    // Some error during processing search request
-                    this._logger.error(`Search request id ${results.requestId} was finished with error: ${results.error}`);
-                    return reject(new Error(results.error));
-                }
-                // Request is finished successful
-                resolve();
-                // Share results
-                OutputParsersService.setSearchResults(this._guid, []);
-                // Update stream for render
-                this._output.updateStreamState(results.found);
-                // Done
-                this._state.done();
-                // Aplly filters if exsists
-                this._applyFilters();
-            }).catch((error: Error) => {
-                reject(error);
-            });
         });
     }
 
@@ -344,6 +325,95 @@ export class ControllerSessionTabSearch {
 
     public getViewState(): ControllerSessionTabSearchViewState {
         return this._view;
+    }
+
+    private _search(requestId: string, requests: RegExp[], filters: boolean = false): Promise<number | undefined> {
+        return new Promise((resolve, reject) => {
+            if (!this._state.isDone()) {
+                return reject(new Error(`Cannot start new search request while current isn't finished.`));
+            }
+            this._state.start(requestId, resolve, reject);
+            if (!filters) {
+                // Save active requests
+                this._active = requests;
+            }
+            // Drop results
+            this._results = {
+                matches: [],
+            };
+            // Drop output
+            this._output.clearStream();
+            // Start search
+            ServiceElectronIpc.request(new IPCMessages.SearchRequest({
+                requests: requests.map((reg: RegExp) => {
+                    return {
+                        source: reg.source,
+                        flags: reg.flags
+                    };
+                }),
+                streamId: this._guid,
+                requestId: requestId,
+            }), IPCMessages.SearchRequestResults).then((results: IPCMessages.SearchRequestResults) => {
+                this._logger.env(`Search request ${results.requestId} was finished in ${((results.duration) / 1000).toFixed(2)}s.`);
+                if (results.error !== undefined) {
+                    // Some error during processing search request
+                    this._logger.error(`Search request id ${results.requestId} was finished with error: ${results.error}`);
+                    return this._state.fail(new Error(results.error));
+                }
+                // Share results
+                OutputParsersService.setSearchResults(this._guid, requests.map((reg: RegExp) => {
+                    return { reg: reg, color: undefined, background: undefined };
+                }));
+                // Update stream for render
+                this._output.updateStreamState(results.found);
+                // Done
+                this._state.done(results.found);
+            }).catch((error: Error) => {
+                this._state.fail(error);
+            });
+        });
+    }
+
+    private _drop(requestId: string): Promise<number | undefined> {
+        return new Promise((resolve, reject) => {
+            // Drop active requests
+            this._active = [];
+            if (!this._state.isDone()) {
+                return reject(new Error(`Cannot start new search request while current isn't finished.`));
+            }
+            this._state.start(requestId, resolve, reject);
+            // Drop results
+            this._results = {
+                matches: [],
+            };
+            // Drop output
+            this._output.clearStream();
+            // Trigger event
+            this._subjects.onDropped.next();
+            // Start search
+            ServiceElectronIpc.request(new IPCMessages.SearchRequest({
+                requests: [],
+                streamId: this._guid,
+                requestId: requestId,
+            }), IPCMessages.SearchRequestResults).then((results: IPCMessages.SearchRequestResults) => {
+                this._logger.env(`Search request ${results.requestId} was finished in ${((results.duration) / 1000).toFixed(2)}s.`);
+                if (results.error !== undefined) {
+                    // Some error during processing search request
+                    this._logger.error(`Search request id ${results.requestId} was finished with error: ${results.error}`);
+                    return this._state.fail(new Error(results.error));
+                }
+                // Share results
+                OutputParsersService.setSearchResults(this._guid, []);
+                // Update stream for render
+                this._output.updateStreamState(results.found);
+                // Done
+                this._state.done(0);
+                // Aplly filters if exsists
+                this._applyFilters();
+            }).catch((error: Error) => {
+                this._state.fail(error);
+            });
+        });
     }
 
     private _applyFilters() {

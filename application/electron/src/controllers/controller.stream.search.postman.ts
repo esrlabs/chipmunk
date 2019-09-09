@@ -1,6 +1,6 @@
 import Logger from '../tools/env.logger';
 import ServiceElectron, { IPCMessages as IPCElectronMessages } from '../services/service.electron';
-import BytesRowsMap, { IMapItem } from './controller.stream.search.map';
+import BytesRowsMap, { IMapItem } from './controller.stream.search.map.state';
 
 const CSettings = {
     notificationDelayOnStream: 250,             // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is blocked

@@ -1,3 +1,10 @@
+import { rgPath } from 'vscode-ripgrep';
+import { spawn, ChildProcess } from 'child_process';
+import * as path from 'path';
+import * as fs from 'fs';
+import Logger from '../tools/env.logger';
+import { CancelablePromise } from '../tools/promise.cancelable';
+
 export interface IResults {
     regs: { [regIndex: number]: number[] }; // Indexes with matchs, like { 1: [2,3,4] } where 1 - index of reg; [2,3,4] - numbers of rows with match
     matches: number[];                      // All numbers of rows with match
@@ -16,130 +23,167 @@ export interface IRegDescription {
     groups: number;
 }
 
-const NUMBER_MARKER = '\u0002';
+type TMeasurer = () => void;
 
-export class Fragment {
+export class ControllerStreamSearchEngine {
 
-    private _fragment: string = '';
-    private _lengthMax: number = 0;
+    private _logger: Logger;
+    private _streamFile: string;
+    private _searchFile: string;
+    private _cmd: string = rgPath.replace(/\bnode_modules\.asar\b/, 'node_modules.asar.unpacked');
+    private _process: ChildProcess | undefined;
+    private _writer: fs.WriteStream | undefined;
+    private _reader: fs.ReadStream | undefined;
+    private _last: string | undefined;
+    private _promise: CancelablePromise<boolean, void> | undefined;
+    private _measurer: TMeasurer | undefined;
 
-    constructor(lengthMax: number, str: string = '') {
-        this._lengthMax = lengthMax;
-        this._fragment = str;
-        /*
-        Do not need it any more: indexes are already there
-        this._fragment = this.convert(str);
-        */
+    constructor(streamFile: string, searchFile: string) {
+        this._streamFile = streamFile;
+        this._searchFile = searchFile;
+        this._logger = new Logger(`ControllerStreamSearchEngine (${path.basename(searchFile)})`);
     }
 
-    public isLocked(): boolean {
-        return this._fragment.length >= this._lengthMax;
-    }
-
-    public append(str: string): void {
-        if (typeof str !== 'string' || str === '') {
-            throw new Error(`Can be added only string, but gotten type: ${typeof str}`);
+    public search(regExp: RegExp | RegExp[], requestId: string): CancelablePromise<boolean, void> | Error {
+        if (this._promise !== undefined) {
+            const msg: string = `(search) Fail to start search, because previous process isn't finished.`;
+            this._logger.warn(msg);
+            return new Error(msg);
         }
-        this._fragment += str;
+        this._promise = new CancelablePromise((resolve, reject) => {
+            if (!(regExp instanceof Array)) {
+                regExp = [regExp];
+            }
+            this._setMeasurer();
+            const regs: string[] = [];
+            const numeric: string[] = [];
+            regExp.forEach((regexp: RegExp, i: number) => {
+                regs.push(`(${regexp.source})`);
+                if (regexp.source.replace(/\d/gi, '') === '' || regexp.source.indexOf('\d') !== -1) {
+                    numeric.push(`(${regexp.source})`);
+                }
+            });
+            const reg = `(?!\\d*(${numeric.join('|')})\\d*\u0002$)(${regs.join('|')})`;
+            this._writer = fs.createWriteStream(this._searchFile);
+            this._process = spawn(this._cmd, this._getProcArgs(reg, this._streamFile), {
+                cwd: path.dirname(this._streamFile),
+                stdio: [ 'pipe', 'pipe', 'pipe' ],
+            });
+            this._process.stdout.pipe(this._writer);
+            this._process.once('close', () => {
+                this._setLast(reg);
+                resolve(true);
+            });
+            this._process.once('error', (error: Error) => {
+                this._logger.error(`Error during executing ripgrep: ${error.message}`);
+                this._setLast(undefined);
+                reject(error);
+            });
+            this._process.stdout.on('error', (error: Error) => {
+                this._logger.error(`Error during executing ripgrep: ${error.message}`);
+            });
+            this._writer.on('error', (error: Error) => {
+                this._logger.error(`(w)Error during executing ripgrep: ${error.message}`);
+            });
+        });
+        this._promise.cancel(this._clear.bind(this));
+        this._promise.finally(this._clear.bind(this));
+        return this._promise;
     }
 
-    public find(regExp: RegExp | RegExp[]): IResults | Error {
-        const searchRegExp: IRegDescription | Error = this._getRegExp(regExp);
-        if (searchRegExp instanceof Error) {
-            return searchRegExp;
+    public append(from: number, to: number): CancelablePromise<boolean, void> | Error {
+        if (this._promise !== undefined) {
+            const msg: string = `(search) Fail to start search, because previous process isn't finished.`;
+            this._logger.warn(msg);
+            return new Error(msg);
         }
-        const results: IResults = {
-            found: 0,
-            regs: {},
-            matches: [],
-            str: '',
-            rows: 0,
-        };
-        this._fragment.replace(searchRegExp.reg, (...args: any[]) => {
-            /*
-            Arguments looks like:
-            ( match, group1, group2,... groupN, offset, string )
-            - We should ignore groupN because it's number of line
-            - We should ignore group1, because this is common group in regexp
-            That's why we started from index = 2 to detect regexp, which has a match
-            args.slice(2, args.length - 3)
-             */
-            if (args.length < 6) {
-                return '';
-            }
-            // Get whole row
-            const subscring: string = args[0];
-            // Get list of regs with match
-            const regs: Array<string | undefined> = args.slice(2, args.length - 3);
-            // Get row number
-            const row: number = parseInt(args[args.length - 3], 10);
-            // Confirm: row number is valid
-            if (row < 0 || isNaN(row) || !isFinite(row)) {
-                return '';
-            }
-            // Find index of reg, which has match
-            const match: IMatch = this._getMatch(regs);
-            if (match.index === -1) {
-                return '';
-            }
-            // Store results
-            if (results.regs[match.index] === undefined) {
-                results.regs[match.index] = [];
-            }
-            results.regs[match.index].push(row);
-            results.matches.push(row);
-            results.found += 1;
-            results.str += `${subscring}\n`;
-            results.rows += 1;
-            return '';
-        });
-        return results;
-    }
-
-    public getLength() {
-        return this._fragment.length;
-    }
-
-    private _getMatch(array: Array<string | undefined>): IMatch {
-        const result: IMatch = {
-            text: '',
-            index: -1,
-        };
-        array.forEach((item: string | undefined, i: number) => {
-            if (item !== undefined) {
-                result.index = i;
-                result.text = item;
-            }
-        });
-        return result;
-    }
-
-    private _getRegExp(regExp: RegExp | RegExp[]): IRegDescription | Error {
-        try {
-            if (regExp instanceof Array) {
-                const regs: string[] = [];
-                let flags: string = '';
-                regExp.forEach((reg: RegExp, index: number) => {
-                    regs.push(`(${reg.source})`);
-                    for (let i = reg.flags.length - 1; i >= 0; i -= 1) {
-                        if (flags.indexOf(reg.flags[i]) === -1) {
-                            flags += reg.flags[i];
-                        }
-                    }
+        if (this._last === undefined) {
+            return new Error(this._logger.warn(`Cannot append search because there are no primary search yet.`));
+        }
+        this._promise = new CancelablePromise((resolve, reject) => {
+            setImmediate(() => {
+                if (this._last === undefined) {
+                    return reject(new Error(this._logger.warn(`Cannot append search because there are no primary search yet.`)));
+                }
+                this._setMeasurer();
+                this._reader = fs.createReadStream(this._streamFile, { encoding: 'utf8', start: from, end: to});
+                this._writer = fs.createWriteStream(this._searchFile, { flags: 'a', mode: 666 });
+                this._process = spawn(this._cmd, this._getProcArgs(this._last, '-'), {
+                    cwd: path.dirname(this._streamFile),
+                    stdio: [ 'pipe', 'pipe', 'pipe' ],
                 });
-                return {
-                    reg: new RegExp(`^.*(${regs.join('|')}).*${NUMBER_MARKER}(\\d*)${NUMBER_MARKER}$`, flags),
-                    groups: regs.length,
-                };
-            } else {
-                return {
-                    reg: new RegExp(`^.*((${regExp.source})).*${NUMBER_MARKER}(\\d*)${NUMBER_MARKER}$`, regExp.flags),
-                    groups: 1,
-                };
-            }
-        } catch (error) {
-            return error;
-        }
+                this._reader.pipe(this._process.stdin);
+                this._process.stdout.pipe(this._writer);
+                this._process.once('close', () => {
+                    resolve(true);
+                });
+                this._process.once('error', (error: Error) => {
+                    this._logger.error(`Error during executing ripgrep: ${error.message}`);
+                    reject(error);
+                });
+            });
+        });
+        this._promise.cancel(this._clear.bind(this));
+        this._promise.finally(this._clear.bind(this));
+        return this._promise;
     }
 
+    public cancel(): boolean {
+        if (this._promise === undefined) {
+            return false;
+        }
+        this._promise.break();
+        return true;
+    }
+
+    public isBusy(): boolean {
+        return this._promise !== undefined;
+    }
+
+    private _clear() {
+        if (this._reader !== undefined) {
+            this._reader.unpipe();
+            this._reader.removeAllListeners();
+            this._reader.destroy();
+        }
+        if (this._writer !== undefined) {
+            this._writer.removeAllListeners();
+            // Attention. Using of writer.destroy() here will give "Uncatchable error: Cannot call write after a stream was destroyed"
+            // it doesn't block any how main process, but not okay to have it for sure
+            this._writer.close();
+        }
+        if (this._process !== undefined) {
+            this._process.stdout.unpipe();
+            this._process.stdout.destroy();
+            this._process.kill();
+        }
+        if (this._measurer !== undefined) {
+            this._measurer();
+        }
+        this._process = undefined;
+        this._promise = undefined;
+        this._measurer = undefined;
+        this._reader = undefined;
+        this._writer = undefined;
+    }
+
+    private _setMeasurer() {
+        this._measurer = this._logger.measure(`search`);
+    }
+
+    private _setLast(last: string | undefined) {
+        this._last = last;
+    }
+
+    private _getProcArgs(reg: string, target: string): string[] {
+        return [
+            '-N',
+            '--text', // https://github.com/BurntSushi/ripgrep/issues/306 this issue is about a case, when not printable symble is in a file
+            '--pcre2',
+            '-i',
+            '-e',
+            reg,
+            target,
+        ];
+    }
 }

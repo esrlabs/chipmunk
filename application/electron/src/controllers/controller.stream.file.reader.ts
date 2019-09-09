@@ -15,11 +15,16 @@ export default class ControllerStreamFileReader {
     }
 
     public destroy() {
+        this.drop();
+    }
+
+    public drop() {
         if (this._stream === undefined) {
             return;
         }
         this._stream.close();
         this._stream.removeAllListeners();
+        this._stream = undefined;
     }
 
     /**

@@ -3,6 +3,7 @@ import { IService } from '../interfaces/interface.service';
 import { Observable, Subject } from 'rxjs';
 import ServiceElectronIpc, { IPCMessages } from './service.electron.ipc';
 import TabsSessionsService from './service.sessions.tabs';
+import { ControllerSessionTab } from '../controller/controller.session.tab';
 import LayoutStateService from './standalone/service.layout.state';
 import { DialogsMultipleFilesActionComponent } from '../components/dialogs/multiplefiles/component';
 import PopupsService from './standalone/service.popups';
@@ -75,6 +76,11 @@ export class FileOpenerService implements IService, IFileOpenerService {
 
     public open(files: IFile[]) {
         if (files.length === 0) {
+            return;
+        }
+        const active: ControllerSessionTab | undefined = TabsSessionsService.getActive();
+        if (active === undefined) {
+            this._logger.warn(`No active session. Cannot continue with opening file.`);
             return;
         }
         if (files.length === 1) {
