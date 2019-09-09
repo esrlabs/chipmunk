@@ -6,7 +6,7 @@
 <p class="line">{{notification.row}}</p>
 <div [attr.class]="'content'">
     <p [attr.class]="'t-normal ' + (notification.buttons !== undefined ? 'more' : '')">{{notification.message}}</p>
-    <span   *ngIf="notification.buttons !== undefined"
+    <span   *ngIf="notification.buttons !== undefined && notification.buttons.length !== 0"
             [attr.class]="'toggle-button small-icon-button fas fa-angle-double-down' + (_ng_more ? ' opened' : '')"
             (click)="_ng_onMore()"></span>
     <div class="more" *ngIf="_ng_more && notification.buttons !== undefined">
