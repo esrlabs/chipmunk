@@ -1,5 +1,5 @@
 import * as Stream from 'stream';
-import { IRange, IMapItem } from './controller.stream.search.map';
+import { IRange, IMapItem } from './controller.stream.search.map.state';
 import Logger from '../tools/env.logger';
 
 export interface ITransformResult {
@@ -8,9 +8,21 @@ export interface ITransformResult {
     map: IMapItem;
 }
 
+export { IMapItem };
+
 export type TBeforeCallbackHandle = (results: ITransformResult) => Promise<void>;
 
+export interface IFoundEvent {
+    total: number;
+    chunk: number;
+    map: IMapItem;
+}
+
 export default class Transform extends Stream.Transform {
+
+    public static Events = {
+        found: 'found',
+    };
 
     private _logger: Logger;
     private _rest: string = '';
@@ -18,6 +30,8 @@ export default class Transform extends Stream.Transform {
     private _beforeCallbackHandle: TBeforeCallbackHandle | undefined;
     private _offsets: { bytes: number, rows: number } = { bytes: 0, rows: 0 };
     private _map: IMapItem[] = [];
+    private _stopped: boolean = false;
+    private _found: number = 0;
 
     constructor(options: Stream.TransformOptions,
                 streamId: string,
@@ -45,10 +59,12 @@ export default class Transform extends Stream.Transform {
         const rest = this._getRest(output);
         this._rest = rest.rest;
         output = rest.cleared;
+        const rowsInChunk: number = output.split(/[\n\r]/gi).length - 1;
+        this._found += rowsInChunk;
         // Add indexes
         const rows: IRange = {
             from: this._offsets.rows,
-            to: this._offsets.rows + output.split(/[\n\r]/gi).length - 1,
+            to: this._offsets.rows + rowsInChunk,
         };
         // Store cursor position
         const bytes = {
@@ -68,6 +84,10 @@ export default class Transform extends Stream.Transform {
         this._offsets.bytes = results.map.bytes.to + 1;
         // Store map
         this._map.push(results.map);
+        // Check state
+        if (this._stopped) {
+            return results;
+        }
         // Call callback
         if (callback !== undefined) {
             if (typeof this._beforeCallbackHandle === 'function') {
@@ -85,6 +105,12 @@ export default class Transform extends Stream.Transform {
                 this._logger.warn(`Error from "beforeCallbackHandle": ${error.message}`);
             });
         }
+        // Emit found number of rows
+        this.emit(Transform.Events.found, {
+            total: this._found,
+            chunk: rowsInChunk,
+            map: results.map,
+        });
         return results;
     }
 
@@ -94,6 +120,10 @@ export default class Transform extends Stream.Transform {
 
     public getMap(): IMapItem[] {
         return this._map;
+    }
+
+    public stop() {
+        this._stopped = true;
     }
 
     private _getRest(str: string): { rest: string, cleared: string } {

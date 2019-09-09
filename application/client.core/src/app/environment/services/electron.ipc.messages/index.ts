@@ -70,8 +70,17 @@ export { ISearchUpdated, SearchUpdated };
 import { ISearchRequest, SearchRequest, IRegExpStr } from './search.request';
 export { ISearchRequest, SearchRequest, IRegExpStr };
 
+import { ISearchRequestCancelRequest, SearchRequestCancelRequest } from './search.request.cancel.request';
+export { ISearchRequestCancelRequest, SearchRequestCancelRequest };
+
+import { ISearchRequestCancelResponse, SearchRequestCancelResponse } from './search.request.cancel.response';
+export { ISearchRequestCancelResponse, SearchRequestCancelResponse };
+
 import { ISearchRequestResults, SearchRequestResults } from './search.request.results';
 export { ISearchRequestResults, SearchRequestResults };
+
+import { ISearchResultMapState, SearchResultMapState } from './search.results.state';
+export { ISearchResultMapState, SearchResultMapState };
 
 import { IFileGetOptionsRequest, FileGetOptionsRequest } from './file.getoptions.request';
 export { IFileGetOptionsRequest, FileGetOptionsRequest };
@@ -195,7 +204,10 @@ export type TMessage =  HostState |
                         StreamResetResponse |
                         SearchResultMap |
                         SearchRequest |
+                        SearchRequestCancelRequest |
+                        SearchRequestCancelResponse |
                         SearchRequestResults |
+                        SearchResultMapState |
                         SearchUpdated |
                         SearchChunk |
                         FileReadRequest |
@@ -261,7 +273,10 @@ export const Map = {
 
     [SearchResultMap.signature              ]: SearchResultMap,
     [SearchRequest.signature                ]: SearchRequest,
+    [SearchRequestCancelRequest.signature   ]: SearchRequestCancelRequest,
+    [SearchRequestCancelResponse.signature  ]: SearchRequestCancelResponse,
     [SearchRequestResults.signature         ]: SearchRequestResults,
+    [SearchResultMapState.signature         ]: SearchResultMapState,
     [SearchChunk.signature                  ]: SearchChunk,
     [SearchUpdated.signature                ]: SearchUpdated,
 

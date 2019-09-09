@@ -1,14 +1,18 @@
 import * as Stream from 'stream';
 import Logger from '../tools/env.logger';
 
+export type TMap = { [key: number]: string[] };
+export type TStats = { [key: string]: number };
+
 export default class Transform extends Stream.Transform {
 
     private _logger: Logger;
     private _rest: string = '';
     private _request: RegExp;
-    private _map: { [key: number]: string[] } = {};
-    private _stats: { [key: string]: number } = {};
+    private _map: TMap = {};
+    private _stats: TStats = {};
     private _keys: { [key: string]: string } = {};
+    private _stopped: boolean = false;
 
     constructor(options: Stream.TransformOptions,
                 streamId: string,
@@ -25,11 +29,11 @@ export default class Transform extends Stream.Transform {
         }).join('|')}`, 'i');
     }
 
-    public getMap(): { [key: number]: string[] } {
+    public getMap(): TMap {
         return this._map;
     }
 
-    public getStats(): { [key: string]: number } {
+    public getStats(): TStats {
         return this._stats;
     }
 
@@ -71,10 +75,18 @@ export default class Transform extends Stream.Transform {
                 }
             });
         });
+        // Check state
+        if (this._stopped) {
+            return;
+        }
         // Call callback
         if (callback !== undefined) {
             callback(undefined, output);
         }
+    }
+
+    public stop() {
+        this._stopped = true;
     }
 
     private _getRest(str: string): { rest: string, cleared: string } {
