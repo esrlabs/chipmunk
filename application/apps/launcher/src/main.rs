@@ -22,7 +22,12 @@ fn log(msg: String) {
     let now = Utc::now();
     println!("{}:: {}", now, msg);
     let home_dir = dirs::home_dir();
-    let log_file = format!("{}/.logviewer/logviewer.launcher.log", home_dir.unwrap().as_path().to_str().unwrap());
+    let app_home_dir = format!("{}/.logviewer", home_dir.unwrap().as_path().to_str().unwrap());
+    let log_file = format!("{}/logviewer.launcher.log", app_home_dir);
+    let app_home_dir_path = Path::new(&app_home_dir);
+    if !app_home_dir_path.exists() {
+        std::fs::create_dir(&app_home_dir_path).unwrap();
+    }
     let log_path = Path::new(&log_file);
     if !log_path.exists() {
         let mut file = match File::create(&log_path) {
