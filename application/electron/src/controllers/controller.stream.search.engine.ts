@@ -1,9 +1,10 @@
-import { rgPath } from 'vscode-ripgrep';
 import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 import Logger from '../tools/env.logger';
 import { CancelablePromise } from '../tools/promise.cancelable';
+import ServicePaths from '../services/service.paths';
 
 export interface IResults {
     regs: { [regIndex: number]: number[] }; // Indexes with matchs, like { 1: [2,3,4] } where 1 - index of reg; [2,3,4] - numbers of rows with match
@@ -27,10 +28,12 @@ type TMeasurer = () => void;
 
 export class ControllerStreamSearchEngine {
 
+    public static rgPath: string = path.resolve(ServicePaths.getRoot(), `apps/${os.platform() === 'win32' ? 'rg.exe' : 'rg'}`);
+
     private _logger: Logger;
     private _streamFile: string;
     private _searchFile: string;
-    private _cmd: string = rgPath.replace(/\bnode_modules\.asar\b/, 'node_modules.asar.unpacked');
+    private _cmd: string = ControllerStreamSearchEngine.rgPath;
     private _process: ChildProcess | undefined;
     private _writer: fs.WriteStream | undefined;
     private _reader: fs.ReadStream | undefined;
