@@ -9,12 +9,11 @@ env:
 jobs:
   include:
     - stage: "Build for mac"
+      script: rake full_pipeline[mac]
       os: osx
       install:
         - nvm install 10.16.3
         - nvm use 10.16.3
-      script:
-        - rake full_pipeline[mac]
       before_deploy:
         - export CHIPMUNK_VERSION=$(cat application/electron/package.json | sed -n 3p | cut -d '"' -f 4)
       deploy: &deploy_base
@@ -25,27 +24,23 @@ jobs:
         on:
           tags: true
         file: application/electron/dist/release/chipmunk@${CHIPMUNK_VERSION}-darwin-portable.tgz
-    - stage: "Build for linux"
+    - script: rake full_pipeline[linux]
       os: linux
       install:
         - nvm install 10.16.3
         - nvm use 10.16.3
-      script:
-        - rake full_pipeline[linux]
       before_deploy:
         - export CHIPMUNK_VERSION=$(cat application/electron/package.json | sed -n 3p | cut -d '"' -f 4)
       deploy:
         <<: *deploy_base
         file: application/electron/dist/release/chipmunk@${CHIPMUNK_VERSION}-linux-portable.tgz
-    - stage: "Build for windows"
+    - script: rake full_pipeline --trace
       os: windows
       sudo: required
       before_install:
         - export PATH="$PATH:C:\Program Files\nodejs;C:\nodejs;"
       install:
         - choco install nodejs.install --version 10.16.3
-      script:
-        - rake full_pipeline --trace
       before_deploy:
         - export CHIPMUNK_VERSION=$(cat application/electron/package.json | sed -n 3p | cut -d '"' -f 4)
       deploy:
@@ -53,10 +48,10 @@ jobs:
         file: application/electron/dist/release/chipmunk@${CHIPMUNK_VERSION}-win64-portable.tgz
         draft: false
 
-notifications:
-  email:
-    recipients:
-      - arthur.braga@esrlabs.com
-      - dmitry.astafyev@esrlabs.com
-      - oliver.mueller@esrlabs.com
-    on_success: never
+# notifications:
+#   email:
+#     recipients:
+#       - arthur.braga@esrlabs.com
+#       - dmitry.astafyev@esrlabs.com
+#       - oliver.mueller@esrlabs.com
+#     on_success: never
