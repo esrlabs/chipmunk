@@ -8,7 +8,7 @@ env:
 
 jobs:
   include:
-    - stage: "Build for mac"
+    - stage: "Build for linux, osx and windows"
       script: rake full_pipeline[mac]
       os: osx
       install:
