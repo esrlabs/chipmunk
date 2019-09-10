@@ -48,10 +48,10 @@ jobs:
         file: application/electron/dist/release/chipmunk@${CHIPMUNK_VERSION}-win64-portable.tgz
         draft: false
 
-# notifications:
-#   email:
-#     recipients:
-#       - arthur.braga@esrlabs.com
-#       - dmitry.astafyev@esrlabs.com
-#       - oliver.mueller@esrlabs.com
-#     on_success: never
+notifications:
+  email:
+    recipients:
+      - arthur.braga@esrlabs.com
+      - dmitry.astafyev@esrlabs.com
+      - oliver.mueller@esrlabs.com
+    on_success: never
