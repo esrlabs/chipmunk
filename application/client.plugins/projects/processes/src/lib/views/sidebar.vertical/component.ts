@@ -15,6 +15,7 @@ interface IState {
     _ng_envvars: IEnvVar[];
     _ng_settings: IForkSettings | undefined;
     _ng_processes: Process[];
+    _ng_ready: boolean;
 }
 
 export class Process {
@@ -107,6 +108,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     public _ng_envvars: IEnvVar[] = [];
     public _ng_settings: IForkSettings | undefined;
     public _ng_processes: Process[] = [];
+    public _ng_ready: boolean = false;
 
     private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger(`Plugin: processes: inj_output_bot:`);
@@ -124,7 +126,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     }
 
     ngAfterViewInit() {
-        // Subscription to income events
+        // Subscribing to incoming events
         this._subscriptions.incomeIPCHostMessage = this.api.getIPC().subscribeToHost((message: any) => {
             if (typeof message !== 'object' && message === null) {
                 // Unexpected format of message
@@ -155,10 +157,15 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         new Promise((resolve) => {
             switch (message.event) {
                 case EHostEvents.ForkStarted:
-                    this._ng_processes.find((process) => {
+                    // Check if process is running
+                    let runningProcess = this._ng_processes.find((process) => {
                         return process._ng_id === message.data.id;
-                    }).commandStarted();
+                    })
+                    if (runningProcess !== undefined) {
+                        runningProcess.commandStarted();
+                    }
 
+                    // Start a new process for the user
                     let process = new Process(this.session, this.api);
                     process._ng_envvars = this._ng_envvars;
                     process._ng_settings = this._ng_settings;
@@ -177,6 +184,19 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                     this._settingsUpdated();
                     // will force update automatically
                     // no reason to trigger it a second time
+                    break;
+                case EHostEvents.StreamReady:
+                    this._ng_ready = true;
+                    // repeat init operation
+                    // will force update automatically
+                    this._initState();
+                    break;
+                case EHostEvents.StreamNotRead:
+                    this._ng_ready = false;
+                    resolve();
+                    break;
+                default:
+                    this._logger.warn(`Unknown event: "${message.event}"`);
                     break;
             }
         }).then(() => {this._forceUpdate()});
@@ -200,6 +220,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             process._ng_settings = this._ng_settings;
             process._ng_envvars = this._ng_envvars;
         });
+        this._ng_ready = true;
         this._forceUpdate();
     }
 
@@ -226,6 +247,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             _ng_envvars: this._ng_envvars,
             _ng_settings: this._ng_settings,
             _ng_processes: this._ng_processes,
+            _ng_ready: this._ng_ready,
         });
     }
 
@@ -233,6 +255,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         this._ng_envvars  = [];
         this._ng_settings = undefined;
         this._ng_processes = [new Process(this.session, this.api)];
+        this._ng_ready = false;
 
         const stored: IState | undefined = state.load(this.session);
         if (stored === undefined) {

@@ -1,4 +1,8 @@
-<div class="wrapper" *ngIf="_ng_settings !== undefined">
+<div *ngIf="!_ng_ready">
+    <lib-primitive-spinner-regular></lib-primitive-spinner-regular>
+</div>
+
+<div class="wrapper" *ngIf="_ng_ready && _ng_settings !== undefined">
     <p class="t-normal">Environment vars</p>
     <ul class="env-vars">
         <li *ngFor="let envvar of _ng_envvars">
@@ -12,8 +16,8 @@
     <p class="t-console crop">{{_ng_settings.cwd}}</p>
 </div>
 
-<ul class="rows">
-    <li class="row" *ngFor="let process of _ng_processes">
+<ul *ngIf="_ng_ready">
+    <li *ngFor="let process of _ng_processes">
         <div [attr.class]="'container ' + (process._ng_working ? 'working' : 'free')">
             <div class="comstyle-input-holder input-wrapper">
                 <div class="comstyle-input">
