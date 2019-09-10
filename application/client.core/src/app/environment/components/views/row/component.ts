@@ -156,7 +156,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         if (TabsSessionsService.getActive() === undefined) {
             return;
         }
-        TabsSessionsService.getPluginAPI(this.pluginId).getViewportEventsHub().getSubject().onRowSelected.next({
+        TabsSessionsService.getPluginAPI(this.pluginId).getViewportEventsHub().getSubject().onRowSelected.emit({
             session: this.sessionId,
             source: {
                 id: this.pluginId,

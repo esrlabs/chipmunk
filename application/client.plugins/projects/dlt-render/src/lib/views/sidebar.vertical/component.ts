@@ -3,7 +3,6 @@
 
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, AfterContentInit } from '@angular/core';
 import * as Toolkit from 'logviewer.client.toolkit';
-import { Subscription } from 'rxjs';
 import { SafeHtml, DomSanitizer } from '@angular/platform-browser';
 import { CDelimiters, CColumnsHeaders } from '../../render/row.columns.api';
 import { isDLTSource } from '../../render/row.columns';
@@ -22,7 +21,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy, After
     public _ng_columns: Array<{ name: string, html: SafeHtml }> = [];
     public _ng_arguments: SafeHtml[] = [];
 
-    private _subscriptions: { [key: string]: Subscription } = {};
+    private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
     private _destroyed: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
@@ -31,7 +30,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy, After
     public ngOnDestroy() {
         this._destroyed = true;
         Object.keys(this._subscriptions).forEach((key: string) => {
-            this._subscriptions[key].unsubscribe();
+            this._subscriptions[key].destroy();
         });
     }
 
@@ -39,7 +38,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy, After
         if (this.api === undefined) {
             return;
         }
-        this._subscriptions.onRowSelected = this.api.getViewportEventsHub().getObservable().onRowSelected.subscribe(this._onRowSelected.bind(this));
+        this._subscriptions.onRowSelected = this.api.getViewportEventsHub().getSubject().onRowSelected.subscribe(this._onRowSelected.bind(this));
     }
 
     public ngAfterViewInit() {

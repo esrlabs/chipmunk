@@ -29,7 +29,7 @@
     "@angular/router": "~7.0.0",
     "core-js": "^2.5.4",
     "electron": "^4.0.8",
-    "logviewer.client.toolkit": "0.0.62",
+    "logviewer.client.toolkit": "0.0.64",
     "rxjs": "^6.5.2",
     "rxjs-compat": "^6.5.2",
     "xterm": "^3.12.0",
