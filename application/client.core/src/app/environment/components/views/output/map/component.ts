@@ -146,7 +146,6 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         const height: number = this.service.getSettings().minMarkerHeight * rate;
         if (this._ng_height < this._state.count) {
             const done: {[key: string]: boolean} = {};
-            const s = Date.now();
             this._state.points.forEach((point: IMapPoint) => {
                 const x: number = this._ng_width - this.service.getColumnWidth() * (1 + point.column);
                 const y: number = Math.ceil(point.position * rate);
@@ -163,7 +162,6 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
                     height < this.service.getSettings().minMarkerHeight ? this.service.getSettings().minMarkerHeight : height
                 );
             });
-            console.log(`Done in ${Date.now() - s} ms with ${Object.keys(done).length}`);
         } else {
             this._state.points.forEach((point: IMapPoint) => {
                 context.fillStyle = point.color === '' ? 'rgb(255,0,0)' : point.color;
