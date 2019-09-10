@@ -1,6 +1,6 @@
 {
   "name": "logviewer.plugin.transport.serial",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "logviewer_version": "1.0.0",
   "description": "",
   "main": "./dist/main.js",

@@ -1,4 +1,5 @@
-import { Subscription, Observable, Subject} from 'rxjs-compat';
+import Subscription from '../tools/tools.subscription';
+import Subject from '../tools/tools.subject';
 
 export interface ISourceInfo {
     id: number;
@@ -25,14 +26,6 @@ export class ControllerViewportEvents {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-    }
-
-    public getObservable(): {
-        onRowSelected: Observable<IOnRowSelectedEvent>,
-    } {
-        return {
-            onRowSelected: this._subjects.onRowSelected.asObservable(),
-        };
     }
 
     public getSubject(): {
