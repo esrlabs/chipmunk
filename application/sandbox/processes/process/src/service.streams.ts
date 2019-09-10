@@ -1,7 +1,9 @@
 import Logger from './env.logger';
 import Fork, { IForkSettings } from './process.fork';
-import * as EnvModule from './process.env';
+import * as EnvModule from 'logviewer.shell.env';
 import CommunicationsService from './communication.streams';
+import * as OS from 'os';
+import * as Path from 'path';
 
 export interface IStreamInfo {
     forks: Map<number, Fork>;
@@ -33,6 +35,10 @@ export class StreamsService {
         return defaults;
     }
 
+    private _getHomePath(): string {
+        return Path.normalize(`${OS.homedir()}`);
+    }
+
     private _onRequestOpenStream(streamId: string): string | undefined {
         if (this._streams.has(streamId)) {
             return this._logger.warn(`The Stream "${streamId}" already exists.`);
@@ -49,14 +55,14 @@ export class StreamsService {
 
         // TODO: handle reject-case for createStream
         new Promise((resolve) => {
-            EnvModule.getOSEnvVars().then((env: EnvModule.TEnvVars) => {
+            EnvModule.getEnvVars().then((env: EnvModule.TEnvVars) => {
                 //Apply default terminal color scheme
-                this._createStream(streamId, EnvModule.getHomePath(), this._getInitialOSEnv(env))
+                this._createStream(streamId, this._getHomePath(), this._getInitialOSEnv(env))
                 .finally(() => {resolve()});
             }).catch((error: Error) => {
                 this._logger.warn(`Failed to get OS env-vars for stream ${streamId} due to error: ${error.message}. Default node-values will be used .`);
                 this._createStream(
-                    streamId, EnvModule.getHomePath(),
+                    streamId, this._getHomePath(),
                     this._getInitialOSEnv(Object.assign({}, process.env) as EnvModule.TEnvVars))
                 .then(() => {resolve()});
             });
@@ -83,7 +89,7 @@ export class StreamsService {
 
     private _createStream(streamId: string, cwd: string, env: EnvModule.TEnvVars): Promise<void> {
         return new Promise((resolve, reject) => {
-            EnvModule.defaultShell().then((userShell: string) => {
+            EnvModule.getDefShell().then((userShell: string) => {
                 // Update stream
                 this._streams.set(streamId, {
                     forks: new Map(),
