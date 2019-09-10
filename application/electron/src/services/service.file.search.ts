@@ -3,7 +3,7 @@ import { FileParsers, AFileParser } from '../controllers/files.parsers/index';
 import Logger from '../tools/env.logger';
 import { Subscription } from '../tools/index';
 import { IService } from '../interfaces/interface.service';
-import { rgPath } from 'vscode-ripgrep';
+import { ControllerStreamSearchEngine } from '../controllers/controller.stream.search.engine';
 import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -15,7 +15,7 @@ import * as fs from 'fs';
 class ServiceFileSearch implements IService {
 
     private _logger: Logger = new Logger('ServiceFileSearch');
-    private _cmd: string = rgPath.replace(/\bnode_modules\.asar\b/, 'node_modules.asar.unpacked');
+    private _cmd: string = ControllerStreamSearchEngine.rgPath;
     // Should detect by executable file
     private _subscription: { [key: string]: Subscription } = {};
 
