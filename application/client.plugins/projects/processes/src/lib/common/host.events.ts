@@ -2,6 +2,9 @@ export enum EHostEvents {
     ForkStarted = 'ForkStarted',
     ForkClosed = 'ForkClosed',
     SettingsUpdated = 'SettingsUpdated',
+    StreamReady = 'StreamReady',
+    StreamNotRead = 'StreamNotReady',
+    StreamNonExistent = 'StreamNonExistent',
 }
 
 export enum EHostCommands {
