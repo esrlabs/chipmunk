@@ -1,0 +1,14 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 7e6bfdc3834fb4139fcbf48ae82705c04f73bcb05f3d198b60b24def98861665 # shrinks to s = "A"
+cc ece85d6cfd66f9a5e721ac707508325ca627d4a949f2c847d5bde7d345aba2a2 # shrinks to type_info = TypeInfo { kind: Raw, coding: ASCII, has_variable_info: false, is_fixed_point: false, has_trace_info: false, has_structured_data: false }
+cc 3793754c90b03b7714d102bff720be042dd13377440ca4fb113cc4960efbaf05 # shrinks to header_to_expect = ExtendedHeader { verbose: false, argument_count: 0, message_type: Log(Fatal), application_id: "00 0 ", context_id: "" }
+cc 26792daf76ff40158de157e5fe4496932ef313d356e8808e82d13494f1d24b75 # shrinks to header_to_expect = StandardHeader { version: 0, has_extended_header: false, big_endian: false, message_counter: 0, overall_length: 0, ecu_id: Some("🀰®"), session_id: None, timestamp: None }
+cc b223b8b4e365b7695565ca0526d8dcd53b03ec28b40735eb5383060318659b38 # shrinks to header_to_expect = ExtendedHeader { verbose: false, argument_count: 0, message_type: NetworkTrace(UserDefined(16)), application_id: "a", context_id: "A" }
+cc c76abac241bf4d0bca4991d4c41b13b80b5a7b9358812675def224a9015b793a # shrinks to argument = Argument { type_info: TypeInfo { kind: StringType, coding: ASCII, has_variable_info: true, is_fixed_point: false, has_trace_info: false }, name: Some("0"), unit: None, fixed_point: None, value: StringVal("sEN") }
+cc 79daa99f13aa6941ddddbb659bf8ef40f79ae721f9b89eec1bfb12a3c1b1bad7 # shrinks to argument = Argument { type_info: TypeInfo { kind: Signed(BitLength8), coding: UTF8, has_variable_info: true, is_fixed_point: true, has_trace_info: false }, name: Some("A"), unit: Some("a"), fixed_point: Some(FixedPoint { quantization: 0.0, offset: I32(0) }), value: I8(0) }
+cc e0d46986e2815290b149247e4cb7438cc2115fda4f121578d4e4523e560b4f52 # shrinks to argument = Argument { type_info: TypeInfo { kind: Signed(BitLength64), coding: UTF8, has_variable_info: true, is_fixed_point: true, has_trace_info: false }, name: Some("a"), unit: Some("a"), fixed_point: Some(FixedPoint { quantization: 0.0, offset: I32(0) }), value: I64(-1246093129526187791) }

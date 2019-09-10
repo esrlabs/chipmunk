@@ -1,0 +1,15 @@
+[package]
+name = "indexer_cli"
+version = "0.34.0"
+authors = ["Oliver Mueller <oliver.mueller@esrlabs.com>"]
+edition = "2018"
+
+[dependencies]
+clap = "2"
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+chrono = "0.4"
+dlt = { path = "../dlt" }
+processor = { path = "../processor" }
+indexer_base = { path = "../indexer_base" }
+merging = { path = "../merging" }
