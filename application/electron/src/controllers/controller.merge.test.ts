@@ -1,7 +1,7 @@
 // tslint:disable:max-classes-per-file
 import * as fs from 'fs';
 import ServiceStreams from '../services/service.streams';
-import { Lvin, IDatetimeFormatTest, IDatetimeFormatTestResult } from 'logviewer.lvin';
+import { Lvin, IDatetimeFormatTest, IDatetimeFormatTestResult } from './controller.lvin';
 import Logger from '../tools/env.logger';
 
 export interface IFileTestResults {
