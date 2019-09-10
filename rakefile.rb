@@ -24,12 +24,30 @@ module OS
   end
 end
 
-DIST_FOLDER = "application/electron/dist/"
-COMPILED_FOLDER = "application/electron/dist/compiled/"
-RELEASE_FOLDER = "application/electron/dist/release/"
-INCLUDED_PLUGINS_FOLDER = "application/electron/dist/compiled/plugins/"
-INCLUDED_APPS_FOLDER = "application/electron/dist/compiled/apps/"
+DIST_FOLDER = "application/electron/dist"
+COMPILED_CLIENT_FOLDER = "application/client.core/dist/logviewer"
+COMPILED_FOLDER = "application/electron/dist/compiled"
+RELEASE_FOLDER = "application/electron/dist/release"
+INCLUDED_PLUGINS_FOLDER = "application/electron/dist/compiled/plugins"
+INCLUDED_APPS_FOLDER = "application/electron/dist/compiled/apps"
 APP_PACKAGE_JSON = "application/electron/package.json"
+SRC_HOST_IPC = "application/electron/src/controllers/electron.ipc.messages"
+DEST_CLIENT_HOST_IPC = "application/client.core/src/app/environment/services/electron.ipc.messages"
+SRC_PLUGIN_IPC = "application/electron/src/controllers/plugins.ipc.messages"
+DEST_CLIENT_PLUGIN_IPC = "application/client.core/src/app/environment/services/plugins.ipc.messages"
+DEST_PLUGINIPCLIG_PLUGIN_IPC = "application/node.libs/logviewer.plugin.ipc/src/ipc.messages"
+SRC_CLIENT_NPM_LIBS = "application/client.libs/logviewer.client.components"
+DESTS_CLIENT_NPM_LIBS = [
+  "application/client.core/node_modules",
+  "application/client.plugins/node_modules"
+]
+CLIENT_NPM_LIBS_NAMES = [
+  "logviewer-client-containers",
+  "logviewer-client-primitive",
+  "logviewer-client-complex",
+]
+PLUGINS_SANDBOX = "application/sandbox"
+PATHS_TO_BE_CHECKED = [DIST_FOLDER, COMPILED_FOLDER, RELEASE_FOLDER, INCLUDED_PLUGINS_FOLDER, INCLUDED_APPS_FOLDER] 
 
 if OS.windows? == true
   TARGET_PLATFORM_NAME = "win64"
@@ -44,16 +62,29 @@ end
 
 puts "Detected target platform is: #{TARGET_PLATFORM_NAME} / #{TARGET_PLATFORM_ALIAS}"
 
-desc "quick build after update"
-task :quick do
-  cd "application/client.core" do
-    sh "npm update logviewer.client.toolkit"
+$task_folders_puts = false
+
+def compress_plugin(file, dest)
+  case TARGET_PLATFORM_ALIAS
+    when "mac"
+      sh "tar -cvzf #{file} -C #{PLUGINS_SANDBOX} #{dest} "
+    when "linux"
+      sh "tar -cvzf #{file} -C #{PLUGINS_SANDBOX} #{dest} "
+    when "win"
+      sh "tar -cvzf #{file} -C #{PLUGINS_SANDBOX} #{dest} --force-local"
   end
-  cd "application" do
-    sh "npm run build-client"
-    sh "npm run build-electron"
+end
+
+def get_nodejs_platform()
+  platform_tag = ""
+  if OS.windows? == true
+    platform_tag = "win32"
+  elsif OS.mac? == true
+    platform_tag = "darwin"
+  else
+    platform_tag = "linux"
   end
-  rm_rf "~/.logviewer"
+  return platform_tag
 end
 
 desc "start"
@@ -66,19 +97,21 @@ end
 desc "prepare"
 task :prepare do
   puts "Installing npm libs, which is needed for installing / updateing process"
-  sh "npm install typescript jake --global"
+  sh "npm install typescript --global"
 end
 
 desc "folders"
 task :folders do
-  PATHS = [DIST_FOLDER, COMPILED_FOLDER, RELEASE_FOLDER, INCLUDED_PLUGINS_FOLDER, INCLUDED_APPS_FOLDER] 
   i = 0;
-  while i < PATHS.length
-    path = PATHS[i]
-    puts "Check / create folder: #{path}"
+  while i < PATHS_TO_BE_CHECKED.length
+    path = PATHS_TO_BE_CHECKED[i]
+    if $task_folders_puts == false
+      puts "Check / create folder: #{path}"
+    end
     Dir.mkdir(path) unless File.exists?(path)
     i += 1
   end
+  $task_folders_puts = true
   Rake::Task["folders"].reenable
 end
 
@@ -92,6 +125,8 @@ task :install do
   cd "application/client.core" do
     puts "Installing: core"
     sh "npm install"
+    sh "npm uninstall logviewer.client.toolkit"
+    sh "npm install logviewer.client.toolkit@latest"
   end
   cd "application/client.libs/logviewer.client.components" do
     puts "Installing: components"
@@ -100,18 +135,86 @@ task :install do
   cd "application/client.plugins" do
     puts "Installing: plugins env"
     sh "npm install"
+    sh "npm uninstall logviewer.client.toolkit"
+    sh "npm install logviewer.client.toolkit@latest"
   end
   cd "application/electron" do
     puts "Installing: electron"
     sh "npm install"
     sh "npm run build-ts"
   end
-  cd "application" do
-    puts "Building: client"
-    sh "npm run build-client"
-    puts "Building: electron"
-    sh "npm run build-electron"
+  Rake::Task["ipc"].invoke
+  Rake::Task["clientlibsbuild"].invoke
+  Rake::Task["clientlibsdelivery"].invoke
+  Rake::Task["clientbuild"].invoke
+  Rake::Task["apppackagedelivery"].invoke
+end
+
+desc "ipc"
+task :ipc do
+  puts "Delivery IPC definitions"
+  $paths = [DEST_CLIENT_HOST_IPC, DEST_CLIENT_PLUGIN_IPC, DEST_PLUGINIPCLIG_PLUGIN_IPC];
+  i = 0;
+  while i < $paths.length
+    path = $paths[i]
+    FileUtils.rm_r(path) unless !File.exists?(path)
+    i += 1
   end
+  FileUtils.cp_r(SRC_HOST_IPC, DEST_CLIENT_HOST_IPC)
+  FileUtils.cp_r(SRC_PLUGIN_IPC, DEST_CLIENT_PLUGIN_IPC)
+  FileUtils.cp_r(SRC_PLUGIN_IPC, DEST_PLUGINIPCLIG_PLUGIN_IPC)
+end
+
+desc "Building client libs"
+task :clientlibsbuild do
+  puts "Building client libs"
+  cd SRC_CLIENT_NPM_LIBS do
+    i = 0;
+    while i < CLIENT_NPM_LIBS_NAMES.length
+      lib = CLIENT_NPM_LIBS_NAMES[i]
+      puts "Compiling client components library: #{lib}"
+      sh "npm run build:#{lib}"
+      i += 1
+    end
+  end
+end
+
+desc "Delivery client libs"
+task :clientlibsdelivery do
+  puts "Delivery client libs"
+  DESTS_CLIENT_NPM_LIBS
+  i = 0;
+  while i < DESTS_CLIENT_NPM_LIBS.length
+    dest = DESTS_CLIENT_NPM_LIBS[i]
+    puts "Delivery libs into: #{dest}"
+    j = 0;
+    while j < CLIENT_NPM_LIBS_NAMES.length
+      lib = CLIENT_NPM_LIBS_NAMES[j]
+      src = "#{SRC_CLIENT_NPM_LIBS}/dist/#{lib}"
+      path = "#{dest}/#{lib}"
+      FileUtils.rm_r(path) unless !File.exists?(path)
+      FileUtils.cp_r(src, path)
+      j += 1
+    end
+    i += 1
+  end
+end
+
+desc "Build client"
+task :clientbuild do
+  cd "application/client.core" do
+    puts "Building client.core"
+    sh "npm run build"
+  end
+  puts "Delivery client.core"
+  dest_client_path = "#{COMPILED_FOLDER}/client"
+  FileUtils.rm_r(dest_client_path) unless !File.exists?(dest_client_path)
+  FileUtils.cp_r(COMPILED_CLIENT_FOLDER, dest_client_path)
+end
+
+desc "Add package.json to compiled app"
+task :apppackagedelivery do
+  FileUtils.cp_r(APP_PACKAGE_JSON, "#{COMPILED_FOLDER}/package.json")
 end
 
 desc "install plugins"
@@ -119,43 +222,86 @@ task :plugins do
   puts "Drop included plugins: #{INCLUDED_PLUGINS_FOLDER}"
   FileUtils.rm_r(INCLUDED_PLUGINS_FOLDER) unless !File.exists?(INCLUDED_PLUGINS_FOLDER)
   Rake::Task["folders"].invoke
-  cd "application/client.plugins.standalone/row.parser.ascii" do
-    puts "Install plugin: row.parser.ascii"
-    sh "npm install"
+  Rake::Task["pluginsstandalone"].invoke
+  Rake::Task["pluginscomplex"].invoke
+  Rake::Task["pluginsangular"].invoke
+end
+
+desc "Install standalone plugins"
+task :pluginsstandalone do
+  complex_plugins = ["row.parser.ascii"];
+  i = 0
+  while i < complex_plugins.length
+    plugin = complex_plugins[i]
+    puts "Installing plugin: #{plugin}"
+    src = "application/client.plugins.standalone/#{plugin}"
+    cd src do
+      puts "Install plugin: #{plugin}"
+      sh "npm install"
+      sh "npm uninstall logviewer.client.toolkit"
+      sh "npm install logviewer.client.toolkit@latest"
+      sh "npm run build"
+    end
+    dest = "#{PLUGINS_SANDBOX}/#{plugin}"
+    FileUtils.rm_r("#{dest}/render/dist") unless !File.exists?("#{dest}/render/dist")
+    FileUtils.cp_r("#{src}/dist", "#{dest}/render/dist")
+    FileUtils.cp_r("#{src}/package.json", "#{dest}/render/package.json")
+    package_str = File.read("#{dest}/render/package.json")
+    package = JSON.parse(package_str)
+    arch = "#{INCLUDED_PLUGINS_FOLDER}/#{plugin}@#{package["version"]}-#{get_nodejs_platform()}.tgz"
+    FileUtils.rm(arch) unless !File.exists?(arch)
+    compress_plugin(arch, plugin)
+    i += 1
   end
-  cd "application/sandbox/dlt/process" do
-    puts "Install plugin: dlt"
-    sh "npm install"
-    sh "npm install electron@4.0.3 electron-rebuild@^1.8.2"
-    sh "./node_modules/.bin/electron-rebuild"
-    sh "npm uninstall electron electron-rebuild"
+end
+
+desc "Install complex plugins"
+task :pluginscomplex do
+  complex_plugins = ["dlt", "serial", "processes", "xterminal"];
+  i = 0
+  while i < complex_plugins.length
+    plugin = complex_plugins[i]
+    puts "Installing plugin: #{plugin}"
+    cd "application/sandbox/#{plugin}/process" do
+      sh "npm install"
+      sh "npm install electron@4.0.3 electron-rebuild@^1.8.2"
+      sh "./node_modules/.bin/electron-rebuild"
+      sh "npm uninstall electron electron-rebuild"
+    end
+    cd "application/client.plugins" do
+      sh "npm run build:#{plugin}"
+    end
+    src = "application/client.plugins/dist/#{plugin}"
+    dest = "#{PLUGINS_SANDBOX}/#{plugin}"
+    FileUtils.rm_r("#{dest}/render") unless !File.exists?("#{dest}/render")
+    FileUtils.cp_r("#{src}", "#{dest}/render")
+    package_str = File.read("#{dest}/process/package.json")
+    package = JSON.parse(package_str)
+    arch = "#{INCLUDED_PLUGINS_FOLDER}/#{plugin}@#{package["version"]}-#{get_nodejs_platform()}.tgz"
+    compress_plugin(arch, plugin)
+    i += 1
   end
-  cd "application/sandbox/serial/process" do
-    puts "Install plugin: serial"
-    sh "npm install"
-    sh "npm install electron@4.0.3 electron-rebuild@^1.8.2"
-    sh "./node_modules/.bin/electron-rebuild"
-    sh "npm uninstall electron electron-rebuild"
-  end
-  cd "application/sandbox/processes/process" do
-    puts "Install plugin: processes"
-    sh "npm install"
-    sh "npm install electron@4.0.3 electron-rebuild@^1.8.2"
-    sh "./node_modules/.bin/electron-rebuild"
-    sh "npm uninstall electron electron-rebuild"
-  end
-  cd "application/sandbox/xterminal/process" do
-    puts "Install plugin: xterminal"
-    sh "npm install"
-    sh "npm install electron@4.0.3 electron-rebuild@^1.8.2"
-    sh "./node_modules/.bin/electron-rebuild"
-    sh "npm uninstall electron electron-rebuild"
-  end
-  cd "application" do
-    puts "Build: all libs"
-    sh "npm run build-client"
-    puts "Build: all plugins"
-    sh "npm run build-plugins"
+end
+
+desc "Install render (angular) plugins"
+task :pluginsangular do
+  complex_plugins = ["dlt-render"];
+  i = 0
+  while i < complex_plugins.length
+    plugin = complex_plugins[i]
+    puts "Installing plugin: #{plugin}"
+    cd "application/client.plugins" do
+      sh "npm run build:#{plugin}"
+    end
+    src = "application/client.plugins/dist/#{plugin}"
+    dest = "#{PLUGINS_SANDBOX}/#{plugin}"
+    FileUtils.rm_r("#{dest}/render") unless !File.exists?("#{dest}/render")
+    FileUtils.cp_r("#{src}", "#{dest}/render")
+    package_str = File.read("#{dest}/render/package.json")
+    package = JSON.parse(package_str)
+    arch = "#{INCLUDED_PLUGINS_FOLDER}/#{plugin}@#{package["version"]}-#{get_nodejs_platform()}.tgz"
+    compress_plugin(arch, plugin)
+    i += 1
   end
 end
 
@@ -183,32 +329,6 @@ task :updatepluginipc do
   end
 end
 
-desc "update toolkit"
-task :updatetoolkit do
-  cd "application/client.core" do
-    puts "Update toolkits for: core"
-    sh "npm uninstall logviewer.client.toolkit"
-    sh "npm install logviewer.client.toolkit@latest"
-  end
-  cd "application/client.plugins" do
-    puts "Update toolkits for: angular plugins"
-    sh "npm uninstall logviewer.client.toolkit"
-    sh "npm install logviewer.client.toolkit@latest"
-  end
-  cd "application/client.plugins.standalone/row.parser.ascii" do
-    puts "Update toolkits for: none-angular plugins"
-    sh "npm uninstall logviewer.client.toolkit"
-    sh "npm install logviewer.client.toolkit@latest"
-  end
-  cd "application" do
-    puts "Rebuild: client"
-    sh "npm run build-client"
-    puts "Rebuild: plugins"
-    sh "npm run build-plugins"
-    puts "Rebuild: electron"
-    sh "npm run build-electron"
-  end
-end
 
 desc "build updater"
 task :buildupdater do
@@ -226,10 +346,10 @@ task :buildupdater do
     sh "cargo build --release"
   end
 
-  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}#{APP_FILE}"
-  FileUtils.rm("#{INCLUDED_APPS_FOLDER}#{APP_FILE}") unless !File.exists?("#{INCLUDED_APPS_FOLDER}#{APP_FILE}")
+  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}/#{APP_FILE}"
+  FileUtils.rm("#{INCLUDED_APPS_FOLDER}/#{APP_FILE}") unless !File.exists?("#{INCLUDED_APPS_FOLDER}/#{APP_FILE}")
   puts "Updating app from: #{SRC_APP_DIR}#{APP_FILE}"
-  FileUtils.cp("#{SRC_APP_DIR}#{APP_FILE}", "#{INCLUDED_APPS_FOLDER}#{APP_FILE}")
+  FileUtils.cp("#{SRC_APP_DIR}#{APP_FILE}", "#{INCLUDED_APPS_FOLDER}/#{APP_FILE}")
 
 end
 
@@ -249,10 +369,10 @@ task :buildlauncher do
     sh "cargo build --release"
   end
 
-  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}#{APP_FILE}"
-  FileUtils.rm("#{INCLUDED_APPS_FOLDER}#{APP_FILE}") unless !File.exists?("#{INCLUDED_APPS_FOLDER}#{APP_FILE}")
+  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}/#{APP_FILE}"
+  FileUtils.rm("#{INCLUDED_APPS_FOLDER}/#{APP_FILE}") unless !File.exists?("#{INCLUDED_APPS_FOLDER}/#{APP_FILE}")
   puts "Updating app from: #{SRC_APP_DIR}#{APP_FILE}"
-  FileUtils.cp("#{SRC_APP_DIR}#{APP_FILE}", "#{INCLUDED_APPS_FOLDER}#{APP_FILE}")
+  FileUtils.cp("#{SRC_APP_DIR}#{APP_FILE}", "#{INCLUDED_APPS_FOLDER}/#{APP_FILE}")
 
 end
 
@@ -274,10 +394,10 @@ task :buildindexer do
     sh "cargo build --release"
   end
 
-  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}#{APP_FILE_RELEASE}"
-  FileUtils.rm("#{INCLUDED_APPS_FOLDER}#{APP_FILE_RELEASE}") unless !File.exists?("#{INCLUDED_APPS_FOLDER}#{APP_FILE_RELEASE}")
+  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}/#{APP_FILE_RELEASE}"
+  FileUtils.rm("#{INCLUDED_APPS_FOLDER}/#{APP_FILE_RELEASE}") unless !File.exists?("#{INCLUDED_APPS_FOLDER}/#{APP_FILE_RELEASE}")
   puts "Updating app from: #{SRC_APP_DIR}#{APP_FILE_COMP}"
-  FileUtils.cp("#{SRC_APP_DIR}#{APP_FILE_COMP}", "#{INCLUDED_APPS_FOLDER}#{APP_FILE_RELEASE}")
+  FileUtils.cp("#{SRC_APP_DIR}#{APP_FILE_COMP}", "#{INCLUDED_APPS_FOLDER}/#{APP_FILE_RELEASE}")
 
 end
 
@@ -297,15 +417,15 @@ task :buildripgrep do
     sh "cargo build --release"
   end
 
-  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}#{APP_FILE}"
-  FileUtils.rm("#{INCLUDED_APPS_FOLDER}#{APP_FILE}") unless !File.exists?("#{INCLUDED_APPS_FOLDER}#{APP_FILE}")
+  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}/#{APP_FILE}"
+  FileUtils.rm("#{INCLUDED_APPS_FOLDER}/#{APP_FILE}") unless !File.exists?("#{INCLUDED_APPS_FOLDER}/#{APP_FILE}")
   puts "Updating app from: #{SRC_APP_DIR}#{APP_FILE}"
-  FileUtils.cp("#{SRC_APP_DIR}#{APP_FILE}", "#{INCLUDED_APPS_FOLDER}#{APP_FILE}")
+  FileUtils.cp("#{SRC_APP_DIR}#{APP_FILE}", "#{INCLUDED_APPS_FOLDER}/#{APP_FILE}")
 
 end
 
 desc "full update"
-task :update => [:updatetoolkit, :buildlauncher, :buildupdater, :buildindexer, :buildripgrep]
+task :update => [:buildlauncher, :buildupdater, :buildindexer, :buildripgrep]
 
 desc "build"
 task :build do
