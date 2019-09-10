@@ -414,7 +414,7 @@ task :buildripgrep do
 
   cd "application/apps/ripgrep" do
     puts 'Build ripgrep'
-    sh "cargo build --release"
+    sh "cargo build --release --features 'pcre2'"
   end
 
   puts "Check old version of app: #{INCLUDED_APPS_FOLDER}/#{APP_FILE}"
