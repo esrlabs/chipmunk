@@ -65,7 +65,7 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         this._subscriptions.onUpdateStateSubject = this.service.getObservable().onStateUpdate.subscribe(this._onUpdateState.bind(this));
         this._subscriptions.onPositionUpdateSubject = this.service.getObservable().onPositionUpdate.subscribe(this._onPositionUpdate.bind(this));
         this._subscriptions.onRepaintSubject = this.service.getObservable().onRepaint.subscribe(this._onRepaint.bind(this));
-        this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(this._onRepaint.bind(this));
+        this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(this._onRepaint.bind(this, true));
         this._setState(this.service.getState());
         this._onRepaint();
     }
@@ -91,12 +91,16 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         this._state.rowsInView = state.rowsInView;
     }
 
-    private _setHeight() {
+    private _setHeight(): boolean {
         const size: ClientRect = (this._elRef.nativeElement as HTMLElement).getBoundingClientRect();
         if (size.height <= 0) {
-            return;
+            return false;
+        }
+        if (this._ng_height === size.height) {
+            return false;
         }
         this._ng_height = size.height;
+        return true;
     }
 
     private _setWidth() {
@@ -118,8 +122,10 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         this._forceUpdate();
     }
 
-    private _onRepaint() {
-        this._setHeight();
+    private _onRepaint(resizing: boolean = false) {
+        if (!this._setHeight() && resizing) {
+            return;
+        }
         this._setWidth();
         this._updateCursor();
         this._forceUpdate();
@@ -138,17 +144,39 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         // Drawing markers
         const rate: number = this._ng_height / this._state.count;
         const height: number = this.service.getSettings().minMarkerHeight * rate;
-        this._state.points.forEach((point: IMapPoint) => {
-            context.fillStyle = point.color === '' ? 'rgb(255,0,0)' : point.color;
-            const x: number = this._ng_width - this.service.getColumnWidth() * (1 + point.column);
-            const y: number = point.position * rate;
-            context.fillRect(
-                x - 1,
-                y,
-                this.service.getColumnWidth() - 1,
-                height < this.service.getSettings().minMarkerHeight ? this.service.getSettings().minMarkerHeight : height
-            );
-        });
+        if (this._ng_height < this._state.count) {
+            const done: {[key: string]: boolean} = {};
+            const s = Date.now();
+            this._state.points.forEach((point: IMapPoint) => {
+                const x: number = this._ng_width - this.service.getColumnWidth() * (1 + point.column);
+                const y: number = Math.ceil(point.position * rate);
+                const key: string = y + '-' + x;
+                if (done[key]) {
+                    return;
+                }
+                context.fillStyle = point.color === '' ? 'rgb(255,0,0)' : point.color;
+                done[key] = true;
+                context.fillRect(
+                    x - 1,
+                    y,
+                    this.service.getColumnWidth() - 1,
+                    height < this.service.getSettings().minMarkerHeight ? this.service.getSettings().minMarkerHeight : height
+                );
+            });
+            console.log(`Done in ${Date.now() - s} ms with ${Object.keys(done).length}`);
+        } else {
+            this._state.points.forEach((point: IMapPoint) => {
+                context.fillStyle = point.color === '' ? 'rgb(255,0,0)' : point.color;
+                const x: number = this._ng_width - this.service.getColumnWidth() * (1 + point.column);
+                const y: number = point.position * rate;
+                context.fillRect(
+                    x - 1,
+                    y,
+                    this.service.getColumnWidth() - 1,
+                    height < this.service.getSettings().minMarkerHeight ? this.service.getSettings().minMarkerHeight : height
+                );
+            });
+        }
     }
 
     private _updateCursor() {
