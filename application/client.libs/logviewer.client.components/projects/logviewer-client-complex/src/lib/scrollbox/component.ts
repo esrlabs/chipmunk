@@ -104,11 +104,11 @@ export function copyTextToClipboard(text: string) {
     const element           = document.createElement('P');
     element.style.opacity   = '0.0001';
     element.style.position  = 'absolute';
-    element.style.userSelect = 'text';
+    element.style.userSelect = 'all';
     element.style.width     = '1px';
     element.style.height    = '1px';
     element.style.overflow  = 'hidden';
-    element.innerHTML       = text.replace(/\r?\n|\r/gi, '</br>');
+    element.innerHTML       = text.replace(/\r?\n|\r/gi, '<br>');
     document.body.appendChild(element);
     const range             = document.createRange();
     range.selectNode(element);
