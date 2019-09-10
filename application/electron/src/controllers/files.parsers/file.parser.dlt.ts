@@ -1,7 +1,7 @@
 import { AFileParser, IFileParserFunc, IMapItem } from './interface';
 import { Transform } from 'stream';
 import * as path from 'path';
-import { Lvin, IIndexResult, IFileMapItem, ILogMessage } from 'logviewer.lvin';
+import { Lvin, IIndexResult, IFileMapItem, ILogMessage } from '../controller.lvin';
 import ServiceElectron, { IPCMessages } from '../../services/service.electron';
 import ServiceStreams from '../../services/service.streams';
 import { Subscription } from '../../tools/index';
