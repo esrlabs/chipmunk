@@ -58,8 +58,7 @@
     "github-releases": "^0.4.2",
     "moment-timezone": "^0.5.25",
     "tar": "^4.4.8",
-    "uuid": "latest",
-    "vscode-ripgrep": "latest"
+    "uuid": "latest"
   },
   "devDependencies": {
     "@types/file-type": "^10.9.1",

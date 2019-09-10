@@ -281,8 +281,31 @@ task :buildindexer do
 
 end
 
+desc "build ripgrep"
+task :buildripgrep do
+  Rake::Task["folders"].invoke
+
+  SRC_APP_DIR = "application/apps/ripgrep/target/release/"
+  APP_FILE = "rg"
+
+  if OS.windows? == true
+    APP_FILE = "rg.exe"
+  end
+
+  cd "application/apps/ripgrep" do
+    puts 'Build ripgrep'
+    sh "cargo build --release --features 'pcre2'"
+  end
+
+  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}#{APP_FILE}"
+  FileUtils.rm("#{INCLUDED_APPS_FOLDER}#{APP_FILE}") unless !File.exists?("#{INCLUDED_APPS_FOLDER}#{APP_FILE}")
+  puts "Updating app from: #{SRC_APP_DIR}#{APP_FILE}"
+  FileUtils.cp("#{SRC_APP_DIR}#{APP_FILE}", "#{INCLUDED_APPS_FOLDER}#{APP_FILE}")
+
+end
+
 desc "full update"
-task :update => [:updatetoolkit, :buildlauncher, :buildupdater, :buildindexer]
+task :update => [:updatetoolkit, :buildlauncher, :buildupdater, :buildindexer, :buildripgrep]
 
 desc "build"
 task :build do
