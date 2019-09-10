@@ -1,0 +1,3 @@
+[submodule "application/apps/ripgrep"]
+	path = application/apps/ripgrep
+	url = https://github.com/BurntSushi/ripgrep
