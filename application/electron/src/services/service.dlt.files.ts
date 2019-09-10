@@ -2,7 +2,7 @@ import ServiceElectron, { IPCMessages } from './service.electron';
 import Logger from '../tools/env.logger';
 import { Subscription } from '../tools/index';
 import { IService } from '../interfaces/interface.service';
-import { Lvin, IDLTStatsResults, ILogMessage } from 'logviewer.lvin';
+import { Lvin, IDLTStatsResults, ILogMessage } from '../controllers/controller.lvin';
 import * as path from 'path';
 
 /**

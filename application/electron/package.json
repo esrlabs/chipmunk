@@ -1,6 +1,6 @@
 {
   "name": "chipmunk",
-  "version": "1.20.5",
+  "version": "1.20.6",
   "description": "LogViewer",
   "main": "./dist/compiled/main.js",
   "copyright": "Copyright © 2019 year E.S.R.Labs",
@@ -56,7 +56,6 @@
     "electron-updater": "^4.1.2",
     "file-type": "^12.2.0",
     "github-releases": "^0.4.2",
-    "logviewer.lvin": "0.0.73",
     "moment-timezone": "^0.5.25",
     "tar": "^4.4.8",
     "uuid": "latest",

@@ -9,7 +9,7 @@ import * as moment from 'moment-timezone';
 import MergeFiles from '../controllers/controller.merge.files';
 import MergeDiscover, { IDatetimeDiscoverResult } from '../controllers/controller.merge.discover';
 import MergeTest, { IFileTestResults } from '../controllers/controller.merge.test';
-import { IDatetimeDiscoverFileResult } from 'logviewer.lvin/dist/wrapper';
+import { IDatetimeDiscoverFileResult } from '../controllers/controller.lvin';
 
 /**
  * @class ServiceMergeFiles

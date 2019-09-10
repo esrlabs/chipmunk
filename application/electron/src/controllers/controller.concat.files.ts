@@ -5,7 +5,7 @@ import ServiceStreams from '../services/service.streams';
 import ServiceStreamSource from '../services/service.stream.sources';
 import ServiceElectron, { IPCMessages } from '../services/service.electron';
 import * as Tools from '../tools/index';
-import { Lvin, IIndexResult, IFileToBeCancat, IFileMapItem, ILogMessage } from 'logviewer.lvin';
+import { Lvin, IIndexResult, IFileToBeCancat, IFileMapItem, ILogMessage } from './controller.lvin';
 import Logger from '../tools/env.logger';
 
 export interface IFile {

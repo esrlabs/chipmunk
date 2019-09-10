@@ -1,9 +1,8 @@
 // tslint:disable:max-classes-per-file
 import ServiceStreams from '../services/service.streams';
-import { Lvin, IDatetimeDiscoverResult, ILogMessage } from 'logviewer.lvin';
+import { Lvin, IDatetimeDiscoverResult, ILogMessage, IDatetimeDiscoverFileResult } from './controller.lvin';
 import Logger from '../tools/env.logger';
 import ServiceElectron, { IPCMessages } from '../services/service.electron';
-import { IDatetimeDiscoverFileResult } from 'logviewer.lvin/dist/wrapper';
 
 export { IDatetimeDiscoverResult };
 

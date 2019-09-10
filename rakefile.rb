@@ -159,15 +159,6 @@ task :plugins do
   end
 end
 
-desc "update indexer"
-task :updateindexer do
-  cd "application/electron" do
-    puts "Updating indexer"
-    sh "npm uninstall logviewer.lvin"
-    sh "npm install logviewer.lvin@latest"
-  end
-end
-
 desc "update plugin.ipc"
 task :updatepluginipc do
   cd "application/sandbox/dlt/process" do
@@ -265,8 +256,33 @@ task :buildlauncher do
 
 end
 
+desc "build indexer"
+task :buildindexer do
+  Rake::Task["folders"].invoke
+
+  SRC_APP_DIR = "application/apps/indexer/target/release/"
+  APP_FILE_COMP = "indexer_cli"
+  APP_FILE_RELEASE = "lvin"
+
+  if OS.windows? == true
+    APP_FILE_COMP = "indexer_cli.exe"
+    APP_FILE_RELEASE = "lvin.exe"
+  end
+
+  cd "application/apps/indexer" do
+    puts 'Build indexer'
+    sh "cargo build --release"
+  end
+
+  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}#{APP_FILE_RELEASE}"
+  FileUtils.rm("#{INCLUDED_APPS_FOLDER}#{APP_FILE_RELEASE}") unless !File.exists?("#{INCLUDED_APPS_FOLDER}#{APP_FILE_RELEASE}")
+  puts "Updating app from: #{SRC_APP_DIR}#{APP_FILE_COMP}"
+  FileUtils.cp("#{SRC_APP_DIR}#{APP_FILE_COMP}", "#{INCLUDED_APPS_FOLDER}#{APP_FILE_RELEASE}")
+
+end
+
 desc "full update"
-task :update => [:updateindexer, :updatetoolkit, :buildlauncher, :buildupdater]
+task :update => [:updatetoolkit, :buildlauncher, :buildupdater, :buildindexer]
 
 desc "build"
 task :build do
