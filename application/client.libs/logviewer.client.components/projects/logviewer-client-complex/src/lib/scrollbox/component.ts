@@ -108,7 +108,8 @@ export function copyTextToClipboard(text: string) {
     element.style.width     = '1px';
     element.style.height    = '1px';
     element.style.overflow  = 'hidden';
-    element.innerHTML       = text.replace(/\r?\n|\r/gi, '<br>\n\r');
+    element.className       = 'noreset';
+    element.innerHTML       = text.replace(/\r?\n|\r/gi, '<br>');
     document.body.appendChild(element);
     const range             = document.createRange();
     range.selectNode(element);
