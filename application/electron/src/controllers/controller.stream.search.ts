@@ -106,19 +106,21 @@ export default class ControllerStreamSearch {
         });
     }
 
-    private _append(updated: IRange): void {
+    private _append(updated?: IRange): void {
         clearTimeout(this._pending.timer);
         if (this._requests.length === 0) {
             return;
         }
-        if (this._pending.bytes.from === -1 || this._pending.bytes.from > updated.from) {
-            this._pending.bytes.from = updated.from;
-        }
-        if (this._pending.bytes.to === -1 || this._pending.bytes.to < updated.to) {
-            this._pending.bytes.to = updated.to;
+        if (updated !== undefined) {
+            if (this._pending.bytes.from === -1 || this._pending.bytes.from > updated.from) {
+                this._pending.bytes.from = updated.from;
+            }
+            if (this._pending.bytes.to === -1 || this._pending.bytes.to < updated.to) {
+                this._pending.bytes.to = updated.to;
+            }
         }
         if (this._executor.isWorking()) {
-            this._pending.timer = setTimeout(this._append, CSettings.delayOnAppend);
+            this._pending.timer = setTimeout(this._append.bind(this), CSettings.delayOnAppend);
             return;
         }
         const bytes: IRange = { from: this._pending.bytes.from, to: this._pending.bytes.to };
