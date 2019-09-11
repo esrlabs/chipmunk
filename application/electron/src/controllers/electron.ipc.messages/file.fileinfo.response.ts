@@ -9,6 +9,7 @@ export interface IFileInfoResponse {
     created: number;
     changed: number;
     parser?: string;
+    defaults?: string;
     parsers?: IParser[];
 }
 
@@ -22,6 +23,7 @@ export class FileInfoResponse {
     public created: number = -1;
     public changed: number = -1;
     public parser: string | undefined;
+    public defaults: string | undefined;
     public parsers: IParser[] | undefined;
 
     constructor(params: IFileInfoResponse) {
@@ -49,6 +51,9 @@ export class FileInfoResponse {
         if (typeof params.changed !== 'number' || isNaN(params.changed) || !isFinite(params.changed)) {
             throw new Error(`changed should be defined.`);
         }
+        if (params.defaults !== undefined && typeof params.defaults !== 'string') {
+            throw new Error(`defaults should be defined as string.`);
+        }
         this.path = params.path;
         this.name = params.name;
         this.size = params.size;
@@ -56,5 +61,6 @@ export class FileInfoResponse {
         this.changed = params.changed;
         this.parser = params.parser;
         this.parsers = params.parsers;
+        this.defaults = params.defaults;
     }
 }

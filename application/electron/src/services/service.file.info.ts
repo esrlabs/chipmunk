@@ -1,5 +1,5 @@
 import ServiceElectron, { IPCMessages } from './service.electron';
-import { FileParsers, AFileParser, getParserForFile } from '../controllers/files.parsers/index';
+import { FileParsers, AFileParser, getParserForFile, getDefaultFileParser } from '../controllers/files.parsers/index';
 import Logger from '../tools/env.logger';
 import * as path from 'path';
 import { Subscription } from '../tools/index';
@@ -62,6 +62,7 @@ class ServiceFileInfo implements IService {
     private _onFileInfoRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.FileInfoRequest = request as IPCMessages.FileInfoRequest;
         const info: { size: number, created: number; changed: number } = { size: -1, created: -1, changed: -1 };
+        const defaults: AFileParser | undefined = getDefaultFileParser();
         const noParserFoundResponce = () => {
             response(new IPCMessages.FileInfoResponse({
                 path: req.file,
@@ -72,6 +73,7 @@ class ServiceFileInfo implements IService {
                         desc: parser.desc,
                     };
                 }),
+                defaults: defaults !== undefined ? defaults.getName() : undefined,
                 size: info.size,
                 created: info.created,
                 changed: info.changed,
@@ -92,6 +94,7 @@ class ServiceFileInfo implements IService {
                 name: path.basename(req.file),
                 parser: parser.getName(),
                 size: info.size,
+                defaults: defaults !== undefined ? defaults.getName() : undefined,
                 created: info.created,
                 changed: info.changed,
             }));
