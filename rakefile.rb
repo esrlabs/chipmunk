@@ -503,7 +503,6 @@ end
 desc "Build the full build pipeline for a given platform"
 task :full_pipeline do
   Rake::Task["prepare"].invoke
-  Rake::Task["ripgrepdelivery"].invoke
   Rake::Task["install"].invoke
   Rake::Task["update"].invoke
   Rake::Task["plugins"].invoke
