@@ -553,7 +553,7 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
                 });
                 resolve();
             }).catch((parserError: Error) => {
-                reject(`Fail detect file parser due error: ${parserError.message}`);
+                reject(new Error(`Fail detect file parser due error: ${parserError.message}`));
             });
         });
     }
@@ -563,8 +563,11 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
             ElectronIpcService.request(new IPCMessages.FileInfoRequest({
                 file: file,
             }), IPCMessages.FileInfoResponse).then((stats: IPCMessages.FileInfoResponse) => {
-                if (stats.parser === undefined) {
-                    return reject(new Error('Fail to find parser for selected file.'));
+                if (stats.parser === undefined && stats.defaults !== undefined) {
+                    this._logger.env(`Parser isn't found for file: ${file}. Will be used default: ${stats.defaults}`);
+                    stats.parser = stats.defaults;
+                } else if (stats.parser === undefined && stats.defaults === undefined) {
+                    return reject(new Error(`Fail to find parser for selected file: ${file}.`));
                 }
                 resolve(stats);
             }).catch((error: Error) => {
