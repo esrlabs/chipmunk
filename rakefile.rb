@@ -143,7 +143,7 @@ task :ripgrepdelivery do
         sh "tar xvzf #{file_name}"
       when "win"
         sh "unzip #{file_name}"
-        sh "dir #{path}"
+        sh "dir"
     end
   end
   case TARGET_PLATFORM_ALIAS
