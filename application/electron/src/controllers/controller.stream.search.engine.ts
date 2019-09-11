@@ -28,12 +28,10 @@ type TMeasurer = () => void;
 
 export class ControllerStreamSearchEngine {
 
-    public static rgPath: string = path.resolve(ServicePaths.getRoot(), `apps/${os.platform() === 'win32' ? 'rg.exe' : 'rg'}`);
-
     private _logger: Logger;
     private _streamFile: string;
     private _searchFile: string;
-    private _cmd: string = ControllerStreamSearchEngine.rgPath;
+    private _cmd: string = ServicePaths.getRG();
     private _process: ChildProcess | undefined;
     private _writer: fs.WriteStream | undefined;
     private _reader: fs.ReadStream | undefined;

@@ -64,7 +64,7 @@ export default class ControllerBrowserWindow extends EventEmitter {
 
     private _create(): Promise<void> {
         return new Promise((resolve, reject) => {
-            const state: IWindowState = ServiceWindowState.get();
+            const state: IWindowState = ServiceWindowState.getSettings().get();
             const options: BrowserWindowConstructorOptions = {
                 height: state.h,
                 title: ServicePackage.get().version,
@@ -76,7 +76,7 @@ export default class ControllerBrowserWindow extends EventEmitter {
                 },
             };
             this._window = new BrowserWindow(options);
-            const clientPath = ServicePath.resoveRootFolder(ServiceSettings.get().client.indexHtml);
+            const clientPath = ServicePath.resoveRootFolder(ServiceSettings.getSettings().get().client.indexHtml);
             if (!ServicePath.isExist(clientPath)) {
                 throw new Error(this._logger.error(`Cannot find client on path "${clientPath}"`));
             }
@@ -108,7 +108,7 @@ export default class ControllerBrowserWindow extends EventEmitter {
             return;
         }
         const bounds = this._window.getBounds();
-        ServiceWindowState.set({
+        ServiceWindowState.getSettings().set({
             h: bounds.height,
             max: this._window.isMaximized(),
             w: bounds.width,

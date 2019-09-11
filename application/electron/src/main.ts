@@ -28,21 +28,21 @@ import ServiceDLTFiles from './services/service.dlt.files';
 
 const InitializeStages = [
     // Stage #1
-    [   ServiceProduction],
+    [   ServiceProduction ],
     // Stage #2
-    [   ServicePaths],
+    [   ServicePaths ],
     // Stage #3
-    [   ServicePackage],
+    [   ServicePackage ],
     // Stage #4
-    [   ServiceSettings, ServiceWindowState],
+    [   ServiceSettings, ServiceWindowState ],
     // Stage #5. Init electron. Prepare browser window
-    [   ServiceElectron],
+    [   ServiceElectron ],
     // Stage #6. Init services and helpers
-    [   ServiceElectronState],
+    [   ServiceElectronState ],
     // Stage #7. Stream service
-    [   ServiceStreamSources, ServiceStreams],
+    [   ServiceStreamSources, ServiceStreams ],
     // Stage #8. Detect OS env
-    [   ServiceEnv],
+    [   ServiceEnv ],
     // Stage #9. Common functionality
     [   ServiceFileInfo, ServiceMergeFiles,
         ServiceConcatFiles, ServiceFileSearch,
@@ -51,9 +51,9 @@ const InitializeStages = [
         ServiceDLTFiles, ServiceHotkeys,
     ],
     // Stage #10. Init plugins
-    [   ServicePlugins],
+    [   ServicePlugins ],
     // (last service should startup service and should be single always)
-    [   ServiceUpdate],
+    [   ServiceUpdate ],
 ];
 
 class Application {

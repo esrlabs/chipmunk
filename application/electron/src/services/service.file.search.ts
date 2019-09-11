@@ -1,12 +1,10 @@
 import ServiceElectron, { IPCMessages } from './service.electron';
-import { FileParsers, AFileParser } from '../controllers/files.parsers/index';
+import ServicePaths from './service.paths';
 import Logger from '../tools/env.logger';
 import { Subscription } from '../tools/index';
 import { IService } from '../interfaces/interface.service';
-import { ControllerStreamSearchEngine } from '../controllers/controller.stream.search.engine';
 import { spawn, ChildProcess } from 'child_process';
-import * as path from 'path';
-import * as fs from 'fs';
+
 /**
  * @class ServiceFileSearch
  * @description Providers access to file parsers from render
@@ -15,7 +13,7 @@ import * as fs from 'fs';
 class ServiceFileSearch implements IService {
 
     private _logger: Logger = new Logger('ServiceFileSearch');
-    private _cmd: string = ControllerStreamSearchEngine.rgPath;
+    private _cmd: string = '';
     // Should detect by executable file
     private _subscription: { [key: string]: Subscription } = {};
 
@@ -25,6 +23,7 @@ class ServiceFileSearch implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
+            this._cmd = ServicePaths.getRG();
             ServiceElectron.IPC.subscribe(IPCMessages.FilesSearchRequest, this._onFilesSearchRequest.bind(this)).then((subscription: Subscription) => {
                 this._subscription.FilesSearchRequest = subscription;
                 resolve();
