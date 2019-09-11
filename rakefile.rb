@@ -142,8 +142,7 @@ task :ripgrepdelivery do
       when "linux"
         sh "tar xvzf #{file_name}"
       when "win"
-        sh "unzip #{file_name}"
-        sh "dir"
+        sh "tar -xvzf #{file_name}"
     end
   end
   case TARGET_PLATFORM_ALIAS
@@ -154,7 +153,7 @@ task :ripgrepdelivery do
       src = "#{path}/ripgrep-11.0.2-x86_64-unknown-linux-musl/rg"
       dest = "#{COMPILED_FOLDER}/apps/rg"
     when "win"
-      src = "#{path}/ripgrep-11.0.2-x86_64-pc-windows-msvc/rg.exe"
+      src = "#{path}/rg.exe"
       dest = "#{COMPILED_FOLDER}/apps/rg.exe"
   end
   FileUtils.rm(dest) unless !File.exists?(dest)
