@@ -1,6 +1,7 @@
 
 require 'fileutils'
 require 'json'
+require 'open-uri'
 
 module OS
   def OS.windows?
@@ -113,6 +114,50 @@ task :folders do
   end
   $task_folders_puts = true
   Rake::Task["folders"].reenable
+end
+
+desc "ripgrep delivery"
+task :ripgrep do
+  path = "temp"
+  Dir.mkdir(path) unless File.exists?(path)
+  case TARGET_PLATFORM_ALIAS
+    when "mac"
+      url = "https://github.com/BurntSushi/ripgrep/releases/download/11.0.2/ripgrep-11.0.2-x86_64-apple-darwin.tar.gz"
+      file_name = "ripgrep-11.0.2-x86_64-apple-darwin.tar.gz"
+    when "linux"
+      url = "https://github.com/BurntSushi/ripgrep/releases/download/11.0.2/ripgrep-11.0.2-x86_64-unknown-linux-musl.tar.gz"
+      file_name = "ripgrep-11.0.2-x86_64-unknown-linux-musl.tar.gz"
+    when "win"
+      url = "https://github.com/BurntSushi/ripgrep/releases/download/11.0.2/ripgrep-11.0.2-x86_64-pc-windows-msvc.zip"
+      file_name = "ripgrep-11.0.2-x86_64-pc-windows-msvc.zip"
+  end
+  open("#{path}/#{file_name}", "wb") do |file|
+    file << open(url).read
+  end
+  cd path do
+    case TARGET_PLATFORM_ALIAS
+      when "mac"
+        sh "tar xvzf #{file_name}"
+      when "linux"
+        sh "tar xvzf #{file_name}"
+      when "win"
+        sh "unzip #{file_name}"
+    end
+  end
+  case TARGET_PLATFORM_ALIAS
+    when "mac"
+      src = "#{path}/ripgrep-11.0.2-x86_64-apple-darwin/rg"
+      dest = "#{COMPILED_FOLDER}/apps/rg"
+    when "linux"
+      src = "#{path}/ripgrep-11.0.2-x86_64-unknown-linux-musl/rg"
+      dest = "#{COMPILED_FOLDER}/apps/rg"
+    when "win"
+      src = "#{path}/ripgrep-11.0.2-x86_64-pc-windows-msvc/rg.exe"
+      dest = "#{COMPILED_FOLDER}/apps/rg.exe"
+  end
+  FileUtils.rm(dest) unless !File.exists?(dest)
+  FileUtils.cp(src, dest)
+  FileUtils.rm_r(path) unless !File.exists?(path)
 end
 
 desc "install"
@@ -397,31 +442,9 @@ task :buildindexer do
 
 end
 
-desc "build ripgrep"
-task :buildripgrep do
-  Rake::Task["folders"].invoke
-
-  src_app_dir = "application/apps/ripgrep/target/release/"
-  app_file = "rg"
-
-  if OS.windows? == true
-    app_file = "rg.exe"
-  end
-
-  cd "application/apps/ripgrep" do
-    puts 'Build ripgrep'
-    sh "cargo build --release --features 'pcre2'"
-  end
-
-  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}/#{app_file}"
-  FileUtils.rm("#{INCLUDED_APPS_FOLDER}/#{app_file}") unless !File.exists?("#{INCLUDED_APPS_FOLDER}/#{app_file}")
-  puts "Updating app from: #{src_app_dir}#{app_file}"
-  FileUtils.cp("#{src_app_dir}#{app_file}", "#{INCLUDED_APPS_FOLDER}/#{app_file}")
-
-end
 
 desc "full update"
-task :update => [:buildlauncher, :buildupdater, :buildindexer, :buildripgrep]
+task :update => [:buildlauncher, :buildupdater, :buildindexer]
 
 desc "build"
 task :build do
