@@ -192,6 +192,12 @@ task :install do
   Rake::Task["apppackagedelivery"].invoke
 end
 
+desc "Developer task: update client"
+task :dev_updateclient do
+  Rake::Task["ipc"].invoke
+  Rake::Task["clientbuild"].invoke
+end
+
 desc "ipc"
 task :ipc do
   puts "Delivery IPC definitions"
@@ -371,7 +377,6 @@ task :updatepluginipc do
   end
 end
 
-
 desc "build updater"
 task :buildupdater do
   Rake::Task["folders"].invoke
@@ -442,7 +447,6 @@ task :buildindexer do
   FileUtils.cp("#{src_app_dir}#{app_file_comp}", "#{INCLUDED_APPS_FOLDER}/#{app_file_release}")
 
 end
-
 
 desc "full update"
 task :update => [:buildlauncher, :buildupdater, :buildindexer]
