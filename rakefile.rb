@@ -117,7 +117,8 @@ task :folders do
 end
 
 desc "ripgrep delivery"
-task :ripgrep do
+task :ripgrepdelivery do
+  Rake::Task["folders"].invoke
   path = "temp"
   Dir.mkdir(path) unless File.exists?(path)
   case TARGET_PLATFORM_ALIAS
@@ -472,7 +473,6 @@ task :build do
       FileUtils.cp("#{SRC_LAUNCHER}.exe", "#{RELEASE_PATH}win-unpacked/chipmunk.exe")
   end
 
-
 end
 
 desc "Prepare package to deploy on Github"
@@ -503,9 +503,11 @@ end
 desc "Build the full build pipeline for a given platform"
 task :full_pipeline do
   Rake::Task["prepare"].invoke
+  Rake::Task["ripgrepdelivery"].invoke
   Rake::Task["install"].invoke
   Rake::Task["update"].invoke
   Rake::Task["plugins"].invoke
+  Rake::Task["ripgrepdelivery"].invoke
   Rake::Task["build"].invoke
   Rake::Task["prepare_to_deploy"].invoke
 end
