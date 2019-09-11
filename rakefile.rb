@@ -142,7 +142,7 @@ task :ripgrepdelivery do
       when "linux"
         sh "tar xvzf #{file_name}"
       when "win"
-        sh "tar -xvzf #{file_name}"
+        sh "unzip #{file_name}"
     end
   end
   case TARGET_PLATFORM_ALIAS
