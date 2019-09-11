@@ -3,12 +3,12 @@ import * as os from 'os';
 
 const cache: any = {};
 
-export function shell(command: string, ignoreCache: boolean = false): Promise<string> {
+export function shell(command: string, ignoreCache: boolean = false, defShell?: string): Promise<string> {
     return new Promise((resolve, reject) => {
         if (cache[command] !== undefined && ignoreCache) {
             return resolve(cache[command]);
         }
-        exec(command, {}, (error: Error | null, stdout: string, stderr: string) => {
+        exec(command, { shell: defShell }, (error: Error | null, stdout: string, stderr: string) => {
             if (error instanceof Error) {
                 return reject(error);
             }
@@ -64,41 +64,49 @@ export function getEnvVars(ignoreCache: boolean = false): Promise<TEnvVars> {
 
 export function getEnvVar(name: string, ignoreCache: boolean = false): Promise<string> {
     return new Promise((resolve, reject) => {
-        let cmd: string = '';
-        switch (os.platform()) {
-            case EPlatforms.aix:
-            case EPlatforms.android:
-            case EPlatforms.darwin:
-            case EPlatforms.freebsd:
-            case EPlatforms.linux:
-            case EPlatforms.openbsd:
-            case EPlatforms.sunos:
-                cmd = `echo $${name}`;
-                break;
-            case EPlatforms.win32:
-                cmd = `echo %${name}%`;
-                break;
+        const possible: string | undefined = process.env[name];
+        if (typeof possible === 'string' && possible.trim() !== '') {
+            return resolve(possible);
         }
-        let output: string = '';
-        shell(cmd, ignoreCache).then((stdout: string) => {
-            output = stdout.replace(/[\n\r]/gi, '').trim();
-            if (os.platform() === EPlatforms.win32 && output === `%${name}%`) {
-                // Try unix way
-                cmd = `echo $${name}`;
-                shell(cmd, ignoreCache).then((stdoutUnixWay: string) => {
-                    output = stdoutUnixWay.replace(/[\n\r]/gi, '').trim();
-                    if (os.platform() === EPlatforms.win32 && output === `$${name}`) {
-                        output = '';
-                    }
-                    resolve(output);
-                }).catch((error: Error) => {
-                    reject(error);
-                });
-            } else {
-                resolve(output);
+        getDefShell().then((defShell: string) => {
+            let cmd: string = '';
+            switch (os.platform()) {
+                case EPlatforms.aix:
+                case EPlatforms.android:
+                case EPlatforms.darwin:
+                case EPlatforms.freebsd:
+                case EPlatforms.linux:
+                case EPlatforms.openbsd:
+                case EPlatforms.sunos:
+                    cmd = `echo $${name}`;
+                    break;
+                case EPlatforms.win32:
+                    cmd = `echo %${name}%`;
+                    break;
             }
-        }).catch((error: Error) => {
-            reject(error);
+            let output: string = '';
+            shell(cmd, ignoreCache, defShell).then((stdout: string) => {
+                output = stdout.replace(/[\n\r]/gi, '').trim();
+                if (os.platform() === EPlatforms.win32 && output === `%${name}%`) {
+                    // Try unix way
+                    cmd = `echo $${name}`;
+                    shell(cmd, ignoreCache).then((stdoutUnixWay: string) => {
+                        output = stdoutUnixWay.replace(/[\n\r]/gi, '').trim();
+                        if (os.platform() === EPlatforms.win32 && output === `$${name}`) {
+                            output = '';
+                        }
+                        resolve(output);
+                    }).catch((error: Error) => {
+                        reject(error);
+                    });
+                } else {
+                    resolve(output);
+                }
+            }).catch((error: Error) => {
+                reject(error);
+            });
+        }).catch((defShellErr: Error) => {
+            reject(defShellErr);
         });
     });
 }
@@ -107,7 +115,6 @@ export function getDefShell(ignoreCache: boolean = false): Promise<string> {
     return new Promise((resolve, reject) => {
         let shellPath: string | undefined;
         let command: string = '';
-
         switch (os.platform()) {
             case EPlatforms.aix:
             case EPlatforms.android:
