@@ -67,11 +67,11 @@ $task_folders_puts = false
 def compress_plugin(file, dest)
   case TARGET_PLATFORM_ALIAS
     when "mac"
-      sh "tar -cvzf #{file} -C #{PLUGINS_SANDBOX} #{dest} "
+      sh "tar -czf #{file} -C #{PLUGINS_SANDBOX} #{dest} "
     when "linux"
-      sh "tar -cvzf #{file} -C #{PLUGINS_SANDBOX} #{dest} "
+      sh "tar -czf #{file} -C #{PLUGINS_SANDBOX} #{dest} "
     when "win"
-      sh "tar -cvzf #{file} -C #{PLUGINS_SANDBOX} #{dest} --force-local"
+      sh "tar -czf #{file} -C #{PLUGINS_SANDBOX} #{dest} --force-local"
   end
 end
 
@@ -118,10 +118,6 @@ end
 desc "install"
 task :install do
   Rake::Task["folders"].invoke
-  cd "application" do
-    puts "Installing: root"
-    sh "npm install"
-  end
   cd "application/client.core" do
     puts "Installing: core"
     sh "npm install"
@@ -334,11 +330,11 @@ desc "build updater"
 task :buildupdater do
   Rake::Task["folders"].invoke
 
-  SRC_APP_DIR = "application/apps/updater/target/release/"
-  APP_FILE = "updater"
+  src_app_dir = "application/apps/updater/target/release/"
+  app_file = "updater"
 
   if OS.windows? == true
-    APP_FILE = "updater.exe"
+    app_file = "updater.exe"
   end
 
   cd "application/apps/updater" do
@@ -346,10 +342,10 @@ task :buildupdater do
     sh "cargo build --release"
   end
 
-  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}/#{APP_FILE}"
-  FileUtils.rm("#{INCLUDED_APPS_FOLDER}/#{APP_FILE}") unless !File.exists?("#{INCLUDED_APPS_FOLDER}/#{APP_FILE}")
-  puts "Updating app from: #{SRC_APP_DIR}#{APP_FILE}"
-  FileUtils.cp("#{SRC_APP_DIR}#{APP_FILE}", "#{INCLUDED_APPS_FOLDER}/#{APP_FILE}")
+  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}/#{app_file}"
+  FileUtils.rm("#{INCLUDED_APPS_FOLDER}/#{app_file}") unless !File.exists?("#{INCLUDED_APPS_FOLDER}/#{app_file}")
+  puts "Updating app from: #{src_app_dir}#{app_file}"
+  FileUtils.cp("#{src_app_dir}#{app_file}", "#{INCLUDED_APPS_FOLDER}/#{app_file}")
 
 end
 
@@ -357,11 +353,11 @@ desc "build launcher"
 task :buildlauncher do
   Rake::Task["folders"].invoke
 
-  SRC_APP_DIR = "application/apps/launcher/target/release/"
-  APP_FILE = "launcher"
+  src_app_dir = "application/apps/launcher/target/release/"
+  app_file = "launcher"
 
   if OS.windows? == true
-    APP_FILE = "launcher.exe"
+    app_file = "launcher.exe"
   end
 
   cd "application/apps/launcher" do
@@ -369,10 +365,10 @@ task :buildlauncher do
     sh "cargo build --release"
   end
 
-  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}/#{APP_FILE}"
-  FileUtils.rm("#{INCLUDED_APPS_FOLDER}/#{APP_FILE}") unless !File.exists?("#{INCLUDED_APPS_FOLDER}/#{APP_FILE}")
-  puts "Updating app from: #{SRC_APP_DIR}#{APP_FILE}"
-  FileUtils.cp("#{SRC_APP_DIR}#{APP_FILE}", "#{INCLUDED_APPS_FOLDER}/#{APP_FILE}")
+  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}/#{app_file}"
+  FileUtils.rm("#{INCLUDED_APPS_FOLDER}/#{app_file}") unless !File.exists?("#{INCLUDED_APPS_FOLDER}/#{app_file}")
+  puts "Updating app from: #{src_app_dir}#{app_file}"
+  FileUtils.cp("#{src_app_dir}#{app_file}", "#{INCLUDED_APPS_FOLDER}/#{app_file}")
 
 end
 
@@ -380,13 +376,13 @@ desc "build indexer"
 task :buildindexer do
   Rake::Task["folders"].invoke
 
-  SRC_APP_DIR = "application/apps/indexer/target/release/"
-  APP_FILE_COMP = "indexer_cli"
-  APP_FILE_RELEASE = "lvin"
+  src_app_dir = "application/apps/indexer/target/release/"
+  app_file_comp = "indexer_cli"
+  app_file_release = "lvin"
 
   if OS.windows? == true
-    APP_FILE_COMP = "indexer_cli.exe"
-    APP_FILE_RELEASE = "lvin.exe"
+    app_file_comp = "indexer_cli.exe"
+    app_file_release = "lvin.exe"
   end
 
   cd "application/apps/indexer" do
@@ -394,10 +390,10 @@ task :buildindexer do
     sh "cargo build --release"
   end
 
-  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}/#{APP_FILE_RELEASE}"
-  FileUtils.rm("#{INCLUDED_APPS_FOLDER}/#{APP_FILE_RELEASE}") unless !File.exists?("#{INCLUDED_APPS_FOLDER}/#{APP_FILE_RELEASE}")
-  puts "Updating app from: #{SRC_APP_DIR}#{APP_FILE_COMP}"
-  FileUtils.cp("#{SRC_APP_DIR}#{APP_FILE_COMP}", "#{INCLUDED_APPS_FOLDER}/#{APP_FILE_RELEASE}")
+  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}/#{app_file_release}"
+  FileUtils.rm("#{INCLUDED_APPS_FOLDER}/#{app_file_release}") unless !File.exists?("#{INCLUDED_APPS_FOLDER}/#{app_file_release}")
+  puts "Updating app from: #{src_app_dir}#{app_file_comp}"
+  FileUtils.cp("#{src_app_dir}#{app_file_comp}", "#{INCLUDED_APPS_FOLDER}/#{app_file_release}")
 
 end
 
@@ -405,11 +401,11 @@ desc "build ripgrep"
 task :buildripgrep do
   Rake::Task["folders"].invoke
 
-  SRC_APP_DIR = "application/apps/ripgrep/target/release/"
-  APP_FILE = "rg"
+  src_app_dir = "application/apps/ripgrep/target/release/"
+  app_file = "rg"
 
   if OS.windows? == true
-    APP_FILE = "rg.exe"
+    app_file = "rg.exe"
   end
 
   cd "application/apps/ripgrep" do
@@ -417,10 +413,10 @@ task :buildripgrep do
     sh "cargo build --release --features 'pcre2'"
   end
 
-  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}/#{APP_FILE}"
-  FileUtils.rm("#{INCLUDED_APPS_FOLDER}/#{APP_FILE}") unless !File.exists?("#{INCLUDED_APPS_FOLDER}/#{APP_FILE}")
-  puts "Updating app from: #{SRC_APP_DIR}#{APP_FILE}"
-  FileUtils.cp("#{SRC_APP_DIR}#{APP_FILE}", "#{INCLUDED_APPS_FOLDER}/#{APP_FILE}")
+  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}/#{app_file}"
+  FileUtils.rm("#{INCLUDED_APPS_FOLDER}/#{app_file}") unless !File.exists?("#{INCLUDED_APPS_FOLDER}/#{app_file}")
+  puts "Updating app from: #{src_app_dir}#{app_file}"
+  FileUtils.cp("#{src_app_dir}#{app_file}", "#{INCLUDED_APPS_FOLDER}/#{app_file}")
 
 end
 
@@ -467,15 +463,15 @@ task :prepare_to_deploy do
     case TARGET_PLATFORM_ALIAS
       when "mac"
         cd "mac" do
-          sh "tar -cvzf ../#{release_name}.tgz ./chipmunk.app"
+          sh "tar -czf ../#{release_name}.tgz ./chipmunk.app"
         end
       when "linux"
         cd "#{TARGET_PLATFORM_ALIAS}-unpacked" do
-          sh "tar -cvzf ../#{release_name}.tgz *"
+          sh "tar -czf ../#{release_name}.tgz *"
         end
       when "win"
         cd "#{TARGET_PLATFORM_ALIAS}-unpacked" do
-          sh "tar -cvzf ../#{release_name}.tgz ./* --force-local"
+          sh "tar -czf ../#{release_name}.tgz ./* --force-local"
         end
     end
   end
