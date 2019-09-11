@@ -315,6 +315,7 @@ task :pluginscomplex do
       sh "npm install electron@4.0.3 electron-rebuild@^1.8.2"
       sh "./node_modules/.bin/electron-rebuild"
       sh "npm uninstall electron electron-rebuild"
+      sh "npm run build"
     end
     cd "application/client.plugins" do
       sh "npm run build:#{plugin}"
