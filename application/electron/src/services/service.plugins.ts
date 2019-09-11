@@ -55,8 +55,8 @@ export class ServicePlugins implements IService {
     private _isRenderReady: boolean = false;
     private _seq: number = 0;
     private _ids: Map<number, string> = new Map();
-    private _controllerInstalled: ControllerPluginInstalled = new ControllerPluginInstalled();
-    private _controllerDefaults: ControllerPluginDefaults = new ControllerPluginDefaults();
+    private _controllerInstalled: ControllerPluginInstalled | undefined;
+    private _controllerDefaults: ControllerPluginDefaults | undefined;
 
     constructor() {
         this._ipc_onRenderState = this._ipc_onRenderState.bind(this);
@@ -68,6 +68,9 @@ export class ServicePlugins implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
+            // Create controllers
+            this._controllerInstalled = new ControllerPluginInstalled();
+            this._controllerDefaults = new ControllerPluginDefaults();
             // Subscribe to render events
             this._subscribeIPCMessages();
             // Get electron version
@@ -80,6 +83,9 @@ export class ServicePlugins implements IService {
             let defaults: IPluginDefaultInfo[] = [];
             Promise.all([
                 new Promise((resolveInstalledPlugins, rejectInstalledPlugins) => {
+                    if (this._controllerInstalled === undefined) {
+                        return reject(new Error(`Controller ControllerPluginInstalled isn't created`));
+                    }
                     this._controllerInstalled.getAll().then((plugins: IPluginBasic[]) => {
                         installed = plugins;
                         resolveInstalledPlugins();
@@ -89,6 +95,9 @@ export class ServicePlugins implements IService {
                     });
                 }),
                 new Promise((resolveIncludedPlugins, rejectIncludedPlugins) => {
+                    if (this._controllerDefaults === undefined) {
+                        return reject(new Error(`Controller ControllerPluginDefaults isn't created`));
+                    }
                     this._controllerDefaults.getAll().then((plugins: IPluginDefaultInfo[]) => {
                         defaults = plugins;
                         resolveIncludedPlugins();
@@ -127,7 +136,13 @@ export class ServicePlugins implements IService {
                         ServiceElectronService.logStateToRender(this._logger.env(`Plugin "${plugin.name}" was removed because new version is in package.`));
                     });
                 })).then(() => {
+                    if (this._controllerDefaults === undefined) {
+                        return reject(new Error(`Controller ControllerPluginDefaults isn't created`));
+                    }
                     this._controllerDefaults.delivery(toBeDelivered).then(() => {
+                        if (this._controllerInstalled === undefined) {
+                            return reject(new Error(`Controller ControllerPluginInstalled isn't created`));
+                        }
                         // Read all plugins once again
                         this._controllerInstalled.getAll().then((plugins: IPluginBasic[]) => {
                             if (plugins.length === 0) {

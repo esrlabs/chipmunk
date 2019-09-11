@@ -1,6 +1,7 @@
 import * as IScheme from './service.settings.scheme';
 
 import { StateFile } from '../classes/class.statefile';
+import { IService } from '../interfaces/interface.service';
 
 const SETTINGS_FILE = 'config.application.json';
 
@@ -9,10 +10,31 @@ const SETTINGS_FILE = 'config.application.json';
  * @description Provides access to logviewer configuration. Used on electron level
  */
 
-class ServiceConfig extends StateFile<IScheme.ISettings> {
+class ServiceConfig implements IService {
 
-    constructor() {
-        super('ServiceConfig', IScheme.defaults, SETTINGS_FILE);
+    private _settings: StateFile<IScheme.ISettings> | undefined;
+
+    public init(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._settings = new StateFile<IScheme.ISettings>(this.getName(), IScheme.defaults, SETTINGS_FILE);
+            this._settings.init().then(() => {
+                resolve();
+            }).catch(reject);
+        });
+    }
+
+    public destroy(): Promise<void> {
+        return new Promise((resolve) => {
+            resolve();
+        });
+    }
+
+    public getName(): string {
+        return 'ServiceConfig';
+    }
+
+    public getSettings(): StateFile<IScheme.ISettings> {
+        return this._settings as StateFile<IScheme.ISettings>;
     }
 
 }

@@ -15,12 +15,8 @@ import { IService } from '../interfaces/interface.service';
 export class ServicePackage implements IService {
 
     private _logger: Logger = new Logger('ServicePackage');
-    private _file: string;
+    private _file: string = '';
     private _package: any = null;
-
-    constructor() {
-        this._file = Path.resolve(ServicePaths.getRoot(), 'package.json');
-    }
 
     /**
      * Initialization function
@@ -28,6 +24,7 @@ export class ServicePackage implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
+            this._file = Path.resolve(ServicePaths.getRoot(), 'package.json');
             this._read().then((json: any) => {
                 this._package = json;
                 resolve();

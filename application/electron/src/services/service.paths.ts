@@ -28,49 +28,19 @@ export function getHomeFolder(): string {
 class ServicePaths implements IService {
 
     private _logger: Logger = new Logger('ServicePaths');
-    private _home: string;
-    private _plugins: string;
-    private _app: string;
-    private _root: string;
-    private _exec: string;
-    private _appModules: string;
-    private _resources: string;
-    private _sockets: string;
-    private _streams: string;
-    private _downloads: string;
-    private _apps: string;
-    private _defaultPlugins: string;
-
-    constructor() {
-        this._home = getHomeFolder();
-        this._sockets = Path.resolve(this._home, SOCKETS_FOLDER);
-        this._streams = Path.resolve(this._home, STREAMS_FOLDER);
-        this._downloads = Path.resolve(this._home, DOWNLOADS_FOLDER);
-        this._apps = Path.resolve(this._home, APPS_FOLDER);
-        const resources: Error | string = this._getResourcePath();
-        if (resources instanceof Error) {
-            throw resources;
-        }
-        this._resources = resources;
-        const root: string | Error = this._getRootPath();
-        if (root instanceof Error) {
-            throw root;
-        }
-        if (ServiceProduction.isProduction()) {
-            this._plugins = Path.resolve(this._home, PLUGINS_FOLDER);
-        } else {
-            this._plugins = Path.resolve(root, '../../../sandbox');
-        }
-        this._app = root;
-        this._root = root;
-        const exec: string | Error = this._getExecPath();
-        if (exec instanceof Error) {
-            throw exec;
-        }
-        this._exec = exec;
-        this._defaultPlugins = Path.resolve(this._root, 'plugins');
-        this._appModules = Path.resolve(this._root, '../../node_modules');
-    }
+    private _home: string = '';
+    private _plugins: string = '';
+    private _app: string = '';
+    private _root: string = '';
+    private _exec: string = '';
+    private _appModules: string = '';
+    private _resources: string = '';
+    private _sockets: string = '';
+    private _streams: string = '';
+    private _downloads: string = '';
+    private _apps: string = '';
+    private _rg: string = '';
+    private _defaultPlugins: string = '';
 
     /**
      * Initialization function
@@ -78,6 +48,35 @@ class ServicePaths implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
+            this._home = getHomeFolder();
+            this._sockets = Path.resolve(this._home, SOCKETS_FOLDER);
+            this._streams = Path.resolve(this._home, STREAMS_FOLDER);
+            this._downloads = Path.resolve(this._home, DOWNLOADS_FOLDER);
+            this._apps = Path.resolve(this._home, APPS_FOLDER);
+            const resources: Error | string = this._getResourcePath();
+            if (resources instanceof Error) {
+                return reject(resources);
+            }
+            this._resources = resources;
+            const root: string | Error = this._getRootPath();
+            if (root instanceof Error) {
+                return reject(root);
+            }
+            if (ServiceProduction.isProduction()) {
+                this._plugins = Path.resolve(this._home, PLUGINS_FOLDER);
+            } else {
+                this._plugins = Path.resolve(root, '../../../sandbox');
+            }
+            this._app = root;
+            this._root = root;
+            const exec: string | Error = this._getExecPath();
+            if (exec instanceof Error) {
+                return reject(exec);
+            }
+            this._exec = exec;
+            this._defaultPlugins = Path.resolve(this._root, 'plugins');
+            this._appModules = Path.resolve(this._root, '../../node_modules');
+            this._rg = Path.resolve(this._root, `apps/${OS.platform() === 'win32' ? 'rg.exe' : 'rg'}`);
             this._createHomeFolder().then(() => {
                 Promise.all([this._home, this._plugins, this._sockets, this._streams, this._downloads, this._apps].map((folder: string) => {
                     return this._mkdir(folder);
@@ -180,6 +179,14 @@ class ServicePaths implements IService {
      */
     public getExec(): string {
         return this._exec;
+    }
+
+    /**
+     * Returns path to ripgrep module
+     * @returns string
+     */
+    public getRG(): string {
+        return this._rg;
     }
 
     /**

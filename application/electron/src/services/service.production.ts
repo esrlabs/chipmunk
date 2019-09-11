@@ -1,6 +1,9 @@
 import Logger from '../tools/env.logger';
-
+import { getEnvVar } from 'logviewer.shell.env';
 import { IService } from '../interfaces/interface.service';
+
+const CDEV_ENV_VAR = 'CHIPMUNK_DEVELOPING_MODE';
+const CDEV_ENV_VAR_VALUE = 'ON';
 
 /**
  * @class ServiceProduction
@@ -10,7 +13,6 @@ import { IService } from '../interfaces/interface.service';
 class ServiceProduction implements IService {
 
     private _logger: Logger = new Logger('ServiceProduction');
-    // Should detect by executable file
     private _production: boolean = true;
 
     /**
@@ -19,7 +21,15 @@ class ServiceProduction implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
-            resolve();
+            getEnvVar(CDEV_ENV_VAR).then((value: string) => {
+                if (value === CDEV_ENV_VAR_VALUE) {
+                    this._production = false;
+                }
+                resolve();
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to get value for ${CDEV_ENV_VAR} due error: ${error.message}`);
+                resolve();
+            });
         });
     }
 
