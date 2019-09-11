@@ -164,7 +164,7 @@ export class ControllerSessionTabStreamOutput {
             });
             return [];
         }
-        if (range.start === 0 && range.end === 0) {
+        if (range.start === 0 && range.end === 0 && this._state.count !== 1) {
             this._subjects.onPositionChanged.next({
                 start: 0,
                 count: 0,
