@@ -25,6 +25,7 @@ class ServiceProduction implements IService {
                 if (value === CDEV_ENV_VAR_VALUE) {
                     this._production = false;
                 }
+                this._logger.env(`Production is: ${this._production ? 'ON' : 'OFF'}`);
                 resolve();
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to get value for ${CDEV_ENV_VAR} due error: ${error.message}`);
