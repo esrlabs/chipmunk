@@ -60,4 +60,4 @@ TODO.md
 vim-markdown-preview.html
 local/**/*
 **/.env
-
+**/*.node
