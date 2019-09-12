@@ -1,6 +1,7 @@
 import { exec, ExecOptions } from 'child_process';
 import * as OS from 'os';
 import * as Path from 'path';
+import * as shellEnv from 'shell-env';
 
 export function shell(command: string, options: ExecOptions = {}): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -30,27 +31,18 @@ export enum EPlatforms {
 
 export type TEnvVars = { [key: string]: string };
 
-export function getOSEnvVars(): Promise<TEnvVars> {
+export function getOSEnvVars(shell: string): Promise<TEnvVars> {
     return new Promise((resolve) => {
         if (OS.platform() !== EPlatforms.darwin) {
             return resolve(Object.assign({}, process.env) as TEnvVars);
         }
-
-        // GUI-Apps don't inherit all environment-variables on darwin
-        shell('printenv').then((stdout: string) => {
-            const pairs: TEnvVars = {};
-            stdout.split(/[\n\r]/gi).forEach((row: string) => {
-                const pair: string[] = row.split('=');
-                if (pair.length <= 1) {
-                    return;
-                }
-                pairs[pair[0]] = row.replace(`${pair[0]}=`, '');
-            });
-            if (Object.keys(pairs).length === 0) {
-                return resolve(Object.assign({}, process.env) as TEnvVars);
-            }
-            resolve(pairs);
+        shellEnv(shell).then((env) => {
+            console.log(`Next os env variables were detected:`);
+            console.log(env);
+            resolve(env);
         }).catch((error: Error) => {
+            console.log('Shell-Env Error:');
+            console.log(error);
             resolve(Object.assign({}, process.env) as TEnvVars);
         });
     });

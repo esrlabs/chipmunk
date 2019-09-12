@@ -105,12 +105,17 @@ class StreamsService extends EventEmitter {
         if (this._streams.has(streamId)) {
             return this._logger.warn(`Stream ${streamId} is already created.`);
         }
-        EnvModule.getOSEnvVars().then((env: EnvModule.TEnvVars) => {
-            //Apply default terminal color scheme
-            this._createStream(streamId, EnvModule.getHomePath(), this._getInitialOSEnv(env));
-        }).catch((error: Error) => {
-            this._logger.warn(`Failed to get OS env vars for stream ${streamId} due to error: ${error.message}. Default node-values will be used .`);
-            this._createStream(streamId, EnvModule.getHomePath(), this._getInitialOSEnv(Object.assign({}, process.env) as EnvModule.TEnvVars));
+        EnvModule.defaultShell().then((userShell: string) => {
+            console.log(`Detected default shell: ${userShell}`);
+            EnvModule.getOSEnvVars(userShell).then((env: EnvModule.TEnvVars) => {
+                //Apply default terminal color scheme
+                this._createStream(streamId, EnvModule.getHomePath(), this._getInitialOSEnv(env), userShell);
+            }).catch((error: Error) => {
+                this._logger.warn(`Failed to get OS env vars for stream ${streamId} due to error: ${error.message}. Default node-values will be used .`);
+                this._createStream(streamId, EnvModule.getHomePath(), this._getInitialOSEnv(Object.assign({}, process.env) as EnvModule.TEnvVars), userShell);
+            });
+        }).catch((gettingShellErr: Error) => {
+            this._logger.env(`Failed to create stream "${streamId}" due to error: ${gettingShellErr.message}.`)
         });
     }
 
@@ -128,22 +133,18 @@ class StreamsService extends EventEmitter {
         this.emit(this.Events.onStreamClosed, streamId);
     }
 
-    private _createStream(streamId: string, cwd: string, env: EnvModule.TEnvVars) {
-        EnvModule.defaultShell().then((userShell: string) => {
-            this._streams.set(streamId, {
-                fork: undefined,
-                streamId: streamId,
-                settings: {
-                    cwd: cwd,
-                    shell: userShell,
-                    env: env
-                }
-            });
-            this.emit(this.Events.onStreamOpened, streamId);
-            this._logger.env(`Stream "${streamId}" is bound with cwd "${cwd}".`)
-        }).catch((gettingShellErr: Error) => {
-            this._logger.env(`Failed to create stream "${streamId}" due to error: ${gettingShellErr.message}.`)
+    private _createStream(streamId: string, cwd: string, env: EnvModule.TEnvVars, shell: string) {
+        this._streams.set(streamId, {
+            fork: undefined,
+            streamId: streamId,
+            settings: {
+                cwd: cwd,
+                shell: shell,
+                env: env
+            }
         });
+        this.emit(this.Events.onStreamOpened, streamId);
+        this._logger.env(`Stream "${streamId}" is bound with cwd "${cwd}".`);
     }
 }
 
