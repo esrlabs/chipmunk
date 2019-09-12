@@ -9,6 +9,7 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
+use crate::error_reporter;
 use failure::Error;
 use std::char;
 use std::fmt::Display;
@@ -16,7 +17,6 @@ use std::fs;
 use std::io::{BufReader, Read, Seek, SeekFrom};
 use std::path;
 use std::str;
-use crate::error_reporter;
 
 pub const ROW_NUMBER_SENTINAL: char = '\u{0002}';
 pub const PLUGIN_ID_SENTINAL: char = '\u{0003}';

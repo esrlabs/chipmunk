@@ -40,13 +40,9 @@ pub struct ProcessedDltFilterConfig {
 pub fn process_filter_config(cfg: DltFilterConfig) -> ProcessedDltFilterConfig {
     ProcessedDltFilterConfig {
         min_log_level: cfg.min_log_level.and_then(dlt::u8_to_log_level),
-        app_ids: cfg
-            .app_ids
-            .and_then(|cmp_list| Some(HashSet::from_iter(cmp_list))),
-        ecu_ids: cfg.ecu_ids.and_then(|ecus| Some(HashSet::from_iter(ecus))),
-        context_ids: cfg
-            .context_ids
-            .and_then(|ids| Some(HashSet::from_iter(ids))),
+        app_ids: cfg.app_ids.map(HashSet::from_iter),
+        ecu_ids: cfg.ecu_ids.map(HashSet::from_iter),
+        context_ids: cfg.context_ids.map(HashSet::from_iter),
     }
 }
 

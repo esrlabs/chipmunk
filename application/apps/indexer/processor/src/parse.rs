@@ -648,6 +648,17 @@ pub fn line_to_timed_line(
         }
     }
 }
+#[derive(Deserialize, Debug)]
+pub struct DiscoverItem {
+    pub path: String,
+}
+#[derive(Serialize, Debug)]
+pub struct TimestampFormatResult {
+    pub path: String,
+    pub format: Option<String>,
+    pub min_time: Option<String>,
+    pub max_time: Option<String>,
+}
 pub fn detect_timestamp_format_in_file(path: &Path) -> Result<String, failure::Error> {
     let f: fs::File = fs::File::open(path)?;
     let mut reader: BufReader<&std::fs::File> = BufReader::new(&f);

@@ -12,27 +12,21 @@
 use crate::dlt;
 use crate::dlt::TryFrom;
 use crate::filtering;
-use indexer_base::config::IndexingConfig;
 use indexer_base::chunks::{Chunk, ChunkFactory};
-use indexer_base::utils;
+use indexer_base::config::IndexingConfig;
 use indexer_base::error_reporter::*;
+use indexer_base::utils;
 use serde::Serialize;
 
+use buf_redux::policy::MinBuffered;
+use buf_redux::BufReader as ReduxReader;
+use byteorder::{BigEndian, LittleEndian};
+use failure::{err_msg, Error};
+use nom::bytes::streaming::{tag, take, take_while_m_n};
+use nom::{combinator::map, multi::count, number::streaming, sequence::tuple, IResult};
 use rustc_hash::FxHashMap;
 use std::fs;
-use failure::{err_msg, Error};
-use std::io::{BufRead, BufWriter, Write, Read};
-use buf_redux::BufReader as ReduxReader;
-use buf_redux::policy::MinBuffered;
-use nom::bytes::streaming::{tag, take, take_while_m_n};
-use byteorder::{BigEndian, LittleEndian};
-use nom::{
-    number::streaming,
-    combinator::{map},
-    sequence::tuple,
-    multi::count,
-    IResult,
-};
+use std::io::{BufRead, BufWriter, Read, Write};
 
 use std::str;
 
@@ -1050,10 +1044,10 @@ fn read_one_dlt_message_info<T: Read>(
 mod tests {
     use super::*;
 
+    use byteorder::BigEndian;
+    use bytes::BytesMut;
     use pretty_assertions::assert_eq;
     use proptest::prelude::*;
-    use bytes::{BytesMut};
-    use byteorder::{BigEndian};
 
     static VALID_ECU_ID_FORMAT: &str = "[0-9a-zA-Z]{4}";
 
@@ -1670,5 +1664,4 @@ mod tests {
         let expected: IResult<&[u8], &str> = Ok((b"", "A"));
         assert_eq!(expected, res);
     }
-
 }

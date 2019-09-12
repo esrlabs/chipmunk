@@ -61,12 +61,6 @@ desc "run tests with printing to stdout"
 task :test_nocapture do
   sh "cargo test -q -- --nocapture"
 end
-desc "push tag to github"
-task :push do
-  sh "git push origin"
-  current_version = get_current_version
-  sh "git push origin #{current_version}"
-end
 def create_changelog(current_version, next_version)
   current_version = get_current_version
   raw_log = `git log --format=%B #{current_version}..HEAD`.strip

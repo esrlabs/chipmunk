@@ -18,7 +18,6 @@ extern crate chrono;
 use indexer_base::chunks::serialize_chunks;
 use indexer_base::config::IndexingConfig;
 use indexer_base::error_reporter::*;
-use serde::{Serialize, Deserialize};
 
 #[macro_use]
 extern crate clap;
@@ -33,7 +32,7 @@ use processor::parse::detect_timestamp_format_in_file;
 use processor::parse::timespan_in_file;
 use processor::parse::{
     line_matching_format_expression, match_format_string_in_file, read_format_string_options,
-    FormatTestOptions,
+    FormatTestOptions, DiscoverItem, TimestampFormatResult,
 };
 
 fn main() {
@@ -354,16 +353,19 @@ fn main() {
             let stdout: bool = matches.is_present("stdout");
             let timestamps: bool = matches.is_present("timestamp");
 
-            match processor::processor::create_index_and_mapping(IndexingConfig {
-                tag,
-                chunk_size,
-                in_file: f,
-                out_path: &out_path,
-                append,
-                source_file_size,
-                to_stdout: stdout,
-                status_updates,
-            }, timestamps) {
+            match processor::processor::create_index_and_mapping(
+                IndexingConfig {
+                    tag,
+                    chunk_size,
+                    in_file: f,
+                    out_path: &out_path,
+                    append,
+                    source_file_size,
+                    to_stdout: stdout,
+                    status_updates,
+                },
+                timestamps,
+            ) {
                 Err(why) => {
                     report_error(format!("couldn't process: {}", why));
                     std::process::exit(2)
@@ -620,17 +622,6 @@ fn main() {
         }
     }
 
-    #[derive(Serialize, Debug)]
-    pub struct TimestampFormatResult {
-        pub path: String,
-        pub format: Option<String>,
-        pub min_time: Option<String>,
-        pub max_time: Option<String>,
-    }
-    #[derive(Deserialize, Debug)]
-    pub struct DiscoverItem {
-        pub path: String,
-    }
     fn handle_discover_subcommand(matches: &clap::ArgMatches) {
         if let Some(test_string) = matches.value_of("input-string") {
             match detect_timestamp_in_string(test_string, None) {
@@ -698,12 +689,21 @@ fn main() {
             for item in items {
                 let file_path = path::PathBuf::from(&item.path);
                 match detect_timestamp_format_in_file(&file_path) {
-                    Ok(res) => results.push(TimestampFormatResult {
-                        path: item.path.to_string(),
-                        format: Some(res),
-                        min_time: None,
-                        max_time: None,
-                    }),
+                    Ok(res) => {
+                        let (min, max) = match timespan_in_file(&res, &file_path) {
+                            Ok(span) => (
+                                Some(posix_timestamp_as_string(span.0)),
+                                Some(posix_timestamp_as_string(span.1)),
+                            ),
+                            _ => (None, None),
+                        };
+                        results.push(TimestampFormatResult {
+                            path: item.path.to_string(),
+                            format: Some(res),
+                            min_time: min,
+                            max_time: max,
+                        })
+                    }
                     Err(e) => {
                         results.push(TimestampFormatResult {
                             path: item.path.to_string(),
