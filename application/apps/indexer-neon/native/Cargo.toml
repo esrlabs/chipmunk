@@ -1,0 +1,16 @@
+[package]
+name = "neon-hello"
+version = "0.1.0"
+authors = ["Dave Herman <dherman@mozilla.com>"]
+license = "MIT"
+build = "build.rs"
+
+[lib]
+name = "neon_hello"
+crate-type = ["dylib"]
+
+[build-dependencies]
+neon-build = "0.1.15"
+
+[dependencies]
+neon = "0.1.15"
