@@ -100,6 +100,16 @@ const DefaultSettings = {
 const CRowIndexAttr = 'data-sb-row-index';
 
 export function copyTextToClipboard(text: string) {
+    [
+        { r: /\u00a0/g, m: '&nbsp;' },
+        { r: /\t/g,     m: '&#9;'   },
+        { r: /</g,      m: '&lt;'   },
+        { r: />/g,      m: '&gt;'   },
+        { r: /[\n\r]/g, m: '<br>'   },
+        { r: /\s/g,     m: '&nbsp;' }, // &#32;
+    ].forEach((toBeChecked) => {
+        text = text.replace(toBeChecked.r, toBeChecked.m);
+    });
     const selection         = document.getSelection();
     const element           = document.createElement('P');
     element.style.opacity   = '0.0001';
@@ -109,7 +119,7 @@ export function copyTextToClipboard(text: string) {
     element.style.height    = '1px';
     element.style.overflow  = 'hidden';
     element.className       = 'noreset';
-    element.innerHTML       = text.replace(/\r?\n|\r/gi, '<br>');
+    element.innerHTML       = text;
     document.body.appendChild(element);
     const range             = document.createRange();
     range.selectNode(element);
