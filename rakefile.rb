@@ -215,9 +215,10 @@ end
 
 #Application should be built already to use this task
 desc "Developer task: build launcher and delivery into package."
-task :dev_build_delivery_launcher do
+task :dev_build_delivery_apps do
 
   Rake::Task["buildlauncher"].invoke
+  Rake::Task["buildupdater"].invoke
 
   SRC_LAUNCHER = "application/apps/launcher/target/release/launcher"
   RELEASE_PATH = "application/electron/dist/release/"
