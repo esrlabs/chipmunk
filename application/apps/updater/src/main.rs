@@ -1,198 +1,214 @@
+extern crate chrono;
+extern crate dirs;
 extern crate flate2;
 extern crate tar;
-extern crate dirs;
-extern crate chrono;
+#[macro_use]
+extern crate log;
+extern crate log4rs;
 
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 
-use chrono::{Utc};
-use std::io::Write;
-use std::fs::File;
-use std::path::Path;
-use std::process::{Command, Child};
 use flate2::read::GzDecoder;
-use tar::Archive;
+use log::LevelFilter;
+use log4rs::append::file::FileAppender;
+use log4rs::config::{Appender, Config, Root};
+use log4rs::encode::pattern::PatternEncoder;
+use std::fs::File;
+use std::io::{Error, ErrorKind, Result};
+use std::path::Path;
+use std::path::PathBuf;
+use std::process::{Child, Command};
 use std::{thread, time};
-use std::fs::OpenOptions;
-use std::io::Error;
+use tar::Archive;
 
-fn log(msg: String) {
-    let now = Utc::now();
-    println!("{}:: {}", now, msg);
-    let home_dir = dirs::home_dir();
-    let app_home_dir = format!("{}/.logviewer", home_dir.unwrap().as_path().to_str().unwrap());
-    let log_file = format!("{}/logviewer.updater.log", app_home_dir);
-    let app_home_dir_path = Path::new(&app_home_dir);
-    if !app_home_dir_path.exists() {
-        std::fs::create_dir(&app_home_dir_path).unwrap();
-    }
-    let log_path = Path::new(&log_file);
-    if !log_path.exists() {
-        let mut file = match File::create(&log_path) {
-            Err(e) => {
-                log(format!("Fail to create log file due error: {}", e));
-                std::process::exit(1);
-            }
-            Ok(file) => file
-        };
-        file.write_all(format!("{}:: {}\n", now, msg).as_bytes()).unwrap();
-    } else {
-        let mut file = OpenOptions::new()
-            .write(true)
-            .append(true)
-            .open(log_file)
-            .unwrap();
-        if let Err(e) = writeln!(file, "{}", format!("{}:: {}", now, msg)) {
-            writeln!(std::io::stderr(), "{}", format!("Couldn't write to file: {}", e)).unwrap();
-        }  
-    }
+fn init_logging() {
+    let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
+    let log_path = home_dir.join(".logviewer").join("chipmunk.updater.log");
+    let logfile = FileAppender::builder()
+        .encoder(Box::new(PatternEncoder::new("{d} - {l}:: {m}\n")))
+        .build(log_path)
+        .unwrap();
+
+    let config = Config::builder()
+        .appender(Appender::builder().build("upater-logfile", Box::new(logfile)))
+        .build(
+            Root::builder()
+                .appender("updater-root")
+                .build(LevelFilter::Trace),
+        )
+        .unwrap();
+
+    log4rs::init_config(config).unwrap();
 }
 
-#[cfg(not(target_os = "windows"))]
-fn spawn(exe: &str, args: &[&str]) -> Result<Child, Error> {
+fn spawn(exe: &str, args: &[&str]) -> Result<Child> {
     Command::new(exe).args(args).spawn()
 }
 
-#[cfg(target_os = "windows")]
-fn spawn(exe: &str, args: &[&str]) -> Result<Child, Error> {
-    Command::new(exe).args(args).creation_flags(0x00000008 & 0x00000200).spawn()
-}
-
-fn main() {
-
-    log(format!("Started"));
-
-    // Extract arguments
+fn extract_args() -> Result<(String, String)> {
     let mut args = Vec::new();
 
-    log(format!("Parsing arguments"));
-    
+    trace!("Parsing arguments");
     for arg in std::env::args().skip(1) {
         args.push(arg);
     }
 
-    log(format!("Next arguments are parsered {:?}", args));
-    
+    trace!("Next arguments are parsered {:?}", args);
     if args.len() != 2 {
-        log(format!("Expecting 2 arguments"));
-        std::process::exit(1);
-    }
-    
-    let app = Path::new(&args[0]);
-    let tgz = Path::new(&args[1]);
-
-    // Check paths
-    if !app.exists() {
-        log(format!("File {} doesn't exist", app.to_str().unwrap()));
-        std::process::exit(1);
-    }
-
-    if !tgz.exists() {
-        log(format!("File {} doesn't exist", tgz.to_str().unwrap()));
-        std::process::exit(1);
-    }
-
-    // Sleep a little bit to give possibility chipmunk to be closed
-    let dealy = time::Duration::from_millis(2000);
-    thread::sleep(dealy);
-
-    let to_be_removed;
-    // Remove application
-    if cfg!(target_os = "macos") {
-        to_be_removed = app;
+        Err(Error::new(ErrorKind::Other, "Expecting 2 arguments"))
     } else {
-        to_be_removed = app.parent().unwrap();
+        Ok((args[0].to_string(), args[1].to_string()))
     }
+}
+fn remove_application_folder(app: &Path) -> Result<PathBuf> {
+    let to_be_removed = if cfg!(target_os = "macos") {
+        app
+    } else {
+        app.parent().unwrap()
+    };
 
-    log(format!("Next folder will be removed: {}", to_be_removed.to_str().unwrap()));
+    debug!("Next: this folder will be removed: {:?}", to_be_removed);
 
     if let Err(err) = std::fs::remove_dir_all(&to_be_removed) {
-        log(format!("Unable to delete directory {}: {}", to_be_removed.display(), err));
+        error!("Unable to delete directory {:?}: {}", to_be_removed, err);
         if cfg!(target_os = "windows") {
-            log(format!("Continue process event previos error."));
+            warn!("Continue process even with previos error.");
         } else {
-            log(format!("Cannot continue updating. Process is stopped."));
+            error!("Cannot continue updating. Process is stopped.");
             std::process::exit(1);
         }
     }
 
-    let dest;
-
-    if cfg!(target_os = "macos") {
-        log(format!("Folder {} is removed", to_be_removed.to_str().unwrap()));
-        dest = to_be_removed.parent().unwrap();
+    let dest = if cfg!(target_os = "macos") {
+        to_be_removed.parent().unwrap()
     } else {
-        if let Err(err) = std::fs::create_dir(&to_be_removed) {
-            log(format!("Unable to create directory {}: {}", to_be_removed.display(), err));
-            if cfg!(target_os = "windows") {
-                log(format!("Continue process event previos error."));
-            } else {
-                log(format!("Cannot continue updating. Process is stopped."));
-                std::process::exit(1);
-            }
-        }
-        log(format!("Folder {} is cleaned", to_be_removed.to_str().unwrap()));
-        dest = to_be_removed;
-    }
-
+        to_be_removed
+    };
+    Ok(PathBuf::from(dest))
+}
+fn unpack(tgz: &Path, dest: &PathBuf) -> Result<()> {
     // Unpack
-    log(format!("File {} will be unpacked into {}", tgz.to_str().unwrap(), dest.to_str().unwrap()));
+    info!("File {:?} will be unpacked into {:?}", tgz, dest);
 
     let tar_gz = match File::open(&tgz) {
         Err(e) => {
-            log(format!("Fail to open file due error: {}", e));
+            error!("Fail to open file due error: {}", e);
             std::process::exit(1);
         }
-        Ok(file) => file
+        Ok(file) => file,
     };
     let tar = GzDecoder::new(tar_gz);
     let mut archive = Archive::new(tar);
     match archive.unpack(&dest) {
         Err(e) => {
-            log(format!("Fail to unpack file due error: {}", e));
+            error!("Fail to unpack file due error: {}", e);
             std::process::exit(1);
         }
-        Ok(file) => file
+        Ok(file) => file,
     };
 
-    log(format!("File {} is unpacked into {}", tgz.to_str().unwrap(), dest.to_str().unwrap()));
-
-    // Starting
-    let to_be_started;
-
-    if cfg!(target_os = "macos") {
-        to_be_started = format!("{}/Contents/MacOS/chipmunk", app.to_str().unwrap());
+    info!(
+        "File {} is unpacked into {}",
+        tgz.to_string_lossy(),
+        dest.to_string_lossy()
+    );
+    Ok(())
+}
+fn restart_app(app: &Path, tgz: &Path) -> Result<()> {
+    let to_be_started: PathBuf = if cfg!(target_os = "macos") {
+        app.to_path_buf().join("Contents/MacOS/chipmunk")
     } else {
-        to_be_started = format!("{}", app.to_str().unwrap());
-    }
+        app.to_path_buf()
+    };
 
-    let to_be_started_path = Path::new(&to_be_started);
-    if !to_be_started_path.exists() {
-        log(format!("Fail to find executable file {}", to_be_started));
+    if !to_be_started.exists() {
+        error!(
+            "Failed to find executable file {}",
+            to_be_started.to_string_lossy()
+        );
+        Err(Error::new(
+            ErrorKind::Other,
+            "Failed to restart, couldn't find executable file",
+        ))
     } else {
-        log(format!("Remove tgz: {}", tgz.to_str().unwrap()));
-        if let Err(err) = std::fs::remove_file(&tgz.to_str().unwrap()) {
-            log(format!("Fail to remove file {} due error {}", tgz.to_str().unwrap(), err));
+        debug!("Remove tgz: {:?}", tgz);
+        if let Err(err) = std::fs::remove_file(&tgz) {
+            warn!(
+                "Fail to remove file {} due error {}",
+                tgz.to_string_lossy(),
+                err
+            );
         }
-        log(format!("Starting: {}", &to_be_started));
-        let child = spawn(&to_be_started, &[]);
+        info!("Starting: {:?}", &to_be_started);
+        let child = spawn(to_be_started.to_str().unwrap(), &[]);
         match child {
             Ok(mut child) => {
-                log(format!("App is started ({})", to_be_started));
+                info!("App is started ({:?})", to_be_started);
                 match child.wait() {
                     Ok(result) => {
-                        log(format!("App is finished: {}", result));
+                        info!("App is finished: {}", result);
                     }
                     Err(e) => {
-                        log(format!("Error during running app: {}", e));
+                        error!("Error during running app: {}", e);
                     }
                 }
-            },
+                Ok(())
+            }
             Err(e) => {
-                log(format!("Fail to start app due error: {}", e));
-            },
-        };
+                error!("Fail to start app due error: {}", e);
+                Err(Error::new(
+                    ErrorKind::Other,
+                    format!("Fail to start app due error: {}", e),
+                ))
+            }
+        }
+    }
+}
+fn main() {
+    init_logging();
+    debug!("Started");
+
+    let (app_arg, tgz_arg) = match extract_args() {
+        Ok(res) => res,
+        Err(e) => {
+            error!("Argument error: {:?}", e);
+            std::process::exit(1);
+        }
+    };
+    let app = Path::new(app_arg.as_str());
+    let tgz = Path::new(tgz_arg.as_str());
+
+    // Check paths
+    if !app.exists() {
+        error!("File {:?} doesn't exist", app);
+        std::process::exit(1);
     }
 
+    if !tgz.exists() {
+        error!("File {:?} doesn't exist", tgz);
+        std::process::exit(1);
+    }
+
+    // Sleep a little bit to give possibility chipmunk to be closed
+    thread::sleep(time::Duration::from_millis(2000));
+
+    let dest = match remove_application_folder(&app) {
+        Ok(res) => res,
+        Err(e) => {
+            error!("removing application folder failed: {:?}", e);
+            std::process::exit(1);
+        }
+    };
+
+    if let Err(e) = unpack(&tgz, &dest) {
+        error!("unpacking failed: {}", e);
+        // TODO implement rollback
+        std::process::exit(1);
+    }
+
+    match restart_app(&app, &tgz) {
+        Err(e) => error!("restart failed: {}", e),
+        Ok(()) => info!("restarted successfully"),
+    }
 }

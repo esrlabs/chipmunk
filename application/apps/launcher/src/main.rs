@@ -3,49 +3,64 @@
 extern crate chrono;
 extern crate dirs;
 extern crate flate2;
+#[macro_use]
+extern crate log;
+extern crate log4rs;
 
-use chrono::Utc;
-use regex::Regex;
-use std::fs::OpenOptions;
-use std::io::Write;
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
+use log::LevelFilter;
+use log4rs::append::file::FileAppender;
+use log4rs::config::{Appender, Config, Root};
+use log4rs::encode::pattern::PatternEncoder;
 use std::io::{Error, ErrorKind, Result};
 use std::path::Path;
-use std::process::{Child, Command};
+use std::process::Child;
+use std::process::Command;
 use std::time::SystemTime;
 
-fn log(msg: String) {
-    let now = Utc::now();
-    println!("{}:: {}", now, msg);
+fn init_logging() -> Result<()> {
     let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
-    let app_home_dir = home_dir.join(".logviewer");
-    let log_path = app_home_dir.join("logviewer.launcher.log");
-    if !app_home_dir.exists() {
-        std::fs::create_dir(&app_home_dir).unwrap();
-    }
-    match OpenOptions::new()
-        .write(true)
-        .append(true)
-        .create(true)
-        .open(&log_path)
-    {
-        Err(e) => {
-            log(format!("Fail to create log file due error: {}", e));
-            std::process::exit(1);
-        }
-        Ok(mut file) => match writeln!(file, "{}", format!("{}:: {}", now, msg)) {
-            Err(e) => eprintln!("Couldn't write to file: {}", e),
-            Ok(_) => (),
-        },
-    };
+    let log_path = home_dir.join(".logviewer").join("chipmunk.launcher.log");
+    let logfile = FileAppender::builder()
+        .encoder(Box::new(PatternEncoder::new("{d} - {l}:: {m}\n")))
+        .build(log_path)?;
+
+    let config = Config::builder()
+        .appender(Appender::builder().build("upater-logfile", Box::new(logfile)))
+        .build(
+            Root::builder()
+                .appender("launcher-root")
+                .build(LevelFilter::Trace),
+        )
+        .unwrap();
+
+    log4rs::init_config(config).unwrap();
+
+    Ok(())
 }
 
 fn execute(exe: &str, args: &[&str]) -> Result<std::process::ExitStatus> {
     Command::new(exe).args(args).status()
 }
+
+#[cfg(not(target_os = "windows"))]
 fn spawn(exe: &str, args: &[&str]) -> Result<Child> {
     Command::new(exe).args(args).spawn()
 }
 
+#[cfg(target_os = "windows")]
+fn spawn(exe: &str, args: &[&str]) -> Result<Child> {
+    const DETACHED_PROCESS: u32 = 0x00000008;
+    const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
+    Command::new(exe)
+        .args(args)
+        .creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP)
+        .spawn()
+}
+
+/// get the path of the
 fn get_app_path_str() -> Result<String> {
     let launcher = std::env::current_exe()?;
     let launcher_str = launcher
@@ -53,12 +68,8 @@ fn get_app_path_str() -> Result<String> {
         .ok_or_else(|| Error::new(ErrorKind::Other, "could not convert path to string"))?;
     let launcher_path = Path::new(&launcher);
     if cfg!(target_os = "macos") {
-        let re = Regex::new(r"chipmunk\.app$").expect("needs to compile");
-        if !re.is_match(launcher_str) {
-            log(format!(
-                "Fail to find \"chipmunk.app\" in path: {}",
-                launcher_str
-            ));
+        if !launcher_str.ends_with("chipmunk.app$") {
+            error!("Fail to find \"chipmunk.app\" in path: {}", launcher_str);
             std::process::exit(1);
         }
         Ok(launcher_str.to_string())
@@ -80,13 +91,12 @@ fn get_exe_path() -> Result<String> {
     let root_path = Path::new(&root)
         .parent()
         .ok_or_else(|| Error::new(ErrorKind::Other, "no parent found"))?;
-    let app;
-    if cfg!(target_os = "windows") {
-        app = format!("{}\\{}", root_path.display(), "app.exe");
+    let app = if cfg!(target_os = "windows") {
+        format!("{}\\{}", root_path.display(), "app.exe")
     } else {
-        app = format!("{}/{}", root_path.display(), "app");
-    }
-    return Ok(app);
+        format!("{}/{}", root_path.display(), "app")
+    };
+    Ok(app)
 }
 
 fn get_updater_path() -> String {
@@ -95,13 +105,11 @@ fn get_updater_path() -> String {
         "{}/.logviewer/apps/updater",
         home_dir.unwrap().as_path().to_str().unwrap()
     );
-    let updater_exe;
     if cfg!(target_os = "windows") {
-        updater_exe = format!("{}.exe", updater);
+        format!("{}.exe", updater)
     } else {
-        updater_exe = format!("{}", updater);
+        updater.to_string()
     }
-    return updater_exe;
 }
 
 fn get_app_updating_tgz_path_str() -> String {
@@ -120,30 +128,27 @@ fn get_app_updating_tgz_path_str() -> String {
         if let Ok(entry) = entry {
             let path_buf = entry.path();
             let path = Path::new(&path_buf);
-            match path.extension() {
-                Some(ext) => {
-                    if path.is_file() && ext == "tgz" {
-                        let metadata = std::fs::metadata(&path).unwrap();
-                        if let Ok(time) = metadata.modified() {
-                            let unixts = time
-                                .duration_since(SystemTime::UNIX_EPOCH)
-                                .unwrap()
-                                .as_secs();
-                            if unixts > maxunixts {
-                                maxunixts = unixts;
-                                let path_str = path.to_str().unwrap();
-                                target = path_str.to_string();
-                            }
-                        } else {
-                            println!("Not supported on this platform");
+            if let Some(ext) = path.extension() {
+                if path.is_file() && ext == "tgz" {
+                    let metadata = std::fs::metadata(&path).unwrap();
+                    if let Ok(time) = metadata.modified() {
+                        let unixts = time
+                            .duration_since(SystemTime::UNIX_EPOCH)
+                            .unwrap()
+                            .as_secs();
+                        if unixts > maxunixts {
+                            maxunixts = unixts;
+                            let path_str = path.to_str().unwrap();
+                            target = path_str.to_string();
                         }
+                    } else {
+                        println!("Not supported on this platform");
                     }
                 }
-                None => {}
             }
         }
     }
-    return target;
+    target
 }
 
 fn update() -> Result<bool> {
@@ -151,82 +156,83 @@ fn update() -> Result<bool> {
     let updater_path = Path::new(&updater);
 
     if !updater_path.exists() {
-        log(format!(
+        error!(
             "File of updater {} doesn't exist",
             updater_path.to_string_lossy()
-        ));
+        );
         return Ok(false);
     }
 
-    log(format!("Starting updater: {}", updater));
+    trace!("Starting updater: {}", updater);
     let app = get_app_path_str()?;
     let tgz = get_app_updating_tgz_path_str();
     if app == "" || tgz == "" {
-        log(format!(
+        error!(
             "Fail to start update because some path isn't detected. app: {}, tgz: {}",
             app, tgz
-        ));
+        );
         std::process::exit(0);
     }
-    log(format!("Detected app: {}, tgz: {}", app, tgz));
+    trace!("Detected app: {}, tgz: {}", app, tgz);
     execute(&updater_path.to_string_lossy(), &[&app, &tgz])?;
-    log(format!("Close launcher"));
+    trace!("Close launcher");
     std::process::exit(0);
 }
 
 fn main() {
-    log(format!("Started"));
+    match init_logging() {
+        Ok(()) => trace!("Started logging"),
+        Err(e) => eprintln!("couldn't initialize logging: {}", e),
+    }
 
-    let app = match get_exe_path() {
+    let node_app = match get_exe_path() {
         Ok(app) => app,
         Err(e) => {
-            log(format!("path to executable not found: {}", e));
+            error!("path to executable not found: {}", e);
             std::process::exit(1);
         }
     };
 
-    log(format!("Target application: {}", app));
+    trace!("Target application: {}", node_app);
 
-    let app_path = Path::new(&app);
+    let app_path = Path::new(&node_app);
 
     if !app_path.exists() {
-        log(format!("File {} doesn't exist", app_path.to_str().unwrap()));
+        error!("File {} doesn't exist", app_path.to_str().unwrap());
         std::process::exit(1);
     }
 
-    log(format!("Starting application: {}", app));
+    debug!("Starting application: {}", node_app);
 
-    let child = spawn(&app, &[]);
+    let child = spawn(&node_app, &[]);
     match child {
         Ok(mut child) => {
-            log(format!(
-                "Application is started ({})",
-                app_path.to_str().unwrap()
-            ));
+            debug!("Application is started ({})", app_path.to_str().unwrap());
             match child.wait() {
                 Ok(result) => {
                     let code = result.code().unwrap();
-                    log(format!("App is finished with code: {}", code));
+                    trace!("App is finished with code: {}", code);
                     if code == 0 {
-                        log(format!("Everything looks good."));
+                        // node app was closed
+                        trace!("Everything looks good.");
                     } else if code == 131 {
-                        log(format!("Update is required"));
+                        // node app was closed and update requested
+                        debug!("Update is required");
                         match update() {
-                            Ok(res) => log(format!(
-                                "updated finished {} OK",
-                                if res { "" } else { "not" }
-                            )),
-                            Err(e) => log(format!("update failed: {}", e)),
+                            Ok(res) => {
+                                debug!("updated finished {} OK", if res { "" } else { "not" })
+                            }
+                            Err(e) => error!("update failed: {}", e),
                         }
                     }
                 }
                 Err(e) => {
-                    log(format!("Error during running app: {}", e));
+                    error!("Error during running app: {}", e);
                 }
             }
         }
         Err(e) => {
-            log(format!("Fail to start app due error: {}", e));
+            error!("Fail to start app due error: {}", e);
         }
     };
 }
