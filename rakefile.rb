@@ -193,9 +193,24 @@ task :install do
 end
 
 desc "Developer task: update client"
-task :dev_updateclient do
+task :dev_update_client do
   Rake::Task["ipc"].invoke
   Rake::Task["clientbuild"].invoke
+end
+
+desc "Developer task: update client"
+task :dev_fullupdate_client do
+  Rake::Task["clientlibsbuild"].invoke
+  Rake::Task["clientlibsdelivery"].invoke
+  Rake::Task["dev_update_client"].invoke
+end
+
+desc "Developer task: update client"
+task :dev_fullupdate_client_run do
+  Rake::Task["dev_fullupdate_client"].invoke
+  cd "application/electron" do
+    sh "npm run electron"
+  end
 end
 
 desc "ipc"
