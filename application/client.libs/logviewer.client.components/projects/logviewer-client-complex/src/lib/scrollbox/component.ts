@@ -107,11 +107,13 @@ export function copyTextToClipboard(text: string) {
         { r: />/g,      m: '&gt;'   },
         { r: /[\n\r]/g, m: '<br>'   },
         { r: /\s/g,     m: '&nbsp;' }, // &#32;
+        { r: /&#9;/g,   m: '\u0009' }
     ].forEach((toBeChecked) => {
         text = text.replace(toBeChecked.r, toBeChecked.m);
     });
+    // Oldschool (modern class Clipboard gives exeptions for this moment: 13.09.2019)
     const selection         = document.getSelection();
-    const element           = document.createElement('P');
+    const element           = document.createElement('pre'); // This is important to use tag <PRE> - it allows delivery into clipboard such "things" like tabs
     element.style.opacity   = '0.0001';
     element.style.position  = 'absolute';
     element.style.userSelect = 'all';
