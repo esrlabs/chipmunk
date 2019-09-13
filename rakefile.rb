@@ -213,6 +213,29 @@ task :dev_fullupdate_client_run do
   end
 end
 
+#Application should be built already to use this task
+desc "Developer task: build launcher and delivery into package."
+task :dev_build_delivery_launcher do
+
+  Rake::Task["buildlauncher"].invoke
+
+  SRC_LAUNCHER = "application/apps/launcher/target/release/launcher"
+  RELEASE_PATH = "application/electron/dist/release/"
+
+  case TARGET_PLATFORM_ALIAS
+    when "mac"
+      FileUtils.mv("#{RELEASE_PATH}mac/chipmunk.app/Contents/MacOS/chipmunk", "#{RELEASE_PATH}mac/chipmunk.app/Contents/MacOS/app")
+      FileUtils.cp("#{SRC_LAUNCHER}", "#{RELEASE_PATH}mac/chipmunk.app/Contents/MacOS/chipmunk")
+    when "linux"
+      FileUtils.mv("#{RELEASE_PATH}linux-unpacked/chipmunk", "#{RELEASE_PATH}linux-unpacked/app")
+      FileUtils.cp("#{SRC_LAUNCHER}", "#{RELEASE_PATH}linux-unpacked/chipmunk")
+    when "win"
+      FileUtils.mv("#{RELEASE_PATH}win-unpacked/chipmunk.exe", "#{RELEASE_PATH}win-unpacked/app.exe")
+      FileUtils.cp("#{SRC_LAUNCHER}.exe", "#{RELEASE_PATH}win-unpacked/chipmunk.exe")
+  end
+
+end
+
 desc "ipc"
 task :ipc do
   puts "Delivery IPC definitions"
