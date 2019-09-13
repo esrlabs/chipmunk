@@ -1,16 +1,25 @@
 [package]
-name = "neon-hello"
+name = "chipmunk_integration"
 version = "0.1.0"
-authors = ["Dave Herman <dherman@mozilla.com>"]
+authors = ["Oliver Mueller <oliver.mueller@esrlabs.com>"]
 license = "MIT"
 build = "build.rs"
+exclude = ["artifacts.json", "index.node"]
 
 [lib]
-name = "neon_hello"
+name = "chipmunk_integration"
 crate-type = ["dylib"]
+# crate-type = ["cdylib"]
 
 [build-dependencies]
-neon-build = "0.1.15"
+neon-build = "0.3.1"
 
 [dependencies]
-neon = "0.1.15"
+neon = "0.3.1"
+processor = { path = "../../indexer/processor" }
+indexer_base = { path = "../../indexer/indexer_base" }
+merging = { path = "../../indexer/merging" }
+dlt = { path = "../../indexer/dlt" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+neon-serde = "0.2"
