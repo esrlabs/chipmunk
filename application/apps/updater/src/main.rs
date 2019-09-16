@@ -25,16 +25,17 @@ use tar::Archive;
 fn init_logging() {
     let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
     let log_path = home_dir.join(".logviewer").join("chipmunk.updater.log");
+    let appender_name = "updater-root";
     let logfile = FileAppender::builder()
         .encoder(Box::new(PatternEncoder::new("{d} - {l}:: {m}\n")))
         .build(log_path)
         .unwrap();
 
     let config = Config::builder()
-        .appender(Appender::builder().build("upater-logfile", Box::new(logfile)))
+        .appender(Appender::builder().build(appender_name, Box::new(logfile)))
         .build(
             Root::builder()
-                .appender("updater-root")
+                .appender(appender_name)
                 .build(LevelFilter::Trace),
         )
         .unwrap();
