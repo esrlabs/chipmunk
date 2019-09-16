@@ -23,15 +23,16 @@ use std::time::SystemTime;
 fn init_logging() -> Result<()> {
     let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
     let log_path = home_dir.join(".logviewer").join("chipmunk.launcher.log");
+    let appender_name = "launcher-root";
     let logfile = FileAppender::builder()
         .encoder(Box::new(PatternEncoder::new("{d} - {l}:: {m}\n")))
         .build(log_path)?;
 
     let config = Config::builder()
-        .appender(Appender::builder().build("upater-logfile", Box::new(logfile)))
+        .appender(Appender::builder().build(appender_name, Box::new(logfile)))
         .build(
             Root::builder()
-                .appender("launcher-root")
+                .appender(appender_name)
                 .build(LevelFilter::Trace),
         )
         .unwrap();
