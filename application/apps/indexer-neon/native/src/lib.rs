@@ -2,18 +2,37 @@
 extern crate neon;
 extern crate dlt;
 extern crate indexer_base;
+#[macro_use]
+extern crate log;
 extern crate merging;
 extern crate processor;
 extern crate serde;
 
+mod logging;
+use crate::logging::SimpleLogger;
 use indexer_base::chunks::serialize_chunks;
 use indexer_base::config::IndexingConfig;
 use neon::prelude::*;
 use processor::parse;
 use processor::parse::DiscoverItem;
 use processor::parse::TimestampFormatResult;
+use processor::processor::IndexingProgress;
 use std::fs;
 use std::path;
+use std::sync::mpsc::{self, RecvTimeoutError};
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
+
+use log::{LevelFilter, SetLoggerError};
+
+static LOGGER: SimpleLogger = SimpleLogger;
+
+pub fn init_logging() -> Result<(), SetLoggerError> {
+    log::set_logger(&LOGGER).map(|()| log::set_max_level(LevelFilter::Trace))?;
+    trace!("logging initialized");
+    Ok(())
+}
 
 /// Trys to detect a valid timestamp in a string
 /// Returns the a tuple of
@@ -69,7 +88,7 @@ fn detect_timestamp_formats_in_files(mut cx: FunctionContext) -> JsResult<JsValu
     let arg0 = cx.argument::<JsValue>(0)?;
 
     let items: Vec<DiscoverItem> = neon_serde::from_value(&mut cx, arg0)?;
-    println!("received items: {:?}", items);
+    debug!("received items: {:?}", items);
     let mut results: Vec<TimestampFormatResult> = Vec::new();
     for item in items {
         let file_path = path::PathBuf::from(&item.path);
@@ -96,7 +115,7 @@ fn detect_timestamp_formats_in_files(mut cx: FunctionContext) -> JsResult<JsValu
                     min_time: None,
                     max_time: None,
                 });
-                eprintln!("executed with error: {}", e)
+                error!("executed with error: {}", e)
             }
         }
     }
@@ -104,7 +123,7 @@ fn detect_timestamp_formats_in_files(mut cx: FunctionContext) -> JsResult<JsValu
     Ok(js_value)
 }
 
-fn index_file(mut cx: FunctionContext) -> JsResult<JsBoolean> {
+fn index_file_cx(mut cx: FunctionContext) -> JsResult<JsBoolean> {
     let file = cx.argument::<JsString>(0)?.value();
     let tag = cx.argument::<JsString>(1)?.value();
     let out_path = path::PathBuf::from(cx.argument::<JsString>(2)?.value().as_str());
@@ -112,45 +131,47 @@ fn index_file(mut cx: FunctionContext) -> JsResult<JsBoolean> {
     let append: bool = cx.argument::<JsBoolean>(4)?.value();
     let stdout: bool = cx.argument::<JsBoolean>(5)?.value();
     let timestamps: bool = cx.argument::<JsBoolean>(6)?.value();
-    let status_updates: bool = cx.argument::<JsBoolean>(7)?.value();
     let mapping_out_path: path::PathBuf = path::PathBuf::from(file.to_string() + ".map.json");
-
     let f = match fs::File::open(&file) {
         Ok(file) => file,
         Err(_) => {
-            eprintln!("could not open {}", file);
+            error!("could not open {:?}", file);
             std::process::exit(2)
         }
     };
-
-    let source_file_size = match f.metadata() {
-        Ok(file_meta) => file_meta.len() as usize,
-        Err(_) => {
-            eprintln!("could not find out size of source file");
-            std::process::exit(2);
-        }
+    let config = IndexingConfig {
+        tag: tag.as_str(),
+        chunk_size,
+        in_file: f,
+        out_path: &out_path,
+        append,
+        to_stdout: stdout,
     };
+    index_file(config, timestamps, mapping_out_path, None, None);
+    Ok(cx.boolean(true))
+}
 
+fn index_file(
+    config: IndexingConfig,
+    timestamps: bool,
+    mapping_out_path: path::PathBuf,
+    tx: Option<mpsc::Sender<IndexingProgress>>,
+    shutdown_receiver: Option<mpsc::Receiver<()>>,
+) {
+    info!("index_file in new thread",);
     match processor::processor::create_index_and_mapping(
-        IndexingConfig {
-            tag: tag.as_str(),
-            chunk_size,
-            in_file: f,
-            out_path: &out_path,
-            append,
-            source_file_size,
-            to_stdout: stdout,
-            status_updates,
-        },
+        config,
         timestamps,
+        None,
+        tx,
+        shutdown_receiver,
     ) {
         Err(why) => {
-            eprintln!("couldn't process: {}", why);
+            error!("couldn't process: {}", why);
             std::process::exit(2)
         }
         Ok(chunks) => {
             let _ = serialize_chunks(&chunks, &mapping_out_path);
-            Ok(cx.boolean(true))
         }
     }
 }
@@ -175,7 +196,7 @@ fn merge_files(mut cx: FunctionContext) -> JsResult<JsNumber> {
     ) {
         Ok(cnt) => cnt,
         Err(e) => {
-            eprintln!("error merging: {}", e);
+            error!("error merging: {}", e);
             std::process::exit(2)
         }
     };
@@ -201,7 +222,7 @@ fn concat_files(mut cx: FunctionContext) -> JsResult<JsNumber> {
     ) {
         Ok(cnt) => cnt,
         Err(e) => {
-            eprintln!("error merging: {}", e);
+            error!("error merging: {}", e);
             std::process::exit(2)
         }
     };
@@ -214,7 +235,6 @@ fn index_dlt_file(mut cx: FunctionContext) -> JsResult<JsBoolean> {
     let chunk_size = cx.argument::<JsNumber>(3)?.value() as usize;
     let append: bool = cx.argument::<JsBoolean>(4)?.value();
     let stdout: bool = cx.argument::<JsBoolean>(5)?.value();
-    let status_updates: bool = cx.argument::<JsBoolean>(6)?.value();
 
     let args_length = cx.len();
     let filter_conf: Option<dlt::filtering::DltFilterConfig> = if args_length == 8 {
@@ -223,21 +243,14 @@ fn index_dlt_file(mut cx: FunctionContext) -> JsResult<JsBoolean> {
     } else {
         None
     };
-    println!("filter-conf used: {:?}", filter_conf);
+    debug!("filter-conf used: {:?}", filter_conf);
 
     let mapping_out_path: path::PathBuf = path::PathBuf::from(file_name.to_string() + ".map.json");
-    let source_file_size = match fs::metadata(&file_name) {
-        Ok(file_meta) => file_meta.len() as usize,
-        Err(_) => {
-            eprintln!("could not find out size of source file");
-            std::process::exit(2);
-        }
-    };
     let file_path = path::PathBuf::from(&file_name);
     let f = match fs::File::open(&file_path) {
         Ok(file) => file,
         Err(_) => {
-            eprintln!("could not open {:?}", file_path);
+            error!("could not open {:?}", file_path);
             std::process::exit(2)
         }
     };
@@ -249,14 +262,14 @@ fn index_dlt_file(mut cx: FunctionContext) -> JsResult<JsBoolean> {
             in_file: f,
             out_path: &out_path,
             append,
-            source_file_size,
             to_stdout: stdout,
-            status_updates,
         },
+        None,
         filter_conf,
+        None,
     ) {
         Err(why) => {
-            eprintln!("couldn't process: {}", why);
+            error!("couldn't process: {}", why);
             std::process::exit(2)
         }
         Ok(chunks) => {
@@ -271,13 +284,13 @@ fn dlt_stats(mut cx: FunctionContext) -> JsResult<JsValue> {
     let f = match fs::File::open(&file_path) {
         Ok(file) => file,
         Err(_) => {
-            eprintln!("could not open {:?}", file_path);
+            error!("could not open {:?}", file_path);
             std::process::exit(2)
         }
     };
     match dlt::dlt_parse::get_dlt_file_info(&f) {
         Err(why) => {
-            eprintln!("couldn't collect statistics: {}", why);
+            error!("couldn't collect statistics: {}", why);
             std::process::exit(2)
         }
         Ok(res) => {
@@ -286,8 +299,256 @@ fn dlt_stats(mut cx: FunctionContext) -> JsResult<JsValue> {
         }
     }
 }
+// Represents the data that will be received by the `poll` method. It may
+// include different types of data or be replaced with a more simple type,
+// e.g., `Vec<u8>`.
+// pub enum Event {
+//     Tick {
+//         count: f64,
+//     },
+//     ChunkEvent {
+//         rows: (usize, usize),
+//         bytes: (usize, usize),
+//     },
+// }
+// Rust struct that holds the data required by the `JsEventEmitter` class.
+pub struct IndexingEventEmitter {
+    // Since the `Receiver` is sent to a thread and mutated, it must be
+    // `Send + Sync`. Since, correct usage of the `poll` interface should
+    // only have a single concurrent consume, we guard the channel with a
+    // `Mutex`.
+    events: Arc<Mutex<mpsc::Receiver<IndexingProgress>>>,
+
+    // Channel used to perform a controlled shutdown of the work thread.
+    shutdown_sender: mpsc::Sender<()>,
+    task_thread: Option<std::thread::JoinHandle<()>>,
+}
+impl IndexingEventEmitter {
+    fn event_thread(
+        self: &mut IndexingEventEmitter,
+        shutdown_rx: mpsc::Receiver<()>,
+        chunk_result_sender: mpsc::Sender<IndexingProgress>,
+        file: fs::File,
+        timestamps: bool,
+        tag: String,
+        append: bool,
+        out_path: path::PathBuf,
+        mapping_out_path: path::PathBuf,
+        chunk_size: usize,
+    ) {
+        info!("call event_thread with chunk size: {}", chunk_size);
+        // let (chunk_result_sender, chunk_result_receiver) = mpsc::channel();
+
+        // Spawn a thead to continue running after this method has returned.
+        self.task_thread = Some(thread::spawn(move || {
+            index_file(
+                IndexingConfig {
+                    tag: tag.as_str(),
+                    chunk_size,
+                    in_file: file,
+                    out_path: &out_path,
+                    append,
+                    to_stdout: false,
+                },
+                timestamps,
+                mapping_out_path,
+                // None,
+                Some(chunk_result_sender.clone()),
+                Some(shutdown_rx),
+            );
+            debug!("back after indexing finished!!!!!!!!",);
+            match chunk_result_sender.send(IndexingProgress::Finished) {
+                Ok(()) => debug!("sent final finished successfully",),
+                Err(e) => debug!("error sending final finished: {}", e),
+            }
+        }));
+
+        // chunk_result_receiver
+    }
+}
+// Reading from a channel `Receiver` is a blocking operation. This struct
+// wraps the data required to perform a read asynchronously from a libuv
+// thread.
+pub struct EventEmitterTask(Arc<Mutex<mpsc::Receiver<IndexingProgress>>>);
+
+// Implementation of a neon `Task` for `EventEmitterTask`. This task reads
+// from the events channel and calls a JS callback with the data.
+impl Task for EventEmitterTask {
+    type Output = Option<IndexingProgress>;
+    type Error = String;
+    type JsEvent = JsValue;
+
+    // The work performed on the `libuv` thread. First acquire a lock on
+    // the receiving thread and then return the received data.
+    // In practice, this should never need to wait for a lock since it
+    // should only be executed one at a time by the `EventEmitter` class.
+    fn perform(&self) -> Result<Self::Output, Self::Error> {
+        // debug!("perform rs");
+        let rx = self
+            .0
+            .lock()
+            .map_err(|_| "Could not obtain lock on receiver".to_string())?;
+
+        // Attempt to read from the channel. Block for at most 100 ms.
+        match rx.recv_timeout(Duration::from_millis(100)) {
+            Ok(event) => {
+                match event {
+                    IndexingProgress::GotChunk { .. } => (),
+                    _ => {
+                        debug!("(libuv): OK({:?})", &event);
+                    }
+                };
+                Ok(Some(event))
+            }
+            Err(RecvTimeoutError::Timeout) => {
+                // debug!(
+                //     "(libuv): Err(RecvTimeoutError::Timeout)",
+                // );
+                Ok(None)
+            }
+            Err(RecvTimeoutError::Disconnected) => {
+                debug!("(libuv): Failed to receive event",);
+                Err("Failed to receive event".to_string())
+            }
+        }
+    }
+
+    // After the `perform` method has returned, the `complete` method is
+    // scheduled on the main thread. It is responsible for converting the
+    // Rust data structure into a JS object.
+    fn complete(
+        self,
+        mut cx: TaskContext,
+        event: Result<Self::Output, Self::Error>,
+    ) -> JsResult<Self::JsEvent> {
+        // debug!("complete rs");
+        // Receive the event or return early with the error
+        let event: Option<IndexingProgress> =
+            event.or_else(|err| cx.throw_error(&err.to_string()))?;
+
+        // Timeout occured, return early with `undefined
+        let event: IndexingProgress = match event {
+            Some(event) => event,
+            None => return Ok(JsUndefined::new().upcast()),
+        };
+        // Create an empty object `{}`
+        let o = cx.empty_object();
+        // debug!("event: {:?}", event);
+        match event {
+            IndexingProgress::GotChunk { chunk } => {
+                let event_name = cx.string("GotChunk");
+                let rows_start = cx.number(chunk.r.0 as f64);
+                let rows_end = cx.number(chunk.r.1 as f64);
+                let bytes_start = cx.number(chunk.b.0 as f64);
+                let bytes_end = cx.number(chunk.b.1 as f64);
+
+                o.set(&mut cx, "event", event_name)?;
+                o.set(&mut cx, "rows_start", rows_start)?;
+                o.set(&mut cx, "rows_end", rows_end)?;
+                o.set(&mut cx, "bytes_start", bytes_start)?;
+                o.set(&mut cx, "bytes_end", bytes_end)?;
+            }
+            IndexingProgress::Stopped => {
+                trace!("rust: propagate stopped event");
+                let event_name = cx.string("Stopped");
+                o.set(&mut cx, "event", event_name)?;
+            }
+            IndexingProgress::Finished => {
+                trace!("rust IndexingProgress::Finished");
+                let event_name = cx.string("Finished");
+                o.set(&mut cx, "event", event_name)?;
+            }
+        }
+
+        Ok(o.upcast())
+    }
+}
+
+// Implementation of the `JsEventEmitter` class. This is the only public
+// interface of the Rust code. It exposes the `poll` and `shutdown` methods
+// to JS.
+declare_types! {
+    pub class JsEventEmitter for IndexingEventEmitter {
+        // Called by the `JsEventEmitter` constructor
+        init(mut cx) {
+            let file = cx.argument::<JsString>(0)?.value();
+            let tag = cx.argument::<JsString>(1)?.value();
+            let out_path = path::PathBuf::from(cx.argument::<JsString>(2)?.value().as_str());
+            let append: bool = cx.argument::<JsBoolean>(3)?.value();
+            let timestamps: bool = cx.argument::<JsBoolean>(4)?.value();
+            let chunk_size: usize = cx.argument::<JsNumber>(5)?.value() as usize;
+            let mapping_out_path: path::PathBuf = path::PathBuf::from(file.to_string() + ".map.json");
+            let (shutdown_sender, shutdown_receiver) = mpsc::channel();
+
+            let f = match fs::File::open(&file) {
+                Ok(file) => file,
+                Err(_) => {
+                    eprint!("could not open {}", file);
+                    std::process::exit(2)
+                }
+            };
+        let (chunk_result_sender, chunk_result_receiver) = mpsc::channel();
+            let mut emitter = IndexingEventEmitter {
+                events: Arc::new(Mutex::new(chunk_result_receiver)),
+                shutdown_sender,
+                task_thread: None,
+            };
+            // Start work in a separate thread
+            emitter.event_thread(shutdown_receiver,
+                chunk_result_sender,
+                f,
+                timestamps,
+                tag,
+                append,
+                out_path,
+                mapping_out_path,
+                chunk_size,
+            );
+
+            // Construct a new `EventEmitter` to be wrapped by the class.
+            Ok(emitter)
+        }
+
+        // This method should be called by JS to receive data. It accepts a
+        // `function (err, data)` style asynchronous callback. It may be called
+        // in a loop, but care should be taken to only call it once at a time.
+        method poll(mut cx) {
+            // The callback to be executed when data is available
+            let cb = cx.argument::<JsFunction>(0)?;
+            let this = cx.this();
+
+            // Create an asynchronously `EventEmitterTask` to receive data
+            let events = cx.borrow(&this, |emitter| Arc::clone(&emitter.events));
+            let emitter = EventEmitterTask(events);
+
+            // Schedule the task on the `libuv` thread pool
+            emitter.schedule(cb);
+
+            // The `poll` method does not return any data.
+            Ok(JsUndefined::new().upcast())
+        }
+
+        // The shutdown method may be called to stop the Rust thread. It
+        // will error if the thread has already been destroyed.
+        method shutdown(mut cx) {
+            trace!("shutdown called");
+            let this = cx.this();
+
+            // Unwrap the shutdown channel and send a shutdown command
+            cx.borrow(&this, |emitter| {
+                match emitter.shutdown_sender.send(()) {
+                    Err(e) => trace!("error happened when sending: {}", e),
+                    Ok(()) => trace!("sent command Shutdown")
+                }
+            });
+
+            Ok(JsUndefined::new().upcast())
+        }
+    }
+}
 
 register_module!(mut cx, {
+    init_logging().expect("logging has to be cofigured");
     // handle_discover_subcommand
     cx.export_function("detectTimestampInString", detect_timestamp_in_string)?;
     cx.export_function(
@@ -298,10 +559,12 @@ register_module!(mut cx, {
         "detectTimestampFormatsInFiles",
         detect_timestamp_formats_in_files,
     )?;
-    cx.export_function("indexFile", index_file)?;
+    // cx.export_function("indexFile", index_file)?;
     cx.export_function("mergeFiles", merge_files)?;
     cx.export_function("concatFiles", concat_files)?;
     cx.export_function("indexDltFile", index_dlt_file)?;
+    cx.export_function("indexFile", index_file_cx)?;
     cx.export_function("dltStats", dlt_stats)?;
+    cx.export_class::<JsEventEmitter>("REventEmitter")?;
     Ok(())
 });
