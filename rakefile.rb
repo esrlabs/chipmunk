@@ -518,6 +518,34 @@ end
 desc "full update"
 task :update => [:buildlauncher, :buildupdater, :buildindexer]
 
+desc "create list of files and folder in release"
+task :setlistofreleasefiles do
+  puts "Prepare list of files/folders in release"
+  case TARGET_PLATFORM_ALIAS
+    when "mac"
+      puts "No need to do it for mac"
+      next
+    when "linux"
+      path = "#{RELEASE_FOLDER}/linux-unpacked"
+    when "win"
+      path = "#{RELEASE_FOLDER}/win-unpacked"
+  end
+  if !File.exists?(path)
+    abort("No release found at #{path}")
+  end
+  destfile = "#{path}/.release"
+  FileUtils.rm(destfile) unless !File.exists?(destfile)
+  lines = "";
+  Dir.foreach(path) {|entry|
+    if entry != "." && entry != ".."
+      lines = "#{lines}#{entry}\n"
+    end
+  }
+  File.open(destfile, "a") do |line|
+    line.puts lines
+  end
+end
+
 desc "build"
 task :build do
 
@@ -579,5 +607,6 @@ task :full_pipeline do
   Rake::Task["plugins"].invoke
   Rake::Task["ripgrepdelivery"].invoke
   Rake::Task["build"].invoke
+  Rake::Task["setlistofreleasefiles"].invoke
   Rake::Task["prepare_to_deploy"].invoke
 end
