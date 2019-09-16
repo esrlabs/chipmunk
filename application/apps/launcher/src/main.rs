@@ -19,6 +19,7 @@ use std::path::Path;
 use std::process::Child;
 use std::process::Command;
 use std::time::SystemTime;
+use regex::Regex;
 
 fn init_logging() -> Result<()> {
     let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
@@ -65,11 +66,15 @@ fn get_app_path_str() -> Result<String> {
         .ok_or_else(|| Error::new(ErrorKind::Other, "could not convert path to string"))?;
     let launcher_path = Path::new(&launcher);
     if cfg!(target_os = "macos") {
-        if !launcher_str.ends_with("chipmunk.app$") {
-            error!("Fail to find \"chipmunk.app\" in path: {}", launcher_str);
+        let re = Regex::new(r"chipmunk\.app.*").unwrap();
+        let cropped = re.replace_all(launcher_str, "chipmunk.app").to_string();
+        let cropped_path = Path::new(&cropped);
+        if !cropped_path.exists() {
+            error!("Fail to find application by next path: {:?}", cropped_path);
+            trace!("Closing launcher");
             std::process::exit(1);
         }
-        Ok(launcher_str.to_string())
+        Ok(cropped)
     } else {
         let parrent_path = launcher_path
             .parent()
