@@ -225,15 +225,17 @@ task :dev_build_delivery_apps do
 
   case TARGET_PLATFORM_ALIAS
     when "mac"
-      FileUtils.mv("#{RELEASE_PATH}mac/chipmunk.app/Contents/MacOS/chipmunk", "#{RELEASE_PATH}mac/chipmunk.app/Contents/MacOS/app")
-      FileUtils.cp("#{SRC_LAUNCHER}", "#{RELEASE_PATH}mac/chipmunk.app/Contents/MacOS/chipmunk")
+      node_app_original = "#{RELEASE_PATH}mac/chipmunk.app/Contents/MacOS/chipmunk"
+      launcher = SRC_LAUNCHER
     when "linux"
-      FileUtils.mv("#{RELEASE_PATH}linux-unpacked/chipmunk", "#{RELEASE_PATH}linux-unpacked/app")
-      FileUtils.cp("#{SRC_LAUNCHER}", "#{RELEASE_PATH}linux-unpacked/chipmunk")
+      node_app_original = "#{RELEASE_PATH}linux-unpacked/chipmunk"
+      launcher = SRC_LAUNCHER
     when "win"
-      FileUtils.mv("#{RELEASE_PATH}win-unpacked/chipmunk.exe", "#{RELEASE_PATH}win-unpacked/app.exe")
-      FileUtils.cp("#{SRC_LAUNCHER}.exe", "#{RELEASE_PATH}win-unpacked/chipmunk.exe")
+      node_app_original = "#{RELEASE_PATH}win-unpacked/chipmunk.exe"
+      launcher = "#{SRC_LAUNCHER}.exe"
   end
+  FileUtils.rm(node_app_original)
+  FileUtils.cp(launcher, node_app_original)
 
 end
 
@@ -486,6 +488,31 @@ task :buildindexer do
   puts "Updating app from: #{src_app_dir}#{app_file_comp}"
   FileUtils.cp("#{src_app_dir}#{app_file_comp}", "#{INCLUDED_APPS_FOLDER}/#{app_file_release}")
 
+end
+
+desc "build imbedded indexer"
+task :buildimbeddedindexer do
+  cd "application/apps/indexer-neon" do
+    puts 'Install indexer'
+    sh "npm install"
+    puts 'Build indexer'
+    sh "npm run build"
+  end
+  src_folder = "application/apps/indexer-neon"
+  dest_folder = "application/electron/node_modules/indexer-neon"
+  puts "Delivery indexer from: #{src_folder} into #{dest_folder}"
+  FileUtils.rm_r(dest_folder) unless !File.exists?(dest_folder)
+  FileUtils.cp_r(src_folder, dest_folder)
+  complex_plugins = ["dlt-render"];
+  puts "Clean up in: #{dest_folder}"
+  to_be_clean = ["node_modules", "src"];
+  i = 0
+  while i < to_be_clean.length
+    to_be_removed = "#{dest_folder}/#{to_be_clean[i]}"
+    puts "Removing: #{to_be_removed}"
+    FileUtils.rm_r(to_be_removed) unless !File.exists?(to_be_removed)
+    i += 1
+  end
 end
 
 desc "full update"
