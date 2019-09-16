@@ -94,7 +94,7 @@ fn remove_entity(entity: &Path) -> Result<()> {
         }
     } else if entity.is_file() {
         if let Err(err) = std::fs::remove_file(&entity) {
-            error!("Unable to delete directory {:?}: {}", entity, err);
+            error!("Unable to delete file {:?}: {}", entity, err);
             return Err(err);
         } else {
             debug!("Successfuly removed file: {:?}", entity);
@@ -110,7 +110,7 @@ fn remove_application_folder(app: &Path) -> Result<PathBuf> {
         app.parent().unwrap()
     };
 
-    debug!("Next: this folder will be removed: {:?}", app_folder);
+    debug!("This folder will be clean: {:?}", app_folder);
     if cfg!(target_os = "macos") {
         // Mac doesn't requere any specific actions, because all are in self-compressed folder "chipmunk.app"
         if let Err(err) = std::fs::remove_dir_all(&app_folder) {
@@ -143,13 +143,8 @@ fn remove_application_folder(app: &Path) -> Result<PathBuf> {
                     let path = app_folder.join(entity);
                     if path.exists() {
                         if let Err(err) = remove_entity(&path) {
-                            error!("Unable to delete entry {:?}: {}", path, err);
-                            if cfg!(target_os = "windows") {
-                                warn!("Continue process even with previos error.");
-                            } else {
-                                error!("Cannot continue updating. Process is stopped.");
-                                std::process::exit(1);
-                            }
+                            error!("Unable to delete entry {:?}: {}. Cannot continue updating. Process is stopped.", path, err);
+                            std::process::exit(1);
                         }
                     } else {
                         warn!("Fail to find file: {:?}.", path);

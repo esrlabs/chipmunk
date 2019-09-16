@@ -42,10 +42,6 @@ fn init_logging() -> Result<()> {
     Ok(())
 }
 
-fn execute(exe: &str, args: &[&str]) -> Result<std::process::ExitStatus> {
-    Command::new(exe).args(args).status()
-}
-
 #[cfg(not(target_os = "windows"))]
 fn spawn(exe: &str, args: &[&str]) -> Result<Child> {
     Command::new(exe).args(args).spawn()
@@ -174,10 +170,19 @@ fn update() -> Result<bool> {
         );
         std::process::exit(0);
     }
-    trace!("Detected app: {}, tgz: {}", app, tgz);
-    execute(&updater_path.to_string_lossy(), &[&app, &tgz])?;
-    trace!("Close launcher");
-    std::process::exit(0);
+    trace!("Detected\n\t-\tapp: {};\n\t-\ttgz: {}", app, tgz);
+    let child = spawn(&updater_path.to_string_lossy(), &[&app, &tgz]);
+    match child {
+        Ok(_child) => {
+            debug!("Updater is started ({})", updater_path.to_string_lossy());
+            trace!("Close launcher");
+            std::process::exit(0);
+        }
+        Err(e) => {
+            error!("Fail to start updater due error: {}", e);
+        }
+    };
+    Ok(true)
 }
 
 fn main() {
