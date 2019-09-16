@@ -14,7 +14,7 @@ use log::LevelFilter;
 use log4rs::append::file::FileAppender;
 use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
-use std::fs::File;
+use std::fs::{File};
 use std::io::{Error, ErrorKind, Result};
 use std::path::Path;
 use std::path::PathBuf;
@@ -62,32 +62,101 @@ fn extract_args() -> Result<(String, String)> {
         Ok((args[0].to_string(), args[1].to_string()))
     }
 }
+
+fn get_release_files(app: &Path) -> Option<Vec<String>> {
+    let release_file: PathBuf = app.to_path_buf().join(".release");
+    let release_file_path = Path::new(&release_file);
+    if !release_file_path.exists() {
+        error!("Fail to find release file {:?}", release_file_path);
+        return None;
+    }
+    let content: String = match std::fs::read_to_string(&release_file_path) {
+        Err(e) => {
+            error!("Error to read file {:?}: {}", release_file_path, e);
+            return None;
+        },
+        Ok(string) => string,
+    };
+    let entries: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+    Some(entries)
+}
+
+fn remove_entity(entity: &Path) -> Result<()> {
+    if !entity.exists() {
+        return Ok(());
+    }
+    if entity.is_dir() {
+        if let Err(err) = std::fs::remove_dir_all(&entity) {
+            error!("Unable to delete directory {:?}: {}", entity, err);
+            return Err(err);
+        } else {
+            error!("Successfuly removed: {:?}", entity);
+        }
+    } else if entity.is_file() {
+        if let Err(err) = std::fs::remove_file(&entity) {
+            error!("Unable to delete directory {:?}: {}", entity, err);
+            return Err(err);
+        } else {
+            error!("Successfuly removed: {:?}", entity);
+        }
+    }
+    Ok(())
+}
+
 fn remove_application_folder(app: &Path) -> Result<PathBuf> {
-    let to_be_removed = if cfg!(target_os = "macos") {
+    let app_folder = if cfg!(target_os = "macos") {
         app
     } else {
         app.parent().unwrap()
     };
 
-    debug!("Next: this folder will be removed: {:?}", to_be_removed);
-
-    if let Err(err) = std::fs::remove_dir_all(&to_be_removed) {
-        error!("Unable to delete directory {:?}: {}", to_be_removed, err);
-        if cfg!(target_os = "windows") {
-            warn!("Continue process even with previos error.");
-        } else {
-            error!("Cannot continue updating. Process is stopped.");
+    debug!("Next: this folder will be removed: {:?}", app_folder);
+    if cfg!(target_os = "macos") {
+        // Mac doesn't requere any specific actions, because all are in self-compressed folder "chipmunk.app"
+        if let Err(err) = std::fs::remove_dir_all(&app_folder) {
+            error!("Cannot continue updating. Unable to delete directory {:?}: {}", app_folder, err);
             std::process::exit(1);
         }
-    }
-
-    let dest = if cfg!(target_os = "macos") {
-        to_be_removed.parent().unwrap()
+        let dest = app_folder.parent().unwrap();
+        Ok(PathBuf::from(dest))
     } else {
-        to_be_removed
-    };
-    Ok(PathBuf::from(dest))
+        // Try to read release-file
+        match get_release_files(&app_folder) {
+            None => {
+                // File ".release" doesn't exist (for example because it's version < 1.20.14)
+                // or there are some reading error. In any way continue with removing whole folder
+                // DANGEROUS oparation! Should be depricated from 1.3.x
+                if let Err(err) = std::fs::remove_dir_all(&app_folder) {
+                    error!("Unable to delete entry {:?}: {}", app_folder, err);
+                    if cfg!(target_os = "windows") {
+                        warn!("Continue process even with previos error.");
+                    } else {
+                        error!("Cannot continue updating. Process is stopped.");
+                        std::process::exit(1);
+                    }
+                }
+                Ok(PathBuf::from(app_folder))
+            }
+            Some(entries) => {
+                // We have list of release files/folders
+                for entity in entries.iter() {
+                    let path = app_folder.join(entity);
+                    if let Err(err) = remove_entity(&path) {
+                        error!("Unable to delete entry {:?}: {}", path, err);
+                        if cfg!(target_os = "windows") {
+                            warn!("Continue process even with previos error.");
+                        } else {
+                            error!("Cannot continue updating. Process is stopped.");
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                Ok(PathBuf::from(app_folder))
+            }
+        }
+    }
 }
+
 fn unpack(tgz: &Path, dest: &PathBuf) -> Result<()> {
     // Unpack
     info!("File {:?} will be unpacked into {:?}", tgz, dest);
@@ -116,6 +185,7 @@ fn unpack(tgz: &Path, dest: &PathBuf) -> Result<()> {
     );
     Ok(())
 }
+
 fn restart_app(app: &Path, tgz: &Path) -> Result<()> {
     let to_be_started: PathBuf = if cfg!(target_os = "macos") {
         app.to_path_buf().join("Contents/MacOS/chipmunk")
@@ -212,4 +282,59 @@ fn main() {
         Err(e) => error!("restart failed: {}", e),
         Ok(()) => info!("restarted successfully"),
     }
+}
+
+#[cfg(test)]
+mod tests {
+    // Note this useful idiom: importing names from outer (for mod tests) scope.
+    use super::*;
+
+    #[test]
+    fn getting_release_files() {
+        match std::env::current_exe() {
+            Err(e) => {
+                println!("Error {}", e)
+            },
+            Ok(exe_path) => {
+                let relative_path: &str = "application/apps/updater";
+                println!("App is running with {}", exe_path.display());
+                let parts: Vec<&str> = exe_path.to_str().unwrap().split(relative_path).collect();
+                assert_eq!(parts.len(), 2);
+                let test_folder = Path::new(&parts[0]).join(format!("{}/tests", relative_path));
+                println!("Parent folder of path is {}", test_folder.display());
+                match get_release_files(&test_folder) {
+                    None => {
+                        println!("Fail get list");
+                    },
+                    Some(entries) => {
+                        println!("Next etries are read {:?}", entries);
+                        assert_eq!(entries.len(), 4);
+                        assert_eq!(entries, ["file_a", "file_b", "file_c", "folder_a"]);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn remove_files() {
+        match std::env::current_exe() {
+            Err(e) => {
+                println!("Error {}", e)
+            },
+            Ok(exe_path) => {
+                let relative_path: &str = "application/apps/updater";
+                println!("App is running with {}", exe_path.display());
+                let parts: Vec<&str> = exe_path.to_str().unwrap().split(relative_path).collect();
+                assert_eq!(parts.len(), 2);
+                let test_folder = Path::new(&parts[0]).join(format!("{}/tests", relative_path));
+                println!("Parent folder of path is {}", test_folder.display());
+                if let Err(e) = remove_application_folder(&test_folder) {
+                    println!("Error during removing folder: {}", e);
+                }
+            }
+        }
+    }
+
+
 }
