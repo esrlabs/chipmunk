@@ -67,7 +67,7 @@ fn get_release_files(app: &Path) -> Option<Vec<String>> {
     let release_file: PathBuf = app.to_path_buf().join(".release");
     let release_file_path = Path::new(&release_file);
     if !release_file_path.exists() {
-        error!("Fail to find release file {:?}", release_file_path);
+        warn!("Fail to find release file {:?}", release_file_path);
         return None;
     }
     let content: String = match std::fs::read_to_string(&release_file_path) {
@@ -90,14 +90,14 @@ fn remove_entity(entity: &Path) -> Result<()> {
             error!("Unable to delete directory {:?}: {}", entity, err);
             return Err(err);
         } else {
-            error!("Successfuly removed: {:?}", entity);
+            debug!("Successfuly removed folder: {:?}", entity);
         }
     } else if entity.is_file() {
         if let Err(err) = std::fs::remove_file(&entity) {
             error!("Unable to delete directory {:?}: {}", entity, err);
             return Err(err);
         } else {
-            error!("Successfuly removed: {:?}", entity);
+            debug!("Successfuly removed file: {:?}", entity);
         }
     }
     Ok(())
@@ -141,14 +141,18 @@ fn remove_application_folder(app: &Path) -> Result<PathBuf> {
                 // We have list of release files/folders
                 for entity in entries.iter() {
                     let path = app_folder.join(entity);
-                    if let Err(err) = remove_entity(&path) {
-                        error!("Unable to delete entry {:?}: {}", path, err);
-                        if cfg!(target_os = "windows") {
-                            warn!("Continue process even with previos error.");
-                        } else {
-                            error!("Cannot continue updating. Process is stopped.");
-                            std::process::exit(1);
+                    if path.exists() {
+                        if let Err(err) = remove_entity(&path) {
+                            error!("Unable to delete entry {:?}: {}", path, err);
+                            if cfg!(target_os = "windows") {
+                                warn!("Continue process even with previos error.");
+                            } else {
+                                error!("Cannot continue updating. Process is stopped.");
+                                std::process::exit(1);
+                            }
                         }
+                    } else {
+                        warn!("Fail to find file: {:?}.", path);
                     }
                 }
                 Ok(PathBuf::from(app_folder))
