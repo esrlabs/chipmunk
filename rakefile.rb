@@ -535,7 +535,7 @@ task :setlistofreleasefiles do
   end
   destfile = "#{path}/.release"
   FileUtils.rm(destfile) unless !File.exists?(destfile)
-  lines = "";
+  lines = ".release\n";
   Dir.foreach(path) {|entry|
     if entry != "." && entry != ".."
       lines = "#{lines}#{entry}\n"
