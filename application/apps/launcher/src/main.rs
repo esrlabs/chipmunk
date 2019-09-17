@@ -14,12 +14,12 @@ use log::LevelFilter;
 use log4rs::append::file::FileAppender;
 use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
+use regex::Regex;
 use std::io::{Error, ErrorKind, Result};
 use std::path::Path;
 use std::process::Child;
 use std::process::Command;
 use std::time::SystemTime;
-use regex::Regex;
 
 fn init_logging() -> Result<()> {
     let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
@@ -68,6 +68,7 @@ fn get_app_path_str() -> Result<String> {
     if cfg!(target_os = "macos") {
         let re = Regex::new(r"chipmunk\.app.*").unwrap();
         let cropped = re.replace_all(launcher_str, "chipmunk.app").to_string();
+        trace!("cropped: {}", cropped);
         let cropped_path = Path::new(&cropped);
         if !cropped_path.exists() {
             error!("Fail to find application by next path: {:?}", cropped_path);
