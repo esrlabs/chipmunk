@@ -65,7 +65,22 @@ fn extract_args() -> Result<(String, String)> {
 
 const RELEASE_FILE_NAME: &str = ".release";
 
+const RELEASE_FILE_NAME: &str = ".release";
+
 fn get_release_files(app: &Path) -> Option<Vec<String>> {
+    let release_file: PathBuf = app.to_path_buf().join(RELEASE_FILE_NAME);
+    if !release_file.exists() {
+        warn!("Fail to find release file {:?}", release_file);
+        return None;
+    }
+    match std::fs::read_to_string(&release_file) {
+        Err(e) => {
+            error!("Error to read file {:?}: {}", release_file, e);
+            None
+        }
+        Ok(content) => Some(content.lines().map(|s| s.to_string()).collect()),
+    }
+}
     let release_file: PathBuf = app.to_path_buf().join(RELEASE_FILE_NAME);
     if !release_file.exists() {
         warn!("Fail to find release file {:?}", release_file);
@@ -132,7 +147,9 @@ fn remove_application_folder(app: &Path) -> Result<PathBuf> {
             error!("Cannot continue updating. Unable to delete directory {:?}: {}", app_folder, err);
             std::process::exit(1);
         }
-        let dest = app_folder.parent().unwrap();
+        let dest = app_folder
+            .parent()
+            .ok_or_else(|| Error::new(ErrorKind::Other, "parent folder not found"))?;
         Ok(PathBuf::from(dest))
     } else {
         // Try to read release-file
@@ -140,7 +157,7 @@ fn remove_application_folder(app: &Path) -> Result<PathBuf> {
             None => {
                 // File ".release" doesn't exist (for example because it's version < 1.20.14)
                 // or there are some reading error. In any way continue with removing whole folder
-                // DANGEROUS oparation! Should be depricated from 1.3.x
+                // DANGEROUS operation! Should be deprecated from 1.3.x
                 if let Err(err) = std::fs::remove_dir_all(&app_folder) {
                     error!("Unable to delete entry {:?}: {}", app_folder, err);
                     if cfg!(target_os = "windows") {
