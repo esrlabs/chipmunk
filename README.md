@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/esrlabs/chipmunk.svg?branch=master)](https://travis-ci.com/esrlabs/chipmunk)
+
 # Chipmunk Log Analyzer & Viewer
 
 `chipmunk` is a fast logfile viewer that can deal with huge logfiles (>10 GB). It powers a super
