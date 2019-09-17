@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Result;
 use std::fs;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Chunk {
     pub r: (usize, usize),
     pub b: (usize, usize),
@@ -69,7 +69,9 @@ impl ChunkFactory {
                 b: (self.start_of_chunk_byte_index, self.current_byte_index),
             };
             if self.to_stdout {
-                println!("{}", &serde_json::to_string(&chunk).ok()?[..]);
+                if let Ok(c) = serde_json::to_string(&chunk) {
+                    println!("{}", c);
+                }
             }
 
             self.start_of_chunk_byte_index = self.current_byte_index + 1;

@@ -14,8 +14,9 @@ extern crate indexer_base;
 extern crate dlt;
 extern crate merging;
 extern crate chrono;
+extern crate dirs;
 
-use indexer_base::chunks::serialize_chunks;
+use indexer_base::chunks::{serialize_chunks};
 use indexer_base::config::IndexingConfig;
 use indexer_base::error_reporter::*;
 
@@ -34,8 +35,37 @@ use processor::parse::{
     line_matching_format_expression, match_format_string_in_file, read_format_string_options,
     FormatTestOptions, DiscoverItem, TimestampFormatResult,
 };
+use processor::processor::IndexingProgress;
+use std::sync::mpsc::{Sender, Receiver};
+use log::LevelFilter;
+use log4rs::append::file::FileAppender;
+use log4rs::config::{Appender, Config, Root};
+use log4rs::encode::pattern::PatternEncoder;
+use std::io::Result;
 
+fn init_logging() -> Result<()> {
+    let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
+    let log_path = home_dir.join(".logviewer").join("chipmunk.indexer.log");
+    let appender_name = "indexer-root";
+    let logfile = FileAppender::builder()
+        .encoder(Box::new(PatternEncoder::new("{d} - {l}:: {m}\n")))
+        .build(log_path)?;
+
+    let config = Config::builder()
+        .appender(Appender::builder().build(appender_name, Box::new(logfile)))
+        .build(
+            Root::builder()
+                .appender(appender_name)
+                .build(LevelFilter::Trace),
+        )
+        .unwrap();
+
+    log4rs::init_config(config).unwrap();
+
+    Ok(())
+}
 fn main() {
+    init_logging().expect("logging has to be in place");
     let start = Instant::now();
     let matches = App::new("chip")
         .version(crate_version!())
@@ -342,16 +372,22 @@ fn main() {
                 }
             };
 
-            let source_file_size = match f.metadata() {
-                Ok(file_meta) => file_meta.len() as usize,
-                Err(_) => {
-                    report_error("could not find out size of source file");
-                    std::process::exit(2);
-                }
+            let source_file_size = if status_updates {
+                Some(match fs::metadata(file) {
+                    Ok(file_meta) => file_meta.len() as usize,
+                    Err(_) => {
+                        report_error("could not find out size of source file");
+                        std::process::exit(2);
+                    }
+                })
+            } else {
+                None
             };
             let append: bool = matches.is_present("append");
             let stdout: bool = matches.is_present("stdout");
             let timestamps: bool = matches.is_present("timestamp");
+            let (tx, _rx): (Sender<IndexingProgress>, Receiver<IndexingProgress>) =
+                std::sync::mpsc::channel();
 
             match processor::processor::create_index_and_mapping(
                 IndexingConfig {
@@ -360,11 +396,12 @@ fn main() {
                     in_file: f,
                     out_path: &out_path,
                     append,
-                    source_file_size,
                     to_stdout: stdout,
-                    status_updates,
                 },
                 timestamps,
+                source_file_size,
+                Some(tx),
+                None,
             ) {
                 Err(why) => {
                     report_error(format!("couldn't process: {}", why));
@@ -372,14 +409,16 @@ fn main() {
                 }
                 Ok(chunks) => {
                     let _ = serialize_chunks(&chunks, &mapping_out_path);
-                    let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
-                    if status_updates {
-                        duration_report_throughput(
-                            start,
-                            format!("processing ~{} MB", file_size_in_mb.round()),
-                            file_size_in_mb,
-                            "MB".to_string(),
-                        )
+                    if let Some(original_file_size) = source_file_size {
+                        let file_size_in_mb = original_file_size as f64 / 1024.0 / 1024.0;
+                        if status_updates {
+                            duration_report_throughput(
+                                start,
+                                format!("processing ~{} MB", file_size_in_mb.round()),
+                                file_size_in_mb,
+                                "MB".to_string(),
+                            )
+                        }
                     }
                 }
             }
@@ -559,12 +598,16 @@ fn main() {
             };
             let append: bool = matches.is_present("append");
             let stdout: bool = matches.is_present("stdout");
-            let source_file_size = match fs::metadata(file_name) {
-                Ok(file_meta) => file_meta.len() as usize,
-                Err(_) => {
-                    report_error("could not find out size of source file");
-                    std::process::exit(2);
-                }
+            let source_file_size = if status_updates {
+                Some(match fs::metadata(file_name) {
+                    Ok(file_meta) => file_meta.len() as usize,
+                    Err(_) => {
+                        report_error("could not find out size of source file");
+                        std::process::exit(2);
+                    }
+                })
+            } else {
+                None
             };
             let fallback_out = file_name.to_string() + ".out";
             let out_path = path::PathBuf::from(
@@ -591,11 +634,11 @@ fn main() {
                     in_file: f,
                     out_path: &out_path,
                     append,
-                    source_file_size,
                     to_stdout: stdout,
-                    status_updates,
                 },
+                source_file_size,
                 filter_conf,
+                None,
                 // dlt::filtering::DltFilterConfig {
                 //     min_log_level: verbosity_log_level,
                 //     components: None,
@@ -607,8 +650,8 @@ fn main() {
                 }
                 Ok(chunks) => {
                     let _ = serialize_chunks(&chunks, &mapping_out_path);
-                    let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
-                    if status_updates {
+                    if let Some(original_file_size) = source_file_size {
+                        let file_size_in_mb = original_file_size as f64 / 1024.0 / 1024.0;
                         duration_report_throughput(
                             start,
                             format!("processing ~{} MB", file_size_in_mb.round()),

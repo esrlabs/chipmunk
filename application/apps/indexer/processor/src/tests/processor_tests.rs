@@ -26,16 +26,20 @@ mod tests {
         // call our function
         let f = File::open(&test_file_path).unwrap();
         let source_file_size = f.metadata().unwrap().len() as usize;
-        let chunks = create_index_and_mapping(IndexingConfig {
-            tag: tag_name,
-            chunk_size: chunksize,
-            in_file: f,
-            out_path: &out_file_path,
-            append: tmp_file_name.is_some(),
-            source_file_size,
-            to_stdout: false,
-            status_updates: true,
-        }, false)
+        let chunks = create_index_and_mapping(
+            IndexingConfig {
+                tag: tag_name,
+                chunk_size: chunksize,
+                in_file: f,
+                out_path: &out_file_path,
+                append: tmp_file_name.is_some(),
+                to_stdout: false,
+            },
+            false,
+            Some(source_file_size),
+            None,
+            None,
+        )
         .unwrap();
         let out_file_content: String =
             fs::read_to_string(out_file_path).expect("could not read file");
@@ -80,16 +84,21 @@ mod tests {
         let source_file_size = empty_file.metadata().unwrap().len() as usize;
         // let chunks = indexer
         //     .index_file(&empty_file, &out_path, false, source_file_size, false)
-        let chunks = create_index_and_mapping(IndexingConfig {
-            tag: "tag",
-            chunk_size: 1,
-            in_file: empty_file,
-            out_path: &out_path,
-            append: false,
-            source_file_size,
-            to_stdout: false,
-            status_updates: true,
-        }, false)
+
+        let chunks = create_index_and_mapping(
+            IndexingConfig {
+                tag: "tag",
+                chunk_size: 1,
+                in_file: empty_file,
+                out_path: &out_path,
+                append: false,
+                to_stdout: false,
+            },
+            false,
+            Some(source_file_size),
+            None,
+            None,
+        )
         .expect("could not index file");
         assert_eq!(0, chunks.len(), "empty file should produce 0 chunks");
         let out_file_content: String = fs::read_to_string(&out_path).expect("could not read file");
@@ -102,16 +111,20 @@ mod tests {
         // let chunks2 = indexer
         //     .index_file(&nonempty_file, &out_path, true, nonempty_file_size, false)
         //     .expect("could not index file");
-        let chunks2 = create_index_and_mapping(IndexingConfig {
-            tag: "tag",
-            chunk_size: 1,
-            in_file: nonempty_file,
-            out_path: &out_path,
-            append: true,
-            source_file_size,
-            to_stdout: false,
-            status_updates: true,
-        }, false)
+        let chunks2 = create_index_and_mapping(
+            IndexingConfig {
+                tag: "tag",
+                chunk_size: 1,
+                in_file: nonempty_file,
+                out_path: &out_path,
+                append: true,
+                to_stdout: false,
+            },
+            false,
+            Some(source_file_size),
+            None,
+            None,
+        )
         .unwrap();
         let out_file_content: String = fs::read_to_string(out_path).expect("could not read file");
         println!("outfile: {}\nchunks: {:?}", out_file_content, chunks2);
@@ -202,16 +215,20 @@ mod tests {
             let content2 = fs::read_to_string(&out_file_path).expect("could not read file");
             println!("copied content was: {:?}", content2);
         }
-        let chunks = create_index_and_mapping(IndexingConfig {
-            tag: "TAG",
-            chunk_size: 1,
-            in_file,
-            out_path: &out_file_path,
-            append: append_use_case,
-            source_file_size: in_file_size,
-            to_stdout: false,
-            status_updates: true,
-        }, false)
+        let chunks = create_index_and_mapping(
+            IndexingConfig {
+                tag: "TAG",
+                chunk_size: 1,
+                in_file,
+                out_path: &out_file_path,
+                append: append_use_case,
+                to_stdout: false,
+            },
+            false,
+            Some(in_file_size),
+            None,
+            None,
+        )
         .unwrap();
         let out_file_content_bytes = fs::read(out_file_path).expect("could not read file");
         let out_file_content = String::from_utf8_lossy(&out_file_content_bytes[..]);
@@ -225,5 +242,4 @@ mod tests {
         assert_eq!(expected_content.trim_end(), out_file_content.trim_end());
         assert_eq!(true, chunks_fit_together(&chunks), "chunks need to fit");
     }
-
 }

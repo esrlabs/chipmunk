@@ -23,13 +23,9 @@ module OS
     RUBY_ENGINE == 'jruby'
   end
 end
-task :default do
-  puts "no default task"
-  create_changelog
-end
 desc "run tests"
 task :test do
-  sh "cargo test -q"
+  sh "cargo test"
 end
 namespace :bench do
   desc "run dlt benchmarks"
@@ -132,19 +128,19 @@ task :create_release do
     menu.choice(:minor) do
       next_version = get_next_version(:minor)
       puts "create minor version with version #{next_version}"
-      create_and_tag_new_version(next_version)
+      create_new_version(next_version)
       build_the_release()
     end
     menu.choice(:major) do
       next_version = get_next_version(:major)
       puts "create major version with version #{next_version}"
-      create_and_tag_new_version(next_version)
+      create_new_version(next_version)
       build_the_release()
     end
     menu.choice(:patch) do
       next_version = get_next_version(:patch)
       puts "create patch version with version #{next_version}"
-      create_and_tag_new_version(next_version)
+      create_new_version(next_version)
       build_the_release()
     end
     menu.choice(:abort) { cli.say("ok...maybe later") }
@@ -166,19 +162,19 @@ namespace :version do
   task :patch do
     next_version = get_next_version(:patch)
     puts "next_version=#{next_version}"
-    create_and_tag_new_version(next_version)
+    create_new_version(next_version)
   end
   desc 'bump minor level'
   task :minor do
     next_version = get_next_version(:minor)
     puts "next_version=#{next_version}"
-    create_and_tag_new_version(next_version)
+    create_new_version(next_version)
   end
   desc 'bump major level'
   task :major do
     next_version = get_next_version(:major)
     puts "next_version=#{next_version}"
-    create_and_tag_new_version(next_version)
+    create_new_version(next_version)
   end
 end
 
@@ -210,21 +206,11 @@ def update_toml(new_version)
   end
 end
 
-def assert_tag_exists(version)
-  raise "tag #{version} missing" if `git tag -l #{version}`.length == 0
-end
-def create_and_tag_new_version(next_version)
+def create_new_version(next_version)
   sh "cargo test -q"
   current_version = get_current_version
-  assert_tag_exists(current_version)
-  create_changelog(current_version, next_version)
   update_toml(next_version)
   sh "cargo build"
-  sh "git add ."
-  sh "git commit -m \"[](chore): version bump from #{current_version} => #{next_version.to_s}\""
-  sh "git tag #{next_version.to_s}"
-  puts "to undo the last commit and the tag, execute:"
-  puts "git reset --hard HEAD~1 && git tag -d #{next_version.to_s}"
 end
 
 class Version < Array

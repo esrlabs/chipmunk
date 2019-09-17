@@ -9,21 +9,27 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
+
+use crate::parse;
 use failure::{err_msg, Error};
 use indexer_base::chunks::{Chunk, ChunkFactory};
 use indexer_base::config::IndexingConfig;
 use indexer_base::error_reporter::*;
 use indexer_base::utils;
+use parse::detect_timestamp_in_string;
+use std::sync::mpsc::{self, TryRecvError};
 use std::fs;
 use std::io::{BufRead, BufReader, BufWriter, Write};
-use crate::parse;
-use parse::detect_timestamp_in_string;
+use std::time::Instant;
 
 const REPORT_PROGRESS_LINE_BLOCK: usize = 1_000_000;
 
 pub fn create_index_and_mapping(
     config: IndexingConfig,
     parse_timestamps: bool,
+    source_file_size: Option<usize>,
+    update_channel: Option<mpsc::Sender<IndexingProgress>>,
+    shutdown_receiver: Option<mpsc::Receiver<()>>,
 ) -> Result<Vec<Chunk>, Error> {
     let initial_line_nr = match utils::next_line_nr(config.out_path) {
         Some(nr) => nr,
@@ -35,13 +41,31 @@ pub fn create_index_and_mapping(
             std::process::exit(2)
         }
     };
-    index_file(config, initial_line_nr, parse_timestamps)
+    index_file(
+        config,
+        initial_line_nr,
+        parse_timestamps,
+        source_file_size,
+        update_channel,
+        shutdown_receiver,
+    )
+}
+
+#[derive(Debug)]
+pub enum IndexingProgress {
+    GotChunk { chunk: Chunk },
+    Stopped,
+    Finished,
 }
 pub fn index_file(
     config: IndexingConfig,
     initial_line_nr: usize,
     timestamps: bool,
+    source_file_size: Option<usize>,
+    update_channel: Option<mpsc::Sender<IndexingProgress>>,
+    shutdown_receiver: Option<mpsc::Receiver<()>>,
 ) -> Result<Vec<Chunk>, Error> {
+    let start = Instant::now();
     let (out_file, current_out_file_size) =
         utils::get_out_file_and_size(config.append, &config.out_path)?;
 
@@ -55,7 +79,12 @@ pub fn index_file(
 
     let mut buf = vec![];
     let mut processed_bytes = utils::get_processed_bytes(config.append, &config.out_path) as usize;
+    let mut stopped = false;
     while let Ok(len) = reader.read_until(b'\n', &mut buf) {
+        if stopped {
+            info!("we where stopped in indexer",);
+            break;
+        };
         let s = unsafe { std::str::from_utf8_unchecked(&buf) };
         let trimmed_line = s.trim_matches(utils::is_newline);
         let trimmed_len = trimmed_line.len();
@@ -144,38 +173,85 @@ pub fn index_file(
             }
             line_nr += 1;
 
-            if let Some(chunk) = chunk_factory.create_chunk_if_needed(line_nr, additional_bytes) {
-                chunks.push(chunk);
-                buf_writer.flush()?;
-            }
-            if config.status_updates {
+            match chunk_factory.create_chunk_if_needed(
+                line_nr,
+                additional_bytes,
+                // shutdown_receiver.as_ref(),
+            ) {
+                Some(chunk) => {
+                    // check if stop was requested
+                    if let Some(rx) = shutdown_receiver.as_ref() {
+                        match rx.try_recv() {
+                            // Shutdown if we have received a command or if there is
+                            // nothing to send it.
+                            Ok(_) | Err(TryRecvError::Disconnected) => {
+                                info!("shutdown received in indexer",);
+                                stopped = true // stop
+                            }
+                            // No shutdown command, continue
+                            Err(TryRecvError::Empty) => (),
+                        }
+                    };
+                    update_channel.as_ref().map(|c| {
+                        c.send(IndexingProgress::GotChunk {
+                            chunk: chunk.clone(),
+                        })
+                    });
+                    chunks.push(chunk);
+                    buf_writer.flush()?;
+                    false
+                }
+                None => false,
+            };
+
+            if let Some(file_size) = source_file_size {
                 utils::report_progress(
                     line_nr,
                     chunk_factory.get_current_byte_index(),
                     processed_bytes,
-                    config.source_file_size,
+                    file_size,
                     REPORT_PROGRESS_LINE_BLOCK,
                 );
             }
         }
         buf = vec![];
     }
-    buf_writer.flush()?;
-    if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunks.is_empty()) {
-        chunks.push(chunk);
-    }
-    match chunks.last() {
-        Some(last_chunk) => {
-            let last_expected_byte_index =
-                fs::metadata(config.out_path).map(|md| md.len() as usize)?;
-            if last_expected_byte_index != last_chunk.b.1 {
-                return Err(err_msg(format!(
-                    "error in computation! last byte in chunks is {} but should be {}",
-                    last_chunk.b.1, last_expected_byte_index
-                )));
-            }
+    if stopped {
+        if let Some(tx) = update_channel {
+            debug!("sending IndexingProgress::Stopped");
+            tx.send(IndexingProgress::Stopped)?;
         }
-        None => report_warning("output was empty"),
+        Ok(chunks)
+    } else {
+        buf_writer.flush()?;
+        if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunks.is_empty()) {
+            update_channel.as_ref().map(|c| {
+                c.send(IndexingProgress::GotChunk {
+                    chunk: chunk.clone(),
+                })
+            });
+            chunks.push(chunk);
+        }
+        match chunks.last() {
+            Some(last_chunk) => {
+                let last_expected_byte_index =
+                    fs::metadata(config.out_path).map(|md| md.len() as usize)?;
+                if last_expected_byte_index != last_chunk.b.1 {
+                    return Err(err_msg(format!(
+                        "error in computation! last byte in chunks is {} but should be {}",
+                        last_chunk.b.1, last_expected_byte_index
+                    )));
+                }
+            }
+            None => report_warning("output was empty"),
+        }
+        let elapsed = start.elapsed();
+        let ms = elapsed.as_millis();
+        info!("created {} chunks in {} ms", chunks.len(), ms);
+        if let Some(tx) = update_channel {
+            trace!("sending IndexingProgress::Finished");
+            tx.send(IndexingProgress::Finished)?;
+        }
+        Ok(chunks)
     }
-    Ok(chunks)
 }

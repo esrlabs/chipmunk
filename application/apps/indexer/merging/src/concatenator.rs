@@ -9,7 +9,7 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
-use indexer_base::chunks::ChunkFactory;
+use indexer_base::chunks::{ChunkFactory};
 use indexer_base::utils;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -119,6 +119,7 @@ impl Concatenator {
                     true,
                 )?;
                 line_nr += 1;
+
                 if let Some(chunk) = chunk_factory.create_chunk_if_needed(
                     line_nr, // TODO avoid passing in this line...error prone
                     additional_bytes,
@@ -126,6 +127,7 @@ impl Concatenator {
                     chunks.push(chunk);
                     buf_writer.flush()?;
                 }
+
                 if report_status {
                     utils::report_progress(
                         line_nr,

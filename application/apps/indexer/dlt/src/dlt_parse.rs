@@ -17,6 +17,7 @@ use indexer_base::config::IndexingConfig;
 use indexer_base::error_reporter::*;
 use indexer_base::utils;
 use serde::Serialize;
+use std::sync::mpsc;
 
 use buf_redux::policy::MinBuffered;
 use buf_redux::BufReader as ReduxReader;
@@ -705,7 +706,9 @@ fn read_one_dlt_message<T: Read>(
 }
 pub fn create_index_and_mapping_dlt(
     config: IndexingConfig,
+    source_file_size: Option<usize>,
     filter_conf: Option<filtering::DltFilterConfig>,
+    shutdown_receiver: Option<mpsc::Receiver<()>>,
 ) -> Result<Vec<Chunk>, Error> {
     let initial_line_nr = match utils::next_line_nr(config.out_path) {
         Some(nr) => nr,
@@ -717,12 +720,22 @@ pub fn create_index_and_mapping_dlt(
             std::process::exit(2)
         }
     };
-    index_dlt_file(config, filter_conf, initial_line_nr)
+    index_dlt_file(
+        config,
+        filter_conf,
+        initial_line_nr,
+        source_file_size,
+        shutdown_receiver,
+    )
 }
+/// create index for a dlt file
+/// source_file_size: if progress updates should be made, add this value
 pub fn index_dlt_file(
     config: IndexingConfig,
     dlt_filter: Option<filtering::DltFilterConfig>,
     initial_line_nr: usize,
+    source_file_size: Option<usize>,
+    shutdown_receiver: Option<mpsc::Receiver<()>>,
 ) -> Result<Vec<Chunk>, Error> {
     let (out_file, current_out_file_size) =
         utils::get_out_file_and_size(config.append, &config.out_path)?;
@@ -757,12 +770,12 @@ pub fn index_dlt_file(
                     chunks.push(chunk);
                     buf_writer.flush()?;
                 }
-                if config.status_updates {
+                if let Some(file_size) = source_file_size {
                     utils::report_progress(
                         processed_lines,
                         chunk_factory.get_current_byte_index(),
                         processed_bytes,
-                        config.source_file_size,
+                        file_size,
                         REPORT_PROGRESS_LINE_BLOCK,
                     );
                 }
@@ -771,12 +784,12 @@ pub fn index_dlt_file(
                 reader.consume(consumed);
                 processed_bytes += consumed;
                 processed_lines += 1;
-                if config.status_updates {
+                if let Some(file_size) = source_file_size {
                     utils::report_progress(
                         processed_lines,
                         chunk_factory.get_current_byte_index(),
                         processed_bytes,
-                        config.source_file_size,
+                        file_size,
                         REPORT_PROGRESS_LINE_BLOCK,
                     );
                 }

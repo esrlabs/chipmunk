@@ -585,7 +585,7 @@ pub fn extract_posix_timestamp(
                 .parse()
                 .map(|ys: i32| ys + 2000i32)
                 .ok(),
-            None => year.or(Some(Utc::now().year())),
+            None => year.or_else(|| Some(Utc::now().year())),
         },
     };
     match (the_year, offset_result) {

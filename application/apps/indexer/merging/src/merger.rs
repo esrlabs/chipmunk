@@ -10,10 +10,10 @@
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
 use indexer_base::chunks::ChunkFactory;
-use indexer_base::timedline::*;
 use indexer_base::error_reporter::*;
+use indexer_base::timedline::*;
 use indexer_base::utils;
-use processor::parse::{lookup_regex_for_format_str, line_to_timed_line};
+use processor::parse::{line_to_timed_line, lookup_regex_for_format_str};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::BinaryHeap;
@@ -248,7 +248,7 @@ impl Merger {
                 line_nr, // TODO avoid passing in this line...error prone
                 additional_bytes,
             ) {
-                chunks.push(chunk);
+                chunks.push(chunk)
             }
         }
         buf_writer.flush()?;
