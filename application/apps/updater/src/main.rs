@@ -63,7 +63,22 @@ fn extract_args() -> Result<(String, String)> {
     }
 }
 
+const RELEASE_FILE_NAME: &str = ".release";
+
 fn get_release_files(app: &Path) -> Option<Vec<String>> {
+    let release_file: PathBuf = app.to_path_buf().join(RELEASE_FILE_NAME);
+    if !release_file.exists() {
+        warn!("Fail to find release file {:?}", release_file);
+        return None;
+    }
+    match std::fs::read_to_string(&release_file) {
+        Err(e) => {
+            error!("Error to read file {:?}: {}", release_file, e);
+            None
+        }
+        Ok(content) => Some(content.lines().map(|s| s.to_string()).collect()),
+    }
+}
     let release_file: PathBuf = app.to_path_buf().join(".release");
     let release_file_path = Path::new(&release_file);
     if !release_file_path.exists() {
