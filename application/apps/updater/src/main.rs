@@ -14,13 +14,15 @@ use log::LevelFilter;
 use log4rs::append::file::FileAppender;
 use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
-use std::fs::{File};
+use std::fs::File;
 use std::io::{Error, ErrorKind, Result};
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::{Child, Command};
 use std::{thread, time};
 use tar::Archive;
+
+const RELEASE_FILE_NAME: &str = ".release";
 
 fn init_logging() {
     let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
@@ -64,21 +66,18 @@ fn extract_args() -> Result<(String, String)> {
 }
 
 fn get_release_files(app: &Path) -> Option<Vec<String>> {
-    let release_file: PathBuf = app.to_path_buf().join(".release");
-    let release_file_path = Path::new(&release_file);
-    if !release_file_path.exists() {
-        warn!("Fail to find release file {:?}", release_file_path);
+    let release_file: PathBuf = app.to_path_buf().join(RELEASE_FILE_NAME);
+    if !release_file.exists() {
+        warn!("Fail to find release file {:?}", release_file);
         return None;
     }
-    let content: String = match std::fs::read_to_string(&release_file_path) {
+    match std::fs::read_to_string(&release_file) {
         Err(e) => {
-            error!("Error to read file {:?}: {}", release_file_path, e);
-            return None;
-        },
-        Ok(string) => string,
-    };
-    let entries: Vec<String> = content.lines().map(|s| s.to_string()).collect();
-    Some(entries)
+            error!("Error to read file {:?}: {}", release_file, e);
+            None
+        }
+        Ok(content) => Some(content.lines().map(|s| s.to_string()).collect()),
+    }
 }
 
 fn remove_entity(entity: &Path) -> Result<()> {
@@ -114,10 +113,15 @@ fn remove_application_folder(app: &Path) -> Result<PathBuf> {
     if cfg!(target_os = "macos") {
         // Mac doesn't requere any specific actions, because all are in self-compressed folder "chipmunk.app"
         if let Err(err) = std::fs::remove_dir_all(&app_folder) {
-            error!("Cannot continue updating. Unable to delete directory {:?}: {}", app_folder, err);
+            error!(
+                "Cannot continue updating. Unable to delete directory {:?}: {}",
+                app_folder, err
+            );
             std::process::exit(1);
         }
-        let dest = app_folder.parent().unwrap();
+        let dest = app_folder
+            .parent()
+            .ok_or_else(|| Error::new(ErrorKind::Other, "parent folder not found"))?;
         Ok(PathBuf::from(dest))
     } else {
         // Try to read release-file
@@ -125,7 +129,7 @@ fn remove_application_folder(app: &Path) -> Result<PathBuf> {
             None => {
                 // File ".release" doesn't exist (for example because it's version < 1.20.14)
                 // or there are some reading error. In any way continue with removing whole folder
-                // DANGEROUS oparation! Should be depricated from 1.3.x
+                // DANGEROUS oparation! Should be deprecated from 1.3.x
                 if let Err(err) = std::fs::remove_dir_all(&app_folder) {
                     error!("Unable to delete entry {:?}: {}", app_folder, err);
                     if cfg!(target_os = "windows") {
@@ -291,9 +295,7 @@ mod tests {
     #[test]
     fn getting_release_files() {
         match std::env::current_exe() {
-            Err(e) => {
-                println!("Error {}", e)
-            },
+            Err(e) => println!("Error {}", e),
             Ok(exe_path) => {
                 let relative_path: &str = "application/apps/updater";
                 println!("App is running with {}", exe_path.display());
@@ -304,7 +306,7 @@ mod tests {
                 match get_release_files(&test_folder) {
                     None => {
                         println!("Fail get list");
-                    },
+                    }
                     Some(entries) => {
                         println!("Next etries are read {:?}", entries);
                         assert_eq!(entries.len(), 4);
@@ -318,9 +320,7 @@ mod tests {
     #[test]
     fn remove_files() {
         match std::env::current_exe() {
-            Err(e) => {
-                println!("Error {}", e)
-            },
+            Err(e) => println!("Error {}", e),
             Ok(exe_path) => {
                 let relative_path: &str = "application/apps/updater";
                 println!("App is running with {}", exe_path.display());
@@ -334,6 +334,4 @@ mod tests {
             }
         }
     }
-
-
 }
