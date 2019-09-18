@@ -141,6 +141,18 @@ class ServiceStreams implements IService  {
         return this._subjects;
     }
 
+    public addStream(): Promise<string> {
+        return new Promise((resolve, reject) => {
+            this._createStream(Tools.guid()).then((info: IStreamInfo) => {
+                resolve(info.guid);
+                // TODO: client emit
+            }).catch((error: Error) => {
+                this._logger.error(`Fail to create new stream (from backend) due error: ${error.message}`);
+                reject(error);
+            });
+        });
+    }
+
     public writeTo(chunk: Buffer, sourceId: number, streamId?: string): Promise<void> {
         return new Promise((resolve, reject) => {
             // Get stream id
@@ -470,7 +482,6 @@ class ServiceStreams implements IService  {
                 error: errMsg,
             }));
             this._logger.error(errMsg);
-
         });
     }
 

@@ -181,6 +181,12 @@ export { IDLTStatsResponse, DLTStatsResponse, IDLTStats, IDLTStatsRecord };
 import { UpdateRequest } from './update.request';
 export { UpdateRequest };
 
+import { RenderSessionAddRequest } from './render.session.add.request';
+export { RenderSessionAddRequest };
+
+import { RenderSessionAddResponse, IRenderSessionAddResponse } from './render.session.add.response';
+export { RenderSessionAddResponse, IRenderSessionAddResponse };
+
 // Common type for expected message implementation
 export type TMessage =  HostState |
                         HostStateHistory |
@@ -240,7 +246,9 @@ export type TMessage =  HostState |
                         HotkeyResume |
                         DLTStatsRequest |
                         DLTStatsResponse |
-                        UpdateRequest;
+                        UpdateRequest |
+                        RenderSessionAddRequest |
+                        RenderSessionAddResponse;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -321,4 +329,6 @@ export const Map = {
 
     [UpdateRequest.signature                ]: UpdateRequest,
 
+    [RenderSessionAddRequest.signature      ]: RenderSessionAddRequest,
+    [RenderSessionAddResponse.signature     ]: RenderSessionAddResponse,
 };

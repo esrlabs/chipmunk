@@ -11,6 +11,7 @@ import ServicePaths, { getHomeFolder } from './services/service.paths';
 import ServicePlugins from './services/service.plugins';
 import ServiceStreams from './services/service.streams';
 import ServiceSettings from './services/service.settings';
+import ServiceStorage from './services/service.storage';
 import ServiceWindowState from './services/service.window.state';
 import ServiceElectronState from './services/service.electron.state';
 import ServiceProduction from './services/service.production';
@@ -34,7 +35,7 @@ const InitializeStages = [
     // Stage #3
     [   ServicePackage ],
     // Stage #4
-    [   ServiceSettings, ServiceWindowState ],
+    [   ServiceSettings, ServiceWindowState, ServiceStorage ],
     // Stage #5. Init electron. Prepare browser window
     [   ServiceElectron ],
     // Stage #6. Init services and helpers

@@ -2,7 +2,7 @@
 // tslint:disable:ban-types
 
 import * as uuid from 'uuid';
-import { app, remote } from 'electron';
+import { app } from 'electron';
 import { Subscription } from '../tools/index';
 import { THandler } from '../tools/types.common';
 import { IService } from '../interfaces/interface.service';
@@ -96,6 +96,13 @@ class ServiceElectron implements IService {
         this._ipc.send(message, sequence).catch((sendingError: Error) => {
             this._logger.error(`Fail redirect message by token ${message.token} due error: ${sendingError.message}`);
         });
+    }
+
+    public updateMenu() {
+        if (this._controllerElectronMenu === undefined) {
+            return;
+        }
+        this._controllerElectronMenu.rebuild();
     }
 
     public quit(code = 0) {

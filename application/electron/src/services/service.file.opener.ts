@@ -1,5 +1,6 @@
 import ServiceElectron, { IPCMessages } from './service.electron';
-import ServiceStreams from '../services/service.streams';
+import ServiceStreams, { IStreamInfo } from '../services/service.streams';
+import ServiceStorage, { IStorageScheme } from '../services/service.storage';
 import ServiceStreamSource from '../services/service.stream.sources';
 import ServiceHotkeys from '../services/service.hotkeys';
 import { getDefaultFileParser, AFileParser, getParserForFile } from '../controllers/files.parsers/index';
@@ -14,6 +15,7 @@ import * as path from 'path';
 import { Subscription } from '../tools/index';
 import { IService } from '../interfaces/interface.service';
 
+const MAX_NUMBER_OF_RECENT_FILES = 50;
 /**
  * @class ServiceFileOpener
  * @description Opens files dropped on render
@@ -79,6 +81,7 @@ class ServiceFileOpener implements IService {
                             // Pipe file. No direct read/write method
                             this._pipeSource(file, session, detectedParser, options).then(() => {
                                 ServiceStreams.removePipeSession(pipeSessionId);
+                                this._saveAsRecentFile(file, stats.size);
                                 resolve();
                             }).catch((pipeError: Error) => {
                                 ServiceStreams.removePipeSession(pipeSessionId);
@@ -92,6 +95,7 @@ class ServiceFileOpener implements IService {
                                 ServiceStreams.removePipeSession(pipeSessionId);
                                 ServiceStreams.reattachSessionFileHandle(session);
                                 (detectedParser as AFileParser).destroy();
+                                this._saveAsRecentFile(file, stats.size);
                                 resolve();
                             }).catch((pipeError: Error) => {
                                 ServiceStreams.removePipeSession(pipeSessionId);
@@ -108,6 +112,34 @@ class ServiceFileOpener implements IService {
                 });
             });
         });
+    }
+
+    public openAsNew(file: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            ServiceElectron.IPC.request(new IPCMessages.RenderSessionAddRequest(), IPCMessages.RenderSessionAddResponse).then((response: IPCMessages.RenderSessionAddResponse) => {
+                if (response.error !== undefined) {
+                    this._logger.warn(`Fail to add new session for file "${file}" due error: ${response.error}`);
+                    return reject(new Error(response.error));
+                }
+                this.open(file, response.session).then(() => {
+                    resolve();
+                }).catch((openFileErr: Error) => {
+                    this._logger.warn(`Fail to open file "${file}" due error: ${openFileErr.message}`);
+                    reject(openFileErr);
+                });
+            }).catch((addSessionErr: Error) => {
+                this._logger.warn(`Fail to add new session for file "${file}" due error: ${addSessionErr.message}`);
+                reject(addSessionErr);
+            });
+
+        });
+    }
+
+    public clearRecent() {
+        ServiceStorage.get().set({
+            recentFiles: [],
+        });
+        ServiceElectron.updateMenu();
     }
 
     private _onFileOpenRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
@@ -209,6 +241,25 @@ class ServiceFileOpener implements IService {
 
     private _hotkey_openDltFile() {
         this._openFile(new FileParserDlt());
+    }
+
+    private _saveAsRecentFile(file: string, size: number) {
+        const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
+        const files: IStorageScheme.IRecentFile[] = stored.recentFiles.filter((fileInfo: IStorageScheme.IRecentFile) => {
+            return fileInfo.file !== file;
+        });
+        if (files.length > MAX_NUMBER_OF_RECENT_FILES) {
+            files.splice(files.length - 1, 1);
+        }
+        files.unshift({
+            file: file,
+            timestamp: Date.now(),
+            size: size,
+        });
+        ServiceStorage.get().set({
+            recentFiles: files,
+        });
+        ServiceElectron.updateMenu();
     }
 
 }

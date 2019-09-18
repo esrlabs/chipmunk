@@ -3,6 +3,7 @@ import FileOpenerService, { IFile } from '../../../services/service.file.opener'
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 import { Subscription } from 'rxjs';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
+import * as Toolkit from 'logviewer.client.toolkit';
 
 @Component({
     selector: 'app-layout-area-no-tabs-content',
@@ -14,6 +15,7 @@ export class LayoutPrimiryAreaNoTabsComponent implements AfterViewInit, OnDestro
 
     private _dragdrop: ControllerComponentsDragDropFiles | undefined;
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
+    private _logger: Toolkit.Logger = new Toolkit.Logger('LayoutPrimiryAreaNoTabsComponent');
 
     constructor(private _cdRef: ChangeDetectorRef, private _vcRef: ViewContainerRef) {
 
@@ -31,8 +33,11 @@ export class LayoutPrimiryAreaNoTabsComponent implements AfterViewInit, OnDestro
     }
 
     private _onFilesDropped(files: IFile[]) {
-        TabsSessionsService.add();
-        FileOpenerService.open(files);
+        TabsSessionsService.add().then(() => {
+            FileOpenerService.open(files);
+        }).catch((error: Error) => {
+            this._logger.error(`Fail to open new tab due error: ${error.message}`);
+        });
     }
 
 }

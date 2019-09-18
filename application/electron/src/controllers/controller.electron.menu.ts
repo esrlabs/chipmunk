@@ -1,6 +1,10 @@
 import { app, Menu } from 'electron';
 import { FileParsers } from './files.parsers/index';
 import FunctionOpenLocalFile from './functions/function.file.local.open';
+import ServiceStorage, { IStorageScheme } from '../services/service.storage';
+import ServiceFileOpener from '../services/service.file.opener';
+import * as os from 'os';
+import Logger from '../tools/env.logger';
 
 const MENU_TEMPLATE = [
     {
@@ -47,15 +51,48 @@ const MENU_TEMPLATE = [
 export default class ControllerElectronMenu {
 
     private _menu: any;
+    private _logger: Logger = new Logger('ControllerElectronMenu');
 
     constructor() {
         this._create();
     }
 
+    public rebuild() {
+        this._create();
+    }
+
+    private _getTemplate(items?: any[]) {
+        return (items === undefined ? MENU_TEMPLATE : items).map((item) => {
+            const _item = Object.assign({}, item);
+            if (_item.submenu instanceof Array) {
+                _item.submenu = this._getTemplate(_item.submenu);
+            }
+            return _item;
+        });
+    }
+
     private _create() {
-        const template: any = MENU_TEMPLATE;
+        const template: any = this._getTemplate();
         // Add files submenu
         template[0].submenu.push(...this._getFilesLocalSubmenu());
+        // Add recent files (if it exists)
+        if (ServiceStorage.get().get().recentFiles.length > 0) {
+            template[0].submenu.push({ type: 'separator' });
+            template[0].submenu.push({
+                label: 'Open Recent',
+                submenu: [
+                    ...this._getRecentFiles(),
+                    { type: 'separator' },
+                    {
+                        label: 'Clear',
+                        click: () => {
+                            ServiceFileOpener.clearRecent();
+                        },
+                    },
+                ],
+            });
+
+        }
         // Add platform related items
         if (process.platform === 'darwin') {
             template.unshift({
@@ -105,5 +142,19 @@ export default class ControllerElectronMenu {
             };
         });
         return items;
+    }
+
+    private _getRecentFiles(): Array<{ label: string, click: () => any }> {
+        const home: string = os.homedir();
+        return ServiceStorage.get().get().recentFiles.map((file: IStorageScheme.IRecentFile) => {
+            return {
+                label: `${(file.size / 1024 / 1024).toFixed(2)}Mb: ${file.file.replace(home, '~')}`,
+                click: () => {
+                    ServiceFileOpener.openAsNew(file.file).catch((error: Error) => {
+                        this._logger.warn(`Fail to open file "${file.file}" due error: ${error.message}`);
+                    });
+                },
+            };
+        });
     }
 }
