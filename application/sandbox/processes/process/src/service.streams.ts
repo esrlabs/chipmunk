@@ -3,6 +3,7 @@ import PluginIPCService from 'logviewer.plugin.ipc';
 import Fork, { IForkSettings } from './process.fork';
 import * as EnvModule from './process.env';
 import { EventEmitter } from 'events';
+import * as os from 'os';
 
 export interface IStreamInfo {
     fork: Fork | undefined;
@@ -109,10 +110,10 @@ class StreamsService extends EventEmitter {
             console.log(`Detected default shell: ${userShell}`);
             EnvModule.getOSEnvVars(userShell).then((env: EnvModule.TEnvVars) => {
                 //Apply default terminal color scheme
-                this._createStream(streamId, EnvModule.getHomePath(), this._getInitialOSEnv(env), userShell);
+                this._createStream(streamId, os.homedir(), this._getInitialOSEnv(env), userShell);
             }).catch((error: Error) => {
                 this._logger.warn(`Failed to get OS env vars for stream ${streamId} due to error: ${error.message}. Default node-values will be used .`);
-                this._createStream(streamId, EnvModule.getHomePath(), this._getInitialOSEnv(Object.assign({}, process.env) as EnvModule.TEnvVars), userShell);
+                this._createStream(streamId, os.homedir(), this._getInitialOSEnv(Object.assign({}, process.env) as EnvModule.TEnvVars), userShell);
             });
         }).catch((gettingShellErr: Error) => {
             this._logger.env(`Failed to create stream "${streamId}" due to error: ${gettingShellErr.message}.`)
