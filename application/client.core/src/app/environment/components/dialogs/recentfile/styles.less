@@ -1,0 +1,87 @@
+@import '../../../theme/scheme.less';
+
+:host {
+    position: relative;
+    display: block;
+    padding: 0;
+    margin: 0;
+    & div.files {
+        position: relative;
+        display: block;
+        padding: 0;
+        margin: 0;
+        border-top: 1px dotted @scheme-color-3;
+        border-bottom: 1px dotted @scheme-color-3;
+        box-shadow: 0 17px 1rem rgba(0,0,0,0.4) inset, 0 0 1rem rgba(0,0,0,0.4) inset;
+        overflow-x: hidden;
+        overflow-y: auto;
+        max-height: 30rem;
+        min-height: 5rem;
+        table {
+            position: relative;
+            padding: 0;
+            margin: 0;
+            border-collapse: collapse;
+            width: 100%;
+            tr.file-row {
+                white-space: nowrap;
+                th {
+                    position: sticky;
+                    top: 0;
+                    text-align: left;
+                    background: @scheme-color-5;
+                    padding-left: 1rem;
+                    z-index: 1;
+                    font-weight: 600;
+                    & span.sorted {
+                        position: absolute;
+                        top:4px;
+                        left:3px;
+                        font-size: 10px;
+                        color: scheme-color-0;
+                        transition: transform 250ms ease-in-out;
+                        &.revert{
+                            transform: rotateX(180deg);
+                        }
+                    }
+                }
+                &:first-child{
+                    position: relative;
+                    width: 100%;
+                }
+                td {
+                    width: auto;
+                    padding: 0.15rem 0.5rem 0.1rem 0.5rem;
+                    font-size: 0.7rem;
+                    white-space: nowrap;
+                    border-right: 1px dotted @scheme-color-4;
+                    line-height: 15px;
+                    &:nth-child(1) {
+                        width: 100%;
+                        padding-left: 0;
+                        max-width: 12rem;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        direction: rtl;
+                    }
+                    &:nth-child(4),
+                    &:nth-child(5) {
+                        border-right: none;
+                    }
+                }
+                &.selected {
+                    & td{
+                        background: @scheme-color-3;
+                        color: @scheme-color-0;
+                    }
+                }
+                &:hover{
+                    & td{
+                        background: @scheme-color-4;
+                        color: @scheme-color-0;
+                    }
+                }
+            }
+        }
+    }
+}

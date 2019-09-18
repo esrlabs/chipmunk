@@ -1,5 +1,6 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { AreaState } from '../../state';
+import { DialogsRecentFilesActionComponent } from '../../../components/dialogs/recentfile/component';
+import PopupsService from '../../../services/standalone/service.popups';
 
 @Component({
     selector: 'app-layout-area-primary-controls',
@@ -31,6 +32,31 @@ export class LayoutPrimiryAreaControlsComponent implements AfterViewInit, OnDest
         }
         this.onNewTab();
         return false;
+    }
+
+    public _ng_onRecent(event: MouseEvent) {
+        const popupId: string = PopupsService.add({
+            caption: `Open Recent Files`,
+            component: {
+                factory: DialogsRecentFilesActionComponent,
+                inputs: {
+                    close: () => {
+                        PopupsService.remove(popupId);
+                    }
+                }
+            },
+            buttons: [
+                {
+                    caption: 'Cancel',
+                    handler: () => {
+                        PopupsService.remove(popupId);
+                    }
+                },
+            ],
+            options: {
+                width: 40
+            }
+        });
     }
 
 }

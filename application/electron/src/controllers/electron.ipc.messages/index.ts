@@ -118,6 +118,12 @@ export { IConcatFilesRequest, ConcatFilesRequest };
 import { IConcatFilesResponse, ConcatFilesResponse } from './concat.files.response';
 export { IConcatFilesResponse, ConcatFilesResponse };
 
+import { FilesRecentRequest } from './files.recent.request';
+export { FilesRecentRequest };
+
+import { IFilesRecentResponse, FilesRecentResponse, IRecentFileInfo } from './files.recent.response';
+export { IFilesRecentResponse, FilesRecentResponse, IRecentFileInfo };
+
 import { IMergeFilesRequest, MergeFilesRequest } from './merge.files.request';
 export { IMergeFilesRequest, MergeFilesRequest };
 
@@ -222,6 +228,8 @@ export type TMessage =  HostState |
                         FileOpenResponse |
                         FilesSearchRequest |
                         FilesSearchResponse |
+                        FilesRecentRequest |
+                        FilesRecentResponse |
                         FileInfoRequest |
                         FileInfoResponse |
                         ConcatFilesRequest |
@@ -296,6 +304,8 @@ export const Map = {
     [FileOpenResponse.signature             ]: FileOpenResponse,
     [FilesSearchRequest.signature           ]: FilesSearchRequest,
     [FilesSearchResponse.signature          ]: FilesSearchResponse,
+    [FilesRecentRequest.signature           ]: FilesRecentRequest,
+    [FilesRecentResponse.signature          ]: FilesRecentResponse,
     [FileInfoRequest.signature              ]: FileInfoRequest,
     [FileInfoResponse.signature             ]: FileInfoResponse,
 

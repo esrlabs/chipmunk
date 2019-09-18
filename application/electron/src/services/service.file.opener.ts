@@ -15,7 +15,7 @@ import * as path from 'path';
 import { Subscription } from '../tools/index';
 import { IService } from '../interfaces/interface.service';
 
-const MAX_NUMBER_OF_RECENT_FILES = 50;
+const MAX_NUMBER_OF_RECENT_FILES = 150;
 /**
  * @class ServiceFileOpener
  * @description Opens files dropped on render
@@ -34,11 +34,28 @@ class ServiceFileOpener implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
-            ServiceElectron.IPC.subscribe(IPCMessages.FileOpenRequest, this._onFileOpenRequest.bind(this)).then((subscription: Subscription) => {
-                this._subscription.FileOpenRequest = subscription;
+            Promise.all([
+                new Promise((res, rej) => {
+                    ServiceElectron.IPC.subscribe(IPCMessages.FileOpenRequest, this._ipc_FileOpenRequest.bind(this)).then((subscription: Subscription) => {
+                        this._subscription.FileOpenRequest = subscription;
+                        res();
+                    }).catch((error: Error) => {
+                        this._logger.error(`Fail to init module due error: ${error.message}`);
+                        rej(error);
+                    });
+                }),
+                new Promise((res, rej) => {
+                    ServiceElectron.IPC.subscribe(IPCMessages.FilesRecentRequest, this._ipc_FilesRecentRequest.bind(this)).then((subscription: Subscription) => {
+                        this._subscription.FilesRecentRequest = subscription;
+                        res();
+                    }).catch((error: Error) => {
+                        this._logger.error(`Fail to init module due error: ${error.message}`);
+                        rej(error);
+                    });
+                }),
+            ]).then(() => {
                 resolve();
             }).catch((error: Error) => {
-                this._logger.error(`Fail to init module due error: ${error.message}`);
                 reject(error);
             });
             this._subscription.openTextFile = ServiceHotkeys.getSubject().openTextFile.subscribe(this._hotkey_openTextFile.bind(this));
@@ -142,7 +159,7 @@ class ServiceFileOpener implements IService {
         ServiceElectron.updateMenu();
     }
 
-    private _onFileOpenRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+    private _ipc_FileOpenRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.FileReadRequest = request as IPCMessages.FileReadRequest;
         this.open(req.file, req.session).then(() => {
             response(new IPCMessages.FileOpenResponse({}));
@@ -151,6 +168,13 @@ class ServiceFileOpener implements IService {
                 error: openError.message,
             }));
         });
+    }
+
+    private _ipc_FilesRecentRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
+        response(new IPCMessages.FilesRecentResponse({
+            files: stored.recentFiles,
+        }));
     }
 
     private _getOptions(fullFileName: string, fileName: string, parser: AFileParser, size: number ): Promise<any> {

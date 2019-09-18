@@ -6,6 +6,8 @@ import ServiceFileOpener from '../services/service.file.opener';
 import * as os from 'os';
 import Logger from '../tools/env.logger';
 
+const MAX_NUMBER_OF_RECENT_FILES = 20;
+
 const MENU_TEMPLATE = [
     {
         label: 'File',
@@ -146,7 +148,7 @@ export default class ControllerElectronMenu {
 
     private _getRecentFiles(): Array<{ label: string, click: () => any }> {
         const home: string = os.homedir();
-        return ServiceStorage.get().get().recentFiles.map((file: IStorageScheme.IRecentFile) => {
+        return ServiceStorage.get().get().recentFiles.slice(0, MAX_NUMBER_OF_RECENT_FILES).map((file: IStorageScheme.IRecentFile) => {
             return {
                 label: `${(file.size / 1024 / 1024).toFixed(2)}Mb: ${file.file.replace(home, '~')}`,
                 click: () => {
