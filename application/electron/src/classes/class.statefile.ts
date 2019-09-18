@@ -69,9 +69,7 @@ export class StateFile<TState> implements IService {
 
     public set(state: any) {
         this._state = Objects.merge(state, this._state);
-        this._write().then(() => {
-            this._logger.verbose(`Settings are updated`);
-        }).catch((error: Error) => {
+        this._write().catch((error: Error) => {
             this._logger.error(`Fail to write state due error: ${error.message}`);
         });
     }

@@ -48,6 +48,7 @@ export class TabsSessionsService implements IService {
             this._subscriptions.onSessionTabClosed = this._tabsService.getObservable().removed.subscribe(this._onSessionTabClosed.bind(this));
             this._subscriptions.onNewTab = HotkeysService.getObservable().newTab.subscribe(this._onNewTab.bind(this));
             this._subscriptions.onCloseTab = HotkeysService.getObservable().closeTab.subscribe(this._onCloseTab.bind(this));
+            this._subscriptions.RenderSessionAddRequest = ElectronIpcService.subscribe(IPCMessages.RenderSessionAddRequest, this._ipc_RenderSessionAddRequest.bind(this));
             resolve();
         });
     }
@@ -70,48 +71,51 @@ export class TabsSessionsService implements IService {
         this._defaults.sidebarApps = apps;
     }
 
-    public add(): void {
-        const guid: string = Toolkit.guid();
-        const session = new ControllerSessionTab({
-            guid: guid,
-            transports: ['processes', 'serial', 'dlt', 'dlt-render'],
-            defaultsSideBarApps: this._defaults.sidebarApps,
-            getPluginAPI: this.getPluginAPI,
-        });
-        session.init().then(() => {
-            this._subscriptions[`onSourceChanged:${guid}`] = session.getObservable().onSourceChanged.subscribe(this._onSourceChanged.bind(this, guid));
-            this._sessions.set(guid, session);
-            this._tabsService.add({
+    public add(): Promise<string> {
+        return new Promise((resolve, reject) => {
+            const guid: string = Toolkit.guid();
+            const session = new ControllerSessionTab({
                 guid: guid,
-                name: 'New',
-                active: true,
-                content: {
-                    factory: DockingComponent,
-                    inputs: {
-                        service: new DocksService(guid, new DockDef.Container({
-                            a: new DockDef.Dock({
-                                caption: this._defaults.views[0].name,
-                                closable: false,
-                                component: {
-                                    factory: this._defaults.views[0].component,
-                                    inputs: {
-                                        session: session,
-                                    }
-                                }
-                            })
-                        }))
-                    }
-                }
+                transports: ['processes', 'serial', 'dlt', 'dlt-render'],
+                defaultsSideBarApps: this._defaults.sidebarApps,
+                getPluginAPI: this.getPluginAPI,
             });
-            this.setActive(guid);
-        }).catch((error: Error) => {
-            session.destroy().catch((destroyErr: Error) => {
-                this._logger.error(`Fail to destroy incorrectly created session due error: ${destroyErr.message}`);
-            }).finally(() => {
-                this._logger.error(`Fail to create new session due error: ${error.message}`);
+            session.init().then(() => {
+                this._subscriptions[`onSourceChanged:${guid}`] = session.getObservable().onSourceChanged.subscribe(this._onSourceChanged.bind(this, guid));
+                this._sessions.set(guid, session);
+                this._tabsService.add({
+                    guid: guid,
+                    name: 'New',
+                    active: true,
+                    content: {
+                        factory: DockingComponent,
+                        inputs: {
+                            service: new DocksService(guid, new DockDef.Container({
+                                a: new DockDef.Dock({
+                                    caption: this._defaults.views[0].name,
+                                    closable: false,
+                                    component: {
+                                        factory: this._defaults.views[0].component,
+                                        inputs: {
+                                            session: session,
+                                        }
+                                    }
+                                })
+                            }))
+                        }
+                    }
+                });
+                this.setActive(guid);
+                resolve(guid);
+            }).catch((error: Error) => {
+                session.destroy().catch((destroyErr: Error) => {
+                    this._logger.error(`Fail to destroy incorrectly created session due error: ${destroyErr.message}`);
+                }).finally(() => {
+                    this._logger.error(`Fail to create new session due error: ${error.message}`);
+                    reject(error);
+                });
             });
         });
-
     }
 
     public addSidebarApp(tab: ITab, session?: string): string | Error {
@@ -292,6 +296,14 @@ export class TabsSessionsService implements IService {
 
     private _onCloseTab() {
         this._tabsService.remove(this._currentSessionGuid);
+    }
+
+    private _ipc_RenderSessionAddRequest(message: IPCMessages.RenderSessionAddRequest, response: (message: IPCMessages.TMessage) => void) {
+        this.add().then((guid: string) => {
+            response(new IPCMessages.RenderSessionAddResponse({ session: guid }));
+        }).catch((error: Error) => {
+            response(new IPCMessages.RenderSessionAddResponse({ session: '', error: error.message }));
+        });
     }
 
 }

@@ -5,6 +5,7 @@ import { Subscription } from 'rxjs';
 import { LayoutPrimiryAreaControlsComponent } from './controls/component';
 import { LayoutPrimiryAreaNoTabsComponent } from './no-tabs-content/component';
 import TabsSessionsService from '../../services/service.sessions.tabs';
+import * as Toolkit from 'logviewer.client.toolkit';
 
 @Component({
     selector: 'app-layout-area-primary',
@@ -18,6 +19,7 @@ export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
 
     public tabsService: TabsService;
 
+    private _logger: Toolkit.Logger = new Toolkit.Logger('LayoutPrimaryAreaComponent');
     private _subscriptions: { [key: string]: Subscription } = {};
 
     constructor(private _cdRef: ChangeDetectorRef) {
@@ -39,7 +41,9 @@ export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
             }
         });
         // Create default session
-        TabsSessionsService.add();
+        TabsSessionsService.add().catch((error: Error) => {
+            this._logger.error(`Fail to create default tab due error: ${error.message}`);
+        });
         /*
         const options = this.tabsService.getOptions();
         options.injections.bar = {
@@ -99,7 +103,9 @@ export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
     }
 
     public _onNewTab() {
-        TabsSessionsService.add();
+        TabsSessionsService.add().catch((error: Error) => {
+            this._logger.error(`Fail to open new tab due error: ${error.message}`);
+        });
     }
 
 }

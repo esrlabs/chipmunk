@@ -23,7 +23,7 @@ export class LayoutPrimiryAreaControlsComponent implements AfterViewInit, OnDest
 
     }
 
-    private _ng_onAddNew(event: MouseEvent) {
+    public _ng_onAddNew(event: MouseEvent) {
         event.preventDefault();
         event.stopImmediatePropagation();
         if (typeof this.onNewTab !== 'function') {
