@@ -90,11 +90,13 @@ export class FileOpenerService implements IService, IFileOpenerService {
                 session: TabsSessionsService.getActive().getGuid(),
             }), IPCMessages.FileOpenResponse).then((response: IPCMessages.FileReadResponse) => {
                 if (response.error !== undefined) {
-                    console.log(response.error);
-                    // Error message
+                    this._logger.error(`Fail open file "${files[0].path}" due error: ${response.error}`);
+                    // TODO: add notification here
+                    return;
                 }
             }).catch((error: Error) => {
-                // Error message
+                this._logger.error(`Fail open file "${files[0].path}" due error: ${error.message}`);
+                // TODO: add notification here
             });
             return;
         } else if (files.length > 0) {
@@ -116,6 +118,26 @@ export class FileOpenerService implements IService, IFileOpenerService {
                 ],
             });
         }
+    }
+
+    public openFileByName(file: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            ServiceElectronIpc.request(new IPCMessages.FileOpenRequest({
+                file: file,
+                session: TabsSessionsService.getActive().getGuid(),
+            }), IPCMessages.FileOpenResponse).then((response: IPCMessages.FileReadResponse) => {
+                if (response.error !== undefined) {
+                    this._logger.error(`Fail open file "${file}" due error: ${response.error}`);
+                    // TODO: add notification here
+                    return reject(new Error(response.error));
+                }
+                resolve();
+            }).catch((error: Error) => {
+                this._logger.error(`Fail open file "${file}" due error: ${error.message}`);
+                // TODO: add notification here
+                reject(error);
+            });
+        });
     }
 
     public merge(files: IFile[]) {
