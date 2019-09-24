@@ -14,6 +14,7 @@ jobs:
       install:
         - nvm install 10.16.3
         - nvm use 10.16.3
+        - npm install --global neon-cli
       before_deploy:
         - export CHIPMUNK_VERSION=$(cat application/electron/package.json | sed -n 3p | cut -d '"' -f 4)
       deploy: &deploy_base
@@ -29,6 +30,7 @@ jobs:
       install:
         - nvm install 10.16.3
         - nvm use 10.16.3
+        - npm install --global neon-cli
       before_deploy:
         - export CHIPMUNK_VERSION=$(cat application/electron/package.json | sed -n 3p | cut -d '"' -f 4)
       deploy:
