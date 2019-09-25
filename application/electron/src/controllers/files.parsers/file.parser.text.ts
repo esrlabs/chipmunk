@@ -1,12 +1,14 @@
 import { AFileParser, IFileParserFunc, IMapItem } from './interface';
 import { Transform } from 'stream';
 import * as path from 'path';
-import { Lvin, IIndexResult, IFileMapItem, ILogMessage } from '../controller.lvin';
+// import { Lvin, IIndexResult, IFileMapItem, ILogMessage } from '../controller.lvin';
+import { library } from "indexer-neon";
 import ServiceElectron, { IPCMessages } from '../../services/service.electron';
 import ServiceStreams from '../../services/service.streams';
 import * as ft from 'file-type';
 import * as fs from 'fs';
 import { Subscription } from '../../tools/index';
+import Logger from '../../tools/env.logger';
 
 const ExtNames = ['txt', 'log', 'logs', 'json', 'less', 'css', 'sass', 'ts', 'js'];
 
@@ -88,55 +90,71 @@ export default class FileParser extends AFileParser {
     }
 
     public readAndWrite(srcFile: string, destFile: string, sourceId: string, options: { [key: string]: any }, onMapUpdated?: (map: IMapItem[]) => void): Promise<IMapItem[]> {
+        const logger: Logger = new Logger('indexing');
         return new Promise((resolve, reject) => {
-            const lvin: Lvin = new Lvin();
-            this._guid = ServiceStreams.getActiveStreamId();
-            if (onMapUpdated !== undefined) {
-                lvin.on(Lvin.Events.map, (map: IFileMapItem[]) => {
-                    if (this._closed) {
-                        return;
-                    }
-                    onMapUpdated(map.map((item: IFileMapItem) => {
-                        return { bytes: { from: item.b[0], to: item.b[1] }, rows: { from: item.r[0], to: item.r[1] } };
-                    }));
-                });
-            }
-            lvin.index({
-                srcFile: srcFile,
-                destFile: destFile,
-                injection: sourceId.toString(),
-            }).then((results: IIndexResult) => {
-                if (this._closed) {
-                    return resolve([]);
+            const collectedChunks: IMapItem[] = [];
+            const hrstart = process.hrtime();
+            library.indexAsync(500, srcFile, 15000, destFile, (e: any) => {
+                if (onMapUpdated !== undefined) {
+                    const mapItem: IMapItem = { rows: {from: e.rows_start, to: e.rows_end}, bytes: { from: e.bytes_start, to: e.bytes_end } };
+                    onMapUpdated([mapItem]);
+                    collectedChunks.push(mapItem);
                 }
-                if (results.logs instanceof Array) {
-                    results.logs.forEach((log: ILogMessage) => {
-                        ServiceElectron.IPC.send(new IPCMessages.Notification({
-                            type: log.severity,
-                            row: log.line_nr === null ? undefined : log.line_nr,
-                            file: log.file_name,
-                            message: log.text,
-                            caption: path.basename(srcFile),
-                            session: this._guid,
-                        }));
-                    });
-                }
-                lvin.removeAllListeners();
-                resolve(results.map.map((item: IFileMapItem) => {
-                    return { rows: { from: item.r[0], to: item.r[1] }, bytes: { from: item.b[0], to: item.b[1] }};
-                }));
-            }).catch((error: Error) => {
-                if (this._closed) {
-                    return resolve([]);
-                }
-                ServiceElectron.IPC.send(new ServiceElectron.IPCMessages.Notification({
-                    caption: `Error with: ${path.basename(srcFile)}`,
-                    message: error.message.length > 1500 ? `${error.message.substr(0, 1500)}...` : error.message,
-                    type: ServiceElectron.IPCMessages.Notification.Types.error,
-                    session: this._guid,
-                }));
-                reject(error);
+            }, sourceId.toString()).then(x => { // TODO ask dmitry why this toString() is necessary
+                const hrend = process.hrtime(hrstart);
+                const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+                logger.debug("readAndWrite task finished, result: " + x);
+                logger.debug("Execution time for indexing : " + ms + "ms");
             });
+            resolve(collectedChunks);
+        //     const lvin: Lvin = new Lvin();
+        //     this._guid = ServiceStreams.getActiveStreamId();
+        //     if (onMapUpdated !== undefined) {
+        //         lvin.on(Lvin.Events.map, (map: IFileMapItem[]) => {
+        //             if (this._closed) {
+        //                 return;
+        //             }
+        //             onMapUpdated(map.map((item: IFileMapItem) => {
+        //                 return { bytes: { from: item.b[0], to: item.b[1] }, rows: { from: item.r[0], to: item.r[1] } };
+        //             }));
+        //         });
+        //     }
+        //     lvin.index({
+        //         srcFile: srcFile,
+        //         destFile: destFile,
+        //         injection: sourceId.toString(),
+        //     }).then((results: IIndexResult) => {
+        //         if (this._closed) {
+        //             return resolve([]);
+        //         }
+        //         if (results.logs instanceof Array) {
+        //             results.logs.forEach((log: ILogMessage) => {
+        //                 ServiceElectron.IPC.send(new IPCMessages.Notification({
+        //                     type: log.severity,
+        //                     row: log.line_nr === null ? undefined : log.line_nr,
+        //                     file: log.file_name,
+        //                     message: log.text,
+        //                     caption: path.basename(srcFile),
+        //                     session: this._guid,
+        //                 }));
+        //             });
+        //         }
+        //         lvin.removeAllListeners();
+        //         resolve(results.map.map((item: IFileMapItem) => {
+        //             return { rows: { from: item.r[0], to: item.r[1] }, bytes: { from: item.b[0], to: item.b[1] }};
+        //         }));
+        //     }).catch((error: Error) => {
+        //         if (this._closed) {
+        //             return resolve([]);
+        //         }
+        //         ServiceElectron.IPC.send(new ServiceElectron.IPCMessages.Notification({
+        //             caption: `Error with: ${path.basename(srcFile)}`,
+        //             message: error.message.length > 1500 ? `${error.message.substr(0, 1500)}...` : error.message,
+        //             type: ServiceElectron.IPCMessages.Notification.Types.error,
+        //             session: this._guid,
+        //         }));
+        //         reject(error);
+        //     });
         });
     }
 
