@@ -29,6 +29,7 @@ module OS
 end
 
 NPM_RUN = "npm run --quiet"
+NPM_INSTALL = "npm install --prefere-offline"
 DIST_FOLDER = "application/electron/dist"
 COMPILED_CLIENT_FOLDER = "application/client.core/dist/logviewer"
 COMPILED_FOLDER = "application/electron/dist/compiled"
@@ -163,7 +164,7 @@ end
 task :build_client_core do
   cd "application/client.core" do
     puts "Installing: core"
-    sh "npm install --prefere-offline"
+    sh NPM_INSTALL
     sh "npm uninstall logviewer.client.toolkit"
     sh "npm install logviewer.client.toolkit@latest --prefere-offline"
   end
@@ -171,13 +172,13 @@ end
 task :build_client_components do
   cd "application/client.libs/logviewer.client.components" do
     puts "Installing: components"
-    sh "npm install --prefere-offline"
+    sh NPM_INSTALL
   end
 end
 task :build_client_plugins do
   cd "application/client.plugins" do
     puts "Installing: plugins env"
-    sh "npm install --prefere-offline"
+    sh NPM_INSTALL
     sh "npm uninstall logviewer.client.toolkit"
     sh "npm install logviewer.client.toolkit@latest --prefere-offline"
   end
@@ -190,7 +191,7 @@ task :finish_electron_build do
 end
 task :prepare_electron_build do
   cd "application/electron" do
-    sh "npm install --prefere-offline"
+    sh NPM_INSTALL
   end
 end
 
@@ -287,11 +288,19 @@ task :clientlibsdelivery do
   while i < DESTS_CLIENT_NPM_LIBS.length
     dest = DESTS_CLIENT_NPM_LIBS[i]
     puts "Delivery libs into: #{dest}"
+    if !File.exists?(dest)
+      puts "NPM isn't installed in project #{File.dirname(dest)}. Installing..."
+      cd File.dirname(dest) do
+        sh NPM_INSTALL
+      end
+    end
     j = 0;
     while j < CLIENT_NPM_LIBS_NAMES.length
       lib = CLIENT_NPM_LIBS_NAMES[j]
       src = "#{SRC_CLIENT_NPM_LIBS}/dist/#{lib}"
       path = "#{dest}/#{lib}"
+      puts src
+      puts path
       rm_r(path) unless !File.exists?(path)
       cp_r(src, path, :verbose => false)
       j += 1
@@ -330,7 +339,7 @@ task :pluginsstandalone do
     src = "application/client.plugins.standalone/#{plugin}"
     cd src do
       puts "Install plugin: #{plugin}"
-      sh "npm install --prefere-offline"
+      sh NPM_INSTALL
       sh "npm uninstall logviewer.client.toolkit"
       sh "npm install logviewer.client.toolkit@latest --prefere-offline"
       sh "#{NPM_RUN} build"
@@ -356,7 +365,7 @@ task :pluginscomplex do
     plugin = complex_plugins[i]
     puts "Installing plugin: #{plugin}"
     cd "application/sandbox/#{plugin}/process" do
-      sh "npm install --prefere-offline"
+      sh NPM_INSTALL
       sh "npm install electron@4.0.3 electron-rebuild@^1.8.2 --prefere-offline"
       sh "./node_modules/.bin/electron-rebuild"
       sh "npm uninstall electron electron-rebuild"
@@ -500,6 +509,7 @@ end
 desc "build embedded indexer"
 task :build_embedded_indexer do
   cd "application/apps/indexer-neon" do
+    sh NPM_INSTALL
     sh "#{NPM_RUN} build"
   end
   src_folder = Pathname.new("application/apps/indexer-neon")
