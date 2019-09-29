@@ -8,7 +8,8 @@
         "build": "npm run build-ts && npm run build-neon",
         "build-ts": "tsc -p ./tsconfig.json",
         "build-neon": "node_modules/.bin/electron-build-env neon build --release",
-        "build:watch": "tsc -p ./tsconfig.json -w"
+        "build:watch": "tsc -p ./tsconfig.json -w",
+        "clean": "node_modules/.bin/neon clean"
     },
     "author": "",
     "contributors": [],

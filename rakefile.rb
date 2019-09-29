@@ -68,12 +68,10 @@ task :rust_clean do
       sh "cargo clean"
     end
   end
-  cd Pathname.new("application/apps").join("indexer-neon") do
-    sh "neon clean"
-  end
 end
+
 task :clean => :rust_clean
-CLOBBER.include(["**/node_modules", "**/dist", "application/apps/indexer/target"])
+CLOBBER.include(["**/node_modules", "**/package-lock.json", "**/dist", "application/apps/indexer/target"])
 
 task :folders => [DIST_FOLDER, COMPILED_FOLDER, RELEASE_FOLDER, INCLUDED_PLUGINS_FOLDER, INCLUDED_APPS_FOLDER]
 
@@ -130,9 +128,6 @@ desc "setup build environment"
 task :setup_environment do
   puts "Installing npm libs, which is needed for installing / updateing process"
   npm_install("typescript --global")
-  if OS.windows? == true
-    sh "npm install --global neon-cli"
-  end
 end
 
 desc "ripgrep delivery"
@@ -200,7 +195,10 @@ task :build_client_plugins do
     npm_install("logviewer.client.toolkit@latest")
   end
 end
-task :build_electron => [:prepare_electron_build, :native, :finish_electron_build]
+task :build_electron => [ :prepare_electron_build,
+                          :native,
+                          :delivery_embedded_indexer_into_app,
+                          :finish_electron_build]
 task :prepare_electron_build do
   cd "application/electron" do
     npm_install
@@ -510,17 +508,11 @@ def fresh_folder(dest_folder)
   mkdir_p dest_folder
 end
 
-desc "build embedded indexer"
-task :build_embedded_indexer do
-  cd "application/apps/indexer-neon" do
-    npm_install
-    sh "#{NPM_RUN} build"
-  end
+def delivery_embedded_indexer(dest)
   src_folder = Pathname.new("application/apps/indexer-neon")
-  dest_folder = Pathname.new("application/electron/node_modules/indexer-neon")
+  dest_folder = Pathname.new(dest).join("indexer-neon")
   puts "Delivery indexer from: #{src_folder} into #{dest_folder}"
   fresh_folder(dest_folder)
-
   Dir[src_folder.join "*"]
     .reject { |n| n.end_with? "node_modules" or n.end_with? "native" }
     .each do |s|
@@ -535,8 +527,36 @@ task :build_embedded_indexer do
   cp_r(src_folder.join("native").join("target").join("release"), dest_native_target, :verbose => false)
 end
 
+desc "build embedded indexer"
+task :build_embedded_indexer do
+  cd "application/apps/indexer-neon" do
+    npm_install
+    sh "#{NPM_RUN} clean"
+    sh "#{NPM_RUN} build"
+  end
+end
+
+task :delivery_embedded_indexer_into_release do
+  case TARGET_PLATFORM_ALIAS
+    when "mac"
+      dest = "#{RELEASE_PATH}mac/chipmunk.app/Contents/Resources/app/node_modules"
+    when "linux"
+      dest = "#{RELEASE_PATH}linux-unpacked/resources/app/node_modules"
+    when "win"
+      dest = "#{RELEASE_PATH}win-unpacked/resources/app/node_modules"
+  end
+  delivery_embedded_indexer(dest)
+end
+
+task :delivery_embedded_indexer_into_app do
+  delivery_embedded_indexer("application/electron/node_modules")
+end
+
 desc "build native parts"
-task :native => [:build_launcher, :build_updater, :build_indexer, :build_embedded_indexer]
+task :native => [ :build_launcher,
+                  :build_updater,
+                  :build_indexer,
+                  :build_embedded_indexer]
 
 desc "create list of files and folder in release"
 task :setlistofreleasefiles do
@@ -616,7 +636,15 @@ task :prepare_to_deploy do
 end
 
 desc "Build the full build pipeline for a given platform"
-task :full_pipeline => [:setup_environment, :clean, :install, :plugins, :ripgrepdelivery, :build, :setlistofreleasefiles, :prepare_to_deploy]
+task :full_pipeline => [:setup_environment,
+                        :clean,
+                        :install,
+                        :plugins,
+                        :ripgrepdelivery,
+                        :build,
+                        :delivery_embedded_indexer_into_release,
+                        :setlistofreleasefiles,
+                        :prepare_to_deploy]
 
 $task_benchmarks = []
 
