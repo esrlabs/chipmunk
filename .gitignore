@@ -61,3 +61,4 @@ vim-markdown-preview.html
 local/**/*
 **/.env
 **/*.node
+application/apps/indexer-neon/native/artifacts.json

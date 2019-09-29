@@ -28,6 +28,11 @@ use log::{LevelFilter, SetLoggerError};
 
 static LOGGER: SimpleLogger = SimpleLogger;
 
+#[no_mangle]
+pub extern fn __cxa_pure_virtual() {
+    loop{};
+}
+
 pub fn init_logging() -> Result<(), SetLoggerError> {
     log::set_logger(&LOGGER).map(|()| log::set_max_level(LevelFilter::Trace))?;
     trace!("logging initialized");

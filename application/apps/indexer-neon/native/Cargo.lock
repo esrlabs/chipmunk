@@ -111,6 +111,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "chipmunk_integration"
 version = "0.1.0"
 dependencies = [
+ "cc 1.0.45 (registry+https://github.com/rust-lang/crates.io-index)",
  "dlt 0.1.0",
  "indexer_base 0.1.0",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",

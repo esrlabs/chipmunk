@@ -14,6 +14,9 @@ crate-type = ["dylib"]
 [build-dependencies]
 neon-build = "0.3.1"
 
+[target.'cfg(windows)'.build-dependencies]
+cc = "1.0"
+
 [dependencies]
 neon = "0.3.1"
 processor = { path = "../../indexer/processor" }
