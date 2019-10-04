@@ -4,6 +4,7 @@ import PluginsService from './service.plugins';
 import SourcesService from './service.sources';
 import FileOptionsService from './service.file.options';
 import ToolbarSessionsService from './service.sessions.toolbar';
+import SidebarSessionsService from './service.sessions.sidebar';
 import TabsSessionsService from './service.sessions.tabs';
 import SearchSessionsService from './service.sessions.search';
 import FileOpenerService from './service.file.opener';
@@ -21,7 +22,7 @@ const InitializeStages = [
     // Stage #3
     [PluginsIPCService],
     // Stage #4
-    [TabsSessionsService, ToolbarSessionsService, FileOptionsService, FileOpenerService, HotkeysService ],
+    [TabsSessionsService, ToolbarSessionsService, SidebarSessionsService, FileOptionsService, FileOpenerService, HotkeysService ],
     // Stage #5
     [SearchSessionsService, TabSelectionParserService]
 ];
@@ -99,7 +100,7 @@ export class LoaderService {
     private _postInit(): Promise<void> {
         return new Promise((resolve) => {
             TabsSessionsService.setDefaultViews(Defaults.getDefaultViews());
-            TabsSessionsService.setDefaultSidebarApps(Defaults.getDefaultSideBarApps());
+            SidebarSessionsService.setDefaultsApps(Defaults.getDefaultSideBarApps());
             resolve();
         });
     }

@@ -1,4 +1,7 @@
-import { SidebarAppSearchManagerComponent       } from '../components/sidebar/search.manager/component';
+import { SidebarAppSearchManagerComponent } from '../components/sidebar/search.manager/component';
+import { ITab } from 'logviewer-client-complex';
+
+export { ITab };
 
 export const CGuids = {
     search: 'search',
@@ -6,19 +9,18 @@ export const CGuids = {
     concat: 'concat',
 };
 
-export const DefaultSidebarApps: IDefaultSideBarApp[] = [
+export const DefaultSidebarApps: ITab[] = [
     {
         guid: CGuids.search,
         name: 'Search',
-        component: SidebarAppSearchManagerComponent,
+        content: {
+            factory: SidebarAppSearchManagerComponent,
+            resolved: false,
+            inputs: {},
+        },
         closable: false,
+        active: true,
     }
 ];
 
-export interface IDefaultSideBarApp {
-    guid: string;
-    name: string;
-    component: any;
-    closable: boolean;
-}
 

@@ -3,6 +3,7 @@ import { IService } from '../interfaces/interface.service';
 import { Observable, Subject } from 'rxjs';
 import ServiceElectronIpc, { IPCMessages } from './service.electron.ipc';
 import TabsSessionsService from './service.sessions.tabs';
+import SidebarSessionsService from './service.sessions.sidebar';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
 import LayoutStateService from './standalone/service.layout.state';
 import { DialogsMultipleFilesActionComponent } from '../components/dialogs/multiplefiles/component';
@@ -172,15 +173,12 @@ export class FileOpenerService implements IService, IFileOpenerService {
         // Stored panding files
         this._pending = files;
         const guid: string = CConstTabsGuids[action];
-        const exist: Error | boolean = TabsSessionsService.hasSidebarTab(guid);
-        if (exist instanceof Error) {
-            return this._logger.error(`Fail to do action "${action}" due error: ${exist.message}`);
-        }
+        const exist: boolean = SidebarSessionsService.has(guid);
         // Show sidebar
         LayoutStateService.sidebarMax();
         // Add or activate tab on sidebar
         if (!exist) {
-            TabsSessionsService.addSidebarApp({
+            SidebarSessionsService.add({
                 guid: guid,
                 name: CTabs[guid].caption,
                 closable: true,
@@ -189,14 +187,14 @@ export class FileOpenerService implements IService, IFileOpenerService {
                     inputs: {
                         service: this,
                         close: () => {
-                            TabsSessionsService.removeSidebarApp(guid);
+                            SidebarSessionsService.remove(guid);
                         }
                     }
                 },
                 active: true
             });
         } else {
-            TabsSessionsService.openSidebarTab(guid);
+            SidebarSessionsService.setActive(guid);
         }
         // Trigger event
         this._subjects[CTabs[guid].subject].next(this._pending.slice());
