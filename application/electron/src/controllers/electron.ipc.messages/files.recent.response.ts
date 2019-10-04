@@ -1,5 +1,7 @@
 export interface IRecentFileInfo {
     file: string;
+    filename: string;
+    folder: string;
     size: number;
     timestamp: number;
 }

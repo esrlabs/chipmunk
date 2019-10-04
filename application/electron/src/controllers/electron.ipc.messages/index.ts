@@ -124,6 +124,18 @@ export { FilesRecentRequest };
 import { IFilesRecentResponse, FilesRecentResponse, IRecentFileInfo } from './files.recent.response';
 export { IFilesRecentResponse, FilesRecentResponse, IRecentFileInfo };
 
+import { FiltersFilesRecentRequest } from './files.filters.recent.request';
+export { FiltersFilesRecentRequest };
+
+import { IFiltersFilesRecentResponse, FiltersFilesRecentResponse, IRecentFilterFileInfo } from './files.filters.recent.response';
+export { IFiltersFilesRecentResponse, FiltersFilesRecentResponse, IRecentFilterFileInfo };
+
+import { FiltersFilesRecentResetRequest } from './files.filters.recent.reset.request';
+export { FiltersFilesRecentResetRequest };
+
+import { IFiltersFilesRecentResetResponse, FiltersFilesRecentResetResponse } from './files.filters.recent.reset.response';
+export { IFiltersFilesRecentResetResponse, FiltersFilesRecentResetResponse };
+
 import { IMergeFilesRequest, MergeFilesRequest } from './merge.files.request';
 export { IMergeFilesRequest, MergeFilesRequest };
 
@@ -148,8 +160,8 @@ export { MergeFilesTimezonesRequest };
 import { IMergeFilestimezoneResponse, MergeFilestimezoneResponse } from './merge.files.timezone.response';
 export { IMergeFilestimezoneResponse, MergeFilestimezoneResponse };
 
-import { FiltersLoadRequest } from './file.filters.load.request';
-export { FiltersLoadRequest };
+import { FiltersLoadRequest, IFiltersLoadRequest } from './file.filters.load.request';
+export { FiltersLoadRequest, IFiltersLoadRequest };
 
 import { IFilter, IFiltersLoadResponse, FiltersLoadResponse } from './file.filters.load.response';
 export { IFilter, IFiltersLoadResponse, FiltersLoadResponse };
@@ -246,6 +258,10 @@ export type TMessage =  HostState |
                         FiltersLoadResponse |
                         FiltersSaveRequest |
                         FiltersSaveResponse |
+                        FiltersFilesRecentRequest |
+                        FiltersFilesRecentResponse |
+                        FiltersFilesRecentResetRequest |
+                        FiltersFilesRecentResetResponse |
                         Notification |
                         HotkeyCall |
                         HotkeyPause |
@@ -325,6 +341,10 @@ export const Map = {
     [FiltersLoadResponse.signature          ]: FiltersLoadResponse,
     [FiltersSaveRequest.signature           ]: FiltersSaveRequest,
     [FiltersSaveResponse.signature          ]: FiltersSaveResponse,
+    [FiltersFilesRecentRequest.signature    ]: FiltersFilesRecentRequest,
+    [FiltersFilesRecentResponse.signature   ]: FiltersFilesRecentResponse,
+    [FiltersFilesRecentResetRequest.signature]: FiltersFilesRecentResetRequest,
+    [FiltersFilesRecentResetResponse.signature]: FiltersFilesRecentResetRequest,
 
     [Notification.signature                 ]: Notification,
 

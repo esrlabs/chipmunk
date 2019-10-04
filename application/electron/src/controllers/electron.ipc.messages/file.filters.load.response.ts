@@ -6,6 +6,7 @@ export interface IFilter {
 }
 export interface IFiltersLoadResponse {
     filters: IFilter[];
+    file: string;
     error?: string;
 }
 
@@ -14,6 +15,7 @@ export class FiltersLoadResponse {
     public static signature: string = 'FiltersLoadResponse';
     public signature: string = FiltersLoadResponse.signature;
     public filters: IFilter[] = [];
+    public file: string;
     public error?: string;
 
     constructor(params: IFiltersLoadResponse) {
@@ -23,6 +25,7 @@ export class FiltersLoadResponse {
         if (!(params.filters instanceof Array) || params.filters.length === 0) {
             throw new Error(`size should be filters.`);
         }
+        this.file = params.file;
         this.filters = params.filters;
         this.error = params.error;
     }
