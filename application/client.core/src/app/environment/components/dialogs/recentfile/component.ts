@@ -28,7 +28,15 @@ export class DialogsRecentFilesActionComponent implements AfterContentInit {
                 this._logger.error(`Fail to get list of recent files due error: ${response.error}`);
                 return;
             }
-            this._ng_files = response.files;
+            this._ng_files = response.files.map((file: IPCMessages.IRecentFileInfo) => {
+                if (file.filename === undefined) {
+                    file.filename = Toolkit.basename(file.file);
+                }
+                if (file.folder === undefined) {
+                    file.folder = Toolkit.dirname(file.file);
+                }
+                return file;
+            });
             this._cdRef.detectChanges();
         }).catch((error: Error) => {
             this._logger.error(`Fail to get list of recent files due error: ${error}`);

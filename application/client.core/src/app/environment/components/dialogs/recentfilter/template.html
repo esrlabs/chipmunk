@@ -1,0 +1,15 @@
+<p class="t-normal" *ngIf="_ng_files.length === 0">No any recent files</p>
+<div class="files" *ngIf="_ng_files.length > 0">
+    <table class="files-table">
+        <tr class="file-row">
+            <th [attr.class]="'t-small color-scheme-0'">File</th>
+            <th [attr.class]="'t-small color-scheme-0'">Last time opened</th>
+            <th [attr.class]="'t-small color-scheme-0'">Filters</th>
+        </tr>
+        <tr [attr.class]="'file-row '" *ngFor="let file of _ng_files" (click)="_ng_open(file)">
+            <td class="t-console color-scheme-2" [attr.title]="file.file"><span class="filename">{{file.filename}}</span> <span class="folder">{{file.folder}}</span></td>
+            <td class="t-console color-scheme-2">{{_ng_getLocalTime(file.timestamp)}}</td>
+            <td class="t-console color-scheme-2">{{file.filters}}</td>
+        </tr>
+    </table>
+</div>
