@@ -1,6 +1,6 @@
 // Libs
 import Logger from './tools/env.logger';
-import { app as electronApp, dialog } from 'electron';
+import { app as electronApp, dialog, MessageBoxReturnValue } from 'electron';
 import * as FS from './tools/fs';
 // Services
 import ServiceElectron from './services/service.electron';
@@ -78,9 +78,9 @@ class Application {
                         message: `Sorry, it looks like we have a problems with starting. You can try to drop settings and start it again.`,
                         detail: `Error: ${error.message}`,
                     };
-                    dialog.showMessageBox(dialogOpts, (response: number) => {
+                    dialog.showMessageBox(dialogOpts).then((response: MessageBoxReturnValue) => {
                         this.logger.env(`Selected option: ${response}`);
-                        switch (response) {
+                        switch (response.response) {
                             case 0:
                                 FS.rmdir(getHomeFolder()).then(() => {
                                     electronApp.quit();

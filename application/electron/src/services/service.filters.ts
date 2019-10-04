@@ -1,9 +1,12 @@
 import Logger from '../tools/env.logger';
-import { dialog } from 'electron';
+import { dialog, SaveDialogReturnValue } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { IService } from '../interfaces/interface.service';
-import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from './service.electron';
+import ServiceElectron, { IPCMessages, Subscription } from './service.electron';
+import ServiceStorage, { IStorageScheme } from '../services/service.storage';
+
+const MAX_NUMBER_OF_RECENT_FILES = 100;
 
 /**
  * @class ServiceFilters
@@ -21,15 +24,25 @@ class ServiceFilters implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
-            ServiceElectron.IPC.subscribe(IPCElectronMessages.FiltersLoadRequest, this._ipc_onFiltersLoadRequest.bind(this)).then((subscription: Subscription) => {
+            ServiceElectron.IPC.subscribe(IPCMessages.FiltersLoadRequest, this._ipc_onFiltersLoadRequest.bind(this)).then((subscription: Subscription) => {
                 this._subscriptions.FiltersLoadRequest = subscription;
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to subscribe to render event "FiltersLoadRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
             });
-            ServiceElectron.IPC.subscribe(IPCElectronMessages.FiltersSaveRequest, this._ipc_onFiltersSaveRequest.bind(this)).then((subscription: Subscription) => {
+            ServiceElectron.IPC.subscribe(IPCMessages.FiltersSaveRequest, this._ipc_onFiltersSaveRequest.bind(this)).then((subscription: Subscription) => {
                 this._subscriptions.FiltersSaveRequest = subscription;
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to subscribe to render event "FiltersSaveRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+            });
+            ServiceElectron.IPC.subscribe(IPCMessages.FiltersFilesRecentRequest, this._ipc_onFiltersRecentRequested.bind(this)).then((subscription: Subscription) => {
+                this._subscriptions.FiltersFilesRecentRequest = subscription;
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to subscribe to render event "FiltersFilesRecentRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+            });
+            ServiceElectron.IPC.subscribe(IPCMessages.FiltersFilesRecentResetRequest, this._ipc_onFiltersFilesRecentResetRequested.bind(this)).then((subscription: Subscription) => {
+                this._subscriptions.FiltersFilesRecentResetRequest = subscription;
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to subscribe to render event "FiltersFilesRecentResetRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
             });
             resolve();
         });
@@ -45,71 +58,163 @@ class ServiceFilters implements IService {
         return 'ServiceFilters';
     }
 
-    private _ipc_onFiltersLoadRequest(message: IPCElectronMessages.TMessage, response: (message: IPCElectronMessages.TMessage) => Promise<void>) {
-        dialog.showOpenDialog({
-            properties: ['openFile', 'showHiddenFiles'],
-            filters: [{ name: 'Text Files', extensions: ['txt']}],
-        }, (files: string[] | undefined) => {
-            if (!(files instanceof Array) || files.length !== 1) {
-                return;
-            }
-            const file: string = files[0];
-            fs.stat(file, (error: NodeJS.ErrnoException | null, stats: fs.Stats) => {
-                if (error) {
-                    return response(new IPCElectronMessages.FiltersLoadResponse({
+    private _ipc_onFiltersLoadRequest(message: IPCMessages.TMessage, response: (message: IPCMessages.TMessage) => Promise<void>) {
+        const request: IPCMessages.FiltersLoadRequest = message as IPCMessages.FiltersLoadRequest;
+        if (request.file === undefined) {
+            dialog.showOpenDialog({
+                properties: ['openFile', 'showHiddenFiles'],
+                filters: [{ name: 'Text Files', extensions: ['txt']}],
+            }, (files: string[] | undefined) => {
+                if (!(files instanceof Array) || files.length !== 1) {
+                    return;
+                }
+                const file: string = files[0];
+                this._loadFile(file).then((filters: IPCMessages.IFilter[]) => {
+                    this._saveAsRecentFile(file, filters.length);
+                    response(new IPCMessages.FiltersLoadResponse({
+                        filters: filters,
+                        file: file,
+                    }));
+                }).catch((error: Error) => {
+                    return response(new IPCMessages.FiltersLoadResponse({
                         filters: [],
+                        file: file,
+                        error: this._logger.warn(`Fail to open file "${file}" due error: ${error.message}`),
+                    }));
+                });
+            });
+        } else {
+            this._loadFile(request.file).then((filters: IPCMessages.IFilter[]) => {
+                this._saveAsRecentFile(request.file as string, filters.length);
+                response(new IPCMessages.FiltersLoadResponse({
+                    filters: filters,
+                    file: request.file as string,
+                }));
+            }).catch((error: Error) => {
+                return response(new IPCMessages.FiltersLoadResponse({
+                    filters: [],
+                    file: request.file as string,
+                    error: this._logger.warn(`Fail to open file "${request.file}" due error: ${error.message}`),
+                }));
+            });
+        }
+    }
+
+    private _ipc_onFiltersSaveRequest(message: IPCMessages.TMessage, response: (message: IPCMessages.TMessage) => Promise<void>) {
+        const request: IPCMessages.FiltersSaveRequest = message as IPCMessages.FiltersSaveRequest;
+        const content: string = JSON.stringify(request.filters);
+        if (typeof request.file === 'string') {
+            if (!fs.existsSync(request.file)) {
+                request.file = undefined;
+            }
+        }
+        if (typeof request.file === 'string') {
+            this._saveFile(request.file, content).then(() => {
+                this._saveAsRecentFile(request.file as string, request.filters.length);
+                response(new IPCMessages.FiltersSaveResponse({
+                    filename: path.basename(request.file as string),
+                }));
+            }).catch((error: Error) => {
+                this._logger.warn(`Error during saving filters into file "${request.file}": ${error.message}`);
+                response(new IPCMessages.FiltersSaveResponse({
+                    filename: path.basename(request.file as string),
+                    error: error.message,
+                }));
+            });
+        } else {
+            dialog.showSaveDialog({
+                title: 'Saving filters',
+                filters: [{ name: 'Text Files', extensions: ['txt']}],
+            }).then((results: SaveDialogReturnValue) => {
+                this._saveFile(results.filePath, content).then(() => {
+                    this._saveAsRecentFile(results.filePath as string, request.filters.length);
+                    response(new IPCMessages.FiltersSaveResponse({
+                        filename: path.basename(results.filePath as string),
+                    }));
+                }).catch((error: Error) => {
+                    this._logger.warn(`Error during saving filters into file "${results.filePath}": ${error.message}`);
+                    response(new IPCMessages.FiltersSaveResponse({
+                        filename: path.basename(results.filePath as string),
                         error: error.message,
                     }));
+                });
+            });
+        }
+    }
+
+    private _ipc_onFiltersRecentRequested(message: IPCMessages.TMessage, response: (message: IPCMessages.TMessage) => Promise<void>) {
+        const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
+        response(new IPCMessages.FiltersFilesRecentResponse({
+            files: stored.recentFiltersFiles,
+        }));
+    }
+
+    private _ipc_onFiltersFilesRecentResetRequested(message: IPCMessages.TMessage, response: (message: IPCMessages.TMessage) => Promise<void>) {
+        ServiceStorage.get().set({
+            recentFiltersFiles: [],
+        });
+        response(new IPCMessages.FiltersFilesRecentResetResponse({ }));
+    }
+
+    private _loadFile(file: string): Promise<IPCMessages.IFilter[]> {
+        return new Promise((resolve, reject) => {
+            fs.stat(file, (error: NodeJS.ErrnoException | null, stats: fs.Stats) => {
+                if (error) {
+                    return reject(error);
                 }
                 fs.readFile(file, (readingError: NodeJS.ErrnoException | null, data: Buffer | string) => {
                     if (readingError) {
-                        return response(new IPCElectronMessages.FiltersLoadResponse({
-                            filters: [],
-                            error: this._logger.warn(`Fail to read file "${file}" due error: ${readingError.message}`),
-                        }));
+                        return reject(readingError);
                     }
                     data = data.toString();
                     try {
                         const filters = JSON.parse(data);
                         if (!(filters instanceof Array)) {
-                            return response(new IPCElectronMessages.FiltersLoadResponse({
-                                filters: [],
-                                error: this._logger.warn(`Fail to parse file "${file}" because content isn't an Array.`),
-                            }));
+                            return reject(new Error(`Fail to parse file "${file}" because content isn't an Array.`));
                         }
-                        response(new IPCElectronMessages.FiltersLoadResponse({
-                            filters: filters,
-                        }));
+                        resolve(filters);
                     } catch (e) {
-                        return response(new IPCElectronMessages.FiltersLoadResponse({
-                            filters: [],
-                            error: this._logger.warn(`Fail to parse file "${file}" due error: ${e.message}`),
-                        }));
+                        return reject(new Error(`Fail to parse file "${file}" due error: ${e.message}`));
                     }
                 });
             });
         });
     }
 
-    private _ipc_onFiltersSaveRequest(message: IPCElectronMessages.TMessage, response: (message: IPCElectronMessages.TMessage) => Promise<void>) {
-        const content: string = JSON.stringify((message as IPCElectronMessages.FiltersSaveRequest).filters);
-        dialog.showSaveDialog({
-            title: 'Saving filters',
-            filters: [{ name: 'Text Files', extensions: ['txt']}],
-        }, (filename: string | undefined) => {
+    private _saveFile(filename: string | undefined, content: string): Promise<void> {
+        return new Promise((resolve, reject) => {
             if (filename === undefined) {
-                return;
+                return reject(new Error(`Not valid name of file`));
             }
             fs.writeFile(filename, content, (error: NodeJS.ErrnoException | null) => {
                 if (error) {
-                    this._logger.warn(`Error during saving filters into file "${filename}": ${error.message}`);
+                    reject(error);
+                } else {
+                    resolve();
                 }
-                response(new IPCElectronMessages.FiltersSaveResponse({
-                    filename: path.basename(filename),
-                    error: error ? error.message : undefined,
-                }));
             });
         });
+    }
+
+    private _saveAsRecentFile(file: string, filters: number) {
+        const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
+        const files: IStorageScheme.IRecentFilterFile[] = stored.recentFiltersFiles.filter((fileInfo: IStorageScheme.IRecentFilterFile) => {
+            return fileInfo.file !== file;
+        });
+        if (files.length > MAX_NUMBER_OF_RECENT_FILES) {
+            files.splice(files.length - 1, 1);
+        }
+        files.unshift({
+            file: file,
+            filename: path.basename(file),
+            folder: path.dirname(file),
+            timestamp: Date.now(),
+            filters: filters,
+        });
+        ServiceStorage.get().set({
+            recentFiltersFiles: files,
+        });
+        ServiceElectron.updateMenu();
     }
 
 }
