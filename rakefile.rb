@@ -229,6 +229,12 @@ task :install => [:folders,
                   :apppackagedelivery,
 ]
 
+desc "Developer task: update and delivery indexer-neon"
+task :dev_update_and_delivery_indexer => [:build_embedded_indexer, :delivery_embedded_indexer_into_app]
+
+desc "Developer task: update application with indexer-neon"
+task :dev_update_application_with_indexer => [:dev_update_and_delivery_indexer, :start]
+
 desc "Developer task: update client"
 task :dev_update_client => [:ipc, :client_build]
 
@@ -368,14 +374,19 @@ end
 
 desc "Install complex plugins"
 task :pluginscomplex do
-  complex_plugins = ["dlt", "serial", "processes", "xterminal"];
+  complex_plugins = [
+    "dlt",
+    "serial",
+    "processes" ,
+    #"xterminal"
+  ];
   i = 0
   while i < complex_plugins.length
     plugin = complex_plugins[i]
     puts "Installing plugin: #{plugin}"
     cd "application/sandbox/#{plugin}/process" do
       npm_install
-      npm_install("electron@4.0.3 electron-rebuild@^1.8.2")
+      npm_install("electron@6.0.11 electron-rebuild@^1.8.6")
       sh "./node_modules/.bin/electron-rebuild"
       sh "npm uninstall electron electron-rebuild"
       sh "#{NPM_RUN} build"
@@ -432,15 +443,15 @@ task :updatepluginipc do
     npm_install("logviewer.plugin.ipc@latest")
   end
   cd "application/sandbox/processes/process" do
-    puts "Update toolkits for: xterminal pluginplugin"
+    puts "Update toolkits for: processes pluginplugin"
     sh "npm uninstall logviewer.plugin.ipc"
     npm_install("logviewer.plugin.ipc@latest")
   end
-  cd "application/sandbox/xterminal/process" do
-    puts "Update toolkits for: xterminal plugin"
-    sh "npm uninstall logviewer.plugin.ipc"
-    npm_install("logviewer.plugin.ipc@latest")
-  end
+  #cd "application/sandbox/xterminal/process" do
+  #  puts "Update toolkits for: xterminal plugin"
+  #  sh "npm uninstall logviewer.plugin.ipc"
+  #  npm_install("logviewer.plugin.ipc@latest")
+  #end
 end
 
 desc "build updater"
@@ -597,7 +608,7 @@ desc "build"
 task :build => :folders do
   cd "application/electron" do
     sh "#{NPM_RUN} build-ts"
-    sh "./node_modules/.bin/build --#{TARGET_PLATFORM_ALIAS}"
+    sh "./node_modules/.bin/electron-builder --#{TARGET_PLATFORM_ALIAS}"
   end
 
   case TARGET_PLATFORM_ALIAS
