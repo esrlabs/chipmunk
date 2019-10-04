@@ -7,7 +7,7 @@
             <th [attr.class]="'t-small color-scheme-0'">Size</th>
         </tr>
         <tr [attr.class]="'file-row '" *ngFor="let file of _ng_files" (click)="_ng_open(file)">
-            <td class="t-console color-scheme-2" [attr.title]="file.file">{{file.file}}</td>
+            <td class="t-console color-scheme-2" [attr.title]="file.file"><span class="filename">{{file.filename}}</span> <span class="folder">{{file.folder}}</span></td>
             <td class="t-console color-scheme-2">{{_ng_getLocalTime(file.timestamp)}}</td>
             <td class="t-console color-scheme-2">{{(file.size / 1024 / 1024).toFixed(2)}} Mb</td>
         </tr>
