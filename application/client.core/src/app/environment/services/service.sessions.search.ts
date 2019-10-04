@@ -89,6 +89,13 @@ export class SearchSessionsService implements IService {
         this._session.updateStored(request, updated);
     }
 
+    public overwriteStored(requests: IRequest[]) {
+        if (this._session === undefined) {
+            return;
+        }
+        this._session.overwriteStored(requests);
+    }
+
     private _bindSearchSessionEvents() {
         this._unbindSearchSeassionEvents();
         if (this._session === undefined) {

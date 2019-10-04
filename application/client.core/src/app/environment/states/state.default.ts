@@ -1,12 +1,12 @@
 import { DefaultViews, IDefaultView } from './state.default.tab.views';
-import { DefaultSidebarApps, IDefaultSideBarApp, } from './state.default.sidebar.apps';
+import { DefaultSidebarApps, ITab } from './state.default.sidebar.apps';
 
 export function getDefaultViews(): IDefaultView[] {
     return DefaultViews.slice();
 }
 
-export function getDefaultSideBarApps(): IDefaultSideBarApp[] {
+export function getDefaultSideBarApps(): ITab[] {
     return DefaultSidebarApps.slice();
 }
 
-export { IDefaultView, IDefaultSideBarApp };
+export { IDefaultView, ITab };

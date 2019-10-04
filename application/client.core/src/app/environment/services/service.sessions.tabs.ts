@@ -4,7 +4,7 @@ import { ControllerSessionTab } from '../controller/controller.session.tab';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { IService } from '../interfaces/interface.service';
 import { Observable, Subject, Subscription as SubscriptionRX } from 'rxjs';
-import { IDefaultView, IDefaultSideBarApp } from '../states/state.default';
+import { IDefaultView } from '../states/state.default';
 import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
 import SourcesService from './service.sources';
 import HotkeysService from './service.hotkeys';
@@ -31,10 +31,8 @@ export class TabsSessionsService implements IService {
     private _sessionsEventsHub: Toolkit.ControllerSessionsEvents = new Toolkit.ControllerSessionsEvents();
     private _defaults: {
         views: IDefaultView[],
-        sidebarApps: IDefaultSideBarApp[],
     } = {
         views: [],
-        sidebarApps: [],
     };
 
     private _subjects: IServiceSubjects = {
@@ -67,18 +65,12 @@ export class TabsSessionsService implements IService {
         this._defaults.views = views;
     }
 
-    public setDefaultSidebarApps(apps: IDefaultSideBarApp[]) {
-        this._defaults.sidebarApps = apps;
-    }
-
     public add(): Promise<string> {
         return new Promise((resolve, reject) => {
             const guid: string = Toolkit.guid();
             const session = new ControllerSessionTab({
                 guid: guid,
-                transports: ['processes', 'serial', 'dlt', 'dlt-render'],
-                defaultsSideBarApps: this._defaults.sidebarApps,
-                getPluginAPI: this.getPluginAPI,
+                transports: ['processes', 'serial', 'dlt', 'dlt-render']
             });
             session.init().then(() => {
                 this._subscriptions[`onSourceChanged:${guid}`] = session.getObservable().onSourceChanged.subscribe(this._onSourceChanged.bind(this, guid));
@@ -116,54 +108,6 @@ export class TabsSessionsService implements IService {
                 });
             });
         });
-    }
-
-    public addSidebarApp(tab: ITab, session?: string): string | Error {
-        if (session === undefined) {
-            session = this._currentSessionGuid;
-        }
-        // Get session controller
-        const controller: ControllerSessionTab = this._sessions.get(session);
-        if (controller === undefined) {
-            return new Error(`Fail to find defiend session "${session}"`);
-        }
-        return controller.addSidebarApp(tab);
-    }
-
-    public hasSidebarTab(guid: string, session?: string): Error | boolean {
-        if (session === undefined) {
-            session = this._currentSessionGuid;
-        }
-        // Get session controller
-        const controller: ControllerSessionTab = this._sessions.get(session);
-        if (controller === undefined) {
-            return new Error(`Fail to find defiend session "${session}"`);
-        }
-        return controller.hasSidebarTab(guid);
-    }
-
-    public openSidebarTab(guid: string, session?: string): Error | undefined {
-        if (session === undefined) {
-            session = this._currentSessionGuid;
-        }
-        // Get session controller
-        const controller: ControllerSessionTab = this._sessions.get(session);
-        if (controller === undefined) {
-            return new Error(`Fail to find defiend session "${session}"`);
-        }
-        controller.openSidebarTab(guid);
-    }
-
-    public removeSidebarApp(guid: string, session?: string): Error | undefined {
-        if (session === undefined) {
-            session = this._currentSessionGuid;
-        }
-        // Get session controller
-        const controller: ControllerSessionTab = this._sessions.get(session);
-        if (controller === undefined) {
-            return new Error(`Fail to find defiend session "${session}"`);
-        }
-        controller.removeSidebarApp(guid);
     }
 
     public getTabsService(): TabsService {
