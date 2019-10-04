@@ -7,6 +7,7 @@ import { ControllerSessionTabSearchViewState, IViewState } from '../../../contro
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import HotkeysService from '../../../services/service.hotkeys';
+import SidebarSessionsService from '../../../services/service.sessions.sidebar';
 import LayoutStateService from '../../../services/standalone/service.layout.state';
 import * as Toolkit from 'logviewer.client.toolkit';
 
@@ -155,8 +156,11 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     private _openSidebarSearchTab() {
+        if (this._ng_session === undefined) {
+            return;
+        }
         LayoutStateService.sidebarMax();
-        TabsSessionsService.openSidebarTab('search');
+        SidebarSessionsService.setActive('search', this._ng_session.getGuid());
     }
 
     private _onSessionChange(session: ControllerSessionTab | undefined) {
