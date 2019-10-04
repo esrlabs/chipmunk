@@ -129,7 +129,7 @@ task :setup_environment do
   puts "Installing npm libs, which is needed for installing / updateing process"
   npm_install("typescript --global")
   if OS.windows?
-    File.open(File.join(Dir.home, ".cargo").join("config"), "a") do |f|
+    File.open(File.join(Dir.home, ".cargo", "config"), "a") do |f|
       f.puts ""
       ["[target.'cfg(windows)']",
       'rustflags = ["-C", "link-args=/DELAYLOAD:node.exe /INCLUDE:__pfnDliNotifyHook2 delayimp.lib"]'].each { |line| f.puts(line) }
