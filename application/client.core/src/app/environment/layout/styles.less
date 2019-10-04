@@ -55,6 +55,8 @@
                     right:0;
                     overflow: hidden;
                     background: lighten(@scheme-color-5, 10%);
+                    box-sizing: border-box;
+                    border-bottom: 1px solid @scheme-color-5;
                     & div.switcher{
                         position: absolute;
                         top:0;
@@ -66,7 +68,7 @@
                             color: @scheme-color-1;
                         }
                     }
-                    & div.caption{
+                    & div.injections{
                         position: absolute;
                         display: none;
                         top:0;
@@ -74,8 +76,6 @@
                         height: @tabs-list-height;
                         right: @tabs-list-height;
                         overflow: hidden;
-                        text-overflow: ellipsis;
-                        color: @scheme-color-1;
                     }
                     & div.location{
                         position: absolute;
@@ -144,7 +144,7 @@
                                 transform: rotate(180deg);
                             }
                         }
-                        & div.caption{
+                        & div.injections{
                             display: block;
                         }
                         & div.location{

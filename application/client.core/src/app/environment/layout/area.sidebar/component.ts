@@ -2,8 +2,11 @@ import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@
 import { TabsService, TabsOptions, ETabsListDirection } from 'logviewer-client-complex';
 import { ControllerSessionTab } from '../../controller/controller.session.tab';
 import { AreaState } from '../state';
-import { Subscription } from 'rxjs';
+import { Subscription, Subject, Observable } from 'rxjs';
 import TabsSessionsService from '../../services/service.sessions.tabs';
+import SidebarSessionsService from '../../services/service.sessions.sidebar';
+import { IComponentDesc } from 'logviewer-client-containers';
+import * as Toolkit from 'logviewer.client.toolkit';
 
 @Component({
     selector: 'app-layout-func-bar',
@@ -18,6 +21,7 @@ export class LayoutSessionSidebarComponent implements AfterViewInit, OnDestroy {
     public _ng_tabsService: TabsService;
 
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
+    private _logger: Toolkit.Logger = new Toolkit.Logger('LayoutSessionSidebarComponent');
 
     constructor(private _cdRef: ChangeDetectorRef) {
     }
@@ -78,8 +82,17 @@ export class LayoutSessionSidebarComponent implements AfterViewInit, OnDestroy {
             return;
         }
         // Get tabs service
-        this._ng_tabsService = session.getSidebarTabsService();
+        const service: TabsService | Error = SidebarSessionsService.getTabsService(session.getGuid());
+        if (service === undefined) {
+            this._logger.warn(`Fail to init sidebar because no tab's service available.`);
+            return;
+        }
+        this._ng_tabsService = service;
         // Change layout of tabs in sidebar
-        this._ng_tabsService.setOptions(new TabsOptions({ direction: ETabsListDirection.left, minimized: true }));
+        this._ng_tabsService.setOptions(new TabsOptions({
+            direction: ETabsListDirection.left,
+            minimized: true
+        }));
     }
+
 }
