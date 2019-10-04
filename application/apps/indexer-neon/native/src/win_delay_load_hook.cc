@@ -7,22 +7,23 @@
  * This allows compiled addons to work when node.exe or iojs.exe is renamed.
  */
 
-#include <delayimp.h>
-#include <string.h>
+ 
 #include <windows.h>
 
-FARPROC WINAPI
-load_exe_hook(unsigned int event, DelayLoadInfo* info)
-{
-    HMODULE m;
-    if (event != dliNotePreLoadLibrary)
-        return NULL;
+#include <delayimp.h>
+#include <string.h>
 
-    if (_stricmp(info->szDll, "node.exe") != 0)
-        return NULL;
+FARPROC WINAPI load_exe_hook(unsigned int event, DelayLoadInfo* info) {
+  HMODULE m;
+  if (event != dliNotePreLoadLibrary)
+    return NULL;
 
-    m = GetModuleHandle(NULL);
-    return (FARPROC)m;
+  if (_stricmp(info->szDll, "node.exe") != 0)
+    return NULL;
+
+	
+  m = GetModuleHandle(NULL);
+  return (FARPROC) m;
 }
 
 decltype(__pfnDliNotifyHook2) __pfnDliNotifyHook2 = load_exe_hook;
