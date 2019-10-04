@@ -262,26 +262,45 @@ export class ControllerSessionTabSearch {
             }
             return stored;
         });
-        this._subjects.onRequestsUpdated.next(this._stored);
+        this._subjects.onRequestsUpdated.next(this.getStored());
         if (isUpdateRequired) {
             if (this.getActiveStored().length === 0 && active !== 0) {
                 this.drop(Toolkit.guid()).then(() => {
-                    OutputParsersService.setHighlights(this.getGuid(), this._stored.slice());
+                    OutputParsersService.setHighlights(this.getGuid(), this.getStored());
                     OutputParsersService.updateRowsView();
                 }).catch((error: Error) => {
-                    this._logger.error(`Fail to drop search results of stored filters`);
+                    this._logger.error(`Fail to drop search results of stored filters due error: ${error.message}`);
                 });
             } else {
                 this._applyFilters();
             }
         } else {
-            OutputParsersService.setHighlights(this.getGuid(), this._stored.slice());
+            OutputParsersService.setHighlights(this.getGuid(), this.getStored());
             OutputParsersService.updateRowsView();
         }
     }
 
+    public overwriteStored(requests: IRequest[]) {
+        this._stored = requests.map((filter: IRequest) => {
+            return Object.assign({}, filter);
+        });
+        this._subjects.onRequestsUpdated.next(this.getStored());
+        if (this.getActiveStored().length === 0) {
+            this.drop(Toolkit.guid()).then(() => {
+                OutputParsersService.setHighlights(this.getGuid(), this.getStored());
+                OutputParsersService.updateRowsView();
+            }).catch((error: Error) => {
+                this._logger.error(`Fail to drop search results of stored filters due error: ${error.message}`);
+            });
+        } else {
+            this._applyFilters();
+        }
+    }
+
     public getStored(): IRequest[] {
-        return this._stored;
+        return this._stored.map((filter: IRequest) => {
+            return Object.assign({}, filter);
+        });
     }
 
     public getActiveStored(): IRequest[] {
@@ -475,5 +494,6 @@ export class ControllerSessionTabSearch {
         }
         this._output.updateStreamState(message.rowsCount);
     }
+
 
 }
