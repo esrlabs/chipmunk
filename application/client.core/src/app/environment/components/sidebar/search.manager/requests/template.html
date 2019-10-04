@@ -1,17 +1,18 @@
 <div class="requests-wrapper">
-    <p class="caption t-normal padding">Stored filters</p>
-    <ul [attr.class]="'requests '">
-        <li [attr.class]="'request ' + (_ng_selectedIndex === i ? 'selected' : '') + ' ' + (request.request.active ? '' : 'inactive')" *ngFor="let request of _ng_requests; let i = index;">
+    <p class="caption t-small">{{_ng_filename === undefined ? 'Filters' : _ng_filename}}</p>
+    <ul #list [attr.class]="'requests '" (focus)="_ng_onFocus()" (blur)="_ng_onBlur()" tabindex="1">
+        <li [attr.class]="'request ' + (_ng_selectedIndex === i ? 'selected' : '') + ' ' + (request.request.active ? '' : 'inactive')"
+        (contextmenu)="_ng_onContexMenu($event, request)"
+        *ngFor="let request of _ng_requests; let i = index;">
             <app-sidebar-app-search-request [request]="request"></app-sidebar-app-search-request>
         </li>
     </ul>
 </div>
-<div class="details" *ngIf="_ng_selected !== undefined">
-    <p class="caption t-normal">Filter options:</p>
-    <app-sidebar-app-search-request-details [request]="_ng_selected"></app-sidebar-app-search-request-details>
+
+<div class="controlls" *ngIf="_ng_requests.length > 0">
+    <span class="ref-button" (click)="_ng_onRemoveAll()">Clear</span>
 </div>
-<div class="controlls">
-    <span class="small-button" (click)="_ng_onRemoveAll()">Remove all</span>
-    <span class="small-button" (click)="_ng_onSave()">Save</span>
-    <span class="small-button" (click)="_ng_onLoad()">Load</span>
+
+<div class="details">
+    <app-sidebar-app-search-request-details [request]="_ng_selected"></app-sidebar-app-search-request-details>
 </div>
