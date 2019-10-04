@@ -277,6 +277,8 @@ class ServiceFileOpener implements IService {
         }
         files.unshift({
             file: file,
+            filename: path.basename(file),
+            folder: path.dirname(file),
             timestamp: Date.now(),
             size: size,
         });
