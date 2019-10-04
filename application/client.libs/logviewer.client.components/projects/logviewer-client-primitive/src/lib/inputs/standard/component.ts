@@ -1,4 +1,4 @@
-import { Component, Input, AfterContentInit, ChangeDetectorRef, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, AfterContentInit, ChangeDetectorRef, OnChanges, SimpleChanges, ViewChild, ElementRef } from '@angular/core';
 
 @Component({
     selector: 'lib-primitive-input',
@@ -11,6 +11,8 @@ export class InputStandardComponent implements AfterContentInit, OnChanges {
     public _ng_value: string | number = '';
     public _ng_error: string | undefined;
 
+    @ViewChild('input') inputElRef: ElementRef;
+
     @Input() public value: string | number = '';
     @Input() public placeholder: string = '';
     @Input() public type: string = '';
@@ -21,7 +23,7 @@ export class InputStandardComponent implements AfterContentInit, OnChanges {
     @Input() public onKeyDown: (...args: any[]) => any = () => void 0;
     @Input() public onKeyUp: (...args: any[]) => any = () => void 0;
     @Input() public onEnter: (...args: any[]) => any = () => void 0;
-    @Input() public onChange: (value: string | number) => any = () => void 0;
+    @Input() public onChange: (value: string | number, event?: KeyboardEvent) => any = () => void 0;
     @Input() public validate: (input: string | number) => string | undefined = () => undefined;
 
     constructor(private _cdRef: ChangeDetectorRef) {
@@ -57,21 +59,21 @@ export class InputStandardComponent implements AfterContentInit, OnChanges {
         this._ng_value = '';
     }
 
-    public _ng_onChange(value: string | number) {
+    public _ng_onChange(value: string | number, event?: KeyboardEvent) {
         this._ng_error = this.validate(value);
-        this.onChange(value);
+        this.onChange(value, event);
         this._cdRef.detectChanges();
     }
 
     public _ng_onKeyUp(event: KeyboardEvent) {
         this.onKeyUp(event);
         if (event.key === 'Enter' && this.validate(this._ng_value) === undefined) {
-            this.onEnter(this._ng_value);
+            this.onEnter(this._ng_value, event);
         }
     }
 
     public refresh() {
-        this._ng_onChange(this._ng_value);
+        this._ng_onChange(this._ng_value, undefined);
     }
 
     public setValue(value: string, silence: boolean = false) {
@@ -85,6 +87,13 @@ export class InputStandardComponent implements AfterContentInit, OnChanges {
 
     public getValue(): string | number {
         return this._ng_value;
+    }
+
+    public focus() {
+        if (this.inputElRef === undefined) {
+            return;
+        }
+        this.inputElRef.nativeElement.focus();
     }
 
 }
