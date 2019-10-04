@@ -57,12 +57,27 @@
                     border-right: 1px dotted @scheme-color-4;
                     line-height: 15px;
                     &:nth-child(1) {
+                        & span.filename{
+                            display: inline-block;
+                            position: relative;
+                            font-weight: 500;
+                            max-width: 10rem;
+                            padding: 0 0.5rem;
+                            vertical-align: top;
+                        }
+                        & span.folder{
+                            display: inline-block;
+                            position: relative;
+                            max-width: 12rem;
+                            text-overflow: ellipsis;
+                            direction: rtl;
+                            overflow: hidden;
+                            color: @scheme-color-2;
+                            vertical-align: top;
+                        }
                         width: 100%;
                         padding-left: 0;
-                        max-width: 12rem;
                         overflow: hidden;
-                        text-overflow: ellipsis;
-                        direction: rtl;
                     }
                     &:nth-child(4),
                     &:nth-child(5) {
