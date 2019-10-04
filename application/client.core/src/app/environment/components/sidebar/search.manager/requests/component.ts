@@ -1,15 +1,3 @@
-// TODO:
-// BUG: -> cancel edit -> do not save filter
-// Reorder requests (drag and drop)
-// Context menu
-// Dummy buttons for next task (case sensetive + words + regexp)
-// =================
-// Get rid of list of files (concat / merge dialog). Put instead stats information (count, folder, etc) + warnings about not supported files (into main view)
-// =================
-// Search: if we have active search with focus event in input we should select whole content of input
-// =================
-// With active search we should hide colors controlls if tab Search is active
-
 import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewChild, AfterViewInit, Input, ElementRef } from '@angular/core';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { Subscription, Subject, Observable } from 'rxjs';
@@ -22,14 +10,13 @@ import { NotificationsService } from '../../../../services.injectable/injectable
 import { IComponentDesc } from 'logviewer-client-containers';
 import { SidebarAppSearchManagerControlsComponent } from './controls/component';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
-import { ControllerState } from '../../../../controller/controller.state';
 import ContextMenuService, { IMenu, IMenuItem } from '../../../../services/standalone/service.contextmenu';
 
 interface IState {
-    _ng_selectedIndex?: number;
-    _ng_filename?: string;
-    _filename?: string;
-    _changed?: boolean;
+    _ng_selectedIndex: number;
+    _ng_filename: string | undefined;
+    _filename: string | undefined;
+    _changed: boolean;
 }
 
 @Component({
@@ -51,7 +38,6 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
     public _ng_selected: IRequestDetailsItem | undefined;
     public _ng_selectedIndex: number = -1;
     public _ng_filename: string | undefined;
-    public _ng_state: ControllerState<IState>;
 
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppSearchRequestsComponent');
