@@ -6,17 +6,14 @@
     display: block;
     padding: 0;
     margin: 0;
-    left:0;
-    top:0;
-    width: 100%;
-    height: 100%;
+    left:0.5rem;
+    top:0.5rem;
+    right:0.5rem;
+    bottom:0.5rem;
     display: flex;
     flex-flow: column nowrap;
     & p.caption{
         color: @scheme-color-2;
-        &.padding{
-            padding: 0 0.5rem;
-        }
     }
     & div.requests-wrapper{
         position: relative;
@@ -28,7 +25,6 @@
         overflow-y: auto;
         width: 100%;
         flex: 1 100%;
-        order: 1;
         & ul.requests{
             position: relative;
             display: block;
@@ -41,13 +37,14 @@
             top: 0;
             left: 0;
             height: ~"calc(100% - 1.5rem)";
+            outline: none;
             & li.request{
                 position: relative;
                 display: block;
                 margin: 0;
-                padding: 0.3rem 0;
+                padding: 0;
                 list-style: none;
-                line-height: 1rem;
+                height: 23px;
                 cursor: default;
                 &:hover,
                 &.selected{
@@ -66,23 +63,58 @@
     & div.details{
         position: relative;
         display: block;
-        padding: 0 0.5rem;
         margin: 0;
-        overflow-x: hidden;
-        overflow-y: auto;
+        overflow: hidden;
         flex:none;
-        order: 2;
     }
-
+    & div.recent-wrapper{
+        display: block;
+        flex:none;
+    }
+    & div.controlls-wrapper{
+        display: block;
+        flex:none;
+    }
     & div.controlls{
         display: block;
-        padding: 0 0.5rem;
         white-space: nowrap;
         text-align: right;
-        flex:none;
-        order: 3;
         & .small-button:last-child{
             margin-right: 0;
         }
+    }
+
+    & span.spliter{
+        position: relative;
+        display: block;
+        width: 100%;
+        height: 1rem;
+        &:after{
+            position: absolute;
+            display: block;
+            content: '';
+            top:50%;
+            width: 100%;
+            left:0;
+            border-bottom: 1px dashed @scheme-color-4;
+        }
+    }
+    & *:nth-child(1){
+        order:1;
+    }
+    & *:nth-child(2){
+        order:2;
+    }
+    & *:nth-child(3){
+        order:3;
+    }
+    & *:nth-child(4){
+        order:4;
+    }
+    & *:nth-child(5){
+        order:5;
+    }
+    & *:nth-child(6){
+        order:6;
     }
 }
