@@ -2,12 +2,13 @@ import { NgModule                               } from '@angular/core';
 import { CommonModule                           } from '@angular/common';
 
 import { SidebarAppSearchManagerComponent       } from './component';
+import { SidebarAppSearchManagerControlsComponent} from './requests/controls/component';
 import { SidebarAppSearchRequestsModule         } from './requests/module';
 
 import { PrimitiveModule                        } from 'logviewer-client-primitive';
 import { ContainersModule                       } from 'logviewer-client-containers';
 
-const entryComponents = [ SidebarAppSearchManagerComponent ];
+const entryComponents = [ SidebarAppSearchManagerComponent, SidebarAppSearchManagerControlsComponent ];
 const components = [ ...entryComponents ];
 const modules = [ CommonModule, PrimitiveModule, ContainersModule, SidebarAppSearchRequestsModule ];
 
