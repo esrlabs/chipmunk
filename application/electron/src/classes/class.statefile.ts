@@ -17,12 +17,14 @@ export class StateFile<TState> implements IService {
     private _file: string;
     private _defaults: TState;
     private _state: TState | null = null;
+    private _allowResetToDefault: boolean = true;
 
-    constructor(alias: string, defaults: TState, file: string) {
+    constructor(alias: string, defaults: TState, file: string, allowResetToDefault: boolean = true) {
         this._alias = alias;
         this._logger = new Logger(alias);
         this._defaults = defaults;
         this._file = ServicePaths.resoveHomeFolder(file);
+        this._allowResetToDefault = allowResetToDefault;
         this._logger.verbose(`Inited state file: ${this._file}`);
     }
 
@@ -85,8 +87,13 @@ export class StateFile<TState> implements IService {
                     return reject(new Error(this._logger.error(`Cannot parse state file "${this._file}" due error: ${state.message}`)));
                 }
                 const valid: Error | void = this._validate(state);
-                if (valid instanceof Error) {
+                if (valid instanceof Error && !this._allowResetToDefault) {
                     return reject(new Error(this._logger.error(`Wrong format of state file "${this._file}": ${valid.message}`)));
+                } else if (valid instanceof Error) {
+                    this._logger.error(`Wrong format of state file "${this._file}": ${valid.message}.\n File will be reset to defualts values.`);
+                    return this._default(true).then(() => {
+                        resolve(this._defaults);
+                    }).catch(reject);
                 }
                 resolve(state);
             }).catch((error: Error) => {
@@ -120,9 +127,9 @@ export class StateFile<TState> implements IService {
      * Creates logviewer folder (if it's needed)
      * @returns Promise<void>
      */
-    private _default(): Promise<void> {
+    private _default(force: boolean = false): Promise<void> {
         return new Promise((resolve, reject) => {
-            if (FS.isExist(this._file)) {
+            if (FS.isExist(this._file) && !force) {
                 return resolve();
             }
             FS.writeTextFile(this._file, JSON.stringify(this._defaults)).then(() => {
