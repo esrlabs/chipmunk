@@ -1,5 +1,17 @@
-<span [attr.class]="'switcher small-icon-button fas ' + (_ng_active ? 'fa-check-circle' : 'fa-circle inactive')" (click)="_ng_onChangeState($event)"></span>
-<span class="color" [ngStyle]="{'background': _ng_color}"></span>
-<span class="background" [ngStyle]="{'background': _ng_background}"></span>
-<span class="request t-normal">{{_ng_request}}</span>
-<span class="remove small-icon-button fas fa-times-circle" (click)="_ng_onRemove($event)"></span>
+<div class="container" *ngIf="_ng_edit === false" [ngStyle]="{'opacity': (_ng_shadow ? 0.4 : 1)}">
+    <span [attr.class]="'switcher small-icon-button fas ' + (_ng_active ? 'fa-check-circle' : 'fa-circle inactive')" (click)="_ng_onChangeState($event)"></span>
+    <span class="color" [ngStyle]="{'background': _ng_color}"></span>
+    <span class="background" [ngStyle]="{'background': _ng_background}"></span>
+    <span class="request t-normal">{{_ng_request}}</span>
+</div>
+<div class="container" *ngIf="_ng_edit === true">
+    <lib-primitive-input #input [type]="'text'"
+                         [value]="_ng_request"
+                         [inlineErrors]="true"
+                         [placeholder]="'Filter Value'" 
+                         [validate]="_ng_onValueValidate"
+                         [onKeyUp]="_ng_onValueKeyUp"
+                         [onBlur]="_ng_onValueBlur"
+                         [onEnter]="_ng_onValueEnter"
+                         [onChange]="_ng_onValueChange"></lib-primitive-input>
+</div>
