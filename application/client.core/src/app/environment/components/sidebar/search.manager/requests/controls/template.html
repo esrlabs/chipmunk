@@ -1,0 +1,4 @@
+<span class="small-icon-button fas fa-ellipsis-h" title="Open Recent Filters" (click)="_ng_onRecentOpen()"></span>
+<span *ngIf="filename !== undefined" [attr.class]="'small-icon-button far fa-save ' + (changed ? '' : 'disabled')" title="Save Filters" (click)="_ng_onSave()"></span>
+<span class="small-icon-button fas fa-file-medical" title="Save Filters As" (click)="_ng_onSave(true)"></span>
+<span class="small-icon-button fas fa-folder-open" title="Open Filters" (click)="_ng_onLoad()"></span>
