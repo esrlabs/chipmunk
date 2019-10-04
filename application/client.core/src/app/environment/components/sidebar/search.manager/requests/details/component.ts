@@ -4,15 +4,12 @@ import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, OnCha
 import { IRequest } from '../../../../../controller/controller.session.tab.search';
 import { CColors } from '../../../../../conts/colors';
 import { getContrastColor } from '../../../../../theme/colors';
+import * as Toolkit from 'logviewer.client.toolkit';
+import { Subscription } from 'rxjs';
 
 export interface IRequestItem {
     request: IRequest;
     onChange: (color: string, background: string) => void;
-}
-
-enum EColorSetingMode {
-    auto = 'auto',
-    manual = 'manual'
 }
 
 @Component({
@@ -23,7 +20,7 @@ enum EColorSetingMode {
 
 export class SidebarAppSearchRequestDetailsComponent implements OnDestroy, AfterContentInit, OnChanges {
 
-    @Input() public request: IRequestItem;
+    @Input() public request: IRequestItem | undefined;
 
     public _ng_request: string = '';
     public _ng_color: string = '';
@@ -31,12 +28,9 @@ export class SidebarAppSearchRequestDetailsComponent implements OnDestroy, After
     public _ng_colors: string[] = CColors;
     public _ng_colorIndex: number = -1;
     public _ng_backgroundIndex: number = -1;
-    public _ng_options: Array<{ value: string; caption: string}> = [
-        { value: EColorSetingMode.auto, caption: 'Auto color binding' },
-        { value: EColorSetingMode.manual, caption: 'Manual color definition' },
-    ];
+    public _ng_colorBinding: boolean = true;
 
-    private _colorSettingMode: EColorSetingMode = EColorSetingMode.auto;
+    private _subscriptions: { [key: string]: Subscription } = {};
 
     constructor(private _cdRef: ChangeDetectorRef) {
         this._ng_onColorSettingModeChange = this._ng_onColorSettingModeChange.bind(this);
@@ -47,6 +41,9 @@ export class SidebarAppSearchRequestDetailsComponent implements OnDestroy, After
     }
 
     public ngOnDestroy() {
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            this._subscriptions[key].unsubscribe();
+        });
     }
 
     public ngOnChanges() {
@@ -54,24 +51,30 @@ export class SidebarAppSearchRequestDetailsComponent implements OnDestroy, After
     }
 
     public _ng_onColorSelect(index: number) {
+        if (this.request === undefined) {
+            return;
+        }
         this._ng_color = this._ng_colors[index];
-        this._ng_background = this._colorSettingMode === EColorSetingMode.auto ? this._getGeneratedColor(this._ng_color, false) : this._ng_background;
+        this._ng_background = this._ng_colorBinding ? this._getGeneratedColor(this._ng_color, false) : this._ng_background;
         this._updateIndexes();
         this.request.onChange(this._ng_color, this._ng_background);
         this._cdRef.detectChanges();
     }
 
     public _ng_onBackgroundSelect(index: number) {
+        if (this.request === undefined) {
+            return;
+        }
         this._ng_background = this._ng_colors[index];
-        this._ng_color = this._colorSettingMode === EColorSetingMode.auto ? this._getGeneratedColor(this._ng_background, true) : this._ng_color;
+        this._ng_color = this._ng_colorBinding ? this._getGeneratedColor(this._ng_background, true) : this._ng_color;
         this._updateIndexes();
         this.request.onChange(this._ng_color, this._ng_background);
         this._cdRef.detectChanges();
     }
 
-    public _ng_onColorSettingModeChange(value: EColorSetingMode) {
-        this._colorSettingMode = value;
-        if (this._colorSettingMode === EColorSetingMode.manual) {
+    public _ng_onColorSettingModeChange(value: boolean) {
+        this._ng_colorBinding = value;
+        if (!this._ng_colorBinding) {
             this._ng_background = this._ng_colors[0];
             this._ng_backgroundIndex = 0;
         }
