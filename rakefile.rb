@@ -71,7 +71,13 @@ task :rust_clean do
 end
 
 task :clean => :rust_clean
-CLOBBER.include(["**/node_modules", "**/package-lock.json", "**/dist", "application/apps/indexer/target"])
+CLOBBER.include([
+  "**/node_modules",
+  "**/package-lock.json",
+  "**/dist",
+  "application/apps/indexer/target",
+  "application/apps/indexer-neon/dist",
+  "application/apps/indexer-neon/native/target"])
 
 task :folders => [DIST_FOLDER, COMPILED_FOLDER, RELEASE_FOLDER, INCLUDED_PLUGINS_FOLDER, INCLUDED_APPS_FOLDER]
 
@@ -125,7 +131,7 @@ def npm_reinstall(package_and_version)
 end
 
 desc "start"
-task :start do
+task :start => :ripgrepdelivery do
   cd "application/electron" do
     sh "#{NPM_RUN} electron"
   end
@@ -144,48 +150,49 @@ task :setup_environment do
   end
 end
 
-desc "ripgrep delivery"
-task :ripgrepdelivery => :folders do
+def rg_executable
+  if OS.windows? == true
+    "#{COMPILED_FOLDER}/apps/rg.exe"
+  else
+    "#{COMPILED_FOLDER}/apps/rg"
+  end
+end
+
+file rg_executable do
+  puts "rebuilding rg executable"
   path = "temp"
   Dir.mkdir(path) unless File.exists?(path)
-  case TARGET_PLATFORM_ALIAS
-    when "mac"
-      url = "#{RIPGREP_URL}-x86_64-apple-darwin.tar.gz"
-    when "linux"
-      url = "#{RIPGREP_URL}-x86_64-unknown-linux-musl.tar.gz"
-    when "win"
-      url = "#{RIPGREP_URL}-x86_64-pc-windows-msvc.zip"
+  if OS.mac?
+    url = "#{RIPGREP_URL}-x86_64-apple-darwin.tar.gz"
+  elsif OS.linux?
+    url = "#{RIPGREP_URL}-x86_64-unknown-linux-musl.tar.gz"
+  elsif OL.windows?
+    url = "#{RIPGREP_URL}-x86_64-pc-windows-msvc.zip"
   end
+
   file_name = URI(url).path.split('/').last
-  unix_version_platform = File.basename(file_name, ".tar.gz")
 
   open("#{path}/#{file_name}", "wb") do |file|
     file << open(url).read
   end
-  case TARGET_PLATFORM_ALIAS
-    when "mac"
-      cd path do
-        sh "tar xvzf #{file_name}"
-      end
-      src = "#{path}/#{unix_version_platform}/rg"
-      dest = "#{COMPILED_FOLDER}/apps/rg"
-    when "linux"
-      cd path do
-        sh "tar xvzf #{file_name}"
-      end
-      src = "#{path}/#{unix_version_platform}/rg"
-      dest = "#{COMPILED_FOLDER}/apps/rg"
-    when "win"
-      cd path do
-        sh "unzip #{file_name}"
-      end
-      src = "#{path}/rg.exe"
-      dest = "#{COMPILED_FOLDER}/apps/rg.exe"
+  if OS.mac? or OS.linux?
+    cd path do
+      sh "tar xvzf #{file_name}"
+    end
+    src = "#{path}/#{File.basename(file_name, '.tar.gz')}/rg"
+  elsif OL.windows?
+    cd path do
+      sh "unzip #{file_name}"
+    end
+    src = "#{path}/rg.exe"
   end
-  rm(dest, :force => true)
-  cp(src, dest)
+  rm(rg_executable, :force => true)
+  cp(src, rg_executable)
   rm_r(path, :force => true)
 end
+
+desc "ripgrep delivery"
+task :ripgrepdelivery => [:folders, rg_executable]
 
 namespace :client do
   task :build_core do
@@ -677,6 +684,13 @@ task :prepare_to_deploy do
   end
   puts "prepare_to_deploy took #{time}"
 end
+
+desc "developer job to completely build chipmunk...after that use :start"
+task :dev => [:install,
+              :plugins,
+              :ripgrepdelivery,
+              :build,
+              :delivery_embedded_indexer_into_release]
 
 desc "Build the full build pipeline for a given platform"
 task :full_pipeline => [:setup_environment,
