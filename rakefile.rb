@@ -116,6 +116,13 @@ end
 def npm_install(what = "")
   sh "npm install #{what} --prefere-offline"
 end
+def npm_reinstall(package_and_version)
+  xs = package_and_version.split("@")
+  package = xs[0]
+  version = xs[1]
+  sh "npm uninstall #{package}"
+  sh "npm install #{package}@#{version} --prefere-offline"
+end
 
 desc "start"
 task :start do
@@ -180,26 +187,93 @@ task :ripgrepdelivery => :folders do
   rm_r(path, :force => true)
 end
 
-task :build_client_core do
-  cd "application/client.core" do
-    puts "Installing: core"
-    npm_install
-    sh "npm uninstall logviewer.client.toolkit"
-    npm_install("logviewer.client.toolkit@latest")
+namespace :client do
+  task :build_core do
+    cd "application/client.core" do
+      puts "Installing: core"
+      npm_install
+      npm_install("logviewer.client.toolkit@latest")
+    end
   end
-end
-task :build_client_components do
-  cd "application/client.libs/logviewer.client.components" do
-    puts "Installing: components"
-    npm_install
+  task :rebuild_core do
+    cd "application/client.core" do
+      puts "re-installing: core"
+      npm_install
+      npm_reinstall("logviewer.client.toolkit@latest")
+    end
   end
-end
-task :build_client_plugins do
-  cd "application/client.plugins" do
-    puts "Installing: plugins env"
-    npm_install
-    sh "npm uninstall logviewer.client.toolkit"
-    npm_install("logviewer.client.toolkit@latest")
+  task :build_components do
+    cd "application/client.libs/logviewer.client.components" do
+      puts "Installing: components"
+      npm_install
+    end
+  end
+  task :build_plugins do
+    cd "application/client.plugins" do
+      puts "Installing: plugins env"
+      npm_install
+      npm_install("logviewer.client.toolkit@latest")
+    end
+  end
+  task :rebuild_plugins do
+    cd "application/client.plugins" do
+      puts "Re-Installing: plugins env"
+      npm_install
+      npm_reinstall("logviewer.client.toolkit@latest")
+    end
+  end
+  desc "Building client libs"
+  task :build_libs do
+    puts "Building client libs"
+    cd SRC_CLIENT_NPM_LIBS do
+      i = 0;
+      while i < CLIENT_NPM_LIBS_NAMES.length
+        lib = CLIENT_NPM_LIBS_NAMES[i]
+        puts "Compiling client components library: #{lib}"
+        sh "#{NPM_RUN} build:#{lib}"
+        i += 1
+      end
+    end
+  end
+
+  desc "Delivery client libs"
+  task :deliver_libs do
+    puts "Delivery client libs"
+    i = 0;
+    while i < DESTS_CLIENT_NPM_LIBS.length
+      dest = DESTS_CLIENT_NPM_LIBS[i]
+      puts "Delivery libs into: #{dest}"
+      if !File.exists?(dest)
+        puts "NPM isn't installed in project #{File.dirname(dest)}. Installing..."
+        cd File.dirname(dest) do
+          npm_install
+        end
+      end
+      j = 0;
+      while j < CLIENT_NPM_LIBS_NAMES.length
+        lib = CLIENT_NPM_LIBS_NAMES[j]
+        src = "#{SRC_CLIENT_NPM_LIBS}/dist/#{lib}"
+        path = "#{dest}/#{lib}"
+        puts src
+        puts path
+        rm_r(path, :force => true)
+        cp_r(src, path, :verbose => false)
+        j += 1
+      end
+      i += 1
+    end
+  end
+
+  desc "Build client"
+  task :build do
+    cd "application/client.core" do
+      puts "Building client.core"
+      sh "#{NPM_RUN} build"
+    end
+    puts "Delivery client.core"
+    dest_client_path = "#{COMPILED_FOLDER}/client"
+    rm_r(dest_client_path, :force => true)
+    cp_r(COMPILED_CLIENT_FOLDER, dest_client_path, :verbose => false)
   end
 end
 task :build_electron => [ :prepare_electron_build,
@@ -217,15 +291,26 @@ task :finish_electron_build do
   end
 end
 
-desc "install"
-task :install => [:folders,
-                  :build_client_core,
-                  :build_client_components,
+desc "re-install"
+task :reinstall => [:folders,
+                  "client:rebuild_core",
+                  "client:build_components",
                   :build_electron,
                   :ipc,
-                  :clientlibsbuild,
-                  :clientlibsdelivery,
-                  :client_build,
+                  "client:build_libs",
+                  "client:deliver_libs",
+                  "client:build",
+                  :apppackagedelivery,
+]
+desc "install"
+task :install => [:folders,
+                  "client:build_core",
+                  "client:build_components",
+                  :build_electron,
+                  :ipc,
+                  "client:build_libs",
+                  "client:deliver_libs",
+                  "client:build",
                   :apppackagedelivery,
 ]
 
@@ -236,10 +321,10 @@ desc "Developer task: update application with indexer-neon"
 task :dev_update_application_with_indexer => [:dev_update_and_delivery_indexer, :start]
 
 desc "Developer task: update client"
-task :dev_update_client => [:ipc, :client_build]
+task :dev_update_client => [:ipc, "client:build"]
 
 desc "Developer task: update client"
-task :dev_fullupdate_client => [:clientlibsbuild, :clientlibsdelivery, :dev_update_client]
+task :dev_fullupdate_client => ["client:build_libs", "client:deliver_libs", :dev_update_client]
 
 desc "Developer task: update client"
 task :dev_fullupdate_client_run => :dev_fullupdate_client do
@@ -281,59 +366,6 @@ task :ipc do
   cp_r(SRC_PLUGIN_IPC, DEST_PLUGINIPCLIG_PLUGIN_IPC, :verbose => false)
 end
 
-desc "Building client libs"
-task :clientlibsbuild do
-  puts "Building client libs"
-  cd SRC_CLIENT_NPM_LIBS do
-    i = 0;
-    while i < CLIENT_NPM_LIBS_NAMES.length
-      lib = CLIENT_NPM_LIBS_NAMES[i]
-      puts "Compiling client components library: #{lib}"
-      sh "#{NPM_RUN} build:#{lib}"
-      i += 1
-    end
-  end
-end
-
-desc "Delivery client libs"
-task :clientlibsdelivery do
-  puts "Delivery client libs"
-  i = 0;
-  while i < DESTS_CLIENT_NPM_LIBS.length
-    dest = DESTS_CLIENT_NPM_LIBS[i]
-    puts "Delivery libs into: #{dest}"
-    if !File.exists?(dest)
-      puts "NPM isn't installed in project #{File.dirname(dest)}. Installing..."
-      cd File.dirname(dest) do
-        npm_install
-      end
-    end
-    j = 0;
-    while j < CLIENT_NPM_LIBS_NAMES.length
-      lib = CLIENT_NPM_LIBS_NAMES[j]
-      src = "#{SRC_CLIENT_NPM_LIBS}/dist/#{lib}"
-      path = "#{dest}/#{lib}"
-      puts src
-      puts path
-      rm_r(path, :force => true)
-      cp_r(src, path, :verbose => false)
-      j += 1
-    end
-    i += 1
-  end
-end
-
-desc "Build client"
-task :client_build do
-  cd "application/client.core" do
-    puts "Building client.core"
-    sh "#{NPM_RUN} build"
-  end
-  puts "Delivery client.core"
-  dest_client_path = "#{COMPILED_FOLDER}/client"
-  rm_r(dest_client_path, :force => true)
-  cp_r(COMPILED_CLIENT_FOLDER, dest_client_path, :verbose => false)
-end
 
 desc "Add package.json to compiled app"
 task :apppackagedelivery do
@@ -354,8 +386,7 @@ task :pluginsstandalone do
     cd src do
       puts "Install plugin: #{plugin}"
       npm_install
-      sh "npm uninstall logviewer.client.toolkit"
-      npm_install("logviewer.client.toolkit@latest")
+      npm_reinstall("logviewer.client.toolkit@latest")
       sh "#{NPM_RUN} build"
     end
     dest = "#{PLUGINS_SANDBOX}/#{plugin}"
@@ -380,9 +411,7 @@ task :pluginscomplex do
     "processes" ,
     #"xterminal"
   ];
-  i = 0
-  while i < complex_plugins.length
-    plugin = complex_plugins[i]
+  complex_plugins.each do |plugin|
     puts "Installing plugin: #{plugin}"
     cd "application/sandbox/#{plugin}/process" do
       npm_install
@@ -403,7 +432,6 @@ task :pluginscomplex do
     package = JSON.parse(package_str)
     arch = "#{INCLUDED_PLUGINS_FOLDER}/#{plugin}@#{package["version"]}-#{get_nodejs_platform()}.tgz"
     compress_plugin(arch, plugin)
-    i += 1
   end
 end
 
@@ -434,18 +462,15 @@ desc "update plugin.ipc"
 task :updatepluginipc do
   cd "application/sandbox/dlt/process" do
     puts "Update toolkits for: dlt plugin"
-    sh "npm uninstall logviewer.plugin.ipc"
-    npm_install("logviewer.plugin.ipc@latest")
+    npm_reinstall("logviewer.plugin.ipc@latest")
   end
   cd "application/sandbox/serial/process" do
     puts "Update toolkits for: serial plugin"
-    sh "npm uninstall logviewer.plugin.ipc"
-    npm_install("logviewer.plugin.ipc@latest")
+    npm_reinstall("logviewer.plugin.ipc@latest")
   end
   cd "application/sandbox/processes/process" do
     puts "Update toolkits for: processes pluginplugin"
-    sh "npm uninstall logviewer.plugin.ipc"
-    npm_install("logviewer.plugin.ipc@latest")
+    npm_reinstall("logviewer.plugin.ipc@latest")
   end
   #cd "application/sandbox/xterminal/process" do
   #  puts "Update toolkits for: xterminal plugin"

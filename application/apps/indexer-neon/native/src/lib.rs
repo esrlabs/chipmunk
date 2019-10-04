@@ -10,13 +10,13 @@ extern crate serde;
 
 mod logging;
 use crate::logging::SimpleLogger;
-use indexer_base::chunks::serialize_chunks;
+use indexer_base::chunks::{serialize_chunks, Chunk};
 use indexer_base::config::IndexingConfig;
+use indexer_base::progress::IndexingProgress;
 use neon::prelude::*;
 use processor::parse;
 use processor::parse::DiscoverItem;
 use processor::parse::TimestampFormatResult;
-use processor::processor::IndexingProgress;
 use std::fs;
 use std::path;
 use std::sync::mpsc::{self, RecvTimeoutError};
@@ -29,8 +29,9 @@ use log::{LevelFilter, SetLoggerError};
 static LOGGER: SimpleLogger = SimpleLogger;
 
 #[no_mangle]
-pub extern fn __cxa_pure_virtual() {
-    loop{};
+pub extern "C" fn __cxa_pure_virtual() {
+    #[allow(clippy::empty_loop)]
+    loop {}
 }
 
 pub fn init_logging() -> Result<(), SetLoggerError> {
@@ -160,14 +161,22 @@ fn index_file(
     config: IndexingConfig,
     timestamps: bool,
     mapping_out_path: path::PathBuf,
-    tx: Option<mpsc::Sender<IndexingProgress>>,
+    tx: Option<mpsc::Sender<IndexingProgress<Chunk>>>,
     shutdown_receiver: Option<mpsc::Receiver<()>>,
 ) {
-    info!("index_file in new thread",);
+    info!("index_file in new thread");
+
+    let source_file_size = Some(match config.in_file.metadata() {
+        Ok(file_meta) => file_meta.len() as usize,
+        Err(_) => {
+            error!("could not find out size of source file");
+            std::process::exit(2);
+        }
+    });
     match processor::processor::create_index_and_mapping(
         config,
         timestamps,
-        None,
+        source_file_size,
         tx,
         shutdown_receiver,
     ) {
@@ -322,7 +331,7 @@ pub struct IndexingEventEmitter {
     // `Send + Sync`. Since, correct usage of the `poll` interface should
     // only have a single concurrent consume, we guard the channel with a
     // `Mutex`.
-    events: Arc<Mutex<mpsc::Receiver<IndexingProgress>>>,
+    events: Arc<Mutex<mpsc::Receiver<IndexingProgress<Chunk>>>>,
 
     // Channel used to perform a controlled shutdown of the work thread.
     shutdown_sender: mpsc::Sender<()>,
@@ -332,7 +341,7 @@ impl IndexingEventEmitter {
     fn event_thread(
         self: &mut IndexingEventEmitter,
         shutdown_rx: mpsc::Receiver<()>,
-        chunk_result_sender: mpsc::Sender<IndexingProgress>,
+        chunk_result_sender: mpsc::Sender<IndexingProgress<Chunk>>,
         file: fs::File,
         timestamps: bool,
         tag: String,
@@ -362,10 +371,10 @@ impl IndexingEventEmitter {
                 Some(shutdown_rx),
             );
             debug!("back after indexing finished!!!!!!!!",);
-            match chunk_result_sender.send(IndexingProgress::Finished) {
-                Ok(()) => debug!("sent final finished successfully",),
-                Err(e) => debug!("error sending final finished: {}", e),
-            }
+            // match chunk_result_sender.send(IndexingProgress::Finished) {
+            //     Ok(()) => debug!("sent final finished successfully",),
+            //     Err(e) => debug!("error sending final finished: {}", e),
+            // }
         }));
 
         // chunk_result_receiver
@@ -374,12 +383,12 @@ impl IndexingEventEmitter {
 // Reading from a channel `Receiver` is a blocking operation. This struct
 // wraps the data required to perform a read asynchronously from a libuv
 // thread.
-pub struct EventEmitterTask(Arc<Mutex<mpsc::Receiver<IndexingProgress>>>);
+pub struct EventEmitterTask(Arc<Mutex<mpsc::Receiver<IndexingProgress<Chunk>>>>);
 
 // Implementation of a neon `Task` for `EventEmitterTask`. This task reads
 // from the events channel and calls a JS callback with the data.
 impl Task for EventEmitterTask {
-    type Output = Option<IndexingProgress>;
+    type Output = Option<IndexingProgress<Chunk>>;
     type Error = String;
     type JsEvent = JsValue;
 
@@ -398,7 +407,7 @@ impl Task for EventEmitterTask {
         match rx.recv_timeout(Duration::from_millis(100)) {
             Ok(event) => {
                 match event {
-                    IndexingProgress::GotChunk { .. } => (),
+                    IndexingProgress::GotItem { .. } => (),
                     _ => {
                         debug!("(libuv): OK({:?})", &event);
                     }
@@ -428,20 +437,28 @@ impl Task for EventEmitterTask {
     ) -> JsResult<Self::JsEvent> {
         // debug!("complete rs");
         // Receive the event or return early with the error
-        let event: Option<IndexingProgress> =
+        let event: Option<IndexingProgress<Chunk>> =
             event.or_else(|err| cx.throw_error(&err.to_string()))?;
 
         // Timeout occured, return early with `undefined
-        let event: IndexingProgress = match event {
+        let event: IndexingProgress<Chunk> = match event {
             Some(event) => event,
             None => return Ok(JsUndefined::new().upcast()),
         };
         // Create an empty object `{}`
         let o = cx.empty_object();
-        // debug!("event: {:?}", event);
         match event {
-            IndexingProgress::GotChunk { chunk } => {
-                let event_name = cx.string("GotChunk");
+            IndexingProgress::Progress { ticks: (n, total) } => {
+                let event_name = cx.string("Progress");
+                let ticked = cx.number(n as f64);
+                let total = cx.number(total as f64);
+
+                o.set(&mut cx, "event", event_name)?;
+                o.set(&mut cx, "ellapsed", ticked)?;
+                o.set(&mut cx, "total", total)?;
+            }
+            IndexingProgress::GotItem { item: chunk } => {
+                let event_name = cx.string("GotItem");
                 let rows_start = cx.number(chunk.r.0 as f64);
                 let rows_end = cx.number(chunk.r.1 as f64);
                 let bytes_start = cx.number(chunk.b.0 as f64);

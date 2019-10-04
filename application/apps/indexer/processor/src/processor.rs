@@ -15,6 +15,7 @@ use failure::{err_msg, Error};
 use indexer_base::chunks::{Chunk, ChunkFactory};
 use indexer_base::config::IndexingConfig;
 use indexer_base::error_reporter::*;
+use indexer_base::progress::*;
 use indexer_base::utils;
 use parse::detect_timestamp_in_string;
 use std::sync::mpsc::{self, TryRecvError};
@@ -28,7 +29,7 @@ pub fn create_index_and_mapping(
     config: IndexingConfig,
     parse_timestamps: bool,
     source_file_size: Option<usize>,
-    update_channel: Option<mpsc::Sender<IndexingProgress>>,
+    update_channel: Option<mpsc::Sender<IndexingProgress<Chunk>>>,
     shutdown_receiver: Option<mpsc::Receiver<()>>,
 ) -> Result<Vec<Chunk>, Error> {
     let initial_line_nr = match utils::next_line_nr(config.out_path) {
@@ -51,18 +52,12 @@ pub fn create_index_and_mapping(
     )
 }
 
-#[derive(Debug)]
-pub enum IndexingProgress {
-    GotChunk { chunk: Chunk },
-    Stopped,
-    Finished,
-}
 pub fn index_file(
     config: IndexingConfig,
     initial_line_nr: usize,
     timestamps: bool,
     source_file_size: Option<usize>,
-    update_channel: Option<mpsc::Sender<IndexingProgress>>,
+    update_channel: Option<mpsc::Sender<IndexingProgress<Chunk>>>,
     shutdown_receiver: Option<mpsc::Receiver<()>>,
 ) -> Result<Vec<Chunk>, Error> {
     let start = Instant::now();
@@ -78,7 +73,7 @@ pub fn index_file(
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
 
     let mut buf = vec![];
-    let mut processed_bytes = utils::get_processed_bytes(config.append, &config.out_path) as usize;
+    let mut processed_bytes = 0usize;
     let mut stopped = false;
     while let Ok(len) = reader.read_until(b'\n', &mut buf) {
         if stopped {
@@ -193,8 +188,8 @@ pub fn index_file(
                         }
                     };
                     update_channel.as_ref().map(|c| {
-                        c.send(IndexingProgress::GotChunk {
-                            chunk: chunk.clone(),
+                        c.send(IndexingProgress::GotItem {
+                            item: chunk.clone(),
                         })
                     });
                     chunks.push(chunk);
@@ -212,6 +207,13 @@ pub fn index_file(
                     file_size,
                     REPORT_PROGRESS_LINE_BLOCK,
                 );
+                if line_nr % REPORT_PROGRESS_LINE_BLOCK == 0 {
+                    update_channel.as_ref().map(|c| {
+                        c.send(IndexingProgress::Progress {
+                            ticks: (processed_bytes, file_size),
+                        })
+                    });
+                }
             }
         }
         buf = vec![];
@@ -226,8 +228,8 @@ pub fn index_file(
         buf_writer.flush()?;
         if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunks.is_empty()) {
             update_channel.as_ref().map(|c| {
-                c.send(IndexingProgress::GotChunk {
-                    chunk: chunk.clone(),
+                c.send(IndexingProgress::GotItem {
+                    item: chunk.clone(),
                 })
             });
             chunks.push(chunk);
@@ -247,7 +249,7 @@ pub fn index_file(
         }
         let elapsed = start.elapsed();
         let ms = elapsed.as_millis();
-        info!("created {} chunks in {} ms", chunks.len(), ms);
+        info!("done, created {} chunks in {} ms", chunks.len(), ms);
         if let Some(tx) = update_channel {
             trace!("sending IndexingProgress::Finished");
             tx.send(IndexingProgress::Finished)?;

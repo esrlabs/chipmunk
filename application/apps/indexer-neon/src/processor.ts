@@ -1,4 +1,5 @@
 import { log } from "./logging";
+import { AsyncResult, ITicks } from "./progress";
 const { promisify } = require("util");
 const { REventEmitter: RustChannel } = require("../native/index.node");
 const addon = require("../native");
@@ -14,7 +15,7 @@ export interface IIndexerParams {
     timestamps: boolean;
     statusUpdates: boolean;
 }
-export interface IFilePath {
+    export interface IFilePath {
     path: string;
 }
 export interface IChunk {
@@ -28,7 +29,13 @@ export interface IChunk {
 // interface provided by the Neon class. It may be constructed and used
 // as a normal `EventEmitter`, including use by multiple subscribers.
 class NativeEventEmitter extends EventEmitter {
-    public static EVENTS = { GotChunk: "GotChunk" };
+    public static EVENTS = {
+    GotItem: "GotItem",
+    Progress: "Progress",
+    Stopped: "Stopped",
+    Finished: "Finished",
+    Error: "Error",
+ };
     shutdownRequested: boolean;
     isShutdown: boolean;
     shutdownDoneCallback: () => void;
@@ -131,10 +138,11 @@ export function indexAsync(
     fileToIndex: string,
     maxTime: number,
     outPath: string,
+    onProgress: (ticks: ITicks) => any,
     onChunk: (chunk: IChunk) => any,
     tag: string,
-): Promise<boolean> {
-    return new Promise<boolean>((resolve, reject) => {
+): Promise<AsyncResult> {
+    return new Promise<AsyncResult>((resolve, reject) => {
         let chunks: number = 0;
         const emitter = new NativeEventEmitter(
             fileToIndex,
@@ -148,26 +156,27 @@ export function indexAsync(
             log("TIMED OUT ====> shutting down");
             emitter.requestShutdown();
         }, maxTime);
-        emitter.on(NativeEventEmitter.EVENTS.GotChunk, onChunk);
-        emitter.on("Stopped", (e: any) => {
+        emitter.on(NativeEventEmitter.EVENTS.GotItem, onChunk);
+        emitter.on(NativeEventEmitter.EVENTS.Progress, onProgress);
+        emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
             log("we got a stopped event after " + chunks + " chunks");
             clearTimeout(timeout);
             emitter.shutdownAcknowledged(() => {
                 log("shutdown completed");
-                resolve(true);
+                resolve(AsyncResult.Aborted);
             });
         });
-        emitter.on("error", (e: any) => {
+        emitter.on(NativeEventEmitter.EVENTS.Error, (e: any) => {
             log("we got an error: " + e);
             clearTimeout(timeout);
             emitter.requestShutdown();
         });
-        emitter.on("Finished", (e: any) => {
+        emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
             log("we got a finished event " + chunks + " chunks");
             clearTimeout(timeout);
             emitter.shutdownAcknowledged(() => {
                 log("shutdown completed");
-                resolve(true);
+                resolve(AsyncResult.Completed);
             });
         });
     });

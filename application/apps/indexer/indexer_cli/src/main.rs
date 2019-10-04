@@ -16,7 +16,7 @@ extern crate merging;
 extern crate chrono;
 extern crate dirs;
 
-use indexer_base::chunks::{serialize_chunks};
+use indexer_base::chunks::{serialize_chunks, Chunk};
 use indexer_base::config::IndexingConfig;
 use indexer_base::error_reporter::*;
 
@@ -35,7 +35,7 @@ use processor::parse::{
     line_matching_format_expression, match_format_string_in_file, read_format_string_options,
     FormatTestOptions, DiscoverItem, TimestampFormatResult,
 };
-use processor::processor::IndexingProgress;
+use indexer_base::progress::IndexingProgress;
 use std::sync::mpsc::{Sender, Receiver};
 use log::LevelFilter;
 use log4rs::append::file::FileAppender;
@@ -386,8 +386,10 @@ fn main() {
             let append: bool = matches.is_present("append");
             let stdout: bool = matches.is_present("stdout");
             let timestamps: bool = matches.is_present("timestamp");
-            let (tx, _rx): (Sender<IndexingProgress>, Receiver<IndexingProgress>) =
-                std::sync::mpsc::channel();
+            let (tx, _rx): (
+                Sender<IndexingProgress<Chunk>>,
+                Receiver<IndexingProgress<Chunk>>,
+            ) = std::sync::mpsc::channel();
 
             match processor::processor::create_index_and_mapping(
                 IndexingConfig {

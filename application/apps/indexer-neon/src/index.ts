@@ -10,6 +10,8 @@ import {
 } from "./processor";
 import { IConcatFilesParams, IMergeParams, mergeFiles, concatFiles } from "./merger";
 import { IIndexDltParams, dltStats, indexDltFile } from "./dlt";
+import { ITicks, AsyncResult } from "./progress";
+export { ITicks };
 
 export interface LevelDistribution {
     non_log: number;
@@ -34,9 +36,10 @@ export interface IChipmunkIndexer {
     fileToIndex: string,
     maxTime: number,
     outPath: string,
+    onProgress: (ticks: ITicks) => any,
     onChunk: (chunk: IChunk) => any,
     tag: string,
-) => Promise<boolean>,
+) => Promise<AsyncResult>,
     mergeFiles: (params: IMergeParams) => boolean;
     concatFiles: (params: IConcatFilesParams) => boolean;
     dltStats: (dltFile: String) => StatisticInfo;

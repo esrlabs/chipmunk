@@ -2,7 +2,7 @@ import { AFileParser, IFileParserFunc, IMapItem } from './interface';
 import { Transform } from 'stream';
 import * as path from 'path';
 // import { Lvin, IIndexResult, IFileMapItem, ILogMessage } from '../controller.lvin';
-import { library } from "indexer-neon";
+import { library, ITicks } from "indexer-neon";
 import ServiceElectron, { IPCMessages } from '../../services/service.electron';
 import ServiceStreams from '../../services/service.streams';
 import * as ft from 'file-type';
@@ -94,7 +94,10 @@ export default class FileParser extends AFileParser {
         return new Promise((resolve, reject) => {
             const collectedChunks: IMapItem[] = [];
             const hrstart = process.hrtime();
-            library.indexAsync(500, srcFile, 15000, destFile, (e: any) => {
+            const onProgress = (ticks: ITicks) => {
+                logger.debug("progress: " + JSON.stringify(ticks));
+            };
+            library.indexAsync(500, srcFile, 15000, destFile, onProgress, (e: any) => {
                 if (onMapUpdated !== undefined) {
                     const mapItem: IMapItem = { rows: {from: e.rows_start, to: e.rows_end}, bytes: { from: e.bytes_start, to: e.bytes_end } };
                     onMapUpdated([mapItem]);

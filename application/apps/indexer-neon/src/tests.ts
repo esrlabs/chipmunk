@@ -1,6 +1,7 @@
-import { indexAsync, indexFile, IFilePath } from "./processor";
+import { indexAsync, indexFile, IFilePath, IChunk } from "./processor";
 import { DltFilterConf } from "./dlt";
 import { StatisticInfo, library } from "./index";
+import { ITicks } from "./progress";
 import { log } from "./logging";
 const util = require("util");
 
@@ -189,12 +190,24 @@ function testIndexingAsync() {
     try {
         const outPath = examplePath + "/indexing/test.out";
         let chunks: number = 0;
-        indexAsync(500, examplePath + "/indexing/access_huge.log", 15000, outPath, (e: any) => {
+        let onProgress = (ticks: ITicks) => {
+            log("progress: " + ticks);
+        };
+        let onChunk = (chunk: IChunk) => {
             chunks += 1;
             if (chunks % 100 === 0) {
                 process.stdout.write(".");
             }
-        }, "TAG").then(x => {
+        };
+        indexAsync(
+            500,
+            examplePath + "/indexing/access_huge.log",
+            15000,
+            outPath,
+            onProgress,
+            onChunk,
+            "TAG",
+        ).then(x => {
             const hrend = process.hrtime(hrstart);
             const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
             log("COMPLETELY DONE (last result was: " + x + ")");
@@ -208,12 +221,23 @@ function testInterruptAsyncIndexing() {
     const outPath = examplePath + "/indexing/test.out";
     const hrstart = process.hrtime();
     let chunks: number = 0;
-    indexAsync(500, examplePath + "/indexing/access_huge.log", 750, outPath, (e: any) => {
-        chunks += 1;
-        if (chunks % 100 === 0) {
-            process.stdout.write(".");
-        }
-    }, "TAG").then(x => {
+    let onProgress = (ticks: ITicks) => {
+        log("progress: " + ticks);
+    };
+    indexAsync(
+        500,
+        examplePath + "/indexing/access_huge.log",
+        750,
+        outPath,
+        onProgress,
+        (e: any) => {
+            chunks += 1;
+            if (chunks % 100 === 0) {
+                process.stdout.write(".");
+            }
+        },
+        "TAG",
+    ).then(x => {
         const hrend = process.hrtime(hrstart);
         const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
         console.log("first event emitter task finished, result: " + x);
@@ -224,10 +248,21 @@ function testVeryShortIndexing() {
     const outPath = examplePath + "/indexing/test.out";
     const hrstart = process.hrtime();
     let chunks: number = 0;
-    indexAsync(500, examplePath + "/indexing/access_tiny.log", 750, outPath, (e: any) => {
-        chunks += 1;
-        log("chunk: " + JSON.stringify(e));
-    }, "TAG").then(x => {
+    let onProgress = (ticks: ITicks) => {
+        log("progress: " + ticks);
+    };
+    indexAsync(
+        500,
+        examplePath + "/indexing/access_tiny.log",
+        750,
+        outPath,
+        onProgress,
+        (e: any) => {
+            chunks += 1;
+            log("chunk: " + JSON.stringify(e));
+        },
+        "TAG",
+    ).then(x => {
         const hrend = process.hrtime(hrstart);
         const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
         console.log("first event emitter task finished, result: " + x);
