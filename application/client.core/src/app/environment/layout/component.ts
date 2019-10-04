@@ -1,10 +1,12 @@
-import { Component, OnDestroy, ChangeDetectorRef, HostListener } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
 import { AreaState } from './state';
-import { Subscription } from 'rxjs';
+import { Subscription, Subject, Observable } from 'rxjs';
 import ViewsEventsService from '../services/standalone/service.views.events';
 import * as ThemeParams from '../theme/sizes';
 import LayoutStateService from '../services/standalone/service.layout.state';
 import HotkeysService from '../services/service.hotkeys';
+import SidebarSessionsService from '../services/service.sessions.sidebar';
+import { IComponentDesc } from 'logviewer-client-containers';
 
 enum EResizeType {
     nothing = 'nothing',
@@ -23,29 +25,13 @@ enum EFuncLocation {
     styleUrls: ['./styles.less']
 })
 
-export class LayoutComponent implements OnDestroy {
+export class LayoutComponent implements OnDestroy, AfterViewInit {
 
     public funcBarState: AreaState = new AreaState();
     public secAreaState: AreaState = new AreaState();
     public funcLocation: EFuncLocation = EFuncLocation.right;
 
-    private _funcBarStateSubscriptions: {
-        minimized: Subscription | null,
-        updated: Subscription | null,
-    } = {
-        minimized: null,
-        updated: null,
-    };
-
-    private _secAreaStateSubscriptions: {
-        minimized: Subscription | null,
-        updated: Subscription | null,
-    } = {
-        minimized: null,
-        updated: null,
-    };
-
-    private _serviceSunscriptions: { [key: string]: Subscription } = {};
+    private _subscriptions: { [key: string]: Subscription } = {};
 
     private _sizes: {
         sec: {
@@ -75,30 +61,27 @@ export class LayoutComponent implements OnDestroy {
 
     constructor(private _cdRef: ChangeDetectorRef) {
         this._subscribeToWinEvents();
-        this._funcBarStateSubscriptions.minimized = this.funcBarState.getObservable().minimized.subscribe(this._onFuncMinimized.bind(this));
-        this._funcBarStateSubscriptions.updated = this.funcBarState.getObservable().updated.subscribe(this._onFuncStateUpdated.bind(this));
-        this._secAreaStateSubscriptions.minimized = this.secAreaState.getObservable().minimized.subscribe(this._onSecAreaMinimized.bind(this));
-        this._secAreaStateSubscriptions.updated = this.secAreaState.getObservable().updated.subscribe(this._onSecAreaStateUpdated.bind(this));
-        this._serviceSunscriptions.onSidebarMax = LayoutStateService.getObservable().onSidebarMax.subscribe(this._onSidebarServiceMax.bind(this));
-        this._serviceSunscriptions.onSidebarMin = LayoutStateService.getObservable().onSidebarMin.subscribe(this._onSidebarServiceMin.bind(this));
-        this._serviceSunscriptions.onToolbarMax = LayoutStateService.getObservable().onToolbarMax.subscribe(this._onToolbarServiceMax.bind(this));
-        this._serviceSunscriptions.onToolbarMin = LayoutStateService.getObservable().onToolbarMin.subscribe(this._onToolbarServiceMin.bind(this));
-        this._serviceSunscriptions.onToolbarToggle = HotkeysService.getObservable().toolbarToggle.subscribe(this._onToolbarToggle.bind(this));
-        this._serviceSunscriptions.onSidebarToggle = HotkeysService.getObservable().sidebarToggle.subscribe(this._onSidebarToggle.bind(this));
+        this._subscriptions.minimizedFunc = this.funcBarState.getObservable().minimized.subscribe(this._onFuncMinimized.bind(this));
+        this._subscriptions.updatedFunc = this.funcBarState.getObservable().updated.subscribe(this._onFuncStateUpdated.bind(this));
+        this._subscriptions.minimizedSecondary = this.secAreaState.getObservable().minimized.subscribe(this._onSecAreaMinimized.bind(this));
+        this._subscriptions.updatedSecondary = this.secAreaState.getObservable().updated.subscribe(this._onSecAreaStateUpdated.bind(this));
+        this._subscriptions.onSidebarMax = LayoutStateService.getObservable().onSidebarMax.subscribe(this._onSidebarServiceMax.bind(this));
+        this._subscriptions.onSidebarMin = LayoutStateService.getObservable().onSidebarMin.subscribe(this._onSidebarServiceMin.bind(this));
+        this._subscriptions.onToolbarMax = LayoutStateService.getObservable().onToolbarMax.subscribe(this._onToolbarServiceMax.bind(this));
+        this._subscriptions.onToolbarMin = LayoutStateService.getObservable().onToolbarMin.subscribe(this._onToolbarServiceMin.bind(this));
+        this._subscriptions.onToolbarToggle = HotkeysService.getObservable().toolbarToggle.subscribe(this._onToolbarToggle.bind(this));
+        this._subscriptions.onSidebarToggle = HotkeysService.getObservable().sidebarToggle.subscribe(this._onSidebarToggle.bind(this));
     }
 
     ngOnDestroy() {
-        Object.keys(this._funcBarStateSubscriptions).forEach((key: string) => {
-            if (this._funcBarStateSubscriptions[key] !== null) {
-                this._funcBarStateSubscriptions[key].unsubscribe();
-            }
-        });
-        Object.keys(this._secAreaStateSubscriptions).forEach((key: string) => {
-            if (this._secAreaStateSubscriptions[key] !== null) {
-                this._secAreaStateSubscriptions[key].unsubscribe();
-            }
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            this._subscriptions[key].unsubscribe();
+
         });
         this._unsubscribeToWinEvents();
+    }
+
+    ngAfterViewInit() {
     }
 
     private _subscribeToWinEvents() {

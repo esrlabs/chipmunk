@@ -16,7 +16,9 @@
             'margin-bottom': (_sizes.sec.current + 'px') }" (mousedown)="_ng_onResizeSecAreaTrigger($event)"></div>
         <div class="funcs" [ngStyle]="{'width': (_sizes.func.current + 'px')}">
             <div class="funcs-caption">
-                <div class="caption"></div>
+                <div class="injections">
+                    <app-layout-sidebar-caption></app-layout-sidebar-caption>
+                </div>
                 <div class="location" (click)="_ng_onTriggerFuncLocation()">
                     <span class="small-icon-button fas fa-angle-double-left"></span>
                 </div>

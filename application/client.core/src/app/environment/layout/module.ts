@@ -6,6 +6,7 @@ import { LayoutComponent                        } from './component';
 import { LayoutStatusBarComponent               } from './bar.status/component';
 import { LayoutContextMenuComponent             } from './contextmenu/component';
 import { LayoutSessionSidebarComponent          } from './area.sidebar/component';
+import { LayoutSessionSidebarCaptionComponent   } from './area.sidebar.caption/component'; 
 import { LayoutPrimaryAreaComponent             } from './area.primary/component';
 import { LayoutPrimiryAreaControlsComponent     } from './area.primary/controls/component';
 import { LayoutPrimiryAreaNoTabsComponent       } from './area.primary/no-tabs-content/component';
@@ -15,12 +16,14 @@ import { LayoutSecondaryAreaControlsComponent   } from './area.secondary/control
 import { EnvironmentComponentsModule            } from '../components/module';
 
 import { AppsBarStatusModule                    } from '../apps/bar.status/module';
+import { from } from 'rxjs';
 
 
 const entryComponents = [
     LayoutStatusBarComponent,
     LayoutContextMenuComponent,
     LayoutSessionSidebarComponent,
+    LayoutSessionSidebarCaptionComponent,
     LayoutPrimaryAreaComponent,
     LayoutPrimiryAreaControlsComponent,
     LayoutPrimiryAreaNoTabsComponent,
