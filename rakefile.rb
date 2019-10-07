@@ -52,6 +52,15 @@ CLIENT_NPM_LIBS_NAMES = [
   "logviewer-client-primitive",
   "logviewer-client-complex",
 ]
+COMPLEX_PLUGINS = [
+  "dlt",
+  "serial",
+  "processes" ,
+  #"xterminal"
+];
+ANGULAR_PLUGINS = ["dlt-render"];
+STANDALONE_PLUGINS = ["row.parser.ascii"];
+
 PLUGINS_SANDBOX = "application/sandbox"
 
 directory DIST_FOLDER
@@ -64,7 +73,7 @@ FOLDERS_TO_CLEAN = [DIST_FOLDER, COMPILED_FOLDER, RELEASE_FOLDER, INCLUDED_PLUGI
 CLEAN.include(FOLDERS_TO_CLEAN)
 task :rust_clean do
   ["launcher", "updater", "indexer"].each do |rust_app|
-    cd Pathname.new("application/apps").join(rust_app) do
+    cd Pathname.new("application/apps").join(rust_app), :verbose => false do
       sh "cargo clean"
     end
   end
@@ -98,26 +107,24 @@ end
 puts "Detected target platform is: #{TARGET_PLATFORM_NAME} / #{TARGET_PLATFORM_ALIAS}"
 
 def compress_plugin(file, dest)
-  case TARGET_PLATFORM_ALIAS
-    when "mac"
-      sh "tar -czf #{file} -C #{PLUGINS_SANDBOX} #{dest} "
-    when "linux"
-      sh "tar -czf #{file} -C #{PLUGINS_SANDBOX} #{dest} "
-    when "win"
+  if OS.windows?
       sh "tar -czf #{file} -C #{PLUGINS_SANDBOX} #{dest} --force-local"
+  else
+      sh "tar -czf #{file} -C #{PLUGINS_SANDBOX} #{dest} "
   end
 end
 
-def get_nodejs_platform()
-  platform_tag = ""
-  if OS.windows? == true
-    platform_tag = "win32"
-  elsif OS.mac? == true
-    platform_tag = "darwin"
+def nodejs_platform()
+  if OS.windows?
+    "win32"
+  elsif OS.mac?
+    "darwin"
   else
-    platform_tag = "linux"
+    "linux"
   end
-  return platform_tag
+end
+task :t do
+  puts nodejs_platform
 end
 def npm_install(what = "")
   sh "npm install #{what} --prefere-offline"
@@ -160,8 +167,8 @@ end
 
 file rg_executable do
   puts "rebuilding rg executable"
-  path = "temp"
-  Dir.mkdir(path) unless File.exists?(path)
+  tmp_path = "temp_for_building_rg"
+  Dir.mkdir(tmp_path) unless File.exists?(tmp_path)
   if OS.mac?
     url = "#{RIPGREP_URL}-x86_64-apple-darwin.tar.gz"
   elsif OS.linux?
@@ -172,23 +179,23 @@ file rg_executable do
 
   file_name = URI(url).path.split('/').last
 
-  open("#{path}/#{file_name}", "wb") do |file|
+  open("#{tmp_path}/#{file_name}", "wb") do |file|
     file << open(url).read
   end
   if OS.mac? or OS.linux?
-    cd path do
+    cd tmp_path do
       sh "tar xvzf #{file_name}"
     end
-    src = "#{path}/#{File.basename(file_name, '.tar.gz')}/rg"
+    src = "#{tmp_path}/#{File.basename(file_name, '.tar.gz')}/rg"
   elsif OL.windows?
-    cd path do
+    cd tmp_path do
       sh "unzip #{file_name}"
     end
-    src = "#{path}/rg.exe"
+    src = "#{tmp_path}/rg.exe"
   end
   rm(rg_executable, :force => true)
-  cp(src, rg_executable)
-  rm_r(path, :force => true)
+  mv(src, rg_executable)
+  rm_r(tmp_path, :force => true)
 end
 
 desc "ripgrep delivery"
@@ -382,87 +389,91 @@ end
 desc "install plugins"
 task :plugins => [:folders, :pluginsstandalone, :pluginscomplex, :pluginsangular]
 
-desc "Install standalone plugins"
-task :pluginsstandalone do
-  complex_plugins = ["row.parser.ascii"];
-  i = 0
-  while i < complex_plugins.length
-    plugin = complex_plugins[i]
-    puts "Installing plugin: #{plugin}"
-    src = "application/client.plugins.standalone/#{plugin}"
-    cd src do
-      puts "Install plugin: #{plugin}"
-      npm_install
-      npm_reinstall("logviewer.client.toolkit@latest")
-      sh "#{NPM_RUN} build"
-    end
-    dest = "#{PLUGINS_SANDBOX}/#{plugin}"
-    dest_dist = "#{dest}/render/dist"
-    rm_r(dest_dist, :force => true)
-    cp_r("#{src}/dist", dest_dist, :verbose => false)
-    cp_r("#{src}/package.json", "#{dest}/render/package.json", :verbose => false)
-    package_str = File.read("#{dest}/render/package.json")
-    package = JSON.parse(package_str)
-    arch = "#{INCLUDED_PLUGINS_FOLDER}/#{plugin}@#{package["version"]}-#{get_nodejs_platform()}.tgz"
-    rm(arch, :force => true)
-    compress_plugin(arch, plugin)
-    i += 1
+def plugin_bundle_name(plugin, kind)
+  dest = "#{PLUGINS_SANDBOX}/#{plugin}"
+  package_str = File.read("#{dest}/#{kind}/package.json")
+  package = JSON.parse(package_str)
+  "#{INCLUDED_PLUGINS_FOLDER}/#{plugin}@#{package["version"]}-#{nodejs_platform}.tgz"
+end
+
+def install_plugin_standalone(plugin)
+  puts "Installing plugin: #{plugin}"
+  src = "application/client.plugins.standalone/#{plugin}"
+  cd src do
+    puts "Install plugin: #{plugin}"
+    npm_install
+    npm_reinstall("logviewer.client.toolkit@latest")
+    sh "#{NPM_RUN} build"
   end
+  dest = "#{PLUGINS_SANDBOX}/#{plugin}"
+  dest_dist = "#{dest}/render/dist"
+  rm_r(dest_dist, :force => true)
+  cp_r("#{src}/dist", dest_dist, :verbose => false)
+  cp_r("#{src}/package.json", "#{dest}/render/package.json", :verbose => false)
+  arch = plugin_bundle_name(plugin, "render")
+  rm(arch, :force => true)
+  compress_plugin(arch, plugin)
+end
+
+desc "Install standalone plugins"
+task :pluginsstandalone
+
+STANDALONE_PLUGINS.each do |p|
+  file plugin_bundle_name(p, "render") do
+    install_plugin_standalone(p)
+  end
+  task :pluginsstandalone => plugin_bundle_name(p, "render")
+end
+
+def install_plugin_complex(plugin)
+  puts "Installing plugin: #{plugin}"
+  cd "application/sandbox/#{plugin}/process" do
+    npm_install
+    npm_install("electron@6.0.11 electron-rebuild@^1.8.6")
+    sh "./node_modules/.bin/electron-rebuild"
+    sh "npm uninstall electron electron-rebuild"
+    sh "#{NPM_RUN} build"
+  end
+  cd "application/client.plugins" do
+    sh "#{NPM_RUN} build:#{plugin}"
+  end
+  src = "application/client.plugins/dist/#{plugin}"
+  dest_render = "#{PLUGINS_SANDBOX}/#{plugin}/render"
+  rm_r(dest_render, :force => true)
+  cp_r("#{src}", dest_render, :verbose => false)
+  compress_plugin(plugin_bundle_name(plugin, "process"), plugin)
 end
 
 desc "Install complex plugins"
-task :pluginscomplex do
-  complex_plugins = [
-    "dlt",
-    "serial",
-    "processes" ,
-    #"xterminal"
-  ];
-  complex_plugins.each do |plugin|
-    puts "Installing plugin: #{plugin}"
-    cd "application/sandbox/#{plugin}/process" do
-      npm_install
-      npm_install("electron@6.0.11 electron-rebuild@^1.8.6")
-      sh "./node_modules/.bin/electron-rebuild"
-      sh "npm uninstall electron electron-rebuild"
-      sh "#{NPM_RUN} build"
-    end
-    cd "application/client.plugins" do
-      sh "#{NPM_RUN} build:#{plugin}"
-    end
-    src = "application/client.plugins/dist/#{plugin}"
-    dest = "#{PLUGINS_SANDBOX}/#{plugin}"
-    dest_render = "#{dest}/render"
-    rm_r(dest_render, :force => true)
-    cp_r("#{src}", dest_render, :verbose => false)
-    package_str = File.read("#{dest}/process/package.json")
-    package = JSON.parse(package_str)
-    arch = "#{INCLUDED_PLUGINS_FOLDER}/#{plugin}@#{package["version"]}-#{get_nodejs_platform()}.tgz"
-    compress_plugin(arch, plugin)
+task :pluginscomplex
+COMPLEX_PLUGINS.each do |p|
+  file plugin_bundle_name(p, "process") do
+    install_plugin_complex(p)
   end
+  task :pluginscomplex => plugin_bundle_name(p, "process")
+end
+
+def install_plugin_angular(plugin)
+  puts "Installing plugin: #{plugin}"
+  cd "application/client.plugins" do
+    sh "#{NPM_RUN} build:#{plugin}"
+  end
+  src = "application/client.plugins/dist/#{plugin}"
+  dest = "#{PLUGINS_SANDBOX}/#{plugin}"
+  dest_render = "#{dest}/render"
+  rm_r(dest_render, :force => true)
+  cp_r("#{src}", dest_render, :verbose => false)
+  arch = plugin_bundle_name(plugin, "render")
+  compress_plugin(arch, plugin)
 end
 
 desc "Install render (angular) plugins"
-task :pluginsangular do
-  complex_plugins = ["dlt-render"];
-  i = 0
-  while i < complex_plugins.length
-    plugin = complex_plugins[i]
-    puts "Installing plugin: #{plugin}"
-    cd "application/client.plugins" do
-      sh "#{NPM_RUN} build:#{plugin}"
-    end
-    src = "application/client.plugins/dist/#{plugin}"
-    dest = "#{PLUGINS_SANDBOX}/#{plugin}"
-    dest_render = "#{dest}/render"
-    rm_r(dest_render, :force => true)
-    cp_r("#{src}", dest_render, :verbose => false)
-    package_str = File.read("#{dest}/render/package.json")
-    package = JSON.parse(package_str)
-    arch = "#{INCLUDED_PLUGINS_FOLDER}/#{plugin}@#{package["version"]}-#{get_nodejs_platform()}.tgz"
-    compress_plugin(arch, plugin)
-    i += 1
+task :pluginsangular
+ANGULAR_PLUGINS.each do |p|
+  file plugin_bundle_name(p, "render") do
+    install_plugin_angular(p)
   end
+  task :pluginsangular => plugin_bundle_name(p, "render")
 end
 
 desc "update plugin.ipc"
@@ -707,10 +718,20 @@ $task_benchmarks = []
 
 class Rake::Task
   def execute_with_benchmark(*args)
-    puts "******* running task #{name}"
-    bm = Benchmark.realtime { execute_without_benchmark(*args) }
-    $task_benchmarks << [name, bm]
-    puts ">>>>>>>    #{name} --> #{'%.1f' % bm} s"
+    task_executed = false
+    begin
+      puts "******* running task #{name}"
+      bm = Benchmark.realtime { execute_without_benchmark(*args) }
+      task_executed = true
+      $task_benchmarks << [name, bm]
+      puts ">>>>>>>    #{name} --> #{'%.1f' % bm} s"
+    rescue Exception => e
+      puts "exception happened in execute_with_benchmark: #{e}"
+    ensure
+      if !task_executed
+        execute_without_benchmark(*args)
+      end
+    end
   end
 
   alias_method :execute_without_benchmark, :execute
@@ -744,4 +765,3 @@ at_exit do
   end
   puts "total time was: #{'%.1f' % total_time}"
 end
-
