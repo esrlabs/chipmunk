@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "ansi_up": "^4.0.4",
-    "logviewer.client.toolkit": "0.0.64"
+    "logviewer.client.toolkit": "0.0.65"
   },
   "repository": {
     "type": "git",
