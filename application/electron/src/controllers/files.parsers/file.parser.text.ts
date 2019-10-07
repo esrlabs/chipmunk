@@ -108,8 +108,8 @@ export default class FileParser extends AFileParser {
                 const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
                 logger.debug("readAndWrite task finished, result: " + x);
                 logger.debug("Execution time for indexing : " + ms + "ms");
+                resolve(collectedChunks);
             });
-            resolve(collectedChunks);
         //     const lvin: Lvin = new Lvin();
         //     this._guid = ServiceStreams.getActiveStreamId();
         //     if (onMapUpdated !== undefined) {
