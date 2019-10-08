@@ -12,7 +12,7 @@ import HotkeysService from './service.hotkeys';
 import TabSelectionParserService from './tabs/service.tab.selection.parser';
 import * as Defaults from '../states/state.default';
 import * as Toolkit from 'logviewer.client.toolkit';
-
+import { setSharedServices } from './shared.services.sidebar';
 
 const InitializeStages = [
     // Stage #1
@@ -99,8 +99,12 @@ export class LoaderService {
 
     private _postInit(): Promise<void> {
         return new Promise((resolve) => {
+            // Set defaults views
             TabsSessionsService.setDefaultViews(Defaults.getDefaultViews());
-            SidebarSessionsService.setDefaultsApps(Defaults.getDefaultSideBarApps());
+            // Set services, which should be shared with sidebar apps
+            setSharedServices({
+                FileOpenerService: FileOpenerService,
+            });
             resolve();
         });
     }

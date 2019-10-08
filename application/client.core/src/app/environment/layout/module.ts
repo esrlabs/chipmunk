@@ -6,7 +6,8 @@ import { LayoutComponent                        } from './component';
 import { LayoutStatusBarComponent               } from './bar.status/component';
 import { LayoutContextMenuComponent             } from './contextmenu/component';
 import { LayoutSessionSidebarComponent          } from './area.sidebar/component';
-import { LayoutSessionSidebarCaptionComponent   } from './area.sidebar.caption/component'; 
+import { LayoutSessionSidebarCaptionComponent   } from './area.sidebar.caption/component';
+import { LayoutSessionSidebarControlsComponent  } from './area.sidebar/controls/component';
 import { LayoutPrimaryAreaComponent             } from './area.primary/component';
 import { LayoutPrimiryAreaControlsComponent     } from './area.primary/controls/component';
 import { LayoutPrimiryAreaNoTabsComponent       } from './area.primary/no-tabs-content/component';
@@ -24,6 +25,7 @@ const entryComponents = [
     LayoutContextMenuComponent,
     LayoutSessionSidebarComponent,
     LayoutSessionSidebarCaptionComponent,
+    LayoutSessionSidebarControlsComponent,
     LayoutPrimaryAreaComponent,
     LayoutPrimiryAreaControlsComponent,
     LayoutPrimiryAreaNoTabsComponent,

@@ -6,6 +6,10 @@ import ControllerPluginIPC from '../controller/controller.plugin.ipc';
 import TabsSessionsService from './service.sessions.tabs';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
 import PluginsService, { IPluginData } from '../services/service.plugins';
+import { getSharedServices } from './shared.services.sidebar';
+import { DefaultSidebarApps, IDefaultSidebarApp } from '../states/state.default.sidebar.apps';
+
+export { ITab };
 
 export interface ISidebarPluginInfo {
     id: number;
@@ -18,9 +22,9 @@ export class SidebarSessionsService implements IService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarSessionsService');
     private _services: Map<string, TabsService> = new Map();
+    private _tabs: Map<string, Map<string, ITab>> = new Map();
     private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = {};
     private _inputs: { [key: string]: any } = {};
-    private _defaults: ITab[];
     private _injected: IComponentDesc | undefined;
     private _subjects: {
         injection: Subject<IComponentDesc | undefined>,
@@ -52,10 +56,6 @@ export class SidebarSessionsService implements IService {
         this._services.clear();
     }
 
-    public setDefaultsApps(tabs: ITab[]) {
-        this._defaults = tabs;
-    }
-
     public getTabsService(session: string): TabsService | undefined {
         return this._services.get(session);
     }
@@ -70,6 +70,18 @@ export class SidebarSessionsService implements IService {
         tabs.forEach((tab: ITab) => {
             this._add(tab, session);
         });
+    }
+
+    public addByGuid(guid: string, session?: string) {
+        const tabs: Map<string, ITab> | Error = this._getSessionAvailableTabs(session);
+        if (tabs instanceof Error) {
+            return;
+        }
+        if (!tabs.has(guid)) {
+            this._logger.warn(`Fail to find a tab "${guid}". Tab isn't available in session: ${session}`);
+            return;
+        }
+        this._add(tabs.get(guid), session, true);
     }
 
     public remove(tab: string, session?: string): Error | undefined {
@@ -98,6 +110,23 @@ export class SidebarSessionsService implements IService {
         service.setActive(tab);
     }
 
+    public getAvailableTabs(session?: string): ITab[] | undefined {
+        session = this._verifySessionGuid(session);
+        const tabs: Map<string, ITab> | undefined = this._tabs.get(session);
+        const service: TabsService | undefined = this._services.get(session);
+        if (tabs === undefined || service === undefined) {
+            return undefined;
+        }
+        const available: ITab[] = [];
+        tabs.forEach((tab: ITab) => {
+            if (service.has(tab.guid)) {
+                return;
+            }
+            available.push(tab);
+        });
+        return available;
+    }
+
     public getObservable(): {
         injection: Observable<IComponentDesc | undefined>
     } {
@@ -122,13 +151,23 @@ export class SidebarSessionsService implements IService {
     }
 
     private _create(session: string, transports: string[]) {
+        if (this._services.has(session)) {
+            // Service already exists
+            return;
+        }
+        // Add all possible tabs
+        const tabs: Map<string, ITab> = new Map();
         // Create new tabs service
         this._services.set(session, new TabsService());
         // Add default sidebar apps
-        this._defaults.forEach((tab: ITab, index) => {
-            tab.active = index === 0;
-            // Add tab to sidebar
-            this._add(tab, session);
+        DefaultSidebarApps.forEach((description: IDefaultSidebarApp, index) => {
+            const tab: ITab = Object.assign({}, description.tab);
+            // Add to storage
+            tabs.set(tab.guid, tab);
+            if (description.addedAsDefault) {
+                // Add tab to sidebar
+                this._add(tab, session, index === 0);
+            }
         });
         // Detect tabs related to transports (plugins)
         transports.forEach((transport: string, index: number) => {
@@ -140,9 +179,9 @@ export class SidebarSessionsService implements IService {
             if (plugin.factories[Toolkit.EViewsTypes.sidebarVertical] === undefined) {
                 return;
             }
-            // Add tab to sidebar
-            this._add({
-                guid: Toolkit.guid(),
+            // Add to storage
+            tabs.set(plugin.name, {
+                guid: plugin.name,
                 name: plugin.name,
                 active: false,
                 content: {
@@ -154,18 +193,23 @@ export class SidebarSessionsService implements IService {
                         sessions: plugin.controllers.sessions,
                     }
                 }
-            }, session);
+            });
         });
+        this._tabs.set(session, tabs);
     }
 
-    private _add(tab: ITab, session: string): Error | string {
+    private _add(tab: ITab, session: string, active: boolean = false): Error | string {
         if (typeof tab !== 'object' || tab === null) {
             return;
         }
-        // Change storage of service
+        // Get storage of service
         const service: TabsService | Error = this._getSessionTabsService(session);
         if (service instanceof Error) {
             return service;
+        }
+        if (service.has(tab.guid)) {
+            this.setActive(tab.guid, session);
+            return tab.guid;
         }
         // Get verified session guid
         session = this._verifySessionGuid(session);
@@ -174,15 +218,15 @@ export class SidebarSessionsService implements IService {
             tab.guid = Toolkit.guid();
         }
         // Add default inputs
-        tab.content.inputs = Object.assign(tab.content.inputs, this._inputs);
-        // Add session guid if missed
-        if (tab.content.inputs.session === undefined) {
-            tab.content.inputs.session = session;
-        }
+        tab.content.inputs = this._addDefaultsInputs(tab.content.inputs, session, tab.guid);
         // Add tab
         service.add(tab);
         // Save service
         this._services.set(session, service);
+        // Set active if it's requested
+        if (active) {
+            this.setActive(tab.guid, session);
+        }
         return tab.guid;
     }
 
@@ -205,12 +249,42 @@ export class SidebarSessionsService implements IService {
         return service;
     }
 
+    private _getSessionAvailableTabs(session?: string): Error | Map<string, ITab> {
+        const tabs: Map<string, ITab> | undefined = this._tabs.get(
+            this._verifySessionGuid(session)
+        );
+        if (tabs === undefined) {
+            return new Error(this._logger.warn(`Fail to get available tabs for session "${session}"`));
+        }
+        return tabs;
+    }
+
     private _onSessionChange(controller: ControllerSessionTab) {
         if (controller === undefined) {
             return;
         }
         // Create
         this._create(controller.getGuid(), controller.getTransports());
+    }
+
+    private _addDefaultsInputs(inputs: { [key: string]: any }, session: string, tab: string): { [key: string]: any } {
+        // Add preset inputs
+        inputs = Object.assign(inputs, this._inputs);
+        // Add session guid if missed
+        if (inputs.session === undefined) {
+            inputs.session = session;
+        }
+        // Add close handler
+        if (inputs.close === undefined) {
+            inputs.close = () => {
+                this.remove(tab, session);
+            };
+        }
+        // Add services
+        if (inputs.services === undefined) {
+            inputs.services = getSharedServices();
+        }
+        return inputs;
     }
 
 }

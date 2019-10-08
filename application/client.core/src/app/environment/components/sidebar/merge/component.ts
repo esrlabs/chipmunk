@@ -5,12 +5,12 @@ import ElectronIpcService, { IPCMessages } from '../../../services/service.elect
 import { SidebarAppMergeFilesItemComponent } from './file/component';
 import { IFile as ITestResponseFile } from '../../../services/electron.ipc.messages/merge.files.test.response';
 import { IFile as IRequestFile } from '../../../services/electron.ipc.messages/merge.files.request';
-import { IFile, IFileOpenerService } from '../../../services/service.file.opener';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 import SessionsService from '../../../services/service.sessions.tabs';
 import EventsHubService from '../../../services/standalone/service.eventshub';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
+import { IServices, IFile } from '../../../services/shared.services.sidebar';
 
 declare var Electron: any;
 
@@ -50,7 +50,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
 
     public static StateKey = 'side-bar-merge-view';
 
-    @Input() public service: IFileOpenerService;
+    @Input() public services: IServices;
     @Input() public onBeforeTabRemove: Subject<void>;
     @Input() public close: () => void;
 
@@ -87,7 +87,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     }
 
     public ngAfterContentInit() {
-        this._subscriptions.onFilesToBeMerged = this.service.getObservable().onFilesToBeMerged.subscribe(this._onFilesToBeMerged.bind(this));
+        this._subscriptions.onFilesToBeMerged = this.services.FileOpenerService.getObservable().onFilesToBeMerged.subscribe(this._onFilesToBeMerged.bind(this));
     }
 
     public ngAfterViewInit() {
@@ -265,7 +265,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
                 this._logger.warn(`Fail init timezones due error: ${error.message}`);
             });
         }
-        this._onFilesToBeMerged(this.service.getPendingFiles());
+        this._onFilesToBeMerged(this.services.FileOpenerService.getPendingFiles());
     }
 
     private _saveState(): void {
@@ -331,11 +331,11 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     }
 
     private _onFilesDropped(files: IFile[]) {
-        this.service.merge(files);
+        this.services.FileOpenerService.merge(files);
     }
 
     private _onFilesToBeMerged(files: IFile[]) {
-        this.service.dropPendingFiles();
+        this.services.FileOpenerService.dropPendingFiles();
         if (files.length === 0) {
             return;
         }

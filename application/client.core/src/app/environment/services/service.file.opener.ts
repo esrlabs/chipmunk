@@ -8,22 +8,16 @@ import { ControllerSessionTab } from '../controller/controller.session.tab';
 import LayoutStateService from './standalone/service.layout.state';
 import { DialogsMultipleFilesActionComponent } from '../components/dialogs/multiplefiles/component';
 import PopupsService from './standalone/service.popups';
-import { SidebarAppMergeFilesComponent } from '../components/sidebar/merge/component';
-import { SidebarAppConcatFilesComponent } from '../components/sidebar/concat/component';
+import { CGuids } from '../states/state.default.sidebar.apps';
 
 export enum EActionType {
     concat = 'concat',
     merging = 'merging',
 }
 
-export const CConstTabsGuids = {
-    concat: Toolkit.guid(),
-    merging: Toolkit.guid(),
-};
-
-export const CTabs = {
-    [CConstTabsGuids.merging]: { component: SidebarAppMergeFilesComponent, caption: 'Merging', subject: 'onFilesToBeMerged' },
-    [CConstTabsGuids.concat]: { component: SidebarAppConcatFilesComponent, caption: 'Concat', subject: 'onFilesToBeConcat' },
+export const CSubjects = {
+    [CGuids.merging]: { subject: 'onFilesToBeMerged' },
+    [CGuids.concat]: { subject: 'onFilesToBeConcat' },
 };
 
 export interface IFile {
@@ -172,32 +166,18 @@ export class FileOpenerService implements IService, IFileOpenerService {
     private _open(files: IFile[], action: EActionType) {
         // Stored panding files
         this._pending = files;
-        const guid: string = CConstTabsGuids[action];
+        const guid: string = CGuids[action];
         const exist: boolean = SidebarSessionsService.has(guid);
         // Show sidebar
         LayoutStateService.sidebarMax();
         // Add or activate tab on sidebar
         if (!exist) {
-            SidebarSessionsService.add({
-                guid: guid,
-                name: CTabs[guid].caption,
-                closable: true,
-                content: {
-                    factory: CTabs[guid].component,
-                    inputs: {
-                        service: this,
-                        close: () => {
-                            SidebarSessionsService.remove(guid);
-                        }
-                    }
-                },
-                active: true
-            });
+            SidebarSessionsService.addByGuid(guid);
         } else {
             SidebarSessionsService.setActive(guid);
         }
         // Trigger event
-        this._subjects[CTabs[guid].subject].next(this._pending.slice());
+        this._subjects[CSubjects[guid].subject].next(this._pending.slice());
     }
 }
 
