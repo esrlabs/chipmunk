@@ -727,10 +727,10 @@ class Rake::Task
       puts ">>>>>>>    #{name} --> #{'%.1f' % bm} s"
     rescue Exception => e
       puts "exception happened in execute_with_benchmark: #{e}"
-    ensure
-      if !task_executed
-        execute_without_benchmark(*args)
-      end
+    # ensure
+    #   if !task_executed
+    #     execute_without_benchmark(*args)
+    #   end
     end
   end
 
