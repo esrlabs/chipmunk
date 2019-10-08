@@ -46,6 +46,9 @@ export { IStreamUpdated, StreamUpdated };
 import { IStreamPipeState, StreamPipeState } from './stream.pipe.state';
 export { IStreamPipeState, StreamPipeState };
 
+import { IStreamProgressState, StreamProgressState } from './stream.progress.state';
+export { IStreamProgressState, StreamProgressState };
+
 import { IStreamChunk, StreamChunk } from './stream.chunk';
 export { IStreamChunk, StreamChunk };
 
@@ -222,6 +225,7 @@ export type TMessage =  HostState |
                         StreamData |
                         StreamUpdated |
                         StreamPipeState |
+                        StreamProgressState |
                         StreamChunk |
                         StreamSourceNew |
                         StreamResetRequest |
@@ -298,6 +302,7 @@ export const Map = {
     [StreamData.signature                   ]: StreamData,
     [StreamUpdated.signature                ]: StreamUpdated,
     [StreamPipeState.signature              ]: StreamPipeState,
+    [StreamProgressState.signature          ]: StreamProgressState,
     [StreamChunk.signature                  ]: StreamChunk,
     [StreamSourceNew.signature              ]: StreamSourceNew,
     [StreamResetRequest.signature           ]: StreamResetRequest,

@@ -89,21 +89,42 @@ export default class FileParser extends AFileParser {
         };
     }
 
-    public readAndWrite(srcFile: string, destFile: string, sourceId: string, options: { [key: string]: any }, onMapUpdated?: (map: IMapItem[]) => void): Promise<IMapItem[]> {
+    public isTicksSupported(): boolean {
+        return true;
+    }
+
+    public readAndWrite(
+        srcFile: string,
+        destFile: string,
+        sourceId: string,
+        options: { [key: string]: any },
+        onMapUpdated?: (map: IMapItem[]) => void,
+        onProgress?: (ticks: ITicks) => void): Promise<IMapItem[]> {
         const logger: Logger = new Logger('indexing');
         return new Promise((resolve, reject) => {
             const collectedChunks: IMapItem[] = [];
             const hrstart = process.hrtime();
-            const onProgress = (ticks: ITicks) => {
-                logger.debug("progress: " + JSON.stringify(ticks));
-            };
-            library.indexAsync(500, srcFile, 15000, destFile, onProgress, (e: any) => {
-                if (onMapUpdated !== undefined) {
+            library.indexAsync(
+                500,
+                srcFile,
+                15000,
+                destFile,
+                (ticks: ITicks) => {
+                    if (onProgress === undefined) {
+                        return;
+                    }
+                    onProgress(ticks);
+                },
+                (e: any) => {
+                    if (onMapUpdated === undefined) {
+                        return;
+                    }
                     const mapItem: IMapItem = { rows: {from: e.rows_start, to: e.rows_end}, bytes: { from: e.bytes_start, to: e.bytes_end } };
                     onMapUpdated([mapItem]);
                     collectedChunks.push(mapItem);
-                }
-            }, sourceId.toString()).then(x => { // TODO ask dmitry why this toString() is necessary
+                },
+                sourceId.toString(),
+            ).then(x => {
                 const hrend = process.hrtime(hrstart);
                 const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
                 logger.debug("readAndWrite task finished, result: " + x);

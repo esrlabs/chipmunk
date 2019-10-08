@@ -1,7 +1,8 @@
 import { Transform } from 'stream';
 import { IMapItem } from '../controller.stream.processor.map';
+import { ITicks } from "indexer-neon";
 
-export { IMapItem };
+export { IMapItem, ITicks };
 
 export interface IReadWriteResult {
     streamId: string;
@@ -16,7 +17,13 @@ export interface IFileParserFunc {
 
 // tslint:disable-next-line:interface-name
 export interface AFileParser {
-    readAndWrite?(srcFile: string, destFile: string, sourceId: string | number, options: { [key: string]: any }, onMapUpdated?: (map: IMapItem[]) => void): Promise<IMapItem[]>;
+    readAndWrite?(
+        srcFile: string,
+        destFile: string,
+        sourceId: string | number,
+        options: { [key: string]: any },
+        onMapUpdated?: (map: IMapItem[]) => void,
+        onProgress?: (ticks: ITicks) => void): Promise<IMapItem[]>;
 }
 
 export abstract class AFileParser {
@@ -28,6 +35,8 @@ export abstract class AFileParser {
     public abstract getAlias(): string;
 
     public abstract isSupported(file: string): Promise<boolean>;
+
+    public abstract isTicksSupported(): boolean;
 
     public abstract getTransform(options?: any): Transform | undefined;
 

@@ -68,6 +68,10 @@ export default class FileParser extends AFileParser {
         };
     }
 
+    public isTicksSupported(): boolean {
+        return false;
+    }
+
     public readAndWrite(srcFile: string, destFile: string, sourceId: string, options: { [key: string]: any }, onMapUpdated?: (map: IMapItem[]) => void): Promise<IMapItem[]> {
         return new Promise((resolve, reject) => {
             if (this._guid !== undefined) {
