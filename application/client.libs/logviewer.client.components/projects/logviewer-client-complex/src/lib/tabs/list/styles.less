@@ -260,9 +260,14 @@
         }
         &.injection{
             display: flex;
-            flex-flow: row nowrap;
             margin: 0;
             padding: 0;
+            &.top{
+                flex-flow: row nowrap;
+            }
+            &.left{
+                flex-flow: column nowrap;
+            }
             & ul.list{
                 display: block;
                 position: relative;
