@@ -1,4 +1,4 @@
-<div #holdernode [attr.class]="'wrapper ' + (_ng_options.injections ? (_ng_options.injections.bar ? 'injection' : '') : '')" [ngStyle]="{'margin-left': (_ng_offset + 'px')}">
+<div #holdernode [attr.class]="'wrapper ' + _ng_options.direction + (_ng_options.injections ? (_ng_options.injections.bar ? ' injection' : '') : '')" [ngStyle]="{'margin-left': (_ng_offset + 'px')}">
     <ul #tabsnode [attr.class]="'list ' + _ng_options.direction + (_ng_isArrowsNeeded() ? ' arrows-offset' : '')">
         <li #tabnode [attr.class]="'tab ' + (tab.active ? 'active' : '')" *ngFor="let tab of tabs" (click) = "_ng_onClick(tab.guid)">
             <p class="title t-normal">{{tab.name}}</p>
