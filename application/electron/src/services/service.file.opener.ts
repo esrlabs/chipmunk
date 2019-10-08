@@ -6,7 +6,7 @@ import ServiceHotkeys from '../services/service.hotkeys';
 import { getDefaultFileParser, AFileParser, getParserForFile } from '../controllers/files.parsers/index';
 import FileParserText from '../controllers/files.parsers/file.parser.text';
 import FileParserDlt from '../controllers/files.parsers/file.parser.dlt';
-import { IMapItem } from '../controllers/files.parsers/interface';
+import { IMapItem, ITicks } from '../controllers/files.parsers/interface';
 import { dialog } from 'electron';
 import Logger from '../tools/env.logger';
 import * as Tools from '../tools/index';
@@ -93,29 +93,29 @@ class ServiceFileOpener implements IService {
                     this._getOptions(file, path.basename(file), detectedParser, stats.size).then((options: any) => {
                         detectedParser = detectedParser as AFileParser;
                         const pipeSessionId: string = Tools.guid();
-                        ServiceStreams.addPipeSession(pipeSessionId, stats.size, file);
+                        this._setProgress(detectedParser, pipeSessionId, file, stats.size);
                         if (detectedParser.readAndWrite === undefined) {
                             // Pipe file. No direct read/write method
                             this._pipeSource(file, session, detectedParser, options).then(() => {
-                                ServiceStreams.removePipeSession(pipeSessionId);
+                                this._unsetProgress(detectedParser as AFileParser, pipeSessionId);
                                 this._saveAsRecentFile(file, stats.size);
                                 resolve();
                             }).catch((pipeError: Error) => {
-                                ServiceStreams.removePipeSession(pipeSessionId);
+                                this._unsetProgress(detectedParser as AFileParser, pipeSessionId);
                                 reject(new Error(this._logger.error(`Fail to pipe file "${file}" due error: ${pipeError.message}`)));
                             });
                         } else {
                             // Trigger progress
-                            ServiceStreams.updatePipeSession(0);
+                            this._incrProgress(detectedParser, session, 0);
                             // Parser has direct method of reading and writing
                             this._directReadWrite(file, session, detectedParser, options).then(() => {
-                                ServiceStreams.removePipeSession(pipeSessionId);
+                                this._unsetProgress(detectedParser as AFileParser, pipeSessionId);
                                 ServiceStreams.reattachSessionFileHandle(session);
                                 (detectedParser as AFileParser).destroy();
                                 this._saveAsRecentFile(file, stats.size);
                                 resolve();
                             }).catch((pipeError: Error) => {
-                                ServiceStreams.removePipeSession(pipeSessionId);
+                                this._unsetProgress(detectedParser as AFileParser, pipeSessionId);
                                 ServiceStreams.reattachSessionFileHandle(session);
                                 (detectedParser as AFileParser).destroy();
                                 reject(new Error(this._logger.error(`Fail to directly read file "${file}" due error: ${pipeError.message}`)));
@@ -232,7 +232,9 @@ class ServiceFileOpener implements IService {
             }
             parser.readAndWrite(file, dest.file, sourceId, options, (map: IMapItem[]) => {
                 ServiceStreams.pushToStreamFileMap(dest.streamId, map);
-                ServiceStreams.updatePipeSession(map[map.length - 1].bytes.to - map[0].bytes.from, dest.streamId);
+                this._incrProgress(parser, dest.streamId, map[map.length - 1].bytes.to - map[0].bytes.from);
+            }, (ticks: ITicks) => {
+                this._incrProgress(parser, dest.streamId, ticks.ellapsed / ticks.total);
             }).then((map: IMapItem[]) => {
                 // Doesn't need to update map here, because it's updated on fly
                 // Notify render
@@ -286,6 +288,30 @@ class ServiceFileOpener implements IService {
             recentFiles: files,
         });
         ServiceElectron.updateMenu();
+    }
+
+    private _setProgress(parser: AFileParser, id: string, file: string, size: number) {
+        if (parser.isTicksSupported()) {
+            ServiceStreams.addProgressSession(id, file);
+        } else {
+            ServiceStreams.addPipeSession(id, size, file);
+        }
+    }
+
+    private _unsetProgress(parser: AFileParser, id: string) {
+        if (parser.isTicksSupported()) {
+            ServiceStreams.removeProgressSession(id);
+        } else {
+            ServiceStreams.removePipeSession(id);
+        }
+    }
+
+    private _incrProgress(parser: AFileParser, id: string, value: number) {
+        if (parser.isTicksSupported()) {
+            ServiceStreams.updateProgressSession(value, id);
+        } else {
+            ServiceStreams.updatePipeSession(value, id);
+        }
     }
 
 }

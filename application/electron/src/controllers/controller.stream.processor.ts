@@ -183,6 +183,19 @@ export default class ControllerStreamProcessor {
         this._state.pipes.next(written);
     }
 
+    public addProgressSession(pipeId: string, name: string) {
+        this._state.progress.add(pipeId, name);
+        this._dropStreamFile();
+    }
+
+    public removeProgressSession(pipeId: string) {
+        this._state.progress.remove(pipeId);
+    }
+
+    public updateProgressSession(progress: number) {
+        this._state.progress.next(progress);
+    }
+
     public rewriteStreamFileMap(map: IMapItem[]) {
         this._state.map.rewrite(map);
         this._notify({
