@@ -3,7 +3,6 @@ import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { Subscription, Subject } from 'rxjs';
 import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
-import { IFile, IFileOpenerService } from '../../../services/service.file.opener';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 import SessionsService from '../../../services/service.sessions.tabs';
 import EventsHubService from '../../../services/standalone/service.eventshub';
@@ -11,6 +10,7 @@ import { ControllerSessionTab } from '../../../controller/controller.session.tab
 import * as moment from 'moment';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
+import { IServices, IFile } from '../../../services/shared.services.sidebar';
 
 declare var Electron: any;
 
@@ -50,7 +50,7 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
 
     public static StateKey = 'side-bar-concat-view';
 
-    @Input() public service: IFileOpenerService;
+    @Input() public services: IServices;
     @Input() public onBeforeTabRemove: Subject<void>;
     @Input() public close: () => void;
 
@@ -92,7 +92,7 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
     }
 
     public ngAfterContentInit() {
-        this._subscriptions.onFilesToBeConcat = this.service.getObservable().onFilesToBeConcat.subscribe(this._onFilesToBeConcat.bind(this));
+        this._subscriptions.onFilesToBeConcat = this.services.FileOpenerService.getObservable().onFilesToBeConcat.subscribe(this._onFilesToBeConcat.bind(this));
     }
 
     public ngAfterViewInit() {
@@ -448,7 +448,7 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
         if (!this._ng_session.getSessionsStates().applyStateTo(this._getStateGuid(), this)) {
 
         }
-        this._onFilesToBeConcat(this.service.getPendingFiles());
+        this._onFilesToBeConcat(this.services.FileOpenerService.getPendingFiles());
     }
 
     private _saveState(): void {
@@ -500,11 +500,11 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
 
 
     private _onFilesDropped(files: IFile[]) {
-        this.service.concat(files);
+        this.services.FileOpenerService.concat(files);
     }
 
     private _onFilesToBeConcat(files: IFile[]) {
-        this.service.dropPendingFiles();
+        this.services.FileOpenerService.dropPendingFiles();
         if (files.length === 0) {
             return;
         }

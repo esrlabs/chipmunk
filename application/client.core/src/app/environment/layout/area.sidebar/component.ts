@@ -6,6 +6,7 @@ import { Subscription, Subject, Observable } from 'rxjs';
 import TabsSessionsService from '../../services/service.sessions.tabs';
 import SidebarSessionsService from '../../services/service.sessions.sidebar';
 import { IComponentDesc } from 'logviewer-client-containers';
+import { LayoutSessionSidebarControlsComponent } from './controls/component';
 import * as Toolkit from 'logviewer.client.toolkit';
 
 @Component({
@@ -90,6 +91,14 @@ export class LayoutSessionSidebarComponent implements AfterViewInit, OnDestroy {
         this._ng_tabsService = service;
         // Change layout of tabs in sidebar
         this._ng_tabsService.setOptions(new TabsOptions({
+            injections: {
+                bar: {
+                    factory: LayoutSessionSidebarControlsComponent,
+                    inputs: {
+                        state: this.state,
+                    }
+                }
+            },
             direction: ETabsListDirection.left,
             minimized: true
         }));
