@@ -173,7 +173,7 @@ file rg_executable do
     url = "#{RIPGREP_URL}-x86_64-apple-darwin.tar.gz"
   elsif OS.linux?
     url = "#{RIPGREP_URL}-x86_64-unknown-linux-musl.tar.gz"
-  elsif OL.windows?
+  elsif OS.windows?
     url = "#{RIPGREP_URL}-x86_64-pc-windows-msvc.zip"
   end
 
