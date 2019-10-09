@@ -18,13 +18,36 @@ export interface ITab {
 
 export class TabsService {
 
-    private _subjects = {
+    private _subjects: {
+        new: Subject<ITab>,
+        removed: Subject<string>,
+        clear: Subject<void>,
+        active: Subject<ITab>,
+        updated: Subject<ITab>,
+        options: Subject<TabsOptions>,
+    } = {
         new: new Subject<ITab>(),
         removed: new Subject<string>(),
         clear: new Subject<void>(),
         active: new Subject<ITab>(),
         updated: new Subject<ITab>(),
         options: new Subject<TabsOptions>(),
+    };
+
+    private _observable: {
+        new: Observable<ITab>,
+        removed: Observable<string>,
+        clear: Observable<void>,
+        active: Observable<ITab>,
+        updated: Observable<ITab>,
+        options: Observable<TabsOptions>,
+    } = {
+        new: this._subjects.new.asObservable(),
+        removed: this._subjects.removed.asObservable(),
+        clear: this._subjects.clear.asObservable(),
+        active: this._subjects.active.asObservable(),
+        updated: this._subjects.updated.asObservable(),
+        options: this._subjects.options.asObservable(),
     };
 
     private _tabs: Map<string, ITab> = new Map();
@@ -41,6 +64,12 @@ export class TabsService {
         if (params.options !== void 0) { this._options = params.options; }
     }
 
+    public destroy() {
+        Object.keys(this._subjects).forEach((key: string) => {
+            this._subjects[key].unsubscribe();
+        });
+    }
+
     public getObservable(): {
         new: Observable<ITab>,
         removed: Observable<string>,
@@ -49,14 +78,7 @@ export class TabsService {
         updated: Observable<ITab>,
         options: Observable<TabsOptions>,
     } {
-        return {
-            new: this._subjects.new.asObservable(),
-            removed: this._subjects.removed.asObservable(),
-            clear: this._subjects.clear.asObservable(),
-            active: this._subjects.active.asObservable(),
-            updated: this._subjects.updated.asObservable(),
-            options: this._subjects.options.asObservable(),
-        };
+        return this._observable;
     }
 
     public setActive(guid: string) {

@@ -22,10 +22,12 @@ export class SidebarSessionsService implements IService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarSessionsService');
     private _services: Map<string, TabsService> = new Map();
+    private _servicesSubs: Map<string, { [key: string]: Subscription }> = new Map();
     private _tabs: Map<string, Map<string, ITab>> = new Map();
     private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = {};
     private _inputs: { [key: string]: any } = {};
     private _injected: IComponentDesc | undefined;
+    private _droppedInjected: string = '';
     private _subjects: {
         injection: Subject<IComponentDesc | undefined>,
     } = {
@@ -34,6 +36,7 @@ export class SidebarSessionsService implements IService {
 
     constructor() {
         this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionClosed = TabsSessionsService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
     }
 
     public init(): Promise<void> {
@@ -151,6 +154,8 @@ export class SidebarSessionsService implements IService {
     }
 
     private _create(session: string, transports: string[]) {
+        // Reset injected title content
+        this.setTitleInjection(undefined);
         if (this._services.has(session)) {
             // Service already exists
             return;
@@ -158,7 +163,15 @@ export class SidebarSessionsService implements IService {
         // Add all possible tabs
         const tabs: Map<string, ITab> = new Map();
         // Create new tabs service
-        this._services.set(session, new TabsService());
+        const service: TabsService = new TabsService();
+        // Subscriptions storage
+        const subscriptions: { [key: string]: Subscription } = {};
+        // Subscribe on service events
+        subscriptions.active = service.getObservable().active.subscribe(this._dropTitleInjectedContent.bind(this, session));
+        // Store service
+        this._services.set(session, service);
+        // Store subscriptions
+        this._servicesSubs.set(session, subscriptions);
         // Add default sidebar apps
         DefaultSidebarApps.forEach((description: IDefaultSidebarApp, index) => {
             const tab: ITab = Object.assign({}, description.tab);
@@ -230,6 +243,15 @@ export class SidebarSessionsService implements IService {
         return tab.guid;
     }
 
+    private _dropTitleInjectedContent(session: string, tab: ITab) {
+        const hash: string = `${session}-${tab.guid}`;
+        if (hash === this._droppedInjected) {
+            return;
+        }
+        this.setTitleInjection(undefined);
+        this._droppedInjected = hash;
+    }
+
     private _getActiveSessionGuid(): string | undefined {
         const session = TabsSessionsService.getActive();
         return session === undefined ? undefined : session.getGuid();
@@ -267,6 +289,22 @@ export class SidebarSessionsService implements IService {
         this._create(controller.getGuid(), controller.getTransports());
     }
 
+    private _onSessionClosed(session: string) {
+        const subscriptions: { [key: string]: Subscription } | undefined = this._servicesSubs.get(session);
+        if (subscriptions !== undefined) {
+            Object.keys(subscriptions).forEach((key: string) => {
+                subscriptions[key].unsubscribe();
+            });
+        }
+        this._servicesSubs.delete(session);
+        const service: TabsService | undefined = this._services.get(session);
+        if (service !== undefined) {
+            service.destroy();
+        }
+        this._services.delete(session);
+        this._tabs.delete(session);
+    }
+
     private _addDefaultsInputs(inputs: { [key: string]: any }, session: string, tab: string): { [key: string]: any } {
         // Add preset inputs
         inputs = Object.assign(inputs, this._inputs);
@@ -288,10 +326,5 @@ export class SidebarSessionsService implements IService {
     }
 
 }
-
-/*
-        SidebarSessionsService.setActive('search');
-
-*/
 
 export default (new SidebarSessionsService());
