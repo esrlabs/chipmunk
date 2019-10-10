@@ -5,8 +5,8 @@
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "scripts": {
-        "build": "npm run build-ts && npm run build-neon",
-        "build-ts": "tsc -p ./tsconfig.json",
+        "neon": "npm run build-ts-neon && npm run build-neon",
+        "build-ts-neon": "tsc -p ./tsconfig.json",
         "build-neon": "node_modules/.bin/electron-build-env neon build --release",
         "build:watch": "tsc -p ./tsconfig.json -w",
         "clean": "node_modules/.bin/neon clean"

@@ -699,7 +699,7 @@ pub fn detect_timestamp_format_in_file(path: &Path) -> Result<String, failure::E
     let min_matched_lines = std::cmp::min(LINE_DETECTION_THRESHOLD, inspected_lines);
     if let (Some(s), n) = best_format_string {
         if n >= min_matched_lines {
-            return Ok(s.clone());
+            return Ok(s);
         } else {
             let warning = format!(
                 "could not verify enough timestamps in {:?}, only found {}",

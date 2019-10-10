@@ -30,6 +30,7 @@ $task_benchmarks = []
 
 class Rake::Task
   def execute_with_benchmark(*args)
+    puts "***************** executing #{name}"
     bm = Benchmark.realtime { execute_without_benchmark(*args) }
     $task_benchmarks << [name, bm]
   end

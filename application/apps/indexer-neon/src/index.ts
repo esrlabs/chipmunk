@@ -6,12 +6,15 @@ import {
     detectTimestampFormatInFile,
     detectTimestampFormatsInFiles,
     IFilePath,
-    IChunk,
 } from "./processor";
 import { IConcatFilesParams, IMergeParams, mergeFiles, concatFiles } from "./merger";
-import { IIndexDltParams, dltStats, indexDltFile } from "./dlt";
-import { ITicks, AsyncResult } from "./progress";
-export { ITicks };
+import { IIndexDltParams, dltStats, indexDltFile, indexDltAsync, DltFilterConf } from "./dlt";
+import { ITicks, AsyncResult, IChunk } from "./progress";
+export { ITicks, DltFilterConf };
+
+export interface Foo {
+  todo: number;
+}
 
 export interface LevelDistribution {
     non_log: number;
@@ -32,18 +35,24 @@ export interface StatisticInfo {
 export interface IChipmunkIndexer {
     indexFile: (params: IIndexerParams) => boolean;
     indexAsync: (
-    chunkSize: number,
-    fileToIndex: string,
-    maxTime: number,
-    outPath: string,
-    onProgress: (ticks: ITicks) => any,
-    onChunk: (chunk: IChunk) => any,
-    tag: string,
-) => Promise<AsyncResult>,
+        chunkSize: number,
+        fileToIndex: string,
+        maxTime: number,
+        outPath: string,
+        onProgress: (ticks: ITicks) => any,
+        onChunk: (chunk: IChunk) => any,
+        tag: string,
+    ) => Promise<AsyncResult>;
     mergeFiles: (params: IMergeParams) => boolean;
     concatFiles: (params: IConcatFilesParams) => boolean;
     dltStats: (dltFile: String) => StatisticInfo;
     indexDltFile: (params: IIndexDltParams) => boolean;
+    indexDltAsync: (
+        params: IIndexDltParams,
+        maxTime: number,
+        onProgress: (ticks: ITicks) => any,
+        onChunk: (chunk: IChunk) => any,
+    ) => Promise<AsyncResult>;
     detectTimestampInString: (input: string) => string;
     detectTimestampFormatInFile: (input: string) => string;
     detectTimestampFormatsInFiles: (conf: Array<IFilePath>) => string;
@@ -56,6 +65,7 @@ export const library: IChipmunkIndexer = {
     concatFiles,
     dltStats,
     indexDltFile,
+    indexDltAsync,
     detectTimestampInString,
     detectTimestampFormatInFile,
     detectTimestampFormatsInFiles,

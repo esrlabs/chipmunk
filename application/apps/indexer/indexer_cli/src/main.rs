@@ -628,6 +628,10 @@ fn main() {
                 }
             };
 
+            let (tx, _rx): (
+                Sender<IndexingProgress<Chunk>>,
+                Receiver<IndexingProgress<Chunk>>,
+            ) = std::sync::mpsc::channel();
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
             match dlt::dlt_parse::create_index_and_mapping_dlt(
                 IndexingConfig {
@@ -640,6 +644,7 @@ fn main() {
                 },
                 source_file_size,
                 filter_conf,
+                Some(tx),
                 None,
                 // dlt::filtering::DltFilterConfig {
                 //     min_log_level: verbosity_log_level,
@@ -689,7 +694,7 @@ fn main() {
                     };
                     let timestamp_result = TimestampFormatResult {
                         path: file_name.to_string(),
-                        format: Some(res.clone()),
+                        format: Some(res),
                         min_time: min,
                         max_time: max,
                     };

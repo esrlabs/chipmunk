@@ -451,15 +451,15 @@ task :lint do
   # cd ELECTRON_DIR do
   #   sh "npm run lint"
   # end
-  # ["launcher", "updater", "indexer"].each do |rust_app|
-  #   cd Pathname.new(APPS_DIR).join(rust_app) do
-  #     begin
-  #       sh "cargo clippy"
-  #     rescue Exception => e
-  #       puts "error while running clippy for #{rust_app}: #{e}"
-  #     end
-  #   end
-  # end
+  ["launcher", "updater", "indexer"].each do |rust_app|
+    cd Pathname.new(APPS_DIR).join(rust_app) do
+      begin
+        sh "cargo clippy"
+      rescue Exception => e
+        puts "error while running clippy for #{rust_app}: #{e}"
+      end
+    end
+  end
 end
 
 # Install standalone plugins
@@ -639,6 +639,7 @@ desc "build embedded indexer"
 task :build_embedded_indexer do
   cd "#{APPS_DIR}/indexer-neon" do
     npm_install
+    sh "#{NPM_RUN} build-ts-neon"
     sh "#{NPM_RUN} neon"
   end
 end

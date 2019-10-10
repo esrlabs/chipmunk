@@ -15,9 +15,10 @@ use crate::filtering;
 use indexer_base::chunks::{Chunk, ChunkFactory};
 use indexer_base::config::IndexingConfig;
 use indexer_base::error_reporter::*;
+use indexer_base::progress::*;
 use indexer_base::utils;
 use serde::Serialize;
-use std::sync::mpsc;
+use std::sync::mpsc::{self, TryRecvError};
 
 use buf_redux::policy::MinBuffered;
 use buf_redux::BufReader as ReduxReader;
@@ -708,8 +709,10 @@ pub fn create_index_and_mapping_dlt(
     config: IndexingConfig,
     source_file_size: Option<usize>,
     filter_conf: Option<filtering::DltFilterConfig>,
+    update_channel: Option<mpsc::Sender<IndexingProgress<Chunk>>>,
     shutdown_receiver: Option<mpsc::Receiver<()>>,
 ) -> Result<Vec<Chunk>, Error> {
+    trace!("create_index_and_mapping_dlt");
     let initial_line_nr = match utils::next_line_nr(config.out_path) {
         Some(nr) => nr,
         None => {
@@ -725,6 +728,7 @@ pub fn create_index_and_mapping_dlt(
         filter_conf,
         initial_line_nr,
         source_file_size,
+        update_channel,
         shutdown_receiver,
     )
 }
@@ -735,8 +739,10 @@ pub fn index_dlt_file(
     dlt_filter: Option<filtering::DltFilterConfig>,
     initial_line_nr: usize,
     source_file_size: Option<usize>,
+    update_channel: Option<mpsc::Sender<IndexingProgress<Chunk>>>,
     shutdown_receiver: Option<mpsc::Receiver<()>>,
 ) -> Result<Vec<Chunk>, Error> {
+    trace!("index_dlt_file");
     let (out_file, current_out_file_size) =
         utils::get_out_file_and_size(config.append, &config.out_path)?;
 
@@ -751,10 +757,15 @@ pub fn index_dlt_file(
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
 
     let mut processed_bytes = utils::get_processed_bytes(config.append, &config.out_path) as usize;
+    let mut stopped = false;
     let filter_config: Option<filtering::ProcessedDltFilterConfig> =
         dlt_filter.map(filtering::process_filter_config);
     loop {
         // println!("line index: {}", line_nr);
+        if stopped {
+            info!("we where stopped in dlt-indexer",);
+            break;
+        };
         match read_one_dlt_message(&mut reader, filter_config.as_ref(), Some(line_nr)) {
             Ok(Some((consumed, Some(msg)))) => {
                 // println!("consumed: {}", consumed);
@@ -767,6 +778,25 @@ pub fn index_dlt_file(
                 if let Some(chunk) =
                     chunk_factory.create_chunk_if_needed(line_nr, written_bytes_len)
                 {
+                    // trace!("created chunk {:?}", chunk);
+                    // check if stop was requested
+                    if let Some(rx) = shutdown_receiver.as_ref() {
+                        match rx.try_recv() {
+                            // Shutdown if we have received a command or if there is
+                            // nothing to send it.
+                            Ok(_) | Err(TryRecvError::Disconnected) => {
+                                info!("shutdown received in indexer",);
+                                stopped = true // stop
+                            }
+                            // No shutdown command, continue
+                            Err(TryRecvError::Empty) => (),
+                        }
+                    };
+                    update_channel.as_ref().map(|c| {
+                        c.send(IndexingProgress::GotItem {
+                            item: chunk.clone(),
+                        })
+                    });
                     chunks.push(chunk);
                     buf_writer.flush()?;
                 }
@@ -778,6 +808,14 @@ pub fn index_dlt_file(
                         file_size,
                         REPORT_PROGRESS_LINE_BLOCK,
                     );
+                    if line_nr % REPORT_PROGRESS_LINE_BLOCK == 0 {
+                        trace!("dlt progress");
+                        update_channel.as_ref().map(|c| {
+                            c.send(IndexingProgress::Progress {
+                                ticks: (processed_bytes, file_size),
+                            })
+                        });
+                    }
                 }
             }
             Ok(Some((consumed, None))) => {
@@ -804,6 +842,11 @@ pub fn index_dlt_file(
 
     buf_writer.flush()?;
     if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunks.is_empty()) {
+        update_channel.as_ref().map(|c| {
+            c.send(IndexingProgress::GotItem {
+                item: chunk.clone(),
+            })
+        });
         chunks.push(chunk);
     }
     match chunks.last() {
@@ -818,6 +861,10 @@ pub fn index_dlt_file(
             }
         }
         None => report_warning("output was empty!"),
+    }
+    if let Some(tx) = update_channel {
+        trace!("sending IndexingProgress::Finished");
+        tx.send(IndexingProgress::Finished)?;
     }
     Ok(chunks)
 }

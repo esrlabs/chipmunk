@@ -14,6 +14,9 @@
 extern crate lazy_static;
 extern crate indexer_base;
 
+#[macro_use]
+extern crate log;
+
 pub mod dlt;
 pub mod dlt_parse;
 pub mod filtering;

@@ -168,11 +168,7 @@ pub fn index_file(
             }
             line_nr += 1;
 
-            match chunk_factory.create_chunk_if_needed(
-                line_nr,
-                additional_bytes,
-                // shutdown_receiver.as_ref(),
-            ) {
+            match chunk_factory.create_chunk_if_needed(line_nr, additional_bytes) {
                 Some(chunk) => {
                     // check if stop was requested
                     if let Some(rx) = shutdown_receiver.as_ref() {

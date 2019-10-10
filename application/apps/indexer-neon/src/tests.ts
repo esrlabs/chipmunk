@@ -1,7 +1,7 @@
-import { indexAsync, indexFile, IFilePath, IChunk } from "./processor";
-import { DltFilterConf } from "./dlt";
+import { indexAsync, indexFile, IFilePath } from "./processor";
+import { DltFilterConf, indexDltAsync, DltLogLevel, IIndexDltParams } from "./dlt";
 import { StatisticInfo, library } from "./index";
-import { ITicks } from "./progress";
+import { ITicks, IChunk } from "./progress";
 import { log } from "./logging";
 const util = require("util");
 
@@ -45,7 +45,7 @@ function testCallIndexDltFile() {
     const fileToIndex = dltPath + "/DTC_SP21.dlt";
     const out_filtered = dltPath + "/dlt.indexed_filtered.out";
     const filterConf: DltFilterConf = {
-        min_log_level: 3,
+        min_log_level: DltLogLevel.Debug,
         app_ids: [
             "APP",
             "rtcS",
@@ -174,9 +174,7 @@ function testDetectTimestampFormatsInFiles() {
         },
     });
 }
-function testCallDltStats() {
-    const dltPath = examplePath + "/dlt";
-    const file = dltPath + "/DTC_SP21.dlt";
+export function testCallDltStats(file: string) {
     measure({
         desc: "stats for " + file,
         f: () => {
@@ -184,6 +182,63 @@ function testCallDltStats() {
             console.log(util.inspect(stats, { showHidden: true, depth: 5 }));
         },
     });
+}
+export function testDltIndexingAsync(fileToIndex: string, outPath: string) {
+    const hrstart = process.hrtime();
+    try {
+        let chunks: number = 0;
+        let onProgress = (ticks: ITicks) => {
+            log("progress: " + ticks);
+        };
+        let onChunk = (chunk: IChunk) => {
+            chunks += 1;
+            if (chunks % 100 === 0) {
+                process.stdout.write(".");
+            }
+        };
+        const filterConfig: DltFilterConf = {
+            min_log_level: DltLogLevel.Debug,
+            // context_ids: ["DFLT"]
+            // app_ids: ["NONE"],
+            //     "APP",
+            //     "rtcS",
+            //     "DA1",
+            //     "mete",
+            //     "upda",
+            //     "PDRM",
+            //     "DLTD",
+            //     "IRC",
+            //     "DANL",
+            //     "PVSn",
+            //     "SYS",
+            //     "PAGY",
+            // ],
+        };
+
+        const dltParams: IIndexDltParams = {
+            dltFile: fileToIndex,
+            filterConfig,
+            tag: "TAG",
+            out: outPath,
+            chunk_size: 500,
+            append: false,
+            stdout: false,
+            statusUpdates: true,
+        };
+        indexDltAsync(
+            dltParams,
+            15000,
+            onProgress,
+            onChunk,
+        ).then(x => {
+            const hrend = process.hrtime(hrstart);
+            const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+            log("COMPLETELY DONE (last result was: " + x + ")");
+            console.info("Execution time for indexing : %dms", ms);
+        });
+    } catch (error) {
+        console.error("error %s", error);
+    }
 }
 function testIndexingAsync() {
     const hrstart = process.hrtime();
@@ -269,6 +324,7 @@ function testVeryShortIndexing() {
         console.info("Execution time for indexing : %dms", ms);
     });
 }
+
 // testCallIndexFile();
 // testDetectTimestampInString();
 // testDetectTimestampInFile();
@@ -276,7 +332,8 @@ function testVeryShortIndexing() {
 // testCallConcatFiles();
 // testCallMergeFiles();
 // testCallIndexDltFile();
-// testCallDltStats();
-testIndexingAsync();
+// testCallDltStats(examplePath + "/dlt/DTC_SP21.dlt");
+// testIndexingAsync();
 // testInterruptAsyncIndexing();
 // testVeryShortIndexing();
+// testDltIndexingAsync("./tests/testfile.dlt", "./out/testfile.out");
