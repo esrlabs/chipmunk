@@ -62,3 +62,4 @@ local/**/*
 **/.env
 **/*.node
 application/apps/indexer-neon/native/artifacts.json
+*portable.tgz

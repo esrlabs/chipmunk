@@ -1,6 +1,6 @@
 {
   "name": "chipmunk",
-  "version": "1.21.00",
+  "version": "1.21.0",
   "description": "LogViewer",
   "main": "./dist/compiled/main.js",
   "copyright": "Copyright © 2019 year E.S.R.Labs",
@@ -86,6 +86,7 @@
     "build-win": "tsc -p ./tsconfig.json && ./node_modules/.bin/electron-builder --win",
     "publish-win": "tsc -p ./tsconfig.json && ./node_modules/.bin/electron-builder --win -p always",
     "package-check": "../node_modules/.bin/npm-check",
+    "lint": "./node_modules/.bin/tslint --project .",
     "package-upgrade": "../node_modules/.bin/npm-check -y"
   }
 }

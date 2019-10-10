@@ -1,0 +1,48 @@
+name: Main
+
+on: push
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+        rust: [stable]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Install windows python
+        uses: actions/setup-python@v1
+        if: startsWith(matrix.os, 'windows')
+        with:
+          python-version: '2.7'
+          architecture: 'x64' # (x64 or x86)
+      - name: install ruby
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.x'
+      - name: install node
+        uses: actions/setup-node@master
+        with:
+          node-version: '10.16.3'
+      - name: install npm
+        run: npm install --global neon-cli
+      - name: build tools for windows
+        run: npm install --global --production windows-build-tools --vs2015
+        if: startsWith(matrix.os, 'windows')
+      - name: install rust
+        uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+      - name: build release
+        run: rake full_pipeline --trace
+      - run: ls
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: "*.tgz"
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
