@@ -29,22 +29,26 @@ module OS
 end
 
 NPM_RUN = "npm run --quiet"
-DIST_FOLDER = "application/electron/dist"
-COMPILED_CLIENT_FOLDER = "application/client.core/dist/logviewer"
-COMPILED_FOLDER = "application/electron/dist/compiled"
-RELEASE_FOLDER = "application/electron/dist/release"
-INCLUDED_PLUGINS_FOLDER = "application/electron/dist/compiled/plugins"
-INCLUDED_APPS_FOLDER = "application/electron/dist/compiled/apps"
-APP_PACKAGE_JSON = "application/electron/package.json"
-SRC_HOST_IPC = "application/electron/src/controllers/electron.ipc.messages"
-DEST_CLIENT_HOST_IPC = "application/client.core/src/app/environment/services/electron.ipc.messages"
-SRC_PLUGIN_IPC = "application/electron/src/controllers/plugins.ipc.messages"
-DEST_CLIENT_PLUGIN_IPC = "application/client.core/src/app/environment/services/plugins.ipc.messages"
+
+ELECTRON_DIR = "application/electron"
+ELECTRON_DIST_DIR = "#{ELECTRON_DIR}/dist"
+ELECTRON_COMPILED_DIR = "#{ELECTRON_DIST_DIR}/compiled"
+ELECTRON_RELEASE_DIR = "#{ELECTRON_DIST_DIR}/release"
+APPS_DIR = "application/apps"
+CLIENT_CORE_DIR = "application/client.core"
+
+INCLUDED_PLUGINS_FOLDER = "#{ELECTRON_COMPILED_DIR}/plugins"
+INCLUDED_APPS_FOLDER = "#{ELECTRON_COMPILED_DIR}/apps"
+APP_PACKAGE_JSON = "#{ELECTRON_DIR}/package.json"
+SRC_HOST_IPC = "#{ELECTRON_DIR}/src/controllers/electron.ipc.messages"
+DEST_CLIENT_HOST_IPC = "#{CLIENT_CORE_DIR}/src/app/environment/services/electron.ipc.messages"
+SRC_PLUGIN_IPC = "#{ELECTRON_DIR}/src/controllers/plugins.ipc.messages"
+DEST_CLIENT_PLUGIN_IPC = "#{CLIENT_CORE_DIR}/src/app/environment/services/plugins.ipc.messages"
 DEST_PLUGINIPCLIG_PLUGIN_IPC = "application/node.libs/logviewer.plugin.ipc/src/ipc.messages"
 SRC_CLIENT_NPM_LIBS = "application/client.libs/logviewer.client.components"
 RIPGREP_URL = "https://github.com/BurntSushi/ripgrep/releases/download/11.0.2/ripgrep-11.0.2"
 DESTS_CLIENT_NPM_LIBS = [
-  "application/client.core/node_modules",
+  "#{CLIENT_CORE_DIR}/node_modules",
   "application/client.plugins/node_modules"
 ]
 CLIENT_NPM_LIBS_NAMES = [
@@ -63,17 +67,17 @@ STANDALONE_PLUGINS = ["row.parser.ascii"];
 
 PLUGINS_SANDBOX = "application/sandbox"
 
-directory DIST_FOLDER
-directory COMPILED_FOLDER
-directory RELEASE_FOLDER
+directory ELECTRON_DIST_DIR
+directory ELECTRON_COMPILED_DIR
+directory ELECTRON_RELEASE_DIR
 directory INCLUDED_PLUGINS_FOLDER
 directory INCLUDED_APPS_FOLDER
 
-FOLDERS_TO_CLEAN = [DIST_FOLDER, COMPILED_FOLDER, RELEASE_FOLDER, INCLUDED_PLUGINS_FOLDER, INCLUDED_APPS_FOLDER]
+FOLDERS_TO_CLEAN = [ELECTRON_DIST_DIR, ELECTRON_COMPILED_DIR, ELECTRON_RELEASE_DIR, INCLUDED_PLUGINS_FOLDER, INCLUDED_APPS_FOLDER]
 CLEAN.include(FOLDERS_TO_CLEAN)
 task :rust_clean do
   ["launcher", "updater", "indexer"].each do |rust_app|
-    cd Pathname.new("application/apps").join(rust_app), :verbose => false do
+    cd Pathname.new(APPS_DIR).join(rust_app), :verbose => false do
       sh "cargo clean"
     end
   end
@@ -84,27 +88,43 @@ CLOBBER.include([
   "**/node_modules",
   "**/package-lock.json",
   "**/dist",
-  "application/apps/indexer/target",
-  "application/apps/indexer-neon/dist",
-  "application/apps/indexer-neon/native/target"])
+  "#{APPS_DIR}/indexer/target",
+  "#{APPS_DIR}/indexer-neon/dist",
+  "#{APPS_DIR}/indexer-neon/native/target"])
 
-task :folders => [DIST_FOLDER, COMPILED_FOLDER, RELEASE_FOLDER, INCLUDED_PLUGINS_FOLDER, INCLUDED_APPS_FOLDER]
+task :folders => [ELECTRON_DIST_DIR, ELECTRON_COMPILED_DIR, ELECTRON_RELEASE_DIR, INCLUDED_PLUGINS_FOLDER, INCLUDED_APPS_FOLDER]
 
-SRC_LAUNCHER = "application/apps/launcher/target/release/launcher"
-RELEASE_PATH = "application/electron/dist/release/"
+SRC_LAUNCHER = "#{APPS_DIR}/launcher/target/release/launcher"
 
-if OS.windows? == true
-  TARGET_PLATFORM_NAME = "win64"
-  TARGET_PLATFORM_ALIAS = "win"
-elsif OS.mac? == true
-  TARGET_PLATFORM_NAME = "darwin"
-  TARGET_PLATFORM_ALIAS = "mac"
-else
-  TARGET_PLATFORM_NAME = "linux"
-  TARGET_PLATFORM_ALIAS = "linux"
+def target_platform_alias
+  if OS.windows?
+    "win"
+  elsif OS.mac?
+    "mac"
+  else
+    "linux"
+  end
+end
+def target_platform_name
+  if OS.windows?
+    "win64"
+  elsif OS.mac?
+    "darwin"
+  else
+    "linux"
+  end
+end
+def nodejs_platform
+  if OS.windows?
+    "win32"
+  elsif OS.mac?
+    "darwin"
+  else
+    "linux"
+  end
 end
 
-puts "Detected target platform is: #{TARGET_PLATFORM_NAME} / #{TARGET_PLATFORM_ALIAS}"
+puts "Detected target platform is: #{target_platform_name} / #{target_platform_alias}"
 
 def compress_plugin(file, dest)
   if OS.windows?
@@ -114,18 +134,6 @@ def compress_plugin(file, dest)
   end
 end
 
-def nodejs_platform()
-  if OS.windows?
-    "win32"
-  elsif OS.mac?
-    "darwin"
-  else
-    "linux"
-  end
-end
-task :t do
-  puts nodejs_platform
-end
 def npm_install(what = "")
   sh "npm install #{what} --prefere-offline"
 end
@@ -139,7 +147,7 @@ end
 
 desc "start"
 task :start => :ripgrepdelivery do
-  cd "application/electron" do
+  cd ELECTRON_DIR do
     sh "#{NPM_RUN} electron"
   end
 end
@@ -149,19 +157,34 @@ task :setup_environment do
   puts "Installing npm libs, which is needed for installing / updateing process"
   npm_install("typescript --global")
   if OS.windows?
-    File.open(File.join(Dir.home, ".cargo", "config"), "a") do |f|
-      f.puts ""
-      ["[target.'cfg(windows)']",
-      'rustflags = ["-C", "link-args=/DELAYLOAD:node.exe /INCLUDE:__pfnDliNotifyHook2 delayimp.lib"]'].each { |line| f.puts(line) }
+    config_file_path = File.join(Dir.home, ".cargo", "config")
+    needs_entry = false
+    if !File.exist?(config_file_path)
+      needs_entry = true
+    else
+      config_content = File.read(config_file_path)
+      needs_entry = not(config_content =~ /__pfnDliNotifyHook2/)
+    end
+    if needs_entry
+      File.open(config_file_path, "a") do |f|
+        f.puts ""
+        ["[target.'cfg(windows)']",
+        'rustflags = ["-C", "link-args=/DELAYLOAD:node.exe /INCLUDE:__pfnDliNotifyHook2 delayimp.lib"]'].each { |line| f.puts(line) }
+      end
     end
   end
 end
 
 def rg_executable
-  if OS.windows? == true
-    "#{COMPILED_FOLDER}/apps/rg.exe"
-  else
-    "#{COMPILED_FOLDER}/apps/rg"
+  "#{INCLUDED_APPS_FOLDER}/#{OS.windows? ? 'rg.exe' : 'rg'}"
+end
+def rg_url
+  if OS.mac?
+    "#{RIPGREP_URL}-x86_64-apple-darwin.tar.gz"
+  elsif OS.linux?
+    "#{RIPGREP_URL}-x86_64-unknown-linux-musl.tar.gz"
+  elsif OS.windows?
+    "#{RIPGREP_URL}-x86_64-pc-windows-msvc.zip"
   end
 end
 
@@ -169,25 +192,18 @@ file rg_executable do
   puts "rebuilding rg executable"
   tmp_path = "temp_for_building_rg"
   Dir.mkdir(tmp_path) unless File.exists?(tmp_path)
-  if OS.mac?
-    url = "#{RIPGREP_URL}-x86_64-apple-darwin.tar.gz"
-  elsif OS.linux?
-    url = "#{RIPGREP_URL}-x86_64-unknown-linux-musl.tar.gz"
-  elsif OS.windows?
-    url = "#{RIPGREP_URL}-x86_64-pc-windows-msvc.zip"
-  end
 
-  file_name = URI(url).path.split('/').last
+  file_name = URI(rg_url).path.split('/').last
 
   open("#{tmp_path}/#{file_name}", "wb") do |file|
-    file << open(url).read
+    file << open(rg_url).read
   end
   if OS.mac? or OS.linux?
     cd tmp_path do
       sh "tar xvzf #{file_name}"
     end
     src = "#{tmp_path}/#{File.basename(file_name, '.tar.gz')}/rg"
-  elsif OL.windows?
+  elsif OS.windows?
     cd tmp_path do
       sh "unzip #{file_name}"
     end
@@ -203,14 +219,14 @@ task :ripgrepdelivery => [:folders, rg_executable]
 
 namespace :client do
   task :build_core do
-    cd "application/client.core" do
+    cd CLIENT_CORE_DIR do
       puts "Installing: core"
       npm_install
       npm_install("logviewer.client.toolkit@latest")
     end
   end
   task :rebuild_core do
-    cd "application/client.core" do
+    cd CLIENT_CORE_DIR do
       puts "re-installing: core"
       npm_install
       npm_reinstall("logviewer.client.toolkit@latest")
@@ -280,27 +296,27 @@ namespace :client do
 
   desc "Build client"
   task :build do
-    cd "application/client.core" do
+    cd CLIENT_CORE_DIR do
       puts "Building client.core"
       sh "#{NPM_RUN} build"
     end
     puts "Delivery client.core"
-    dest_client_path = "#{COMPILED_FOLDER}/client"
+    dest_client_path = "#{ELECTRON_COMPILED_DIR}/client"
     rm_r(dest_client_path, :force => true)
-    cp_r(COMPILED_CLIENT_FOLDER, dest_client_path, :verbose => false)
+    cp_r("#{CLIENT_CORE_DIR}/dist/logviewer", dest_client_path, :verbose => false)
   end
 end
-task :build_electron => [ :prepare_electron_build,
+task :compile_electron => [:prepare_electron_build,
                           :native,
                           :delivery_embedded_indexer_into_app,
                           :finish_electron_build]
 task :prepare_electron_build do
-  cd "application/electron" do
+  cd ELECTRON_DIR do
     npm_install
   end
 end
 task :finish_electron_build do
-  cd "application/electron" do
+  cd ELECTRON_DIR do
     sh "#{NPM_RUN} build-ts"
   end
 end
@@ -309,7 +325,7 @@ desc "re-install"
 task :reinstall => [:folders,
                   "client:rebuild_core",
                   "client:build_components",
-                  :build_electron,
+                  :compile_electron,
                   :ipc,
                   "client:build_libs",
                   "client:deliver_libs",
@@ -320,7 +336,7 @@ desc "install"
 task :install => [:folders,
                   "client:build_core",
                   "client:build_components",
-                  :build_electron,
+                  :compile_electron,
                   :ipc,
                   "client:build_libs",
                   "client:deliver_libs",
@@ -342,7 +358,7 @@ task :dev_fullupdate_client => ["client:build_libs", "client:deliver_libs", :dev
 
 desc "Developer task: update client"
 task :dev_fullupdate_client_run => :dev_fullupdate_client do
-  cd "application/electron" do
+  cd ELECTRON_DIR do
     sh "#{NPM_RUN} electron"
   end
 end
@@ -350,16 +366,15 @@ end
 #Application should be built already to use this task
 desc "Developer task: build launcher and delivery into package."
 task :dev_build_delivery_apps => [:build_launcher, :build_updater] do
-  case TARGET_PLATFORM_ALIAS
-    when "mac"
-      node_app_original = "#{RELEASE_PATH}mac/chipmunk.app/Contents/MacOS/chipmunk"
-      launcher = SRC_LAUNCHER
-    when "linux"
-      node_app_original = "#{RELEASE_PATH}linux-unpacked/chipmunk"
-      launcher = SRC_LAUNCHER
-    when "win"
-      node_app_original = "#{RELEASE_PATH}win-unpacked/chipmunk.exe"
-      launcher = "#{SRC_LAUNCHER}.exe"
+  if OS.mac?
+    node_app_original = "#{ELECTRON_RELEASE_DIR}/mac/chipmunk.app/Contents/MacOS/chipmunk"
+    launcher = SRC_LAUNCHER
+  elsif OS.linux?
+    node_app_original = "#{ELECTRON_RELEASE_DIR}/linux-unpacked/chipmunk"
+    launcher = SRC_LAUNCHER
+  else
+    node_app_original = "#{ELECTRON_RELEASE_DIR}/win-unpacked/chipmunk.exe"
+    launcher = "#{SRC_LAUNCHER}.exe"
   end
   rm(node_app_original)
   cp(launcher, node_app_original)
@@ -380,10 +395,9 @@ task :ipc do
   cp_r(SRC_PLUGIN_IPC, DEST_PLUGINIPCLIG_PLUGIN_IPC, :verbose => false)
 end
 
-
 desc "Add package.json to compiled app"
 task :apppackagedelivery do
-  cp_r(APP_PACKAGE_JSON, "#{COMPILED_FOLDER}/package.json", :verbose => false)
+  cp_r(APP_PACKAGE_JSON, "#{ELECTRON_COMPILED_DIR}/package.json")
 end
 
 desc "install plugins"
@@ -413,6 +427,43 @@ def install_plugin_standalone(plugin)
   arch = plugin_bundle_name(plugin, "render")
   rm(arch, :force => true)
   compress_plugin(arch, plugin)
+end
+
+desc "run all tests"
+task :test do
+  ["launcher", "updater", "indexer"].each do |rust_app|
+    cd Pathname.new(APPS_DIR).join(rust_app), :verbose => false do
+      begin
+        sh "cargo test"
+      rescue Exception => e
+        puts "error while running tests for #{rust_app}: #{e}"
+      end
+    end
+  end
+end
+desc "lint code"
+task :lint do
+  ["client.core", "client.libs/logviewer.client.components", "client.plugins"].each do |d|
+    cd File.join("application", d) do
+      begin
+        sh "npm run lint"
+      rescue
+        puts "error while running npm run lint for #{d}"
+      end
+    end
+  end
+  cd ELECTRON_DIR do
+    sh "npm run lint"
+  end
+  ["launcher", "updater", "indexer"].each do |rust_app|
+    cd Pathname.new(APPS_DIR).join(rust_app) do
+      begin
+        sh "cargo clippy"
+      rescue Exception => e
+        puts "error while running clippy for #{rust_app}: #{e}"
+      end
+    end
+  end
 end
 
 desc "Install standalone plugins"
@@ -500,14 +551,14 @@ end
 desc "build updater"
 task :build_updater => :folders do
 
-  src_app_dir = "application/apps/updater/target/release/"
+  src_app_dir = "#{APPS_DIR}/updater/target/release/"
   app_file = "updater"
 
   if OS.windows? == true
     app_file = "updater.exe"
   end
 
-  cd "application/apps/updater" do
+  cd "#{APPS_DIR}/updater" do
     puts 'Build updater'
     sh "cargo build --release"
   end
@@ -521,14 +572,14 @@ end
 
 desc "build launcher"
 task :build_launcher => :folders do
-  src_app_dir = "application/apps/launcher/target/release/"
+  src_app_dir = "#{APPS_DIR}/launcher/target/release/"
   app_file = "launcher"
 
   if OS.windows? == true
     app_file = "launcher.exe"
   end
 
-  cd "application/apps/launcher" do
+  cd "#{APPS_DIR}/launcher" do
     puts 'Build launcher'
     sh "cargo build --release"
   end
@@ -543,7 +594,7 @@ end
 desc "build indexer"
 task :build_indexer => :folders do
 
-  src_app_dir = "application/apps/indexer/target/release/"
+  src_app_dir = "#{APPS_DIR}/indexer/target/release/"
   app_file_comp = "indexer_cli"
   app_file_release = "lvin"
 
@@ -552,7 +603,7 @@ task :build_indexer => :folders do
     app_file_release = "lvin.exe"
   end
 
-  cd "application/apps/indexer" do
+  cd "#{APPS_DIR}/indexer" do
     puts 'Build indexer'
     sh "cargo build --release"
   end
@@ -570,47 +621,47 @@ def fresh_folder(dest_folder)
 end
 
 def delivery_embedded_indexer(dest)
-  src_folder = Pathname.new("application/apps/indexer-neon")
-  dest_folder = Pathname.new(dest).join("indexer-neon")
+  src_folder = "#{APPS_DIR}/indexer-neon"
+  dest_folder = "#{dest}/indexer-neon"
   puts "Delivery indexer from: #{src_folder} into #{dest_folder}"
   fresh_folder(dest_folder)
-  Dir[src_folder.join "*"]
+  Dir["#{src_folder}/*"]
     .reject { |n| n.end_with? "node_modules" or n.end_with? "native" }
     .each do |s|
-      cp_r(s, dest_folder, :verbose => false)
+      cp_r(s, dest_folder, :verbose => true)
   end
-  dest_native = dest_folder.join("native")
-  dest_native_target = dest_native.join("target")
-  fresh_folder(dest_native_target)
+  dest_native = "#{dest_folder}/native"
+  dest_native_release = "#{dest_native}/target/release"
+  fresh_folder(dest_native_release)
   ["Cargo.lock", "Cargo.toml", "artifacts.json", "build.rs", "index.node", "src"].each do |f|
-    cp_r(src_folder.join("native").join(f), dest_native, :verbose => false)
+    cp_r("#{src_folder}/native/#{f}", dest_native, :verbose => true)
   end
-  cp_r(src_folder.join("native").join("target").join("release"), dest_native_target, :verbose => false)
+  neon_resources = Dir.glob("#{src_folder}/native/target/release/*").reject { |f| f.end_with?("build") or f.end_with?("deps") }
+  cp_r(neon_resources, dest_native_release)
 end
 
 desc "build embedded indexer"
 task :build_embedded_indexer do
-  cd "application/apps/indexer-neon" do
+  cd "#{APPS_DIR}/indexer-neon" do
     npm_install
     sh "#{NPM_RUN} build"
   end
 end
 
 task :delivery_embedded_indexer_into_release do
-  case TARGET_PLATFORM_ALIAS
-    when "mac"
-      dest = "#{RELEASE_PATH}mac/chipmunk.app/Contents/Resources/app/node_modules"
-    when "linux"
-      dest = "#{RELEASE_PATH}linux-unpacked/resources/app/node_modules"
-    when "win"
-      dest = "#{RELEASE_PATH}win-unpacked/resources/app/node_modules"
+  if OS.mac?
+    dest = "#{ELECTRON_RELEASE_DIR}/mac/chipmunk.app/Contents/Resources/app/node_modules"
+  elsif OS.linux?
+    dest = "#{ELECTRON_RELEASE_DIR}/linux-unpacked/resources/app/node_modules"
+  else
+    dest = "#{ELECTRON_RELEASE_DIR}/win-unpacked/resources/app/node_modules"
   end
   delivery_embedded_indexer(dest)
 end
 
 desc "put the neon library in place"
 task :delivery_embedded_indexer_into_app do
-  delivery_embedded_indexer("application/electron/node_modules")
+  delivery_embedded_indexer("#{ELECTRON_DIR}/node_modules")
 end
 
 desc "build native parts"
@@ -620,16 +671,15 @@ task :native => [ :build_launcher,
                   :build_embedded_indexer]
 
 desc "create list of files and folder in release"
-task :setlistofreleasefiles do
+task :create_release_file_list do
   puts "Prepare list of files/folders in release"
-  case TARGET_PLATFORM_ALIAS
-    when "mac"
-      puts "No need to do it for mac"
-      next
-    when "linux"
-      path = "#{RELEASE_FOLDER}/linux-unpacked"
-    when "win"
-      path = "#{RELEASE_FOLDER}/win-unpacked"
+  if OS.mac?
+    puts "No need to do it for mac"
+    next
+  elsif OS.linux?
+    path = "#{ELECTRON_RELEASE_DIR}/linux-unpacked"
+  else
+    path = "#{ELECTRON_RELEASE_DIR}/win-unpacked"
   end
   if !File.exists?(path)
     abort("No release found at #{path}")
@@ -647,91 +697,157 @@ task :setlistofreleasefiles do
   end
 end
 
-desc "build"
-task :build => :folders do
-  cd "application/electron" do
+task :t do
+  puts get_current_version
+  next_version = get_next_version(:minor)
+  create_and_tag_new_version(next_version)
+end
+desc "create new version and release"
+task :create_release do
+  current_tag = `git describe --tags`
+  current_electron_app_version = get_current_version
+  if !current_tag.start_with?(current_electron_app_version)
+    raise "current tag #{current_tag} does not match with current electron app version: #{current_electron_app_version}"
+  end
+  require 'highline'
+  cli = HighLine.new
+  cli.choose do |menu|
+    default = :minor
+    menu.prompt = "this will create and tag a new version (default: #{default}) "
+    menu.choice(:minor) do
+      next_version = get_next_version(:minor)
+      puts "create minor version with version #{next_version}"
+      create_and_tag_new_version(next_version)
+      build_the_release()
+    end
+    menu.choice(:major) do
+      next_version = get_next_version(:major)
+      puts "create major version with version #{next_version}"
+      create_and_tag_new_version(next_version)
+      build_the_release()
+    end
+    menu.choice(:patch) do
+      next_version = get_next_version(:patch)
+      puts "create patch version with version #{next_version}"
+      create_and_tag_new_version(next_version)
+      build_the_release()
+    end
+    menu.choice(:abort) { cli.say("ok...maybe later") }
+    menu.default = default
+  end
+end
+def build_the_release
+  puts "building the release artifacts..."
+end
+def get_next_version(jump)
+  current_version = get_current_version
+  v = Version.new(current_version)
+  v.send(jump)
+end
+def get_current_version
+  current_version = nil
+  cd ELECTRON_DIR, :verbose => false do
+    ['package.json'].each do |file|
+      text = File.read(file)
+      if match = text.match(/^\s\s\"version\":\s\"(.*)\"/i)
+        current_version = match.captures[0]
+      end
+    end
+  end
+  current_version
+end
+def update_json_version(new_version)
+  cd ELECTRON_DIR, :verbose => false do
+    ['package.json'].each do |file|
+      text = File.read(file)
+      new_contents = text.gsub(/^\s\s\"version\":\s\"\d+\.\d+\.\d+\"/, "  \"version\": \"#{new_version}\"")
+      File.open(file, "w") { |f| f.puts new_contents }
+    end
+  end
+end
+def assert_tag_exists(version)
+  raise "tag #{version} missing" if `git tag -l #{version}`.length == 0
+end
+def create_and_tag_new_version(next_version)
+  current_version = get_current_version
+  assert_tag_exists(current_version)
+  # create_changelog(current_version, next_version)
+  update_json_version(next_version)
+  # sh "cargo build"
+  # sh "git add ."
+  # sh "git commit -m \"[](chore): version bump from #{current_version} => #{next_version.to_s}\""
+  # sh "git tag #{next_version.to_s}"
+  # puts "to undo the last commit and the tag, execute:"
+  # puts "git reset --hard HEAD~1 && git tag -d #{next_version.to_s}"
+end
+
+desc "package electron"
+task :assemble_build => :folders do
+  cd ELECTRON_DIR do
     sh "#{NPM_RUN} build-ts"
-    sh "./node_modules/.bin/electron-builder --#{TARGET_PLATFORM_ALIAS}"
+    sh "./node_modules/.bin/electron-builder --#{target_platform_alias}"
   end
 
-  case TARGET_PLATFORM_ALIAS
-    when "mac"
-      mv("#{RELEASE_PATH}mac/chipmunk.app/Contents/MacOS/chipmunk", "#{RELEASE_PATH}mac/chipmunk.app/Contents/MacOS/app")
-      cp("#{SRC_LAUNCHER}", "#{RELEASE_PATH}mac/chipmunk.app/Contents/MacOS/chipmunk")
-    when "linux"
-      mv("#{RELEASE_PATH}linux-unpacked/chipmunk", "#{RELEASE_PATH}linux-unpacked/app")
-      cp("#{SRC_LAUNCHER}", "#{RELEASE_PATH}linux-unpacked/chipmunk")
-    when "win"
-      mv("#{RELEASE_PATH}win-unpacked/chipmunk.exe", "#{RELEASE_PATH}win-unpacked/app.exe")
-      cp("#{SRC_LAUNCHER}.exe", "#{RELEASE_PATH}win-unpacked/chipmunk.exe")
+  if OS.mac?
+    mv("#{ELECTRON_RELEASE_DIR}/mac/chipmunk.app/Contents/MacOS/chipmunk", "#{ELECTRON_RELEASE_DIR}/mac/chipmunk.app/Contents/MacOS/app")
+    cp("#{SRC_LAUNCHER}", "#{ELECTRON_RELEASE_DIR}/mac/chipmunk.app/Contents/MacOS/chipmunk")
+  elsif OS.linux?
+    mv("#{ELECTRON_RELEASE_DIR}/linux-unpacked/chipmunk", "#{ELECTRON_RELEASE_DIR}/linux-unpacked/app")
+    cp("#{SRC_LAUNCHER}", "#{ELECTRON_RELEASE_DIR}/linux-unpacked/chipmunk")
+  else
+    mv("#{ELECTRON_RELEASE_DIR}/win-unpacked/chipmunk.exe", "#{ELECTRON_RELEASE_DIR}/win-unpacked/app.exe")
+    cp("#{SRC_LAUNCHER}.exe", "#{ELECTRON_RELEASE_DIR}/win-unpacked/chipmunk.exe")
   end
-
 end
 
 desc "Prepare package to deploy on Github"
 task :prepare_to_deploy do
-  puts "===== prepare_to_deploy"
-  time = Benchmark.measure do
-    package_str = File.read(APP_PACKAGE_JSON)
-    package = JSON.parse(package_str)
-    puts "Detected version: #{package["version"]}"
-    cd "application/electron/dist/release" do
-      release_name = "chipmunk@#{package["version"]}-#{TARGET_PLATFORM_NAME}-portable"
-      case TARGET_PLATFORM_ALIAS
-        when "mac"
-          cd "mac" do
-            sh "tar -czf ../#{release_name}.tgz ./chipmunk.app"
-          end
-        when "linux"
-          cd "#{TARGET_PLATFORM_ALIAS}-unpacked" do
-            sh "tar -czf ../#{release_name}.tgz *"
-          end
-        when "win"
-          cd "#{TARGET_PLATFORM_ALIAS}-unpacked" do
-            sh "tar -czf ../#{release_name}.tgz ./* --force-local"
-          end
+  package = JSON.parse(File.read(APP_PACKAGE_JSON))
+  puts "Detected version: #{package["version"]}"
+  release_name = "chipmunk@#{package["version"]}-#{target_platform_name}-portable.tgz"
+  cd ELECTRON_RELEASE_DIR do
+    if OS.mac?
+      cd "mac" do
+        sh "tar -czf ../#{release_name} ./chipmunk.app"
+      end
+    elsif OS.linux?
+      cd "#{target_platform_alias}-unpacked" do
+        sh "tar -czf ../#{release_name} *"
+      end
+    else
+      cd "#{target_platform_alias}-unpacked" do
+        sh "tar -czf ../#{release_name} ./* --force-local"
       end
     end
   end
-  puts "prepare_to_deploy took #{time}"
+  mv "#{ELECTRON_RELEASE_DIR}/#{release_name}", "."
 end
 
 desc "developer job to completely build chipmunk...after that use :start"
 task :dev => [:install,
               :plugins,
               :ripgrepdelivery,
-              :build,
+              :assemble_build,
               :delivery_embedded_indexer_into_release]
 
 desc "Build the full build pipeline for a given platform"
 task :full_pipeline => [:setup_environment,
-                        :clean,
                         :install,
                         :plugins,
                         :ripgrepdelivery,
-                        :build,
+                        :assemble_build,
                         :delivery_embedded_indexer_into_release,
-                        :setlistofreleasefiles,
+                        :create_release_file_list,
                         :prepare_to_deploy]
 
 $task_benchmarks = []
 
 class Rake::Task
   def execute_with_benchmark(*args)
-    task_executed = false
-    begin
-      puts "******* running task #{name}"
-      bm = Benchmark.realtime { execute_without_benchmark(*args) }
-      task_executed = true
-      $task_benchmarks << [name, bm]
-      puts ">>>>>>>    #{name} --> #{'%.1f' % bm} s"
-    rescue Exception => e
-      puts "exception happened in execute_with_benchmark: #{e}"
-    # ensure
-    #   if !task_executed
-    #     execute_without_benchmark(*args)
-    #   end
-    end
+    puts "******* running task #{name}"
+    bm = Benchmark.realtime { execute_without_benchmark(*args) }
+    $task_benchmarks << [name, bm]
+    puts ">>>>>>>    #{name} --> #{'%.1f' % bm} s"
   end
 
   alias_method :execute_without_benchmark, :execute
@@ -764,4 +880,49 @@ at_exit do
     end
   end
   puts "total time was: #{'%.1f' % total_time}"
+end
+
+class Version < Array
+  def initialize s
+    super(s.split('.').map { |e| e.to_i })
+  end
+  def as_version_code
+    get_major*1000*1000 + get_minor*1000 + get_patch
+  end
+  def < x
+    (self <=> x) < 0
+  end
+  def > x
+    (self <=> x) > 0
+  end
+  def == x
+    (self <=> x) == 0
+  end
+  def patch
+    patch = self.last
+    self[0...-1].concat([patch + 1])
+  end
+  def minor
+    self[1] = self[1] + 1
+    self[2] = 0
+    self
+  end
+  def major
+    self[0] = self[0] + 1
+    self[1] = 0
+    self[2] = 0
+    self
+  end
+  def get_major
+    self[0]
+  end
+  def get_minor
+    self[1]
+  end
+  def get_patch
+    self[2]
+  end
+  def to_s
+    self.join(".")
+  end
 end
