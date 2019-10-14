@@ -1,32 +1,9 @@
 require 'fileutils'
 require 'json'
-require 'open-uri'
-require 'benchmark'
 require 'pathname'
 require 'uri'
 require 'rake/clean'
-
-module OS
-  def OS.windows?
-    (/cygwin|mswin|mingw|bccwin|wince|emx/ =~ RUBY_PLATFORM) != nil
-  end
-
-  def OS.mac?
-   (/darwin/ =~ RUBY_PLATFORM) != nil
-  end
-
-  def OS.unix?
-    !OS.windows?
-  end
-
-  def OS.linux?
-    OS.unix? and not OS.mac?
-  end
-
-  def OS.jruby?
-    RUBY_ENGINE == 'jruby'
-  end
-end
+require './rake_extensions'
 
 NPM_RUN = "npm run --quiet"
 
@@ -214,7 +191,6 @@ file rg_executable do
   rm_r(tmp_path, :force => true)
 end
 
-desc "ripgrep delivery"
 task :ripgrepdelivery => [:folders, rg_executable]
 
 namespace :client do
@@ -252,7 +228,7 @@ namespace :client do
       npm_reinstall("logviewer.client.toolkit@latest")
     end
   end
-  desc "Building client libs"
+
   task :build_libs do
     puts "Building client libs"
     cd SRC_CLIENT_NPM_LIBS do
@@ -266,7 +242,6 @@ namespace :client do
     end
   end
 
-  desc "Delivery client libs"
   task :deliver_libs do
     puts "Delivery client libs"
     i = 0;
@@ -294,7 +269,6 @@ namespace :client do
     end
   end
 
-  desc "Build client"
   task :build do
     cd CLIENT_CORE_DIR do
       puts "Building client.core"
@@ -330,7 +304,7 @@ task :reinstall => [:folders,
                   "client:build_libs",
                   "client:deliver_libs",
                   "client:build",
-                  :apppackagedelivery,
+                  :add_package_json,
 ]
 desc "install"
 task :install => [:folders,
@@ -341,46 +315,44 @@ task :install => [:folders,
                   "client:build_libs",
                   "client:deliver_libs",
                   "client:build",
-                  :apppackagedelivery,
+                  :add_package_json,
 ]
 
-desc "Developer task: update and delivery indexer-neon"
-task :dev_update_and_delivery_indexer => [:build_embedded_indexer, :delivery_embedded_indexer_into_app]
+namespace :dev do
+  desc "Developer task: update and delivery indexer-neon"
+  task :neon => [:build_embedded_indexer, :delivery_embedded_indexer_into_app]
 
-desc "Developer task: update application with indexer-neon"
-task :dev_update_application_with_indexer => [:dev_update_and_delivery_indexer, :start]
+  desc "Developer task: update client"
+  task :update_client => [:ipc, "client:build"]
 
-desc "Developer task: update client"
-task :dev_update_client => [:ipc, "client:build"]
+  desc "Developer task: update client and libs"
+  task :fullupdate_client => ["client:build_libs", "client:deliver_libs", :update_client]
 
-desc "Developer task: update client"
-task :dev_fullupdate_client => ["client:build_libs", "client:deliver_libs", :dev_update_client]
+  desc "Developer task: update client and run electron"
+  task :fullupdate_client_run => :fullupdate_client do
+    cd ELECTRON_DIR do
+      sh "#{NPM_RUN} electron"
+    end
+  end
 
-desc "Developer task: update client"
-task :dev_fullupdate_client_run => :dev_fullupdate_client do
-  cd ELECTRON_DIR do
-    sh "#{NPM_RUN} electron"
+  #Application should be built already to use this task
+  desc "Developer task: build launcher and delivery into package."
+  task :build_delivery_apps => [:build_launcher, :build_updater] do
+    if OS.mac?
+      node_app_original = "#{ELECTRON_RELEASE_DIR}/mac/chipmunk.app/Contents/MacOS/chipmunk"
+      launcher = SRC_LAUNCHER
+    elsif OS.linux?
+      node_app_original = "#{ELECTRON_RELEASE_DIR}/linux-unpacked/chipmunk"
+      launcher = SRC_LAUNCHER
+    else
+      node_app_original = "#{ELECTRON_RELEASE_DIR}/win-unpacked/chipmunk.exe"
+      launcher = "#{SRC_LAUNCHER}.exe"
+    end
+    rm(node_app_original)
+    cp(launcher, node_app_original)
   end
 end
 
-#Application should be built already to use this task
-desc "Developer task: build launcher and delivery into package."
-task :dev_build_delivery_apps => [:build_launcher, :build_updater] do
-  if OS.mac?
-    node_app_original = "#{ELECTRON_RELEASE_DIR}/mac/chipmunk.app/Contents/MacOS/chipmunk"
-    launcher = SRC_LAUNCHER
-  elsif OS.linux?
-    node_app_original = "#{ELECTRON_RELEASE_DIR}/linux-unpacked/chipmunk"
-    launcher = SRC_LAUNCHER
-  else
-    node_app_original = "#{ELECTRON_RELEASE_DIR}/win-unpacked/chipmunk.exe"
-    launcher = "#{SRC_LAUNCHER}.exe"
-  end
-  rm(node_app_original)
-  cp(launcher, node_app_original)
-end
-
-desc "ipc"
 task :ipc do
   puts "Delivery IPC definitions"
   $paths = [DEST_CLIENT_HOST_IPC, DEST_CLIENT_PLUGIN_IPC, DEST_PLUGINIPCLIG_PLUGIN_IPC];
@@ -395,13 +367,11 @@ task :ipc do
   cp_r(SRC_PLUGIN_IPC, DEST_PLUGINIPCLIG_PLUGIN_IPC, :verbose => false)
 end
 
-desc "Add package.json to compiled app"
-task :apppackagedelivery do
+task :add_package_json do
   cp_r(APP_PACKAGE_JSON, "#{ELECTRON_COMPILED_DIR}/package.json")
 end
 
-desc "install plugins"
-task :plugins => [:folders, :pluginsstandalone, :pluginscomplex, :pluginsangular]
+task :plugins => [:folders, :install_plugins_standalone, :install_plugins_complex, :install_plugins_angular]
 
 def plugin_bundle_name(plugin, kind)
   dest = "#{PLUGINS_SANDBOX}/#{plugin}"
@@ -466,14 +436,13 @@ task :lint do
   end
 end
 
-desc "Install standalone plugins"
-task :pluginsstandalone
-
+# Install standalone plugins
+task :install_plugins_standalone
 STANDALONE_PLUGINS.each do |p|
   file plugin_bundle_name(p, "render") do
     install_plugin_standalone(p)
   end
-  task :pluginsstandalone => plugin_bundle_name(p, "render")
+  task :install_plugins_standalone => plugin_bundle_name(p, "render")
 end
 
 def install_plugin_complex(plugin)
@@ -495,13 +464,13 @@ def install_plugin_complex(plugin)
   compress_plugin(plugin_bundle_name(plugin, "process"), plugin)
 end
 
-desc "Install complex plugins"
-task :pluginscomplex
+# Install complex plugins
+task :install_plugins_complex
 COMPLEX_PLUGINS.each do |p|
   file plugin_bundle_name(p, "process") do
     install_plugin_complex(p)
   end
-  task :pluginscomplex => plugin_bundle_name(p, "process")
+  task :install_plugins_complex => plugin_bundle_name(p, "process")
 end
 
 def install_plugin_angular(plugin)
@@ -518,16 +487,16 @@ def install_plugin_angular(plugin)
   compress_plugin(arch, plugin)
 end
 
-desc "Install render (angular) plugins"
-task :pluginsangular
+# desc "Install render (angular) plugins"
+task :install_plugins_angular
 ANGULAR_PLUGINS.each do |p|
   file plugin_bundle_name(p, "render") do
     install_plugin_angular(p)
   end
-  task :pluginsangular => plugin_bundle_name(p, "render")
+  task :install_plugins_angular => plugin_bundle_name(p, "render")
 end
 
-desc "update plugin.ipc"
+# update plugin.ipc
 task :updatepluginipc do
   cd "application/sandbox/dlt/process" do
     puts "Update toolkits for: dlt plugin"
@@ -620,10 +589,10 @@ def fresh_folder(dest_folder)
   mkdir_p dest_folder
 end
 
-def delivery_embedded_indexer(dest)
+def package_and_copy_neon_indexer(dest)
   src_folder = "#{APPS_DIR}/indexer-neon"
   dest_folder = "#{dest}/indexer-neon"
-  puts "Delivery indexer from: #{src_folder} into #{dest_folder}"
+  puts "Deliver indexer from: #{src_folder} into #{dest_folder}"
   fresh_folder(dest_folder)
   Dir["#{src_folder}/*"]
     .reject { |n| n.end_with? "node_modules" or n.end_with? "native" }
@@ -648,7 +617,7 @@ task :build_embedded_indexer do
   end
 end
 
-task :delivery_embedded_indexer_into_release do
+task :neon_indexer_delivery do
   if OS.mac?
     dest = "#{ELECTRON_RELEASE_DIR}/mac/chipmunk.app/Contents/Resources/app/node_modules"
   elsif OS.linux?
@@ -656,12 +625,12 @@ task :delivery_embedded_indexer_into_release do
   else
     dest = "#{ELECTRON_RELEASE_DIR}/win-unpacked/resources/app/node_modules"
   end
-  delivery_embedded_indexer(dest)
+  package_and_copy_neon_indexer(dest)
 end
 
 desc "put the neon library in place"
 task :delivery_embedded_indexer_into_app do
-  delivery_embedded_indexer("#{ELECTRON_DIR}/node_modules")
+  package_and_copy_neon_indexer("#{ELECTRON_DIR}/node_modules")
 end
 
 desc "build native parts"
@@ -670,7 +639,6 @@ task :native => [ :build_launcher,
                   :build_indexer,
                   :build_embedded_indexer]
 
-desc "create list of files and folder in release"
 task :create_release_file_list do
   puts "Prepare list of files/folders in release"
   if OS.mac?
@@ -698,38 +666,37 @@ task :create_release_file_list do
 end
 
 task :t do
-  puts get_current_version
-  next_version = get_next_version(:minor)
-  create_and_tag_new_version(next_version)
+  versioner = Versioner.for(:package_json, ELECTRON_DIR)
+  current_version = versioner.get_current_version()
+  puts "current_version: #{current_version}"
+  next_version = versioner.get_next_version(:minor)
+  puts "next_version: #{next_version}"
+  versioner.increment_version(:major)
+  # create_and_tag_new_version(next_version)
 end
 desc "create new version and release"
 task :create_release do
   current_tag = `git describe --tags`
-  current_electron_app_version = get_current_version
-  if !current_tag.start_with?(current_electron_app_version)
-    raise "current tag #{current_tag} does not match with current electron app version: #{current_electron_app_version}"
-  end
+  versioner = Versioner.for(:package_json, ELECTRON_DIR)
+  current_electron_app_version = versioner.get_current_version
+  # if !current_tag.start_with?(current_electron_app_version)
+  #   raise "current tag #{current_tag} does not match with current electron app version: #{current_electron_app_version}"
+  # end
   require 'highline'
   cli = HighLine.new
   cli.choose do |menu|
     default = :minor
     menu.prompt = "this will create and tag a new version (default: #{default}) "
     menu.choice(:minor) do
-      next_version = get_next_version(:minor)
-      puts "create minor version with version #{next_version}"
-      create_and_tag_new_version(next_version)
+      create_and_tag_new_version(versioner, :minor)
       build_the_release()
     end
     menu.choice(:major) do
-      next_version = get_next_version(:major)
-      puts "create major version with version #{next_version}"
-      create_and_tag_new_version(next_version)
+      create_and_tag_new_version(versioner, :major)
       build_the_release()
     end
     menu.choice(:patch) do
-      next_version = get_next_version(:patch)
-      puts "create patch version with version #{next_version}"
-      create_and_tag_new_version(next_version)
+      create_and_tag_new_version(versioner, :patch)
       build_the_release()
     end
     menu.choice(:abort) { cli.say("ok...maybe later") }
@@ -739,40 +706,13 @@ end
 def build_the_release
   puts "building the release artifacts..."
 end
-def get_next_version(jump)
-  current_version = get_current_version
-  v = Version.new(current_version)
-  v.send(jump)
-end
-def get_current_version
-  current_version = nil
-  cd ELECTRON_DIR, :verbose => false do
-    ['package.json'].each do |file|
-      text = File.read(file)
-      if match = text.match(/^\s\s\"version\":\s\"(.*)\"/i)
-        current_version = match.captures[0]
-      end
-    end
-  end
-  current_version
-end
-def update_json_version(new_version)
-  cd ELECTRON_DIR, :verbose => false do
-    ['package.json'].each do |file|
-      text = File.read(file)
-      new_contents = text.gsub(/^\s\s\"version\":\s\"\d+\.\d+\.\d+\"/, "  \"version\": \"#{new_version}\"")
-      File.open(file, "w") { |f| f.puts new_contents }
-    end
-  end
-end
 def assert_tag_exists(version)
   raise "tag #{version} missing" if `git tag -l #{version}`.length == 0
 end
-def create_and_tag_new_version(next_version)
-  current_version = get_current_version
-  assert_tag_exists(current_version)
-  # create_changelog(current_version, next_version)
-  update_json_version(next_version)
+def create_and_tag_new_version(versioner, jump)
+  # assert_tag_exists(versioner.get_current_version)
+  create_changelog(versioner.get_current_version, versioner.get_next_version(jump))
+  versioner.increment_version(jump)
   # sh "cargo build"
   # sh "git add ."
   # sh "git commit -m \"[](chore): version bump from #{current_version} => #{next_version.to_s}\""
@@ -828,7 +768,7 @@ task :dev => [:install,
               :plugins,
               :ripgrepdelivery,
               :assemble_build,
-              :delivery_embedded_indexer_into_release]
+              :neon_indexer_delivery]
 
 desc "Build the full build pipeline for a given platform"
 task :full_pipeline => [:setup_environment,
@@ -836,23 +776,9 @@ task :full_pipeline => [:setup_environment,
                         :plugins,
                         :ripgrepdelivery,
                         :assemble_build,
-                        :delivery_embedded_indexer_into_release,
+                        :neon_indexer_delivery,
                         :create_release_file_list,
                         :prepare_to_deploy]
-
-$task_benchmarks = []
-
-class Rake::Task
-  def execute_with_benchmark(*args)
-    puts "******* running task #{name}"
-    bm = Benchmark.realtime { execute_without_benchmark(*args) }
-    $task_benchmarks << [name, bm]
-    puts ">>>>>>>    #{name} --> #{'%.1f' % bm} s"
-  end
-
-  alias_method :execute_without_benchmark, :execute
-  alias_method :execute, :execute_with_benchmark
-end
 
 task :a do
   puts "a"
@@ -865,64 +791,4 @@ end
 task :c => :b do
   puts "c"
   sleep(0.1)
-end
-
-at_exit do
-  total_time = $task_benchmarks.reduce(0) {|acc, x| acc + x[1]}
-  $task_benchmarks
-    .sort { |a, b| b[1] <=> a[1] }
-    .each do |res|
-    percentage = res[1]/total_time * 100
-    if percentage.round > 0
-      percentage_bar = ""
-      percentage.round.times { percentage_bar += "|" }
-      puts "#{percentage_bar} (#{'%.1f' % percentage} %) #{res[0]} ==> #{'%.1f' % res[1]}s"
-    end
-  end
-  puts "total time was: #{'%.1f' % total_time}"
-end
-
-class Version < Array
-  def initialize s
-    super(s.split('.').map { |e| e.to_i })
-  end
-  def as_version_code
-    get_major*1000*1000 + get_minor*1000 + get_patch
-  end
-  def < x
-    (self <=> x) < 0
-  end
-  def > x
-    (self <=> x) > 0
-  end
-  def == x
-    (self <=> x) == 0
-  end
-  def patch
-    patch = self.last
-    self[0...-1].concat([patch + 1])
-  end
-  def minor
-    self[1] = self[1] + 1
-    self[2] = 0
-    self
-  end
-  def major
-    self[0] = self[0] + 1
-    self[1] = 0
-    self[2] = 0
-    self
-  end
-  def get_major
-    self[0]
-  end
-  def get_minor
-    self[1]
-  end
-  def get_patch
-    self[2]
-  end
-  def to_s
-    self.join(".")
-  end
 end
