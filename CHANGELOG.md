@@ -1,5 +1,9 @@
 # Changelog
 
+### [1.22.1] - 10/14/2019
+* [#497](fix): require missing ruby library in rakefile
+  downloading files did not work anymore
+
 ### [1.22.0] - 10/14/2019
 * [](chore): add versioning rake task
   * extract additional rake functionality in it's own file
