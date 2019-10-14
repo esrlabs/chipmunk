@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/esrlabs/chipmunk.svg?branch=master)](https://travis-ci.com/esrlabs/chipmunk)
+![](https://github.com/esrlabs/chipmunk/workflows/Main/badge.svg)
 
 # Chipmunk Log Analyzer & Viewer
 
