@@ -51,9 +51,9 @@ export default class Transform extends Stream.Transform {
         // Convert to utf8 and insert rest from previos
         let output: string = '';
         if (typeof chunk === 'string') {
-            output = `${this._rest}${chunk}`;
+            output = this._rest + chunk;
         } else {
-            output = `${this._rest}${chunk.toString('utf8')}`;
+            output = this._rest + chunk.toString('utf8');
         }
         // Get rest from the end
         const rest = this._getRest(output);
