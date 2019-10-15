@@ -1,0 +1,4 @@
+<div *ngIf="_ng_width !== -1" class="cursor" [ngStyle]="{'width': _ng_width + 'px', 'left': _ng_left + 'px'}" (mousedown)="_ng_onMove($event)">
+    <div class="l-border" (mousedown)="_ng_onLeft($event)"></div>
+    <div class="r-border" (mousedown)="_ng_onRight($event)"></div>
+</div>
