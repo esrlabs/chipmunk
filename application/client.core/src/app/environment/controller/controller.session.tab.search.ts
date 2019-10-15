@@ -2,7 +2,6 @@ import { Observable, Subject } from 'rxjs';
 import { ControllerSessionTabSearchOutput } from './controller.session.tab.search.output';
 import { ControllerSessionTabStreamOutput } from './controller.session.tab.stream.output';
 import { ControllerSessionTabSearchState} from './controller.session.tab.search.state';
-import { ControllerSessionTabSearchViewState } from './controller.session.tab.search.view.state';
 import { ControllerSessionScope } from './controller.session.tab.scope';
 import QueueService, { IQueueController } from '../services/standalone/service.queue';
 import * as Toolkit from 'logviewer.client.toolkit';
@@ -44,7 +43,6 @@ export class ControllerSessionTabSearch {
     private _scope: ControllerSessionScope;
     private _output: ControllerSessionTabSearchOutput;
     private _state: ControllerSessionTabSearchState;
-    private _view: ControllerSessionTabSearchViewState;
     private _results: {
         matches: number[],
     } = {
@@ -64,7 +62,6 @@ export class ControllerSessionTabSearch {
         });
         this._queue = new Toolkit.Queue(this._logger.error.bind(this._logger), 0);
         this._state = new ControllerSessionTabSearchState(params.guid);
-        this._view = new ControllerSessionTabSearchViewState(params.guid);
         // Subscribe to queue events
         this._queue_onDone = this._queue_onDone.bind(this);
         this._queue_onNext = this._queue_onNext.bind(this);
@@ -340,10 +337,6 @@ export class ControllerSessionTabSearch {
             }
         }
         return { row: this._results.matches[0], index: 0 };
-    }
-
-    public getViewState(): ControllerSessionTabSearchViewState {
-        return this._view;
     }
 
     public getRequestColor(source: string): string | undefined {
