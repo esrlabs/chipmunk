@@ -128,6 +128,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         }
         this._subscriptions.onScrolled = this._scrollBoxCom.getObservable().onScrolled.subscribe(this._onScrolled.bind(this));
         this._subscriptions.onKeepScrollPrevent = EventsHubService.getObservable().onKeepScrollPrevent.subscribe(this._onKeepScrollPrevent.bind(this));
+        this._ng_outputAPI.onRedraw.next();
     }
 
     ngAfterContentInit() {
