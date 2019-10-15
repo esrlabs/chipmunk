@@ -3,13 +3,25 @@ import { Subscription, Subject, Observable } from 'rxjs';
 import { ViewSearchOutputComponent } from './output/component';
 import { IComponentDesc } from 'logviewer-client-containers';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
-import { ControllerSessionTabSearchViewState, IViewState } from '../../../controller/controller.session.tab.search.view.state';
+import { ControllerSessionScope } from '../../../controller/controller.session.tab.scope';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import HotkeysService from '../../../services/service.hotkeys';
 import SidebarSessionsService from '../../../services/service.sessions.sidebar';
 import LayoutStateService from '../../../services/standalone/service.layout.state';
 import * as Toolkit from 'logviewer.client.toolkit';
+
+interface IViewState {
+    searchRequestId: string | undefined;
+    isRequestValid: boolean;
+    request: string;
+    prevRequest: string;
+    isRequestSaved: boolean;
+}
+
+const CSettings = {
+    viewStateKey: 'search-main-view',
+};
 
 @Component({
     selector: 'app-views-search',
@@ -20,6 +32,7 @@ import * as Toolkit from 'logviewer.client.toolkit';
 export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterContentInit {
 
     @Input() public injectionIntoTitleBar: Subject<IComponentDesc>;
+    @Input() public onBeforeTabRemove: Subject<void>;
 
     @ViewChild('output') _ng_outputComponent: ViewSearchOutputComponent;
     @ViewChild('requestinput') _ng_requestInput: ElementRef;
@@ -33,7 +46,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     // Out of state (stored in controller)
     public _ng_onSessionChanged: Subject<ControllerSessionTab> = new Subject<ControllerSessionTab>();
 
-    private _state: ControllerSessionTabSearchViewState;
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription | undefined } = { };
 
     constructor(private _cdRef: ChangeDetectorRef,
@@ -45,13 +57,12 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     ngAfterViewInit() {
+        this._loadState();
         this._focus();
     }
 
     ngAfterContentInit() {
-        if (this._ng_outputComponent === undefined) {
-            return;
-        }
+        this._subscriptions.onBeforeTabRemove = this.onBeforeTabRemove.asObservable().subscribe(this._onBeforeTabRemove.bind(this));
     }
 
     public ngOnDestroy() {
@@ -176,13 +187,13 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     private _setActiveSession(session?: ControllerSessionTab) {
         if (session === undefined) {
             session = TabsSessionsService.getActive();
+        } else {
+            this._saveState();
         }
         if (session === undefined) {
             return;
         }
-        this._saveState();
         this._ng_session = session;
-        this._state = this._ng_session.getSessionSearch().getViewState();
         this._loadState();
         this._ng_onSessionChanged.next(this._ng_session);
     }
@@ -197,10 +208,11 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     private _saveState() {
-        if (this._ng_session === undefined || this._state === undefined) {
+        if (this._ng_session === undefined) {
             return;
         }
-        this._state.set({
+        const scope: ControllerSessionScope = this._ng_session.getScope();
+        scope.set<IViewState>(CSettings.viewStateKey, {
             isRequestSaved: this._ng_isRequestSaved,
             isRequestValid: this._ng_isRequestValid,
             request: this._ng_request,
@@ -210,15 +222,28 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     private _loadState() {
-        if (this._ng_session === undefined || this._state === undefined) {
+        if (this._ng_session === undefined) {
             return;
         }
-        const state: IViewState = this._state.get();
-        this._ng_isRequestSaved = state.isRequestSaved;
-        this._ng_isRequestValid = state.isRequestValid;
-        this._ng_request = state.request;
-        this._ng_prevRequest = state.prevRequest;
-        this._ng_searchRequestId = state.searchRequestId;
+        const scope: ControllerSessionScope = this._ng_session.getScope();
+        const state: IViewState | undefined = scope.get<IViewState>(CSettings.viewStateKey);
+        if (state === undefined) {
+            this._ng_isRequestSaved = false;
+            this._ng_isRequestValid = true;
+            this._ng_request = '';
+            this._ng_prevRequest = '';
+            this._ng_searchRequestId = undefined;
+        } else {
+            this._ng_isRequestSaved = state.isRequestSaved;
+            this._ng_isRequestValid = state.isRequestValid;
+            this._ng_request = state.request;
+            this._ng_prevRequest = state.prevRequest;
+            this._ng_searchRequestId = state.searchRequestId;
+        }
+    }
+
+    private _onBeforeTabRemove() {
+        this._saveState();
     }
 
 }

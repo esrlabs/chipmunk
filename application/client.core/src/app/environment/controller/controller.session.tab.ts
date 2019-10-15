@@ -95,6 +95,7 @@ export class ControllerSessionTab {
                     this._search.destroy(),
                     this._states.destroy()
                 ]).then(() => {
+                    this._scope.destroy();
                     resolve();
                 }).catch((error: Error) => {
                     reject(error);

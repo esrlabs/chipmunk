@@ -23,6 +23,10 @@ export class ControllerSessionScope {
         this._defaults();
     }
 
+    public destroy() {
+        this._scope.clear();
+    }
+
     public set<T>(key: string, value: T, overwrite: boolean = true) {
         if (!overwrite) {
             const stored: T | undefined = this.get(key);
