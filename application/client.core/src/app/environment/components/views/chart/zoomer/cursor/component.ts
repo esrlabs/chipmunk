@@ -114,7 +114,7 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterViewInit, OnDe
             return;
         }
         if (this._width === -1) {
-            this._width = width;
+            this._width = Math.round(width);
         }
         if (this._ng_width === -1) {
             this._ng_width = width;
@@ -126,7 +126,7 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterViewInit, OnDe
         // Get rate for current values
         const rate: number = this._ng_width / this._width;
         // Update width
-        this._width = width;
+        this._width = Math.round(width);
         // Calculate updated width of cursor
         this._ng_width = width * rate;
         this._ng_left = (this._ng_left - this.getLeftOffset()) / change + this.getLeftOffset();
@@ -170,8 +170,13 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterViewInit, OnDe
                 }
                 break;
         }
+        // Always round values, because it will go to service.data. Based on pixels will be calculated range of rows
+        // only 1 px offset can make more than 100 rows offset in range. It will change scale.
+        this._ng_width = Math.round(this._ng_width);
+        this._ng_left = Math.round(this._ng_left);
+        const _left: number = this._ng_left - this.getLeftOffset();
         this.OnChange.emit({
-            left: this._ng_left - this.getLeftOffset(),
+            left: _left < 0 ? 0 : _left,
             width: this._ng_width,
             full: this._width,
         });

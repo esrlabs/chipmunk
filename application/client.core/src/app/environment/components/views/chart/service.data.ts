@@ -16,6 +16,7 @@ export class ServiceData {
     private _sessionController: ControllerSessionTab | undefined;
     private _stream: IStreamState | undefined;
     private _matches: IMapState | undefined;
+    private _max: number | undefined;
     private _subjects: {
         onData: Subject<void>,
     } = {
@@ -72,8 +73,11 @@ export class ServiceData {
             return [];
         }
         const results: any = {};
-        const colors: any = {};
-        const rate: number = width / (range === undefined ? this._stream.count : (range.end - range.begin));
+        const countInRange: number = range === undefined ? this._stream.count : (range.end - range.begin);
+        const rate: number = width / countInRange;
+        const commonWidth: number = Math.floor(this._stream.count / (countInRange / width));
+        const maxes: number[] = (new Array(commonWidth)).fill(0);
+        let max: number = -1;
         if (rate >= 1) {
             // TODO: cover this use case
             return;
@@ -88,6 +92,14 @@ export class ServiceData {
             if (!(point.regs instanceof Array)) {
                 return;
             }
+            let commonPosition: number = Math.floor(point.position * rate);
+            if (commonPosition > commonWidth - 1) {
+                commonPosition = commonWidth - 1;
+            }
+            maxes[commonPosition] += point.regs.length;
+            if (maxes[commonPosition] > max) {
+                max = maxes[commonPosition];
+            }
             if (point.position < range.begin) {
                 return;
             }
@@ -95,29 +107,37 @@ export class ServiceData {
                 return;
             }
             point.regs.forEach((reg: string) => {
+                let offsetedPosition: number = Math.floor((point.position - range.begin) * rate);
                 if (results[reg] === undefined) {
-                    results[reg] = (new Array(width)).fill(0);
+                    results[reg] = (new Array(Math.round(width))).fill(0);
                 }
-                let position: number  = Math.round((point.position - range.begin) * rate);
-                if (position > width - 1) {
-                    position = width - 1;
+                if (offsetedPosition > width - 1) {
+                    offsetedPosition = width - 1;
                 }
-                if (colors[reg] === undefined) {
-                    colors[reg] = point.color;
-                }
-                results[reg][position] += 1;
+                results[reg][offsetedPosition] += 1;
             });
         });
         const datasets = [];
         Object.keys(results).forEach((filter: string) => {
             const dataset = {
                 label: filter,
-                backgroundColor: colors[filter],
+                backgroundColor: this._sessionController.getSessionSearch().getRequestColor(filter),
                 data: results[filter],
             };
             datasets.push(dataset);
         });
+        this._max = max;
         return datasets;
+    }
+
+    public getMaxForLastRange(): number | undefined {
+        if (this._stream === undefined) {
+            return undefined;
+        }
+        if (this._matches === undefined) {
+            return undefined;
+        }
+        return this._max;
     }
 
     public getStreamSize(): number | undefined {
@@ -135,6 +155,13 @@ export class ServiceData {
             return false;
         }
         return this._stream.count === 0 ? false : this._matches.points.length !== 0;
+    }
+
+    public getSessionGuid(): string | undefined {
+        if (this._sessionController === undefined) {
+            return;
+        }
+        return this._sessionController.getGuid();
     }
 
     private _init(controller?: ControllerSessionTab) {
