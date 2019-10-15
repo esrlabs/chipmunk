@@ -24,12 +24,27 @@
             width: 2px;
             cursor: col-resize;
             background: @scheme-color-1;
+            &:after{
+                position: absolute;
+                content: '';
+                height: 50%;
+                width: 5px;
+                top:0;
+                cursor: col-resize;
+                background: @scheme-color-1;
+            }
         }
         div.l-border{
             left:0;
+            &:after{
+                left:0;
+            }
         }
         div.r-border{
             right:0;
+            &:after{
+                left:-3px;
+            }
         }
     }
 }

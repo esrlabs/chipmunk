@@ -4,6 +4,7 @@ import { Chart } from 'chart.js';
 import * as Toolkit from 'logviewer.client.toolkit';
 import { ServiceData, IRange } from '../service.data';
 import { ServicePosition, IPositionChange } from '../service.position';
+import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 
 const CSettings = {
@@ -31,6 +32,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, OnDestroy {
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewChartCanvasComponent');
     private _destroyed: boolean = false;
     private _chart: Chart | undefined;
+    private _mainViewPosition: number | undefined;
     private _rebuild: {
         timer: any,
         postponed: number,
@@ -118,6 +120,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, OnDestroy {
             this._chart = undefined;
             return;
         }
+        const max: number = this.service.getMaxForLastRange();
         this._chart = new Chart('view-chart-canvas', {
             type: 'bar',
             data: {
@@ -141,6 +144,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, OnDestroy {
                         stacked: true,
                         ticks: {
                             beginAtZero: true,
+                            max: Math.round(max + max * 0.1)
                         },
                     }],
                     xAxes: [{
@@ -152,6 +156,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, OnDestroy {
                 }
             }
         });
+        this._scrollMainView();
     }
 
     private _getRange(): IRange | undefined {
@@ -166,13 +171,30 @@ export class ViewChartCanvasComponent implements AfterViewInit, OnDestroy {
         if (rate > 1) {
             // TODO: add implementation of this case
         } else {
+            const left: number = Math.floor(this._position.left / rate);
+            const width: number = Math.floor(this._position.width / rate);
             const range: IRange = {
-                begin: Math.floor(this._position.left / rate),
-                end: Math.floor((this._position.left + this._position.width) / rate)
+                begin: left,
+                end: left + width
             };
             range.end = range.end >= size ? size - 1 : range.end;
             return range;
         }
+    }
+
+    private _scrollMainView() {
+        if (this._mainViewPosition === undefined) {
+            return;
+        }
+        const range: IRange | undefined = this._getRange();
+        if (range === undefined) {
+            return;
+        }
+        if (this._mainViewPosition === range.begin) {
+            return;
+        }
+        OutputRedirectionsService.select('chart', this.service.getSessionGuid(), range.begin);
+        this._mainViewPosition = range.begin;
     }
 
     private _onData() {
@@ -182,6 +204,11 @@ export class ViewChartCanvasComponent implements AfterViewInit, OnDestroy {
     private _onPosition(position: IPositionChange) {
         this._position = position;
         this._build();
+        // Remember first attempt to change position / scale of chart
+        if (this._mainViewPosition !== undefined) {
+            return;
+        }
+        this._mainViewPosition = -1;
     }
 
     private _onViewResize() {
