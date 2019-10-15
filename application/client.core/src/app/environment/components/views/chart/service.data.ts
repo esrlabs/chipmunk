@@ -49,10 +49,10 @@ export class ServiceData {
     }
 
     public getLabes(width: number, range?: IRange): string[] {
-        if (this._stream === undefined) {
+        if (this._stream === undefined || this._matches === undefined) {
             return [];
         }
-        if (this._matches === undefined) {
+        if (this._stream.count === 0 || this._matches.points.length === 0) {
             return [];
         }
         const rate: number = width / (range === undefined ? this._stream.count : (range.end - range.begin));
@@ -67,10 +67,11 @@ export class ServiceData {
     }
 
     public getDatasets(width: number, range?: IRange): Array<{ [key: string]: any }> {
-        if (this._stream === undefined) {
+        this._max = undefined;
+        if (this._stream === undefined || this._matches === undefined) {
             return [];
         }
-        if (this._matches === undefined) {
+        if (this._stream.count === 0 || this._matches.points.length === 0) {
             return [];
         }
         const results: any = {};
