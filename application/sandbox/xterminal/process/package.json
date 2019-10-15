@@ -1,6 +1,6 @@
 {
   "name": "logviewer.plugin.transport.terminal",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "logviewer": {
     "version": "1.0.0",
     "type": "single"
