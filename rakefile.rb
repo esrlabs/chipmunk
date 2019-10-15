@@ -4,7 +4,7 @@ require 'json'
 require 'pathname'
 require 'uri'
 require 'rake/clean'
-require 'rake-extensions'
+require './rake-extensions'
 
 NPM_RUN = "npm run --quiet"
 
@@ -284,7 +284,7 @@ namespace :client do
 end
 task :compile_electron => [:prepare_electron_build,
                           :native,
-                          :delivery_embedded_indexer_into_app,
+                          "dev:neon",
                           :finish_electron_build]
 task :prepare_electron_build do
   cd ELECTRON_DIR do
@@ -415,27 +415,51 @@ task :test do
 end
 desc "lint code"
 task :lint do
-  ["client.core", "client.libs/logviewer.client.components", "client.plugins"].each do |d|
-    cd File.join("application", d) do
-      begin
-        sh "npm run lint"
-      rescue
-        puts "error while running npm run lint for #{d}"
+  lint_scripts = []
+  FileList["**/package.json"]
+    .reject { |f| f =~ /node_modules/ }
+    .each do |f|
+    package = JSON.parse(File.read(f))
+    scripts = package["scripts"]
+    if scripts != nil
+      scripts.each do |s|
+        is_lint = "nothing"
+        if s.count == 2
+          runner = s[1]
+          lint_scripts << [File.dirname(f),s[0]] if runner =~ /(tslint|ng\slint)/
+        end
       end
     end
   end
-  cd ELECTRON_DIR do
-    sh "npm run lint"
-  end
-  ["launcher", "updater", "indexer"].each do |rust_app|
-    cd Pathname.new(APPS_DIR).join(rust_app) do
-      begin
-        sh "cargo clippy"
-      rescue Exception => e
-        puts "error while running clippy for #{rust_app}: #{e}"
-      end
+  puts "all lint scripts : #{lint_scripts}"
+  lint_scripts.each do |lint|
+    dir = lint[0]
+    script = lint[1]
+    cd dir do
+      sh "#{NPM_RUN} #{script}"
     end
   end
+  # ["client.core", "client.libs/logviewer.client.components", "client.plugins"].each do |d|
+  #   cd File.join("application", d) do
+  #     begin
+  #       sh "npm run lint"
+  #     rescue
+  #       puts "error while running npm run lint for #{d}"
+  #     end
+  #   end
+  # end
+  # cd ELECTRON_DIR do
+  #   sh "npm run lint"
+  # end
+  # ["launcher", "updater", "indexer"].each do |rust_app|
+  #   cd Pathname.new(APPS_DIR).join(rust_app) do
+  #     begin
+  #       sh "cargo clippy"
+  #     rescue Exception => e
+  #       puts "error while running clippy for #{rust_app}: #{e}"
+  #     end
+  #   end
+  # end
 end
 
 # Install standalone plugins
@@ -615,7 +639,7 @@ desc "build embedded indexer"
 task :build_embedded_indexer do
   cd "#{APPS_DIR}/indexer-neon" do
     npm_install
-    sh "#{NPM_RUN} build"
+    sh "#{NPM_RUN} neon"
   end
 end
 
@@ -638,8 +662,7 @@ end
 desc "build native parts"
 task :native => [ :build_launcher,
                   :build_updater,
-                  :build_indexer,
-                  :build_embedded_indexer]
+                  :build_indexer]
 
 task :create_release_file_list do
   puts "Prepare list of files/folders in release"
