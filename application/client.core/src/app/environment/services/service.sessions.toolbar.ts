@@ -6,17 +6,25 @@ import PluginsService, { IPluginData } from './service.plugins';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
 import TabsSessionsService from './service.sessions.tabs';
 import { ViewSearchComponent } from '../components/views/search/component';
-import { SidebarAppNotificationsComponent } from '../components/sidebar/notifications/component';
-import { SidebarAppNotificationsCounterComponent } from '../components/sidebar/notifications/counter/component';
+import { SidebarAppNotificationsComponent } from '../components/views/notifications/component';
+import { SidebarAppNotificationsCounterComponent } from '../components/views/notifications/counter/component';
+import { ViewChartComponent } from '../components/views/chart/component';
 import HotkeysService from './service.hotkeys';
 import LayoutStateService from './standalone/service.layout.state';
 
 export const CDefaultTabsGuids = {
     search: Toolkit.guid(),
+    charts: Toolkit.guid(),
     notification: Toolkit.guid(),
 };
 
 const DefaultViews = [
+    {
+        name: 'Charts',
+        guid: CDefaultTabsGuids.charts,
+        factory: ViewChartComponent,
+        inputs: { }
+    },
     {
         name: 'Notifications',
         guid: CDefaultTabsGuids.notification,
