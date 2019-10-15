@@ -1,4 +1,4 @@
-import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef } from '@angular/core';
+import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterContentInit } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
 import { Chart } from 'chart.js';
 import * as Toolkit from 'logviewer.client.toolkit';
@@ -20,7 +20,7 @@ const CSettings = {
     styleUrls: ['./styles.less']
 })
 
-export class ViewChartCanvasComponent implements AfterViewInit, OnDestroy {
+export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit, OnDestroy {
 
     @Input() service: ServiceData;
     @Input() position: ServicePosition;
@@ -56,6 +56,14 @@ export class ViewChartCanvasComponent implements AfterViewInit, OnDestroy {
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef) {
 
+    }
+
+    ngAfterContentInit() {
+        const position: IPositionChange | undefined = this.position.get();
+        if (position === undefined) {
+            return;
+        }
+        this._position = Object.assign({}, position);
     }
 
     ngAfterViewInit() {

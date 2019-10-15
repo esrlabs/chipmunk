@@ -37,8 +37,4 @@ export class ViewChartComponent implements OnDestroy, AfterContentInit, AfterVie
 
     }
 
-    public _ng_onPositionChangeEvent(event: IPositionChange) {
-        this._ng_servicePosition.set(event);
-    }
-
 }

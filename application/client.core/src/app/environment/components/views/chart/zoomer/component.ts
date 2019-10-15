@@ -4,7 +4,7 @@ import { Chart } from 'chart.js';
 import * as Toolkit from 'logviewer.client.toolkit';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 import { ServiceData } from '../service.data';
-import { IPositionChange } from '../service.position';
+import { ServicePosition } from '../service.position';
 
 @Component({
     selector: 'app-views-chart-zoomer-canvas',
@@ -14,8 +14,8 @@ import { IPositionChange } from '../service.position';
 
 export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy {
 
-    @Input() service: ServiceData;
-    @Output() OnPositionChange = new EventEmitter<IPositionChange>();
+    @Input() serviceData: ServiceData;
+    @Input() servicePosition: ServicePosition;
 
     public _ng_width: number = 100;
     public _ng_height: number = 100;
@@ -34,7 +34,7 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
 
     ngAfterViewInit() {
         // Data events
-        this._subscriptions.onData = this.service.getObservable().onData.subscribe(this._onData.bind(this));
+        this._subscriptions.onData = this.serviceData.getObservable().onData.subscribe(this._onData.bind(this));
         // Listen session changes event
         this._subscriptions.onViewResize = ViewsEventsService.getObservable().onResize.subscribe(this._onViewResize.bind(this));
         // Update size of canvas and containers
@@ -48,10 +48,6 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-    }
-
-    public _ng_onPositionChange(event: IPositionChange) {
-        this.OnPositionChange.emit(event);
     }
 
     public _ng_getLeftOffset(): number {
@@ -74,14 +70,14 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
     }
 
     private _build() {
-        if (this.service === undefined) {
+        if (this.serviceData === undefined) {
             return;
         }
         if (this._chart !== undefined) {
             this._chart.destroy();
         }
-        const labels: string[] = this.service.getLabes(Math.round(this._ng_width / 2));
-        const datasets: Array<{ [key: string]: any }> = this.service.getDatasets(Math.round(this._ng_width / 2));
+        const labels: string[] = this.serviceData.getLabes(Math.round(this._ng_width / 2));
+        const datasets: Array<{ [key: string]: any }> = this.serviceData.getDatasets(Math.round(this._ng_width / 2));
         if (labels.length === 0 || datasets.length === 0) {
             this._chart = undefined;
             return;
@@ -89,8 +85,8 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         this._chart = new Chart('view-chart-zoomer-canvas', {
             type: 'bar',
             data: {
-                labels: this.service.getLabes(Math.round(this._ng_width / 2)),
-                datasets: this.service.getDatasets(Math.round(this._ng_width / 2)),
+                labels: this.serviceData.getLabes(Math.round(this._ng_width / 2)),
+                datasets: this.serviceData.getDatasets(Math.round(this._ng_width / 2)),
             },
             options: {
                 title: {
