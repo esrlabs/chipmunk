@@ -7,7 +7,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+        os: [ubuntu-latest, windows-2016, macOS-latest]
         rust: [stable]
     steps:
       - name: Checkout
@@ -28,9 +28,6 @@ jobs:
           node-version: '10.16.3'
       - name: install npm
         run: npm install --global neon-cli
-      - name: build tools for windows
-        run: npm install --global --production windows-build-tools --vs2015
-        if: startsWith(matrix.os, 'windows')
       - name: install rust
         uses: hecrj/setup-rust-action@v1
         with:

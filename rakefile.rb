@@ -4,7 +4,7 @@ require 'json'
 require 'pathname'
 require 'uri'
 require 'rake/clean'
-require './rake_extensions'
+require 'rake-extensions'
 
 NPM_RUN = "npm run --quiet"
 
@@ -156,13 +156,13 @@ end
 def rg_executable
   "#{INCLUDED_APPS_FOLDER}/#{OS.windows? ? 'rg.exe' : 'rg'}"
 end
-def rg_url
+def rg_uri
   if OS.mac?
-    "#{RIPGREP_URL}-x86_64-apple-darwin.tar.gz"
+    URI.parse("#{RIPGREP_URL}-x86_64-apple-darwin.tar.gz")
   elsif OS.linux?
-    "#{RIPGREP_URL}-x86_64-unknown-linux-musl.tar.gz"
+    URI.parse("#{RIPGREP_URL}-x86_64-unknown-linux-musl.tar.gz")
   elsif OS.windows?
-    "#{RIPGREP_URL}-x86_64-pc-windows-msvc.zip"
+    URI.parse("#{RIPGREP_URL}-x86_64-pc-windows-msvc.zip")
   end
 end
 
@@ -171,10 +171,11 @@ file rg_executable do
   tmp_path = "temp_for_building_rg"
   Dir.mkdir(tmp_path) unless File.exists?(tmp_path)
 
-  file_name = URI(rg_url).path.split('/').last
+  file_name = rg_uri.path.split('/').last
 
-  open("#{tmp_path}/#{file_name}", "wb") do |file|
-    file << open(rg_url).read
+  File.open("#{tmp_path}/#{file_name}", "wb") do |file|
+    file << rg_uri.read
+    puts "downloaded #{rg_uri}"
   end
   if OS.mac? or OS.linux?
     cd tmp_path do
@@ -666,23 +667,14 @@ task :create_release_file_list do
   end
 end
 
-task :t do
-  versioner = Versioner.for(:package_json, ELECTRON_DIR)
-  current_version = versioner.get_current_version()
-  puts "current_version: #{current_version}"
-  next_version = versioner.get_next_version(:minor)
-  puts "next_version: #{next_version}"
-  versioner.increment_version(:major)
-  # create_and_tag_new_version(next_version)
-end
 desc "create new version and release"
 task :create_release do
   current_tag = `git describe --tags`
   versioner = Versioner.for(:package_json, ELECTRON_DIR)
   current_electron_app_version = versioner.get_current_version
-  # if !current_tag.start_with?(current_electron_app_version)
-  #   raise "current tag #{current_tag} does not match with current electron app version: #{current_electron_app_version}"
-  # end
+  if !current_tag.start_with?(current_electron_app_version)
+    raise "current tag #{current_tag} does not match with current electron app version: #{current_electron_app_version}"
+  end
   require 'highline'
   cli = HighLine.new
   cli.choose do |menu|
@@ -690,25 +682,16 @@ task :create_release do
     menu.prompt = "this will create and tag a new version (default: #{default}) "
     menu.choice(:minor) do
       create_and_tag_new_version(versioner, :minor)
-      build_the_release()
     end
     menu.choice(:major) do
       create_and_tag_new_version(versioner, :major)
-      build_the_release()
     end
     menu.choice(:patch) do
       create_and_tag_new_version(versioner, :patch)
-      build_the_release()
     end
     menu.choice(:abort) { cli.say("ok...maybe later") }
     menu.default = default
   end
-end
-def build_the_release
-  puts "building the release artifacts..."
-end
-def assert_tag_exists(version)
-  raise "tag #{version} missing" if `git tag -l #{version}`.length == 0
 end
 def create_and_tag_new_version(versioner, jump)
   current_version = versioner.get_current_version
@@ -716,7 +699,6 @@ def create_and_tag_new_version(versioner, jump)
   assert_tag_exists(current_version)
   create_changelog(current_version, next_version)
   versioner.increment_version(jump)
-  # sh "cargo build"
   sh "git add ."
   sh "git commit -m \"[](chore): version bump from #{current_version} => #{next_version.to_s}\""
   sh "git tag #{next_version.to_s}"
