@@ -6,6 +6,7 @@ import { DialogsHotkeysMapComponent             } from './hotkeys/component';
 import { DialogsMultipleFilesActionComponent    } from './multiplefiles/component';
 import { DialogsRecentFilesActionComponent      } from './recentfile/component';
 import { DialogsRecentFitlersActionComponent    } from './recentfilter/component';
+import { DialogsChartsNewActionComponent        } from './charts.new/component';
 
 import { PrimitiveModule                        } from 'logviewer-client-primitive';
 import { ContainersModule                       } from 'logviewer-client-containers';
@@ -15,7 +16,8 @@ const CDialogs = [
     DialogsHotkeysMapComponent,
     DialogsMultipleFilesActionComponent,
     DialogsRecentFilesActionComponent,
-    DialogsRecentFitlersActionComponent
+    DialogsRecentFitlersActionComponent,
+    DialogsChartsNewActionComponent
 ];
 
 @NgModule({
