@@ -3,6 +3,7 @@ import TabsSessionsService from '../../../services/service.sessions.tabs';
 import { ControllerSessionTab, IStreamState } from '../../../controller/controller.session.tab';
 import { IMapState, IMapPoint } from '../../../controller/controller.session.tab.map';
 import { Observable, Subscription, Subject } from 'rxjs';
+import * as ColorScheme from '../../../theme/colors';
 
 export interface IRange {
     begin: number;
@@ -119,9 +120,10 @@ export class ServiceData {
         });
         const datasets = [];
         Object.keys(results).forEach((filter: string) => {
+            const color: string | undefined = this._sessionController.getSessionSearch().getRequestColor(filter);
             const dataset = {
                 label: filter,
-                backgroundColor: this._sessionController.getSessionSearch().getRequestColor(filter),
+                backgroundColor: color === undefined ? ColorScheme.scheme_color_error : color,
                 data: results[filter],
             };
             datasets.push(dataset);
