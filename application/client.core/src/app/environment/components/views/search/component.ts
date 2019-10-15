@@ -69,6 +69,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
+        this._saveState();
     }
 
     public _ng_isWorking(): boolean {
