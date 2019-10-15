@@ -3,6 +3,7 @@ import { CommonModule                           } from '@angular/common';
 import { ViewLoaderComponent                    } from './loader/component';
 import { ViewOutputModule                       } from './output/module';
 import { ViewSearchModule                       } from './search/module';
+import { ViewChartModule                        } from './chart/module';
 
 const components = [ ViewLoaderComponent ];
 
@@ -10,7 +11,7 @@ const components = [ ViewLoaderComponent ];
     entryComponents : [ ...components ],
     imports         : [ CommonModule ],
     declarations    : [ ...components ],
-    exports         : [ ViewOutputModule, ViewSearchModule, ...components ]
+    exports         : [ ViewOutputModule, ViewSearchModule, ViewChartModule, ...components ]
 })
 
 export class EnvironmentViewsModule {
