@@ -132,10 +132,15 @@ export class TabsService {
         }
         this._tabs.delete(guid);
         this._history.remove(guid);
-        if (tab.active && this._tabs.size > 0) {
-            this.setActive(this._history.getLast());
-        }
         this._subjects.removed.next(guid);
+        if (tab.active && this._tabs.size > 0) {
+            const last: string = this._history.getLast();
+            if (last === undefined) {
+                this.setActive(this._tabs.values().next().value.guid);
+            } else {
+                this.setActive(last);
+            }
+        }
     }
 
     public has(guid: string): boolean {
