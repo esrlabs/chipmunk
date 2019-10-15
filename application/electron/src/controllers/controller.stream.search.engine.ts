@@ -3,8 +3,11 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import Logger from '../tools/env.logger';
+import guid from '../tools/tools.guid';
 import { CancelablePromise } from '../tools/promise.cancelable';
 import ServicePaths from '../services/service.paths';
+import NullWritableStream from '../classes/stream.writable.null';
+import TransformMatches from './controller.stream.search.pipe.lineextractor';
 
 export interface IResults {
     regs: { [regIndex: number]: number[] }; // Indexes with matchs, like { 1: [2,3,4] } where 1 - index of reg; [2,3,4] - numbers of rows with match
@@ -24,6 +27,11 @@ export interface IRegDescription {
     groups: number;
 }
 
+interface IMatchTasks {
+    promise: CancelablePromise<number[], void>;
+    process: ChildProcess;
+}
+
 type TMeasurer = () => void;
 
 export class ControllerStreamSearchEngine {
@@ -37,6 +45,8 @@ export class ControllerStreamSearchEngine {
     private _reader: fs.ReadStream | undefined;
     private _last: string | undefined;
     private _promise: CancelablePromise<boolean, void> | undefined;
+    private _matchesPromises: Map<string, CancelablePromise<number[], void>> = new Map();
+    private _matchesProcesses: Map<string, ChildProcess> = new Map();
     private _measurer: TMeasurer | undefined;
 
     constructor(streamFile: string, searchFile: string) {
@@ -56,15 +66,7 @@ export class ControllerStreamSearchEngine {
                 regExp = [regExp];
             }
             this._setMeasurer();
-            const regs: string[] = [];
-            const numeric: string[] = [];
-            regExp.forEach((regexp: RegExp, i: number) => {
-                regs.push(`(${regexp.source})`);
-                if (regexp.source.replace(/\d/gi, '') === '' || regexp.source.indexOf('\d') !== -1) {
-                    numeric.push(`(${regexp.source})`);
-                }
-            });
-            const reg = `(?!\\d*(${numeric.join('|')})\\d*\u0002$)(${regs.join('|')})`;
+            const reg: string = this._constractRegExpStr(regExp);
             this._writer = fs.createWriteStream(this._searchFile);
             this._process = spawn(this._cmd, this._getProcArgs(reg, this._streamFile), {
                 cwd: path.dirname(this._streamFile),
@@ -129,16 +131,84 @@ export class ControllerStreamSearchEngine {
         return this._promise;
     }
 
+    public match(regExp: RegExp, from: number | undefined): CancelablePromise<number[], void> | Error {
+        const id: string = guid();
+        const promise: CancelablePromise<number[], void> = new CancelablePromise((resolve, reject) => {
+            fs.exists(this._streamFile, (exists: boolean) => {
+                if (!exists) {
+                    return resolve([]);
+                }
+                const reader = fs.createReadStream(this._streamFile, { encoding: 'utf8', start: from });
+                const writer = new NullWritableStream();
+                const transform = new TransformMatches({});
+                const process = spawn(this._cmd, this._getProcMatchArgs(regExp.source, '-'), {
+                    cwd: path.dirname(this._streamFile),
+                    stdio: [ 'pipe', 'pipe', 'pipe' ],
+                    detached: true,
+                });
+                reader.pipe(process.stdin);
+                process.stdout.pipe(transform).pipe(writer);
+                process.once('close', () => {
+                    resolve(transform.getLines());
+                });
+                process.once('error', (error: Error) => {
+                    this._logger.error(`Error during executing ripgrep: ${error.message}`);
+                    reject(error);
+                });
+                this._matchesProcesses.set(id, process);
+            });
+        });
+        // Store promise to have a way to cancel it
+        this._matchesPromises.set(id, promise);
+        promise.finally(() => {
+            this._matchesPromises.delete(id);
+            this._matchesProcesses.delete(id);
+        });
+        return promise;
+    }
+
     public cancel(): boolean {
         if (this._promise === undefined) {
             return false;
         }
+        // Cancel main search task
         this._promise.break();
+        // Cancel match tasks
+        this._matchesPromises.forEach((promise: CancelablePromise<number[], void>) => {
+            promise.break();
+        });
+        this._matchesProcesses.forEach((process: ChildProcess) => {
+            process.stdout.unpipe();
+            process.stdout.destroy();
+            process.kill();
+        });
+        this._matchesPromises.clear();
+        this._matchesProcesses.clear();
         return true;
     }
 
     public isBusy(): boolean {
         return this._promise !== undefined;
+    }
+    /*
+    private _constractRegExpStr(regulars: RegExp[]): string {
+        const regs: string[] = [];
+        const numeric: string[] = [];
+        regulars.forEach((regexp: RegExp, i: number) => {
+            regs.push(`(${regexp.source})`);
+            if (regexp.source.replace(/\d/gi, '') === '' || regexp.source.indexOf('\d') !== -1) {
+                numeric.push(`(${regexp.source})`);
+            }
+        });
+        return `(?!\\d*(${numeric.join('|')})\\d*\u0002$)(${regs.join('|')})`;
+    }
+    */
+
+    private _constractRegExpStr(regulars: RegExp[]): string {
+        const regs: string[] = regulars.map((regular: RegExp) => {
+            return regular.source;
+        });
+        return `(${regs.join('|')})[^\d\u0002\u0003]`;
     }
 
     private _clear() {
@@ -177,7 +247,7 @@ export class ControllerStreamSearchEngine {
     }
 
     private _getProcArgs(reg: string, target: string): string[] {
-        return [
+        const args = [
             '-N',
             '--text', // https://github.com/BurntSushi/ripgrep/issues/306 this issue is about a case, when not printable symble is in a file
             '--pcre2',
@@ -186,5 +256,23 @@ export class ControllerStreamSearchEngine {
             reg,
             target,
         ];
+        this._logger.env(`Next regular expresition will be used with ripgrep: ${reg}. Full command: rg ${args.join(' ')}`);
+        return args;
+    }
+
+    private _getProcMatchArgs(reg: string, target: string): string[] {
+        // TODO: here also should be excluded possible matches with line index and tag in line of source file
+        const args = [
+            '-n',
+            '--text', // https://github.com/BurntSushi/ripgrep/issues/306 this issue is about a case, when not printable symble is in a file
+            '--pcre2',
+            '-i',
+            '-e',
+            reg,
+            '-o',
+            target,
+        ];
+        this._logger.env(`Next regular expresition will be used with ripgrep: ${reg}. Full command: rg ${args.join(' ')}`);
+        return args;
     }
 }

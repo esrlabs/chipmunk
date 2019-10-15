@@ -3,11 +3,19 @@ import { ControllerStreamSearchEngine } from './controller.stream.search.engine'
 import State from './controller.stream.search.state';
 import { IMapItem } from './controller.stream.search.map.state';
 import ControllerStreamSearchMapGenerator, { IFoundEvent } from './controller.stream.search.map.generator';
-import ControllerStreamSearchMapInspector, { IMapData } from './controller.stream.search.map.inspector';
+import ControllerStreamSearchMapInspector from './controller.stream.search.map.inspector';
 import { CancelablePromise } from '../tools/promise.cancelable';
 import { EventEmitter } from 'events';
 
-export { IMapData, IFoundEvent };
+export type TMap = { [key: number]: string[] };
+export type TStats = { [key: string]: number };
+
+export interface IMapData {
+    map: TMap;
+    stats: TStats;
+}
+
+export { IFoundEvent };
 
 export interface IRange {
     from: number;
@@ -105,16 +113,54 @@ export default class ControllerStreamSearchExecutor extends EventEmitter {
             this._logger.warn(msg);
             return new Error(msg);
         }
-        this._tasks.inspecting = this._inspector.get(0, requests);
-        if (this._tasks.inspecting instanceof Error) {
-            this._logger.warn(`Fail to start matching due error: ${this._tasks.inspecting.message}`);
-            return this._tasks.inspecting;
-        }
+        const promises: { [key: string]: CancelablePromise<number[], void> } = {};
+        const measure = this._logger.measure(`inspecting`);
+        this._tasks.inspecting = new CancelablePromise((resolve, reject) => {
+            const results: IMapData = {
+                stats: {},
+                map: {},
+            };
+            requests.forEach((request: RegExp) => {
+                const promise: CancelablePromise<number[], void> | Error = this._engine.match(request, 0);
+                if (promise instanceof Error) {
+                    this._logger.warn(`Fail to start inspector due error: ${promise.message}`);
+                    return false;
+                }
+                const source = request.source;
+                promises[source] = promise;
+                promise.then((lines: number[]) => {
+                    const measureLocal = this._logger.measure(`processing "${source}"`);
+                    results.stats[source] = lines.length;
+                    lines.forEach((line: number) => {
+                        if (results.map[line] === undefined) {
+                            results.map[line] = [source];
+                        } else if (results.map[line].indexOf(source) === -1) {
+                            results.map[line].push(request.source);
+                        }
+                    });
+                    delete promises[request.source];
+                    measureLocal();
+                    if (Object.keys(promises).length === 0) {
+                        return resolve(results);
+                    }
+                }).catch((error: Error) => {
+                    this._logger.warn(`Fail to inspect request "${request.source}" due error: ${error.message}`);
+                    reject(error);
+                });
+            });
+            if (Object.keys(promises).length === 0) {
+                return resolve(results);
+            }
+        });
         this._tasks.inspecting.cancel(() => {
+            Object.keys(promises).forEach((key: string) => {
+                promises[key].break();
+            });
             this._tasks.inspecting = undefined;
-            this._logger.env(`Innspecting was canceled.`);
+            this._logger.env(`Inspecting was canceled.`);
         }).finally(() => {
             this._tasks.inspecting = undefined;
+            measure();
         });
         return this._tasks.inspecting;
     }
