@@ -12,14 +12,23 @@ import { SidebarAppConcatFilesComponent         } from './concat/component';
 import { SidebarAppSearchManagerModule          } from './search.manager/module';
 import { SidebarAppSearchManagerComponent       } from './search.manager/component';
 
-import { SidebarAppNotificationsModule          } from './notifications/module';
-import { SidebarAppNotificationsComponent       } from './notifications/component';
+import { SidebarAppNotificationsModule          } from '../views/notifications/module';
+import { SidebarAppNotificationsComponent       } from '../views/notifications/component';
+
+import { SidebarAppChartsModule                 } from './charts/module';
 
 @NgModule({
     entryComponents : [  ],
     imports         : [ CommonModule ],
     declarations    : [  ],
-    exports         : [ SidebarAppMergeFilesModule, SidebarAppSearchManagerModule, SidebarAppParsingModule, SidebarAppNotificationsModule, SidebarAppConcatFilesModule ]
+    exports         : [
+        SidebarAppMergeFilesModule,
+        SidebarAppSearchManagerModule,
+        SidebarAppParsingModule,
+        SidebarAppNotificationsModule,
+        SidebarAppConcatFilesModule,
+        SidebarAppChartsModule
+    ]
 })
 
 export class EnvironmentSidebarAppsModule {

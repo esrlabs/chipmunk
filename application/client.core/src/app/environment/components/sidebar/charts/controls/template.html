@@ -1,0 +1,5 @@
+<span class="small-icon-button fas fa-ellipsis-h" title="Open Recent Filters" (click)="_ng_onRecentOpen()"></span>
+<span class="small-icon-button fas fa-plus" title="Add New" (click)="_ng_onNew()"></span>
+<span *ngIf="filename !== undefined" [attr.class]="'small-icon-button far fa-save ' + (changed ? '' : 'disabled')" title="Save Charts" (click)="_ng_onSave()"></span>
+<span class="small-icon-button fas fa-file-medical" title="Save Charts As" (click)="_ng_onSave(true)"></span>
+<span class="small-icon-button fas fa-folder-open" title="Open Charts" (click)="_ng_onLoad()"></span>
