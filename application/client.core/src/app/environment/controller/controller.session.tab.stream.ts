@@ -1,12 +1,12 @@
 import ServiceElectronIpc, { IPCMessages, Subscription as IPCSubscription } from '../services/service.electron.ipc';
 import { Observable, Subject, Subscription } from 'rxjs';
-import { ControllerSessionTabStreamOutput, IStreamPacket } from './controller.session.tab.stream.output';
+import { ControllerSessionTabStreamOutput, IStreamPacket, IStreamState } from './controller.session.tab.stream.output';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope } from './controller.session.tab.scope';
 import QueueService, { IQueueController } from '../services/standalone/service.queue';
 import * as Toolkit from 'logviewer.client.toolkit';
 
-export { ControllerSessionTabStreamOutput, IStreamPacket };
+export { ControllerSessionTabStreamOutput, IStreamPacket, IStreamState };
 
 export interface IControllerSessionStream {
     guid: string;

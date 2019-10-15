@@ -1,7 +1,7 @@
 import PluginsService, { IPluginData } from '../services/service.plugins';
 import ServiceElectronIpc, { IPCMessages, Subscription as IPCSubscription } from '../services/service.electron.ipc';
 import { Subscription, Observable, Subject } from 'rxjs';
-import { ControllerSessionTabStream } from './controller.session.tab.stream';
+import { ControllerSessionTabStream, IStreamState } from './controller.session.tab.stream';
 import { ControllerSessionTabSearch } from './controller.session.tab.search';
 import { ControllerSessionTabStates } from './controller.session.tab.states';
 import { ControllerSessionTabMap } from './controller.session.tab.map';
@@ -11,7 +11,7 @@ import * as Toolkit from 'logviewer.client.toolkit';
 import HotkeysService from '../services/service.hotkeys';
 import LayoutStateService from '../services/standalone/service.layout.state';
 
-// export type TPluginAPIGetter = (pluginId: number) => Toolkit.IAPI;
+export { IStreamState };
 
 export interface IControllerSession {
     guid: string;

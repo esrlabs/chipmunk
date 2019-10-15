@@ -11,6 +11,7 @@ export interface IMapPoint {
     color: string;
     description: string;
     reg?: string;
+    regs?: string[];
 }
 
 export interface IMapState {
@@ -249,6 +250,7 @@ export class ControllerSessionTabMap {
                         column: columns[match],
                         description: match,
                         reg: match,
+                        regs: [match],
                     };
                     this._state.points.push(point);
                 });
@@ -264,6 +266,7 @@ export class ControllerSessionTabMap {
                     column: index,
                     description: matches.join(', '),
                     reg: match,
+                    regs: matches,
                 };
                 this._state.points.push(point);
             });
