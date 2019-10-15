@@ -346,6 +346,19 @@ export class ControllerSessionTabSearch {
         return this._view;
     }
 
+    public getRequestColor(source: string): string | undefined {
+        let color: string | undefined;
+        this._stored.forEach((filter: IRequest) => {
+            if (color !== undefined) {
+                return;
+            }
+            if (filter.reg.source === source) {
+                color = filter.background;
+            }
+        });
+        return color;
+    }
+
     private _search(requestId: string, requests: RegExp[], filters: boolean = false): Promise<number | undefined> {
         return new Promise((resolve, reject) => {
             if (!this._state.isDone()) {
