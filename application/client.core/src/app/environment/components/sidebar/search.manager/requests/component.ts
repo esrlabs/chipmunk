@@ -72,7 +72,7 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-        SidebarSessionsService.setTitleInjection(undefined);
+        // SidebarSessionsService.setTitleInjection(undefined);
         window.removeEventListener('keyup', this._onKeyPress);
     }
 
