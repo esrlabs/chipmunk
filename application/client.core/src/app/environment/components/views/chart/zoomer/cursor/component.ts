@@ -1,4 +1,4 @@
-import { Component, Output, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterContentInit, EventEmitter, Input } from '@angular/core';
+import { Component, HostListener, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterContentInit, EventEmitter, Input } from '@angular/core';
 import { Observable, Subscription, of } from 'rxjs';
 import { IPositionChange } from '../../service.position';
 import * as Toolkit from 'logviewer.client.toolkit';
@@ -55,6 +55,43 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterContentInit, A
         window.addEventListener('mouseup', this._onWindowMouseup);
     }
 
+    @HostListener('wheel', ['$event']) _ng_onWheel(event: WheelEvent) {
+        if (this._ng_width === -1 || this._width === -1) {
+            return;
+        }
+        let x: number = event.offsetX;
+        if ((event.target as HTMLElement).className === 'cursor') {
+            x += this._ng_left;
+        }
+        let width: number = this._ng_width;
+        if (event.deltaY > 0) {
+            // Zoom in
+            if (width - event.deltaY < CSettings.minSize) {
+                width = CSettings.minSize;
+            } else {
+                width -= event.deltaY;
+            }
+        } else if (event.deltaY < 0) {
+            // Zoom out
+            if (width - event.deltaY > this._width) {
+                width = this._width;
+            } else {
+                width -= event.deltaY;
+            }
+        }
+        let left: number = x - Math.round(width / 2);
+        if (left < 0) {
+            left = 0;
+        }
+        if (left + width > this._width) {
+            left = this._width - width;
+        }
+        this._ng_width = width;
+        this._ng_left = left;
+        this._emitChanges();
+        this._forceUpdate();
+    }
+
     public ngAfterContentInit() {
         const position: IPositionChange | undefined = this.servicePosition.get();
         if (position === undefined) {
@@ -65,6 +102,8 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterContentInit, A
     }
 
     public ngAfterViewInit() {
+        // Cursor events
+        this._subscriptions.onSwitch = this.servicePosition.getObservable().onSwitch.subscribe(this._onPositionRestored.bind(this));
         // Data events
         this._subscriptions.onData = this.serviceData.getObservable().onData.subscribe(this._onResizeIsRequired.bind(this));
         // Listen session changes event
@@ -180,6 +219,19 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterContentInit, A
                 }
                 break;
         }
+        this._emitChanges();
+        this._forceUpdate();
+    }
+
+    private _onWindowMouseup(event: MouseEvent) {
+        if (this._mouse.x === -1) {
+            return;
+        }
+        this._mouse.x = -1;
+        this._mouse.kind = EChangeKind.undefined;
+    }
+
+    private _emitChanges() {
         // Always round values, because it will go to service.data. Based on pixels will be calculated range of rows
         // only 1 px offset can make more than 100 rows offset in range. It will change scale.
         this._ng_width = Math.round(this._ng_width);
@@ -192,19 +244,19 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterContentInit, A
             w: this._ng_width,
             l: this._ng_left,
         });
-        this._forceUpdate();
-    }
-
-    private _onWindowMouseup(event: MouseEvent) {
-        if (this._mouse.x === -1) {
-            return;
-        }
-        this._mouse.x = -1;
-        this._mouse.kind = EChangeKind.undefined;
     }
 
     private _onResizeIsRequired() {
         this._resize();
+    }
+
+    private _onPositionRestored(position: IPositionChange) {
+        if (position.l === undefined || position.w === undefined) {
+            return;
+        }
+        this._ng_left = position.l;
+        this._ng_width = position.w;
+        this._forceUpdate();
     }
 
     private _forceUpdate() {

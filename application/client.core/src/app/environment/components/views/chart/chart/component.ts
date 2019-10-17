@@ -86,6 +86,33 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         });
     }
 
+    public _ng_onClick(event: MouseEvent) {
+        if (this._chart === undefined) {
+            return;
+        }
+        // This feature of chartjs isn't documented well,
+        // so that's why here we have many checks
+        const e: any[] = this._chart.getElementAtEvent(event);
+        if (!(e instanceof Array)) {
+            return;
+        }
+        if (e.length === 0) {
+            return;
+        }
+        if (e[0]._model === null || typeof e[0]._model !== 'object') {
+            return;
+        }
+        const label: string = e[0]._model.label;
+        if (typeof label !== 'string') {
+            return;
+        }
+        const position: number = parseInt(label.replace(/\s-\s\d*/gi, ''), 10);
+        if (isNaN(position) || !isFinite(position)) {
+            return;
+        }
+        OutputRedirectionsService.select('chart', this.service.getSessionGuid(), position);
+    }
+
     private _resize(force: boolean = false) {
         const size: ClientRect = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect();
         if (this._ng_width === size.width && this._ng_height === size.height) {
@@ -172,7 +199,15 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         if (size === undefined) {
             return undefined;
         }
+        if (this._position.left === undefined || this._position.width === undefined || this._position.full === undefined) {
+            return undefined;
+        }
         if (this._position.left < 0 || this._position.width <= 0 || this._position.full <= 0) {
+            return undefined;
+        }
+        if (isNaN(this._position.left) || isNaN(this._position.width) || isNaN(this._position.full) ||
+            !isFinite(this._position.left) || !isFinite(this._position.width) || !isFinite(this._position.full) ) {
+            this._logger.warn(`Get unexpected values of possition.`);
             return undefined;
         }
         const rate: number = this._position.full / size;

@@ -23,8 +23,10 @@ export class ServicePosition {
     private _sessionController: ControllerSessionTab | undefined;
     private _subjects: {
         onChange: Subject<IPositionChange>,
+        onSwitch: Subject<IPositionChange>,
     } = {
         onChange: new Subject<IPositionChange>(),
+        onSwitch: new Subject<IPositionChange>(),
     };
 
     constructor() {
@@ -34,9 +36,11 @@ export class ServicePosition {
 
     public destroy() {
         this._saveState();
+        /*
         Object.keys(this._subjects).forEach((key: string) => {
             this._subjects[key].unsubscribe();
         });
+        */
     }
 
     public set(position: IPositionChange) {
@@ -50,13 +54,16 @@ export class ServicePosition {
 
     public getObservable(): {
         onChange: Observable<IPositionChange>,
+        onSwitch: Observable<IPositionChange>,
     } {
         return {
             onChange: this._subjects.onChange.asObservable(),
+            onSwitch: this._subjects.onSwitch.asObservable(),
         };
     }
 
     private _init(controller?: ControllerSessionTab) {
+        const init: boolean = controller === undefined;
         controller = controller === undefined ? TabsSessionsService.getActive() : controller;
         if (controller === undefined) {
             return;
@@ -65,6 +72,9 @@ export class ServicePosition {
         // Store controller
         this._sessionController = controller;
         this._loadState();
+        if (!init && this._position !== undefined) {
+            this._subjects.onSwitch.next(this._position);
+        }
     }
 
     private _loadState() {
@@ -74,14 +84,19 @@ export class ServicePosition {
         const scope: ControllerSessionScope = this._sessionController.getScope();
         const state: IPositionChange | undefined = scope.get<IPositionChange>(CSettings.serviceScopeKey);
         if (state === undefined) {
-            return;
+            this._position = undefined;
+        } else {
+            this._position = Object.assign({}, state);
+            this._subjects.onChange.next(this._position);
         }
-        this._position = Object.assign({}, state);
-        this._subjects.onChange.next(this._position);
     }
 
     private _saveState() {
         if (this._sessionController === undefined) {
+            return;
+        }
+        if (this._position === undefined) {
+            // Nothing to save
             return;
         }
         const scope: ControllerSessionScope = this._sessionController.getScope();

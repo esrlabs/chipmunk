@@ -77,7 +77,7 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
             this._chart.destroy();
         }
         const labels: string[] = this.serviceData.getLabes(Math.round(this._ng_width / 2));
-        const datasets: Array<{ [key: string]: any }> = this.serviceData.getDatasets(Math.round(this._ng_width / 2));
+        const datasets: Array<{ [key: string]: any }> = this.serviceData.getDatasets(Math.round(this._ng_width / 2), undefined, true);
         if (labels.length === 0 || datasets.length === 0) {
             this._chart = undefined;
             return;
@@ -85,8 +85,8 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         this._chart = new Chart('view-chart-zoomer-canvas', {
             type: 'bar',
             data: {
-                labels: this.serviceData.getLabes(Math.round(this._ng_width / 2)),
-                datasets: this.serviceData.getDatasets(Math.round(this._ng_width / 2)),
+                labels: labels,
+                datasets: datasets,
             },
             options: {
                 title: {
@@ -105,7 +105,8 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
                         stacked: true,
                         ticks: {
                             beginAtZero: true
-                        }
+                        },
+                        display: false,
                     }],
                     xAxes: [{
                         stacked: true,
