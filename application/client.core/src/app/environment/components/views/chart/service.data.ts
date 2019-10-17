@@ -33,9 +33,11 @@ export class ServiceData {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
+        /*
         Object.keys(this._subjects).forEach((key: string) => {
             this._subjects[key].unsubscribe();
         });
+        */
         this._stream = undefined;
         this._matches = undefined;
     }
@@ -66,7 +68,7 @@ export class ServiceData {
         return labels;
     }
 
-    public getDatasets(width: number, range?: IRange): Array<{ [key: string]: any }> {
+    public getDatasets(width: number, range?: IRange, noColors: boolean = false): Array<{ [key: string]: any }> {
         this._max = undefined;
         if (this._stream === undefined || this._matches === undefined) {
             return [];
@@ -124,7 +126,7 @@ export class ServiceData {
             const color: string | undefined = this._sessionController.getSessionSearch().getRequestColor(filter);
             const dataset = {
                 label: filter,
-                backgroundColor: color === undefined ? ColorScheme.scheme_color_error : color,
+                backgroundColor: noColors ? ColorScheme.scheme_color_3 : (color === undefined ? ColorScheme.scheme_color_error : color),
                 data: results[filter],
             };
             datasets.push(dataset);

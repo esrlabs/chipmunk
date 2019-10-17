@@ -80,9 +80,11 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
+        /*
         Object.keys(this._subjects).forEach((key: string) => {
             this._subjects[key].unsubscribe();
         });
+        */
         this._destroyed = true;
     }
 
