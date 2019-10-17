@@ -67,7 +67,7 @@
     "@types/node": "^10.14.1",
     "@types/uuid": "^3.4.4",
     "dmg-builder": "^6.0.0",
-    "electron": "6.0.11",
+    "electron": "6.0.12",
     "electron-builder": "^21.2.0",
     "electron-rebuild": "^1.8.6",
     "tslint": "^5.11.0",
