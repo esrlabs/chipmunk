@@ -6,6 +6,7 @@ import { ServiceData, IRange } from '../service.data';
 import { ServicePosition, IPositionChange } from '../service.position';
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
+import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 
 const CSettings = {
     rebuildDelay: 10,
@@ -33,6 +34,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
     private _destroyed: boolean = false;
     private _chart: Chart | undefined;
     private _mainViewPosition: number | undefined;
+    private _redirectMainView: boolean = true;
     private _rebuild: {
         timer: any,
         postponed: number,
@@ -110,7 +112,27 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         if (isNaN(position) || !isFinite(position)) {
             return;
         }
-        OutputRedirectionsService.select('chart', this.service.getSessionGuid(), position);
+        if (this._redirectMainView) {
+            OutputRedirectionsService.select('chart', this.service.getSessionGuid(), position);
+        }
+    }
+
+    public _ng_onContexMenu(event: MouseEvent) {
+        const items: IMenuItem[] = [
+            {
+                caption: this._redirectMainView ? 'Scroll main view: prevent' : 'Scroll main view: allow',
+                handler: () => {
+                    this._redirectMainView = !this._redirectMainView;
+                },
+            },
+        ];
+        ContextMenuService.show({
+            items: items,
+            x: event.pageX,
+            y: event.pageY,
+        });
+        event.stopImmediatePropagation();
+        event.preventDefault();
     }
 
     private _resize(force: boolean = false) {
@@ -236,7 +258,9 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         if (this._mainViewPosition === range.begin) {
             return;
         }
-        OutputRedirectionsService.select('chart', this.service.getSessionGuid(), range.begin);
+        if (this._redirectMainView) {
+            OutputRedirectionsService.select('chart', this.service.getSessionGuid(), range.begin);
+        }
         this._mainViewPosition = range.begin;
     }
 
