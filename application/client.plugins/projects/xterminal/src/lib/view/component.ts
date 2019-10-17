@@ -3,7 +3,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, ElementRef, ViewChild } from '@angular/core';
 import { EHostEvents, EHostCommands } from '../common/host.events';
 import { Terminal } from 'xterm';
-import * as fit from 'xterm/lib/addons/fit/fit';
+import { FitAddon } from 'xterm-addon-fit';
 import * as Toolkit from 'logviewer.client.toolkit';
 
 @Component({
@@ -21,9 +21,10 @@ export class SidebarViewComponent implements AfterViewInit, OnDestroy {
 
     private _subscription: any;
     private _xterm: Terminal | undefined;
+    private _fitAddon: FitAddon | undefined;
 
     constructor(private _cdRef: ChangeDetectorRef) {
-        Terminal.applyAddon(fit);
+
     }
 
     ngOnDestroy() {
@@ -63,10 +64,13 @@ export class SidebarViewComponent implements AfterViewInit, OnDestroy {
         if (this._ng_xtermholder === null || this._ng_xtermholder === undefined) {
             return null;
         }
+        this._fitAddon = new FitAddon();
         this._xterm = new Terminal();
+        this._xterm.loadAddon(this._fitAddon);
         this._xterm.open(this._ng_xtermholder.nativeElement);
+        this._fitAddon.fit();
         this._setTheme(this._xterm);
-        this._xterm.on('data', (data) => {
+        this._xterm.onData((data) => {
             this.api.getIPC().requestToHost({
                 session: this.session,
                 command: EHostCommands.write,
