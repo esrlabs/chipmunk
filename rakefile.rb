@@ -450,7 +450,7 @@ def install_plugin_complex(plugin)
   puts "Installing plugin: #{plugin}"
   cd "application/sandbox/#{plugin}/process" do
     npm_install
-    npm_install("electron@6.0.11 electron-rebuild@^1.8.6")
+    npm_install("electron@6.0.12 electron-rebuild@^1.8.6")
     sh "./node_modules/.bin/electron-rebuild"
     sh "npm uninstall electron electron-rebuild"
     sh "#{NPM_RUN} build"
