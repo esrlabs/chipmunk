@@ -77,7 +77,7 @@ export class PopupsService {
     }
 
     private _onKeyUp(event: KeyboardEvent) {
-        if (event.keyCode !== 27) {
+        if (event.key !== 'Escape') {
             return;
         }
         if (this._opened.size === 0) {

@@ -65,9 +65,13 @@ export class TabsService {
     }
 
     public destroy() {
+        // Looks like unsubscription from subject gives exeptions
+        // unsubscribing should be done from observable
+        /*
         Object.keys(this._subjects).forEach((key: string) => {
             this._subjects[key].unsubscribe();
         });
+        */
     }
 
     public getObservable(): {
