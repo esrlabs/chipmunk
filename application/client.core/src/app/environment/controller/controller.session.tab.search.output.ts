@@ -322,6 +322,8 @@ export class ControllerSessionTabSearchOutput {
     }
 
     private _insertBookmarks(rows: ISearchStreamPacket[]): ISearchStreamPacket[] {
+        const bookmarks: Map<number, IBookmark> = this._bookmakrs.get();
+        const indexes: number[] = Array.from(bookmarks.keys());
         const add = (target: ISearchStreamPacket[], from: number, to: number) => {
             const between: number[] = this._getBetween(indexes, from, to);
             between.forEach((index: number) => {
@@ -345,8 +347,6 @@ export class ControllerSessionTabSearchOutput {
                 this._state.bookmarksCount += 1;
             });
         };
-        const bookmarks: Map<number, IBookmark> = this._bookmakrs.get();
-        const indexes: number[] = Array.from(bookmarks.keys());
         this._state.bookmarksCount = 0;
         if (indexes.length === 0) {
             return rows;
