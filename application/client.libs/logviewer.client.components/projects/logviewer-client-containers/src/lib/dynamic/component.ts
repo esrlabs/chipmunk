@@ -2,7 +2,7 @@
 src: http://blog.rangle.io/dynamically-creating-components-with-angular-2/
 */
 
-import { Component, Input, ViewContainerRef, ReflectiveInjector, ComponentFactoryResolver } from '@angular/core';
+import { Component, Input, ViewContainerRef, ComponentFactoryResolver, Injector, InjectionToken } from '@angular/core';
 
 export interface IComponentDesc {
     factory: any;
@@ -42,13 +42,13 @@ export class DynamicComponent {
             let factory = CCachedFactories.get(name);
             if (factory === undefined || typeof name !== 'string' || name.trim() === '') {
                 const inputProviders = Object.keys(desc.inputs).map((inputName) => {
-                    return {
-                        provide: inputName,
-                        useValue: desc.inputs[inputName],
-                    };
+                    const token = new InjectionToken<any>(inputName);
+                    return { provide: token, useValue: desc.inputs[inputName] };
                 });
-                const resolvedInputs = ReflectiveInjector.resolve(inputProviders);
-                const injector = ReflectiveInjector.fromResolvedProviders(resolvedInputs, this.viewContainerRef.injector);
+                const injector = Injector.create({
+                    providers: inputProviders,
+                    parent: this.viewContainerRef.injector,
+                });
                 factory = this.resolver.resolveComponentFactory(desc.factory);
                 component = factory.create(injector);
                 CCachedFactories.set(name, { factory: factory, injector: injector });
