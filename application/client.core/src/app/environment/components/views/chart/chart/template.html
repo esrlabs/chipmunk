@@ -1,3 +1,6 @@
-<div class="container" [ngStyle]="{'width': _ng_width + 'px', 'height': _ng_height + 'px'}" (click)="_ng_onClick($event)">
+<div class="container" 
+     [ngStyle]="{'width': _ng_width + 'px', 'height': _ng_height + 'px'}"
+     (click)="_ng_onClick($event)"
+     (contextmenu)="_ng_onContexMenu($event)">
     <canvas id="view-chart-canvas" [attr.width]="_ng_width" [attr.height]="_ng_height"></canvas>
 </div>
