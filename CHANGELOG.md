@@ -1,5 +1,13 @@
 # Changelog
 
+### [1.24.0] - 10/18/2019
+* [#464](feat) add support to neon integration for dlt
+  neon: wip on typescript side
+  add support for progress reporting in dlt
+  more general rust channels for js
+  working tests for dlt indexing
+* [](chore) trigger gh action to build also on pull-request
+
 ### [1.23.0] - 10/18/2019
 * [](chore): extracted common rake functionality to rake-extensions
   improved raketask for linting
