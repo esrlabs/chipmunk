@@ -57,9 +57,14 @@ export class ServiceData {
         if (this._stream.count === 0 || this._matches.points.length === 0) {
             return [];
         }
-        const rate: number = width / (range === undefined ? this._stream.count : (range.end - range.begin));
+        const countInRange: number = range === undefined ? this._stream.count : (range.end - range.begin);
+        let rate: number = width / countInRange;
         if (isNaN(rate) || !isFinite(rate)) {
             return [];
+        }
+        if (rate > 1) {
+            rate = 1;
+            width = countInRange;
         }
         const offset: number = range === undefined ? 0 : range.begin;
         const labels: string[] = (new Array(width)).fill('').map((value: string, i: number) => {
@@ -78,14 +83,15 @@ export class ServiceData {
         }
         const results: any = {};
         const countInRange: number = range === undefined ? this._stream.count : (range.end - range.begin);
-        const rate: number = width / countInRange;
+        let rate: number = width / countInRange;
         const commonWidth: number = Math.floor(this._stream.count / (countInRange / width));
         const maxes: number[] = (new Array(commonWidth)).fill(0);
-        let max: number = -1;
         if (rate >= 1) {
             // TODO: cover this use case
-            return;
+            rate = 1;
+            width = countInRange;
         }
+        let max: number = -1;
         if (range === undefined) {
             range = {
                 begin: 0,
