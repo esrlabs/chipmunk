@@ -2,8 +2,8 @@
 import * as Toolkit from 'logviewer.client.toolkit';
 import { default as AnsiUp } from 'ansi_up';
 
-const ansi_up = new AnsiUp();
-ansi_up.escape_for_html = false;
+const ansiup = new AnsiUp();
+ansiup.escape_for_html = false;
 
 const REGS = {
     COLORS: /\x1b\[[\d;]{1,}[mG]/,
@@ -26,7 +26,7 @@ export class ASCIIColorsParser extends Toolkit.ARowCommonParser {
                     return str.replace(REGS.COLORS_GLOBAL, "");
                 } else if (REGS.COLORS.test(str)) {
                     // ANSI escape-codes to html color-styles
-                    return ansi_up.ansi_to_html(str);
+                    return ansiup.ansi_to_html(str);
                 }
             }
         }

@@ -111,7 +111,7 @@ fn get_updater_path() -> String {
     if cfg!(target_os = "windows") {
         format!("{}.exe", updater)
     } else {
-        updater.to_string()
+        updater
     }
 }
 

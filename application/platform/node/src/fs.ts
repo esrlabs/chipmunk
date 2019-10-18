@@ -226,7 +226,7 @@ export function copyFolder(source: string, dest: string) {
             if (FS.lstatSync(fullname).isDirectory() ) {
                 copyFolder(fullname, destFolder);
             } else {
-                FS.copyFileSync(fullname, Path.join(destFolder, file))
+                FS.copyFileSync(fullname, Path.join(destFolder, file));
             }
         });
     }

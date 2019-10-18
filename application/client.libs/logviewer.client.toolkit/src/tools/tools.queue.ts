@@ -4,7 +4,7 @@ export default class Queue extends Emitter {
 
     public static Events = {
         next: 'next',
-        done: 'done'
+        done: 'done',
     };
 
     private _tasks: Array<(...args: any[]) => any> = [];

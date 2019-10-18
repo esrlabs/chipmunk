@@ -7,7 +7,7 @@
     "build": "tsc -p ./tsconfig.json",
     "build:watch": "tsc -p ./tsconfig.json -w",
     "test:unit": "./node_modules/.bin/jasmine-ts",
-    "tslint": "./node_modules/.bin/tslint -c tslint.json"
+    "tslint": "./node_modules/.bin/tslint -p tsconfig.json"
   },
   "author": "Dmitry Astafyev",
   "license": "MIT",

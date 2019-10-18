@@ -417,7 +417,7 @@ desc "lint code"
 task :lint do
   lint_scripts = []
   FileList["**/package.json"]
-    .reject { |f| f =~ /node_modules/ }
+    .reject { |f| f =~ /node_modules/ or f =~ /dist\/compiled/ }
     .each do |f|
     package = JSON.parse(File.read(f))
     scripts = package["scripts"]
@@ -436,7 +436,11 @@ task :lint do
     dir = lint[0]
     script = lint[1]
     cd dir do
-      sh "#{NPM_RUN} #{script}"
+      begin
+        sh "#{NPM_RUN} #{script}"
+      rescue Exception => e
+        puts "!!!!!!!!!!!!!!!!!!!! error linting in: #{dir}: #{e}"
+      end
     end
   end
   # ["client.core", "client.libs/logviewer.client.components", "client.plugins"].each do |d|
@@ -473,7 +477,7 @@ end
 
 def install_plugin_complex(plugin)
   puts "Installing plugin: #{plugin}"
-  cd "application/sandbox/#{plugin}/process" do
+  cd "#{PLUGINS_SANDBOX}/#{plugin}/process" do
     npm_install
     npm_install("electron@6.0.12 electron-rebuild@^1.8.6")
     sh "./node_modules/.bin/electron-rebuild"
@@ -524,19 +528,19 @@ end
 
 # update plugin.ipc
 task :updatepluginipc do
-  cd "application/sandbox/dlt/process" do
+  cd "#{PLUGINS_SANDBOX}/dlt/process" do
     puts "Update toolkits for: dlt plugin"
     npm_reinstall("logviewer.plugin.ipc@latest")
   end
-  cd "application/sandbox/serial/process" do
+  cd "#{PLUGINS_SANDBOX}/serial/process" do
     puts "Update toolkits for: serial plugin"
     npm_reinstall("logviewer.plugin.ipc@latest")
   end
-  cd "application/sandbox/processes/process" do
+  cd "#{PLUGINS_SANDBOX}/processes/process" do
     puts "Update toolkits for: processes pluginplugin"
     npm_reinstall("logviewer.plugin.ipc@latest")
   end
-  #cd "application/sandbox/xterminal/process" do
+  #cd "#{PLUGINS_SANDBOX}/xterminal/process" do
   #  puts "Update toolkits for: xterminal plugin"
   #  sh "npm uninstall logviewer.plugin.ipc"
   #  npm_install("logviewer.plugin.ipc@latest")
