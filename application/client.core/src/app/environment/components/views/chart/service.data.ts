@@ -68,7 +68,9 @@ export class ServiceData {
         }
         const offset: number = range === undefined ? 0 : range.begin;
         const labels: string[] = (new Array(width)).fill('').map((value: string, i: number) => {
-            return '' + (Math.round(i / rate) + offset) + ' - ' + (Math.round((i + 1) / rate) + offset);
+            const left: number = Math.round(i / rate) + offset;
+            const right: number = Math.round((i + 1) / rate) + offset;
+            return left !== (right - 1) ? ('' + left + ' - ' + right) : (left + '');
         });
         return labels;
     }
@@ -87,7 +89,6 @@ export class ServiceData {
         const commonWidth: number = Math.floor(this._stream.count / (countInRange / width));
         const maxes: number[] = (new Array(commonWidth)).fill(0);
         if (rate >= 1) {
-            // TODO: cover this use case
             rate = 1;
             width = countInRange;
         }
