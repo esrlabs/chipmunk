@@ -233,18 +233,22 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             return undefined;
         }
         const rate: number = this._position.full / size;
+        let range: IRange;
         if (rate > 1) {
-            // TODO: add implementation of this case
+            range = {
+                begin: 0,
+                end: size - 1
+            };
         } else {
             const left: number = Math.floor(this._position.left / rate);
             const width: number = Math.floor(this._position.width / rate);
-            const range: IRange = {
+            range = {
                 begin: left,
                 end: left + width
             };
             range.end = range.end >= size ? size - 1 : range.end;
-            return range;
         }
+        return range;
     }
 
     private _scrollMainView() {
