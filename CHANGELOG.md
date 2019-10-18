@@ -1,5 +1,46 @@
 # Changelog
 
+### [1.23.0] - 10/18/2019
+* [](chore): extracted common rake functionality to rake-extensions
+  improved raketask for linting
+* [](chore): try to reduce windows build times for gh actions
+  use gem rake-extensions
+* [](chore): adapt badge for gh actions build
+* [#199][feat] no glass on selection and reverse wheel
+* [#199][feat] support small stream
+* [#199][fix] fix scale issue
+* [#199][fix] fix scale issue
+* [github-xx][feat] remove research folder
+* [#199][feat] shadow color on zoom panel of chart view
+* [github-xx][feat] electron up to 6.0.12 (rakefile)
+* [#199][feat] context menu on chart
+* [github-xx][feat] xterm version upgrade
+* [github-xx][feat] electron up to 6.0.12
+* [github-xx][feat] upgrade angular injector usage way
+* [github-xx][fix] client.core: resolve ng-lint errors/warnings
+* [#199][feat] charts: wheel support
+* [#199][feat] store chart state
+* [#199][fix] search view: save state on switch tab
+* [#199][feat] default color for bars (active search)
+* [#199][fix] correct saving of states in scope of session
+* [#199][feat] correct color for bars in chart
+* [#199][feat] fix scale on movement
+* [#199][feat] update controllers
+* [#199][feat] chart dialogs (template)
+* [#199][feat] chartjs
+* [#199][fix] correct search
+* [#199][feat] chart sidebar (template)
+* [#199][feat] chart main view (secondary area)
+* [#199][feat] update search terms
+* [#199][feat] dynamic adding sidebar tabs
+* [github-xx][fix] correct activation tab on removing (in case empty history)
+* [github-xx][feat] correct handeling closing of session
+* [github-xx][refact] move notifications view into correct place
+* [github-xx][feat] support dynamic adding sidebar apps
+* [github-xx][fix] fix size of injection area (tab's list component)
+* [github-xx][fix] fix injections layout for vert tabs aligned
+* [github-xx][feat] plugins versions up (because electron upgrade)
+
 ### [1.22.1] - 10/14/2019
 * [#497](fix): require missing ruby library in rakefile
   downloading files did not work anymore

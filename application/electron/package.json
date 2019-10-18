@@ -1,6 +1,6 @@
 {
   "name": "chipmunk",
-  "version": "1.22.1",
+  "version": "1.23.0",
   "description": "LogViewer",
   "main": "./dist/compiled/main.js",
   "copyright": "Copyright © 2019 year E.S.R.Labs",
