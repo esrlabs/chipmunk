@@ -8,7 +8,7 @@
     margin: 0;
     padding: 0;
     top: 0;
-    & div.cursor{
+    & div.shadow{
         position: absolute;
         display: block;
         height: 100%;
@@ -16,6 +16,21 @@
         padding: 0;
         top: 0;
         background: fade(@scheme-color-1, 20%);
+        pointer-events: none;
+        &.left{
+            left: 0;
+        }
+        &.right{
+            right: 0;
+        }
+    }
+    & div.cursor{
+        position: absolute;
+        display: block;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        top: 0;
         div.l-border,
         div.r-border{
             position: absolute;

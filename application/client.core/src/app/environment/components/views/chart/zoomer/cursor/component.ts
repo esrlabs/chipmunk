@@ -64,19 +64,19 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterContentInit, A
             x += this._ng_left;
         }
         let width: number = this._ng_width;
-        if (event.deltaY > 0) {
+        if (event.deltaY < 0) {
             // Zoom in
-            if (width - event.deltaY < CSettings.minSize) {
+            if (width + event.deltaY < CSettings.minSize) {
                 width = CSettings.minSize;
             } else {
-                width -= event.deltaY;
+                width += event.deltaY;
             }
-        } else if (event.deltaY < 0) {
+        } else if (event.deltaY > 0) {
             // Zoom out
-            if (width - event.deltaY > this._width) {
+            if (width + event.deltaY > this._width) {
                 width = this._width;
             } else {
-                width -= event.deltaY;
+                width += event.deltaY;
             }
         }
         let left: number = x - Math.round(width / 2);

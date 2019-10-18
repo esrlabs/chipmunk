@@ -21,6 +21,7 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
     public _ng_height: number = 100;
     public _ng_offset: number = 0;
     public _ng_onOffsetUpdated: EventEmitter<void> = new EventEmitter();
+    public _ng_isCursorVisible: boolean = true;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewChartZoomerCanvasComponent');
@@ -76,8 +77,16 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         if (this._chart !== undefined) {
             this._chart.destroy();
         }
-        const labels: string[] = this.serviceData.getLabes(Math.round(this._ng_width / 2));
-        const datasets: Array<{ [key: string]: any }> = this.serviceData.getDatasets(Math.round(this._ng_width / 2), undefined, true);
+        let width: number = 0;
+        if (this._ng_width < this.serviceData.getStreamSize()) {
+            width = Math.round(this._ng_width / 2);
+            this._ng_isCursorVisible = true;
+        } else {
+            width = this._ng_width;
+            this._ng_isCursorVisible = false;
+        }
+        const labels: string[] = this.serviceData.getLabes(width);
+        const datasets: Array<{ [key: string]: any }> = this.serviceData.getDatasets(width, undefined, true);
         if (labels.length === 0 || datasets.length === 0) {
             this._chart = undefined;
             return;

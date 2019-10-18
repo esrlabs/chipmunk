@@ -2,6 +2,7 @@
     <canvas id="view-chart-zoomer-canvas" [attr.width]="_ng_width" [attr.height]="_ng_height"></canvas>
 </div>
 <app-views-chart-zoomer-cursor-canvas 
+    *ngIf="_ng_isCursorVisible"
     [getLeftOffset]="_ng_getLeftOffset"
     [onOffsetUpdated]="_ng_onOffsetUpdated"
     [servicePosition]="servicePosition"
