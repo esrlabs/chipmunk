@@ -1,4 +1,5 @@
 [![](https://github.com/esrlabs/chipmunk/workflows/FullBuild/badge.svg)](https://github.com/esrlabs/chipmunk/actions)
+[![](https://github.com/esrlabs/chipmunk/workflows/Lint/badge.svg)](https://github.com/esrlabs/chipmunk/actions)
 
 # Chipmunk Log Analyzer & Viewer
 

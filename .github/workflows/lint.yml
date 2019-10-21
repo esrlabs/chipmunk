@@ -1,0 +1,35 @@
+name: Lint
+
+on: [push, pull_request]
+
+jobs:
+  lint_js:
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: install ruby
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.x'
+      - name: install node
+        uses: actions/setup-node@master
+        with:
+          node-version: '10.16.3'
+      - name: install npm
+        run: npm install --global neon-cli
+      - name: lint js code
+        run: rake lint_js --trace
+  lint_rust:
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: install ruby
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.x'
+      - name: install rust
+        uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+      - name: lint rust code
+        run: rake lint_rust --trace

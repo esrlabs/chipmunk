@@ -479,9 +479,16 @@ def run_rust_linters
   end
 end
 
-desc 'lint code'
-task :lint do
-  errors = run_ts_lint + run_rust_linters
+desc 'lint js code'
+task :lint_js do
+  errors = run_ts_lint
+  es = errors.reduce('') { |acc, e| [acc, e].join('\n') }
+  raise es unless errors.empty?
+end
+
+desc 'lint rust code'
+task :lint_rust do
+  errors = run_rust_linters
   es = errors.reduce('') { |acc, e| [acc, e].join('\n') }
   raise es unless errors.empty?
 end
