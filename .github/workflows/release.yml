@@ -26,8 +26,8 @@ jobs:
         uses: actions/setup-node@master
         with:
           node-version: '10.16.3'
-      - name: install npm
-        run: npm install --global neon-cli
+      - name: install neon cli
+        run: npm install --global neon-cli@0.3.1
       - name: install rust
         uses: hecrj/setup-rust-action@v1
         with:

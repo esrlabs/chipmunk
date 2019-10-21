@@ -4,6 +4,7 @@ on: [push, pull_request]
 
 jobs:
   lint_js:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v1
@@ -15,11 +16,14 @@ jobs:
         uses: actions/setup-node@master
         with:
           node-version: '10.16.3'
-      - name: install npm
-        run: npm install --global neon-cli
+      - name: install typescript
+        run: npm install typescript --global
+      - name: install tslint
+        run: npm install --global tslint
       - name: lint js code
         run: rake lint_js --trace
   lint_rust:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v1
@@ -31,5 +35,7 @@ jobs:
         uses: hecrj/setup-rust-action@v1
         with:
           rust-version: ${{ matrix.rust }}
+      - name: install clippy
+        run: rustup component add clippy
       - name: lint rust code
         run: rake lint_rust --trace

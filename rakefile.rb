@@ -456,7 +456,7 @@ def run_ts_lint
   lint_scripts.each do |lint|
     dir = lint[0]
     runner = lint[2]
-    runner = runner.sub!(/^.*tslint/, 'tslint') if runner =~ /^.*tslint/
+    runner = runner.sub!(/^.*?tslint/, 'tslint') if runner =~ /^.*tslint/
     cd dir do
       npm_install if runner =~ /ng\s+lint/
       stdout, stderr, status = Open3.capture3(runner)
@@ -468,7 +468,7 @@ end
 
 def run_rust_linters
   errors = []
-  %w[launcher updater indexer].each do |rust_app|
+  %w[launcher updater indexer indexer-neon/native].each do |rust_app|
     cd Pathname.new(APPS_DIR).join(rust_app) do
       begin
         sh 'cargo clippy'
@@ -477,6 +477,7 @@ def run_rust_linters
       end
     end
   end
+  errors
 end
 
 desc 'lint js code'
@@ -663,7 +664,7 @@ task :build_embedded_indexer do
   cd "#{APPS_DIR}/indexer-neon" do
     npm_install
     sh "#{NPM_RUN} build-ts-neon"
-    sh "#{NPM_RUN} neon"
+    sh 'neon build --release'
   end
 end
 
