@@ -20,6 +20,7 @@ extern crate log;
 pub mod dlt;
 pub mod dlt_parse;
 pub mod filtering;
+pub mod dlt_pcap;
 
 #[cfg(test)]
 mod tests;
