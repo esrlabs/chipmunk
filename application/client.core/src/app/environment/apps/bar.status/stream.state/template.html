@@ -1,9 +1,9 @@
 <div class="wrapper" *ngIf="_ng_isInProgress()">
     <div class="progress">
-        <lib-primitive-spinner-regular></lib-primitive-spinner-regular>
+        <lib-primitive-spinner-circle></lib-primitive-spinner-circle>
     </div>
     <ul class="tasks" *ngFor="let task of _ng_tasks">
-        <li><span class="info" [attr.title]="task.name">{{task.name}}</span><span class="value">{{task.progress}}%</span></li>
+        <li><span class="info" [attr.title]="task.name">{{task.name}}</span><span *ngIf="task.progress > 0" class="value">{{task.progress}}%</span></li>
     </ul>
     <ul class="pipes" *ngFor="let pipe of _ng_pipes">
         <li><span class="info" [attr.title]="pipe.name">{{pipe.name}}</span><span class="value">{{pipe.done}}/{{pipe.size}}Mb</span></li>

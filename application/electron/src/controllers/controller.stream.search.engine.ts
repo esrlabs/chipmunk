@@ -1,7 +1,6 @@
 import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
-import * as os from 'os';
 import Logger from '../tools/env.logger';
 import guid from '../tools/tools.guid';
 import { CancelablePromise } from '../tools/promise.cancelable';
@@ -25,11 +24,6 @@ export interface IMatch {
 export interface IRegDescription {
     reg: RegExp;
     groups: number;
-}
-
-interface IMatchTasks {
-    promise: CancelablePromise<number[], void>;
-    process: ChildProcess;
 }
 
 type TMeasurer = () => void;
