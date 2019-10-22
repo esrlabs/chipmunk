@@ -59,34 +59,64 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterContentInit, A
         if (this._ng_width === -1 || this._width === -1) {
             return;
         }
+        let width: number = this._ng_width;
+        let left: number = 0;
+        // Detect direction
+        if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+            // Vertical scroll: zooming
+            if (event.deltaY < 0) {
+                // Zoom in
+                if (width + event.deltaY < CSettings.minSize) {
+                    width = CSettings.minSize;
+                } else {
+                    width += event.deltaY;
+                }
+            } else if (event.deltaY > 0) {
+                // Zoom out
+                if (width + event.deltaY > this._width) {
+                    width = this._width;
+                } else {
+                    width += event.deltaY;
+                }
+            }
+            left = this._ng_left - Math.round(event.deltaY / 2);
+            if (left < 0) {
+                left = 0;
+            }
+            if (left + width > this._width) {
+                left = this._width - width;
+            }
+        } else {
+            left = this._ng_left + event.deltaX;
+            if (left < 0) {
+                left = 0;
+            }
+            if (left + this._ng_width > this._width) {
+                left = this._width - this._ng_width;
+            }
+        }
+        this._ng_width = width;
+        this._ng_left = left;
+        this._emitChanges();
+        this._forceUpdate();
+        this._ng_preventDefault(event);
+    }
+
+    @HostListener('click', ['$event']) _ng_onClick(event: MouseEvent) {
+        if (this._ng_width === -1 || this._width === -1) {
+            return;
+        }
         let x: number = event.offsetX;
         if ((event.target as HTMLElement).className === 'cursor') {
             x += this._ng_left;
         }
-        let width: number = this._ng_width;
-        if (event.deltaY < 0) {
-            // Zoom in
-            if (width + event.deltaY < CSettings.minSize) {
-                width = CSettings.minSize;
-            } else {
-                width += event.deltaY;
-            }
-        } else if (event.deltaY > 0) {
-            // Zoom out
-            if (width + event.deltaY > this._width) {
-                width = this._width;
-            } else {
-                width += event.deltaY;
-            }
-        }
-        let left: number = x - Math.round(width / 2);
+        let left: number = x - Math.round(this._ng_width / 2);
         if (left < 0) {
             left = 0;
         }
-        if (left + width > this._width) {
-            left = this._width - width;
+        if (left + this._ng_width > this._width) {
+            left = this._width - this._ng_width;
         }
-        this._ng_width = width;
         this._ng_left = left;
         this._emitChanges();
         this._forceUpdate();
@@ -145,12 +175,20 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterContentInit, A
         event.stopImmediatePropagation();
     }
 
+    public _ng_preventDefault(event: MouseEvent) {
+        event.stopImmediatePropagation();
+        event.stopPropagation();
+        event.preventDefault();
+        return false;
+    }
+
     private _resize() {
         if (this._vcRef === undefined) {
             return;
         }
         if (!this.serviceData.hasData()) {
             this._ng_width = -1;
+            this._width = -1;
             this._forceUpdate();
             return;
         }
@@ -159,14 +197,15 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterContentInit, A
         if (width <= 0 || isNaN(width) || !isFinite(width)) {
             return;
         }
+        if (this._ng_width === -1) {
+            this._ng_width = width;
+            this._ng_left = 0;
+        }
         if (this._width === width) {
             return;
         }
         if (this._width === -1) {
             this._width = Math.round(width);
-        }
-        if (this._ng_width === -1) {
-            this._ng_width = width;
         }
         if (this._ng_left < this.getLeftOffset()) {
             this._ng_left = this.getLeftOffset();
@@ -229,6 +268,9 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterContentInit, A
         }
         this._mouse.x = -1;
         this._mouse.kind = EChangeKind.undefined;
+        event.stopImmediatePropagation();
+        event.stopPropagation();
+        event.preventDefault();
     }
 
     private _emitChanges() {

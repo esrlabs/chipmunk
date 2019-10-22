@@ -133,9 +133,12 @@ export class ServiceData {
             const color: string | undefined = this._sessionController.getSessionSearch().getRequestColor(filter);
             const dataset = {
                 label: filter,
+                backgroundColor: color === undefined ? ColorScheme.scheme_search_match : color,
+                /*
                 backgroundColor: noColors ?
                     (color === undefined ? ColorScheme.shadeColor(ColorScheme.scheme_search_match, -40) : ColorScheme.shadeColor(color, -40)) :
                     (color === undefined ? ColorScheme.scheme_search_match : color),
+                */
                 data: results[filter],
             };
             datasets.push(dataset);
