@@ -2,15 +2,15 @@
   "name": "logviewer-client-components",
   "version": "0.0.0",
   "scripts": {
-    "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
-    "test": "ng test",
-    "lint": "ng lint",
-    "e2e": "ng e2e",
-    "build:logviewer-client-containers": "ng build logviewer-client-containers",
-    "build:logviewer-client-primitive": "ng build logviewer-client-primitive",
-    "build:logviewer-client-complex": "ng build logviewer-client-complex"
+    "ng": "./node_modules/.bin/ng",
+    "start": "./node_modules/.bin/ng serve",
+    "build": "./node_modules/.bin/ng build",
+    "test": "./node_modules/.bin/ng test",
+    "lint": "./node_modules/.bin/ng lint",
+    "e2e": "./node_modules/.bin/ng e2e",
+    "build:logviewer-client-containers": "./node_modules/.bin/ng build logviewer-client-containers",
+    "build:logviewer-client-primitive": "./node_modules/.bin/ng build logviewer-client-primitive",
+    "build:logviewer-client-complex": "./node_modules/.bin/ng build logviewer-client-complex"
   },
   "private": true,
   "dependencies": {
