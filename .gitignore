@@ -41,7 +41,6 @@ Thumbs.db
 **/node_modules
 **/*.js
 **/*.js.map
-**/package-lock.json
 **/.vscode
 **/vscode
 **/.DS_store
@@ -63,3 +62,4 @@ local/**/*
 **/*.node
 application/apps/indexer-neon/native/artifacts.json
 *portable.tgz
+**/*.metadata.json
