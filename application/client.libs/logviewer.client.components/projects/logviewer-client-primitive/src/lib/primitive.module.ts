@@ -9,6 +9,7 @@ import { InputStandardComponent                 } from './inputs/standard/compon
 import { ButtonStandardComponent                } from './buttons/standard/component';
 
 import { SpinnerRegularComponent                } from './spinners/regular/component';
+import { SpinnerCircleComponent                 } from './spinners/circle/component';
 
 import { SwitcherSimpleComponent                } from './switchers/simple/component';
 
@@ -35,7 +36,8 @@ const buttons = [
 ];
 
 const spinners = [
-    SpinnerRegularComponent
+    SpinnerRegularComponent,
+    SpinnerCircleComponent
 ];
 
 @NgModule({
