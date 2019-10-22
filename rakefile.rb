@@ -27,6 +27,8 @@ DEST_CLIENT_PLUGIN_IPC = "#{CLIENT_CORE_DIR}/src/app/environment/services/plugin
 DEST_PLUGINIPCLIG_PLUGIN_IPC = 'application/node.libs/logviewer.plugin.ipc/src/ipc.messages'
 SRC_CLIENT_NPM_LIBS = 'application/client.libs/logviewer.client.components'
 RIPGREP_URL = 'https://github.com/BurntSushi/ripgrep/releases/download/11.0.2/ripgrep-11.0.2'
+RIPGREP_LOCAL_TMP = File.join(Dir.home, 'tmp/ripgrep_download')
+
 DESTS_CLIENT_NPM_LIBS = [
   "#{CLIENT_CORE_DIR}/node_modules",
   'application/client.plugins/node_modules'
@@ -52,6 +54,7 @@ directory ELECTRON_COMPILED_DIR
 directory ELECTRON_RELEASE_DIR
 directory INCLUDED_PLUGINS_FOLDER
 directory INCLUDED_APPS_FOLDER
+directory RIPGREP_LOCAL_TMP
 
 FOLDERS_TO_CLEAN = [
   ELECTRON_DIST_DIR,
@@ -184,31 +187,32 @@ def rg_uri
   end
 end
 
-file rg_executable do
-  puts 'rebuilding rg executable'
-  tmp_path = 'temp_for_building_rg'
-  Dir.mkdir(tmp_path) unless File.exist?(tmp_path)
-
+file rg_executable => RIPGREP_LOCAL_TMP do
+  puts 'creating rg executable'
   file_name = rg_uri.path.split('/').last
-
-  File.open("#{tmp_path}/#{file_name}", 'wb') do |file|
-    file << rg_uri.read
-    puts "downloaded #{rg_uri}"
-  end
-  if OS.mac? || OS.linux?
-    cd tmp_path do
-      sh "tar xvzf #{file_name}"
+  local_download = "#{RIPGREP_LOCAL_TMP}/#{file_name}"
+  downloaded_rg = if OS.mac? || OS.linux?
+                    "#{RIPGREP_LOCAL_TMP}/#{File.basename(file_name, '.tar.gz')}/rg"
+                  elsif OS.windows?
+                    "#{RIPGREP_LOCAL_TMP}/rg.exe"
+                  end
+  unless File.exist? downloaded_rg
+    File.open("#{RIPGREP_LOCAL_TMP}/#{file_name}", 'wb') do |file|
+      file << rg_uri.read
+      puts "downloaded #{rg_uri}"
     end
-    src = "#{tmp_path}/#{File.basename(file_name, '.tar.gz')}/rg"
-  elsif OS.windows?
-    cd tmp_path do
-      sh "unzip #{file_name}"
+    if OS.mac? || OS.linux?
+      cd RIPGREP_LOCAL_TMP do
+        sh "tar xvzf #{file_name}"
+      end
+    elsif OS.windows?
+      cd RIPGREP_LOCAL_TMP do
+        sh "unzip #{file_name}"
+      end
     end
-    src = "#{tmp_path}/rg.exe"
   end
   rm(rg_executable, force: true)
-  mv(src, rg_executable)
-  rm_r(tmp_path, force: true)
+  cp(downloaded_rg, rg_executable)
 end
 
 task ripgrepdelivery: [:folders, rg_executable]
@@ -838,6 +842,7 @@ task :dups do
   end
 end
 task :a do
+  puts RIPGREP_LOCAL_TMP
   puts 'a'
   sleep(0.6)
 end
