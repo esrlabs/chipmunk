@@ -43,11 +43,11 @@ export { IStreamData, StreamData };
 import { IStreamUpdated, StreamUpdated } from './stream.updated.';
 export { IStreamUpdated, StreamUpdated };
 
-import { IStreamPipeState, StreamPipeState } from './stream.pipe.state';
-export { IStreamPipeState, StreamPipeState };
+import { IStreamPipeState, StreamPipeState, IStreamPipeProgress } from './stream.pipe.state';
+export { IStreamPipeState, StreamPipeState, IStreamPipeProgress };
 
-import { IStreamProgressState, StreamProgressState } from './stream.progress.state';
-export { IStreamProgressState, StreamProgressState };
+import { IStreamProgressState, StreamProgressState, IStreamProgressTrack } from './stream.progress.state';
+export { IStreamProgressState, StreamProgressState, IStreamProgressTrack };
 
 import { IStreamChunk, StreamChunk } from './stream.chunk';
 export { IStreamChunk, StreamChunk };

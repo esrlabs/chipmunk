@@ -92,30 +92,30 @@ class ServiceFileOpener implements IService {
                     // Request options to open file
                     this._getOptions(file, path.basename(file), detectedParser, stats.size).then((options: any) => {
                         detectedParser = detectedParser as AFileParser;
-                        const pipeSessionId: string = Tools.guid();
-                        this._setProgress(detectedParser, pipeSessionId, file, stats.size);
+                        const trackingId: string = Tools.guid();
+                        this._setProgress(detectedParser, trackingId, file, stats.size);
                         if (detectedParser.readAndWrite === undefined) {
                             // Pipe file. No direct read/write method
-                            this._pipeSource(file, session, detectedParser, options).then(() => {
-                                this._unsetProgress(detectedParser as AFileParser, pipeSessionId);
+                            this._pipeSource(file, trackingId, session, detectedParser, options).then(() => {
+                                this._unsetProgress(detectedParser as AFileParser, trackingId, session);
                                 this._saveAsRecentFile(file, stats.size);
                                 resolve();
                             }).catch((pipeError: Error) => {
-                                this._unsetProgress(detectedParser as AFileParser, pipeSessionId);
+                                this._unsetProgress(detectedParser as AFileParser, trackingId, session);
                                 reject(new Error(this._logger.error(`Fail to pipe file "${file}" due error: ${pipeError.message}`)));
                             });
                         } else {
                             // Trigger progress
-                            this._incrProgress(detectedParser, session, 0);
+                            this._incrProgress(detectedParser, trackingId, session, 0);
                             // Parser has direct method of reading and writing
-                            this._directReadWrite(file, session, detectedParser, options).then(() => {
-                                this._unsetProgress(detectedParser as AFileParser, pipeSessionId);
+                            this._directReadWrite(file, session, detectedParser, options, trackingId).then(() => {
+                                this._unsetProgress(detectedParser as AFileParser, trackingId, session);
                                 ServiceStreams.reattachSessionFileHandle(session);
                                 (detectedParser as AFileParser).destroy();
                                 this._saveAsRecentFile(file, stats.size);
                                 resolve();
                             }).catch((pipeError: Error) => {
-                                this._unsetProgress(detectedParser as AFileParser, pipeSessionId);
+                                this._unsetProgress(detectedParser as AFileParser, trackingId, session);
                                 ServiceStreams.reattachSessionFileHandle(session);
                                 (detectedParser as AFileParser).destroy();
                                 reject(new Error(this._logger.error(`Fail to directly read file "${file}" due error: ${pipeError.message}`)));
@@ -198,7 +198,7 @@ class ServiceFileOpener implements IService {
         });
     }
 
-    private _pipeSource(file: string, session: string, parser: AFileParser, options: any): Promise<void> {
+    private _pipeSource(file: string, pipeId: string, session: string, parser: AFileParser, options: any): Promise<void> {
         return new Promise((resolve, reject) => {
             // Add new description of source
             const sourceId: number = ServiceStreamSource.add({ name: path.basename(file), session: session });
@@ -208,6 +208,7 @@ class ServiceFileOpener implements IService {
             ServiceStreams.pipeWith({
                 reader: reader,
                 sourceId: sourceId,
+                pipeId: pipeId,
                 decoder: parser.getTransform(this._options),
             }).then(() => {
                 reader.close();
@@ -218,7 +219,7 @@ class ServiceFileOpener implements IService {
         });
     }
 
-    private _directReadWrite(file: string, session: string, parser: AFileParser, options: { [key: string]: any }): Promise<void> {
+    private _directReadWrite(file: string, session: string, parser: AFileParser, options: { [key: string]: any }, trackingId: string): Promise<void> {
         return new Promise((resolve, reject) => {
             // Add new description of source
             const sourceId: number = ServiceStreamSource.add({ name: path.basename(file), session: session });
@@ -232,9 +233,9 @@ class ServiceFileOpener implements IService {
             }
             parser.readAndWrite(file, dest.file, sourceId, options, (map: IMapItem[]) => {
                 ServiceStreams.pushToStreamFileMap(dest.streamId, map);
-                this._incrProgress(parser, dest.streamId, map[map.length - 1].bytes.to - map[0].bytes.from);
+                this._incrProgress(parser, trackingId, dest.streamId, map[map.length - 1].bytes.to - map[0].bytes.from);
             }, (ticks: ITicks) => {
-                this._incrProgress(parser, dest.streamId, ticks.ellapsed / ticks.total);
+                this._incrProgress(parser, trackingId, dest.streamId, ticks.ellapsed / ticks.total);
             }).then((map: IMapItem[]) => {
                 // Doesn't need to update map here, because it's updated on fly
                 // Notify render
@@ -290,27 +291,27 @@ class ServiceFileOpener implements IService {
         ServiceElectron.updateMenu();
     }
 
-    private _setProgress(parser: AFileParser, id: string, file: string, size: number) {
+    private _setProgress(parser: AFileParser, trackingId: string, file: string, size: number) {
         if (parser.isTicksSupported()) {
-            ServiceStreams.addProgressSession(id, file);
+            ServiceStreams.addProgressSession(trackingId, file);
         } else {
-            ServiceStreams.addPipeSession(id, size, file);
+            ServiceStreams.addPipeSession(trackingId, size, file);
         }
     }
 
-    private _unsetProgress(parser: AFileParser, id: string) {
+    private _unsetProgress(parser: AFileParser, trackingId: string, sessionId: string) {
         if (parser.isTicksSupported()) {
-            ServiceStreams.removeProgressSession(id);
+            ServiceStreams.removeProgressSession(trackingId, sessionId);
         } else {
-            ServiceStreams.removePipeSession(id);
+            ServiceStreams.removePipeSession(trackingId, sessionId);
         }
     }
 
-    private _incrProgress(parser: AFileParser, id: string, value: number) {
+    private _incrProgress(parser: AFileParser, trackingId: string, sessionId: string, value: number) {
         if (parser.isTicksSupported()) {
-            ServiceStreams.updateProgressSession(value, id);
+            ServiceStreams.updateProgressSession(trackingId, value, sessionId);
         } else {
-            ServiceStreams.updatePipeSession(value, id);
+            ServiceStreams.updatePipeSession(trackingId, value, sessionId);
         }
     }
 

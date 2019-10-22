@@ -6,30 +6,75 @@
     width: auto;
     height: 100%;
     white-space: nowrap;
-    & .numeric{
-        font-variant-numeric: tabular-nums;
-    }
-    & .info {
+    & div.wrapper{
         position: relative;
-        display: inline-block;
-        color: #7B9BA6;
-        padding: 2px 0.5rem;
-        max-width: 15rem;
-        overflow: hidden;
+        display: block;
+        width: auto;
         height: 100%;
-        text-overflow: ellipsis;
-        cursor: default;
-        font-size: 0.8rem;
-        font-weight: 300;
-        vertical-align: top;
-    }
-    & p {
-        display: inline-block;
-    }
-    & div.progress{
-        position: relative;
-        display: inline-block;
-        width: 2rem;
-        height: 100%;
+        white-space: nowrap;
+        & div.progress{
+            position: relative;
+            display: inline-block;
+            width: 2rem;
+            height: 100%;
+            vertical-align: top;
+        }
+        & ul.tasks,
+        & ul.pipes {
+            position: relative;
+            height: 100%;
+            display: inline-block;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            white-space: nowrap;
+            vertical-align: top;
+            & li{
+                position: relative;
+                display: inline-block;
+                white-space: nowrap;
+                padding: 0;
+                margin: 0;
+                vertical-align: top;
+                & .info {
+                    position: relative;
+                    display: inline-block;
+                    color: @scheme-color-2;
+                    padding: 2px 0.5rem;
+                    max-width: 5rem;
+                    overflow: hidden;
+                    height: 100%;
+                    text-overflow: ellipsis;
+                    cursor: default;
+                    font-size: 0.8rem;
+                    font-weight: 300;
+                    vertical-align: top;
+                    direction: rtl;
+                    transition: all 150ms ease-in-out;
+                }
+                & .value {
+                    position: relative;
+                    display: inline-block;
+                    color: @scheme-color-1;
+                    padding: 2px 0.5rem;
+                    height: 100%;
+                    cursor: default;
+                    font-size: 0.8rem;
+                    font-weight: 300;
+                    vertical-align: top;
+                    font-variant-numeric: tabular-nums;
+                    transition: all 150ms ease-in-out;
+                }
+                &:hover{
+                    & .info {
+                        max-width: 20rem;
+                        color: @scheme-color-1;
+                    }
+                    & .value {
+                        color: @scheme-color-0;
+                    }
+                }
+            }
+        }
     }
 }
