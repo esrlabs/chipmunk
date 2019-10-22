@@ -1,0 +1,29 @@
+@import '../../../../../../theme/scheme.less';
+
+:host {
+    position: absolute;
+    display: block;
+    padding: 0;
+    margin: 0;
+    top: 0;
+    left:0;
+    height: 100%;
+    width: 100%;
+    & .spinner {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        border-radius: 50%;
+        border: 0.25rem solid @scheme-color-4;
+        border-top-color: @scheme-color-1;
+        animation: 1.5s spin infinite linear;
+        border-bottom-color: @scheme-color-1;
+    }  
+    @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+    }
+      
+
+}
