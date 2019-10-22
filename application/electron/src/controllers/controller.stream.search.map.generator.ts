@@ -1,9 +1,11 @@
 import Logger from '../tools/env.logger';
+import getGuid from '../tools/tools.guid';
 import * as fs from 'fs';
 import Transform, { IMapItem, IFoundEvent } from './controller.stream.search.pipe.transform';
 import NullWritableStream from '../classes/stream.writable.null';
 import { CancelablePromise } from '../tools/promise.cancelable';
 import { EventEmitter } from 'events';
+import ServiceStreams from '../services/service.streams';
 
 export { IFoundEvent };
 
@@ -73,36 +75,49 @@ export default class ControllerStreamSearchMapGenerator extends EventEmitter {
         return new CancelablePromise((resolve, reject, cancel, self) => {
             this._setMeasurer();
             const options = append ? { start: bytes } : {};
-            // Create reader
-            this._reader = fs.createReadStream(this._file, options);
-            // Create writer
-            this._writer = new NullWritableStream();
-            // Create transformer
-            this._transform = new Transform({}, this._guid, { bytes: bytes, rows: rows });
-            // Add listeners
-            this._transform.on(Transform.Events.found, (event: IFoundEvent) => {
-                this.emit(ControllerStreamSearchMapGenerator.Events.found, event);
-            });
-            // Listen error on reading
-            this._reader.once('error', (readingError: Error) => {
-                reject(new Error(this._logger.error(`Fail to read file due error: ${readingError.message}`)));
-            });
-            // Listen error on writing
-            this._reader.once('error', (readingError: Error) => {
-                reject(new Error(this._logger.error(`Fail to write file due error: ${readingError.message}`)));
-            });
-            // Listen end of writing
-            this._writer.once('finish', () => {
-                if (this._transform === undefined) {
-                    return reject(new Error(`Transformer was destroyed before stream is closed.`));
+            fs.stat(this._file, (err: NodeJS.ErrnoException | null, stats: fs.Stats) => {
+                if (err) {
+                    reject(new Error(this._logger.error(`Fail to get stats of file: ${err.message}`)));
+                    return;
                 }
-                if (this._transform.getMap().length === 0) {
-                    this._logger.warn(`Transformer doesn't have any item of map`);
-                }
-                resolve(this._transform.getMap());
+                // Create progress
+                const trackId: string = getGuid();
+                ServiceStreams.addPipeSession(trackId, stats.size - bytes, 'Mapping', this._guid);
+                // Create reader
+                this._reader = fs.createReadStream(this._file, options);
+                // Create writer
+                this._writer = new NullWritableStream();
+                // Create transformer
+                this._transform = new Transform({}, this._guid, { bytes: bytes, rows: rows });
+                // Add listeners
+                this._transform.on(Transform.Events.found, (event: IFoundEvent) => {
+                    this.emit(ControllerStreamSearchMapGenerator.Events.found, event);
+                });
+                this._transform.on('data', (chunk: Buffer) => {
+                    ServiceStreams.updatePipeSession(trackId, chunk.byteLength, this._guid);
+                });
+                // Listen error on reading
+                this._reader.once('error', (readingError: Error) => {
+                    reject(new Error(this._logger.error(`Fail to read file due error: ${readingError.message}`)));
+                });
+                // Listen error on writing
+                this._reader.once('error', (readingError: Error) => {
+                    reject(new Error(this._logger.error(`Fail to write file due error: ${readingError.message}`)));
+                });
+                // Listen end of writing
+                this._writer.once('finish', () => {
+                    if (this._transform === undefined) {
+                        return reject(new Error(`Transformer was destroyed before stream is closed.`));
+                    }
+                    if (this._transform.getMap().length === 0) {
+                        this._logger.warn(`Transformer doesn't have any item of map`);
+                    }
+                    ServiceStreams.removePipeSession(trackId, this._guid);
+                    resolve(this._transform.getMap());
+                });
+                // Execute operation
+                this._reader.pipe(this._transform).pipe(this._writer);
             });
-            // Execute operation
-            this._reader.pipe(this._transform).pipe(this._writer);
         });
     }
 

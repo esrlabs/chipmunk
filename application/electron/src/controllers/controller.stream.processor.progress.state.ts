@@ -37,7 +37,7 @@ export default class ProgressState {
         }
         this._tracks.set(id, {
             name: name,
-            progress: 0,
+            progress: -1,
             started: Date.now(),
         });
     }

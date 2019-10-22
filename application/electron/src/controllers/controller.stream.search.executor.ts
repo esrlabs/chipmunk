@@ -1,11 +1,12 @@
 import Logger from '../tools/env.logger';
+import guid from '../tools/tools.guid';
 import { ControllerStreamSearchEngine } from './controller.stream.search.engine';
 import State from './controller.stream.search.state';
 import { IMapItem } from './controller.stream.search.map.state';
 import ControllerStreamSearchMapGenerator, { IFoundEvent } from './controller.stream.search.map.generator';
-import ControllerStreamSearchMapInspector from './controller.stream.search.map.inspector';
 import { CancelablePromise } from '../tools/promise.cancelable';
 import { EventEmitter } from 'events';
+import ServiceStreams from '../services/service.streams';
 
 export type TMap = { [key: number]: string[] };
 export type TStats = { [key: string]: number };
@@ -30,7 +31,6 @@ export default class ControllerStreamSearchExecutor extends EventEmitter {
 
     private _logger: Logger;
     private _mapping: ControllerStreamSearchMapGenerator;
-    private _inspector: ControllerStreamSearchMapInspector;
     private _engine: ControllerStreamSearchEngine;
     private _state: State;
     private _tasks: {
@@ -51,7 +51,6 @@ export default class ControllerStreamSearchExecutor extends EventEmitter {
         this._logger = new Logger(`ControllerStreamSearchTask: ${this._state.getGuid()}`);
         this._engine = new ControllerStreamSearchEngine(this._state.getStreamFile(), this._state.getSearchFile());
         this._mapping = new ControllerStreamSearchMapGenerator(this._state.getGuid(), this._state.getSearchFile());
-        this._inspector = new ControllerStreamSearchMapInspector(this._state.getGuid(), this._state.getSearchFile());
         // Add listeners
         this._mapping.on(ControllerStreamSearchMapGenerator.Events.found, (event: IFoundEvent) => {
             this.emit(ControllerStreamSearchExecutor.Events.found, event);
@@ -81,6 +80,9 @@ export default class ControllerStreamSearchExecutor extends EventEmitter {
             if (this._tasks.search instanceof Error) {
                 return reject(new Error(`Fail to start engine.search due error: ${this._tasks.search.message}`));
             }
+            const trackId: string = guid();
+            ServiceStreams.addProgressSession(trackId, 'search', this._state.getGuid());
+            ServiceStreams.updateProgressSession(trackId, 0, this._state.getGuid());
             this._tasks.search.then(() => {
                 if (typeof from === 'number' && typeof to === 'number') {
                     this._tasks.mapping = this._mapping.append(this._state.map.getByteLength(), this._state.map.getRowsCount());
@@ -90,6 +92,7 @@ export default class ControllerStreamSearchExecutor extends EventEmitter {
                 if (this._tasks.mapping instanceof Error) {
                     return reject(new Error(`Fail to start mapping due error: ${this._tasks.mapping.message}`));
                 }
+                ServiceStreams.removeProgressSession(trackId, this._state.getGuid());
                 // Start mapping
                 this._tasks.mapping.then((map: IMapItem[]) => {
                     // Resolve
@@ -99,6 +102,7 @@ export default class ControllerStreamSearchExecutor extends EventEmitter {
                     reject(mapGenerateErr);
                 });
             }).catch((searchError: Error) => {
+                ServiceStreams.removeProgressSession(trackId, this._state.getGuid());
                 reject(searchError);
             });
         });
@@ -115,6 +119,9 @@ export default class ControllerStreamSearchExecutor extends EventEmitter {
         }
         const promises: { [key: string]: CancelablePromise<number[], void> } = {};
         const measure = this._logger.measure(`inspecting`);
+        const trackId: string = guid();
+        ServiceStreams.addProgressSession(trackId, 'inspecting', this._state.getGuid());
+        ServiceStreams.updateProgressSession(trackId, 0, this._state.getGuid());
         this._tasks.inspecting = new CancelablePromise((resolve, reject) => {
             const results: IMapData = {
                 stats: {},
@@ -158,8 +165,10 @@ export default class ControllerStreamSearchExecutor extends EventEmitter {
             });
             this._tasks.inspecting = undefined;
             this._logger.env(`Inspecting was canceled.`);
+            ServiceStreams.removeProgressSession(trackId, this._state.getGuid());
         }).finally(() => {
             this._tasks.inspecting = undefined;
+            ServiceStreams.removeProgressSession(trackId, this._state.getGuid());
             measure();
         });
         return this._tasks.inspecting;
