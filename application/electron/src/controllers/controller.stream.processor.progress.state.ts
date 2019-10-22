@@ -6,14 +6,18 @@ const CSettings = {
     maxPostponedNotificationMessages: 500,      // How many IPC messages to render (client) should be postponed via timer
 };
 
+interface IProgress {
+    name: string;
+    progress: number;
+    started: number;
+}
+
 export default class ProgressState {
 
     private _streamId: string;
-    private _names: Map<string, string> = new Map();
-    private _progress: number = 0;
+    private _tracks: Map<string, IProgress> = new Map();
     private _timer: any;
     private _postponed: number = 0;
-    private _started: number = 0;
     private _logger: Logger;
 
     constructor(streamId: string) {
@@ -23,45 +27,47 @@ export default class ProgressState {
 
     public destroy() {
         clearTimeout(this._timer);
-        this._names.clear();
+        this._tracks.clear();
         this._send();
     }
 
     public add(id: string, name: string) {
-        if (this._names.has(id)) {
+        if (this._tracks.has(id)) {
             return;
         }
-        if (this._started === 0) {
-            this._started = Date.now();
-        }
-        this._names.set(id, name);
+        this._tracks.set(id, {
+            name: name,
+            progress: 0,
+            started: Date.now(),
+        });
     }
 
     public remove(id: string) {
-        const pipe = this._names.get(id);
-        if (pipe === undefined) {
+        const track: IProgress | undefined = this._tracks.get(id);
+        if (track === undefined) {
             return;
         }
-        this._names.delete(id);
-        if (this._names.size === 0) {
-            this._progress = 0;
-            this._logger.env(`All pipes done in: ${((Date.now() - this._started) / 1000).toFixed(2)}s`);
-            this._started = 0;
+        this._logger.env(`Task "${track.name}" done in: ${((Date.now() - track.started) / 1000).toFixed(2)}s`);
+        this._tracks.delete(id);
+        if (this._tracks.size === 0) {
+            this._logger.env(`No states.`);
         }
         this._send();
     }
 
-    public next(progress: number) {
-        if (this._names.size === 0) {
+    public next(id: string, progress: number) {
+        const track: IProgress | undefined = this._tracks.get(id);
+        if (track === undefined) {
             return;
         }
-        if (this._progress === progress) {
+        if (track.progress === progress) {
             return;
         }
         if (progress < 0 || progress > 1) {
             return;
         }
-        this._progress = progress;
+        track.progress = progress;
+        this._tracks.set(id, track);
         this._notify();
     }
 
@@ -69,8 +75,7 @@ export default class ProgressState {
         clearTimeout(this._timer);
         ServiceElectron.IPC.send(new IPCElectronMessages.StreamProgressState({
             streamId: this._streamId,
-            progress: this._progress,
-            items: Array.from(this._names.values()),
+            tracks: Array.from(this._tracks.values()),
         }));
     }
 

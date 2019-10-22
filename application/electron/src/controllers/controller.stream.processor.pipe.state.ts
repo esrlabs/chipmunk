@@ -6,15 +6,19 @@ const CSettings = {
     maxPostponedNotificationMessages: 500,      // How many IPC messages to render (client) should be postponed via timer
 };
 
+interface IProgress {
+    name: string;
+    done: number;
+    size: number;
+    started: number;
+}
+
 export default class PipeState {
 
     private _streamId: string;
-    private _names: Map<string, string> = new Map();
-    private _size: number = 0;
-    private _done: number = 0;
+    private _tracks: Map<string, IProgress> = new Map();
     private _timer: any;
     private _postponed: number = 0;
-    private _started: number = 0;
     private _logger: Logger;
 
     constructor(streamId: string) {
@@ -24,51 +28,54 @@ export default class PipeState {
 
     public destroy() {
         clearTimeout(this._timer);
-        this._names.clear();
+        this._tracks.clear();
         this._send();
     }
 
     public add(id: string, size: number, name: string) {
-        if (this._names.has(id)) {
+        if (this._tracks.has(id)) {
             return;
         }
-        if (this._started === 0) {
-            this._started = Date.now();
-        }
-        this._names.set(id, name);
-        this._size += size;
+        this._tracks.set(id, {
+            name: name,
+            started: Date.now(),
+            size: size,
+            done: 0,
+        });
     }
 
     public remove(id: string) {
-        const pipe = this._names.get(id);
-        if (pipe === undefined) {
+        const track: IProgress | undefined = this._tracks.get(id);
+        if (track === undefined) {
             return;
         }
-        this._names.delete(id);
-        if (this._names.size === 0) {
-            this._size = -1;
-            this._done = -1;
-            this._logger.env(`All pipes done in: ${((Date.now() - this._started) / 1000).toFixed(2)}s`);
-            this._started = 0;
+        this._logger.env(`All pipes done with task "${track.name}" in: ${((Date.now() - track.started) / 1000).toFixed(2)}s. Full size: ${(track.size / 1024 / 1024).toFixed(2)} Mb.`);
+        this._tracks.delete(id);
+        if (this._tracks.size === 0) {
+            this._logger.env(`All tasks are done.`);
         }
         this._send();
     }
 
-    public next(written: number) {
-        if (this._names.size === 0) {
+    public next(id: string, written: number) {
+        const track: IProgress | undefined = this._tracks.get(id);
+        if (track === undefined) {
             return;
         }
-        this._done += written;
-        this._notify();
+        track.done += written;
+        if (track.done >= track.size) {
+            this.remove(id);
+        } else {
+            this._tracks.set(id, track);
+            this._notify();
+        }
     }
 
     private _send() {
         clearTimeout(this._timer);
         ServiceElectron.IPC.send(new IPCElectronMessages.StreamPipeState({
             streamId: this._streamId,
-            size: this._size,
-            done: this._done,
-            items: Array.from(this._names.values()),
+            tracks: Array.from(this._tracks.values()),
         }));
     }
 

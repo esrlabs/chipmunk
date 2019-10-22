@@ -32,6 +32,7 @@ export interface IStreamInfo {
 export interface IPipeOptions {
     reader: fs.ReadStream;
     sourceId: number;
+    pipeId: string;
     streamId?: string;
     decoder?: Stream.Transform;
 }
@@ -153,7 +154,7 @@ class ServiceStreams implements IService  {
         });
     }
 
-    public writeTo(chunk: Buffer, sourceId: number, streamId?: string): Promise<void> {
+    public writeTo(chunk: Buffer, sourceId: number, trackId: string | undefined, streamId?: string): Promise<void> {
         return new Promise((resolve, reject) => {
             // Get stream id
             if (streamId === undefined) {
@@ -164,7 +165,7 @@ class ServiceStreams implements IService  {
             if (stream === undefined) {
                 return reject(new Error(this._logger.warn(`Fail to find a stream data for stream guid "${streamId}"`)));
             }
-            stream.processor.write(chunk, undefined, sourceId).then(() => {
+            stream.processor.write(chunk, undefined, trackId, sourceId).then(() => {
                 // Operation done
                 stream.received += chunk.length;
                 resolve();
@@ -238,7 +239,7 @@ class ServiceStreams implements IService  {
         stream.processor.removePipeSession(id);
     }
 
-    public updatePipeSession(written: number, streamId?: string) {
+    public updatePipeSession(trackId: string, written: number, streamId?: string) {
         // Get stream id
         if (streamId === undefined) {
             streamId = this._activeStreamGuid;
@@ -248,7 +249,7 @@ class ServiceStreams implements IService  {
         if (stream === undefined) {
             return;
         }
-        stream.processor.updatePipeSession(written);
+        stream.processor.updatePipeSession(trackId, written);
     }
 
     public addProgressSession(id: string, name: string, streamId?: string) {
@@ -277,7 +278,7 @@ class ServiceStreams implements IService  {
         stream.processor.removeProgressSession(id);
     }
 
-    public updateProgressSession(progress: number, streamId?: string) {
+    public updateProgressSession(trackId: string, progress: number, streamId?: string) {
         // Get stream id
         if (streamId === undefined) {
             streamId = this._activeStreamGuid;
@@ -287,7 +288,7 @@ class ServiceStreams implements IService  {
         if (stream === undefined) {
             return;
         }
-        stream.processor.updateProgressSession(progress);
+        stream.processor.updateProgressSession(trackId, progress);
     }
 
     public reattachSessionFileHandle(streamId?: string) {
@@ -584,7 +585,7 @@ class ServiceStreams implements IService  {
         if (stream === undefined) {
             return this._logger.warn(`Fail to find a stream data for stream guid "${guid}"`);
         }
-        stream.processor.write(chunk, ref).then(() => {
+        stream.processor.write(chunk, ref, undefined).then(() => {
             // Operation done
             stream.received += chunk.length;
         }).catch((errorWrite: Error) => {

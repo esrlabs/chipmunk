@@ -13,6 +13,7 @@ import { IRange } from './controller.stream.processor.map';
 
 export interface IPipeOptions {
     reader: fs.ReadStream;
+    pipeId: string;
     sourceId: number;
     decoder?: Stream.Transform;
 }
@@ -77,7 +78,7 @@ export default class ControllerStreamProcessor {
         });
     }
 
-    public write(chunk: Buffer, pluginReference: string | undefined, pluginId?: number): Promise<void> {
+    public write(chunk: Buffer, pluginReference: string | undefined, trackId: string | undefined, pluginId?: number): Promise<void> {
         return new Promise((resolve, reject) => {
             let output: string = '';
             if (typeof chunk === 'string') {
@@ -105,7 +106,9 @@ export default class ControllerStreamProcessor {
                     // Add data into map
                     this._state.map.add(converted.map);
                     // Add data in progress
-                    this._state.pipes.next(converted.bytesSize);
+                    if (trackId !== undefined) {
+                        this._state.pipes.next(trackId, converted.bytesSize);
+                    }
                     // Write data
                     const stream: fs.WriteStream | undefined = this._getStreamFileHandle();
                     if (stream === undefined) {
@@ -148,7 +151,7 @@ export default class ControllerStreamProcessor {
             // Add data into map
             this._state.map.add(map);
             // Add data in progress
-            this._state.pipes.next(written);
+            this._state.pipes.next(options.pipeId, written);
             // Send notification to render
             this._state.postman.notification();
         });
@@ -179,8 +182,8 @@ export default class ControllerStreamProcessor {
         this._state.pipes.remove(pipeId);
     }
 
-    public updatePipeSession(written: number) {
-        this._state.pipes.next(written);
+    public updatePipeSession(pipeId: string, written: number) {
+        this._state.pipes.next(pipeId, written);
     }
 
     public addProgressSession(pipeId: string, name: string) {
@@ -192,8 +195,8 @@ export default class ControllerStreamProcessor {
         this._state.progress.remove(pipeId);
     }
 
-    public updateProgressSession(progress: number) {
-        this._state.progress.next(progress);
+    public updateProgressSession(id: string, progress: number) {
+        this._state.progress.next(id, progress);
     }
 
     public rewriteStreamFileMap(map: IMapItem[]) {
@@ -331,7 +334,7 @@ export default class ControllerStreamProcessor {
             };
             this._logger.env(`Session was closed by plugin #${id} in ${((Date.now() - stateInfo.started) / 1000).toFixed(2)}s. Memory: on start: ${stateInfo.memoryUsed.toFixed(2)}Mb; on end: ${memory.used.toFixed(2)}/${memory.used.toFixed(2)}Mb; diff: ${(memory.used - stateInfo.memoryUsed).toFixed(2)}Mb`);
             // Close "long chunk" by carret
-            this.write(Buffer.from('\n'), undefined, id);
+            this.write(Buffer.from('\n'), undefined, undefined, id);
             this._notify();
             this._memUsage.delete(id);
         } else {

@@ -54,7 +54,7 @@ export default class MergeFiles {
                     });
                     const mapped: number = converted.length === 0 ? 0 : (converted[map.length - 1].bytes.to - converted[0].bytes.from);
                     ServiceStreams.pushToStreamFileMap(this._session, converted);
-                    ServiceStreams.updatePipeSession(mapped, this._session);
+                    ServiceStreams.updatePipeSession(this._writeSessionsId, mapped, this._session);
                 });
                 const files = this._files.map((file: IFile) => {
                     return {
