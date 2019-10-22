@@ -75,7 +75,6 @@ end
 task clean: :rust_clean
 CLOBBER.include([
                   '**/node_modules',
-                  '**/package-lock.json',
                   '**/dist',
                   "#{APPS_DIR}/indexer/target",
                   "#{APPS_DIR}/indexer-neon/dist",
@@ -127,6 +126,30 @@ def compress_plugin(file, dest)
     sh "tar -czf #{file} -C #{PLUGINS_SANDBOX} #{dest} --force-local"
   else
     sh "tar -czf #{file} -C #{PLUGINS_SANDBOX} #{dest} "
+  end
+end
+
+desc 'use local verdaccio registry'
+task :use_local_registry do
+  switch_lock_files_to_local_server
+end
+desc 'use default npm registry'
+task :use_npm_registry do
+  switch_lock_files_to_npm_server
+end
+def switch_lock_files_to_npm_server
+  FileList['**/package-lock.json'].each do |lock_f|
+    text = File.read(lock_f)
+    new_contents = text.gsub(/http:\/\/localhost:4873/, "https:\/\/registry.npmjs.org")
+    File.open(lock_f, 'w') { |file| file.puts new_contents }
+  end
+end
+
+def switch_lock_files_to_local_server
+  FileList['**/package-lock.json'].each do |lock_f|
+    text = File.read(lock_f)
+    new_contents = text.gsub(/https:\/\/registry.npmjs.org/, "http:\/\/localhost:4873")
+    File.open(lock_f, 'w') { |file| file.puts new_contents }
   end
 end
 
@@ -190,7 +213,6 @@ end
 file rg_executable => RIPGREP_LOCAL_TMP do
   puts 'creating rg executable'
   file_name = rg_uri.path.split('/').last
-  local_download = "#{RIPGREP_LOCAL_TMP}/#{file_name}"
   downloaded_rg = if OS.mac? || OS.linux?
                     "#{RIPGREP_LOCAL_TMP}/#{File.basename(file_name, '.tar.gz')}/rg"
                   elsif OS.windows?
