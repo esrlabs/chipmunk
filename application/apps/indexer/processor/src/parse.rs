@@ -735,7 +735,7 @@ pub fn detect_timestamp_in_string(
             if let Ok((timestamp, year_missing)) =
                 extract_posix_timestamp(trimmed, regex, None, offset)
             {
-                return Ok((timestamp, year_missing, format.to_string()));
+                return Ok((timestamp, year_missing, (*format).to_string()));
             }
         }
     }
@@ -765,7 +765,7 @@ pub fn detect_timeformat_in_string(
         let regex = &FORMAT_REGEX_MAPPING[format];
         // println!("check with regex: {}", regex.to_string());
         if regex.is_match(trimmed) {
-            return Ok(format.to_string());
+            return Ok((*format).to_string());
         }
     }
     Err(failure::err_msg(format!(

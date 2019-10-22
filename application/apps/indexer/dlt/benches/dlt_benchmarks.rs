@@ -47,7 +47,7 @@ fn dlt_benchmark(c: &mut Criterion) {
             has_trace_info: false,
         };
         let argument = Argument {
-            type_info: type_info.clone(),
+            type_info,
             name: Some("foo".to_string()),
             unit: None,
             fixed_point: None,
