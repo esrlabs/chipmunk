@@ -1,5 +1,26 @@
 # Changelog
 
+### [1.25.0] - 10/22/2019
+* [](chore) added rake task to swich to local npm registry
+  update npm packages
+* [](fix) use correct neon version for build
+* [](chore) cache ripgrep executable to avoid download during local build
+* [](chore) node local ng exec
+* [](chore) get rid of metadatafiles in git
+* [](chore) check in package-lock.json files
+* [](chore) tie down neon cli version
+* [](chore) get rid of lint warnings
+* [](chore) added workflow for linting
+  * deleted stuff that should not be checked in
+  * ignore metadata files
+  * add package-lock files to git
+* [](chore) gh actions for linting
+* [](chore) removed unused files
+  deleted unused rust code
+* [](refactor) rake task for linting
+* [](chore) corrected tslint errors
+  removed rust warning
+
 ### [1.24.0] - 10/18/2019
 * [#464](feat) add support to neon integration for dlt
   neon: wip on typescript side
