@@ -690,7 +690,7 @@ task :build_embedded_indexer do
   cd "#{APPS_DIR}/indexer-neon" do
     npm_install
     sh "#{NPM_RUN} build-ts-neon"
-    sh 'node_modules/.bin/electron-build-env neon build --release'
+    sh 'node_modules/.bin/electron-build-env node_modules/.bin/neon build --release'
   end
 end
 
