@@ -13,3 +13,7 @@ export interface IChunk {
     bytesStart: number;
     bytesEnd: number;
 }
+export interface INeonTransferChunk {
+    r: [number, number];
+    b: [number, number];
+}

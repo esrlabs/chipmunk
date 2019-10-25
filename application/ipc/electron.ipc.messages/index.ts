@@ -196,8 +196,8 @@ export { HotkeyInputOut };
 import { IDLTStatsRequest, DLTStatsRequest } from './dlt.filestats.request';
 export { IDLTStatsRequest, DLTStatsRequest };
 
-import { IDLTStatsResponse, DLTStatsResponse, IDLTStats, IDLTStatsRecord } from './dlt.filestats.response';
-export { IDLTStatsResponse, DLTStatsResponse, IDLTStats, IDLTStatsRecord };
+import { IDLTStatsResponse, DLTStatsResponse } from './dlt.filestats.response';
+export { IDLTStatsResponse, DLTStatsResponse };
 
 import { UpdateRequest } from './update.request';
 export { UpdateRequest };

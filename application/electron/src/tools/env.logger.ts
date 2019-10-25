@@ -40,7 +40,9 @@ export default class Logger {
      * @param {LoggerParameters} params - Logger parameters
      */
     constructor(signature: string, params?: LoggerParameters) {
-        params instanceof LoggerParameters && (this._parameters = params);
+        if (params instanceof LoggerParameters) {
+            this._parameters = params;
+        }
         this._signature = signature;
     }
 
@@ -127,7 +129,9 @@ export default class Logger {
     }
 
     private _output(message: string) {
-        typeof this._parameters.output === 'function' && this._parameters.output(message);
+        if (typeof this._parameters.output === 'function') {
+            this._parameters.output(message);
+        }
     }
 
     private _getMessage(...args: any[]) {
@@ -139,7 +143,9 @@ export default class Logger {
                 } else {
                     message = `${message}${smth}`;
                 }
-                index < (args.length - 1) && (message = `${message},\n `);
+                if (index < (args.length - 1)) {
+                    message = `${message},\n `;
+                }
             });
         }
         return message;

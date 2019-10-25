@@ -31,8 +31,7 @@ use std::fs;
 use std::io::{BufRead, BufWriter, Read, Write};
 
 use std::str;
-
-const REPORT_PROGRESS_LINE_BLOCK: usize = 250_000;
+const STOP_CHECK_LINE_THRESHOLD: usize = 250_000;
 
 fn parse_ecu_id(input: &[u8]) -> IResult<&[u8], &str> {
     dlt_zero_terminated_string(input, 4)
@@ -709,9 +708,9 @@ pub fn create_index_and_mapping_dlt(
     config: IndexingConfig,
     source_file_size: Option<usize>,
     filter_conf: Option<filtering::DltFilterConfig>,
-    update_channel: Option<mpsc::Sender<IndexingProgress<Chunk>>>,
+    update_channel: mpsc::Sender<IndexingProgress<Chunk>>,
     shutdown_receiver: Option<mpsc::Receiver<()>>,
-) -> Result<Vec<Chunk>, Error> {
+) -> Result<(), Error> {
     trace!("create_index_and_mapping_dlt");
     let initial_line_nr = match utils::next_line_nr(config.out_path) {
         Some(nr) => nr,
@@ -739,14 +738,15 @@ pub fn index_dlt_file(
     dlt_filter: Option<filtering::DltFilterConfig>,
     initial_line_nr: usize,
     source_file_size: Option<usize>,
-    update_channel: Option<mpsc::Sender<IndexingProgress<Chunk>>>,
+    update_channel: mpsc::Sender<IndexingProgress<Chunk>>,
     shutdown_receiver: Option<mpsc::Receiver<()>>,
-) -> Result<Vec<Chunk>, Error> {
+) -> Result<(), Error> {
     trace!("index_dlt_file");
     let (out_file, current_out_file_size) =
         utils::get_out_file_and_size(config.append, &config.out_path)?;
 
-    let mut chunks = vec![];
+    let mut chunk_count = 0usize;
+    let mut last_byte_index = 0usize;
     let mut chunk_factory =
         ChunkFactory::new(config.chunk_size, config.to_stdout, current_out_file_size);
 
@@ -757,6 +757,7 @@ pub fn index_dlt_file(
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
 
     let mut processed_bytes = utils::get_processed_bytes(config.append, &config.out_path) as usize;
+    let mut progress_percentage = 0usize;
     let mut stopped = false;
     let filter_config: Option<filtering::ProcessedDltFilterConfig> =
         dlt_filter.map(filtering::process_filter_config);
@@ -792,29 +793,19 @@ pub fn index_dlt_file(
                             Err(TryRecvError::Empty) => (),
                         }
                     };
-                    update_channel.as_ref().map(|c| {
-                        c.send(IndexingProgress::GotItem {
-                            item: chunk.clone(),
-                        })
-                    });
-                    chunks.push(chunk);
+                    chunk_count += 1;
+                    last_byte_index = chunk.b.1;
+                    update_channel.send(IndexingProgress::GotItem { item: chunk })?;
                     buf_writer.flush()?;
                 }
                 if let Some(file_size) = source_file_size {
-                    utils::report_progress(
-                        processed_lines,
-                        chunk_factory.get_current_byte_index(),
-                        processed_bytes,
-                        file_size,
-                        REPORT_PROGRESS_LINE_BLOCK,
-                    );
-                    if line_nr % REPORT_PROGRESS_LINE_BLOCK == 0 {
-                        trace!("dlt progress");
-                        update_channel.as_ref().map(|c| {
-                            c.send(IndexingProgress::Progress {
-                                ticks: (processed_bytes, file_size),
-                            })
-                        });
+                    let new_progress_percentage: usize =
+                        (processed_bytes as f64 / file_size as f64 * 100.0).round() as usize;
+                    if new_progress_percentage != progress_percentage {
+                        progress_percentage = new_progress_percentage;
+                        update_channel.send(IndexingProgress::Progress {
+                            ticks: (processed_bytes, file_size),
+                        })?;
                     }
                 }
             }
@@ -823,13 +814,14 @@ pub fn index_dlt_file(
                 processed_bytes += consumed;
                 processed_lines += 1;
                 if let Some(file_size) = source_file_size {
-                    utils::report_progress(
-                        processed_lines,
-                        chunk_factory.get_current_byte_index(),
-                        processed_bytes,
-                        file_size,
-                        REPORT_PROGRESS_LINE_BLOCK,
-                    );
+                    let new_progress_percentage: usize =
+                        (processed_bytes as f64 / file_size as f64 * 100.0).round() as usize;
+                    if new_progress_percentage != progress_percentage {
+                        progress_percentage = new_progress_percentage;
+                        update_channel.send(IndexingProgress::Progress {
+                            ticks: (processed_bytes, file_size),
+                        })?;
+                    }
                 }
             }
             Ok(None) => {
@@ -841,33 +833,27 @@ pub fn index_dlt_file(
     }
 
     buf_writer.flush()?;
-    if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunks.is_empty()) {
-        update_channel.as_ref().map(|c| {
-            c.send(IndexingProgress::GotItem {
-                item: chunk.clone(),
-            })
-        });
-        chunks.push(chunk);
+    if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunk_count == 0) {
+        update_channel.send(IndexingProgress::GotItem {
+            item: chunk.clone(),
+        })?;
+        chunk_count += 1;
+        last_byte_index = chunk.b.1;
     }
-    match chunks.last() {
-        Some(last_chunk) => {
-            let last_expected_byte_index =
-                fs::metadata(config.out_path).map(|md| md.len() as usize)?;
-            if last_expected_byte_index != last_chunk.b.1 {
-                report_error(format!(
-                    "error in computation! last byte in chunks is {} but should be {}",
-                    last_chunk.b.1, last_expected_byte_index
-                ));
-            }
+    if chunk_count > 0 {
+        let last_expected_byte_index = fs::metadata(config.out_path).map(|md| md.len() as usize)?;
+        if last_expected_byte_index != last_byte_index {
+            report_error(format!(
+                "error in computation! last byte in chunks is {} but should be {}",
+                last_byte_index, last_expected_byte_index
+            ));
         }
-        None => report_warning("output was empty!"),
     }
-    if let Some(tx) = update_channel {
-        trace!("sending IndexingProgress::Finished");
-        tx.send(IndexingProgress::Finished)?;
-    }
-    Ok(chunks)
+    trace!("sending IndexingProgress::Finished");
+    update_channel.send(IndexingProgress::Finished)?;
+    Ok(())
 }
+
 #[derive(Serialize, Debug, Default)]
 struct LevelDistribution {
     non_log: usize,
@@ -983,7 +969,12 @@ pub struct StatisticInfo {
     ecu_ids: Vec<(String, LevelDistribution)>,
 }
 #[allow(dead_code)]
-pub fn get_dlt_file_info(in_file: &fs::File) -> Result<StatisticInfo, Error> {
+pub fn get_dlt_file_info(
+    in_file: &fs::File,
+    source_file_size: usize,
+    update_channel: mpsc::Sender<IndexingProgress<StatisticInfo>>,
+    shutdown_receiver: Option<mpsc::Receiver<()>>,
+) -> Result<(), Error> {
     let mut reader =
         ReduxReader::with_capacity(10 * 1024 * 1024, in_file).set_policy(MinBuffered(10 * 1024));
 
@@ -991,8 +982,8 @@ pub fn get_dlt_file_info(in_file: &fs::File) -> Result<StatisticInfo, Error> {
     let mut context_ids: IdMap = FxHashMap::default();
     let mut ecu_ids: IdMap = FxHashMap::default();
     let mut index = 0usize;
+    let mut processed_bytes = 0usize;
     loop {
-        // println!("line index: {}", line_nr);
         match read_one_dlt_message_info(&mut reader, Some(index)) {
             Ok(Some((
                 consumed,
@@ -1009,6 +1000,7 @@ pub fn get_dlt_file_info(in_file: &fs::File) -> Result<StatisticInfo, Error> {
                     Some(id) => add_for_level(level, &mut ecu_ids, id),
                     None => add_for_level(level, &mut ecu_ids, "NONE".to_string()),
                 };
+                processed_bytes += consumed;
             }
             Ok(Some((
                 consumed,
@@ -1025,6 +1017,7 @@ pub fn get_dlt_file_info(in_file: &fs::File) -> Result<StatisticInfo, Error> {
                     Some(id) => add_for_level(level, &mut ecu_ids, id),
                     None => add_for_level(level, &mut ecu_ids, "NONE".to_string()),
                 };
+                processed_bytes += consumed;
             }
             Ok(None) => {
                 break;
@@ -1032,8 +1025,27 @@ pub fn get_dlt_file_info(in_file: &fs::File) -> Result<StatisticInfo, Error> {
             Err(e) => return Err(err_msg(format!("error while parsing dlt messages: {}", e))),
         }
         index += 1;
+        if index % STOP_CHECK_LINE_THRESHOLD == 0 {
+            // check if stop was requested
+            if let Some(rx) = shutdown_receiver.as_ref() {
+                match rx.try_recv() {
+                    // Shutdown if we have received a command or if there is
+                    // nothing to send it.
+                    Ok(_) | Err(TryRecvError::Disconnected) => {
+                        info!("shutdown received in dlt stats producer, sending stopped");
+                        update_channel.send(IndexingProgress::Stopped)?;
+                        break;
+                    }
+                    // No shutdown command, continue
+                    Err(TryRecvError::Empty) => (),
+                }
+            };
+            update_channel.send(IndexingProgress::Progress {
+                ticks: (processed_bytes, source_file_size),
+            })?;
+        }
     }
-    Ok(StatisticInfo {
+    let res = StatisticInfo {
         app_ids: app_ids
             .into_iter()
             .collect::<Vec<(String, LevelDistribution)>>(),
@@ -1043,7 +1055,11 @@ pub fn get_dlt_file_info(in_file: &fs::File) -> Result<StatisticInfo, Error> {
         ecu_ids: ecu_ids
             .into_iter()
             .collect::<Vec<(String, LevelDistribution)>>(),
-    })
+    };
+
+    update_channel.send(IndexingProgress::GotItem { item: res })?;
+    update_channel.send(IndexingProgress::Finished)?;
+    Ok(())
 }
 
 #[derive(Serialize, Debug)]

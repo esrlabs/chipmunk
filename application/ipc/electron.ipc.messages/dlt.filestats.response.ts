@@ -1,24 +1,9 @@
-export interface IDLTStatsRecord {
-    non_log: number;
-    log_fatal: number;
-    log_error: number;
-    log_warning: number;
-    log_info: number;
-    log_debug: number;
-    log_verbose: number;
-    log_invalid: number;
-}
-
-export interface IDLTStats {
-    app_ids?: Array<string | IDLTStatsRecord>;
-    context_ids?: Array<string | IDLTStatsRecord>;
-    ecu_ids?: Array<string | IDLTStatsRecord>;
-}
+import { StatisticInfo } from '../../apps/indexer-neon/dist/dlt';
 
 export interface IDLTStatsResponse {
     id: string;
     session: string;
-    stats: IDLTStats | undefined;
+    stats: StatisticInfo | undefined;
     error?: string;
     logs?: ILogMessage[];
 }
@@ -35,7 +20,7 @@ export class DLTStatsResponse {
     public static signature: string = 'DLTStatsResponse';
     public signature: string = DLTStatsResponse.signature;
     public id: string = '';
-    public stats: IDLTStats | undefined;
+    public stats: StatisticInfo | undefined;
     public session: string = '';
     public error: string | undefined;
     public logs: ILogMessage[] | undefined;

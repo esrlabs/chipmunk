@@ -4,6 +4,8 @@ import * as os from 'os';
 import Logger from '../tools/env.logger';
 import { EventEmitter } from 'events';
 import { spawn, ChildProcess } from 'child_process';
+import { StatisticInfo } from "../../../apps/indexer-neon/dist/dlt";
+
 import ServicePaths from '../services/service.paths';
 
 export interface IFileMapItem {
@@ -87,25 +89,8 @@ export interface IParametersDlt {
     CTID?: string[];
 }
 
-export interface IDLTStatsRecord {
-    non_log: number;
-    log_fatal: number;
-    log_error: number;
-    log_warning: number;
-    log_info: number;
-    log_debug: number;
-    log_verbose: number;
-    log_invalid: number;
-}
-
-export interface IDLTStats {
-    app_ids?: Array<string | IDLTStatsRecord>;
-    context_ids?: Array<string | IDLTStatsRecord>;
-    ecu_ids?: Array<string | IDLTStatsRecord>;
-}
-
 export interface IDLTStatsResults {
-    stats: IDLTStats;
+    stats: StatisticInfo;
     logs: ILogMessage[];
 }
 

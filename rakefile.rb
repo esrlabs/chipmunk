@@ -162,6 +162,8 @@ end
 
 desc 'start'
 task start: :ripgrepdelivery do
+  config_windows_path = File.join(Dir.home, '.logviewer', 'config.window.json')
+  rm_f config_windows_path
   cd ELECTRON_DIR do
     sh "#{NPM_RUN} electron"
   end
@@ -324,13 +326,14 @@ end
 task compile_electron: [:prepare_electron_build,
                         :native,
                         'dev:neon',
-                        :finish_electron_build]
+                        :electron_build_ts]
 task :prepare_electron_build do
   cd ELECTRON_DIR do
     npm_install
   end
 end
-task :finish_electron_build do
+desc 'ts build electron (needed when ts files are changed)'
+task :electron_build_ts do
   cd ELECTRON_DIR do
     sh "#{NPM_RUN} build-ts"
   end
@@ -463,7 +466,7 @@ end
 def collect_ts_lint_scripts
   lint_scripts = []
   FileList['**/package.json']
-    .reject { |f| f =~ /node_modules/ || f =~ %r{dist/compiled} || f =~ %r{sandbox/row\.parser\.ascii} }
+    .reject { |f| f =~ /node_modules/ || f =~ /dist\/compiled/ || f =~ /sandbox\/row\.parser\.ascii/ }
     .each do |f|
     package = JSON.parse(File.read(f))
     scripts = package['scripts']
@@ -491,6 +494,8 @@ def run_ts_lint
     cd dir do
       npm_install if runner =~ /ng\s+lint/
       stdout, stderr, status = Open3.capture3(runner)
+      errors << [stdout.strip, stderr.strip].join('\n') if status.exitstatus != 0
+      stdout, stderr, status = Open3.capture3("tsc --noEmit -p .")
       errors << [stdout.strip, stderr.strip].join('\n') if status.exitstatus != 0
     end
   end
@@ -695,7 +700,11 @@ task :build_embedded_indexer do
   cd "#{APPS_DIR}/indexer-neon" do
     npm_install
     sh "#{NPM_RUN} build-ts-neon"
-    sh 'node_modules/.bin/electron-build-env neon build --release'
+    if OS.windows?
+      sh 'node_modules/.bin/electron-build-env neon build --release'
+    else
+      sh 'node_modules/.bin/electron-build-env node_modules/.bin/neon build --release'
+    end
   end
 end
 
@@ -848,10 +857,12 @@ task :dups do
   require 'digest'
   require 'set'
   mapping = {}
-  Dir['./**/*.*']
-    .reject { |f| File.directory?(f) }
+  Dir['application/**/*.{ts}']
+    .reject { |f| File.directory?(f) || f =~ /node_modules|application\/apps|\.d\.ts/ }
     .each do |f|
     md5 = Digest::MD5.hexdigest File.read f
+    print '.'
+    STDOUT.flush
     if mapping.key?(md5)
       old = mapping[md5]
       mapping[md5] = old.add f
@@ -859,12 +870,13 @@ task :dups do
       mapping[md5] = Set[f]
     end
   end
+  puts ""
   mapping.each do |_k, v|
     next unless v.length > 1
 
     puts '*** duplicated entries:'
     v.to_a.each do |e|
-      puts e
+      puts "\t#{e}"
     end
   end
 end

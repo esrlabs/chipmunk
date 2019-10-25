@@ -1,8 +1,6 @@
 {
     "defaultSeverity": "error",
-    "extends": [
-        "tslint:recommended"
-    ],
+    "extends": ["tslint:recommended"],
     "jsRules": {
         "indent": false
     },
@@ -11,31 +9,37 @@
         "ban-types": false,
         "indent": false,
         "ordered-imports": false,
-        "object-literal-shorthand":false,
-        "quotemark":false,
-        "interface-over-type-literal":false,
+        "object-literal-shorthand": false,
+        "quotemark": false,
+        "interface-over-type-literal": false,
         "max-line-length": false,
-        "variable-name": [true, "ban-keywords", "check-format", "allow-leading-underscore", "allow-pascal-case"],
-        "no-unused-expression": [ "errors", { "allowShortCircuit": true }],
-        "object-literal-sort-keys":false,
+        "variable-name": [
+            true,
+            "ban-keywords",
+            "check-format",
+            "allow-leading-underscore",
+            "allow-pascal-case"
+        ],
+        "no-unused-expression": [true, "allowShortCircuit"],
+        "object-literal-sort-keys": false,
         "typedef-whitespace": [
             true,
             {
-              "call-signature": "nospace",
-              "index-signature": "nospace",
-              "parameter": "nospace",
-              "property-declaration": "nospace",
-              "variable-declaration": "nospace"
+                "call-signature": "nospace",
+                "index-signature": "nospace",
+                "parameter": "nospace",
+                "property-declaration": "nospace",
+                "variable-declaration": "nospace"
             },
             {
-              "call-signature": "space",
-              "index-signature": "space",
-              "parameter": "space",
-              "property-declaration": "space",
-              "variable-declaration": "space"
+                "call-signature": "space",
+                "index-signature": "space",
+                "parameter": "space",
+                "property-declaration": "space",
+                "variable-declaration": "space"
             }
-          ],
-          "no-reference": false
+        ],
+        "no-reference": false
     },
     "rulesDirectory": []
 }

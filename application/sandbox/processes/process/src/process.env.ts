@@ -37,8 +37,8 @@ export function getOSEnvVars(shell: string): Promise<TEnvVars> {
             return resolve(Object.assign({}, process.env) as TEnvVars);
         }
         shellEnv(shell).then((env) => {
-            console.log(`Next os env variables were detected:`);
-            console.log(env);
+            // console.log(`Next os env variables were detected:`);
+            // console.log(env);
             resolve(env);
         }).catch((error: Error) => {
             console.log('Shell-Env Error:');

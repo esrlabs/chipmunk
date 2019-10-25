@@ -7,14 +7,19 @@ import {
     detectTimestampFormatsInFiles,
     IFilePath,
 } from "./processor";
+import { TimeUnit } from "./units";
+export { TimeUnit };
 import { IConcatFilesParams, IMergeParams, mergeFiles, concatFiles } from "./merger";
-import { IIndexDltParams, dltStats, indexDltFile, indexDltAsync, DltFilterConf } from "./dlt";
-import { ITicks, AsyncResult, IChunk } from "./progress";
-export { ITicks, DltFilterConf };
-
-export interface Foo {
-  todo: number;
-}
+import {
+    IIndexDltParams,
+    dltStats,
+    dltStatsAsync,
+    indexDltFile,
+    indexDltAsync,
+    DltFilterConf,
+} from "./dlt";
+import { ITicks, AsyncResult, IChunk, INeonTransferChunk } from "./progress";
+export { ITicks, DltFilterConf, IChunk };
 
 export interface LevelDistribution {
     non_log: number;
@@ -37,36 +42,44 @@ export interface IChipmunkIndexer {
     indexAsync: (
         chunkSize: number,
         fileToIndex: string,
-        maxTime: number,
+        maxTime: TimeUnit,
         outPath: string,
         onProgress: (ticks: ITicks) => any,
-        onChunk: (chunk: IChunk) => any,
+        onChunk: (chunk: INeonTransferChunk) => any,
         tag: string,
     ) => Promise<AsyncResult>;
     mergeFiles: (params: IMergeParams) => boolean;
     concatFiles: (params: IConcatFilesParams) => boolean;
     dltStats: (dltFile: String) => StatisticInfo;
+    dltStatsAsync: (
+        dltFile: String,
+        maxTime: TimeUnit,
+        onProgress: (ticks: ITicks) => any,
+        onConfig: (chunk: StatisticInfo) => any,
+    ) => Promise<AsyncResult>;
     indexDltFile: (params: IIndexDltParams) => boolean;
     indexDltAsync: (
         params: IIndexDltParams,
-        maxTime: number,
+        maxTime: TimeUnit,
         onProgress: (ticks: ITicks) => any,
-        onChunk: (chunk: IChunk) => any,
+        onChunk: (chunk: INeonTransferChunk) => any,
     ) => Promise<AsyncResult>;
     detectTimestampInString: (input: string) => string;
     detectTimestampFormatInFile: (input: string) => string;
     detectTimestampFormatsInFiles: (conf: Array<IFilePath>) => string;
 }
 
-export const library: IChipmunkIndexer = {
+const library: IChipmunkIndexer = {
     indexFile,
     indexAsync,
     mergeFiles,
     concatFiles,
     dltStats,
+    dltStatsAsync,
     indexDltFile,
     indexDltAsync,
     detectTimestampInString,
     detectTimestampFormatInFile,
     detectTimestampFormatsInFiles,
 };
+export {library as indexer};

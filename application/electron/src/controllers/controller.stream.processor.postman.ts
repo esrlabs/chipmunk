@@ -46,6 +46,10 @@ export default class ControllerStreamUpdatesPostman {
     private _notify(): void {
         this._notification.attempts = 0;
         this._working = true;
+        if (isNaN(this._map.getByteLength()) || !isFinite(this._map.getByteLength())) {
+            this._logger.error(`[!!!!!!!] Error is happening here`);
+            this._logger.error(JSON.stringify(this._map));
+        }
         ServiceElectron.IPC.send(new IPCElectronMessages.StreamUpdated({
             guid: this._streamId,
             length: this._map.getByteLength(),

@@ -6,11 +6,13 @@ mod tests {
     use crate::processor::*;
     use indexer_base::chunks::Chunk;
     use indexer_base::config::IndexingConfig;
+    use indexer_base::progress::IndexingProgress;
     use pretty_assertions::assert_eq;
     use std::fs;
     use std::fs::File;
     use std::path::PathBuf;
     use tempdir::TempDir;
+    use std::sync::mpsc::{Sender, Receiver};
 
     fn get_chunks(
         test_content: &str,
@@ -26,7 +28,12 @@ mod tests {
         // call our function
         let f = File::open(&test_file_path).unwrap();
         let source_file_size = f.metadata().unwrap().len() as usize;
-        let chunks = create_index_and_mapping(
+
+        let (tx, rx): (
+            Sender<IndexingProgress<Chunk>>,
+            Receiver<IndexingProgress<Chunk>>,
+        ) = std::sync::mpsc::channel();
+        create_index_and_mapping(
             IndexingConfig {
                 tag: tag_name,
                 chunk_size: chunksize,
@@ -37,7 +44,7 @@ mod tests {
             },
             false,
             Some(source_file_size),
-            None,
+            tx,
             None,
         )
         .unwrap();
@@ -46,10 +53,31 @@ mod tests {
 
         // cleanup
         let _ = tmp_dir.close();
-
+        // consume all results from queue
+        let mut chunks: Vec<Chunk> = vec![];
+        loop {
+            match rx.recv() {
+                Ok(IndexingProgress::Finished { .. }) => {
+                    trace!("finished...");
+                    return (chunks, out_file_content);
+                }
+                Ok(IndexingProgress::Progress { ticks: _t }) => {
+                    trace!("progress...");
+                }
+                Ok(IndexingProgress::GotItem { item: chunk }) => {
+                    chunks.push(chunk);
+                    trace!("got item...");
+                }
+                Ok(IndexingProgress::Stopped) => {
+                    trace!("stopped...");
+                }
+                Err(_) => {
+                    error!("couldn't process");
+                }
+            }
+        }
         // println!("out_file_content: {}", out_file_content);
         // println!("got chunks: {:?}", chunks);
-        (chunks, out_file_content)
     }
     type Pair = (usize, usize);
 
@@ -70,22 +98,18 @@ mod tests {
     #[test]
     fn test_append_to_empty_output() {
         let tmp_dir = TempDir::new("my_directory_prefix").expect("could not create temp dir");
-        let nonempty_file_path = tmp_dir.path().join("not_empty.log");
         let empty_file_path = tmp_dir.path().join("empty.log");
-        fs::write(&nonempty_file_path, "A").unwrap();
         // call our function
         fs::write(&empty_file_path, "").expect("testfile could not be written");
         let empty_file = File::open(empty_file_path).unwrap();
         let out_path = tmp_dir.path().join("test_append_to_empty_output.log.out");
-        // let indexer = Indexer {
-        //     source_id: "tag".to_string(), // tag to append to each line
-        //     chunk_size: 1,                // used for mapping line numbers to byte positions
-        // };
         let source_file_size = empty_file.metadata().unwrap().len() as usize;
-        // let chunks = indexer
-        //     .index_file(&empty_file, &out_path, false, source_file_size, false)
 
-        let chunks = create_index_and_mapping(
+        let (tx, rx): (
+            Sender<IndexingProgress<Chunk>>,
+            Receiver<IndexingProgress<Chunk>>,
+        ) = std::sync::mpsc::channel();
+        create_index_and_mapping(
             IndexingConfig {
                 tag: "tag",
                 chunk_size: 1,
@@ -96,22 +120,51 @@ mod tests {
             },
             false,
             Some(source_file_size),
-            None,
+            tx,
             None,
         )
         .expect("could not index file");
-        assert_eq!(0, chunks.len(), "empty file should produce 0 chunks");
+
+        let mut chunks: Vec<Chunk> = vec![];
+        loop {
+            match rx.recv() {
+                Ok(IndexingProgress::Finished { .. }) => {
+                    println!("finished...");
+                    assert_eq!(0, chunks.len(), "empty file should produce 0 chunks");
+                    break;
+                }
+                Ok(IndexingProgress::Progress { ticks: _t }) => {
+                    println!("progress...");
+                }
+                Ok(IndexingProgress::GotItem { item: chunk }) => {
+                    println!("got item...{:?}", &chunk);
+                    chunks.push(chunk);
+                }
+                Ok(IndexingProgress::Stopped) => {
+                    println!("stopped...");
+                }
+                Err(_) => {
+                    println!("couldn't process");
+                }
+            }
+        }
         let out_file_content: String = fs::read_to_string(&out_path).expect("could not read file");
         assert_eq!(
             0,
             out_file_content.len(),
             "empty file should produce empty output"
         );
+        // same with non empty file
+        println!("second time call to create_index_and_mapping ==================");
+        let nonempty_file_path = tmp_dir.path().join("not_empty.log");
+        fs::write(&nonempty_file_path, "A").unwrap();
         let nonempty_file = File::open(nonempty_file_path).unwrap();
-        // let chunks2 = indexer
-        //     .index_file(&nonempty_file, &out_path, true, nonempty_file_size, false)
-        //     .expect("could not index file");
-        let chunks2 = create_index_and_mapping(
+        let source_file_size = nonempty_file.metadata().unwrap().len() as usize;
+        let (tx, rx): (
+            Sender<IndexingProgress<Chunk>>,
+            Receiver<IndexingProgress<Chunk>>,
+        ) = std::sync::mpsc::channel();
+        create_index_and_mapping(
             IndexingConfig {
                 tag: "tag",
                 chunk_size: 1,
@@ -122,18 +175,41 @@ mod tests {
             },
             false,
             Some(source_file_size),
-            None,
+            tx,
             None,
         )
         .unwrap();
-        let out_file_content: String = fs::read_to_string(out_path).expect("could not read file");
-        println!("outfile: {}\nchunks: {:?}", out_file_content, chunks2);
-        assert_eq!(
-            1,
-            chunks2.len(),
-            "nonempty file should produce nonempty output"
-        );
-        assert_eq!(0, chunks2[0].r.0, "first chunk row should start with 0");
+        let mut chunks: Vec<Chunk> = vec![];
+        loop {
+            match rx.recv() {
+                Ok(IndexingProgress::Finished { .. }) => {
+                    println!("finished...");
+                    let out_file_content: String =
+                        fs::read_to_string(out_path).expect("could not read file");
+                    println!("outfile: {}\nchunks: {:?}", out_file_content, chunks);
+                    assert_eq!(
+                        1,
+                        chunks.len(),
+                        "nonempty file should produce nonempty output"
+                    );
+                    assert_eq!(0, chunks[0].r.0, "first chunk row should start with 0");
+                    break;
+                }
+                Ok(IndexingProgress::Progress { ticks: _t }) => {
+                    println!("progress...");
+                }
+                Ok(IndexingProgress::GotItem { item: chunk }) => {
+                    println!("got item...{:?}", chunk);
+                    chunks.push(chunk);
+                }
+                Ok(IndexingProgress::Stopped) => {
+                    println!("stopped...");
+                }
+                Err(_) => {
+                    println!("couldn't process");
+                }
+            }
+        }
     }
     #[test]
     fn test_chunking_one_chunk_exact() {
@@ -215,7 +291,11 @@ mod tests {
             let content2 = fs::read_to_string(&out_file_path).expect("could not read file");
             println!("copied content was: {:?}", content2);
         }
-        let chunks = create_index_and_mapping(
+        let (tx, rx): (
+            Sender<IndexingProgress<Chunk>>,
+            Receiver<IndexingProgress<Chunk>>,
+        ) = std::sync::mpsc::channel();
+        create_index_and_mapping(
             IndexingConfig {
                 tag: "TAG",
                 chunk_size: 1,
@@ -226,20 +306,44 @@ mod tests {
             },
             false,
             Some(in_file_size),
-            None,
+            tx,
             None,
         )
         .unwrap();
-        let out_file_content_bytes = fs::read(out_file_path).expect("could not read file");
-        let out_file_content = String::from_utf8_lossy(&out_file_content_bytes[..]);
-        let expected_path = PathBuf::from("..").join(&dir_name).join("expected.output");
-        let expected_content_bytes = fs::read(expected_path).expect("could not read expected file");
-        let expected_content = String::from_utf8_lossy(&expected_content_bytes[..]);
-        println!(
-            "comparing\n{}\nto expected:\n{}",
-            out_file_content, expected_content
-        );
-        assert_eq!(expected_content.trim_end(), out_file_content.trim_end());
-        assert_eq!(true, chunks_fit_together(&chunks), "chunks need to fit");
+        let mut chunks: Vec<Chunk> = vec![];
+        loop {
+            match rx.recv() {
+                Ok(IndexingProgress::Finished { .. }) => {
+                    trace!("finished...");
+                    let out_file_content_bytes =
+                        fs::read(out_file_path).expect("could not read file");
+                    let out_file_content = String::from_utf8_lossy(&out_file_content_bytes[..]);
+                    let expected_path = PathBuf::from("..").join(&dir_name).join("expected.output");
+                    let expected_content_bytes =
+                        fs::read(expected_path).expect("could not read expected file");
+                    let expected_content = String::from_utf8_lossy(&expected_content_bytes[..]);
+                    println!(
+                        "comparing\n{}\nto expected:\n{}",
+                        out_file_content, expected_content
+                    );
+                    assert_eq!(expected_content.trim_end(), out_file_content.trim_end());
+                    assert_eq!(true, chunks_fit_together(&chunks), "chunks need to fit");
+                    break;
+                }
+                Ok(IndexingProgress::Progress { ticks: _t }) => {
+                    trace!("progress...");
+                }
+                Ok(IndexingProgress::GotItem { item: chunk }) => {
+                    chunks.push(chunk);
+                    trace!("got item...");
+                }
+                Ok(IndexingProgress::Stopped) => {
+                    trace!("stopped...");
+                }
+                Err(_) => {
+                    error!("couldn't process");
+                }
+            }
+        }
     }
 }
