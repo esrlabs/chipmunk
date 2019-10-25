@@ -16,8 +16,6 @@ export default class ProgressState {
 
     private _streamId: string;
     private _tracks: Map<string, IProgress> = new Map();
-    private _timer: any;
-    private _postponed: number = 0;
     private _logger: Logger;
 
     constructor(streamId: string) {
@@ -26,7 +24,6 @@ export default class ProgressState {
     }
 
     public destroy() {
-        clearTimeout(this._timer);
         this._tracks.clear();
         this._send();
     }
@@ -68,28 +65,13 @@ export default class ProgressState {
         }
         track.progress = progress;
         this._tracks.set(id, track);
-        this._notify();
+        this._send();
     }
 
     private _send() {
-        clearTimeout(this._timer);
         ServiceElectron.IPC.send(new IPCElectronMessages.StreamProgressState({
             streamId: this._streamId,
             tracks: Array.from(this._tracks.values()),
         }));
     }
-
-    private _notify() {
-        clearTimeout(this._timer);
-        if (this._postponed < CSettings.maxPostponedNotificationMessages) {
-            this._postponed += 1;
-            this._timer = setTimeout(() => {
-                this._send();
-            }, CSettings.notificationDelayOnStream);
-        } else {
-            this._postponed = 0;
-            this._send();
-        }
-    }
-
 }

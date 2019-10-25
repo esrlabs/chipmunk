@@ -7,7 +7,7 @@ import { getDefaultFileParser, AFileParser, getParserForFile } from '../controll
 import FileParserText from '../controllers/files.parsers/file.parser.text';
 import FileParserDlt from '../controllers/files.parsers/file.parser.dlt';
 import { IMapItem, ITicks } from '../controllers/files.parsers/interface';
-import { dialog } from 'electron';
+import { dialog, session } from 'electron';
 import Logger from '../tools/env.logger';
 import * as Tools from '../tools/index';
 import * as fs from 'fs';
@@ -233,7 +233,6 @@ class ServiceFileOpener implements IService {
             }
             parser.readAndWrite(file, dest.file, sourceId, options, (map: IMapItem[]) => {
                 ServiceStreams.pushToStreamFileMap(dest.streamId, map);
-                this._incrProgress(parser, trackingId, dest.streamId, map[map.length - 1].bytes.to - map[0].bytes.from);
             }, (ticks: ITicks) => {
                 this._incrProgress(parser, trackingId, dest.streamId, ticks.ellapsed / ticks.total);
             }).then((map: IMapItem[]) => {

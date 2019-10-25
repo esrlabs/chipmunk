@@ -1,8 +1,11 @@
 import { indexAsync, indexFile, IFilePath } from "./processor";
 import { DltFilterConf, indexDltAsync, DltLogLevel, IIndexDltParams } from "./dlt";
-import { StatisticInfo, library } from "./index";
-import { ITicks, IChunk } from "./progress";
+import { indexer, StatisticInfo } from "./index";
+import { TimeUnit } from "./units";
+import { ITicks, IChunk, INeonTransferChunk } from "./progress";
 import { log } from "./logging";
+import { puts } from "util";
+var ProgressBar = require("progress");
 const util = require("util");
 
 export const examplePath: String = "/Users/muellero/tmp/logviewer_usecases";
@@ -66,7 +69,7 @@ function testCallIndexDltFile() {
     measure({
         desc: "indexing DLT " + fileToIndex,
         f: () => {
-            const success = library.indexDltFile({
+            const success = indexer.indexDltFile({
                 dltFile: fileToIndex,
                 tag: "TAG",
                 filterConfig: filterConf,
@@ -82,7 +85,7 @@ function testCallIndexDltFile() {
     measure({
         desc: "indexing DLT (no filter config) " + fileToIndex + ", output: " + out,
         f: () => {
-            const success = library.indexDltFile({
+            const success = indexer.indexDltFile({
                 dltFile: fileToIndex,
                 tag: "TAG",
                 out,
@@ -101,7 +104,7 @@ function testCallMergeFiles() {
     measure({
         desc: "merge with config: " + mergeConf + ", output: " + out,
         f: () => {
-            const n = library.mergeFiles({
+            const n = indexer.mergeFiles({
                 configFile: mergeConf,
                 out,
                 append: false,
@@ -118,7 +121,7 @@ function testCallConcatFiles() {
     measure({
         desc: "concatenate with config: " + concatConfig + ", output: " + out,
         f: () => {
-            const n = library.concatFiles({
+            const n = indexer.concatFiles({
                 configFile: concatConfig,
                 out,
                 append: false,
@@ -135,7 +138,7 @@ function testDetectTimestampInString() {
         f: () => {
             let timestamp;
             try {
-                timestamp = library.detectTimestampInString(
+                timestamp = indexer.detectTimestampInString(
                     "109.169.248.247 - - [13/Dec/2015:18:25:11 +0100] GET /administrator",
                 );
             } catch (error) {
@@ -149,7 +152,7 @@ function testDetectTimestampInFile() {
     measure({
         desc: "detect timestamp in file",
         f: () => {
-            const x = library.detectTimestampFormatInFile(
+            const x = indexer.detectTimestampFormatInFile(
                 examplePath + "/indexing/access_small.log",
             );
             console.log(x);
@@ -166,7 +169,7 @@ function testDetectTimestampFormatsInFiles() {
                 { path: examplePath + "/indexing/access_mid.log" },
             ];
             try {
-                const formats = library.detectTimestampFormatsInFiles(conf);
+                const formats = indexer.detectTimestampFormatsInFiles(conf);
                 console.log(formats);
             } catch (error) {
                 console.error("error getting timestamp formats: %s", error);
@@ -175,26 +178,46 @@ function testDetectTimestampFormatsInFiles() {
     });
 }
 export function testCallDltStats(file: string) {
-    measure({
-        desc: "stats for " + file,
-        f: () => {
-            const stats: StatisticInfo = library.dltStats(file);
-            console.log(util.inspect(stats, { showHidden: true, depth: 5 }));
-        },
-    });
-}
-export function testDltIndexingAsync(fileToIndex: string, outPath: string) {
     const hrstart = process.hrtime();
     try {
-        let chunks: number = 0;
         let onProgress = (ticks: ITicks) => {
             log("progress: " + ticks);
         };
-        let onChunk = (chunk: IChunk) => {
-            chunks += 1;
-            if (chunks % 100 === 0) {
-                process.stdout.write(".");
+        let onConf = (conf: StatisticInfo) => {
+            log("testCallDltStats.onConf:");
+            log("conf.app_ids: " + JSON.stringify(conf.app_ids));
+            log("conf.ecu_ids: " + JSON.stringify(conf.ecu_ids));
+            log("conf.context_ids: " + JSON.stringify(conf.context_ids));
+        };
+        measure({
+            desc: "stats for " + file,
+            f: () => {
+                indexer.dltStatsAsync(file, TimeUnit.fromSeconds(60), onProgress, onConf).then(x => {
+                    const hrend = process.hrtime(hrstart);
+                    const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+                    log("COMPLETELY DONE (last result was: " + x + ")");
+                    console.info("Execution time for getting DLT stats : %dms", ms);
+                });
+            },
+        });
+    } catch (error) {
+        console.error("error %s", error);
+    }
+}
+export function testDltIndexingAsync(fileToIndex: string, outPath: string) {
+    const hrstart = process.hrtime();
+    var bar: any = undefined;
+    try {
+        let chunks: number = 0;
+        let onProgress = (ticks: ITicks) => {
+            if (bar === undefined) {
+                bar = new ProgressBar(":bar", { total: ticks.total });
             }
+            bar.update(ticks.ellapsed/ticks.total);
+        };
+        let onChunk = (chunk: INeonTransferChunk) => {
+            chunks += 1;
+            log("chunk: " + chunk.b + " -> " + chunk.r);
         };
         const filterConfig: DltFilterConf = {
             min_log_level: DltLogLevel.Debug,
@@ -225,12 +248,10 @@ export function testDltIndexingAsync(fileToIndex: string, outPath: string) {
             stdout: false,
             statusUpdates: true,
         };
-        indexDltAsync(
-            dltParams,
-            15000,
-            onProgress,
-            onChunk,
-        ).then(x => {
+        indexDltAsync(dltParams, TimeUnit.fromSeconds(60), onProgress, onChunk).then(x => {
+            if (bar !== undefined) {
+                bar.update(1.0);
+            }
             const hrend = process.hrtime(hrstart);
             const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
             log("COMPLETELY DONE (last result was: " + x + ")");
@@ -240,29 +261,36 @@ export function testDltIndexingAsync(fileToIndex: string, outPath: string) {
         console.error("error %s", error);
     }
 }
-function testIndexingAsync() {
+export function testIndexingAsync() {
     const hrstart = process.hrtime();
+    var bar: any = undefined;
     try {
         const outPath = examplePath + "/indexing/test.out";
         let chunks: number = 0;
         let onProgress = (ticks: ITicks) => {
-            log("progress: " + ticks);
+            if (bar === undefined) {
+                bar = new ProgressBar(":bar", { total: ticks.total });
+            }
+            bar.update(ticks.ellapsed/ticks.total);
         };
-        let onChunk = (chunk: IChunk) => {
+        let onChunk = (chunk: INeonTransferChunk) => {
             chunks += 1;
             if (chunks % 100 === 0) {
-                process.stdout.write(".");
+                // process.stdout.write(".");
             }
         };
         indexAsync(
             500,
             examplePath + "/indexing/access_huge.log",
-            15000,
+            TimeUnit.fromSeconds(15),
             outPath,
             onProgress,
             onChunk,
             "TAG",
         ).then(x => {
+            if (bar !== undefined) {
+                bar.update(1.0);
+            }
             const hrend = process.hrtime(hrstart);
             const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
             log("COMPLETELY DONE (last result was: " + x + ")");
@@ -282,7 +310,7 @@ function testInterruptAsyncIndexing() {
     indexAsync(
         500,
         examplePath + "/indexing/access_huge.log",
-        750,
+        TimeUnit.fromMilliseconds(750),
         outPath,
         onProgress,
         (e: any) => {
@@ -309,7 +337,7 @@ function testVeryShortIndexing() {
     indexAsync(
         500,
         examplePath + "/indexing/access_tiny.log",
-        750,
+        TimeUnit.fromMilliseconds(750),
         outPath,
         onProgress,
         (e: any) => {

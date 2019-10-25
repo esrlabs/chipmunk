@@ -1,9 +1,10 @@
 const {
     RustIndexerEventEmitter: RustIndexerChannel,
     RustDltIndexerEventEmitter: RustDltIndexerChannel,
+    RustDltStatsEventEmitter: RustDltStatsChannel,
 } = require("../native/index.node");
 const { EventEmitter } = require("events");
-export { EventEmitter, RustIndexerChannel, RustDltIndexerChannel };
+export { EventEmitter, RustIndexerChannel, RustDltIndexerChannel, RustDltStatsChannel };
 const { promisify } = require("util");
 import { log } from "./logging";
 

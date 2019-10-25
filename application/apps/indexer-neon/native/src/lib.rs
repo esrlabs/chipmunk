@@ -12,7 +12,8 @@ mod channels;
 mod logging;
 use crate::logging::SimpleLogger;
 use channels::{
-    EventEmitterTask, IndexingDltEventEmitter, IndexingEventEmitter, IndexingThreadConfig,
+    DltStatsEventEmitter, EventEmitterTask, IndexingDltEventEmitter, IndexingEventEmitter,
+    IndexingThreadConfig,
 };
 use neon::prelude::*;
 use processor::parse;
@@ -180,27 +181,6 @@ fn concat_files(mut cx: FunctionContext) -> JsResult<JsNumber> {
     };
     Ok(cx.number(concatenated_lines as f64))
 }
-fn dlt_stats(mut cx: FunctionContext) -> JsResult<JsValue> {
-    let file_name = cx.argument::<JsString>(0)?.value();
-    let file_path = path::PathBuf::from(file_name);
-    let f = match fs::File::open(&file_path) {
-        Ok(file) => file,
-        Err(_) => {
-            error!("could not open {:?}", file_path);
-            std::process::exit(2)
-        }
-    };
-    match dlt::dlt_parse::get_dlt_file_info(&f) {
-        Err(why) => {
-            error!("couldn't collect statistics: {}", why);
-            std::process::exit(2)
-        }
-        Ok(res) => {
-            let js_value = neon_serde::to_value(&mut cx, &res)?;
-            Ok(js_value)
-        }
-    }
-}
 
 // interface of the Rust code for js, exposes the `poll` and `shutdown` methods
 declare_types! {
@@ -212,7 +192,6 @@ declare_types! {
             let append: bool = cx.argument::<JsBoolean>(3)?.value();
             let timestamps: bool = cx.argument::<JsBoolean>(4)?.value();
             let chunk_size: usize = cx.argument::<JsNumber>(5)?.value() as usize;
-            let mapping_out_path: path::PathBuf = path::PathBuf::from(file.to_string() + ".map.json");
             let (shutdown_sender, shutdown_receiver) = mpsc::channel();
 
             let f = match fs::File::open(&file) {
@@ -222,7 +201,7 @@ declare_types! {
                     std::process::exit(2)
                 }
             };
-        let (chunk_result_sender, chunk_result_receiver) = mpsc::channel();
+            let (chunk_result_sender, chunk_result_receiver) = mpsc::channel();
             let mut emitter = IndexingEventEmitter {
                 event_receiver: Arc::new(Mutex::new(chunk_result_receiver)),
                 shutdown_sender,
@@ -231,7 +210,6 @@ declare_types! {
             emitter.start_indexing_in_thread(shutdown_receiver,
                 chunk_result_sender,
                 append,
-                mapping_out_path,
                 chunk_size,
                 IndexingThreadConfig {
                     in_file: f,
@@ -287,7 +265,6 @@ declare_types! {
             let filter_conf: dlt::filtering::DltFilterConfig = neon_serde::from_value(&mut cx, arg_filter_conf)?;
             trace!("{:?}", filter_conf);
 
-            let mapping_out_path: path::PathBuf = path::PathBuf::from(file.to_string() + ".map.json");
             let shutdown_channel = mpsc::channel();
             // let (shutdown_sender, shutdown_receiver) = mpsc::channel();
 
@@ -306,7 +283,6 @@ declare_types! {
             };
             emitter.start_indexing_dlt_in_thread(shutdown_channel.1,
                 chunk_result_channel.0,
-                mapping_out_path,
                 chunk_size,
                 IndexingThreadConfig {
                     in_file: f,
@@ -316,6 +292,72 @@ declare_types! {
                     timestamps: false,
                 },
                 Some(filter_conf)
+            );
+            Ok(emitter)
+        }
+
+        // will be called by JS to receive data in a loop, but care should be taken to only call it once at a time.
+        method poll(mut cx) {
+            // The callback to be executed when data is available
+            let cb = cx.argument::<JsFunction>(0)?;
+            let this = cx.this();
+
+            // Create an asynchronously `EventEmitterTask` to receive data
+            let events = cx.borrow(&this, |emitter| Arc::clone(&emitter.event_receiver));
+            let emitter = EventEmitterTask::new(events);
+
+            // Schedule the task on the `libuv` thread pool
+            emitter.schedule(cb);
+            Ok(JsUndefined::new().upcast())
+        }
+
+        // The shutdown method may be called to stop the Rust thread. It
+        // will error if the thread has already been destroyed.
+        method shutdown(mut cx) {
+            trace!("shutdown called");
+            let this = cx.this();
+
+            // Unwrap the shutdown channel and send a shutdown command
+            cx.borrow(&this, |emitter| {
+                match emitter.shutdown_sender.send(()) {
+                    Err(e) => trace!("error happened when sending: {}", e),
+                    Ok(()) => trace!("sent command Shutdown")
+                }
+            });
+            Ok(JsUndefined::new().upcast())
+        }
+    }
+    pub class JsDltStatsEventEmitter for DltStatsEventEmitter {
+        init(mut cx) {
+            trace!("Rust: JsDltStatsEventEmitter");
+            let file_name = cx.argument::<JsString>(0)?.value();
+            let file_path = path::PathBuf::from(file_name);
+            let f = match fs::File::open(&file_path) {
+                Ok(file) => file,
+                Err(_) => {
+                    error!("could not open {:?}", file_path);
+                    std::process::exit(2)
+                }
+            };
+            let chunk_result_channel = mpsc::channel();
+            let shutdown_channel = mpsc::channel();
+            let mut emitter = DltStatsEventEmitter {
+                event_receiver: Arc::new(Mutex::new(chunk_result_channel.1)),
+                shutdown_sender: shutdown_channel.0,
+                task_thread: None,
+            };
+            let source_file_size = match fs::metadata(file_path) {
+                Ok(file_meta) => file_meta.len() as usize,
+                Err(_) => {
+                    error!("could not find out size of source file");
+                    std::process::exit(2)
+                }
+            };
+            emitter.start_dlt_stats_in_thread(
+                f,
+                source_file_size,
+                shutdown_channel.1,
+                chunk_result_channel.0
             );
             Ok(emitter)
         }
@@ -367,8 +409,8 @@ register_module!(mut cx, {
     )?;
     cx.export_function("mergeFiles", merge_files)?;
     cx.export_function("concatFiles", concat_files)?;
-    cx.export_function("dltStats", dlt_stats)?;
     cx.export_class::<JsIndexerEventEmitter>("RustIndexerEventEmitter")?;
     cx.export_class::<JsDltIndexerEventEmitter>("RustDltIndexerEventEmitter")?;
+    cx.export_class::<JsDltStatsEventEmitter>("RustDltStatsEventEmitter")?;
     Ok(())
 });

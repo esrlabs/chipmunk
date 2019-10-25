@@ -1,14 +1,30 @@
 const addon = require("../native");
 import { log } from "./logging";
 import { DltFilterConf } from "./dlt";
-import { AsyncResult, ITicks, IChunk } from "./progress";
-import { NativeEventEmitter, RustDltIndexerChannel } from "./emitter";
+import { AsyncResult, ITicks, IChunk, INeonTransferChunk } from "./progress";
+import { NativeEventEmitter, RustDltIndexerChannel, RustDltStatsChannel } from "./emitter";
+import { TimeUnit } from "./units";
 
 export interface DltFilterConf {
     min_log_level?: DltLogLevel;
     app_ids?: Array<String>;
     ecu_ids?: Array<String>;
     context_ids?: Array<String>;
+}
+export interface LevelDistribution {
+    non_log: number;
+    log_fatal: number;
+    log_error: number;
+    log_warning: number;
+    log_info: number;
+    log_debug: number;
+    log_verbose: number;
+    log_invalid: number;
+}
+export interface StatisticInfo {
+    app_ids: Array<[String, LevelDistribution]>;
+    context_ids: Array<[String, LevelDistribution]>;
+    ecu_ids: Array<[String, LevelDistribution]>;
 }
 export enum DltLogLevel {
     Fatal = 0x1 << 4,
@@ -30,6 +46,40 @@ export interface IIndexDltParams {
 }
 export function dltStats(dltFile: String) {
     return addon.dltStats(dltFile);
+}
+export function dltStatsAsync(
+    dltFile: String,
+    maxTime: TimeUnit,
+    onProgress: (ticks: ITicks) => any,
+    onConfig: (chunk: StatisticInfo) => any,
+): Promise<AsyncResult> {
+    return new Promise<AsyncResult>((resolve, reject) => {
+        const channel = new RustDltStatsChannel(dltFile);
+        const emitter = new NativeEventEmitter(channel);
+        let timeout = setTimeout(function() {
+            log("TIMED OUT ====> shutting down");
+            emitter.requestShutdown();
+        }, maxTime.inMilliseconds());
+        emitter.on(NativeEventEmitter.EVENTS.GotItem, onConfig);
+        emitter.on(NativeEventEmitter.EVENTS.Progress, onProgress);
+        emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
+            clearTimeout(timeout);
+            emitter.shutdownAcknowledged(() => {
+                resolve(AsyncResult.Aborted);
+            });
+        });
+        emitter.on(NativeEventEmitter.EVENTS.Error, (e: any) => {
+            log("we got an error: " + e);
+            clearTimeout(timeout);
+            emitter.requestShutdown();
+        });
+        emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
+            clearTimeout(timeout);
+            emitter.shutdownAcknowledged(() => {
+                resolve(AsyncResult.Completed);
+            });
+        });
+    });
 }
 export function indexDltFile({
     dltFile,
@@ -59,9 +109,9 @@ export function indexDltFile({
 }
 export function indexDltAsync(
     { dltFile, filterConfig, tag, out, chunk_size, append, stdout, statusUpdates }: IIndexDltParams,
-    maxTime: number,
+    maxTime: TimeUnit,
     onProgress: (ticks: ITicks) => any,
-    onChunk: (chunk: IChunk) => any,
+    onChunk: (chunk: INeonTransferChunk) => any,
 ): Promise<AsyncResult> {
     return new Promise<AsyncResult>((resolve, reject) => {
         let chunks: number = 0;
@@ -77,7 +127,7 @@ export function indexDltAsync(
         let timeout = setTimeout(function() {
             log("TIMED OUT ====> shutting down");
             emitter.requestShutdown();
-        }, maxTime);
+        }, maxTime.inMilliseconds());
         emitter.on(NativeEventEmitter.EVENTS.GotItem, onChunk);
         emitter.on(NativeEventEmitter.EVENTS.Progress, onProgress);
         emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {

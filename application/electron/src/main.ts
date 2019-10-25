@@ -117,7 +117,9 @@ class Application {
     private _init(stage: number = 0, callback: (error?: Error) => any): void {
         if (InitializeStages.length <= stage) {
             this.logger.env(`Application is initialized`);
-            typeof callback === 'function' && callback();
+            if (typeof callback === 'function') {
+                callback();
+            }
             return;
         }
         this.logger.env(`Application initialization: stage #${stage + 1}: starting...`);
@@ -141,7 +143,9 @@ class Application {
     private _destroy(stage: number = 0, callback: (error?: Error) => any): void {
         if (stage < 0) {
             this.logger.env(`Application is destroyed`);
-            typeof callback === 'function' && callback();
+            if (typeof callback === 'function') {
+                callback();
+            }
             return;
         }
         this.logger.env(`Application destroy: stage #${stage + 1}: starting...`);

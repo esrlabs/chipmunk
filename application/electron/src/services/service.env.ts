@@ -22,7 +22,7 @@ class ServiceEnv implements IService {
         return new Promise((resolve, reject) => {
             getShellEnvironment().then((env: { [key: string]: any }) => {
                 this._env = env;
-                this._logger.env(`OS Env are detected: ${util.inspect(env)}`);
+                // this._logger.env(`OS Env are detected: ${util.inspect(env)}`);
                 resolve();
             }).catch((error: Error) => {
                 reject(this._logger.error(`Fail to detect OS env due error: ${error.message}`));

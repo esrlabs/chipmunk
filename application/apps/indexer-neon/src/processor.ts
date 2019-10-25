@@ -1,7 +1,8 @@
 const addon = require("../native");
 import { log } from "./logging";
-import { AsyncResult, ITicks, IChunk } from "./progress";
+import { AsyncResult, ITicks, IChunk, INeonTransferChunk } from "./progress";
 import { NativeEventEmitter, RustIndexerChannel } from "./emitter";
+import { TimeUnit } from "./units";
 
 export interface IIndexerParams {
     file: string;
@@ -17,46 +18,59 @@ export interface IFilePath {
     path: string;
 }
 
-
 export function indexAsync(
     chunkSize: number,
     fileToIndex: string,
-    maxTime: number,
+    maxTime: TimeUnit,
     outPath: string,
     onProgress: (ticks: ITicks) => any,
-    onChunk: (chunk: IChunk) => any,
+    onChunk: (chunk: INeonTransferChunk) => any,
     tag: string,
 ): Promise<AsyncResult> {
     return new Promise<AsyncResult>((resolve, reject) => {
-        let chunks: number = 0;
         const append = false; // TODO support append option
         const timestamps = false; // TODO support timestamps option
-        const channel = new RustIndexerChannel(fileToIndex, tag, outPath, append, timestamps, chunkSize);
+        let totalTicks = 1;
+        const channel = new RustIndexerChannel(
+            fileToIndex,
+            tag,
+            outPath,
+            append,
+            timestamps,
+            chunkSize,
+        );
         const emitter = new NativeEventEmitter(channel);
         let timeout = setTimeout(function() {
             log("TIMED OUT ====> shutting down");
             emitter.requestShutdown();
-        }, maxTime);
+        }, maxTime.inMilliseconds());
         emitter.on(NativeEventEmitter.EVENTS.GotItem, onChunk);
-        emitter.on(NativeEventEmitter.EVENTS.Progress, onProgress);
+        emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
+            totalTicks = ticks.total;
+            onProgress(ticks);
+        });
         emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
-            log("we got a stopped event after " + chunks + " chunks");
+            log("indexAsync: we got a stopped");
             clearTimeout(timeout);
             emitter.shutdownAcknowledged(() => {
-                log("shutdown completed");
+                log("indexAsync: shutdown completed");
                 resolve(AsyncResult.Aborted);
             });
         });
         emitter.on(NativeEventEmitter.EVENTS.Error, (e: any) => {
-            log("we got an error: " + e);
+            log("indexAsync: we got an error: " + e);
             clearTimeout(timeout);
             emitter.requestShutdown();
         });
         emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
-            log("we got a finished event " + chunks + " chunks");
+            log("indexAsync: we got a finished event");
+            onProgress({
+                ellapsed: totalTicks,
+                total: totalTicks,
+            });
             clearTimeout(timeout);
             emitter.shutdownAcknowledged(() => {
-                log("shutdown completed");
+                log("indexAsync: shutdown completed");
                 resolve(AsyncResult.Completed);
             });
         });
