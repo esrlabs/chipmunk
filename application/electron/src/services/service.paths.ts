@@ -244,7 +244,7 @@ class ServicePaths implements IService {
      */
     private _getRootPath(): string | Error {
         if (typeof require.main !== 'undefined' && typeof require.main.filename === 'string' && require.main.filename.trim() !== '') {
-            return Path.dirname(require.main.filename);
+            return Path.resolve(Path.dirname(require.main.filename), '../..');
         }
         if (typeof require.resolve('../main') === 'string' && require.resolve('../main').trim() === '') {
             return Path.dirname(require.resolve('../main'));
