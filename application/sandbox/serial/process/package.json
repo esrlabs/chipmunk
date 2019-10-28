@@ -2,6 +2,9 @@
   "name": "logviewer.plugin.transport.serial",
   "version": "1.0.7",
   "logviewer_version": "1.0.0",
+  "logviewer": {
+    "type": "single"
+  },
   "description": "",
   "main": "./dist/main.js",
   "scripts": {

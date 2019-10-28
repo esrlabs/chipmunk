@@ -92,6 +92,7 @@ class ServicePorts {
     }
 
     public write(port: string, chunk: Buffer | string): Promise<void> {
+        chunk += "\n";
         return new Promise((resolve, reject) => {
             let controller: ControllerSerialPort | undefined = this._controllers.get(port);
             if (controller === undefined) {

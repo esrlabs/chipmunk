@@ -167,7 +167,10 @@ export class ServicePlugins implements IService {
                             }).catch((initializationError: Error) => {
                                 ServiceElectronService.logStateToRender(this._logger.error(`Error during initialization of plugins: ${initializationError.message}`));
                                 this._sendRenderPluginsData();
-                                resolve();
+                                this._initSingleSessionPlugins().then(() => {
+                                    // All done now
+                                    resolve();
+                                });
                             });
                         }).catch((rereadingError: Error) => {
                             ServiceElectronService.logStateToRender(this._logger.warn(`Fail to reread available plugins due error: ${rereadingError.message}`));
@@ -673,6 +676,7 @@ export class ServicePlugins implements IService {
 
     private _initSingleSessionPlugins(): Promise<void> {
         return new Promise((resolve) => {
+            debugger
             const plugins: IPlugin[] = [];
             this._plugins.forEach((plugin: IPlugin) => {
                 if (plugin.packages.process === undefined) {

@@ -98,6 +98,25 @@ class ServiceSessions {
                         }
                     }));
                 });
+            case ECommands.write:
+                return this._income_onWrite(message).then(() => {
+                    response(new IPCMessages.PluginInternalMessage({
+                        data: {
+                            status: 'sent',
+                        },
+                        token: message.token,
+                        stream: message.stream,
+                    }));
+                }).catch((error: Error) => {
+                    return response(new IPCMessages.PluginError({
+                        message: error.message,
+                        stream: message.stream,
+                        token: message.token,
+                        data: {
+                            command: message.data.command
+                        }
+                    }));
+                });
             default:
                 this._logger.warn(`Unknown commad: ${message.data.command}`);
         }
@@ -169,6 +188,31 @@ class ServiceSessions {
                 this._logger.error(`Fail to close port "${message.data.path}" due error: ${error.message}`);
                 reject(error);
             });           
+        });
+    }
+
+    private _income_onWrite(message: IPCMessages.PluginInternalMessage): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const streamId: string | undefined = message.stream;
+            if (streamId === undefined) {
+                return reject(new Error(this._logger.warn(`No target stream ID provided`)));
+            }
+            let controller: ControllerSession | undefined = this._sessions.get(streamId);
+            if (controller === undefined) {
+                return reject(new Error(this._logger.error(`Fail to open port, because session isn't created.`)));
+            }
+            if (typeof message.data !== 'object' || message.data === null) {
+                return reject(new Error(this._logger.error(`No message provided`)));
+            }
+            if (typeof message.data.path !== 'string' || message.data.path.trim() === '') {
+                return reject(new Error(this._logger.error(`Cannot send message, because path isn't provided`)));
+            }
+            ServicePorts.write(message.data.path, message.data.cmd).then(() => {
+                resolve();            
+            }).catch((error: Error) => {
+                this._logger.error(`Fail to send message "${message.data.cmd}" to port "${message.data.path}" due error: ${error.message}`);
+                reject(error);
+            });
         });
     }
 

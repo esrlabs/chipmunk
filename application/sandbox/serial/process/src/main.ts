@@ -2,7 +2,7 @@ import Logger from './env/env.logger';
 import ServicePorts from './services/service.sessions';
 import { test } from './test';
 
-test();
+//test();
 
 class Plugin {
 

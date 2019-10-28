@@ -79,6 +79,7 @@ export class ControllerSerialPort extends EventEmitter {
             this._port.removeAllListeners();
             this._port.unpipe(this._reader);
             this._port.close((error: Error | null | undefined) => {
+                this._logger.verbose("Successfully closed!");
                 this._port = undefined;
                 this._reader = undefined;
                 if (error) {
