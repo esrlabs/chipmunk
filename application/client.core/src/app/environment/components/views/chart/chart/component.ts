@@ -1,4 +1,4 @@
-import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterContentInit } from '@angular/core';
+import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterContentInit, HostListener } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
 import { Chart } from 'chart.js';
 import * as Toolkit from 'logviewer.client.toolkit';
@@ -58,6 +58,16 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef) {
 
+    }
+
+    @HostListener('wheel', ['$event']) _ng_onWheel(event: WheelEvent) {
+        const width: number = this._chart.chartArea.right - this._chart.chartArea.left;
+        const offset: number = event.offsetX - this._chart.chartArea.left;
+        const centerX: number = Math.round(width / 2);
+        this.position.force({
+            deltaY: event.deltaY,
+            proportionX: offset / width,
+        });
     }
 
     ngAfterContentInit() {

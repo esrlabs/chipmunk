@@ -12,6 +12,11 @@ export interface IPositionChange {
     l?: number;
 }
 
+export interface IPositionForce {
+    deltaY: number;
+    proportionX: number;
+}
+
 const CSettings = {
     serviceScopeKey: 'chart-position-service-state',
 };
@@ -23,9 +28,11 @@ export class ServicePosition {
     private _sessionController: ControllerSessionTab | undefined;
     private _subjects: {
         onChange: Subject<IPositionChange>,
+        onForce: Subject<IPositionForce>,
         onSwitch: Subject<IPositionChange>,
     } = {
         onChange: new Subject<IPositionChange>(),
+        onForce: new Subject<IPositionForce>(),
         onSwitch: new Subject<IPositionChange>(),
     };
 
@@ -36,16 +43,15 @@ export class ServicePosition {
 
     public destroy() {
         this._saveState();
-        /*
-        Object.keys(this._subjects).forEach((key: string) => {
-            this._subjects[key].unsubscribe();
-        });
-        */
     }
 
     public set(position: IPositionChange) {
         this._position = position;
         this._subjects.onChange.next(position);
+    }
+
+    public force(changes: IPositionForce) {
+        this._subjects.onForce.next(changes);
     }
 
     public get(): IPositionChange | undefined {
@@ -55,10 +61,12 @@ export class ServicePosition {
     public getObservable(): {
         onChange: Observable<IPositionChange>,
         onSwitch: Observable<IPositionChange>,
+        onForce: Observable<IPositionForce>,
     } {
         return {
             onChange: this._subjects.onChange.asObservable(),
             onSwitch: this._subjects.onSwitch.asObservable(),
+            onForce: this._subjects.onForce.asObservable(),
         };
     }
 

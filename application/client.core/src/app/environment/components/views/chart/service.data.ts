@@ -33,11 +33,6 @@ export class ServiceData {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-        /*
-        Object.keys(this._subjects).forEach((key: string) => {
-            this._subjects[key].unsubscribe();
-        });
-        */
         this._stream = undefined;
         this._matches = undefined;
     }
