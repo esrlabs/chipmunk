@@ -184,25 +184,12 @@ export class ControllerStreamSearchEngine {
     public isBusy(): boolean {
         return this._promise !== undefined;
     }
-    /*
-    private _constractRegExpStr(regulars: RegExp[]): string {
-        const regs: string[] = [];
-        const numeric: string[] = [];
-        regulars.forEach((regexp: RegExp, i: number) => {
-            regs.push(`(${regexp.source})`);
-            if (regexp.source.replace(/\d/gi, '') === '' || regexp.source.indexOf('\d') !== -1) {
-                numeric.push(`(${regexp.source})`);
-            }
-        });
-        return `(?!\\d*(${numeric.join('|')})\\d*\u0002$)(${regs.join('|')})`;
-    }
-    */
 
     private _constractRegExpStr(regulars: RegExp[]): string {
         const regs: string[] = regulars.map((regular: RegExp) => {
             return regular.source;
         });
-        return `(${regs.join('|')})[^\d\u0002\u0003]`;
+        return `(${regs.join('|')})[^\\d\\x{0002}\\x{0003}]`;
     }
 
     private _clear() {
