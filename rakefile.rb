@@ -20,11 +20,6 @@ CLIENT_CORE_DIR = 'application/client.core'
 INCLUDED_PLUGINS_FOLDER = "#{ELECTRON_COMPILED_DIR}/plugins"
 INCLUDED_APPS_FOLDER = "#{ELECTRON_COMPILED_DIR}/apps"
 APP_PACKAGE_JSON = "#{ELECTRON_DIR}/package.json"
-SRC_HOST_IPC = "#{ELECTRON_DIR}/src/controllers/electron.ipc.messages"
-DEST_CLIENT_HOST_IPC = "#{CLIENT_CORE_DIR}/src/app/environment/services/electron.ipc.messages"
-SRC_PLUGIN_IPC = "#{ELECTRON_DIR}/src/controllers/plugins.ipc.messages"
-DEST_CLIENT_PLUGIN_IPC = "#{CLIENT_CORE_DIR}/src/app/environment/services/plugins.ipc.messages"
-DEST_PLUGINIPCLIG_PLUGIN_IPC = 'application/node.libs/logviewer.plugin.ipc/src/ipc.messages'
 SRC_CLIENT_NPM_LIBS = 'application/client.libs/logviewer.client.components'
 RIPGREP_URL = 'https://github.com/BurntSushi/ripgrep/releases/download/11.0.2/ripgrep-11.0.2'
 RIPGREP_LOCAL_TMP = File.join(Dir.home, 'tmp/ripgrep_download')
@@ -346,7 +341,6 @@ task reinstall: [:folders,
                  'client:rebuild_core',
                  'client:build_components',
                  :compile_electron,
-                 :ipc,
                  'client:build_libs',
                  'client:deliver_libs',
                  'client:build',
@@ -356,7 +350,6 @@ task install: [:folders,
                'client:build_core',
                'client:build_components',
                :compile_electron,
-               :ipc,
                'client:build_libs',
                'client:deliver_libs',
                'client:build',
@@ -367,7 +360,7 @@ namespace :dev do
   task neon: %i[build_embedded_indexer delivery_embedded_indexer_into_app]
 
   desc 'Developer task: update client'
-  task update_client: [:ipc, 'client:build']
+  task update_client: ['client:build']
 
   desc 'Developer task: update client and libs'
   task fullupdate_client: ['client:build_libs', 'client:deliver_libs', :update_client]
@@ -395,20 +388,6 @@ namespace :dev do
     rm(node_app_original)
     cp(launcher, node_app_original)
   end
-end
-
-task :ipc do
-  puts 'Delivery IPC definitions'
-  paths = [DEST_CLIENT_HOST_IPC, DEST_CLIENT_PLUGIN_IPC, DEST_PLUGINIPCLIG_PLUGIN_IPC]
-  i = 0
-  while i < paths.length
-    path = paths[i]
-    rm_r(path, force: true)
-    i += 1
-  end
-  cp_r(SRC_HOST_IPC, DEST_CLIENT_HOST_IPC, verbose: false)
-  cp_r(SRC_PLUGIN_IPC, DEST_CLIENT_PLUGIN_IPC, verbose: false)
-  cp_r(SRC_PLUGIN_IPC, DEST_PLUGINIPCLIG_PLUGIN_IPC, verbose: false)
 end
 
 task :add_package_json do

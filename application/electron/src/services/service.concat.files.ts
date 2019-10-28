@@ -2,7 +2,7 @@ import ServiceElectron, { IPCMessages } from './service.electron';
 import Logger from '../tools/env.logger';
 import { Subscription } from '../tools/index';
 import { IService } from '../interfaces/interface.service';
-import { IFile } from '../controllers/electron.ipc.messages/concat.files.request';
+import { IFile } from '../../../ipc/electron.ipc.messages/concat.files.request';
 import ConcatFiles from '../controllers/controller.concat.files';
 
 /**
