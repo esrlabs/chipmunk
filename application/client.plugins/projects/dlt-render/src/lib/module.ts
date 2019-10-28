@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { SidebarVerticalComponent } from './views/sidebar.vertical/component';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 import { CommonModule } from '@angular/common';
 

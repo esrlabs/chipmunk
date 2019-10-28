@@ -1,9 +1,9 @@
 import { NgModule                               } from '@angular/core';
 import { CommonModule                           } from '@angular/common';
 
-import { ComplexModule                          } from 'logviewer-client-complex';
-import { PrimitiveModule                        } from 'logviewer-client-primitive';
-import { ContainersModule                       } from 'logviewer-client-containers';
+import { ComplexModule                          } from 'chipmunk-client-complex';
+import { PrimitiveModule                        } from 'chipmunk-client-primitive';
+import { ContainersModule                       } from 'chipmunk-client-containers';
 
 import { EnvironmentComplexModule               } from './complex/module';
 import { EnvironmentViewsModule                 } from './views/module';

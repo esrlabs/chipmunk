@@ -4,7 +4,7 @@ import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, ElementR
 import { EHostEvents, EHostCommands } from '../common/host.events';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
     selector: Toolkit.EViewsTypes.sidebarHorizontal,

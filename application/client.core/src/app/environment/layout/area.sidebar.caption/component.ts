@@ -1,7 +1,7 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { IComponentDesc } from 'logviewer-client-containers';
-import * as Toolkit from 'logviewer.client.toolkit';
+import { IComponentDesc } from 'chipmunk-client-containers';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import SidebarSessionsService from '../../services/service.sessions.sidebar';
 
 @Component({

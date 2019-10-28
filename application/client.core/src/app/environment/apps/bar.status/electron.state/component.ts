@@ -1,8 +1,8 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
 import ServiceElectronIpc, { IPCMessages, Subscription } from '../../../services/service.electron.ipc';
-import { IComponentDesc, IFrameOptions } from 'logviewer-client-containers';
+import { IComponentDesc, IFrameOptions } from 'chipmunk-client-containers';
 import { StateHistoryComponent } from './history/component';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
     selector: 'app-apps-status-bar-electron-state',

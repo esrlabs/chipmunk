@@ -1,6 +1,6 @@
 import ServiceElectronIpc, { IPCMessages } from '../../../services/service.electron.ipc';
 import { Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import { Subscription } from 'rxjs';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';

@@ -1,4 +1,4 @@
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 export declare const CDelimiters: {
     columns: string;
     arguments: string;

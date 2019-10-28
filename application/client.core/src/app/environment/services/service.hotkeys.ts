@@ -1,6 +1,6 @@
 declare var Electron: any;
 
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { Subscription } from 'rxjs';
 import { IService } from '../interfaces/interface.service';
 import { Observable, Subject } from 'rxjs';

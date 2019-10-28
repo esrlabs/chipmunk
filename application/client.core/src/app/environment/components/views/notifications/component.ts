@@ -1,5 +1,5 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, AfterViewInit, ViewContainerRef } from '@angular/core';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { Subscription } from 'rxjs';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';

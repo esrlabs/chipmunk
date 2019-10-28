@@ -1,4 +1,4 @@
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import ElectronIpcService, { IPCMessages, Subscription } from './service.electron.ipc';
 import PluginsService, { IPluginData } from './service.plugins';
 import { IService } from '../interfaces/interface.service';

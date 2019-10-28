@@ -1,8 +1,8 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewChild, AfterViewInit, ElementRef } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
-import { IComponentDesc } from 'logviewer-client-containers';
+import { IComponentDesc } from 'chipmunk-client-containers';
 import ContextMenuService, { IMenu, IMenuItem } from '../../services/standalone/service.contextmenu';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
     selector: 'app-layout-contextmenu',

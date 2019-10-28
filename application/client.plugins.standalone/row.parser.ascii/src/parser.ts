@@ -1,5 +1,5 @@
 // tslint:disable:object-literal-sort-keys
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { default as AnsiUp } from 'ansi_up';
 
 const ansiup = new AnsiUp();

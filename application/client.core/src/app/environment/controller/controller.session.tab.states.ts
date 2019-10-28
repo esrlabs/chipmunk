@@ -1,4 +1,4 @@
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 export interface IState {
     [key: string]: any;

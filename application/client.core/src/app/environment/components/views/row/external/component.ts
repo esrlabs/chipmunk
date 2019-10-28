@@ -2,11 +2,11 @@ import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, Af
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import OutputParsersService from '../../../../services/standalone/service.output.parsers';
 import { AOutputRenderComponent, IOutputRenderInputs } from '../../../../interfaces/interface.output.render';
-import { IComponentDesc } from 'logviewer-client-containers';
+import { IComponentDesc } from 'chipmunk-client-containers';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import { Subject } from 'rxjs';
 import { ControllerSessionScope } from '../../../../controller/controller.session.tab.scope';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
     selector: 'app-views-output-row-external',

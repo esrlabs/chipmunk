@@ -1,38 +1,14 @@
 import { Observable, Subject } from 'rxjs';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
-export interface IOptions {
-    closable?: boolean;
-    width?: number;
-    once?: boolean;
-}
-
-export interface IButton {
-    caption: string;
-    handler: (...args: any[]) => any;
-}
-
-export interface IComponent {
-    factory: any;
-    inputs: any;
-}
-
-export interface IPopup {
-    id?: string;
-    caption: string;
-    message?: string;
-    component?: IComponent;
-    buttons?: IButton[];
-    options?: IOptions;
-}
 
 export class PopupsService {
 
     private _subjects: {
-        onNew: Subject<IPopup>,
+        onNew: Subject<Toolkit.IPopup>,
         onRemove: Subject<string>,
     } = {
-        onNew: new Subject<IPopup>(),
+        onNew: new Subject<Toolkit.IPopup>(),
         onRemove: new Subject<string>(),
     };
 
@@ -44,7 +20,7 @@ export class PopupsService {
     }
 
     public getObservable(): {
-        onNew: Observable<IPopup>,
+        onNew: Observable<Toolkit.IPopup>,
         onRemove: Observable<string>,
     } {
         return {
@@ -53,7 +29,7 @@ export class PopupsService {
         };
     }
 
-    public add(popup: IPopup): string {
+    public add(popup: Toolkit.IPopup): string {
         if (popup.options !== undefined) {
             if (popup.options.once === true && this._opened.has(popup.id)) {
                 return;

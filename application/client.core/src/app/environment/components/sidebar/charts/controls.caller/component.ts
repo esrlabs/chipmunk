@@ -1,7 +1,7 @@
 import { Component, AfterViewInit, OnDestroy } from '@angular/core';
 import { SidebarAppChartsControlsComponent } from '../controls/component';
 import SidebarSessionsService from '../../../../services/service.sessions.sidebar';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 /*
     Note

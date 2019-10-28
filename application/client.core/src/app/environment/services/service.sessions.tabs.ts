@@ -1,15 +1,16 @@
-import { TabsService, DockingComponent, DockDef, DocksService, ITab } from 'logviewer-client-complex';
+import { TabsService, DockingComponent, DockDef, DocksService, ITab } from 'chipmunk-client-complex';
 import { Subscription } from './service.electron.ipc';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { IService } from '../interfaces/interface.service';
 import { Observable, Subject, Subscription as SubscriptionRX } from 'rxjs';
 import { IDefaultView } from '../states/state.default';
 import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
 import SourcesService from './service.sources';
 import HotkeysService from './service.hotkeys';
-import { IAPI } from 'logviewer.client.toolkit';
+import { IAPI, IPopup } from 'chipmunk.client.toolkit';
 import PluginsService from './service.plugins';
+import PopupsService from './standalone/service.popups';
 
 export { ControllerSessionTabSearch, IRequest } from '../controller/controller.session.tab.search';
 
@@ -182,6 +183,12 @@ export class TabsSessionsService implements IService {
             getSessionsEventsHub: () => {
                 return this._sessionsEventsHub;
             },
+            addPopup: (popup: IPopup) => {
+                return PopupsService.add(popup);
+            },
+            removePopup: (guid: string) => {
+                PopupsService.remove(guid);
+            }
         };
     }
 

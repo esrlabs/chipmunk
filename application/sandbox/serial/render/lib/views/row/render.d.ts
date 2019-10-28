@@ -1,4 +1,4 @@
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { SerialPortRowRenderAPI } from './render.api';
 export declare class SerialPortRowRender extends Toolkit.ATypedRowRender<SerialPortRowRenderAPI> {
     private _api;

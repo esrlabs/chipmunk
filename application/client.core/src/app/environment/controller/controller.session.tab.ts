@@ -7,7 +7,7 @@ import { ControllerSessionTabStates } from './controller.session.tab.states';
 import { ControllerSessionTabMap } from './controller.session.tab.map';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope } from './controller.session.tab.scope';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import HotkeysService from '../services/service.hotkeys';
 import LayoutStateService from '../services/standalone/service.layout.state';
 

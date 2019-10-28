@@ -2,7 +2,7 @@
 // tslint:disable:max-line-length
 
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, AfterContentInit } from '@angular/core';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { SafeHtml, DomSanitizer } from '@angular/platform-browser';
 import { CDelimiters, CColumnsHeaders } from '../../render/row.columns.api';
 import { isDLTSource } from '../../render/row.columns';

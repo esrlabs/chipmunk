@@ -1,6 +1,6 @@
 import { OnDestroy, ChangeDetectorRef, AfterViewInit, ElementRef } from '@angular/core';
 import { IForkSettings } from '../../common/interface.settings';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 export interface IEnvVar {
     key: string;
     value: string;

@@ -4,7 +4,7 @@ import { ControllerSessionTabStreamOutput, IStreamPacket, IStreamState } from '.
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope } from './controller.session.tab.scope';
 import QueueService, { IQueueController } from '../services/standalone/service.queue';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 export { ControllerSessionTabStreamOutput, IStreamPacket, IStreamState };
 

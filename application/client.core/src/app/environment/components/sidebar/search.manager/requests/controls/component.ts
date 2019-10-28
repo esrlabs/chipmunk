@@ -5,7 +5,7 @@ import { DialogsRecentFitlersActionComponent } from '../../../../dialogs/recentf
 import ElectronIpcService, { IPCMessages } from '../../../../../services/service.electron.ipc';
 import SearchSessionsService, { IRequest } from '../../../../../services/service.sessions.search';
 import { NotificationsService, INotification } from '../../../../../services.injectable/injectable.service.notifications';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-controls',

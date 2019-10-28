@@ -6,8 +6,8 @@ import { SidebarAppChartsEntryComponent         } from './entry/component';
 import { SidebarAppChartsControlsComponent      } from './controls/component';
 import { SidebarAppChartsControlsCallerComponent } from './controls.caller/component';
 
-import { PrimitiveModule                        } from 'logviewer-client-primitive';
-import { ContainersModule                       } from 'logviewer-client-containers';
+import { PrimitiveModule                        } from 'chipmunk-client-primitive';
+import { ContainersModule                       } from 'chipmunk-client-containers';
 
 const entryComponents = [ SidebarAppChartsComponent, SidebarAppChartsEntryComponent, SidebarAppChartsControlsComponent, SidebarAppChartsControlsCallerComponent ];
 const components = [ ...entryComponents ];

@@ -1,5 +1,5 @@
 import { Component, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 interface IKey {
     shortkeys: string[];

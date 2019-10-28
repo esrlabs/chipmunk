@@ -3,7 +3,7 @@ import ServiceElectronIpc, { IPCMessages, Subscription as IPCSubscription } from
 import { ControllerSessionTabSearch, IRequest } from './controller.session.tab.search';
 import { ControllerSessionTabStream } from './controller.session.tab.stream';
 import { IPositionData } from './controller.session.tab.stream.output';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 export interface IMapPoint {
     column: number;

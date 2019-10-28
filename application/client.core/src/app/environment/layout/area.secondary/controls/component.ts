@@ -1,7 +1,7 @@
 import { Component, Input, AfterContentInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { AreaState } from '../../state';
 import { Observable, Subscription } from 'rxjs';
-import { IComponentDesc } from 'logviewer-client-containers';
+import { IComponentDesc } from 'chipmunk-client-containers';
 
 
 @Component({

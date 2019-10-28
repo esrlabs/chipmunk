@@ -4,7 +4,7 @@ import { ControllerSessionTab, IInjectionAddEvent, IInjectionRemoveEvent } from 
 import { ControllerSessionTabMap } from '../../../controller/controller.session.tab.map';
 import { ControllerSessionTabStreamOutput, IStreamPacket, IStreamState, ILoadedRange } from '../../../controller/controller.session.tab.stream.output';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
-import { IDataAPI, IRange, IRow, IRowsPacket, IStorageInformation, DockDef, ComplexScrollBoxComponent, IScrollBoxSelection } from 'logviewer-client-complex';
+import { IDataAPI, IRange, IRow, IRowsPacket, IStorageInformation, DockDef, ComplexScrollBoxComponent, IScrollBoxSelection } from 'chipmunk-client-complex';
 import { ViewOutputRowComponent, IScope } from '../row/component';
 import { ViewOutputControlsComponent, IButton } from './controls/component';
 import ViewsEventsService from '../../../services/standalone/service.views.events';
@@ -12,7 +12,7 @@ import FileOpenerService, { IFile } from '../../../services/service.file.opener'
 import EventsHubService from '../../../services/standalone/service.eventshub';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import PluginsService from '../../../services/service.plugins';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { cleanupOutput } from '../row/helpers';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import SelectionParsersService, { ISelectionParser } from '../../../services/standalone/service.selection.parsers';

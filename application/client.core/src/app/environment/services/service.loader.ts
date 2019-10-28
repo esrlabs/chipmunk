@@ -11,7 +11,7 @@ import FileOpenerService from './service.file.opener';
 import HotkeysService from './service.hotkeys';
 import TabSelectionParserService from './tabs/service.tab.selection.parser';
 import * as Defaults from '../states/state.default';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { setSharedServices } from './shared.services.sidebar';
 
 const InitializeStages = [

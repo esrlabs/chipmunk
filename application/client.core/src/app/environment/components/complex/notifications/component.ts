@@ -1,6 +1,6 @@
 import { Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Subscription } from 'rxjs';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import ToolbarSessionsService, { CDefaultTabsGuids } from '../../../services/service.sessions.toolbar';
 import { NotificationsService, INotification } from '../../../services.injectable/injectable.service.notifications';
 

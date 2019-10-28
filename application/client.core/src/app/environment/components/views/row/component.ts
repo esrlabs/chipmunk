@@ -1,4 +1,4 @@
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
 import { ControllerSessionTabStreamOutput } from '../../../controller/controller.session.tab.stream.output';
@@ -9,7 +9,7 @@ import SourcesService from '../../../services/service.sources';
 import OutputParsersService from '../../../services/standalone/service.output.parsers';
 import SelectionParsersService from '../../../services/standalone/service.selection.parsers';
 import OutputRedirectionsService from '../../../services/standalone/service.output.redirections';
-import { IComponentDesc } from 'logviewer-client-containers';
+import { IComponentDesc } from 'chipmunk-client-containers';
 import { AOutputRenderComponent } from '../../../interfaces/interface.output.render';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';

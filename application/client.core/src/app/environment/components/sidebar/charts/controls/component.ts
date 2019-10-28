@@ -4,7 +4,7 @@ import PopupsService from '../../../../services/standalone/service.popups';
 import ElectronIpcService, { IPCMessages } from '../../../../services/service.electron.ipc';
 import { NotificationsService, INotification } from '../../../../services.injectable/injectable.service.notifications';
 import { DialogsChartsNewActionComponent } from '../../../dialogs/charts.new/component';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
     selector: 'app-sidebar-app-charts-controls',

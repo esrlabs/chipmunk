@@ -1,6 +1,6 @@
 import { Observable, Subject } from 'rxjs';
-import * as Toolkit from 'logviewer.client.toolkit';
-import { IComponentDesc } from 'logviewer-client-containers';
+import * as Toolkit from 'chipmunk.client.toolkit';
+import { IComponentDesc } from 'chipmunk-client-containers';
 
 export interface IMenuItem {
     caption?: string;

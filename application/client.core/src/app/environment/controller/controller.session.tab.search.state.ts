@@ -1,4 +1,4 @@
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 type TResolver = (output: number | undefined) => void;
 type TRejector = (error: Error) => void;

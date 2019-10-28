@@ -1,7 +1,7 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterContentInit, HostListener } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
 import { Chart } from 'chart.js';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { ServiceData, IRange } from '../service.data';
 import { ServicePosition, IPositionChange } from '../service.position';
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';

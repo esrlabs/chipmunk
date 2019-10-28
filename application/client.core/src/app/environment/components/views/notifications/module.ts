@@ -5,8 +5,8 @@ import { SidebarAppNotificationsComponent       } from './component';
 import { SidebarAppNotificationComponent        } from './notification/component';
 import { SidebarAppNotificationsCounterComponent} from './counter/component';
 
-import { PrimitiveModule                        } from 'logviewer-client-primitive';
-import { ContainersModule                       } from 'logviewer-client-containers';
+import { PrimitiveModule                        } from 'chipmunk-client-primitive';
+import { ContainersModule                       } from 'chipmunk-client-containers';
 
 const entryComponents = [ SidebarAppNotificationsComponent, SidebarAppNotificationComponent, SidebarAppNotificationsCounterComponent ];
 const components = [ ...entryComponents ];

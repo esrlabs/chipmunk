@@ -6,9 +6,9 @@ import { ViewOutputComponent                    } from './component';
 import { ViewOutputControlsComponent            } from './controls/component';
 import { ViewContentMapComponent                } from './map/component';
 
-import { PrimitiveModule                        } from 'logviewer-client-primitive';
-import { ContainersModule                       } from 'logviewer-client-containers';
-import { ComplexModule                          } from 'logviewer-client-complex';
+import { PrimitiveModule                        } from 'chipmunk-client-primitive';
+import { ContainersModule                       } from 'chipmunk-client-containers';
+import { ComplexModule                          } from 'chipmunk-client-complex';
 
 const entryComponents = [ ViewOutputComponent, ViewOutputControlsComponent, ViewContentMapComponent ];
 const components = [ ViewOutputComponent, ...entryComponents ];

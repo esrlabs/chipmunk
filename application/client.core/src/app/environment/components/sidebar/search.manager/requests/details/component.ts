@@ -4,7 +4,7 @@ import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, OnCha
 import { IRequest } from '../../../../../controller/controller.session.tab.search';
 import { CColors } from '../../../../../conts/colors';
 import { getContrastColor } from '../../../../../theme/colors';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { Subscription } from 'rxjs';
 
 export interface IRequestItem {

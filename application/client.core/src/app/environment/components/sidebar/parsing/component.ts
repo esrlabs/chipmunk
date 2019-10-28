@@ -1,5 +1,5 @@
 import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, AfterViewInit } from '@angular/core';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import SelectionParsersService, { IUpdateEvent, ISelectionParser } from '../../../services/standalone/service.selection.parsers';

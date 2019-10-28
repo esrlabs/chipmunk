@@ -1,6 +1,6 @@
 import { IPCMessages } from '../services/service.electron.ipc';
 import { Observable, Subject, Subscription } from 'rxjs';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { ControllerSessionTabStreamOutput } from '../controller/controller.session.tab.stream.output';
 import { ControllerSessionTabStreamBookmarks, IBookmark } from './controller.session.tab.stream.bookmarks';
 import { ControllerSessionTabSourcesState } from './controller.session.tab.sources.state';
