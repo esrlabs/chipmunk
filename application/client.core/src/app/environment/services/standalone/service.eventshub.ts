@@ -1,4 +1,4 @@
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { Subscription, Observable, Subject} from 'rxjs';
 
 export class EventsHubService {

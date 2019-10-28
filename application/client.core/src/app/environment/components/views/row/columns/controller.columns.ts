@@ -1,7 +1,7 @@
 // tslint:disable:no-inferrable-types
 
 import { Subject, Observable } from 'rxjs';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 export const CDefaults = {
     width: 100,

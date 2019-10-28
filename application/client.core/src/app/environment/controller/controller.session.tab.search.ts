@@ -4,7 +4,7 @@ import { ControllerSessionTabStreamOutput } from './controller.session.tab.strea
 import { ControllerSessionTabSearchState} from './controller.session.tab.search.state';
 import { ControllerSessionScope } from './controller.session.tab.scope';
 import QueueService, { IQueueController } from '../services/standalone/service.queue';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
 import OutputParsersService from '../services/standalone/service.output.parsers';
 import * as ColorScheme from '../theme/colors';

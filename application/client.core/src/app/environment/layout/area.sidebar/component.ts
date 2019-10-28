@@ -1,13 +1,13 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { TabsService, TabsOptions, ETabsListDirection } from 'logviewer-client-complex';
+import { TabsService, TabsOptions, ETabsListDirection } from 'chipmunk-client-complex';
 import { ControllerSessionTab } from '../../controller/controller.session.tab';
 import { AreaState } from '../state';
 import { Subscription, Subject, Observable } from 'rxjs';
 import TabsSessionsService from '../../services/service.sessions.tabs';
 import SidebarSessionsService from '../../services/service.sessions.sidebar';
-import { IComponentDesc } from 'logviewer-client-containers';
+import { IComponentDesc } from 'chipmunk-client-containers';
 import { LayoutSessionSidebarControlsComponent } from './controls/component';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
     selector: 'app-layout-func-bar',

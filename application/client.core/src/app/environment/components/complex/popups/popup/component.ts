@@ -1,6 +1,5 @@
 import { Component, Input, HostBinding, AfterContentInit } from '@angular/core';
-
-import { IPopup, IOptions } from '../../../../services/standalone/service.popups';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
     selector: 'app-popup',
@@ -10,7 +9,7 @@ import { IPopup, IOptions } from '../../../../services/standalone/service.popups
 
 export class PopupComponent implements AfterContentInit {
 
-    @Input() public popup: IPopup = { caption: '', message: '' };
+    @Input() public popup: Toolkit.IPopup = { caption: '', message: '' };
 
     @HostBinding('style.width') width = '24rem';
     @HostBinding('style.margin-left') marginLeft = '-12rem';

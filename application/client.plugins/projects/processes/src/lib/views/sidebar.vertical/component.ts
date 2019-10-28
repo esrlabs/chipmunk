@@ -4,7 +4,7 @@ import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, ElementR
 import { EHostEvents, EHostCommands } from '../../common/host.events';
 import { IForkSettings } from '../../common/interface.settings';
 
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 export interface IEnvVar {
     key: string;

@@ -2,7 +2,7 @@ import { SidebarAppSearchManagerComponent } from '../components/sidebar/search.m
 import { SidebarAppMergeFilesComponent } from '../components/sidebar/merge/component';
 import { SidebarAppConcatFilesComponent } from '../components/sidebar/concat/component';
 import { SidebarAppChartsComponent } from '../components/sidebar/charts/component';
-import { ITab } from 'logviewer-client-complex';
+import { ITab } from 'chipmunk-client-complex';
 
 export { ITab };
 

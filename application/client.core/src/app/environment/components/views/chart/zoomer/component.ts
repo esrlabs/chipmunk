@@ -1,7 +1,7 @@
 import { Component, Input, Output, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, EventEmitter } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
 import { Chart } from 'chart.js';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 import { ServiceData } from '../service.data';
 import { ServicePosition } from '../service.position';

@@ -1,5 +1,5 @@
 import { ASCIIColorsParser } from './parser';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 const gate: Toolkit.APluginServiceGate | undefined = (window as any).logviewer;
 if (gate === undefined) {

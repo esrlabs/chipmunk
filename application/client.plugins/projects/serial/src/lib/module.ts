@@ -7,8 +7,8 @@ import { SidebarVerticalPortConnectedComponent } from './views/sidebar.vertical/
 import { SidebarVerticalPortOptionsReadComponent } from './views/sidebar.vertical/port.options.read/component';
 import { SidebarVerticalPortOptionsWriteComponent } from './views/sidebar.vertical/port.options.write/component';
 import { SerialRowComponent } from './views/row/component';
-import { PrimitiveModule } from 'logviewer-client-primitive';
-import * as Toolkit from 'logviewer.client.toolkit';
+import { PrimitiveModule } from 'chipmunk-client-primitive';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 const CComponents = [
     SidebarVerticalComponent,

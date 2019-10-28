@@ -5,8 +5,8 @@ import { ViewChartComponent                         } from './component';
 import { ViewChartCanvasComponent                   } from './chart/component';
 import { ViewChartZoomerCanvasComponent             } from './zoomer/component';
 import { ViewChartZoomerCursorCanvasComponent       } from './zoomer/cursor/component';
-import { PrimitiveModule                            } from 'logviewer-client-primitive';
-import { ContainersModule                           } from 'logviewer-client-containers';
+import { PrimitiveModule                            } from 'chipmunk-client-primitive';
+import { ContainersModule                           } from 'chipmunk-client-containers';
 
 const entryComponents = [ ViewChartComponent, ViewChartCanvasComponent, ViewChartZoomerCanvasComponent, ViewChartZoomerCursorCanvasComponent ];
 const components = [ ...entryComponents ];

@@ -1,6 +1,6 @@
 import { OnDestroy, ChangeDetectorRef, AfterViewInit, AfterContentInit } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { Subject } from 'rxjs';
 export declare class SerialRowComponent implements AfterViewInit, OnDestroy, AfterContentInit {
     private _cdRef;

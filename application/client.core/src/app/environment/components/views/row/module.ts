@@ -10,9 +10,9 @@ import { ViewOutputRowColumnsHeadersComponent       } from './columns/headers/co
 import { ViewOutputRowColumnsHeadersMenuComponent   } from './columns/headers/menu/component';
 
 
-import { PrimitiveModule                            } from 'logviewer-client-primitive';
-import { ContainersModule                           } from 'logviewer-client-containers';
-import { ComplexModule                              } from 'logviewer-client-complex';
+import { PrimitiveModule                            } from 'chipmunk-client-primitive';
+import { ContainersModule                           } from 'chipmunk-client-containers';
+import { ComplexModule                              } from 'chipmunk-client-complex';
 
 const rows = [ ViewOutputRowStandardComponent, ViewOutputRowExternalComponent, ViewOutputRowColumnsComponent, ViewOutputRowColumnsHeadersComponent, ViewOutputRowColumnsHeadersMenuComponent ];
 const entryComponents = [ ViewOutputRowComponent, ...rows ];

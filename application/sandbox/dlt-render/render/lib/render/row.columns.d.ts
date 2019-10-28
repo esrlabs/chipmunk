@@ -1,4 +1,4 @@
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { DLTRowColumnsAPI } from './row.columns.api';
 export declare function isDLTSource(sourceName: string): boolean;
 export declare class DLTRowColumns extends Toolkit.ATypedRowRender<DLTRowColumnsAPI> {

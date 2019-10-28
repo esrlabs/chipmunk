@@ -1,7 +1,7 @@
 import { Component, HostListener, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterContentInit, EventEmitter, Input } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { IPositionChange, IPositionForce } from '../../service.position';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import ViewsEventsService from '../../../../../services/standalone/service.views.events';
 import { ServiceData } from '../../service.data';
 import { ServicePosition } from '../../service.position';

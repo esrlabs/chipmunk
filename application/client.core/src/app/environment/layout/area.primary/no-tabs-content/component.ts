@@ -3,7 +3,7 @@ import FileOpenerService, { IFile } from '../../../services/service.file.opener'
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 import { Subscription } from 'rxjs';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
     selector: 'app-layout-area-no-tabs-content',

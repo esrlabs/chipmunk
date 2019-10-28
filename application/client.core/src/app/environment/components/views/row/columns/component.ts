@@ -8,7 +8,7 @@ import { Subscription, Subject } from 'rxjs';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { ControllerSessionTabStreamOutput } from '../../../../controller/controller.session.tab.stream.output';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { ViewOutputRowColumnsHeadersComponent, CColumnsHeadersKey } from './headers/component';
 
 interface IAPI {

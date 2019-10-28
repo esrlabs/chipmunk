@@ -2,7 +2,7 @@ import { OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
 import { IPortInfo, IPortState } from '../../common/interface.portinfo';
 import { IOptions } from '../../common/interface.options';
 import { SidebarVerticalPortOptionsWriteComponent } from './port.options.write/component';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 interface IConnected {
     port: IPortInfo;
     options: IOptions;

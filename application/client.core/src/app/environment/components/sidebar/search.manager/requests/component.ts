@@ -1,5 +1,5 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewChild, AfterViewInit, Input, ElementRef } from '@angular/core';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { Subscription, Subject, Observable } from 'rxjs';
 import SessionsService from '../../../../services/service.sessions.tabs';
 import SidebarSessionsService from '../../../../services/service.sessions.sidebar';
@@ -7,7 +7,7 @@ import SearchSessionsService, { IRequest } from '../../../../services/service.se
 import { IRequestItem } from './request/component';
 import { IRequestItem as IRequestDetailsItem, SidebarAppSearchRequestDetailsComponent } from './details/component';
 import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
-import { IComponentDesc } from 'logviewer-client-containers';
+import { IComponentDesc } from 'chipmunk-client-containers';
 import { SidebarAppSearchManagerControlsComponent } from './controls/component';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import ContextMenuService, { IMenu, IMenuItem } from '../../../../services/standalone/service.contextmenu';

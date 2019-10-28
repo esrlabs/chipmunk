@@ -1,10 +1,10 @@
 // tslint:disable:member-ordering
 
 import { Component, OnDestroy, ChangeDetectorRef, Input, HostListener, AfterContentInit, OnChanges, ViewChild } from '@angular/core';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { IRequest } from '../../../../../controller/controller.session.tab.search';
 import { Subscription, Subject, Observable } from 'rxjs';
-import { InputStandardComponent } from 'logviewer-client-primitive';
+import { InputStandardComponent } from 'chipmunk-client-primitive';
 
 export interface IRequestItem {
     request: IRequest;

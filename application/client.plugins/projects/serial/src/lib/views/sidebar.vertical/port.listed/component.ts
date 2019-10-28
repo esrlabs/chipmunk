@@ -2,7 +2,7 @@
 
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, OnChanges, SimpleChanges, SimpleChange } from '@angular/core';
 import { IPortInfo, IPortState, IIOState } from '../../../common/interface.portinfo';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
     selector: 'lib-sb-portinfo-com',

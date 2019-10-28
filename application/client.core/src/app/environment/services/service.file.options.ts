@@ -1,4 +1,4 @@
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { Observable, Subject } from 'rxjs';
 import { IService } from '../interfaces/interface.service';
 import ServiceElectronIpc, { IPCMessages, Subscription, TResponseFunc } from './service.electron.ipc';

@@ -1,4 +1,4 @@
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 export type TPluginExportsCallback = (exports: Toolkit.IPluginExports) => void;
 export type TPluginServiceCallback = (service: Toolkit.APluginService) => void;

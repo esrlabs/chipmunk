@@ -2,8 +2,8 @@
 
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, AfterContentInit, Input, ViewChild } from '@angular/core';
 import { IOptions } from '../../../common/interface.options';
-import * as Toolkit from 'logviewer.client.toolkit';
-import { CheckSimpleComponent, InputStandardComponent, DDListStandardComponent } from 'logviewer-client-primitive';
+import * as Toolkit from 'chipmunk.client.toolkit';
+import { CheckSimpleComponent, InputStandardComponent, DDListStandardComponent } from 'chipmunk-client-primitive';
 
 @Component({
     selector: 'lib-sb-port-options-write-com',

@@ -5,8 +5,8 @@ import { SidebarAppSearchRequestsComponent          } from './component';
 import { SidebarAppSearchRequestComponent           } from './request/component';
 import { SidebarAppSearchRequestDetailsComponent    } from './details/component';
 
-import { PrimitiveModule                            } from 'logviewer-client-primitive';
-import { ContainersModule                           } from 'logviewer-client-containers';
+import { PrimitiveModule                            } from 'chipmunk-client-primitive';
+import { ContainersModule                           } from 'chipmunk-client-containers';
 
 const entryComponents = [ SidebarAppSearchRequestsComponent, SidebarAppSearchRequestComponent, SidebarAppSearchRequestDetailsComponent ];
 const components = [ ...entryComponents ];

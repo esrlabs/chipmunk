@@ -1,7 +1,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { ViewSearchOutputComponent } from './output/component';
-import { IComponentDesc } from 'logviewer-client-containers';
+import { IComponentDesc } from 'chipmunk-client-containers';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { ControllerSessionScope } from '../../../controller/controller.session.tab.scope';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
@@ -9,7 +9,7 @@ import TabsSessionsService from '../../../services/service.sessions.tabs';
 import HotkeysService from '../../../services/service.hotkeys';
 import SidebarSessionsService from '../../../services/service.sessions.sidebar';
 import LayoutStateService from '../../../services/standalone/service.layout.state';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 interface IViewState {
     searchRequestId: string | undefined;

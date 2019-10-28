@@ -1,5 +1,5 @@
 import { Component, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import ElectronIpcService, { IPCMessages, Subscription } from '../../../services/service.electron.ipc';
 import FileOpenerService from '../../../services/service.file.opener';
 import TabsSessionsService from '../../../services/service.sessions.tabs';

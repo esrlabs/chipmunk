@@ -2,8 +2,8 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SidebarVerticalComponent } from './views/sidebar.vertical/component';
-import { PrimitiveModule } from 'logviewer-client-primitive';
-import * as Toolkit from 'logviewer.client.toolkit';
+import { PrimitiveModule } from 'chipmunk-client-primitive';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 @NgModule({
     entryComponents: [ SidebarVerticalComponent],

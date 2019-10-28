@@ -4,8 +4,8 @@ import { CommonModule                           } from '@angular/common';
 import { NotificationsComponent                 } from './component';
 import { NotificationComponent                  } from './notification/component';
 
-import { PrimitiveModule                        } from 'logviewer-client-primitive';
-import { ContainersModule                       } from 'logviewer-client-containers';
+import { PrimitiveModule                        } from 'chipmunk-client-primitive';
+import { ContainersModule                       } from 'chipmunk-client-containers';
 
 const entryComponents = [ NotificationComponent ];
 const components = [ NotificationsComponent, ...entryComponents ];

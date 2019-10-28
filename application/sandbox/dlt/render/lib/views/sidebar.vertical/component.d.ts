@@ -1,6 +1,6 @@
 import { OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
-import * as Toolkit from 'logviewer.client.toolkit';
-import { InputStandardComponent } from 'logviewer-client-primitive';
+import * as Toolkit from 'chipmunk.client.toolkit';
+import { InputStandardComponent } from 'chipmunk-client-primitive';
 export interface IEnvVar {
     key: string;
     value: string;

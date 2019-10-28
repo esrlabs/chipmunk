@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import TabsSessionsService from '../services/service.sessions.tabs';
 
 export enum ENotificationType {

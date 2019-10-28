@@ -1,8 +1,8 @@
 import { NgModule } from '@angular/core';
 import { SidebarViewComponent } from './view/component';
 import { CommonModule } from '@angular/common';
-import { PrimitiveModule } from 'logviewer-client-primitive';
-import * as Toolkit from 'logviewer.client.toolkit';
+import { PrimitiveModule } from 'chipmunk-client-primitive';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 @NgModule({
     entryComponents: [SidebarViewComponent],

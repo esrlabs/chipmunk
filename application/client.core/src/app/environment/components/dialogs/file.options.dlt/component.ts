@@ -1,7 +1,7 @@
 import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit } from '@angular/core';
-import { DDListStandardComponent } from 'logviewer-client-primitive';
+import { DDListStandardComponent } from 'chipmunk-client-primitive';
 import ElectronIpcService, { IPCMessages, Subscription } from '../../../services/service.electron.ipc';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 import * as ThemeColors from '../../../theme/colors';
 import TabsSessionsService from '../../../services/service.sessions.tabs';

@@ -5,7 +5,7 @@ import { IPCMessages, Subscription } from './environment/services/service.electr
 import PluginsService from './environment/services/service.plugins';
 import LoaderService from './environment/services/service.loader';
 
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
     selector: 'app-root',

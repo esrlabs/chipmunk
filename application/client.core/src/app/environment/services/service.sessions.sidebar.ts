@@ -1,6 +1,6 @@
-import { TabsService, IComponentDesc, ITab } from 'logviewer-client-complex';
+import { TabsService, IComponentDesc, ITab } from 'chipmunk-client-complex';
 import { Subscription, Subject, Observable } from 'rxjs';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { IService } from '../interfaces/interface.service';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
 import TabsSessionsService from './service.sessions.tabs';

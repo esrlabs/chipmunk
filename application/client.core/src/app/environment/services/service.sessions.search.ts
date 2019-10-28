@@ -1,4 +1,4 @@
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { IService } from '../interfaces/interface.service';
 import { Observable, Subject, Subscription } from 'rxjs';
 import TabsSessionsService, { ControllerSessionTabSearch, IRequest } from './service.sessions.tabs';

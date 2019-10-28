@@ -1,4 +1,4 @@
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { Subscription } from 'rxjs';
 import ToolbarSessionsService from '../service.sessions.toolbar';
 import { SidebarAppParsingComponent } from '../../components/sidebar/parsing/component';

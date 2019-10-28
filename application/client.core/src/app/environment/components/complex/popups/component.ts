@@ -1,8 +1,8 @@
 import { Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Subscription } from 'rxjs';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
-import PopupsService, { IPopup } from '../../../services/standalone/service.popups';
+import PopupsService from '../../../services/standalone/service.popups';
 
 const DEFAULT_OPTIONS = {
     closeDelay: 4000,           // ms
@@ -18,9 +18,9 @@ const DEFAULT_OPTIONS = {
 export class PopupsComponent implements OnDestroy {
 
     private _subscriptions: { [key: string]: Subscription } = {};
-    private _popups: IPopup[] = [];
+    private _popups: Toolkit.IPopup[] = [];
 
-    public popups: IPopup[] = [];
+    public popups: Toolkit.IPopup[] = [];
 
     constructor(private _cdRef: ChangeDetectorRef) {
         this._subscriptions.onNew = PopupsService.getObservable().onNew.subscribe(this._onNew.bind(this));
@@ -33,11 +33,11 @@ export class PopupsComponent implements OnDestroy {
         });
     }
 
-    public onClose(popup: IPopup) {
+    public onClose(popup: Toolkit.IPopup) {
         this._remove(popup.id);
     }
 
-    private _onNew(popup: IPopup) {
+    private _onNew(popup: Toolkit.IPopup) {
         popup = this._normalize(popup);
         if (popup === null) {
             return false;
@@ -51,7 +51,7 @@ export class PopupsComponent implements OnDestroy {
         this._remove(guid);
     }
 
-    private _normalize(popup: IPopup): IPopup | null {
+    private _normalize(popup: Toolkit.IPopup): Toolkit.IPopup | null {
         if (typeof popup !== 'object' || popup === null) {
             return null;
         }
@@ -96,7 +96,7 @@ export class PopupsComponent implements OnDestroy {
 
     private _update(id: string, updated: any): boolean {
         let index: number = -1;
-        this.popups.forEach((notify: IPopup, i: number) => {
+        this.popups.forEach((notify: Toolkit.IPopup, i: number) => {
             if (index !== -1) {
                 return;
             }

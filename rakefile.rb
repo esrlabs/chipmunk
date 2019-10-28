@@ -20,7 +20,7 @@ CLIENT_CORE_DIR = 'application/client.core'
 INCLUDED_PLUGINS_FOLDER = "#{ELECTRON_COMPILED_DIR}/plugins"
 INCLUDED_APPS_FOLDER = "#{ELECTRON_COMPILED_DIR}/apps"
 APP_PACKAGE_JSON = "#{ELECTRON_DIR}/package.json"
-SRC_CLIENT_NPM_LIBS = 'application/client.libs/logviewer.client.components'
+SRC_CLIENT_NPM_LIBS = 'application/client.libs/chipmunk.client.components'
 RIPGREP_URL = 'https://github.com/BurntSushi/ripgrep/releases/download/11.0.2/ripgrep-11.0.2'
 RIPGREP_LOCAL_TMP = File.join(Dir.home, 'tmp/ripgrep_download')
 
@@ -29,9 +29,9 @@ DESTS_CLIENT_NPM_LIBS = [
   'application/client.plugins/node_modules'
 ].freeze
 CLIENT_NPM_LIBS_NAMES = %w[
-  logviewer-client-containers
-  logviewer-client-primitive
-  logviewer-client-complex
+  chipmunk-client-containers
+  chipmunk-client-primitive
+  chipmunk-client-complex
 ].freeze
 COMPLEX_PLUGINS = [
   'dlt',
@@ -239,18 +239,18 @@ namespace :client do
     cd CLIENT_CORE_DIR do
       puts 'Installing: core'
       npm_install
-      npm_install('logviewer.client.toolkit@latest')
+      npm_install('chipmunk.client.toolkit@latest')
     end
   end
   task :rebuild_core do
     cd CLIENT_CORE_DIR do
       puts 're-installing: core'
       npm_install
-      npm_reinstall('logviewer.client.toolkit@latest')
+      npm_reinstall('chipmunk.client.toolkit@latest')
     end
   end
   task :build_components do
-    cd 'application/client.libs/logviewer.client.components' do
+    cd 'application/client.libs/chipmunk.client.components' do
       puts 'Installing: components'
       npm_install
     end
@@ -259,14 +259,14 @@ namespace :client do
     cd 'application/client.plugins' do
       puts 'Installing: plugins env'
       npm_install
-      npm_install('logviewer.client.toolkit@latest')
+      npm_install('chipmunk.client.toolkit@latest')
     end
   end
   task :rebuild_plugins do
     cd 'application/client.plugins' do
       puts 'Re-Installing: plugins env'
       npm_install
-      npm_reinstall('logviewer.client.toolkit@latest')
+      npm_reinstall('chipmunk.client.toolkit@latest')
     end
   end
 
@@ -408,7 +408,7 @@ def install_plugin_standalone(plugin)
   src = "application/client.plugins.standalone/#{plugin}"
   cd src do
     npm_install
-    npm_reinstall('logviewer.client.toolkit@latest')
+    npm_reinstall('chipmunk.client.toolkit@latest')
     sh "#{NPM_RUN} build"
   end
   dest = "#{PLUGINS_SANDBOX}/#{plugin}"

@@ -6,7 +6,7 @@ import { IPortInfo, IPortState, IIOState } from '../../common/interface.portinfo
 import { IOptions, CDefaultOptions } from '../../common/interface.options';
 import { SidebarVerticalPortOptionsWriteComponent } from './port.options.write/component';
 
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 interface IState {
     _ng_ports: IPortInfo[];

@@ -2,7 +2,7 @@
 
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, ElementRef, ViewChild } from '@angular/core';
 import { IOptions, COptionsLabes } from '../../../common/interface.options';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 
 @Component({

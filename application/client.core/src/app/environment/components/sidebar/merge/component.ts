@@ -1,5 +1,5 @@
 import { Component, OnDestroy, Input,  ChangeDetectorRef, ViewChildren, QueryList, AfterContentInit, AfterViewInit, ViewContainerRef } from '@angular/core';
-import * as Toolkit from 'logviewer.client.toolkit';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import { Subscription, Subject, Observable } from 'rxjs';
 import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
 import { SidebarAppMergeFilesItemComponent } from './file/component';
