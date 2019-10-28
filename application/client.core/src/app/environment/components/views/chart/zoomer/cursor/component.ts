@@ -1,6 +1,6 @@
 import { Component, HostListener, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterContentInit, EventEmitter, Input } from '@angular/core';
-import { Observable, Subscription, of } from 'rxjs';
-import { IPositionChange } from '../../service.position';
+import { Subscription } from 'rxjs';
+import { IPositionChange, IPositionForce } from '../../service.position';
 import * as Toolkit from 'logviewer.client.toolkit';
 import ViewsEventsService from '../../../../../services/standalone/service.views.events';
 import { ServiceData } from '../../service.data';
@@ -134,6 +134,7 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterContentInit, A
     public ngAfterViewInit() {
         // Cursor events
         this._subscriptions.onSwitch = this.servicePosition.getObservable().onSwitch.subscribe(this._onPositionRestored.bind(this));
+        this._subscriptions.onForce = this.servicePosition.getObservable().onForce.subscribe(this._onPositionForced.bind(this));
         // Data events
         this._subscriptions.onData = this.serviceData.getObservable().onData.subscribe(this._onResizeIsRequired.bind(this));
         // Listen session changes event
@@ -298,6 +299,43 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterContentInit, A
         }
         this._ng_left = position.l;
         this._ng_width = position.w;
+        this._forceUpdate();
+    }
+
+    private _onPositionForced(change: IPositionForce) {
+        if (this._ng_width === -1 || this._width === -1) {
+            return;
+        }
+        let width: number = this._ng_width;
+        let left: number = 0;
+        // Zooming
+        if (change.deltaY < 0) {
+            // Zoom in
+            if (width + change.deltaY < CSettings.minSize) {
+                width = CSettings.minSize;
+            } else {
+                width += change.deltaY;
+            }
+        } else if (change.deltaY > 0) {
+            // Zoom out
+            if (width + change.deltaY > this._width) {
+                width = this._width;
+            } else {
+                width += change.deltaY;
+            }
+        }
+        // Position
+        const cursorX: number = this._ng_width * change.proportionX + this._ng_left;
+        left = Math.round(cursorX - width * change.proportionX);
+        if (left < 0) {
+            left = 0;
+        }
+        if (left + width > this._width) {
+            left = this._width - width;
+        }
+        this._ng_width = width;
+        this._ng_left = left;
+        this._emitChanges();
         this._forceUpdate();
     }
 
