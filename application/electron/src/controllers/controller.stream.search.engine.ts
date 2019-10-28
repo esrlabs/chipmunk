@@ -189,7 +189,7 @@ export class ControllerStreamSearchEngine {
         const regs: string[] = regulars.map((regular: RegExp) => {
             return regular.source;
         });
-        return `(${regs.join('|')}).*\\x{0002}\\d*\\x{0002}`;
+        return `(${regs.join('|')}).*\\x{0003}\\d*\\x{0003}`;
     }
 
     private _clear() {
