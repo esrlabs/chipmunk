@@ -23,7 +23,22 @@
         </li>
     </ul>    
 </div>
+<div class="container">
+    <div class="comstyle-input-holder input-wrapper">
+        <div class="comstyle-input">
+            <input #input_msg
+            class="comstyle-input"
+            type="text"
+            placeholder="press ENTER to send"
+            [(ngModel)]="_ng_msg"
+            (keyup)="_ng_sendMessage($event)"/>
+            <span class="spliter"></span>
+        </div>
+    </div>
+    <select id="dropdown" (change)="_ng_updateSelection()">
+    </select>
+</div>
+    
 <div class="error">
     <p class="t-normal color-scheme-error">{{_ng_error}}</p>
 </div>
-

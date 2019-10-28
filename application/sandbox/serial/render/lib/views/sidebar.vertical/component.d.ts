@@ -17,12 +17,14 @@ export declare class SidebarVerticalComponent implements AfterViewInit, OnDestro
     private _subscriptions;
     private _logger;
     private _destroyed;
+    private _chosenPort;
     _ng_ports: IPortInfo[];
     _ng_connected: IConnected[];
     _ng_selected: IPortInfo | undefined;
     _ng_busy: boolean;
     _ng_error: string | undefined;
     _ng_options: boolean;
+    _ng_msg: string;
     constructor(_cdRef: ChangeDetectorRef);
     ngOnDestroy(): void;
     ngAfterViewInit(): void;
@@ -48,5 +50,15 @@ export declare class SidebarVerticalComponent implements AfterViewInit, OnDestro
     private _hostEvents_onDisconnected;
     private _hostEvents_onError;
     private _forceUpdate;
+    _ng_sendMessage(event: KeyboardEvent): void;
+    private _createDropdownElement;
+    private _removeDropdownElement;
+    _ng_updateSelection(): void;
+    private _updateDropdown;
+    private _updateDisconnectPort;
+    private _updateConnectPort;
+    private _saveOption;
+    private _loadOption;
+    private _deleteOption;
 }
 export {};

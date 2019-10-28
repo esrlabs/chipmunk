@@ -9,4 +9,5 @@ export enum EHostCommands {
     open = 'open',
     close = 'close',
     list = 'list',
+    write = 'write'
 }

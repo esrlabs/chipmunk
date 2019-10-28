@@ -7,5 +7,6 @@ export declare enum EHostEvents {
 export declare enum EHostCommands {
     open = "open",
     close = "close",
-    list = "list"
+    list = "list",
+    write = "write"
 }

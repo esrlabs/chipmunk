@@ -6,7 +6,13 @@ import { IPortInfo, IPortState, IIOState } from '../../common/interface.portinfo
 import { IOptions, CDefaultOptions } from '../../common/interface.options';
 import { SidebarVerticalPortOptionsWriteComponent } from './port.options.write/component';
 
+import { InputStandardComponent } from 'logviewer-client-primitive';
+
+
 import * as Toolkit from 'chipmunk.client.toolkit';
+import { Message } from '@angular/compiler/src/i18n/i18n_ast';
+
+let num: number = 0;
 
 interface IState {
     _ng_ports: IPortInfo[];
@@ -22,6 +28,8 @@ interface IConnected {
 }
 
 const state: Toolkit.ControllerState<IState> = new Toolkit.ControllerState<IState>();
+let sessionPort = new Map<string, IPortInfo[]>();
+let savedOption = new Map<string, string>();
 
 @Component({
     selector: Toolkit.EViewsTypes.sidebarVertical,
@@ -39,13 +47,16 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger(`Plugin: serial: inj_output_bot:`);
     private _destroyed: boolean = false;
-
+    private _chosenPort: string = undefined;
+    
     public _ng_ports: IPortInfo[] = [];
     public _ng_connected: IConnected[] = [];
     public _ng_selected: IPortInfo | undefined;
     public _ng_busy: boolean = false;
     public _ng_error: string | undefined;
     public _ng_options: boolean = false;
+    
+    public _ng_msg: string;
 
     constructor(private _cdRef: ChangeDetectorRef) {
     }
@@ -59,6 +70,8 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     }
 
     ngAfterViewInit() {
+        this._updateDropdown();
+
         // Subscription to income events
         this._subscriptions.incomeIPCHostMessage = this.api.getIPC().subscribeToHost((message: any) => {
             if (typeof message !== 'object' && message === null) {
@@ -149,6 +162,10 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                     connections: 0,
                 },
             });
+            
+            this._updateConnectPort();            
+            this._createDropdownElement(this._ng_selected);
+
             this._ng_selected = undefined;
             this._forceUpdate();
         }).catch((error: Error) => {
@@ -171,6 +188,12 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     }
 
     public _ng_onDisconnectPort(port: IPortInfo) {
+        
+        this._updateDisconnectPort(port);
+        for(let ports of [...sessionPort.values()])
+            if(ports.includes(port))
+                return;
+
         this._ng_connected = this._ng_connected.filter((connected: IConnected) => {
             return connected.port.comName !== port.comName;
         });
@@ -320,4 +343,87 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         this._cdRef.detectChanges();
     }
 
+    public _ng_sendMessage(event: KeyboardEvent) {
+        if (event.key !== 'Enter') {
+            return;
+        }
+        if (this._ng_msg.trim() === '' || !this._chosenPort) {
+            return;
+        }
+        this.api.getIPC().requestToHost({
+            stream: this.session,
+            command: EHostCommands.write,
+            cmd: this._ng_msg,
+            path: this._chosenPort
+        }, this.session).catch((error: Error) => {
+            console.error(error);
+        });
+
+        this._ng_msg = "";
+    }
+
+    private _createDropdownElement(port: IPortInfo) {
+        let dropdown = <HTMLSelectElement> document.getElementById("dropdown");
+        let option = document.createElement("option");
+        option.text = port.comName;
+        option.id = port.comName;
+        dropdown.add(option);
+        this._ng_updateSelection();
+    }
+
+    private _removeDropdownElement(port: IPortInfo) {
+        let dropdownElement = <HTMLSelectElement> document.getElementById(port.comName);
+        dropdownElement.parentNode.removeChild(dropdownElement);
+        this._ng_updateSelection();
+    }
+
+    public _ng_updateSelection() {
+        let dropdown = <HTMLSelectElement> document.getElementById("dropdown");
+        this._chosenPort = dropdown.value;
+        this._saveOption(dropdown.value);
+    }
+
+    private _updateDropdown() {
+        let portArray = sessionPort.get(this.session);
+        if(portArray) {
+            for(let port of portArray) {
+                this._createDropdownElement(port);
+                this._loadOption(port.comName);
+            }
+        }
+    }
+
+    private _updateDisconnectPort(port: IPortInfo) {
+        this._deleteOption(port.comName);
+        let portArray = sessionPort.get(this.session);
+        if(portArray && portArray.includes(port)) {
+            const index: number = portArray.indexOf(port);
+            if(index > -1)
+                portArray.splice(index, 1);
+            this._removeDropdownElement(port);
+        }
+    }
+
+    private _updateConnectPort() {
+        let portArray = sessionPort.get(this.session);
+        if (portArray && !portArray.includes(this._ng_selected))
+                portArray.push(this._ng_selected);
+        else
+            sessionPort.set(this.session, [this._ng_selected]);
+    }
+
+    private _saveOption(portName: string) {
+        savedOption.set(this.session, portName);
+    }
+
+    private _loadOption(portName: string) {
+        if(savedOption.get(this.session)) {
+            let option = <HTMLOptionElement> document.getElementById(portName);
+            option.selected = true;
+        }
+    }
+
+    private _deleteOption(portName: string) {
+        savedOption.delete(portName);
+    }
 }
