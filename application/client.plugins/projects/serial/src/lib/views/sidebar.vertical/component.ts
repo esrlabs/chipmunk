@@ -164,7 +164,8 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             });
             
             this._updateConnectPort();            
-            this._createDropdownElement(this._ng_selected);
+            let newPort = this._createDropdownElement(this._ng_selected);
+            newPort.selected = true;
 
             this._ng_selected = undefined;
             this._forceUpdate();
@@ -356,13 +357,14 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         this._ng_msg = "";
     }
 
-    private _createDropdownElement(port: IPortInfo) {
+    private _createDropdownElement(port: IPortInfo): HTMLOptionElement {
         let dropdown = <HTMLSelectElement> document.getElementById("dropdown");
         let option = document.createElement("option");
         option.text = port.comName;
         option.id = port.comName;
         dropdown.add(option);
         this._ng_updateSelection();
+        return option;
     }
 
     private _removeDropdownElement(port: IPortInfo) {
