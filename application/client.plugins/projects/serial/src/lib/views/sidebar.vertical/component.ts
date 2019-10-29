@@ -12,8 +12,6 @@ import { InputStandardComponent } from 'logviewer-client-primitive';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import { Message } from '@angular/compiler/src/i18n/i18n_ast';
 
-let num: number = 0;
-
 interface IState {
     _ng_ports: IPortInfo[];
     _ng_connected: IConnected[];
@@ -59,6 +57,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     public _ng_msg: string;
 
     constructor(private _cdRef: ChangeDetectorRef) {
+        this._ng_sendMessage = this._ng_sendMessage.bind(this);
     }
 
     ngOnDestroy() {
@@ -71,6 +70,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
 
     ngAfterViewInit() {
         this._updateDropdown();
+        this._loadOption();
 
         // Subscription to income events
         this._subscriptions.incomeIPCHostMessage = this.api.getIPC().subscribeToHost((message: any) => {
@@ -343,17 +343,11 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         this._cdRef.detectChanges();
     }
 
-    public _ng_sendMessage(event: KeyboardEvent) {
-        if (event.key !== 'Enter') {
-            return;
-        }
-        if (this._ng_msg.trim() === '' || !this._chosenPort) {
-            return;
-        }
+    public _ng_sendMessage(value: string, event: KeyboardEvent) {
         this.api.getIPC().requestToHost({
             stream: this.session,
             command: EHostCommands.write,
-            cmd: this._ng_msg,
+            cmd: value,
             path: this._chosenPort
         }, this.session).catch((error: Error) => {
             console.error(error);
@@ -380,7 +374,6 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     public _ng_updateSelection() {
         let dropdown = <HTMLSelectElement> document.getElementById("dropdown");
         this._chosenPort = dropdown.value;
-        this._saveOption(dropdown.value);
     }
 
     private _updateDropdown() {
@@ -388,13 +381,11 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         if(portArray) {
             for(let port of portArray) {
                 this._createDropdownElement(port);
-                this._loadOption(port.comName);
             }
         }
     }
 
     private _updateDisconnectPort(port: IPortInfo) {
-        this._deleteOption(port.comName);
         let portArray = sessionPort.get(this.session);
         if(portArray && portArray.includes(port)) {
             const index: number = portArray.indexOf(port);
@@ -412,18 +403,17 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             sessionPort.set(this.session, [this._ng_selected]);
     }
 
-    private _saveOption(portName: string) {
-        savedOption.set(this.session, portName);
+    public _ng_saveOption() {
+        let dropdown = <HTMLSelectElement> document.getElementById("dropdown");
+        savedOption.set(this.session, dropdown.value);
     }
 
-    private _loadOption(portName: string) {
-        if(savedOption.get(this.session)) {
-            let option = <HTMLOptionElement> document.getElementById(portName);
-            option.selected = true;
-        }
-    }
-
-    private _deleteOption(portName: string) {
-        savedOption.delete(portName);
+    private _loadOption() {
+        let dropdown = Array.from(document.getElementsByTagName("option"));
+        dropdown.forEach(element => {
+            if(element.value == savedOption.get(this.session)) {
+                element.selected = true;
+            }
+        });
     }
 }
