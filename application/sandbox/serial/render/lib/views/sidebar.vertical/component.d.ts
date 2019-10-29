@@ -50,15 +50,14 @@ export declare class SidebarVerticalComponent implements AfterViewInit, OnDestro
     private _hostEvents_onDisconnected;
     private _hostEvents_onError;
     private _forceUpdate;
-    _ng_sendMessage(event: KeyboardEvent): void;
+    _ng_sendMessage(value: string, event: KeyboardEvent): void;
     private _createDropdownElement;
     private _removeDropdownElement;
     _ng_updateSelection(): void;
     private _updateDropdown;
     private _updateDisconnectPort;
     private _updateConnectPort;
-    private _saveOption;
+    _ng_saveOption(): void;
     private _loadOption;
-    private _deleteOption;
 }
 export {};

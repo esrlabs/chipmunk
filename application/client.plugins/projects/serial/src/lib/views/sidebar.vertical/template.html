@@ -26,16 +26,16 @@
 <div class="container">
     <div class="comstyle-input-holder input-wrapper">
         <div class="comstyle-input">
-            <input #input_msg
-            class="comstyle-input"
-            type="text"
-            placeholder="press ENTER to send"
-            [(ngModel)]="_ng_msg"
-            (keyup)="_ng_sendMessage($event)"/>
+            <lib-primitive-input
+            [type]="'text'"
+            [placeholder]="'press ENTER to send'"
+            [value]="_ng_msg"
+            [onEnter]="_ng_sendMessage">
+            </lib-primitive-input>
             <span class="spliter"></span>
         </div>
     </div>
-    <select id="dropdown" (change)="_ng_updateSelection()">
+    <select id="dropdown" (change)="_ng_updateSelection(); _ng_saveOption();">
     </select>
 </div>
     
