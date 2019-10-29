@@ -356,6 +356,32 @@ task install: [:folders,
                :add_package_json]
 
 namespace :dev do
+
+  desc 'Developer task: plugin serial: render'
+  task :serial_render do
+    install_plugin_angular('serial')
+  end
+
+  desc 'Developer task: plugin processes: render'
+  task :processes_render do
+    install_plugin_angular('processes')
+  end
+
+  desc 'Developer task: plugin dlt: render'
+  task :dlt_render do
+    install_plugin_angular('dlt')
+  end
+
+  desc 'Developer task: plugin dlt-render: render'
+  task :dltrender_render do
+    install_plugin_angular('dlt-render')
+  end
+
+  desc 'Developer task: plugin xterminal: render'
+  task :xterminal_render do
+    install_plugin_angular('xterminal')
+  end
+
   desc 'Developer task: update and delivery indexer-neon'
   task neon: %i[build_embedded_indexer delivery_embedded_indexer_into_app]
 
