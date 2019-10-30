@@ -34,8 +34,8 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     @Input() public injectionIntoTitleBar: Subject<IComponentDesc>;
     @Input() public onBeforeTabRemove: Subject<void>;
 
-    @ViewChild('output') _ng_outputComponent: ViewSearchOutputComponent;
-    @ViewChild('requestinput') _ng_requestInput: ElementRef;
+    @ViewChild('output', {static: false}) _ng_outputComponent: ViewSearchOutputComponent;
+    @ViewChild('requestinput', {static: false}) _ng_requestInput: ElementRef;
 
     public _ng_session: ControllerSessionTab | undefined;
     public _ng_searchRequestId: string | undefined;

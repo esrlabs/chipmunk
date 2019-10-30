@@ -14,7 +14,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 
 export class SidebarViewComponent implements AfterViewInit, OnDestroy {
 
-    @ViewChild('xtermholder') _ng_xtermholder: ElementRef;
+    @ViewChild('xtermholder', {static: false}) _ng_xtermholder: ElementRef;
 
     @Input() public api: Toolkit.IAPI;
     @Input() public session: string;

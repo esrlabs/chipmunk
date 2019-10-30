@@ -127,6 +127,8 @@ export class ServiceData {
         Object.keys(results).forEach((filter: string) => {
             const color: string | undefined = this._sessionController.getSessionSearch().getRequestColor(filter);
             const dataset = {
+                barPercentage: 1,
+                categoryPercentage: 1,
                 label: filter,
                 backgroundColor: color === undefined ? ColorScheme.scheme_search_match : color,
                 /*

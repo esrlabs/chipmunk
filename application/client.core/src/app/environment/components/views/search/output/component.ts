@@ -26,7 +26,7 @@ const CSettings: {
 
 export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, AfterContentInit {
 
-    @ViewChild(ComplexScrollBoxComponent) _scrollBoxCom: ComplexScrollBoxComponent;
+    @ViewChild(ComplexScrollBoxComponent, {static: false}) _scrollBoxCom: ComplexScrollBoxComponent;
 
     @Input() public session: ControllerSessionTab | undefined;
     @Input() public onSessionChanged: Subject<ControllerSessionTab> | undefined;

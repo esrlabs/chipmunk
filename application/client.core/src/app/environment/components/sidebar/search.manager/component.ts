@@ -1,4 +1,4 @@
-import { Component, OnDestroy, ChangeDetectorRef, ViewChild, QueryList, AfterContentInit } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit } from '@angular/core';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager',

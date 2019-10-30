@@ -13,7 +13,7 @@ import ViewsEventsService from '../../../../services/standalone/service.views.ev
 
 export class ViewContentMapComponent implements OnDestroy, AfterContentInit, AfterViewInit {
 
-    @ViewChild('canvas') _ng_canvas: ElementRef;
+    @ViewChild('canvas', {static: false}) _ng_canvas: ElementRef;
 
     @Input() service: ControllerSessionTabMap;
 

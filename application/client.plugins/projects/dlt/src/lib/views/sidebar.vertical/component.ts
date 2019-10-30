@@ -24,8 +24,8 @@ export enum EState {
 })
 
 export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
-    @ViewChild('input_ip') _ng_input_ip: InputStandardComponent;
-    @ViewChild('input_port') _ng_input_port: InputStandardComponent;
+    @ViewChild('input_ip', {static: false}) _ng_input_ip: InputStandardComponent;
+    @ViewChild('input_port', {static: false}) _ng_input_port: InputStandardComponent;
 
     @Input() public api: Toolkit.IAPI;
     @Input() public session: string;

@@ -28,7 +28,7 @@ const state: Toolkit.ControllerState<IState> = new Toolkit.ControllerState<IStat
 
 export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
 
-    @ViewChild('cmdinput') _ng_input: ElementRef;
+    @ViewChild('cmdinput', {static: false}) _ng_input: ElementRef;
 
     @Input() public api: Toolkit.IAPI;
     @Input() public session: string;

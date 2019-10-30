@@ -11,7 +11,7 @@ export class InputStandardComponent implements AfterContentInit, OnChanges {
     public _ng_value: string | number = '';
     public _ng_error: string | undefined;
 
-    @ViewChild('input') inputElRef: ElementRef;
+    @ViewChild('input', {static: false}) inputElRef: ElementRef;
 
     @Input() public value: string | number = '';
     @Input() public placeholder: string = '';

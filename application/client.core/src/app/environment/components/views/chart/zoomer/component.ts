@@ -119,8 +119,6 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
                     }],
                     xAxes: [{
                         stacked: true,
-                        categoryPercentage: 1.0,
-                        barPercentage: 1.0,
                         display: false,
                     }]
                 }

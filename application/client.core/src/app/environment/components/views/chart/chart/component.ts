@@ -216,8 +216,6 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                     }],
                     xAxes: [{
                         stacked: true,
-                        categoryPercentage: 1.0,
-                        barPercentage: 1.0,
                         display: false,
                     }]
                 }

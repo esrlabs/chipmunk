@@ -30,7 +30,7 @@ const state: Toolkit.ControllerState<IState> = new Toolkit.ControllerState<IStat
 })
 
 export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
-    @ViewChild('optionsCom') _optionsCom: SidebarVerticalPortOptionsWriteComponent;
+    @ViewChild('optionsCom', {static: false}) _optionsCom: SidebarVerticalPortOptionsWriteComponent;
 
     @Input() public api: Toolkit.IAPI;
     @Input() public session: string;

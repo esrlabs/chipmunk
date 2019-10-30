@@ -140,10 +140,10 @@ export function copyTextToClipboard(text: string) {
 
 export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, AfterViewChecked, AfterViewInit, OnChanges {
 
-    @ViewChild('container') _ng_nodeContainer: ElementRef;
-    @ViewChild('holder') _ng_nodeHolder: ElementRef;
-    @ViewChild(ComplexScrollBoxSBVComponent) _ng_sbvCom: ComplexScrollBoxSBVComponent;
-    @ViewChild(ComplexScrollBoxSBHComponent) _ng_sbhCom: ComplexScrollBoxSBHComponent;
+    @ViewChild('container', {static: false}) _ng_nodeContainer: ElementRef;
+    @ViewChild('holder', {static: false}) _ng_nodeHolder: ElementRef;
+    @ViewChild(ComplexScrollBoxSBVComponent, {static: false}) _ng_sbvCom: ComplexScrollBoxSBVComponent;
+    @ViewChild(ComplexScrollBoxSBHComponent, {static: false}) _ng_sbhCom: ComplexScrollBoxSBHComponent;
 
     @Input() public API: IDataAPI | undefined;
     @Input() public settings: ISettings | undefined;
@@ -154,8 +154,8 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
     public _ng_horOffset: number = 0;
     public _ng_horScrolling: boolean = false;
     public _ng_guid: string = guid();
-    public _containerSize: IBoxSize | undefined;
-    public _holderSize: { width: number, hash: string } = { width: 0, hash: '' };
+    public _ng_containerSize: IBoxSize | undefined;
+    public _ng_holderSize: { width: number, hash: string } = { width: 0, hash: '' };
 
     private _subjects = {
         onScrolled: new Subject<IRange>(),
@@ -499,8 +499,8 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         if (offset < 0) {
             offset = 0;
         }
-        if (offset > this._holderSize.width - this._containerSize.width + this._ng_sbhCom.getMinOffset()) {
-            offset = this._holderSize.width - this._containerSize.width + this._ng_sbhCom.getMinOffset();
+        if (offset > this._ng_holderSize.width - this._ng_containerSize.width + this._ng_sbhCom.getMinOffset()) {
+            offset = this._ng_holderSize.width - this._ng_containerSize.width + this._ng_sbhCom.getMinOffset();
         }
         offset = isNaN(offset) ? 0 : (isFinite(offset) ? offset : 0);
         if (this._ng_horOffset !== offset) {
@@ -647,12 +647,12 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         if (this._ng_nodeContainer === undefined) {
             return;
         }
-        if (!force && this._containerSize !== undefined) {
+        if (!force && this._ng_containerSize !== undefined) {
             return;
         }
-        this._containerSize = (this._ng_nodeContainer.nativeElement as HTMLElement).getBoundingClientRect();
-        this._containerSize.height -= this._settings.scrollBarSize;
-        this._state.count = Math.floor(this._containerSize.height / this._item.height);
+        this._ng_containerSize = (this._ng_nodeContainer.nativeElement as HTMLElement).getBoundingClientRect();
+        this._ng_containerSize.height -= this._settings.scrollBarSize;
+        this._state.count = Math.floor(this._ng_containerSize.height / this._item.height);
     }
 
     private _updateHolderSize(ignoreHash: boolean = false) {
@@ -660,11 +660,11 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
             return;
         }
         const hash: string = `${this._state.start}-${this._state.end}`;
-        if (this._holderSize.hash === hash && !ignoreHash) {
+        if (this._ng_holderSize.hash === hash && !ignoreHash) {
             return;
         }
-        this._holderSize.hash = hash;
-        this._holderSize.width = (this._ng_nodeHolder.nativeElement as HTMLElement).getBoundingClientRect().width;
+        this._ng_holderSize.hash = hash;
+        this._ng_holderSize.width = (this._ng_nodeHolder.nativeElement as HTMLElement).getBoundingClientRect().width;
     }
 
     private _updateSbvPosition() {
