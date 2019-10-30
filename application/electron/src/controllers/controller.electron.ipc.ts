@@ -107,7 +107,9 @@ export default class ControllerElectronIpc {
 
     public destroy() {
         this._handlers.forEach((handlers: Map<string, THandler>, signature: string) => {
-            this._contents !== undefined && ipcMain.removeAllListeners(signature);
+            if (this._contents !== undefined) {
+                ipcMain.removeAllListeners(signature);
+            }
         });
         this._handlers.clear();
         this._subscriptions.clear();
@@ -215,7 +217,9 @@ export default class ControllerElectronIpc {
         }
         handlers.delete(subscriptionId);
         if (handlers.size === 0) {
-            this._contents !== undefined && ipcMain.removeAllListeners(signature);
+            if (this._contents !== undefined) {
+                ipcMain.removeAllListeners(signature);
+            }
             this._handlers.delete(signature);
             this._listeners.delete(signature);
         } else {

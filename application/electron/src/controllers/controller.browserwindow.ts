@@ -41,7 +41,9 @@ export default class ControllerBrowserWindow extends EventEmitter {
 
     public destroy() {
         this.unsubscribeAll();
-        this._ipc !== undefined && this._ipc.destroy();
+        if (this._ipc !== undefined) {
+            this._ipc.destroy();
+        }
         this._ipc = undefined;
         this._window = undefined;
     }
@@ -85,7 +87,9 @@ export default class ControllerBrowserWindow extends EventEmitter {
 			    protocol: 'file:',
 			    slashes: true,
             }) + `?v${ServicePackage.get().version}`);
-            state.max && this._window.maximize();
+            if (state.max) {
+                this._window.maximize();
+            }
             this._ipc = new ControllerElectronIpc(this._guid, this._window.webContents);
             this._bind();
             this.emit(ControllerBrowserWindow.Events.created);
