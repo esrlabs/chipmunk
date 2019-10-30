@@ -1,0 +1,88 @@
+name: Checks
+
+on: [pull_request]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-2016, macOS-latest]
+        rust: [stable]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Install windows python
+        uses: actions/setup-python@v1
+        if: startsWith(matrix.os, 'windows')
+        with:
+          python-version: '2.7'
+          architecture: 'x64' # (x64 or x86)
+      - name: install ruby
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.x'
+      - name: install node
+        uses: actions/setup-node@master
+        with:
+          node-version: '10.16.3'
+      - name: install neon cli
+        run: npm install --global neon-cli@0.3.1
+      - name: install rust
+        uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+      - name: build release
+        run: rake full_pipeline --trace
+      - run: ls
+  lint_js:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: install ruby
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.x'
+      - name: install node
+        uses: actions/setup-node@master
+        with:
+          node-version: '10.16.3'
+      - name: install typescript
+        run: npm install typescript --global
+      - name: install tslint
+        run: npm install --global tslint
+      - name: lint js code
+        run: rake lint_js --trace
+  lint_rust:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: install ruby
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.x'
+      - name: install rust
+        uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+      - name: install clippy
+        run: rustup component add clippy
+      - name: lint rust code
+        run: rake lint_rust --trace
+  run_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: install ruby
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.x'
+      - name: install rust
+        uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+      - name: run tests
+        run: rake test --trace

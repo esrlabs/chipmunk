@@ -1,6 +1,9 @@
-name: FullBuild
+name: BuildAndReleaseMaster
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master         # Push events on master branch
 
 jobs:
   build:
