@@ -31,8 +31,8 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
 
     @Input() public injectionIntoTitleBar: Subject<IComponentDesc>;
 
-    @ViewChild('details') _detailsCom: SidebarAppSearchRequestDetailsComponent;
-    @ViewChild('list') _listElmRef: ElementRef;
+    @ViewChild('details', {static: false}) _detailsCom: SidebarAppSearchRequestDetailsComponent;
+    @ViewChild('list', {static: false}) _listElmRef: ElementRef;
 
     public _ng_requests: IRequestItem[] = [];
     public _ng_selected: IRequestDetailsItem | undefined;

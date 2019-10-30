@@ -27,11 +27,11 @@
         [pgUp]="_ng_sbv_pgUp"
         [pgDown]="_ng_sbv_pgDown"
         [update]="_ng_sbv_update"></lib-complex-scrollbox-sbv>
-    <lib-complex-scrollbox-sbh
+    <lib-complex-scrollbox-sbh *ngIf="_ng_containerSize !== undefined"
         (mouseover)="_ng_sbh_onMouseOver()"
         [attr.class]="_ng_horScrolling ? 'visible' : ''"
-        [width]="_containerSize.width"
-        [length]="_holderSize.width"
+        [width]="_ng_containerSize.width"
+        [length]="_ng_holderSize.width"
         [left]="_ng_sbh_left"
         [right]="_ng_sbh_right"
         [update]="_ng_sbh_update">

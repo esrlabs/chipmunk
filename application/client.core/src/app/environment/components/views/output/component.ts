@@ -31,7 +31,7 @@ const CSettings: {
 
 export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterContentInit {
 
-    @ViewChild(ComplexScrollBoxComponent) _scrollBoxCom: ComplexScrollBoxComponent;
+    @ViewChild(ComplexScrollBoxComponent, {static: false}) _scrollBoxCom: ComplexScrollBoxComponent;
 
     @Input() public session: ControllerSessionTab | undefined;
     @Input() public injectTitleContent: (content: DockDef.IDockTitleContent) => Error | undefined;

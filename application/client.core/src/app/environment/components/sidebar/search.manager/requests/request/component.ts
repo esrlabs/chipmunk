@@ -23,7 +23,7 @@ export interface IRequestItem {
 
 export class SidebarAppSearchRequestComponent implements OnDestroy, AfterContentInit, OnChanges {
 
-    @ViewChild('input') _inputComRef: InputStandardComponent;
+    @ViewChild('input', {static: false}) _inputComRef: InputStandardComponent;
 
     @Input() public request: IRequestItem;
 

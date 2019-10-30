@@ -13,19 +13,19 @@ import { CheckSimpleComponent, InputStandardComponent, DDListStandardComponent }
 
 export class SidebarVerticalPortOptionsWriteComponent implements AfterViewInit, AfterContentInit, OnDestroy {
 
-    @ViewChild('baudRateInputCom') _baudRateInputCom: InputStandardComponent;
-    @ViewChild('baudRateDDCom') _baudRateDDCom: DDListStandardComponent;
-    @ViewChild('lockCom') _lockCom: CheckSimpleComponent;
-    @ViewChild('dataBitsCom') _dataBitsCom: DDListStandardComponent;
-    @ViewChild('highWaterMarkCom') _highWaterMarkCom: InputStandardComponent;
-    @ViewChild('delimiterCom') _delimiterCom: InputStandardComponent;
-    @ViewChild('stopBitsCom') _stopBitsCom: DDListStandardComponent;
-    @ViewChild('parityCom') _parityCom: DDListStandardComponent;
-    @ViewChild('rtsctsCom') _rtsctsCom: CheckSimpleComponent;
-    @ViewChild('xonCom') _xonCom: CheckSimpleComponent;
-    @ViewChild('xoffCom') _xoffCom: CheckSimpleComponent;
-    @ViewChild('xanyCom') _xanyCom: CheckSimpleComponent;
-    @ViewChild('encodingCom') _encodingCom: DDListStandardComponent;
+    @ViewChild('baudRateInputCom', {static: false}) _baudRateInputCom: InputStandardComponent;
+    @ViewChild('baudRateDDCom', {static: false}) _baudRateDDCom: DDListStandardComponent;
+    @ViewChild('lockCom', {static: false}) _lockCom: CheckSimpleComponent;
+    @ViewChild('dataBitsCom', {static: false}) _dataBitsCom: DDListStandardComponent;
+    @ViewChild('highWaterMarkCom', {static: false}) _highWaterMarkCom: InputStandardComponent;
+    @ViewChild('delimiterCom', {static: false}) _delimiterCom: InputStandardComponent;
+    @ViewChild('stopBitsCom', {static: false}) _stopBitsCom: DDListStandardComponent;
+    @ViewChild('parityCom', {static: false}) _parityCom: DDListStandardComponent;
+    @ViewChild('rtsctsCom', {static: false}) _rtsctsCom: CheckSimpleComponent;
+    @ViewChild('xonCom', {static: false}) _xonCom: CheckSimpleComponent;
+    @ViewChild('xoffCom', {static: false}) _xoffCom: CheckSimpleComponent;
+    @ViewChild('xanyCom', {static: false}) _xanyCom: CheckSimpleComponent;
+    @ViewChild('encodingCom', {static: false}) _encodingCom: DDListStandardComponent;
 
     @Input() public baudRate: number = 921600;
     @Input() public lock: boolean = false;

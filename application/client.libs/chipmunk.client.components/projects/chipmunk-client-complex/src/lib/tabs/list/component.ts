@@ -11,9 +11,9 @@ import { Subscription } from 'rxjs';
 
 export class TabsListComponent implements OnDestroy, AfterViewInit {
 
-    @ViewChild('holdernode') _ng_holderNode: ElementRef;
-    @ViewChild('tabsnode') _ng_tabsNode: ElementRef;
-    @ViewChild('injectionsnode') _ng_injectionsNode: ElementRef;
+    @ViewChild('holdernode', {static: false}) _ng_holderNode: ElementRef;
+    @ViewChild('tabsnode', {static: false}) _ng_tabsNode: ElementRef;
+    @ViewChild('injectionsnode', {static: false}) _ng_injectionsNode: ElementRef;
     @ViewChildren('tabnode', { read: ElementRef }) _ng_tabsElRegs: QueryList<ElementRef>;
 
     @Input() public service: TabsService = null;
