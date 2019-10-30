@@ -1,0 +1,10 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc a726dbef8a45f8b66fbfe7dd110e7712a76ee00ded8a3b5758cf4e913ce796e2 # shrinks to header_to_expect = ExtendedHeader { verbose: false, argument_count: 0, message_type: Control(Unknown(16)), application_id: "A", context_id: "a" }
+cc 989af5cd6b970060c39c7fb2ee3e355b03f2f1f2ac5e414479f5c96f2efc6f0c # shrinks to header_to_expect = ExtendedHeader { verbose: false, argument_count: 0, message_type: Control(Unknown(1)), application_id: "A", context_id: "a" }
+cc 935ff6e3a72d0be02eb45d20318b8195a902911953296be94a922678ea7c15ba # shrinks to header_to_expect = ExtendedHeader { verbose: false, argument_count: 0, message_type: ApplicationTrace(Invalid(1)), application_id: "a", context_id: "a" }
+cc b2d81a77e0c55d0cbf03c475988981df408999ade9c992d3ba2913939762666b # shrinks to header_to_expect = ExtendedHeader { verbose: false, argument_count: 0, message_type: Unknown((4, 0)), application_id: "A", context_id: "a" }

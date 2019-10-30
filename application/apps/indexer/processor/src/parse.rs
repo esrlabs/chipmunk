@@ -11,6 +11,7 @@
 // from E.S.R.Labs.
 use indexer_base::timedline::TimedLine;
 use indexer_base::error_reporter::*;
+use indexer_base::progress::Severity;
 use chrono::{NaiveDate, NaiveDateTime, Utc, Datelike, DateTime};
 
 use nom::bytes::complete::tag;
