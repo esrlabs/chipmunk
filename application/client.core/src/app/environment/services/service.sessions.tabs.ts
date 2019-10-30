@@ -8,7 +8,7 @@ import { IDefaultView } from '../states/state.default';
 import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
 import SourcesService from './service.sources';
 import HotkeysService from './service.hotkeys';
-import { IAPI, IPopup } from 'chipmunk.client.toolkit';
+import { IAPI, IPopup, IComponentDesc } from 'chipmunk.client.toolkit';
 import PluginsService from './service.plugins';
 import PopupsService from './standalone/service.popups';
 
@@ -19,6 +19,7 @@ export type TSessionGuid = string;
 export interface IServiceSubjects {
     onSessionChange: Subject<ControllerSessionTab | undefined>;
     onSessionClosed: Subject<string>;
+    onSidebarTitleInjection: Subject<IComponentDesc | undefined>;
 }
 
 export class TabsSessionsService implements IService {
@@ -39,6 +40,7 @@ export class TabsSessionsService implements IService {
     private _subjects: IServiceSubjects = {
         onSessionChange: new Subject<ControllerSessionTab>(),
         onSessionClosed: new Subject<string>(),
+        onSidebarTitleInjection: new Subject<IComponentDesc | undefined>(),
     };
 
     public init(): Promise<void> {
@@ -129,10 +131,12 @@ export class TabsSessionsService implements IService {
     public getObservable(): {
         onSessionChange: Observable<ControllerSessionTab | undefined>,
         onSessionClosed: Observable<string>,
+        onSidebarTitleInjection: Observable<IComponentDesc | undefined>,
     } {
         return {
             onSessionChange: this._subjects.onSessionChange.asObservable(),
             onSessionClosed: this._subjects.onSessionClosed.asObservable(),
+            onSidebarTitleInjection: this._subjects.onSidebarTitleInjection.asObservable(),
         };
     }
 
@@ -188,6 +192,9 @@ export class TabsSessionsService implements IService {
             },
             removePopup: (guid: string) => {
                 PopupsService.remove(guid);
+            },
+            setSidebarTitleInjection: (component: IComponentDesc) => {
+                this._subjects.onSidebarTitleInjection.next(component);
             }
         };
     }

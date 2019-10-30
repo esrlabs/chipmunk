@@ -7,7 +7,6 @@ import SearchSessionsService, { IRequest } from '../../../../services/service.se
 import { IRequestItem } from './request/component';
 import { IRequestItem as IRequestDetailsItem, SidebarAppSearchRequestDetailsComponent } from './details/component';
 import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
-import { IComponentDesc } from 'chipmunk-client-containers';
 import { SidebarAppSearchManagerControlsComponent } from './controls/component';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import ContextMenuService, { IMenu, IMenuItem } from '../../../../services/standalone/service.contextmenu';
@@ -28,8 +27,6 @@ interface IState {
 export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterContentInit, AfterViewInit {
 
     public static StateKey = 'sidebar-app-search-requests';
-
-    @Input() public injectionIntoTitleBar: Subject<IComponentDesc>;
 
     @ViewChild('details', {static: false}) _detailsCom: SidebarAppSearchRequestDetailsComponent;
     @ViewChild('list', {static: false}) _listElmRef: ElementRef;

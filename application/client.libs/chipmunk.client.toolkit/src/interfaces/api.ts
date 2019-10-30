@@ -4,6 +4,7 @@ import { ControllerViewportEvents } from '../controllers/controller.viewport.eve
 import { ControllerSessionsEvents } from '../controllers/controller.sessions.events';
 import { PluginIPC } from '../classes/class.ipc';
 import { IPopup } from './client.popup';
+import { IComponentDesc } from './client.components.containers';
 
 export interface IAPI {
     getIPC: () => PluginIPC | undefined;
@@ -14,4 +15,5 @@ export interface IAPI {
     getSessionsEventsHub: () => ControllerSessionsEvents;
     addPopup: (popup: IPopup) => string;
     removePopup: (guid: string) => void;
+    setSidebarTitleInjection: (component: IComponentDesc | undefined) => void;
 }

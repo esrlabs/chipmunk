@@ -86,16 +86,17 @@ export class ToolbarSessionsService implements IService {
         this._plugins = this._getSidebarPlugins();
         this._plugins.forEach((pluginInfo: ISidebarPluginInfo, i: number) => {
             const guid: string = Toolkit.guid();
+            const inputs = Object.assign({
+                api: TabsSessionsService.getPluginAPI(pluginInfo.id),
+                session: this._guid
+            }, this._inputs);
             this._tabsService.add({
                 guid: guid,
                 name: pluginInfo.name,
                 active: false,
                 content: {
                     factory: pluginInfo.factory,
-                    inputs: Object.assign({
-                        api: TabsSessionsService.getPluginAPI(pluginInfo.id),
-                        session: this._guid
-                    }, this._inputs),
+                    inputs: inputs,
                     resolved: true
                 }
             });
