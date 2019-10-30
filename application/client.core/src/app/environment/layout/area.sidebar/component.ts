@@ -5,7 +5,6 @@ import { AreaState } from '../state';
 import { Subscription, Subject, Observable } from 'rxjs';
 import TabsSessionsService from '../../services/service.sessions.tabs';
 import SidebarSessionsService from '../../services/service.sessions.sidebar';
-import { IComponentDesc } from 'chipmunk-client-containers';
 import { LayoutSessionSidebarControlsComponent } from './controls/component';
 import * as Toolkit from 'chipmunk.client.toolkit';
 

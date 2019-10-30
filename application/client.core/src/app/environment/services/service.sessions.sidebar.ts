@@ -37,6 +37,7 @@ export class SidebarSessionsService implements IService {
     constructor() {
         this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._subscriptions.onSessionClosed = TabsSessionsService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
+        this._subscriptions.onSidebarTitleInjection = TabsSessionsService.getObservable().onSidebarTitleInjection.subscribe(this._onSidebarTitleInjection.bind(this));
     }
 
     public init(): Promise<void> {
@@ -147,6 +148,23 @@ export class SidebarSessionsService implements IService {
                 if (comp.factory.name === this._injected.factory.name && Object.keys(comp.inputs).length === Object.keys(this._injected.inputs).length) {
                     return;
                 }
+            }
+        }
+        // Check before plugins factories
+        if (comp === undefined) {
+            return;
+        }
+        if (comp.factory === undefined) {
+            return;
+        }
+        if (typeof comp.factory.name === 'string') {
+            // If it's plugin, we should have stored factory of component (it was created in stored in PluginsService
+            // during intialization of plugin). If it is - we should put instead component reference, reference to factory
+            // and set it is "resolved"
+            const factory = PluginsService.getStoredFactoryByName(comp.factory.name);
+            if (factory !== undefined) {
+                comp.factory = factory;
+                comp.resolved = true;
             }
         }
         this._injected = comp;
@@ -303,6 +321,10 @@ export class SidebarSessionsService implements IService {
         }
         this._services.delete(session);
         this._tabs.delete(session);
+    }
+
+    private _onSidebarTitleInjection(component: IComponentDesc | undefined) {
+        this.setTitleInjection(component);
     }
 
     private _addDefaultsInputs(inputs: { [key: string]: any }, session: string, tab: string): { [key: string]: any } {
