@@ -12,6 +12,7 @@
 use serde::Serialize;
 use std::borrow::Cow;
 use rustc_hash::FxHashMap;
+use crate::progress::Severity;
 
 type IncidentMap = FxHashMap<String, usize>;
 
@@ -35,11 +36,6 @@ impl<'a> Incident<'a> {
     }
 }
 
-#[derive(Serialize, Debug)]
-pub enum Severity {
-    WARNING,
-    ERROR,
-}
 #[derive(Default)]
 pub struct Reporter {
     warning_incidents: IncidentMap,

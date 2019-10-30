@@ -6,10 +6,11 @@ mod tests {
 
     #[test]
     fn test_dlt_message_parsing() {
-        let raw1: Vec<u8> = vec![
+        let mut raw1: Vec<u8> = vec![
             // storage header
-            0x44, 0x4C, 0x54, 0x01, 0x56, 0xA2, 0x91, 0x5C, 0x9C, 0x91, 0x0B, 0x00, 0x45, 0x43,
-            0x55, 0x31, // header
+            //0x44,
+            0x4C, 0x54, 0x01, 0x56, 0xA2, 0x91, 0x5C, 0x9C, 0x91, 0x0B, 0x00, 0x45, 0x43, 0x55,
+            0x31, // header
             0x3D, // header type 0b11 1101
             0x40, 0x00, 0xA2, 0x45, 0x43, 0x55, 0x31, // ecu id
             0x00, 0x00, 0x01, 0x7F, // session id
@@ -55,11 +56,56 @@ mod tests {
             0x30, 0x78, 0x00, 0x42, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x82, 0x00, 0x00, 0x02,
             0x00, 0x29, 0x00,
         ];
-        let res1: IResult<&[u8], Option<dlt::Message>> =
-            dlt_message(&raw1[..], None, None);
+        #[rustfmt::skip]
+        let _raw3: Vec<u8> = vec![
+            // storage header
+            /* DLT + 0x01 */ 0x44, 0x4C, 0x54, 0x01,
+            /* timestamp sec */ 0x90, 0xB8, 0xB3, 0x5D,
+            /* timestamp ms */ 0x00, 0x00, 0x00, 0x00,
+            /* ecu id "ECU" */ 0x45, 0x43, 0x55, 0x00,
+            /* header-type       0b0010 1001 */ 0x29,
+            /* extended header        | |||^ */
+            /* MSBF: 0  little endian | ||^  */
+            /* WEID: 0  no ecu id     | |^   */
+            /* WSID: 1  sess id       | ^    */
+            /* WTMS: 0 no timestamp   ^      */
+            /* version nummber 1   ^^^       */
+            /* message counter */ 0x20,
+            /* length = 0 */ 0x00, 0x00,
+            /* session id */ 0x02, 0x00, 0x00, 0x1C,
+            /* extended header */ 0x00, 0x45, 0x6E, 0x64, 0x20, 0x65, 0x76, 0x65, 0x6E, 0x74];
+        let _raw4: Vec<u8> = vec![
+            // storage header
+            /* DLT + 0x01 */ 0x44, 0x4C, 0x54, 0x01,
+            /* timestamp sec = 0x5DB3B890 =  October 26, 2019 3:08:00 AM*/ 0x90, 0xB8, 0xB3,
+            0x5D, /* timestamp ms */ 0x00, 0x00, 0x00, 0x00, /* ecu id "ECU" */ 0x45,
+            0x43, 0x55, 0x00, /* header-type       0b0101 0011 */ 0x53,
+            /* extended header        | |||^ */
+            /* MSBF: 1  big endian    | ||^  */
+            /* WEID: 0  no ecu id     | |^   */
+            /* WSID: 0  no sess id    | ^    */
+            /* WTMS: 1  timestamp     ^      */
+            /* version nummber 2   ^^^       */
+            /* message counter */
+            0x44, /* length = 21327 */ 0x53, 0x4F,
+            /* timestamp (ecu/session id missing) 139698662.4 = ~39h */ 0x53, 0x44, 0x53,
+            0x00, /* extended header */ 0x02, 0x00, 0x00, 0x1D, 0x00, 0x5B, 0x50, 0x6F, 0x6C,
+            0x6C,
+            // message-info MSIN = 0x02 = 0b0000 0010
+            // 0 = non-verbose              |||| |||^
+            // 001 (MSTP) 0x1 Dlt AppTrace  |||| ^^^
+            // 0000 (Type Info) = 0x0       ^^^^
+            // number of arguments NOAR = 0x00
+            // application id = 001D005B = "   ["
+            // context id = 506F6C6C = "Poll"
+            // ========================================
+            // payload
+            0x65, 0x72, 0x3A, 0x3A, 0x70, 0x6F, 0x6C, 0x6C, 0x5D, 0x20, 0x72,
+        ];
+        raw1.extend_from_slice(&raw2);
+        let res1: IResult<&[u8], Option<dlt::Message>> = dlt_message(&raw1[..], None, 0, 0, None);
         println!("res1 was: {:?}", res1);
-        let res2: IResult<&[u8], Option<dlt::Message>> = dlt_message(&raw2[..], None, None);
-        println!("res was: {:?}", res2);
+        // let res2: IResult<&[u8], Option<dlt::Message>> = dlt_message(&raw2[..], None, 0, 0);
+        // println!("res was: {:?}", res2);
     }
-
 }

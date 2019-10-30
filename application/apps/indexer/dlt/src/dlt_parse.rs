@@ -12,7 +12,7 @@
 use crate::dlt;
 use crate::dlt::TryFrom;
 use crate::filtering;
-use indexer_base::chunks::{Chunk, ChunkFactory};
+use indexer_base::chunks::{ChunkFactory, ChunkResults};
 use indexer_base::config::IndexingConfig;
 use indexer_base::error_reporter::*;
 use indexer_base::progress::*;
@@ -32,28 +32,87 @@ use std::io::{BufRead, BufWriter, Read, Write};
 
 use std::str;
 const STOP_CHECK_LINE_THRESHOLD: usize = 250_000;
+const DLT_PATTERN: &[u8] = &[0x44, 0x4C, 0x54, 0x01];
 
 fn parse_ecu_id(input: &[u8]) -> IResult<&[u8], &str> {
     dlt_zero_terminated_string(input, 4)
 }
-fn dlt_storage_header(input: &[u8]) -> IResult<&[u8], Option<dlt::StorageHeader>> {
-    let (i, (_, _, seconds, microseconds)) = tuple((
-        tag("DLT"),
-        tag(&[0x01]),
-        streaming::le_u32,
-        streaming::le_u32,
-    ))(input)?;
-    let (rest, ecu_id) = dlt_zero_terminated_string(i, 4)?;
-    Ok((
-        rest,
-        Some(dlt::StorageHeader {
-            timestamp: dlt::DltTimeStamp {
-                seconds,
-                microseconds,
-            },
-            ecu_id: ecu_id.to_string(),
-        }),
-    ))
+fn skip_to_next_storage_header<'a, T>(
+    input: &'a [u8],
+    index: Option<usize>,
+    update_channel: Option<&mpsc::Sender<IndexingResults<T>>>,
+) -> Option<&'a [u8]> {
+    let mut found = false;
+    let mut to_drop = 0usize;
+    for v in input.windows(4) {
+        if v == DLT_PATTERN {
+            found = true;
+            break;
+        }
+        to_drop += 1;
+    }
+    if !found {
+        if let Some(tx) = update_channel {
+            let _ = tx.send(Err(Notification {
+                severity: Severity::ERROR,
+                content: "did not find another storage header".to_string(),
+                line: index,
+            }));
+        }
+        return None;
+    }
+    if to_drop > 0 {
+        if let Some(tx) = update_channel {
+            let _ = tx.send(Err(Notification {
+                severity: Severity::ERROR,
+                content: format!("dropped {} to get to next message", to_drop),
+                line: index,
+            }));
+        }
+    }
+    Some(&input[to_drop..])
+}
+fn dlt_skip_storage_header<'a, T>(
+    input: &'a [u8],
+    index: Option<usize>,
+    update_channel: Option<&mpsc::Sender<IndexingResults<T>>>,
+) -> IResult<&'a [u8], ()> {
+    match skip_to_next_storage_header(input, index, update_channel) {
+        Some(rest) => {
+            let (i, (_, _, _)): (&'a [u8], _) =
+                tuple((tag("DLT"), tag(&[0x01]), take(12usize)))(rest)?;
+            Ok((i, ()))
+        }
+        None => Err(nom::Err::Error((&[], nom::error::ErrorKind::Verify))),
+    }
+}
+fn dlt_storage_header<'a, T>(
+    input: &'a [u8],
+    index: Option<usize>,
+    update_channel: Option<&mpsc::Sender<IndexingResults<T>>>,
+) -> IResult<&'a [u8], Option<dlt::StorageHeader>> {
+    match skip_to_next_storage_header(input, index, update_channel) {
+        Some(rest) => {
+            let (i, (_, _, seconds, microseconds)) = tuple((
+                tag("DLT"),
+                tag(&[0x01]),
+                streaming::le_u32,
+                streaming::le_u32,
+            ))(rest)?;
+            let (rest, ecu_id) = dlt_zero_terminated_string(i, 4)?;
+            Ok((
+                rest,
+                Some(dlt::StorageHeader {
+                    timestamp: dlt::DltTimeStamp {
+                        seconds,
+                        microseconds,
+                    },
+                    ecu_id: ecu_id.to_string(),
+                }),
+            ))
+        }
+        None => Err(nom::Err::Error((&[], nom::error::ErrorKind::Verify))),
+    }
 }
 
 fn maybe_parse_ecu_id(a: bool) -> impl Fn(&[u8]) -> IResult<&[u8], Option<&str>> {
@@ -113,29 +172,83 @@ fn dlt_standard_header(input: &[u8]) -> IResult<&[u8], dlt::StandardHeader> {
     ))
 }
 
-fn dlt_extended_header(input: &[u8], index: Option<usize>) -> IResult<&[u8], dlt::ExtendedHeader> {
+fn dlt_extended_header<T>(
+    input: &[u8],
+    index: Option<usize>,
+    update_channel: Option<mpsc::Sender<IndexingResults<T>>>,
+) -> IResult<&[u8], dlt::ExtendedHeader> {
     let (i, (message_info, argument_count, app_id, context_id)) = tuple((
         streaming::be_u8,
         streaming::be_u8,
         parse_ecu_id,
         parse_ecu_id,
     ))(input)?;
-
     let verbose = (message_info & dlt::VERBOSE_FLAG) != 0;
-    match dlt::MessageType::try_from(message_info, index) {
-        Ok(message_type) => Ok((
-            i,
-            dlt::ExtendedHeader {
-                verbose,
-                argument_count,
-                message_type,
-                application_id: app_id.to_string(),
-                context_id: context_id.to_string(),
-            },
-        )),
+    match dlt::MessageType::try_from(message_info) {
+        Ok(message_type) => {
+            if let Some(tx) = update_channel {
+                match message_type {
+                    dlt::MessageType::Unknown(n) => {
+                        let _ = tx.send(Err(Notification {
+                            severity: Severity::WARNING,
+                            content: format!("unknown message type {:?}", n),
+                            line: index,
+                        }));
+                    }
+                    dlt::MessageType::Log(dlt::LogLevel::Invalid(n)) => {
+                        let _ = tx.send(Err(Notification {
+                            severity: Severity::WARNING,
+                            content: format!("unknown log level {}", n),
+                            line: index,
+                        }));
+                    }
+                    dlt::MessageType::Control(dlt::ControlType::Unknown(n)) => {
+                        let _ = tx.send(Err(Notification {
+                            severity: Severity::WARNING,
+                            content: format!("unknown control type {}", n),
+                            line: index,
+                        }));
+                    }
+                    dlt::MessageType::ApplicationTrace(dlt::ApplicationTraceType::Invalid(n)) => {
+                        let _ = tx.send(Err(Notification {
+                            severity: Severity::WARNING,
+                            content: format!("invalid application-trace type {}", n),
+                            line: index,
+                        }));
+                    }
+                    dlt::MessageType::NetworkTrace(dlt::NetworkTraceType::Invalid) => {
+                        let _ = tx.send(Err(Notification {
+                            severity: Severity::WARNING,
+                            content: "invalid application-trace type 0".to_string(),
+                            line: index,
+                        }));
+                    }
+                    _ => (),
+                };
+            };
+            Ok((
+                i,
+                dlt::ExtendedHeader {
+                    verbose,
+                    argument_count,
+                    message_type,
+                    application_id: app_id.to_string(),
+                    context_id: context_id.to_string(),
+                },
+            ))
+        }
         Err(e) => {
-            report_error_ln(format!("Invalid message type: {}", e), index);
-            Err(nom::Err::Error((i, nom::error::ErrorKind::Verify)))
+            if let Some(tx) = update_channel {
+                let _ = tx.send(Err(Notification {
+                    severity: Severity::ERROR,
+                    content: format!("lineInvalid message type: {}", e),
+                    line: index,
+                }));
+            }
+
+            let err_ctx: (&[u8], nom::error::ErrorKind) = (&[], nom::error::ErrorKind::Verify);
+            let err = nom::Err::Error(err_ctx);
+            Err(err)
         }
     }
 }
@@ -302,7 +415,7 @@ fn dlt_fint<T: NomByteOrder>(width: dlt::FloatWidth) -> fn(&[u8]) -> IResult<&[u
 }
 fn dlt_type_info<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], dlt::TypeInfo> {
     let (i, info) = T::parse_u32(input)?;
-    match dlt::TypeInfo::try_from(info, None) {
+    match dlt::TypeInfo::try_from(info) {
         Ok(type_info) => Ok((i, type_info)),
         Err(_) => {
             report_error(format!("dlt_type_info no type_info for 0x{:02X?}", info));
@@ -338,20 +451,12 @@ fn dlt_fixed_point<T: NomByteOrder>(
         ))
     } else {
         report_error("error in dlt_fixed_point");
-        Err(nom::Err::Error((input, nom::error::ErrorKind::Verify)))
+        Err(nom::Err::Error((&[], nom::error::ErrorKind::Verify)))
     }
 }
 fn dlt_argument<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], dlt::Argument> {
-    // println!("before dlt_argument, input: \t{:02X?}", input);
     let (i, type_info) = dlt_type_info::<T>(input)?;
-    // println!(
-    //     "after dlt_type_info, input: \t{:02X?}, type_info: {:?}",
-    //     i, type_info
-    // );
     match type_info.kind {
-        // dlt::TypeInfoKind::Array => {
-        //     panic!("TODO: array not yet implemented"); // not yet impemented
-        // }
         dlt::TypeInfoKind::Signed(width, fixed_point) => {
             let (before_val, (name, unit)) = dlt_variable_name_and_unit::<T>(&type_info)(i)?;
             let (after_fixed_point, fixed_point) = if fixed_point {
@@ -525,25 +630,31 @@ fn dlt_payload<T: NomByteOrder>(
 pub fn dlt_message<'a>(
     input: &'a [u8],
     filter_config_opt: Option<&filtering::ProcessedDltFilterConfig>,
-    index: Option<usize>,
+    index: usize,
+    _processed_bytes: usize,
+    update_channel: Option<mpsc::Sender<ChunkResults>>,
 ) -> IResult<&'a [u8], Option<dlt::Message>> {
-    let (after_storage_and_normal_header, (storage_header, header)) =
-        tuple((dlt_storage_header, dlt_standard_header))(input)?;
+    // println!("parsing dlt_message {:?}[{}]", index, processed_bytes);
+    let (after_storage_header, storage_header) =
+        dlt_storage_header(input, Some(index), update_channel.as_ref())?;
+    let (after_storage_and_normal_header, header) = dlt_standard_header(after_storage_header)?;
+    // let (after_storage_and_normal_header, (storage_header, header)) =
+    //     tuple((dlt_storage_header, dlt_standard_header))(input)?;
 
-    let payload_length = match validated_payload_length(&header, index) {
-        Some(length) => length,
-        None => {
-            return Err(nom::Err::Error((
-                after_storage_and_normal_header,
-                nom::error::ErrorKind::Verify,
-            )));
-        }
-    };
+    // println!("parsing 2...let's validate the payload length");
+    let payload_length =
+        match validated_payload_length(&header, Some(index), update_channel.as_ref()) {
+            Some(length) => length,
+            None => {
+                return Ok((after_storage_and_normal_header, None));
+            }
+        };
 
     let mut verbose: bool = false;
     let mut arg_count = 0;
     let (after_headers, extended_header) = if header.has_extended_header {
-        let (rest, ext_header) = dlt_extended_header(after_storage_and_normal_header, index)?;
+        let (rest, ext_header) =
+            dlt_extended_header(after_storage_and_normal_header, Some(index), update_channel)?;
         verbose = ext_header.verbose;
         arg_count = ext_header.argument_count;
         (rest, Some(ext_header))
@@ -599,29 +710,48 @@ pub fn dlt_message<'a>(
         }),
     ))
 }
-fn validated_payload_length(header: &dlt::StandardHeader, index: Option<usize>) -> Option<usize> {
+fn validated_payload_length<T>(
+    header: &dlt::StandardHeader,
+    index: Option<usize>,
+    update_channel: Option<&mpsc::Sender<IndexingResults<T>>>,
+) -> Option<usize> {
     let message_length = header.overall_length as usize;
     let headers_length = dlt::calculate_all_headers_length(header.header_type());
     if message_length < headers_length {
-        report_error_ln("Invalid header length", index);
+        if let Some(tx) = update_channel {
+            let _ = tx.send(Err(Notification {
+                severity: Severity::ERROR,
+                content: format!(
+                    "Invalid header length {} (message only has {} bytes)",
+                    headers_length, message_length
+                ),
+                line: index,
+            }));
+        }
         return None;
     }
     Some(message_length - headers_length)
 }
-pub fn dlt_app_id_context_id(
+pub fn dlt_app_id_context_id<T>(
     input: &[u8],
     index: Option<usize>,
+    update_channel: Option<mpsc::Sender<IndexingResults<T>>>,
 ) -> IResult<&[u8], StatisticRowInfo> {
-    let (after_storage_and_normal_header, (_, header)) =
-        tuple((dlt_storage_header, dlt_standard_header))(input)?;
+    let update_channel_ref = update_channel.as_ref();
+    let (after_storage_header, _) = dlt_skip_storage_header(input, index, update_channel_ref)?;
+    let (after_storage_and_normal_header, header) = dlt_standard_header(after_storage_header)?;
 
-    let payload_length = match validated_payload_length(&header, index) {
+    let payload_length = match validated_payload_length(&header, index, update_channel_ref) {
         Some(length) => length,
         None => {
-            return Err(nom::Err::Error((
+            return Ok((
                 after_storage_and_normal_header,
-                nom::error::ErrorKind::Verify,
-            )));
+                StatisticRowInfo {
+                    app_id_context_id: None,
+                    ecu_id: header.ecu_id,
+                    level: None,
+                },
+            ));
         }
     };
     if !header.has_extended_header {
@@ -638,7 +768,7 @@ pub fn dlt_app_id_context_id(
     }
 
     let (after_headers, extended_header) =
-        dlt_extended_header(after_storage_and_normal_header, index)?;
+        dlt_extended_header(after_storage_and_normal_header, index, update_channel)?;
     // skip payload
     let (after_message, _) = take(payload_length)(after_headers)?;
     let level = match extended_header.message_type {
@@ -658,7 +788,9 @@ pub fn dlt_app_id_context_id(
 fn read_one_dlt_message<T: Read>(
     reader: &mut ReduxReader<T, MinBuffered>,
     filter_config: Option<&filtering::ProcessedDltFilterConfig>,
-    index: Option<usize>,
+    index: usize,
+    processed_bytes: usize,
+    update_channel: mpsc::Sender<ChunkResults>,
 ) -> Result<Option<(usize, Option<dlt::Message>)>, Error> {
     loop {
         match reader.fill_buf() {
@@ -668,8 +800,13 @@ fn read_one_dlt_message<T: Read>(
                 }
                 let available = content.len();
 
-                let res: nom::IResult<&[u8], Option<dlt::Message>> =
-                    dlt_message(content, filter_config, index);
+                let res: nom::IResult<&[u8], Option<dlt::Message>> = dlt_message(
+                    content,
+                    filter_config,
+                    index,
+                    processed_bytes,
+                    Some(update_channel.clone()),
+                );
                 match res {
                     Ok(r) => {
                         let consumed = available - r.0.len();
@@ -679,19 +816,19 @@ fn read_one_dlt_message<T: Read>(
                         Err(nom::Err::Incomplete(_)) => continue,
                         Err(nom::Err::Error(_e)) => {
                             return Err(err_msg(format!(
-                                "parsing error for dlt messages: {:?}",
+                                "read_one_dlt_message: parsing error for dlt messages: {:?}",
                                 _e
                             )));
                         }
                         Err(nom::Err::Failure(_e)) => {
                             return Err(err_msg(format!(
-                                "parsing failure for dlt messages: {:?}",
+                                "read_one_dlt_message: parsing failure for dlt messages: {:?}",
                                 _e
                             )));
                         }
                         _ => {
                             return Err(err_msg(format!(
-                                "error while parsing dlt messages: {:?}",
+                                "read_one_dlt_message: error while parsing dlt messages: {:?}",
                                 e
                             )))
                         }
@@ -699,7 +836,7 @@ fn read_one_dlt_message<T: Read>(
                 }
             }
             Err(e) => {
-                return Err(err_msg(format!("parsing error for dlt messages: {:?}", e)));
+                return Err(err_msg(format!("error for reading dlt messages: {:?}", e)));
             }
         }
     }
@@ -708,28 +845,32 @@ pub fn create_index_and_mapping_dlt(
     config: IndexingConfig,
     source_file_size: Option<usize>,
     filter_conf: Option<filtering::DltFilterConfig>,
-    update_channel: mpsc::Sender<IndexingProgress<Chunk>>,
+    update_channel: mpsc::Sender<ChunkResults>,
     shutdown_receiver: Option<mpsc::Receiver<()>>,
 ) -> Result<(), Error> {
     trace!("create_index_and_mapping_dlt");
-    let initial_line_nr = match utils::next_line_nr(config.out_path) {
-        Some(nr) => nr,
-        None => {
-            report_error(format!(
-                "could not determine last line number of {:?}",
-                config.out_path
-            ));
-            std::process::exit(2)
+    match utils::next_line_nr(config.out_path) {
+        Ok(initial_line_nr) => index_dlt_file(
+            config,
+            filter_conf,
+            initial_line_nr,
+            source_file_size,
+            update_channel,
+            shutdown_receiver,
+        ),
+        Err(e) => {
+            let content = format!(
+                "could not determine last line number of {:?} ({})",
+                config.out_path, e
+            );
+            let _ = update_channel.send(Err(Notification {
+                severity: Severity::ERROR,
+                content: content.clone(),
+                line: None,
+            }));
+            Err(err_msg(content))
         }
-    };
-    index_dlt_file(
-        config,
-        filter_conf,
-        initial_line_nr,
-        source_file_size,
-        update_channel,
-        shutdown_receiver,
-    )
+    }
 }
 /// create index for a dlt file
 /// source_file_size: if progress updates should be made, add this value
@@ -738,7 +879,7 @@ pub fn index_dlt_file(
     dlt_filter: Option<filtering::DltFilterConfig>,
     initial_line_nr: usize,
     source_file_size: Option<usize>,
-    update_channel: mpsc::Sender<IndexingProgress<Chunk>>,
+    update_channel: mpsc::Sender<ChunkResults>,
     shutdown_receiver: Option<mpsc::Receiver<()>>,
 ) -> Result<(), Error> {
     trace!("index_dlt_file");
@@ -753,7 +894,6 @@ pub fn index_dlt_file(
     let mut reader = ReduxReader::with_capacity(10 * 1024 * 1024, config.in_file)
         .set_policy(MinBuffered(10 * 1024));
     let mut line_nr = initial_line_nr;
-    let mut processed_lines = 0usize;
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
 
     let mut processed_bytes = utils::get_processed_bytes(config.append, &config.out_path) as usize;
@@ -767,7 +907,13 @@ pub fn index_dlt_file(
             info!("we where stopped in dlt-indexer",);
             break;
         };
-        match read_one_dlt_message(&mut reader, filter_config.as_ref(), Some(line_nr)) {
+        match read_one_dlt_message(
+            &mut reader,
+            filter_config.as_ref(),
+            line_nr,
+            processed_bytes,
+            update_channel.clone(),
+        ) {
             Ok(Some((consumed, Some(msg)))) => {
                 // println!("consumed: {}", consumed);
                 reader.consume(consumed);
@@ -775,7 +921,6 @@ pub fn index_dlt_file(
                     utils::create_tagged_line_d(config.tag, &mut buf_writer, &msg, line_nr, true)?;
                 processed_bytes += consumed;
                 line_nr += 1;
-                processed_lines += 1;
                 if let Some(chunk) =
                     chunk_factory.create_chunk_if_needed(line_nr, written_bytes_len)
                 {
@@ -795,7 +940,7 @@ pub fn index_dlt_file(
                     };
                     chunk_count += 1;
                     last_byte_index = chunk.b.1;
-                    update_channel.send(IndexingProgress::GotItem { item: chunk })?;
+                    update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }))?;
                     buf_writer.flush()?;
                 }
                 if let Some(file_size) = source_file_size {
@@ -803,24 +948,26 @@ pub fn index_dlt_file(
                         (processed_bytes as f64 / file_size as f64 * 100.0).round() as usize;
                     if new_progress_percentage != progress_percentage {
                         progress_percentage = new_progress_percentage;
-                        update_channel.send(IndexingProgress::Progress {
+                        match update_channel.send(Ok(IndexingProgress::Progress {
                             ticks: (processed_bytes, file_size),
-                        })?;
+                        })) {
+                            Ok(()) => (),
+                            Err(e) => println!("could not send: {}", e),
+                        }
                     }
                 }
             }
             Ok(Some((consumed, None))) => {
                 reader.consume(consumed);
                 processed_bytes += consumed;
-                processed_lines += 1;
                 if let Some(file_size) = source_file_size {
                     let new_progress_percentage: usize =
                         (processed_bytes as f64 / file_size as f64 * 100.0).round() as usize;
                     if new_progress_percentage != progress_percentage {
                         progress_percentage = new_progress_percentage;
-                        update_channel.send(IndexingProgress::Progress {
+                        update_channel.send(Ok(IndexingProgress::Progress {
                             ticks: (processed_bytes, file_size),
-                        })?;
+                        }))?;
                     }
                 }
             }
@@ -828,29 +975,36 @@ pub fn index_dlt_file(
                 // println!("nothing more to parse");
                 break;
             }
-            Err(e) => return Err(err_msg(format!("error while parsing dlt messages: {}", e))),
+            Err(e) => {
+                // we couldn't parse the message. try to skip it and find the next.
+                println!("WIP: try to continue parsing: {}", e);
+            }
         }
     }
 
     buf_writer.flush()?;
     if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunk_count == 0) {
-        update_channel.send(IndexingProgress::GotItem {
+        update_channel.send(Ok(IndexingProgress::GotItem {
             item: chunk.clone(),
-        })?;
+        }))?;
         chunk_count += 1;
         last_byte_index = chunk.b.1;
     }
     if chunk_count > 0 {
         let last_expected_byte_index = fs::metadata(config.out_path).map(|md| md.len() as usize)?;
         if last_expected_byte_index != last_byte_index {
-            report_error(format!(
-                "error in computation! last byte in chunks is {} but should be {}",
-                last_byte_index, last_expected_byte_index
-            ));
+            update_channel.send(Err(Notification {
+                severity: Severity::ERROR,
+                content: format!(
+                    "error in computation! last byte in chunks is {} but should be {}",
+                    last_byte_index, last_expected_byte_index
+                ),
+                line: Some(line_nr),
+            }))?;
         }
     }
     trace!("sending IndexingProgress::Finished");
-    update_channel.send(IndexingProgress::Finished)?;
+    update_channel.send(Ok(IndexingProgress::Finished))?;
     Ok(())
 }
 
@@ -968,11 +1122,12 @@ pub struct StatisticInfo {
     context_ids: Vec<(String, LevelDistribution)>,
     ecu_ids: Vec<(String, LevelDistribution)>,
 }
+pub type StatisticsResults = std::result::Result<IndexingProgress<StatisticInfo>, Notification>;
 #[allow(dead_code)]
 pub fn get_dlt_file_info(
     in_file: &fs::File,
     source_file_size: usize,
-    update_channel: mpsc::Sender<IndexingProgress<StatisticInfo>>,
+    update_channel: mpsc::Sender<StatisticsResults>,
     shutdown_receiver: Option<mpsc::Receiver<()>>,
 ) -> Result<(), Error> {
     let mut reader =
@@ -984,7 +1139,7 @@ pub fn get_dlt_file_info(
     let mut index = 0usize;
     let mut processed_bytes = 0usize;
     loop {
-        match read_one_dlt_message_info(&mut reader, Some(index)) {
+        match read_one_dlt_message_info(&mut reader, Some(index), Some(update_channel.clone())) {
             Ok(Some((
                 consumed,
                 StatisticRowInfo {
@@ -1022,7 +1177,15 @@ pub fn get_dlt_file_info(
             Ok(None) => {
                 break;
             }
-            Err(e) => return Err(err_msg(format!("error while parsing dlt messages: {}", e))),
+            // Err(e) => {
+            //     return Err(err_msg(format!(
+            //         "error while parsing dlt messages[{}]: {}",
+            //         index, e
+            //     )))
+            Err(e) => {
+                // we couldn't parse the message. try to skip it and find the next.
+                println!("WIP: stats...try to continue parsing: {}", e);
+            }
         }
         index += 1;
         if index % STOP_CHECK_LINE_THRESHOLD == 0 {
@@ -1033,16 +1196,16 @@ pub fn get_dlt_file_info(
                     // nothing to send it.
                     Ok(_) | Err(TryRecvError::Disconnected) => {
                         info!("shutdown received in dlt stats producer, sending stopped");
-                        update_channel.send(IndexingProgress::Stopped)?;
+                        update_channel.send(Ok(IndexingProgress::Stopped))?;
                         break;
                     }
                     // No shutdown command, continue
                     Err(TryRecvError::Empty) => (),
                 }
             };
-            update_channel.send(IndexingProgress::Progress {
+            update_channel.send(Ok(IndexingProgress::Progress {
                 ticks: (processed_bytes, source_file_size),
-            })?;
+            }))?;
         }
     }
     let res = StatisticInfo {
@@ -1057,8 +1220,8 @@ pub fn get_dlt_file_info(
             .collect::<Vec<(String, LevelDistribution)>>(),
     };
 
-    update_channel.send(IndexingProgress::GotItem { item: res })?;
-    update_channel.send(IndexingProgress::Finished)?;
+    update_channel.send(Ok(IndexingProgress::GotItem { item: res }))?;
+    update_channel.send(Ok(IndexingProgress::Finished))?;
     Ok(())
 }
 
@@ -1071,6 +1234,7 @@ pub struct StatisticRowInfo {
 fn read_one_dlt_message_info<T: Read>(
     reader: &mut ReduxReader<T, MinBuffered>,
     index: Option<usize>,
+    update_channel: Option<mpsc::Sender<StatisticsResults>>,
 ) -> Result<Option<(usize, StatisticRowInfo)>, Error> {
     loop {
         match reader.fill_buf() {
@@ -1080,7 +1244,7 @@ fn read_one_dlt_message_info<T: Read>(
                 }
                 let available = content.len();
                 let res: nom::IResult<&[u8], StatisticRowInfo> =
-                    dlt_app_id_context_id(content, index);
+                    dlt_app_id_context_id(content, index, update_channel.clone());
                 match res {
                     Ok(r) => {
                         let consumed = available - r.0.len();
@@ -1090,19 +1254,19 @@ fn read_one_dlt_message_info<T: Read>(
                         Err(nom::Err::Incomplete(_)) => continue,
                         Err(nom::Err::Error(_e)) => {
                             return Err(err_msg(format!(
-                                "parsing error for dlt messages: {:?}",
+                                "parsing error for dlt message info: {:?}",
                                 _e
                             )));
                         }
                         Err(nom::Err::Failure(_e)) => {
                             return Err(err_msg(format!(
-                                "parsing failure for dlt messages: {:?}",
+                                "parsing failure for dlt message infos: {:?}",
                                 _e
                             )));
                         }
                         _ => {
                             return Err(err_msg(format!(
-                                "error while parsing dlt messages: {:?}",
+                                "error while parsing dlt message infos: {:?}",
                                 e
                             )))
                         }
@@ -1119,6 +1283,7 @@ fn read_one_dlt_message_info<T: Read>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use indexer_base::chunks::Chunk;
 
     use byteorder::BigEndian;
     use bytes::BytesMut;
@@ -1283,7 +1448,7 @@ mod tests {
             let mut header_bytes = header_to_expect.as_bytes();
             println!("header bytes: {:02X?}", header_bytes);
             header_bytes.extend(b"----");
-            let res: IResult<&[u8], Option<dlt::StorageHeader>> = dlt_storage_header(&header_bytes);
+            let res: IResult<&[u8], Option<dlt::StorageHeader>> = dlt_storage_header::<Chunk>(&header_bytes, None, None);
             if let Ok((_, Some(v))) = res.clone() {
                 println!("parsed header: {}", v)
             }
@@ -1303,7 +1468,7 @@ mod tests {
         fn test_extended_header(header_to_expect: dlt::ExtendedHeader) {
             let mut header_bytes = header_to_expect.as_bytes();
             header_bytes.extend(b"----");
-            let res: IResult<&[u8], dlt::ExtendedHeader> = dlt_extended_header(&header_bytes, None);
+            let res: IResult<&[u8], dlt::ExtendedHeader> = dlt_extended_header::<Chunk>(&header_bytes, None, None);
             let expected: IResult<&[u8], dlt::ExtendedHeader> = Ok((b"----", header_to_expect));
             assert_eq!(expected, res);
         }

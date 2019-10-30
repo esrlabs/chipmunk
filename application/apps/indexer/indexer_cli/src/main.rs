@@ -425,7 +425,7 @@ fn main() {
                     trace!("looping...");
                     let mut chunks: Vec<Chunk> = vec![];
                     match rx.recv() {
-                        Ok(IndexingProgress::Finished { .. }) => {
+                        Ok(IndexingProgress::Finished) => {
                             trace!("finished...");
                             let _ = serialize_chunks(&chunks, &mapping_out_path);
                             if let Some(original_file_size) = source_file_size {
@@ -448,6 +448,9 @@ fn main() {
                         Ok(IndexingProgress::GotItem { item: chunk }) => {
                             trace!("got item...");
                             chunks.push(chunk);
+                        }
+                        Ok(IndexingProgress::Notification { severity, content }) => {
+                            warn!("got notification[{:?}]...{}", severity, content);
                         }
                         Ok(IndexingProgress::Stopped) => {
                             trace!("stopped...");
@@ -621,6 +624,7 @@ fn main() {
         start: std::time::Instant,
         status_updates: bool,
     ) {
+        debug!("handle_dlt_subcommand");
         if let (Some(file_name), Some(tag)) = (matches.value_of("input"), matches.value_of("tag")) {
             let filter_conf: Option<dlt::filtering::DltFilterConfig> = match matches
                 .value_of("filter_config")
@@ -923,6 +927,9 @@ fn main() {
                 Ok(IndexingProgress::Finished) => {
                     trace!("finished...");
                     break;
+                }
+                Ok(IndexingProgress::Notification { severity, content }) => {
+                    warn!("got notification[{:?}]...{}", severity, content);
                 }
                 Ok(IndexingProgress::Stopped) => {
                     trace!("stopped...");

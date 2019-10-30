@@ -57,9 +57,16 @@ mod tests {
         let mut chunks: Vec<Chunk> = vec![];
         loop {
             match rx.recv() {
-                Ok(IndexingProgress::Finished { .. }) => {
+                Ok(IndexingProgress::Finished) => {
                     trace!("finished...");
                     return (chunks, out_file_content);
+                }
+                Ok(IndexingProgress::Notification { severity, content }) => {
+                    trace!(
+                        "getChunks: received notification[{:?}]...{}",
+                        severity,
+                        content
+                    );
                 }
                 Ok(IndexingProgress::Progress { ticks: _t }) => {
                     trace!("progress...");
@@ -128,13 +135,19 @@ mod tests {
         let mut chunks: Vec<Chunk> = vec![];
         loop {
             match rx.recv() {
-                Ok(IndexingProgress::Finished { .. }) => {
+                Ok(IndexingProgress::Finished) => {
                     println!("finished...");
                     assert_eq!(0, chunks.len(), "empty file should produce 0 chunks");
                     break;
                 }
                 Ok(IndexingProgress::Progress { ticks: _t }) => {
                     println!("progress...");
+                }
+                Ok(IndexingProgress::Notification { severity, content }) => {
+                    println!(
+                        "test_append_to_empty_output: notification[{:?}]...{}",
+                        severity, content
+                    );
                 }
                 Ok(IndexingProgress::GotItem { item: chunk }) => {
                     println!("got item...{:?}", &chunk);
@@ -182,7 +195,7 @@ mod tests {
         let mut chunks: Vec<Chunk> = vec![];
         loop {
             match rx.recv() {
-                Ok(IndexingProgress::Finished { .. }) => {
+                Ok(IndexingProgress::Finished) => {
                     println!("finished...");
                     let out_file_content: String =
                         fs::read_to_string(out_path).expect("could not read file");
@@ -197,6 +210,12 @@ mod tests {
                 }
                 Ok(IndexingProgress::Progress { ticks: _t }) => {
                     println!("progress...");
+                }
+                Ok(IndexingProgress::Notification { severity, content }) => {
+                    println!(
+                        "test_append_to_empty_output2: notification[{:?}]...{}",
+                        severity, content
+                    );
                 }
                 Ok(IndexingProgress::GotItem { item: chunk }) => {
                     println!("got item...{:?}", chunk);
@@ -336,6 +355,13 @@ mod tests {
                 Ok(IndexingProgress::GotItem { item: chunk }) => {
                     chunks.push(chunk);
                     trace!("got item...");
+                }
+
+                Ok(IndexingProgress::Notification { severity, content }) => {
+                    println!(
+                        "test_input_output: notification[{:?}]...{}",
+                        severity, content
+                    );
                 }
                 Ok(IndexingProgress::Stopped) => {
                     trace!("stopped...");
