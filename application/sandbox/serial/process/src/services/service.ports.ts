@@ -98,7 +98,13 @@ class ServicePorts {
             if (controller === undefined) {
                 return reject(new Error(this._logger.error(`Fail to write into port, because controller of port "${port}" isn't created.`)));
             }
-            controller.write(chunk).then(resolve).catch(reject);
+            if(typeof chunk != 'string')
+                chunk = chunk.toString();
+            let splitString = chunk.split("");
+            for(let i=0; i<splitString.length; i++) {
+                controller.write(splitString[i]).then(resolve).catch(reject);
+                setTimeout(() => {}, 50);
+            }
         });
     }
 
