@@ -2,8 +2,7 @@ import ServiceElectron, { IPCMessages as IPCElectronMessages } from '../services
 import Logger from '../tools/env.logger';
 
 const CSettings = {
-    notificationDelayOnStream: 500,             // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is blocked
-    maxPostponedNotificationMessages: 500,      // How many IPC messages to render (client) should be postponed via timer
+    notificationDelayOnStream: 250, // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is blocked
 };
 
 interface IProgress {
@@ -16,6 +15,8 @@ export default class ProgressState {
 
     private _streamId: string;
     private _tracks: Map<string, IProgress> = new Map();
+    private _timer: any;
+    private _last: number = 0;
     private _logger: Logger;
 
     constructor(streamId: string) {
@@ -24,6 +25,7 @@ export default class ProgressState {
     }
 
     public destroy() {
+        clearTimeout(this._timer);
         this._tracks.clear();
         this._send();
     }
@@ -65,13 +67,28 @@ export default class ProgressState {
         }
         track.progress = progress;
         this._tracks.set(id, track);
-        this._send();
+        this._notify();
     }
 
     private _send() {
+        clearTimeout(this._timer);
+        this._last = Date.now();
         ServiceElectron.IPC.send(new IPCElectronMessages.StreamProgressState({
             streamId: this._streamId,
             tracks: Array.from(this._tracks.values()),
         }));
     }
+
+    private _notify() {
+        clearTimeout(this._timer);
+        const past: number = Date.now() - this._last;
+        if (past < CSettings.notificationDelayOnStream) {
+            this._timer = setTimeout(() => {
+                this._send();
+            }, CSettings.notificationDelayOnStream - past);
+            return;
+        }
+        this._send();
+    }
+
 }
