@@ -37,9 +37,22 @@ task problem: [:clean, OUT_DIR, 'neon:rebuild'] do
                      "#{LOCAL_EXAMPLE_DIR}/dlt/huge.dlt",
                      "#{LOCAL_EXAMPLE_DIR}/dlt/huge.out")
 end
+desc 'test neon integration stats for a huge file'
 task stats: [:clean, OUT_DIR, 'neon:rebuild'] do
   call_test_function('testCallDltStats',
                      "#{LOCAL_EXAMPLE_DIR}/dlt/huge.dlt")
+end
+desc 'test neon timed out task'
+task timedout: [:clean, OUT_DIR, 'neon:rebuild'] do
+  call_test_function('testTimedOutAsyncIndexing',
+                     "#{LOCAL_EXAMPLE_DIR}/indexing/access_huge.log",
+                     "#{LOCAL_EXAMPLE_DIR}/indexing/test.out")
+end
+desc 'test neon cancel task'
+task cancelled: [:clean, OUT_DIR, 'neon:rebuild'] do
+  call_test_function('testCancelledAsyncIndexing',
+                     "#{LOCAL_EXAMPLE_DIR}/indexing/access_huge.log",
+                     "#{LOCAL_EXAMPLE_DIR}/indexing/test.out")
 end
 
 def call_test_function(function_name, *args)

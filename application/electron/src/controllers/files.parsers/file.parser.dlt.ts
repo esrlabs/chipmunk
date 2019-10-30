@@ -7,6 +7,7 @@ import { Subscription } from "../../tools/index";
 import Logger from "../../tools/env.logger";
 import { IIndexDltParams } from "indexer-neon/dist/dlt";
 import { INeonTransferChunk } from "indexer-neon/dist/progress";
+import { AsyncResult } from "../../../../apps/indexer-neon/dist/progress";
 
 const ExtNames = ["dlt"];
 
@@ -122,40 +123,40 @@ export default class FileParser extends AFileParser {
             };
             logger.debug("calling indexDltAsync with params: " + JSON.stringify(dltParams));
             let completeTicks: number = 0;
-            indexer
-                .indexDltAsync(
-                    dltParams,
-                    TimeUnit.fromSeconds(60),
-                    (ticks: ITicks) => {
-                        if (onProgress !== undefined) {
-                            completeTicks = ticks.total;
-                            onProgress(ticks);
-                        }
-                    },
-                    (e: INeonTransferChunk) => {
-                        if (onMapUpdated !== undefined) {
-                            const mapItem: IMapItem = {
-                                rows: { from: e.r[0], to: e.r[1] },
-                                bytes: { from: e.b[0], to: e.b[1] },
-                            };
-                            onMapUpdated([mapItem]);
-                            collectedChunks.push(mapItem);
-                        }
-                    },
-                )
-                .then(x => {
+
+            const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexer.indexDltAsync(
+                dltParams,
+                TimeUnit.fromSeconds(60),
+                (ticks: ITicks) => {
                     if (onProgress !== undefined) {
-                        onProgress({
-                            ellapsed: completeTicks,
-                            total: completeTicks,
-                        });
+                        completeTicks = ticks.total;
+                        onProgress(ticks);
                     }
-                    const hrend = process.hrtime(hrstart);
-                    const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-                    logger.debug("readAndWrite task finished, result: " + x);
-                    logger.debug("Execution time for indexing : " + ms + "ms");
-                    resolve(collectedChunks);
-                });
+                },
+                (e: INeonTransferChunk) => {
+                    if (onMapUpdated !== undefined) {
+                        const mapItem: IMapItem = {
+                            rows: { from: e.r[0], to: e.r[1] },
+                            bytes: { from: e.b[0], to: e.b[1] },
+                        };
+                        onMapUpdated([mapItem]);
+                        collectedChunks.push(mapItem);
+                    }
+                },
+            );
+            futureRes.then(x => {
+                if (onProgress !== undefined) {
+                    onProgress({
+                        ellapsed: completeTicks,
+                        total: completeTicks,
+                    });
+                }
+                const hrend = process.hrtime(hrstart);
+                const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+                logger.debug("readAndWrite task finished, result: " + x);
+                logger.debug("Execution time for indexing : " + ms + "ms");
+                resolve(collectedChunks);
+            });
             //     const lvin: Lvin = new Lvin();
             this._guid = ServiceStreams.getActiveStreamId();
             //     if (onMapUpdated !== undefined) {

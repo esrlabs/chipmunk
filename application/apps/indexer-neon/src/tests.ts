@@ -2,9 +2,10 @@ import { indexAsync, indexFile, IFilePath } from "./processor";
 import { DltFilterConf, indexDltAsync, DltLogLevel, IIndexDltParams } from "./dlt";
 import { indexer, StatisticInfo } from "./index";
 import { TimeUnit } from "./units";
-import { ITicks, IChunk, INeonTransferChunk } from "./progress";
+import { ITicks, IChunk, INeonTransferChunk, AsyncResult } from "./progress";
 import { log } from "./logging";
 import { puts } from "util";
+import { AsyncResource } from "async_hooks";
 var ProgressBar = require("progress");
 const util = require("util");
 
@@ -192,10 +193,16 @@ export function testCallDltStats(file: string) {
         measure({
             desc: "stats for " + file,
             f: () => {
-                indexer.dltStatsAsync(file, TimeUnit.fromSeconds(60), onProgress, onConf).then(x => {
+                const [futureRes]: [Promise<AsyncResult>, () => void] = indexer.dltStatsAsync(
+                    file,
+                    TimeUnit.fromSeconds(60),
+                    onProgress,
+                    onConf,
+                );
+                futureRes.then((x: AsyncResult) => {
                     const hrend = process.hrtime(hrstart);
                     const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-                    log("COMPLETELY DONE (last result was: " + x + ")");
+                    log("COMPLETELY DONE (last result was: " + AsyncResult[x] + ")");
                     console.info("Execution time for getting DLT stats : %dms", ms);
                 });
             },
@@ -213,7 +220,7 @@ export function testDltIndexingAsync(fileToIndex: string, outPath: string) {
             if (bar === undefined) {
                 bar = new ProgressBar(":bar", { total: ticks.total });
             }
-            bar.update(ticks.ellapsed/ticks.total);
+            bar.update(ticks.ellapsed / ticks.total);
         };
         let onChunk = (chunk: INeonTransferChunk) => {
             chunks += 1;
@@ -248,13 +255,19 @@ export function testDltIndexingAsync(fileToIndex: string, outPath: string) {
             stdout: false,
             statusUpdates: true,
         };
-        indexDltAsync(dltParams, TimeUnit.fromSeconds(60), onProgress, onChunk).then(x => {
+        const [futureRes]: [Promise<AsyncResult>, () => void] = indexer.indexDltAsync(
+            dltParams,
+            TimeUnit.fromSeconds(60),
+            onProgress,
+            onChunk,
+        );
+        futureRes.then((x: AsyncResult) => {
             if (bar !== undefined) {
                 bar.update(1.0);
             }
             const hrend = process.hrtime(hrstart);
             const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-            log("COMPLETELY DONE (last result was: " + x + ")");
+            log("COMPLETELY DONE (last result was: " + AsyncResult[x] + ")");
             console.info("Execution time for indexing : %dms", ms);
         });
     } catch (error) {
@@ -271,7 +284,7 @@ export function testIndexingAsync() {
             if (bar === undefined) {
                 bar = new ProgressBar(":bar", { total: ticks.total });
             }
-            bar.update(ticks.ellapsed/ticks.total);
+            bar.update(ticks.ellapsed / ticks.total);
         };
         let onChunk = (chunk: INeonTransferChunk) => {
             chunks += 1;
@@ -279,7 +292,7 @@ export function testIndexingAsync() {
                 // process.stdout.write(".");
             }
         };
-        indexAsync(
+        const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexAsync(
             500,
             examplePath + "/indexing/access_huge.log",
             TimeUnit.fromSeconds(15),
@@ -287,29 +300,29 @@ export function testIndexingAsync() {
             onProgress,
             onChunk,
             "TAG",
-        ).then(x => {
+        );
+        futureRes.then(x => {
             if (bar !== undefined) {
                 bar.update(1.0);
             }
             const hrend = process.hrtime(hrstart);
             const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-            log("COMPLETELY DONE (last result was: " + x + ")");
+            log("COMPLETELY DONE (last result was: " + AsyncResult[x] + ")");
             console.info("Execution time for indexing : %dms", ms);
         });
     } catch (error) {
         console.error("error %s", error);
     }
 }
-function testInterruptAsyncIndexing() {
-    const outPath = examplePath + "/indexing/test.out";
+export function testTimedOutAsyncIndexing(fileToIndex: string, outPath: string) {
     const hrstart = process.hrtime();
     let chunks: number = 0;
     let onProgress = (ticks: ITicks) => {
         log("progress: " + ticks);
     };
-    indexAsync(
+    const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexAsync(
         500,
-        examplePath + "/indexing/access_huge.log",
+        fileToIndex,
         TimeUnit.fromMilliseconds(750),
         outPath,
         onProgress,
@@ -320,12 +333,46 @@ function testInterruptAsyncIndexing() {
             }
         },
         "TAG",
-    ).then(x => {
+    );
+    futureRes.then((x: AsyncResult) => {
         const hrend = process.hrtime(hrstart);
         const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-        console.log("first event emitter task finished, result: " + x);
+        console.log("first event emitter task finished, result: " + AsyncResult[x]);
         console.info("Execution time for indexing : %dms", ms);
     });
+}
+export function testCancelledAsyncIndexing(fileToIndex: string, outPath: string) {
+    const hrstart = process.hrtime();
+    let chunks: number = 0;
+    let onProgress = (ticks: ITicks) => {
+        log("progress: " + ticks);
+    };
+    const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexAsync(
+        500,
+        fileToIndex,
+        TimeUnit.fromMilliseconds(750),
+        outPath,
+        onProgress,
+        (e: any) => {
+            chunks += 1;
+            if (chunks % 100 === 0) {
+                process.stdout.write(".");
+            }
+        },
+        "TAG",
+    );
+    setTimeout(function() {
+        log("cancelling operation after timeout");
+        cancel();
+    }, 500);
+
+    log("res: " + futureRes);
+    // .then((x: AsyncResult) => {
+    //     const hrend = process.hrtime(hrstart);
+    //     const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+    //     console.log("first event emitter task finished, result: " + AsyncResult[x]);
+    //     console.info("Execution time for indexing : %dms", ms);
+    // });
 }
 function testVeryShortIndexing() {
     const outPath = examplePath + "/indexing/test.out";
@@ -334,7 +381,7 @@ function testVeryShortIndexing() {
     let onProgress = (ticks: ITicks) => {
         log("progress: " + ticks);
     };
-    indexAsync(
+    const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexAsync(
         500,
         examplePath + "/indexing/access_tiny.log",
         TimeUnit.fromMilliseconds(750),
@@ -345,10 +392,11 @@ function testVeryShortIndexing() {
             log("chunk: " + JSON.stringify(e));
         },
         "TAG",
-    ).then(x => {
+    );
+    futureRes.then((x: AsyncResult) => {
         const hrend = process.hrtime(hrstart);
         const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-        console.log("first event emitter task finished, result: " + x);
+        console.log("first event emitter task finished, result: " + AsyncResult[x]);
         console.info("Execution time for indexing : %dms", ms);
     });
 }

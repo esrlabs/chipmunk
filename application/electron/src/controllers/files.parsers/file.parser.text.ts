@@ -8,6 +8,7 @@ import * as fs from "fs";
 import { Subscription } from "../../tools/index";
 import Logger from "../../tools/env.logger";
 import { INeonTransferChunk } from "indexer-neon/dist/progress";
+import { AsyncResult } from "../../../../apps/indexer-neon/dist/progress";
 
 const ExtNames = ["txt", "log", "logs", "json", "less", "css", "sass", "ts", "js"];
 
@@ -118,43 +119,42 @@ export default class FileParser extends AFileParser {
         return new Promise((resolve, reject) => {
             const collectedChunks: IMapItem[] = [];
             const hrstart = process.hrtime();
-            indexer
-                .indexAsync(
-                    500,
-                    srcFile,
-                    TimeUnit.fromSeconds(15),
-                    destFile,
-                    (ticks: ITicks) => {
-                        if (onProgress !== undefined) {
-                            completeTicks = ticks.total;
-                            onProgress(ticks);
-                        }
-                    },
-                    (e: INeonTransferChunk) => {
-                        if (onMapUpdated !== undefined) {
-                            const mapItem: IMapItem = {
-                                rows: { from: e.r[0], to: e.r[1] },
-                                bytes: { from: e.b[0], to: e.b[1] },
-                            };
-                            onMapUpdated([mapItem]);
-                            collectedChunks.push(mapItem);
-                        }
-                    },
-                    sourceId.toString(),
-                )
-                .then(x => {
+            const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexer.indexAsync(
+                500,
+                srcFile,
+                TimeUnit.fromSeconds(15),
+                destFile,
+                (ticks: ITicks) => {
                     if (onProgress !== undefined) {
-                        onProgress({
-                            ellapsed: completeTicks,
-                            total: completeTicks,
-                        });
+                        completeTicks = ticks.total;
+                        onProgress(ticks);
                     }
-                    const hrend = process.hrtime(hrstart);
-                    const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-                    logger.debug("readAndWrite task finished, result: " + x);
-                    logger.debug("Execution time for indexing : " + ms + "ms");
-                    resolve(collectedChunks);
-                });
+                },
+                (e: INeonTransferChunk) => {
+                    if (onMapUpdated !== undefined) {
+                        const mapItem: IMapItem = {
+                            rows: { from: e.r[0], to: e.r[1] },
+                            bytes: { from: e.b[0], to: e.b[1] },
+                        };
+                        onMapUpdated([mapItem]);
+                        collectedChunks.push(mapItem);
+                    }
+                },
+                sourceId.toString(),
+            );
+            futureRes.then(x => {
+                if (onProgress !== undefined) {
+                    onProgress({
+                        ellapsed: completeTicks,
+                        total: completeTicks,
+                    });
+                }
+                const hrend = process.hrtime(hrstart);
+                const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+                logger.debug("readAndWrite task finished, result: " + x);
+                logger.debug("Execution time for indexing : " + ms + "ms");
+                resolve(collectedChunks);
+            });
             //     const lvin: Lvin = new Lvin();
             //     this._guid = ServiceStreams.getActiveStreamId();
             //     if (onMapUpdated !== undefined) {

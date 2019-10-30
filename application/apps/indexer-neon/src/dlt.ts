@@ -52,10 +52,10 @@ export function dltStatsAsync(
     maxTime: TimeUnit,
     onProgress: (ticks: ITicks) => any,
     onConfig: (chunk: StatisticInfo) => any,
-): Promise<AsyncResult> {
-    return new Promise<AsyncResult>((resolve, reject) => {
-        const channel = new RustDltStatsChannel(dltFile);
-        const emitter = new NativeEventEmitter(channel);
+): [Promise<AsyncResult>, () => void] {
+    const channel = new RustDltStatsChannel(dltFile);
+    const emitter = new NativeEventEmitter(channel);
+    const p = new Promise<AsyncResult>((resolve, reject) => {
         let timeout = setTimeout(function() {
             log("TIMED OUT ====> shutting down");
             emitter.requestShutdown();
@@ -80,6 +80,13 @@ export function dltStatsAsync(
             });
         });
     });
+    return [
+        p,
+        () => {
+            log("cancel called");
+            emitter.requestShutdown();
+        },
+    ];
 }
 export function indexDltFile({
     dltFile,
@@ -112,8 +119,10 @@ export function indexDltAsync(
     maxTime: TimeUnit,
     onProgress: (ticks: ITicks) => any,
     onChunk: (chunk: INeonTransferChunk) => any,
-): Promise<AsyncResult> {
-    return new Promise<AsyncResult>((resolve, reject) => {
+): [Promise<AsyncResult>, () => void] {
+    const channel = new RustDltIndexerChannel(dltFile, tag, out, append, chunk_size, filterConfig);
+    const emitter = new NativeEventEmitter(channel);
+    const p = new Promise<AsyncResult>((resolve, reject) => {
         let chunks: number = 0;
         const channel = new RustDltIndexerChannel(
             dltFile,
@@ -152,4 +161,11 @@ export function indexDltAsync(
             });
         });
     });
+    return [
+        p,
+        () => {
+            log("cancel called");
+            emitter.requestShutdown();
+        },
+    ];
 }
