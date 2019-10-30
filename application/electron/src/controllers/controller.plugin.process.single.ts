@@ -146,7 +146,9 @@ export default class ControllerPluginProcessSingle extends Emitter {
             this._subscriptions[key].destroy();
         });
         this._ipc.destroy();
-        !this._process.killed && this._process.kill(signal);
+        if (!this._process.killed) {
+            this._process.kill(signal);
+        }
         this._process = undefined;
         this._connections.clear();
         return true;

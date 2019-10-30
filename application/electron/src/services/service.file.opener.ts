@@ -76,7 +76,7 @@ class ServiceFileOpener implements IService {
         return 'ServiceFileOpener';
     }
 
-    public open(file: string, session: string, parser?: AFileParser): Promise<void> {
+    public open(file: string, sessionId: string, parser?: AFileParser): Promise<void> {
         return new Promise((resolve, reject) => {
             fs.stat(file, (error: NodeJS.ErrnoException | null, stats: fs.Stats) => {
                 if (error) {
@@ -96,27 +96,27 @@ class ServiceFileOpener implements IService {
                         this._setProgress(detectedParser, trackingId, file, stats.size);
                         if (detectedParser.readAndWrite === undefined) {
                             // Pipe file. No direct read/write method
-                            this._pipeSource(file, trackingId, session, detectedParser, options).then(() => {
-                                this._unsetProgress(detectedParser as AFileParser, trackingId, session);
+                            this._pipeSource(file, trackingId, sessionId, detectedParser, options).then(() => {
+                                this._unsetProgress(detectedParser as AFileParser, trackingId, sessionId);
                                 this._saveAsRecentFile(file, stats.size);
                                 resolve();
                             }).catch((pipeError: Error) => {
-                                this._unsetProgress(detectedParser as AFileParser, trackingId, session);
+                                this._unsetProgress(detectedParser as AFileParser, trackingId, sessionId);
                                 reject(new Error(this._logger.error(`Fail to pipe file "${file}" due error: ${pipeError.message}`)));
                             });
                         } else {
                             // Trigger progress
-                            this._incrProgress(detectedParser, trackingId, session, 0);
+                            this._incrProgress(detectedParser, trackingId, sessionId, 0);
                             // Parser has direct method of reading and writing
-                            this._directReadWrite(file, session, detectedParser, options, trackingId).then(() => {
-                                this._unsetProgress(detectedParser as AFileParser, trackingId, session);
-                                ServiceStreams.reattachSessionFileHandle(session);
+                            this._directReadWrite(file, sessionId, detectedParser, options, trackingId).then(() => {
+                                this._unsetProgress(detectedParser as AFileParser, trackingId, sessionId);
+                                ServiceStreams.reattachSessionFileHandle(sessionId);
                                 (detectedParser as AFileParser).destroy();
                                 this._saveAsRecentFile(file, stats.size);
                                 resolve();
                             }).catch((pipeError: Error) => {
-                                this._unsetProgress(detectedParser as AFileParser, trackingId, session);
-                                ServiceStreams.reattachSessionFileHandle(session);
+                                this._unsetProgress(detectedParser as AFileParser, trackingId, sessionId);
+                                ServiceStreams.reattachSessionFileHandle(sessionId);
                                 (detectedParser as AFileParser).destroy();
                                 reject(new Error(this._logger.error(`Fail to directly read file "${file}" due error: ${pipeError.message}`)));
                             });
@@ -198,10 +198,10 @@ class ServiceFileOpener implements IService {
         });
     }
 
-    private _pipeSource(file: string, pipeId: string, session: string, parser: AFileParser, options: any): Promise<void> {
+    private _pipeSource(file: string, pipeId: string, sessionId: string, parser: AFileParser, options: any): Promise<void> {
         return new Promise((resolve, reject) => {
             // Add new description of source
-            const sourceId: number = ServiceStreamSource.add({ name: path.basename(file), session: session });
+            const sourceId: number = ServiceStreamSource.add({ name: path.basename(file), session: sessionId });
             // Create read stream
             const reader: fs.ReadStream = fs.createReadStream(file);
             // Pipe file
@@ -219,10 +219,10 @@ class ServiceFileOpener implements IService {
         });
     }
 
-    private _directReadWrite(file: string, session: string, parser: AFileParser, options: { [key: string]: any }, trackingId: string): Promise<void> {
+    private _directReadWrite(file: string, sessionId: string, parser: AFileParser, options: { [key: string]: any }, trackingId: string): Promise<void> {
         return new Promise((resolve, reject) => {
             // Add new description of source
-            const sourceId: number = ServiceStreamSource.add({ name: path.basename(file), session: session });
+            const sourceId: number = ServiceStreamSource.add({ name: path.basename(file), session: sessionId });
             // Get destination file
             const dest: { streamId: string, file: string } | Error = ServiceStreams.getStreamFile();
             if (dest instanceof Error) {

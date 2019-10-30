@@ -131,7 +131,9 @@ export default class ControllerPluginProcessMultiple extends Emitter {
             return false;
         }
         this._ipc.destroy();
-        !this._process.killed && this._process.kill(signal);
+        if (!this._process.killed) {
+            this._process.kill(signal);
+        }
         this._process = undefined;
         this._connection = undefined;
         return true;

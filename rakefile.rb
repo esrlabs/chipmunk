@@ -482,7 +482,7 @@ def collect_ts_lint_scripts
   lint_scripts
 end
 
-def run_ts_lint
+def run_ts_lint(include_tsc_checks)
   require 'open3'
   errors = []
   lint_scripts = collect_ts_lint_scripts
@@ -491,12 +491,15 @@ def run_ts_lint
     dir = lint[0]
     runner = lint[2]
     runner = runner.sub!(/^.*?tslint/, 'tslint') if runner =~ /^.*tslint/
+    puts "running \"#{runner}\" in #{dir}"
     cd dir do
       npm_install if runner =~ /ng\s+lint/
       stdout, stderr, status = Open3.capture3(runner)
       errors << [stdout.strip, stderr.strip].join('\n') if status.exitstatus != 0
-      stdout, stderr, status = Open3.capture3("tsc --noEmit -p .")
-      errors << [stdout.strip, stderr.strip].join('\n') if status.exitstatus != 0
+      if include_tsc_checks
+        stdout, stderr, status = Open3.capture3('tsc --noEmit -p .')
+        errors << [stdout.strip, stderr.strip].join('\n') if status.exitstatus != 0
+      end
     end
   end
   errors
@@ -518,7 +521,7 @@ end
 
 desc 'lint js code'
 task :lint_js do
-  errors = run_ts_lint
+  errors = run_ts_lint(false)
   es = errors.reduce('') { |acc, e| [acc, e].join('\n') }
   raise es unless errors.empty?
 end
