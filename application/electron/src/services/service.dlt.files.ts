@@ -4,6 +4,7 @@ import { Subscription } from "../tools/index";
 import { IService } from "../interfaces/interface.service";
 import { indexer, ITicks, TimeUnit, StatisticInfo } from "indexer-neon";
 import * as path from "path";
+import { AsyncResult } from "../../../apps/indexer-neon/dist/progress";
 
 /**
  * @class ServiceDLTFiles
@@ -57,31 +58,32 @@ class ServiceDLTFiles implements IService {
         // return new Promise((resolve, reject) => {
         const hrstart = process.hrtime();
         this._logger.debug("calling _onDLTStatsRequest with params: " + JSON.stringify(req));
-        indexer
-            .dltStatsAsync(
-                req.file,
-                TimeUnit.fromSeconds(60),
-                (ticks: ITicks) => {
-                    // if (onProgress !== undefined) {
-                    //     onProgress(ticks);
-                    // }
-                },
-                (e: StatisticInfo) => {
-                    // stats
-                    response(new IPCMessages.DLTStatsResponse({
+        const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexer.dltStatsAsync(
+            req.file,
+            TimeUnit.fromSeconds(60),
+            (ticks: ITicks) => {
+                // if (onProgress !== undefined) {
+                //     onProgress(ticks);
+                // }
+            },
+            (e: StatisticInfo) => {
+                // stats
+                response(
+                    new IPCMessages.DLTStatsResponse({
                         stats: e,
                         id: req.id,
                         session: req.session,
                         logs: undefined,
-                    }));
-                },
-            )
-            .then(x => {
-                const hrend = process.hrtime(hrstart);
-                const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-                this._logger.debug("readAndWrite task finished, result: " + x);
-                this._logger.debug("Execution time for indexing : " + ms + "ms");
-            });
+                    }),
+                );
+            },
+        );
+        futureRes.then(x => {
+            const hrend = process.hrtime(hrstart);
+            const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+            this._logger.debug("readAndWrite task finished, result: " + x);
+            this._logger.debug("Execution time for indexing : " + ms + "ms");
+        });
 
         // });
 

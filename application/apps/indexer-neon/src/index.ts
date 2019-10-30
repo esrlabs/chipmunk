@@ -47,7 +47,7 @@ export interface IChipmunkIndexer {
         onProgress: (ticks: ITicks) => any,
         onChunk: (chunk: INeonTransferChunk) => any,
         tag: string,
-    ) => Promise<AsyncResult>;
+    ) => [Promise<AsyncResult>, () => void];
     mergeFiles: (params: IMergeParams) => boolean;
     concatFiles: (params: IConcatFilesParams) => boolean;
     dltStats: (dltFile: String) => StatisticInfo;
@@ -56,14 +56,14 @@ export interface IChipmunkIndexer {
         maxTime: TimeUnit,
         onProgress: (ticks: ITicks) => any,
         onConfig: (chunk: StatisticInfo) => any,
-    ) => Promise<AsyncResult>;
+    ) => [Promise<AsyncResult>, () => void];
     indexDltFile: (params: IIndexDltParams) => boolean;
     indexDltAsync: (
         params: IIndexDltParams,
         maxTime: TimeUnit,
         onProgress: (ticks: ITicks) => any,
         onChunk: (chunk: INeonTransferChunk) => any,
-    ) => Promise<AsyncResult>;
+    ) => [Promise<AsyncResult>, () => void];
     detectTimestampInString: (input: string) => string;
     detectTimestampFormatInFile: (input: string) => string;
     detectTimestampFormatsInFiles: (conf: Array<IFilePath>) => string;

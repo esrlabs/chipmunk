@@ -26,20 +26,20 @@ export function indexAsync(
     onProgress: (ticks: ITicks) => any,
     onChunk: (chunk: INeonTransferChunk) => any,
     tag: string,
-): Promise<AsyncResult> {
-    return new Promise<AsyncResult>((resolve, reject) => {
-        const append = false; // TODO support append option
-        const timestamps = false; // TODO support timestamps option
+): [Promise<AsyncResult>, () => void] {
+    const append = false; // TODO support append option
+    const timestamps = false; // TODO support timestamps option
+    const channel = new RustIndexerChannel(
+        fileToIndex,
+        tag,
+        outPath,
+        append,
+        timestamps,
+        chunkSize,
+    );
+    const emitter = new NativeEventEmitter(channel);
+    const p = new Promise<AsyncResult>((resolve, reject) => {
         let totalTicks = 1;
-        const channel = new RustIndexerChannel(
-            fileToIndex,
-            tag,
-            outPath,
-            append,
-            timestamps,
-            chunkSize,
-        );
-        const emitter = new NativeEventEmitter(channel);
         let timeout = setTimeout(function() {
             log("TIMED OUT ====> shutting down");
             emitter.requestShutdown();
@@ -75,6 +75,13 @@ export function indexAsync(
             });
         });
     });
+    return [
+        p,
+        () => {
+            log("cancel called");
+            emitter.requestShutdown();
+        },
+    ];
 }
 export function indexFile({
     file,
