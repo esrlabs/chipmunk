@@ -26,19 +26,20 @@
 <div class="container">
     <div class="comstyle-input-holder input-wrapper">
         <div class="comstyle-input">
-            <lib-primitive-input
+            <lib-primitive-input #msgInput
             [type]="'text'"
             [placeholder]="'press ENTER to send'"
             [value]="_ng_msg"
             [onEnter]="_ng_sendMessage">
             </lib-primitive-input>
-            <span class="spliter"></span>
         </div>
     </div>
-    <select id="dropdown" (change)="_ng_updateSelection(); _ng_saveOption();">
-    </select>
 </div>
-    
+<div class="container">
+    <lib-primitive-dropdownlist
+    [onChange]="_ng_change" [items]="_ng_portList">
+    </lib-primitive-dropdownlist>
+</div>
 <div class="error">
     <p class="t-normal color-scheme-error">{{_ng_error}}</p>
 </div>

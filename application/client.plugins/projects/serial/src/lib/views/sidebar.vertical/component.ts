@@ -5,12 +5,14 @@ import { EHostEvents, EHostCommands } from '../../common/host.events';
 import { IPortInfo, IPortState, IIOState } from '../../common/interface.portinfo';
 import { IOptions, CDefaultOptions } from '../../common/interface.options';
 import { SidebarVerticalPortOptionsWriteComponent } from './port.options.write/component';
-
+import { DDListStandardComponent } from 'logviewer-client-primitive';
 import { InputStandardComponent } from 'logviewer-client-primitive';
 
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 import { Message } from '@angular/compiler/src/i18n/i18n_ast';
+import { ProtractorBrowser } from 'protractor';
+import { stringify } from '@angular/core/src/util';
 
 interface IState {
     _ng_ports: IPortInfo[];
@@ -25,8 +27,13 @@ interface IConnected {
     state: IPortState;
 }
 
+interface IPortListItem {
+    comPort: IPortInfo;
+    caption: string;
+}
+
 const state: Toolkit.ControllerState<IState> = new Toolkit.ControllerState<IState>();
-let sessionPort = new Map<string, IPortInfo[]>();
+let sessionPorts = new Map<string, IPortInfo[]>();
 let savedOption = new Map<string, string>();
 
 @Component({
@@ -37,6 +44,7 @@ let savedOption = new Map<string, string>();
 
 export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     @ViewChild('optionsCom', {static: false}) _optionsCom: SidebarVerticalPortOptionsWriteComponent;
+    @ViewChild('msgInput') _inputCom: InputStandardComponent;
 
     @Input() public api: Toolkit.IAPI;
     @Input() public session: string;
@@ -46,6 +54,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     private _logger: Toolkit.Logger = new Toolkit.Logger(`Plugin: serial: inj_output_bot:`);
     private _destroyed: boolean = false;
     private _chosenPort: string = undefined;
+    private _portItem: IPortListItem;
     
     public _ng_ports: IPortInfo[] = [];
     public _ng_connected: IConnected[] = [];
@@ -55,9 +64,11 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     public _ng_options: boolean = false;
     
     public _ng_msg: string;
+    public _ng_portList: IPortListItem[] = [];
 
     constructor(private _cdRef: ChangeDetectorRef) {
         this._ng_sendMessage = this._ng_sendMessage.bind(this);
+        this._ng_change = this._ng_change.bind(this);
     }
 
     ngOnDestroy() {
@@ -69,8 +80,8 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     }
 
     ngAfterViewInit() {
-        this._updateDropdown();
-        this._loadOption();
+        this._createDropdownElement();
+        //this._loadOption();
 
         // Subscription to income events
         this._subscriptions.incomeIPCHostMessage = this.api.getIPC().subscribeToHost((message: any) => {
@@ -163,9 +174,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                 },
             });
             
-            this._updateConnectPort();            
-            let newPort = this._createDropdownElement(this._ng_selected);
-            newPort.selected = true;
+            this._updateConnectPort();
 
             this._ng_selected = undefined;
             this._forceUpdate();
@@ -189,9 +198,9 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     }
 
     public _ng_onDisconnectPort(port: IPortInfo) {
-        
+
         this._updateDisconnectPort(port);
-        for(let ports of [...sessionPort.values()])
+        for(let ports of [...sessionPorts.values()])
             if(ports.includes(port))
                 return;
 
@@ -353,68 +362,79 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         }, this.session).catch((error: Error) => {
             console.error(error);
         });
-
-        this._ng_msg = "";
+        this._inputCom.setValue("");
     }
 
-    private _createDropdownElement(port: IPortInfo): HTMLOptionElement {
-        let dropdown = <HTMLSelectElement> document.getElementById("dropdown");
-        let option = document.createElement("option");
-        option.text = port.comName;
-        option.id = port.comName;
-        dropdown.add(option);
-        this._ng_updateSelection();
-        return option;
-    }
-
-    private _removeDropdownElement(port: IPortInfo) {
-        let dropdownElement = <HTMLSelectElement> document.getElementById(port.comName);
-        dropdownElement.parentNode.removeChild(dropdownElement);
-        this._ng_updateSelection();
-    }
-
-    public _ng_updateSelection() {
-        let dropdown = <HTMLSelectElement> document.getElementById("dropdown");
-        this._chosenPort = dropdown.value;
-    }
-
-    private _updateDropdown() {
-        let portArray = sessionPort.get(this.session);
-        if(portArray) {
-            for(let port of portArray) {
-                this._createDropdownElement(port);
+    private _createDropdownElement() {
+        let ports = sessionPorts.get(this.session);
+        if(ports != undefined) {
+            for(let port of ports) {
+                if(this._checkOption(port)) {
+                    this._ng_portList.push({comPort: port, caption: port.comName});
+                }
             }
+        this._updateSelection();
         }
     }
 
+    private _removeDropdownElement(port: IPortInfo) {
+        for(let index=0; index<this._ng_portList.length; index++) {
+            if(this._ng_portList[index].comPort == port) {
+                this._ng_portList.splice(index, 1);
+            }
+        }
+        this._updateSelection();
+    }
+    
+    private _updateSelection() {
+        //this._chosenPort = Value of dropdownlist
+    }
+   
+    public _ng_change(value: string) {
+        
+        //this._chosenPort = value.comPort.comName;
+        console.log("--> " + value);
+        //this._saveOption();
+        //this._updateSelection();
+    }
+    
+    // Upon disconnecting remove port from current session
     private _updateDisconnectPort(port: IPortInfo) {
-        let portArray = sessionPort.get(this.session);
-        if(portArray && portArray.includes(port)) {
-            const index: number = portArray.indexOf(port);
+        let portArray = sessionPorts.get(this.session);
+        if(portArray != undefined && portArray.includes(port)) {
+            let index: number = portArray.indexOf(port);
             if(index > -1)
                 portArray.splice(index, 1);
             this._removeDropdownElement(port);
         }
     }
-
+    
+    // Upon connecting save port with current session
     private _updateConnectPort() {
-        let portArray = sessionPort.get(this.session);
+        let portArray = sessionPorts.get(this.session);
         if (portArray && !portArray.includes(this._ng_selected))
-                portArray.push(this._ng_selected);
+        portArray.push(this._ng_selected);
         else
-            sessionPort.set(this.session, [this._ng_selected]);
+        sessionPorts.set(this.session, [this._ng_selected]);
+        this._createDropdownElement();
     }
 
-    public _ng_saveOption() {
-        let dropdown = <HTMLSelectElement> document.getElementById("dropdown");
-        savedOption.set(this.session, dropdown.value);
+    private _checkOption(port: IPortInfo) {
+        for(let each of this._ng_portList)
+            if(each.comPort == port)
+                return 0;
+        return -1;
+    }
+    
+    private _saveOption() {
+        savedOption.set(this.session, this._portItem.comPort.comName);
     }
 
     private _loadOption() {
         let dropdown = Array.from(document.getElementsByTagName("option"));
-        dropdown.forEach(element => {
-            if(element.value == savedOption.get(this.session)) {
-                element.selected = true;
+        this._ng_portList.forEach(element => {
+            if(element.comPort.comName == savedOption.get(this.session)) {
+              ;//Make it as default / selected item
             }
         });
     }
