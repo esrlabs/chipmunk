@@ -1,5 +1,5 @@
 import { Transform } from 'stream';
-import { IMapItem } from '../controller.stream.processor.map';
+import { IMapItem } from '../stream.main/file.map';
 import { ITicks } from "indexer-neon";
 
 export { IMapItem, ITicks };

@@ -7,13 +7,13 @@ import ServicePaths from './service.paths';
 import ServicePlugins from './service.plugins';
 import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from './service.electron';
 import Logger from '../tools/env.logger';
-import ControllerStreamSearch from '../controllers/controller.stream.search';
-import ControllerStreamProcessor from '../controllers/controller.stream.processor';
-import ControllerStreamState from '../controllers/controller.stream.state';
+import ControllerStreamSearch from '../controllers/stream.search/controller';
+import ControllerStreamProcessor from '../controllers/stream.main/controller';
+import { EventsHub } from '../controllers/stream.common/events';
 
 import { IService } from '../interfaces/interface.service';
 import * as Tools from '../tools/index';
-import { IMapItem } from '../controllers/controller.stream.processor.map';
+import { IMapItem } from '../controllers/stream.main/file.map';
 
 export interface IStreamInfo {
     guid: string;
@@ -23,7 +23,7 @@ export interface IStreamInfo {
     connections: Net.Socket[];
     connectionFactory: (pluginName: string) => Promise<{ socket: Net.Socket, file: string }>;
     server: Net.Server;
-    state: ControllerStreamState;
+    events: EventsHub;
     processor: ControllerStreamProcessor;
     search: ControllerStreamSearch;
     received: number;
@@ -213,45 +213,6 @@ class ServiceStreams implements IService  {
         return { streamId: streamId, file: stream.streamFile };
     }
 
-    public addPipeSession(id: string, size: number, name: string, streamId?: string) {
-        // Get stream id
-        if (streamId === undefined) {
-            streamId = this._activeStreamGuid;
-        }
-        // Get stream info
-        const stream: IStreamInfo | undefined = this._streams.get(streamId);
-        if (stream === undefined) {
-            return;
-        }
-        stream.processor.addPipeSession(id, size, name);
-    }
-
-    public removePipeSession(id: string, streamId?: string) {
-        // Get stream id
-        if (streamId === undefined) {
-            streamId = this._activeStreamGuid;
-        }
-        // Get stream info
-        const stream: IStreamInfo | undefined = this._streams.get(streamId);
-        if (stream === undefined) {
-            return;
-        }
-        stream.processor.removePipeSession(id);
-    }
-
-    public updatePipeSession(trackId: string, written: number, streamId?: string) {
-        // Get stream id
-        if (streamId === undefined) {
-            streamId = this._activeStreamGuid;
-        }
-        // Get stream info
-        const stream: IStreamInfo | undefined = this._streams.get(streamId);
-        if (stream === undefined) {
-            return;
-        }
-        stream.processor.updatePipeSession(trackId, written);
-    }
-
     public addProgressSession(id: string, name: string, streamId?: string) {
         // Get stream id
         if (streamId === undefined) {
@@ -334,7 +295,7 @@ class ServiceStreams implements IService  {
                 // Create new server
                 const server: Net.Server = Net.createServer(this._acceptConnectionToSocket.bind(this, guid));
                 // Create stream state
-                const state: ControllerStreamState = new ControllerStreamState(guid);
+                const events: EventsHub = new EventsHub(guid);
                 // Create connection to trigger creation of server
                 const stream: IStreamInfo = {
                     guid: guid,
@@ -352,9 +313,9 @@ class ServiceStreams implements IService  {
                             (socket as any).__id = Tools.guid();
                         });
                     },
-                    state: state,
-                    processor: new ControllerStreamProcessor(guid, streamFile, state),
-                    search: new ControllerStreamSearch(guid, streamFile, searchFile, state),
+                    events: events,
+                    processor: new ControllerStreamProcessor(guid, streamFile, events),
+                    search: new ControllerStreamSearch(guid, streamFile, searchFile, events),
                     received: 0,
                 };
                 // Bind server with file

@@ -15,17 +15,17 @@ import ServiceStorage from './services/service.storage';
 import ServiceWindowState from './services/service.window.state';
 import ServiceElectronState from './services/service.electron.state';
 import ServiceProduction from './services/service.production';
-import ServiceFileInfo from './services/service.file.info';
-import ServiceMergeFiles from './services/service.merge.files';
-import ServiceConcatFiles from './services/service.concat.files';
-import ServiceFileReader from './services/service.file.reader';
-import ServiceFileSearch from './services/service.file.search';
-import ServiceFileOpener from './services/service.file.opener';
+import ServiceFileInfo from './services/files/service.file.info';
+import ServiceMergeFiles from './services/features/service.merge.files';
+import ServiceConcatFiles from './services/features/service.concat.files';
+import ServiceFileReader from './services/files/service.file.reader';
+import ServiceFileSearch from './services/files/service.file.search';
+import ServiceFileOpener from './services/files/service.file.opener';
 import ServiceStreamSources from './services/service.stream.sources';
 import ServiceFilters from './services/service.filters';
 import ServiceAppState from './services/service.app.state';
 import ServiceUpdate from './services/service.update';
-import ServiceDLTFiles from './services/service.dlt.files';
+import ServiceDLTFiles from './services/parsers/service.dlt.files';
 
 const InitializeStages = [
     // Stage #1
