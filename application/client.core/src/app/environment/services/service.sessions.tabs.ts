@@ -43,6 +43,13 @@ export class TabsSessionsService implements IService {
         onSidebarTitleInjection: new Subject<IComponentDesc | undefined>(),
     };
 
+    constructor() {
+        this.getPluginAPI = this.getPluginAPI.bind(this);
+        // Delivering API getter into Plugin Service here to escape from circular dependencies
+        // (which will happen if try to access to this service from Plugin Service)
+        PluginsService.setPluginAPIGetter(this.getPluginAPI);
+    }
+
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
             this._subscriptions.onSessionTabChanged = this._tabsService.getObservable().active.subscribe(this._onSessionTabSwitched.bind(this));
