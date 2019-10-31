@@ -1,7 +1,10 @@
+
 export type TResolver<T> = (value: T) => void;
 export type TRejector = (error: Error) => void;
 export type TFinally = () => void;
 export type TCanceler<T> = (reason?: T) => void;
+export type TExecutor<T, C> = (resolve: TResolver<T>, reject: TRejector, cancel: TCanceler<C>, self: CancelablePromise<T, C>) => void;
+export type TEventHandler = (...args: any[]) => any;
 
 export class CancelablePromise<T, C> {
 
@@ -13,9 +16,10 @@ export class CancelablePromise<T, C> {
     private _resolved: boolean = false;
     private _rejected: boolean = false;
     private _finished: boolean = false;
+    private _handlers: Map<string, any[]> = new Map();
 
     constructor(
-        executor: (resolve: TResolver<T>, reject: TRejector, cancel: TCanceler<C>, self: CancelablePromise<T, C>) => void,
+        executor: TExecutor<T, C>,
     ) {
         const self = this;
         // Create and execute native promise
@@ -53,7 +57,37 @@ export class CancelablePromise<T, C> {
         return this;
     }
 
+    public on(event: string, handler: TEventHandler): void {
+        if (typeof event !== 'string' || event.trim() === '') {
+            return;
+        }
+        if (typeof handler !== 'function') {
+            return;
+        }
+        let handlers: any[] | undefined = this._handlers.get(event);
+        if (handlers === undefined) {
+            handlers = [];
+        }
+        handlers.push(handler);
+        this._handlers.set(event, handlers);
+    }
+
+    public emit(event: string, ...args: any[]): void {
+        const handlers: any[] | undefined = this._handlers.get(event);
+        if (handlers === undefined) {
+            return;
+        }
+        handlers.forEach((handler: TEventHandler) => {
+            try {
+                handler(...args);
+            } catch (e) {
+                this._doReject(new Error(`Promise is rejected, because handler of event "${event}" finished due error: ${e.message}`));
+            }
+        });
+    }
+
     private _doResolve(value: T) {
+        this._handlers.clear();
         if (this._canceled) {
             return;
         }
@@ -65,6 +99,7 @@ export class CancelablePromise<T, C> {
     }
 
     private _doReject(error: Error) {
+        this._handlers.clear();
         if (this._canceled) {
             return;
         }
@@ -76,6 +111,7 @@ export class CancelablePromise<T, C> {
     }
 
     private _doFinally() {
+        this._handlers.clear();
         if (this._finished) {
             return;
         }
@@ -86,6 +122,7 @@ export class CancelablePromise<T, C> {
     }
 
     private _doCancel(reason?: C) {
+        this._handlers.clear();
         if (this._resolved || this._rejected || this._canceled) {
             // Doesn't make sence to cancel, because it was resolved or rejected or canceled already
             return this;

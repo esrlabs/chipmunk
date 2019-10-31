@@ -6,11 +6,11 @@ import { app } from 'electron';
 import { Subscription } from '../tools/index';
 import { THandler } from '../tools/types.common';
 import { IService } from '../interfaces/interface.service';
-import { IPCMessages } from '../controllers/controller.electron.ipc';
-import ControllerElectronIpc from '../controllers/controller.electron.ipc';
+import { IPCMessages } from '../controllers/electron/controller.electron.ipc';
+import ControllerElectronIpc from '../controllers/electron/controller.electron.ipc';
 import ServiceProduction from './service.production';
-import ControllerBrowserWindow from '../controllers/controller.browserwindow';
-import ControllerElectronMenu from '../controllers/controller.electron.menu';
+import ControllerBrowserWindow from '../controllers/electron/controller.browserwindow';
+import ControllerElectronMenu from '../controllers/electron/controller.electron.menu';
 
 import Logger from '../tools/env.logger';
 
