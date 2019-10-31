@@ -23,6 +23,7 @@ import SelectionParsersService from './standalone/service.selection.parsers';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
 import { IService } from '../interfaces/interface.service';
 import { ControllerPluginGate } from '../controller/controller.plugin.gate';
+import { IAPI } from 'chipmunk.client.toolkit';
 
 type TPluginModule = any;
 
@@ -63,6 +64,7 @@ export class PluginsService extends Toolkit.Emitter implements IService {
     private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription | undefined } = { };
     private _idsCache: { [key: number]: IPluginData } = {};
     private _factories: AngularCore.ComponentFactory<any>[] = [];
+    private _getPluginAPIByID?: (pluginId: number) => IAPI;
 
     constructor() {
         super();
@@ -141,6 +143,10 @@ export class PluginsService extends Toolkit.Emitter implements IService {
 
     public getStoredFactoryByName(name: string): AngularCore.ComponentFactory<any> | undefined {
         return this._factories.find(e => e.componentType.name === name);
+    }
+
+    public setPluginAPIGetter(getter: (pluginId: number) => IAPI) {
+        this._getPluginAPIByID = getter;
     }
 
     private _fire(event: string, ...args: any) {
@@ -311,10 +317,11 @@ export class PluginsService extends Toolkit.Emitter implements IService {
         });
     }
 
-    private _getPluginAPI(id: number): Toolkit.IAPI {
-        // TODO: resolve circle dependencies and implement this functionlity
-        // return TabsSessionsService.getPluginAPI(id);
-        return undefined;
+    private _getPluginAPI(id: number): Toolkit.IAPI | undefined {
+        if (this._getPluginAPIByID === undefined) {
+            return undefined;
+        }
+        return this._getPluginAPIByID(id);
     }
 
     private _getNgModule(exports: Toolkit.IPluginExports): AngularCore.Type<any> | undefined {

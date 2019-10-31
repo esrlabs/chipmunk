@@ -1,12 +1,13 @@
 import { IAPI } from '../interfaces/api';
-
-export type TAPIGetter = () => IAPI | undefined;
+import Subject from '../tools/tools.subject';
 
 const CSignature = 'APluginService';
 
 export abstract class APluginService {
 
-    private _apiGetter: TAPIGetter;
+    private _apiGetter: () => IAPI | undefined;
+
+    public onAPIReady: Subject<boolean> = new Subject();
 
     public getClassSignature(): string {
         return CSignature;
@@ -22,8 +23,9 @@ export abstract class APluginService {
         return smth.getClassSignature() === CSignature;
     }
 
-    public setAPIGetter(getter: TAPIGetter) {
+    public setAPIGetter(getter: () => IAPI | undefined) {
         this._apiGetter = getter;
+        this.onAPIReady.emit(true);
     }
 
     public getAPI(): IAPI | undefined {
