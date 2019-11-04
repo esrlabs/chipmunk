@@ -1,7 +1,7 @@
 import Logger from '../env/env.logger';
 import { IOptions } from './controller.serialport';
 import ServicePorts from '../services/service.ports';
-import PluginIPCService from 'logviewer.plugin.ipc';
+import PluginIPCService from 'chipmunk.plugin.ipc';
 import { ERenderEvents } from '../consts/events';
 
 export interface IPortChunk {

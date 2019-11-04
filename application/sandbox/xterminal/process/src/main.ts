@@ -1,8 +1,8 @@
 import Logger from './env.logger';
 import * as path from 'path';
 import * as os from 'os';
-import PluginIPCService from 'logviewer.plugin.ipc';
-import { IPCMessages } from 'logviewer.plugin.ipc';
+import PluginIPCService from 'chipmunk.plugin.ipc';
+import { IPCMessages } from 'chipmunk.plugin.ipc';
 import * as pty from 'node-pty';
 
 class Plugin {
