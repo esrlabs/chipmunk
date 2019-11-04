@@ -151,13 +151,7 @@ export class SidebarSessionsService implements IService {
             }
         }
         // Check before plugins factories
-        if (comp === undefined) {
-            return;
-        }
-        if (comp.factory === undefined) {
-            return;
-        }
-        if (typeof comp.factory.name === 'string') {
+        if (comp !== undefined && comp.factory !== undefined && typeof comp.factory.name === 'string') {
             // If it's plugin, we should have stored factory of component (it was created in stored in PluginsService
             // during intialization of plugin). If it is - we should put instead component reference, reference to factory
             // and set it is "resolved"
