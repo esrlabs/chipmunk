@@ -8,6 +8,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
 import OutputParsersService from '../services/standalone/service.output.parsers';
 import * as ColorScheme from '../theme/colors';
+import TabsSessionsService from '../services/service.sessions.tabs';
 
 export interface IControllerSessionStream {
     guid: string;
@@ -77,7 +78,7 @@ export class ControllerSessionTabSearch {
         this._queue_onNext = this._queue_onNext.bind(this);
         this._queue.subscribe(Toolkit.Queue.Events.done, this._queue_onDone);
         this._queue.subscribe(Toolkit.Queue.Events.next, this._queue_onNext);
-        ServiceElectronIpc.subscribe(IPCMessages.SearchUpdated, this._ipc_onSearchUpdated.bind(this));
+        this._subscriptions.SearchUpdated = ServiceElectronIpc.subscribe(IPCMessages.SearchUpdated, this._ipc_onSearchUpdated.bind(this));
     }
 
     public destroy(): Promise<void> {
@@ -188,6 +189,8 @@ export class ControllerSessionTabSearch {
                     reject(err);
                 });
             }
+            // Emit event
+            TabsSessionsService.getSessionEventsHub().emit().onSearchUpdated({ rows: 0, session: this._guid });
         });
     }
 
