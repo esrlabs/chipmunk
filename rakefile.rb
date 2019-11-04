@@ -597,20 +597,20 @@ end
 task :updatepluginipc do
   cd "#{PLUGINS_SANDBOX}/dlt/process" do
     puts 'Update toolkits for: dlt plugin'
-    npm_reinstall('logviewer.plugin.ipc@latest')
+    npm_reinstall('chipmunk.plugin.ipc@latest')
   end
   cd "#{PLUGINS_SANDBOX}/serial/process" do
     puts 'Update toolkits for: serial plugin'
-    npm_reinstall('logviewer.plugin.ipc@latest')
+    npm_reinstall('chipmunk.plugin.ipc@latest')
   end
   cd "#{PLUGINS_SANDBOX}/processes/process" do
     puts 'Update toolkits for: processes pluginplugin'
-    npm_reinstall('logviewer.plugin.ipc@latest')
+    npm_reinstall('chipmunk.plugin.ipc@latest')
   end
   # cd "#{PLUGINS_SANDBOX}/xterminal/process" do
   #  puts "Update toolkits for: xterminal plugin"
-  #  sh "npm uninstall logviewer.plugin.ipc"
-  #  npm_install("logviewer.plugin.ipc@latest")
+  #  sh "npm uninstall chipmunk.plugin.ipc"
+  #  npm_install("chipmunk.plugin.ipc@latest")
   # end
 end
 
