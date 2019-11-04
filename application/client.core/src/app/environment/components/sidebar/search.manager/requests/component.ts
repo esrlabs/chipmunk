@@ -312,6 +312,7 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
                 result = request;
             }
         });
+        this._subjects.onChanges.next();
         return result;
     }
 
@@ -324,15 +325,18 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
 
     private _onRemove(request: IRequest) {
         SearchSessionsService.removeStoredRequest(request.reg.source);
+        this._subjects.onChanges.next();
     }
 
     private _onChangeState(request: IRequest, active: boolean) {
         SearchSessionsService.updateRequest(request.reg.source, { active: active });
+        this._subjects.onChanges.next();
         this._forceUpdate();
     }
 
     private _onColorChanged(request: IRequest, color: string, background: string) {
         SearchSessionsService.updateRequest(request.reg.source, { color: color, background: background });
+        this._subjects.onChanges.next();
     }
 
     private _selectByIndex(index: number) {
