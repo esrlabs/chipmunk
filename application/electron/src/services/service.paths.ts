@@ -8,7 +8,7 @@ import ServiceProduction from './service.production';
 
 import { IService } from '../../src/interfaces/interface.service';
 
-const HOME_FOLDER = '.logviewer';
+const HOME_FOLDER = '.chipmunk';
 const PLUGINS_FOLDER = 'plugins';
 const SOCKETS_FOLDER = 'sockets';
 const STREAMS_FOLDER = 'streams';

@@ -26,8 +26,11 @@ import ServiceFilters from './services/service.filters';
 import ServiceAppState from './services/service.app.state';
 import ServiceUpdate from './services/service.update';
 import ServiceDLTFiles from './services/parsers/service.dlt.files';
+import ServicePatchesBefore from './services/service.patches.before';
 
 const InitializeStages = [
+    // Apply patches ("before")
+    [   ServicePatchesBefore ],
     // Stage #1
     [   ServiceProduction ],
     // Stage #2
