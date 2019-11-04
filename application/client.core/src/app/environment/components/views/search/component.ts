@@ -125,6 +125,14 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     public _ng_onFocusRequestInput() {
+        if (this._ng_request === '') {
+            return;
+        }
+        if (this._ng_requestInput === undefined) {
+            return;
+        }
+        const input: HTMLInputElement = (this._ng_requestInput.nativeElement as HTMLInputElement);
+        input.setSelectionRange(0, input.value.length);
     }
 
     public _ng_onBlurRequestInput() {
