@@ -13,6 +13,6 @@
     <span class="ref-button" (click)="_ng_onRemoveAll()">Clear</span>
 </div>
 
-<div class="details">
+<div class="details" *ngIf="_ng_selected !== undefined">
     <app-sidebar-app-search-request-details [request]="_ng_selected"></app-sidebar-app-search-request-details>
 </div>

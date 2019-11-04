@@ -69,11 +69,15 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-        // SidebarSessionsService.setTitleInjection(undefined);
         window.removeEventListener('keyup', this._onKeyPress);
     }
 
     public ngAfterContentInit() {
+        const session: ControllerSessionTab = SessionsService.getActive();
+        if (session === undefined) {
+            return;
+        }
+        this._subscriptions.onSearchProcessing = session.getSessionSearch().getObservable().onSearchProcessing.subscribe(this._onSearchProcessing.bind(this));
     }
 
     public ngAfterViewInit() {
@@ -265,6 +269,12 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         } else {
             this._onSelect(newRequest);
         }
+    }
+
+    private _onSearchProcessing() {
+        this._ng_selected = undefined;
+        this._ng_selectedIndex = -1;
+        this._forceUpdate();
     }
 
     private _getRequestItems(requests: IRequest[]): IRequestItem[] {

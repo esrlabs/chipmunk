@@ -23,6 +23,12 @@ export interface IRequest {
     active: boolean;
 }
 
+export interface ISearchOptions {
+    requestId: string;
+    requests: RegExp[];
+    filters?: boolean;
+    cancelPrev?: boolean;
+}
 
 export class ControllerSessionTabSearch {
 
@@ -34,9 +40,13 @@ export class ControllerSessionTabSearch {
     private _stored: IRequest[] = [];
     private _subjects: {
         onRequestsUpdated: Subject<IRequest[]>,
+        onFiltersProcessing: Subject<void>,
+        onSearchProcessing: Subject<void>,
         onDropped: Subject<void>,
     } = {
         onRequestsUpdated: new Subject<IRequest[]>(),
+        onFiltersProcessing: new Subject<void>(),
+        onSearchProcessing: new Subject<void>(),
         onDropped: new Subject<void>(),
     };
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
@@ -92,23 +102,30 @@ export class ControllerSessionTabSearch {
 
     public getObservable(): {
         onRequestsUpdated: Observable<IRequest[]>,
+        onFiltersProcessing: Observable<void>,
+        onSearchProcessing: Observable<void>,
         onDropped: Observable<void>,
     } {
         return {
             onRequestsUpdated: this._subjects.onRequestsUpdated.asObservable(),
+            onFiltersProcessing: this._subjects.onFiltersProcessing.asObservable(),
+            onSearchProcessing: this._subjects.onSearchProcessing.asObservable(),
             onDropped: this._subjects.onDropped.asObservable(),
         };
     }
 
-    public search(requestId: string, requests: RegExp[], filters: boolean = false, cancelPrev: boolean = true): Promise<number | undefined> {
+    public search(options: ISearchOptions): Promise<number | undefined> {
         return new Promise((resolve, reject) => {
-            if (!this._state.isDone() && !cancelPrev) {
+            // Setup default options
+            options.filters = typeof options.filters !== 'boolean' ? false : options.filters;
+            options.cancelPrev = typeof options.cancelPrev !== 'boolean' ? true : options.cancelPrev;
+            if (!this._state.isDone() && !options.cancelPrev) {
                 return reject(new Error(`Cannot start new search request while current isn't finished.`));
             }
-            if (!this._state.isDone() && cancelPrev) {
+            if (!this._state.isDone() && options.cancelPrev) {
                 const toBeCancelReq: string = this._state.getId();
                 this.cancel(toBeCancelReq).then(() => {
-                    this._search(requestId, requests, filters).then((res: number | undefined) => {
+                    this._search(options).then((res: number | undefined) => {
                         resolve(res);
                     }).catch((err: Error) => {
                         reject(err);
@@ -118,7 +135,7 @@ export class ControllerSessionTabSearch {
                     reject(cancelErr);
                 });
             } else {
-                this._search(requestId, requests, filters).then((res: number | undefined) => {
+                this._search(options).then((res: number | undefined) => {
                     resolve(res);
                 }).catch((err: Error) => {
                     reject(err);
@@ -352,15 +369,18 @@ export class ControllerSessionTabSearch {
         return color;
     }
 
-    private _search(requestId: string, requests: RegExp[], filters: boolean = false): Promise<number | undefined> {
+    private _search(options: ISearchOptions): Promise<number | undefined> {
         return new Promise((resolve, reject) => {
             if (!this._state.isDone()) {
                 return reject(new Error(`Cannot start new search request while current isn't finished.`));
             }
-            this._state.start(requestId, resolve, reject);
-            if (!filters) {
+            this._state.start(options.requestId, resolve, reject);
+            if (!options.filters) {
                 // Save active requests
-                this._active = requests;
+                this._active = options.requests;
+                this._subjects.onSearchProcessing.next();
+            } else {
+                this._subjects.onFiltersProcessing.next();
             }
             // Drop results
             this._results = {
@@ -370,14 +390,14 @@ export class ControllerSessionTabSearch {
             this._output.clearStream();
             // Start search
             ServiceElectronIpc.request(new IPCMessages.SearchRequest({
-                requests: requests.map((reg: RegExp) => {
+                requests: options.requests.map((reg: RegExp) => {
                     return {
                         source: reg.source,
                         flags: reg.flags
                     };
                 }),
                 streamId: this._guid,
-                requestId: requestId,
+                requestId: options.requestId,
             }), IPCMessages.SearchRequestResults).then((results: IPCMessages.SearchRequestResults) => {
                 this._logger.env(`Search request ${results.requestId} was finished in ${((results.duration) / 1000).toFixed(2)}s.`);
                 if (results.error !== undefined) {
@@ -386,7 +406,7 @@ export class ControllerSessionTabSearch {
                     return this._state.fail(new Error(results.error));
                 }
                 // Share results
-                OutputParsersService.setSearchResults(this._guid, requests.map((reg: RegExp) => {
+                OutputParsersService.setSearchResults(this._guid, options.requests.map((reg: RegExp) => {
                     return { reg: reg, color: undefined, background: undefined };
                 }));
                 // Update stream for render
@@ -449,10 +469,13 @@ export class ControllerSessionTabSearch {
         if (active.length === 0) {
             return;
         }
-        const requestId: string = Toolkit.guid();
-        this.search(requestId, active.map((request: IRequest) => {
-            return request.reg;
-        }), true).then(() => {
+        this.search({
+            requestId: Toolkit.guid(),
+            requests: active.map((request: IRequest) => {
+                return request.reg;
+            }),
+            filters: true,
+        }).then(() => {
             OutputParsersService.setHighlights(this.getGuid(), this._stored.slice());
             OutputParsersService.updateRowsView();
         }).catch((error: Error) => {
