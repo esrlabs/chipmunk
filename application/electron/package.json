@@ -55,7 +55,7 @@
     "dltreader": "latest",
     "file-type": "^12.2.0",
     "github-releases": "^0.4.2",
-    "logviewer.shell.env": "0.0.6",
+    "chipmunk.shell.env": "0.0.6",
     "moment-timezone": "^0.5.25",
     "tar": "^4.4.8",
     "uuid": "latest"
