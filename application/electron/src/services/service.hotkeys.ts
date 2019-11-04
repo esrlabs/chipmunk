@@ -43,6 +43,7 @@ class ServiceHotkeys implements IService {
 
     private _logger: Logger = new Logger('ServiceHotkeys');
     private _subscriptions: { [key: string ]: Subscription | undefined } = { };
+    private _locked: boolean = false;
     private _subjects: IServiceSubjects = {
         openTextFile: new Subject('openTextFile'),
         openDltFile: new Subject('openDltFile'),
@@ -94,6 +95,7 @@ class ServiceHotkeys implements IService {
     }
 
     private _bind() {
+        this._locked = false;
         Object.keys(CHotkeyMap).forEach((action: string) => {
             const all: any = (CHotkeyMap as any)[action];
             const keys: string[] = all[process.platform] !== undefined ? all[process.platform] : all.other;
@@ -109,6 +111,7 @@ class ServiceHotkeys implements IService {
     private _unbind(input: boolean = false) {
         if (!input) {
             globalShortcut.unregisterAll();
+            this._locked = true;
         } else {
             CInputRelatedHotkeys.forEach((shortcut: string) => {
                 globalShortcut.unregister(shortcut);
@@ -117,6 +120,9 @@ class ServiceHotkeys implements IService {
     }
 
     private _onHotkeyResume() {
+        if (this._locked) {
+            return;
+        }
         this._bind();
     }
 
