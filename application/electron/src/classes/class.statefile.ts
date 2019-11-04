@@ -18,6 +18,7 @@ export class StateFile<TState> implements IService {
     private _defaults: TState;
     private _state: TState | null = null;
     private _allowResetToDefault: boolean = true;
+    private _available: boolean = true;
 
     constructor(alias: string, defaults: TState, file: string, allowResetToDefault: boolean = true) {
         this._alias = alias;
@@ -53,6 +54,7 @@ export class StateFile<TState> implements IService {
 
     public destroy(): Promise<void> {
         return new Promise((resolve) => {
+            this._available = false;
             resolve();
         });
     }
@@ -69,7 +71,10 @@ export class StateFile<TState> implements IService {
         return Objects.copy(this._state);
     }
 
-    public set(state: any) {
+    public set(state: any): Error | undefined {
+        if (!this._available) {
+            return new Error(`Fail to write into file, because it's blocked.`);
+        }
         this._state = Objects.merge(state, this._state);
         this._write().catch((error: Error) => {
             this._logger.error(`Fail to write state due error: ${error.message}`);
@@ -84,7 +89,14 @@ export class StateFile<TState> implements IService {
             FS.readTextFile(this._file).then((content: string) => {
                 const state = Objects.getJSON(content);
                 if (state instanceof Error) {
-                    return reject(new Error(this._logger.error(`Cannot parse state file "${this._file}" due error: ${state.message}`)));
+                    this._logger.error(`Cannot parse state file "${this._file}" due error: ${state.message}. Content: "${content}"`);
+                    if (!this._allowResetToDefault) {
+                        return reject(new Error(`Fail to get JSON from content of "${this._file}" due error: ${state.message}`));
+                    } else {
+                        return this._default(true).then(() => {
+                            resolve(this._defaults);
+                        }).catch(reject);
+                    }
                 }
                 const valid: Error | void = this._validate(state);
                 if (valid instanceof Error && !this._allowResetToDefault) {
