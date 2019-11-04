@@ -16,7 +16,7 @@ class ServiceConfig implements IService {
 
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._settings = new StateFile<IScheme.ISettings>(this.getName(), IScheme.defaults, SETTINGS_FILE);
+            this._settings = new StateFile<IScheme.ISettings>(this.getName(), IScheme.defaults, SETTINGS_FILE, true);
             this._settings.init().then(() => {
                 resolve();
             }).catch(reject);
@@ -25,7 +25,10 @@ class ServiceConfig implements IService {
 
     public destroy(): Promise<void> {
         return new Promise((resolve) => {
-            resolve();
+            if (this._settings === undefined) {
+                return resolve();
+            }
+            this._settings.destroy().then(resolve);
         });
     }
 

@@ -29,7 +29,10 @@ class ServiceStorage implements IService {
 
     public destroy(): Promise<void> {
         return new Promise((resolve) => {
-            resolve();
+            if (this._settings === undefined) {
+                return resolve();
+            }
+            this._settings.destroy().then(resolve);
         });
     }
 
