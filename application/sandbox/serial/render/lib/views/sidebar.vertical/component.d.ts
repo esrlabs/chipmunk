@@ -2,10 +2,9 @@ import { OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
 import { IPortInfo, IPortState } from '../../common/interface.portinfo';
 import { IOptions } from '../../common/interface.options';
 import { SidebarVerticalPortOptionsWriteComponent } from './port.options.write/component';
-
-import { InputStandardComponent } from 'logviewer-client-primitive';
+import { DDListStandardComponent } from 'chipmunk-client-primitive';
+import { InputStandardComponent } from 'chipmunk-client-primitive';
 import * as Toolkit from 'chipmunk.client.toolkit';
-
 interface IConnected {
     port: IPortInfo;
     options: IOptions;
@@ -19,6 +18,7 @@ export declare class SidebarVerticalComponent implements AfterViewInit, OnDestro
     private _cdRef;
     _optionsCom: SidebarVerticalPortOptionsWriteComponent;
     _inputCom: InputStandardComponent;
+    _selectCom: DDListStandardComponent;
     api: Toolkit.IAPI;
     session: string;
     sessions: Toolkit.ControllerSessionsEvents;
@@ -63,12 +63,10 @@ export declare class SidebarVerticalComponent implements AfterViewInit, OnDestro
     _ng_sendMessage(value: string, event: KeyboardEvent): void;
     private _createDropdownElement;
     private _removeDropdownElement;
-    private _updateSelection;
-    _ng_change(value: string): void;
+    _ng_change(): void;
     private _updateDisconnectPort;
     private _updateConnectPort;
     private _checkOption;
-    private _saveOption;
     private _loadOption;
 }
 export {};

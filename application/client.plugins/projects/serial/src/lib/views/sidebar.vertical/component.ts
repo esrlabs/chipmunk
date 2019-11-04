@@ -5,14 +5,11 @@ import { EHostEvents, EHostCommands } from '../../common/host.events';
 import { IPortInfo, IPortState, IIOState } from '../../common/interface.portinfo';
 import { IOptions, CDefaultOptions } from '../../common/interface.options';
 import { SidebarVerticalPortOptionsWriteComponent } from './port.options.write/component';
-import { DDListStandardComponent } from 'logviewer-client-primitive';
-import { InputStandardComponent } from 'logviewer-client-primitive';
+import { DDListStandardComponent } from 'chipmunk-client-primitive';
+import { InputStandardComponent } from 'chipmunk-client-primitive';
 
 
 import * as Toolkit from 'chipmunk.client.toolkit';
-import { Message } from '@angular/compiler/src/i18n/i18n_ast';
-import { ProtractorBrowser } from 'protractor';
-import { stringify } from '@angular/core/src/util';
 
 interface IState {
     _ng_ports: IPortInfo[];
@@ -44,7 +41,8 @@ let savedOption = new Map<string, string>();
 
 export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     @ViewChild('optionsCom', {static: false}) _optionsCom: SidebarVerticalPortOptionsWriteComponent;
-    @ViewChild('msgInput') _inputCom: InputStandardComponent;
+    @ViewChild('msgInput', {static: false}) _inputCom: InputStandardComponent;
+    @ViewChild('selectPort', {static: false}) _selectCom: DDListStandardComponent;
 
     @Input() public api: Toolkit.IAPI;
     @Input() public session: string;
@@ -81,7 +79,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
 
     ngAfterViewInit() {
         this._createDropdownElement();
-        //this._loadOption();
+        this._loadOption();
 
         // Subscription to income events
         this._subscriptions.incomeIPCHostMessage = this.api.getIPC().subscribeToHost((message: any) => {
@@ -370,10 +368,11 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         if(ports != undefined) {
             for(let port of ports) {
                 if(this._checkOption(port)) {
-                    this._ng_portList.push({comPort: port, caption: port.comName});
+                    let portItem: IPortListItem = {comPort: port, caption: port.comName};
+                    this._ng_portList.unshift(portItem);
                 }
             }
-        this._updateSelection();
+        this._ng_change();
         }
     }
 
@@ -383,25 +382,19 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                 this._ng_portList.splice(index, 1);
             }
         }
-        this._updateSelection();
-    }
-    
-    private _updateSelection() {
-        //this._chosenPort = Value of dropdownlist
+        this._ng_change();
     }
    
-    public _ng_change(value: string) {
-        
-        //this._chosenPort = value.comPort.comName;
-        console.log("--> " + value);
-        //this._saveOption();
-        //this._updateSelection();
+    public _ng_change() {
+        this._chosenPort = this._selectCom.getValue();
+        savedOption.set(this.session, this._chosenPort);
     }
     
     // Upon disconnecting remove port from current session
     private _updateDisconnectPort(port: IPortInfo) {
         let portArray = sessionPorts.get(this.session);
         if(portArray != undefined && portArray.includes(port)) {
+            savedOption.delete(this.session);
             let index: number = portArray.indexOf(port);
             if(index > -1)
                 portArray.splice(index, 1);
@@ -413,9 +406,9 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     private _updateConnectPort() {
         let portArray = sessionPorts.get(this.session);
         if (portArray && !portArray.includes(this._ng_selected))
-        portArray.push(this._ng_selected);
+            portArray.push(this._ng_selected);
         else
-        sessionPorts.set(this.session, [this._ng_selected]);
+            sessionPorts.set(this.session, [this._ng_selected]);
         this._createDropdownElement();
     }
 
@@ -425,16 +418,11 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                 return 0;
         return -1;
     }
-    
-    private _saveOption() {
-        savedOption.set(this.session, this._portItem.comPort.comName);
-    }
 
     private _loadOption() {
-        let dropdown = Array.from(document.getElementsByTagName("option"));
         this._ng_portList.forEach(element => {
             if(element.comPort.comName == savedOption.get(this.session)) {
-              ;//Make it as default / selected item
+                this._selectCom.defaults = element;
             }
         });
     }
