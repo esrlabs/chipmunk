@@ -48,6 +48,9 @@ export class TabsSessionsService implements IService {
         // Delivering API getter into Plugin Service here to escape from circular dependencies
         // (which will happen if try to access to this service from Plugin Service)
         PluginsService.setPluginAPIGetter(this.getPluginAPI);
+        // Listen stream events
+        this._subscriptions.onStreamUpdated = ElectronIpcService.subscribe(IPCMessages.StreamUpdated, this._ipc_onStreamUpdated.bind(this));
+        this._subscriptions.onSearchUpdated = ElectronIpcService.subscribe(IPCMessages.SearchUpdated, this._ipc_onSearchUpdated.bind(this));
     }
 
     public init(): Promise<void> {
@@ -155,8 +158,10 @@ export class TabsSessionsService implements IService {
         session.setActive();
         this._currentSessionGuid = guid;
         this._tabsService.setActive(this._currentSessionGuid);
+        this._sessionsEventsHub.emit().onSessionOpen(guid);
         ElectronIpcService.send(new IPCMessages.StreamSetActive({ guid: this._currentSessionGuid })).then(() => {
             this._subjects.onSessionChange.next(session);
+            this._sessionsEventsHub.emit().onSessionChange(guid);
         }).catch((error: Error) => {
             this._logger.warn(`Fail to send notification about active session due error: ${error.message}`);
         });
@@ -164,6 +169,10 @@ export class TabsSessionsService implements IService {
 
     public getActive(): ControllerSessionTab | undefined {
         return this._sessions.get(this._currentSessionGuid);
+    }
+
+    public getSessionEventsHub(): Toolkit.ControllerSessionsEvents {
+        return this._sessionsEventsHub;
     }
 
     public getPluginAPI(pluginId: number): IAPI {
@@ -251,8 +260,10 @@ export class TabsSessionsService implements IService {
         this._sessions.delete(guid);
         if (this._sessions.size === 0) {
             this._subjects.onSessionChange.next(undefined);
+            this._sessionsEventsHub.emit().onSessionChange(undefined);
         }
         this._subjects.onSessionClosed.next(guid);
+        this._sessionsEventsHub.emit().onSessionClose(guid);
     }
 
     private _onNewTab() {
@@ -269,6 +280,14 @@ export class TabsSessionsService implements IService {
         }).catch((error: Error) => {
             response(new IPCMessages.RenderSessionAddResponse({ session: '', error: error.message }));
         });
+    }
+
+    private _ipc_onStreamUpdated(message: IPCMessages.StreamUpdated) {
+        this._sessionsEventsHub.emit().onStreamUpdated({ session: message.guid, rows: message.rowsCount });
+    }
+
+    private _ipc_onSearchUpdated(message: IPCMessages.SearchUpdated) {
+        this._sessionsEventsHub.emit().onSearchUpdated({ session: message.guid, rows: message.rowsCount });
     }
 
 }

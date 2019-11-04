@@ -25,7 +25,7 @@
     "@angular/platform-browser-dynamic": "^8.2.12",
     "@angular/router": "^8.2.12",
     "chart.js": "^2.8.0",
-    "chipmunk.client.toolkit": "0.0.70",
+    "chipmunk.client.toolkit": "0.0.72",
     "core-js": "^3.3.5",
     "moment": "^2.24.0",
     "rxjs": "^6.5.3",
