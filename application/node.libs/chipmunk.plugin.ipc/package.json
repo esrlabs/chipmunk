@@ -1,5 +1,5 @@
 {
-  "name": "logviewer.plugin.ipc",
+  "name": "chipmunk.plugin.ipc",
   "version": "0.0.30",
   "description": "IPC transport and protocol for communication via plugin process and main process for logviewer ",
   "main": "./dist/plugin.ipc.service.js",
