@@ -16,6 +16,7 @@ export { IStreamState };
 export interface IControllerSession {
     guid: string;
     transports: string[];
+    sessionsEventsHub: Toolkit.ControllerSessionsEvents;
 }
 
 export interface IInjectionAddEvent {
@@ -51,7 +52,7 @@ export class ControllerSessionTab {
     constructor(params: IControllerSession) {
         this._sessionId = params.guid;
         this._transports = params.transports;
-        this._scope = new ControllerSessionScope(this._sessionId);
+        this._scope = new ControllerSessionScope(this._sessionId, params.sessionsEventsHub);
         this._logger = new Toolkit.Logger(`ControllerSession: ${params.guid}`);
         this._stream = new ControllerSessionTabStream({
             guid: params.guid,
