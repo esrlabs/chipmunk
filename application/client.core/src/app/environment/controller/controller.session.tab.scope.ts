@@ -1,4 +1,5 @@
 import { Subject } from 'rxjs';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 export interface IRowNumberWidthData {
     rank: number;
@@ -17,9 +18,11 @@ export class ControllerSessionScope {
 
     private _sessionId: string;
     private _scope: Map<string, any> = new Map();
+    private _sessionsEventsHub: Toolkit.ControllerSessionsEvents;
 
-    constructor(sessionId: string) {
+    constructor(sessionId: string, sessionsEventsHub: Toolkit.ControllerSessionsEvents) {
         this._sessionId = sessionId;
+        this._sessionsEventsHub = sessionsEventsHub;
         this._defaults();
     }
 
@@ -38,6 +41,10 @@ export class ControllerSessionScope {
 
     public get<T>(key: string): T | undefined {
         return this._scope.get(key);
+    }
+
+    public getSessionEventsHub(): Toolkit.ControllerSessionsEvents {
+        return this._sessionsEventsHub;
     }
 
     private _defaults() {
