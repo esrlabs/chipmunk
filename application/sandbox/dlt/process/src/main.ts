@@ -1,6 +1,6 @@
 import Logger from './env.logger';
-import PluginIPCService from 'logviewer.plugin.ipc';
-import { IPCMessages } from 'logviewer.plugin.ipc';
+import PluginIPCService from 'chipmunk.plugin.ipc';
+import { IPCMessages } from 'chipmunk.plugin.ipc';
 import * as Net from 'net';
 import * as DLT from 'dltreader';
 

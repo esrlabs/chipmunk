@@ -1,8 +1,8 @@
 import { ControllerSerialPort, IOptions, IIOState } from '../controllers/controller.serialport';
 import * as SerialPort from 'serialport';
 import Logger from '../env/env.logger';
-import PluginIPCService from 'logviewer.plugin.ipc';
-import { IPCMessages } from 'logviewer.plugin.ipc';
+import PluginIPCService from 'chipmunk.plugin.ipc';
+import { IPCMessages } from 'chipmunk.plugin.ipc';
 import { ERenderEvents } from '../consts/events';
 
 export interface IListeners {

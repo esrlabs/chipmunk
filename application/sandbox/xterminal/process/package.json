@@ -1,6 +1,6 @@
 {
   "name": "logviewer.plugin.transport.terminal",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "logviewer": {
     "version": "1.0.0",
     "type": "single"
@@ -21,7 +21,7 @@
   "dependencies": {
     "electron": "^6.0.12",
     "electron-rebuild": "^1.8.6",
-    "logviewer.plugin.ipc": "0.0.30",
+    "chipmunk.plugin.ipc": "0.0.30",
     "node-gyp": "^6.0.0",
     "node-pty": "^0.8.1"
   }

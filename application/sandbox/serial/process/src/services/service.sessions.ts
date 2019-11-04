@@ -1,6 +1,6 @@
 import Logger from '../env/env.logger';
-import PluginIPCService from 'logviewer.plugin.ipc';
-import { IPCMessages } from 'logviewer.plugin.ipc';
+import PluginIPCService from 'chipmunk.plugin.ipc';
+import { IPCMessages } from 'chipmunk.plugin.ipc';
 import { ControllerSession } from '../controllers/controller.session';
 import { ECommands } from '../consts/commands';
 import ServicePorts, { IPortInfo } from './service.ports';

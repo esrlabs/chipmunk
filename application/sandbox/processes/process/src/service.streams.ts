@@ -1,5 +1,5 @@
 import Logger from './env.logger';
-import PluginIPCService from 'logviewer.plugin.ipc';
+import PluginIPCService from 'chipmunk.plugin.ipc';
 import Fork, { IForkSettings } from './process.fork';
 import * as EnvModule from './process.env';
 import { EventEmitter } from 'events';

@@ -1,7 +1,7 @@
 import Logger from './env.logger';
 import * as path from 'path';
-import PluginIPCService from 'logviewer.plugin.ipc';
-import { IPCMessages } from 'logviewer.plugin.ipc';
+import PluginIPCService from 'chipmunk.plugin.ipc';
+import { IPCMessages } from 'chipmunk.plugin.ipc';
 import StreamsService, { IStreamInfo } from './service.streams';
 import { IForkSettings } from './process.fork';
 
