@@ -20,7 +20,6 @@ export class AppsStatusBarSearchStateComponent implements OnDestroy, AfterViewIn
 
     public _ng_read: number = 0;
     public _ng_found: number = 0;
-    public _ng_proc: number = 0;
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('AppsStatusBarSearchStateComponent');
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription | undefined } = {};
@@ -105,12 +104,10 @@ export class AppsStatusBarSearchStateComponent implements OnDestroy, AfterViewIn
         if (this._activeSession === undefined) {
             this._ng_found = 0;
             this._ng_read = 0;
-            this._ng_proc = 0;
         } else {
             const state: IStorage = this._getState(this._activeSession);
             this._ng_read = state.read;
             this._ng_found = state.found;
-            this._ng_proc = state.read === 0 ? 0 : Math.round((state.found / state.read) * 100);
         }
         this._cdRef.detectChanges();
     }

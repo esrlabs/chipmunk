@@ -12,15 +12,21 @@
         position: absolute;
         display: block;
         top:0;
-        left:0;
-        width: 100%;
+        width: 50%;
         height: 100%;
         overflow: hidden;
         list-style: none;
         padding: 0;
         margin: 0;
         white-space: nowrap;
-        text-align: right;
+        &.left{
+            left:0;
+            text-align: left;
+        }
+        &.right{
+            left:50%;
+            text-align: right;
+        }
         & li.app {
             position: relative;
             display: inline-block;
