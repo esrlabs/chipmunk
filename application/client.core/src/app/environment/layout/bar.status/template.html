@@ -1,9 +1,11 @@
-<ul class="apps">
-    <li class="app"><app-apps-status-bar-search-state></app-apps-status-bar-search-state></li>
+<ul class="apps right">
     <li class="app"><app-apps-status-bar-stream-state></app-apps-status-bar-stream-state></li>
     <li class="app"><app-apps-status-bar-queue-state></app-apps-status-bar-queue-state></li>
     <li class="app"><app-apps-status-bar-electron-state></app-apps-status-bar-electron-state></li>
     <li class="app" *ngFor="let plugin of _ng_plugins">
         <lib-containers-dynamic [component]="plugin"></lib-containers-dynamic>
     </li>
+</ul>
+<ul class="apps left">
+    <li class="app"><app-apps-status-bar-search-state></app-apps-status-bar-search-state></li>
 </ul>
