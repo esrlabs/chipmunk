@@ -142,6 +142,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         this._subscribeOutputEvents();
         this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(this._onResize.bind(this));
         this._subscriptions.onSessionChanged = this.onSessionChanged.asObservable().subscribe(this._onSessionChanged.bind(this));
+        this._subscriptions.onBookmarkSelected = this.session.getSessionBooksmarks().getObservable().onSelected.subscribe(this._onScrollTo.bind(this, true));
         // Inject controls to caption of dock
         this._ctrl_inject();
     }
@@ -159,7 +160,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         this._outputSubscriptions.onRangeLoaded = this._output.getObservable().onRangeLoaded.subscribe(this._onRangeLoaded.bind(this));
         this._outputSubscriptions.onBookmarksChanged = this._output.getObservable().onBookmarksChanged.subscribe(this._onBookmarksChanged.bind(this));
         this._outputSubscriptions.onReset = this._output.getObservable().onReset.subscribe(this._onReset.bind(this));
-        this._outputSubscriptions.onScrollTo = this._output.getObservable().onScrollTo.subscribe(this._onScrollTo.bind(this));
+        this._outputSubscriptions.onScrollTo = this._output.getObservable().onScrollTo.subscribe(this._onScrollTo.bind(this, false));
     }
 
     private _unsubscribeOutputEvents() {
@@ -251,12 +252,21 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         this._ng_outputAPI.onRerequest.next();
     }
 
-    private _onScrollTo(row: number) {
-        const closed: { row: number, index: number } = this.session.getSessionSearch().getCloseToMatch(row);
-        if (closed.index === -1) {
+    private _onScrollTo(bookmark: boolean, row: number) {
+        if (isNaN(row) || !isFinite(row)) {
             return;
         }
-        this._ng_outputAPI.onScrollTo.next(closed.index);
+        // Get nearest position
+        const pos: { index: number, position: number } | undefined = this.session.getStreamMap().getClosedMatchRow(row);
+        if (pos === undefined) {
+            return;
+        }
+        // Make offset because bookmarks
+        // const offset: number = this.session.getSessionBooksmarks().getNumberBookmarksBefore(pos.position);
+        if (bookmark) {
+            this._onKeepScrollPrevent();
+        }
+        this._ng_outputAPI.onScrollTo.next(pos.index);
     }
 
     private _onScrolled(range: IRange) {

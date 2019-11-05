@@ -43,6 +43,7 @@ const CSettings = {
 export class ControllerSessionTabMap {
 
     private _guid: string;
+    private _logger: Toolkit.Logger;
     private _state: IMapState = {
         count: 0,
         position: 0,
@@ -69,6 +70,7 @@ export class ControllerSessionTabMap {
 
     constructor(params: IControllerSessionTabMap) {
         this._guid = params.guid;
+        this._logger = new Toolkit.Logger(`ControllerSessionTabMap: ${this._guid}`);
         this._search = params.search;
         this._search = params.search;
         this._stream = params.stream;
@@ -188,6 +190,26 @@ export class ControllerSessionTabMap {
 
     public getColumnWidth(): number {
         return this._width;
+    }
+
+    public getClosedMatchRow(row: number): { index: number, position: number } | undefined {
+        if (this._state.points.length === 0) {
+            return;
+        }
+        if (isNaN(row) || !isFinite(row)) {
+            this._logger.warn(`Value of target row is incorrect.`);
+        }
+        const target: { index: number, position: number } = { index: 0, position: this._state.points[0].position };
+        let distance: number = Math.abs(row - target.position);
+        this._state.points.forEach((point: IMapPoint, i: number) => {
+            const _distance: number = Math.abs(row - point.position);
+            if (_distance < distance) {
+                distance = _distance;
+                target.position = point.position;
+                target.index = i;
+            }
+        });
+        return target;
     }
 
     private _onSearchDropped() {

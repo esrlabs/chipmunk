@@ -1,11 +1,13 @@
-import { Observable, Subject } from 'rxjs';
+import { Observable, Subject, Subscription } from 'rxjs';
 import { ControllerSessionTabSearchOutput } from './controller.session.tab.search.output';
 import { ControllerSessionTabStreamOutput } from './controller.session.tab.stream.output';
 import { ControllerSessionTabSearchState} from './controller.session.tab.search.state';
+import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope } from './controller.session.tab.scope';
+import { ControllerSessionTabMap } from './controller.session.tab.map';
 import QueueService, { IQueueController } from '../services/standalone/service.queue';
 import * as Toolkit from 'chipmunk.client.toolkit';
-import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
+import ServiceElectronIpc, { IPCMessages } from '../services/service.electron.ipc';
 import OutputParsersService from '../services/standalone/service.output.parsers';
 import * as ColorScheme from '../theme/colors';
 
@@ -49,15 +51,10 @@ export class ControllerSessionTabSearch {
         onSearchProcessing: new Subject<void>(),
         onDropped: new Subject<void>(),
     };
-    private _subscriptions: { [key: string]: Subscription | undefined } = { };
+    private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = { };
     private _scope: ControllerSessionScope;
     private _output: ControllerSessionTabSearchOutput;
     private _state: ControllerSessionTabSearchState;
-    private _results: {
-        matches: number[],
-    } = {
-        matches: [],
-    };
 
     constructor(params: IControllerSessionStream) {
         this._guid = params.guid;
@@ -83,7 +80,7 @@ export class ControllerSessionTabSearch {
     public destroy(): Promise<void> {
         return new Promise((resolve, reject) => {
             Object.keys(this._subscriptions).forEach((key: string) => {
-                this._subscriptions[key].destroy();
+                this._subscriptions[key].unsubscribe();
             });
             this._output.destroy();
             this._queue.unsubscribeAll();
@@ -338,26 +335,6 @@ export class ControllerSessionTabSearch {
         }
     }
 
-    public getCloseToMatch(row: number): { row: number, index: number } {
-        if (this._results.matches.length === 0) {
-            return { row: -1, index: -1 };
-        }
-        for (let i = this._results.matches.length - 1; i >= 0; i -= 1) {
-            const cur: number = this._results.matches[i];
-            if (cur === row) {
-                return { row: row, index: i };
-            }
-            if (cur < row) {
-                if (i !== this._results.matches.length - 1) {
-                    const prev: number = this._results.matches[i + 1];
-                    return { row: (row - cur) < (prev - row) ? cur : prev, index: (row - cur) < (prev - row) ? i : (i + 1)};
-                }
-                return { row: cur, index: i};
-            }
-        }
-        return { row: this._results.matches[0], index: 0 };
-    }
-
     public getRequestColor(source: string): string | undefined {
         let color: string | undefined;
         this._stored.forEach((filter: IRequest) => {
@@ -384,10 +361,6 @@ export class ControllerSessionTabSearch {
             } else {
                 this._subjects.onFiltersProcessing.next();
             }
-            // Drop results
-            this._results = {
-                matches: [],
-            };
             // Drop output
             this._output.clearStream();
             // Start search
@@ -429,10 +402,6 @@ export class ControllerSessionTabSearch {
                 return reject(new Error(`Cannot start new search request while current isn't finished.`));
             }
             this._state.start(requestId, resolve, reject);
-            // Drop results
-            this._results = {
-                matches: [],
-            };
             // Drop output
             this._output.clearStream();
             // Trigger event
@@ -525,6 +494,5 @@ export class ControllerSessionTabSearch {
         }
         this._output.updateStreamState(message.rowsCount);
     }
-
 
 }

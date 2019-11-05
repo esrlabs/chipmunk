@@ -75,6 +75,17 @@ export class ControllerSessionTabStreamBookmarks {
         return this._bookmarks;
     }
 
+    public getNumberBookmarksBefore(row: number): number {
+        const keys: number[] = Array.from(this._bookmarks.keys());
+        let count: number = 0;
+        keys.forEach((key: number) => {
+            if (row > key) {
+                count += 1;
+            }
+        });
+        return count;
+    }
+
     public reset() {
         this._bookmarks.forEach((bookmark: IBookmark, key: number) => {
             this.remove(key);
