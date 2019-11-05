@@ -55,6 +55,7 @@ export class ControllerSessionTabSearch {
     private _scope: ControllerSessionScope;
     private _output: ControllerSessionTabSearchOutput;
     private _state: ControllerSessionTabSearchState;
+    private _activeRequestId: string | undefined;
 
     constructor(params: IControllerSessionStream) {
         this._guid = params.guid;
@@ -316,6 +317,10 @@ export class ControllerSessionTabSearch {
         });
     }
 
+    public getActiveRequestId(): string | undefined {
+        return this._activeRequestId;
+    }
+
     public getActiveStored(): IRequest[] {
         return this._stored.filter((request: IRequest) => request.active);
     }
@@ -363,6 +368,8 @@ export class ControllerSessionTabSearch {
             }
             // Drop output
             this._output.clearStream();
+            // Store request Id
+            this._activeRequestId = options.requestId;
             // Start search
             ServiceElectronIpc.request(new IPCMessages.SearchRequest({
                 requests: options.requests.map((reg: RegExp) => {
@@ -374,6 +381,7 @@ export class ControllerSessionTabSearch {
                 streamId: this._guid,
                 requestId: options.requestId,
             }), IPCMessages.SearchRequestResults).then((results: IPCMessages.SearchRequestResults) => {
+                this._activeRequestId = undefined;
                 this._logger.env(`Search request ${results.requestId} was finished in ${((results.duration) / 1000).toFixed(2)}s.`);
                 if (results.error !== undefined) {
                     // Some error during processing search request
@@ -389,6 +397,7 @@ export class ControllerSessionTabSearch {
                 // Done
                 this._state.done(results.found);
             }).catch((error: Error) => {
+                this._activeRequestId = undefined;
                 this._state.fail(error);
             });
         });
