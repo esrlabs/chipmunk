@@ -171,10 +171,11 @@ class ServiceFileOpener implements IService {
     }
 
     private _ipc_FilesRecentRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
-        const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
-        response(new IPCMessages.FilesRecentResponse({
-            files: stored.recentFiles,
-        }));
+        this._validateRecentFiles().then((files: IStorageScheme.IRecentFile[]) => {
+            response(new IPCMessages.FilesRecentResponse({
+                files: files,
+            }));
+        });
     }
 
     private _getOptions(fullFileName: string, fileName: string, parser: AFileParser, size: number ): Promise<any> {
@@ -288,6 +289,33 @@ class ServiceFileOpener implements IService {
             recentFiles: files,
         });
         ServiceElectron.updateMenu();
+    }
+
+    private _validateRecentFiles(): Promise<IStorageScheme.IRecentFile[]> {
+        return new Promise((resolve) => {
+            const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
+            const files: IStorageScheme.IRecentFile[] = [];
+            Promise.all(stored.recentFiles.map((file: IStorageScheme.IRecentFile) => {
+                return new Promise((resolveFile) => {
+                    fs.access(file.file, fs.constants.F_OK, (err) => {
+                        if (err) {
+                            return resolveFile();
+                        }
+                        files.push(file);
+                        resolveFile();
+                    });
+                });
+            })).then(() => {
+                if (files.length === stored.recentFiles.length) {
+                    return resolve(files);
+                }
+                ServiceStorage.get().set({
+                    recentFiles: files,
+                });
+                ServiceElectron.updateMenu();
+                resolve(files);
+            });
+        });
     }
 
     private _setProgress(parser: AFileParser, trackingId: string, file: string) {
