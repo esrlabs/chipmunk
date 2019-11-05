@@ -29,6 +29,15 @@
                 width: 2rem;
                 overflow: hidden;
             }
+            & p.summary{
+                position: absolute;
+                top: 0;
+                right: 4px;
+                transition: right ease-in-out 350ms;
+            }
+            & div.spinner + p.summary{
+                right: 40px;
+            }
         }
         & div.request-buttons{
             position: absolute;
