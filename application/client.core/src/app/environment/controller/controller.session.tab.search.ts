@@ -32,6 +32,13 @@ export interface ISearchOptions {
     cancelPrev?: boolean;
 }
 
+export interface ISubjects {
+    onRequestsUpdated: Subject<IRequest[]>;
+    onFiltersProcessing: Subject<void>;
+    onSearchProcessing: Subject<void>;
+    onDropped: Subject<void>;
+}
+
 export class ControllerSessionTabSearch {
 
     private _logger: Toolkit.Logger;
@@ -40,12 +47,7 @@ export class ControllerSessionTabSearch {
     private _guid: string;
     private _active: RegExp[] = [];
     private _stored: IRequest[] = [];
-    private _subjects: {
-        onRequestsUpdated: Subject<IRequest[]>,
-        onFiltersProcessing: Subject<void>,
-        onSearchProcessing: Subject<void>,
-        onDropped: Subject<void>,
-    } = {
+    private _subjects: ISubjects = {
         onRequestsUpdated: new Subject<IRequest[]>(),
         onFiltersProcessing: new Subject<void>(),
         onSearchProcessing: new Subject<void>(),
@@ -351,6 +353,10 @@ export class ControllerSessionTabSearch {
             }
         });
         return color;
+    }
+
+    public getSubjects(): ISubjects {
+        return this._subjects;
     }
 
     private _search(options: ISearchOptions): Promise<number | undefined> {
