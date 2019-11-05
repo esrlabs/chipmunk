@@ -1,4 +1,4 @@
-import { Component, Input, AfterContentInit, ChangeDetectorRef, OnChanges, SimpleChanges, ViewChild, ElementRef } from '@angular/core';
+import { Component, Input, AfterContentInit, AfterViewInit, ChangeDetectorRef, OnChanges, SimpleChanges, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 
 @Component({
     selector: 'lib-primitive-input',
@@ -6,7 +6,7 @@ import { Component, Input, AfterContentInit, ChangeDetectorRef, OnChanges, Simpl
     styleUrls: ['./styles.less']
 })
 
-export class InputStandardComponent implements AfterContentInit, OnChanges {
+export class InputStandardComponent implements AfterContentInit, OnChanges, AfterViewInit {
 
     public _ng_value: string | number = '';
     public _ng_error: string | undefined;
@@ -18,6 +18,7 @@ export class InputStandardComponent implements AfterContentInit, OnChanges {
     @Input() public type: string = '';
     @Input() public disabled: boolean = false;
     @Input() public inlineErrors: boolean = false;
+    @Input() public autoFocusOnInit: boolean = false;
     @Input() public onFocus: (...args: any[]) => any = () => void 0;
     @Input() public onBlur: (...args: any[]) => any = () => void 0;
     @Input() public onKeyDown: (...args: any[]) => any = () => void 0;
@@ -36,6 +37,16 @@ export class InputStandardComponent implements AfterContentInit, OnChanges {
         }
         this._ng_value = this.value;
         this._cdRef.detectChanges();
+    }
+
+    public ngAfterViewInit() {
+        if (!this.autoFocusOnInit) {
+            return;
+        }
+        if (this.inputElRef === undefined) {
+            return;
+        }
+        (this.inputElRef.nativeElement as HTMLInputElement).focus();
     }
 
     public ngOnChanges(changes: SimpleChanges) {
