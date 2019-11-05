@@ -408,55 +408,6 @@ export class ControllerSessionTabStreamOutput {
         });
     }
 
-    private _buffer() {
-        if (this._state.bufferLoadingRequestId !== undefined) {
-            // Buffer is already requested
-            return;
-        }
-        const frame = this._state.frame;
-        const stored = this._state.stored;
-        const extended = {
-            start: (frame.start - Settings.trigger) < 0 ? 0 : (frame.start - Settings.trigger),
-            end: (frame.end + Settings.trigger) > (this._state.count - 1) ? (this._state.count - 1) : (frame.end + Settings.trigger),
-        };
-        const diffs = {
-            fromEnd: (extended.end > stored.end) ? (extended.end - stored.end) : -1,
-            fromStart: (extended.start < stored.start) ? (stored.start - extended.start) : -1,
-        };
-        if (diffs.fromEnd === -1 && diffs.fromStart === -1) {
-            // No need to add buffer
-            return;
-        }
-        const request = {
-            start: -1,
-            end: -1,
-        };
-        if (diffs.fromStart > diffs.fromEnd) {
-            // Add buffer to the beggining
-            request.start = (extended.start - Settings.maxRequestCount) < 0 ? 0 : (extended.start - Settings.maxRequestCount);
-            request.end = stored.start;
-        } else {
-            // Add buffer to the end
-            request.start = stored.end;
-            request.end = (extended.end + Settings.maxRequestCount) > this._state.count - 1 ? (this._state.count - 1) : (extended.end + Settings.maxRequestCount);
-        }
-        this._state.bufferLoadingRequestId = this._requestDataHandler(request.start, request.end).then((message: IPCMessages.StreamChunk) => {
-            this._state.bufferLoadingRequestId = undefined;
-            // Check: do we already have other request
-            if (this._state.lastLoadingRequestId !== undefined) {
-                // No need to parse - new request was created
-                return;
-            }
-            // Update size of whole stream (real size - count of rows in stream file)
-            this._setTotalStreamCount(message.rows);
-            // Parse and accept rows
-            this._parse(message.data);
-        }).catch((error: Error) => {
-            this._logger.error(`Error during requesting data (rows from ${request.start} to ${request.end}): ${error.message}`);
-            this._state.bufferLoadingRequestId = undefined;
-        });
-    }
-
     /**
      * Add new rows into output.
      * @param { string } input - string with rows data
