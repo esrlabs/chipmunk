@@ -1,5 +1,4 @@
 import {
-    indexFile,
     indexAsync,
     IIndexerParams,
     detectTimestampInString,
@@ -9,17 +8,34 @@ import {
 } from "./processor";
 import { TimeUnit } from "./units";
 export { TimeUnit };
-import { IConcatFilesParams, IMergeParams, mergeFiles, concatFiles } from "./merger";
 import {
-    IIndexDltParams,
-    dltStats,
-    dltStatsAsync,
-    indexDltFile,
-    indexDltAsync,
+    IConcatFilesParams,
+    IMergeParams,
+    mergeFiles,
+    concatFilesAsync,
+    ConcatenatorInput,
+} from "./merger";
+import { IIndexDltParams, dltStatsAsync, indexDltAsync, DltFilterConf } from "./dlt";
+import {
+    ITicks,
+    AsyncResult,
+    IChunk,
+    INeonTransferChunk,
+    INeonNotification,
+    Severity,
+    IConcatenatorResult,
+} from "./progress";
+export {
+    ITicks,
     DltFilterConf,
-} from "./dlt";
-import { ITicks, AsyncResult, IChunk, INeonTransferChunk } from "./progress";
-export { ITicks, DltFilterConf, IChunk };
+    IChunk,
+    AsyncResult,
+    INeonNotification,
+    INeonTransferChunk,
+    Severity,
+    IIndexDltParams,
+    ConcatenatorInput,
+};
 
 export interface LevelDistribution {
     non_log: number;
@@ -38,7 +54,6 @@ export interface StatisticInfo {
 }
 
 export interface IChipmunkIndexer {
-    indexFile: (params: IIndexerParams) => boolean;
     indexAsync: (
         chunkSize: number,
         fileToIndex: string,
@@ -46,23 +61,31 @@ export interface IChipmunkIndexer {
         outPath: string,
         onProgress: (ticks: ITicks) => any,
         onChunk: (chunk: INeonTransferChunk) => any,
+        onNotification: (notification: INeonNotification) => void,
         tag: string,
     ) => [Promise<AsyncResult>, () => void];
     mergeFiles: (params: IMergeParams) => boolean;
-    concatFiles: (params: IConcatFilesParams) => boolean;
-    dltStats: (dltFile: String) => StatisticInfo;
+    concatFilesAsync: (
+        config: Array<ConcatenatorInput>,
+        outFile: string,
+        append: boolean,
+        maxTime: TimeUnit,
+        onProgress: (ticks: ITicks) => void,
+        onResult: (res: IConcatenatorResult) => void,
+        onNotification: (notification: INeonNotification) => void,
+    ) => [Promise<AsyncResult>, () => void];
     dltStatsAsync: (
         dltFile: String,
         maxTime: TimeUnit,
         onProgress: (ticks: ITicks) => any,
         onConfig: (chunk: StatisticInfo) => any,
     ) => [Promise<AsyncResult>, () => void];
-    indexDltFile: (params: IIndexDltParams) => boolean;
     indexDltAsync: (
         params: IIndexDltParams,
         maxTime: TimeUnit,
         onProgress: (ticks: ITicks) => any,
         onChunk: (chunk: INeonTransferChunk) => any,
+        onNotification: (notification: INeonNotification) => void,
     ) => [Promise<AsyncResult>, () => void];
     detectTimestampInString: (input: string) => string;
     detectTimestampFormatInFile: (input: string) => string;
@@ -70,16 +93,13 @@ export interface IChipmunkIndexer {
 }
 
 const library: IChipmunkIndexer = {
-    indexFile,
     indexAsync,
     mergeFiles,
-    concatFiles,
-    dltStats,
+    concatFilesAsync,
     dltStatsAsync,
-    indexDltFile,
     indexDltAsync,
     detectTimestampInString,
     detectTimestampFormatInFile,
     detectTimestampFormatsInFiles,
 };
-export {library as indexer};
+export { library as indexer };

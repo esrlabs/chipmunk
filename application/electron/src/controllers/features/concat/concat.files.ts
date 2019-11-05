@@ -1,12 +1,20 @@
 // tslint:disable:max-classes-per-file
-import * as fs from 'fs';
-import * as path from 'path';
-import ServiceStreams from '../../../services/service.streams';
-import ServiceStreamSource from '../../../services/service.stream.sources';
-import ServiceNotifications from '../../../services/service.notifications';
-import * as Tools from '../../../tools/index';
-import { Lvin, IIndexResult, IFileToBeCancat, IFileMapItem, ILogMessage } from '../../external/controller.lvin';
-import Logger from '../../../tools/env.logger';
+import * as fs from "fs";
+import * as path from "path";
+import ServiceStreams from "../../../services/service.streams";
+import ServiceStreamSource from "../../../services/service.stream.sources";
+import ServiceNotifications from "../../../services/service.notifications";
+import {
+    indexer,
+    ITicks,
+    TimeUnit,
+    AsyncResult,
+    ConcatenatorInput,
+    INeonNotification,
+} from "indexer-neon";
+import Logger from "../../../tools/env.logger";
+import { IMapItem } from "../../../controllers/stream.main/file.map";
+import { IConcatenatorResult } from "indexer-neon/dist/progress";
 
 export interface IFile {
     file: string;
@@ -14,104 +22,110 @@ export interface IFile {
 }
 
 export default class ConcatFiles {
-
-    private _logger: Logger = new Logger('ConcatFiles');
-    private _session: string = '';
+    private _logger: Logger = new Logger("ConcatFiles");
+    private _res?: IConcatenatorResult;
+    private _session: string = "";
     private _files: IFile[];
+    private _absolutePathConfig: ConcatenatorInput[];
     private _sourceIds: { [key: string]: number } = {};
-    private _writeSessionsId: string = Tools.guid();
+    private _onProgress: (ticks: ITicks) => void;
 
-    constructor(files: IFile[], session?: string) {
+    constructor(session: string, files: IFile[], onProgress: (ticks: ITicks) => void) {
         this._files = files;
         this._session = session === undefined ? ServiceStreams.getActiveStreamId() : session;
+        this._onProgress = onProgress;
+        this.registerSourceMarkers();
+        this._absolutePathConfig = files.map((file: IFile) => {
+            return {
+                path: file.file,
+                tag: this._sourceIds[file.file].toString(),
+            };
+        });
     }
 
-    public write(): Promise<number> {
+    public write(): Promise<IConcatenatorResult> {
         return new Promise((resolve, reject) => {
-            // Remember active session
-            const session: string = ServiceStreams.getActiveStreamId();
-            // Get common file size
-            this._getSize().then((size: number) => {
-                const sessionData = ServiceStreams.getStreamFile(this._session);
-                if (sessionData instanceof Error) {
-                    return reject(sessionData);
+            const measuring = this._logger.measure("concatenate");
+            const sessionData = ServiceStreams.getStreamFile(this._session);
+            if (sessionData instanceof Error) {
+                measuring();
+                return reject(sessionData);
+            }
+            const onNotification = (notification: INeonNotification) => {
+                ServiceNotifications.notifyFromNeon(notification, "DLT-Indexing", this._session);
+            };
+            const onResult = (res: IConcatenatorResult) => {
+                this._logger.debug(`conatenated ${res} files`);
+                this._res = res;
+            };
+            const [futureRes, cancel]: [
+                Promise<AsyncResult>,
+                () => void,
+            ] = indexer.concatFilesAsync(
+                this._absolutePathConfig,
+                sessionData.file,
+                true,
+                TimeUnit.fromSeconds(2),
+                this._onProgress,
+                onResult,
+                onNotification,
+            );
+            futureRes
+            .then(() => {
+                measuring();
+                if (this._res !== undefined) {
+                    const lastLineIndex = this._res.line_cnt === 0 ? 0 : this._res.line_cnt - 1;
+                    const lastByteIndex = this._res.byte_cnt === 0 ? 0 : this._res.byte_cnt - 1;
+                    const map: IMapItem[] = [{ rows: { from: 0, to: lastLineIndex}, bytes: { from: 0, to: lastByteIndex} }];
+                    ServiceStreams.pushToStreamFileMap(this._session, map);
                 }
-                // Start progress session
-                ServiceStreams.addProgressSession(this._writeSessionsId, `concating`, this._session);
-                // Add new description of source
-                this._files.forEach((file: IFile) => {
-                    this._sourceIds[file.file] = ServiceStreamSource.add({ name: path.basename(file.file), session: this._session });
-                });
-                const lvin: Lvin = new Lvin();
-                lvin.on(Lvin.Events.map, (map: IFileMapItem[]) => {
-                    const converted = map.map((item: IFileMapItem) => {
-                        return { bytes: { from: item.b[0], to: item.b[1] }, rows: { from: item.r[0], to: item.r[1] } };
-                    });
-                    const mapped: number = converted.length === 0 ? 0 : (converted[map.length - 1].bytes.to - converted[0].bytes.from);
-                    ServiceStreams.pushToStreamFileMap(this._session, converted);
-                });
-                const files = this._files.map((file: IFile) => {
-                    return {
-                        file: file.file,
-                        sourceId: this._sourceIds[file.file].toString(),
-                    } as IFileToBeCancat;
-                });
-                lvin.concat(files,
-                    {
-                        destFile: sessionData.file,
-                    },
-                ).then((results: IIndexResult) => {
-                    if (results.logs instanceof Array) {
-                        results.logs.forEach((log: ILogMessage) => {
-                            ServiceNotifications.notify({
-                                type: log.severity,
-                                row: log.line_nr === null ? undefined : log.line_nr,
-                                file: log.file_name,
-                                message: log.text,
-                                caption: log.file_name === undefined ? 'Mergin Error' : log.file_name,
-                                session: session,
-                            });
-                        });
-                    }
-                    lvin.removeAllListeners();
-                    ServiceStreams.removeProgressSession(this._writeSessionsId, this._session);
-                    resolve(size);
-                }).catch((error: Error) => {
-                    lvin.removeAllListeners();
-                    ServiceStreams.removeProgressSession(this._writeSessionsId, this._session);
-                    reject(error);
-                });
-            }).catch((error: Error) => {
-                reject(error);
+                resolve(this._res);
+            })
+            .catch(e => {
+                measuring();
+                reject(e);
             });
         });
     }
 
     public destroy() {
-        ServiceStreams.removeProgressSession(this._writeSessionsId, this._session);
-        // Drop all others
         this._sourceIds = {};
+    }
+
+    private registerSourceMarkers() {
+        this._files.forEach((file: IFile) => {
+            this._sourceIds[file.file] = ServiceStreamSource.add({
+                name: path.basename(file.file),
+                session: this._session,
+            });
+        });
     }
 
     private _getSize(): Promise<number> {
         return new Promise((resolve, reject) => {
             let size: number = 0;
-            Promise.all(this._files.map((file: IFile) => {
-                return new Promise((resolveFile, rejectFile) => {
-                    fs.stat(file.file, (error: NodeJS.ErrnoException | null, stats: fs.Stats) => {
-                        if (error !== null) {
-                            return rejectFile(error);
-                        }
-                        size += stats.size;
-                        resolveFile();
+            Promise.all(
+                this._files.map((file: IFile) => {
+                    return new Promise((resolveFile, rejectFile) => {
+                        fs.stat(
+                            file.file,
+                            (error: NodeJS.ErrnoException | null, stats: fs.Stats) => {
+                                if (error !== null) {
+                                    return rejectFile(error);
+                                }
+                                size += stats.size;
+                                resolveFile();
+                            },
+                        );
                     });
+                }),
+            )
+                .then(() => {
+                    resolve(size);
+                })
+                .catch(error => {
+                    reject(error);
                 });
-            })).then(() => {
-                resolve(size);
-            }).catch((error) => {
-                reject(error);
-            });
         });
     }
-
 }

@@ -3,10 +3,11 @@ mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     extern crate rand;
     extern crate tempdir;
+    use indexer_base::chunks::ChunkResults;
     use crate::processor::*;
     use indexer_base::chunks::Chunk;
     use indexer_base::config::IndexingConfig;
-    use indexer_base::progress::IndexingProgress;
+    use indexer_base::progress::{IndexingProgress, Notification};
     use pretty_assertions::assert_eq;
     use std::fs;
     use std::fs::File;
@@ -29,10 +30,7 @@ mod tests {
         let f = File::open(&test_file_path).unwrap();
         let source_file_size = f.metadata().unwrap().len() as usize;
 
-        let (tx, rx): (
-            Sender<IndexingProgress<Chunk>>,
-            Receiver<IndexingProgress<Chunk>>,
-        ) = std::sync::mpsc::channel();
+        let (tx, rx): (Sender<ChunkResults>, Receiver<ChunkResults>) = std::sync::mpsc::channel();
         create_index_and_mapping(
             IndexingConfig {
                 tag: tag_name,
@@ -57,25 +55,30 @@ mod tests {
         let mut chunks: Vec<Chunk> = vec![];
         loop {
             match rx.recv() {
-                Ok(IndexingProgress::Finished) => {
+                Ok(Ok(IndexingProgress::Finished)) => {
                     trace!("finished...");
                     return (chunks, out_file_content);
                 }
-                Ok(IndexingProgress::Notification { severity, content }) => {
+                Ok(Err(Notification {
+                    severity,
+                    content,
+                    line,
+                })) => {
                     trace!(
-                        "getChunks: received notification[{:?}]...{}",
+                        "[{:?}]: getChunks: received notification[{:?}]...{}",
+                        line,
                         severity,
-                        content
+                        content,
                     );
                 }
-                Ok(IndexingProgress::Progress { ticks: _t }) => {
+                Ok(Ok(IndexingProgress::Progress { ticks: _t })) => {
                     trace!("progress...");
                 }
-                Ok(IndexingProgress::GotItem { item: chunk }) => {
+                Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
                     chunks.push(chunk);
                     trace!("got item...");
                 }
-                Ok(IndexingProgress::Stopped) => {
+                Ok(Ok(IndexingProgress::Stopped)) => {
                     trace!("stopped...");
                 }
                 Err(_) => {
@@ -112,10 +115,7 @@ mod tests {
         let out_path = tmp_dir.path().join("test_append_to_empty_output.log.out");
         let source_file_size = empty_file.metadata().unwrap().len() as usize;
 
-        let (tx, rx): (
-            Sender<IndexingProgress<Chunk>>,
-            Receiver<IndexingProgress<Chunk>>,
-        ) = std::sync::mpsc::channel();
+        let (tx, rx): (Sender<ChunkResults>, Receiver<ChunkResults>) = std::sync::mpsc::channel();
         create_index_and_mapping(
             IndexingConfig {
                 tag: "tag",
@@ -135,25 +135,29 @@ mod tests {
         let mut chunks: Vec<Chunk> = vec![];
         loop {
             match rx.recv() {
-                Ok(IndexingProgress::Finished) => {
+                Ok(Ok(IndexingProgress::Finished)) => {
                     println!("finished...");
                     assert_eq!(0, chunks.len(), "empty file should produce 0 chunks");
                     break;
                 }
-                Ok(IndexingProgress::Progress { ticks: _t }) => {
+                Ok(Ok(IndexingProgress::Progress { ticks: _t })) => {
                     println!("progress...");
                 }
-                Ok(IndexingProgress::Notification { severity, content }) => {
+                Ok(Err(Notification {
+                    severity,
+                    content,
+                    line,
+                })) => {
                     println!(
-                        "test_append_to_empty_output: notification[{:?}]...{}",
-                        severity, content
+                        "[{:?}]: test_append_to_empty_output: notification[{:?}]...{}",
+                        line, severity, content
                     );
                 }
-                Ok(IndexingProgress::GotItem { item: chunk }) => {
+                Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
                     println!("got item...{:?}", &chunk);
                     chunks.push(chunk);
                 }
-                Ok(IndexingProgress::Stopped) => {
+                Ok(Ok(IndexingProgress::Stopped)) => {
                     println!("stopped...");
                 }
                 Err(_) => {
@@ -173,10 +177,7 @@ mod tests {
         fs::write(&nonempty_file_path, "A").unwrap();
         let nonempty_file = File::open(nonempty_file_path).unwrap();
         let source_file_size = nonempty_file.metadata().unwrap().len() as usize;
-        let (tx, rx): (
-            Sender<IndexingProgress<Chunk>>,
-            Receiver<IndexingProgress<Chunk>>,
-        ) = std::sync::mpsc::channel();
+        let (tx, rx): (Sender<ChunkResults>, Receiver<ChunkResults>) = std::sync::mpsc::channel();
         create_index_and_mapping(
             IndexingConfig {
                 tag: "tag",
@@ -195,7 +196,7 @@ mod tests {
         let mut chunks: Vec<Chunk> = vec![];
         loop {
             match rx.recv() {
-                Ok(IndexingProgress::Finished) => {
+                Ok(Ok(IndexingProgress::Finished)) => {
                     println!("finished...");
                     let out_file_content: String =
                         fs::read_to_string(out_path).expect("could not read file");
@@ -208,20 +209,24 @@ mod tests {
                     assert_eq!(0, chunks[0].r.0, "first chunk row should start with 0");
                     break;
                 }
-                Ok(IndexingProgress::Progress { ticks: _t }) => {
+                Ok(Ok(IndexingProgress::Progress { ticks: _t })) => {
                     println!("progress...");
                 }
-                Ok(IndexingProgress::Notification { severity, content }) => {
+                Ok(Err(Notification {
+                    severity,
+                    content,
+                    line,
+                })) => {
                     println!(
-                        "test_append_to_empty_output2: notification[{:?}]...{}",
-                        severity, content
+                        "[{:?}]: test_append_to_empty_output2: notification[{:?}]...{}",
+                        line, severity, content
                     );
                 }
-                Ok(IndexingProgress::GotItem { item: chunk }) => {
+                Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
                     println!("got item...{:?}", chunk);
                     chunks.push(chunk);
                 }
-                Ok(IndexingProgress::Stopped) => {
+                Ok(Ok(IndexingProgress::Stopped)) => {
                     println!("stopped...");
                 }
                 Err(_) => {
@@ -310,10 +315,7 @@ mod tests {
             let content2 = fs::read_to_string(&out_file_path).expect("could not read file");
             println!("copied content was: {:?}", content2);
         }
-        let (tx, rx): (
-            Sender<IndexingProgress<Chunk>>,
-            Receiver<IndexingProgress<Chunk>>,
-        ) = std::sync::mpsc::channel();
+        let (tx, rx): (Sender<ChunkResults>, Receiver<ChunkResults>) = std::sync::mpsc::channel();
         create_index_and_mapping(
             IndexingConfig {
                 tag: "TAG",
@@ -332,7 +334,7 @@ mod tests {
         let mut chunks: Vec<Chunk> = vec![];
         loop {
             match rx.recv() {
-                Ok(IndexingProgress::Finished { .. }) => {
+                Ok(Ok(IndexingProgress::Finished { .. })) => {
                     trace!("finished...");
                     let out_file_content_bytes =
                         fs::read(out_file_path).expect("could not read file");
@@ -349,21 +351,25 @@ mod tests {
                     assert_eq!(true, chunks_fit_together(&chunks), "chunks need to fit");
                     break;
                 }
-                Ok(IndexingProgress::Progress { ticks: _t }) => {
+                Ok(Ok(IndexingProgress::Progress { ticks: _t })) => {
                     trace!("progress...");
                 }
-                Ok(IndexingProgress::GotItem { item: chunk }) => {
+                Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
                     chunks.push(chunk);
                     trace!("got item...");
                 }
 
-                Ok(IndexingProgress::Notification { severity, content }) => {
+                Ok(Err(Notification {
+                    severity,
+                    content,
+                    line,
+                })) => {
                     println!(
-                        "test_input_output: notification[{:?}]...{}",
-                        severity, content
+                        "[{:?}]: test_input_output: notification[{:?}]...{}",
+                        line, severity, content
                     );
                 }
-                Ok(IndexingProgress::Stopped) => {
+                Ok(Ok(IndexingProgress::Stopped)) => {
                     trace!("stopped...");
                 }
                 Err(_) => {

@@ -9,19 +9,15 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
-use indexer_base::chunks::{ChunkFactory};
+use failure::err_msg;
+use indexer_base::progress::{IndexingProgress, IndexingResults};
 use indexer_base::utils;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{BufRead, BufReader, BufWriter, Read, Write};
-use std::iter::{Iterator};
-use std::path::{Path, PathBuf};
-
-const REPORT_PROGRESS_LINE_BLOCK: usize = 500_000;
-
-pub struct Concatenator {
-    pub chunk_size: usize, // used for mapping line numbers to byte positions
-}
+use std::iter::Iterator;
+use std::path::PathBuf;
+use std::sync::mpsc::{self, TryRecvError};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConcatItemOptions {
@@ -38,112 +34,132 @@ pub fn read_concat_options(f: &mut fs::File) -> Result<Vec<ConcatItemOptions>, f
     Ok(v)
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ConcatenatorInput {
-    path: PathBuf,
+    path: String,
     tag: String,
 }
-fn file_size(path: &Path) -> u64 {
-    let metadata = fs::metadata(path).expect("cannot read size of output file");
-    metadata.len()
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ConcatenatorResult {
+    pub file_cnt: usize,
+    pub line_cnt: usize,
+    pub byte_cnt: usize,
 }
-impl Concatenator {
-    pub fn concat_files_use_config_file(
-        &self,
-        config_path: &PathBuf,
-        out_path: &PathBuf,
-        append: bool,
-        use_stdout: bool,
-        report_status: bool,
-    ) -> Result<usize, failure::Error> {
-        let mut concat_option_file = fs::File::open(config_path)?;
-        let dir_name = config_path
-            .parent()
-            .ok_or_else(|| failure::err_msg("could not find directory of config file"))?;
-        let options: Vec<ConcatItemOptions> = read_concat_options(&mut concat_option_file)?;
-        let inputs: Vec<ConcatenatorInput> = options
-            .into_iter()
-            .map(|o: ConcatItemOptions| ConcatenatorInput {
-                path: PathBuf::from(&dir_name).join(o.path),
-                tag: o.tag,
-            })
-            .collect();
-        self.concat_files(inputs, &out_path, report_status, append, use_stdout)
-    }
-    #[allow(dead_code)]
-    pub fn concat_files(
-        &self,
-        concat_inputs: Vec<ConcatenatorInput>,
-        out_path: &PathBuf,
-        report_status: bool,
-        append: bool,
-        to_stdout: bool,
-    ) -> Result<usize, failure::Error> {
-        let mut line_nr = 0;
-        let out_file: std::fs::File = if append {
-            std::fs::OpenOptions::new()
-                .append(true)
-                .create(true)
-                .open(out_path)?
-        } else {
-            std::fs::File::create(&out_path).unwrap()
-        };
-        let original_file_size =
-            out_file.metadata().expect("could not read metadata").len() as usize;
-        let mut chunks = vec![];
-        let mut chunk_factory = ChunkFactory::new(self.chunk_size, to_stdout, original_file_size);
-        let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
-        let mut processed_bytes = 0;
+pub fn concat_files_use_config_file(
+    config_path: &PathBuf,
+    out_path: &PathBuf,
+    append: bool,
+    update_channel: mpsc::Sender<IndexingResults<ConcatenatorResult>>,
+    shutdown_rx: Option<mpsc::Receiver<()>>,
+) -> Result<(), failure::Error> {
+    let mut concat_option_file = fs::File::open(config_path)?;
+    let dir_name = config_path
+        .parent()
+        .ok_or_else(|| failure::err_msg("could not find directory of config file"))?;
+    let options: Vec<ConcatItemOptions> = read_concat_options(&mut concat_option_file)?;
+    let inputs: Vec<ConcatenatorInput> = options
+        .into_iter()
+        .map(|o: ConcatItemOptions| ConcatenatorInput {
+            path: PathBuf::from(&dir_name)
+                .join(o.path)
+                .to_str()
+                .unwrap()
+                .to_string(),
+            tag: o.tag,
+        })
+        .collect();
+    concat_files(inputs, &out_path, append, update_channel, shutdown_rx)
+}
+pub fn concat_files(
+    concat_inputs: Vec<ConcatenatorInput>,
+    out_path: &PathBuf,
+    append: bool,
+    update_channel: mpsc::Sender<IndexingResults<ConcatenatorResult>>,
+    shutdown_rx: Option<mpsc::Receiver<()>>,
+) -> Result<(), failure::Error> {
+    let file_cnt = concat_inputs.len();
+    trace!("concat_files called with {} files", file_cnt);
+    let mut line_nr = 0;
+    let out_file: std::fs::File = if append {
+        std::fs::OpenOptions::new()
+            .append(true)
+            .create(true)
+            .open(out_path)?
+    } else {
+        std::fs::File::create(&out_path).unwrap()
+    };
+    let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
+    let mut processed_bytes = 0;
 
-        let combined_source_file_size = concat_inputs
-            .iter()
-            .fold(0, |acc, i| acc + file_size(&i.path));
-        for input in concat_inputs {
-            let f: fs::File = fs::File::open(input.path)?;
-            let mut reader: BufReader<&std::fs::File> = BufReader::new(&f);
-            let mut buf = vec![];
-            while let Ok(len) = reader.read_until(b'\n', &mut buf) {
-                if len == 0 {
-                    // no more content
-                    break;
-                };
-                let original_line_length = len;
-                processed_bytes += original_line_length;
-                let s = unsafe { std::str::from_utf8_unchecked(&buf) };
-                let trimmed_line = s.trim_matches(utils::is_newline);
-
-                let additional_bytes = utils::create_tagged_line(
-                    &input.tag[..],
-                    &mut buf_writer,
-                    trimmed_line,
-                    line_nr,
-                    true,
-                )?;
-                line_nr += 1;
-
-                if let Some(chunk) = chunk_factory.create_chunk_if_needed(
-                    line_nr, // TODO avoid passing in this line...error prone
-                    additional_bytes,
-                ) {
-                    chunks.push(chunk);
-                    buf_writer.flush()?;
+    let combined_source_file_size = concat_inputs.iter().try_fold(0, |acc, i| {
+        let f = &PathBuf::from(i.path.clone());
+        match fs::metadata(f) {
+            Ok(metadata) => Ok(acc + metadata.len()),
+            Err(e) => Err(err_msg(format!(
+                "error getting size of file {:?} ({})",
+                f, e
+            ))),
+        }
+    })?;
+    let mut progress_percentage = 0usize;
+    for input in concat_inputs {
+        if let Some(rx) = shutdown_rx.as_ref() {
+            match rx.try_recv() {
+                Ok(_) | Err(TryRecvError::Disconnected) => {
+                    info!("shutdown received in concatenator",);
+                    update_channel.send(Ok(IndexingProgress::Stopped))?;
+                    return Ok(());
                 }
-
-                if report_status {
-                    utils::report_progress(
-                        line_nr,
-                        chunk_factory.get_current_byte_index(),
-                        processed_bytes,
-                        combined_source_file_size as usize,
-                        REPORT_PROGRESS_LINE_BLOCK,
-                    );
-                }
-                buf = vec![];
+                // No shutdown command, continue
+                _ => (),
             }
+        };
+        let f: fs::File = fs::File::open(input.path)?;
+        let mut reader: BufReader<&std::fs::File> = BufReader::new(&f);
+        let mut buf = vec![];
+        while let Ok(len) = reader.read_until(b'\n', &mut buf) {
+            if len == 0 {
+                // no more content
+                break;
+            };
+            let original_line_length = len;
+            processed_bytes += original_line_length;
+            let s = unsafe { std::str::from_utf8_unchecked(&buf) };
+            let trimmed_line = s.trim_matches(utils::is_newline);
+
+            let _additional_bytes = utils::create_tagged_line(
+                &input.tag[..],
+                &mut buf_writer,
+                trimmed_line,
+                line_nr,
+                true,
+            )?;
+            line_nr += 1;
+
+            let new_progress_percentage: usize =
+                (processed_bytes as f64 / combined_source_file_size as f64 * 10.0).round() as usize;
+            if new_progress_percentage != progress_percentage {
+                progress_percentage = new_progress_percentage;
+                let _ = update_channel.send(Ok(IndexingProgress::Progress {
+                    ticks: (processed_bytes, combined_source_file_size as usize),
+                }));
+            }
+            buf = vec![];
         }
-        buf_writer.flush()?;
-        if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunks.is_empty()) {
-            chunks.push(chunk);
-        }
-        Ok(line_nr)
     }
+    buf_writer.flush()?;
+
+    let _ = update_channel.send(Ok(IndexingProgress::Progress {
+        ticks: (processed_bytes, combined_source_file_size as usize),
+    }));
+    let _ = update_channel.send(Ok(IndexingProgress::GotItem {
+        item: ConcatenatorResult {
+            file_cnt,
+            line_cnt: line_nr,
+            byte_cnt: processed_bytes,
+        },
+    }));
+
+    let _ = update_channel.send(Ok(IndexingProgress::Finished));
+    Ok(())
 }

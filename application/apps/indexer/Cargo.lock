@@ -595,6 +595,7 @@ dependencies = [
  "dlt 0.1.0",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "indexer_base 0.1.0",
+ "log 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "pretty_assertions 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "processor 0.1.0",
  "regex 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",

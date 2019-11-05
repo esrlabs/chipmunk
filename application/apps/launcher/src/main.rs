@@ -23,7 +23,7 @@ use std::time::SystemTime;
 
 fn init_logging() -> Result<()> {
     let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
-    let log_path = home_dir.join(".logviewer").join("chipmunk.launcher.log");
+    let log_path = home_dir.join(".chipmunk").join("chipmunk.launcher.log");
     let appender_name = "launcher-root";
     let logfile = FileAppender::builder()
         .encoder(Box::new(PatternEncoder::new("{d} - {l}:: {m}\n")))
@@ -105,7 +105,7 @@ fn get_exe_path() -> Result<String> {
 fn get_updater_path() -> String {
     let home_dir = dirs::home_dir();
     let updater = format!(
-        "{}/.logviewer/apps/updater",
+        "{}/.chipmunk/apps/updater",
         home_dir.unwrap().as_path().to_str().unwrap()
     );
     if cfg!(target_os = "windows") {
@@ -118,7 +118,7 @@ fn get_updater_path() -> String {
 fn get_app_updating_tgz_path_str() -> String {
     let home_dir = dirs::home_dir();
     let downloads = format!(
-        "{}/.logviewer/downloads",
+        "{}/.chipmunk/downloads",
         home_dir.unwrap().as_path().to_str().unwrap()
     );
     let downloads_path = Path::new(&downloads);

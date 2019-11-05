@@ -13,6 +13,8 @@ use indexer_base::timedline::TimedLine;
 use indexer_base::error_reporter::*;
 use indexer_base::progress::Severity;
 use chrono::{NaiveDate, NaiveDateTime, Utc, Datelike, DateTime};
+use std::sync::mpsc;
+use indexer_base::progress::*;
 
 use nom::bytes::complete::tag;
 use nom::character::complete::{char, digit1};
@@ -29,7 +31,7 @@ use std::fs;
 use std::io::Seek;
 use std::borrow::Cow;
 use std::io::{BufRead, BufReader, Read};
-use std::path::{Path, PathBuf};
+use std::path::{Path, PathBuf, self};
 
 const MAX_LINES_TO_INSPECT: usize = 1_000_000;
 const LINE_DETECTION_THRESHOLD: usize = 5;
@@ -288,7 +290,7 @@ fn date_format_str_to_regex(date_format: &str) -> Result<Regex, failure::Error> 
                 Err(e) => Err(failure::err_msg(format!("could not create regex: {}", e))),
             };
         }
-        Err(e) => report_error(format!("{:?}", e)),
+        Err(e) => report_error(format!("{:?}", e)), // TODO replace
     }
     Err(failure::err_msg("could not detect timestamp in"))
 }
@@ -356,6 +358,19 @@ pub fn read_format_string_options(f: &mut fs::File) -> Result<FormatTestOptions,
     Ok(v)
 }
 
+/// try to find out the maximum and the minimum timestamp of log entries in a text file
+///
+/// # Arguments
+///
+/// * `regex` - the regex for the timestamp
+/// * `limit` - if set, do not inspect more then this many lines
+/// * `start` - offset in bytes where to start the file inspection
+///
+/// # Returns
+///
+/// * `min_timestamp` - return value for the min value
+/// * `max_timestamp` - return value for the max value
+///
 fn scan_lines(
     f: &std::fs::File,
     regex: &Regex,
@@ -363,14 +378,16 @@ fn scan_lines(
     max_timestamp: &mut i64,
     limit: Option<usize>,
     start: Option<u64>,
-) -> Result<usize, failure::Error> {
+) -> Result<usize, (failure::Error, usize)> {
     let mut buf = vec![];
 
     let mut reader: BufReader<&std::fs::File> = BufReader::new(&f);
     let mut scanned_cnt = 0usize;
 
     if let Some(n) = start {
-        reader.seek(std::io::SeekFrom::Start(n))?;
+        if let Err(e) = reader.seek(std::io::SeekFrom::Start(n)) {
+            return Err((failure::err_msg(format!("{}", e)), scanned_cnt));
+        }
     }
     let mut inspected_lines = 0usize;
     while let Ok(len) = reader.read_until(b'\n', &mut buf) {
@@ -390,16 +407,8 @@ fn scan_lines(
                     *min_timestamp = std::cmp::min(*min_timestamp, timestamp);
                     *max_timestamp = std::cmp::max(*max_timestamp, timestamp);
                 }
-                Err(e) => {
-                    report_warning_ln(
-                        format!("error converting timestamp: {:?}", e),
-                        Some(scanned_cnt),
-                    );
-                }
+                Err(_e) => (),
             }
-            // } else {
-            //     report_warning_ln("format did not match", Some(scanned_cnt));
-            // }
         }
         buf = vec![];
         if let Some(limit) = limit {
@@ -411,33 +420,87 @@ fn scan_lines(
     Ok(scanned_cnt)
 }
 /// find out the lower and upper timestamp of a file
-pub fn timespan_in_file(format_expr: &str, path: &PathBuf) -> Result<(i64, i64), failure::Error> {
-    let regex = lookup_regex_for_format_str(format_expr)?;
-    let f: fs::File = fs::File::open(path)?;
-    let mut min_timestamp = std::i64::MAX;
-    let mut max_timestamp = 0i64;
-    let file_size = f.metadata()?.len();
-    let min_buf_size = std::cmp::min(file_size, 256 * 1024); // 256k
-    let lines_to_scan = 1000usize;
-    let _line_cnt = scan_lines(
-        &f,
-        &regex,
-        &mut min_timestamp,
-        &mut max_timestamp,
-        Some(lines_to_scan),
-        None,
-    )?;
-    // also read from end
-    let start = file_size - min_buf_size;
-    let _last_scanned_lines = scan_lines(
-        &f,
-        &regex,
-        &mut min_timestamp,
-        &mut max_timestamp,
-        None,
-        Some(start),
-    )?;
-    Ok((min_timestamp, max_timestamp))
+pub fn timespan_in_files(
+    items: Vec<DiscoverItem>,
+    update_channel: &mpsc::Sender<IndexingResults<TimestampFormatResult>>,
+) -> Result<(), failure::Error> {
+    for item in items {
+        let file_path = path::PathBuf::from(&item.path);
+        match detect_timestamp_format_in_file(&file_path) {
+            Ok(format_expr) => {
+                let regex = lookup_regex_for_format_str(&format_expr)?;
+                let f: fs::File = fs::File::open(file_path)?;
+                let mut min_timestamp = std::i64::MAX;
+                let mut max_timestamp = 0i64;
+                let file_size = f.metadata()?.len();
+                let min_buf_size = std::cmp::min(file_size, 256 * 1024); // 256k
+                let lines_to_scan = 1000usize;
+                let _line_cnt = match scan_lines(
+                    &f,
+                    &regex,
+                    &mut min_timestamp,
+                    &mut max_timestamp,
+                    Some(lines_to_scan),
+                    None,
+                ) {
+                    Ok(n) => n,
+                    Err((e, n)) => {
+                        let _ = update_channel.send(Err(Notification {
+                            severity: Severity::WARNING,
+                            content: format!("{}", e),
+                            line: None,
+                        }));
+                        n
+                    }
+                };
+                // also read from end
+                let start = file_size - min_buf_size;
+                let _last_scanned_lines = match scan_lines(
+                    &f,
+                    &regex,
+                    &mut min_timestamp,
+                    &mut max_timestamp,
+                    None,
+                    Some(start),
+                ) {
+                    Ok(n) => n,
+                    Err((e, n)) => {
+                        let _ = update_channel.send(Err(Notification {
+                            severity: Severity::WARNING,
+                            content: format!("{}", e),
+                            line: None,
+                        }));
+                        n
+                    }
+                };
+                let _ = update_channel.send(Ok(IndexingProgress::GotItem {
+                    item: TimestampFormatResult {
+                        path: item.path.to_string(),
+                        format: Some(format_expr),
+                        min_time: Some(posix_timestamp_as_string(min_timestamp)),
+                        max_time: Some(posix_timestamp_as_string(max_timestamp)),
+                    },
+                }));
+            }
+            Err(e) => {
+                let _ = update_channel.send(Ok(IndexingProgress::GotItem {
+                    item: TimestampFormatResult {
+                        path: item.path.to_string(),
+                        format: None,
+                        min_time: None,
+                        max_time: None,
+                    },
+                }));
+                let _ = update_channel.send(Err(Notification {
+                    severity: Severity::WARNING,
+                    content: format!("executed with error: {}", e),
+                    line: None,
+                }));
+            }
+        }
+    }
+    let _ = update_channel.send(Ok(IndexingProgress::Finished));
+    Ok(())
 }
 /// find out how often a format string matches a timestamp in a file
 pub fn match_format_string_in_file(

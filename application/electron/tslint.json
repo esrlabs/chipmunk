@@ -14,12 +14,19 @@
         "quotemark": false,
         "interface-over-type-literal": false,
         "max-line-length": false,
+        "semicolon": [true, "always", "ignore-bound-class-methods"],
         "variable-name": [
             true,
             "ban-keywords",
             "check-format",
             "allow-leading-underscore",
             "allow-pascal-case"
+        ],
+        "member-ordering": [
+            true,
+            {
+                "order": "fields-first"
+            }
         ],
         "no-unused-expression": [true, "allowShortCircuit"],
         "object-literal-sort-keys": false,

@@ -1,13 +1,20 @@
 import { AFileParser, IFileParserFunc, IMapItem } from "./interface";
 import { Transform } from "stream";
 import * as path from "path";
-import { indexer, ITicks, DltFilterConf, TimeUnit } from "indexer-neon";
+import {
+    indexer,
+    ITicks,
+    DltFilterConf,
+    TimeUnit,
+    INeonTransferChunk,
+    INeonNotification,
+    AsyncResult,
+    IIndexDltParams,
+} from "indexer-neon";
 import ServiceStreams from "../../services/service.streams";
 import { Subscription } from "../../tools/index";
 import Logger from "../../tools/env.logger";
-import { IIndexDltParams } from "indexer-neon/dist/dlt";
-import { INeonTransferChunk } from "indexer-neon/dist/progress";
-import { AsyncResult } from "../../../../apps/indexer-neon/dist/progress";
+import ServiceNotifications, { ENotificationType } from "../../services/service.notifications";
 
 const ExtNames = ["dlt"];
 
@@ -15,12 +22,15 @@ export default class FileParser extends AFileParser {
     private _subscriptions: { [key: string]: Subscription } = {};
     private _guid: string | undefined;
     private _closed: boolean = false;
+    private _logger: Logger = new Logger("indexing");
+    private _cancel: () => void;
 
     constructor() {
         super();
         this._subscriptions.onSessionClosed = ServiceStreams.getSubjects().onSessionClosed.subscribe(
             this._onSessionClosed.bind(this),
         );
+        this._cancel = this._defaultCancel;
     }
 
     public destroy() {
@@ -85,14 +95,13 @@ export default class FileParser extends AFileParser {
         onMapUpdated?: (map: IMapItem[]) => void,
         onProgress?: (ticks: ITicks) => void,
     ): Promise<IMapItem[]> {
-        const logger: Logger = new Logger("indexing");
-
         return new Promise((resolve, reject) => {
+            if (this._guid !== undefined) {
+                return reject(new Error(`Parsing is already started.`));
+            }
+            this._guid = ServiceStreams.getActiveStreamId();
             const collectedChunks: IMapItem[] = [];
             const hrstart = process.hrtime();
-            if (this._guid !== undefined) {
-                return reject(`Parsing is already started.`);
-            }
             let appIds: String[] | undefined;
             let contextIds: String[] | undefined;
             let ecuIds: String[] | undefined;
@@ -121,9 +130,16 @@ export default class FileParser extends AFileParser {
                 stdout: false,
                 statusUpdates: true,
             };
-            logger.debug("calling indexDltAsync with params: " + JSON.stringify(dltParams));
+            this._logger.debug("calling indexDltAsync with params: " + JSON.stringify(dltParams));
             let completeTicks: number = 0;
-
+            const onNotification = (notification: INeonNotification) => {
+                ServiceNotifications.notifyFromNeon(
+                    notification,
+                    "DLT-Indexing",
+                    this._guid,
+                    srcFile,
+                );
+            };
             const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexer.indexDltAsync(
                 dltParams,
                 TimeUnit.fromSeconds(60),
@@ -143,22 +159,41 @@ export default class FileParser extends AFileParser {
                         collectedChunks.push(mapItem);
                     }
                 },
+                onNotification,
             );
-            futureRes.then(x => {
-                if (onProgress !== undefined) {
-                    onProgress({
-                        ellapsed: completeTicks,
-                        total: completeTicks,
+            this._cancel = cancel;
+            futureRes
+                .then(x => {
+                    if (onProgress !== undefined) {
+                        onProgress({
+                            ellapsed: completeTicks,
+                            total: completeTicks,
+                        });
+                    }
+                    const hrend = process.hrtime(hrstart);
+                    const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+                    this._logger.debug("readAndWrite task finished, result: " + x);
+                    this._logger.debug("Execution time for indexing : " + ms + "ms");
+                    this._cancel = this._defaultCancel;
+                    resolve(collectedChunks);
+                })
+                .catch((error: Error) => {
+                    if (this._closed) {
+                        return resolve([]);
+                    }
+                    ServiceNotifications.notify({
+                        message:
+                            error.message.length > 1500
+                                ? `${error.message.substr(0, 1500)}...`
+                                : error.message,
+                        caption: `Error with: ${path.basename(srcFile)}`,
+                        session: this._guid,
+                        file: sourceId.toString(),
+                        type: ENotificationType.error,
                     });
-                }
-                const hrend = process.hrtime(hrstart);
-                const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-                logger.debug("readAndWrite task finished, result: " + x);
-                logger.debug("Execution time for indexing : " + ms + "ms");
-                resolve(collectedChunks);
-            });
+                    reject(error);
+                });
             //     const lvin: Lvin = new Lvin();
-            this._guid = ServiceStreams.getActiveStreamId();
             //     if (onMapUpdated !== undefined) {
             //         lvin.on(Lvin.Events.map, (map: IFileMapItem[]) => {
             //             if (this._closed) {
@@ -226,4 +261,8 @@ export default class FileParser extends AFileParser {
         }
         this._closed = true;
     }
+
+    private _defaultCancel = () => {
+        this._logger.debug("no cancel function set");
+    };
 }

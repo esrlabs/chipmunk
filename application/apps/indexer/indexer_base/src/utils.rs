@@ -9,8 +9,7 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
-use crate::error_reporter;
-use failure::Error;
+use failure::{err_msg, Error};
 use std::char;
 use std::fmt::Display;
 use std::fs;
@@ -122,22 +121,24 @@ pub fn linenr_length(linenr: usize) -> usize {
 }
 
 #[inline]
-pub fn next_line_nr(path: &std::path::Path) -> Option<usize> {
+pub fn next_line_nr(path: &std::path::Path) -> Result<usize, Error> {
     if !path.exists() {
-        return Some(0);
+        return Ok(0);
     }
     let file = fs::File::open(path).expect("opening file did not work");
     let file_size = file.metadata().expect("could not read file metadata").len();
     if file_size == 0 {
-        return Some(0);
+        return Ok(0);
     };
     let mut reader = BufReader::new(file);
     let seek_offset: i64 = -(std::cmp::min(file_size - 1, PEEK_END_SIZE as u64) as i64);
     match reader.seek(SeekFrom::End(seek_offset as i64)) {
         Ok(_) => (),
         Err(e) => {
-            error_reporter::report_error(format!("could not read last entry in file {:?}", e));
-            return None;
+            return Err(err_msg(format!(
+                "could not read last entry in file {:?}",
+                e
+            )));
         }
     };
     let size_of_slice = seek_offset.abs() as usize;
@@ -156,10 +157,13 @@ pub fn next_line_nr(path: &std::path::Path) -> Option<usize> {
                 .trim_end_matches(ROW_NUMBER_SENTINAL)
                 .parse()
                 .expect("expected number was was none");
-            return Some(row_nr + 1);
+            return Ok(row_nr + 1);
         }
     }
-    None
+    Err(err_msg(format!(
+        "did not find row number in line: {:X?}",
+        buf
+    )))
 }
 pub fn get_out_file_and_size(
     append: bool,

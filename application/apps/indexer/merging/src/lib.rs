@@ -11,6 +11,9 @@
 // from E.S.R.Labs.
 extern crate dlt;
 
+#[macro_use]
+extern crate log;
+
 pub mod concatenator;
 pub mod merger;
 

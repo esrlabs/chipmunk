@@ -10,11 +10,11 @@
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
 
+use indexer_base::chunks::ChunkResults;
 use crate::parse;
 use failure::{err_msg, Error};
-use indexer_base::chunks::{Chunk, ChunkFactory};
+use indexer_base::chunks::{ChunkFactory};
 use indexer_base::config::IndexingConfig;
-use indexer_base::error_reporter::*;
 use indexer_base::progress::*;
 use indexer_base::utils;
 use parse::detect_timestamp_in_string;
@@ -27,17 +27,22 @@ pub fn create_index_and_mapping(
     config: IndexingConfig,
     parse_timestamps: bool,
     source_file_size: Option<usize>,
-    update_channel: mpsc::Sender<IndexingProgress<Chunk>>,
+    update_channel: mpsc::Sender<ChunkResults>,
     shutdown_receiver: Option<mpsc::Receiver<()>>,
 ) -> Result<(), Error> {
     let initial_line_nr = match utils::next_line_nr(config.out_path) {
-        Some(nr) => nr,
-        None => {
-            report_error(format!(
-                "could not determine last line number of {:?}",
-                config.out_path
-            ));
-            std::process::exit(2)
+        Ok(nr) => nr,
+        Err(e) => {
+            let c = format!(
+                "could not determine last line number of {:?} ({})",
+                config.out_path, e
+            );
+            let _ = update_channel.send(Err(Notification {
+                severity: Severity::ERROR,
+                content: c.clone(),
+                line: None,
+            }));
+            return Err(err_msg(c));
         }
     };
     index_file(
@@ -47,6 +52,7 @@ pub fn create_index_and_mapping(
         source_file_size,
         update_channel,
         shutdown_receiver,
+        // report,
     )
 }
 
@@ -55,7 +61,7 @@ pub fn index_file(
     initial_line_nr: usize,
     timestamps: bool,
     source_file_size: Option<usize>,
-    update_channel: mpsc::Sender<IndexingProgress<Chunk>>,
+    update_channel: mpsc::Sender<ChunkResults>,
     shutdown_receiver: Option<mpsc::Receiver<()>>,
 ) -> Result<(), Error> {
     trace!("called index_file for file: {:?}", config.in_file);
@@ -186,7 +192,7 @@ pub fn index_file(
                     };
                     chunk_count += 1;
                     last_byte_index = chunk.b.1;
-                    update_channel.send(IndexingProgress::GotItem { item: chunk })?;
+                    update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }))?;
                     buf_writer.flush()?;
                     false
                 }
@@ -198,9 +204,9 @@ pub fn index_file(
                     (processed_bytes as f64 / file_size as f64 * 100.0).round() as usize;
                 if new_progress_percentage != progress_percentage {
                     progress_percentage = new_progress_percentage;
-                    update_channel.send(IndexingProgress::Progress {
+                    update_channel.send(Ok(IndexingProgress::Progress {
                         ticks: (processed_bytes, file_size),
-                    })?;
+                    }))?;
                 }
             }
         }
@@ -208,14 +214,14 @@ pub fn index_file(
     }
     if stopped {
         debug!("sending IndexingProgress::Stopped");
-        update_channel.send(IndexingProgress::Stopped)?;
+        update_channel.send(Ok(IndexingProgress::Stopped))?;
         Ok(())
     } else {
         buf_writer.flush()?;
         if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunk_count == 0) {
             last_byte_index = chunk.b.1;
             trace!("index: add last chunk {:?}", chunk);
-            update_channel.send(IndexingProgress::GotItem { item: chunk })?;
+            update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }))?;
             chunk_count += 1;
         }
         if chunk_count > 0 {
@@ -234,7 +240,7 @@ pub fn index_file(
             "done, created {} chunks in {} ms, sending Finished",
             chunk_count, ms
         );
-        update_channel.send(IndexingProgress::Finished)?;
+        update_channel.send(Ok(IndexingProgress::Finished))?;
         Ok(())
     }
 }

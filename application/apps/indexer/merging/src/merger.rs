@@ -275,8 +275,7 @@ impl Merger {
             std::fs::File::create(&out_path)?
         };
         let mut line_nr = if append {
-            utils::next_line_nr(&out_path)
-                .ok_or_else(|| failure::format_err!("could not get last line number of old file"))?
+            utils::next_line_nr(&out_path)?
         } else {
             0
         };

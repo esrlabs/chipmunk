@@ -1,13 +1,23 @@
-import { indexAsync, indexFile, IFilePath } from "./processor";
+import { indexAsync, IFilePath, discoverTimespanAsync } from "./processor";
 import { DltFilterConf, indexDltAsync, DltLogLevel, IIndexDltParams } from "./dlt";
 import { indexer, StatisticInfo } from "./index";
 import { TimeUnit } from "./units";
-import { ITicks, IChunk, INeonTransferChunk, AsyncResult } from "./progress";
+import {
+    ITicks,
+    IChunk,
+    INeonTransferChunk,
+    AsyncResult,
+    INeonNotification,
+    ITimestampFormatResult,
+    IDiscoverItem,
+    IConcatenatorResult,
+} from "./progress";
 import { log } from "./logging";
-import { puts } from "util";
-import { AsyncResource } from "async_hooks";
-var ProgressBar = require("progress");
-const util = require("util");
+import { IConcatFilesParams, ConcatenatorInput } from "./merger";
+import { StdoutController } from "custom.stdout";
+import * as fs from 'fs';
+
+const stdout = new StdoutController(process.stdout, { handleStdoutGlobal: true });
 
 export const examplePath: String = "/Users/muellero/tmp/logviewer_usecases";
 
@@ -23,81 +33,7 @@ function measure({ desc, f }: { desc: String; f: () => void }) {
     const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
     console.info("Execution time %s : %dms", desc, ms);
 }
-function testCallIndexFile() {
-    const fileToIndex = examplePath + "/indexing/access.log";
-    // index a file
-    measure({
-        desc: "indexing " + fileToIndex,
-        f: () => {
-            const formats = indexFile({
-                file: fileToIndex,
-                tag: "TAG",
-                out: examplePath + "/indexing/test.out",
-                append: false,
-                stdout: false,
-                timestamps: false,
-                statusUpdates: true,
-            });
-            console.log(formats);
-        },
-    });
-}
 
-function testCallIndexDltFile() {
-    const dltPath = examplePath + "/dlt";
-    // const fileToIndex = dltPath + "/testfile.dlt";
-    const fileToIndex = dltPath + "/DTC_SP21.dlt";
-    const out_filtered = dltPath + "/dlt.indexed_filtered.out";
-    const filterConf: DltFilterConf = {
-        min_log_level: DltLogLevel.Debug,
-        app_ids: [
-            "APP",
-            "rtcS",
-            "DA1",
-            "mete",
-            "upda",
-            "PDRM",
-            "DLTD",
-            "IRC",
-            "DANL",
-            "PVSn",
-            "SYS",
-            "PAGY",
-        ],
-        ecu_ids: [],
-    };
-
-    measure({
-        desc: "indexing DLT " + fileToIndex,
-        f: () => {
-            const success = indexer.indexDltFile({
-                dltFile: fileToIndex,
-                tag: "TAG",
-                filterConfig: filterConf,
-                out: out_filtered,
-                append: false,
-                stdout: false,
-                statusUpdates: true,
-            });
-            console.log("was ok?: %s", success);
-        },
-    });
-    const out = dltPath + "/dlt.indexed.out";
-    measure({
-        desc: "indexing DLT (no filter config) " + fileToIndex + ", output: " + out,
-        f: () => {
-            const success = indexer.indexDltFile({
-                dltFile: fileToIndex,
-                tag: "TAG",
-                out,
-                append: false,
-                stdout: false,
-                statusUpdates: true,
-            });
-            console.log("was ok?: %s", success);
-        },
-    });
-}
 function testCallMergeFiles() {
     const mergePath = examplePath + "/merging/merging_big";
     const mergeConf = mergePath + "/config.json";
@@ -116,20 +52,47 @@ function testCallMergeFiles() {
         },
     });
 }
-function testCallConcatFiles() {
-    const concatConfig = examplePath + "/concat/concat.json.conf";
-    const out = examplePath + "/concat/concatenated.out";
+export function testCallConcatFiles(concatConfig: string, out: string) {
+    const bar = stdout.createProgressBar({ caption: "concatenating files", width: 60 });
+    let onProgress = (ticks: ITicks) => {
+        bar.update(Math.round((100 * ticks.ellapsed) / ticks.total));
+    };
+    let onResult = (res: IConcatenatorResult) => {
+        log("TTT: concatenated res: " + JSON.stringify(res));
+    };
+    let onNotification = (notification: INeonNotification) => {
+        log(
+            "TTT: testDiscoverTimespanAsync: received notification:" + JSON.stringify(notification),
+        );
+    };
     measure({
-        desc: "concatenate with config: " + concatConfig + ", output: " + out,
+        desc: "TTT: concatenate with config: " + concatConfig + ", output: " + out,
         f: () => {
-            const n = indexer.concatFiles({
+            const concatFilesParams: IConcatFilesParams = {
                 configFile: concatConfig,
                 out,
                 append: false,
-                stdout: false,
-                statusUpdates: true,
+            };
+            const contents = fs.readFileSync(concatConfig, 'utf8');
+            const config: Array<ConcatenatorInput> = JSON.parse(contents);
+            const filePath = require("path").dirname(concatConfig);
+            const absolutePathConfig: Array<ConcatenatorInput> = config.map((input: ConcatenatorInput) => {
+                input.path = require("path").resolve(filePath, input.path);
+                return input;
             });
-            console.log("concatenated %s lines", n);
+            const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexer.concatFilesAsync(
+                absolutePathConfig,
+                out,
+                true,
+                TimeUnit.fromSeconds(2),
+                onProgress,
+                onResult,
+                onNotification,
+            );
+            futureRes.then(x => {
+                log("TTT: future returned with " + JSON.stringify(x));
+                // progressBar.update(1.0);
+            });
         },
     });
 }
@@ -211,38 +174,71 @@ export function testCallDltStats(file: string) {
         console.error("error %s", error);
     }
 }
-export function testDltIndexingAsync(fileToIndex: string, outPath: string) {
+
+export function testDiscoverTimespanAsync(file: string) {
     const hrstart = process.hrtime();
-    var bar: any = undefined;
+    // const progressBar = term.progressBar({
+    //     width: 80,
+    //     title: "discover timestamps",
+    //     eta: true,
+    //     percent: true,
+    // });
+
+    try {
+        let onProgress = (ticks: ITicks) => {
+            // progressBar.update(ticks.ellapsed / ticks.total);
+        };
+        let onChunk = (chunk: ITimestampFormatResult) => {
+            log("received " + JSON.stringify(chunk));
+        };
+        let onNotification = (notification: INeonNotification) => {
+            log("testDiscoverTimespanAsync: received notification:" + JSON.stringify(notification));
+        };
+        let item: IDiscoverItem = { path: file };
+        const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = discoverTimespanAsync(
+            [item],
+            TimeUnit.fromSeconds(15),
+            onProgress,
+            onChunk,
+            onNotification,
+        );
+        futureRes.then(x => {
+            // progressBar.update(1.0);
+            const hrend = process.hrtime(hrstart);
+            const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+            log("COMPLETELY DONE (last result was: " + AsyncResult[x] + ")");
+            console.info("Execution time for indexing : %dms", ms);
+        });
+    } catch (error) {
+        console.error("error %s", error);
+    }
+}
+
+export function testDltIndexingAsync(fileToIndex: string, outPath: string) {
+    log(`testDltIndexingAsync for ${fileToIndex} (out: "${outPath}")`);
+    const hrstart = process.hrtime();
+    // const progressBar = term.progressBar({
+    //     width: 80,
+    //     title: "Serious stuff in progress:",
+    //     eta: true,
+    //     percent: true,
+    // });
     try {
         let chunks: number = 0;
         let onProgress = (ticks: ITicks) => {
-            if (bar === undefined) {
-                bar = new ProgressBar(":bar", { total: ticks.total });
-            }
-            bar.update(ticks.ellapsed / ticks.total);
+            // progressBar.update(ticks.ellapsed / ticks.total);
         };
         let onChunk = (chunk: INeonTransferChunk) => {
             chunks += 1;
-            log("chunk: " + chunk.b + " -> " + chunk.r);
+        };
+        let notificationCount = 0;
+        let onNotification = (notification: INeonNotification) => {
+            notificationCount += 1;
         };
         const filterConfig: DltFilterConf = {
             min_log_level: DltLogLevel.Debug,
             // context_ids: ["DFLT"]
             // app_ids: ["NONE"],
-            //     "APP",
-            //     "rtcS",
-            //     "DA1",
-            //     "mete",
-            //     "upda",
-            //     "PDRM",
-            //     "DLTD",
-            //     "IRC",
-            //     "DANL",
-            //     "PVSn",
-            //     "SYS",
-            //     "PAGY",
-            // ],
         };
 
         const dltParams: IIndexDltParams = {
@@ -260,51 +256,43 @@ export function testDltIndexingAsync(fileToIndex: string, outPath: string) {
             TimeUnit.fromSeconds(60),
             onProgress,
             onChunk,
+            onNotification,
         );
         futureRes.then((x: AsyncResult) => {
-            if (bar !== undefined) {
-                bar.update(1.0);
-            }
+            // progressBar.update(1.0);
             const hrend = process.hrtime(hrstart);
             const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-            log("COMPLETELY DONE (last result was: " + AsyncResult[x] + ")");
+            log(`COMPLETELY DONE (last result was: "${AsyncResult[x]}") (notifications: ${notificationCount})`);
             console.info("Execution time for indexing : %dms", ms);
         });
     } catch (error) {
         console.error("error %s", error);
     }
 }
-export function testIndexingAsync() {
+export function testIndexingAsync(inFile: string, outPath: string) {
     const hrstart = process.hrtime();
-    var bar: any = undefined;
+    const bar = stdout.createProgressBar({ caption: "index file", width: 60 });
     try {
-        const outPath = examplePath + "/indexing/test.out";
         let chunks: number = 0;
         let onProgress = (ticks: ITicks) => {
-            if (bar === undefined) {
-                bar = new ProgressBar(":bar", { total: ticks.total });
-            }
-            bar.update(ticks.ellapsed / ticks.total);
+            bar.update(Math.round((100 * ticks.ellapsed) / ticks.total));
         };
-        let onChunk = (chunk: INeonTransferChunk) => {
-            chunks += 1;
-            if (chunks % 100 === 0) {
-                // process.stdout.write(".");
-            }
+        let onChunk = (chunk: INeonTransferChunk) => {};
+        let onNotification = (notification: INeonNotification) => {
+            log("testIndexingAsync: received notification:" + JSON.stringify(notification));
         };
         const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexAsync(
             500,
-            examplePath + "/indexing/access_huge.log",
+            inFile,
             TimeUnit.fromSeconds(15),
             outPath,
             onProgress,
             onChunk,
+            onNotification,
             "TAG",
         );
         futureRes.then(x => {
-            if (bar !== undefined) {
-                bar.update(1.0);
-            }
+            bar.update(100);
             const hrend = process.hrtime(hrstart);
             const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
             log("COMPLETELY DONE (last result was: " + AsyncResult[x] + ")");
@@ -320,6 +308,9 @@ export function testTimedOutAsyncIndexing(fileToIndex: string, outPath: string) 
     let onProgress = (ticks: ITicks) => {
         log("progress: " + ticks);
     };
+    let onNotification = (notification: INeonNotification) => {
+        log("test: received notification:" + notification);
+    };
     const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexAsync(
         500,
         fileToIndex,
@@ -332,6 +323,7 @@ export function testTimedOutAsyncIndexing(fileToIndex: string, outPath: string) 
                 process.stdout.write(".");
             }
         },
+        onNotification,
         "TAG",
     );
     futureRes.then((x: AsyncResult) => {
@@ -342,10 +334,12 @@ export function testTimedOutAsyncIndexing(fileToIndex: string, outPath: string) 
     });
 }
 export function testCancelledAsyncIndexing(fileToIndex: string, outPath: string) {
-    const hrstart = process.hrtime();
-    let chunks: number = 0;
+    const bar = stdout.createProgressBar({ caption: "concatenating files", width: 60 });
     let onProgress = (ticks: ITicks) => {
-        log("progress: " + ticks);
+        bar.update(Math.round((100 * ticks.ellapsed) / ticks.total));
+    };
+    let onNotification = (notification: INeonNotification) => {
+        log("test: received notification:" + notification);
     };
     const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexAsync(
         500,
@@ -353,12 +347,8 @@ export function testCancelledAsyncIndexing(fileToIndex: string, outPath: string)
         TimeUnit.fromMilliseconds(750),
         outPath,
         onProgress,
-        (e: any) => {
-            chunks += 1;
-            if (chunks % 100 === 0) {
-                process.stdout.write(".");
-            }
-        },
+        (e: INeonTransferChunk) => {},
+        onNotification,
         "TAG",
     );
     setTimeout(function() {
@@ -367,13 +357,8 @@ export function testCancelledAsyncIndexing(fileToIndex: string, outPath: string)
     }, 500);
 
     log("res: " + futureRes);
-    // .then((x: AsyncResult) => {
-    //     const hrend = process.hrtime(hrstart);
-    //     const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-    //     console.log("first event emitter task finished, result: " + AsyncResult[x]);
-    //     console.info("Execution time for indexing : %dms", ms);
-    // });
 }
+
 function testVeryShortIndexing() {
     const outPath = examplePath + "/indexing/test.out";
     const hrstart = process.hrtime();
@@ -381,16 +366,19 @@ function testVeryShortIndexing() {
     let onProgress = (ticks: ITicks) => {
         log("progress: " + ticks);
     };
+    let onNotification = (notification: INeonNotification) => {
+        log("testVeryShortIndexing: received notification:" + JSON.stringify(notification));
+    };
     const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexAsync(
         500,
         examplePath + "/indexing/access_tiny.log",
         TimeUnit.fromMilliseconds(750),
         outPath,
         onProgress,
-        (e: any) => {
+        (e: INeonTransferChunk) => {
             chunks += 1;
-            log("chunk: " + JSON.stringify(e));
         },
+        onNotification,
         "TAG",
     );
     futureRes.then((x: AsyncResult) => {
@@ -400,16 +388,3 @@ function testVeryShortIndexing() {
         console.info("Execution time for indexing : %dms", ms);
     });
 }
-
-// testCallIndexFile();
-// testDetectTimestampInString();
-// testDetectTimestampInFile();
-// testDetectTimestampFormatsInFiles();
-// testCallConcatFiles();
-// testCallMergeFiles();
-// testCallIndexDltFile();
-// testCallDltStats(examplePath + "/dlt/DTC_SP21.dlt");
-// testIndexingAsync();
-// testInterruptAsyncIndexing();
-// testVeryShortIndexing();
-// testDltIndexingAsync("./tests/testfile.dlt", "./out/testfile.out");

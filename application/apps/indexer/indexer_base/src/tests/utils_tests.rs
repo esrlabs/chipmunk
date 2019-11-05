@@ -25,7 +25,8 @@ mod tests {
             let tmp_dir = TempDir::new("my_directory_prefix").expect("could not create temp dir");
             let path = tmp_dir.path().join("extract_row_test.txt");
             fs::write(&path, c).expect("testfile could not be written");
-            assert_eq!(Some(expected), next_line_nr(&path));
+            let res = next_line_nr(&path).unwrap();
+            assert_eq!(expected, res);
             let _ = tmp_dir.close();
         }
         let content = [b'A', D1, b't', b'a', b'g', D1, D2, 0x30, D2, NL];

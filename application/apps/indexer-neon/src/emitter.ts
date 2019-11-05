@@ -2,12 +2,32 @@ const {
     RustIndexerEventEmitter: RustIndexerChannel,
     RustDltIndexerEventEmitter: RustDltIndexerChannel,
     RustDltStatsEventEmitter: RustDltStatsChannel,
+    RustTimestampFormatDetectionEmitter: RustTimestampChannel,
+    RustConcatenatorEmitter: RustConcatenatorChannel,
 } = require("../native/index.node");
 const { EventEmitter } = require("events");
-export { EventEmitter, RustIndexerChannel, RustDltIndexerChannel, RustDltStatsChannel };
+export {
+    EventEmitter,
+    RustIndexerChannel,
+    RustDltIndexerChannel,
+    RustDltStatsChannel,
+    RustTimestampChannel,
+    RustConcatenatorChannel,
+};
 const { promisify } = require("util");
 import { log } from "./logging";
-
+function _onUncaughtException(error: Error) {
+    log(`[BAD] UncaughtException: ${error.message}`);
+}
+function _onUnhandledRejection(reason: Error | any, promise: Promise<any>) {
+    if (reason instanceof Error) {
+        log(`[BAD] UnhandledRejection: ${reason.message}`);
+    } else {
+        log(`[BAD] UnhandledRejection happened. No reason as error was provided.`);
+    }
+}
+process.on("uncaughtException", _onUncaughtException);
+process.on("unhandledRejection", _onUnhandledRejection);
 export enum ChannelType {
     IndexingChannel,
     DltIndexingChannel,
@@ -24,14 +44,13 @@ export class NativeEventEmitter extends EventEmitter {
         Progress: "Progress",
         Stopped: "Stopped",
         Finished: "Finished",
-        Error: "Error",
+        Notification: "Notification",
+        Error: "error",
     };
     shutdownRequested: boolean;
     isShutdown: boolean;
     shutdownDoneCallback: () => void;
-    constructor(
-        channel: IChannel,
-    ) {
+    constructor(channel: IChannel) {
         super();
 
         const poll = promisify(channel.poll.bind(channel));
@@ -58,14 +77,13 @@ export class NativeEventEmitter extends EventEmitter {
                 .then((e: { [x: string]: any; event: any }) => {
                     // Timeout on poll, no data to emit
                     if (!e) {
-                        return undefined;
+                        return;
                     }
                     const { event, ...data } = e;
                     this.emit(event, data);
-                    return undefined;
                 })
                 .catch((err: any) => {
-                    log("error on promise poll: " + err);
+                    log(">>> error on promise poll: " + err);
                     this.emit("error", err);
                 })
                 .then(() => {

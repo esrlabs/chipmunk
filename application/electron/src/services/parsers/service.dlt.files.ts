@@ -1,10 +1,10 @@
 import ServiceElectron, { IPCMessages } from "../service.electron";
 import Logger from "../../tools/env.logger";
+import * as Tools from '../../tools/index';
 import { Subscription } from "../../tools/index";
 import { IService } from "../../interfaces/interface.service";
-import { indexer, ITicks, TimeUnit, StatisticInfo } from "indexer-neon";
-import * as path from "path";
-import { AsyncResult } from "../../../../apps/indexer-neon/dist/progress";
+import { indexer, ITicks, TimeUnit, StatisticInfo, AsyncResult } from "indexer-neon";
+import ServiceStreams from '../../services/service.streams';
 
 /**
  * @class ServiceDLTFiles
@@ -55,35 +55,54 @@ class ServiceDLTFiles implements IService {
         response: (instance: IPCMessages.TMessage) => any,
     ) {
         const req: IPCMessages.DLTStatsRequest = request as IPCMessages.DLTStatsRequest;
+
+        // Create unique track id
+        const trackId: string = Tools.guid();
+
+        ServiceStreams.addProgressSession(
+            trackId,
+            "Some good name for track (will be shown in UI)",
+            req.session,
+        );
+
         // return new Promise((resolve, reject) => {
         const hrstart = process.hrtime();
         this._logger.debug("calling _onDLTStatsRequest with params: " + JSON.stringify(req));
+        let stats: StatisticInfo | undefined;
         const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexer.dltStatsAsync(
             req.file,
             TimeUnit.fromSeconds(60),
             (ticks: ITicks) => {
-                // if (onProgress !== undefined) {
-                //     onProgress(ticks);
-                // }
+                const value: number = ticks.ellapsed / ticks.total; // 0 < value < 1
+                ServiceStreams.updateProgressSession(trackId, value, req.session);
             },
             (e: StatisticInfo) => {
                 // stats
+                stats = e;
+            },
+        );
+        futureRes
+            .then((x: AsyncResult) => {
+                this._logger.debug("readAndWrite task finished, result: " + AsyncResult[x]);
                 response(
                     new IPCMessages.DLTStatsResponse({
-                        stats: e,
+                        stats,
                         id: req.id,
                         session: req.session,
                         logs: undefined,
                     }),
                 );
-            },
-        );
-        futureRes.then(x => {
-            const hrend = process.hrtime(hrstart);
-            const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-            this._logger.debug("readAndWrite task finished, result: " + x);
-            this._logger.debug("Execution time for indexing : " + ms + "ms");
-        });
+            })
+            .catch(e => {
+                this._logger.warn("exception in dltStatsAsync: " + e);
+            })
+            .finally(() => {
+                // After operation is finished
+                const hrend = process.hrtime(hrstart);
+                const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+                this._logger.debug("Execution time for indexing : " + ms + "ms");
+                ServiceStreams.removeProgressSession(trackId, req.session);
+            });
 
         // });
 

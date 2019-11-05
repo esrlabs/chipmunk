@@ -17,8 +17,8 @@ enum ELogLevels {
 
 type TOutputFunc = (...args: any[]) => any;
 
-const HOME_FOLDER = path.resolve(os.homedir(), '.logviewer');
-const LOG_FILE = path.resolve(os.homedir(), '.logviewer/logviewer.log');
+const HOME_FOLDER = path.resolve(os.homedir(), '.chipmunk');
+const LOG_FILE = path.resolve(os.homedir(), '.chipmunk/chipmunk.log');
 
 // Check home folder
 if (!FS.isExist(HOME_FOLDER)) {

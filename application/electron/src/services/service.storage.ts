@@ -16,7 +16,7 @@ const SETTINGS_FILE = 'storage.application.json';
 class ServiceStorage implements IService {
 
     private _settings: StateFile<IScheme.IStorage> | undefined;
-    private _logger: Logger = new Logger('ServiceFileOpener');
+    private _logger: Logger = new Logger('ServiceStorage');
 
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
