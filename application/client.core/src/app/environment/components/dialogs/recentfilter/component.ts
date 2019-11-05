@@ -12,6 +12,7 @@ import { NotificationsService, INotification } from '../../../services.injectabl
 export class DialogsRecentFitlersActionComponent implements AfterContentInit {
 
     public _ng_files: Array<IPCMessages.IRecentFilterFileInfo> = [];
+    public _files: Array<IPCMessages.IRecentFilterFileInfo> = [];
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('DialogsRecentFilesActionComponent');
 
@@ -20,6 +21,7 @@ export class DialogsRecentFitlersActionComponent implements AfterContentInit {
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _notifications: NotificationsService) {
+        this._ng_onFilterChange = this._ng_onFilterChange.bind(this);
     }
 
     public ngAfterContentInit() {
@@ -33,6 +35,7 @@ export class DialogsRecentFitlersActionComponent implements AfterContentInit {
                 return;
             }
             this._ng_files = message.files;
+            this._files = message.files.slice();
             this._cdRef.detectChanges();
         }).catch((error: Error) => {
             this._logger.warn(`Fail to load recent files due error: ${error.message}`);
@@ -51,6 +54,19 @@ export class DialogsRecentFitlersActionComponent implements AfterContentInit {
     public _ng_getLocalTime(timestamp: number) {
         const date: Date = new Date(timestamp);
         return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    }
+
+    public _ng_onFilterChange(value: string, event: KeyboardEvent) {
+        const reg: RegExp | Error = Toolkit.regTools.createFromStr(value);
+        if (reg instanceof Error) {
+            this._ng_files = this._files.slice();
+            this._cdRef.detectChanges();
+            return;
+        }
+        this._ng_files = this._files.filter((file: IPCMessages.IRecentFilterFileInfo) => {
+            return file.filename.search(reg) !== -1 || file.folder.search(reg) !== -1;
+        });
+        this._cdRef.detectChanges();
     }
 
 }
