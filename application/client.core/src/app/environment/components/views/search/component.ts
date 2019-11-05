@@ -278,8 +278,15 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             this._ng_read = state.read;
             // Get actual data if active search is present
             if (this._ng_searchRequestId !== undefined) {
-                this._ng_read = this._ng_session.getSessionStream().getOutputStream().getRowsCount();
-                this._ng_found = this._ng_session.getSessionSearch().getOutputStream().getRowsCount();
+                this._ng_searchRequestId = this._ng_session.getSessionSearch().getActiveRequestId();
+                if (this._ng_searchRequestId !== undefined) {
+                    this._ng_read = this._ng_session.getSessionStream().getOutputStream().getRowsCount();
+                    this._ng_found = this._ng_session.getSessionSearch().getOutputStream().getRowsCount();
+                } else {
+                    this._ng_searchRequestId = undefined;
+                    this._ng_read = -1;
+                    this._ng_found = -1;
+                }
             }
         }
     }
