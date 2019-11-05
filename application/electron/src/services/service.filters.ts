@@ -143,10 +143,11 @@ class ServiceFilters implements IService {
     }
 
     private _ipc_onFiltersRecentRequested(message: IPCMessages.TMessage, response: (message: IPCMessages.TMessage) => Promise<void>) {
-        const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
-        response(new IPCMessages.FiltersFilesRecentResponse({
-            files: stored.recentFiltersFiles,
-        }));
+        this._validateRecentFiles().then((files: IStorageScheme.IRecentFilterFile[]) => {
+            response(new IPCMessages.FiltersFilesRecentResponse({
+                files: files,
+            }));
+        });
     }
 
     private _ipc_onFiltersFilesRecentResetRequested(message: IPCMessages.TMessage, response: (message: IPCMessages.TMessage) => Promise<void>) {
@@ -215,6 +216,33 @@ class ServiceFilters implements IService {
             recentFiltersFiles: files,
         });
         ServiceElectron.updateMenu();
+    }
+
+    private _validateRecentFiles(): Promise<IStorageScheme.IRecentFilterFile[]> {
+        return new Promise((resolve) => {
+            const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
+            const files: IStorageScheme.IRecentFilterFile[] = [];
+            Promise.all(stored.recentFiltersFiles.map((file: IStorageScheme.IRecentFilterFile) => {
+                return new Promise((resolveFile) => {
+                    fs.access(file.file, fs.constants.F_OK, (err) => {
+                        if (err) {
+                            return resolveFile();
+                        }
+                        files.push(file);
+                        resolveFile();
+                    });
+                });
+            })).then(() => {
+                if (files.length === stored.recentFiltersFiles.length) {
+                    return resolve(files);
+                }
+                ServiceStorage.get().set({
+                    recentFiltersFiles: files,
+                });
+                ServiceElectron.updateMenu();
+                resolve(files);
+            });
+        });
     }
 
 }
