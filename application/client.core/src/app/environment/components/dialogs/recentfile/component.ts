@@ -14,12 +14,14 @@ import { NotificationsService, INotification } from '../../../services.injectabl
 export class DialogsRecentFilesActionComponent implements AfterContentInit {
 
     public _ng_files: Array<IPCMessages.IRecentFileInfo> = [];
+    public _files: Array<IPCMessages.IRecentFileInfo> = [];
     private _logger: Toolkit.Logger = new Toolkit.Logger('DialogsRecentFilesActionComponent');
 
     @Input() close: () => void = () => {};
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _notificationsService: NotificationsService) {
+        this._ng_onFilterChange = this._ng_onFilterChange.bind(this);
     }
 
     public ngAfterContentInit() {
@@ -37,6 +39,7 @@ export class DialogsRecentFilesActionComponent implements AfterContentInit {
                 }
                 return file;
             });
+            this._files = this._ng_files.slice();
             this._cdRef.detectChanges();
         }).catch((error: Error) => {
             this._logger.error(`Fail to get list of recent files due error: ${error}`);
@@ -66,6 +69,20 @@ export class DialogsRecentFilesActionComponent implements AfterContentInit {
     public _ng_getLocalTime(timestamp: number) {
         const date: Date = new Date(timestamp);
         return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    }
+
+    public _ng_onFilterChange(value: string, event: KeyboardEvent) {
+        console.log(value);
+        const reg: RegExp | Error = Toolkit.regTools.createFromStr(value);
+        if (reg instanceof Error) {
+            this._ng_files = this._files.slice();
+            this._cdRef.detectChanges();
+            return;
+        }
+        this._ng_files = this._files.filter((file: IPCMessages.IRecentFileInfo) => {
+            return file.filename.search(reg) !== -1 || file.folder.search(reg) !== -1;
+        });
+        this._cdRef.detectChanges();
     }
 
 }
