@@ -1,5 +1,5 @@
 import { IPCMessages } from '../services/service.electron.ipc';
-import { Observable, Subject } from 'rxjs';
+import { Observable, Subject, Subscription } from 'rxjs';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import OutputRedirectionsService from '../services/standalone/service.output.redirections';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
@@ -68,7 +68,7 @@ export class ControllerSessionTabStreamOutput {
     private _bookmarks: ControllerSessionTabStreamBookmarks;
     private _sources: ControllerSessionTabSourcesState;
     private _scope: ControllerSessionScope;
-    private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
+    private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription} = {};
     private _preloadTimestamp: number = -1;
     private _horScrollOffset: number = 0;
     private _lastRequestedRows: IStreamPacket[] = [];
@@ -106,6 +106,7 @@ export class ControllerSessionTabStreamOutput {
         this._sources = new ControllerSessionTabSourcesState(this._guid);
         this._logger = new Toolkit.Logger(`ControllerSessionTabStreamOutput: ${this._guid}`);
         this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(this._guid, this._onRowSelected.bind(this));
+        this._subscriptions.onBookmarkRowSelected = this._bookmarks.getObservable().onSelected.subscribe(this._onRowSelected.bind(this, 'bookmark'));
     }
 
     public destroy() {
