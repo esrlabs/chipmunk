@@ -16,9 +16,12 @@ extern crate merging;
 extern crate chrono;
 extern crate dirs;
 
-use indexer_base::chunks::{serialize_chunks, Chunk};
+use indexer_base::progress::IndexingResults;
+use dlt::dlt_parse::StatisticsResults;
+use indexer_base::chunks::{serialize_chunks, Chunk, ChunkResults};
 use indexer_base::config::IndexingConfig;
 use indexer_base::error_reporter::*;
+use merging::concatenator::*;
 
 #[macro_use]
 extern crate clap;
@@ -32,25 +35,23 @@ use std::path;
 use std::time::Instant;
 use processor::parse::posix_timestamp_as_string;
 use processor::parse::detect_timestamp_in_string;
-use processor::parse::detect_timestamp_format_in_file;
-use processor::parse::timespan_in_file;
+use processor::parse::timespan_in_files;
 use processor::parse::{
     line_matching_format_expression, match_format_string_in_file, read_format_string_options,
     FormatTestOptions, DiscoverItem, TimestampFormatResult,
 };
-use indexer_base::progress::IndexingProgress;
+use indexer_base::progress::{IndexingProgress, Notification, Severity};
 use std::sync::mpsc::{Sender, Receiver};
 use log::LevelFilter;
 use log4rs::append::file::FileAppender;
 use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
 use std::io::Result;
-use dlt::dlt_parse::StatisticInfo;
 use std::thread;
 
 fn init_logging() -> Result<()> {
     let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
-    let log_path = home_dir.join(".logviewer").join("chipmunk.indexer.log");
+    let log_path = home_dir.join(".chipmunk").join("chipmunk.indexer.log");
     let appender_name = "indexer-root";
     let logfile = FileAppender::builder()
         .encoder(Box::new(PatternEncoder::new("{d} - {l}:: {m}\n")))
@@ -392,79 +393,78 @@ fn main() {
             let append: bool = matches.is_present("append");
             let stdout: bool = matches.is_present("stdout");
             let timestamps: bool = matches.is_present("timestamp");
-            let (tx, rx): (
-                Sender<IndexingProgress<Chunk>>,
-                Receiver<IndexingProgress<Chunk>>,
-            ) = std::sync::mpsc::channel();
+            let (tx, rx): (Sender<IndexingResults<Chunk>>, Receiver<ChunkResults>) =
+                std::sync::mpsc::channel();
 
-            let handle =
-                thread::spawn(move || {
-                    match processor::processor::create_index_and_mapping(
-                        IndexingConfig {
-                            tag: tag_string.as_str(),
-                            chunk_size,
-                            in_file: f,
-                            out_path: &out_path,
-                            append,
-                            to_stdout: stdout,
-                        },
-                        timestamps,
-                        source_file_size,
-                        tx,
-                        None,
-                    ) {
-                        Err(why) => {
-                            report_error(format!("couldn't process: {}", why));
-                            std::process::exit(2)
-                        }
-                        Ok(()) => (),
+            let _h = thread::spawn(move || {
+                match processor::processor::create_index_and_mapping(
+                    IndexingConfig {
+                        tag: tag_string.as_str(),
+                        chunk_size,
+                        in_file: f,
+                        out_path: &out_path,
+                        append,
+                        to_stdout: stdout,
+                    },
+                    timestamps,
+                    source_file_size,
+                    tx,
+                    None,
+                ) {
+                    Err(why) => {
+                        report_error(format!("couldn't process: {}", why));
+                        std::process::exit(2)
                     }
-                });
-            match handle.join() {
-                Ok(()) => loop {
-                    trace!("looping...");
-                    let mut chunks: Vec<Chunk> = vec![];
-                    match rx.recv() {
-                        Ok(IndexingProgress::Finished) => {
-                            trace!("finished...");
-                            let _ = serialize_chunks(&chunks, &mapping_out_path);
-                            if let Some(original_file_size) = source_file_size {
-                                let file_size_in_mb = original_file_size as f64 / 1024.0 / 1024.0;
-                                if status_updates {
-                                    duration_report_throughput(
-                                        start,
-                                        format!("processing ~{} MB", file_size_in_mb.round()),
-                                        file_size_in_mb,
-                                        "MB".to_string(),
-                                    )
-                                }
+                    Ok(()) => (),
+                }
+            });
+            loop {
+                let mut chunks: Vec<Chunk> = vec![];
+                match rx.recv() {
+                    Ok(Ok(IndexingProgress::Finished)) => {
+                        trace!("finished...");
+                        let _ = serialize_chunks(&chunks, &mapping_out_path);
+                        if let Some(original_file_size) = source_file_size {
+                            let file_size_in_mb = original_file_size as f64 / 1024.0 / 1024.0;
+                            if status_updates {
+                                duration_report_throughput(
+                                    start,
+                                    format!("processing ~{} MB", file_size_in_mb.round()),
+                                    file_size_in_mb,
+                                    "MB".to_string(),
+                                )
                             }
-                            break;
                         }
-                        Ok(IndexingProgress::Progress { ticks: t }) => {
-                            trace!("progress...");
-                            report_warning(format!("IndexingProgress::Progress({:?})", t));
-                        }
-                        Ok(IndexingProgress::GotItem { item: chunk }) => {
-                            trace!("got item...");
-                            chunks.push(chunk);
-                        }
-                        Ok(IndexingProgress::Notification { severity, content }) => {
-                            warn!("got notification[{:?}]...{}", severity, content);
-                        }
-                        Ok(IndexingProgress::Stopped) => {
-                            trace!("stopped...");
-                            report_warning("IndexingProgress::Stopped");
-                        }
-                        Err(_) => {
-                            report_error("couldn't process");
-                            std::process::exit(2)
+                        break;
+                    }
+                    Ok(Ok(IndexingProgress::Progress { ticks })) => {
+                        trace!(
+                            "progress... ({:.0} %)",
+                            (ticks.0 as f64 / ticks.1 as f64) * 100.0
+                        );
+                    }
+                    Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
+                        chunks.push(chunk);
+                    }
+                    Ok(Err(Notification {
+                        severity,
+                        content,
+                        line,
+                    })) => {
+                        if severity == Severity::WARNING {
+                            report_warning_ln(content, line);
+                        } else {
+                            report_error_ln(content, line);
                         }
                     }
-                },
-                Err(_) => {
-                    report_error("couldn't process");
-                    std::process::exit(2)
+                    Ok(Ok(IndexingProgress::Stopped)) => {
+                        trace!("stopped...");
+                        report_warning("IndexingProgress::Stopped");
+                    }
+                    Err(_) => {
+                        report_error("couldn't process");
+                        std::process::exit(2)
+                    }
                 }
             }
         }
@@ -520,28 +520,56 @@ fn main() {
                     std::process::exit(2)
                 }
             };
-            let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
             let append: bool = matches.is_present("append");
-            let stdout: bool = matches.is_present("stdout");
-            let concatenator = merging::concatenator::Concatenator {
-                chunk_size, // used for mapping line numbers to byte positions
-            };
             let config_path = path::PathBuf::from(concat_config_file_name);
-            let merged_lines = match concatenator.concat_files_use_config_file(
-                &config_path,
-                &out_path,
-                append,
-                stdout,
-                status_updates,
-            ) {
-                Ok(cnt) => cnt,
+            let (tx, rx): (
+                Sender<IndexingResults<ConcatenatorResult>>,
+                Receiver<IndexingResults<ConcatenatorResult>>,
+            ) = std::sync::mpsc::channel();
+
+            match concat_files_use_config_file(&config_path, &out_path, append, tx, None) {
+                Ok(()) => (),
                 Err(e) => {
                     report_error(format!("error merging: {}", e));
                     std::process::exit(2)
                 }
             };
-            if status_updates {
-                duration_report(start, format!("merging {} lines", merged_lines));
+            let mut merged_lines: usize = 0;
+            loop {
+                match rx.recv() {
+                    Err(why) => {
+                        report_error(format!("concat files, couldn't process: {}", why));
+                        std::process::exit(2)
+                    }
+                    Ok(Ok(IndexingProgress::Finished { .. })) => {
+                        if status_updates {
+                            duration_report(start, format!("merging {} lines", merged_lines));
+                        }
+                        break;
+                    }
+                    Ok(Ok(IndexingProgress::Progress { ticks })) => {
+                        trace!(
+                            "progress... ({:.0} %)",
+                            (ticks.0 as f64 / ticks.1 as f64) * 100.0
+                        );
+                    }
+                    Ok(Ok(IndexingProgress::GotItem { item })) => {
+                        merged_lines = item.line_cnt;
+                    }
+                    Ok(Err(Notification {
+                        severity,
+                        content,
+                        line,
+                    })) => {
+                        println!("got notification: {:?}", content);
+                        if severity == Severity::WARNING {
+                            report_warning_ln(content, line);
+                        } else {
+                            report_error_ln(content, line);
+                        }
+                    }
+                    Ok(_) => report_warning("process finished without result"),
+                }
             }
         }
     }
@@ -672,13 +700,11 @@ fn main() {
                 }
             };
 
-            let (tx, rx): (
-                Sender<IndexingProgress<Chunk>>,
-                Receiver<IndexingProgress<Chunk>>,
-            ) = std::sync::mpsc::channel();
+            let (tx, rx): (Sender<ChunkResults>, Receiver<ChunkResults>) =
+                std::sync::mpsc::channel();
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
             let tag_string = tag.to_string();
-            let handle = thread::spawn(move || {
+            thread::spawn(move || {
                 if let Err(why) = dlt::dlt_parse::create_index_and_mapping_dlt(
                     IndexingConfig {
                         tag: tag_string.as_str(),
@@ -702,13 +728,13 @@ fn main() {
                 }
             });
             let mut chunks: Vec<Chunk> = vec![];
-            match handle.join() {
-                Ok(()) => match rx.try_recv() {
+            loop {
+                match rx.recv() {
                     Err(why) => {
                         report_error(format!("couldn't process: {}", why));
                         std::process::exit(2)
                     }
-                    Ok(IndexingProgress::Finished { .. }) => {
+                    Ok(Ok(IndexingProgress::Finished { .. })) => {
                         let _ = serialize_chunks(&chunks, &mapping_out_path);
                         if let Some(original_file_size) = source_file_size {
                             let file_size_in_mb = original_file_size as f64 / 1024.0 / 1024.0;
@@ -719,18 +745,33 @@ fn main() {
                                 "MB".to_string(),
                             )
                         }
+                        break;
                     }
-                    Ok(IndexingProgress::GotItem { item: chunk }) => {
-                        trace!("got item...");
+                    Ok(Ok(IndexingProgress::Progress { ticks })) => {
+                        trace!(
+                            "progress... ({:.0} %)",
+                            (ticks.0 as f64 / ticks.1 as f64) * 100.0
+                        );
+                    }
+                    Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
                         chunks.push(chunk);
                     }
+                    Ok(Err(Notification {
+                        severity,
+                        content,
+                        line,
+                    })) => {
+                        if severity == Severity::WARNING {
+                            report_warning_ln(content, line);
+                        } else {
+                            report_error_ln(content, line);
+                        }
+                    }
                     Ok(_) => report_warning("process finished without result"),
-                },
-                Err(why) => {
-                    report_error(format!("couldn't process: {:?}", why));
-                    std::process::exit(2)
                 }
             }
+
+            println!("done done");
             std::process::exit(0)
         }
     }
@@ -745,70 +786,63 @@ fn main() {
                 Err(e) => println!("no timestamp found in {} ({})", test_string, e),
             }
         } else if let Some(file_name) = matches.value_of("input-file") {
-            let file_path = path::PathBuf::from(file_name);
             let file_name_string = file_name.to_string();
 
-            let handle = thread::spawn(move || match detect_timestamp_format_in_file(&file_path) {
-                Ok(res) => {
-                    let (min, max) = match timespan_in_file(&res, &file_path) {
-                        Ok(span) => (
-                            Some(posix_timestamp_as_string(span.0)),
-                            Some(posix_timestamp_as_string(span.1)),
-                        ),
-                        _ => (None, None),
-                    };
-                    let timestamp_result = TimestampFormatResult {
-                        path: file_name_string,
-                        format: Some(res),
-                        min_time: min,
-                        max_time: max,
-                    };
-                    let json =
-                        serde_json::to_string(&timestamp_result).unwrap_or_else(|_| "".to_string());
-                    println!("{}", json);
-                }
-                Err(e) => {
-                    let timestamp_result = TimestampFormatResult {
-                        path: file_name_string,
-                        format: None,
-                        min_time: None,
-                        max_time: None,
-                    };
-                    let json =
-                        serde_json::to_string(&timestamp_result).unwrap_or_else(|_| "".to_string());
-                    println!("{}", json);
-                    report_error(format!("executed with error: {}", e))
-                }
+            let (tx, rx): (
+                Sender<IndexingResults<TimestampFormatResult>>,
+                Receiver<IndexingResults<TimestampFormatResult>>,
+            ) = std::sync::mpsc::channel();
+            let items: Vec<DiscoverItem> = vec![DiscoverItem {
+                path: file_name_string,
+            }];
+            thread::spawn(move || {
+                match timespan_in_files(items, &tx) {
+                    Ok(()) => (),
+                    Err(e) => {
+                        report_error(format!("executed with error: {}", e));
+                        std::process::exit(2)
+                    }
+                };
             });
-        // match handle.join() {
-        //     Ok(()) => match rx.try_recv() {
-        //         Ok(IndexingProgress::Finished { result: chunks }) => {
-        //             let _ = serialize_chunks(&chunks, &mapping_out_path);
-        //             if let Some(original_file_size) = source_file_size {
-        //                 let file_size_in_mb = original_file_size as f64 / 1024.0 / 1024.0;
-        //                 if status_updates {
-        //                     duration_report_throughput(
-        //                         start,
-        //                         format!("processing ~{} MB", file_size_in_mb.round()),
-        //                         file_size_in_mb,
-        //                         "MB".to_string(),
-        //                     )
-        //                 }
-        //             }
-        //         }
-        //         Ok(_) => {
-        //             report_warning("process finished without result");
-        //         }
-        //         Err(_) => {
-        //             report_error("couldn't process");
-        //             std::process::exit(2)
-        //         }
-        //     },
-        //     Err(_) => {
-        //         report_error("couldn't process");
-        //         std::process::exit(2)
-        //     }
-        // }
+            loop {
+                match rx.recv() {
+                    Ok(Ok(IndexingProgress::GotItem { item: res })) => {
+                        match serde_json::to_string(&res) {
+                            Ok(stats) => println!("{}", stats),
+                            Err(e) => {
+                                report_error(format!("serializing result {:?} failed: {}", res, e));
+                                std::process::exit(2)
+                            }
+                        }
+                    }
+                    Ok(Ok(IndexingProgress::Progress { ticks: t })) => {
+                        trace!("progress... ({:.1} %)", (t.0 as f64 / t.1 as f64) * 100.0);
+                    }
+                    Ok(Ok(IndexingProgress::Finished)) => {
+                        trace!("finished...");
+                        break;
+                    }
+                    Ok(Err(Notification {
+                        severity,
+                        content,
+                        line,
+                    })) => {
+                        if severity == Severity::WARNING {
+                            report_warning_ln(content, line);
+                        } else {
+                            report_error_ln(content, line);
+                        }
+                    }
+                    Ok(Ok(IndexingProgress::Stopped)) => {
+                        trace!("stopped...");
+                        break;
+                    }
+                    Err(e) => {
+                        report_error(format!("couldn't process: {}", e));
+                        std::process::exit(2)
+                    }
+                }
+            }
         } else if let Some(file_name) = matches.value_of("config-file") {
             let config_file_path = path::PathBuf::from(file_name);
             let mut discover_config_file = match fs::File::open(&config_file_path) {
@@ -822,6 +856,7 @@ fn main() {
             discover_config_file
                 .read_to_string(&mut contents)
                 .expect("something went wrong reading the file");
+            println!("discover for: {:?}", contents);
             let items: Vec<DiscoverItem> = match serde_json::from_str(&contents[..]) {
                 Ok(items) => items,
                 Err(e) => {
@@ -830,36 +865,56 @@ fn main() {
                 }
             };
             let mut results: Vec<TimestampFormatResult> = Vec::new();
-            for item in items {
-                let file_path = path::PathBuf::from(&item.path);
-                match detect_timestamp_format_in_file(&file_path) {
-                    Ok(res) => {
-                        let (min, max) = match timespan_in_file(&res, &file_path) {
-                            Ok(span) => (
-                                Some(posix_timestamp_as_string(span.0)),
-                                Some(posix_timestamp_as_string(span.1)),
-                            ),
-                            _ => (None, None),
-                        };
-                        results.push(TimestampFormatResult {
-                            path: item.path.to_string(),
-                            format: Some(res),
-                            min_time: min,
-                            max_time: max,
-                        })
-                    }
+            let (tx, rx): (
+                Sender<IndexingResults<TimestampFormatResult>>,
+                Receiver<IndexingResults<TimestampFormatResult>>,
+            ) = std::sync::mpsc::channel();
+
+            thread::spawn(move || {
+                match timespan_in_files(items, &tx) {
+                    Ok(()) => (),
                     Err(e) => {
-                        results.push(TimestampFormatResult {
-                            path: item.path.to_string(),
-                            format: None,
-                            min_time: None,
-                            max_time: None,
-                        });
-                        report_error(format!("executed with error: {}", e))
+                        report_error(format!("executed with error: {}", e));
+                        std::process::exit(2)
+                    }
+                };
+            });
+            loop {
+                match rx.recv() {
+                    Ok(Ok(IndexingProgress::GotItem { item: res })) => {
+                        results.push(res);
+                    }
+                    Ok(Ok(IndexingProgress::Progress { ticks: t })) => {
+                        trace!("progress... ({:.1} %)", (t.0 as f64 / t.1 as f64) * 100.0);
+                    }
+                    Ok(Ok(IndexingProgress::Finished)) => {
+                        trace!("finished...");
+                        break;
+                    }
+                    Ok(Err(Notification {
+                        severity,
+                        content,
+                        line,
+                    })) => {
+                        println!("received Notification");
+                        if severity == Severity::WARNING {
+                            report_warning_ln(content, line);
+                        } else {
+                            report_error_ln(content, line);
+                        }
+                    }
+                    Ok(Ok(IndexingProgress::Stopped)) => {
+                        trace!("stopped...");
+                        break;
+                    }
+                    Err(_) => {
+                        report_error("couldn't process");
+                        std::process::exit(2)
                     }
                 }
             }
             let json = serde_json::to_string(&results).unwrap_or_else(|_| "".to_string());
+            println!("printing our results");
             println!("{}", json);
         }
     }
@@ -885,10 +940,8 @@ fn main() {
                 std::process::exit(2);
             }
         };
-        let (tx, rx): (
-            Sender<IndexingProgress<StatisticInfo>>,
-            Receiver<IndexingProgress<StatisticInfo>>,
-        ) = std::sync::mpsc::channel();
+        let (tx, rx): (Sender<StatisticsResults>, Receiver<StatisticsResults>) =
+            std::sync::mpsc::channel();
 
         thread::spawn(move || {
             if let Err(why) = dlt::dlt_parse::get_dlt_file_info(&f, source_file_size, tx, None) {
@@ -898,7 +951,7 @@ fn main() {
         });
         loop {
             match rx.recv() {
-                Ok(IndexingProgress::GotItem { item: res }) => {
+                Ok(Ok(IndexingProgress::GotItem { item: res })) => {
                     trace!("got item...");
 
                     match serde_json::to_string(&res) {
@@ -920,18 +973,25 @@ fn main() {
                         );
                     }
                 }
-                Ok(IndexingProgress::Progress { ticks: t }) => {
+                Ok(Ok(IndexingProgress::Progress { ticks: t })) => {
                     trace!("progress... ({:.1} %)", (t.0 as f64 / t.1 as f64) * 100.0);
-                    report_warning(format!("IndexingProgress::Progress({:?})", t));
                 }
-                Ok(IndexingProgress::Finished) => {
+                Ok(Ok(IndexingProgress::Finished)) => {
                     trace!("finished...");
                     break;
                 }
-                Ok(IndexingProgress::Notification { severity, content }) => {
-                    warn!("got notification[{:?}]...{}", severity, content);
+                Ok(Err(Notification {
+                    severity,
+                    content,
+                    line,
+                })) => {
+                    if severity == Severity::WARNING {
+                        report_warning_ln(content, line);
+                    } else {
+                        report_error_ln(content, line);
+                    }
                 }
-                Ok(IndexingProgress::Stopped) => {
+                Ok(Ok(IndexingProgress::Stopped)) => {
                     trace!("stopped...");
                     report_warning("IndexingProgress::Stopped");
                     break;

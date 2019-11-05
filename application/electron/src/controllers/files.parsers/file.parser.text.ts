@@ -7,8 +7,8 @@ import * as ft from "file-type";
 import * as fs from "fs";
 import { Subscription } from "../../tools/index";
 import Logger from "../../tools/env.logger";
-import { INeonTransferChunk } from "indexer-neon/dist/progress";
-import { AsyncResult } from "../../../../apps/indexer-neon/dist/progress";
+import { INeonTransferChunk, INeonNotification, AsyncResult } from "indexer-neon";
+import ServiceNotifications, { ENotificationType } from "../../services/service.notifications";
 
 const ExtNames = ["txt", "log", "logs", "json", "less", "css", "sass", "ts", "js"];
 
@@ -16,12 +16,15 @@ export default class FileParser extends AFileParser {
     private _subscriptions: { [key: string]: Subscription } = {};
     private _guid: string | undefined;
     private _closed: boolean = false;
+    private _logger: Logger = new Logger("indexing");
+    private _cancel: () => void;
 
     constructor() {
         super();
         this._subscriptions.onSessionClosed = ServiceStreams.getSubjects().onSessionClosed.subscribe(
             this._onSessionClosed.bind(this),
         );
+        this._cancel = this._defaultCancel;
     }
 
     public destroy() {
@@ -114,8 +117,11 @@ export default class FileParser extends AFileParser {
         onProgress?: (ticks: ITicks) => void,
     ): Promise<IMapItem[]> {
         // TODO remove options argument
-        const logger: Logger = new Logger("indexing");
+        this._guid = ServiceStreams.getActiveStreamId();
         let completeTicks: number = 0;
+        const onNotification = (notification: INeonNotification) => {
+            ServiceNotifications.notifyFromNeon(notification, "Indexing", this._guid, srcFile);
+        };
         return new Promise((resolve, reject) => {
             const collectedChunks: IMapItem[] = [];
             const hrstart = process.hrtime();
@@ -140,69 +146,41 @@ export default class FileParser extends AFileParser {
                         collectedChunks.push(mapItem);
                     }
                 },
+                onNotification,
                 sourceId.toString(),
             );
-            futureRes.then(x => {
-                if (onProgress !== undefined) {
-                    onProgress({
-                        ellapsed: completeTicks,
-                        total: completeTicks,
+            this._cancel = cancel;
+            futureRes
+                .then(x => {
+                    if (onProgress !== undefined) {
+                        onProgress({
+                            ellapsed: completeTicks,
+                            total: completeTicks,
+                        });
+                    }
+                    const hrend = process.hrtime(hrstart);
+                    const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+                    this._logger.debug("readAndWrite task finished, result: " + x);
+                    this._logger.debug("Execution time for indexing : " + ms + "ms");
+                    this._cancel = this._defaultCancel;
+                    resolve(collectedChunks);
+                })
+                .catch((error: Error) => {
+                    if (this._closed) {
+                        return resolve([]);
+                    }
+                    ServiceNotifications.notify({
+                        message:
+                            error.message.length > 1500
+                                ? `${error.message.substr(0, 1500)}...`
+                                : error.message,
+                        caption: `Error with: ${path.basename(srcFile)}`,
+                        session: this._guid,
+                        file: sourceId.toString(),
+                        type: ENotificationType.error,
                     });
-                }
-                const hrend = process.hrtime(hrstart);
-                const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-                logger.debug("readAndWrite task finished, result: " + x);
-                logger.debug("Execution time for indexing : " + ms + "ms");
-                resolve(collectedChunks);
-            });
-            //     const lvin: Lvin = new Lvin();
-            //     this._guid = ServiceStreams.getActiveStreamId();
-            //     if (onMapUpdated !== undefined) {
-            //         lvin.on(Lvin.Events.map, (map: IFileMapItem[]) => {
-            //             if (this._closed) {
-            //                 return;
-            //             }
-            //             onMapUpdated(map.map((item: IFileMapItem) => {
-            //                 return { bytes: { from: item.b[0], to: item.b[1] }, rows: { from: item.r[0], to: item.r[1] } };
-            //             }));
-            //         });
-            //     }
-            //     lvin.index({
-            //         srcFile: srcFile,
-            //         destFile: destFile,
-            //         injection: sourceId.toString(),
-            //     }).then((results: IIndexResult) => {
-            //         if (this._closed) {
-            //             return resolve([]);
-            //         }
-            //         if (results.logs instanceof Array) {
-            //             results.logs.forEach((log: ILogMessage) => {
-            //                 ServiceElectron.IPC.send(new IPCMessages.Notification({
-            //                     type: log.severity,
-            //                     row: log.line_nr === null ? undefined : log.line_nr,
-            //                     file: log.file_name,
-            //                     message: log.text,
-            //                     caption: path.basename(srcFile),
-            //                     session: this._guid,
-            //                 }));
-            //             });
-            //         }
-            //         lvin.removeAllListeners();
-            //         resolve(results.map.map((item: IFileMapItem) => {
-            //             return { rows: { from: item.r[0], to: item.r[1] }, bytes: { from: item.b[0], to: item.b[1] }};
-            //         }));
-            //     }).catch((error: Error) => {
-            //         if (this._closed) {
-            //             return resolve([]);
-            //         }
-            //         ServiceElectron.IPC.send(new ServiceElectron.IPCMessages.Notification({
-            //             caption: `Error with: ${path.basename(srcFile)}`,
-            //             message: error.message.length > 1500 ? `${error.message.substr(0, 1500)}...` : error.message,
-            //             type: ServiceElectron.IPCMessages.Notification.Types.error,
-            //             session: this._guid,
-            //         }));
-            //         reject(error);
-            //     });
+                    reject(error);
+                });
         });
     }
 
@@ -212,4 +190,8 @@ export default class FileParser extends AFileParser {
         }
         this._closed = true;
     }
+
+    private _defaultCancel = () => {
+        this._logger.debug("no cancel function set");
+    };
 }

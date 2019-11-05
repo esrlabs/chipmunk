@@ -1,7 +1,6 @@
 const addon = require("../native");
 import { log } from "./logging";
-// import { DltFilterConf } from "./dlt";
-import { AsyncResult, ITicks, IChunk, INeonTransferChunk } from "./progress";
+import { AsyncResult, ITicks, INeonTransferChunk, INeonNotification } from "./progress";
 import { NativeEventEmitter, RustDltIndexerChannel, RustDltStatsChannel } from "./emitter";
 import { TimeUnit } from "./units";
 
@@ -44,9 +43,6 @@ export interface IIndexDltParams {
     stdout: boolean;
     statusUpdates: boolean;
 }
-export function dltStats(dltFile: String) {
-    return addon.dltStats(dltFile);
-}
 export function dltStatsAsync(
     dltFile: String,
     maxTime: TimeUnit,
@@ -55,28 +51,32 @@ export function dltStatsAsync(
 ): [Promise<AsyncResult>, () => void] {
     const channel = new RustDltStatsChannel(dltFile);
     const emitter = new NativeEventEmitter(channel);
+    let total: number = 1;
     const p = new Promise<AsyncResult>((resolve, reject) => {
         let timeout = setTimeout(function() {
             log("TIMED OUT ====> shutting down");
             emitter.requestShutdown();
         }, maxTime.inMilliseconds());
         emitter.on(NativeEventEmitter.EVENTS.GotItem, onConfig);
-        emitter.on(NativeEventEmitter.EVENTS.Progress, onProgress);
+        emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
+            total = ticks.total;
+            onProgress(ticks);
+        });
         emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
             clearTimeout(timeout);
             emitter.shutdownAcknowledged(() => {
                 resolve(AsyncResult.Aborted);
+                onProgress({ ellapsed: total, total });
             });
         });
-        emitter.on(NativeEventEmitter.EVENTS.Error, (e: any) => {
-            log("we got an error: " + e);
-            clearTimeout(timeout);
-            emitter.requestShutdown();
+        emitter.on(NativeEventEmitter.EVENTS.Notification, (n: INeonNotification) => {
+            log("dltStats: we got a notification: " + JSON.stringify(n));
         });
         emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
             clearTimeout(timeout);
             emitter.shutdownAcknowledged(() => {
                 resolve(AsyncResult.Completed);
+                onProgress({ ellapsed: total, total });
             });
         });
     });
@@ -88,51 +88,17 @@ export function dltStatsAsync(
         },
     ];
 }
-export function indexDltFile({
-    dltFile,
-    filterConfig,
-    tag,
-    out,
-    chunk_size,
-    append,
-    stdout,
-    statusUpdates,
-}: IIndexDltParams) {
-    const usedChunkSize = chunk_size !== undefined ? chunk_size : 5000;
-    if (filterConfig === undefined) {
-        return addon.indexDltFile(dltFile, tag, out, usedChunkSize, append, stdout, statusUpdates);
-    } else {
-        return addon.indexDltFile(
-            dltFile,
-            tag,
-            out,
-            usedChunkSize,
-            append,
-            stdout,
-            statusUpdates,
-            filterConfig,
-        );
-    }
-}
 export function indexDltAsync(
     { dltFile, filterConfig, tag, out, chunk_size, append, stdout, statusUpdates }: IIndexDltParams,
     maxTime: TimeUnit,
     onProgress: (ticks: ITicks) => any,
     onChunk: (chunk: INeonTransferChunk) => any,
+    onNotification: (notification: INeonNotification) => void,
 ): [Promise<AsyncResult>, () => void] {
     const channel = new RustDltIndexerChannel(dltFile, tag, out, append, chunk_size, filterConfig);
     const emitter = new NativeEventEmitter(channel);
     const p = new Promise<AsyncResult>((resolve, reject) => {
         let chunks: number = 0;
-        const channel = new RustDltIndexerChannel(
-            dltFile,
-            tag,
-            out,
-            append,
-            chunk_size,
-            filterConfig,
-        );
-        const emitter = new NativeEventEmitter(channel);
         let timeout = setTimeout(function() {
             log("TIMED OUT ====> shutting down");
             emitter.requestShutdown();
@@ -147,10 +113,8 @@ export function indexDltAsync(
                 resolve(AsyncResult.Aborted);
             });
         });
-        emitter.on(NativeEventEmitter.EVENTS.Error, (e: any) => {
-            log("we got an error: " + e);
-            clearTimeout(timeout);
-            emitter.requestShutdown();
+        emitter.on(NativeEventEmitter.EVENTS.Notification, (n: INeonNotification) => {
+            onNotification(n);
         });
         emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
             log("we got a finished event " + chunks + " chunks");

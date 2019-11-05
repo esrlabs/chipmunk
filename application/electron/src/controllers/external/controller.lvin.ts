@@ -4,7 +4,7 @@ import * as os from 'os';
 import Logger from '../../tools/env.logger';
 import { EventEmitter } from 'events';
 import { spawn, ChildProcess } from 'child_process';
-import { StatisticInfo } from "../../../../apps/indexer-neon/dist/dlt";
+import { StatisticInfo } from "indexer-neon";
 
 import ServicePaths from '../../services/service.paths';
 

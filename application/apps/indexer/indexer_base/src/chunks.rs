@@ -12,6 +12,9 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Result;
 use std::fs;
+use crate::progress::{IndexingProgress, Notification};
+
+pub type ChunkResults = std::result::Result<IndexingProgress<Chunk>, Notification>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Chunk {

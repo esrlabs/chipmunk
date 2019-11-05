@@ -1,4 +1,4 @@
-import { StatisticInfo } from '../../apps/indexer-neon/dist/dlt';
+import { StatisticInfo } from '../../apps/indexer-neon';
 
 export interface IDLTStatsResponse {
     id: string;

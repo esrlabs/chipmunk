@@ -26,7 +26,7 @@ const RELEASE_FILE_NAME: &str = ".release";
 
 fn init_logging() {
     let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
-    let log_path = home_dir.join(".logviewer").join("chipmunk.updater.log");
+    let log_path = home_dir.join(".chipmunk").join("chipmunk.updater.log");
     let appender_name = "updater-root";
     let logfile = FileAppender::builder()
         .encoder(Box::new(PatternEncoder::new("{d} - {l}:: {m}\n")))

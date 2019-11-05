@@ -14,14 +14,31 @@ namespace :neon do
   task :rebuild do
     sh 'neon build --release'
   end
+
   desc 'test neon integration: dlt indexing'
   task dlt: [:clean, OUT_DIR, 'neon:rebuild'] do
     call_test_function('testDltIndexingAsync', './tests/testfile.dlt', './out/testfile.out')
   end
+
+  desc 'test neon integration: discover timestamps'
+  task discover: [:clean, OUT_DIR, 'neon:rebuild'] do
+    call_test_function('testDiscoverTimespanAsync', './tests/mini_with_invalids.log')
+  end
+
   desc 'test neon integration: dlt stats'
   task dlt_stats: [:clean, OUT_DIR, 'neon:rebuild'] do
     call_test_function('testCallDltStats', './tests/testfile.dlt')
   end
+
+  desc 'test neon integration: concat'
+  task concat: [:clean, OUT_DIR, 'neon:rebuild'] do
+    call_test_function(
+      'testCallConcatFiles',
+      "#{LOCAL_EXAMPLE_DIR}/concat/concat.json.conf",
+      "#{LOCAL_EXAMPLE_DIR}/concat/concatenated.out"
+    )
+  end
+
   desc 'test neon integration: regular indexing'
   task index: [:clean, OUT_DIR, 'neon:rebuild'] do
     call_test_function(
@@ -30,12 +47,21 @@ namespace :neon do
       "#{LOCAL_EXAMPLE_DIR}/indexing/test.out"
     )
   end
+  desc 'test neon integration: short indexing'
+  task index_short: [:clean, OUT_DIR, 'neon:rebuild'] do
+    call_test_function(
+      'testIndexingAsync',
+      "#{LOCAL_EXAMPLE_DIR}/indexing/access_tiny.log",
+      "#{LOCAL_EXAMPLE_DIR}/indexing/test.out"
+    )
+  end
 end
+
 desc 'test neon integration for a problematic file'
 task problem: [:clean, OUT_DIR, 'neon:rebuild'] do
   call_test_function('testDltIndexingAsync',
-                     "#{LOCAL_EXAMPLE_DIR}/dlt/huge.dlt",
-                     "#{LOCAL_EXAMPLE_DIR}/dlt/huge.out")
+                     "#{LOCAL_EXAMPLE_DIR}/dlt/morton_problem_file.dlt",
+                     "#{LOCAL_EXAMPLE_DIR}/dlt/morton_problem_file.dlt.out")
 end
 desc 'test neon integration stats for a huge file'
 task stats: [:clean, OUT_DIR, 'neon:rebuild'] do

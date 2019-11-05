@@ -21,7 +21,7 @@ export interface AFileParser {
         srcFile: string,
         destFile: string,
         sourceId: string | number,
-        options: { [key: string]: any },
+        options: { [key: string]: any }, // TODO [dmitry]: get rid of options, add typed interface
         onMapUpdated?: (map: IMapItem[]) => void,
         onProgress?: (ticks: ITicks) => void): Promise<IMapItem[]>;
 }

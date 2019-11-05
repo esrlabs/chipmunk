@@ -2,6 +2,18 @@
   "name": "chipmunk",
   "version": "1.26.1",
   "description": "LogViewer",
+  "author": {
+    "name": "Oliver Mueller",
+    "email": "oliver.mueller@esrlabs.com",
+    "url": "https://www.esrlabs.com/"
+  },
+  "contributors": [
+    {
+      "name": "Dmitry Astafyev",
+      "email": "dmitry.astafyev@esrlabs.com",
+      "url": "https://www.esrlabs.com/"
+    }
+  ],
   "main": "./dist/compiled/electron/src/main.js",
   "copyright": "Copyright © 2019 year E.S.R.Labs",
   "build": {
