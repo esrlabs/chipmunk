@@ -80,8 +80,6 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
         ElectronIpcService.request(new IPCMessages.FiltersLoadRequest({
             file: file,
         }), IPCMessages.FiltersLoadResponse).then((response: IPCMessages.FiltersLoadResponse) => {
-            this.changed = false;
-            this.dropChangesFlag();
             if (response.error !== undefined) {
                 return this._notifications.add({
                     caption: 'Filters',
@@ -101,6 +99,7 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
                 };
             }));
             this._setFile(response.file);
+            this._changes(false);
         }).catch((error: Error) => {
             return this._notifications.add({
                 caption: 'Filters',
@@ -117,8 +116,6 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
         if (requests.length === 0) {
             return;
         }
-        this.changed = false;
-        this.dropChangesFlag();
         const filters = requests.map((request: IRequest) => {
             return {
                 reg: request.reg.source,
@@ -135,6 +132,7 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
                 });
             }
             this._setFile(response.filename);
+            this._changes(false);
         }).catch((error: Error) => {
             return this._notifications.add({
                 caption: 'Filters',
@@ -156,6 +154,7 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
     private _setFile(file: string) {
         this.setCurrentFilename(file);
         this.filename = file;
+        this._changes(false);
         this._forceUpdate();
     }
 
@@ -165,8 +164,15 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
     }
 
     private _onChanges() {
-        this.changed = true;
+        this._changes(true);
         this._forceUpdate();
+    }
+
+    private _changes(done: boolean) {
+        this.changed = done;
+        if (!done) {
+            this.dropChangesFlag();
+        }
     }
 
     private _forceUpdate() {
