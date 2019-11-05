@@ -72,7 +72,6 @@ export class DialogsRecentFilesActionComponent implements AfterContentInit {
     }
 
     public _ng_onFilterChange(value: string, event: KeyboardEvent) {
-        console.log(value);
         const reg: RegExp | Error = Toolkit.regTools.createFromStr(value);
         if (reg instanceof Error) {
             this._ng_files = this._files.slice();
