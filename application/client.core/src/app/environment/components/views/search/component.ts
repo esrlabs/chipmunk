@@ -17,6 +17,8 @@ interface IViewState {
     request: string;
     prevRequest: string;
     isRequestSaved: boolean;
+    read: number;
+    found: number;
 }
 
 const CSettings = {
@@ -43,16 +45,21 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     public _ng_request: string = '';
     public _ng_prevRequest: string = '';
     public _ng_isRequestSaved: boolean = false;
+    public _ng_read: number = -1;
+    public _ng_found: number = -1;
     // Out of state (stored in controller)
     public _ng_onSessionChanged: Subject<ControllerSessionTab> = new Subject<ControllerSessionTab>();
 
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription | undefined } = { };
+    private _destroyed: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef,
                 private _notifications: NotificationsService) {
         this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._subscriptions.onFocusSearchInput = HotkeysService.getObservable().focusSearchInput.subscribe(this._onFocusSearchInput.bind(this));
+        this._subscriptions.onStreamUpdated = TabsSessionsService.getSessionEventsHub().subscribe().onStreamUpdated(this._onStreamUpdated.bind(this));
+        this._subscriptions.onSearchUpdated = TabsSessionsService.getSessionEventsHub().subscribe().onSearchUpdated(this._onSearchUpdated.bind(this));
         this._setActiveSession();
     }
 
@@ -70,6 +77,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             this._subscriptions[key].unsubscribe();
         });
         this._saveState();
+        this._destroyed = true;
     }
 
     public _ng_isWorking(): boolean {
@@ -81,7 +89,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             return;
         }
         this._ng_isRequestValid = Toolkit.regTools.isRegStrValid(this._ng_request);
-        this._cdRef.detectChanges();
+        this._forceUpdate();
         if (event.key !== 'Enter') {
             return;
         }
@@ -112,16 +120,16 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             this._ng_searchRequestId = undefined;
             this._ng_isRequestSaved = this._ng_session.getSessionSearch().isRequestStored(this._ng_request);
             this._focus();
-            this._cdRef.detectChanges();
+            this._forceUpdate();
         }).catch((searchError: Error) => {
             this._ng_searchRequestId = undefined;
-            this._cdRef.detectChanges();
+            this._forceUpdate();
             return this._notifications.add({
                 caption: 'Search',
                 message: `Cannot to do a search due error: ${searchError.message}.`
             });
         });
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     public _ng_onFocusRequestInput() {
@@ -137,7 +145,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     public _ng_onBlurRequestInput() {
         this._ng_request = this._ng_prevRequest;
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     public _ng_onDropRequest() {
@@ -148,17 +156,19 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             this._ng_request = '';
             this._ng_isRequestSaved = false;
             this._ng_searchRequestId = undefined;
+            this._ng_found = -1;
+            this._ng_read = -1;
             this._focus();
-            this._cdRef.detectChanges();
+            this._forceUpdate();
         }).catch((droppingError: Error) => {
             this._ng_searchRequestId = undefined;
-            this._cdRef.detectChanges();
+            this._forceUpdate();
             return this._notifications.add({
                 caption: 'Search',
                 message: `Cannot drop results due error: ${droppingError.message}.`
             });
         });
-        return this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     public _ng_onStoreRequest() {
@@ -168,7 +178,19 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._openSidebarSearchTab();
         this._ng_session.getSessionSearch().addStored(this._ng_request);
         this._ng_isRequestSaved = this._ng_session.getSessionSearch().isRequestStored(this._ng_request);
-        this._cdRef.detectChanges();
+        this._forceUpdate();
+    }
+
+    public _ng_getMatchesProc(): string {
+        const proc: number = this._ng_found / this._ng_read;
+        if (isNaN(proc) || !isFinite(proc)) {
+            return '0.00';
+        }
+        return (proc * 100).toFixed(2);
+    }
+
+    public _ng_isSummaryVisible(): boolean {
+        return this._ng_read !== -1 && this._ng_found !== -1;
     }
 
     private _onFocusSearchInput() {
@@ -186,11 +208,11 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     private _onSessionChange(session: ControllerSessionTab | undefined) {
         if (session === undefined) {
             this._ng_session = undefined;
-            this._cdRef.detectChanges();
+            this._forceUpdate();
             return;
         }
         this._setActiveSession(session);
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     private _setActiveSession(session?: ControllerSessionTab) {
@@ -227,6 +249,8 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             request: this._ng_request,
             prevRequest: this._ng_prevRequest,
             searchRequestId: this._ng_searchRequestId,
+            found: this._ng_found,
+            read: this._ng_read
         });
     }
 
@@ -242,17 +266,54 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             this._ng_request = '';
             this._ng_prevRequest = '';
             this._ng_searchRequestId = undefined;
+            this._ng_read = -1;
+            this._ng_found = -1;
         } else {
             this._ng_isRequestSaved = state.isRequestSaved;
             this._ng_isRequestValid = state.isRequestValid;
             this._ng_request = state.request;
             this._ng_prevRequest = state.prevRequest;
             this._ng_searchRequestId = state.searchRequestId;
+            this._ng_found = state.found;
+            this._ng_read = state.read;
+            // Get actual data if active search is present
+            if (this._ng_searchRequestId !== undefined) {
+                this._ng_read = this._ng_session.getSessionStream().getOutputStream().getRowsCount();
+                this._ng_found = this._ng_session.getSessionSearch().getOutputStream().getRowsCount();
+            }
         }
     }
 
     private _onBeforeTabRemove() {
         this._saveState();
+    }
+
+    private _onStreamUpdated(event: Toolkit.IEventStreamUpdate) {
+        if (this._ng_searchRequestId === undefined) {
+            return;
+        }
+        this._ng_read = event.rows;
+        this._forceUpdate();
+
+    }
+
+    private _onSearchUpdated(event: Toolkit.IEventSearchUpdate) {
+        if (this._ng_searchRequestId === undefined) {
+            return;
+        }
+        this._ng_found = event.rows;
+        // Check state of read
+        if (this._ng_read <= 0) {
+            this._ng_read = this._ng_session.getSessionStream().getOutputStream().getRowsCount();
+        }
+        this._forceUpdate();
+    }
+
+    private _forceUpdate() {
+        if (this._destroyed) {
+            return;
+        }
+        this._cdRef.detectChanges();
     }
 
 }

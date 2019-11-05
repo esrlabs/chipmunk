@@ -13,6 +13,9 @@
         <div class="spinner" *ngIf="_ng_isWorking()">
           <lib-primitive-spinner-regular></lib-primitive-spinner-regular>
         </div>
+        <p class="t-small color-scheme-2 summary" *ngIf="_ng_isSummaryVisible()">
+          ({{_ng_getMatchesProc()}}% or rows matched. {{_ng_found}} out of {{_ng_read}})
+        </p>
     </div>
   </div>
   <div class="request-buttons" *ngIf="_ng_prevRequest !== ''">
