@@ -80,12 +80,16 @@ export class SidebarAppParsingComponent implements OnDestroy, AfterContentInit, 
     private _getParsed(str: string): SafeHtml {
         // Add minimal HTML
         str = str.replace(/[\n\r]/gi, '<br/>');
+        // Serialize
+        str = OutputParsersService.serialize(str);
         // Apply plugin parser
         str = OutputParsersService.row({ str: str });
         return this._sanitizer.bypassSecurityTrustHtml(str);
     }
 
     private _getSelection(str: string): SafeHtml {
+        // Serialize
+        str = OutputParsersService.serialize(str);
         // Apply plugin parser
         str = OutputParsersService.row({ str: str, source: 'details', hasOwnStyles: false });
         return this._sanitizer.bypassSecurityTrustHtml(str);
