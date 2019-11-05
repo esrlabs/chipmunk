@@ -5,6 +5,7 @@
         "indent": false
     },
     "rules": {
+        "array-type": [true, "array-simple"],
         "arrow-parens": false,
         "ban-types": false,
         "indent": false,

@@ -7,6 +7,7 @@
         "indent": false
     },
     "rules": {
+        "array-type": [true, "array-simple"],
         "member-ordering": false,
         "ordered-imports": false,
         "no-console": false,
