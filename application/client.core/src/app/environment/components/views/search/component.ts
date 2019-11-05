@@ -136,9 +136,12 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         if (this._ng_request === '') {
             return;
         }
+        // Trigger processing event
+        this._ng_session.getSessionSearch().getSubjects().onSearchProcessing.next();
         if (this._ng_requestInput === undefined) {
             return;
         }
+        // Select whole content
         const input: HTMLInputElement = (this._ng_requestInput.nativeElement as HTMLInputElement);
         input.setSelectionRange(0, input.value.length);
     }
