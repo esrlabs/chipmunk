@@ -101,7 +101,7 @@ export class DockContainerComponent implements AfterViewInit, OnDestroy, OnChang
             this.service.dragStarted(dockId);
             this._cdRef.detectChanges();
             this._updatePosition();
-            (event.srcElement as HTMLElement).style.visibility = 'hidden';
+            (event.target as HTMLElement).style.visibility = 'hidden';
         }, REDRAW_DELAY);
     }
 
@@ -277,7 +277,7 @@ export class DockContainerComponent implements AfterViewInit, OnDestroy, OnChang
 
     private _afterDragIsFinished(event: DragEvent) {
         clearTimeout(this._dragStartTimer);
-        (event.srcElement as HTMLElement).style.visibility = '';
+        (event.target as HTMLElement).style.visibility = '';
         this._doForBoth((key: string) => {
             this.positions[key].draggable = false;
         });

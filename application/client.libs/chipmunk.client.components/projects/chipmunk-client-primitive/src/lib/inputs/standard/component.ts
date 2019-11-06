@@ -1,4 +1,4 @@
-import { Component, Input, AfterContentInit, AfterViewInit, ChangeDetectorRef, OnChanges, SimpleChanges, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
+import { Component, Input, AfterContentInit, AfterViewInit, ChangeDetectorRef, OnChanges, SimpleChanges, ViewChild, ElementRef } from '@angular/core';
 
 @Component({
     selector: 'lib-primitive-input',
