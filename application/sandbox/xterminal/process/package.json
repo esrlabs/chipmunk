@@ -21,7 +21,7 @@
   "dependencies": {
     "electron": "^6.0.12",
     "electron-rebuild": "^1.8.6",
-    "chipmunk.plugin.ipc": "0.0.30",
+    "chipmunk.plugin.ipc": "0.0.33",
     "node-gyp": "^6.0.0",
     "node-pty": "^0.8.1"
   }
