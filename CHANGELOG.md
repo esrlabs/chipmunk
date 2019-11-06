@@ -1,5 +1,85 @@
 # Changelog
 
+### [1.26.0] - 11/06/2019
+* [](fix} fix paths in chipmunk.plugin.ipc lib
+* [](fix) remove package-lock.json from plugins (backend)
+* [](fix) fix dlt TS declaration
+* [](fix) chipmunk.shell.env package fix
+* [](fix) update package.json and package-lock.json files
+* [](fix) fixing tslint errors
+* [#531](fix) correct canceling search
+* [#531](fix) correct closing search task on closing session
+* [](fix) fix search performance issue (blocking UI)
+* [](feat) frop focus from search manager of focus of active input
+* [](fix) fix restoring of state on search view (switching tabs/sessions)
+* [#400](feat) summary in search input
+* [](feat) relocate state search status-bar-app
+* [](fix) fix save button in filter's manager
+* [#502](fix) fix recent filter dialog
+* [#496](fix) avoid HTML tags
+* [#502](feat) recent filters: filter + styles
+* [#502](feat) auto focus
+* [#502](feat) recent files: filer + styles
+* [#502](feat) check recent file before list
+* [#515](feat) support redirections from main -> search
+* [#515](feat) bookmark navigation in main view
+* [](fix) define rule for tslint (array declaration)
+* [#400](fix) fix circle references issue
+* [#400](feat) add search status bar-app
+* [#485](feat) select text in search-input on focus
+* [#528](feat) reset selected filter on active search
+* [#527](fix) saving filters
+* [](fix) fix hotkey rebinding on unfocused app
+* [](fix) correct circle spinner colors
+* [#512](fix) ignore JSON error and replace settings with defaults
+* [#478](fix) added blocking write operation after controller was destroyed
+* [#411](refact) update references in plugins; update versions
+* [#411](refact) update build scripts
+* [#411](refact) add patch "before" to rename existing home fodler
+* [#411](refact) rename node.lib libraries
+* [](feat) delivery plugin API (render) into plugin's service
+* [](refact) refactoring electron part code; changing stream mapping logic
+* ()[feat] update delay logic on postman (IPC to FE)
+* [](fix): do not try to install typscript if it is present already
+* ()[fix] fixing notification delay logic
+* [](fix) add support for cancellation of neon indexer requests
+  use cancellable api for neon indexer functions
+  also switch registry to npm registry
+* [](fix) fixed lint warnings
+* [](chore) trigger build & deploy actions only on master
+  trigger linting & building on pull-requests
+* [#464](feat): integrate dlt indexing as neon based service
+  * we need the event emitter for all the async communication via neon
+    thus it needs to be a little more general.
+    also: results for longrunning async operations will now be always
+    streamed.
+  * progress reporting and passing chunks from rust to js
+  * detect duplicate files rake task
+* [](chore) keep vs code workspace settings for indexer-neon under git control
+  workspace settings for native neon part
+* ()[feat] update plugins factory dependencies
+* ()[feat] update plugins API (client.toolkit)
+* ()[feat] update FE code to fit angular 8 and charjs updating
+* ()[feat] update ts settings to fit angular 8
+* ()[feat] upgrade version of angular and other libs on FE
+* [](feat) upgrade webpack (client.toolkit)
+* [] (fix) resolving plugins components on popup service
+* [] (feat) added developer's tasks
+* [](refact) rename client libs; update client.toolkit API
+* [](fix) fix paths issue after IPC migration
+* [](feat) move IPC to root level; update references to IPC; update rakefile
+* [](feat) support zooming in main char's view
+* [#511][fix] using tag marker instead line marker
+* [github-xx][refact] change color of circle-spinner
+* [#511][fix] correct search regexp
+* [github-xx][fix] update no-tab screen
+* [#511][fix] fix regular expression wrapper
+* [github-xx][clean] remove unused modules
+* [#400][feat] progress for all search steps
+* [#400][feat] new kind of spinner (circle)
+* [#400][feat] support of states via sessions
+* [#505][#506][fix][feat] update chart UI
+
 ### [1.25.0] - 10/22/2019
 * [](chore) added rake task to swich to local npm registry
   update npm packages
