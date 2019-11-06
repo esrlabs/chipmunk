@@ -1,6 +1,6 @@
 {
   "name": "logviewer.plugin.rowparser.ascii",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Parser to convert ASCII colors to HTML",
   "main": "./dist/bundle.js",
   "scripts": {
@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "ansi_up": "^4.0.4",
-    "chipmunk.client.toolkit": "0.0.70"
+    "chipmunk.client.toolkit": "0.0.72"
   },
   "repository": {
     "type": "git",
