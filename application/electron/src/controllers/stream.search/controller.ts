@@ -207,7 +207,7 @@ export default class ControllerStreamSearch {
         // Add map
         this._state.map.add(event.map);
         // Notifications is here
-        this._state.postman.notification(true);
+        this._state.postman.notification(false);
     }
 
     private _ipc_onSearchRequest(message: IPCElectronMessages.TMessage, response: (instance: any) => any) {

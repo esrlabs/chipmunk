@@ -59,7 +59,7 @@ export class SearchEngine extends EventEmitter {
         // Listen map events
         this._onMapUpdated = this._onMapUpdated.bind(this);
         this._operations.search.on(OperationSearch.Events.onMapUpdated, this._onMapUpdated);
-        this._operations.append.on(OperationSearch.Events.onMapUpdated, this._onMapUpdated);
+        this._operations.append.on(OperationAppend.Events.onMapUpdated, this._onMapUpdated);
     }
 
     public destroy(): Promise<void> {
