@@ -172,7 +172,7 @@ end
 desc 'setup build environment'
 task :setup_environment do
   puts 'Installing npm libs, which is needed for installing / updateing process'
-  npm_install('typescript --global')
+  npm_install('typescript --global') unless system('tsc --version')
   if OS.windows?
     config_file_path = File.join(Dir.home, '.cargo', 'config')
     needs_entry = false
