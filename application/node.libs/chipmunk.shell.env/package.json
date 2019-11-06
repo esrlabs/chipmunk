@@ -1,6 +1,6 @@
 {
   "name": "chipmunk.shell.env",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Extract shell env variables",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
