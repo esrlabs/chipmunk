@@ -59,7 +59,7 @@ export default class ControllerStreamSearch {
         ServiceElectron.IPC.subscribe(IPCElectronMessages.SearchRequestCancelRequest, this._ipc_onSearchRequestCancelRequest.bind(this)).then((subscription: Subscription) => {
             this._subscriptions.SearchRequestCancelRequest = subscription;
         }).catch((error: Error) => {
-            this._logger.warn(`Fail to subscribe to render event "SearchRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+            this._logger.warn(`Fail to subscribe to render event "SearchRequestCancelRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
         });
         ServiceElectron.IPC.subscribe(IPCElectronMessages.SearchChunk, this._ipc_onSearchChunkRequested.bind(this)).then((subscription: Subscription) => {
             this._subscriptions.SearchChunk = subscription;
@@ -92,8 +92,6 @@ export default class ControllerStreamSearch {
 
     public reset(): Promise<void> {
         return new Promise((resolve, reject) => {
-            // Cancel any active jobs
-            this._searching.cancel();
             // Clear search file
             this._clear().then(() => {
                 // Create file
@@ -182,6 +180,8 @@ export default class ControllerStreamSearch {
 
     private _clear(): Promise<void> {
         return new Promise((resolve, reject) => {
+            // Cancel current task if exist
+            this._searching.cancel();
             // Drop map
             this._state.map.drop();
             // Clear stored requests
@@ -224,8 +224,6 @@ export default class ControllerStreamSearch {
                 found: 0,
             });
         }
-        // Cancel current task if exist
-        this._searching.cancel();
         // Clear results file
         this._clear().then(() => {
             // Create regexps
@@ -272,8 +270,6 @@ export default class ControllerStreamSearch {
 
     private _ipc_onSearchRequestCancelRequest(message: IPCElectronMessages.TMessage, response: (instance: any) => any) {
         const request: IPCElectronMessages.SearchRequestCancelRequest = message as IPCElectronMessages.SearchRequestCancelRequest;
-        // Cancel current task if exist
-        this._searching.cancel();
         // Clear results file
         this._clear().then(() => {
             response(new IPCElectronMessages.SearchRequestCancelResponse({
