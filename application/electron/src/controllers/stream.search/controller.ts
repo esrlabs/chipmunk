@@ -70,17 +70,23 @@ export default class ControllerStreamSearch {
 
     public destroy(): Promise<void> {
         return new Promise((resolve, reject) => {
-            // Drop listeners
-            this._searching.removeAllListeners();
-            // Kill executor
-            this._searching.destroy();
-            // Kill reader
-            this._reader.destroy();
             // Unsubscribe IPC messages / events
             Object.keys(this._subscriptions).forEach((key: string) => {
                 (this._subscriptions as any)[key].destroy();
             });
-            resolve();
+            // Drop listeners
+            this._searching.removeAllListeners();
+            // Clear results file
+            this._clear().catch((error: Error) => {
+                this._logger.error(`Error while killing: ${error.message}`);
+            }).finally(() => {
+                // Kill executor
+                this._searching.destroy();
+                // Kill reader
+                this._reader.destroy();
+                // Done
+                resolve();
+            });
         });
     }
 
@@ -142,14 +148,6 @@ export default class ControllerStreamSearch {
                 return reject(task);
             }
             task.then((map: IMapItem[]) => {
-                /*
-                if (map.length > 0) {
-                    // Add map
-                    this._state.map.add(map);
-                    // Notifications is here
-                    this._state.postman.notification(true);
-                }
-                */
                 this._inspect(requests);
                 this._requests = requests;
                 resolve(this._state.map.getRowsCount());
