@@ -1,6 +1,6 @@
 node_modules
 spec
-src
+./src
 platform
 tsconfig.json
 tslint.json
