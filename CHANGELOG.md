@@ -1,5 +1,8 @@
 # Changelog
 
+### [1.26.1] - 11/06/2019
+* [](chore) run workflow also on tag
+
 ### [1.26.0] - 11/06/2019
 * [](fix} fix paths in chipmunk.plugin.ipc lib
 * [](fix) remove package-lock.json from plugins (backend)
