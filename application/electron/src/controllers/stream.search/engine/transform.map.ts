@@ -22,7 +22,6 @@ export default class Transform extends Stream.Transform {
 
     public static Events = {
         found: 'found',
-        read: 'read',
     };
 
     private _logger: Logger;
@@ -112,8 +111,6 @@ export default class Transform extends Stream.Transform {
             chunk: rowsInChunk,
             map: results.map,
         });
-        // Emit read amount of data
-        this.emit(Transform.Events.read, this._map.length > 0 ? this._map[this._map.length - 1].bytes.to - this._map[0].bytes.from : 0);
         return results;
     }
 

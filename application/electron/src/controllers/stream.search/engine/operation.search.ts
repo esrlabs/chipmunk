@@ -20,10 +20,6 @@ export class OperationSearch extends EventEmitter {
         onMapUpdated: 'onMapUpdated',
     };
 
-    public static TaskEvents = {
-        onReadData: 'onReadData',
-    };
-
     private _logger: Logger;
     private _streamFile: string;
     private _searchFile: string;
@@ -58,9 +54,6 @@ export class OperationSearch extends EventEmitter {
             const transform: Transform = new Transform({}, this._streamGuid, mapOffset);
             transform.on(Transform.Events.found, (event: IMapChunkEvent) => {
                 this.emit(OperationSearch.Events.onMapUpdated, event);
-            });
-            transform.on(Transform.Events.read, (read: number) => {
-                self.emit(OperationSearch.TaskEvents.onReadData, read);
             });
             // Create writer
             const writer: WriteStream = fs.createWriteStream(this._searchFile);
