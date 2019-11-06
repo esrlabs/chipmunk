@@ -1,6 +1,6 @@
 const addon = require("../native");
 import { log } from "./logging";
-import { DltFilterConf } from "./dlt";
+// import { DltFilterConf } from "./dlt";
 import { AsyncResult, ITicks, IChunk, INeonTransferChunk } from "./progress";
 import { NativeEventEmitter, RustDltIndexerChannel, RustDltStatsChannel } from "./emitter";
 import { TimeUnit } from "./units";
