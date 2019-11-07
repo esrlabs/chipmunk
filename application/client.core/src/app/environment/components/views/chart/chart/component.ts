@@ -63,7 +63,6 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
     @HostListener('wheel', ['$event']) _ng_onWheel(event: WheelEvent) {
         const width: number = this._chart.chartArea.right - this._chart.chartArea.left;
         const offset: number = event.offsetX - this._chart.chartArea.left;
-        const centerX: number = Math.round(width / 2);
         this.position.force({
             deltaY: event.deltaY,
             proportionX: offset / width,
