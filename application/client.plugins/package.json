@@ -27,7 +27,7 @@
     "@angular/platform-browser": "^8.2.12",
     "@angular/platform-browser-dynamic": "^8.2.12",
     "@angular/router": "^8.2.12",
-    "chipmunk.client.toolkit": "0.0.70",
+    "chipmunk.client.toolkit": "0.0.72",
     "core-js": "^3.3.5",
     "electron": "^7.0.0",
     "rxjs": "^6.5.2",
