@@ -142,7 +142,6 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         this._subscribeOutputEvents();
         this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(this._onResize.bind(this));
         this._subscriptions.onSessionChanged = this.onSessionChanged.asObservable().subscribe(this._onSessionChanged.bind(this));
-        this._subscriptions.onBookmarkSelected = this.session.getSessionBooksmarks().getObservable().onSelected.subscribe(this._onScrollTo.bind(this, true));
         // Inject controls to caption of dock
         this._ctrl_inject();
     }
@@ -156,6 +155,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
     }
 
     private _subscribeOutputEvents() {
+        this._outputSubscriptions.onBookmarkSelected = this.session.getSessionBooksmarks().getObservable().onSelected.subscribe(this._onScrollTo.bind(this, true));
         this._outputSubscriptions.onStateUpdated = this._output.getObservable().onStateUpdated.subscribe(this._onStateUpdated.bind(this));
         this._outputSubscriptions.onRangeLoaded = this._output.getObservable().onRangeLoaded.subscribe(this._onRangeLoaded.bind(this));
         this._outputSubscriptions.onBookmarksChanged = this._output.getObservable().onBookmarksChanged.subscribe(this._onBookmarksChanged.bind(this));

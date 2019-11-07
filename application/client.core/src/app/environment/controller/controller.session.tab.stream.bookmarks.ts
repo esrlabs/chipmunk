@@ -1,6 +1,6 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
 import { Observable, Subject } from 'rxjs';
-import HotkeysService from '../services/service.hotkeys';
+import HotkeysService, { IHotkeyEvent } from '../services/service.hotkeys';
 import { Subscription } from 'rxjs';
 
 export interface IBookmark {
@@ -100,7 +100,10 @@ export class ControllerSessionTabStreamBookmarks {
         this._subjects.onSelected.next(bookmark.position);
     }
 
-    private _selectNextRow() {
+    private _selectNextRow(event: IHotkeyEvent) {
+        if (event.session !== this._sessionId) {
+            return;
+        }
         const keys: number[] = Array.from(this._bookmarks.keys());
         if (keys.length === 0) {
             return;
@@ -113,7 +116,10 @@ export class ControllerSessionTabStreamBookmarks {
         this._goto(key);
     }
 
-    private _selectPrevRow() {
+    private _selectPrevRow(event: IHotkeyEvent) {
+        if (event.session !== this._sessionId) {
+            return;
+        }
         const keys: number[] = Array.from(this._bookmarks.keys());
         if (keys.length === 0) {
             return;
