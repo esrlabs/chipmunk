@@ -13,8 +13,8 @@ const CHotkeyMap = {
     [IPCMessages.EHotkeyActionRef.openDltFile]:             { darwin: ['Cmd+D'],            other: ['Ctrl+D'] },
     [IPCMessages.EHotkeyActionRef.focusSearchInput]:        { darwin: ['Cmd+F', '/'],       other: ['Ctrl+F', '/'] },
     [IPCMessages.EHotkeyActionRef.openSearchFiltersTab]:    { darwin: ['Shift+Cmd+F'],      other: ['Shift+Ctrl+F'] },
-    [IPCMessages.EHotkeyActionRef.selectNextRow]:           {                               other: ['j'] },
-    [IPCMessages.EHotkeyActionRef.selectPrevRow]:           {                               other: ['k'] },
+    [IPCMessages.EHotkeyActionRef.selectNextRow]:           { darwin: ['Cmd+j', 'j'],       other: ['Ctrl+j', 'j'] },
+    [IPCMessages.EHotkeyActionRef.selectPrevRow]:           { darwin: ['Cmd+k', 'k'],       other: ['Ctrl+k', 'k'] },
     [IPCMessages.EHotkeyActionRef.focusMainView]:           { darwin: ['Cmd+1'],            other: ['Ctrl+1'] },
     [IPCMessages.EHotkeyActionRef.focusSearchView]:         { darwin: ['Cmd+2'],            other: ['Ctrl+2'] },
     [IPCMessages.EHotkeyActionRef.sidebarToggle]:           { darwin: ['Cmd+B'],            other: ['Ctrl+B'] },
@@ -25,6 +25,8 @@ const CHotkeyMap = {
 const CInputRelatedHotkeys = [
     'j',
     'k',
+    'J',
+    'K',
     '/',
     '?',
 ];
@@ -103,7 +105,9 @@ class ServiceHotkeys implements IService {
                 if (globalShortcut.isRegistered(shortcut)) {
                     return;
                 }
-                globalShortcut.register(shortcut, this._send.bind(this, action, shortcut));
+                if (!globalShortcut.register(shortcut, this._send.bind(this, action, shortcut))) {
+                    this._logger.warn(`Fail to register key "${shortcut}" for action "${action}" as shortcut.`);
+                }
             });
         });
     }
