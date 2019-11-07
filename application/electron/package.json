@@ -30,7 +30,11 @@
         {
           "target": "zip"
         }
-      ]
+      ],
+      "extendInfo": {
+        "NSCameraUsageDescription": "",
+        "NSMicrophoneUsageDescription": ""
+      }
     },
     "linux": {
       "icon": "./build/png",
