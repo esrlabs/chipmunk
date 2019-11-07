@@ -1,4 +1,5 @@
 import { Observable, Subject } from 'rxjs';
+import ViewsEventsService from '../services/standalone/service.views.events';
 
 export class AreaState {
 
@@ -23,11 +24,13 @@ export class AreaState {
         this.minimized = true;
         this._subjects.minimized.next(this.minimized);
         this._subjects.updated.next(this);
+        ViewsEventsService.fire().onResize();
     }
 
     public maximize() {
         this.minimized = false;
         this._subjects.minimized.next(this.minimized);
         this._subjects.updated.next(this);
+        ViewsEventsService.fire().onResize();
     }
 }
