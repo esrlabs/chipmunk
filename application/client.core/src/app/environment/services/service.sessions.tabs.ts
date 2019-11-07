@@ -111,6 +111,7 @@ export class TabsSessionsService implements IService {
                         }
                     }
                 });
+                this._sessionsEventsHub.emit().onSessionOpen(guid);
                 this.setActive(guid);
                 resolve(guid);
             }).catch((error: Error) => {
@@ -152,6 +153,9 @@ export class TabsSessionsService implements IService {
     }
 
     public setActive(guid: string) {
+        if (guid === this._currentSessionGuid) {
+            return;
+        }
         const session: ControllerSessionTab | undefined = this._sessions.get(guid);
         if (session === undefined) {
             return this._logger.warn(`Cannot fild session ${guid}. Cannot make this session active.`);
@@ -159,7 +163,6 @@ export class TabsSessionsService implements IService {
         session.setActive();
         this._currentSessionGuid = guid;
         this._tabsService.setActive(this._currentSessionGuid);
-        this._sessionsEventsHub.emit().onSessionOpen(guid);
         ElectronIpcService.send(new IPCMessages.StreamSetActive({ guid: this._currentSessionGuid })).then(() => {
             this._subjects.onSessionChange.next(session);
             this._sessionsEventsHub.emit().onSessionChange(guid);
@@ -233,9 +236,6 @@ export class TabsSessionsService implements IService {
     }
 
     private _onSessionTabSwitched(tab: ITab) {
-        if (this._currentSessionGuid === tab.guid) {
-            return;
-        }
         this.setActive(tab.guid);
     }
 
