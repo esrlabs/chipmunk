@@ -87,6 +87,10 @@ export class ControllerSessionTabMap {
         });
     }
 
+    public getGuid(): string {
+        return this._guid;
+    }
+
     public getState(): IMapState {
         return this._state;
     }

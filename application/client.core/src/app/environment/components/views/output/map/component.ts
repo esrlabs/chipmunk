@@ -1,8 +1,9 @@
 import { Component, Input, OnDestroy, AfterContentInit, ChangeDetectorRef, ElementRef, ViewChild, AfterViewInit, HostBinding, HostListener } from '@angular/core';
-import { Subscription, Subject } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { ControllerSessionTabMap, IMapPoint, IMapState } from '../../../../controller/controller.session.tab.map';
 import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
+import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
 
 
 @Component({
@@ -55,6 +56,18 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
             x: event.pageX,
             y: event.pageY,
         });
+    }
+
+    @HostListener('click', ['$event']) public _ng_onClick(event: MouseEvent) {
+        let row: number = Math.ceil((this._state.count / this._ng_height ) * event.offsetY);
+        if (row > this._state.count - 1) {
+            row = this._state.count - 1;
+        }
+        OutputRedirectionsService.select('markers-line', this.service.getGuid(), row);
+    }
+
+    @HostListener('dblclick', ['$event']) public _ng_onDblClick(event: MouseEvent) {
+        this.service.toggleExpanding();
     }
 
     constructor(private _cdRef: ChangeDetectorRef,
