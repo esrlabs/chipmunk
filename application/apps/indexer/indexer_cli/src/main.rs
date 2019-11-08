@@ -46,7 +46,9 @@ use log4rs::append::file::FileAppender;
 use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
 use std::io::Result;
+use dlt::dlt_pcap::convert_pcap_to_dlt;
 use std::thread;
+use std::net::Ipv4Addr;
 
 fn init_logging() -> Result<()> {
     let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
@@ -554,6 +556,19 @@ fn main() {
     ) {
         debug!("handle_dlt_subcommand");
         if let (Some(file_name), Some(tag)) = (matches.value_of("input"), matches.value_of("tag")) {
+            let mut file_name = file_name.to_owned();
+            let file_path = path::Path::new(&file_name);
+            let extension = file_path.extension().unwrap_or_default();
+            if extension == "pcap" || extension == "pcapng" {
+                let out_name = file_path.file_stem().unwrap().to_str().unwrap().to_owned() + ".dlt";
+                let out = path::Path::new(&out_name);
+                if convert_pcap_to_dlt(&file_path, &out, &Ipv4Addr::new(160, 48, 199, 101), 3490).is_err() {
+                    report_error("could not convert pcap to dlt file");
+                    std::process::exit(2);
+                }
+                file_name = String::from(out.to_str().unwrap());
+            }
+
             let filter_conf: Option<dlt::filtering::DltFilterConfig> = match matches
                 .value_of("filter_config")
             {
@@ -572,7 +587,7 @@ fn main() {
             };
             let append: bool = matches.is_present("append");
             let source_file_size = if status_updates {
-                Some(match fs::metadata(file_name) {
+                Some(match fs::metadata(&file_name) {
                     Ok(file_meta) => file_meta.len() as usize,
                     Err(_) => {
                         report_error("could not find out size of source file");
@@ -588,7 +603,7 @@ fn main() {
                     .value_of("output")
                     .unwrap_or_else(|| fallback_out.as_str()),
             );
-            let file_path = path::PathBuf::from(file_name);
+            let file_path = path::PathBuf::from(&file_name);
             let mapping_out_path: path::PathBuf =
                 path::PathBuf::from(file_name.to_string() + ".map.json");
             let f = match fs::File::open(&file_path) {
