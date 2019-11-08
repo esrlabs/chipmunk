@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import ServiceStreams from '../../../services/service.streams';
 import ServiceStreamSource from '../../../services/service.stream.sources';
-import ServiceElectron, { IPCMessages } from '../../../services/service.electron';
+import ServiceNotifications from '../../../services/service.notifications';
 import * as Tools from '../../../tools/index';
 import { Lvin, IIndexResult, IFileToBeCancat, IFileMapItem, ILogMessage } from '../../external/controller.lvin';
 import Logger from '../../../tools/env.logger';
@@ -63,14 +63,14 @@ export default class ConcatFiles {
                 ).then((results: IIndexResult) => {
                     if (results.logs instanceof Array) {
                         results.logs.forEach((log: ILogMessage) => {
-                            ServiceElectron.IPC.send(new IPCMessages.Notification({
+                            ServiceNotifications.notify({
                                 type: log.severity,
                                 row: log.line_nr === null ? undefined : log.line_nr,
                                 file: log.file_name,
                                 message: log.text,
                                 caption: log.file_name === undefined ? 'Mergin Error' : log.file_name,
                                 session: session,
-                            }));
+                            });
                         });
                     }
                     lvin.removeAllListeners();
