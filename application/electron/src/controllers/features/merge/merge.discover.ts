@@ -2,7 +2,7 @@
 import ServiceStreams from '../../../services/service.streams';
 import { Lvin, IDatetimeDiscoverResult, ILogMessage, IDatetimeDiscoverFileResult } from '../../external/controller.lvin';
 import Logger from '../../../tools/env.logger';
-import ServiceElectron, { IPCMessages } from '../../../services/service.electron';
+import ServiceNotifications from '../../../services/service.notifications';
 
 export { IDatetimeDiscoverResult };
 
@@ -25,14 +25,14 @@ export default class MergeDiscover {
             lvin.datetimeDiscover(this._files).then((results: IDatetimeDiscoverResult) => {
                 if (results.logs instanceof Array) {
                     results.logs.forEach((log: ILogMessage) => {
-                        ServiceElectron.IPC.send(new IPCMessages.Notification({
+                        ServiceNotifications.notify({
                             type: log.severity,
                             row: log.line_nr === null ? undefined : log.line_nr,
                             file: log.file_name,
                             message: log.text,
                             caption: log.file_name === undefined ? 'Mergin Error' : log.file_name,
                             session: session,
-                        }));
+                        });
                     });
                 }
                 resolve(results.files);

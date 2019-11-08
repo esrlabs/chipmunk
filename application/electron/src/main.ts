@@ -4,6 +4,7 @@ import { app as electronApp, dialog, MessageBoxReturnValue } from 'electron';
 import * as FS from './tools/fs';
 // Services
 import ServiceElectron from './services/service.electron';
+import ServiceNotifications from './services/service.notifications';
 import ServicePackage from './services/service.package';
 import ServiceEnv from './services/service.env';
 import ServiceHotkeys from './services/service.hotkeys';
@@ -42,7 +43,7 @@ const InitializeStages = [
     // Stage #5. Init electron. Prepare browser window
     [   ServiceElectron ],
     // Stage #6. Init services and helpers
-    [   ServiceElectronState ],
+    [   ServiceElectronState, ServiceNotifications ],
     // Stage #7. Stream service
     [   ServiceStreamSources, ServiceStreams ],
     // Stage #8. Detect OS env
