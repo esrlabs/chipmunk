@@ -417,6 +417,16 @@ namespace :dev do
     rm(node_app_original)
     cp(launcher, node_app_original)
   end
+
+  desc 'quick release'
+  task quick_release: [:folders,
+                :compile_electron,
+                :assemble_build,
+                :add_package_json,
+                :ripgrepdelivery,
+                :neon_indexer_delivery,
+                :create_release_file_list]
+
 end
 
 task :add_package_json do
