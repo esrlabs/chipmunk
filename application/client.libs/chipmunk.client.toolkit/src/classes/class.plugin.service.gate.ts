@@ -43,10 +43,35 @@ export interface IPluginExports {
     [key: string]: TPluginExportEntity;
 }
 
+/**
+ * Used for none-Angular plugins to delivery plugin's exports into core of chipmunk
+ * Developer can create none-Angular plugin. In global namespace of main javascript file will be
+ * available implementation of PluginServiceGate.
+ * For example:
+ * =================================================================================================
+ * const gate: Toolkit.APluginServiceGate | undefined = (window as any).logviewer;
+ * gate.setPluginExports({
+ *     parser: new MyParserOfEachRow(),
+ * });
+ * =================================================================================================
+ * This code snippet registred a new parser for output "MyParserOfEachRow"
+ * @usecases should be used for none-angular plugins to register parsers
+ * @class APluginServiceGate
+ */
 export abstract class APluginServiceGate {
-
+    /**
+     * Internal usage
+     */
     public abstract setPluginExports(exports: IPluginExports): void;
+
+    /**
+     * Internal usage
+     */
     public abstract getCoreModules(): ICoreModules;
+
+    /**
+     * Internal usage
+     */
     public abstract getRequireFunc(): TRequire;
 
 }

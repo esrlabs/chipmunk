@@ -1,5 +1,13 @@
 const CSignature = 'PluginNgModule';
 
+/**
+ * Root module class for Angular plugin. Should be used bby developer of plugin (based on Angular) to
+ * let core know, which module is a root module of plugin.
+ * One plugin can have only one instance of this module.
+ * @usecases views, complex components, addition tabs, Angular components
+ * @requirements Angular, TypeScript
+ * @class PluginNgModule
+ */
 export class PluginNgModule {
 
     private _name: string;
@@ -10,10 +18,16 @@ export class PluginNgModule {
         this._description = description;
     }
 
+    /**
+     * Internal usage
+     */
     public getClassSignature(): string {
         return CSignature;
     }
 
+    /**
+     * Internal usage
+     */
     public static isInstance(smth: any): boolean {
         if (typeof smth !== 'object' || smth === null) {
             return false;

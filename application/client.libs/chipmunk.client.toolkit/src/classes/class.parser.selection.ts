@@ -3,12 +3,27 @@ import { THTMLString } from '../types/index';
 
 const CSignature = 'ASelectionParser';
 
+/**
+ * Allows to create parser of selection.
+ * Name of parser will be shown in context menu of selection. If user selects parser,
+ * parser will be applyed to selection and result will be show on tab "Details"
+ * @usecases decoding selected content; convertinng selected content into human-readable format
+ * @requirements TypeScript or JavaScript
+ * @examples encrypting of data, Base64string parser, HEX converting into string and so on
+ * @class ASelectionParser
+ */
 export abstract class ASelectionParser {
 
+    /**
+     * Internal usage
+     */
     public getClassSignature(): string {
         return CSignature;
     }
 
+    /**
+     * Internal usage
+     */
     public static isInstance(smth: any): boolean {
         if (typeof smth !== 'object' || smth === null) {
             return false;
@@ -19,8 +34,19 @@ export abstract class ASelectionParser {
         return smth.getClassSignature() === CSignature;
     }
 
+    /**
+     * This method will be called on user selection
+     * @param {string} str - selection in main view or search results view
+     * @param {EThemeType} themeTypeRef - reference to active theme (dark, light and so on)
+     * @returns {string} method should return a string or HTML string
+     */
     public abstract parse(str: string, themeTypeRef: EThemeType): string | THTMLString;
 
+    /**
+     * Should return name of parser to be shown in context menu of selection
+     * @param {string} str - selection in main view or search results view
+     * @returns {string} name of parser
+     */
     public abstract getParserName(str: string): string | undefined;
 
 }
