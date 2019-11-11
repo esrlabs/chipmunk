@@ -3,16 +3,39 @@ import Subject from '../tools/tools.subject';
 
 const CSignature = 'APluginService';
 
+/**
+ * Service which can be used to get access to plugin API
+ * Plugin API has a collection of methods to listen major core events and
+ * communicate between render and host of plugin.
+ * Into plugin's Angular components (like tabs, panels and dialogs) API object will be
+ * delivered via inputs of component. But to have global access to API developer can
+ * create instance of this class.
+ *
+ * Note: instance of this class should be exported with PluginNgModule (for Angular plugins) or
+ * with APluginServiceGate.setPluginExports (for none-Angular plugins)
+ *
+ * @usecases Create global (in the scope of plugin) service with access to plugin's API and core's API
+ * @class APluginService
+ */
 export abstract class APluginService {
 
     private _apiGetter: () => IAPI | undefined;
 
+    /**
+     * @property {Subject<boolean>} onAPIReady subject will be emitted on API is ready to use
+     */
     public onAPIReady: Subject<boolean> = new Subject();
 
+    /**
+     * Internal usage
+     */
     public getClassSignature(): string {
         return CSignature;
     }
 
+    /**
+     * Internal usage
+     */
     public static isInstance(smth: any): boolean {
         if (typeof smth !== 'object' || smth === null) {
             return false;
@@ -23,11 +46,19 @@ export abstract class APluginService {
         return smth.getClassSignature() === CSignature;
     }
 
+    /**
+     * Internal usage
+     */
     public setAPIGetter(getter: () => IAPI | undefined) {
         this._apiGetter = getter;
         this.onAPIReady.emit(true);
     }
 
+    /**
+     * Should be used to get access to API of plugin and core.
+     * Note: will return undefined before onAPIReady will be emitted
+     * @returns {API | undefined} returns instance of API or undefined if API isn't ready to use
+     */
     public getAPI(): IAPI | undefined {
         return this._apiGetter === undefined ? undefined : this._apiGetter();
     }
