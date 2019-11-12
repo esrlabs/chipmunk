@@ -28,9 +28,12 @@ use nom::bytes::streaming::{tag, take, take_while_m_n};
 use nom::{combinator::map, multi::count, number::streaming, sequence::tuple, IResult};
 use rustc_hash::FxHashMap;
 use std::fs;
+use std::rc::Rc;
 use std::io::{BufRead, BufWriter, Read, Write};
 
 use std::str;
+use crate::fibex::FibexMetadata;
+
 const STOP_CHECK_LINE_THRESHOLD: usize = 250_000;
 const DLT_PATTERN: &[u8] = &[0x44, 0x4C, 0x54, 0x01];
 
@@ -389,7 +392,7 @@ impl NomByteOrder for LittleEndian {
     }
 }
 
-fn dlt_uint<T: NomByteOrder>(width: dlt::TypeLength) -> fn(&[u8]) -> IResult<&[u8], dlt::Value> {
+pub(crate) fn dlt_uint<T: NomByteOrder>(width: dlt::TypeLength) -> fn(&[u8]) -> IResult<&[u8], dlt::Value> {
     match width {
         dlt::TypeLength::BitLength8 => |i| map(streaming::be_u8, dlt::Value::U8)(i),
         dlt::TypeLength::BitLength16 => |i| map(T::parse_u16, dlt::Value::U16)(i),
@@ -398,7 +401,7 @@ fn dlt_uint<T: NomByteOrder>(width: dlt::TypeLength) -> fn(&[u8]) -> IResult<&[u
         dlt::TypeLength::BitLength128 => |i| map(T::parse_u128, dlt::Value::U128)(i),
     }
 }
-fn dlt_sint<T: NomByteOrder>(width: dlt::TypeLength) -> fn(&[u8]) -> IResult<&[u8], dlt::Value> {
+pub(crate) fn dlt_sint<T: NomByteOrder>(width: dlt::TypeLength) -> fn(&[u8]) -> IResult<&[u8], dlt::Value> {
     match width {
         dlt::TypeLength::BitLength8 => |i| map(streaming::be_i8, dlt::Value::I8)(i),
         dlt::TypeLength::BitLength16 => |i| map(T::parse_i16, dlt::Value::I16)(i),
@@ -407,7 +410,7 @@ fn dlt_sint<T: NomByteOrder>(width: dlt::TypeLength) -> fn(&[u8]) -> IResult<&[u
         dlt::TypeLength::BitLength128 => |i| map(T::parse_i128, dlt::Value::I128)(i),
     }
 }
-fn dlt_fint<T: NomByteOrder>(width: dlt::FloatWidth) -> fn(&[u8]) -> IResult<&[u8], dlt::Value> {
+pub(crate) fn dlt_fint<T: NomByteOrder>(width: dlt::FloatWidth) -> fn(&[u8]) -> IResult<&[u8], dlt::Value> {
     match width {
         dlt::FloatWidth::Width32 => |i| map(T::parse_f32, dlt::Value::F32)(i),
         dlt::FloatWidth::Width64 => |i| map(T::parse_f64, dlt::Value::F64)(i),
@@ -423,7 +426,7 @@ fn dlt_type_info<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], dlt::TypeInfo>
         }
     }
 }
-fn dlt_fixed_point<T: NomByteOrder>(
+pub(crate) fn dlt_fixed_point<T: NomByteOrder>(
     input: &[u8],
     width: dlt::TypeLength,
 ) -> IResult<&[u8], dlt::FixedPoint> {
@@ -574,6 +577,7 @@ fn dlt_argument<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], dlt::Argument> 
     }
 }
 
+#[allow(dead_code)]
 struct DltArgumentParser {
     current_index: Option<usize>,
 }
@@ -633,6 +637,7 @@ pub fn dlt_message<'a>(
     index: usize,
     _processed_bytes: usize,
     update_channel: Option<mpsc::Sender<ChunkResults>>,
+    fibex_metadata: Option<Rc<FibexMetadata>>,
 ) -> IResult<&'a [u8], Option<dlt::Message>> {
     // println!("parsing dlt_message {:?}[{}]", index, processed_bytes);
     let (after_storage_header, storage_header) =
@@ -707,6 +712,7 @@ pub fn dlt_message<'a>(
             header,
             extended_header,
             payload,
+            fibex_metadata,
         }),
     ))
 }
@@ -791,6 +797,7 @@ fn read_one_dlt_message<T: Read>(
     index: usize,
     processed_bytes: usize,
     update_channel: mpsc::Sender<ChunkResults>,
+    fibex_metadata: Option<Rc<FibexMetadata>>,
 ) -> Result<Option<(usize, Option<dlt::Message>)>, Error> {
     loop {
         match reader.fill_buf() {
@@ -806,6 +813,7 @@ fn read_one_dlt_message<T: Read>(
                     index,
                     processed_bytes,
                     Some(update_channel.clone()),
+                    fibex_metadata.clone(),
                 );
                 match res {
                     Ok(r) => {
@@ -847,6 +855,7 @@ pub fn create_index_and_mapping_dlt(
     filter_conf: Option<filtering::DltFilterConfig>,
     update_channel: mpsc::Sender<ChunkResults>,
     shutdown_receiver: Option<mpsc::Receiver<()>>,
+    fibex_metadata: Option<Rc<FibexMetadata>>,
 ) -> Result<(), Error> {
     trace!("create_index_and_mapping_dlt");
     match utils::next_line_nr(config.out_path) {
@@ -857,6 +866,7 @@ pub fn create_index_and_mapping_dlt(
             source_file_size,
             update_channel,
             shutdown_receiver,
+            fibex_metadata,
         ),
         Err(e) => {
             let content = format!(
@@ -881,6 +891,7 @@ pub fn index_dlt_file(
     source_file_size: Option<usize>,
     update_channel: mpsc::Sender<ChunkResults>,
     shutdown_receiver: Option<mpsc::Receiver<()>>,
+    fibex_metadata: Option<Rc<FibexMetadata>>,
 ) -> Result<(), Error> {
     trace!("index_dlt_file");
     let (out_file, current_out_file_size) =
@@ -912,6 +923,7 @@ pub fn index_dlt_file(
             line_nr,
             processed_bytes,
             update_channel.clone(),
+            fibex_metadata.clone()
         ) {
             Ok(Some((consumed, Some(msg)))) => {
                 // println!("consumed: {}", consumed);

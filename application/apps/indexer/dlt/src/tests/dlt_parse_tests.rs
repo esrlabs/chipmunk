@@ -103,7 +103,7 @@ mod tests {
             0x65, 0x72, 0x3A, 0x3A, 0x70, 0x6F, 0x6C, 0x6C, 0x5D, 0x20, 0x72,
         ];
         raw1.extend_from_slice(&raw2);
-        let res1: IResult<&[u8], Option<dlt::Message>> = dlt_message(&raw1[..], None, 0, 0, None);
+        let res1: IResult<&[u8], Option<dlt::Message>> = dlt_message(&raw1[..], None, 0, 0, None, None);
         println!("res1 was: {:?}", res1);
         // let res2: IResult<&[u8], Option<dlt::Message>> = dlt_message(&raw2[..], None, 0, 0);
         // println!("res was: {:?}", res2);

@@ -1,10 +1,12 @@
 use channels::{EventEmitterTask, IndexingThreadConfig};
 use dlt::filtering;
+use dlt::fibex::FibexMetadata;
 use indexer_base::chunks::ChunkResults;
 use indexer_base::config::IndexingConfig;
 use neon::prelude::*;
 use std::fs;
 use std::path;
+use std::rc::Rc;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -38,6 +40,7 @@ impl IndexingDltEventEmitter {
                 filter_conf,
                 chunk_result_sender.clone(),
                 Some(shutdown_rx),
+                None,
             );
             debug!("back after DLT indexing finished!");
         }));
@@ -49,6 +52,7 @@ fn index_dlt_file_with_progress(
     filter_conf: Option<filtering::DltFilterConfig>,
     tx: mpsc::Sender<ChunkResults>,
     shutdown_receiver: Option<mpsc::Receiver<()>>,
+    fibex_metadata: Option<Rc<FibexMetadata>>,
 ) {
     trace!("index_dlt_file_with_progress");
     let source_file_size = Some(match config.in_file.metadata() {
@@ -64,6 +68,7 @@ fn index_dlt_file_with_progress(
         filter_conf,
         tx,
         shutdown_receiver,
+        fibex_metadata,
     ) {
         Err(why) => {
             error!("couldn't process: {}", why);
@@ -112,7 +117,7 @@ declare_types! {
                     tag,
                     timestamps: false,
                 },
-                Some(filter_conf)
+                Some(filter_conf),
             );
             Ok(emitter)
         }

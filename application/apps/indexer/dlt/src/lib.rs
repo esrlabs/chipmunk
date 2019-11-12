@@ -9,7 +9,7 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
-#![allow(dead_code)]
+//#![allow(dead_code)]
 #[macro_use]
 extern crate lazy_static;
 extern crate indexer_base;
@@ -19,6 +19,7 @@ extern crate log;
 
 pub mod dlt;
 pub mod dlt_parse;
+pub mod fibex;
 pub mod filtering;
 
 #[cfg(test)]
