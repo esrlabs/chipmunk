@@ -620,6 +620,10 @@ fn main() {
                     //     min_log_level: verbosity_log_level,
                     //     components: None,
                     // },
+                    Some(std::rc::Rc::new(dlt::fibex::read_fibex(&std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../dlt/tests/dlt-messages.xml")).unwrap_or_else(|_e| {
+                        report_error(format!("could not open {:?}", std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../dlt/tests/dlt-messages.xml")));
+                        std::process::exit(3);
+                    })))
                 ) {
                     report_error(format!("couldn't process: {}", why));
                     std::process::exit(2)
