@@ -1,5 +1,32 @@
 # Changelog
 
+### [1.27.0] - 11/13/2019
+* [#464](feat) remodel neon integration, add concatenation support
+  * add option to get notifications from indexing/parsing
+  * add indexer error reporting
+  * tests running and usecases seem to work
+  * convert timespan operation results to stream semantics
+  * support for async discover timespan action (neon binding);
+  * support for async file concatenation
+  * updated package-lock files
+  * lvin removed from concatenation
+  * integration of neon based file concatenation
+* [#539](fix) try to not choke on bad DLT messages
+  * less verbose error messages for dlt
+  * add support for unknown control types
+* [](fix): improve build system: try to only build
+  things that need building. for developers executing
+  the `rake dev` task should be enough for all usecases.
+  only build client libs when neccessary
+* [](feat) Notifications service (electron -> render)
+* [](feat) quick_release for developing (task for rake file "dev:quick_release")
+* [#533](fix) fix plugin's sessions events hub
+* [](fix) fix secondary area resize event fire
+* [](feat) extendInfo settings for mac
+* [](feat) redirection on marker's bar click
+* [](fix) fix bookmark's navigation
+* [](feat) client.toolkit verssion up -> 0.0.72
+
 ### [1.26.1] - 11/06/2019
 * [](chore) run workflow also on tag
 
