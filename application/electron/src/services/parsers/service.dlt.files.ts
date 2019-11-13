@@ -1,10 +1,10 @@
 import ServiceElectron, { IPCMessages } from "../service.electron";
 import Logger from "../../tools/env.logger";
-import * as Tools from '../../tools/index';
+import * as Tools from "../../tools/index";
 import { Subscription } from "../../tools/index";
 import { IService } from "../../interfaces/interface.service";
 import { indexer, ITicks, TimeUnit, StatisticInfo, AsyncResult } from "indexer-neon";
-import ServiceStreams from '../../services/service.streams';
+import ServiceStreams from "../../services/service.streams";
 
 /**
  * @class ServiceDLTFiles
@@ -103,37 +103,6 @@ class ServiceDLTFiles implements IService {
                 this._logger.debug("Execution time for indexing : " + ms + "ms");
                 ServiceStreams.removeProgressSession(trackId, req.session);
             });
-
-        // });
-
-        // const lvin: Lvin = new Lvin();
-        // lvin.dltStat({ srcFile: req.file }).then((results: IDLTStatsResults) => {
-        //     if (results.logs instanceof Array) {
-        //         results.logs.forEach((log: ILogMessage) => {
-        //             ServiceElectron.IPC.send(new IPCMessages.Notification({
-        //                 type: log.severity,
-        //                 row: log.line_nr === null ? undefined : log.line_nr,
-        //                 file: log.file_name,
-        //                 message: log.text,
-        //                 caption: path.basename(req.file),
-        //                 session: req.session,
-        //             }));
-        //         });
-        //     }
-        //     response(new IPCMessages.DLTStatsResponse({
-        //         stats: results.stats,
-        //         id: req.id,
-        //         session: req.session,
-        //         logs: results.logs,
-        //     }));
-        // }).catch((error: Error) => {
-        //     response(new IPCMessages.DLTStatsResponse({
-        //         stats: undefined,
-        //         id: req.id,
-        //         session: req.session,
-        //         error: error.message,
-        //     }));
-        // });
     }
 }
 

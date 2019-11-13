@@ -193,65 +193,6 @@ export default class FileParser extends AFileParser {
                     });
                     reject(error);
                 });
-            //     const lvin: Lvin = new Lvin();
-            //     if (onMapUpdated !== undefined) {
-            //         lvin.on(Lvin.Events.map, (map: IFileMapItem[]) => {
-            //             if (this._closed) {
-            //                 return;
-            //             }
-            //             onMapUpdated(map.map((item: IFileMapItem) => {
-            //                 return { bytes: { from: item.b[0], to: item.b[1] }, rows: { from: item.r[0], to: item.r[1] } };
-            //             }));
-            //         });
-            //     }
-            //     const dltOptions: { [key: string]: any } = {
-            //         logLevel: options.logLevel,
-            //     };
-            //     if (options.filters !== undefined && options.filters.app_ids instanceof Array) {
-            //         dltOptions.APID = options.filters.app_ids;
-            //     }
-            //     if (options.filters !== undefined && options.filters.context_ids instanceof Array) {
-            //         dltOptions.CTID = options.filters.context_ids;
-            //     }
-            //     if (options.filters !== undefined && options.filters.ecu_ids instanceof Array) {
-            //         dltOptions.ECUID = options.filters.ecu_ids;
-            //     }
-            //     lvin.dlt({
-            //         srcFile: srcFile,
-            //         destFile: destFile,
-            //         injection: sourceId.toString(),
-            //     }, dltOptions).then((results: IIndexResult) => {
-            //         if (this._closed) {
-            //             return resolve([]);
-            //         }
-            //         if (results.logs instanceof Array) {
-            //             results.logs.forEach((log: ILogMessage) => {
-            //                 ServiceElectron.IPC.send(new IPCMessages.Notification({
-            //                     type: log.severity,
-            //                     row: log.line_nr === null ? undefined : log.line_nr,
-            //                     file: log.file_name,
-            //                     message: log.text,
-            //                     caption: path.basename(srcFile),
-            //                     session: this._guid,
-            //                 }));
-            //             });
-            //         }
-            //         lvin.removeAllListeners();
-            //         resolve(results.map.map((item: IFileMapItem) => {
-            //             return { rows: { from: item.r[0], to: item.r[1] }, bytes: { from: item.b[0], to: item.b[1] }};
-            //         }));
-            //     }).catch((error: Error) => {
-            //         if (this._closed) {
-            //             return resolve([]);
-            //         }
-            //         ServiceElectron.IPC.send(new ServiceElectron.IPCMessages.Notification({
-            //             caption: `Error with: ${path.basename(srcFile)}`,
-            //             message: error.message.length > 1500 ? `${error.message.substr(0, 1500)}...` : error.message,
-            //             type: ServiceElectron.IPCMessages.Notification.Types.error,
-            //             session: this._guid,
-            //         }));
-            //         reject(error);
-            //     });
         });
     }
 
