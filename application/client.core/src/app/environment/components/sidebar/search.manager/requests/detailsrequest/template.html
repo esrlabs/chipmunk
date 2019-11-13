@@ -1,0 +1,17 @@
+<div *ngIf="request !== undefined">
+    
+    <span class="spliter"></span>
+    <p class="caption t-normal">Foreground</p>
+    <ul class="color colors-hoolder">
+        <li [attr.class]="(_ng_colorIndex === i ? 'selected' : '')" *ngFor="let color of _ng_colors; let i = index;" [ngStyle]="{'background': color}" (click)="_ng_onColorSelect(i)"></li>
+    </ul>
+    <p class="caption t-normal">Background</p>
+    <ul class="background colors-hoolder">
+        <li [attr.class]="(_ng_backgroundIndex === i ? 'selected' : '')" *ngFor="let color of _ng_colors; let i = index;" [ngStyle]="{'background': color}" (click)="_ng_onBackgroundSelect(i)"></li>
+    </ul>
+    <span class="spliter"></span>
+    <lib-primitive-checkbox-simple [labelOn]="'Color binding'" [labelOff]="'Color binding'" [checked]="_ng_colorBinding" [onChange]="_ng_onColorSettingModeChange"></lib-primitive-checkbox-simple>
+    <span class="spliter"></span>
+    <p class="t-normal" [ngStyle]="{'background': _ng_background, 'color': _ng_color}">This is an example of your selection</p>
+        
+</div>

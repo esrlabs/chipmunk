@@ -1,10 +1,9 @@
 // tslint:disable:member-ordering
 
 import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, OnChanges } from '@angular/core';
-import { IRequest } from '../../../../../controller/controller.session.tab.search';
+import { IRequest } from '../../../../../controller/controller.session.tab.search.filters';
 import { CColors } from '../../../../../conts/colors';
 import { getContrastColor } from '../../../../../theme/colors';
-import * as Toolkit from 'chipmunk.client.toolkit';
 import { Subscription } from 'rxjs';
 
 export interface IRequestItem {

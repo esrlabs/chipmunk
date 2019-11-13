@@ -15,17 +15,18 @@
     & p.caption{
         color: @scheme-color-2;
     }
-    & div.requests-wrapper{
+    & div.lists{
         position: relative;
-        display: block;
+        display: flex;
         padding: 0;
         margin: 0;
-        list-style: none;
         overflow-x: hidden;
         overflow-y: auto;
         width: 100%;
         flex: 1 100%;
-        & ul.requests{
+        flex-direction: column;
+        & div.requests-wrapper,
+        & div.charts-wrapper{
             position: relative;
             display: block;
             padding: 0;
@@ -34,32 +35,62 @@
             overflow-x: hidden;
             overflow-y: auto;
             width: 100%;
-            top: 0;
-            left: 0;
-            height: ~"calc(100% - 1.5rem)";
-            outline: none;
-            & li.request{
+            flex: 1 100%;
+            & ul.requests{
                 position: relative;
                 display: block;
-                margin: 0;
                 padding: 0;
+                margin: 0;
                 list-style: none;
-                height: 23px;
-                cursor: default;
-                &:hover,
-                &.selected{
-                    background: @scheme-color-4;
-                }
-                &.inactive{
-                    opacity: 0.5;
+                overflow-x: hidden;
+                overflow-y: auto;
+                width: 100%;
+                top: 0;
+                left: 0;
+                height: ~"calc(100% - 1.5rem)";
+                outline: none;
+                & li.request{
+                    position: relative;
+                    display: block;
+                    margin: 0;
+                    padding: 0;
+                    list-style: none;
+                    height: 23px;
+                    cursor: default;
+                    &:hover,
                     &.selected{
-                        opacity: 1;
+                        background: @scheme-color-4;
+                    }
+                    &.inactive{
+                        opacity: 0.5;
+                        &.selected{
+                            opacity: 1;
+                        }
                     }
                 }
             }
         }
+        & div.controlls{
+            display: block;
+            white-space: nowrap;
+            text-align: right;
+            & .small-button:last-child{
+                margin-right: 0;
+            }
+        }
+        & > *:nth-child(1){
+            order:1;
+        }
+        & > *:nth-child(2){
+            order:2;
+        }
+        & > *:nth-child(3){
+            order:3;
+        }
+        & > *:nth-child(4){
+            order:4;
+        }
     }
-
     & div.details{
         position: relative;
         display: block;
@@ -67,23 +98,6 @@
         overflow: hidden;
         flex:none;
     }
-    & div.recent-wrapper{
-        display: block;
-        flex:none;
-    }
-    & div.controlls-wrapper{
-        display: block;
-        flex:none;
-    }
-    & div.controlls{
-        display: block;
-        white-space: nowrap;
-        text-align: right;
-        & .small-button:last-child{
-            margin-right: 0;
-        }
-    }
-
     & span.spliter{
         position: relative;
         display: block;
@@ -99,22 +113,22 @@
             border-bottom: 1px dashed @scheme-color-4;
         }
     }
-    & *:nth-child(1){
+    & > *:nth-child(1){
         order:1;
     }
-    & *:nth-child(2){
+    & > *:nth-child(2){
         order:2;
     }
-    & *:nth-child(3){
+    & > *:nth-child(3){
         order:3;
     }
-    & *:nth-child(4){
+    & > *:nth-child(4){
         order:4;
     }
-    & *:nth-child(5){
+    & > *:nth-child(5){
         order:5;
     }
-    & *:nth-child(6){
+    & > *:nth-child(6){
         order:6;
     }
 }

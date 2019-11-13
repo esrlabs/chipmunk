@@ -125,7 +125,7 @@ export class ServiceData {
         });
         const datasets = [];
         Object.keys(results).forEach((filter: string) => {
-            const color: string | undefined = this._sessionController.getSessionSearch().getRequestColor(filter);
+            const color: string | undefined = this._sessionController.getSessionSearch().getFiltersAPI().getRequestColor(filter);
             const dataset = {
                 barPercentage: 1,
                 categoryPercentage: 1,
@@ -219,7 +219,7 @@ export class ServiceData {
         if (this._sessionController === undefined) {
             return undefined;
         }
-        const hash: string = `${this._sessionController.getSessionSearch().getActiveAsRegs().map((reg: RegExp) => {
+        const hash: string = `${this._sessionController.getSessionSearch().getFiltersAPI().getActiveAsRegs().map((reg: RegExp) => {
             return reg.source;
         }).join('-')}${this._sessionController.getGuid()}-${width}`;
         return hash;

@@ -2,35 +2,41 @@
 
 import { Component, OnDestroy, ChangeDetectorRef, Input, HostListener, AfterContentInit, OnChanges, ViewChild } from '@angular/core';
 import * as Toolkit from 'chipmunk.client.toolkit';
-import { IRequest } from '../../../../../controller/controller.session.tab.search.filters';
+import { IChartRequest, EChartType } from '../../../../../controller/controller.session.tab.search.charts';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { InputStandardComponent } from 'chipmunk-client-primitive';
 
-export interface IRequestItem {
-    request: IRequest;
+export interface IChartItem {
+    request: IChartRequest;
     onSelect: () => void;
-    onEdit: Observable<IRequest>;
+    onEdit: Observable<IChartRequest>;
     onEditCancel: Observable<void>;
     onEditDone: (value?: string) => void;
     onChangeState: (active: boolean) => void;
 }
 
+const CChartTypeIconMap = {
+    [EChartType.dots]: 'fas fa-chart-area',
+    [EChartType.line]: 'fas fa-chart-line',
+};
+
 @Component({
-    selector: 'app-sidebar-app-search-request',
+    selector: 'app-sidebar-app-search-chartentry',
     templateUrl: './template.html',
     styleUrls: ['./styles.less']
 })
 
-export class SidebarAppSearchRequestComponent implements OnDestroy, AfterContentInit, OnChanges {
+export class SidebarAppSearchChartEntryComponent implements OnDestroy, AfterContentInit, OnChanges {
 
     @ViewChild('input', {static: false}) _inputComRef: InputStandardComponent;
 
-    @Input() public request: IRequestItem;
+    @Input() public chart: IChartItem;
 
     public _ng_request: string = '';
     public _ng_active: boolean = true;
     public _ng_color: string = '';
-    public _ng_background: string = '';
+    public _ng_type: EChartType = EChartType.dots;
+    public _ng_typeCssClass: string = CChartTypeIconMap[EChartType.dots];
     public _ng_edit: boolean = false;
     public _ng_shadow: boolean = false;
 
@@ -47,12 +53,12 @@ export class SidebarAppSearchRequestComponent implements OnDestroy, AfterContent
     }
 
     @HostListener('click', ['$event']) public onClick(event: MouseEvent) {
-        this.request.onSelect();
+        this.chart.onSelect();
     }
 
     public ngAfterContentInit() {
-        this._subscriptions.onEdit = this.request.onEdit.subscribe(this._onEdit.bind(this));
-        this._subscriptions.onEditCancel = this.request.onEditCancel.subscribe(this._onEditCancel.bind(this));
+        this._subscriptions.onEdit = this.chart.onEdit.subscribe(this._onEdit.bind(this));
+        this._subscriptions.onEditCancel = this.chart.onEditCancel.subscribe(this._onEditCancel.bind(this));
         this._update();
     }
 
@@ -68,7 +74,7 @@ export class SidebarAppSearchRequestComponent implements OnDestroy, AfterContent
 
     public _ng_onChangeState(event: MouseEvent) {
         this._ng_active = !this._ng_active;
-        this.request.onChangeState(this._ng_active);
+        this.chart.onChangeState(this._ng_active);
         event.stopImmediatePropagation();
         event.preventDefault();
         return false;
@@ -86,7 +92,7 @@ export class SidebarAppSearchRequestComponent implements OnDestroy, AfterContent
         this._ng_request = value;
         event.stopImmediatePropagation();
         event.preventDefault();
-        this.request.onEditDone(value);
+        this.chart.onEditDone(value);
     }
 
     public _ng_onValueChange(value: string) {
@@ -95,23 +101,24 @@ export class SidebarAppSearchRequestComponent implements OnDestroy, AfterContent
 
     public _ng_onValueKeyUp(event: KeyboardEvent) {
         if (event.key === 'Escape') {
-            this.request.onEditDone();
+            this.chart.onEditDone();
         }
     }
 
     private _update() {
-        if (this.request === undefined) {
+        if (this.chart === undefined) {
             return;
         }
-        this._ng_request = this.request.request.reg.source;
-        this._ng_color = this.request.request.color;
-        this._ng_background = this.request.request.background;
-        this._ng_active = this.request.request.active;
+        this._ng_request = this.chart.request.reg.source;
+        this._ng_color = this.chart.request.color;
+        this._ng_active = this.chart.request.active;
+        this._ng_type = this.chart.request.type;
+        this._ng_typeCssClass = CChartTypeIconMap[this._ng_type];
         this._cdRef.detectChanges();
     }
 
-    private _onEdit(request: IRequest) {
-        if (request.reg.source !== this.request.request.reg.source) {
+    private _onEdit(request: IChartRequest) {
+        if (request.reg.source !== this.chart.request.reg.source) {
             this._ng_shadow = true;
             this._ng_edit = false;
             this._prevValue = undefined;
@@ -149,7 +156,7 @@ export class SidebarAppSearchRequestComponent implements OnDestroy, AfterContent
         if (!this._focused) {
             return;
         }
-        this.request.onEditDone();
+        this.chart.onEditDone();
     }
 
 }
