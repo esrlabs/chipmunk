@@ -1,6 +1,7 @@
 import { Subject, Observable, Subscription } from 'rxjs';
 import ServiceElectronIpc, { IPCMessages, Subscription as IPCSubscription } from '../services/service.electron.ipc';
-import { ControllerSessionTabSearch, IRequest } from './controller.session.tab.search';
+import { ControllerSessionTabSearch } from './controller.session.tab.search';
+import { IRequest } from './controller.session.tab.search.filters';
 import { ControllerSessionTabStream } from './controller.session.tab.stream';
 import { IPositionData } from './controller.session.tab.stream.output';
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -76,7 +77,7 @@ export class ControllerSessionTabMap {
         this._stream = params.stream;
         this._subscriptions.SearchResultMap = ServiceElectronIpc.subscribe(IPCMessages.SearchResultMap, this._ipc_SearchResultMap.bind(this));
         this._subscriptions.StreamUpdated = ServiceElectronIpc.subscribe(IPCMessages.StreamUpdated, this._ipc_onStreamUpdated.bind(this));
-        this._subscriptions.onSearchDropped = this._search.getObservable().onDropped.subscribe(this._onSearchDropped.bind(this));
+        this._subscriptions.onSearchDropped = this._search.getFiltersAPI().getObservable().onDropped.subscribe(this._onSearchDropped.bind(this));
         this._subscriptions.onPositionChanged = this._stream.getOutputStream().getObservable().onPositionChanged.subscribe(this._onPositionChanged.bind(this));
 
     }
@@ -247,7 +248,7 @@ export class ControllerSessionTabMap {
             this._dropSearchColumns();
         }
         const map: { [key: string]: IRequest } = {};
-        this._search.getAppliedRequests().forEach((request: IRequest) => {
+        this._search.getFiltersAPI().getAppliedRequests().forEach((request: IRequest) => {
             map[request.reg.source] = request;
         });
         const data: IPCMessages.ISearchResultMapData = message.getData();

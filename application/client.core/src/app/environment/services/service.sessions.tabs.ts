@@ -12,7 +12,8 @@ import { IAPI, IPopup, IComponentDesc } from 'chipmunk.client.toolkit';
 import PluginsService from './service.plugins';
 import PopupsService from './standalone/service.popups';
 
-export { ControllerSessionTabSearch, IRequest } from '../controller/controller.session.tab.search';
+export { ControllerSessionTabSearch } from '../controller/controller.session.tab.search';
+export { IRequest } from '../controller/controller.session.tab.search.filters';
 
 export type TSessionGuid = string;
 

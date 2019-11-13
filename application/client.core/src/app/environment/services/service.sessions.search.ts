@@ -3,10 +3,10 @@ import { IService } from '../interfaces/interface.service';
 import { Observable, Subject, Subscription } from 'rxjs';
 import TabsSessionsService, { ControllerSessionTabSearch, IRequest } from './service.sessions.tabs';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
+import { ControllerSessionTabSearchFilters } from '../controller/controller.session.tab.search.filters';
+import { ControllerSessionTabSearchCharts, IChartRequest } from '../controller/controller.session.tab.search.charts';
 
-export { ControllerSessionTabSearch, IRequest };
-
-type TSessionGuid = string;
+export { ControllerSessionTabSearch, IRequest, IChartRequest };
 
 export class SearchSessionsService implements IService {
 
@@ -15,9 +15,11 @@ export class SearchSessionsService implements IService {
     private _subscriptionsSessionSearch: { [key: string]: Subscription | undefined } = { };
     private _session: ControllerSessionTabSearch | undefined;
     private _subjects: {
-        onRequestsUpdated: Subject<IRequest[]>
+        onRequestsUpdated: Subject<IRequest[]>,
+        onChartsUpdated: Subject<IChartRequest[]>,
     } = {
-        onRequestsUpdated: new Subject<IRequest[]>()
+        onRequestsUpdated: new Subject<IRequest[]>(),
+        onChartsUpdated: new Subject<IChartRequest[]>(),
     };
 
     public init(): Promise<void> {
@@ -47,53 +49,27 @@ export class SearchSessionsService implements IService {
     }
 
     public getObservable(): {
-        onRequestsUpdated: Observable<IRequest[]>
+        onRequestsUpdated: Observable<IRequest[]>,
+        onChartsUpdated: Observable<IChartRequest[]>,
     } {
         return {
-            onRequestsUpdated: this._subjects.onRequestsUpdated.asObservable()
+            onRequestsUpdated: this._subjects.onRequestsUpdated.asObservable(),
+            onChartsUpdated: this._subjects.onChartsUpdated.asObservable(),
         };
     }
 
-    public getStoredRequests(): IRequest[] {
-        if (this._session === undefined) {
-            return [];
-        }
-        return this._session.getStored();
-    }
-
-    public removeStoredRequest(request: string) {
+    public getFiltersAPI(): ControllerSessionTabSearchFilters | undefined {
         if (this._session === undefined) {
             return;
         }
-        this._session.removeStored(request);
+        return this._session.getFiltersAPI();
     }
 
-    public removeAllStoredRequests() {
+    public getChartsAPI(): ControllerSessionTabSearchCharts | undefined {
         if (this._session === undefined) {
             return;
         }
-        this._session.removeAllStored();
-    }
-
-    public insertStoredRequests(requests: IRequest[]) {
-        if (this._session === undefined) {
-            return;
-        }
-        this._session.insertStored(requests);
-    }
-
-    public updateRequest(request: string, updated: { reguest?: string, color?: string, background?: string, active?: boolean }) {
-        if (this._session === undefined) {
-            return;
-        }
-        this._session.updateStored(request, updated);
-    }
-
-    public overwriteStored(requests: IRequest[]) {
-        if (this._session === undefined) {
-            return;
-        }
-        this._session.overwriteStored(requests);
+        return this._session.getChartsAPI();
     }
 
     private _bindSearchSessionEvents() {
@@ -101,7 +77,8 @@ export class SearchSessionsService implements IService {
         if (this._session === undefined) {
             return;
         }
-        this._subscriptionsSessionSearch.onRequestsUpdated = this._session.getObservable().onRequestsUpdated.subscribe(this._onRequestsUpdated.bind(this));
+        this._subscriptionsSessionSearch.onRequestsUpdated = this._session.getFiltersAPI().getObservable().onRequestsUpdated.subscribe(this._onRequestsUpdated.bind(this));
+        this._subscriptionsSessionSearch.onChartsUpdated = this._session.getChartsAPI().getObservable().onChartsUpdated.subscribe(this._onChartsUpdated.bind(this));
     }
 
     private _unbindSearchSeassionEvents() {
@@ -122,11 +99,15 @@ export class SearchSessionsService implements IService {
             return this._logger.warn(`Cannot get active session, after it was changed.`);
         }
         this._bindSearchSessionEvents();
-        this._subjects.onRequestsUpdated.next(this._session.getStored());
+        this._subjects.onRequestsUpdated.next(this._session.getFiltersAPI().getStored());
     }
 
     private _onRequestsUpdated(requests: IRequest[]) {
         this._subjects.onRequestsUpdated.next(requests);
+    }
+
+    private _onChartsUpdated(requests: IChartRequest[]) {
+        this._subjects.onChartsUpdated.next(requests);
     }
 
 }
