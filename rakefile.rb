@@ -10,23 +10,27 @@ require './rake-extensions'
 
 NPM_RUN = 'npm run --quiet'
 
+ELECTRON_VERSION = '6.0.12'
+ELECTRON_REBUILD_VERSION = '^1.8.6'
+RIPGREP_VERSION = '11.0.2'
 ELECTRON_DIR = 'application/electron'
 ELECTRON_DIST_DIR = "#{ELECTRON_DIR}/dist"
 ELECTRON_COMPILED_DIR = "#{ELECTRON_DIST_DIR}/compiled"
 ELECTRON_RELEASE_DIR = "#{ELECTRON_DIST_DIR}/release"
 APPS_DIR = 'application/apps'
 CLIENT_CORE_DIR = 'application/client.core'
+CLIENT_PLUGIN_DIR = 'application/client.plugins'
 
 INCLUDED_PLUGINS_FOLDER = "#{ELECTRON_COMPILED_DIR}/plugins"
 INCLUDED_APPS_FOLDER = "#{ELECTRON_COMPILED_DIR}/apps"
 APP_PACKAGE_JSON = "#{ELECTRON_DIR}/package.json"
 SRC_CLIENT_NPM_LIBS = 'application/client.libs/chipmunk.client.components'
-RIPGREP_URL = 'https://github.com/BurntSushi/ripgrep/releases/download/11.0.2/ripgrep-11.0.2'
+RIPGREP_URL = "https://github.com/BurntSushi/ripgrep/releases/download/#{RIPGREP_VERSION}/ripgrep-#{RIPGREP_VERSION}"
 RIPGREP_LOCAL_TMP = File.join(Dir.home, 'tmp/ripgrep_download')
 
 DESTS_CLIENT_NPM_LIBS = [
   "#{CLIENT_CORE_DIR}/node_modules",
-  'application/client.plugins/node_modules'
+  "#{CLIENT_PLUGIN_DIR}/node_modules"
 ].freeze
 CLIENT_NPM_LIBS_NAMES = %w[
   chipmunk-client-containers
@@ -82,7 +86,23 @@ task folders: [ELECTRON_DIST_DIR,
                INCLUDED_PLUGINS_FOLDER,
                INCLUDED_APPS_FOLDER]
 
-SRC_LAUNCHER = "#{APPS_DIR}/launcher/target/release/launcher"
+def rust_exec_in_build_dir(name)
+  app_name = "#{APPS_DIR}/#{name}/target/release/#{name}"
+  if OS.windows?
+    "#{app_name}.exe"
+  else
+    app_name
+  end
+end
+
+def deployed_rust_exec(name)
+  app_name = "#{INCLUDED_APPS_FOLDER}/#{name}"
+  if OS.windows?
+    "#{app_name}.exe"
+  else
+    app_name
+  end
+end
 
 def target_platform_alias
   if OS.windows?
@@ -162,7 +182,7 @@ end
 
 desc 'start'
 task start: :ripgrepdelivery do
-  config_windows_path = File.join(Dir.home, '.logviewer', 'config.window.json')
+  config_windows_path = File.join(Dir.home, '.chipmunk', 'config.window.json')
   rm_f config_windows_path
   cd ELECTRON_DIR do
     sh "#{NPM_RUN} electron"
@@ -237,13 +257,6 @@ end
 task ripgrepdelivery: [:folders, rg_executable]
 
 namespace :client do
-  task :build_core do
-    cd CLIENT_CORE_DIR do
-      puts 'Installing: core'
-      npm_install
-      npm_install('chipmunk.client.toolkit@latest')
-    end
-  end
   task :rebuild_core do
     cd CLIENT_CORE_DIR do
       puts 're-installing: core'
@@ -251,87 +264,126 @@ namespace :client do
       npm_reinstall('chipmunk.client.toolkit@latest')
     end
   end
-  task :build_components do
+
+  # setup file dependencies for chipmunk.client.components installation
+  components_installation = 'application/client.libs/chipmunk.client.components/node_modules'
+  file components_installation => FileList['application/client.libs/chipmunk.client.components/*.json'] do |_t|
     cd 'application/client.libs/chipmunk.client.components' do
       puts 'Installing: components'
       npm_install
+      touch 'node_modules'
     end
   end
-  task :build_plugins do
-    cd 'application/client.plugins' do
-      puts 'Installing: plugins env'
+  task install_components: components_installation
+
+  # setup file dependencies for chipmunk.client.toolkit installation
+  plugin_toolkit_installation = "#{CLIENT_PLUGIN_DIR}/node_modules/chipmunk.client.toolkit"
+  file plugin_toolkit_installation => FileList["#{CLIENT_PLUGIN_DIR}/*.json"] do |_t|
+    cd CLIENT_PLUGIN_DIR do
       npm_install
       npm_install('chipmunk.client.toolkit@latest')
     end
   end
-  task :rebuild_plugins do
-    cd 'application/client.plugins' do
-      puts 'Re-Installing: plugins env'
-      npm_install
-      npm_reinstall('chipmunk.client.toolkit@latest')
-    end
-  end
+  task build_plugins: plugin_toolkit_installation
 
-  task :build_libs do
-    puts 'Building client libs'
-    cd SRC_CLIENT_NPM_LIBS do
-      i = 0
-      while i < CLIENT_NPM_LIBS_NAMES.length
-        lib = CLIENT_NPM_LIBS_NAMES[i]
-        puts "Compiling client components library: #{lib}"
-        sh "#{NPM_RUN} build:#{lib}"
-        i += 1
-      end
-    end
-  end
+  # this task will create the ressources in application/electron/dist/client
+  task create_resources: :compile_neon_ts
 
-  task :deliver_libs do
-    puts 'Delivery client libs'
-    i = 0
-    while i < DESTS_CLIENT_NPM_LIBS.length
-      dest = DESTS_CLIENT_NPM_LIBS[i]
-      puts "Delivery libs into: #{dest}"
-      unless File.exist?(dest)
-        puts "NPM isn't installed in project #{File.dirname(dest)}. Installing..."
-        cd File.dirname(dest) do
-          npm_install
-        end
-      end
-      j = 0
-      while j < CLIENT_NPM_LIBS_NAMES.length
-        lib = CLIENT_NPM_LIBS_NAMES[j]
-        src = "#{SRC_CLIENT_NPM_LIBS}/dist/#{lib}"
-        path = "#{dest}/#{lib}"
-        puts src
-        puts path
-        rm_r(path, force: true)
-        cp_r(src, path, verbose: false)
-        j += 1
-      end
-      i += 1
-    end
-  end
-
-  task :build do
+  # setup file dependencies for those ressources
+  dest_client_path = "#{ELECTRON_COMPILED_DIR}/client"
+  build_target_file = "#{dest_client_path}/main.js"
+  file build_target_file => FileList[
+                               "#{CLIENT_CORE_DIR}/src/**/*.*",
+                               "#{CLIENT_CORE_DIR}/e2e/**/*.*",
+                               "#{CLIENT_CORE_DIR}/*.json"] do |_t|
+    # puts t.investigation
     cd CLIENT_CORE_DIR do
       puts 'Building client.core'
       sh "#{NPM_RUN} build"
     end
     puts 'Delivery client.core'
-    dest_client_path = "#{ELECTRON_COMPILED_DIR}/client"
     rm_r(dest_client_path, force: true)
     cp_r("#{CLIENT_CORE_DIR}/dist/logviewer", dest_client_path, verbose: false)
   end
+  task create_resources: build_target_file
+
+  client_plugins_node_installation = "#{CLIENT_PLUGIN_DIR}/node_modules"
+  # make sure we update if json config files change => compare date of node_modules
+  file client_plugins_node_installation => FileList["#{CLIENT_PLUGIN_DIR}/*.json"] do |_t|
+    puts "NPM isn't installed in project application/client.plugin. Installing..."
+    cd CLIENT_PLUGIN_DIR do
+      npm_install
+      touch 'node_modules'
+    end
+  end
+
+  core_node_installation = "#{CLIENT_CORE_DIR}/node_modules"
+  # make sure we update if json config files change => compare date of node_modules
+  file core_node_installation => FileList["#{CLIENT_CORE_DIR}/*.json"] do |_t|
+    puts "NPM isn't installed in project #{CLIENT_CORE_DIR}. Installing..."
+    cd CLIENT_CORE_DIR do
+      npm_install
+      touch 'node_modules'
+    end
+  end
+
+  core_toolkit_installation = "#{CLIENT_CORE_DIR}/node_modules/chipmunk.client.toolkit"
+  file core_toolkit_installation => FileList["#{CLIENT_CORE_DIR}/*.json"] do |_t|
+    cd CLIENT_CORE_DIR do
+      npm_install
+      npm_install('chipmunk.client.toolkit@latest')
+    end
+  end
+  task build_core: core_toolkit_installation
+
+  task build_and_deliver_libs: [:build_libs, core_node_installation, client_plugins_node_installation] do
+    puts 'Delivery client libs'
+    DESTS_CLIENT_NPM_LIBS.each do |dest|
+      CLIENT_NPM_LIBS_NAMES.each do |lib|
+        src = "#{SRC_CLIENT_NPM_LIBS}/dist/#{lib}"
+        dest_path = "#{dest}/#{lib}"
+        puts src
+        puts dest_path
+        rm_r(dest_path, force: true)
+        cp_r(src, dest_path, verbose: false)
+      end
+    end
+  end
+
+  desc 'build client libs'
+  task :build_libs
+
+  CLIENT_NPM_LIBS_NAMES.each do |lib|
+    target_file = "#{SRC_CLIENT_NPM_LIBS}/dist/#{lib}/public_api.d.ts"
+    file target_file => FileList["#{SRC_CLIENT_NPM_LIBS}/projects/#{lib}/**/*.*"] do
+      cd SRC_CLIENT_NPM_LIBS do
+        puts 'Installing: components'
+        sh "#{NPM_RUN} build:#{lib}"
+      end
+    end
+    task build_libs: target_file
+  end
 end
+# namespace client
+
+desc 'do compile electron stuff'
 task compile_electron: [:prepare_electron_build,
                         :native,
                         'dev:neon',
                         :electron_build_ts]
-task :prepare_electron_build do
+
+prepare_electron_application = 'application/electron/node_modules'
+# make sure we update if json config files change => compare date of node_modules
+file prepare_electron_application => FileList['application/electron/*.json'] do |_t|
+  puts "NPM isn't installed in project application/electron. Installing..."
   cd ELECTRON_DIR do
     npm_install
+    touch 'node_modules'
   end
 end
+
+task prepare_electron_build: prepare_electron_application
+
 desc 'ts build electron (needed when ts files are changed)'
 task :electron_build_ts do
   cd ELECTRON_DIR do
@@ -342,24 +394,21 @@ end
 desc 're-install'
 task reinstall: [:folders,
                  'client:rebuild_core',
-                 'client:build_components',
+                 'client:install_components',
                  :compile_electron,
-                 'client:build_libs',
-                 'client:deliver_libs',
-                 'client:build',
+                 'client:build_and_deliver_libs',
+                 'client:create_resources',
                  :add_package_json]
 desc 'install'
 task install: [:folders,
                'client:build_core',
-               'client:build_components',
+               'client:install_components',
                :compile_electron,
-               'client:build_libs',
-               'client:deliver_libs',
-               'client:build',
+               'client:build_and_deliver_libs',
+               'client:create_resources',
                :add_package_json]
 
 namespace :dev do
-
   desc 'Developer task: plugin serial: render'
   task :serial_render do
     install_plugin_angular('serial')
@@ -389,10 +438,10 @@ namespace :dev do
   task neon: %i[build_embedded_indexer delivery_embedded_indexer_into_app]
 
   desc 'Developer task: update client'
-  task update_client: ['client:build']
+  task update_client: ['client:create_resources']
 
   desc 'Developer task: update client and libs'
-  task fullupdate_client: ['client:build_libs', 'client:deliver_libs', :update_client]
+  task fullupdate_client: ['client:build_and_deliver_libs', :update_client]
 
   desc 'Developer task: update client and run electron'
   task fullupdate_client_run: :fullupdate_client do
@@ -404,29 +453,19 @@ namespace :dev do
   # Application should be built already to use this task
   desc 'Developer task: build launcher and delivery into package.'
   task build_delivery_apps: %i[build_launcher build_updater] do
-    if OS.mac?
-      node_app_original = "#{ELECTRON_RELEASE_DIR}/mac/chipmunk.app/Contents/MacOS/chipmunk"
-      launcher = SRC_LAUNCHER
-    elsif OS.linux?
-      node_app_original = "#{ELECTRON_RELEASE_DIR}/linux-unpacked/chipmunk"
-      launcher = SRC_LAUNCHER
-    else
-      node_app_original = "#{ELECTRON_RELEASE_DIR}/win-unpacked/chipmunk.exe"
-      launcher = "#{SRC_LAUNCHER}.exe"
-    end
+    node_app_original = release_app_folder_and_path('chipmunk')[1]
     rm(node_app_original)
-    cp(launcher, node_app_original)
+    cp(rust_exec_in_build_dir('launcher'), node_app_original)
   end
 
   desc 'quick release'
-  task quick_release: [:folders,
-                :compile_electron,
-                :assemble_build,
-                :add_package_json,
-                :ripgrepdelivery,
-                :neon_indexer_delivery,
-                :create_release_file_list]
-
+  task quick_release: %i[folders
+                         compile_electron
+                         assemble_build
+                         add_package_json
+                         ripgrepdelivery
+                         neon_indexer_delivery
+                         create_release_file_list]
 end
 
 task :add_package_json do
@@ -440,24 +479,6 @@ def plugin_bundle_name(plugin, kind)
   package_str = File.read("#{dest}/#{kind}/package.json")
   package = JSON.parse(package_str)
   "#{INCLUDED_PLUGINS_FOLDER}/#{plugin}@#{package['version']}-#{nodejs_platform}.tgz"
-end
-
-def install_plugin_standalone(plugin)
-  puts "Installing plugin: #{plugin}"
-  src = "application/client.plugins.standalone/#{plugin}"
-  cd src do
-    npm_install
-    npm_reinstall('chipmunk.client.toolkit@latest')
-    sh "#{NPM_RUN} build"
-  end
-  dest = "#{PLUGINS_SANDBOX}/#{plugin}"
-  dest_dist = "#{dest}/render/dist"
-  rm_r(dest_dist, force: true)
-  cp_r("#{src}/dist", dest_dist, verbose: false)
-  cp_r("#{src}/package.json", "#{dest}/render/package.json", verbose: false)
-  arch = plugin_bundle_name(plugin, 'render')
-  rm(arch, force: true)
-  compress_plugin(arch, plugin)
 end
 
 desc 'run all tests'
@@ -552,19 +573,37 @@ STANDALONE_PLUGINS.each do |p|
   task install_plugins_standalone: plugin_bundle_name(p, 'render')
 end
 
+def install_plugin_standalone(plugin)
+  puts "Installing plugin: #{plugin}"
+  src = "application/client.plugins.standalone/#{plugin}"
+  cd src do
+    npm_install
+    npm_reinstall('chipmunk.client.toolkit@latest')
+    sh "#{NPM_RUN} build"
+  end
+  dest = "#{PLUGINS_SANDBOX}/#{plugin}"
+  dest_dist = "#{dest}/render/dist"
+  rm_r(dest_dist, force: true)
+  cp_r("#{src}/dist", dest_dist, verbose: false)
+  cp_r("#{src}/package.json", "#{dest}/render/package.json", verbose: false)
+  arch = plugin_bundle_name(plugin, 'render')
+  rm(arch, force: true)
+  compress_plugin(arch, plugin)
+end
+
 def install_plugin_complex(plugin)
   puts "Installing plugin: #{plugin}"
   cd "#{PLUGINS_SANDBOX}/#{plugin}/process" do
     npm_install
-    npm_install('electron@6.0.12 electron-rebuild@^1.8.6')
+    npm_install("electron@#{ELECTRON_VERSION} electron-rebuild@#{ELECTRON_REBUILD_VERSION}")
     sh './node_modules/.bin/electron-rebuild'
     sh 'npm uninstall electron electron-rebuild'
     sh "#{NPM_RUN} build"
   end
-  cd 'application/client.plugins' do
+  cd CLIENT_PLUGIN_DIR do
     sh "#{NPM_RUN} build:#{plugin}"
   end
-  src = "application/client.plugins/dist/#{plugin}"
+  src = "#{CLIENT_PLUGIN_DIR}/dist/#{plugin}"
   dest_render = "#{PLUGINS_SANDBOX}/#{plugin}/render"
   rm_r(dest_render, force: true)
   cp_r(src.to_s, dest_render, verbose: false)
@@ -582,10 +621,10 @@ end
 
 def install_plugin_angular(plugin)
   puts "Installing plugin: #{plugin}"
-  cd 'application/client.plugins' do
+  cd CLIENT_PLUGIN_DIR do
     sh "#{NPM_RUN} build:#{plugin}"
   end
-  src = "application/client.plugins/dist/#{plugin}"
+  src = "#{CLIENT_PLUGIN_DIR}/dist/#{plugin}"
   dest = "#{PLUGINS_SANDBOX}/#{plugin}"
   dest_render = "#{dest}/render"
   rm_r(dest_render, force: true)
@@ -626,38 +665,25 @@ end
 
 desc 'build updater'
 task build_updater: :folders do
-  src_app_dir = "#{APPS_DIR}/updater/target/release/"
-  app_file = 'updater'
-
-  app_file = 'updater.exe' if OS.windows? == true
-
-  cd "#{APPS_DIR}/updater" do
-    puts 'Build updater'
-    sh 'cargo build --release'
-  end
-
-  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}/#{app_file}"
-  rm("#{INCLUDED_APPS_FOLDER}/#{app_file}", force: true)
-  puts "Updating app from: #{src_app_dir}#{app_file}"
-  cp("#{src_app_dir}#{app_file}", "#{INCLUDED_APPS_FOLDER}/#{app_file}")
+  build_and_deploy_rust_app('updater')
 end
 
 desc 'build launcher'
 task build_launcher: :folders do
-  src_app_dir = "#{APPS_DIR}/launcher/target/release/"
-  app_file = 'launcher'
+  build_and_deploy_rust_app('launcher')
+end
 
-  app_file = 'launcher.exe' if OS.windows? == true
-
-  cd "#{APPS_DIR}/launcher" do
-    puts 'Build launcher'
+def build_and_deploy_rust_app(name)
+  cd "#{APPS_DIR}/#{name}" do
+    puts "Build #{name}"
     sh 'cargo build --release'
   end
-
-  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}/#{app_file}"
-  rm("#{INCLUDED_APPS_FOLDER}/#{app_file}", force: true)
-  puts "Updating app from: #{src_app_dir}#{app_file}"
-  cp("#{src_app_dir}#{app_file}", "#{INCLUDED_APPS_FOLDER}/#{app_file}")
+  rust_exec = rust_exec_in_build_dir(name)
+  deployed_app = deployed_rust_exec(name)
+  puts "Check old version of app: #{deployed_app}"
+  rm(deployed_app, force: true)
+  puts "Updating app from: #{rust_exec}"
+  cp(rust_exec, deployed_app)
 end
 
 desc 'build indexer'
@@ -670,15 +696,12 @@ task build_indexer: :folders do
     app_file_comp = 'indexer_cli.exe'
     app_file_release = 'lvin.exe'
   end
-
   cd "#{APPS_DIR}/indexer" do
     puts 'Build indexer'
     sh 'cargo build --release'
   end
 
-  puts "Check old version of app: #{INCLUDED_APPS_FOLDER}/#{app_file_release}"
   rm("#{INCLUDED_APPS_FOLDER}/#{app_file_release}", force: true)
-  puts "Updating app from: #{src_app_dir}#{app_file_comp}"
   cp("#{src_app_dir}#{app_file_comp}", "#{INCLUDED_APPS_FOLDER}/#{app_file_release}")
 end
 
@@ -708,11 +731,24 @@ def package_and_copy_neon_indexer(dest)
   cp_r(neon_resources, dest_native_release)
 end
 
-desc 'build embedded indexer'
-task :build_embedded_indexer do
+local_neon_installation = "#{APPS_DIR}/indexer-neon/node_modules/.bin"
+# make sure we update if json config files change => compare date of node_modules
+file local_neon_installation => FileList['application/electron/*.json'] do |_t|
+  puts "NPM isn't installed in project application/electron. Installing..."
   cd "#{APPS_DIR}/indexer-neon" do
     npm_install
+    touch 'node_modules'
+  end
+end
+
+task :compile_neon_ts do
+  cd "#{APPS_DIR}/indexer-neon" do
     sh "#{NPM_RUN} build-ts-neon"
+  end
+end
+desc 'build embedded indexer'
+task build_embedded_indexer: [local_neon_installation, :compile_neon_ts] do
+  cd "#{APPS_DIR}/indexer-neon" do
     if OS.windows?
       sh 'node_modules/.bin/electron-build-env neon build --release'
     else
@@ -804,26 +840,49 @@ def create_and_tag_new_version(versioner, jump)
   puts "git reset --hard HEAD~1 && git tag -d #{next_version}"
 end
 
-desc 'package electron'
-task assemble_build: :folders do
+def release_app_folder_and_path(file_name)
+  app_folder_and_path(ELECTRON_RELEASE_DIR, file_name)
+end
+
+def build_app_folder_and_path(file_name)
+  app_folder_and_path(APPS_DIR, file_name)
+end
+
+def app_folder_and_path(base, file_name)
+  if OS.mac?
+    folder = "#{base}/mac/chipmunk.app/Contents/MacOS"
+    path = "#{folder}/#{file_name}"
+  elsif OS.linux?
+    folder = "#{base}/linux-unpacked"
+    path = "#{folder}/#{file_name}"
+  else
+    folder = "#{base}/win-unpacked"
+    path = "#{folder}/#{file_name}.exe"
+  end
+  [folder, path]
+end
+
+# setup file dependencies for chipmunk.client.components installation
+electron_build_output = 'application/electron/dist/release/mac/chipmunk.app/Contents/MacOS/app'
+file electron_build_output => FileList['application/electron/src/**/*.*', 'application/electron/*.json'] do |_t|
   cd ELECTRON_DIR do
     sh "#{NPM_RUN} build-ts"
     sh "./node_modules/.bin/electron-builder --#{target_platform_alias}"
   end
-  if OS.mac?
-    app_dir = "#{ELECTRON_RELEASE_DIR}/mac/chipmunk.app/Contents/MacOS"
-    mv("#{app_dir}/chipmunk", "#{app_dir}/app")
-    cp(SRC_LAUNCHER.to_s, "#{app_dir}/chipmunk")
-  elsif OS.linux?
-    app_dir = "#{ELECTRON_RELEASE_DIR}/linux-unpacked"
-    mv("#{app_dir}/chipmunk", "#{app_dir}/app")
-    cp(SRC_LAUNCHER.to_s, "#{app_dir}/chipmunk")
-  else
-    app_dir = "#{ELECTRON_RELEASE_DIR}/win-unpacked"
-    mv("#{app_dir}/chipmunk.exe", "#{app_dir}/app.exe")
-    cp("#{SRC_LAUNCHER}.exe", "#{app_dir}/chipmunk.exe")
-  end
+  chipmunk_exec_path = release_app_folder_and_path('chipmunk')[1]
+  app_exec_path = release_app_folder_and_path('app')[1]
+  mv(chipmunk_exec_path, app_exec_path)
+  cp(BUILT_LAUNCHER, chipmunk_exec_path)
 end
+task electron_builder_build: electron_build_output
+
+BUILT_LAUNCHER = if OS.windows?
+                   'application/apps/launcher/target/release/launcher.exe'
+                 else
+                   'application/apps/launcher/target/release/launcher'
+                 end
+desc 'package electron'
+task assemble_build: %i[folders electron_builder_build]
 
 desc 'Prepare package to deploy on Github'
 task :prepare_to_deploy do
@@ -852,8 +911,8 @@ desc 'developer job to completely build chipmunk...after that use :start'
 task dev: %i[install
              plugins
              ripgrepdelivery
-             assemble_build
-             neon_indexer_delivery]
+             neon_indexer_delivery
+             add_package_json]
 
 desc 'Build the full build pipeline for a given platform'
 task full_pipeline: %i[setup_environment
@@ -883,7 +942,7 @@ task :dups do
       mapping[md5] = Set[f]
     end
   end
-  puts ""
+  puts ''
   mapping.each do |_k, v|
     next unless v.length > 1
 
@@ -892,17 +951,4 @@ task :dups do
       puts "\t#{e}"
     end
   end
-end
-task :a do
-  puts RIPGREP_LOCAL_TMP
-  puts 'a'
-  sleep(0.6)
-end
-task b: :a do
-  puts 'b'
-  sleep(0.5)
-end
-task c: :b do
-  puts 'c'
-  sleep(0.1)
 end
