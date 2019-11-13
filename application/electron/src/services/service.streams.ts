@@ -8,6 +8,7 @@ import ServicePlugins from './service.plugins';
 import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from './service.electron';
 import Logger from '../tools/env.logger';
 import ControllerStreamSearch from '../controllers/stream.search/controller';
+import ControllerStreamCharts from '../controllers/stream.charts/controller';
 import ControllerStreamProcessor from '../controllers/stream.main/controller';
 import { EventsHub } from '../controllers/stream.common/events';
 
@@ -26,6 +27,7 @@ export interface IStreamInfo {
     events: EventsHub;
     processor: ControllerStreamProcessor;
     search: ControllerStreamSearch;
+    charts: ControllerStreamCharts;
     received: number;
 }
 
@@ -316,6 +318,7 @@ class ServiceStreams implements IService  {
                     events: events,
                     processor: new ControllerStreamProcessor(guid, streamFile, events),
                     search: new ControllerStreamSearch(guid, streamFile, searchFile, events),
+                    charts: new ControllerStreamCharts(guid, streamFile, searchFile, events),
                     received: 0,
                 };
                 // Bind server with file

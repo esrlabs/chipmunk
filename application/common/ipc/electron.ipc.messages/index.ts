@@ -220,6 +220,18 @@ export { RenderSessionAddRequest };
 import { RenderSessionAddResponse, IRenderSessionAddResponse } from './render.session.add.response';
 export { RenderSessionAddResponse, IRenderSessionAddResponse };
 
+import { IChartRequest, IRegExpStr as IChartRegExpStr, ChartRequest } from './chart.request';
+export { IChartRequest, IChartRegExpStr, ChartRequest };
+
+import { IChartRequestCancelRequest, ChartRequestCancelRequest } from './chart.request.cancel.request';
+export { IChartRequestCancelRequest, ChartRequestCancelRequest };
+
+import { IChartRequestCancelResponse, ChartRequestCancelResponse } from './chart.request.cancel.response';
+export { IChartRequestCancelResponse, ChartRequestCancelResponse };
+
+import { IChartRequestResults, IMatch as IChartMatch, ChartRequestResults, TResults as TChartResults } from './chart.request.results';
+export { IChartRequestResults, IChartMatch, ChartRequestResults, TChartResults };
+
 // Common type for expected message implementation
 export type TMessage =  HostState |
                         HostStateHistory |
@@ -292,7 +304,11 @@ export type TMessage =  HostState |
                         DLTStatsCancelResponse |
                         UpdateRequest |
                         RenderSessionAddRequest |
-                        RenderSessionAddResponse;
+                        RenderSessionAddResponse |
+                        ChartRequest |
+                        ChartRequestCancelRequest |
+                        ChartRequestCancelResponse |
+                        ChartRequestResults;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -386,4 +402,9 @@ export const Map = {
 
     [RenderSessionAddRequest.signature      ]: RenderSessionAddRequest,
     [RenderSessionAddResponse.signature     ]: RenderSessionAddResponse,
+
+    [ChartRequest.signature                 ]: ChartRequest,
+    [ChartRequestCancelRequest.signature    ]: ChartRequestCancelRequest,
+    [ChartRequestCancelResponse.signature   ]: ChartRequestCancelResponse,
+    [ChartRequestResults.signature          ]: ChartRequestResults,
 };
