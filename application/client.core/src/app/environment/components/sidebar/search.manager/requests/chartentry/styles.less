@@ -1,0 +1,59 @@
+@import '../../../../../theme/scheme.less';
+
+
+:host {
+    position: relative;
+    display: block;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    white-space: nowrap;
+    height: 23px;
+    cursor: default;
+    div.container{
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        & span{
+            position: relative;
+            display: inline-block;
+            height: 23px;
+            vertical-align: top;
+        }
+        & span.switcher{
+            width: 1rem;
+            line-height: 20px;
+            &.inactive{
+                color: @scheme-color-3;
+            }
+        }
+        & span.color{
+            width: 0.5rem;
+            background: green;
+            padding-top: 0;
+            height: 19px;
+            margin: 2px 0.1rem 2px 0;
+        }
+
+        & span.type {
+            width: 23px;
+            padding: 3px 0 0 4px;
+        }
+        & span.background {
+            margin-right: 0.5rem;
+        }
+        & span.remove {
+            width: 1rem;
+            line-height: 20px;
+        }
+        & span.request{
+            width: ~"calc(100% - 5.1rem)";
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-top: 2px;
+        }
+    }
+
+}

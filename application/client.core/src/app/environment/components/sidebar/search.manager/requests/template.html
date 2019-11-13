@@ -1,18 +1,37 @@
-<div class="requests-wrapper">
-    <p class="caption t-small">{{_ng_filename === undefined ? 'Filters' : _ng_filename}}</p>
-    <ul #list [attr.class]="'requests '" (focus)="_ng_onFocus()" (blur)="_ng_onBlur()" tabindex="1">
-        <li [attr.class]="'request ' + (_ng_selectedIndex === i ? 'selected' : '') + ' ' + (request.request.active ? '' : 'inactive')"
-        (contextmenu)="_ng_onContexMenu($event, request)"
-        *ngFor="let request of _ng_requests; let i = index;">
-            <app-sidebar-app-search-request [request]="request"></app-sidebar-app-search-request>
-        </li>
-    </ul>
+<p class="caption t-small" *ngIf="_ng_filename !== undefined">{{_ng_filename}}</p>
+
+<div class="lists">
+    <div class="requests-wrapper" *ngIf="_ng_requests.length > 0">
+        <p class="caption t-small" *ngIf="_ng_requests.length > 0 && _ng_charts.length > 0">Available filters</p>
+        <ul #listrequests [attr.class]="'requests '" (focus)="_ng_onFocus()" (blur)="_ng_onBlur()" tabindex="1">
+            <li [attr.class]="'request ' + (_ng_selectedRequestIndex === i ? 'selected' : '') + ' ' + (request.request.active ? '' : 'inactive')"
+            (contextmenu)="_ng_onContexMenu($event, request, 'filters')"
+            *ngFor="let request of _ng_requests; let i = index;">
+                <app-sidebar-app-search-request [request]="request"></app-sidebar-app-search-request>
+            </li>
+        </ul>
+    </div>
+    
+    <div class="controlls" *ngIf="_ng_requests.length > 0">
+        <span class="ref-button" (click)="_ng_onRemoveAll()">Clear</span>
+    </div>
+    
+    <div class="charts-wrapper" *ngIf="_ng_charts.length > 0">
+        <p class="caption t-small" *ngIf="_ng_requests.length > 0 && _ng_charts.length > 0">Available charts</p>
+        <ul #listcharts [attr.class]="'requests '" (focus)="_ng_onFocus()" (blur)="_ng_onBlur()" tabindex="1">
+            <li [attr.class]="'request ' + (_ng_selectedChartIndex === i ? 'selected' : '') + ' ' + (chart.request.active ? '' : 'inactive')"
+                (contextmenu)="_ng_onContexMenu($event, chart, 'charts')"
+                *ngFor="let chart of _ng_charts; let i = index;">
+                <app-sidebar-app-search-chartentry [chart]="chart"></app-sidebar-app-search-chartentry>
+            </li>
+        </ul>
+    </div>
+    
+    <div class="controlls" *ngIf="_ng_charts.length > 0">
+        <span class="ref-button" (click)="_ng_onRemoveAll()">Clear</span>
+    </div>    
 </div>
 
-<div class="controlls" *ngIf="_ng_requests.length > 0">
-    <span class="ref-button" (click)="_ng_onRemoveAll()">Clear</span>
-</div>
-
-<div class="details" *ngIf="_ng_selected !== undefined">
-    <app-sidebar-app-search-request-details [request]="_ng_selected"></app-sidebar-app-search-request-details>
+<div class="details" *ngIf="_ng_selectedRequest !== undefined">
+    <app-sidebar-app-search-request-details [request]="_ng_selectedRequest"></app-sidebar-app-search-request-details>
 </div>

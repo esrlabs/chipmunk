@@ -1,5 +1,6 @@
 import { Component, Input, AfterContentInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
+import { ControllerSessionTabSearchFilters } from '../../../../../controller/controller.session.tab.search.filters';
 import PopupsService from '../../../../../services/standalone/service.popups';
 import { DialogsRecentFitlersActionComponent } from '../../../../dialogs/recentfilter/component';
 import ElectronIpcService, { IPCMessages } from '../../../../../services/service.electron.ipc';
@@ -89,8 +90,13 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
             const filters = response.filters.filter((filter) => {
                 return Toolkit.regTools.isRegStrValid(filter.reg);
             });
-            SearchSessionsService.removeAllStoredRequests();
-            SearchSessionsService.insertStoredRequests(filters.map((filter) => {
+            const controller: ControllerSessionTabSearchFilters | undefined  = SearchSessionsService.getFiltersAPI();
+            if (controller === undefined) {
+                this._logger.error(`Fail to get FiltersAPI`);
+                return;
+            }
+            controller.removeAllStored();
+            controller.insertStored(filters.map((filter) => {
                 return {
                     reg: Toolkit.regTools.createFromStr(filter.reg) as RegExp,
                     color: filter.color,
@@ -112,7 +118,12 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
         if (!saveAs && !this.changed) {
             return;
         }
-        const requests: IRequest[] = SearchSessionsService.getStoredRequests();
+        const controller: ControllerSessionTabSearchFilters | undefined  = SearchSessionsService.getFiltersAPI();
+        if (controller === undefined) {
+            this._logger.error(`Fail to get FiltersAPI`);
+            return;
+        }
+        const requests: IRequest[] = controller.getStored();
         if (requests.length === 0) {
             return;
         }
