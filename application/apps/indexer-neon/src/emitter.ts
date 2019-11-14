@@ -4,6 +4,7 @@ const {
     RustDltStatsEventEmitter: RustDltStatsChannel,
     RustTimestampFormatDetectionEmitter: RustTimestampChannel,
     RustConcatenatorEmitter: RustConcatenatorChannel,
+    RustMergerEmitter: RustMergerChannel,
 } = require("../native/index.node");
 const { EventEmitter } = require("events");
 export {
@@ -13,6 +14,7 @@ export {
     RustDltStatsChannel,
     RustTimestampChannel,
     RustConcatenatorChannel,
+    RustMergerChannel,
 };
 const { promisify } = require("util");
 import { log } from "./logging";

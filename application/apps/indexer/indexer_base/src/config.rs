@@ -19,5 +19,4 @@ pub struct IndexingConfig<'a> {
     pub in_file: fs::File,
     pub out_path: &'a path::PathBuf,
     pub append: bool,
-    pub to_stdout: bool,
 }

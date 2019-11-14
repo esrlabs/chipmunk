@@ -16,20 +16,20 @@ mod dlt_indexer_channel;
 mod dlt_stats_channel;
 mod indexer_channel;
 mod logging;
+mod merger_channel;
 mod timestamp_detector_channel;
-// use crate::logging::SimpleLogger;
 use concatenator_channel::JsConcatenatorEmitter;
 use dlt_indexer_channel::*;
 use dlt_stats_channel::JsDltStatsEventEmitter;
 use indexer_base::progress::{IndexingProgress, IndexingResults};
 use indexer_base::progress::{Notification, Severity};
 use indexer_channel::JsIndexerEventEmitter;
+use merger_channel::JsMergerEmitter;
 use neon::prelude::*;
 use processor::parse;
 use processor::parse::timespan_in_files;
 use processor::parse::DiscoverItem;
 use processor::parse::TimestampFormatResult;
-use std::path;
 use std::sync::mpsc::{Receiver, Sender};
 use timestamp_detector_channel::JsTimestampFormatDetectionEmitter;
 
@@ -37,8 +37,6 @@ use log::LevelFilter;
 use log4rs::append::file::FileAppender;
 use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
-
-// static LOGGER: SimpleLogger = SimpleLogger;
 
 #[no_mangle]
 pub extern "C" fn __cxa_pure_virtual() {
@@ -143,33 +141,6 @@ fn detect_timestamp_format_in_file(mut cx: FunctionContext) -> JsResult<JsValue>
     }
 }
 
-fn merge_files(mut cx: FunctionContext) -> JsResult<JsNumber> {
-    let merge_config_file_name = cx.argument::<JsString>(0)?.value();
-    let out_path = path::PathBuf::from(cx.argument::<JsString>(1)?.value().as_str());
-    let chunk_size = cx.argument::<JsNumber>(2)?.value() as usize;
-    let append: bool = cx.argument::<JsBoolean>(3)?.value();
-    let stdout: bool = cx.argument::<JsBoolean>(4)?.value();
-    let status_updates: bool = cx.argument::<JsBoolean>(5)?.value();
-    let merger = merging::merger::Merger {
-        chunk_size, // used for mapping line numbers to byte positions
-    };
-    let config_path = path::PathBuf::from(merge_config_file_name);
-    let merged_lines = match merger.merge_files_use_config_file(
-        &config_path,
-        &out_path,
-        append,
-        stdout,
-        status_updates,
-    ) {
-        Ok(cnt) => cnt,
-        Err(e) => {
-            error!("error merging: {}", e);
-            std::process::exit(2)
-        }
-    };
-    Ok(cx.number(merged_lines as f64))
-}
-
 register_module!(mut cx, {
     init_logging().expect("logging has to be cofigured");
     // handle_discover_subcommand
@@ -178,13 +149,12 @@ register_module!(mut cx, {
         "detectTimestampFormatInFile",
         detect_timestamp_format_in_file,
     )?;
-    cx.export_function("mergeFiles", merge_files)?;
-    // cx.export_function("concatFiles", concat_files)?;
     cx.export_class::<JsIndexerEventEmitter>("RustIndexerEventEmitter")?;
     cx.export_class::<JsDltIndexerEventEmitter>("RustDltIndexerEventEmitter")?;
     cx.export_class::<JsDltStatsEventEmitter>("RustDltStatsEventEmitter")?;
     cx.export_class::<JsTimestampFormatDetectionEmitter>("RustTimestampFormatDetectionEmitter")?;
     cx.export_class::<JsConcatenatorEmitter>("RustConcatenatorEmitter")?;
+    cx.export_class::<JsMergerEmitter>("RustMergerEmitter")?;
     // detect_timestamp_formats_in_files
     Ok(())
 });

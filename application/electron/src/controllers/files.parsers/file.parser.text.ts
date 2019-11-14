@@ -1,7 +1,7 @@
 import { AFileParser, IFileParserFunc, IMapItem } from "./interface";
 import { Transform } from "stream";
 import * as path from "path";
-import { indexer, ITicks, TimeUnit } from "indexer-neon";
+import { indexer, ITicks, TimeUnit, IChunk } from "indexer-neon";
 import ServiceStreams from "../../services/service.streams";
 import * as ft from "file-type";
 import * as fs from "fs";
@@ -108,7 +108,7 @@ export default class FileParser extends AFileParser {
         return true;
     }
 
-    public readAndWrite(
+    public parseAndIndex(
         srcFile: string,
         destFile: string,
         sourceId: string,
@@ -136,11 +136,11 @@ export default class FileParser extends AFileParser {
                         onProgress(ticks);
                     }
                 },
-                (e: INeonTransferChunk) => {
+                (e: IChunk) => {
                     if (onMapUpdated !== undefined) {
                         const mapItem: IMapItem = {
-                            rows: { from: e.r[0], to: e.r[1] },
-                            bytes: { from: e.b[0], to: e.b[1] },
+                            rows: { from: e.rowsStart, to: e.rowsEnd },
+                            bytes: { from: e.bytesStart, to: e.bytesEnd },
                         };
                         onMapUpdated([mapItem]);
                         collectedChunks.push(mapItem);
@@ -160,7 +160,7 @@ export default class FileParser extends AFileParser {
                     }
                     const hrend = process.hrtime(hrstart);
                     const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-                    this._logger.debug("readAndWrite task finished, result: " + x);
+                    this._logger.debug("parseAndIndex task finished, result: " + x);
                     this._logger.debug("Execution time for indexing : " + ms + "ms");
                     this._cancel = this._defaultCancel;
                     resolve(collectedChunks);
@@ -192,6 +192,6 @@ export default class FileParser extends AFileParser {
     }
 
     private _defaultCancel = () => {
-        this._logger.debug("no cancel function set");
+        this._logger.debug("text indexing: no cancel function set");
     };
 }

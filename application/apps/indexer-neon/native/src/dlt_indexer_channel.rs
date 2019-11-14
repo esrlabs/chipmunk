@@ -34,7 +34,6 @@ impl IndexingDltEventEmitter {
                     in_file: thread_conf.in_file,
                     out_path: &thread_conf.out_path,
                     append: thread_conf.append,
-                    to_stdout: false,
                 },
                 filter_conf,
                 chunk_result_sender.clone(),

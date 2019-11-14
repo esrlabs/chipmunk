@@ -21,7 +21,6 @@ use dlt::dlt_parse::StatisticsResults;
 use indexer_base::chunks::{serialize_chunks, Chunk, ChunkResults};
 use indexer_base::config::IndexingConfig;
 use indexer_base::error_reporter::*;
-use merging::concatenator::*;
 
 #[macro_use]
 extern crate clap;
@@ -391,7 +390,6 @@ fn main() {
                 None
             };
             let append: bool = matches.is_present("append");
-            let stdout: bool = matches.is_present("stdout");
             let timestamps: bool = matches.is_present("timestamp");
             let (tx, rx): (Sender<IndexingResults<Chunk>>, Receiver<ChunkResults>) =
                 std::sync::mpsc::channel();
@@ -404,7 +402,6 @@ fn main() {
                         in_file: f,
                         out_path: &out_path,
                         append,
-                        to_stdout: stdout,
                     },
                     timestamps,
                     source_file_size,
@@ -471,107 +468,10 @@ fn main() {
     }
 
     fn handle_merge_subcommand(
-        matches: &clap::ArgMatches,
-        start: std::time::Instant,
-        status_updates: bool,
+        _matches: &clap::ArgMatches,
+        _start: std::time::Instant,
+        _status_updates: bool,
     ) {
-        if matches.is_present("merge_config") {
-            let merge_config_file_name: &str = matches
-                .value_of("merge_config")
-                .expect("merge_config must be present");
-            let out_path: path::PathBuf = match matches.value_of("output") {
-                Some(path) => path::PathBuf::from(path),
-                None => {
-                    report_error("no output file specified");
-                    std::process::exit(2)
-                }
-            };
-            let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
-            let append: bool = matches.is_present("append");
-            let stdout: bool = matches.is_present("stdout");
-            let merger = merging::merger::Merger {
-                chunk_size, // used for mapping line numbers to byte positions
-            };
-            let config_path = path::PathBuf::from(merge_config_file_name);
-            let merged_lines = match merger.merge_files_use_config_file(
-                &config_path,
-                &out_path,
-                append,
-                stdout,
-                status_updates,
-            ) {
-                Ok(cnt) => cnt,
-                Err(e) => {
-                    report_error(format!("error merging: {}", e));
-                    std::process::exit(2)
-                }
-            };
-            if status_updates {
-                duration_report(start, format!("merging {} lines", merged_lines));
-            }
-        } else if matches.is_present("concat_config") {
-            let concat_config_file_name: &str = matches
-                .value_of("concat_config")
-                .expect("concat_config must be present");
-            let out_path: path::PathBuf = match matches.value_of("output") {
-                Some(path) => path::PathBuf::from(path),
-                None => {
-                    report_error("no output file specified");
-                    std::process::exit(2)
-                }
-            };
-            let append: bool = matches.is_present("append");
-            let config_path = path::PathBuf::from(concat_config_file_name);
-            let (tx, rx): (
-                Sender<IndexingResults<ConcatenatorResult>>,
-                Receiver<IndexingResults<ConcatenatorResult>>,
-            ) = std::sync::mpsc::channel();
-
-            match concat_files_use_config_file(&config_path, &out_path, append, tx, None) {
-                Ok(()) => (),
-                Err(e) => {
-                    report_error(format!("error merging: {}", e));
-                    std::process::exit(2)
-                }
-            };
-            let mut merged_lines: usize = 0;
-            loop {
-                match rx.recv() {
-                    Err(why) => {
-                        report_error(format!("concat files, couldn't process: {}", why));
-                        std::process::exit(2)
-                    }
-                    Ok(Ok(IndexingProgress::Finished { .. })) => {
-                        if status_updates {
-                            duration_report(start, format!("merging {} lines", merged_lines));
-                        }
-                        break;
-                    }
-                    Ok(Ok(IndexingProgress::Progress { ticks })) => {
-                        trace!(
-                            "progress... ({:.0} %)",
-                            (ticks.0 as f64 / ticks.1 as f64) * 100.0
-                        );
-                    }
-                    Ok(Ok(IndexingProgress::GotItem { item })) => {
-                        merged_lines = item.line_cnt;
-                    }
-                    Ok(Err(Notification {
-                        severity,
-                        content,
-                        line,
-                    })) => {
-                        println!("got notification: {:?}", content);
-                        if severity == Severity::WARNING {
-                            report_warning_ln(content, line);
-                        } else {
-                            report_error_ln(content, line);
-                        }
-                    }
-                    Ok(_) => report_warning("process finished without result"),
-                }
-            }
-        }
     }
 
     fn handle_format_subcommand(
@@ -671,7 +571,6 @@ fn main() {
                 None => None,
             };
             let append: bool = matches.is_present("append");
-            let stdout: bool = matches.is_present("stdout");
             let source_file_size = if status_updates {
                 Some(match fs::metadata(file_name) {
                     Ok(file_meta) => file_meta.len() as usize,
@@ -712,7 +611,6 @@ fn main() {
                         in_file: f,
                         out_path: &out_path,
                         append,
-                        to_stdout: stdout,
                     },
                     source_file_size,
                     filter_conf,

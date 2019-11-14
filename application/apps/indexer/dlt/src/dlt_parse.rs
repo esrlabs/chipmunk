@@ -888,8 +888,7 @@ pub fn index_dlt_file(
 
     let mut chunk_count = 0usize;
     let mut last_byte_index = 0usize;
-    let mut chunk_factory =
-        ChunkFactory::new(config.chunk_size, config.to_stdout, current_out_file_size);
+    let mut chunk_factory = ChunkFactory::new(config.chunk_size, current_out_file_size);
 
     let mut reader = ReduxReader::with_capacity(10 * 1024 * 1024, config.in_file)
         .set_policy(MinBuffered(10 * 1024));

@@ -29,7 +29,6 @@ pub fn serialize_chunks(chunks: &[Chunk], out_file_name: &std::path::Path) -> Re
 }
 pub struct ChunkFactory {
     pub chunk_size: usize, // how many lines in one chunk?
-    pub to_stdout: bool,   // write chunks to stdout
     pub start_of_chunk_byte_index: usize,
     last_line_current_chunk: usize,
     current_byte_index: usize,
@@ -37,14 +36,9 @@ pub struct ChunkFactory {
 }
 
 impl ChunkFactory {
-    pub fn new(
-        chunk_size: usize,
-        to_stdout: bool,
-        start_of_chunk_byte_index: usize,
-    ) -> ChunkFactory {
+    pub fn new(chunk_size: usize, start_of_chunk_byte_index: usize) -> ChunkFactory {
         ChunkFactory {
             chunk_size,
-            to_stdout,
             start_of_chunk_byte_index,
             current_byte_index: start_of_chunk_byte_index,
             last_line_current_chunk: 0,
@@ -71,11 +65,6 @@ impl ChunkFactory {
                 ),
                 b: (self.start_of_chunk_byte_index, self.current_byte_index),
             };
-            if self.to_stdout {
-                if let Ok(c) = serde_json::to_string(&chunk) {
-                    println!("{}", c);
-                }
-            }
 
             self.start_of_chunk_byte_index = self.current_byte_index + 1;
             self.lines_in_chunk = 0;
@@ -96,12 +85,6 @@ impl ChunkFactory {
                     ),
                     b: (self.start_of_chunk_byte_index, self.current_byte_index),
                 };
-                if self.to_stdout {
-                    println!(
-                        "{}",
-                        serde_json::to_string(&chunk).expect("chunk could not be serialized")
-                    );
-                }
                 return Some(chunk);
             }
         }

@@ -1,21 +1,20 @@
 import { indexAsync, IFilePath, discoverTimespanAsync } from "./processor";
-import { DltFilterConf, indexDltAsync, DltLogLevel, IIndexDltParams } from "./dlt";
+import { DltFilterConf, DltLogLevel, IIndexDltParams } from "./dlt";
 import { indexer, StatisticInfo } from "./index";
 import { TimeUnit } from "./units";
 import {
     ITicks,
     IChunk,
-    INeonTransferChunk,
     AsyncResult,
     INeonNotification,
     ITimestampFormatResult,
     IDiscoverItem,
-    IConcatenatorResult,
+    IMergerItemOptions,
 } from "./progress";
 import { log } from "./logging";
 import { IConcatFilesParams, ConcatenatorInput } from "./merger";
 import { StdoutController } from "custom.stdout";
-import * as fs from 'fs';
+import * as fs from "fs";
 
 const stdout = new StdoutController(process.stdout, { handleStdoutGlobal: true });
 
@@ -34,21 +33,53 @@ function measure({ desc, f }: { desc: String; f: () => void }) {
     console.info("Execution time %s : %dms", desc, ms);
 }
 
-function testCallMergeFiles() {
-    const mergePath = examplePath + "/merging/merging_big";
-    const mergeConf = mergePath + "/config.json";
-    const out = examplePath + "/merged.out";
+export function testCallMergeFiles(mergeConf: string, out: string) {
+    log(`calling testCallMergeFiles with mergeConf: ${mergeConf}, out: ${out}`);
+    const bar = stdout.createProgressBar({ caption: "merging files", width: 60 });
+    let onProgress = (ticks: ITicks) => {
+        bar.update(Math.round((100 * ticks.ellapsed) / ticks.total));
+    };
+    let onNotification = (notification: INeonNotification) => {
+        log(
+            "TTT: testDiscoverTimespanAsync: received notification:" + JSON.stringify(notification),
+        );
+    };
+    log("before measure");
     measure({
-        desc: "merge with config: " + mergeConf + ", output: " + out,
+        desc: "TTT: merge with config: " + mergeConf + ", output: " + out,
         f: () => {
-            const n = indexer.mergeFiles({
-                configFile: mergeConf,
+            let merged_lines: number = 0;
+            let onResult = (res: IChunk) => {
+                log("rowsEnd= " + JSON.stringify(res));
+                merged_lines = res.rowsEnd;
+            };
+            log("inside f measure");
+            const contents = fs.readFileSync(mergeConf, "utf8");
+            log(`contents is: ${contents}`);
+            const config: Array<IMergerItemOptions> = JSON.parse(contents);
+            log(`config is: ${JSON.stringify(config)}`);
+            const filePath = require("path").dirname(mergeConf);
+            const absolutePathConfig: Array<IMergerItemOptions> = config.map(
+                (input: IMergerItemOptions) => {
+                    log(`input is: ${JSON.stringify(input)}`);
+                    input.name = require("path").resolve(filePath, input.name);
+                    return input;
+                },
+            );
+            log(`absolutePathConfig: ${JSON.stringify(absolutePathConfig)}`);
+            const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexer.mergeFilesAsync(
+                absolutePathConfig,
                 out,
-                append: false,
-                stdout: false,
-                statusUpdates: true,
+                true,
+                TimeUnit.fromSeconds(5),
+                onProgress,
+                onResult,
+                onNotification,
+            );
+            futureRes.then(x => {
+                log("TTT: future returned with " + JSON.stringify(x));
+                log(`merged_lines: ${merged_lines}`);
             });
-            console.log("merged %s lines", n);
         },
     });
 }
@@ -57,7 +88,7 @@ export function testCallConcatFiles(concatConfig: string, out: string) {
     let onProgress = (ticks: ITicks) => {
         bar.update(Math.round((100 * ticks.ellapsed) / ticks.total));
     };
-    let onResult = (res: IConcatenatorResult) => {
+    let onResult = (res: IChunk) => {
         log("TTT: concatenated res: " + JSON.stringify(res));
     };
     let onNotification = (notification: INeonNotification) => {
@@ -73,17 +104,23 @@ export function testCallConcatFiles(concatConfig: string, out: string) {
                 out,
                 append: false,
             };
-            const contents = fs.readFileSync(concatConfig, 'utf8');
+            const contents = fs.readFileSync(concatConfig, "utf8");
             const config: Array<ConcatenatorInput> = JSON.parse(contents);
             const filePath = require("path").dirname(concatConfig);
-            const absolutePathConfig: Array<ConcatenatorInput> = config.map((input: ConcatenatorInput) => {
-                input.path = require("path").resolve(filePath, input.path);
-                return input;
-            });
-            const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexer.concatFilesAsync(
+            const absolutePathConfig: Array<ConcatenatorInput> = config.map(
+                (input: ConcatenatorInput) => {
+                    input.path = require("path").resolve(filePath, input.path);
+                    return input;
+                },
+            );
+            const [futureRes, cancel]: [
+                Promise<AsyncResult>,
+                () => void,
+            ] = indexer.concatFilesAsync(
                 absolutePathConfig,
                 out,
                 true,
+                100,
                 TimeUnit.fromSeconds(2),
                 onProgress,
                 onResult,
@@ -132,12 +169,6 @@ function testDetectTimestampFormatsInFiles() {
                 { path: examplePath + "/indexing/access_small.log" },
                 { path: examplePath + "/indexing/access_mid.log" },
             ];
-            try {
-                const formats = indexer.detectTimestampFormatsInFiles(conf);
-                console.log(formats);
-            } catch (error) {
-                console.error("error getting timestamp formats: %s", error);
-            }
         },
     });
 }
@@ -175,18 +206,13 @@ export function testCallDltStats(file: string) {
     }
 }
 
-export function testDiscoverTimespanAsync(file: string) {
+export function testDiscoverTimespanAsync(files: string[]) {
+    log(`calling testDiscoverTimespanAsync with ${files}`);
     const hrstart = process.hrtime();
-    // const progressBar = term.progressBar({
-    //     width: 80,
-    //     title: "discover timestamps",
-    //     eta: true,
-    //     percent: true,
-    // });
-
+    const bar = stdout.createProgressBar({ caption: "merging files", width: 60 });
     try {
         let onProgress = (ticks: ITicks) => {
-            // progressBar.update(ticks.ellapsed / ticks.total);
+            bar.update(Math.round((100 * ticks.ellapsed) / ticks.total));
         };
         let onChunk = (chunk: ITimestampFormatResult) => {
             log("received " + JSON.stringify(chunk));
@@ -194,18 +220,22 @@ export function testDiscoverTimespanAsync(file: string) {
         let onNotification = (notification: INeonNotification) => {
             log("testDiscoverTimespanAsync: received notification:" + JSON.stringify(notification));
         };
-        let item: IDiscoverItem = { path: file };
+        let items: IDiscoverItem[] = files.map((file: string) => { 
+            return {
+                path: file 
+            }
+        });
         const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = discoverTimespanAsync(
-            [item],
+            items,
             TimeUnit.fromSeconds(15),
             onProgress,
             onChunk,
             onNotification,
         );
         futureRes.then(x => {
-            // progressBar.update(1.0);
             const hrend = process.hrtime(hrstart);
             const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+            bar.update(100);
             log("COMPLETELY DONE (last result was: " + AsyncResult[x] + ")");
             console.info("Execution time for indexing : %dms", ms);
         });
@@ -228,7 +258,7 @@ export function testDltIndexingAsync(fileToIndex: string, outPath: string) {
         let onProgress = (ticks: ITicks) => {
             // progressBar.update(ticks.ellapsed / ticks.total);
         };
-        let onChunk = (chunk: INeonTransferChunk) => {
+        let onChunk = (chunk: IChunk) => {
             chunks += 1;
         };
         let notificationCount = 0;
@@ -262,7 +292,9 @@ export function testDltIndexingAsync(fileToIndex: string, outPath: string) {
             // progressBar.update(1.0);
             const hrend = process.hrtime(hrstart);
             const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-            log(`COMPLETELY DONE (last result was: "${AsyncResult[x]}") (notifications: ${notificationCount})`);
+            log(
+                `COMPLETELY DONE (last result was: "${AsyncResult[x]}") (notifications: ${notificationCount})`,
+            );
             console.info("Execution time for indexing : %dms", ms);
         });
     } catch (error) {
@@ -277,7 +309,7 @@ export function testIndexingAsync(inFile: string, outPath: string) {
         let onProgress = (ticks: ITicks) => {
             bar.update(Math.round((100 * ticks.ellapsed) / ticks.total));
         };
-        let onChunk = (chunk: INeonTransferChunk) => {};
+        let onChunk = (chunk: IChunk) => {};
         let onNotification = (notification: INeonNotification) => {
             log("testIndexingAsync: received notification:" + JSON.stringify(notification));
         };
@@ -347,7 +379,7 @@ export function testCancelledAsyncIndexing(fileToIndex: string, outPath: string)
         TimeUnit.fromMilliseconds(750),
         outPath,
         onProgress,
-        (e: INeonTransferChunk) => {},
+        (_c: IChunk) => {},
         onNotification,
         "TAG",
     );
@@ -375,7 +407,7 @@ function testVeryShortIndexing() {
         TimeUnit.fromMilliseconds(750),
         outPath,
         onProgress,
-        (e: INeonTransferChunk) => {
+        (_c: IChunk) => {
             chunks += 1;
         },
         onNotification,

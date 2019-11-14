@@ -28,6 +28,13 @@ export interface IConcatenatorResult {
     line_cnt: number,
     byte_cnt: number,
 }
+export interface IMergerItemOptions {
+    name: string,
+    offset?: number,
+    year?: number,
+    format: string,
+    tag: string,
+}
 export interface IDiscoverItem {
     path: string,
 }

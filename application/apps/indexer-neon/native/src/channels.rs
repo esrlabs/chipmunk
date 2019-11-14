@@ -14,7 +14,6 @@ use std::time::Duration;
 // thread.
 pub struct EventEmitterTask<T: Send + Debug + Serialize> {
     events_rx: Arc<Mutex<mpsc::Receiver<IndexingResults<T>>>>,
-    // events_rx: Arc<Mutex<mpsc::Receiver<Result<IndexingProgress<T>, Notification>>>>,
 }
 
 impl<T: Send + Debug + Serialize> EventEmitterTask<T> {

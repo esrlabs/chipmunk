@@ -11,10 +11,10 @@ import {
     AsyncResult,
     ConcatenatorInput,
     INeonNotification,
+    IChunk,
 } from "indexer-neon";
 import Logger from "../../../tools/env.logger";
 import { IMapItem } from "../../../controllers/stream.main/file.map";
-import { IConcatenatorResult } from "indexer-neon/dist/progress";
 
 export interface IFile {
     file: string;
@@ -23,7 +23,7 @@ export interface IFile {
 
 export default class ConcatFiles {
     private _logger: Logger = new Logger("ConcatFiles");
-    private _res?: IConcatenatorResult;
+    private _processedBytes: number = 0;
     private _session: string = "";
     private _files: IFile[];
     private _absolutePathConfig: ConcatenatorInput[];
@@ -43,7 +43,7 @@ export default class ConcatFiles {
         });
     }
 
-    public write(): Promise<IConcatenatorResult> {
+    public write(onMapUpdated: (map: IMapItem[]) => void): Promise<number> {
         return new Promise((resolve, reject) => {
             const measuring = this._logger.measure("concatenate");
             const sessionData = ServiceStreams.getStreamFile(this._session);
@@ -54,9 +54,15 @@ export default class ConcatFiles {
             const onNotification = (notification: INeonNotification) => {
                 ServiceNotifications.notifyFromNeon(notification, "DLT-Indexing", this._session);
             };
-            const onResult = (res: IConcatenatorResult) => {
-                this._logger.debug(`conatenated ${res} files`);
-                this._res = res;
+            const onResult = (res: IChunk) => {
+                if (onMapUpdated !== undefined) {
+                    const mapItem: IMapItem = {
+                        rows: { from: res.rowsStart, to: res.rowsEnd },
+                        bytes: { from: res.bytesStart, to: res.bytesEnd },
+                    };
+                    onMapUpdated([mapItem]);
+                    this._processedBytes = res.bytesEnd;
+                }
             };
             const [futureRes, cancel]: [
                 Promise<AsyncResult>,
@@ -65,6 +71,7 @@ export default class ConcatFiles {
                 this._absolutePathConfig,
                 sessionData.file,
                 true,
+                500, // chunkSize
                 TimeUnit.fromSeconds(2),
                 this._onProgress,
                 onResult,
@@ -73,13 +80,7 @@ export default class ConcatFiles {
             futureRes
             .then(() => {
                 measuring();
-                if (this._res !== undefined) {
-                    const lastLineIndex = this._res.line_cnt === 0 ? 0 : this._res.line_cnt - 1;
-                    const lastByteIndex = this._res.byte_cnt === 0 ? 0 : this._res.byte_cnt - 1;
-                    const map: IMapItem[] = [{ rows: { from: 0, to: lastLineIndex}, bytes: { from: 0, to: lastByteIndex} }];
-                    ServiceStreams.pushToStreamFileMap(this._session, map);
-                }
-                resolve(this._res);
+                resolve(this._processedBytes);
             })
             .catch(e => {
                 measuring();

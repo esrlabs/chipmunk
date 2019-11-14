@@ -63,56 +63,103 @@ pub fn create_tagged_line(
     trimmed_line: &str,
     line_nr: usize,
     with_newline: bool,
+    timestamp: Option<i64>,
 ) -> std::io::Result<usize> {
-    if with_newline {
-        writeln!(
-            out_buffer,
-            "{}",
-            format_args!(
-                "{}{}{}{}{}{}{}",
-                trimmed_line,
-                PLUGIN_ID_SENTINAL,
-                tag,
-                PLUGIN_ID_SENTINAL,
-                ROW_NUMBER_SENTINAL,
-                line_nr,
-                ROW_NUMBER_SENTINAL,
-            ),
-        )?;
-    } else {
-        write!(
-            out_buffer,
-            "{}",
-            format_args!(
-                "{}{}{}{}{}{}{}",
-                trimmed_line,
-                PLUGIN_ID_SENTINAL,
-                tag,
-                PLUGIN_ID_SENTINAL,
-                ROW_NUMBER_SENTINAL,
-                line_nr,
-                ROW_NUMBER_SENTINAL,
-            ),
-        )?;
+    match timestamp {
+        Some(ts) => {
+            if with_newline {
+                writeln!(
+                    out_buffer,
+                    "{}",
+                    format_args!(
+                        "{}{}{}{}{}{}{}{}{}",
+                        trimmed_line,
+                        PLUGIN_ID_SENTINAL,
+                        tag,
+                        PLUGIN_ID_SENTINAL,
+                        ROW_NUMBER_SENTINAL,
+                        line_nr,
+                        ROW_NUMBER_SENTINAL,
+                        ts,
+                        ROW_NUMBER_SENTINAL,
+                    ),
+                )?;
+                Ok(trimmed_line.len()
+                    + 5 * SENTINAL_LENGTH
+                    + tag.len()
+                    + number_string_len(line_nr)
+                    + number_string_len(ts as usize)
+                    + 1)
+            } else {
+                write!(
+                    out_buffer,
+                    "{}",
+                    format_args!(
+                        "{}{}{}{}{}{}{}{}{}",
+                        trimmed_line,
+                        PLUGIN_ID_SENTINAL,
+                        tag,
+                        PLUGIN_ID_SENTINAL,
+                        ROW_NUMBER_SENTINAL,
+                        line_nr,
+                        ROW_NUMBER_SENTINAL,
+                        ts,
+                        ROW_NUMBER_SENTINAL,
+                    ),
+                )?;
+                Ok(trimmed_line.len()
+                    + 5 * SENTINAL_LENGTH
+                    + tag.len()
+                    + number_string_len(line_nr)
+                    + number_string_len(ts as usize))
+            }
+        }
+        None => {
+            if with_newline {
+                writeln!(
+                    out_buffer,
+                    "{}",
+                    format_args!(
+                        "{}{}{}{}{}{}{}",
+                        trimmed_line,
+                        PLUGIN_ID_SENTINAL,
+                        tag,
+                        PLUGIN_ID_SENTINAL,
+                        ROW_NUMBER_SENTINAL,
+                        line_nr,
+                        ROW_NUMBER_SENTINAL,
+                    ),
+                )?;
+                Ok(trimmed_line.len()
+                    + 4 * SENTINAL_LENGTH
+                    + tag.len()
+                    + number_string_len(line_nr)
+                    + 1)
+            } else {
+                write!(
+                    out_buffer,
+                    "{}",
+                    format_args!(
+                        "{}{}{}{}{}{}{}",
+                        trimmed_line,
+                        PLUGIN_ID_SENTINAL,
+                        tag,
+                        PLUGIN_ID_SENTINAL,
+                        ROW_NUMBER_SENTINAL,
+                        line_nr,
+                        ROW_NUMBER_SENTINAL,
+                    ),
+                )?;
+                Ok(trimmed_line.len()
+                    + 4 * SENTINAL_LENGTH
+                    + tag.len()
+                    + number_string_len(line_nr))
+            }
+        }
     }
-    Ok(trimmed_line.len() + 4 * SENTINAL_LENGTH + tag.len() + linenr_length(line_nr) + 1)
-    // nl
 }
 
-#[inline]
-pub fn extended_line_length(
-    trimmed_len: usize,
-    tag_len: usize,
-    line_nr: usize,
-    has_newline: bool,
-) -> usize {
-    trimmed_len
-        + 4 * SENTINAL_LENGTH
-        + tag_len
-        + linenr_length(line_nr)
-        + if has_newline { 1 } else { 0 }
-}
-pub fn linenr_length(linenr: usize) -> usize {
+pub fn number_string_len(linenr: usize) -> usize {
     if linenr == 0 {
         return 1;
     };

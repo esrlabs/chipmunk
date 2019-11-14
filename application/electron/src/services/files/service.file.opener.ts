@@ -94,7 +94,7 @@ class ServiceFileOpener implements IService {
                         detectedParser = detectedParser as AFileParser;
                         const trackingId: string = Tools.guid();
                         this._setProgress(detectedParser, trackingId, file);
-                        if (detectedParser.readAndWrite === undefined) {
+                        if (detectedParser.parseAndIndex === undefined) {
                             // Pipe file. No direct read/write method
                             this._pipeSource(file, trackingId, sessionId, detectedParser, options).then(() => {
                                 this._unsetProgress(detectedParser as AFileParser, trackingId, sessionId);
@@ -229,10 +229,10 @@ class ServiceFileOpener implements IService {
             if (dest instanceof Error) {
                 return reject(dest);
             }
-            if (parser.readAndWrite === undefined) {
+            if (parser.parseAndIndex === undefined) {
                 return reject(new Error(`This case isn't possible, but typescript compile.`));
             }
-            parser.readAndWrite(file, dest.file, sourceId, options, (map: IMapItem[]) => {
+            parser.parseAndIndex(file, dest.file, sourceId, options, (map: IMapItem[]) => {
                 ServiceStreams.pushToStreamFileMap(dest.streamId, map);
             }, (ticks: ITicks) => {
                 this._incrProgress(parser, trackingId, dest.streamId, ticks.ellapsed / ticks.total);

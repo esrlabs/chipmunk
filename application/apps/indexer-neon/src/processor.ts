@@ -1,6 +1,14 @@
 const addon = require("../native");
 import { log } from "./logging";
-import { AsyncResult, ITicks, INeonTransferChunk, INeonNotification, ITimestampFormatResult, IDiscoverItem } from "./progress";
+import {
+    AsyncResult,
+    ITicks,
+    INeonTransferChunk,
+    INeonNotification,
+    ITimestampFormatResult,
+    IDiscoverItem,
+    IChunk,
+} from "./progress";
 import { NativeEventEmitter, RustIndexerChannel, RustTimestampChannel } from "./emitter";
 import { TimeUnit } from "./units";
 
@@ -25,8 +33,7 @@ export function discoverTimespanAsync(
     onChunk: (chunk: ITimestampFormatResult) => any,
     onNotification: (notification: INeonNotification) => void,
 ): [Promise<AsyncResult>, () => void] {
-    const channel = new RustTimestampChannel(
-        filesToDiscover);
+    const channel = new RustTimestampChannel(filesToDiscover);
     const emitter = new NativeEventEmitter(channel);
     const p = new Promise<AsyncResult>((resolve, reject) => {
         let totalTicks = 1;
@@ -73,7 +80,7 @@ export function indexAsync(
     maxTime: TimeUnit,
     outPath: string,
     onProgress: (ticks: ITicks) => any,
-    onChunk: (chunk: INeonTransferChunk) => any,
+    onChunk: (chunk: IChunk) => any,
     onNotification: (notification: INeonNotification) => void,
     tag: string,
 ): [Promise<AsyncResult>, () => void] {
@@ -94,7 +101,14 @@ export function indexAsync(
             log("TIMED OUT ====> shutting down");
             emitter.requestShutdown();
         }, maxTime.inMilliseconds());
-        emitter.on(NativeEventEmitter.EVENTS.GotItem, onChunk);
+        emitter.on(NativeEventEmitter.EVENTS.GotItem, (c: INeonTransferChunk) => {
+            onChunk({
+                bytesStart: c.b[0],
+                bytesEnd: c.b[1],
+                rowsStart: c.r[0],
+                rowsEnd: c.r[1],
+            });
+        });
         emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
             totalTicks = ticks.total;
             onProgress(ticks);
@@ -138,7 +152,4 @@ export function detectTimestampInString(input: string): string {
 }
 export function detectTimestampFormatInFile(input: string): string {
     return addon.detectTimestampFormatInFile(input);
-}
-export function detectTimestampFormatsInFiles(conf: Array<IFilePath>): string {
-    return addon.detectTimestampFormatsInFiles(conf);
 }

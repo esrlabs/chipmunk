@@ -1,6 +1,6 @@
 const addon = require("../native");
 import { log } from "./logging";
-import { AsyncResult, ITicks, INeonTransferChunk, INeonNotification } from "./progress";
+import { AsyncResult, ITicks, INeonTransferChunk, INeonNotification, IChunk } from "./progress";
 import { NativeEventEmitter, RustDltIndexerChannel, RustDltStatsChannel } from "./emitter";
 import { TimeUnit } from "./units";
 
@@ -92,7 +92,7 @@ export function indexDltAsync(
     { dltFile, filterConfig, tag, out, chunk_size, append, stdout, statusUpdates }: IIndexDltParams,
     maxTime: TimeUnit,
     onProgress: (ticks: ITicks) => any,
-    onChunk: (chunk: INeonTransferChunk) => any,
+    onChunk: (chunk: IChunk) => any,
     onNotification: (notification: INeonNotification) => void,
 ): [Promise<AsyncResult>, () => void] {
     const channel = new RustDltIndexerChannel(dltFile, tag, out, append, chunk_size, filterConfig);
@@ -103,7 +103,14 @@ export function indexDltAsync(
             log("TIMED OUT ====> shutting down");
             emitter.requestShutdown();
         }, maxTime.inMilliseconds());
-        emitter.on(NativeEventEmitter.EVENTS.GotItem, onChunk);
+        emitter.on(NativeEventEmitter.EVENTS.GotItem, (c: INeonTransferChunk) => {
+            onChunk({
+                bytesStart: c.b[0],
+                bytesEnd: c.b[1],
+                rowsStart: c.r[0],
+                rowsEnd: c.r[1],
+            });
+        });
         emitter.on(NativeEventEmitter.EVENTS.Progress, onProgress);
         emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
             log("we got a stopped event after " + chunks + " chunks");

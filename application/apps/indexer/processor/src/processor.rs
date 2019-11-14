@@ -71,8 +71,7 @@ pub fn index_file(
 
     let mut chunk_count = 0usize;
     let mut last_byte_index = 0usize;
-    let mut chunk_factory =
-        ChunkFactory::new(config.chunk_size, config.to_stdout, current_out_file_size);
+    let mut chunk_factory = ChunkFactory::new(config.chunk_size, current_out_file_size);
 
     let mut reader = BufReader::new(config.in_file);
     let mut line_nr = initial_line_nr;
@@ -104,74 +103,23 @@ pub fn index_file(
                     Ok((time, _, _)) => time,
                     Err(_) => 0,
                 };
-                if had_newline {
-                    writeln!(
-                        buf_writer,
-                        "{}{}{}{}{}{}{}{}{}",
-                        trimmed_line,
-                        utils::PLUGIN_ID_SENTINAL,
-                        config.tag,
-                        utils::PLUGIN_ID_SENTINAL,
-                        utils::ROW_NUMBER_SENTINAL,
-                        line_nr,
-                        utils::ROW_NUMBER_SENTINAL,
-                        ts,
-                        utils::ROW_NUMBER_SENTINAL,
-                    )?;
-                } else {
-                    write!(
-                        buf_writer,
-                        "{}{}{}{}{}{}{}{}{}",
-                        trimmed_line,
-                        utils::PLUGIN_ID_SENTINAL,
-                        config.tag,
-                        utils::PLUGIN_ID_SENTINAL,
-                        utils::ROW_NUMBER_SENTINAL,
-                        line_nr,
-                        utils::ROW_NUMBER_SENTINAL,
-                        ts,
-                        utils::ROW_NUMBER_SENTINAL,
-                    )?;
-                }
-                additional_bytes = utils::extended_line_length(
-                    trimmed_len,
-                    config.tag.len(),
+                additional_bytes = utils::create_tagged_line(
+                    config.tag,
+                    &mut buf_writer,
+                    trimmed_line,
                     line_nr,
                     had_newline,
-                ) + utils::linenr_length(ts as usize)
-                    + 1;
+                    Some(ts),
+                )?;
             } else {
-                if had_newline {
-                    writeln!(
-                        buf_writer,
-                        "{}{}{}{}{}{}{}",
-                        trimmed_line,
-                        utils::PLUGIN_ID_SENTINAL,
-                        config.tag,
-                        utils::PLUGIN_ID_SENTINAL,
-                        utils::ROW_NUMBER_SENTINAL,
-                        line_nr,
-                        utils::ROW_NUMBER_SENTINAL,
-                    )?;
-                } else {
-                    write!(
-                        buf_writer,
-                        "{}{}{}{}{}{}{}",
-                        trimmed_line,
-                        utils::PLUGIN_ID_SENTINAL,
-                        config.tag,
-                        utils::PLUGIN_ID_SENTINAL,
-                        utils::ROW_NUMBER_SENTINAL,
-                        line_nr,
-                        utils::ROW_NUMBER_SENTINAL,
-                    )?;
-                }
-                additional_bytes = utils::extended_line_length(
-                    trimmed_len,
-                    config.tag.len(),
+                additional_bytes = utils::create_tagged_line(
+                    config.tag,
+                    &mut buf_writer,
+                    trimmed_line,
                     line_nr,
                     had_newline,
-                );
+                    None,
+                )?;
             }
             line_nr += 1;
 

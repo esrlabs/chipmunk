@@ -686,25 +686,6 @@ def build_and_deploy_rust_app(name)
   cp(rust_exec, deployed_app)
 end
 
-desc 'build indexer'
-task build_indexer: :folders do
-  src_app_dir = "#{APPS_DIR}/indexer/target/release/"
-  app_file_comp = 'indexer_cli'
-  app_file_release = 'lvin'
-
-  if OS.windows? == true
-    app_file_comp = 'indexer_cli.exe'
-    app_file_release = 'lvin.exe'
-  end
-  cd "#{APPS_DIR}/indexer" do
-    puts 'Build indexer'
-    sh 'cargo build --release'
-  end
-
-  rm("#{INCLUDED_APPS_FOLDER}/#{app_file_release}", force: true)
-  cp("#{src_app_dir}#{app_file_comp}", "#{INCLUDED_APPS_FOLDER}/#{app_file_release}")
-end
-
 def fresh_folder(dest_folder)
   rm_r(dest_folder, force: true)
   mkdir_p dest_folder
@@ -775,8 +756,7 @@ end
 
 desc 'build native parts'
 task native: %i[build_launcher
-                build_updater
-                build_indexer]
+                build_updater]
 
 task :create_release_file_list do
   puts 'Prepare list of files/folders in release'

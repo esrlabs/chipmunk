@@ -43,7 +43,7 @@ export default class FunctionOpenLocalFile {
     }
 
     public hasDirectReadWrite(): boolean {
-        return this._parser.readAndWrite !== undefined;
+        return this._parser.parseAndIndex !== undefined;
     }
 
 }

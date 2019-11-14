@@ -33,7 +33,6 @@ impl IndexingEventEmitter {
                     in_file: thread_conf.in_file,
                     out_path: &thread_conf.out_path,
                     append,
-                    to_stdout: false,
                 },
                 thread_conf.timestamps,
                 chunk_result_sender.clone(),

@@ -17,7 +17,7 @@ export interface IFileParserFunc {
 
 // tslint:disable-next-line:interface-name
 export interface AFileParser {
-    readAndWrite?(
+    parseAndIndex?(
         srcFile: string,
         destFile: string,
         sourceId: string | number,

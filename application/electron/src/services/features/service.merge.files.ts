@@ -2,14 +2,17 @@ import ServiceElectron, { IPCMessages } from '../service.electron';
 import Logger from '../../tools/env.logger';
 import { Subscription } from '../../tools/index';
 import { IService } from '../../interfaces/interface.service';
+import ServiceStreams from "../service.streams";
 import { IFile as ITestFileRequest } from '../../../../ipc/electron.ipc.messages/merge.files.test.request';
+import { ITicks } from "indexer-neon";
 import { IFile as ITestFileResponse } from '../../../../ipc/electron.ipc.messages/merge.files.test.response';
 import { IFile as IMergeFileRequest } from '../../../../ipc/electron.ipc.messages/merge.files.request';
 import * as moment from 'moment-timezone';
+import * as Tools from "../../tools/index";
 import MergeFiles from '../../controllers/features/merge/merge.files';
 import MergeDiscover, { IDatetimeDiscoverResult } from '../../controllers/features/merge/merge.discover';
-import MergeTest, { IFileTestResults } from '../../controllers/features/merge/merge.test';
 import { IDatetimeDiscoverFileResult } from '../../controllers/external/controller.lvin';
+import { IMapItem } from '../../controllers/files.parsers/interface';
 
 /**
  * @class ServiceMergeFiles
@@ -94,7 +97,14 @@ class ServiceMergeFiles implements IService {
 
     private _onMergeFilesRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.MergeFilesRequest = request as IPCMessages.MergeFilesRequest;
+        const trackingId: string = Tools.guid();
+        // Get destination file TODO dmitry: please re-check
+        const dest: { streamId: string; file: string } | Error = ServiceStreams.getStreamFile();
+        if (dest instanceof Error) {
+            throw dest;
+        }
         const controller: MergeFiles = new MergeFiles(
+            req.session,
             req.files.map((file: IMergeFileRequest) => {
                 return {
                     file: file.file,
@@ -104,8 +114,17 @@ class ServiceMergeFiles implements IService {
                     format: file.format,
                 };
             }),
+            (ticks: ITicks) => {
+                ServiceStreams.updateProgressSession(
+                    trackingId,
+                    ticks.ellapsed / ticks.total,
+                    req.session,
+                );
+            },
         );
-        controller.write().then((written: number) => {
+        controller.write((map: IMapItem[]) => {
+                ServiceStreams.pushToStreamFileMap(dest.streamId, map);
+            }).then((written: number) => {
             response(new IPCMessages.MergeFilesResponse({
                 written: written,
                 id: req.id,
@@ -166,26 +185,27 @@ class ServiceMergeFiles implements IService {
 
     private _test(file: ITestFileRequest): Promise<ITestFileResponse> {
         return new Promise((resolve, reject) => {
-            const controller: MergeTest = new MergeTest({
-                file: file.file,
-                format: file.format,
-                rowsToBeRead: 500,
-            });
-            controller.test().then((results: IFileTestResults) => {
-                if (results.results.readBytes === 0) {
-                    return reject(`Fail to read file. Was read ${results.results.readBytes} bytes.`);
-                }
-                resolve({
-                    file: file.file,
-                    found: results.results.matches,
-                    readBytes: results.results.readBytes,
-                    readRows: results.results.readRows,
-                    size: results.size,
-                    regExpStr: results.results.regExpStr,
-                });
-            }).catch((error: Error) => {
-                reject(error);
-            });
+            reject("no test implementend");
+            // const controller: MergeTest = new MergeTest({
+            //     file: file.file,
+            //     format: file.format,
+            //     rowsToBeRead: 500,
+            // });
+            // controller.test().then((results: IFileTestResults) => {
+            //     if (results.results.readBytes === 0) {
+            //         return reject(`Fail to read file. Was read ${results.results.readBytes} bytes.`);
+            //     }
+            //     resolve({
+            //         file: file.file,
+            //         found: results.results.matches,
+            //         readBytes: results.results.readBytes,
+            //         readRows: results.results.readRows,
+            //         size: results.size,
+            //         regExpStr: results.results.regExpStr,
+            //     });
+            // }).catch((error: Error) => {
+            //     reject(error);
+            // });
         });
     }
 

@@ -56,7 +56,6 @@ fn detect_timestamps_with_progress(
 declare_types! {
 pub class JsTimestampFormatDetectionEmitter for TimestampDetectorEmitter {
     init(mut cx) {
-        trace!("Rust: JsTimestampFormatDetectionEmitter");
         let file_names = cx.argument::<JsValue>(0)?;
         let items: Vec<DiscoverItem> = neon_serde::from_value(&mut cx, file_names)?;
         trace!("{:?}", items);
@@ -75,28 +74,17 @@ pub class JsTimestampFormatDetectionEmitter for TimestampDetectorEmitter {
         Ok(emitter)
     }
 
-    // will be called by JS to receive data in a loop, but care should be taken to only call it once at a time.
     method poll(mut cx) {
-        // The callback to be executed when data is available
         let cb = cx.argument::<JsFunction>(0)?;
         let this = cx.this();
-
-        // Create an asynchronously `EventEmitterTask` to receive data
         let events = cx.borrow(&this, |emitter| Arc::clone(&emitter.event_receiver));
         let emitter = EventEmitterTask::new(events);
-
-        // Schedule the task on the `libuv` thread pool
         emitter.schedule(cb);
         Ok(JsUndefined::new().upcast())
     }
 
-    // The shutdown method may be called to stop the Rust thread. It
-    // will error if the thread has already been destroyed.
     method shutdown(mut cx) {
-        trace!("shutdown called");
         let this = cx.this();
-
-        // Unwrap the shutdown channel and send a shutdown command
         cx.borrow(&this, |emitter| {
             match emitter.shutdown_sender.send(()) {
                 Err(e) => trace!("error happened when sending: {}", e),

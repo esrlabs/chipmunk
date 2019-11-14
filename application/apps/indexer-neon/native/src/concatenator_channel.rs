@@ -1,17 +1,16 @@
 use channels::EventEmitterTask;
+use indexer_base::chunks::ChunkResults;
 use indexer_base::progress::Notification;
-use indexer_base::progress::{IndexingProgress, IndexingResults, Severity};
-use merging::concatenator::{concat_files, ConcatenatorInput, ConcatenatorResult};
+use indexer_base::progress::{IndexingProgress, Severity};
+use merging::concatenator::{concat_files, ConcatenatorInput};
 use neon::prelude::*;
 use std::path;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-pub type ConcatenatedLinesResults =
-    std::result::Result<IndexingProgress<ConcatenatorResult>, Notification>;
 pub struct ConcatenatorEmitter {
-    pub event_receiver: Arc<Mutex<mpsc::Receiver<ConcatenatedLinesResults>>>,
+    pub event_receiver: Arc<Mutex<mpsc::Receiver<ChunkResults>>>,
     pub shutdown_sender: mpsc::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
@@ -22,14 +21,16 @@ impl ConcatenatorEmitter {
         concat_inputs: Vec<ConcatenatorInput>,
         out_path: path::PathBuf,
         append: bool,
-        update_channel: mpsc::Sender<ConcatenatedLinesResults>,
+        chunk_size: usize, // used for mapping line numbers to byte positions
+        update_channel: mpsc::Sender<ChunkResults>,
         shutdown_rx: mpsc::Receiver<()>,
     ) {
         self.task_thread = Some(thread::spawn(move || {
-            conatenate_with_progress(
+            concatenate_with_progress(
                 concat_inputs,
                 out_path,
                 append,
+                chunk_size,
                 update_channel,
                 Some(shutdown_rx),
             );
@@ -38,15 +39,16 @@ impl ConcatenatorEmitter {
     }
 }
 
-fn conatenate_with_progress(
+fn concatenate_with_progress(
     concat_inputs: Vec<ConcatenatorInput>,
     out_path: path::PathBuf,
     append: bool,
-    update_channel: mpsc::Sender<ConcatenatedLinesResults>,
+    chunk_size: usize, // used for mapping line numbers to byte positions
+    update_channel: mpsc::Sender<ChunkResults>,
     shutdown_receiver: Option<mpsc::Receiver<()>>,
 ) {
     trace!(
-        "conatenate_with_progress with {} files <------------",
+        "concatenate_with_progress with {} files <------------",
         concat_inputs.len()
     );
 
@@ -54,11 +56,12 @@ fn conatenate_with_progress(
         concat_inputs,
         &out_path,
         append,
+        chunk_size,
         update_channel.clone(),
         shutdown_receiver,
     ) {
         Err(why) => {
-            let err_msg = format!("couldn't conatenate_with_progress: {}", why);
+            let err_msg = format!("couldn't concatenate_with_progress: {}", why);
             error!("{}", err_msg);
             match update_channel.send(Err(Notification {
                 severity: Severity::ERROR,
@@ -82,10 +85,11 @@ declare_types! {
             let concat_inputs: Vec<ConcatenatorInput> = neon_serde::from_value(&mut cx, arg_concat_inputs)?;
             let out_path = path::PathBuf::from(cx.argument::<JsString>(1)?.value().as_str());
             let append: bool = cx.argument::<JsBoolean>(2)?.value();
+            let chunk_size: usize = cx.argument::<JsNumber>(3)?.value() as usize;
             trace!("out_path: {:?}", out_path);
             trace!("append: {:?}", append);
 
-            let chunk_result_channel: (Sender<IndexingResults<ConcatenatorResult>>, Receiver<IndexingResults<ConcatenatorResult>>) = mpsc::channel();
+            let chunk_result_channel: (Sender<ChunkResults>, Receiver<ChunkResults>) = mpsc::channel();
             let shutdown_channel = mpsc::channel();
             let mut emitter = ConcatenatorEmitter{
                 event_receiver: Arc::new(Mutex::new(chunk_result_channel.1)),
@@ -96,6 +100,7 @@ declare_types! {
                 concat_inputs,
                 out_path,
                 append,
+                chunk_size,
                 chunk_result_channel.0,
                 shutdown_channel.1,
             );

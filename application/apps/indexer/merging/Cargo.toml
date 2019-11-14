@@ -18,3 +18,4 @@ dlt = { path = "../dlt" }
 tempdir = "0.3"
 test-generator = "0.2.2"
 pretty_assertions = "0.6"
+log4rs = "0.8"

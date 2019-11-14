@@ -9,8 +9,10 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
+use indexer_base::chunks::ChunkResults;
 use failure::err_msg;
-use indexer_base::progress::{IndexingProgress, IndexingResults};
+use indexer_base::chunks::ChunkFactory;
+use indexer_base::progress::IndexingProgress;
 use indexer_base::utils;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -49,7 +51,8 @@ pub fn concat_files_use_config_file(
     config_path: &PathBuf,
     out_path: &PathBuf,
     append: bool,
-    update_channel: mpsc::Sender<IndexingResults<ConcatenatorResult>>,
+    chunk_size: usize, // used for mapping line numbers to byte positions
+    update_channel: mpsc::Sender<ChunkResults>,
     shutdown_rx: Option<mpsc::Receiver<()>>,
 ) -> Result<(), failure::Error> {
     let mut concat_option_file = fs::File::open(config_path)?;
@@ -68,13 +71,21 @@ pub fn concat_files_use_config_file(
             tag: o.tag,
         })
         .collect();
-    concat_files(inputs, &out_path, append, update_channel, shutdown_rx)
+    concat_files(
+        inputs,
+        &out_path,
+        append,
+        chunk_size,
+        update_channel,
+        shutdown_rx,
+    )
 }
 pub fn concat_files(
     concat_inputs: Vec<ConcatenatorInput>,
     out_path: &PathBuf,
     append: bool,
-    update_channel: mpsc::Sender<IndexingResults<ConcatenatorResult>>,
+    chunk_size: usize, // used for mapping line numbers to byte positions
+    update_channel: mpsc::Sender<ChunkResults>,
     shutdown_rx: Option<mpsc::Receiver<()>>,
 ) -> Result<(), failure::Error> {
     let file_cnt = concat_inputs.len();
@@ -88,8 +99,10 @@ pub fn concat_files(
     } else {
         std::fs::File::create(&out_path).unwrap()
     };
+    let original_file_size = out_file.metadata()?.len() as usize;
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
     let mut processed_bytes = 0;
+    let mut chunk_factory = ChunkFactory::new(chunk_size, original_file_size);
 
     let combined_source_file_size = concat_inputs.iter().try_fold(0, |acc, i| {
         let f = &PathBuf::from(i.path.clone());
@@ -127,14 +140,23 @@ pub fn concat_files(
             let s = unsafe { std::str::from_utf8_unchecked(&buf) };
             let trimmed_line = s.trim_matches(utils::is_newline);
 
-            let _additional_bytes = utils::create_tagged_line(
+            let additional_bytes = utils::create_tagged_line(
                 &input.tag[..],
                 &mut buf_writer,
                 trimmed_line,
                 line_nr,
                 true,
+                None,
             )?;
             line_nr += 1;
+            if let Some(chunk) = chunk_factory.create_chunk_if_needed(
+                line_nr, // TODO avoid passing in this line...error prone
+                additional_bytes,
+            ) {
+                // check if stop was requested
+                buf_writer.flush()?;
+                update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }))?;
+            }
 
             let new_progress_percentage: usize =
                 (processed_bytes as f64 / combined_source_file_size as f64 * 10.0).round() as usize;
@@ -151,13 +173,6 @@ pub fn concat_files(
 
     let _ = update_channel.send(Ok(IndexingProgress::Progress {
         ticks: (processed_bytes, combined_source_file_size as usize),
-    }));
-    let _ = update_channel.send(Ok(IndexingProgress::GotItem {
-        item: ConcatenatorResult {
-            file_cnt,
-            line_cnt: line_nr,
-            byte_cnt: processed_bytes,
-        },
     }));
 
     let _ = update_channel.send(Ok(IndexingProgress::Finished));

@@ -424,7 +424,9 @@ pub fn timespan_in_files(
     items: Vec<DiscoverItem>,
     update_channel: &mpsc::Sender<IndexingResults<TimestampFormatResult>>,
 ) -> Result<(), failure::Error> {
-    for item in items {
+    let item_count = items.len();
+    let mut progress_percentage = 0usize;
+    for (processed_items, item) in items.into_iter().enumerate() {
         let file_path = path::PathBuf::from(&item.path);
         match detect_timestamp_format_in_file(&file_path) {
             Ok(format_expr) => {
@@ -497,6 +499,14 @@ pub fn timespan_in_files(
                     line: None,
                 }));
             }
+        }
+        let new_progress_percentage: usize =
+            (processed_items as f64 / item_count as f64 * 10.0).round() as usize;
+        if new_progress_percentage != progress_percentage {
+            progress_percentage = new_progress_percentage;
+            let _ = update_channel.send(Ok(IndexingProgress::Progress {
+                ticks: (processed_items, item_count as usize),
+            }));
         }
     }
     let _ = update_channel.send(Ok(IndexingProgress::Finished));

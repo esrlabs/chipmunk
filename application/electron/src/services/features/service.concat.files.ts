@@ -7,7 +7,7 @@ import { IFile } from "../../../../ipc/electron.ipc.messages/concat.files.reques
 import ConcatFiles from "../../controllers/features/concat/concat.files";
 import { ITicks } from "indexer-neon";
 import * as Tools from "../../tools/index";
-import { IConcatenatorResult } from "indexer-neon/dist/progress";
+import { IMapItem } from "../../controllers/files.parsers/interface";
 
 /**
  * @class ServiceConcatFiles
@@ -69,6 +69,11 @@ class ServiceConcatFiles implements IService {
     ) {
         const req: IPCMessages.ConcatFilesRequest = request as IPCMessages.ConcatFilesRequest;
         const trackingId: string = Tools.guid();
+        // Get destination file TODO dmitry: please re-check
+        const dest: { streamId: string; file: string } | Error = ServiceStreams.getStreamFile();
+        if (dest instanceof Error) {
+            throw dest;
+        }
         const controller: ConcatFiles = new ConcatFiles(
             req.session,
             req.files.map((file: IFile) => {
@@ -86,11 +91,13 @@ class ServiceConcatFiles implements IService {
             },
         );
         controller
-            .write()
-            .then((res: IConcatenatorResult) => {
+            .write((map: IMapItem[]) => {
+                ServiceStreams.pushToStreamFileMap(dest.streamId, map);
+            })
+            .then((res: number) => {
                 response(
                     new IPCMessages.ConcatFilesResponse({
-                        written: res.line_cnt,
+                        written: res,
                         id: req.id,
                     }),
                 );
