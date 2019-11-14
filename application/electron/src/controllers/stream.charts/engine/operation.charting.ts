@@ -40,6 +40,9 @@ export class OperationCharting extends EventEmitter {
                 if (!exists) {
                     return resolve([]);
                 }
+                // Get count of groups
+                const groupsCount: number = this._getGroupsCount(regExp.source);
+                groups = !groups ? false : (groupsCount > 0);
                 // Start measuring
                 const measurer = this._logger.measure(`charting #${guid()}`);
                 // Create reader
@@ -49,7 +52,7 @@ export class OperationCharting extends EventEmitter {
                 // Create transform
                 const transform = new Transform({}, groups);
                 // Create process
-                const process = spawn(ServicePaths.getRG(), this._getProcArgs(regExp.source, '-'), {
+                const process = spawn(ServicePaths.getRG(), this._getProcArgs(regExp.source, '-', groups ? groupsCount : 0), {
                     cwd: path.dirname(this._streamFile),
                     stdio: [ 'pipe', 'pipe', 'pipe' ],
                     detached: true,
@@ -102,6 +105,14 @@ export class OperationCharting extends EventEmitter {
         }
         this._cleaners.delete(id);
         cleaner();
+    }
+
+    private _getGroupsCount(regAsStr: string): number {
+        const matches: RegExpMatchArray | null = regAsStr.match(/\(.*?\)/gi);
+        if (matches === null) {
+            return 0;
+        }
+        return matches.length;
     }
 
     private _getProcArgs(reg: string, target: string, groups: number = 0): string[] {

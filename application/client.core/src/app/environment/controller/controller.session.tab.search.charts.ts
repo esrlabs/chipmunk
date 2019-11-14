@@ -96,8 +96,6 @@ export class ControllerSessionTabSearchCharts {
                 });
             }).catch((cancelErr: Error) => {
                 this._logger.error(`Fail to cancel current chart's data extracting operation due error: ${cancelErr.message}. Results will be dropped.`);
-                this._data = {};
-                this._subjects.onChartsResultsUpdated.next(this._data);
                 reject(cancelErr);
             });
         });
@@ -140,6 +138,10 @@ export class ControllerSessionTabSearchCharts {
         }
         if (!Toolkit.regTools.isRegStrValid(request)) {
             return new Error(`Not valid regexp "${request}"`);
+        }
+        const errorMsg: string | undefined = this._isChartRegExpValid(request);
+        if (errorMsg !== undefined) {
+            return new Error(errorMsg);
         }
         this._stored.push({
             reg: Toolkit.regTools.createFromStr(request) as RegExp,
@@ -221,6 +223,14 @@ export class ControllerSessionTabSearchCharts {
         return this._subjects;
     }
 
+    private _isChartRegExpValid(regAsStr: string): string | undefined {
+        // Check for groups
+        if (regAsStr.search(/\(|\)/gi) === -1) {
+            return `Regular expression should have at least one group`;
+        }
+        return undefined;
+    }
+
     private _extract(options: IChartsOptions): Promise<IPCMessages.TChartResults> {
         return new Promise((resolve, reject) => {
             if (this._activeRequestId !== undefined) {
@@ -257,7 +267,7 @@ export class ControllerSessionTabSearchCharts {
             return {
                 source: req.reg.source,
                 flags: req.reg.flags,
-                groups: false,
+                groups: true,
             };
         })}).catch((error: Error) => {
             this._logger.error(`Fail to refresh charts data due error: ${error.message}`);

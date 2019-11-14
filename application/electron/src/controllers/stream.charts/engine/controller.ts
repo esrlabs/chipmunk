@@ -72,7 +72,7 @@ export class ChartingEngine {
                 // Task id
                 const requestTaskId: string = guid();
                 // Task
-                const task: CancelablePromise<IMatch[], void> = this._operations.charting.perform(request.regExp, 0);
+                const task: CancelablePromise<IMatch[], void> = this._operations.charting.perform(request.regExp, 0, request.groups);
                 // Store task
                 stock.set(requestTaskId, task);
                 // Processing results

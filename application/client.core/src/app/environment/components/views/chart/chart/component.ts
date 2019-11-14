@@ -1,6 +1,6 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterContentInit, HostListener } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
-import { Chart } from 'chart.js';
+import { Chart, ChartData } from 'chart.js';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import { ServiceData, IRange } from '../service.data';
 import { ServicePosition, IPositionChange } from '../service.position';
@@ -28,11 +28,12 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
 
     public _ng_width: number = 100;
     public _ng_height: number = 100;
+    public _ng_filters: Chart | undefined;
+    public _ng_charts: Chart | undefined;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewChartCanvasComponent');
     private _destroyed: boolean = false;
-    private _chart: Chart | undefined;
     private _mainViewPosition: number | undefined;
     private _redirectMainView: boolean = true;
     private _rebuild: {
@@ -61,8 +62,8 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
     }
 
     @HostListener('wheel', ['$event']) _ng_onWheel(event: WheelEvent) {
-        const width: number = this._chart.chartArea.right - this._chart.chartArea.left;
-        const offset: number = event.offsetX - this._chart.chartArea.left;
+        const width: number = this._ng_filters.chartArea.right - this._ng_filters.chartArea.left;
+        const offset: number = event.offsetX - this._ng_filters.chartArea.left;
         this.position.force({
             deltaY: event.deltaY,
             proportionX: offset / width,
@@ -80,6 +81,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
     ngAfterViewInit() {
         // Data events
         this._subscriptions.onData = this.service.getObservable().onData.subscribe(this._onData.bind(this));
+        this._subscriptions.onCharts = this.service.getObservable().onCharts.subscribe(this._onChartData.bind(this));
         // Position events
         this._subscriptions.onPosition = this.position.getObservable().onChange.subscribe(this._onPosition.bind(this));
         // Listen session changes event
@@ -98,12 +100,12 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
     }
 
     public _ng_onClick(event: MouseEvent) {
-        if (this._chart === undefined) {
+        if (this._ng_filters === undefined) {
             return;
         }
         // This feature of chartjs isn't documented well,
         // so that's why here we have many checks
-        const e: any[] = this._chart.getElementAtEvent(event);
+        const e: any[] = this._ng_filters.getElementAtEvent(event);
         if (!(e instanceof Array)) {
             return;
         }
@@ -160,8 +162,8 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         }
         this._redraw.postponed = 0;
         this._redraw.timer = -1;
-        if (this._chart !== undefined) {
-            this._chart.resize();
+        if (this._ng_filters !== undefined) {
+            this._ng_filters.resize();
         }
     }
 
@@ -172,22 +174,27 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             this._rebuild.timer = setTimeout(this._build.bind(this, true), CSettings.rebuildDelay);
             return;
         }
+        this._matches();
+        this._charts();
+    }
+
+    private _matches() {
         this._rebuild.postponed = 0;
         this._rebuild.timer = -1;
         if (this.service === undefined) {
             return;
         }
-        if (this._chart !== undefined) {
-            this._chart.destroy();
+        if (this._ng_filters !== undefined) {
+            this._ng_filters.destroy();
         }
         const labels: string[] = this.service.getLabes(this._ng_width, this._getRange());
         const datasets: Array<{ [key: string]: any }> = this.service.getDatasets(this._ng_width, this._getRange());
         if (labels.length === 0 || datasets.length === 0) {
-            this._chart = undefined;
+            this._ng_filters = undefined;
             return;
         }
         const max: number = this.service.getMaxForLastRange();
-        this._chart = new Chart('view-chart-canvas', {
+        this._ng_filters = new Chart('view-chart-canvas-filters', {
             type: 'bar',
             data: {
                 labels: labels,
@@ -221,6 +228,62 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             }
         });
         this._scrollMainView();
+        this._forceUpdate();
+    }
+
+    private _charts() {
+        this._rebuild.postponed = 0;
+        this._rebuild.timer = -1;
+        if (this.service === undefined) {
+            return;
+        }
+        if (this._ng_charts !== undefined) {
+            this._ng_charts.destroy();
+        }
+        const datasets: Array<{ [key: string]: any }> = this.service.getChartsDatasets(this._ng_width, this._getRange());
+        let range: IRange | undefined = this._getRange();
+        if (range === undefined) {
+            range = {
+                begin: 0,
+                end: this.service.getStreamSize()
+            };
+        }
+        this._ng_charts = new Chart('view-chart-canvas-charts', {
+            type: 'scatter',
+            data: {
+                datasets: datasets,
+            },
+            options: {
+                title: {
+                    display: false,
+                },
+                legend: {
+                    display: false,
+                },
+                animation: {
+                    duration: 0,
+                },
+                responsive: true,
+                scales: {
+                    xAxes: [{
+                       ticks: {
+                          min: range.begin,
+                          max: range.end
+                       },
+                       gridLines: {
+                          color: '#888',
+                          drawOnChartArea: false
+                       },
+                       display: false
+                    }],
+                    yAxes: [{
+                       display: false
+                    }]
+                 }
+            }
+        });
+        this._scrollMainView();
+        this._forceUpdate();
     }
 
     private _getRange(): IRange | undefined {
@@ -276,7 +339,11 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
     }
 
     private _onData() {
-        this._build();
+        this._matches();
+    }
+
+    private _onChartData() {
+        this._charts();
     }
 
     private _onPosition(position: IPositionChange) {
