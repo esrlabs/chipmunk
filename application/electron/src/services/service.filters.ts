@@ -1,10 +1,11 @@
 import Logger from '../tools/env.logger';
-import { dialog, SaveDialogReturnValue } from 'electron';
+import { dialog, SaveDialogReturnValue, OpenDialogReturnValue } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { IService } from '../interfaces/interface.service';
 import ServiceElectron, { IPCMessages, Subscription } from './service.electron';
 import ServiceStorage, { IStorageScheme } from '../services/service.storage';
+import { rejects } from 'assert';
 
 const MAX_NUMBER_OF_RECENT_FILES = 100;
 
@@ -61,14 +62,18 @@ class ServiceFilters implements IService {
     private _ipc_onFiltersLoadRequest(message: IPCMessages.TMessage, response: (message: IPCMessages.TMessage) => Promise<void>) {
         const request: IPCMessages.FiltersLoadRequest = message as IPCMessages.FiltersLoadRequest;
         if (request.file === undefined) {
-            dialog.showOpenDialog({
+            const win = ServiceElectron.getBrowserWindow();
+            if (win === undefined) {
+                return;
+            }
+            dialog.showOpenDialog(win, {
                 properties: ['openFile', 'showHiddenFiles'],
                 filters: [{ name: 'Text Files', extensions: ['txt']}],
-            }, (files: string[] | undefined) => {
-                if (!(files instanceof Array) || files.length !== 1) {
+            }).then((returnValue: OpenDialogReturnValue) => {
+                if (!(returnValue.filePaths instanceof Array) || returnValue.filePaths.length !== 1) {
                     return;
                 }
-                const file: string = files[0];
+                const file: string = returnValue.filePaths[0];
                 this._loadFile(file).then((filters: IPCMessages.IFilter[]) => {
                     this._saveAsRecentFile(file, filters.length);
                     response(new IPCMessages.FiltersLoadResponse({

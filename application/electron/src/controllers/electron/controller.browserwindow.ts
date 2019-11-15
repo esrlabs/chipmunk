@@ -64,6 +64,10 @@ export default class ControllerBrowserWindow extends EventEmitter {
         });
     }
 
+    public getBrowserWindow(): BrowserWindow | undefined {
+        return this._window;
+    }
+
     private _create(): Promise<void> {
         return new Promise((resolve, reject) => {
             const state: IWindowState = ServiceWindowState.getSettings().get();

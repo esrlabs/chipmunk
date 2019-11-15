@@ -7,7 +7,7 @@ import { getDefaultFileParser, AFileParser, getParserForFile } from '../../contr
 import FileParserText from '../../controllers/files.parsers/file.parser.text';
 import FileParserDlt from '../../controllers/files.parsers/file.parser.dlt';
 import { IMapItem, ITicks } from '../../controllers/files.parsers/interface';
-import { dialog, session } from 'electron';
+import { dialog, OpenDialogReturnValue } from 'electron';
 import Logger from '../../tools/env.logger';
 import * as Tools from '../../tools/index';
 import * as fs from 'fs';
@@ -248,17 +248,23 @@ class ServiceFileOpener implements IService {
     }
 
     private _openFile(parser: AFileParser) {
-        dialog.showOpenDialog({
+        const win = ServiceElectron.getBrowserWindow();
+        if (win === undefined) {
+            return;
+        }
+        dialog.showOpenDialog(win, {
             properties: ['openFile', 'showHiddenFiles'],
             filters: parser.getExtnameFilters(),
-        }, (files: string[] | undefined) => {
-            if (!(files instanceof Array) || files.length !== 1) {
+        }).then((returnValue: OpenDialogReturnValue) => {
+            if (!(returnValue.filePaths instanceof Array) || returnValue.filePaths.length !== 1) {
                 return;
             }
-            const file: string = files[0];
+            const file: string = returnValue.filePaths[0];
             this.open(file, ServiceStreams.getActiveStreamId(), parser).catch((error: Error) => {
                 this._logger.warn(`Fail open file due error: ${error.message}`);
             });
+        }).catch((error: Error) => {
+            this._logger.error(`Fail open file due error: ${error.message}`);
         });
     }
 
