@@ -46,7 +46,8 @@
       "extendInfo": {
         "NSCameraUsageDescription": "",
         "NSMicrophoneUsageDescription": ""
-      }
+      },
+      "hardenedRuntime": false
     },
     "linux": {
       "icon": "./build/png",
