@@ -10,8 +10,8 @@ require './rake-extensions'
 
 NPM_RUN = 'npm run --quiet'
 
-ELECTRON_VERSION = '6.0.12'
-ELECTRON_REBUILD_VERSION = '^1.8.6'
+ELECTRON_VERSION = '7.1.1'
+ELECTRON_REBUILD_VERSION = '1.8.6'
 RIPGREP_VERSION = '11.0.2'
 ELECTRON_DIR = 'application/electron'
 ELECTRON_DIST_DIR = "#{ELECTRON_DIR}/dist"
@@ -75,6 +75,7 @@ task clean: :rust_clean
 CLOBBER.include([
                   '**/node_modules',
                   '**/dist',
+                  '**/package-lock.json',
                   "#{APPS_DIR}/indexer/target",
                   "#{APPS_DIR}/indexer-neon/dist",
                   "#{APPS_DIR}/indexer-neon/native/target"
@@ -917,7 +918,6 @@ task dev: %i[install
 desc 'Build the full build pipeline for a given platform'
 task full_pipeline: %i[setup_environment
                        install
-                       plugins
                        ripgrepdelivery
                        assemble_build
                        neon_indexer_delivery

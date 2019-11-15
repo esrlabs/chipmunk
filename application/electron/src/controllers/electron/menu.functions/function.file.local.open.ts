@@ -1,6 +1,7 @@
-import { dialog } from 'electron';
+import { dialog, OpenDialogReturnValue } from 'electron';
 import ServiceFileOpener from '../../../services/files/service.file.opener';
 import ServiceStreams from '../../../services/service.streams';
+import ServiceElectron from '../../../services/service.electron';
 import { AFileParser } from '../../files.parsers/interface';
 import Logger from '../../../tools/env.logger';
 
@@ -20,17 +21,23 @@ export default class FunctionOpenLocalFile {
 
     public getHandler(): () => void {
         return () => {
-            dialog.showOpenDialog({
+            const win = ServiceElectron.getBrowserWindow();
+            if (win === undefined) {
+                return;
+            }
+            dialog.showOpenDialog(win, {
                 properties: ['openFile', 'showHiddenFiles'],
                 filters: this._parser.getExtnameFilters(),
-            }, (files: string[] | undefined) => {
-                if (!(files instanceof Array) || files.length !== 1) {
+            }).then((returnValue: OpenDialogReturnValue) => {
+                if (!(returnValue.filePaths instanceof Array) || returnValue.filePaths.length !== 1) {
                     return;
                 }
-                const file: string = files[0];
+                const file: string = returnValue.filePaths[0];
                 ServiceFileOpener.open(file, ServiceStreams.getActiveStreamId(), this._parser).catch((error: Error) => {
                     this._logger.warn(`Fail open file due error: ${error.message}`);
                 });
+            }).catch((error: Error) => {
+                this._logger.error(`Fail open file due error: ${error.message}`);
             });
         };
     }

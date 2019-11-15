@@ -2,7 +2,7 @@
 // tslint:disable:ban-types
 
 import * as uuid from 'uuid';
-import { app } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import { Subscription } from '../tools/index';
 import { THandler } from '../tools/types.common';
 import { IService } from '../interfaces/interface.service';
@@ -109,6 +109,13 @@ class ServiceElectron implements IService {
         this._logger.env(`Closing app with code: ${code}`);
         app.exit(code);
         process.exit(code);
+    }
+
+    public getBrowserWindow(): BrowserWindow | undefined {
+        if (this._controllerBrowserWindow === undefined) {
+            return undefined;
+        }
+        return this._controllerBrowserWindow.getBrowserWindow();
     }
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Electron IPC

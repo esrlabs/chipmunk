@@ -23,6 +23,6 @@
     "custom.stdout": "^1.0.2"
   },
   "dependencies": {
-    "electron": "6.0.12"
+    "electron": "7.1.1"
   }
 }
