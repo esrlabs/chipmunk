@@ -1,5 +1,12 @@
 # Changelog
 
+### [1.28.0] - 11/15/2019
+* [](feat) ignore package-lock.json for toolkit
+* [](feat) update package-lock.json
+* [](feat) update rakefile (electron upgrade)
+* [](feat) upgrade serialport lib (to 8.0.3)
+* [](feat) electron upgrade
+
 ### [1.27.1] - 11/15/2019
 * [](feat) mac build settings
 * [](refactor): remove commented code
