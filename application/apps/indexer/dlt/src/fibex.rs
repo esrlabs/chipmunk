@@ -263,7 +263,7 @@ pub enum Event {
         id: String,
     },
     PduEnd {
-        short_name: String,
+        short_name: Option<String>,
         description: Option<String>,
         byte_length: usize,
     },
@@ -496,7 +496,7 @@ impl<B: BufRead> Reader<B> {
                 XmlEvent::End(ref e) => match e.local_name() {
                     B_PDU => {
                         return Ok(Event::PduEnd {
-                            short_name: mem::replace(&mut self.short_name, None).ok_or_else(|| missing_tag_err(B_SHORT_NAME, B_PDU, self.xml_reader.line_and_column()))?,
+                            short_name: mem::replace(&mut self.short_name, None),
                             description: mem::replace(&mut self.description, None),
                             byte_length: mem::replace(&mut self.byte_length, None).ok_or_else(|| missing_tag_err(B_BYTE_LENGTH, B_PDU, self.xml_reader.line_and_column()))?,
                         })
