@@ -75,7 +75,6 @@ task clean: :rust_clean
 CLOBBER.include([
                   '**/node_modules',
                   '**/dist',
-                  '**/package-lock.json',
                   "#{APPS_DIR}/indexer/target",
                   "#{APPS_DIR}/indexer-neon/dist",
                   "#{APPS_DIR}/indexer-neon/native/target"
@@ -918,6 +917,7 @@ task dev: %i[install
 desc 'Build the full build pipeline for a given platform'
 task full_pipeline: %i[setup_environment
                        install
+                       plugins
                        ripgrepdelivery
                        assemble_build
                        neon_indexer_delivery
