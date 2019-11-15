@@ -18,8 +18,6 @@
   },
   "dependencies": {
     "chipmunk.plugin.ipc": "0.0.33",
-    "electron": "^7.1.1",
-    "electron-rebuild": "^1.8.6",
-    "serialport": "^7.1.5"
+    "serialport": "8.0.5"
   }
 }
