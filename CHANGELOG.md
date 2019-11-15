@@ -1,5 +1,9 @@
 # Changelog
 
+### [1.27.1] - 11/15/2019
+* [](feat) mac build settings
+* [](refactor): remove commented code
+
 ### [1.27.0] - 11/13/2019
 * [#464](feat) remodel neon integration, add concatenation support
   * add option to get notifications from indexing/parsing
