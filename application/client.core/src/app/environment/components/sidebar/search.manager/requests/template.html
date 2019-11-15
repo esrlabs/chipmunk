@@ -3,7 +3,7 @@
 <div class="lists">
     <div class="requests-wrapper" *ngIf="_ng_requests.length > 0">
         <p class="caption t-small" *ngIf="_ng_requests.length > 0 && _ng_charts.length > 0">Available filters</p>
-        <ul #listrequests [attr.class]="'requests '" (focus)="_ng_onFocus()" (blur)="_ng_onBlur()" tabindex="1">
+        <ul #listrequests [attr.class]="'requests '" (focus)="_ng_onRequestsFocus()" (blur)="_ng_onRequestsBlur()" tabindex="1">
             <li [attr.class]="'request ' + (_ng_selectedRequestIndex === i ? 'selected' : '') + ' ' + (request.request.active ? '' : 'inactive')"
             (contextmenu)="_ng_onContexMenu($event, request, 'filters')"
             *ngFor="let request of _ng_requests; let i = index;">
@@ -18,7 +18,7 @@
     
     <div class="charts-wrapper" *ngIf="_ng_charts.length > 0">
         <p class="caption t-small" *ngIf="_ng_requests.length > 0 && _ng_charts.length > 0">Available charts</p>
-        <ul #listcharts [attr.class]="'requests '" (focus)="_ng_onFocus()" (blur)="_ng_onBlur()" tabindex="1">
+        <ul #listcharts [attr.class]="'requests '" (focus)="_ng_onChartsFocus()" (blur)="_ng_onChartsBlur()" tabindex="1">
             <li [attr.class]="'request ' + (_ng_selectedChartIndex === i ? 'selected' : '') + ' ' + (chart.request.active ? '' : 'inactive')"
                 (contextmenu)="_ng_onContexMenu($event, chart, 'charts')"
                 *ngFor="let chart of _ng_charts; let i = index;">
@@ -34,4 +34,8 @@
 
 <div class="details" *ngIf="_ng_selectedRequest !== undefined">
     <app-sidebar-app-search-request-details [request]="_ng_selectedRequest"></app-sidebar-app-search-request-details>
+</div>
+
+<div class="details" *ngIf="_ng_selectedChart !== undefined">
+    <app-sidebar-app-search-chart-details [chart]="_ng_selectedChart"></app-sidebar-app-search-chart-details>
 </div>

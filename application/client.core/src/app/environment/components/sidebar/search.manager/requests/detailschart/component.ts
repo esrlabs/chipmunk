@@ -19,7 +19,7 @@ export interface IChartItem {
 
 export class SidebarAppSearchChartDetailsComponent implements OnDestroy, AfterContentInit, OnChanges {
 
-    @Input() public request: IChartItem | undefined;
+    @Input() public chart: IChartItem | undefined;
 
     public _ng_request: string = '';
     public _ng_color: string = '';
@@ -50,24 +50,24 @@ export class SidebarAppSearchChartDetailsComponent implements OnDestroy, AfterCo
     }
 
     public _ng_onColorSelect(index: number) {
-        if (this.request === undefined) {
+        if (this.chart === undefined) {
             return;
         }
         this._ng_color = this._ng_colors[index];
         this._ng_background = this._ng_colorBinding ? this._getGeneratedColor(this._ng_color, false) : this._ng_background;
         this._updateIndexes();
-        this.request.onChange(this._ng_color, this._ng_background);
+        this.chart.onChange(this._ng_color, this._ng_background);
         this._cdRef.detectChanges();
     }
 
     public _ng_onBackgroundSelect(index: number) {
-        if (this.request === undefined) {
+        if (this.chart === undefined) {
             return;
         }
         this._ng_background = this._ng_colors[index];
         this._ng_color = this._ng_colorBinding ? this._getGeneratedColor(this._ng_background, true) : this._ng_color;
         this._updateIndexes();
-        this.request.onChange(this._ng_color, this._ng_background);
+        this.chart.onChange(this._ng_color, this._ng_background);
         this._cdRef.detectChanges();
     }
 
@@ -81,11 +81,11 @@ export class SidebarAppSearchChartDetailsComponent implements OnDestroy, AfterCo
     }
 
     private _update() {
-        if (this.request === undefined) {
+        if (this.chart === undefined) {
             return;
         }
-        this._ng_request = this.request.request.reg.source;
-        this._ng_color = this.request.request.color;
+        this._ng_request = this.chart.request.reg.source;
+        this._ng_color = this.chart.request.color;
         this._updateIndexes();
         this._cdRef.detectChanges();
     }

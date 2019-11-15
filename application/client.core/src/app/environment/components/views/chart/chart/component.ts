@@ -9,9 +9,8 @@ import ViewsEventsService from '../../../../services/standalone/service.views.ev
 import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 
 const CSettings = {
-    rebuildDelay: 10,
-    maxPostponedRebuilds: 50,
-    redrawDelay: 10,
+    rebuildDelay: 250,
+    redrawDelay: 50,
     maxPostponedRedraws: 50,
 };
 
@@ -38,10 +37,10 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
     private _redirectMainView: boolean = true;
     private _rebuild: {
         timer: any,
-        postponed: number,
+        last: number,
     } = {
         timer: -1,
-        postponed: 0,
+        last: 0,
     };
     private _redraw: {
         timer: any,
@@ -169,23 +168,20 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
 
     private _build(force: boolean = false) {
         clearTimeout(this._rebuild.timer);
-        if (!force && this._rebuild.postponed < CSettings.maxPostponedRebuilds) {
-            this._rebuild.postponed += 1;
-            this._rebuild.timer = setTimeout(this._build.bind(this, true), CSettings.rebuildDelay);
+        const delay: number = Date.now() - this._rebuild.last;
+        if (!force && delay < CSettings.rebuildDelay) {
+            this._rebuild.timer = setTimeout(this._build.bind(this), delay > CSettings.rebuildDelay ? CSettings.rebuildDelay : delay);
             return;
         }
+        this._rebuild.last = Date.now();
+        this._rebuild.timer = -1;
         this._matches();
         this._charts();
     }
 
     private _matches() {
-        this._rebuild.postponed = 0;
-        this._rebuild.timer = -1;
         if (this.service === undefined) {
             return;
-        }
-        if (this._ng_filters !== undefined) {
-            this._ng_filters.destroy();
         }
         const labels: string[] = this.service.getLabes(this._ng_width, this._getRange());
         const datasets: Array<{ [key: string]: any }> = this.service.getDatasets(this._ng_width, this._getRange());
@@ -194,51 +190,59 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             return;
         }
         const max: number = this.service.getMaxForLastRange();
-        this._ng_filters = new Chart('view-chart-canvas-filters', {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: datasets,
-            },
-            options: {
-                title: {
-                    display: false,
+        if (this._ng_filters === undefined) {
+            this._ng_filters = new Chart('view-chart-canvas-filters', {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: datasets,
                 },
-                legend: {
-                    display: false,
-                },
-                animation: {
-                    duration: 0,
-                },
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    yAxes: [{
-                        stacked: true,
-                        ticks: {
-                            beginAtZero: true,
-                            max: Math.round(max + max * 0.1)
-                        },
-                    }],
-                    xAxes: [{
-                        stacked: true,
+                options: {
+                    title: {
                         display: false,
-                    }]
+                    },
+                    legend: {
+                        display: false,
+                    },
+                    animation: {
+                        duration: 0,
+                    },
+                    hover: {
+                        animationDuration: 0
+                    },
+                    responsiveAnimationDuration: 0,
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        yAxes: [{
+                            stacked: true,
+                            ticks: {
+                                beginAtZero: true,
+                                max: Math.round(max + max * 0.1)
+                            },
+                        }],
+                        xAxes: [{
+                            stacked: true,
+                            display: false,
+                        }]
+                    }
                 }
-            }
-        });
+            });
+            this._forceUpdate();
+        } else {
+            this._ng_filters.data.labels = labels;
+            this._ng_filters.data.datasets = datasets;
+            this._ng_filters.options.scales.yAxes[0].ticks.max = Math.round(max + max * 0.1);
+            setTimeout(() => {
+                this._ng_filters.update();
+            });
+        }
         this._scrollMainView();
-        this._forceUpdate();
     }
 
     private _charts() {
-        this._rebuild.postponed = 0;
-        this._rebuild.timer = -1;
         if (this.service === undefined) {
             return;
-        }
-        if (this._ng_charts !== undefined) {
-            this._ng_charts.destroy();
         }
         const datasets: Array<{ [key: string]: any }> = this.service.getChartsDatasets(this._ng_width, this._getRange());
         let range: IRange | undefined = this._getRange();
@@ -248,42 +252,51 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                 end: this.service.getStreamSize()
             };
         }
-        this._ng_charts = new Chart('view-chart-canvas-charts', {
-            type: 'scatter',
-            data: {
-                datasets: datasets,
-            },
-            options: {
-                title: {
-                    display: false,
+        if (this._ng_charts === undefined) {
+            this._ng_charts = new Chart('view-chart-canvas-charts', {
+                type: 'scatter',
+                data: {
+                    datasets: datasets,
                 },
-                legend: {
-                    display: false,
-                },
-                animation: {
-                    duration: 0,
-                },
-                responsive: true,
-                scales: {
-                    xAxes: [{
-                       ticks: {
-                          min: range.begin,
-                          max: range.end
-                       },
-                       gridLines: {
-                          color: '#888',
-                          drawOnChartArea: false
-                       },
-                       display: false
-                    }],
-                    yAxes: [{
-                       display: false
-                    }]
-                 }
-            }
-        });
+                options: {
+                    title: {
+                        display: false,
+                    },
+                    legend: {
+                        display: false,
+                    },
+                    animation: {
+                        duration: 0,
+                    },
+                    responsive: true,
+                    scales: {
+                        xAxes: [{
+                           ticks: {
+                              min: range.begin,
+                              max: range.end
+                           },
+                           gridLines: {
+                              color: '#888',
+                              drawOnChartArea: false
+                           },
+                           display: false
+                        }],
+                        yAxes: [{
+                           display: false
+                        }]
+                     }
+                }
+            });
+            this._forceUpdate();
+        } else {
+            this._ng_charts.data.datasets = datasets;
+            this._ng_charts.options.scales.xAxes[0].ticks.max = range.end;
+            this._ng_charts.options.scales.xAxes[0].ticks.min = range.begin;
+            setTimeout(() => {
+                this._ng_charts.update();
+            });
+        }
         this._scrollMainView();
-        this._forceUpdate();
     }
 
     private _getRange(): IRange | undefined {
