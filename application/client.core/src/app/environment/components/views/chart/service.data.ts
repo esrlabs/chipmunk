@@ -20,6 +20,14 @@ export class ServiceData {
     private _matches: IMapState | undefined;
     private _max: number | undefined;
     private _charts: IPCMessages.TChartResults = {};
+    private _logger: Toolkit.Logger = new Toolkit.Logger(`Charts ServiceData`);
+    private _cache: {
+        data: { [reg: string]: number[] },
+        hash: string,
+    } = {
+        data: {},
+        hash: '',
+    };
     private _subjects: {
         onData: Subject<void>,
         onCharts: Subject<IPCMessages.TChartResults>
@@ -137,6 +145,7 @@ export class ServiceData {
                 categoryPercentage: 1,
                 label: filter,
                 backgroundColor: color === undefined ? ColorScheme.scheme_search_match : color,
+                showLine: false,
                 data: results[filter],
             };
             datasets.push(dataset);
@@ -269,7 +278,8 @@ export class ServiceData {
                 prev = value;
             });
             if (results[reg] !== undefined && results[reg].length > 0) {
-                if (border.left !== undefined && range.begin <= results[reg][0].x) {
+                // console.log(border.left);
+                if (border.left !== -1 && range.begin <= results[reg][0].x) {
                     results[reg].unshift(...[
                         {
                             x: range.begin,

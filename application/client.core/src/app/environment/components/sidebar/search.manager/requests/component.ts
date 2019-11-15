@@ -51,7 +51,7 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppSearchRequestsComponent');
     private _destroyed: boolean = false;
     private _session: ControllerSessionTab | undefined;
-    private _focused: boolean = false;
+    private _focused: EEntityType | undefined;
     private _filename: string | undefined;
     private _changed: boolean = false;
     private _subjectsRequests: {
@@ -131,12 +131,20 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         this._forceUpdate();
     }
 
-    public _ng_onFocus() {
-        this._focused = true;
+    public _ng_onRequestsFocus() {
+        this._focused = EEntityType.filters;
     }
 
-    public _ng_onBlur() {
-        this._focused = false;
+    public _ng_onRequestsBlur() {
+        this._focused = undefined;
+    }
+
+    public _ng_onChartsFocus() {
+        this._focused = EEntityType.charts;
+    }
+
+    public _ng_onChartsBlur() {
+        this._focused = undefined;
     }
 
     public _ng_onContexMenu(event: MouseEvent, request: IRequestItem | IChartItem, type: EEntityType) {
@@ -245,30 +253,60 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
     }
 
     private _onKeyPress(event: KeyboardEvent) {
-        if (!this._focused) {
+        if (this._focused === undefined) {
             return;
         }
-        if (this._ng_requests.length === 0) {
-            return;
-        }
-        switch (event.key) {
-            case 'ArrowDown':
-                if (this._ng_selectedRequestIndex === -1 || this._ng_selectedRequestIndex === this._ng_requests.length - 1) {
-                    this._selectRequestByIndex(0);
-                } else {
-                    this._selectRequestByIndex(this._ng_selectedRequestIndex + 1);
+        switch (this._focused) {
+            case EEntityType.filters:
+                if (this._ng_requests.length === 0) {
+                    return;
+                }
+                switch (event.key) {
+                    case 'ArrowDown':
+                        if (this._ng_selectedRequestIndex === -1 || this._ng_selectedRequestIndex === this._ng_requests.length - 1) {
+                            this._selectRequestByIndex(0);
+                        } else {
+                            this._selectRequestByIndex(this._ng_selectedRequestIndex + 1);
+                        }
+                        break;
+                    case 'ArrowUp':
+                        if (this._ng_selectedRequestIndex === -1 || this._ng_selectedRequestIndex === 0) {
+                            this._selectRequestByIndex(this._ng_requests.length - 1);
+                        } else {
+                            this._selectRequestByIndex(this._ng_selectedRequestIndex - 1);
+                        }
+                        break;
+                    case 'Enter':
+                        if (this._ng_selectedRequestIndex !== -1) {
+                            this._subjectsRequests.onEdit.next(this._ng_selectedRequest.request);
+                        }
+                        break;
                 }
                 break;
-            case 'ArrowUp':
-                if (this._ng_selectedRequestIndex === -1 || this._ng_selectedRequestIndex === 0) {
-                    this._selectRequestByIndex(this._ng_requests.length - 1);
-                } else {
-                    this._selectRequestByIndex(this._ng_selectedRequestIndex - 1);
+            case EEntityType.charts:
+                if (this._ng_charts.length === 0) {
+                    return;
                 }
-                break;
-            case 'Enter':
-                if (this._ng_selectedRequestIndex !== -1) {
-                    this._subjectsRequests.onEdit.next(this._ng_selectedRequest.request);
+                switch (event.key) {
+                    case 'ArrowDown':
+                        if (this._ng_selectedChartIndex === -1 || this._ng_selectedChartIndex === this._ng_charts.length - 1) {
+                            this._selectChartByIndex(0);
+                        } else {
+                            this._selectChartByIndex(this._ng_selectedChartIndex + 1);
+                        }
+                        break;
+                    case 'ArrowUp':
+                        if (this._ng_selectedChartIndex === -1 || this._ng_selectedChartIndex === 0) {
+                            this._selectChartByIndex(this._ng_charts.length - 1);
+                        } else {
+                            this._selectChartByIndex(this._ng_selectedChartIndex - 1);
+                        }
+                        break;
+                    case 'Enter':
+                        if (this._ng_selectedChartIndex !== -1) {
+                            this._subjectsCharts.onEdit.next(this._ng_selectedChart.request);
+                        }
+                        break;
                 }
                 break;
         }
@@ -461,12 +499,12 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
     }
 
     private _onRemoveChart(request: IChartRequest) {
-        this._session.getSessionSearch().getFiltersAPI().removeStored(request.reg.source);
+        this._session.getSessionSearch().getChartsAPI().removeStored(request.reg.source);
         this._subjectsRequests.onChanges.next();
     }
 
     private _onChangeStateChart(request: IChartRequest, active: boolean) {
-        this._session.getSessionSearch().getFiltersAPI().updateStored(request.reg.source, { active: active });
+        this._session.getSessionSearch().getChartsAPI().updateStored(request.reg.source, { active: active });
         this._subjectsRequests.onChanges.next();
         this._forceUpdate();
     }
@@ -478,7 +516,7 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         if (value === undefined) {
             return;
         }
-        this._session.getSessionSearch().getFiltersAPI().updateStored(request.reg.source, { reguest: value });
+        this._session.getSessionSearch().getChartsAPI().updateStored(request.reg.source, { reguest: value });
         this._subjectsRequests.onChanges.next();
         this._changed = true;
         this._saveState();
