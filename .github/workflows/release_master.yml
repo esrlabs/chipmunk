@@ -39,6 +39,9 @@ jobs:
           rust-version: ${{ matrix.rust }}
       - name: build release
         run: rake full_pipeline --trace
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
       - run: ls
       - name: Release
         uses: softprops/action-gh-release@v1
