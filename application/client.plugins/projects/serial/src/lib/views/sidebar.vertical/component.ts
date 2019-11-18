@@ -39,7 +39,6 @@ let savedSession = new Map<string, { default: string, ports: IPortInfo[]}>();
 })
 
 export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
-    @ViewChild('optionsCom', {static: false}) _optionsCom: SidebarVerticalPortOptionsWriteComponent;
     @ViewChild('msgInput', {static: false}) _inputCom: InputStandardComponent;
     @ViewChild('selectPort', {static: false}) _selectCom: DDListStandardComponent;
 
@@ -53,7 +52,8 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     private _chosenPort: string = undefined;
     private _portOptions: IOptions[] = [];
     private _options: IOptions = Object.assign({}, CDefaultOptions);
-    
+    private _optionsCom: SidebarVerticalPortOptionsWriteComponent;
+
     public _ng_ports: IPortInfo[] = [];
     public _ng_connected: IConnected[] = [];
     public _ng_selected: IPortInfo | undefined;
@@ -518,7 +518,8 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                     _ng_getSpyState: (() => this._ng_spyLoad),
                     _requestPortList: ( () => this._ng_ports),
                     _forceUpdate: this._forceUpdate,
-                    _getSelected: ((selected: IPortInfo) => { this._ng_selected = selected; })
+                    _getSelected: ((selected: IPortInfo) => { this._ng_selected = selected; }),
+                    _get_optionsCom: ((options: SidebarVerticalPortOptionsWriteComponent) => { this._optionsCom = options })
                 }
             },
             buttons: [
