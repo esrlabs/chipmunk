@@ -437,8 +437,6 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         }
     }    
 
-    // Function which removes savedata from closed session
-
     public _ng_changeDropdownSelect(value: string) {
         this._chosenPort = value;
         this._ng_ports.forEach( port => {
@@ -519,7 +517,8 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                     _requestPortList: ( () => this._ng_ports),
                     _forceUpdate: this._forceUpdate,
                     _getSelected: ((selected: IPortInfo) => { this._ng_selected = selected; }),
-                    _get_optionsCom: ((options: SidebarVerticalPortOptionsWriteComponent) => { this._optionsCom = options })
+                    _get_optionsCom: ((options: SidebarVerticalPortOptionsWriteComponent) => { this._optionsCom = options }),
+                    _stopSpy: (() => this._stopSpy())
                 }
             },
             buttons: [
