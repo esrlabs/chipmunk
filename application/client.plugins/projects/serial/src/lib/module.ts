@@ -6,6 +6,8 @@ import { SidebarVerticalPortInfoComponent } from './views/sidebar.vertical/port.
 import { SidebarVerticalPortConnectedComponent } from './views/sidebar.vertical/port.connected/component';
 import { SidebarVerticalPortOptionsReadComponent } from './views/sidebar.vertical/port.options.read/component';
 import { SidebarVerticalPortOptionsWriteComponent } from './views/sidebar.vertical/port.options.write/component';
+import { SidebarVerticalPortDialogComponent } from './views/dialog/components';
+import { SidebarTitleAdd } from './views/dialog/titlebar/components';
 import { SerialRowComponent } from './views/row/component';
 import { PrimitiveModule } from 'chipmunk-client-primitive';
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -16,6 +18,8 @@ const CComponents = [
     SidebarVerticalPortConnectedComponent,
     SidebarVerticalPortOptionsReadComponent,
     SidebarVerticalPortOptionsWriteComponent,
+    SidebarVerticalPortDialogComponent,
+    SidebarTitleAdd,
     SerialRowComponent
 ];
 

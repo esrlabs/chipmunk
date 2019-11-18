@@ -1,20 +1,4 @@
 <div class="container">
-    <p class="t-normal">Available ports</p>
-    <span class="reload-ports small-icon-button fas fa-sync" (click)="_ng_onReloadPortsList()"></span>
-    <ul class="ports">
-        <li [attr.class]="'port ' + (_ng_isPortSelected(port) ? 'selected' : '')" *ngFor="let port of _ng_ports" (click)="_ng_onPortSelect(port)">
-            <lib-sb-portinfo-com [port]="port" [state]="_ng_getState(port)"></lib-sb-portinfo-com>
-        </li>
-    </ul>
-    <div *ngIf="_ng_options">
-        <lib-sb-port-options-write-com #optionsCom></lib-sb-port-options-write-com>
-    </div>
-    <div class="controlls" *ngIf="_ng_canBeConnected()">
-        <span class="small-button" (click)="_ng_onOptions()">Options</span>
-        <span class="small-button" (click)="_ng_onConnect()">Connect</span>
-    </div>
-</div>
-<div class="container">
     <p class="t-normal">Connected ports</p>
     <p class="t-small color-scheme-1" *ngIf="_ng_connected.length === 0">No connected ports for this session</p>
     <ul class="ports connected" *ngIf="_ng_connected.length > 0">
@@ -23,7 +7,7 @@
         </li>
     </ul>    
 </div>
-<div class="container">
+<div class="container" *ngIf="_ng_connected.length > 0">
     <div class="comstyle-input-holder input-wrapper">
         <div class="comstyle-input">
             <lib-primitive-input #msgInput
@@ -34,11 +18,15 @@
             </lib-primitive-input>
         </div>
     </div>
-</div>
-<div class="container">
-    <lib-primitive-dropdownlist #selectPort
-    [onChange]="_ng_change" [items]="_ng_portList">
-    </lib-primitive-dropdownlist>
+    <div class="dropdown">
+        <lib-primitive-dropdownlist #selectPort
+        *ngIf="_ng_defaultPort !== undefined"
+        [attr.id]="'selectPort'"
+        [onChange]="_ng_changeDropdownSelect"
+        [items]="_ng_portList"
+        [defaults]="_ng_defaultPort">
+        </lib-primitive-dropdownlist>
+    </div>
 </div>
 <div class="error">
     <p class="t-normal color-scheme-error">{{_ng_error}}</p>

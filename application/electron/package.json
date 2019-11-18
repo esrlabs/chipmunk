@@ -101,6 +101,7 @@
     },
     "scripts": {
         "electron": "tsc -p ./tsconfig.json && ./node_modules/.bin/electron --inspect ./dist/compiled/electron/src/main.js",
+        "electron-win": "./node_modules/.bin/electron --inspect ./dist/compiled/electron/src/main.js",
         "build-ts": "tsc -p ./tsconfig.json",
         "build-scripts-ts": "tsc -p ./scripts/tsconfig.json",
         "start": "npm run build-ts && npm run electron",
