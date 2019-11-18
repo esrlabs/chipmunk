@@ -18,7 +18,7 @@
   "copyright": "Copyright © 2019 year E.S.R.Labs",
   "build": {
     "asar": false,
-    "appId": "com.chipmunk.de",
+    "appId": "com.esrlabs.chipmunk",
     "productName": "chipmunk",
     "copyright": "Copyright © 2019 year E.S.R.Labs",
     "files": [
@@ -37,7 +37,7 @@
     "npmRebuild": true,
     "mac": {
       "category": "public.app-category.developer-tools",
-      "icon": "./build/mac/icon.icns",
+      "icon": "./icons/chipmunk.icns",
       "target": [
         {
           "target": "zip"
@@ -47,10 +47,13 @@
         "NSCameraUsageDescription": "",
         "NSMicrophoneUsageDescription": ""
       },
-      "hardenedRuntime": false
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "./src/entitlements.mac.plist",
+      "entitlementsInherit": "./src/entitlements.mac.plist"
     },
     "linux": {
-      "icon": "./build/png",
+      "icon": "./icons/chipmunk.png",
       "target": [
         {
           "target": "zip"
@@ -58,13 +61,14 @@
       ]
     },
     "win": {
-      "icon": "./build/win/icon.ico",
+      "icon": "./icons/chipmunk.ico",
       "target": [
         {
           "target": "zip"
         }
       ]
-    }
+    },
+    "afterSign": "scripts/notarize.js"
   },
   "dependencies": {
     "@types/moment-timezone": "^0.5.12",
@@ -85,6 +89,7 @@
     "dmg-builder": "^6.0.0",
     "electron": "7.1.1",
     "electron-builder": "22.1.0",
+    "electron-notarize": "^0.2.0",
     "electron-rebuild": "^1.8.6",
     "tslint": "^5.11.0",
     "typescript": "^3.1.3"

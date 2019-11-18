@@ -14,9 +14,8 @@ ELECTRON_VERSION = '7.1.1'
 ELECTRON_REBUILD_VERSION = '1.8.6'
 RIPGREP_VERSION = '11.0.2'
 ELECTRON_DIR = 'application/electron'
-ELECTRON_DIST_DIR = "#{ELECTRON_DIR}/dist"
-ELECTRON_COMPILED_DIR = "#{ELECTRON_DIST_DIR}/compiled"
-ELECTRON_RELEASE_DIR = "#{ELECTRON_DIST_DIR}/release"
+ELECTRON_COMPILED_DIR = "#{ELECTRON_DIR}/dist/compiled"
+ELECTRON_RELEASE_DIR = "#{ELECTRON_DIR}/dist/release"
 APPS_DIR = 'application/apps'
 CLIENT_CORE_DIR = 'application/client.core'
 CLIENT_PLUGIN_DIR = 'application/client.plugins'
@@ -48,7 +47,6 @@ STANDALONE_PLUGINS = ['row.parser.ascii'].freeze
 
 PLUGINS_SANDBOX = 'application/sandbox'
 
-directory ELECTRON_DIST_DIR
 directory ELECTRON_COMPILED_DIR
 directory ELECTRON_RELEASE_DIR
 directory INCLUDED_PLUGINS_FOLDER
@@ -56,7 +54,6 @@ directory INCLUDED_APPS_FOLDER
 directory RIPGREP_LOCAL_TMP
 
 FOLDERS_TO_CLEAN = [
-  ELECTRON_DIST_DIR,
   ELECTRON_COMPILED_DIR,
   ELECTRON_RELEASE_DIR,
   INCLUDED_PLUGINS_FOLDER,
@@ -80,8 +77,7 @@ CLOBBER.include([
                   "#{APPS_DIR}/indexer-neon/native/target"
                 ])
 
-task folders: [ELECTRON_DIST_DIR,
-               ELECTRON_COMPILED_DIR,
+task folders: [ELECTRON_COMPILED_DIR,
                ELECTRON_RELEASE_DIR,
                INCLUDED_PLUGINS_FOLDER,
                INCLUDED_APPS_FOLDER]
@@ -435,20 +431,13 @@ namespace :dev do
   end
 
   desc 'Developer task: update and delivery indexer-neon'
-  task neon: %i[build_embedded_indexer delivery_embedded_indexer_into_app]
+  task neon: %i[build_embedded_indexer delivery_embedded_into_local_runtime]
 
   desc 'Developer task: update client'
   task update_client: ['client:create_resources']
 
   desc 'Developer task: update client and libs'
   task fullupdate_client: ['client:build_and_deliver_libs', :update_client]
-
-  desc 'Developer task: update client and run electron'
-  task fullupdate_client_run: :fullupdate_client do
-    cd ELECTRON_DIR do
-      sh "#{NPM_RUN} electron"
-    end
-  end
 
   # Application should be built already to use this task
   desc 'Developer task: build launcher and delivery into package.'
@@ -464,7 +453,7 @@ namespace :dev do
                          assemble_build
                          add_package_json
                          ripgrepdelivery
-                         neon_indexer_delivery
+                         package_neon_app
                          create_release_file_list]
 end
 
@@ -687,29 +676,8 @@ def build_and_deploy_rust_app(name)
 end
 
 def fresh_folder(dest_folder)
-  rm_r(dest_folder, force: true)
-  mkdir_p dest_folder
-end
-
-def package_and_copy_neon_indexer(dest)
-  src_folder = "#{APPS_DIR}/indexer-neon"
-  dest_folder = "#{dest}/indexer-neon"
-  puts "Deliver indexer from: #{src_folder} into #{dest_folder}"
-  fresh_folder(dest_folder)
-  Dir["#{src_folder}/*"]
-    .reject { |n| n.end_with?('node_modules') || n.end_with?('native') }
-    .each do |s|
-    cp_r(s, dest_folder, verbose: true)
-  end
-  dest_native = "#{dest_folder}/native"
-  dest_native_release = "#{dest_native}/target/release"
-  fresh_folder(dest_native_release)
-  ['Cargo.lock', 'Cargo.toml', 'artifacts.json', 'build.rs', 'index.node', 'src'].each do |f|
-    cp_r("#{src_folder}/native/#{f}", dest_native, verbose: true)
-  end
-  neon_resources = Dir.glob("#{src_folder}/native/target/release/*")
-                      .reject { |f| f.end_with?('build') || f.end_with?('deps') }
-  cp_r(neon_resources, dest_native_release)
+  rm_r(dest_folder, force: true, verbose: false)
+  mkdir_p(dest_folder, verbose: false)
 end
 
 local_neon_installation = "#{APPS_DIR}/indexer-neon/node_modules/.bin"
@@ -738,20 +706,45 @@ task build_embedded_indexer: [local_neon_installation, :compile_neon_ts] do
   end
 end
 
-task :neon_indexer_delivery do
-  dest = if OS.mac?
-           "#{ELECTRON_RELEASE_DIR}/mac/chipmunk.app/Contents/Resources/app/node_modules"
-         elsif OS.linux?
-           "#{ELECTRON_RELEASE_DIR}/linux-unpacked/resources/app/node_modules"
-         else
-           "#{ELECTRON_RELEASE_DIR}/win-unpacked/resources/app/node_modules"
-         end
-  package_and_copy_neon_indexer(dest)
+def copy_neon_indexer(dest)
+  src_folder = "#{APPS_DIR}/indexer-neon"
+  dest_folder = "#{dest}/indexer-neon"
+  fresh_folder(dest_folder)
+  Dir["#{src_folder}/*"]
+    .reject { |n| n.end_with?('node_modules') || n.end_with?('native') }
+    .each do |s|
+    cp_r(s, dest_folder, verbose: false)
+  end
+  dest_native = "#{dest_folder}/native"
+  dest_native_release = "#{dest_native}/target/release"
+  fresh_folder(dest_native_release)
+  ['artifacts.json', 'index.node'].each do |f|
+    cp_r("#{src_folder}/native/#{f}", dest_native, verbose: false)
+  end
+  neon_resources = Dir.glob("#{src_folder}/native/target/release/*")
+                      .reject { |f| f.end_with?('build') || f.end_with?('deps') }
+  puts "copying neon-resources to #{dest_native_release}"
+  neon_resources.each do |r|
+    cp_r(r, dest_native_release, verbose: false)
+  end
+end
+
+def packaged_neon_dest
+  if OS.mac?
+    "#{ELECTRON_RELEASE_DIR}/mac/chipmunk.app/Contents/Resources/app/node_modules"
+  elsif OS.linux?
+    "#{ELECTRON_RELEASE_DIR}/linux-unpacked/resources/app/node_modules"
+  else
+    "#{ELECTRON_RELEASE_DIR}/win-unpacked/resources/app/node_modules"
+  end
+end
+task :package_neon_app do
+  copy_neon_indexer(packaged_neon_dest)
 end
 
 desc 'put the neon library in place'
-task :delivery_embedded_indexer_into_app do
-  package_and_copy_neon_indexer("#{ELECTRON_DIR}/node_modules")
+task :delivery_embedded_into_local_runtime do
+  copy_neon_indexer("#{ELECTRON_DIR}/node_modules")
 end
 
 desc 'build native parts'
@@ -847,7 +840,14 @@ electron_build_output = 'application/electron/dist/release/mac/chipmunk.app/Cont
 file electron_build_output => FileList['application/electron/src/**/*.*', 'application/electron/*.json'] do |_t|
   cd ELECTRON_DIR do
     sh "#{NPM_RUN} build-ts"
-    sh "./node_modules/.bin/electron-builder --#{target_platform_alias}"
+    if OS.mac?
+      require 'dotenv'
+      Dotenv.load('.env')
+      use_siging = ENV['CSC_IDENTITY_AUTO_DISCOVERY']
+      sh "./node_modules/.bin/electron-builder --mac #{use_siging ? '' : '-c.mac.identity=null'}"
+    else
+      sh "./node_modules/.bin/electron-builder --#{target_platform_alias}"
+    end
   end
   chipmunk_exec_path = release_app_folder_and_path('chipmunk')[1]
   app_exec_path = release_app_folder_and_path('app')[1]
@@ -862,7 +862,7 @@ BUILT_LAUNCHER = if OS.windows?
                    'application/apps/launcher/target/release/launcher'
                  end
 desc 'package electron'
-task assemble_build: %i[folders electron_builder_build]
+task assemble_build: %i[folders electron_builder_build package_neon_app]
 
 desc 'Prepare package to deploy on Github'
 task :prepare_to_deploy do
@@ -891,7 +891,7 @@ desc 'developer job to completely build chipmunk...after that use :start'
 task dev: %i[install
              plugins
              ripgrepdelivery
-             neon_indexer_delivery
+             package_neon_app
              add_package_json]
 
 desc 'Build the full build pipeline for a given platform'
@@ -900,7 +900,6 @@ task full_pipeline: %i[setup_environment
                        plugins
                        ripgrepdelivery
                        assemble_build
-                       neon_indexer_delivery
                        create_release_file_list
                        prepare_to_deploy]
 
