@@ -1,30 +1,30 @@
 @import '../../../../../../theme/scheme.less';
 
 :host {
-    position: absolute;
+    position: relative;
     display: block;
-    top:0.5rem;
-    left:0.5rem;
-    right: 0.5rem;
-    bottom: 0.5rem;
-    overflow-x: hidden;
-    overflow-y: auto;
-    & span.reload-ports{
-        position: absolute;
-        top: 1px;
-        right: 0;
+    width: 100%;
+
+    & span.dot {
+        height: 10px;
+        width: 10px;
+        border-radius: 50%;
+        float: right;
+        &.alive {
+            background-color: @scheme-color-active;
+        }
+        &.dead {
+            background-color: @scheme-color-error;
+        }
     }
-    & div.controlls{
-        text-align: right;
-    }
-    & ul.ports {
+    & table.ports {
         position: relative;
         display: block;
         width: 100%;
         list-style: none;
         margin: 0;
         padding: 0;
-        & li.port{
+        & tr.port{
             position: relative;
             display: block;
             width: 100%;
@@ -38,12 +38,8 @@
                 background: @scheme-color-4;
             }
         }
-        &.connected{
-            & li.port{
-                &:hover{
-                    background: none;
-                }
-            }
+        & td {
+            width: 100%;
         }
     }
     & div.error{
@@ -58,20 +54,15 @@
         overflow: hidden;
         & div.input-wrapper {
             position: relative;
-            display: inline-block;
+            display: block;
             height: 1.5rem;
-            width: ~"calc(70% + 1rem)";
+            width: ~"calc(100% + 1rem)";
             margin-left: -0.5rem;
         }
     }
-    & .dropdown{
-        display: inline-block;
-        width: 25%;
-        height: 1.5rem;
-    }
     & select{
         position: relative;
-        display: inline-block;
+        display: block;
         width: ~"calc(100% - 5px)";
         border: 1px solid @scheme-color-4;
         outline: none;
@@ -87,6 +78,35 @@
         }
         &::placeholder{
             color: @scheme-color-2;
+        }
+    }
+    & div.toggle {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 1rem;
+        height: 100%;
+        z-index: 2;
+        & span.toggle-button{
+            position: absolute;
+            top: 1px;
+            left: -2px;
+            transition: all 100ms ease-in-out;
+            &.opened{
+                transform: rotateZ(180deg);
+            }
+        }
+    }
+    & div.info {
+        position: relative;
+        & span.size{
+            position: absolute;
+            display: block;
+            right: 0;
+            top: 0;
+        }
+        &.hasinfo{
+            padding: 0 0 0 1rem;
         }
     }
 }

@@ -19,6 +19,7 @@ export class ControllerSession {
     private _session: string;
     private _ports: string[] = [];
     private _logger: Logger;
+    private _readLoad: { [key: string]: number } = {};
 
     constructor(session: string) {
         this._session = session;
@@ -87,6 +88,56 @@ export class ControllerSession {
                 this._removePort(path);
                 resolve();
             })
+        });
+    }
+
+    public spyStart(options: IOptions[]): Promise<void> {
+        return new Promise((resolve, reject) => {
+            Promise.all(
+                options.map((option: IOptions) => {
+                    return ServicePorts.refPort(this._session, option, {
+                        onData: this._readSpyLoad.bind(this, option.path),
+                        onError: this._onPortError.bind(this, option.path),
+                        onDisconnect: (() => {})//this._onPortDisconnect.bind(this, option.path)
+                    });
+                }),
+            ).then(() => {
+                this._logger.env(`Ports have been assigned with session "${this._session}"`);
+                options.forEach(option => {
+                    this._ports.push(option.path);
+                });
+                resolve();
+            }).catch((openErr: Error) => {
+                reject(new Error(this._logger.error(`Fail to open ports due error: ${openErr.message}`)));
+            });
+
+        })
+    }
+
+    public spyStop(options: IOptions[]): Promise<void> {
+        return new Promise((resolve, reject) => {
+            options.forEach( option => {
+                if (!this._isPortRefed(option.path)) {
+                    return reject(new Error(this._logger.error(`Port "${option.path}" isn't assigned with session "${this._session}"`)));
+                }
+                ServicePorts.unrefPort(this._session, option.path).catch((error: Error) => {
+                    this._logger.error(`Fail unref normally port "${option.path}" from session "${this._session}" due error: ${error.message}`);
+                });
+                this._ports.splice(this._ports.indexOf(option.path), 1)
+            });
+            resolve();
+        });
+    }
+
+    private _readSpyLoad(port: string, chunk: Buffer) {
+        if(this._readLoad[port] === undefined) {
+            this._readLoad[port] = 0;
+        }
+        this._readLoad[port] += chunk.length;
+        PluginIPCService.sendToPluginHost(this._session, {
+            event: ERenderEvents.spyState,
+            streamId: this._session,
+            load: this._readLoad,
         });
     }
 

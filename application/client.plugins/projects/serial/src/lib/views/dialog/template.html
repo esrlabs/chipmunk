@@ -1,0 +1,17 @@
+<div class="container">
+    <p class="t-normal">Available ports</p>
+    <table class="ports">
+        <tr [attr.class]="'port ' + (_ng_isPortSelected(port) ? 'selected' : '')" *ngFor="let port of _ng_ports" (click)="_ng_onPortSelect(port)">
+            <td><lib-sb-portinfo-com [port]="port" [state]="_ng_getState(port)"></lib-sb-portinfo-com></td>
+            <td>{{_ng_getSpyState()[port.comName]}} b</td>
+            <td><span [attr.id]="port.comName" [attr.class]="'dot ' + ((_ng_getSpyState()[port.comName] > 0) ? 'alive' : 'dead')"></span></td>
+        </tr>
+    </table>
+    <div *ngIf="_ng_options">
+        <lib-sb-port-options-write-com #optionsCom></lib-sb-port-options-write-com>
+    </div>
+    <div class="controlls" *ngIf="_ng_canBeConnected()">
+        <span class="small-button" (click)="_ng_onOptions()">Options</span>
+        <span class="small-button" (click)="_ng_onConnect()">Connect</span>
+    </div>
+</div>

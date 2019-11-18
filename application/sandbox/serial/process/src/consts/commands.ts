@@ -2,5 +2,7 @@ export enum ECommands {
     open = 'open',
     close = 'close',
     list = 'list',
-    write = 'write'
+    write = 'write',
+    spyStart = 'spyStart',
+    spyStop = 'spyStop'
 }
