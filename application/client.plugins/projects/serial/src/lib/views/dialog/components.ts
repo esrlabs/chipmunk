@@ -1,8 +1,9 @@
 // tslint:disable:no-inferrable-types
 
-import { Component, ChangeDetectorRef, Input, OnInit, AfterViewInit, Output, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectorRef, Input, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { IPortInfo, IPortState } from '../../common/interface.portinfo';
 import { IOptions, CDefaultOptions} from '../../common/interface.options';
+import { SidebarVerticalPortOptionsWriteComponent } from '../sidebar.vertical/port.options.write/component';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -20,10 +21,13 @@ interface IConnected {
 
 export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
 
+    @ViewChild('optionsCom', {static: false}) _optionsCom: SidebarVerticalPortOptionsWriteComponent;
+
     @Input() private _onConnect: () => void;
     @Input() private _requestPortList: () => IPortInfo[];
     @Input() private _getSelected: (IPortInfo) => void;
-
+    @Input() private _get_optionsCom: (SidebarVerticalPortOptionsWriteComponent) => void;
+    
     @Input() public _ng_getState: (IPortInfo) => IPortState
     @Input() public _ng_canBeConnected: () => boolean;
     @Input() public _ng_connected: IConnected[];
@@ -56,6 +60,7 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
 
     public _ng_onConnect() {
         this._getSelected(this._ng_selected);
+        this._get_optionsCom(this._optionsCom);
         this._onConnect();
     }
 }
