@@ -1,5 +1,14 @@
 # Changelog
 
+### [1.29.0] - 11/18/2019
+* [#464](feat) port rest of chipmunk functionality to neon interface
+  * prepare merger api for streaming
+  * add neon based async merger function
+  * support of async merging
+  * timestamp discovery over neon interface
+  * no lvin anymore -- remove indexer_cli from build
+* [](feat) add env into actions file
+
 ### [1.28.0] - 11/15/2019
 * [](feat) ignore package-lock.json for toolkit
 * [](feat) update package-lock.json
