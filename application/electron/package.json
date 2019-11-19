@@ -1,6 +1,6 @@
 {
   "name": "chipmunk",
-  "version": "1.29.3",
+  "version": "1.30.0",
   "description": "LogViewer",
   "author": {
     "name": "Oliver Mueller",
@@ -15,12 +15,12 @@
     }
   ],
   "main": "./dist/compiled/electron/src/main.js",
-  "copyright": "Copyright © 2019 year E.S.R.Labs",
+  "copyright": "Copyright © 2019 year ESR Labs",
   "build": {
     "asar": false,
     "appId": "com.esrlabs.chipmunk",
     "productName": "chipmunk",
-    "copyright": "Copyright © 2019 year E.S.R.Labs",
+    "copyright": "Copyright © 2019 year ESR Labs",
     "files": [
       "./dist/compiled/**"
     ],

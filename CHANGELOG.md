@@ -1,5 +1,8 @@
 # Changelog
 
+### [1.30.0] - 11/19/2019
+
+
 
 ### [1.29.1] - 11/19/2019
 * [](chore): take care of notarizing and signing
