@@ -841,10 +841,15 @@ file electron_build_output => FileList['application/electron/src/**/*.*', 'appli
   cd ELECTRON_DIR do
     sh "#{NPM_RUN} build-ts"
     if OS.mac?
-      require 'dotenv'
-      Dotenv.load('.env')
-      use_siging = ENV['CSC_IDENTITY_AUTO_DISCOVERY']
-      sh "./node_modules/.bin/electron-builder --mac #{use_siging ? '' : '-c.mac.identity=null'}"
+      skip_signing = false
+      begin
+        require 'dotenv'
+        Dotenv.load('.env')
+        skip_signing = ENV.key?('CSC_IDENTITY_AUTO_DISCOVERY') && ENV['CSC_IDENTITY_AUTO_DISCOVERY'] == 'false'
+      rescue LoadError => e
+        puts "not reading .env file: #{e}"
+      end
+      sh "./node_modules/.bin/electron-builder --mac #{skip_signing ? '-c.mac.identity=null' : ''}"
     else
       sh "./node_modules/.bin/electron-builder --#{target_platform_alias}"
     end

@@ -1,5 +1,12 @@
 # Changelog
 
+
+### [1.29.1] - 11/19/2019
+* [](chore): take care of notarizing and signing
+* [](fix): no need for .env reader for mac builds
+  * rake: only copy whats needed for neon-indexer
+  * support for notarizing and signing
+
 ### [1.29.0] - 11/18/2019
 * [#464](feat) port rest of chipmunk functionality to neon interface
   * prepare merger api for streaming
