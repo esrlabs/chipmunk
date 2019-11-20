@@ -476,7 +476,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             console.error(error);
         });
     }
-    
+
     private _stopSpy() {
         return new Promise((resolve, reject) => {
             this.api.getIPC().requestToHost({
@@ -504,7 +504,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                 factory: SidebarVerticalPortDialogComponent,
                 inputs: {
                     _onConnect: (() => {
-                    this._stopSpy().then(resolve => this._ng_onConnect());
+                    this._stopSpy().then(() => this._ng_onConnect());
                     this.closePopup(popupGuid);
                     }),
                     _ng_getState: ((port: IPortInfo) => this._ng_getState(port)),
@@ -513,7 +513,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                     _ng_isPortSelected: this._ng_isPortSelected,
                     _ng_onOptions: this._ng_onOptions,
                     _ng_onPortSelect: this._ng_onPortSelect,
-                    _ng_getSpyState: (() => this._ng_spyLoad),
+                    _getSpyState: (() => this._ng_spyLoad),
                     _requestPortList: ( () => this._ng_ports),
                     _forceUpdate: this._forceUpdate,
                     _getSelected: ((selected: IPortInfo) => { this._ng_selected = selected; }),

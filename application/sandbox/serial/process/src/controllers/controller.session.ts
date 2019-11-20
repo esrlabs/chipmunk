@@ -98,7 +98,7 @@ export class ControllerSession {
                     return ServicePorts.refPort(this._session, option, {
                         onData: this._readSpyLoad.bind(this, option.path),
                         onError: this._onPortError.bind(this, option.path),
-                        onDisconnect: (() => {})//this._onPortDisconnect.bind(this, option.path)
+                        onDisconnect: (() => {})
                     });
                 }),
             ).then(() => {
