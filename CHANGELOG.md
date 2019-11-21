@@ -1,5 +1,8 @@
 # Changelog
 
+### [1.30.2] - 11/21/2019
+* [#545](fix) sign packaged application correctly on mac
+
 ### [1.30.0] - 11/19/2019
 
 

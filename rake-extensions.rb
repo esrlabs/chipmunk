@@ -129,7 +129,7 @@ class GemspecVersioner < Versioner
   end
 end
 class JsonVersioner < Versioner
-  VERSION_REGEX = /^(\s\s['\"]version['\"]:\s['\"])(.*)(['\"])/i
+  VERSION_REGEX = /^(\s+['\"]version['\"]:\s['\"])(.*)(['\"])/i
   def get_current_version()
     current_version_with_regex(['package.json'], VERSION_REGEX)
   end

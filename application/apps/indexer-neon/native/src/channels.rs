@@ -55,10 +55,7 @@ impl<T: 'static + Send + Debug + Serialize> Task for EventEmitterTask<T> {
                 // };
                 Ok(Some(event))
             }
-            Err(RecvTimeoutError::Timeout) => {
-                debug!("timeout",);
-                Ok(None)
-            }
+            Err(RecvTimeoutError::Timeout) => Ok(None),
             Err(RecvTimeoutError::Disconnected) => {
                 debug!("(libuv): Disconnected");
                 Err("Failed to receive rust event".to_string())

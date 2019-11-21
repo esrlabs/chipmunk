@@ -82,6 +82,10 @@ task folders: [ELECTRON_COMPILED_DIR,
                INCLUDED_PLUGINS_FOLDER,
                INCLUDED_APPS_FOLDER]
 
+task :clean_electron do
+  rm_f "#{ELECTRON_DIR}/dist"
+end
+
 def rust_exec_in_build_dir(name)
   app_name = "#{APPS_DIR}/#{name}/target/release/#{name}"
   if OS.windows?
@@ -442,7 +446,7 @@ namespace :dev do
   # Application should be built already to use this task
   desc 'Developer task: build launcher and delivery into package.'
   task build_delivery_apps: %i[build_launcher build_updater] do
-    node_app_original = release_app_folder_and_path('chipmunk')[1]
+    node_app_original = app_path_in_electron_dist('chipmunk')
     rm(node_app_original)
     cp(rust_exec_in_build_dir('launcher'), node_app_original)
   end
@@ -453,7 +457,6 @@ namespace :dev do
                          assemble_build
                          add_package_json
                          ripgrepdelivery
-                         package_neon_app
                          create_release_file_list]
 end
 
@@ -676,8 +679,9 @@ def build_and_deploy_rust_app(name)
 end
 
 def fresh_folder(dest_folder)
-  rm_r(dest_folder, force: true, verbose: false)
-  mkdir_p(dest_folder, verbose: false)
+  puts "creating folder #{dest_folder}" unless Dir.exist?(dest_folder)
+  rm_r(dest_folder, force: true, verbose: true)
+  mkdir_p(dest_folder, verbose: true)
 end
 
 local_neon_installation = "#{APPS_DIR}/indexer-neon/node_modules/.bin"
@@ -713,19 +717,19 @@ def copy_neon_indexer(dest)
   Dir["#{src_folder}/*"]
     .reject { |n| n.end_with?('node_modules') || n.end_with?('native') }
     .each do |s|
-    cp_r(s, dest_folder, verbose: false)
+    cp_r(s, dest_folder, verbose: true)
   end
   dest_native = "#{dest_folder}/native"
   dest_native_release = "#{dest_native}/target/release"
   fresh_folder(dest_native_release)
   ['artifacts.json', 'index.node'].each do |f|
-    cp_r("#{src_folder}/native/#{f}", dest_native, verbose: false)
+    cp_r("#{src_folder}/native/#{f}", dest_native, verbose: true)
   end
   neon_resources = Dir.glob("#{src_folder}/native/target/release/*")
                       .reject { |f| f.end_with?('build') || f.end_with?('deps') }
   puts "copying neon-resources to #{dest_native_release}"
   neon_resources.each do |r|
-    cp_r(r, dest_native_release, verbose: false)
+    cp_r(r, dest_native_release, verbose: true)
   end
 end
 
@@ -737,9 +741,6 @@ def packaged_neon_dest
   else
     "#{ELECTRON_RELEASE_DIR}/win-unpacked/resources/app/node_modules"
   end
-end
-task :package_neon_app do
-  copy_neon_indexer(packaged_neon_dest)
 end
 
 desc 'put the neon library in place'
@@ -813,8 +814,8 @@ def create_and_tag_new_version(versioner, jump)
   puts "git reset --hard HEAD~1 && git tag -d #{next_version}"
 end
 
-def release_app_folder_and_path(file_name)
-  app_folder_and_path(ELECTRON_RELEASE_DIR, file_name)
+def app_path_in_electron_dist(file_name)
+  app_folder_and_path(ELECTRON_RELEASE_DIR, file_name)[1]
 end
 
 def build_app_folder_and_path(file_name)
@@ -841,33 +842,19 @@ file electron_build_output => FileList['application/electron/src/**/*.*', 'appli
   cd ELECTRON_DIR do
     sh "#{NPM_RUN} build-ts"
     if OS.mac?
-      skip_signing = false
-      begin
-        require 'dotenv'
-        Dotenv.load('.env')
-        skip_signing = ENV.key?('CSC_IDENTITY_AUTO_DISCOVERY') && ENV['CSC_IDENTITY_AUTO_DISCOVERY'] == 'false'
-      rescue LoadError => e
-        puts "not reading .env file: #{e}"
-      end
-      sh "./node_modules/.bin/electron-builder --mac #{skip_signing ? '-c.mac.identity=null' : ''}"
+      sh 'export CSC_IDENTITY_AUTO_DISCOVERY=true; npm run build-mac'
+    elsif OS.linux?
+      sh 'export CSC_IDENTITY_AUTO_DISCOVERY=true; npm run build-linux'
     else
-      sh "./node_modules/.bin/electron-builder --#{target_platform_alias}"
+      sh 'export CSC_IDENTITY_AUTO_DISCOVERY=true; npm run build-win'
     end
   end
-  chipmunk_exec_path = release_app_folder_and_path('chipmunk')[1]
-  app_exec_path = release_app_folder_and_path('app')[1]
-  mv(chipmunk_exec_path, app_exec_path)
-  cp(BUILT_LAUNCHER, chipmunk_exec_path)
 end
+
 task electron_builder_build: electron_build_output
 
-BUILT_LAUNCHER = if OS.windows?
-                   'application/apps/launcher/target/release/launcher.exe'
-                 else
-                   'application/apps/launcher/target/release/launcher'
-                 end
 desc 'package electron'
-task assemble_build: %i[folders electron_builder_build package_neon_app]
+task assemble_build: %i[folders electron_builder_build]
 
 desc 'Prepare package to deploy on Github'
 task :prepare_to_deploy do
@@ -896,7 +883,6 @@ desc 'developer job to completely build chipmunk...after that use :start'
 task dev: %i[install
              plugins
              ripgrepdelivery
-             package_neon_app
              add_package_json]
 
 desc 'Build the full build pipeline for a given platform'
