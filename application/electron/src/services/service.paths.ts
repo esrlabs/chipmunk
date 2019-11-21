@@ -271,10 +271,16 @@ class ServicePaths implements IService {
         const exec: string = app.getPath('exe');
         switch (OS.platform()) {
             case 'darwin':
-                if (this._root.indexOf(`${APPLICATION_FILE}.app` ) === -1) {
+                if (exec.search(`.app/Contents/MacOS/app`) === -1) {
+                    return new Error(`Cannot find target in ".app" package in path: ${exec}. Probably you forget to switch application into developer mode. Use env variable "CHIPMUNK_DEVELOPING_MODE=ON" to activate it.`);
+                }
+                return exec.replace(`/Contents/MacOS/app`, '');
+                /*
+                if (this._root.search(new RegExp(`[^\\\/]*${APPLICATION_FILE}[^\\\/]*\\.app`)) === -1) {
                     return new Error(`Cannot find target file name "${APPLICATION_FILE}.app" in path: ${this._root}. Probably you forget to switch application into developer mode. Use env variable "CHIPMUNK_DEVELOPING_MODE=ON" to activate it.`);
                 }
                 return `${this._root.replace(new RegExp(`(\\b${APPLICATION_FILE}\\.app\\b)(?!.*\\b\\1\\b)(.*)`, 'gi'), '')}${APPLICATION_FILE}.app`;
+                */
             case 'win32':
                 return exec;
             default:
