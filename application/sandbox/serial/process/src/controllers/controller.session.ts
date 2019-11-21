@@ -95,6 +95,7 @@ export class ControllerSession {
         return new Promise((resolve, reject) => {
             Promise.all(
                 options.map((option: IOptions) => {
+                    this._ports.push(option.path);
                     return ServicePorts.refPort(this._session, option, {
                         onData: this._readSpyLoad.bind(this, option.path),
                         onError: this._onPortError.bind(this, option.path),
@@ -102,10 +103,7 @@ export class ControllerSession {
                     });
                 }),
             ).then(() => {
-                this._logger.env(`Ports have been assigned with session "${this._session}"`);
-                options.forEach(option => {
-                    this._ports.push(option.path);
-                });
+                this._logger.env(`Ports have been assigned with session "${this._session}" to spy on`);
                 resolve();
             }).catch((openErr: Error) => {
                 reject(new Error(this._logger.error(`Fail to open ports due error: ${openErr.message}`)));
@@ -116,16 +114,22 @@ export class ControllerSession {
 
     public spyStop(options: IOptions[]): Promise<void> {
         return new Promise((resolve, reject) => {
-            options.forEach( option => {
-                if (!this._isPortRefed(option.path)) {
-                    return reject(new Error(this._logger.error(`Port "${option.path}" isn't assigned with session "${this._session}"`)));
-                }
-                ServicePorts.unrefPort(this._session, option.path).catch((error: Error) => {
-                    this._logger.error(`Fail unref normally port "${option.path}" from session "${this._session}" due error: ${error.message}`);
-                });
-                this._ports.splice(this._ports.indexOf(option.path), 1)
+            Promise.all(
+                options.map((option: IOptions) => {
+                    if (!this._isPortRefed(option.path)) {
+                        return reject(new Error(this._logger.error(`Port "${option.path}" isn't assigned with session "${this._session}"`)));
+                    }
+                    this._ports.splice(this._ports.indexOf(option.path), 1);
+                    return ServicePorts.unrefPort(this._session, option.path).catch((error: Error) => {
+                        this._logger.error(`Fail unref normally port "${option.path}" from session "${this._session}" due error: ${error.message}`);
+                    });
+                })
+            ).then(() => {
+                this._logger.env(`Ports no longer assigned with session "${this._session}" to spy on`);
+                resolve();
+            }).catch((openErr: Error) => {
+                reject(new Error(this._logger.error(`Fail to close ports due error: ${openErr.message}`)));
             });
-            resolve();
         });
     }
 
