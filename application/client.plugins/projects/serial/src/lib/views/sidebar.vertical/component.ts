@@ -181,6 +181,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                     connections: 0,
                 },
             });
+            this._ng_spyLoad[this._ng_selected.comName] = 0;
             this._addDropdownElement(this._ng_selected);
             this._saveDropdownSession(this._ng_selected);
             this._ng_selected = undefined;
