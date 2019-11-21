@@ -53,6 +53,8 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     private _portOptions: IOptions[] = [];
     private _options: IOptions = Object.assign({}, CDefaultOptions);
     private _optionsCom: SidebarVerticalPortOptionsWriteComponent;
+    private _messageQueue: {[port: string]: string[]} = {};
+    private _openQueue: {[port: string]: boolean} = {};
 
     public _ng_ports: IPortInfo[] = [];
     public _ng_connected: IConnected[] = [];
@@ -244,6 +246,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     private _onIncomeEvent(message: any) {
         switch (message.event) {
             case EHostEvents.connected:
+                this._hostEvents_onConnected(message.port);
                 break;
             case EHostEvents.disconnected:
                 this._hostEvents_onDisconnected(message.port);
@@ -335,6 +338,17 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         return msg;
     }
 
+    private _hostEvents_onConnected(port: string) {
+        this._openQueue[port] = true;
+        if(this._messageQueue[port] !== undefined) {
+            this._messageQueue[port].forEach((message) => {
+                setTimeout(() => {
+                    this._ng_sendMessage(message)
+                }, 200);
+            });
+        }
+    }
+
     private _hostEvents_onState(ports: { [key: string]: IPortState }) {
         this._ng_connected = this._ng_connected.map((connected: IConnected) => {
             if (ports[connected.port.comName] !== undefined) {
@@ -346,6 +360,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     }
 
     private _hostEvents_onDisconnected(port: string) {
+        this._openQueue[port] = false;
         this._ng_connected = this._ng_connected.filter((connected: IConnected) => {
             return connected.port.comName !== port;
         });
@@ -368,16 +383,21 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         this._cdRef.detectChanges();
     }
 
-    public _ng_sendMessage(value: string, event: KeyboardEvent) {
+    public _ng_sendMessage(message: string, event?: KeyboardEvent) {
+        if(this._openQueue[this._chosenPort]) {
         this.api.getIPC().requestToHost({
             stream: this.session,
             command: EHostCommands.write,
-            cmd: value,
+            cmd: message,
             path: this._chosenPort
         }, this.session).catch((error: Error) => {
             console.error(error);
-        });
+            }).finally(() => { 
         this._inputCom.setValue("");
+            })
+        } else {
+            this._messageQueue[this._chosenPort].push(message);
+        }
     }
 
     private _addDropdownElement(port: IPortInfo) {
