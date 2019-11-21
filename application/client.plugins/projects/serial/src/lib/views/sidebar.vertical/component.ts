@@ -490,8 +490,8 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             stream: this.session,
             command: EHostCommands.spyStart,
             options: this._portOptions
-        }, this.session).then((response) => {
-            // To be defined
+        }, this.session).then(() => {
+            this._ng_spyLoad = {};
         }).catch((error: Error) => {
             console.error(error);
         });
@@ -503,11 +503,12 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                 stream: this.session,
                 command: EHostCommands.spyStop,
                 options: this._portOptions
-            }, this.session).catch((error: Error) => {
+            }, this.session).then(
+                resolve
+            ).catch((error: Error) => {
                 console.error(error);
             });
             this._removeOptions();
-            resolve();
         });
     }
     
@@ -517,7 +518,6 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     
     public _ng_connectDialog() {
         this._startSpy();
-        this._ng_spyLoad = {};
         const popupGuid: string = this.api.addPopup({
             caption: 'Choose port to connect:',
             component: {
