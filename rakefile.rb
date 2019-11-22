@@ -185,12 +185,15 @@ task start: :ripgrepdelivery do
   config_windows_path = File.join(Dir.home, '.chipmunk', 'config.window.json')
   rm_f config_windows_path
   cd ELECTRON_DIR do
+    require 'dotenv/load'
     sh "#{NPM_RUN} electron"
   end
 end
 
 desc 'setup build environment'
 task :setup_environment do
+  res = `gem list -i dotenv`.strip
+  sh 'gem install dotenv' unless res.eql?('true')
   puts 'Installing npm libs, which is needed for installing / updateing process'
   npm_install('typescript --global') unless system('tsc --version')
   if OS.windows?
@@ -409,27 +412,22 @@ task install: [:folders,
                :add_package_json]
 
 namespace :dev do
-  desc 'Developer task: plugin serial: render'
   task :serial_render do
     install_plugin_angular('serial')
   end
 
-  desc 'Developer task: plugin processes: render'
   task :processes_render do
     install_plugin_angular('processes')
   end
 
-  desc 'Developer task: plugin dlt: render'
   task :dlt_render do
     install_plugin_angular('dlt')
   end
 
-  desc 'Developer task: plugin dlt-render: render'
   task :dltrender_render do
     install_plugin_angular('dlt-render')
   end
 
-  desc 'Developer task: plugin xterminal: render'
   task :xterminal_render do
     install_plugin_angular('xterminal')
   end
@@ -437,7 +435,6 @@ namespace :dev do
   desc 'Developer task: update and delivery indexer-neon'
   task neon: %i[build_embedded_indexer delivery_embedded_into_local_runtime]
 
-  desc 'Developer task: update client'
   task update_client: ['client:create_resources']
 
   desc 'Developer task: update client and libs'
@@ -454,9 +451,9 @@ namespace :dev do
   desc 'quick release'
   task quick_release: %i[folders
                          compile_electron
-                         assemble_build
                          add_package_json
                          ripgrepdelivery
+                         build_and_package_electron
                          create_release_file_list]
 end
 
@@ -743,7 +740,7 @@ def packaged_neon_dest
   end
 end
 
-desc 'put the neon library in place'
+# put the neon library in place
 task :delivery_embedded_into_local_runtime do
   copy_neon_indexer("#{ELECTRON_DIR}/node_modules")
 end
@@ -836,31 +833,57 @@ def app_folder_and_path(base, file_name)
   [folder, path]
 end
 
+def package_version()
+  package = JSON.parse(File.read(APP_PACKAGE_JSON))
+  package['version']
+end
 # setup file dependencies for chipmunk.client.components installation
-electron_build_output = 'application/electron/dist/release/mac/chipmunk.app/Contents/MacOS/app'
-file electron_build_output => FileList['application/electron/src/**/*.*', 'application/electron/*.json'] do |_t|
+electron_build_output = "#{ELECTRON_RELEASE_DIR}/chipmunk-#{package_version}-#{target_platform_alias}.zip"
+file electron_build_output => FileList["#{ELECTRON_DIR}/src/**/*.*",
+                                       "#{ELECTRON_DIR}/scripts/**/*.*",
+                                       "#{ELECTRON_DIR}/*.json"] do |_t|
   cd ELECTRON_DIR do
-    sh "#{NPM_RUN} build-ts"
     if OS.mac?
-      sh 'export CSC_IDENTITY_AUTO_DISCOVERY=true; npm run build-mac'
+      require 'dotenv/load'
+      if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS')
+        sh 'export CSC_IDENTITY_AUTO_DISCOVERY=true; npm run build-mac'
+        check_signature('dist/release/mac/chipmunk.app')
+        check_notarization('dist/release/mac/chipmunk.app')
+      else
+        sh 'npm run build-mac -c.mac.identity=null'
+      end
     elsif OS.linux?
-      sh 'export CSC_IDENTITY_AUTO_DISCOVERY=true; npm run build-linux'
+      sh 'npm run build-linux'
     else
-      sh 'export CSC_IDENTITY_AUTO_DISCOVERY=true; npm run build-win'
+      sh 'npm run build-win'
     end
   end
 end
 
-task electron_builder_build: electron_build_output
+def check_signature(path)
+  puts 'checking signature'
+  sh "codesign -vvv --deep --strict #{path}"
+end
+
+def check_notarization(path)
+  puts 'checking notarization'
+  sh "spctl -vvv --assess --type exec #{path}"
+end
+
+desc 'check signature and notarization of mac app'
+task :check_mac_deliverable do
+  if OS.mac?
+    check_signature("#{ELECTRON_RELEASE_DIR}/mac/chipmunk.app")
+    check_notarization("#{ELECTRON_RELEASE_DIR}/mac/chipmunk.app")
+  end
+end
 
 desc 'package electron'
-task assemble_build: %i[folders electron_builder_build]
+task build_and_package_electron: electron_build_output
 
 desc 'Prepare package to deploy on Github'
 task :prepare_to_deploy do
-  package = JSON.parse(File.read(APP_PACKAGE_JSON))
-  puts "Detected version: #{package['version']}"
-  release_name = "chipmunk@#{package['version']}-#{target_platform_name}-portable.tgz"
+  release_name = "chipmunk@#{package_version}-#{target_platform_name}-portable.tgz"
   cd ELECTRON_RELEASE_DIR do
     if OS.mac?
       cd 'mac' do
@@ -890,7 +913,7 @@ task full_pipeline: %i[setup_environment
                        install
                        plugins
                        ripgrepdelivery
-                       assemble_build
+                       build_and_package_electron
                        create_release_file_list
                        prepare_to_deploy]
 

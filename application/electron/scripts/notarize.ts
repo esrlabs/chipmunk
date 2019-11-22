@@ -7,8 +7,8 @@ export default async function notarizing(context: any) {
     if (electronPlatformName !== "darwin") {
         return;
     }
-    const shouldNotarize = process.env.SHOULD_NOTARIZE;
-    if (shouldNotarize === "true") {
+    const skipNotarize = process.env.SKIP_NOTARIZE;
+    if (skipNotarize !== "true") {
         // tslint:disable-next-line:no-console
         console.log("trying to notarize");
 
