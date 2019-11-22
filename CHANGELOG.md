@@ -1,5 +1,12 @@
 # Changelog
 
+### [1.31.0] - 11/22/2019
+* [](fix) fixed path problem for windows build
+* [](fix) fix rakefile for windows
+* [](fix): only sign and notarize mac app if in correct environment
+  * enable notarization
+  * added checks for signature and notatization
+
 ### [1.30.2] - 11/21/2019
 * [#545](fix) sign packaged application correctly on mac
 
