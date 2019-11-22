@@ -107,7 +107,7 @@
         "postinstall": "electron-builder install-app-deps",
         "build-mac": "npm run build-scripts-ts && npm run build-ts && ./node_modules/.bin/electron-builder --mac",
         "build-linux": "npm run build-scripts-ts && npm run build-ts && ./node_modules/.bin/electron-builder --linux",
-        "build-win": "npm run build-scripts-ts && npm run build-ts && ./node_modules/.bin/electron-builder --win",
+        "build-win": "npm run build-scripts-ts && npm run build-ts && node_modules/.bin/electron-builder --win",
         "package-check": "../node_modules/.bin/npm-check",
         "lint": "./node_modules/.bin/tslint --project .",
         "package-upgrade": "../node_modules/.bin/npm-check -y"

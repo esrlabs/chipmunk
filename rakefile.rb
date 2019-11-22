@@ -855,7 +855,10 @@ file electron_build_output => FileList["#{ELECTRON_DIR}/src/**/*.*",
     elsif OS.linux?
       sh 'npm run build-linux'
     else
-      sh 'npm run build-win'
+      electron_builder_exe = File.join('node_modules', '.bin', 'electron-builder')
+      sh 'tsc -p tsconfig.json'
+      sh "tsc -p #{File.join('scripts', 'tsconfig.json')}"
+      sh "#{electron_builder_exe} --win"
     end
   end
 end
