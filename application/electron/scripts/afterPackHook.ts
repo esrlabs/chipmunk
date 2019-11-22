@@ -2,8 +2,8 @@ import * as path from "path";
 import * as fs from "fs";
 import { copyFolder } from "../src/tools/fs";
 
-const APPLICATION_DIR = path.join(__dirname, "../../../..");
-const ELECTRON_RELEASE_DIR = path.join(APPLICATION_DIR, "electron/dist/release");
+const APPLICATION_DIR = path.normalize(path.join(__dirname, "../../../.."));
+const ELECTRON_RELEASE_DIR = path.join(APPLICATION_DIR, "electron", "dist", "release");
 const APPS_DIR = path.join(APPLICATION_DIR, "apps");
 
 // tslint:disable-next-line:no-console
@@ -25,10 +25,10 @@ function executableLocation(base: string, fileName: string) {
             };
         default:
             // windows
-            const windowsFolder = `${base}/linux-unpacked`;
+            const windowsFolder = path.join(base, 'win-unpacked');
             return {
-                folder: windowsFolder,
-                path: `${windowsFolder}/${fileName}`,
+                folder: path.resolve(windowsFolder),
+                path: path.join(windowsFolder, `${fileName}.exe`),
             };
     }
 }
@@ -41,13 +41,13 @@ function getNodeModulesPath() {
             return `${ELECTRON_RELEASE_DIR}/linux-unpacked/resources/app/node_modules`;
         default:
             // windows
-            return `${ELECTRON_RELEASE_DIR}/win-unpacked/resources/app/node_modules`;
+            return path.join(ELECTRON_RELEASE_DIR, "win-unpacked", "resources", "app", "node_modules");
     }
 }
 
 function getLauncherPath() {
     if (process.platform === "win32") {
-        return path.join(APPLICATION_DIR, "electron/dist/compiled/apps/launcher.exe");
+        return path.join(APPLICATION_DIR, "electron", "dist", "compiled", "apps", "launcher.exe");
     }
     return path.join(APPLICATION_DIR, "electron/dist/compiled/apps/launcher");
 }
@@ -92,7 +92,7 @@ function copyFolderExcept(srcFolder: string, destFolder: string, exceptions: str
 
 function taskCopying() {
     const dest = getNodeModulesPath();
-    const srcFolder = `${APPS_DIR}/indexer-neon`;
+    const srcFolder = path.join(APPS_DIR, 'indexer-neon');
     const destFolder = `${dest}/indexer-neon`;
     if (!fs.existsSync(destFolder)) {
         fs.mkdirSync(destFolder);
@@ -116,7 +116,7 @@ function taskCopying() {
             path.join(destFolder, "native", fileName),
         );
     });
-    const neonResources = path.resolve(path.join(srcFolder, "native/target/release"));
+    const neonResources = path.resolve(path.join(srcFolder, "native", "target", "release"));
     copyFolderExcept(neonResources, destNativeRelease, ["build", "deps"]);
 }
 
