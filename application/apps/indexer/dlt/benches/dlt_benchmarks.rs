@@ -59,6 +59,7 @@ fn dlt_benchmark(c: &mut Criterion) {
             header,
             extended_header: Some(extended_header),
             payload,
+            fibex_metadata: None,
         };
         b.iter(|| format!("{}", message))
     });

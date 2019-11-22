@@ -14,7 +14,7 @@ impl log::Log for SimpleLogger {
                 "[RUST]:{}({:?}) {} - {}",
                 SystemTime::now()
                     .duration_since(SystemTime::UNIX_EPOCH)
-                    .unwrap()
+                    .unwrap_or_default()
                     .as_millis(),
                 std::thread::current().id(),
                 record.level(),

@@ -66,7 +66,7 @@ pub fn concat_files_use_config_file(
             path: PathBuf::from(&dir_name)
                 .join(o.path)
                 .to_str()
-                .unwrap()
+                .expect("path should be convertible to string")
                 .to_string(),
             tag: o.tag,
         })
@@ -97,7 +97,7 @@ pub fn concat_files(
             .create(true)
             .open(out_path)?
     } else {
-        std::fs::File::create(&out_path).unwrap()
+        std::fs::File::create(&out_path)?
     };
     let original_file_size = out_file.metadata()?.len() as usize;
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);

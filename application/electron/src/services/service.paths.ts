@@ -233,7 +233,7 @@ class ServicePaths implements IService {
                 resolve();
             }).catch((error: Error) => {
                 this._logger.error(`Fail to create local logviewer folder "${dir}" due error: ${error.message}`);
-                reject();
+                reject(error);
             });
         });
     }

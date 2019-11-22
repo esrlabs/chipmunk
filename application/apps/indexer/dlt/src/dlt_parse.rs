@@ -392,7 +392,9 @@ impl NomByteOrder for LittleEndian {
     }
 }
 
-pub(crate) fn dlt_uint<T: NomByteOrder>(width: dlt::TypeLength) -> fn(&[u8]) -> IResult<&[u8], dlt::Value> {
+pub(crate) fn dlt_uint<T: NomByteOrder>(
+    width: dlt::TypeLength,
+) -> fn(&[u8]) -> IResult<&[u8], dlt::Value> {
     match width {
         dlt::TypeLength::BitLength8 => |i| map(streaming::be_u8, dlt::Value::U8)(i),
         dlt::TypeLength::BitLength16 => |i| map(T::parse_u16, dlt::Value::U16)(i),
@@ -401,7 +403,9 @@ pub(crate) fn dlt_uint<T: NomByteOrder>(width: dlt::TypeLength) -> fn(&[u8]) -> 
         dlt::TypeLength::BitLength128 => |i| map(T::parse_u128, dlt::Value::U128)(i),
     }
 }
-pub(crate) fn dlt_sint<T: NomByteOrder>(width: dlt::TypeLength) -> fn(&[u8]) -> IResult<&[u8], dlt::Value> {
+pub(crate) fn dlt_sint<T: NomByteOrder>(
+    width: dlt::TypeLength,
+) -> fn(&[u8]) -> IResult<&[u8], dlt::Value> {
     match width {
         dlt::TypeLength::BitLength8 => |i| map(streaming::be_i8, dlt::Value::I8)(i),
         dlt::TypeLength::BitLength16 => |i| map(T::parse_i16, dlt::Value::I16)(i),
@@ -410,7 +414,9 @@ pub(crate) fn dlt_sint<T: NomByteOrder>(width: dlt::TypeLength) -> fn(&[u8]) -> 
         dlt::TypeLength::BitLength128 => |i| map(T::parse_i128, dlt::Value::I128)(i),
     }
 }
-pub(crate) fn dlt_fint<T: NomByteOrder>(width: dlt::FloatWidth) -> fn(&[u8]) -> IResult<&[u8], dlt::Value> {
+pub(crate) fn dlt_fint<T: NomByteOrder>(
+    width: dlt::FloatWidth,
+) -> fn(&[u8]) -> IResult<&[u8], dlt::Value> {
     match width {
         dlt::FloatWidth::Width32 => |i| map(T::parse_f32, dlt::Value::F32)(i),
         dlt::FloatWidth::Width64 => |i| map(T::parse_f64, dlt::Value::F64)(i),
@@ -923,7 +929,7 @@ pub fn index_dlt_file(
             line_nr,
             processed_bytes,
             update_channel.clone(),
-            fibex_metadata.clone()
+            fibex_metadata.clone(),
         ) {
             Ok(Some((consumed, Some(msg)))) => {
                 // println!("consumed: {}", consumed);

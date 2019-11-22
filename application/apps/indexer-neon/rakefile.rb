@@ -17,9 +17,17 @@ namespace :neon do
     sh 'neon build --release'
   end
 
+  desc 'test neon integration: dlt non-verbose indexing'
+  task dlt_nonverbose: [:clean, OUT_DIR, 'neon:rebuild'] do
+    call_test_function('testDltIndexingAsync', "#{LOCAL_EXAMPLE_DIR}/dlt/nonverbose/longerlog.dlt",
+                       "#{LOCAL_EXAMPLE_DIR}/dlt/nonverbose/longerlog.out",
+                       50_000,
+                       "#{LOCAL_EXAMPLE_DIR}/dlt/nonverbose/longerlog.xml")
+  end
+
   desc 'test neon integration: dlt indexing'
   task dlt: [:clean, OUT_DIR, 'neon:rebuild'] do
-    call_test_function('testDltIndexingAsync', './tests/testfile.dlt', './out/testfile.out')
+    call_test_function('testDltIndexingAsync', './tests/testfile.dlt', './out/testfile.out', 5000)
   end
 
   desc 'test neon integration: discover timestamps'

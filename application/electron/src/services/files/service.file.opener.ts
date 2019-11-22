@@ -188,7 +188,7 @@ class ServiceFileOpener implements IService {
                 session: ServiceStreams.getActiveStreamId(),
             }), IPCMessages.FileGetOptionsResponse).then((response: IPCMessages.FileGetOptionsResponse) => {
                 if (!response.allowed) {
-                    return reject();
+                    return reject(new Error("user cancelled opening operation"));
                 }
                 this._options = response.options;
                 resolve(response.options);

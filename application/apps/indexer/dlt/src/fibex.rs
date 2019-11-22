@@ -6,7 +6,10 @@ use std::{
     fs::File,
     rc::Rc,
 };
-use quick_xml::{events::{BytesStart, attributes::Attributes, Event as XmlEvent}, Reader as XmlReader};
+use quick_xml::{
+    events::{BytesStart, attributes::Attributes, Event as XmlEvent},
+    Reader as XmlReader,
+};
 use std::collections::HashMap;
 use derive_more::{Deref, Display};
 use crate::dlt::{TypeInfo, TypeInfoKind, TypeLength, StringCoding, FloatWidth};
@@ -48,86 +51,86 @@ fn type_info_for_signal_ref(signal_ref: String) -> TypeInfo {
             kind: TypeInfoKind::Bool,
             coding: StringCoding::ASCII,
             has_variable_info: false,
-            has_trace_info: false
+            has_trace_info: false,
         },
         "S_SINT8" => TypeInfo {
             kind: TypeInfoKind::Signed(TypeLength::BitLength8, false),
             coding: StringCoding::ASCII,
             has_variable_info: false,
-            has_trace_info: false
+            has_trace_info: false,
         },
         "S_UINT8" => TypeInfo {
             kind: TypeInfoKind::Unsigned(TypeLength::BitLength8, false),
             coding: StringCoding::ASCII,
             has_variable_info: false,
-            has_trace_info: false
+            has_trace_info: false,
         },
         "S_SINT16" => TypeInfo {
             kind: TypeInfoKind::Signed(TypeLength::BitLength16, false),
             coding: StringCoding::ASCII,
             has_variable_info: false,
-            has_trace_info: false
+            has_trace_info: false,
         },
         "S_UINT16" => TypeInfo {
             kind: TypeInfoKind::Unsigned(TypeLength::BitLength16, false),
             coding: StringCoding::ASCII,
             has_variable_info: false,
-            has_trace_info: false
+            has_trace_info: false,
         },
         "S_SINT32" => TypeInfo {
             kind: TypeInfoKind::Signed(TypeLength::BitLength32, false),
             coding: StringCoding::ASCII,
             has_variable_info: false,
-            has_trace_info: false
+            has_trace_info: false,
         },
         "S_UINT32" => TypeInfo {
             kind: TypeInfoKind::Unsigned(TypeLength::BitLength32, false),
             coding: StringCoding::ASCII,
             has_variable_info: false,
-            has_trace_info: false
+            has_trace_info: false,
         },
         "S_SINT64" => TypeInfo {
             kind: TypeInfoKind::Signed(TypeLength::BitLength64, false),
             coding: StringCoding::ASCII,
             has_variable_info: false,
-            has_trace_info: false
+            has_trace_info: false,
         },
         "S_UINT64" => TypeInfo {
             kind: TypeInfoKind::Unsigned(TypeLength::BitLength64, false),
             coding: StringCoding::ASCII,
             has_variable_info: false,
-            has_trace_info: false
+            has_trace_info: false,
         },
         "S_FLOA16" => unimplemented!("16-bit float not supported"),
         "S_FLOA32" => TypeInfo {
             kind: TypeInfoKind::Float(FloatWidth::Width32),
             coding: StringCoding::ASCII,
             has_variable_info: false,
-            has_trace_info: false
+            has_trace_info: false,
         },
         "S_FLOA64" => TypeInfo {
             kind: TypeInfoKind::Float(FloatWidth::Width64),
             coding: StringCoding::ASCII,
             has_variable_info: false,
-            has_trace_info: false
+            has_trace_info: false,
         },
         "S_STRG_ASCII" => TypeInfo {
             kind: TypeInfoKind::StringType,
             coding: StringCoding::ASCII,
             has_variable_info: false,
-            has_trace_info: false
+            has_trace_info: false,
         },
         "S_STRG_UTF8" => TypeInfo {
             kind: TypeInfoKind::StringType,
             coding: StringCoding::UTF8,
             has_variable_info: false,
-            has_trace_info: false
+            has_trace_info: false,
         },
         "S_RAWD" | "S_RAW" => TypeInfo {
             kind: TypeInfoKind::Raw,
             coding: StringCoding::ASCII,
             has_variable_info: false,
-            has_trace_info: false
+            has_trace_info: false,
         },
         s => unimplemented!("{}", s),
     }
@@ -143,31 +146,55 @@ pub fn read_fibex(f: &Path) -> Result<FibexMetadata> {
         match reader.read_event()? {
             Event::PduStart { id } => {
                 let (description, signal_refs) = read_pdu(&mut reader)?;
-                pdu_by_id.insert(id, Rc::new(PduMetadata {
-                    description,
-                    signal_types: signal_refs.into_iter().map(type_info_for_signal_ref).collect(),
-                }));
-            },
+                pdu_by_id.insert(
+                    id,
+                    Rc::new(PduMetadata {
+                        description,
+                        signal_types: signal_refs
+                            .into_iter()
+                            .map(type_info_for_signal_ref)
+                            .collect(),
+                    }),
+                );
+            }
             Event::FrameStart { id } => {
                 frames.push((FrameId(id), read_frame(&mut reader)?));
-            },
+            }
             Event::Eof => break,
             _ => {}
         }
     }
-    for (id, FrameReadData { short_name, context_id, application_id, message_type, message_info, pdu_refs }) in frames {
+    for (
+        id,
+        FrameReadData {
+            short_name,
+            context_id,
+            application_id,
+            message_type,
+            message_info,
+            pdu_refs,
+        },
+    ) in frames
+    {
         let frame = Rc::new(FrameMetadata {
             short_name,
             pdus: pdu_refs
                 .into_iter()
-                .map(|r| pdu_by_id.get(&r).cloned().ok_or_else(|| format_err!("pdu {} not found", &r)))
+                .map(|r| {
+                    pdu_by_id
+                        .get(&r)
+                        .cloned()
+                        .ok_or_else(|| format_err!("pdu {} not found", &r))
+                })
                 .collect::<Result<Vec<_>>>()?,
             application_id,
             context_id,
             message_type,
             message_info,
         });
-        if let (Some(context_id), Some(application_id)) = (frame.context_id.clone(), frame.application_id.clone()) {
+        if let (Some(context_id), Some(application_id)) =
+            (frame.context_id.clone(), frame.application_id.clone())
+        {
             frame_map_with_key.insert((context_id, application_id, id.clone()), frame.clone());
         } // else error?
         frame_map.insert(id, frame);
@@ -182,13 +209,17 @@ fn read_pdu(reader: &mut Reader<BufReader<File>>) -> Result<(Option<String>, Vec
     let mut signal_refs = vec![];
     loop {
         match reader.read_event()? {
-            Event::SignalInstance { signal_ref, sequence_number, .. } => {
+            Event::SignalInstance {
+                signal_ref,
+                sequence_number,
+                ..
+            } => {
                 signal_refs.push((sequence_number, signal_ref));
-            },
+            }
             Event::PduEnd { description, .. } => {
                 signal_refs.sort_by_key(|s| s.0);
-                return Ok((description, signal_refs.into_iter().map(|v| v.1).collect()))
-            },
+                return Ok((description, signal_refs.into_iter().map(|v| v.1).collect()));
+            }
             _ => {}
         }
     }
@@ -200,7 +231,7 @@ struct FrameReadData {
     application_id: Option<ApplicationId>,
     message_type: Option<String>,
     message_info: Option<String>,
-    pdu_refs: Vec<String>
+    pdu_refs: Vec<String>,
 }
 
 fn read_frame(reader: &mut Reader<BufReader<File>>) -> Result<FrameReadData> {
@@ -211,15 +242,25 @@ fn read_frame(reader: &mut Reader<BufReader<File>>) -> Result<FrameReadData> {
     let mut frame_message_info = None;
     loop {
         match reader.read_event()? {
-            Event::PduInstance { pdu_ref, sequence_number, .. } => {
-                pdus.push((sequence_number, pdu_ref,));
-            },
-            Event::ManufacturerExtension { context_id, application_id, message_type, message_info, .. } => {
+            Event::PduInstance {
+                pdu_ref,
+                sequence_number,
+                ..
+            } => {
+                pdus.push((sequence_number, pdu_ref));
+            }
+            Event::ManufacturerExtension {
+                context_id,
+                application_id,
+                message_type,
+                message_info,
+                ..
+            } => {
                 frame_context_id = context_id.map(ContextId);
                 frame_application_id = application_id.map(ApplicationId);
                 frame_message_type = message_type;
                 frame_message_info = message_info;
-            },
+            }
             Event::FrameEnd { short_name, .. } => {
                 pdus.sort_by_key(|p| p.0);
                 return Ok(FrameReadData {
@@ -228,9 +269,9 @@ fn read_frame(reader: &mut Reader<BufReader<File>>) -> Result<FrameReadData> {
                     application_id: frame_application_id,
                     message_type: frame_message_type,
                     message_info: frame_message_info,
-                    pdu_refs: pdus.into_iter().map(|p| p.1).collect()
-                })
-            },
+                    pdu_refs: pdus.into_iter().map(|p| p.1).collect(),
+                });
+            }
             _ => {}
         }
     }
@@ -354,7 +395,8 @@ impl<B: BufRead> XmlReaderWithContext<B> {
                 let key_len = attr.key.len();
                 if key_len > name_len {
                     // support for namespaced attributes
-                    attr.key[key_len - name_len - 1] == b':' && &attr.key[key_len - name_len..] == name
+                    attr.key[key_len - name_len - 1] == b':'
+                        && &attr.key[key_len - name_len..] == name
                 } else {
                     false
                 }
@@ -427,96 +469,176 @@ impl<B: BufRead> Reader<B> {
                         self.byte_length = None;
                         self.r#type = None;
                         self.description = None;
-                        return Ok(Event::PduStart { id: self.xml_reader.id_attr(e, B_PDU)? })
-                    },
+                        return Ok(Event::PduStart {
+                            id: self.xml_reader.id_attr(e, B_PDU)?,
+                        });
+                    }
                     B_SHORT_NAME => {
-                        self.short_name = Some(self.xml_reader.read_text(e.name(), &mut self.buf2)?);
+                        self.short_name =
+                            Some(self.xml_reader.read_text(e.name(), &mut self.buf2)?);
                         self.buf2.clear();
-                    },
+                    }
                     B_BYTE_LENGTH => {
                         self.byte_length = Some(self.xml_reader.read_usize(e)?);
-                    },
+                    }
                     B_SIGNAL_INSTANCE => {
                         self.id = Some(self.xml_reader.id_attr(e, B_SIGNAL_INSTANCE)?);
                         self.r#ref = None;
                         self.sequence_number = None;
-                    },
-                    B_SEQUENCE_NUMBER => self.sequence_number = Some(self.xml_reader.read_usize(e)?),
-                    B_SIGNAL_REF => self.r#ref = Some(self.xml_reader.id_ref_attr(e, B_SIGNAL_REF)?),
+                    }
+                    B_SEQUENCE_NUMBER => {
+                        self.sequence_number = Some(self.xml_reader.read_usize(e)?)
+                    }
+                    B_SIGNAL_REF => {
+                        self.r#ref = Some(self.xml_reader.id_ref_attr(e, B_SIGNAL_REF)?)
+                    }
                     B_PDU_TYPE => {
                         self.r#type = Some(self.xml_reader.read_text(e.name(), &mut self.buf2)?);
                         self.buf2.clear();
-                    },
+                    }
                     B_FRAME_TYPE => {
                         self.r#type = Some(self.xml_reader.read_text(e.name(), &mut self.buf2)?);
                         self.buf.clear();
-                    },
+                    }
                     B_FRAME => {
                         self.short_name = None;
                         self.byte_length = None;
                         self.r#type = None;
                         return Ok(Event::FrameStart {
                             id: self.xml_reader.id_attr(e, B_PDU)?,
-                        })
-                    },
+                        });
+                    }
                     B_PDU_INSTANCE => {
                         self.id = Some(self.xml_reader.id_attr(e, B_PDU_INSTANCE)?);
                         self.r#ref = None;
                         self.sequence_number = None;
-                    },
+                    }
                     B_PDU_REF => self.r#ref = Some(self.xml_reader.id_ref_attr(e, B_PDU_REF)?),
                     B_MANUFACTURER_EXTENSION => {
                         self.application_id = None;
                         self.context_id = None;
                         self.message_info = None;
                         self.message_type = None;
-                    },
+                    }
                     B_APPLICATION_ID => {
-                        self.application_id = Some(self.xml_reader.read_text(e.name(), &mut self.buf2)?);
-                    },
+                        self.application_id =
+                            Some(self.xml_reader.read_text(e.name(), &mut self.buf2)?);
+                    }
                     B_CONTEXT_ID => {
-                        self.context_id = Some(self.xml_reader.read_text(e.name(), &mut self.buf2)?);
-                    },
+                        self.context_id =
+                            Some(self.xml_reader.read_text(e.name(), &mut self.buf2)?);
+                    }
                     B_MESSAGE_INFO => {
-                        self.message_info = Some(self.xml_reader.read_text(e.name(), &mut self.buf2)?);
-                    },
+                        self.message_info =
+                            Some(self.xml_reader.read_text(e.name(), &mut self.buf2)?);
+                    }
                     B_MESSAGE_TYPE => {
-                        self.message_type = Some(self.xml_reader.read_text(e.name(), &mut self.buf2)?);
-                    },
+                        self.message_type =
+                            Some(self.xml_reader.read_text(e.name(), &mut self.buf2)?);
+                    }
                     B_DESC => {
-                        self.description = Some(self.xml_reader.read_text(e.name(), &mut self.buf2)?);
+                        self.description =
+                            Some(self.xml_reader.read_text(e.name(), &mut self.buf2)?);
                     }
                     _ => {}
                 },
                 XmlEvent::Empty(ref e) => match e.local_name() {
-                    B_SIGNAL_REF => self.r#ref = Some(self.xml_reader.id_ref_attr(e, B_SIGNAL_REF)?),
+                    B_SIGNAL_REF => {
+                        self.r#ref = Some(self.xml_reader.id_ref_attr(e, B_SIGNAL_REF)?)
+                    }
                     B_PDU_REF => self.r#ref = Some(self.xml_reader.id_ref_attr(e, B_PDU_REF)?),
                     _ => {}
-                }
+                },
                 XmlEvent::End(ref e) => match e.local_name() {
                     B_PDU => {
                         return Ok(Event::PduEnd {
                             short_name: mem::replace(&mut self.short_name, None),
                             description: mem::replace(&mut self.description, None),
-                            byte_length: mem::replace(&mut self.byte_length, None).ok_or_else(|| missing_tag_err(B_BYTE_LENGTH, B_PDU, self.xml_reader.line_and_column()))?,
+                            byte_length: mem::replace(&mut self.byte_length, None).ok_or_else(
+                                || {
+                                    missing_tag_err(
+                                        B_BYTE_LENGTH,
+                                        B_PDU,
+                                        self.xml_reader.line_and_column(),
+                                    )
+                                },
+                            )?,
                         })
-                    },
-                    B_SIGNAL_INSTANCE => return Ok(Event::SignalInstance {
-                        id: mem::replace(&mut self.id, None).ok_or_else(|| missing_attr_err(B_ID, B_SIGNAL_INSTANCE, self.xml_reader.line_and_column()))?,
-                        sequence_number: mem::replace(&mut self.sequence_number, None).ok_or_else(|| missing_tag_err(B_SEQUENCE_NUMBER, B_SIGNAL_INSTANCE, self.xml_reader.line_and_column()))?,
-                        signal_ref: mem::replace(&mut self.r#ref, None).ok_or_else(|| missing_tag_err(B_SIGNAL_REF, B_SIGNAL_INSTANCE, self.xml_reader.line_and_column()))?,
-                    }),
+                    }
+                    B_SIGNAL_INSTANCE => {
+                        return Ok(Event::SignalInstance {
+                            id: mem::replace(&mut self.id, None).ok_or_else(|| {
+                                missing_attr_err(
+                                    B_ID,
+                                    B_SIGNAL_INSTANCE,
+                                    self.xml_reader.line_and_column(),
+                                )
+                            })?,
+                            sequence_number: mem::replace(&mut self.sequence_number, None)
+                                .ok_or_else(|| {
+                                    missing_tag_err(
+                                        B_SEQUENCE_NUMBER,
+                                        B_SIGNAL_INSTANCE,
+                                        self.xml_reader.line_and_column(),
+                                    )
+                                })?,
+                            signal_ref: mem::replace(&mut self.r#ref, None).ok_or_else(|| {
+                                missing_tag_err(
+                                    B_SIGNAL_REF,
+                                    B_SIGNAL_INSTANCE,
+                                    self.xml_reader.line_and_column(),
+                                )
+                            })?,
+                        })
+                    }
                     B_FRAME => {
                         return Ok(Event::FrameEnd {
-                            short_name: mem::replace(&mut self.short_name, None).ok_or_else(|| missing_tag_err(B_SHORT_NAME, B_FRAME, self.xml_reader.line_and_column()))?,
-                            byte_length: mem::replace(&mut self.byte_length, None).ok_or_else(|| missing_tag_err(B_BYTE_LENGTH, B_FRAME, self.xml_reader.line_and_column()))?,
+                            short_name: mem::replace(&mut self.short_name, None).ok_or_else(
+                                || {
+                                    missing_tag_err(
+                                        B_SHORT_NAME,
+                                        B_FRAME,
+                                        self.xml_reader.line_and_column(),
+                                    )
+                                },
+                            )?,
+                            byte_length: mem::replace(&mut self.byte_length, None).ok_or_else(
+                                || {
+                                    missing_tag_err(
+                                        B_BYTE_LENGTH,
+                                        B_FRAME,
+                                        self.xml_reader.line_and_column(),
+                                    )
+                                },
+                            )?,
                         })
-                    },
-                    B_PDU_INSTANCE => return Ok(Event::PduInstance {
-                        id: mem::replace(&mut self.id, None).ok_or_else(|| missing_attr_err(B_ID, B_PDU_INSTANCE, self.xml_reader.line_and_column()))?,
-                        sequence_number: mem::replace(&mut self.sequence_number, None).ok_or_else(|| missing_tag_err(B_SEQUENCE_NUMBER, B_PDU_INSTANCE, self.xml_reader.line_and_column()))?,
-                        pdu_ref: mem::replace(&mut self.r#ref, None).ok_or_else(|| missing_tag_err(B_PDU_REF, B_PDU_INSTANCE, self.xml_reader.line_and_column()))?,
-                    }),
+                    }
+                    B_PDU_INSTANCE => {
+                        return Ok(Event::PduInstance {
+                            id: mem::replace(&mut self.id, None).ok_or_else(|| {
+                                missing_attr_err(
+                                    B_ID,
+                                    B_PDU_INSTANCE,
+                                    self.xml_reader.line_and_column(),
+                                )
+                            })?,
+                            sequence_number: mem::replace(&mut self.sequence_number, None)
+                                .ok_or_else(|| {
+                                    missing_tag_err(
+                                        B_SEQUENCE_NUMBER,
+                                        B_PDU_INSTANCE,
+                                        self.xml_reader.line_and_column(),
+                                    )
+                                })?,
+                            pdu_ref: mem::replace(&mut self.r#ref, None).ok_or_else(|| {
+                                missing_tag_err(
+                                    B_PDU_REF,
+                                    B_PDU_INSTANCE,
+                                    self.xml_reader.line_and_column(),
+                                )
+                            })?,
+                        })
+                    }
                     B_MANUFACTURER_EXTENSION => {
                         return Ok(Event::ManufacturerExtension {
                             application_id: mem::replace(&mut self.application_id, None),
@@ -526,7 +648,7 @@ impl<B: BufRead> Reader<B> {
                         })
                     }
                     _ => {}
-                }
+                },
                 XmlEvent::Eof => return Ok(Event::Eof),
                 _ => {}
             }

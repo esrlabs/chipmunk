@@ -157,6 +157,30 @@ impl StandardHeader {
     }
 }
 
+//   EColumn.DATETIME,
+//   EColumn.ECUID,
+impl fmt::Display for StandardHeader {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        write!(f, "{}{}", self.version, DLT_COLUMN_SENTINAL,)?;
+        if let Some(id) = &self.session_id {
+            write!(f, "{}", id)?;
+        }
+        write!(
+            f,
+            "{}{}{}",
+            DLT_COLUMN_SENTINAL, self.message_counter, DLT_COLUMN_SENTINAL,
+        )?;
+        if let Some(t) = &self.timestamp {
+            write!(f, "{}", t)?;
+        }
+        write!(f, "{}", DLT_COLUMN_SENTINAL,)?;
+        if let Some(id) = &self.ecu_id {
+            write!(f, "{}", id)?;
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Arbitrary)]
 pub enum LogLevel {
     Fatal,
@@ -905,13 +929,43 @@ lazy_static! {
         unsafe { str::from_utf8_unchecked(DLT_NEWLINE_SENTINAL_SLICE) };
 }
 
+impl Message {
+    fn write_app_id_context_id_and_message_type(
+        &self,
+        f: &mut fmt::Formatter,
+    ) -> Result<(), fmt::Error> {
+        match self.extended_header.as_ref() {
+            Some(ext) => {
+                write!(
+                    f,
+                    "{}{}{}{}{}{}",
+                    ext.application_id,
+                    DLT_COLUMN_SENTINAL,
+                    ext.context_id,
+                    DLT_COLUMN_SENTINAL,
+                    ext.message_type,
+                    DLT_COLUMN_SENTINAL,
+                )?;
+            }
+            None => {
+                write!(
+                    f,
+                    "-{}-{}-{}",
+                    DLT_COLUMN_SENTINAL, DLT_COLUMN_SENTINAL, DLT_COLUMN_SENTINAL,
+                )?;
+            }
+        };
+        Ok(())
+    }
+}
 /// will format dlt Message with those fields:
-/// EColumn.DATETIME,
-/// EColumn.ECUID,
-/// EColumn.VERS,
-/// EColumn.SID,
-/// EColumn.MCNT,
-/// EColumn.TMS,
+/// StorageHeader *************
+///     - EColumn.DATETIME,
+///     - EColumn.ECUID,
+/// Version: EColumn.VERS,
+/// SessionId: EColumn.SID,
+/// message-count: EColumn.MCNT,
+/// timestamp: EColumn.TMS,
 /// EColumn.EID,
 /// EColumn.APID,
 /// EColumn.CTID,
@@ -919,268 +973,248 @@ lazy_static! {
 /// EColumn.PAYLOAD,
 impl fmt::Display for Message {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match &self.storage_header {
-            Some(h) => {
-                write!(f, "{}", h)?;
-            }
-            None => write!(f, "{}", DLT_COLUMN_SENTINAL)?,
-        }
-        write!(
-            f,
-            "{}{}{}",
-            DLT_COLUMN_SENTINAL, self.header.version, DLT_COLUMN_SENTINAL,
-        )?;
-        match &self.header.session_id {
-            Some(id) => {
-                write!(f, "{}", id)?;
-            }
-            None => (),
-        }
-        write!(
-            f,
-            "{}{}{}",
-            DLT_COLUMN_SENTINAL, self.header.message_counter, DLT_COLUMN_SENTINAL,
-        )?;
-        match &self.header.timestamp {
-            Some(t) => {
-                write!(f, "{}", t)?;
-            }
-            None => (),
+        if let Some(h) = &self.storage_header {
+            write!(f, "{}", h)?;
         }
         write!(f, "{}", DLT_COLUMN_SENTINAL,)?;
-        match &self.header.ecu_id {
-            Some(id) => {
-                write!(f, "{}", id)?;
-            }
-            None => (),
-        }
+        write!(f, "{}", self.header)?;
         write!(f, "{}", DLT_COLUMN_SENTINAL,)?;
-
-        let mut write_app_id_context_id_and_message_type = || -> Result<(), fmt::Error> {
-            match self.extended_header.as_ref() {
-                Some(ext) => {
-                    write!(
-                        f,
-                        "{}{}{}{}{}{}",
-                        ext.application_id,
-                        DLT_COLUMN_SENTINAL,
-                        ext.context_id,
-                        DLT_COLUMN_SENTINAL,
-                        ext.message_type,
-                        DLT_COLUMN_SENTINAL,
-                    )?;
-                },
-                None => {
-                    write!(
-                        f,
-                        "-{}-{}-{}",
-                        DLT_COLUMN_SENTINAL, DLT_COLUMN_SENTINAL, DLT_COLUMN_SENTINAL,
-                    )?;
-                }
-            };
-            Ok(())
-        };
 
         match &self.payload {
             Payload::Verbose(arguments) => {
-                write_app_id_context_id_and_message_type()?;
+                self.write_app_id_context_id_and_message_type(f)?;
                 arguments
                     .iter()
                     .try_for_each(|arg| write!(f, "{}{}", DLT_ARGUMENT_SENTINAL, arg))
-            },
-            Payload::NonVerbose(id, data) => {
-                let mut is_written = false;
-                if let Some(fibex_metadata) = &self.fibex_metadata {
-                    let id_text = format!("ID_{}", id);
-                    let frame_metadata = if let Some(extended_header) = &self.extended_header {
-                        fibex_metadata.frame_map_with_key.get(&(ContextId(extended_header.context_id.clone()), ApplicationId(extended_header.application_id.clone()), FrameId(id_text))) // TODO: avoid cloning here (Cow or Borrow)
+            }
+            Payload::NonVerbose(id, data) => self.format_nonverbose_data(*id, data, f),
+        }
+    }
+}
+
+impl Message {
+    fn format_nonverbose_data(&self, id: u32, data: &[u8], f: &mut fmt::Formatter) -> fmt::Result {
+        let mut is_written = false;
+        if let Some(fibex_metadata) = &self.fibex_metadata {
+            let id_text = format!("ID_{}", id);
+            let frame_metadata = if let Some(extended_header) = &self.extended_header {
+                fibex_metadata.frame_map_with_key.get(&(
+                    ContextId(extended_header.context_id.clone()),
+                    ApplicationId(extended_header.application_id.clone()),
+                    FrameId(id_text),
+                )) // TODO: avoid cloning here (Cow or Borrow)
+            } else {
+                fibex_metadata.frame_map.get(&FrameId(id_text))
+            };
+            if let Some(frame_metadata) = frame_metadata {
+                let FrameMetadata {
+                    application_id,
+                    context_id,
+                    message_info,
+                    ..
+                } = &**frame_metadata;
+                write!(
+                    f,
+                    "{}{}{}{}",
+                    application_id
+                        .as_ref()
+                        .map(|id| &**id)
+                        .or_else(|| self
+                            .extended_header
+                            .as_ref()
+                            .map(|h| h.application_id.as_ref()))
+                        .unwrap_or("-"),
+                    DLT_COLUMN_SENTINAL,
+                    context_id
+                        .as_ref()
+                        .map(|id| &**id)
+                        .or_else(|| self.extended_header.as_ref().map(|h| h.context_id.as_ref()))
+                        .unwrap_or("-"),
+                    DLT_COLUMN_SENTINAL
+                )?;
+                if let Some(v) = message_info
+                    .as_ref()
+                    .and_then(|mi| MessageType::try_new_from_fibex_message_info(&*mi))
+                {
+                    write!(f, "{}", v)?;
+                } else if let Some(message_type) =
+                    self.extended_header.as_ref().map(|h| &h.message_type)
+                {
+                    write!(f, "{}", message_type)?;
+                } else {
+                    write!(f, "-")?;
+                }
+                write!(f, "{}", DLT_COLUMN_SENTINAL)?;
+                let mut offset = 0;
+                for pdu in &frame_metadata.pdus {
+                    if let Some(description) = &pdu.description {
+                        let arg = Argument {
+                            type_info: TypeInfo {
+                                kind: TypeInfoKind::StringType,
+                                coding: StringCoding::UTF8,
+                                has_trace_info: false,
+                                has_variable_info: false,
+                            },
+                            name: None,
+                            unit: None,
+                            fixed_point: None,
+                            value: Value::StringVal(description.to_string()),
+                        };
+                        write!(f, "{}{} ", DLT_ARGUMENT_SENTINAL, arg)?;
                     } else {
-                        fibex_metadata.frame_map.get(&FrameId(id_text))
-                    };
-                    if let Some(frame_metadata) = frame_metadata {
-                        let FrameMetadata { application_id, context_id, message_info, .. } = &**frame_metadata;
-                        write!(
-                            f,
-                            "{}{}{}{}",
-                            application_id.as_ref()
-                                .map(|id| &**id)
-                                .or_else(|| self.extended_header.as_ref().map(|h| h.application_id.as_ref()))
-                                .unwrap_or("-"),
-                            DLT_COLUMN_SENTINAL,
-                            context_id.as_ref()
-                                .map(|id| &**id)
-                                .or_else(|| self.extended_header.as_ref().map(|h| h.context_id.as_ref()))
-                                .unwrap_or("-"),
-                            DLT_COLUMN_SENTINAL
-                        )?;
-                        if let Some(v) = message_info.as_ref()
-                            .and_then(|mi| MessageType::try_new_from_fibex_message_info(&*mi)) {
-                            write!(f, "{}", v)?;
-                        } else if let Some(message_type) = self.extended_header.as_ref().map(|h| &h.message_type) {
-                            write!(f, "{}", message_type)?;
-                        } else {
-                            write!(f, "-")?;
-                        }
-                        write!(f, "{}", DLT_COLUMN_SENTINAL)?;
-                        let mut offset = 0;
-                        for pdu in &frame_metadata.pdus {
-                            if let Some(description) = &pdu.description {
-                                let arg = Argument {
-                                    type_info: TypeInfo {
-                                        kind: TypeInfoKind::StringType,
-                                        coding: StringCoding::UTF8,
-                                        has_trace_info: false,
-                                        has_variable_info: false,
-                                    },
-                                    name: None,
-                                    unit: None,
-                                    fixed_point: None,
-                                    value: Value::StringVal(description.to_string()),
-                                };
-                                write!(f, "{}{} ", DLT_ARGUMENT_SENTINAL, arg)?;
-                            } else {
-                                for signal_type in &pdu.signal_types {
-                                    let mut fixed_point = None;
-                                    let value = match signal_type.kind {
-                                        TypeInfoKind::StringType | TypeInfoKind::Raw => {
-                                            if data.len() < offset + 2 {
-                                                return fmt::Result::Err(fmt::Error);
-                                            }
-                                            let length = if self.header.big_endian {
-                                                BigEndian::read_u16(&data[offset..offset + 2]) as usize
-                                            } else {
-                                                LittleEndian::read_u16(&data[offset..offset + 2]) as usize
-                                            };
-                                            offset += 2;
-                                            if data.len() < offset + length {
-                                                return fmt::Result::Err(fmt::Error);
-                                            }
-                                            let v = match signal_type.kind {
-                                                TypeInfoKind::StringType => Value::StringVal(String::from_utf8(data[offset..offset + length].to_vec()).map_err(|_| {
-                                                    fmt::Error
-                                                })?),
-                                                TypeInfoKind::Raw => Value::Raw(Vec::from(&data[offset..offset + length])),
-                                                _ => {
-                                                    unreachable!()
-                                                }
-                                            };
-                                            offset += length;
-                                            v
-                                        },
-                                        TypeInfoKind::Bool => {
-                                            offset += 1;
-                                            if data.len() < offset {
-                                                return fmt::Result::Err(fmt::Error);
-                                            }
-                                            Value::Bool(data[offset - 1] != 0)
-                                        },
-                                        TypeInfoKind::Float(width) => {
-                                            let length = width as usize / 8;
-                                            if data.len() < offset + length {
-                                                return fmt::Result::Err(fmt::Error);
-                                            }
-                                            let v = if self.header.big_endian {
-                                                dlt_fint::<BigEndian>(width)(&data[offset..offset + length])
-                                            } else {
-                                                dlt_fint::<LittleEndian>(width)(&data[offset..offset + length])
-                                            }.map_err(|_| {
-                                                fmt::Error
-                                            })?.1;
-                                            offset += length;
-                                            v
-                                        },
-                                        TypeInfoKind::Signed(length, is_fp) => {
-                                            let byte_length = length as usize / 8;
-                                            if data.len() < offset + byte_length {
-                                                return fmt::Result::Err(fmt::Error);
-                                            }
-                                            let value_offset = if is_fp {
-                                                let (r, fp) = if self.header.big_endian {
-                                                    dlt_fixed_point::<BigEndian>(&data[offset..offset + byte_length], length)
-                                                } else {
-                                                    dlt_fixed_point::<LittleEndian>(&data[offset..offset + byte_length], length)
-                                                }.map_err(|_| {
-                                                    fmt::Error
-                                                })?;
-                                                fixed_point = Some(fp);
-                                                r
-                                            } else {
-                                                &data[offset..]
-                                            };
-                                            let (_, v) = if self.header.big_endian {
-                                                dlt_sint::<BigEndian>(length)(value_offset)
-                                            } else {
-                                                dlt_sint::<LittleEndian>(length)(value_offset)
-                                            }.map_err(|_| {
-                                                fmt::Error
-                                            })?;
-                                            offset += byte_length;
-                                            v
-                                        },
-                                        TypeInfoKind::Unsigned(length, is_fp) => {
-                                            let byte_length = length as usize / 8;
-                                            if data.len() < offset + byte_length {
-                                                return fmt::Result::Err(fmt::Error);
-                                            }
-                                            let value_offset = if is_fp {
-                                                let (r, fp) = if self.header.big_endian {
-                                                    dlt_fixed_point::<BigEndian>(&data[offset..offset + byte_length], length)
-                                                } else {
-                                                    dlt_fixed_point::<LittleEndian>(&data[offset..offset + byte_length], length)
-                                                }.map_err(|_| {
-                                                    fmt::Error
-                                                })?;
-                                                fixed_point = Some(fp);
-                                                r
-                                            } else {
-                                                &data[offset..]
-                                            };
-                                            let (_, v) = if self.header.big_endian {
-                                                dlt_uint::<BigEndian>(length)(value_offset)
-                                            } else {
-                                                dlt_uint::<LittleEndian>(length)(value_offset)
-                                            }.map_err(|_| {
-                                                fmt::Error
-                                            })?;
-                                            offset += byte_length;
-                                            v
+                        for signal_type in &pdu.signal_types {
+                            let mut fixed_point = None;
+                            let value = match signal_type.kind {
+                                TypeInfoKind::StringType | TypeInfoKind::Raw => {
+                                    if data.len() < offset + 2 {
+                                        return fmt::Result::Err(fmt::Error);
+                                    }
+                                    let length = if self.header.big_endian {
+                                        BigEndian::read_u16(&data[offset..offset + 2]) as usize
+                                    } else {
+                                        LittleEndian::read_u16(&data[offset..offset + 2]) as usize
+                                    };
+                                    offset += 2;
+                                    if data.len() < offset + length {
+                                        return fmt::Result::Err(fmt::Error);
+                                    }
+                                    let v = match signal_type.kind {
+                                        TypeInfoKind::StringType => Value::StringVal(
+                                            String::from_utf8(
+                                                data[offset..offset + length].to_vec(),
+                                            )
+                                            .map_err(|_| fmt::Error)?,
+                                        ),
+                                        TypeInfoKind::Raw => {
+                                            Value::Raw(Vec::from(&data[offset..offset + length]))
                                         }
+                                        _ => unreachable!(),
                                     };
-                                    let arg = Argument {
-                                        type_info: signal_type.clone(),
-                                        name: None,
-                                        unit: None,
-                                        fixed_point,
-                                        value,
+                                    offset += length;
+                                    v
+                                }
+                                TypeInfoKind::Bool => {
+                                    offset += 1;
+                                    if data.len() < offset {
+                                        return fmt::Result::Err(fmt::Error);
+                                    }
+                                    Value::Bool(data[offset - 1] != 0)
+                                }
+                                TypeInfoKind::Float(width) => {
+                                    let length = width as usize / 8;
+                                    if data.len() < offset + length {
+                                        return fmt::Result::Err(fmt::Error);
+                                    }
+                                    let v = if self.header.big_endian {
+                                        dlt_fint::<BigEndian>(width)(&data[offset..offset + length])
+                                    } else {
+                                        dlt_fint::<LittleEndian>(width)(
+                                            &data[offset..offset + length],
+                                        )
+                                    }
+                                    .map_err(|_| fmt::Error)?
+                                    .1;
+                                    offset += length;
+                                    v
+                                }
+                                TypeInfoKind::Signed(length, is_fp) => {
+                                    let byte_length = length as usize / 8;
+                                    if data.len() < offset + byte_length {
+                                        return fmt::Result::Err(fmt::Error);
+                                    }
+                                    let value_offset = if is_fp {
+                                        let (r, fp) = if self.header.big_endian {
+                                            dlt_fixed_point::<BigEndian>(
+                                                &data[offset..offset + byte_length],
+                                                length,
+                                            )
+                                        } else {
+                                            dlt_fixed_point::<LittleEndian>(
+                                                &data[offset..offset + byte_length],
+                                                length,
+                                            )
+                                        }
+                                        .map_err(|_| fmt::Error)?;
+                                        fixed_point = Some(fp);
+                                        r
+                                    } else {
+                                        &data[offset..]
                                     };
-                                    write!(f, "{}{} ", DLT_ARGUMENT_SENTINAL, arg)?;
+                                    let (_, v) = if self.header.big_endian {
+                                        dlt_sint::<BigEndian>(length)(value_offset)
+                                    } else {
+                                        dlt_sint::<LittleEndian>(length)(value_offset)
+                                    }
+                                    .map_err(|_| fmt::Error)?;
+                                    offset += byte_length;
+                                    v
+                                }
+                                TypeInfoKind::Unsigned(length, is_fp) => {
+                                    let byte_length = length as usize / 8;
+                                    if data.len() < offset + byte_length {
+                                        return fmt::Result::Err(fmt::Error);
+                                    }
+                                    let value_offset = if is_fp {
+                                        let (r, fp) = if self.header.big_endian {
+                                            dlt_fixed_point::<BigEndian>(
+                                                &data[offset..offset + byte_length],
+                                                length,
+                                            )
+                                        } else {
+                                            dlt_fixed_point::<LittleEndian>(
+                                                &data[offset..offset + byte_length],
+                                                length,
+                                            )
+                                        }
+                                        .map_err(|_| fmt::Error)?;
+                                        fixed_point = Some(fp);
+                                        r
+                                    } else {
+                                        &data[offset..]
+                                    };
+                                    let (_, v) = if self.header.big_endian {
+                                        dlt_uint::<BigEndian>(length)(value_offset)
+                                    } else {
+                                        dlt_uint::<LittleEndian>(length)(value_offset)
+                                    }
+                                    .map_err(|_| fmt::Error)?;
+                                    offset += byte_length;
+                                    v
                                 }
                             };
-                            is_written = true;
+                            let arg = Argument {
+                                type_info: signal_type.clone(),
+                                name: None,
+                                unit: None,
+                                fixed_point,
+                                value,
+                            };
+                            write!(f, "{}{} ", DLT_ARGUMENT_SENTINAL, arg)?;
                         }
-                    } else {
-                        write_app_id_context_id_and_message_type()?;
-                    }
-                } else {
-                    write_app_id_context_id_and_message_type()?;
+                    };
+                    is_written = true;
                 }
-                if !is_written {
-                    let as_string = str::from_utf8(&data).unwrap_or("").trim();
-                    f.write_str(
-                        &format!(
-                            "{}id:{}{}({:?}){}{:02X?}",
-                            DLT_ARGUMENT_SENTINAL,
-                            id,
-                            DLT_ARGUMENT_SENTINAL,
-                            as_string,
-                            DLT_ARGUMENT_SENTINAL,
-                            data
-                        )[..],
-                    )?;
-                }
-                Ok(())
+            } else {
+                self.write_app_id_context_id_and_message_type(f)?;
             }
+        } else {
+            self.write_app_id_context_id_and_message_type(f)?;
         }
+        if !is_written {
+            let as_string = str::from_utf8(&data).unwrap_or("").trim();
+            f.write_str(
+                &format!(
+                    "{}id:{}{}({:?}){}{:02X?}",
+                    DLT_ARGUMENT_SENTINAL,
+                    id,
+                    DLT_ARGUMENT_SENTINAL,
+                    as_string,
+                    DLT_ARGUMENT_SENTINAL,
+                    data
+                )[..],
+            )?;
+        }
+        Ok(())
     }
 }
 

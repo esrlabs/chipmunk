@@ -1,6 +1,6 @@
 use channels::{EventEmitterTask, IndexingThreadConfig};
-use dlt::filtering;
 use dlt::fibex::FibexMetadata;
+use dlt::filtering;
 use indexer_base::chunks::ChunkResults;
 use indexer_base::config::IndexingConfig;
 use neon::prelude::*;
@@ -24,11 +24,25 @@ impl IndexingDltEventEmitter {
         chunk_size: usize,
         thread_conf: IndexingThreadConfig,
         filter_conf: Option<filtering::DltFilterConfig>,
+        fibex: Option<String>,
     ) {
         info!("start_indexing_dlt_in_thread: {:?}", thread_conf);
 
         // Spawn a thead to continue running after this method has returned.
         self.task_thread = Some(thread::spawn(move || {
+            let fibex_metadata: Option<Rc<FibexMetadata>> = match fibex {
+                None => None,
+                Some(fibex_path) => {
+                    let path = &std::path::PathBuf::from(fibex_path);
+                    match dlt::fibex::read_fibex(path) {
+                        Ok(res) => Some(std::rc::Rc::new(res)),
+                        Err(e) => {
+                            warn!("error reading fibex {}", e);
+                            None
+                        }
+                    }
+                }
+            };
             index_dlt_file_with_progress(
                 IndexingConfig {
                     tag: thread_conf.tag.as_str(),
@@ -40,7 +54,7 @@ impl IndexingDltEventEmitter {
                 filter_conf,
                 chunk_result_sender.clone(),
                 Some(shutdown_rx),
-                None,
+                fibex_metadata,
             );
             debug!("back after DLT indexing finished!");
         }));
@@ -90,9 +104,16 @@ declare_types! {
             let arg_filter_conf = cx.argument::<JsValue>(5)?;
             let filter_conf: dlt::filtering::DltFilterConfig = neon_serde::from_value(&mut cx, arg_filter_conf)?;
             trace!("{:?}", filter_conf);
+            let mut fibex: Option<String> = None;
+            if let Some(arg) = cx.argument_opt(6) {
+                if arg.is_a::<JsString>() {
+                    fibex = Some(arg.downcast::<JsString>().or_throw(&mut cx)?.value());
+                } else if arg.is_a::<JsUndefined>() {
+                    trace!("fibex arg was not set");
+                }
+            }
 
             let shutdown_channel = mpsc::channel();
-            // let (shutdown_sender, shutdown_receiver) = mpsc::channel();
 
             let f = match fs::File::open(&file) {
                 Ok(file) => file,
@@ -118,6 +139,7 @@ declare_types! {
                     timestamps: false,
                 },
                 Some(filter_conf),
+                fibex,
             );
             Ok(emitter)
         }

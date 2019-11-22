@@ -1,7 +1,6 @@
-#[macro_use]
-extern crate neon;
 extern crate dlt;
 extern crate indexer_base;
+extern crate neon;
 #[macro_use]
 extern crate log;
 extern crate dirs;
@@ -60,9 +59,9 @@ pub fn init_logging() -> Result<(), std::io::Error> {
                 .appender(appender_name)
                 .build(LevelFilter::Trace),
         )
-        .unwrap();
+        .expect("logging config was incorrect");
 
-    log4rs::init_config(config).unwrap();
+    log4rs::init_config(config).expect("logging config could not be applied");
     trace!("logging initialized");
     Ok(())
 }

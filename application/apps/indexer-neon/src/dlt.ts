@@ -35,7 +35,8 @@ export enum DltLogLevel {
 }
 export interface IIndexDltParams {
     dltFile: String;
-    filterConfig?: DltFilterConf;
+    filterConfig: DltFilterConf;
+    fibex?: String;
     tag: String;
     out: String;
     chunk_size?: number;
@@ -89,13 +90,14 @@ export function dltStatsAsync(
     ];
 }
 export function indexDltAsync(
-    { dltFile, filterConfig, tag, out, chunk_size, append, stdout, statusUpdates }: IIndexDltParams,
+    { dltFile, filterConfig, fibex, tag, out, chunk_size, append, stdout, statusUpdates }: IIndexDltParams,
     maxTime: TimeUnit,
     onProgress: (ticks: ITicks) => any,
     onChunk: (chunk: IChunk) => any,
     onNotification: (notification: INeonNotification) => void,
 ): [Promise<AsyncResult>, () => void] {
-    const channel = new RustDltIndexerChannel(dltFile, tag, out, append, chunk_size, filterConfig);
+    log(`using fibex: ${fibex}`);
+    const channel = new RustDltIndexerChannel(dltFile, tag, out, append, chunk_size, filterConfig, fibex);
     const emitter = new NativeEventEmitter(channel);
     const p = new Promise<AsyncResult>((resolve, reject) => {
         let chunks: number = 0;

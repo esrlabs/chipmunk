@@ -1,4 +1,3 @@
-use dlt::fibex::FibexMetadata;
 use indexer_base::progress::Notification;
 use indexer_base::progress::{IndexingProgress, IndexingResults};
 use neon::prelude::*;
@@ -6,7 +5,6 @@ use serde::Serialize;
 use std::fmt::Debug;
 use std::fs;
 use std::path;
-use std::rc::Rc;
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
