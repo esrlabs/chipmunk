@@ -90,7 +90,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         });
         this._restoreDropdownSession();
         this._loadSession();
-        
+
         // Subscription to income events
         this._subscriptions.incomeIPCHostMessage = this.api.getIPC().subscribeToHost((message: any) => {
             if (typeof message !== 'object' && message === null) {
@@ -518,39 +518,46 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     }
     
     public _ng_connectDialog() {
-        this._startSpy();
-        const popupGuid: string = this.api.addPopup({
-            caption: 'Choose port to connect:',
-            component: {
-                factory: SidebarVerticalPortDialogComponent,
-                inputs: {
-                    _onConnect: (() => {
-                    this._stopSpy().then(() => this._ng_onConnect());
-                    this.closePopup(popupGuid);
-                    }),
-                    _ng_getState: ((port: IPortInfo) => this._ng_getState(port)),
-                    _ng_canBeConnected: this._ng_canBeConnected,
-                    _ng_connected: this._ng_connected,
-                    _ng_isPortSelected: this._ng_isPortSelected,
-                    _ng_onOptions: this._ng_onOptions,
-                    _ng_onPortSelect: this._ng_onPortSelect,
-                    _getSpyState: (() => this._ng_spyLoad),
-                    _requestPortList: ( () => this._ng_ports),
-                    _forceUpdate: this._forceUpdate,
-                    _getSelected: ((selected: IPortInfo) => { this._ng_selected = selected; }),
-                    _get_optionsCom: ((options: SidebarVerticalPortOptionsWriteComponent) => { this._optionsCom = options }),
-                    _stopSpy: (() => this._stopSpy())
-                }
-            },
-            buttons: [
-                {
-                    caption: 'Cancel',
-                    handler: () => {
-                        this._stopSpy();
+        this.api.getIPC().requestToHost({
+            stream: this.session,
+            command: EHostCommands.list,
+        }, this.session).then((response) => {
+            this._startSpy();
+            const popupGuid: string = this.api.addPopup({
+                caption: 'Choose port to connect:',
+                component: {
+                    factory: SidebarVerticalPortDialogComponent,
+                    inputs: {
+                        _onConnect: (() => {
+                        this._stopSpy().then(() => this._ng_onConnect());
                         this.closePopup(popupGuid);
+                        }),
+                        _ng_getState: ((port: IPortInfo) => this._ng_getState(port)),
+                        _ng_canBeConnected: this._ng_canBeConnected,
+                        _ng_connected: this._ng_connected,
+                        _ng_isPortSelected: this._ng_isPortSelected,
+                        _ng_onOptions: this._ng_onOptions,
+                        _ng_onPortSelect: this._ng_onPortSelect,
+                        _getSpyState: (() => this._ng_spyLoad),
+                        _requestPortList: ( () => response.ports),
+                        _forceUpdate: this._forceUpdate,
+                        _getSelected: ((selected: IPortInfo) => { this._ng_selected = selected; }),
+                        _get_optionsCom: ((options: SidebarVerticalPortOptionsWriteComponent) => { this._optionsCom = options }),
+                        _stopSpy: (() => this._stopSpy())
                     }
-                }
-            ]
+                },
+                buttons: [
+                    {
+                        caption: 'Cancel',
+                        handler: () => {
+                            this._stopSpy();
+                            this.closePopup(popupGuid);
+                        }
+                    }
+                ]
+            });
+        }).catch((error: Error) => {
+            this._logger.error(`Fail to get ports list due error: ${error.message}`);
         });
     }
 }
