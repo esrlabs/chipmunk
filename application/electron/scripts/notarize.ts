@@ -2,7 +2,7 @@
 require("dotenv").config();
 import { notarize, NotarizeStartOptions } from "electron-notarize";
 
-export default async function notarizing(context: any) {
+export default async function notarizing(context: any): Promise<void> {
     const { electronPlatformName, appOutDir } = context;
     if (electronPlatformName !== "darwin") {
         return;
@@ -16,10 +16,15 @@ export default async function notarizing(context: any) {
         const appleIdPassword = process.env.APPLEIDPASS;
         const appleId = process.env.APPLEID;
         if (appleIdPassword === undefined) {
-            throw Error("no appleIdPassword in envirmonment");
+            // tslint:disable-next-line:no-console
+            console.log("no APPLEIDPASS found => aborting notarize");
+            return Promise.resolve();
+            // throw Error("no appleIdPassword in envirmonment");
         }
         if (appleId === undefined) {
-            throw Error("no appleId in envirmonment");
+            // tslint:disable-next-line:no-console
+            console.log("no APPLEID in envirmonment => aborting notarize");
+            return Promise.resolve();
         }
         const v: NotarizeStartOptions = {
             appBundleId: "com.esrlabs.chipmunk",
