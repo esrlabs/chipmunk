@@ -1,5 +1,14 @@
 # Changelog
 
+### [1.31.1] - 11/25/2019
+* [](fix) use faster channel implementation for rust
+* [](refactor) dlt non-verbose integration
+  rust fmt
+  some dlt format refactorings
+  updated tests
+* Fix optional PDU short-name handling
+* Add fibex support for nonverbose DLT mode
+
 ### [1.31.0] - 11/22/2019
 * [](fix) fixed path problem for windows build
 * [](fix) fix rakefile for windows
