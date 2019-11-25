@@ -109,6 +109,12 @@ export { IFileInfoRequest, FileInfoRequest };
 import { IFileInfoResponse, FileInfoResponse } from './file.fileinfo.response';
 export { IFileInfoResponse, FileInfoResponse };
 
+import { IFilePickerRequest, FilePickerRequest, IFilePickerFilter } from './file.filepicker.request';
+export { IFilePickerRequest, FilePickerRequest, IFilePickerFilter };
+
+import { IFilePickerResponse, FilePickerResponse, IFilePickerFileInfo } from './file.filepicker.response';
+export { IFilePickerResponse, FilePickerResponse, IFilePickerFileInfo };
+
 import { IFilesSearchRequest, FilesSearchRequest } from './files.search.request';
 export { IFilesSearchRequest, FilesSearchRequest };
 
@@ -248,6 +254,8 @@ export type TMessage =  HostState |
                         FilesRecentResponse |
                         FileInfoRequest |
                         FileInfoResponse |
+                        FilePickerRequest |
+                        FilePickerResponse |
                         ConcatFilesRequest |
                         ConcatFilesResponse |
                         MergeFilesRequest |
@@ -329,6 +337,8 @@ export const Map = {
     [FilesRecentResponse.signature          ]: FilesRecentResponse,
     [FileInfoRequest.signature              ]: FileInfoRequest,
     [FileInfoResponse.signature             ]: FileInfoResponse,
+    [FilePickerRequest.signature            ]: FilePickerRequest,
+    [FilePickerResponse.signature           ]: FilePickerResponse,
 
     [ConcatFilesRequest.signature           ]: ConcatFilesRequest,
     [ConcatFilesResponse.signature          ]: ConcatFilesResponse,

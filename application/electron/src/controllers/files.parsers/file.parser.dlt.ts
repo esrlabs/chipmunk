@@ -17,6 +17,16 @@ import { Subscription } from "../../tools/index";
 import Logger from "../../tools/env.logger";
 import ServiceNotifications, { ENotificationType } from "../../services/service.notifications";
 
+interface IDLTFilters {
+    [key: string]: string[];
+}
+
+interface IDLTOptions {
+    logLevel: number;
+    filters: IDLTFilters;
+    fibexFilePath?: string;
+}
+
 const ExtNames = ["dlt"];
 type TCancelCB = () => void;
 
@@ -93,7 +103,7 @@ export default class FileParser extends AFileParser {
         srcFile: string,
         destFile: string,
         sourceId: string,
-        options: { [key: string]: any },
+        options: IDLTOptions,
         onMapUpdated?: (map: IMapItem[]) => void,
         onProgress?: (ticks: ITicks) => void,
     ): Promise<IMapItem[]> {
