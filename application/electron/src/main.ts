@@ -22,6 +22,7 @@ import ServiceConcatFiles from './services/features/service.concat.files';
 import ServiceFileReader from './services/files/service.file.reader';
 import ServiceFileSearch from './services/files/service.file.search';
 import ServiceFileOpener from './services/files/service.file.opener';
+import ServiceFilePicker from './services/files/service.file.picker';
 import ServiceStreamSources from './services/service.stream.sources';
 import ServiceFilters from './services/service.filters';
 import ServiceAppState from './services/service.app.state';
@@ -54,6 +55,7 @@ const InitializeStages = [
         ServiceFilters, ServiceFileReader,
         ServiceFileOpener, ServiceAppState,
         ServiceDLTFiles, ServiceHotkeys,
+        ServiceFilePicker,
     ],
     // Stage #10. Init plugins
     [   ServicePlugins ],

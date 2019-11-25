@@ -34,6 +34,16 @@ export enum EMTIN {
     UNDEFINED               = 'UNDEFINED',
 }
 
+export interface IDLTFilters {
+    [key: string]: string[];
+}
+
+export interface IDLTOptions {
+    logLevel: number;
+    filters: IDLTFilters;
+    fibexFilePath?: string;
+}
+
 const CLogLevel = {
     [EMTIN.DLT_LOG_FATAL]: 1,
     [EMTIN.DLT_LOG_ERROR]: 2,
@@ -104,7 +114,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     @Input() public fullFileName: string = '';
     @Input() public fileName: string = '';
     @Input() public size: number = -1;
-    @Input() public onDone: (options: any) => void;
+    @Input() public onDone: (options: IDLTOptions) => void;
     @Input() public onCancel: () => void;
 
     public _ng_size: string = '';
@@ -125,6 +135,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
         items: Array<{ name: string, state: boolean, stats: number[] }>
      } } | undefined = undefined;
     public _ng_headers: Array<{ short: string, full: string }> = [];
+    public _ng_fibexFile: IPCMessages.IFilePickerFileInfo | undefined;
     public _ng_error: string | undefined;
 
     private _logLevel: EMTIN = EMTIN.DLT_LOG_VERBOSE;
@@ -192,7 +203,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     }
 
     public _ng_onOpen() {
-        const filters: any = {};
+        const filters: IDLTFilters = {};
         if (this._ng_filters !== undefined) {
             Object.keys(this._ng_filters).forEach((key: string) => {
                 filters[key] = this._ng_filters[key].items.filter((item) => item.state).map((item) => {
@@ -202,7 +213,8 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
         }
         this.onDone({
             logLevel: CLogLevel[this._logLevel],
-            filters: filters
+            filters: filters,
+            fibexFilePath: this._ng_fibexFile === undefined ? undefined : this._ng_fibexFile.path,
         });
     }
 
@@ -253,6 +265,35 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
             this._ng_sortByLogLevel = index;
         }
         this._setFilters();
+    }
+
+    public _ng_onFibex() {
+        ElectronIpcService.request(new IPCMessages.FilePickerRequest({
+            filter: [{ name: 'XML files', extensions: ['xml'] }]
+        }), IPCMessages.FilePickerResponse).then((responce: IPCMessages.FilePickerResponse) => {
+            if (typeof responce.error === 'string') {
+                return this._notifications.add({
+                    caption: `Fail open`,
+                    message: `Fail to pickup file due error: ${responce.error}`,
+                    options: {
+                        type: ENotificationType.error,
+                    }
+                });
+            }
+            if (responce.files.length !== 1) {
+                return;
+            }
+            this._ng_fibexFile = responce.files[0];
+            this._forceUpdate();
+        }).catch((error: Error) => {
+            this._notifications.add({
+                caption: `Fail open`,
+                message: `Fail to pickup file due error: ${error.message}`,
+                options: {
+                    type: ENotificationType.error,
+                }
+            });
+        });
     }
 
     private _getEntityKeyByIndex(index: number): string | undefined {
