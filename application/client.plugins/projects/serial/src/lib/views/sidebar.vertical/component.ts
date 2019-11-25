@@ -475,10 +475,13 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     }
 
     private _createOptions() {
-        const connectedPorts: IPortInfo[] = [];
-        this._ng_connected.forEach(connected => connectedPorts.push(connected.port));
-        const unmatchedPorts = this._ng_ports.filter(port => !connectedPorts.includes(port));
-        unmatchedPorts.forEach(port => this._portOptions.push({path: port.comName, options: this._options.options, reader: this._options.reader}));
+        const connectedPorts: string[] = [];
+        this._ng_connected.forEach(connected => connectedPorts.push(connected.port.comName));
+        this._ng_ports.forEach(port => {
+            if(connectedPorts.indexOf(port.comName) === -1) {
+                this._portOptions.push({path: port.comName, options: this._options.options, reader: this._options.reader});
+            }
+        });
     }
     
     private _removeOptions() {
