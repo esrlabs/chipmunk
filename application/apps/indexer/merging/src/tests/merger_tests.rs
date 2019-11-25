@@ -6,9 +6,9 @@ mod tests {
     use std::fs;
     use std::path::PathBuf;
     use tempdir::TempDir;
-    use std::sync::mpsc::{Sender, Receiver};
     use indexer_base::chunks::ChunkResults;
     use indexer_base::progress::{IndexingProgress, Notification};
+    use crossbeam_channel as cc;
     extern crate log;
 
     use log::LevelFilter;
@@ -53,7 +53,7 @@ mod tests {
             trace!("copied content was: {:?}", content2);
         }
 
-        let (tx, rx): (Sender<ChunkResults>, Receiver<ChunkResults>) = std::sync::mpsc::channel();
+        let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
         merge_files_use_config_file(&option_path, &out_file_path, append_use_case, 5, tx, None)
             .expect("calling our merge function should succeed");
         let mut last_processed_line: usize = 0;

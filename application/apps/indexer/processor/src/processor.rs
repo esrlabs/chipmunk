@@ -20,15 +20,15 @@ use indexer_base::utils;
 use parse::detect_timestamp_in_string;
 use std::fs;
 use std::io::{BufRead, BufReader, BufWriter, Write};
-use std::sync::mpsc::{self, TryRecvError};
 use std::time::Instant;
+use crossbeam_channel as cc;
 
 pub fn create_index_and_mapping(
     config: IndexingConfig,
     parse_timestamps: bool,
     source_file_size: Option<usize>,
-    update_channel: mpsc::Sender<ChunkResults>,
-    shutdown_receiver: Option<mpsc::Receiver<()>>,
+    update_channel: cc::Sender<ChunkResults>,
+    shutdown_receiver: Option<cc::Receiver<()>>,
 ) -> Result<(), Error> {
     let initial_line_nr = match utils::next_line_nr(config.out_path) {
         Ok(nr) => nr,
@@ -61,8 +61,8 @@ pub fn index_file(
     initial_line_nr: usize,
     timestamps: bool,
     source_file_size: Option<usize>,
-    update_channel: mpsc::Sender<ChunkResults>,
-    shutdown_receiver: Option<mpsc::Receiver<()>>,
+    update_channel: cc::Sender<ChunkResults>,
+    shutdown_receiver: Option<cc::Receiver<()>>,
 ) -> Result<(), Error> {
     trace!("called index_file for file: {:?}", config.in_file);
     let start = Instant::now();
@@ -130,12 +130,12 @@ pub fn index_file(
                         match rx.try_recv() {
                             // Shutdown if we have received a command or if there is
                             // nothing to send it.
-                            Ok(_) | Err(TryRecvError::Disconnected) => {
+                            Ok(_) | Err(cc::TryRecvError::Disconnected) => {
                                 info!("shutdown received in indexer",);
                                 stopped = true // stop
                             }
                             // No shutdown command, continue
-                            Err(TryRecvError::Empty) => (),
+                            Err(cc::TryRecvError::Empty) => (),
                         }
                     };
                     chunk_count += 1;

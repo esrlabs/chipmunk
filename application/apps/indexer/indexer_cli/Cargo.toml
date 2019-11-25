@@ -16,3 +16,4 @@ dlt = { path = "../dlt" }
 processor = { path = "../processor" }
 indexer_base = { path = "../indexer_base" }
 merging = { path = "../merging" }
+crossbeam-channel = "0.4"

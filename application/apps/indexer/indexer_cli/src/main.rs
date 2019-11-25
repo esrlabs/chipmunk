@@ -21,6 +21,8 @@ use dlt::dlt_parse::StatisticsResults;
 use indexer_base::chunks::{serialize_chunks, Chunk, ChunkResults};
 use indexer_base::config::IndexingConfig;
 use indexer_base::error_reporter::*;
+use crossbeam_channel::unbounded;
+use crossbeam_channel as cc;
 
 #[macro_use]
 extern crate clap;
@@ -40,7 +42,6 @@ use processor::parse::{
     FormatTestOptions, DiscoverItem, TimestampFormatResult,
 };
 use indexer_base::progress::{IndexingProgress, Notification, Severity};
-use std::sync::mpsc::{Sender, Receiver};
 use log::LevelFilter;
 use log4rs::append::file::FileAppender;
 use log4rs::config::{Appender, Config, Root};
@@ -391,8 +392,10 @@ fn main() {
             };
             let append: bool = matches.is_present("append");
             let timestamps: bool = matches.is_present("timestamp");
-            let (tx, rx): (Sender<IndexingResults<Chunk>>, Receiver<ChunkResults>) =
-                std::sync::mpsc::channel();
+            let (tx, rx): (
+                cc::Sender<IndexingResults<Chunk>>,
+                cc::Receiver<ChunkResults>,
+            ) = unbounded();
 
             let _h = thread::spawn(move || {
                 match processor::processor::create_index_and_mapping(
@@ -599,8 +602,7 @@ fn main() {
                 }
             };
 
-            let (tx, rx): (Sender<ChunkResults>, Receiver<ChunkResults>) =
-                std::sync::mpsc::channel();
+            let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
             let tag_string = tag.to_string();
             thread::spawn(move || {
@@ -701,9 +703,9 @@ fn main() {
             let file_name_string = file_name.to_string();
 
             let (tx, rx): (
-                Sender<IndexingResults<TimestampFormatResult>>,
-                Receiver<IndexingResults<TimestampFormatResult>>,
-            ) = std::sync::mpsc::channel();
+                cc::Sender<IndexingResults<TimestampFormatResult>>,
+                cc::Receiver<IndexingResults<TimestampFormatResult>>,
+            ) = unbounded();
             let items: Vec<DiscoverItem> = vec![DiscoverItem {
                 path: file_name_string,
             }];
@@ -778,9 +780,9 @@ fn main() {
             };
             let mut results: Vec<TimestampFormatResult> = Vec::new();
             let (tx, rx): (
-                Sender<IndexingResults<TimestampFormatResult>>,
-                Receiver<IndexingResults<TimestampFormatResult>>,
-            ) = std::sync::mpsc::channel();
+                cc::Sender<IndexingResults<TimestampFormatResult>>,
+                cc::Receiver<IndexingResults<TimestampFormatResult>>,
+            ) = unbounded();
 
             thread::spawn(move || {
                 match timespan_in_files(items, &tx) {
@@ -852,8 +854,10 @@ fn main() {
                 std::process::exit(2);
             }
         };
-        let (tx, rx): (Sender<StatisticsResults>, Receiver<StatisticsResults>) =
-            std::sync::mpsc::channel();
+        let (tx, rx): (
+            cc::Sender<StatisticsResults>,
+            cc::Receiver<StatisticsResults>,
+        ) = unbounded();
 
         thread::spawn(move || {
             if let Err(why) = dlt::dlt_parse::get_dlt_file_info(&f, source_file_size, tx, None) {

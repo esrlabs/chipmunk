@@ -1,4 +1,5 @@
 use channels::{EventEmitterTask, IndexingThreadConfig};
+use crossbeam_channel as cc;
 use dlt::fibex::FibexMetadata;
 use dlt::filtering;
 use indexer_base::chunks::ChunkResults;
@@ -7,20 +8,19 @@ use neon::prelude::*;
 use std::fs;
 use std::path;
 use std::rc::Rc;
-use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
 pub struct IndexingDltEventEmitter {
-    pub event_receiver: Arc<Mutex<mpsc::Receiver<ChunkResults>>>,
-    pub shutdown_sender: mpsc::Sender<()>,
+    pub event_receiver: Arc<Mutex<cc::Receiver<ChunkResults>>>,
+    pub shutdown_sender: cc::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
 impl IndexingDltEventEmitter {
     pub fn start_indexing_dlt_in_thread(
         self: &mut IndexingDltEventEmitter,
-        shutdown_rx: mpsc::Receiver<()>,
-        chunk_result_sender: mpsc::Sender<ChunkResults>,
+        shutdown_rx: cc::Receiver<()>,
+        chunk_result_sender: cc::Sender<ChunkResults>,
         chunk_size: usize,
         thread_conf: IndexingThreadConfig,
         filter_conf: Option<filtering::DltFilterConfig>,
@@ -64,8 +64,8 @@ impl IndexingDltEventEmitter {
 fn index_dlt_file_with_progress(
     config: IndexingConfig,
     filter_conf: Option<filtering::DltFilterConfig>,
-    tx: mpsc::Sender<ChunkResults>,
-    shutdown_receiver: Option<mpsc::Receiver<()>>,
+    tx: cc::Sender<ChunkResults>,
+    shutdown_receiver: Option<cc::Receiver<()>>,
     fibex_metadata: Option<Rc<FibexMetadata>>,
 ) {
     trace!("index_dlt_file_with_progress");
@@ -113,7 +113,7 @@ declare_types! {
                 }
             }
 
-            let shutdown_channel = mpsc::channel();
+            let shutdown_channel = cc::unbounded();
 
             let f = match fs::File::open(&file) {
                 Ok(file) => file,
@@ -122,7 +122,7 @@ declare_types! {
                     std::process::exit(2)
                 }
             };
-            let chunk_result_channel: (Sender<ChunkResults>, Receiver<ChunkResults>) = mpsc::channel();
+            let chunk_result_channel: (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
             let mut emitter = IndexingDltEventEmitter {
                 event_receiver: Arc::new(Mutex::new(chunk_result_channel.1)),
                 shutdown_sender: shutdown_channel.0,

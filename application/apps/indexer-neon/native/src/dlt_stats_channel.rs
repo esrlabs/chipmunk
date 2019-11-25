@@ -1,16 +1,16 @@
 use channels::EventEmitterTask;
+use crossbeam_channel as cc;
 use dlt::dlt_parse::StatisticsResults;
 use indexer_base::progress::{Notification, Severity};
 use neon::prelude::*;
 use std::fs;
 use std::path;
-use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
 pub struct DltStatsEventEmitter {
-    pub event_receiver: Arc<Mutex<mpsc::Receiver<StatisticsResults>>>,
-    pub shutdown_sender: mpsc::Sender<()>,
+    pub event_receiver: Arc<Mutex<cc::Receiver<StatisticsResults>>>,
+    pub shutdown_sender: cc::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
 impl DltStatsEventEmitter {
@@ -18,8 +18,8 @@ impl DltStatsEventEmitter {
         self: &mut DltStatsEventEmitter,
         source_file: fs::File,
         source_file_size: usize,
-        shutdown_rx: mpsc::Receiver<()>,
-        chunk_result_sender: mpsc::Sender<StatisticsResults>,
+        shutdown_rx: cc::Receiver<()>,
+        chunk_result_sender: cc::Sender<StatisticsResults>,
     ) {
         // Spawn a thead to continue running after this method has returned.
         self.task_thread = Some(thread::spawn(move || {
@@ -37,8 +37,8 @@ impl DltStatsEventEmitter {
 fn dlt_stats_with_progress(
     source_file: fs::File,
     source_file_size: usize,
-    tx: mpsc::Sender<StatisticsResults>,
-    shutdown_receiver: Option<mpsc::Receiver<()>>,
+    tx: cc::Sender<StatisticsResults>,
+    shutdown_receiver: Option<cc::Receiver<()>>,
 ) {
     trace!("calling dlt stats with progress");
     match dlt::dlt_parse::get_dlt_file_info(
@@ -76,8 +76,8 @@ declare_types! {
                     std::process::exit(2)
                 }
             };
-            let chunk_result_channel: (Sender<StatisticsResults>, Receiver<StatisticsResults>) = mpsc::channel();
-            let shutdown_channel = mpsc::channel();
+            let chunk_result_channel: (cc::Sender<StatisticsResults>, cc::Receiver<StatisticsResults>) = cc::unbounded();
+            let shutdown_channel = cc::unbounded();
             let mut emitter = DltStatsEventEmitter {
                 event_receiver: Arc::new(Mutex::new(chunk_result_channel.1)),
                 shutdown_sender: shutdown_channel.0,

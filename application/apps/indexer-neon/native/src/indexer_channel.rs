@@ -1,23 +1,23 @@
 use channels::{EventEmitterTask, IndexingThreadConfig};
+use crossbeam_channel as cc;
 use indexer_base::chunks::ChunkResults;
 use indexer_base::config::IndexingConfig;
 use neon::prelude::*;
 use std::fs;
 use std::path;
-use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
 pub struct IndexingEventEmitter {
-    pub event_receiver: Arc<Mutex<mpsc::Receiver<ChunkResults>>>,
-    pub shutdown_sender: mpsc::Sender<()>,
+    pub event_receiver: Arc<Mutex<cc::Receiver<ChunkResults>>>,
+    pub shutdown_sender: cc::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
 impl IndexingEventEmitter {
     pub fn start_indexing_in_thread(
         self: &mut IndexingEventEmitter,
-        shutdown_rx: mpsc::Receiver<()>,
-        chunk_result_sender: mpsc::Sender<ChunkResults>,
+        shutdown_rx: cc::Receiver<()>,
+        chunk_result_sender: cc::Sender<ChunkResults>,
         append: bool,
         chunk_size: usize,
         thread_conf: IndexingThreadConfig,
@@ -46,8 +46,8 @@ impl IndexingEventEmitter {
 fn index_file_with_progress(
     config: IndexingConfig,
     timestamps: bool,
-    tx: mpsc::Sender<ChunkResults>,
-    shutdown_receiver: Option<mpsc::Receiver<()>>,
+    tx: cc::Sender<ChunkResults>,
+    shutdown_receiver: Option<cc::Receiver<()>>,
 ) {
     trace!("index_file_with_progress");
     let source_file_size = Some(match config.in_file.metadata() {
@@ -82,7 +82,7 @@ declare_types! {
             let append: bool = cx.argument::<JsBoolean>(3)?.value();
             let timestamps: bool = cx.argument::<JsBoolean>(4)?.value();
             let chunk_size: usize = cx.argument::<JsNumber>(5)?.value() as usize;
-            let (shutdown_sender, shutdown_receiver) = mpsc::channel();
+            let (shutdown_sender, shutdown_receiver) = cc::unbounded();
 
             let f = match fs::File::open(&file) {
                 Ok(file) => file,
@@ -91,7 +91,7 @@ declare_types! {
                     std::process::exit(2)
                 }
             };
-            let (chunk_result_sender, chunk_result_receiver): (Sender<ChunkResults>, Receiver<ChunkResults>) = mpsc::channel();
+            let (chunk_result_sender, chunk_result_receiver): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
             let mut emitter = IndexingEventEmitter {
                 event_receiver: Arc::new(Mutex::new(chunk_result_receiver)),
                 shutdown_sender,

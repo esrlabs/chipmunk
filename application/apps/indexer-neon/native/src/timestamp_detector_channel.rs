@@ -1,24 +1,24 @@
 use channels::EventEmitterTask;
+use crossbeam_channel as cc;
 use indexer_base::progress::Notification;
 use indexer_base::progress::{IndexingResults, Severity};
 use neon::prelude::*;
 use processor::parse::DiscoverItem;
 use processor::parse::{timespan_in_files, TimestampFormatResult};
-use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
 pub struct TimestampDetectorEmitter {
-    pub event_receiver: Arc<Mutex<mpsc::Receiver<IndexingResults<TimestampFormatResult>>>>,
-    pub shutdown_sender: mpsc::Sender<()>,
+    pub event_receiver: Arc<Mutex<cc::Receiver<IndexingResults<TimestampFormatResult>>>>,
+    pub shutdown_sender: cc::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
 impl TimestampDetectorEmitter {
     pub fn start_timestamp_detection_in_thread(
         self: &mut TimestampDetectorEmitter,
         items: Vec<DiscoverItem>,
-        result_sender: mpsc::Sender<IndexingResults<TimestampFormatResult>>,
-        shutdown_rx: mpsc::Receiver<()>,
+        result_sender: cc::Sender<IndexingResults<TimestampFormatResult>>,
+        shutdown_rx: cc::Receiver<()>,
     ) {
         self.task_thread = Some(thread::spawn(move || {
             detect_timestamps_with_progress(items, result_sender, Some(shutdown_rx));
@@ -29,8 +29,8 @@ impl TimestampDetectorEmitter {
 
 fn detect_timestamps_with_progress(
     items: Vec<DiscoverItem>,
-    tx: mpsc::Sender<IndexingResults<TimestampFormatResult>>,
-    _shutdown_receiver: Option<mpsc::Receiver<()>>,
+    tx: cc::Sender<IndexingResults<TimestampFormatResult>>,
+    _shutdown_receiver: Option<cc::Receiver<()>>,
 ) {
     trace!("detecting timestamps");
     match timespan_in_files(
@@ -59,8 +59,8 @@ pub class JsTimestampFormatDetectionEmitter for TimestampDetectorEmitter {
         let file_names = cx.argument::<JsValue>(0)?;
         let items: Vec<DiscoverItem> = neon_serde::from_value(&mut cx, file_names)?;
         trace!("{:?}", items);
-        let chunk_result_channel: (Sender<IndexingResults<TimestampFormatResult>>, Receiver<IndexingResults<TimestampFormatResult>>) = mpsc::channel();
-        let shutdown_channel = mpsc::channel();
+        let chunk_result_channel: (cc::Sender<IndexingResults<TimestampFormatResult>>, cc::Receiver<IndexingResults<TimestampFormatResult>>) = cc::unbounded();
+        let shutdown_channel = cc::unbounded();
         let mut emitter = TimestampDetectorEmitter {
             event_receiver: Arc::new(Mutex::new(chunk_result_channel.1)),
             shutdown_sender: shutdown_channel.0,

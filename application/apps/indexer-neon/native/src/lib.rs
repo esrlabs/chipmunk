@@ -3,6 +3,7 @@ extern crate indexer_base;
 extern crate neon;
 #[macro_use]
 extern crate log;
+extern crate crossbeam_channel;
 extern crate dirs;
 extern crate log4rs;
 extern crate merging;
@@ -18,6 +19,7 @@ mod logging;
 mod merger_channel;
 mod timestamp_detector_channel;
 use concatenator_channel::JsConcatenatorEmitter;
+use crossbeam_channel as cc;
 use dlt_indexer_channel::*;
 use dlt_stats_channel::JsDltStatsEventEmitter;
 use indexer_base::progress::{IndexingProgress, IndexingResults};
@@ -29,7 +31,6 @@ use processor::parse;
 use processor::parse::timespan_in_files;
 use processor::parse::DiscoverItem;
 use processor::parse::TimestampFormatResult;
-use std::sync::mpsc::{Receiver, Sender};
 use timestamp_detector_channel::JsTimestampFormatDetectionEmitter;
 
 use log::LevelFilter;
@@ -86,9 +87,9 @@ fn detect_timestamp_in_string(mut cx: FunctionContext) -> JsResult<JsNumber> {
 fn detect_timestamp_format_in_file(mut cx: FunctionContext) -> JsResult<JsValue> {
     let file_name: String = cx.argument::<JsString>(0)?.value();
     let (tx, rx): (
-        Sender<IndexingResults<TimestampFormatResult>>,
-        Receiver<IndexingResults<TimestampFormatResult>>,
-    ) = std::sync::mpsc::channel();
+        cc::Sender<IndexingResults<TimestampFormatResult>>,
+        cc::Receiver<IndexingResults<TimestampFormatResult>>,
+    ) = cc::unbounded();
     let items: Vec<DiscoverItem> = vec![DiscoverItem {
         path: file_name.clone(),
     }];

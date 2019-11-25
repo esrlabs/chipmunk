@@ -1,4 +1,5 @@
 use channels::EventEmitterTask;
+use crossbeam_channel as cc;
 use indexer_base::chunks::ChunkResults;
 use indexer_base::progress::Notification;
 use indexer_base::progress::{IndexingProgress, Severity};
@@ -7,13 +8,12 @@ use merging::merger::MergeItemOptions;
 use merging::merger::MergerInput;
 use neon::prelude::*;
 use std::path;
-use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
 pub struct MergerEmitter {
-    pub event_receiver: Arc<Mutex<mpsc::Receiver<ChunkResults>>>,
-    pub shutdown_sender: mpsc::Sender<()>,
+    pub event_receiver: Arc<Mutex<cc::Receiver<ChunkResults>>>,
+    pub shutdown_sender: cc::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
 
@@ -24,8 +24,8 @@ impl MergerEmitter {
         out_path: path::PathBuf,
         append: bool,
         chunk_size: usize,
-        update_channel: mpsc::Sender<ChunkResults>,
-        shutdown_rx: mpsc::Receiver<()>,
+        update_channel: cc::Sender<ChunkResults>,
+        shutdown_rx: cc::Receiver<()>,
     ) {
         self.task_thread = Some(thread::spawn(move || {
             merge_with_progress(
@@ -46,8 +46,8 @@ fn merge_with_progress(
     out_path: path::PathBuf,
     append: bool,
     chunk_size: usize, // used for mapping line numbers to byte positions
-    update_channel: mpsc::Sender<ChunkResults>,
-    shutdown_receiver: Option<mpsc::Receiver<()>>,
+    update_channel: cc::Sender<ChunkResults>,
+    shutdown_receiver: Option<cc::Receiver<()>>,
 ) {
     trace!(
         "merge_with_progress with {} files <------------",
@@ -93,8 +93,8 @@ pub class JsMergerEmitter for MergerEmitter {
         trace!("out_path: {:?}", out_path);
         trace!("append: {:?}", append);
 
-        let (result_tx, result_rx): (Sender<ChunkResults>, Receiver<ChunkResults>) = mpsc::channel();
-        let shutdown_channel = mpsc::channel();
+        let (result_tx, result_rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
+        let shutdown_channel = cc::unbounded();
         let mut emitter = MergerEmitter{
             event_receiver: Arc::new(Mutex::new(result_rx)),
             shutdown_sender: shutdown_channel.0,

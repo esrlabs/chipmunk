@@ -18,7 +18,7 @@ use indexer_base::error_reporter::*;
 use indexer_base::progress::*;
 use indexer_base::utils;
 use serde::Serialize;
-use std::sync::mpsc::{self, TryRecvError};
+use crossbeam_channel as cc;
 
 use buf_redux::policy::MinBuffered;
 use buf_redux::BufReader as ReduxReader;
@@ -43,7 +43,7 @@ fn parse_ecu_id(input: &[u8]) -> IResult<&[u8], &str> {
 fn skip_to_next_storage_header<'a, T>(
     input: &'a [u8],
     index: Option<usize>,
-    update_channel: Option<&mpsc::Sender<IndexingResults<T>>>,
+    update_channel: Option<&cc::Sender<IndexingResults<T>>>,
 ) -> Option<&'a [u8]> {
     let mut found = false;
     let mut to_drop = 0usize;
@@ -78,7 +78,7 @@ fn skip_to_next_storage_header<'a, T>(
 fn dlt_skip_storage_header<'a, T>(
     input: &'a [u8],
     index: Option<usize>,
-    update_channel: Option<&mpsc::Sender<IndexingResults<T>>>,
+    update_channel: Option<&cc::Sender<IndexingResults<T>>>,
 ) -> IResult<&'a [u8], ()> {
     match skip_to_next_storage_header(input, index, update_channel) {
         Some(rest) => {
@@ -92,7 +92,7 @@ fn dlt_skip_storage_header<'a, T>(
 fn dlt_storage_header<'a, T>(
     input: &'a [u8],
     index: Option<usize>,
-    update_channel: Option<&mpsc::Sender<IndexingResults<T>>>,
+    update_channel: Option<&cc::Sender<IndexingResults<T>>>,
 ) -> IResult<&'a [u8], Option<dlt::StorageHeader>> {
     match skip_to_next_storage_header(input, index, update_channel) {
         Some(rest) => {
@@ -178,7 +178,7 @@ fn dlt_standard_header(input: &[u8]) -> IResult<&[u8], dlt::StandardHeader> {
 fn dlt_extended_header<T>(
     input: &[u8],
     index: Option<usize>,
-    update_channel: Option<mpsc::Sender<IndexingResults<T>>>,
+    update_channel: Option<cc::Sender<IndexingResults<T>>>,
 ) -> IResult<&[u8], dlt::ExtendedHeader> {
     let (i, (message_info, argument_count, app_id, context_id)) = tuple((
         streaming::be_u8,
@@ -642,7 +642,7 @@ pub fn dlt_message<'a>(
     filter_config_opt: Option<&filtering::ProcessedDltFilterConfig>,
     index: usize,
     _processed_bytes: usize,
-    update_channel: Option<mpsc::Sender<ChunkResults>>,
+    update_channel: Option<cc::Sender<ChunkResults>>,
     fibex_metadata: Option<Rc<FibexMetadata>>,
 ) -> IResult<&'a [u8], Option<dlt::Message>> {
     // println!("parsing dlt_message {:?}[{}]", index, processed_bytes);
@@ -725,7 +725,7 @@ pub fn dlt_message<'a>(
 fn validated_payload_length<T>(
     header: &dlt::StandardHeader,
     index: Option<usize>,
-    update_channel: Option<&mpsc::Sender<IndexingResults<T>>>,
+    update_channel: Option<&cc::Sender<IndexingResults<T>>>,
 ) -> Option<usize> {
     let message_length = header.overall_length as usize;
     let headers_length = dlt::calculate_all_headers_length(header.header_type());
@@ -747,7 +747,7 @@ fn validated_payload_length<T>(
 pub fn dlt_app_id_context_id<T>(
     input: &[u8],
     index: Option<usize>,
-    update_channel: Option<mpsc::Sender<IndexingResults<T>>>,
+    update_channel: Option<cc::Sender<IndexingResults<T>>>,
 ) -> IResult<&[u8], StatisticRowInfo> {
     let update_channel_ref = update_channel.as_ref();
     let (after_storage_header, _) = dlt_skip_storage_header(input, index, update_channel_ref)?;
@@ -802,7 +802,7 @@ fn read_one_dlt_message<T: Read>(
     filter_config: Option<&filtering::ProcessedDltFilterConfig>,
     index: usize,
     processed_bytes: usize,
-    update_channel: mpsc::Sender<ChunkResults>,
+    update_channel: cc::Sender<ChunkResults>,
     fibex_metadata: Option<Rc<FibexMetadata>>,
 ) -> Result<Option<(usize, Option<dlt::Message>)>, Error> {
     loop {
@@ -859,8 +859,8 @@ pub fn create_index_and_mapping_dlt(
     config: IndexingConfig,
     source_file_size: Option<usize>,
     filter_conf: Option<filtering::DltFilterConfig>,
-    update_channel: mpsc::Sender<ChunkResults>,
-    shutdown_receiver: Option<mpsc::Receiver<()>>,
+    update_channel: cc::Sender<ChunkResults>,
+    shutdown_receiver: Option<cc::Receiver<()>>,
     fibex_metadata: Option<Rc<FibexMetadata>>,
 ) -> Result<(), Error> {
     trace!("create_index_and_mapping_dlt");
@@ -895,8 +895,8 @@ pub fn index_dlt_file(
     dlt_filter: Option<filtering::DltFilterConfig>,
     initial_line_nr: usize,
     source_file_size: Option<usize>,
-    update_channel: mpsc::Sender<ChunkResults>,
-    shutdown_receiver: Option<mpsc::Receiver<()>>,
+    update_channel: cc::Sender<ChunkResults>,
+    shutdown_receiver: Option<cc::Receiver<()>>,
     fibex_metadata: Option<Rc<FibexMetadata>>,
 ) -> Result<(), Error> {
     trace!("index_dlt_file");
@@ -947,12 +947,12 @@ pub fn index_dlt_file(
                         match rx.try_recv() {
                             // Shutdown if we have received a command or if there is
                             // nothing to send it.
-                            Ok(_) | Err(TryRecvError::Disconnected) => {
+                            Ok(_) | Err(cc::TryRecvError::Disconnected) => {
                                 info!("shutdown received in indexer",);
                                 stopped = true // stop
                             }
                             // No shutdown command, continue
-                            Err(TryRecvError::Empty) => (),
+                            Err(cc::TryRecvError::Empty) => (),
                         }
                     };
                     chunk_count += 1;
@@ -1144,8 +1144,8 @@ pub type StatisticsResults = std::result::Result<IndexingProgress<StatisticInfo>
 pub fn get_dlt_file_info(
     in_file: &fs::File,
     source_file_size: usize,
-    update_channel: mpsc::Sender<StatisticsResults>,
-    shutdown_receiver: Option<mpsc::Receiver<()>>,
+    update_channel: cc::Sender<StatisticsResults>,
+    shutdown_receiver: Option<cc::Receiver<()>>,
 ) -> Result<(), Error> {
     let mut reader =
         ReduxReader::with_capacity(10 * 1024 * 1024, in_file).set_policy(MinBuffered(10 * 1024));
@@ -1211,13 +1211,13 @@ pub fn get_dlt_file_info(
                 match rx.try_recv() {
                     // Shutdown if we have received a command or if there is
                     // nothing to send it.
-                    Ok(_) | Err(TryRecvError::Disconnected) => {
+                    Ok(_) | Err(cc::TryRecvError::Disconnected) => {
                         info!("shutdown received in dlt stats producer, sending stopped");
                         update_channel.send(Ok(IndexingProgress::Stopped))?;
                         break;
                     }
                     // No shutdown command, continue
-                    Err(TryRecvError::Empty) => (),
+                    Err(cc::TryRecvError::Empty) => (),
                 }
             };
             update_channel.send(Ok(IndexingProgress::Progress {
@@ -1251,7 +1251,7 @@ pub struct StatisticRowInfo {
 fn read_one_dlt_message_info<T: Read>(
     reader: &mut ReduxReader<T, MinBuffered>,
     index: Option<usize>,
-    update_channel: Option<mpsc::Sender<StatisticsResults>>,
+    update_channel: Option<cc::Sender<StatisticsResults>>,
 ) -> Result<Option<(usize, StatisticRowInfo)>, Error> {
     loop {
         match reader.fill_buf() {

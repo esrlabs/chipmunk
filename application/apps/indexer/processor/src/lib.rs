@@ -16,6 +16,8 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
+extern crate crossbeam_channel as cc;
+
 pub mod parse;
 pub mod processor;
 

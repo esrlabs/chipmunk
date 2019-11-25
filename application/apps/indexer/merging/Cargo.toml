@@ -13,6 +13,7 @@ log = "0.4"
 indexer_base = { path = "../indexer_base" }
 processor = { path = "../processor" }
 dlt = { path = "../dlt" }
+crossbeam-channel = "0.4"
 
 [dev-dependencies]
 tempdir = "0.3"

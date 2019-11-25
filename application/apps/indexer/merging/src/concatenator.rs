@@ -19,7 +19,7 @@ use std::fs;
 use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::iter::Iterator;
 use std::path::PathBuf;
-use std::sync::mpsc::{self, TryRecvError};
+use crossbeam_channel as cc;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConcatItemOptions {
@@ -52,8 +52,8 @@ pub fn concat_files_use_config_file(
     out_path: &PathBuf,
     append: bool,
     chunk_size: usize, // used for mapping line numbers to byte positions
-    update_channel: mpsc::Sender<ChunkResults>,
-    shutdown_rx: Option<mpsc::Receiver<()>>,
+    update_channel: cc::Sender<ChunkResults>,
+    shutdown_rx: Option<cc::Receiver<()>>,
 ) -> Result<(), failure::Error> {
     let mut concat_option_file = fs::File::open(config_path)?;
     let dir_name = config_path
@@ -85,8 +85,8 @@ pub fn concat_files(
     out_path: &PathBuf,
     append: bool,
     chunk_size: usize, // used for mapping line numbers to byte positions
-    update_channel: mpsc::Sender<ChunkResults>,
-    shutdown_rx: Option<mpsc::Receiver<()>>,
+    update_channel: cc::Sender<ChunkResults>,
+    shutdown_rx: Option<cc::Receiver<()>>,
 ) -> Result<(), failure::Error> {
     let file_cnt = concat_inputs.len();
     trace!("concat_files called with {} files", file_cnt);
@@ -118,7 +118,7 @@ pub fn concat_files(
     for input in concat_inputs {
         if let Some(rx) = shutdown_rx.as_ref() {
             match rx.try_recv() {
-                Ok(_) | Err(TryRecvError::Disconnected) => {
+                Ok(_) | Err(cc::TryRecvError::Disconnected) => {
                     info!("shutdown received in concatenator",);
                     update_channel.send(Ok(IndexingProgress::Stopped))?;
                     return Ok(());

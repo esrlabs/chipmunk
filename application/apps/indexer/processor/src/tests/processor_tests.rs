@@ -13,7 +13,8 @@ mod tests {
     use std::fs::File;
     use std::path::PathBuf;
     use tempdir::TempDir;
-    use std::sync::mpsc::{Sender, Receiver};
+    use crossbeam_channel::unbounded;
+    use crossbeam_channel as cc;
 
     fn get_chunks(
         test_content: &str,
@@ -30,7 +31,7 @@ mod tests {
         let f = File::open(&test_file_path).unwrap();
         let source_file_size = f.metadata().unwrap().len() as usize;
 
-        let (tx, rx): (Sender<ChunkResults>, Receiver<ChunkResults>) = std::sync::mpsc::channel();
+        let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
         create_index_and_mapping(
             IndexingConfig {
                 tag: tag_name,
@@ -114,7 +115,7 @@ mod tests {
         let out_path = tmp_dir.path().join("test_append_to_empty_output.log.out");
         let source_file_size = empty_file.metadata().unwrap().len() as usize;
 
-        let (tx, rx): (Sender<ChunkResults>, Receiver<ChunkResults>) = std::sync::mpsc::channel();
+        let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
         create_index_and_mapping(
             IndexingConfig {
                 tag: "tag",
@@ -175,7 +176,7 @@ mod tests {
         fs::write(&nonempty_file_path, "A").unwrap();
         let nonempty_file = File::open(nonempty_file_path).unwrap();
         let source_file_size = nonempty_file.metadata().unwrap().len() as usize;
-        let (tx, rx): (Sender<ChunkResults>, Receiver<ChunkResults>) = std::sync::mpsc::channel();
+        let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
         create_index_and_mapping(
             IndexingConfig {
                 tag: "tag",
@@ -312,7 +313,7 @@ mod tests {
             let content2 = fs::read_to_string(&out_file_path).expect("could not read file");
             println!("copied content was: {:?}", content2);
         }
-        let (tx, rx): (Sender<ChunkResults>, Receiver<ChunkResults>) = std::sync::mpsc::channel();
+        let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
         create_index_and_mapping(
             IndexingConfig {
                 tag: "TAG",

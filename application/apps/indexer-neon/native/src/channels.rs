@@ -1,3 +1,4 @@
+use crossbeam_channel as cc;
 use indexer_base::progress::Notification;
 use indexer_base::progress::{IndexingProgress, IndexingResults};
 use neon::prelude::*;
@@ -5,7 +6,6 @@ use serde::Serialize;
 use std::fmt::Debug;
 use std::fs;
 use std::path;
-use std::sync::mpsc::{self, RecvTimeoutError};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -13,13 +13,11 @@ use std::time::Duration;
 // wraps the data required to perform a read asynchronously from a libuv
 // thread.
 pub struct EventEmitterTask<T: Send + Debug + Serialize> {
-    events_rx: Arc<Mutex<mpsc::Receiver<IndexingResults<T>>>>,
+    events_rx: Arc<Mutex<cc::Receiver<IndexingResults<T>>>>,
 }
 
 impl<T: Send + Debug + Serialize> EventEmitterTask<T> {
-    pub fn new(
-        event_stream: Arc<Mutex<mpsc::Receiver<IndexingResults<T>>>>,
-    ) -> EventEmitterTask<T> {
+    pub fn new(event_stream: Arc<Mutex<cc::Receiver<IndexingResults<T>>>>) -> EventEmitterTask<T> {
         EventEmitterTask::<T> {
             events_rx: event_stream,
         }
@@ -55,8 +53,8 @@ impl<T: 'static + Send + Debug + Serialize> Task for EventEmitterTask<T> {
                 // };
                 Ok(Some(event))
             }
-            Err(RecvTimeoutError::Timeout) => Ok(None),
-            Err(RecvTimeoutError::Disconnected) => {
+            Err(cc::RecvTimeoutError::Timeout) => Ok(None),
+            Err(cc::RecvTimeoutError::Disconnected) => {
                 debug!("(libuv): Disconnected");
                 Err("Failed to receive rust event".to_string())
             }

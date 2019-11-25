@@ -13,8 +13,8 @@ use indexer_base::timedline::TimedLine;
 use indexer_base::error_reporter::*;
 use indexer_base::progress::Severity;
 use chrono::{NaiveDate, NaiveDateTime, Utc, Datelike, DateTime};
-use std::sync::mpsc;
 use indexer_base::progress::*;
+use crossbeam_channel as cc;
 
 use nom::bytes::complete::tag;
 use nom::character::complete::{char, digit1};
@@ -422,7 +422,7 @@ fn scan_lines(
 /// find out the lower and upper timestamp of a file
 pub fn timespan_in_files(
     items: Vec<DiscoverItem>,
-    update_channel: &mpsc::Sender<IndexingResults<TimestampFormatResult>>,
+    update_channel: &cc::Sender<IndexingResults<TimestampFormatResult>>,
 ) -> Result<(), failure::Error> {
     let item_count = items.len();
     let mut progress_percentage = 0usize;

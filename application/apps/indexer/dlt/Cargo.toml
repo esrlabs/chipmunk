@@ -22,6 +22,7 @@ rustc-hash = "1.0"
 humantime = "1.2"
 quick-xml = "0.17.0"
 derive_more = "0.15.0"
+crossbeam-channel = "0.4"
 
 [dev-dependencies]
 rand = "0.7"

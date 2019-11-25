@@ -1,17 +1,17 @@
 use channels::EventEmitterTask;
+use crossbeam_channel as cc;
 use indexer_base::chunks::ChunkResults;
 use indexer_base::progress::Notification;
 use indexer_base::progress::{IndexingProgress, Severity};
 use merging::concatenator::{concat_files, ConcatenatorInput};
 use neon::prelude::*;
 use std::path;
-use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
 pub struct ConcatenatorEmitter {
-    pub event_receiver: Arc<Mutex<mpsc::Receiver<ChunkResults>>>,
-    pub shutdown_sender: mpsc::Sender<()>,
+    pub event_receiver: Arc<Mutex<cc::Receiver<ChunkResults>>>,
+    pub shutdown_sender: cc::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
 
@@ -22,8 +22,8 @@ impl ConcatenatorEmitter {
         out_path: path::PathBuf,
         append: bool,
         chunk_size: usize, // used for mapping line numbers to byte positions
-        update_channel: mpsc::Sender<ChunkResults>,
-        shutdown_rx: mpsc::Receiver<()>,
+        update_channel: cc::Sender<ChunkResults>,
+        shutdown_rx: cc::Receiver<()>,
     ) {
         self.task_thread = Some(thread::spawn(move || {
             concatenate_with_progress(
@@ -44,8 +44,8 @@ fn concatenate_with_progress(
     out_path: path::PathBuf,
     append: bool,
     chunk_size: usize, // used for mapping line numbers to byte positions
-    update_channel: mpsc::Sender<ChunkResults>,
-    shutdown_receiver: Option<mpsc::Receiver<()>>,
+    update_channel: cc::Sender<ChunkResults>,
+    shutdown_receiver: Option<cc::Receiver<()>>,
 ) {
     trace!(
         "concatenate_with_progress with {} files <------------",
@@ -89,8 +89,8 @@ declare_types! {
             trace!("out_path: {:?}", out_path);
             trace!("append: {:?}", append);
 
-            let chunk_result_channel: (Sender<ChunkResults>, Receiver<ChunkResults>) = mpsc::channel();
-            let shutdown_channel = mpsc::channel();
+            let chunk_result_channel: (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
+            let shutdown_channel = cc::unbounded();
             let mut emitter = ConcatenatorEmitter{
                 event_receiver: Arc::new(Mutex::new(chunk_result_channel.1)),
                 shutdown_sender: shutdown_channel.0,

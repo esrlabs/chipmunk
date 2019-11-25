@@ -24,7 +24,7 @@ use std::fs;
 use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::iter::{Iterator, Peekable};
 use std::path::PathBuf;
-use std::sync::mpsc::{self, TryRecvError};
+use crossbeam_channel as cc;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct MergeItemOptions {
@@ -128,8 +128,8 @@ pub fn merge_files_use_config_file(
     out_path: &PathBuf,
     append: bool,
     chunk_size: usize, // used for mapping line numbers to byte positions
-    update_channel: mpsc::Sender<ChunkResults>,
-    shutdown_rx: Option<mpsc::Receiver<()>>,
+    update_channel: cc::Sender<ChunkResults>,
+    shutdown_rx: Option<cc::Receiver<()>>,
 ) -> Result<(), failure::Error> {
     let mut merge_option_file = fs::File::open(config_path)?;
     let dir_name = config_path
@@ -268,8 +268,8 @@ pub fn merge_files_iter(
     merger_inputs: Vec<MergerInput>,
     out_path: &PathBuf,
     chunk_size: usize, // used for mapping line numbers to byte positions
-    update_channel: mpsc::Sender<ChunkResults>,
-    shutdown_rx: Option<mpsc::Receiver<()>>,
+    update_channel: cc::Sender<ChunkResults>,
+    shutdown_rx: Option<cc::Receiver<()>>,
 ) -> Result<(), failure::Error> {
     let out_file: std::fs::File = if append {
         std::fs::OpenOptions::new()
@@ -375,12 +375,12 @@ pub fn merge_files_iter(
                             match rx.try_recv() {
                                 // Shutdown if we have received a command or if there is
                                 // nothing to send it.
-                                Ok(_) | Err(TryRecvError::Disconnected) => {
+                                Ok(_) | Err(cc::TryRecvError::Disconnected) => {
                                     info!("shutdown received in indexer",);
                                     stopped = true // stop
                                 }
                                 // No shutdown command, continue
-                                Err(TryRecvError::Empty) => (),
+                                Err(cc::TryRecvError::Empty) => (),
                             }
                         };
                         chunk_count += 1;
