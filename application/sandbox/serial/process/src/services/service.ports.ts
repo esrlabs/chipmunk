@@ -103,7 +103,6 @@ class ServicePorts {
             let splitString = chunk.split("");
             for(let i=0; i<splitString.length; i++) {
                 controller.write(splitString[i]).then(resolve).catch(reject);
-                setTimeout(() => {}, 50);
             }
         });
     }

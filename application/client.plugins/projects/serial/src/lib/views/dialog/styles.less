@@ -5,18 +5,6 @@
     display: block;
     width: 100%;
 
-    & span.dot {
-        height: 10px;
-        width: 10px;
-        border-radius: 50%;
-        float: right;
-        &.alive {
-            background-color: @scheme-color-active;
-        }
-        &.dead {
-            background-color: @scheme-color-error;
-        }
-    }
     & table.ports {
         position: relative;
         display: block;
@@ -97,16 +85,11 @@
             }
         }
     }
-    & div.info {
-        position: relative;
-        & span.size{
-            position: absolute;
-            display: block;
-            right: 0;
-            top: 0;
-        }
-        &.hasinfo{
-            padding: 0 0 0 1rem;
-        }
+    & span.size{
+        white-space: nowrap;
+        position: absolute;
+        display: block;
+        right: 0;
+        top: 0;
     }
 }
