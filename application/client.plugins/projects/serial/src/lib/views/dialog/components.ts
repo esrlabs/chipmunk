@@ -29,7 +29,7 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
     @Input() private _get_optionsCom: (SidebarVerticalPortOptionsWriteComponent) => void;
     @Input() private _stopSpy: () => void;
 
-    @Input() public _ng_getState: (IPortInfo) => IPortState
+    @Input() public _ng_getState: (IPortInfo) => IPortState;
     @Input() public _ng_canBeConnected: () => boolean;
     @Input() public _ng_connected: IConnected[];
     @Input() public _ng_isPortSelected: (port: IPortInfo) => boolean;
@@ -45,12 +45,18 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
     public _ng_error: string | undefined;
     public _ng_options: boolean = false;
     public _ng_spyState: {[key: string]:number};
+
     constructor(private _cdRef: ChangeDetectorRef) {
     }
     
     ngOnInit() {
         this._ng_spyState = this._getSpyState();
         this._ng_ports = this._requestPortList();
+        this._ng_ports.forEach(port => {
+            if(this._ng_spyState[port.comName] === undefined) {
+                this._ng_spyState[port.comName] = 0;
+            }
+        });
         this.interval = setInterval(() => {
             this._cdRef.detectChanges();
         }, 200);
@@ -69,9 +75,7 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
 
     public _ng_formatLoad(load: number): string {
         let read: string = '';
-        if (load === 0) {
-            read = '';
-        } else if (load > 1024 * 1024 * 1024) {
+        if (load > 1024 * 1024 * 1024) {
             read = (load / 1024 / 1024 / 1024).toFixed(2) + ' Gb';
         } else if (load > 1024 * 1024) {
             read = (load / 1024 / 1024).toFixed(2) + ' Mb';
