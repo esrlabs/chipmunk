@@ -43,7 +43,7 @@
     </div>
     <span class="spliter"></span>
 </div>
-<p class="t-small" *ngIf="_ng_fibexFile !== undefined">Refered fibex file: {{_ng_fibexFile.name}} ({{_ng_fibexFile.size / 1024}} kB)</p>
+<p class="t-small" *ngIf="_ng_fibexFile !== undefined">Refered fibex file: {{_ng_fibexFile.name}} ({{(_ng_fibexFile.size / 1024).toFixed(2)}} kB)</p>
 <div class="controlls">
     <span class="small-button" (click)="_ng_onOpen()">Open</span>
     <span class="small-button" (click)="_ng_onFibex()">Ref Fibex File</span>
