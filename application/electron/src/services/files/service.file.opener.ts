@@ -76,7 +76,7 @@ class ServiceFileOpener implements IService {
         return 'ServiceFileOpener';
     }
 
-    public open(file: string, sessionId: string, parser?: AFileParser): Promise<void> {
+    public open(file: string, sessionId: string, parser?: AFileParser): Promise<boolean> {
         return new Promise((resolve, reject) => {
             fs.stat(file, (error: NodeJS.ErrnoException | null, stats: fs.Stats) => {
                 if (error) {
@@ -91,6 +91,10 @@ class ServiceFileOpener implements IService {
                     }
                     // Request options to open file
                     this._getOptions(file, path.basename(file), detectedParser, stats.size).then((options: any) => {
+                        if (typeof options === 'boolean') {
+                            this._logger.env(`User canceled opening file.`);
+                            return resolve(false);
+                        }
                         detectedParser = detectedParser as AFileParser;
                         const trackingId: string = Tools.guid();
                         this._setProgress(detectedParser, trackingId, file);
@@ -99,7 +103,7 @@ class ServiceFileOpener implements IService {
                             this._pipeSource(file, trackingId, sessionId, detectedParser, options).then(() => {
                                 this._unsetProgress(detectedParser as AFileParser, trackingId, sessionId);
                                 this._saveAsRecentFile(file, stats.size);
-                                resolve();
+                                resolve(true);
                             }).catch((pipeError: Error) => {
                                 this._unsetProgress(detectedParser as AFileParser, trackingId, sessionId);
                                 reject(new Error(this._logger.error(`Fail to pipe file "${file}" due error: ${pipeError.message}`)));
@@ -113,7 +117,7 @@ class ServiceFileOpener implements IService {
                                 ServiceStreams.reattachSessionFileHandle(sessionId);
                                 (detectedParser as AFileParser).destroy();
                                 this._saveAsRecentFile(file, stats.size);
-                                resolve();
+                                resolve(true);
                             }).catch((pipeError: Error) => {
                                 this._unsetProgress(detectedParser as AFileParser, trackingId, sessionId);
                                 ServiceStreams.reattachSessionFileHandle(sessionId);
@@ -188,7 +192,7 @@ class ServiceFileOpener implements IService {
                 session: ServiceStreams.getActiveStreamId(),
             }), IPCMessages.FileGetOptionsResponse).then((response: IPCMessages.FileGetOptionsResponse) => {
                 if (!response.allowed) {
-                    return reject(new Error("user cancelled opening operation"));
+                    return resolve(false);
                 }
                 this._options = response.options;
                 resolve(response.options);
