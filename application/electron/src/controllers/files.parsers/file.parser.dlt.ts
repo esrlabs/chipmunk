@@ -135,6 +135,7 @@ export default class FileParser extends AFileParser {
             };
             const dltParams: IIndexDltParams = {
                 dltFile: srcFile,
+                fibex: options.fibexFilePath,
                 filterConfig,
                 tag: sourceId.toString(),
                 out: destFile,
