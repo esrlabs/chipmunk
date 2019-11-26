@@ -93,6 +93,7 @@ export class ControllerSession {
 
     public spyStart(options: IOptions[]): Promise<void> {
         return new Promise((resolve, reject) => {
+            this._readLoad = {};
             Promise.all(
                 options.map((option: IOptions) => {
                     this._ports.push(option.path);
