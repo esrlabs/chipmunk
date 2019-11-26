@@ -3,7 +3,7 @@
     <table class="ports">
         <tr [attr.class]="'port ' + (_ng_isPortSelected(port) ? 'selected' : '')" *ngFor="let port of _ng_ports" (click)="_ng_onPortSelect(port)">
             <td><lib-sb-portinfo-com [port]="port" [state]="(_ng_getState(port))"></lib-sb-portinfo-com></td>
-            <td *ngIf="_ng_getState(port).ioState.read === 0"><span class="size t-small color-scheme-2">{{_ng_formatLoad(_ng_spyState[port.comName])}}</span></td>
+            <td [attr.class]="_ng_getState(port).ioState.read === 0 ? '' : 'hide'"><span class="size t-small color-scheme-2">{{_ng_formatLoad(_ng_spyState[port.comName])}}</span></td>
         </tr>
     </table>
     <div *ngIf="_ng_options">
