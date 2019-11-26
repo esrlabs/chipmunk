@@ -92,18 +92,12 @@ class ServicePorts {
     }
 
     public write(port: string, chunk: Buffer | string): Promise<void> {
-        chunk += "\n";
         return new Promise((resolve, reject) => {
             let controller: ControllerSerialPort | undefined = this._controllers.get(port);
             if (controller === undefined) {
                 return reject(new Error(this._logger.error(`Fail to write into port, because controller of port "${port}" isn't created.`)));
             }
-            if(typeof chunk != 'string')
-                chunk = chunk.toString();
-            let splitString = chunk.split("");
-            for(let i=0; i<splitString.length; i++) {
-                controller.write(splitString[i]).then(resolve).catch(reject);
-            }
+            controller.write(chunk).then(resolve).catch(reject);
         });
     }
 
