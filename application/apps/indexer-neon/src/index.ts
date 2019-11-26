@@ -1,3 +1,5 @@
+import { CancelablePromise } from './promise';
+export { CancelablePromise };
 import {
     indexAsync,
     detectTimestampInString,
@@ -12,7 +14,7 @@ import {
     concatFilesAsync,
     ConcatenatorInput,
 } from "./merger";
-import { IIndexDltParams, dltStatsAsync, indexDltAsync, DltFilterConf } from "./dlt";
+import { IIndexDltParams, dltStatsAsync, indexDltAsync, DltFilterConf, IIndexDltProcessingOptions, IIndexDltProcessingCallbacks } from "./dlt";
 import {
     ITicks,
     AsyncResult,
@@ -37,6 +39,8 @@ export {
     ConcatenatorInput,
     IMergerItemOptions,
     ITimestampFormatResult,
+    IIndexDltProcessingCallbacks,
+    IIndexDltProcessingOptions,
 };
 
 export interface LevelDistribution {
@@ -50,9 +54,9 @@ export interface LevelDistribution {
     log_invalid: number;
 }
 export interface StatisticInfo {
-    app_ids: Array<[String, LevelDistribution]>;
-    context_ids: Array<[String, LevelDistribution]>;
-    ecu_ids: Array<[String, LevelDistribution]>;
+    app_ids: Array<[string, LevelDistribution]>;
+    context_ids: Array<[string, LevelDistribution]>;
+    ecu_ids: Array<[string, LevelDistribution]>;
 }
 
 export interface IChipmunkIndexer {
@@ -87,18 +91,16 @@ export interface IChipmunkIndexer {
         onNotification: (notification: INeonNotification) => void,
     ) => [Promise<AsyncResult>, () => void];
     dltStatsAsync: (
-        dltFile: String,
+        dltFile: string,
         maxTime: TimeUnit,
         onProgress: (ticks: ITicks) => any,
         onConfig: (chunk: StatisticInfo) => any,
     ) => [Promise<AsyncResult>, () => void];
     indexDltAsync: (
-        params: IIndexDltParams,
-        maxTime: TimeUnit,
-        onProgress: (ticks: ITicks) => any,
-        onChunk: (chunk: IChunk) => any,
-        onNotification: (notification: INeonNotification) => void,
-    ) => [Promise<AsyncResult>, () => void];
+        params      : IIndexDltParams,
+        callbacks   : IIndexDltProcessingCallbacks,
+        options?    : IIndexDltProcessingOptions,
+    ) => CancelablePromise<void, void>;
     detectTimestampInString: (input: string) => string;
     detectTimestampFormatInFile: (input: string) => string;
     discoverTimespanAsync: (

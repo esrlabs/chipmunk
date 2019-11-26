@@ -67,6 +67,7 @@ export class NativeEventEmitter extends EventEmitter {
                 log("shutdown was requested");
                 this.shutdownRequested = false;
                 channel.shutdown();
+                log("shutdown request is accepted");
             }
             if (this.isShutdown) {
                 log("shutting down loop");
@@ -103,6 +104,7 @@ export class NativeEventEmitter extends EventEmitter {
     shutdownAcknowledged(callback: () => void) {
         this.shutdownDoneCallback = callback;
         this.isShutdown = true;
+        log("shutdownAcknowledged");
         return this;
     }
 }
