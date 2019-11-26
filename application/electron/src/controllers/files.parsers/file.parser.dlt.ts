@@ -1,54 +1,26 @@
-import { AFileParser, IFileParserFunc, IMapItem } from "./interface";
-import { Transform } from "stream";
+import { AFileParser, IMapItem } from "./interface";
 import * as path from "path";
-import {
-    indexer,
-    ITicks,
-    DltFilterConf,
-    TimeUnit,
-    INeonTransferChunk,
-    INeonNotification,
-    AsyncResult,
-    IIndexDltParams,
-    IChunk,
-} from "indexer-neon";
+import indexer, { DLT, Progress, CancelablePromise } from "indexer-neon";
 import ServiceStreams from "../../services/service.streams";
-import { Subscription } from "../../tools/index";
 import Logger from "../../tools/env.logger";
+import * as Tools from "../../tools/index";
 import ServiceNotifications, { ENotificationType } from "../../services/service.notifications";
-
-interface IDLTFilters {
-    [key: string]: string[];
-}
-
-interface IDLTOptions {
-    logLevel: number;
-    filters: IDLTFilters;
-    fibexFilePath?: string;
-}
+import { CommonInterfaces } from '../../interfaces/interface.common';
 
 const ExtNames = ["dlt"];
-type TCancelCB = () => void;
 
 export default class FileParser extends AFileParser {
-    private _subscriptions: { [key: string]: Subscription } = {};
+
     private _guid: string | undefined;
-    private _closed: boolean = false;
     private _logger: Logger = new Logger("indexing");
-    private _cancel: TCancelCB;
+    private _task: CancelablePromise<void, void, DLT.TIndexDltAsyncEvents, DLT.TIndexDltAsyncEventObject> | undefined;
 
     constructor() {
         super();
-        this._subscriptions.onSessionClosed = ServiceStreams.getSubjects().onSessionClosed.subscribe(
-            this._onSessionClosed.bind(this),
-        );
-        this._cancel = this._defaultCancel;
     }
 
-    public destroy() {
-        Object.keys(this._subscriptions).forEach((key: string) => {
-            (this._subscriptions as any)[key].destroy();
-        });
+    public destroy(): Promise<void> {
+        return this.abort();
     }
 
     public getName(): string {
@@ -73,51 +45,24 @@ export default class FileParser extends AFileParser {
         });
     }
 
-    public getTransform(): Transform | undefined {
-        // Do not need any transform operations
-        return undefined;
-    }
-
-    public getParserFunc(): IFileParserFunc {
-        return {
-            parse: (chunk: Buffer) => {
-                return new Promise(resolve => {
-                    resolve(chunk);
-                });
-            },
-            close: () => {
-                // Do nothing
-            },
-            rest: () => {
-                // Do nothing
-                return "";
-            },
-        };
-    }
-
-    public isTicksSupported(): boolean {
-        return true;
-    }
-
     public parseAndIndex(
         srcFile: string,
         destFile: string,
         sourceId: string,
-        options: IDLTOptions,
+        options: CommonInterfaces.DLT.IDLTOptions,
         onMapUpdated?: (map: IMapItem[]) => void,
-        onProgress?: (ticks: ITicks) => void,
-    ): Promise<IMapItem[]> {
-        this._logger.debug(`parseAndIndex dlt: ${srcFile}`);
-        return new Promise((resolve, reject) => {
+        onProgress?: (ticks: Progress.ITicks) => void,
+    ): Tools.CancelablePromise<IMapItem[], void> {
+        return new Tools.CancelablePromise<IMapItem[], void>((resolve, reject, cancel) => {
             if (this._guid !== undefined) {
                 return reject(new Error(`Parsing is already started.`));
             }
             this._guid = ServiceStreams.getActiveStreamId();
             const collectedChunks: IMapItem[] = [];
             const hrstart = process.hrtime();
-            let appIds: String[] | undefined;
-            let contextIds: String[] | undefined;
-            let ecuIds: String[] | undefined;
+            let appIds: string[] | undefined;
+            let contextIds: string[] | undefined;
+            let ecuIds: string[] | undefined;
             if (options.filters !== undefined && options.filters.app_ids instanceof Array) {
                 appIds = options.filters.app_ids;
             }
@@ -127,13 +72,13 @@ export default class FileParser extends AFileParser {
             if (options.filters !== undefined && options.filters.ecu_ids instanceof Array) {
                 ecuIds = options.filters.ecu_ids;
             }
-            const filterConfig: DltFilterConf = {
+            const filterConfig: DLT.DltFilterConf = {
                 min_log_level: options.logLevel,
                 app_ids: appIds,
                 context_ids: contextIds,
                 ecu_ids: ecuIds,
             };
-            const dltParams: IIndexDltParams = {
+            const dltParams: DLT.IIndexDltParams = {
                 dltFile: srcFile,
                 fibex: options.fibexFilePath,
                 filterConfig,
@@ -146,78 +91,62 @@ export default class FileParser extends AFileParser {
             };
             this._logger.debug("calling indexDltAsync with params: " + JSON.stringify(dltParams));
             let completeTicks: number = 0;
-            const onNotification = (notification: INeonNotification) => {
+            this._task = indexer.indexDltAsync(dltParams).then(() => {
+                resolve(collectedChunks);
+            }).catch((error: Error) => {
+                ServiceNotifications.notify({
+                    message:
+                        error.message.length > 1500
+                            ? `${error.message.substr(0, 1500)}...`
+                            : error.message,
+                    caption: `Error with: ${path.basename(srcFile)}`,
+                    session: this._guid,
+                    file: sourceId.toString(),
+                    type: ENotificationType.error,
+                });
+                reject(error);
+            }).canceled(() => {
+                cancel();
+            }).finally(() => {
+                this._task = undefined;
+                const hrend = process.hrtime(hrstart);
+                const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+                this._logger.debug("parseAndIndex task finished");
+                this._logger.debug("Execution time for indexing : " + ms + "ms");
+            }).on('chunk', (event: Progress.IChunk) => {
+                if (onMapUpdated !== undefined) {
+                    const mapItem: IMapItem = {
+                        rows: { from: event.rowsStart, to: event.rowsEnd },
+                        bytes: { from: event.bytesStart, to: event.bytesEnd },
+                    };
+                    onMapUpdated([mapItem]);
+                    collectedChunks.push(mapItem);
+                }
+            }).on('progress', (event: Progress.ITicks) => {
+                if (onProgress !== undefined) {
+                    completeTicks = event.total;
+                    onProgress(event);
+                }
+            }).on('notification', (event: Progress.INeonNotification) => {
                 ServiceNotifications.notifyFromNeon(
-                    notification,
+                    event,
                     "DLT-Indexing",
                     this._guid,
                     srcFile,
                 );
-            };
-            const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexer.indexDltAsync(
-                dltParams,
-                TimeUnit.fromSeconds(60),
-                (ticks: ITicks) => {
-                    if (onProgress !== undefined) {
-                        completeTicks = ticks.total;
-                        onProgress(ticks);
-                    }
-                },
-                (e: IChunk) => {
-                    if (onMapUpdated !== undefined) {
-                        const mapItem: IMapItem = {
-                            rows: { from: e.rowsStart, to: e.rowsEnd },
-                            bytes: { from: e.bytesStart, to: e.bytesEnd },
-                        };
-                        onMapUpdated([mapItem]);
-                        collectedChunks.push(mapItem);
-                    }
-                },
-                onNotification,
-            );
-            this._cancel = cancel;
-            futureRes
-                .then(x => {
-                    if (onProgress !== undefined) {
-                        onProgress({
-                            ellapsed: completeTicks,
-                            total: completeTicks,
-                        });
-                    }
-                    const hrend = process.hrtime(hrstart);
-                    const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-                    this._logger.debug("parseAndIndex task finished, result: " + x);
-                    this._logger.debug("Execution time for indexing : " + ms + "ms");
-                    this._cancel = this._defaultCancel;
-                    resolve(collectedChunks);
-                })
-                .catch((error: Error) => {
-                    if (this._closed) {
-                        return resolve([]);
-                    }
-                    ServiceNotifications.notify({
-                        message:
-                            error.message.length > 1500
-                                ? `${error.message.substr(0, 1500)}...`
-                                : error.message,
-                        caption: `Error with: ${path.basename(srcFile)}`,
-                        session: this._guid,
-                        file: sourceId.toString(),
-                        type: ENotificationType.error,
-                    });
-                    reject(error);
-                });
+            });
         });
     }
 
-    private _onSessionClosed(guid: string) {
-        if (this._guid !== guid) {
-            return;
-        }
-        this._closed = true;
+    public abort(): Promise<void> {
+        return new Promise((resolve) => {
+            if (this._task === undefined) {
+                return resolve();
+            }
+            this._task.canceled(() => {
+                resolve();
+            }).abort();
+        });
     }
 
-    private _defaultCancel = () => {
-        this._logger.debug("no cancel function set");
-    };
 }

@@ -1,6 +1,7 @@
 import * as Path from 'path';
 import * as FS from '../tools/fs';
 import * as Net from 'net';
+import * as util from 'util';
 import Logger from '../tools/env.logger';
 import { guid } from '../tools/index';
 import ServiceElectron from './service.electron';
@@ -256,7 +257,7 @@ export class ServicePlugins implements IService {
             controller = target.sessions.get(message.stream);
         }
         if (controller === undefined) {
-            return this._logger.error(`Fail redirect message by token ${message.token}, because plugin doesn't have process for session "${message.stream}". Income message: ${message.data}`);
+            return this._logger.error(`Fail redirect message by token ${message.token}, because plugin doesn't have process for session "${message.stream}". Income message: ${util.inspect(message.data)}`);
         }
         const ipc = controller.getIPC();
         if (ipc instanceof Error) {

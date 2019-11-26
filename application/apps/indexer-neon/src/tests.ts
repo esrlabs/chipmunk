@@ -1,3 +1,4 @@
+import { CancelablePromise } from './promise';
 import { indexAsync, IFilePath, discoverTimespanAsync } from "./processor";
 import { DltFilterConf, DltLogLevel, IIndexDltParams } from "./dlt";
 import { indexer, StatisticInfo } from "./index";
@@ -343,19 +344,20 @@ export function testDltIndexingAsync(
             statusUpdates: true,
         };
         log.trace("calling indexDltAsync with fibex: " + fibexPath);
-        const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexer.indexDltAsync(
+        const promise: CancelablePromise<void, void> = indexer.indexDltAsync(
             dltParams,
-            TimeUnit.fromSeconds(60),
-            helper.onProgress,
-            helper.onChunk,
-            helper.onNotification,
+            {
+                onProgress: helper.onProgress,
+                onChunk: helper.onChunk,
+                onNotification: helper.onNotification,
+            }
         );
-        futureRes.then((x: AsyncResult) => {
-            helper.done(x);
+        promise.then(() => {
+            helper.done(AsyncResult.Completed);
         });
         setTimeout(function() {
             log.trace("cancelling operation after timeout");
-            cancel();
+            promise.break();
         }, timeoutMs);
     } catch (error) {
         log.error("error %s", error);

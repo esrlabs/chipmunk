@@ -14,7 +14,8 @@ CLEAN.include(["#{OUT_DIR}/*.*",
 
 namespace :neon do
   task :rebuild do
-    sh 'neon build --release'
+    # sh 'neon build --release'
+    sh 'node_modules/.bin/electron-build-env node_modules/.bin/neon build --release'
   end
 
   desc 'test neon integration: dlt non-verbose indexing'
