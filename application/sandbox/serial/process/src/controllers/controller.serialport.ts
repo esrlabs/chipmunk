@@ -56,6 +56,8 @@ export class ControllerSerialPort extends EventEmitter {
     private _read: number = 0;
     private _written: number = 0;
     private _signature: boolean = false;
+    private _timeout: number = 50;
+    private _size: number = 1;
 
     constructor(options: IOptions, port?: SerialPort) {
         super();
@@ -115,25 +117,30 @@ export class ControllerSerialPort extends EventEmitter {
             if (this._port === undefined) {
                 return reject(new Error(this._logger.error(`Fail to write in port ${this._options.path} because port isn't inited`)));
             }
-            let chars = this._formatChunk(chunk);
-            for(let char of chars) {
-                this._port.write(char, (error: Error | null | undefined) => {
-                    if (error) {
-                        return reject(new Error(this._logger.error(`Fail to write into port due error: ${error.message}`)));
-                    }
-                    this._written += char.length;
-                });
+            if (typeof chunk === 'string' && chunk.length > 0){
+                chunk = chunk.replace(/\r?\n|\r/gi, '');
+                let bufferIn    = chunk.substr(0,this._size),
+                    bufferOut   = chunk.substr(this._size, chunk.length);
+                    setTimeout(() => {
+                        if(this._port === undefined) {
+                            return;
+                        }
+                        this._port.write(bufferIn + (bufferOut === '' ? '\n\r' : ''), (error: Error | null | undefined) => {
+                            if (error) {
+                                return reject(new Error(this._logger.error(`Fail to write into port due error: ${error.message}`)));
+                            }
+                            if(this._port === undefined) {
+                                return reject(new Error(this._logger.error(`Fail to write in port ${this._options.path} because port isn't inited`)));
+                            }
+                            this._port.drain(() => {
+                                this._written += bufferIn.length;
+                                this.write(bufferOut);
+                            });
+                        });
+                    }, this._timeout);
             }
             resolve();
         });
-    }
-
-    private _formatChunk(chunk: Buffer |string) {
-        if(typeof chunk != 'string') {
-            chunk = chunk.toString();
-        }
-        chunk += '\n';
-        return chunk.split('');
     }
 
     public getIOState(): IIOState {
