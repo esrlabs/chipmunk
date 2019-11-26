@@ -21,7 +21,7 @@ namespace :neon do
   task dlt_nonverbose: [:clean, OUT_DIR, 'neon:rebuild'] do
     call_test_function('testDltIndexingAsync', "#{LOCAL_EXAMPLE_DIR}/dlt/nonverbose/longerlog.dlt",
                        "#{LOCAL_EXAMPLE_DIR}/dlt/nonverbose/longerlog.out",
-                       800,
+                       50_000,
                        "#{LOCAL_EXAMPLE_DIR}/dlt/nonverbose/longerlog.xml")
   end
 
@@ -29,8 +29,15 @@ namespace :neon do
   task dlt_small_nonverbose: [:clean, OUT_DIR, 'neon:rebuild'] do
     call_test_function('testDltIndexingAsync', "#{LOCAL_EXAMPLE_DIR}/dlt/nonverbose/simple.dlt",
                        "#{LOCAL_EXAMPLE_DIR}/dlt/nonverbose/simple.out",
-                       50_000,
+                       800,
                        "#{LOCAL_EXAMPLE_DIR}/dlt/nonverbose/simple.xml")
+  end
+  desc 'cancel dlt processing'
+  task dlt_cancelled_nonverbose: [:clean, OUT_DIR, 'neon:rebuild'] do
+    call_test_function('testCancelledAsyncDltIndexing', "#{LOCAL_EXAMPLE_DIR}/dlt/nonverbose/simple.dlt",
+                       "#{LOCAL_EXAMPLE_DIR}/dlt/nonverbose/longerlog.out",
+                       50_000,
+                       "#{LOCAL_EXAMPLE_DIR}/dlt/nonverbose/longerlog.xml")
   end
 
   desc 'test neon integration: dlt indexing'

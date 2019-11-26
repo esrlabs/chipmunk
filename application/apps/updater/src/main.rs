@@ -31,7 +31,7 @@ fn init_logging() {
     let logfile = FileAppender::builder()
         .encoder(Box::new(PatternEncoder::new("{d} - {l}:: {m}\n")))
         .build(log_path)
-        .unwrap();
+        .expect("could not build logfile builder");
 
     let config = Config::builder()
         .appender(Appender::builder().build(appender_name, Box::new(logfile)))
@@ -40,9 +40,9 @@ fn init_logging() {
                 .appender(appender_name)
                 .build(LevelFilter::Trace),
         )
-        .unwrap();
+        .expect("could not build config for logging");
 
-    log4rs::init_config(config).unwrap();
+    log4rs::init_config(config).expect("could not config logging");
 }
 
 fn spawn(exe: &str, args: &[&str]) -> Result<Child> {
@@ -106,7 +106,8 @@ fn remove_application_folder(app: &Path) -> Result<PathBuf> {
     let app_folder = if cfg!(target_os = "macos") {
         app
     } else {
-        app.parent().unwrap()
+        app.parent()
+            .expect(format!("could not get parent of {:?}", app).as_str())
     };
 
     debug!("This folder will be clean: {:?}", app_folder);
@@ -215,7 +216,12 @@ fn restart_app(app: &Path, tgz: &Path) -> Result<()> {
             );
         }
         info!("Starting: {:?}", &to_be_started);
-        let child = spawn(to_be_started.to_str().unwrap(), &[]);
+        let child = spawn(
+            to_be_started
+                .to_str()
+                .expect("process for starting could not be spawned"),
+            &[],
+        );
         match child {
             Ok(mut child) => {
                 info!("App is started ({:?})", to_be_started);
@@ -328,9 +334,9 @@ mod tests {
                 assert_eq!(parts.len(), 2);
                 let test_folder = Path::new(&parts[0]).join(format!("{}/tests", relative_path));
                 println!("Parent folder of path is {}", test_folder.display());
-                if let Err(e) = remove_application_folder(&test_folder) {
-                    println!("Error during removing folder: {}", e);
-                }
+                // if let Err(e) = remove_application_folder(&test_folder) {
+                //     println!("here..........................{}", e);
+                // }
             }
         }
     }

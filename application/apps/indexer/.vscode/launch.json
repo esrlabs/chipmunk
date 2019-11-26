@@ -9,22 +9,13 @@
             "request": "launch",
             "name": "Debug executable 'chip'",
             "cargo": {
-                "args": [
-                    "build",
-                    "--bin=chip",
-                    "--package=chip"
-                ],
+                "args": ["build", "--bin=chip", "--package=chip"],
                 "filter": {
                     "name": "chip",
                     "kind": "bin"
                 }
             },
-            "args": [
-                "-s",
-                "2",
-                "${workspaceRoot}/test.txt",
-                "tag",
-            ],
+            "args": ["-s", "2", "${workspaceRoot}/test.txt", "tag"],
             "cwd": "${workspaceFolder}"
         },
         {
@@ -32,12 +23,7 @@
             "request": "launch",
             "name": "Debug unit tests in executable 'chip'",
             "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--bin=chip",
-                    "--package=chip"
-                ],
+                "args": ["test", "--no-run"],
                 "filter": {
                     "name": "chip",
                     "kind": "bin"

@@ -275,7 +275,55 @@ class IndexingHelper {
         log.info("Execution time for indexing : %dms", ms);
     };
 }
-export function testDltIndexingAsync(fileToIndex: string, outPath: string, timeoutMs: number, fibexPath?: string) {
+export function testCancelledAsyncDltIndexing(
+    fileToIndex: string,
+    outPath: string,
+    timeoutMs: number,
+    fibexPath?: string,
+) {
+    const bar = stdout.createProgressBar({ caption: "dlt indexing", width: 60 });
+    let onProgress = (ticks: ITicks) => {
+        bar.update(Math.round((100 * ticks.ellapsed) / ticks.total));
+    };
+    let onNotification = (notification: INeonNotification) => {
+        log.trace("test: received notification:" + notification);
+    };
+    let helper = new IndexingHelper("dlt async indexing");
+    const filterConfig: DltFilterConf = {
+        min_log_level: DltLogLevel.Debug,
+    };
+
+    const dltParams: IIndexDltParams = {
+        dltFile: fileToIndex,
+        filterConfig,
+        fibex: fibexPath,
+        tag: "TAG",
+        out: outPath,
+        chunk_size: 500,
+        append: false,
+        stdout: false,
+        statusUpdates: true,
+    };
+    const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexer.indexDltAsync(
+        dltParams,
+        TimeUnit.fromSeconds(60),
+        helper.onProgress,
+        helper.onChunk,
+        helper.onNotification,
+    );
+    setTimeout(function() {
+        log.trace("cancelling operation after timeout");
+        cancel();
+    }, 500);
+
+    log.trace("res: " + futureRes);
+}
+export function testDltIndexingAsync(
+    fileToIndex: string,
+    outPath: string,
+    timeoutMs: number,
+    fibexPath?: string,
+) {
     log.trace(`testDltIndexingAsync for ${fileToIndex} (out: "${outPath}")`);
     let helper = new IndexingHelper("dlt async indexing");
     try {
