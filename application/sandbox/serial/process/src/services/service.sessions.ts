@@ -247,9 +247,6 @@ class ServiceSessions {
                 return reject(new Error(this._logger.error(`Cannot send message, because path isn't provided`)));
             }
             ServicePorts.write(message.data.path, message.data.cmd).then(() => {
-                if(controller) {
-                    controller.logSent(message.data.path, message.data.cmd);
-                }
                 resolve();            
             }).catch((error: Error) => {
                 this._logger.error(`Fail to send message "${message.data.cmd}" to port "${message.data.path}" due error: ${error.message}`);

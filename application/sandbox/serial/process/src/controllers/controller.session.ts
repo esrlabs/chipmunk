@@ -133,14 +133,6 @@ export class ControllerSession {
         });
     }
 
-    public logSent(port: string, message: Buffer | string) {
-        if(typeof message === 'string') {
-            message += '\n';
-            message = Buffer.from(message);
-        }
-        this._onPortData(port, message);
-    }
-
     private _readSpyLoad(port: string, chunk: Buffer) {
         if(this._readLoad[port] === undefined) {
             this._readLoad[port] = 0;
