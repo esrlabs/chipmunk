@@ -115,14 +115,25 @@ export class ControllerSerialPort extends EventEmitter {
             if (this._port === undefined) {
                 return reject(new Error(this._logger.error(`Fail to write in port ${this._options.path} because port isn't inited`)));
             }
-            this._port.write(chunk, (error: Error | null | undefined) => {
-                if (error) {
-                    return reject(new Error(this._logger.error(`Fail to write into port due error: ${error.message}`)));
-                }
-                this._written += chunk.length;
-                resolve();
-            });
+            let chars = this._formatChunk(chunk);
+            for(let char of chars) {
+                this._port.write(char, (error: Error | null | undefined) => {
+                    if (error) {
+                        return reject(new Error(this._logger.error(`Fail to write into port due error: ${error.message}`)));
+                    }
+                    this._written += char.length;
+                });
+            }
+            resolve();
         });
+    }
+
+    private _formatChunk(chunk: Buffer |string) {
+        if(typeof chunk != 'string') {
+            chunk = chunk.toString();
+        }
+        chunk += '\n';
+        return chunk.split('');
     }
 
     public getIOState(): IIOState {
