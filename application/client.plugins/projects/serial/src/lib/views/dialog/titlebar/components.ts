@@ -1,4 +1,4 @@
-import { Component, Input } from "@angular/core";
+import { Component, Input } from '@angular/core';
 
 @Component({
     selector: 'lib-sb-title-add',
@@ -6,7 +6,7 @@ import { Component, Input } from "@angular/core";
     styleUrls: ['./styles.less']
 })
 
-export class SidebarTitleAdd {
+export class SidebarTitleAddComponent {
 
     @Input() public _ng_addPort: () => void;
 

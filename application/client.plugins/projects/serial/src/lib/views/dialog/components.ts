@@ -44,7 +44,7 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
     public _ng_busy: boolean = false;
     public _ng_error: string | undefined;
     public _ng_options: boolean = false;
-    public _ng_spyState: {[key: string]:number};
+    public _ng_spyState: { [key: string]: number };
 
     constructor(private _cdRef: ChangeDetectorRef) {
     }
