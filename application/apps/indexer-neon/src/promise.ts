@@ -3,10 +3,10 @@ export type TResolver<T> = (value: T) => void;
 export type TRejector = (error: Error) => void;
 export type TFinally = () => void;
 export type TCanceler<T> = (reason?: T) => void;
-export type TExecutor<T, C> = (resolve: TResolver<T>, reject: TRejector, cancel: TCanceler<C>, refCancelCB: (cb: TCanceler<C>) => void, self: CancelablePromise<T, C>) => void;
+export type TExecutor<T, C, EN, EH> = (resolve: TResolver<T>, reject: TRejector, cancel: TCanceler<C>, refCancelCB: (cb: TCanceler<C>) => void, self: CancelablePromise<T, C, EN, EH>) => void;
 export type TEventHandler = (...args: any[]) => any;
 
-export class CancelablePromise<T, C> {
+export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandler> {
 
     private _resolvers: Array<TResolver<T>> = [];
     private _rejectors: TRejector[] = [];
@@ -18,10 +18,10 @@ export class CancelablePromise<T, C> {
     private _resolved: boolean = false;
     private _rejected: boolean = false;
     private _finished: boolean = false;
-    private _handlers: Map<string, any[]> = new Map();
+    private _handlers: Map<EN, EH[]> = new Map();
 
     constructor(
-        executor: TExecutor<T, C>,
+        executor: TExecutor<T, C, EN, EH>,
     ) {
         const self = this;
         // Create and execute native promise
@@ -34,27 +34,27 @@ export class CancelablePromise<T, C> {
         });
     }
 
-    public then(callback: TResolver<T>): CancelablePromise<T, C> {
+    public then(callback: TResolver<T>): CancelablePromise<T, C, EN, EH> {
         this._resolvers.push(callback);
         return this;
     }
 
-    public catch(callback: TRejector): CancelablePromise<T, C> {
+    public catch(callback: TRejector): CancelablePromise<T, C, EN, EH> {
         this._rejectors.push(callback);
         return this;
     }
 
-    public finally(callback: TFinally): CancelablePromise<T, C> {
+    public finally(callback: TFinally): CancelablePromise<T, C, EN, EH> {
         this._finishes.push(callback);
         return this;
     }
 
-    public cancel(callback: TCanceler<C>): CancelablePromise<T, C> {
+    public cancel(callback: TCanceler<C>): CancelablePromise<T, C, EN, EH> {
         this._cancelers.push(callback);
         return this;
     }
 
-    public break(reason: C): CancelablePromise<T, C> {
+    public break(reason: C): CancelablePromise<T, C, EN, EH> {
         if (this._cancellation === undefined) {
             this._doCancel(reason);
         } else {
@@ -63,7 +63,7 @@ export class CancelablePromise<T, C> {
         return this;
     }
 
-    public on(event: string, handler: TEventHandler): void {
+    public on(event: EN, handler: EH): void {
         if (typeof event !== 'string' || event.trim() === '') {
             return;
         }
@@ -85,12 +85,15 @@ export class CancelablePromise<T, C> {
         return true;
     }
 
-    public emit(event: string, ...args: any[]): void {
-        const handlers: any[] | undefined = this._handlers.get(event);
+    public emit(event: EN, ...args: any[]): void {
+        const handlers: EH[] | undefined = this._handlers.get(event);
         if (handlers === undefined) {
             return;
         }
-        handlers.forEach((handler: TEventHandler) => {
+        handlers.forEach((handler: EH) => {
+            if (typeof handler !== 'function') {
+                return;
+            }
             try {
                 handler(...args);
             } catch (e) {
