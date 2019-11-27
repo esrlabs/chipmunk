@@ -8,7 +8,7 @@ import {
 } from "../../../ipc/electron.ipc.messages/index";
 import ServiceElectron from "./service.electron";
 import Logger from "../tools/env.logger";
-import { Severity, INeonNotification } from "indexer-neon";
+import { Progress } from "indexer-neon";
 
 export {
     INotification,
@@ -80,7 +80,7 @@ class ServiceNotifications implements IService {
     }
 
     public notifyFromNeon(
-        notification: INeonNotification,
+        notification: Progress.INeonNotification,
         category: string,
         sessionId?: string,
         file?: string,
@@ -106,9 +106,9 @@ class ServiceNotifications implements IService {
 
     private typeFromNeonSeverity(neonSeverity: string) {
         switch (neonSeverity) {
-            case Severity.ERROR:
+            case Progress.Severity.ERROR:
                 return ENotificationType.error;
-            case Severity.WARNING:
+            case Progress.Severity.WARNING:
                 return ENotificationType.warning;
         }
     }

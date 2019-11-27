@@ -4,15 +4,7 @@ import * as path from "path";
 import ServiceStreams from "../../../services/service.streams";
 import ServiceStreamSource from "../../../services/service.stream.sources";
 import ServiceNotifications from "../../../services/service.notifications";
-import {
-    indexer,
-    ITicks,
-    TimeUnit,
-    AsyncResult,
-    ConcatenatorInput,
-    INeonNotification,
-    IChunk,
-} from "indexer-neon";
+import indexer, { Progress, Merge, Units } from "indexer-neon";
 import Logger from "../../../tools/env.logger";
 import { IMapItem } from "../../../controllers/stream.main/file.map";
 
@@ -26,11 +18,11 @@ export default class ConcatFiles {
     private _processedBytes: number = 0;
     private _session: string = "";
     private _files: IFile[];
-    private _absolutePathConfig: ConcatenatorInput[];
+    private _absolutePathConfig: Merge.ConcatenatorInput[];
     private _sourceIds: { [key: string]: number } = {};
-    private _onProgress: (ticks: ITicks) => void;
+    private _onProgress: (ticks: Progress.ITicks) => void;
 
-    constructor(session: string, files: IFile[], onProgress: (ticks: ITicks) => void) {
+    constructor(session: string, files: IFile[], onProgress: (ticks: Progress.ITicks) => void) {
         this._files = files;
         this._session = session === undefined ? ServiceStreams.getActiveStreamId() : session;
         this._onProgress = onProgress;
@@ -51,10 +43,10 @@ export default class ConcatFiles {
                 measuring();
                 return reject(sessionData);
             }
-            const onNotification = (notification: INeonNotification) => {
+            const onNotification = (notification: Progress.INeonNotification) => {
                 ServiceNotifications.notifyFromNeon(notification, "DLT-Indexing", this._session);
             };
-            const onResult = (res: IChunk) => {
+            const onResult = (res: Progress.IChunk) => {
                 if (onMapUpdated !== undefined) {
                     const mapItem: IMapItem = {
                         rows: { from: res.rowsStart, to: res.rowsEnd },
@@ -65,14 +57,14 @@ export default class ConcatFiles {
                 }
             };
             const [futureRes, cancel]: [
-                Promise<AsyncResult>,
+                Promise<Progress.AsyncResult>,
                 () => void,
             ] = indexer.concatFilesAsync(
                 this._absolutePathConfig,
                 sessionData.file,
                 true,
                 500, // chunkSize
-                TimeUnit.fromSeconds(2),
+                Units.TimeUnit.fromSeconds(2),
                 this._onProgress,
                 onResult,
                 onNotification,

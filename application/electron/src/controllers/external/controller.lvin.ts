@@ -1,12 +1,4 @@
-import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
-import Logger from '../../tools/env.logger';
-import { EventEmitter } from 'events';
-import { spawn, ChildProcess } from 'child_process';
-import { StatisticInfo } from "indexer-neon";
-
-import ServicePaths from '../../services/service.paths';
+import { DLT } from "indexer-neon";
 
 export interface IFileMapItem {
     b: number[];
@@ -90,7 +82,7 @@ export interface IParametersDlt {
 }
 
 export interface IDLTStatsResults {
-    stats: StatisticInfo;
+    stats: DLT.StatisticInfo;
     logs: ILogMessage[];
 }
 

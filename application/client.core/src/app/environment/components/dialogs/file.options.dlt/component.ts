@@ -1,11 +1,10 @@
 import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit } from '@angular/core';
-import { StatisticInfo } from '../../../../../../../apps/indexer-neon';
 import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 import * as ThemeColors from '../../../theme/colors';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
-import { LevelDistribution } from '../../../../../../../apps/indexer-neon/dist/dlt';
+import { DLT } from '../../../../../../../apps/indexer-neon/dist/index';
 
 export enum EMTIN {
     // If MSTP == DLT_TYPE_LOG
@@ -139,8 +138,10 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     public _ng_error: string | undefined;
 
     private _logLevel: EMTIN = EMTIN.DLT_LOG_VERBOSE;
-    private _stats: StatisticInfo | undefined;
+    private _stats: DLT.StatisticInfo | undefined;
     private _destroyed: boolean = false;
+    private _requestId: string | undefined;
+    private _logger: Toolkit.Logger = new Toolkit.Logger(`DialogsFileOptionsDltComponent`);
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _notifications: NotificationsService) {
@@ -153,11 +154,13 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
             return CLevelCaptions[key];
         });
         const session: string = TabsSessionsService.getActive().getGuid();
+        this._requestId = Toolkit.guid();
         ElectronIpcService.request(new IPCMessages.DLTStatsRequest({
             file: this.fullFileName,
-            id: Toolkit.guid(),
+            id: this._requestId,
             session: 'none',
         }), IPCMessages.DLTStatsResponse).then((response: IPCMessages.DLTStatsResponse) => {
+            this._requestId = undefined;
             this._ng_scanning = false;
             if (typeof response.error === 'string' && response.error.trim() !== '') {
                 this._ng_error = response.error;
@@ -191,6 +194,19 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
 
     public ngOnDestroy() {
         this._destroyed = true;
+        if (this._requestId !== undefined) {
+            this._logger.env(`Canceling DLT stats getting by request "${this._requestId}"`);
+            ElectronIpcService.request(new IPCMessages.DLTStatsCancelRequest({
+                id: this._requestId,
+                session: 'none',
+            }), IPCMessages.DLTStatsCancelResponse).then((response: IPCMessages.DLTStatsResponse) => {
+                this._requestId = undefined;
+                this._logger.env(`Canceled DLT stats getting`);
+            }).catch((error: Error) => {
+                this._requestId = undefined;
+                this._logger.warn(`Fail to cancel DLT stats getting due error: ${error.message}`);
+            });
+        }
     }
 
     public _ng_onLogLevelChange(value: EMTIN) {
@@ -306,7 +322,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
             if (CStatCaptions[section] === undefined || !(this._stats[section] instanceof Array)) {
                 return;
             }
-            let items = this._stats[section].filter((item: Array<string | LevelDistribution>) => {
+            let items = this._stats[section].filter((item: Array<string | DLT.LevelDistribution>) => {
                 if (item.length !== 2) {
                     return false;
                 }
@@ -314,16 +330,16 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
                     return false;
                 }
                 return true;
-            }).sort((a: Array<string | LevelDistribution>, b: Array<string | LevelDistribution>) => {
+            }).sort((a: Array<string | DLT.LevelDistribution>, b: Array<string | DLT.LevelDistribution>) => {
                 return a[0] > b[0] ? 1 : -1;
             });
             if (this._ng_sortByLogLevel !== -1 && this._getEntityKeyByIndex(this._ng_sortByLogLevel) !== undefined) {
                 const key: string = this._getEntityKeyByIndex(this._ng_sortByLogLevel);
-                items = items.sort((a: Array<string | LevelDistribution>, b: Array<string | LevelDistribution>) => {
+                items = items.sort((a: Array<string | DLT.LevelDistribution>, b: Array<string | DLT.LevelDistribution>) => {
                     return a[1][key] < b[1][key] ? 1 : -1;
                 });
             }
-            items = items.map((item: Array<string | LevelDistribution>) => {
+            items = items.map((item: Array<string | DLT.LevelDistribution>) => {
                 const stats: number[] = CLevelOrder.map((key: string) => {
                     return item[1][key] === undefined ? 0 : item[1][key];
                 });

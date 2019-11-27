@@ -4,7 +4,7 @@ import { Subscription } from '../../tools/index';
 import { IService } from '../../interfaces/interface.service';
 import ServiceStreams from "../service.streams";
 import { IFile as ITestFileRequest } from '../../../../ipc/electron.ipc.messages/merge.files.test.request';
-import { ITicks } from "indexer-neon";
+import { Progress } from "indexer-neon";
 import { IFile as ITestFileResponse } from '../../../../ipc/electron.ipc.messages/merge.files.test.response';
 import { IFile as IMergeFileRequest } from '../../../../ipc/electron.ipc.messages/merge.files.request';
 import * as moment from 'moment-timezone';
@@ -114,7 +114,7 @@ class ServiceMergeFiles implements IService {
                     format: file.format,
                 };
             }),
-            (ticks: ITicks) => {
+            (ticks: Progress.ITicks) => {
                 ServiceStreams.updateProgressSession(
                     trackingId,
                     ticks.ellapsed / ticks.total,

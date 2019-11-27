@@ -1,7 +1,7 @@
 import { CancelablePromise } from './promise';
 import { indexAsync, IFilePath, discoverTimespanAsync } from "./processor";
 import { DltFilterConf, DltLogLevel, IIndexDltParams } from "./dlt";
-import { indexer, StatisticInfo } from "./index";
+import indexer, { DLT } from "./index";
 import { TimeUnit } from "./units";
 import {
     ITicks,
@@ -179,7 +179,7 @@ export function testCallDltStats(file: string) {
         let onProgress = (ticks: ITicks) => {
             log.trace("progress: " + ticks);
         };
-        let onConf = (conf: StatisticInfo) => {
+        let onConf = (conf: DLT.StatisticInfo) => {
             log.trace("testCallDltStats.onConf:");
             log.trace("conf.app_ids: " + JSON.stringify(conf.app_ids));
             log.trace("conf.ecu_ids: " + JSON.stringify(conf.ecu_ids));
@@ -188,16 +188,18 @@ export function testCallDltStats(file: string) {
         measure({
             desc: "stats for " + file,
             f: () => {
-                const [futureRes]: [Promise<AsyncResult>, () => void] = indexer.dltStatsAsync(
+                const promise: CancelablePromise<void, void> = indexer.dltStatsAsync(
                     file,
-                    TimeUnit.fromSeconds(60),
-                    onProgress,
-                    onConf,
+                    { 
+                        onProgress: onProgress,
+                        onConfig: onConf,
+                    }
+                    
                 );
-                futureRes.then((x: AsyncResult) => {
+                promise.then(() => {
                     const hrend = process.hrtime(hrstart);
                     const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-                    log.trace("COMPLETELY DONE (last result was: " + AsyncResult[x] + ")");
+                    log.trace("COMPLETELY DONE");
                     log.info("Execution time for getting DLT stats : %dms", ms);
                 });
             },
@@ -357,7 +359,7 @@ export function testDltIndexingAsync(
         });
         setTimeout(function() {
             log.trace("cancelling operation after timeout");
-            promise.break();
+            promise.abort();
         }, timeoutMs);
     } catch (error) {
         log.error("error %s", error);

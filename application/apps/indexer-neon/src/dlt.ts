@@ -11,6 +11,7 @@ export interface DltFilterConf {
     ecu_ids?: Array<string>;
     context_ids?: Array<string>;
 }
+
 export interface LevelDistribution {
     non_log: number;
     log_fatal: number;
@@ -45,74 +46,101 @@ export interface IIndexDltParams {
     stdout: boolean;
     statusUpdates: boolean;
 }
-export interface IIndexDltProcessingOptions {
+export interface IIndexDltOptions {
     maxTime?: TimeUnit;
 }
-export interface IIndexDltProcessingOptionsChecked {
+export interface IIndexDltOptionsChecked {
     maxTime: TimeUnit;
 }
-export interface IIndexDltProcessingCallbacks {
+export interface IIndexDltCallbacks {
     onProgress: (ticks: ITicks) => any;
     onChunk: (chunk: IChunk) => any;
     onNotification: (notification: INeonNotification) => void;
 }
-export function dltStatsAsync(
-    dltFile: string,
-    maxTime: TimeUnit,
-    onProgress: (ticks: ITicks) => any,
-    onConfig: (chunk: StatisticInfo) => any,
-): [Promise<AsyncResult>, () => void] {
-    const channel = new RustDltStatsChannel(dltFile);
-    const emitter = new NativeEventEmitter(channel);
-    let total: number = 1;
-    const p = new Promise<AsyncResult>((resolve, reject) => {
-        let timeout = setTimeout(function() {
-            log("TIMED OUT ====> shutting down");
-            emitter.requestShutdown();
-        }, maxTime.inMilliseconds());
-        emitter.on(NativeEventEmitter.EVENTS.GotItem, onConfig);
-        emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
-            total = ticks.total;
-            onProgress(ticks);
-        });
-        emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
-            clearTimeout(timeout);
-            emitter.shutdownAcknowledged(() => {
-                resolve(AsyncResult.Aborted);
-                onProgress({ ellapsed: total, total });
-            });
-        });
-        emitter.on(NativeEventEmitter.EVENTS.Notification, (n: INeonNotification) => {
-            log("dltStats: we got a notification: " + JSON.stringify(n));
-        });
-        emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
-            clearTimeout(timeout);
-            emitter.shutdownAcknowledged(() => {
-                resolve(AsyncResult.Completed);
-                onProgress({ ellapsed: total, total }); 
-            });
-        });
-    });
-    return [
-        p,
-        () => {
-            log("cancel called");
-            emitter.requestShutdown();
-        },
-    ];
+export interface IStatsDltCallbacks {
+    onProgress: (ticks: ITicks) => any;
+    onConfig: (chunk: StatisticInfo) => any;
 }
 
-export interface IMapItem { bytesStart: number; bytesEnd: number; rowsStart: number; rowsEnd: number; };
+export function dltStatsAsync(
+    dltFile     : string,
+    callbacks   : IStatsDltCallbacks,
+    options?    : IIndexDltOptions,
+): CancelablePromise<void, void> {
+    return new CancelablePromise<void, void>((resolve, reject, cancel, refCancelCB, self) => {
+        try {
+            // Get defaults options
+            const opt = getDefaultIndexDltProcessingOptions(options);
+            // Add cancel callback
+            refCancelCB(() => {
+                // Cancelation is started, but not canceled
+                log(`Get command "break" operation. Starting breaking.`);
+                clearTimeout(timeout);
+                emitter.requestShutdown();
+            });
+            const channel = new RustDltStatsChannel(dltFile);
+            const emitter = new NativeEventEmitter(channel);
+            let total: number = 1;
+            let timeout = setTimeout(function() {
+                log("TIMED OUT ====> shutting down");
+                emitter.requestShutdown();
+            }, opt.maxTime.inMilliseconds());
+            emitter.on(NativeEventEmitter.EVENTS.GotItem, (chunk: StatisticInfo) => {
+                if (!self.isProcessing()) {
+                    log(`refuse to call "GotItem" because cancelation was called`);
+                    return;
+                }
+                callbacks.onConfig(chunk);
+            });
+            emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
+                if (!self.isProcessing()) {
+                    log(`refuse to call "GotItem" because cancelation was called`);
+                    return;
+                }
+                total = ticks.total;
+                callbacks.onProgress(ticks);
+            });
+            emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
+                clearTimeout(timeout);
+                emitter.shutdownAcknowledged(() => {
+                    callbacks.onProgress({ ellapsed: total, total });
+                    cancel();
+                });
+            });
+            emitter.on(NativeEventEmitter.EVENTS.Notification, (n: INeonNotification) => {
+                log("dltStats: we got a notification: " + JSON.stringify(n));
+            });
+            emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
+                clearTimeout(timeout);
+                emitter.shutdownAcknowledged(() => {
+                    callbacks.onProgress({ ellapsed: total, total });
+                    resolve();
+                });
+            });
+        } catch (err) {
+            if (!(err instanceof Error)) {
+                log(`operation is stopped. Error isn't valid:`);
+                log(err);
+                err = new Error(`operation is stopped. Error isn't valid.`);
+            } else {
+                log(`operation is stopped due error: ${err.message}`);
+            }
+            // Operation is rejected
+            reject(err);
+        }
+    });
+}
+
 export type TIndexDltAsyncEvents = 'chunk' | 'progress' | 'notification';
-export type TIndexDltAsyncEventChunk = (event: { bytesStart: number, bytesEnd: number, rowsStart: number, rowsEnd: number }) => void;
+export type TIndexDltAsyncEventChunk = (event: IChunk) => void;
 export type TIndexDltAsyncEventProgress = (event: ITicks) => void;
 export type TIndexDltAsyncEventNotification = (event: INeonNotification) => void;
 export type TIndexDltAsyncEventCB = TIndexDltAsyncEventChunk | TIndexDltAsyncEventProgress | TIndexDltAsyncEventNotification;
 
 export function indexDltAsync(
     params      : IIndexDltParams,
-    callbacks   : IIndexDltProcessingCallbacks,
-    options?    : IIndexDltProcessingOptions,
+    callbacks   : IIndexDltCallbacks,
+    options?    : IIndexDltOptions,
 ): CancelablePromise<void, void, TIndexDltAsyncEvents, TIndexDltAsyncEventCB> {
     return new CancelablePromise<void, void, TIndexDltAsyncEvents, TIndexDltAsyncEventCB>((resolve, reject, cancel, refCancelCB, self) => {
         try {
@@ -121,6 +149,7 @@ export function indexDltAsync(
             const opt = getDefaultIndexDltProcessingOptions(options);
             // Add cancel callback
             refCancelCB(() => {
+                // Cancelation is started, but not canceled
                 log(`Get command "break" operation. Starting breaking.`);
                 clearTimeout(timeout);
                 emitter.requestShutdown();
@@ -142,7 +171,7 @@ export function indexDltAsync(
             let timeout = setTimeout(function() {
                 log("TIMED OUT ====> shutting down");
                 // Because of timeout manually cancel (break) promise
-                self.break();
+                self.abort();
             }, opt.maxTime.inMilliseconds());
             // Add listenters
             emitter.on(NativeEventEmitter.EVENTS.GotItem, (c: INeonTransferChunk) => {
@@ -207,65 +236,10 @@ export function indexDltAsync(
     });
 }
 
-/*
-export function indexDltAsync1(
-    { dltFile, filterConfig, fibex, tag, out, chunk_size, append, stdout, statusUpdates }: IIndexDltParams,
-    maxTime: TimeUnit,
-    onProgress: (ticks: ITicks) => any,
-    onChunk: (chunk: IChunk) => any,
-    onNotification: (notification: INeonNotification) => void,
-): [Promise<AsyncResult>, () => void] {
-    log(`using fibex: ${fibex}`);
-    const channel = new RustDltIndexerChannel(dltFile, tag, out, append, chunk_size, filterConfig, fibex);
-    const emitter = new NativeEventEmitter(channel);
-    const p = new Promise<AsyncResult>((resolve, reject) => {
-        let chunks: number = 0;
-        let timeout = setTimeout(function() {
-            log("TIMED OUT ====> shutting down");
-            emitter.requestShutdown();
-        }, maxTime.inMilliseconds());
-        emitter.on(NativeEventEmitter.EVENTS.GotItem, (c: INeonTransferChunk) => {
-            onChunk({
-                bytesStart: c.b[0],
-                bytesEnd: c.b[1],
-                rowsStart: c.r[0],
-                rowsEnd: c.r[1],
-            });
-        });
-        emitter.on(NativeEventEmitter.EVENTS.Progress, onProgress);
-        emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
-            log("we got a stopped event after " + chunks + " chunks");
-            clearTimeout(timeout);
-            emitter.shutdownAcknowledged(() => {
-                log("shutdown completed");
-                resolve(AsyncResult.Aborted);
-            });
-        });
-        emitter.on(NativeEventEmitter.EVENTS.Notification, (n: INeonNotification) => {
-            onNotification(n);
-        });
-        emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
-            log("we got a finished event " + chunks + " chunks");
-            clearTimeout(timeout);
-            emitter.shutdownAcknowledged(() => {
-                log("shutdown completed");
-                resolve(AsyncResult.Completed); // Here is final => no more any events will be triggered
-            });
-        });
-    });
-    return [
-        p,
-        () => {
-            log("cancel called");
-            emitter.requestShutdown();
-        },
-    ];
-}
-*/
-function getDefaultIndexDltProcessingOptions(options: IIndexDltProcessingOptions | undefined): IIndexDltProcessingOptionsChecked {
+function getDefaultIndexDltProcessingOptions(options: IIndexDltOptions | undefined): IIndexDltOptionsChecked {
     if (typeof options !== 'object' || options === null) {
         options = {};
     }
     options.maxTime = options.maxTime instanceof TimeUnit ? options.maxTime : TimeUnit.fromSeconds(60);
-    return options as IIndexDltProcessingOptionsChecked;
+    return options as IIndexDltOptionsChecked;
 }
