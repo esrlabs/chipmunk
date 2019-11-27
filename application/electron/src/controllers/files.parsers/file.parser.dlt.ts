@@ -1,23 +1,6 @@
 import { AFileParser, IMapItem } from "./interface";
 import * as path from "path";
-<<<<<<< HEAD
 import indexer, { DLT, Progress, CancelablePromise } from "indexer-neon";
-=======
-import {
-    indexer,
-    ITicks,
-    DltFilterConf,
-    TimeUnit,
-    INeonTransferChunk,
-    INeonNotification,
-    AsyncResult,
-    IIndexDltParams,
-    IChunk,
-    CancelablePromise,
-    TIndexDltAsyncEventCB,
-    TIndexDltAsyncEvents,
-} from "indexer-neon";
->>>>>>> [](feat) cancel indexer-neon processing
 import ServiceStreams from "../../services/service.streams";
 import Logger from "../../tools/env.logger";
 import * as Tools from "../../tools/index";
@@ -30,11 +13,7 @@ export default class FileParser extends AFileParser {
 
     private _guid: string | undefined;
     private _logger: Logger = new Logger("indexing");
-<<<<<<< HEAD
     private _task: CancelablePromise<void, void, DLT.TIndexDltAsyncEvents, DLT.TIndexDltAsyncEventObject> | undefined;
-=======
-    private _task: CancelablePromise<void, void, TIndexDltAsyncEvents, TIndexDltAsyncEventCB> | undefined;
->>>>>>> [](feat) cancel indexer-neon processing
 
     constructor() {
         super();
@@ -155,9 +134,6 @@ export default class FileParser extends AFileParser {
                     this._guid,
                     srcFile,
                 );
-            });
-            this._task.on('progress', (ticks: ITicks) => {
-                //
             });
         });
     }

@@ -5,15 +5,7 @@ import ServiceStreams from "../../../services/service.streams";
 import ServiceStreamSource from "../../../services/service.stream.sources";
 import ServiceNotifications from "../../../services/service.notifications";
 import * as Tools from "../../../tools/index";
-import {
-    indexer,
-    ITicks,
-    TimeUnit,
-    AsyncResult,
-    IMergerItemOptions,
-    INeonNotification,
-    IChunk,
-} from "indexer-neon";
+import indexer, { Progress, Units } from "indexer-neon";
 import Logger from "../../../tools/env.logger";
 import { IMapItem } from "../../../controllers/files.parsers/interface";
 
@@ -30,12 +22,12 @@ export default class MergeFiles {
     private _processedBytes: number = 0;
     private _session: string = "";
     private _files: IFile[];
-    private _absolutePathConfig: IMergerItemOptions[];
+    private _absolutePathConfig: Progress.IMergerItemOptions[];
     private _sourceIds: { [key: string]: number } = {};
     private _writeSessionsId: string = Tools.guid();
-    private _onProgress: (ticks: ITicks) => void;
+    private _onProgress: (ticks: Progress.ITicks) => void;
 
-    constructor(session: string, files: IFile[], onProgress: (ticks: ITicks) => void) {
+    constructor(session: string, files: IFile[], onProgress: (ticks: Progress.ITicks) => void) {
         this._files = files;
         this._session = session === undefined ? ServiceStreams.getActiveStreamId() : session;
         this._onProgress = onProgress;
@@ -59,10 +51,10 @@ export default class MergeFiles {
                 measuring();
                 return reject(sessionData);
             }
-            const onNotification = (notification: INeonNotification) => {
+            const onNotification = (notification: Progress.INeonNotification) => {
                 ServiceNotifications.notifyFromNeon(notification, "DLT-Indexing", this._session);
             };
-            const onResult = (res: IChunk) => {
+            const onResult = (res: Progress.IChunk) => {
                 this._logger.debug(`merged chunk: ${JSON.stringify(res)}`);
                 if (onMapUpdated !== undefined) {
                     const mapItem: IMapItem = {
@@ -73,11 +65,11 @@ export default class MergeFiles {
                     this._processedBytes = res.bytesEnd;
                 }
             };
-            const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexer.mergeFilesAsync(
+            const [futureRes, cancel]: [Promise<Progress.AsyncResult>, () => void] = indexer.mergeFilesAsync(
                 this._absolutePathConfig,
                 sessionData.file,
                 true,
-                TimeUnit.fromSeconds(2),
+                Units.TimeUnit.fromSeconds(2),
                 this._onProgress,
                 onResult,
                 onNotification,

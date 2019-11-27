@@ -4,14 +4,7 @@ import {
     IDatetimeDiscoverResult,
     IDatetimeDiscoverFileResult,
 } from "../../external/controller.lvin";
-import {
-    indexer,
-    ITicks,
-    TimeUnit,
-    ITimestampFormatResult,
-    AsyncResult,
-    INeonNotification,
-} from "indexer-neon";
+import indexer, { Progress, Units } from "indexer-neon";
 import Logger from "../../../tools/env.logger";
 import ServiceNotifications from "../../../services/service.notifications";
 import { IDiscoverItem } from "../../../../../apps/indexer-neon/dist/progress";
@@ -36,7 +29,7 @@ export default class MergeDiscover {
         );
     }
 
-    public discover(onProgress?: (ticks: ITicks) => void): Promise<IDatetimeDiscoverFileResult[]> {
+    public discover(onProgress?: (ticks: Progress.ITicks) => void): Promise<IDatetimeDiscoverFileResult[]> {
         const results: IDatetimeDiscoverFileResult[] = [];
         return new Promise((resolve, reject) => {
             // Remember active session
@@ -45,7 +38,7 @@ export default class MergeDiscover {
             const discoverItems: IDiscoverItem[] = this._files.map((file: string) => {
                 return { path: file };
             });
-            const onNotification = (notification: INeonNotification) => {
+            const onNotification = (notification: Progress.INeonNotification) => {
                 ServiceNotifications.notifyFromNeon(
                     notification,
                     "discover timestamps",
@@ -53,19 +46,19 @@ export default class MergeDiscover {
                 );
             };
             const [futureRes, cancel]: [
-                Promise<AsyncResult>,
+                Promise<Progress.AsyncResult>,
                 () => void,
             ] = indexer.discoverTimespanAsync(
                 discoverItems,
-                TimeUnit.fromSeconds(15),
-                (ticks: ITicks) => {
+                Units.TimeUnit.fromSeconds(15),
+                (ticks: Progress.ITicks) => {
                     if (onProgress !== undefined) {
                         completeTicks = ticks.total;
                         onProgress(ticks);
                     }
                 },
 
-                (res: ITimestampFormatResult) => {
+                (res: Progress.ITimestampFormatResult) => {
                     let format = "";
                     if (res.format !== undefined) {
                         format = res.format;

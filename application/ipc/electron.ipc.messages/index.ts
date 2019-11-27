@@ -199,6 +199,12 @@ export { HotkeyInputIn };
 import { HotkeyInputOut } from './hotkey.input.out';
 export { HotkeyInputOut };
 
+import { IDLTStatsCancelRequest, DLTStatsCancelRequest } from './dlt.filestats.cancel.request';
+export { IDLTStatsCancelRequest, DLTStatsCancelRequest };
+
+import { IDLTStatsCancelResponse, DLTStatsCancelResponse } from './dlt.filestats.cancel.response';
+export { IDLTStatsCancelResponse, DLTStatsCancelResponse };
+
 import { IDLTStatsRequest, DLTStatsRequest } from './dlt.filestats.request';
 export { IDLTStatsRequest, DLTStatsRequest };
 
@@ -282,6 +288,8 @@ export type TMessage =  HostState |
                         HotkeyResume |
                         DLTStatsRequest |
                         DLTStatsResponse |
+                        DLTStatsCancelRequest |
+                        DLTStatsCancelResponse |
                         UpdateRequest |
                         RenderSessionAddRequest |
                         RenderSessionAddResponse;
@@ -371,6 +379,8 @@ export const Map = {
 
     [DLTStatsRequest.signature              ]: DLTStatsRequest,
     [DLTStatsResponse.signature             ]: DLTStatsResponse,
+    [DLTStatsCancelRequest.signature        ]: DLTStatsCancelRequest,
+    [DLTStatsCancelResponse.signature       ]: DLTStatsCancelResponse,
 
     [UpdateRequest.signature                ]: UpdateRequest,
 

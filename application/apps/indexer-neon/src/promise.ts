@@ -49,12 +49,12 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
         return this;
     }
 
-    public cancel(callback: TCanceler<C>): CancelablePromise<T, C, EN, EH> {
+    public canceled(callback: TCanceler<C>): CancelablePromise<T, C, EN, EH> {
         this._cancelers.push(callback);
         return this;
     }
 
-    public break(reason: C): CancelablePromise<T, C, EN, EH> {
+    public abort(reason: C): CancelablePromise<T, C, EN, EH> {
         if (this._cancellation === undefined) {
             this._doCancel(reason);
         } else {

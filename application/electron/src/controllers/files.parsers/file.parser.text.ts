@@ -1,13 +1,12 @@
 import { AFileParser, IFileParserFunc, IMapItem } from "./interface";
 import { Transform } from "stream";
 import * as path from "path";
-import { indexer, ITicks, TimeUnit, IChunk } from "indexer-neon";
+import indexer, { Progress, Units } from "indexer-neon";
 import ServiceStreams from "../../services/service.streams";
 import * as ft from "file-type";
 import * as fs from "fs";
 import { Subscription } from "../../tools/index";
 import Logger from "../../tools/env.logger";
-import { INeonTransferChunk, INeonNotification, AsyncResult } from "indexer-neon";
 import ServiceNotifications, { ENotificationType } from "../../services/service.notifications";
 
 const ExtNames = ["txt", "log", "logs", "json", "less", "css", "sass", "ts", "js"];
@@ -114,29 +113,29 @@ export default class FileParser extends AFileParser {
         sourceId: string,
         options: { [key: string]: any },
         onMapUpdated?: (map: IMapItem[]) => void,
-        onProgress?: (ticks: ITicks) => void,
+        onProgress?: (ticks: Progress.ITicks) => void,
     ): Promise<IMapItem[]> {
         // TODO remove options argument
         this._guid = ServiceStreams.getActiveStreamId();
         let completeTicks: number = 0;
-        const onNotification = (notification: INeonNotification) => {
+        const onNotification = (notification: Progress.INeonNotification) => {
             ServiceNotifications.notifyFromNeon(notification, "Indexing", this._guid, srcFile);
         };
         return new Promise((resolve, reject) => {
             const collectedChunks: IMapItem[] = [];
             const hrstart = process.hrtime();
-            const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexer.indexAsync(
+            const [futureRes, cancel]: [Promise<Progress.AsyncResult>, () => void] = indexer.indexAsync(
                 500,
                 srcFile,
-                TimeUnit.fromSeconds(15),
+                Units.TimeUnit.fromSeconds(15),
                 destFile,
-                (ticks: ITicks) => {
+                (ticks: Progress.ITicks) => {
                     if (onProgress !== undefined) {
                         completeTicks = ticks.total;
                         onProgress(ticks);
                     }
                 },
-                (e: IChunk) => {
+                (e: Progress.IChunk) => {
                     if (onMapUpdated !== undefined) {
                         const mapItem: IMapItem = {
                             rows: { from: e.rowsStart, to: e.rowsEnd },

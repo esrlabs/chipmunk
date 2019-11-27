@@ -1,6 +1,8 @@
 import { Transform } from 'stream';
 import { IMapItem } from '../stream.main/file.map';
-import { ITicks } from "indexer-neon";
+import { Progress } from "indexer-neon";
+
+type ITicks = Progress.ITicks;
 
 export { IMapItem, ITicks };
 
@@ -23,7 +25,7 @@ export interface AFileParser {
         sourceId: string | number,
         options: { [key: string]: any }, // TODO [dmitry]: get rid of options, add typed interface
         onMapUpdated?: (map: IMapItem[]) => void,
-        onProgress?: (ticks: ITicks) => void): Promise<IMapItem[]>;
+        onProgress?: (ticks: Progress.ITicks) => void): Promise<IMapItem[]>;
 }
 
 export abstract class AFileParser {

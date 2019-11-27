@@ -5,7 +5,7 @@ import { Subscription } from "../../tools/index";
 import { IService } from "../../interfaces/interface.service";
 import { IFile } from "../../../../ipc/electron.ipc.messages/concat.files.request";
 import ConcatFiles from "../../controllers/features/concat/concat.files";
-import { ITicks } from "indexer-neon";
+import { Progress } from "indexer-neon";
 import * as Tools from "../../tools/index";
 import { IMapItem } from "../../controllers/files.parsers/interface";
 
@@ -82,7 +82,7 @@ class ServiceConcatFiles implements IService {
                     parser: file.parser,
                 };
             }),
-            (ticks: ITicks) => {
+            (ticks: Progress.ITicks) => {
                 ServiceStreams.updateProgressSession(
                     trackingId,
                     ticks.ellapsed / ticks.total,
