@@ -14,7 +14,19 @@ import {
     concatFilesAsync,
     ConcatenatorInput,
 } from "./merger";
-import { IIndexDltParams, dltStatsAsync, indexDltAsync, DltFilterConf, IIndexDltProcessingOptions, IIndexDltProcessingCallbacks } from "./dlt";
+import { 
+    IIndexDltParams,
+    dltStatsAsync,
+    indexDltAsync,
+    DltFilterConf,
+    IIndexDltProcessingOptions,
+    IIndexDltProcessingCallbacks,
+    TIndexDltAsyncEventCB,
+    TIndexDltAsyncEventChunk,
+    TIndexDltAsyncEventNotification,
+    TIndexDltAsyncEventProgress,
+    TIndexDltAsyncEvents,
+} from "./dlt";
 import {
     ITicks,
     AsyncResult,
@@ -41,6 +53,11 @@ export {
     ITimestampFormatResult,
     IIndexDltProcessingCallbacks,
     IIndexDltProcessingOptions,
+    TIndexDltAsyncEvents,
+    TIndexDltAsyncEventCB,
+    TIndexDltAsyncEventChunk,
+    TIndexDltAsyncEventNotification,
+    TIndexDltAsyncEventProgress,
 };
 
 export interface LevelDistribution {
@@ -100,7 +117,7 @@ export interface IChipmunkIndexer {
         params      : IIndexDltParams,
         callbacks   : IIndexDltProcessingCallbacks,
         options?    : IIndexDltProcessingOptions,
-    ) => CancelablePromise<void, void>;
+    ) => CancelablePromise<void, void, TIndexDltAsyncEvents, TIndexDltAsyncEventCB>;
     detectTimestampInString: (input: string) => string;
     detectTimestampFormatInFile: (input: string) => string;
     discoverTimespanAsync: (

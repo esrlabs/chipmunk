@@ -102,12 +102,19 @@ export function dltStatsAsync(
     ];
 }
 
+export interface IMapItem { bytesStart: number; bytesEnd: number; rowsStart: number; rowsEnd: number; };
+export type TIndexDltAsyncEvents = 'chunk' | 'progress' | 'notification';
+export type TIndexDltAsyncEventChunk = (event: { bytesStart: number, bytesEnd: number, rowsStart: number, rowsEnd: number }) => void;
+export type TIndexDltAsyncEventProgress = (event: ITicks) => void;
+export type TIndexDltAsyncEventNotification = (event: INeonNotification) => void;
+export type TIndexDltAsyncEventCB = TIndexDltAsyncEventChunk | TIndexDltAsyncEventProgress | TIndexDltAsyncEventNotification;
+
 export function indexDltAsync(
     params      : IIndexDltParams,
     callbacks   : IIndexDltProcessingCallbacks,
     options?    : IIndexDltProcessingOptions,
-): CancelablePromise<void, void> {
-    return new CancelablePromise<void, void>((resolve, reject, cancel, refCancelCB, self) => {
+): CancelablePromise<void, void, TIndexDltAsyncEvents, TIndexDltAsyncEventCB> {
+    return new CancelablePromise<void, void, TIndexDltAsyncEvents, TIndexDltAsyncEventCB>((resolve, reject, cancel, refCancelCB, self) => {
         try {
             log(`using fibex: ${params.fibex}`);
             // Get defaults options
