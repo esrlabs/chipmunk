@@ -2,10 +2,8 @@
 
 import { Component, ChangeDetectorRef, Input, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { IPortInfo, IPortState } from '../../common/interface.portinfo';
-import { IOptions, CDefaultOptions} from '../../common/interface.options';
+import { IOptions } from '../../common/interface.options';
 import { SidebarVerticalPortOptionsWriteComponent } from '../sidebar.vertical/port.options.write/component';
-
-import * as Toolkit from 'chipmunk.client.toolkit';
 
 interface IConnected {
     port: IPortInfo;
@@ -48,12 +46,12 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
 
     constructor(private _cdRef: ChangeDetectorRef) {
     }
-    
+
     ngOnInit() {
         this._ng_spyState = this._getSpyState();
         this._ng_ports = this._requestPortList();
         this._ng_ports.forEach(port => {
-            if(this._ng_spyState[port.comName] === undefined) {
+            if (this._ng_spyState[port.comName] === undefined ) {
                 this._ng_spyState[port.comName] = 0;
             }
         });
