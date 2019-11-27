@@ -2,7 +2,7 @@ import { ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 import { Readable } from 'stream';
 import { IPCMessagePackage } from './plugin.process.ipc.messagepackage';
-import * as IPCMessages from '../../../../ipc/plugins.ipc.messages/index';
+import * as IPCMessages from '../../../../common/ipc/plugins.ipc.messages/index';
 import ServiceElectron from '../../services/service.electron';
 import Logger from '../../tools/env.logger';
 import { guid, Subscription, THandler } from '../../tools/index';

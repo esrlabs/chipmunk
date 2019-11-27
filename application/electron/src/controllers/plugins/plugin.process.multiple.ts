@@ -1,7 +1,7 @@
 import * as Path from 'path';
 import * as FS from '../../tools/fs';
 import * as Net from 'net';
-import * as IPCPluginMessages from '../../../../ipc/plugins.ipc.messages/index';
+import * as IPCPluginMessages from '../../../../common/ipc/plugins.ipc.messages/index';
 import { ChildProcess, fork } from 'child_process';
 import { Emitter } from '../../tools/index';
 import { IPlugin } from '../../services/service.plugins';

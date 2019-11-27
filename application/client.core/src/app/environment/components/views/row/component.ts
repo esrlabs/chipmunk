@@ -13,7 +13,7 @@ import { IComponentDesc } from 'chipmunk-client-containers';
 import { AOutputRenderComponent } from '../../../interfaces/interface.output.render';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
-import { ENotificationType } from '../../../../../../../ipc/electron.ipc.messages/index';
+import { ENotificationType } from '../../../../../../../common/ipc/electron.ipc.messages/index';
 
 enum ERenderType {
     standard = 'standard',

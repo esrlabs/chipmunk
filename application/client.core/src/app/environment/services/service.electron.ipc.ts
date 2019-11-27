@@ -1,6 +1,6 @@
 declare var Electron: any;
 import { guid, Subscription, THandler, Logger } from 'chipmunk.client.toolkit';
-import * as IPCMessages from '../../../../../ipc/electron.ipc.messages/index';
+import * as IPCMessages from '../../../../../common/ipc/electron.ipc.messages/index';
 import { IPCMessagePackage } from './service.electron.ipc.messagepackage';
 import { IService } from '../interfaces/interface.service';
 export { IPCMessages, Subscription, THandler };

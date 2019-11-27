@@ -23,7 +23,6 @@ class ServiceFilePicker implements IService {
     private _logger: Logger = new Logger('ServiceFilePicker');
     // Should detect by executable file
     private _subscription: { [key: string]: Subscription } = {};
-    private _options: any;
 
     /**
      * Initialization function

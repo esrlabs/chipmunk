@@ -5,7 +5,7 @@ import {
     ENotificationType,
     INotificationAction,
     ENotificationActionType,
-} from "../../../ipc/electron.ipc.messages/index";
+} from "../../../common/ipc/electron.ipc.messages/index";
 import ServiceElectron from "./service.electron";
 import Logger from "../tools/env.logger";
 import { Progress } from "indexer-neon";

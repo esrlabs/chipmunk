@@ -1,13 +1,12 @@
 import { AControllerFileOptions } from '../../interfaces/interface.controller.file.options';
 import { IPCMessages } from '../../services/service.electron.ipc';
-import { DialogsFileOptionsDltComponent, IDLTOptions, IDLTFilters } from '../../components/dialogs/file.options.dlt/component';
+import { DialogsFileOptionsDltComponent } from '../../components/dialogs/file.options.dlt/component';
 import PopupsService from '../../services/standalone/service.popups';
-
-export { IDLTOptions, IDLTFilters };
+import { CommonInterfaces } from '../../interfaces/interface.common';
 
 export class ControllerDltFileOptions extends AControllerFileOptions {
 
-    public getOptions(request: IPCMessages.FileGetOptionsRequest): Promise<IDLTOptions> {
+    public getOptions(request: IPCMessages.FileGetOptionsRequest): Promise<CommonInterfaces.DLT.IDLTOptions> {
         return new Promise((resolve, reject) => {
             const guid: string = PopupsService.add({
                 options: {
@@ -21,7 +20,7 @@ export class ControllerDltFileOptions extends AControllerFileOptions {
                         fileName: request.fileName,
                         fullFileName: request.fullFileName,
                         size: request.size,
-                        onDone: (options: IDLTOptions) => {
+                        onDone: (options: CommonInterfaces.DLT.IDLTOptions) => {
                             PopupsService.remove(guid);
                             resolve(options);
                         },
