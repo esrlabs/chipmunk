@@ -7,7 +7,6 @@ import {
 import indexer, { CancelablePromise, Processor, Progress, Units } from "indexer-neon";
 import Logger from "../../../tools/env.logger";
 import ServiceNotifications from "../../../services/service.notifications";
-import { IDiscoverItem } from "../../../../../apps/indexer-neon/dist/progress";
 import { Subscription } from "../../../tools/index";
 
 export { IDatetimeDiscoverResult };
@@ -36,7 +35,7 @@ export default class MergeDiscover {
             // Remember active session
             let completeTicks: number = 0;
             const hrstart = process.hrtime();
-            const discoverItems: IDiscoverItem[] = this._files.map((file: string) => {
+            const discoverItems: Progress.IDiscoverItem[] = this._files.map((file: string) => {
                 return { path: file };
             });
             this._task = indexer.discoverTimespanAsync(discoverItems, { maxTime: Units.TimeUnit.fromSeconds(15) }).then(() => {

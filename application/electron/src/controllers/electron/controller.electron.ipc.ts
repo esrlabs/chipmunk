@@ -4,7 +4,7 @@ import Logger from '../../tools/env.logger';
 
 import { ipcMain, WebContents } from 'electron';
 import { guid, Subscription, THandler } from '../../tools/index';
-import * as IPCMessages from '../../../../ipc/electron.ipc.messages/index';
+import * as IPCMessages from '../../../../common/ipc/electron.ipc.messages/index';
 import { IPCMessagePackage } from './controller.electron.ipc.messagepackage';
 import ServicePlugins from '../../services/service.plugins';
 

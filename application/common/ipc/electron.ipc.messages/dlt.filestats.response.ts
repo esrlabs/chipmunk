@@ -1,9 +1,10 @@
-import { DLT } from '../../apps/indexer-neon';
+
+import * as CommonInterfaces from '../../interfaces/index';
 
 export interface IDLTStatsResponse {
     id: string;
     session: string;
-    stats: DLT.StatisticInfo | undefined;
+    stats: CommonInterfaces.DLT.StatisticInfo | undefined;
     error?: string;
     logs?: ILogMessage[];
 }
@@ -20,7 +21,7 @@ export class DLTStatsResponse {
     public static signature: string = 'DLTStatsResponse';
     public signature: string = DLTStatsResponse.signature;
     public id: string = '';
-    public stats: DLT.StatisticInfo | undefined;
+    public stats: CommonInterfaces.DLT.StatisticInfo | undefined;
     public session: string = '';
     public error: string | undefined;
     public logs: ILogMessage[] | undefined;

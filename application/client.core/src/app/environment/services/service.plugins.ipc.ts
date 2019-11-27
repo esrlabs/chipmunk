@@ -1,6 +1,6 @@
 
 import * as Toolkit from 'chipmunk.client.toolkit';
-import * as IPCElectronMessages from '../../../../../ipc/electron.ipc.messages/index';
+import * as IPCElectronMessages from '../../../../../common/ipc/electron.ipc.messages/index';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
 import ServiceElectronIpc from './service.electron.ipc';
 import { IService } from '../interfaces/interface.service';

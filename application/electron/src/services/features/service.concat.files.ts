@@ -3,7 +3,7 @@ import ServiceStreams, { IStreamInfo } from "../service.streams";
 import Logger from "../../tools/env.logger";
 import { Subscription } from "../../tools/index";
 import { IService } from "../../interfaces/interface.service";
-import { IFile } from "../../../../ipc/electron.ipc.messages/concat.files.request";
+import { IFile } from "../../../../common/ipc/electron.ipc.messages/concat.files.request";
 import ConcatFiles from "../../controllers/features/concat/concat.files";
 import { Progress } from "indexer-neon";
 import * as Tools from "../../tools/index";
