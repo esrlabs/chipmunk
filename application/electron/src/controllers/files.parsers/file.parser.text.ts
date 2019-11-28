@@ -1,7 +1,6 @@
-import { AFileParser, IFileParserFunc, IMapItem } from "./interface";
-import { Transform } from "stream";
+import { AFileParser, IMapItem } from "./interface";
 import * as path from "path";
-import indexer, { CancelablePromise, Processor, Progress, Units } from "indexer-neon";
+import indexer, { CancelablePromise, Processor, Progress } from "indexer-neon";
 import ServiceStreams from "../../services/service.streams";
 import * as ft from "file-type";
 import * as fs from "fs";
