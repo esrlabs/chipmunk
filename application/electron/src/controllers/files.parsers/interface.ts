@@ -1,4 +1,3 @@
-import { Transform } from 'stream';
 import { IMapItem } from '../stream.main/file.map';
 import { Progress } from "indexer-neon";
 import { CancelablePromise } from '../../tools/index';
@@ -10,12 +9,6 @@ export { IMapItem, ITicks };
 export interface IReadWriteResult {
     streamId: string;
     map: IMapItem[];
-}
-
-export interface IFileParserFunc {
-    parse: (chunk: Buffer) => Promise<string | Buffer>;
-    rest: () => string | Buffer;
-    close: () => void;
 }
 
 export abstract class AFileParser {
