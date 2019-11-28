@@ -314,20 +314,25 @@ export function testCancelledAsyncDltIndexing(
         stdout: false,
         statusUpdates: true,
     };
-    const [futureRes, cancel]: [Promise<AsyncResult>, () => void] = indexer.indexDltAsync(
-        dltParams,
-        TimeUnit.fromSeconds(60),
-        helper.onProgress,
-        helper.onChunk,
-        helper.onNotification,
-    );
+    const task = indexer.indexDltAsync(dltParams).then(() => {
+        helper.done(AsyncResult.Completed);
+    }).catch((error: Error) => {
+        log.trace(`Failed with error: ${error.message}`);
+    }).canceled(() => {
+        log.trace(`Operation was canceled`);
+    }).on('chunk', (event: Progress.IChunk) => {
+        helper.onChunk(event);
+    }).on('progress', (event: Progress.ITicks) => {
+        helper.onProgress(event);
+    }).on('notification', (notification: Progress.INeonNotification) => {
+        helper.onNotification(notification);
+    });
     setTimeout(function() {
         log.trace("cancelling operation after timeout");
-        cancel();
+        task.abort();
     }, 500);
-
-    log.trace("res: " + futureRes);
 }
+
 export function testDltIndexingAsync(
     fileToIndex: string,
     outPath: string,
