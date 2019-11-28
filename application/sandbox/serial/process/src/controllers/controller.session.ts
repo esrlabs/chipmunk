@@ -14,6 +14,8 @@ export interface IPortError {
     port: string;
 }
 
+const PSEUDO_SESSION = `*`
+
 export class ControllerSession {
 
     private _session: string;
@@ -97,17 +99,17 @@ export class ControllerSession {
             Promise.all(
                 options.map((option: IOptions) => {
                     this._ports.push(option.path);
-                    return ServicePorts.refPort(this._session, option, {
+                    return ServicePorts.refPort(PSEUDO_SESSION, option, {
                         onData: this._readSpyLoad.bind(this, option.path),
                         onError: this._onPortError.bind(this, option.path),
                         onDisconnect: this._onSpyPortDisconnect.bind(this, option.path)
                     });
                 }),
             ).then(() => {
-                this._logger.env(`Ports have been assigned with session "${this._session}" to spy on`);
+                this._logger.env(`Starting to spy`);
                 resolve();
             }).catch((openErr: Error) => {
-                reject(new Error(this._logger.error(`Fail to open ports due error: ${openErr.message}`)));
+                reject(new Error(this._logger.error(`Failed to start spying on ports due to error: ${openErr.message}`)));
             });
 
         })
@@ -118,18 +120,18 @@ export class ControllerSession {
             Promise.all(
                 options.map((option: IOptions) => {
                     if (!this._isPortRefed(option.path)) {
-                        return reject(new Error(this._logger.error(`Port "${option.path}" isn't assigned with session "${this._session}"`)));
+                        return reject(new Error(this._logger.error(`Port "${option.path}" isn't being spied on`)));
                     }
                     this._removePort(option.path);
-                    return ServicePorts.unrefPort(this._session, option.path).catch((error: Error) => {
-                        this._logger.error(`Fail unref normally port "${option.path}" from session "${this._session}" due error: ${error.message}`);
+                    return ServicePorts.unrefPort(PSEUDO_SESSION, option.path).catch((error: Error) => {
+                        this._logger.error(`Failed to unref normally port "${option.path}" while spying due to error: ${error.message}`);
                     });
                 })
             ).then(() => {
-                this._logger.env(`Ports no longer assigned with session "${this._session}" to spy on`);
+                this._logger.env(`Ports no longer being spied on`);
                 resolve();
             }).catch((openErr: Error) => {
-                reject(new Error(this._logger.error(`Fail to close ports due error: ${openErr.message}`)));
+                reject(new Error(this._logger.error(`Failed to stop spying to due error: ${openErr.message}`)));
             });
         });
     }

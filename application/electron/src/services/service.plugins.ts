@@ -676,7 +676,6 @@ export class ServicePlugins implements IService {
 
     private _initSingleSessionPlugins(): Promise<void> {
         return new Promise((resolve) => {
-            debugger
             const plugins: IPlugin[] = [];
             this._plugins.forEach((plugin: IPlugin) => {
                 if (plugin.packages.process === undefined) {
