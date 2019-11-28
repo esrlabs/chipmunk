@@ -46,7 +46,7 @@ export default class MergeFiles {
 
     public write(onMapUpdated: (map: IMapItem[]) => void): Tools.CancelablePromise<number, void> {
         return new Tools.CancelablePromise<number, void>((resolve, reject, cancel, self) => {
-            const measuring = this._logger.measure("concatenate");
+            const measuring = this._logger.measure("merning");
             const sessionData = ServiceStreams.getStreamFile(this._session);
             if (sessionData instanceof Error) {
                 measuring();
@@ -55,7 +55,7 @@ export default class MergeFiles {
             this._task = indexer.mergeFilesAsync(
                 this._absolutePathConfig,
                 sessionData.file,
-                { append: true, maxTime: Units.TimeUnit.fromSeconds(2) },
+                { append: true },
             ).then(() => {
                 resolve(this._processedBytes);
             }).catch(e => {
@@ -70,7 +70,6 @@ export default class MergeFiles {
             }).on('progress', (event: Progress.ITicks) => {
                 this._onProgress(event);
             }).on('result', (event: Progress.IChunk) => {
-                this._logger.debug(`merged chunk: ${JSON.stringify(event)}`);
                 if (onMapUpdated !== undefined) {
                     const mapItem: IMapItem = {
                         rows: { from: event.rowsStart, to: event.rowsEnd },

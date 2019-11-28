@@ -28,13 +28,11 @@ export interface IFilePath {
 }
 
 export interface IIndexOptions {
-    maxTime?: TimeUnit;
     chunkSize?: number;
     append?: boolean;
     timestamps?: boolean;
 }
 export interface IIndexOptionsChecked {
-    maxTime: TimeUnit;
     chunkSize: number;
     append: boolean;
     timestamps: boolean;
@@ -58,16 +56,11 @@ export function discoverTimespanAsync(
             refCancelCB(() => {
                 // Cancelation is started, but not canceled
                 log(`Get command "break" operation. Starting breaking.`);
-                clearTimeout(timeout);
                 emitter.requestShutdown();
             });
             const channel = new RustTimestampChannel(filesToDiscover);
             const emitter = new NativeEventEmitter(channel);
             let totalTicks = 1;
-            let timeout = setTimeout(function() {
-                log("TIMED OUT ====> shutting down");
-                emitter.requestShutdown();
-            }, opt.maxTime.inMilliseconds());
             emitter.on(NativeEventEmitter.EVENTS.GotItem, (chunk: ITimestampFormatResult) => {
                 self.emit('chunk', chunk);
             });
@@ -76,7 +69,6 @@ export function discoverTimespanAsync(
                 self.emit('progress', ticks);
             });
             emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
-                clearTimeout(timeout);
                 emitter.shutdownAcknowledged(() => {
                     cancel();
                 });
@@ -85,7 +77,6 @@ export function discoverTimespanAsync(
                 self.emit('notification', notification);
             });
             emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
-                clearTimeout(timeout);
                 self.emit('progress', {
                     ellapsed: totalTicks,
                     total: totalTicks,
@@ -128,7 +119,6 @@ export function indexAsync(
             refCancelCB(() => {
                 // Cancelation is started, but not canceled
                 log(`Get command "break" operation. Starting breaking.`);
-                clearTimeout(timeout);
                 emitter.requestShutdown();
             });
             const channel = new RustIndexerChannel(
@@ -141,10 +131,6 @@ export function indexAsync(
             );
             const emitter = new NativeEventEmitter(channel);
             let totalTicks = 1;
-            let timeout = setTimeout(function() {
-                log("TIMED OUT ====> shutting down");
-                emitter.requestShutdown();
-            }, opt.maxTime.inMilliseconds());
             emitter.on(NativeEventEmitter.EVENTS.GotItem, (c: INeonTransferChunk) => {
                 self.emit('chunk', {
                     bytesStart: c.b[0],
@@ -158,7 +144,6 @@ export function indexAsync(
                 self.emit('progress', ticks);
             });
             emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
-                clearTimeout(timeout);
                 log("indexAsync: we got a stopped");
                 emitter.shutdownAcknowledged(() => {
                     log("indexAsync: shutdown completed");
@@ -170,7 +155,6 @@ export function indexAsync(
                 self.emit('notification', notification);
             });
             emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
-                clearTimeout(timeout);
                 log("indexAsync: we got a finished event");
                 self.emit('progress', {
                     ellapsed: totalTicks,
@@ -207,7 +191,6 @@ function getDefaultProcessorOptions(options: IIndexOptions | undefined): IIndexO
     if (typeof options !== 'object' || options === null) {
         options = {};
     }
-    options.maxTime = options.maxTime instanceof TimeUnit ? options.maxTime : TimeUnit.fromSeconds(60);
     options.append = typeof options.append === 'boolean' ? options.append : false;
     options.timestamps = typeof options.timestamps === 'boolean' ? options.timestamps : false;
     options.chunkSize = typeof options.chunkSize === 'number' ? options.chunkSize : 5000;
