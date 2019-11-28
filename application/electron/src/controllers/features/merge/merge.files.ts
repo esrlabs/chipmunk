@@ -5,7 +5,7 @@ import ServiceStreams from "../../../services/service.streams";
 import ServiceStreamSource from "../../../services/service.stream.sources";
 import ServiceNotifications from "../../../services/service.notifications";
 import * as Tools from "../../../tools/index";
-import indexer, { Progress, Units } from "indexer-neon";
+import indexer, { CancelablePromise, Progress, Units, Merge } from "indexer-neon";
 import Logger from "../../../tools/env.logger";
 import { IMapItem } from "../../../controllers/files.parsers/interface";
 
@@ -26,6 +26,7 @@ export default class MergeFiles {
     private _sourceIds: { [key: string]: number } = {};
     private _writeSessionsId: string = Tools.guid();
     private _onProgress: (ticks: Progress.ITicks) => void;
+    private _task: CancelablePromise<void, void, Merge.TMergeFilesEvents, Merge.TMergeFilesEventObject> | undefined;
 
     constructor(session: string, files: IFile[], onProgress: (ticks: Progress.ITicks) => void) {
         this._files = files;
@@ -43,46 +44,42 @@ export default class MergeFiles {
         });
     }
 
-    public write(onMapUpdated: (map: IMapItem[]) => void): Promise<number> {
-        return new Promise((resolve, reject) => {
+    public write(onMapUpdated: (map: IMapItem[]) => void): Tools.CancelablePromise<number, void> {
+        return new Tools.CancelablePromise<number, void>((resolve, reject, cancel, self) => {
             const measuring = this._logger.measure("concatenate");
             const sessionData = ServiceStreams.getStreamFile(this._session);
             if (sessionData instanceof Error) {
                 measuring();
                 return reject(sessionData);
             }
-            const onNotification = (notification: Progress.INeonNotification) => {
-                ServiceNotifications.notifyFromNeon(notification, "DLT-Indexing", this._session);
-            };
-            const onResult = (res: Progress.IChunk) => {
-                this._logger.debug(`merged chunk: ${JSON.stringify(res)}`);
-                if (onMapUpdated !== undefined) {
-                    const mapItem: IMapItem = {
-                        rows: { from: res.rowsStart, to: res.rowsEnd },
-                        bytes: { from: res.bytesStart, to: res.bytesEnd },
-                    };
-                    onMapUpdated([mapItem]);
-                    this._processedBytes = res.bytesEnd;
-                }
-            };
-            const [futureRes, cancel]: [Promise<Progress.AsyncResult>, () => void] = indexer.mergeFilesAsync(
+            this._task = indexer.mergeFilesAsync(
                 this._absolutePathConfig,
                 sessionData.file,
-                true,
-                Units.TimeUnit.fromSeconds(2),
-                this._onProgress,
-                onResult,
-                onNotification,
-            );
-            futureRes
-                .then(() => {
-                    measuring();
-                    resolve(this._processedBytes);
-                })
-                .catch(e => {
-                    measuring();
-                    reject(e);
-                });
+                { append: true, maxTime: Units.TimeUnit.fromSeconds(2) },
+            ).then(() => {
+                resolve(this._processedBytes);
+            }).catch(e => {
+                reject(e);
+            }).finally(() => {
+                this._task = undefined;
+                measuring();
+            }).canceled(() => {
+                cancel();
+            }).on('notification', (event: Progress.INeonNotification) => {
+                ServiceNotifications.notifyFromNeon(event, "DLT-Indexing", this._session);
+            }).on('progress', (event: Progress.ITicks) => {
+                this._onProgress(event);
+            }).on('result', (event: Progress.IChunk) => {
+                this._logger.debug(`merged chunk: ${JSON.stringify(event)}`);
+                if (onMapUpdated !== undefined) {
+                    const mapItem: IMapItem = {
+                        rows: { from: event.rowsStart, to: event.rowsEnd },
+                        bytes: { from: event.bytesStart, to: event.bytesEnd },
+                    };
+                    onMapUpdated([mapItem]);
+                    this._processedBytes = event.bytesEnd;
+                }
+            });
         });
     }
 
@@ -90,6 +87,17 @@ export default class MergeFiles {
         ServiceStreams.removeProgressSession(this._writeSessionsId, this._session);
         // Drop all others
         this._sourceIds = {};
+    }
+
+    public abort(): Promise<void> {
+        return new Promise((resolve) => {
+            if (this._task === undefined) {
+                return resolve();
+            }
+            this._task.canceled(() => {
+                resolve();
+            }).abort();
+        });
     }
 
     private registerSourceMarkers() {
@@ -101,31 +109,4 @@ export default class MergeFiles {
         });
     }
 
-    private _getSize(): Promise<number> {
-        return new Promise((resolve, reject) => {
-            let size: number = 0;
-            Promise.all(
-                this._files.map((file: IFile) => {
-                    return new Promise((resolveFile, rejectFile) => {
-                        fs.stat(
-                            file.file,
-                            (error: NodeJS.ErrnoException | null, stats: fs.Stats) => {
-                                if (error !== null) {
-                                    return rejectFile(error);
-                                }
-                                size += stats.size;
-                                resolveFile();
-                            },
-                        );
-                    });
-                }),
-            )
-                .then(() => {
-                    resolve(size);
-                })
-                .catch(error => {
-                    reject(error);
-                });
-        });
-    }
 }

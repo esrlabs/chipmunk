@@ -52,22 +52,18 @@ export interface IIndexDltOptions {
 export interface IIndexDltOptionsChecked {
     maxTime: TimeUnit;
 }
-export interface IIndexDltCallbacks {
-    onProgress: (ticks: ITicks) => any;
-    onChunk: (chunk: IChunk) => any;
-    onNotification: (notification: INeonNotification) => void;
-}
-export interface IStatsDltCallbacks {
-    onProgress: (ticks: ITicks) => any;
-    onConfig: (chunk: StatisticInfo) => any;
-}
+
+export type TDltStatsEvents = 'config' | 'progress' | 'notification';
+export type TDltStatsEventConfig = (event: StatisticInfo) => void;
+export type TDltStatsEventProgress = (event: ITicks) => void;
+export type TDltStatsEventNotification = (event: INeonNotification) => void;
+export type TDltStatsEventObject = TDltStatsEventConfig | TDltStatsEventProgress | TDltStatsEventNotification;
 
 export function dltStatsAsync(
     dltFile     : string,
-    callbacks   : IStatsDltCallbacks,
     options?    : IIndexDltOptions,
-): CancelablePromise<void, void> {
-    return new CancelablePromise<void, void>((resolve, reject, cancel, refCancelCB, self) => {
+): CancelablePromise<void, void, TDltStatsEvents, TDltStatsEventObject> {
+    return new CancelablePromise<void, void, TDltStatsEvents, TDltStatsEventObject>((resolve, reject, cancel, refCancelCB, self) => {
         try {
             // Get defaults options
             const opt = getDefaultIndexDltProcessingOptions(options);
@@ -86,34 +82,26 @@ export function dltStatsAsync(
                 emitter.requestShutdown();
             }, opt.maxTime.inMilliseconds());
             emitter.on(NativeEventEmitter.EVENTS.GotItem, (chunk: StatisticInfo) => {
-                if (!self.isProcessing()) {
-                    log(`refuse to call "GotItem" because cancelation was called`);
-                    return;
-                }
-                callbacks.onConfig(chunk);
+                self.emit('config', chunk);
             });
             emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
-                if (!self.isProcessing()) {
-                    log(`refuse to call "GotItem" because cancelation was called`);
-                    return;
-                }
                 total = ticks.total;
-                callbacks.onProgress(ticks);
+                self.emit('progress', ticks);
             });
             emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
                 clearTimeout(timeout);
                 emitter.shutdownAcknowledged(() => {
-                    callbacks.onProgress({ ellapsed: total, total });
                     cancel();
                 });
             });
-            emitter.on(NativeEventEmitter.EVENTS.Notification, (n: INeonNotification) => {
-                log("dltStats: we got a notification: " + JSON.stringify(n));
+            emitter.on(NativeEventEmitter.EVENTS.Notification, (notification: INeonNotification) => {
+                log("dltStats: we got a notification: " + JSON.stringify(notification));
+                self.emit('notification', notification);
             });
             emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
                 clearTimeout(timeout);
                 emitter.shutdownAcknowledged(() => {
-                    callbacks.onProgress({ ellapsed: total, total });
+                    self.emit('progress', { ellapsed: total, total });
                     resolve();
                 });
             });
@@ -135,14 +123,13 @@ export type TIndexDltAsyncEvents = 'chunk' | 'progress' | 'notification';
 export type TIndexDltAsyncEventChunk = (event: IChunk) => void;
 export type TIndexDltAsyncEventProgress = (event: ITicks) => void;
 export type TIndexDltAsyncEventNotification = (event: INeonNotification) => void;
-export type TIndexDltAsyncEventCB = TIndexDltAsyncEventChunk | TIndexDltAsyncEventProgress | TIndexDltAsyncEventNotification;
+export type TIndexDltAsyncEventObject = TIndexDltAsyncEventChunk | TIndexDltAsyncEventProgress | TIndexDltAsyncEventNotification;
 
 export function indexDltAsync(
     params      : IIndexDltParams,
-    callbacks   : IIndexDltCallbacks,
     options?    : IIndexDltOptions,
-): CancelablePromise<void, void, TIndexDltAsyncEvents, TIndexDltAsyncEventCB> {
-    return new CancelablePromise<void, void, TIndexDltAsyncEvents, TIndexDltAsyncEventCB>((resolve, reject, cancel, refCancelCB, self) => {
+): CancelablePromise<void, void, TIndexDltAsyncEvents, TIndexDltAsyncEventObject> {
+    return new CancelablePromise<void, void, TIndexDltAsyncEvents, TIndexDltAsyncEventObject>((resolve, reject, cancel, refCancelCB, self) => {
         try {
             log(`using fibex: ${params.fibex}`);
             // Get defaults options
@@ -175,11 +162,7 @@ export function indexDltAsync(
             }, opt.maxTime.inMilliseconds());
             // Add listenters
             emitter.on(NativeEventEmitter.EVENTS.GotItem, (c: INeonTransferChunk) => {
-                if (!self.isProcessing()) {
-                    log(`refuse to call "GotItem" because cancelation was called`);
-                    return;
-                }
-                callbacks.onChunk({
+                self.emit('chunk', {
                     bytesStart: c.b[0],
                     bytesEnd: c.b[1],
                     rowsStart: c.r[0],
@@ -187,11 +170,7 @@ export function indexDltAsync(
                 });
             });
             emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
-                if (!self.isProcessing()) {
-                    log(`refuse to call "Progress" because cancelation was called`);
-                    return;
-                }
-                callbacks.onProgress(ticks);
+                self.emit('progress', ticks);
             });
             emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
                 log("we got a stopped event after " + chunks + " chunks");
@@ -202,12 +181,8 @@ export function indexDltAsync(
                     cancel();
                 });
             });
-            emitter.on(NativeEventEmitter.EVENTS.Notification, (n: INeonNotification) => {
-                if (!self.isProcessing()) {
-                    log(`refuse to call "Notification" because cancelation was called`);
-                    return;
-                }
-                callbacks.onNotification(n);
+            emitter.on(NativeEventEmitter.EVENTS.Notification, (notification: INeonNotification) => {
+                self.emit('notification', notification);
             });
             emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
                 log("we got a finished event " + chunks + " chunks");

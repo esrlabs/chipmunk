@@ -25,8 +25,8 @@ class ServiceFileOpener implements IService {
 
     private _logger: Logger = new Logger('ServiceFileOpener');
     // Should detect by executable file
-    private _subscription: { [key: string]: Subscription } = {};
-    private _options: any;
+    private _subscriptions: { [key: string]: Subscription } = {};
+    private _active: Map<string, AFileParser> = new Map<string, AFileParser>();
 
     /**
      * Initialization function
@@ -35,40 +35,39 @@ class ServiceFileOpener implements IService {
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
             Promise.all([
-                new Promise((res, rej) => {
-                    ServiceElectron.IPC.subscribe(IPCMessages.FileOpenRequest, this._ipc_FileOpenRequest.bind(this)).then((subscription: Subscription) => {
-                        this._subscription.FileOpenRequest = subscription;
-                        res();
-                    }).catch((error: Error) => {
-                        this._logger.error(`Fail to init module due error: ${error.message}`);
-                        rej(error);
-                    });
+                ServiceElectron.IPC.subscribe(IPCMessages.FileOpenRequest, this._ipc_FileOpenRequest.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.FileOpenRequest = subscription;
                 }),
-                new Promise((res, rej) => {
-                    ServiceElectron.IPC.subscribe(IPCMessages.FilesRecentRequest, this._ipc_FilesRecentRequest.bind(this)).then((subscription: Subscription) => {
-                        this._subscription.FilesRecentRequest = subscription;
-                        res();
-                    }).catch((error: Error) => {
-                        this._logger.error(`Fail to init module due error: ${error.message}`);
-                        rej(error);
-                    });
+                ServiceElectron.IPC.subscribe(IPCMessages.FilesRecentRequest, this._ipc_FilesRecentRequest.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.FilesRecentRequest = subscription;
                 }),
             ]).then(() => {
+                this._subscriptions.onSessionClosed = ServiceStreams.getSubjects().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
+                this._subscriptions.openTextFile = ServiceHotkeys.getSubject().openTextFile.subscribe(this._hotkey_openTextFile.bind(this));
+                this._subscriptions.openDltFile = ServiceHotkeys.getSubject().openDltFile.subscribe(this._hotkey_openDltFile.bind(this));
                 resolve();
             }).catch((error: Error) => {
+                this._logger.error(`Fail to init module due error: ${error.message}`);
                 reject(error);
             });
-            this._subscription.openTextFile = ServiceHotkeys.getSubject().openTextFile.subscribe(this._hotkey_openTextFile.bind(this));
-            this._subscription.openDltFile = ServiceHotkeys.getSubject().openDltFile.subscribe(this._hotkey_openDltFile.bind(this));
         });
     }
 
     public destroy(): Promise<void> {
         return new Promise((resolve) => {
-            Object.keys(this._subscription).forEach((key: string) => {
-                this._subscription[key].destroy();
+            Object.keys(this._subscriptions).forEach((key: string) => {
+                this._subscriptions[key].destroy();
             });
-            resolve();
+            if (this._active.size === 0) {
+                return resolve();
+            }
+            Promise.all(Array.from(this._active.values()).map((task: AFileParser) => {
+                return task.abort();
+            })).catch((error: Error) => {
+                this._logger.error(`Fail to abort active tasks due error: ${error.message}`);
+            }).finally(() => {
+                resolve();
+            });
         });
     }
 
@@ -89,44 +88,39 @@ class ServiceFileOpener implements IService {
                     if (detectedParser === undefined) {
                         return reject(new Error(this._logger.warn(`Fail to find parser for file "${file}"`)));
                     }
+                    // To resolve TS type checks, we need this here.
+                    const instanceParser: AFileParser = detectedParser;
                     // Request options to open file
-                    this._getOptions(file, path.basename(file), detectedParser, stats.size).then((options: any) => {
+                    this._getOptions(file, path.basename(file), instanceParser, stats.size).then((options: any) => {
                         if (typeof options === 'boolean') {
                             this._logger.env(`User canceled opening file.`);
                             return resolve(false);
                         }
-                        detectedParser = detectedParser as AFileParser;
                         const trackingId: string = Tools.guid();
-                        this._setProgress(detectedParser, trackingId, file);
-                        if (detectedParser.parseAndIndex === undefined) {
-                            // Pipe file. No direct read/write method
-                            this._pipeSource(file, trackingId, sessionId, detectedParser, options).then(() => {
-                                this._unsetProgress(detectedParser as AFileParser, trackingId, sessionId);
+                        this._setProgress(instanceParser, trackingId, file);
+                        // Trigger progress
+                        this._incrProgress(instanceParser, trackingId, sessionId, 0);
+                        // Store parser
+                        this._active.set(sessionId, instanceParser);
+                        // Parser has direct method of reading and writing
+                        this._directReadWrite(file, sessionId, instanceParser, options, trackingId).then(() => {
+                            instanceParser.destroy().then(() => {
                                 this._saveAsRecentFile(file, stats.size);
                                 resolve(true);
-                            }).catch((pipeError: Error) => {
-                                this._unsetProgress(detectedParser as AFileParser, trackingId, sessionId);
-                                reject(new Error(this._logger.error(`Fail to pipe file "${file}" due error: ${pipeError.message}`)));
                             });
-                        } else {
-                            // Trigger progress
-                            this._incrProgress(detectedParser, trackingId, sessionId, 0);
-                            // Parser has direct method of reading and writing
-                            this._directReadWrite(file, sessionId, detectedParser, options, trackingId).then(() => {
-                                this._unsetProgress(detectedParser as AFileParser, trackingId, sessionId);
-                                ServiceStreams.reattachSessionFileHandle(sessionId);
-                                (detectedParser as AFileParser).destroy();
-                                this._saveAsRecentFile(file, stats.size);
-                                resolve(true);
-                            }).catch((pipeError: Error) => {
-                                this._unsetProgress(detectedParser as AFileParser, trackingId, sessionId);
-                                ServiceStreams.reattachSessionFileHandle(sessionId);
-                                (detectedParser as AFileParser).destroy();
+                        }).catch((pipeError: Error) => {
+                            instanceParser.destroy().then(() => {
                                 reject(new Error(this._logger.error(`Fail to directly read file "${file}" due error: ${pipeError.message}`)));
                             });
-                        }
+                        }).cancel(() => {
+                            this._logger.env(`Reading operation with "${instanceParser.getAlias()}" was canceled`);
+                        }).finally(() => {
+                            this._unsetProgress(instanceParser, trackingId, sessionId);
+                            ServiceStreams.reattachSessionFileHandle(sessionId);
+                            this._active.delete(sessionId);
+                        });
                     }).catch((getOptionsError: Error) => {
-                        reject(new Error(this._logger.error(`File "${file}" (${(detectedParser as AFileParser).getAlias()}) will not be opened due error: ${getOptionsError.message}`)));
+                        reject(new Error(this._logger.error(`File "${file}" (${instanceParser.getAlias()}) will not be opened due error: ${getOptionsError.message}`)));
                     });
                 }).catch((gettingParserError: Error) => {
                     reject(new Error(this._logger.warn(`Fail to find parser due error: ${gettingParserError.message}`)));
@@ -194,38 +188,15 @@ class ServiceFileOpener implements IService {
                 if (!response.allowed) {
                     return resolve(false);
                 }
-                this._options = response.options;
                 resolve(response.options);
             }).catch((error: Error) => {
-                this._options = undefined;
                 reject(error);
             });
         });
     }
 
-    private _pipeSource(file: string, pipeId: string, sessionId: string, parser: AFileParser, options: any): Promise<void> {
-        return new Promise((resolve, reject) => {
-            // Add new description of source
-            const sourceId: number = ServiceStreamSource.add({ name: path.basename(file), session: sessionId });
-            // Create read stream
-            const reader: fs.ReadStream = fs.createReadStream(file);
-            // Pipe file
-            ServiceStreams.pipeWith({
-                reader: reader,
-                sourceId: sourceId,
-                pipeId: pipeId,
-                decoder: parser.getTransform(this._options),
-            }).then(() => {
-                reader.close();
-                resolve();
-            }).catch((error: Error) => {
-                reject(error);
-            });
-        });
-    }
-
-    private _directReadWrite(file: string, sessionId: string, parser: AFileParser, options: { [key: string]: any }, trackingId: string): Promise<void> {
-        return new Promise((resolve, reject) => {
+    private _directReadWrite(file: string, sessionId: string, parser: AFileParser, options: { [key: string]: any }, trackingId: string): Tools.CancelablePromise<void, void> {
+        return new Tools.CancelablePromise<void, void>((resolve, reject, cancel) => {
             // Add new description of source
             const sourceId: number = ServiceStreamSource.add({ name: path.basename(file), session: sessionId });
             // Get destination file
@@ -244,6 +215,8 @@ class ServiceFileOpener implements IService {
                 // Doesn't need to update map here, because it's updated on fly
                 // Notify render
                 resolve();
+            }).cancel(() => {
+                cancel();
             }).catch((error: Error) => {
                 reject(error);
             });
@@ -337,9 +310,19 @@ class ServiceFileOpener implements IService {
     }
 
     private _incrProgress(parser: AFileParser, trackingId: string, sessionId: string, value: number) {
-        if (parser.isTicksSupported()) {
-            ServiceStreams.updateProgressSession(trackingId, value, sessionId);
+        ServiceStreams.updateProgressSession(trackingId, value, sessionId);
+    }
+
+    private _onSessionClosed(guid: string) {
+        // Check for active tasks for session
+        const task: AFileParser | undefined = this._active.get(guid);
+        if (task === undefined) {
+            // No any active tasks for closed session
+            return;
         }
+        task.abort().then(() => {
+            this._logger.env(`Session "${guid}" is closed. Task "${task.getAlias()}" is aborted.`);
+        });
     }
 
 }

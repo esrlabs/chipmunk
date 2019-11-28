@@ -63,12 +63,12 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
         return this;
     }
 
-    public on(event: EN, handler: EH): void {
+    public on(event: EN, handler: EH): CancelablePromise<T, C, EN, EH> {
         if (typeof event !== 'string' || event.trim() === '') {
-            return;
+            return this;
         }
         if (typeof handler !== 'function') {
-            return;
+            return this;
         }
         let handlers: any[] | undefined = this._handlers.get(event);
         if (handlers === undefined) {
@@ -76,6 +76,7 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
         }
         handlers.push(handler);
         this._handlers.set(event, handlers);
+        return this;
     }
 
     public isProcessing(): boolean {

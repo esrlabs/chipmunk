@@ -15,7 +15,7 @@ class ServiceDLTFiles implements IService {
     private _logger: Logger = new Logger("ServiceDLTFiles");
     // Should detect by executable file
     private _subscription: { [key: string]: Subscription } = {};
-    private _tasks: Map<string, CancelablePromise<void, void>> = new Map();
+    private _tasks: Map<string, CancelablePromise<void, void, DLT.TDltStatsEvents, DLT.TDltStatsEventObject>> = new Map();
 
     /**
      * Initialization function
@@ -65,19 +65,7 @@ class ServiceDLTFiles implements IService {
         const hrstart = process.hrtime();
         this._logger.debug("calling _onDLTStatsRequest with params: " + JSON.stringify(req));
         let stats: DLT.StatisticInfo | undefined;
-        const task: CancelablePromise<void, void> = indexer.dltStatsAsync(
-            req.file,
-            {
-                onConfig: (e: DLT.StatisticInfo) => {
-                    // stats
-                    stats = e;
-                },
-                onProgress: (ticks: Progress.ITicks) => {
-                    const value: number = ticks.ellapsed / ticks.total; // 0 < value < 1
-                    ServiceStreams.updateProgressSession(taskId, value, req.session);
-                },
-            },
-        ).then(() => {
+        const task: CancelablePromise<void, void, DLT.TDltStatsEvents, DLT.TDltStatsEventObject> = indexer.dltStatsAsync(req.file).then(() => {
             this._logger.debug("readAndWrite task finished.");
             response(
                 new IPCMessages.DLTStatsResponse({
@@ -111,6 +99,12 @@ class ServiceDLTFiles implements IService {
             this._logger.debug("Execution time for indexing : " + ms + "ms");
             ServiceStreams.removeProgressSession(taskId, req.session);
             this._tasks.delete(taskId);
+        }).on('config', (event: DLT.StatisticInfo) => {
+            // stats
+            stats = event;
+        }).on('progress', (event: Progress.ITicks) => {
+            const value: number = event.ellapsed / event.total; // 0 < value < 1
+            ServiceStreams.updateProgressSession(taskId, value, req.session);
         });
         this._tasks.set(taskId, task);
     }

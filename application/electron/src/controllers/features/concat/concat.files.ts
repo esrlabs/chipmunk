@@ -4,8 +4,9 @@ import * as path from "path";
 import ServiceStreams from "../../../services/service.streams";
 import ServiceStreamSource from "../../../services/service.stream.sources";
 import ServiceNotifications from "../../../services/service.notifications";
-import indexer, { Progress, Merge, Units } from "indexer-neon";
+import indexer, { CancelablePromise, Progress, Merge, Units } from "indexer-neon";
 import Logger from "../../../tools/env.logger";
+import * as Tools from "../../../tools/index";
 import { IMapItem } from "../../../controllers/stream.main/file.map";
 
 export interface IFile {
@@ -21,6 +22,7 @@ export default class ConcatFiles {
     private _absolutePathConfig: Merge.ConcatenatorInput[];
     private _sourceIds: { [key: string]: number } = {};
     private _onProgress: (ticks: Progress.ITicks) => void;
+    private _task: CancelablePromise<void, void, Merge.TConcatFilesEvents, Merge.TConcatFilesEventObject> | undefined;
 
     constructor(session: string, files: IFile[], onProgress: (ticks: Progress.ITicks) => void) {
         this._files = files;
@@ -35,54 +37,57 @@ export default class ConcatFiles {
         });
     }
 
-    public write(onMapUpdated: (map: IMapItem[]) => void): Promise<number> {
-        return new Promise((resolve, reject) => {
+    public write(onMapUpdated: (map: IMapItem[]) => void): Tools.CancelablePromise<number, void> {
+        return new Tools.CancelablePromise<number, void>((resolve, reject, cancel, self) => {
             const measuring = this._logger.measure("concatenate");
             const sessionData = ServiceStreams.getStreamFile(this._session);
             if (sessionData instanceof Error) {
                 measuring();
                 return reject(sessionData);
             }
-            const onNotification = (notification: Progress.INeonNotification) => {
-                ServiceNotifications.notifyFromNeon(notification, "DLT-Indexing", this._session);
-            };
-            const onResult = (res: Progress.IChunk) => {
-                if (onMapUpdated !== undefined) {
-                    const mapItem: IMapItem = {
-                        rows: { from: res.rowsStart, to: res.rowsEnd },
-                        bytes: { from: res.bytesStart, to: res.bytesEnd },
-                    };
-                    onMapUpdated([mapItem]);
-                    this._processedBytes = res.bytesEnd;
-                }
-            };
-            const [futureRes, cancel]: [
-                Promise<Progress.AsyncResult>,
-                () => void,
-            ] = indexer.concatFilesAsync(
+            this._task = indexer.concatFilesAsync(
                 this._absolutePathConfig,
                 sessionData.file,
-                true,
-                500, // chunkSize
-                Units.TimeUnit.fromSeconds(2),
-                this._onProgress,
-                onResult,
-                onNotification,
-            );
-            futureRes
-            .then(() => {
-                measuring();
+                { append: true, chunk_size: 500 },
+            ).then(() => {
                 resolve(this._processedBytes);
-            })
-            .catch(e => {
+            }).catch((error: Error) => {
+                reject(error);
+            }).finally(() => {
+                this._task = undefined;
                 measuring();
-                reject(e);
+            }).canceled(() => {
+                cancel();
+            }).on('notification', (event: Progress.INeonNotification) => {
+                ServiceNotifications.notifyFromNeon(event, "DLT-Indexing", this._session);
+            }).on('progress', (event: Progress.ITicks) => {
+                this._onProgress(event);
+            }).on('result', (event: Progress.IChunk) => {
+                if (onMapUpdated !== undefined) {
+                    const mapItem: IMapItem = {
+                        rows: { from: event.rowsStart, to: event.rowsEnd },
+                        bytes: { from: event.bytesStart, to: event.bytesEnd },
+                    };
+                    onMapUpdated([mapItem]);
+                    this._processedBytes = event.bytesEnd;
+                }
             });
         });
     }
 
     public destroy() {
         this._sourceIds = {};
+    }
+
+    public abort(): Promise<void> {
+        return new Promise((resolve) => {
+            if (this._task === undefined) {
+                return resolve();
+            }
+            this._task.canceled(() => {
+                resolve();
+            }).abort();
+        });
     }
 
     private registerSourceMarkers() {
@@ -94,31 +99,4 @@ export default class ConcatFiles {
         });
     }
 
-    private _getSize(): Promise<number> {
-        return new Promise((resolve, reject) => {
-            let size: number = 0;
-            Promise.all(
-                this._files.map((file: IFile) => {
-                    return new Promise((resolveFile, rejectFile) => {
-                        fs.stat(
-                            file.file,
-                            (error: NodeJS.ErrnoException | null, stats: fs.Stats) => {
-                                if (error !== null) {
-                                    return rejectFile(error);
-                                }
-                                size += stats.size;
-                                resolveFile();
-                            },
-                        );
-                    });
-                }),
-            )
-                .then(() => {
-                    resolve(size);
-                })
-                .catch(error => {
-                    reject(error);
-                });
-        });
-    }
 }
