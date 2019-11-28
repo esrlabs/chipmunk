@@ -100,7 +100,7 @@ export class ControllerSession {
                     return ServicePorts.refPort(this._session, option, {
                         onData: this._readSpyLoad.bind(this, option.path),
                         onError: this._onPortError.bind(this, option.path),
-                        onDisconnect: (() => {})
+                        onDisconnect: this._onSpyPortDisconnect.bind(this, option.path)
                     });
                 }),
             ).then(() => {
@@ -120,7 +120,7 @@ export class ControllerSession {
                     if (!this._isPortRefed(option.path)) {
                         return reject(new Error(this._logger.error(`Port "${option.path}" isn't assigned with session "${this._session}"`)));
                     }
-                    this._ports.splice(this._ports.indexOf(option.path), 1);
+                    this._removePort(option.path);
                     return ServicePorts.unrefPort(this._session, option.path).catch((error: Error) => {
                         this._logger.error(`Fail unref normally port "${option.path}" from session "${this._session}" due error: ${error.message}`);
                     });
@@ -170,6 +170,11 @@ export class ControllerSession {
         });
         this._logger.error(`Port "${port}" is disconnected`);
         // We can remove port, because on disconnect it will be destroyed
+        this._removePort(port);
+    }
+
+    private _onSpyPortDisconnect(port: string) {
+        this._logger.error(`Port "${port}" is disconnected`);
         this._removePort(port);
     }
 
