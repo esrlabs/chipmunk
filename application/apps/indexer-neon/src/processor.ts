@@ -11,6 +11,7 @@ import {
 } from "./progress";
 import { NativeEventEmitter, RustIndexerChannel, RustTimestampChannel } from "./emitter";
 import { TimeUnit } from "./units";
+import { CancelablePromise } from './promise';
 
 export interface IIndexerParams {
     file: string;
@@ -26,130 +27,189 @@ export interface IFilePath {
     path: string;
 }
 
+export interface IIndexOptions {
+    maxTime?: TimeUnit;
+    chunkSize?: number;
+    append?: boolean;
+    timestamps?: boolean;
+}
+export interface IIndexOptionsChecked {
+    maxTime: TimeUnit;
+    chunkSize: number;
+    append: boolean;
+    timestamps: boolean;
+}
+
+export type TDiscoverTimespanAsyncEvents = 'chunk' | 'progress' | 'notification';
+export type TDiscoverTimespanAsyncEventChunk = (event: ITimestampFormatResult) => void;
+export type TDiscoverTimespanAsyncEventProgress = (event: ITicks) => void;
+export type TDiscoverTimespanAsyncEventNotification = (event: INeonNotification) => void;
+export type TDiscoverTimespanAsyncEventObject = TDiscoverTimespanAsyncEventChunk | TDiscoverTimespanAsyncEventProgress | TDiscoverTimespanAsyncEventNotification;
+
 export function discoverTimespanAsync(
     filesToDiscover: Array<IDiscoverItem>,
-    maxTime: TimeUnit,
-    onProgress: (ticks: ITicks) => any,
-    onChunk: (chunk: ITimestampFormatResult) => any,
-    onNotification: (notification: INeonNotification) => void,
-): [Promise<AsyncResult>, () => void] {
-    const channel = new RustTimestampChannel(filesToDiscover);
-    const emitter = new NativeEventEmitter(channel);
-    const p = new Promise<AsyncResult>((resolve, reject) => {
-        let totalTicks = 1;
-        let timeout = setTimeout(function() {
-            log("TIMED OUT ====> shutting down");
-            emitter.requestShutdown();
-        }, maxTime.inMilliseconds());
-        emitter.on(NativeEventEmitter.EVENTS.GotItem, onChunk);
-        emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
-            totalTicks = ticks.total;
-            onProgress(ticks);
-        });
-        emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
-            clearTimeout(timeout);
-            emitter.shutdownAcknowledged(() => {
-                resolve(AsyncResult.Aborted);
+    options?: IIndexOptions,
+): CancelablePromise<void, void, TDiscoverTimespanAsyncEvents, TDiscoverTimespanAsyncEventObject> {
+    return new CancelablePromise<void, void, TDiscoverTimespanAsyncEvents, TDiscoverTimespanAsyncEventObject>((resolve, reject, cancel, refCancelCB, self) => {
+        try {
+            // Get defaults options
+            const opt = getDefaultProcessorOptions(options);
+            // Add cancel callback
+            refCancelCB(() => {
+                // Cancelation is started, but not canceled
+                log(`Get command "break" operation. Starting breaking.`);
+                clearTimeout(timeout);
+                emitter.requestShutdown();
             });
-        });
-        emitter.on(NativeEventEmitter.EVENTS.Notification, (n: INeonNotification) => {
-            onNotification(n);
-        });
-        emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
-            onProgress({
-                ellapsed: totalTicks,
-                total: totalTicks,
+            const channel = new RustTimestampChannel(filesToDiscover);
+            const emitter = new NativeEventEmitter(channel);
+            let totalTicks = 1;
+            let timeout = setTimeout(function() {
+                log("TIMED OUT ====> shutting down");
+                emitter.requestShutdown();
+            }, opt.maxTime.inMilliseconds());
+            emitter.on(NativeEventEmitter.EVENTS.GotItem, (chunk: ITimestampFormatResult) => {
+                self.emit('chunk', chunk);
             });
-            clearTimeout(timeout);
-            emitter.shutdownAcknowledged(() => {
-                resolve(AsyncResult.Completed);
+            emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
+                totalTicks = ticks.total;
+                self.emit('progress', ticks);
             });
-        });
+            emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
+                clearTimeout(timeout);
+                emitter.shutdownAcknowledged(() => {
+                    cancel();
+                });
+            });
+            emitter.on(NativeEventEmitter.EVENTS.Notification, (notification: INeonNotification) => {
+                self.emit('notification', notification);
+            });
+            emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
+                clearTimeout(timeout);
+                self.emit('progress', {
+                    ellapsed: totalTicks,
+                    total: totalTicks,
+                });
+                emitter.shutdownAcknowledged(() => {
+                    resolve();
+                });
+            });
+        } catch (err) {
+            if (!(err instanceof Error)) {
+                log(`operation is stopped. Error isn't valid:`);
+                log(err);
+                err = new Error(`operation is stopped. Error isn't valid.`);
+            } else {
+                log(`operation is stopped due error: ${err.message}`);
+            }
+            // Operation is rejected
+            reject(err);
+        }
     });
-    return [
-        p,
-        () => {
-            log("cancel called");
-            emitter.requestShutdown();
-        },
-    ];
 }
+
+export type TIndexAsyncEvents = 'chunk' | 'progress' | 'notification';
+export type TIndexAsyncEventChunk = (event: IChunk) => void;
+export type TIndexAsyncEventProgress = (event: ITicks) => void;
+export type TIndexAsyncEventNotification = (event: INeonNotification) => void;
+export type TIndexAsyncEventObject = TIndexAsyncEventChunk | TIndexAsyncEventProgress | TIndexAsyncEventNotification;
+
 export function indexAsync(
-    chunkSize: number,
     fileToIndex: string,
-    maxTime: TimeUnit,
     outPath: string,
-    onProgress: (ticks: ITicks) => any,
-    onChunk: (chunk: IChunk) => any,
-    onNotification: (notification: INeonNotification) => void,
     tag: string,
-): [Promise<AsyncResult>, () => void] {
-    const append = false; // TODO support append option
-    const timestamps = false; // TODO support timestamps option
-    const channel = new RustIndexerChannel(
-        fileToIndex,
-        tag,
-        outPath,
-        append,
-        timestamps,
-        chunkSize,
-    );
-    const emitter = new NativeEventEmitter(channel);
-    const p = new Promise<AsyncResult>((resolve, reject) => {
-        let totalTicks = 1;
-        let timeout = setTimeout(function() {
-            log("TIMED OUT ====> shutting down");
-            emitter.requestShutdown();
-        }, maxTime.inMilliseconds());
-        emitter.on(NativeEventEmitter.EVENTS.GotItem, (c: INeonTransferChunk) => {
-            onChunk({
-                bytesStart: c.b[0],
-                bytesEnd: c.b[1],
-                rowsStart: c.r[0],
-                rowsEnd: c.r[1],
+    options?: IIndexOptions
+): CancelablePromise<void, void, TIndexAsyncEvents, TIndexAsyncEventObject> {
+    return new CancelablePromise<void, void, TIndexAsyncEvents, TIndexAsyncEventObject>((resolve, reject, cancel, refCancelCB, self) => {
+        try {
+            // Get defaults options
+            const opt = getDefaultProcessorOptions(options);
+            // Add cancel callback
+            refCancelCB(() => {
+                // Cancelation is started, but not canceled
+                log(`Get command "break" operation. Starting breaking.`);
+                clearTimeout(timeout);
+                emitter.requestShutdown();
             });
-        });
-        emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
-            totalTicks = ticks.total;
-            onProgress(ticks);
-        });
-        emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
-            log("indexAsync: we got a stopped");
-            clearTimeout(timeout);
-            emitter.shutdownAcknowledged(() => {
-                log("indexAsync: shutdown completed");
-                resolve(AsyncResult.Aborted);
+            const channel = new RustIndexerChannel(
+                fileToIndex,
+                tag,
+                outPath,
+                opt.append,
+                opt.timestamps,
+                opt.chunkSize,
+            );
+            const emitter = new NativeEventEmitter(channel);
+            let totalTicks = 1;
+            let timeout = setTimeout(function() {
+                log("TIMED OUT ====> shutting down");
+                emitter.requestShutdown();
+            }, opt.maxTime.inMilliseconds());
+            emitter.on(NativeEventEmitter.EVENTS.GotItem, (c: INeonTransferChunk) => {
+                self.emit('chunk', {
+                    bytesStart: c.b[0],
+                    bytesEnd: c.b[1],
+                    rowsStart: c.r[0],
+                    rowsEnd: c.r[1],
+                });
             });
-        });
-        emitter.on(NativeEventEmitter.EVENTS.Notification, (n: INeonNotification) => {
-            log("indexAsync: we got a notification: " + JSON.stringify(n));
-            onNotification(n);
-        });
-        emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
-            log("indexAsync: we got a finished event");
-            onProgress({
-                ellapsed: totalTicks,
-                total: totalTicks,
+            emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
+                totalTicks = ticks.total;
+                self.emit('progress', ticks);
             });
-            clearTimeout(timeout);
-            emitter.shutdownAcknowledged(() => {
-                log("indexAsync: shutdown completed");
-                resolve(AsyncResult.Completed);
+            emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
+                clearTimeout(timeout);
+                log("indexAsync: we got a stopped");
+                emitter.shutdownAcknowledged(() => {
+                    log("indexAsync: shutdown completed");
+                    cancel();
+                });
             });
-        });
+            emitter.on(NativeEventEmitter.EVENTS.Notification, (notification: INeonNotification) => {
+                log("indexAsync: we got a notification: " + JSON.stringify(notification));
+                self.emit('notification', notification);
+            });
+            emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
+                clearTimeout(timeout);
+                log("indexAsync: we got a finished event");
+                self.emit('progress', {
+                    ellapsed: totalTicks,
+                    total: totalTicks,
+                });
+                emitter.shutdownAcknowledged(() => {
+                    log("indexAsync: shutdown completed");
+                    resolve();
+                });
+            });
+        } catch (err) {
+            if (!(err instanceof Error)) {
+                log(`operation is stopped. Error isn't valid:`);
+                log(err);
+                err = new Error(`operation is stopped. Error isn't valid.`);
+            } else {
+                log(`operation is stopped due error: ${err.message}`);
+            }
+            // Operation is rejected
+            reject(err);
+        }
     });
-    return [
-        p,
-        () => {
-            log("cancel called");
-            emitter.requestShutdown();
-        },
-    ];
 }
 
 export function detectTimestampInString(input: string): string {
     return addon.detectTimestampInString(input);
 }
+
 export function detectTimestampFormatInFile(input: string): string {
     return addon.detectTimestampFormatInFile(input);
+}
+
+function getDefaultProcessorOptions(options: IIndexOptions | undefined): IIndexOptionsChecked {
+    if (typeof options !== 'object' || options === null) {
+        options = {};
+    }
+    options.maxTime = options.maxTime instanceof TimeUnit ? options.maxTime : TimeUnit.fromSeconds(60);
+    options.append = typeof options.append === 'boolean' ? options.append : false;
+    options.timestamps = typeof options.timestamps === 'boolean' ? options.timestamps : false;
+    options.chunkSize = typeof options.chunkSize === 'number' ? options.chunkSize : 5000;
+    return options as IIndexOptionsChecked;
 }
