@@ -3,6 +3,7 @@ import { Observable, Subject } from 'rxjs';
 import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import TabsSessionsService from '../services/service.sessions.tabs';
+import { ControllerSessionTab } from '../controller/controller.session.tab';
 
 export enum ENotificationType {
     info = 'info',
@@ -64,6 +65,7 @@ export class NotificationsService {
     private _subscriptions: { [key: string]: Subscription } = {};
     private _onceHashes: Map<string, boolean> = new Map();
     private _storage: Map<TSession, INotification[]> = new Map();
+    private _logger: Toolkit.Logger = new Toolkit.Logger('NotificationsService');
 
     constructor() {
         this._subscriptions.onProcessNotification = ServiceElectronIpc.subscribe(IPCMessages.Notification, this._onProcessNotification.bind(this));
@@ -76,12 +78,15 @@ export class NotificationsService {
     }
 
     public add(notification: INotification) {
-        notification = this._validate(notification);
-        this._store(notification);
-        if (this._isIgnored(notification)) {
+        const notific: INotification | Error = this._validate(notification);
+        if (notific instanceof Error) {
+            return this._logger.warn(`Fail to add notification due error: ${notific.message}`);
+        }
+        this._store(notific);
+        if (this._isIgnored(notific)) {
             return;
         }
-        this.subjects.new.next(notification);
+        this.subjects.new.next(notific);
     }
 
     public clear(session: TSession) {
@@ -150,8 +155,12 @@ export class NotificationsService {
         this.add(notification);
     }
 
-    private _validate(notification: INotification): INotification {
-        notification.session = notification.session === undefined ? TabsSessionsService.getActive().getGuid() : notification.session;
+    private _validate(notification: INotification): INotification | Error {
+        const active: ControllerSessionTab | undefined = TabsSessionsService.getActive();
+        if (notification.session === undefined && active === undefined) {
+            return new Error(`No any session.`);
+        }
+        notification.session = notification.session === undefined ? active.getGuid() : notification.session;
         if (notification.options === undefined) {
             notification.options = {};
         }
