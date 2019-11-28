@@ -47,10 +47,8 @@ export interface IIndexDltParams {
     statusUpdates: boolean;
 }
 export interface IIndexDltOptions {
-    maxTime?: TimeUnit;
 }
 export interface IIndexDltOptionsChecked {
-    maxTime: TimeUnit;
 }
 
 export type TDltStatsEvents = 'config' | 'progress' | 'notification';
@@ -71,16 +69,11 @@ export function dltStatsAsync(
             refCancelCB(() => {
                 // Cancelation is started, but not canceled
                 log(`Get command "break" operation. Starting breaking.`);
-                clearTimeout(timeout);
                 emitter.requestShutdown();
             });
             const channel = new RustDltStatsChannel(dltFile);
             const emitter = new NativeEventEmitter(channel);
             let total: number = 1;
-            let timeout = setTimeout(function() {
-                log("TIMED OUT ====> shutting down");
-                emitter.requestShutdown();
-            }, opt.maxTime.inMilliseconds());
             emitter.on(NativeEventEmitter.EVENTS.GotItem, (chunk: StatisticInfo) => {
                 self.emit('config', chunk);
             });
@@ -89,7 +82,6 @@ export function dltStatsAsync(
                 self.emit('progress', ticks);
             });
             emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
-                clearTimeout(timeout);
                 emitter.shutdownAcknowledged(() => {
                     cancel();
                 });
@@ -99,7 +91,6 @@ export function dltStatsAsync(
                 self.emit('notification', notification);
             });
             emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
-                clearTimeout(timeout);
                 emitter.shutdownAcknowledged(() => {
                     self.emit('progress', { ellapsed: total, total });
                     resolve();
@@ -138,7 +129,6 @@ export function indexDltAsync(
             refCancelCB(() => {
                 // Cancelation is started, but not canceled
                 log(`Get command "break" operation. Starting breaking.`);
-                clearTimeout(timeout);
                 emitter.requestShutdown();
             });
             // Create channel
@@ -154,12 +144,6 @@ export function indexDltAsync(
             // Create emitter
             const emitter: NativeEventEmitter = new NativeEventEmitter(channel);
             let chunks: number = 0;
-            // Set timeout
-            let timeout = setTimeout(function() {
-                log("TIMED OUT ====> shutting down");
-                // Because of timeout manually cancel (break) promise
-                self.abort();
-            }, opt.maxTime.inMilliseconds());
             // Add listenters
             emitter.on(NativeEventEmitter.EVENTS.GotItem, (c: INeonTransferChunk) => {
                 self.emit('chunk', {
@@ -174,7 +158,6 @@ export function indexDltAsync(
             });
             emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
                 log("we got a stopped event after " + chunks + " chunks");
-                clearTimeout(timeout);
                 emitter.shutdownAcknowledged(() => {
                     log("shutdown completed");
                     // Operation is canceled.
@@ -186,7 +169,6 @@ export function indexDltAsync(
             });
             emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
                 log("we got a finished event " + chunks + " chunks");
-                clearTimeout(timeout);
                 emitter.shutdownAcknowledged(() => {
                     log("shutdown completed");
                     // Operation is done.
@@ -215,6 +197,5 @@ function getDefaultIndexDltProcessingOptions(options: IIndexDltOptions | undefin
     if (typeof options !== 'object' || options === null) {
         options = {};
     }
-    options.maxTime = options.maxTime instanceof TimeUnit ? options.maxTime : TimeUnit.fromSeconds(60);
     return options as IIndexDltOptionsChecked;
 }

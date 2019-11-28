@@ -38,7 +38,7 @@ export default class MergeDiscover {
             const discoverItems: Progress.IDiscoverItem[] = this._files.map((file: string) => {
                 return { path: file };
             });
-            this._task = indexer.discoverTimespanAsync(discoverItems, { maxTime: Units.TimeUnit.fromSeconds(15) }).then(() => {
+            this._task = indexer.discoverTimespanAsync(discoverItems).then(() => {
                 if (onProgress !== undefined) {
                     onProgress({
                         ellapsed: completeTicks,

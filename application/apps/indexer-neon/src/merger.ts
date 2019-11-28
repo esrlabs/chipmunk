@@ -8,7 +8,6 @@ import {
     IChunk,
 } from "./progress";
 import { NativeEventEmitter, RustConcatenatorChannel, RustMergerChannel } from "./emitter";
-import { TimeUnit } from "./units";
 import { CancelablePromise } from './promise';
 
 export interface IMergeParams {
@@ -32,12 +31,10 @@ export interface IConcatFilesParams {
 export interface IMergeFilesOptions {
     append?: boolean,
     chunk_size?: number,
-    maxTime?: TimeUnit;
 }
 export interface IMergeFilesOptionsChecked {
     append: boolean,
     chunk_size: number,
-    maxTime: TimeUnit;
 }
 
 export type TMergeFilesEvents = 'result' | 'progress' | 'notification';
@@ -59,7 +56,6 @@ export function mergeFilesAsync(
             refCancelCB(() => {
                 // Cancelation is started, but not canceled
                 log(`Get command "break" operation. Starting breaking.`);
-                clearTimeout(timeout);
                 emitter.requestShutdown();
             });
             log(`mergeFilesAsync called with config: ${JSON.stringify(config)}`);
@@ -71,10 +67,6 @@ export function mergeFilesAsync(
             );
             const emitter = new NativeEventEmitter(channel);
             let totalTicks = 1;
-            let timeout = setTimeout(function() {
-                log("TIMED OUT ====> shutting down");
-                emitter.requestShutdown();
-            }, opt.maxTime.inMilliseconds());
             emitter.on(NativeEventEmitter.EVENTS.GotItem, (c: INeonTransferChunk) => {
                 self.emit('result', {
                     bytesStart: c.b[0],
@@ -88,10 +80,11 @@ export function mergeFilesAsync(
                 self.emit('progress', ticks);
             });
             emitter.on(NativeEventEmitter.EVENTS.Error, () => {
+                log(`Event "Error" is triggered`);
                 emitter.requestShutdown();
             });
             emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
-                clearTimeout(timeout);
+                log(`Event "Stopped" is triggered`);
                 emitter.shutdownAcknowledged(() => {
                     cancel();
                 });
@@ -104,7 +97,6 @@ export function mergeFilesAsync(
                     ellapsed: totalTicks,
                     total: totalTicks,
                 });
-                clearTimeout(timeout);
                 emitter.shutdownAcknowledged(() => {
                     resolve();
                 });
@@ -142,16 +134,11 @@ export function concatFilesAsync(
             refCancelCB(() => {
                 // Cancelation is started, but not canceled
                 log(`Get command "break" operation. Starting breaking.`);
-                clearTimeout(timeout);
                 emitter.requestShutdown();
             });
             const channel = new RustConcatenatorChannel(config, outFile, opt.append, opt.chunk_size);
             const emitter = new NativeEventEmitter(channel);
             let totalTicks = 1;
-            let timeout = setTimeout(function() {
-                log("TIMED OUT ====> shutting down");
-                emitter.requestShutdown();
-            }, opt.maxTime.inMilliseconds());
             emitter.on(NativeEventEmitter.EVENTS.GotItem, (c: INeonTransferChunk) => {
                 self.emit('result', {
                     bytesStart: c.b[0],
@@ -165,10 +152,11 @@ export function concatFilesAsync(
                 self.emit('progress', ticks);
             });
             emitter.on(NativeEventEmitter.EVENTS.Error, () => {
+                log(`Event "Error" is triggered`);
                 emitter.requestShutdown();
             });
             emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
-                clearTimeout(timeout);
+                log(`Event "Stopped" is triggered`);
                 emitter.shutdownAcknowledged(() => {
                     cancel();
                 });
@@ -181,7 +169,6 @@ export function concatFilesAsync(
                     ellapsed: totalTicks,
                     total: totalTicks,
                 });
-                clearTimeout(timeout);
                 emitter.shutdownAcknowledged(() => {
                     resolve();
                 });
@@ -204,7 +191,6 @@ function getDefaultMergeOptions(options: IMergeFilesOptions | undefined): IMerge
     if (typeof options !== 'object' || options === null) {
         options = {};
     }
-    options.maxTime = options.maxTime instanceof TimeUnit ? options.maxTime : TimeUnit.fromSeconds(60);
     options.append = typeof options.append === 'boolean' ? options.append : true;
     options.chunk_size = typeof options.chunk_size === 'number' ? options.chunk_size : 5000;
     return options as IMergeFilesOptionsChecked;

@@ -91,7 +91,7 @@ export default class FileParser extends AFileParser {
                 srcFile,
                 destFile,
                 sourceId.toString(),
-                { chunkSize: 500, maxTime: Units.TimeUnit.fromSeconds(15) },
+                { chunkSize: 500 },
             ).then(() => {
                 if (onProgress !== undefined) {
                     onProgress({
