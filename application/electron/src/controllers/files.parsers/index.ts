@@ -1,6 +1,6 @@
 import FileParserText from './file.parser.text';
 import FileParserDlt from './file.parser.dlt';
-import { AFileParser, IFileParserFunc } from './interface';
+import { AFileParser } from './interface';
 
 export interface IFileParser {
     name: string;
@@ -61,4 +61,4 @@ export function getParserForFile(file: string, predefined?: AFileParser, default
     });
 }
 
-export { FileParsers, AFileParser, IFileParserFunc };
+export { FileParsers, AFileParser };
