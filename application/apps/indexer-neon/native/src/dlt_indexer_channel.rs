@@ -86,7 +86,6 @@ fn index_dlt_file_with_progress(
     ) {
         Err(why) => {
             error!("couldn't process: {}", why);
-            std::process::exit(2)
         }
         Ok(_) => trace!("create_index_and_mapping_dlt returned ok"),
     }

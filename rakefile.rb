@@ -844,12 +844,16 @@ file electron_build_output => FileList["#{ELECTRON_DIR}/src/**/*.*",
                                        "#{ELECTRON_DIR}/*.json"] do |_t|
   cd ELECTRON_DIR do
     if OS.mac?
-      require 'dotenv/load'
-      if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS')
-        sh 'export CSC_IDENTITY_AUTO_DISCOVERY=true; npm run build-mac'
-        check_signature('dist/release/mac/chipmunk.app')
-        check_notarization('dist/release/mac/chipmunk.app')
-      else
+      begin
+        require 'dotenv/load'
+        if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS')
+          sh 'export CSC_IDENTITY_AUTO_DISCOVERY=true; npm run build-mac'
+          check_signature('dist/release/mac/chipmunk.app')
+          check_notarization('dist/release/mac/chipmunk.app')
+        else
+          sh 'npm run build-mac -c.mac.identity=null'
+        end
+      rescue LoadError
         sh 'npm run build-mac -c.mac.identity=null'
       end
     elsif OS.linux?

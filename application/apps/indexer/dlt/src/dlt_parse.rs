@@ -967,7 +967,7 @@ pub fn index_dlt_file(
     loop {
         // println!("line index: {}", line_nr);
         if stopped {
-            info!("we where stopped in dlt-indexer",);
+            info!("we were stopped in dlt-indexer",);
             break;
         };
         match read_one_dlt_message(

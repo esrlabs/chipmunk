@@ -18,13 +18,14 @@ import Logger from "../../tools/env.logger";
 import ServiceNotifications, { ENotificationType } from "../../services/service.notifications";
 
 const ExtNames = ["dlt"];
+type TCancelCB = () => void;
 
 export default class FileParser extends AFileParser {
     private _subscriptions: { [key: string]: Subscription } = {};
     private _guid: string | undefined;
     private _closed: boolean = false;
     private _logger: Logger = new Logger("indexing");
-    private _cancel: () => void;
+    private _cancel: TCancelCB;
 
     constructor() {
         super();
@@ -96,6 +97,7 @@ export default class FileParser extends AFileParser {
         onMapUpdated?: (map: IMapItem[]) => void,
         onProgress?: (ticks: ITicks) => void,
     ): Promise<IMapItem[]> {
+        this._logger.debug(`parseAndIndex dlt: ${srcFile}`);
         return new Promise((resolve, reject) => {
             if (this._guid !== undefined) {
                 return reject(new Error(`Parsing is already started.`));
