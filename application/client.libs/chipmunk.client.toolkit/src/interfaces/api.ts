@@ -24,7 +24,7 @@ export interface IAPI {
     getActiveSessionId: () => string;
 
     /**
-     * Allows to add injection into main view. Innjection should be an Angular component.
+     * Allows adding injection into the main view. Injection should be an Angular component.
      * @param {IComponentInjection} injection - Angular compenent
      * @param {EViewsTypes} type - type of injection: location (main view, search view, sidebar) and position (top, bottom)
      * @returns {void}
@@ -68,9 +68,9 @@ export interface IAPI {
     /**
      * Adds sidebar title injection.
      * This method doesn't need "delete" method, because sidebar injection would be
-     * removed with component, which used as sidebar tab render.
-     * In any way developer could define argument as "undefined" to force removing
-     * innjection from title of sidebar
+     * removed with a component, which used as sidebar tab render.
+     * In any way developer could define an argument as "undefined" to force removing
+     * injection from the title of sidebar
      * @param {IComponentDesc} component - description of Angular component
      * @returns {void}
      */

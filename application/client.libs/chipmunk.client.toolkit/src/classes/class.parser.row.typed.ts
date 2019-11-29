@@ -4,12 +4,12 @@ import { IRowInfo } from '../interfaces/row';
 const CSignature = 'ARowTypedParser';
 
 /**
- * Allows to create row parser with checking type of source before.
+ * Allows creating row parser with checking the type of source before.
  * It means this parser could be bound with some specific type of source,
  * for example with some specific file's type (DLT, log and so on)
- * @usecases decoding stream output content; convertinng stream output into human-readable format
+ * @usecases decoding stream output content; converting stream output into human-readable format
  * @requirements TypeScript or JavaScript
- * @examples Base64string parser, HEX converting into string and so on
+ * @examples Base64string parser, HEX converting into a string and so on
  * @class ARowTypedParser
  */
 export abstract class ARowTypedParser {

@@ -4,17 +4,17 @@ import { IRowInfo } from '../interfaces/row';
 const CSignature = 'ARowBoundParser';
 
 /**
- * Allows to create row parser, which will bound with plugin's host.
- * It means: this row parser will be applyed only to data, which was
- * recieved from plugin's host.
+ * Allows creating row parser, which will bound with plugin's host.
+ * It means: this row parser will be applied only to data, which was
+ * received from plugin's host.
  * It also means: usage of this kind of plugin makes sense only if plugin has
- * host part (backend part), which delivery some data. Good example would be:
+ * host part (backend part), which delivery some data. A good example would be:
  * serial port plugin. Host part extracts data from serial port and sends into
- * stream; render (this kind of plugin) applys only to data, which were gotten
+ * stream; render (this kind of plugin) applies only to data, which were gotten
  * from serial port.
- * @usecases decoding stream output content; convertinng stream output into human-readable format
+ * @usecases decoding stream output content; converting stream output into human-readable format
  * @requirements TypeScript or JavaScript
- * @examples Base64string parser, HEX converting into string and so on
+ * @examples Base64string parser, HEX converting into a string and so on
  * @class ARowBoundParser
  */
 export abstract class ARowBoundParser {

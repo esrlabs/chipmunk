@@ -1,8 +1,8 @@
 const CSignature = 'ATypedRowRenderAPIExternal';
 
 /**
- * Allows inject Angualr component into view as each row render
- * It should be used with ATypedRowRender class (as generic class), like:
+ * Allows injecting Angular component into view as each row render
+ * It should be used with ATypedRowRender class (as a generic class), like:
  *
  * class ATypedRowRender<ATypedRowRenderAPIExternal> { ... }
  *
@@ -38,16 +38,16 @@ export abstract class ATypedRowRenderAPIExternal {
     }
 
     /**
-     * This method should return angular's compenent selector.
-     * Note: plugin should already have implementation of component,
-     * which will be used as render. Selector of such compenent should
+     * This method should return angular's component selector.
+     * Note: plugin should already have an implementation of the component,
+     * which will be used as render. Selector of such component should
      * be returned here.
-     * @returns {string} angular's compenent selector
+     * @returns {string} angular's component selector
      */
     public abstract getSelector(): string;
 
     /**
-     * Method returs inputs for render component
+     * Method returns inputs for render component
      * @returns { { [key: string]: any } } inputs for render-components
      */
     public abstract getInputs(): { [key: string]: any };

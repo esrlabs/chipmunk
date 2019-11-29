@@ -5,13 +5,13 @@ const CSignature = 'APluginService';
 
 /**
  * Service which can be used to get access to plugin API
- * Plugin API has a collection of methods to listen major core events and
+ * Plugin API has a collection of methods to listen to major core events and
  * communicate between render and host of plugin.
- * Into plugin's Angular components (like tabs, panels and dialogs) API object will be
- * delivered via inputs of component. But to have global access to API developer can
- * create instance of this class.
+ * Into plugin's Angular components (like tabs, panels, and dialogs) API object will be
+ * delivered via inputs of a component. But to have global access to API developer can
+ * create an instance of this class.
  *
- * Note: instance of this class should be exported with PluginNgModule (for Angular plugins) or
+ * Note: an instance of this class should be exported with PluginNgModule (for Angular plugins) or
  * with APluginServiceGate.setPluginExports (for none-Angular plugins)
  *
  * @usecases Create global (in the scope of plugin) service with access to plugin's API and core's API
@@ -57,7 +57,7 @@ export abstract class APluginService {
     /**
      * Should be used to get access to API of plugin and core.
      * Note: will return undefined before onAPIReady will be emitted
-     * @returns {API | undefined} returns instance of API or undefined if API isn't ready to use
+     * @returns {API | undefined} returns an instance of API or undefined if API isn't ready to use
      */
     public getAPI(): IAPI | undefined {
         return this._apiGetter === undefined ? undefined : this._apiGetter();

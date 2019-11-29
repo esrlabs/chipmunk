@@ -34,14 +34,14 @@ export abstract class ATypedRowRender<T> {
     }
 
     /**
-     * This method will be called for each line of stream before method "parse" will be called.
+     * This method will be called for each line of a stream before method "parse" will be called.
      * @param {string} sourceName - name of source
      * @returns {boolean} - true - method "parse" will be called for this line; false - parser will be ignored
      */
     public abstract isTypeMatch(sourceName: string): boolean;
 
     /**
-     * This method will should return one of supported types of custom renders:
+     * This method will return one of the supported types of custom renders:
      * - columns
      * - external
      * @returns {ETypedRowRenders} - type of custom render
@@ -49,7 +49,7 @@ export abstract class ATypedRowRender<T> {
     public abstract getType(): ETypedRowRenders;
 
     /**
-     * Should return implementation of custom render. Instance of one of next renders:
+     * Should return an implementation of custom render. An instance of one of the next renders:
      * - ATypedRowRenderAPIColumns
      * - ATypedRowRenderAPIExternal
      */

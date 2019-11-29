@@ -4,10 +4,10 @@ import { IRowInfo } from '../interfaces/row';
 const CSignature = 'ARowCommonParser';
 
 /**
- * Allows to create row parser, which will be applyed to each new line in stream.
- * @usecases decoding stream output content; convertinng stream output into human-readable format
+ * Allows creating row parser, which will be applied to each new line in stream.
+ * @usecases decoding stream output content; converting stream output into human-readable format
  * @requirements TypeScript or JavaScript
- * @examples Base64string parser, HEX converting into string and so on
+ * @examples Base64string parser, HEX converting into a string and so on
  * @class ARowCommonParser
  */
 export abstract class ARowCommonParser {

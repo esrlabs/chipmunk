@@ -15,13 +15,44 @@ export interface IEventSearchUpdate {
 
 export type TSubscriptionHandler<T> = (params: T) => any;
 
+/**
+ * This class provides access to sessions events (like close, open, change of session).
+ *
+ * @usecases to track sessions state
+ * @class ControllerSessionsEvents
+ */
 export class ControllerSessionsEvents {
 
     public static Events = {
+        /**
+         * Fired on user switch a tab (session)
+         * @name onSessionChange
+         * @event {string} sessionId - active session ID
+         */
         onSessionChange: 'onSessionChange',
+        /**
+         * Fired on user open a new tab (session)
+         * @name onSessionOpen
+         * @event {string} sessionId - a new session ID
+         */
         onSessionOpen: 'onSessionOpen',
+        /**
+         * Fired on user close a new tab (session)
+         * @name onSessionClose
+         * @event {string} sessionId - ID of closed session
+         */
         onSessionClose: 'onSessionClose',
+        /**
+         * Fired on stream has been changed
+         * @name onStreamUpdated
+         * @event {IEventStreamUpdate} event - current state of stream
+         */
         onStreamUpdated: 'onStreamUpdated',
+        /**
+         * Fired on search results has been changed
+         * @name onSearchUpdated
+         * @event {IEventSearchUpdate} event - current state of stream
+         */
         onSearchUpdated: 'onSearchUpdated',
     };
 
@@ -35,6 +66,10 @@ export class ControllerSessionsEvents {
         this._emitter.unsubscribeAll(event);
     }
 
+    /**
+     * Emits event
+     * @returns {Event Emitter} - function event emitter
+     */
     public emit(): {
         onSessionChange: (sessionId: string) => void,
         onSessionOpen: (sessionId: string) => void,
@@ -48,10 +83,13 @@ export class ControllerSessionsEvents {
             onSessionClose: this._getEmit.bind(this, ControllerSessionsEvents.Events.onSessionClose),
             onStreamUpdated: this._getEmit.bind(this, ControllerSessionsEvents.Events.onStreamUpdated),
             onSearchUpdated: this._getEmit.bind(this, ControllerSessionsEvents.Events.onSearchUpdated),
-
         };
     }
 
+    /**
+     * Subscribes to event
+     * @returns {Event Subscriber} - function-subscriber for each available event
+     */
     public subscribe(): {
         onSessionChange: (handler: TSubscriptionHandler<string>) => Subscription,
         onSessionOpen: (handler: TSubscriptionHandler<string>) => Subscription,

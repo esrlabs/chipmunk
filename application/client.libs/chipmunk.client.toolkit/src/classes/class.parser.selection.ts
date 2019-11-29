@@ -4,12 +4,12 @@ import { THTMLString } from '../types/index';
 const CSignature = 'ASelectionParser';
 
 /**
- * Allows to create parser of selection.
- * Name of parser will be shown in context menu of selection. If user selects parser,
- * parser will be applyed to selection and result will be show on tab "Details"
- * @usecases decoding selected content; convertinng selected content into human-readable format
+ * Allows creating parser of selection.
+ * Name of the parser will be shown in the context menu of selection. If a user selects parser,
+ * parser will be applied to selection and result will be shown on tab "Details"
+ * @usecases decoding selected content; converting selected content into human-readable format
  * @requirements TypeScript or JavaScript
- * @examples encrypting of data, Base64string parser, HEX converting into string and so on
+ * @examples encrypting of data, Base64string parser, HEX converting into a string and so on
  * @class ASelectionParser
  */
 export abstract class ASelectionParser {
