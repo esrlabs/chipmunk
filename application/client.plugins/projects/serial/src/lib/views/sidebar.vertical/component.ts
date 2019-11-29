@@ -462,8 +462,8 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     public _ng_changeDropdownSelect(value: string) {
         this._chosenPort = value;
         this._ng_ports.forEach( port => {
-            if (port.comName === value) {
-                this._saveDropdownSession(port);
+            if (port.comName === value && savedSession.has(this.session)) {
+                savedSession.get(this.session).default = port.comName;
             }
         });
     }
