@@ -13,10 +13,21 @@ export interface IOnRowSelectedEvent {
     str: string;
 }
 
+/**
+ * This class provides access to viewport events.
+ *
+ * @usecases to track sessions state
+ * @class ControllerSessionsEvents
+ */
 export class ControllerViewportEvents {
 
     private _subscriptions: { [key: string]: Subscription } = { };
     private _subjects: {
+        /**
+         * Fired on user selected row in main view
+         * @name onRowSelected
+         * @event {IOnRowSelectedEvent}
+         */
         onRowSelected: Subject<IOnRowSelectedEvent>,
     } = {
         onRowSelected: new Subject<IOnRowSelectedEvent>(),

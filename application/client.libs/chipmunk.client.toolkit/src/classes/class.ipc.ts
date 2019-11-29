@@ -2,11 +2,11 @@ import * as Tools from '../tools/index';
 
 /**
  * @class PluginIPC
- * Abstract class, which used for creating plugin IPC controller.
- * Plugin IPC controller allows communicate between render part of plugin
- * and backend part of plugin.
+ * Abstract class, which used for creating a plugin IPC controller.
+ * Plugin IPC controller allows communicating between render part of a plugin
+ * and backend part of a plugin.
  * Render part (render) - a plugin's part, which executes on front-end in browser
- * Backend part (host) - a plugin's part, which ececutes on back-end on nodejs level
+ * Backend part (host) - a plugin's part, which executes on back-end on nodejs level
  */
 export abstract class PluginIPC {
 
@@ -45,20 +45,20 @@ export abstract class PluginIPC {
 
     /**
      * Sends message from render to host.
-     * Note: this method doesn't wait for host's responce. It's just sender. This method could be used for example
+     * Note: this method doesn't wait for host's response. It's just a sender. This method could be used for example
      * for emitting of events or something like it.
      * @param {any} message - any message to be sent on host
-     * @param streamId - id of releated stream
+     * @param streamId - id of related stream
      * @returns {Promise<void>} resolved on message successfully sent; reject on sending errors
      */
     public abstract sentToHost(message: any, streamId?: string): Promise<void>;
 
     /**
-     * Sends request from render to host.
-     * This method sends request-message to host and waits for response.
-     * @param {any} message - any message to be sent on host. As usual it's an object
-     * @param {string} streamId - id of releated stream
-     * @returns {Promise<void>} resolved with host's responce; reject on sending errors
+     * Sends a request from render to host.
+     * This method sends request-message to host and waits for a response.
+     * @param {any} message - any message to be sent on host. As usual, it's an object
+     * @param {string} streamId - id of related stream
+     * @returns {Promise<void>} resolved with host's response; reject on sending errors
      */
     public abstract requestToHost(message: any, streamId?: string): Promise<any>;
 
@@ -77,8 +77,8 @@ export abstract class PluginIPC {
     }
 
     /**
-     * This method is for innternal usage. It's used by implementation of plugin IPC to emit
-     * host's messages handler. Usage of this method by developer of plugin doesn't make sense.
+     * This method is for internal usage. It's used by an implementation of plugin IPC to emit
+     * host's messages handler. The usage of this method by the developer of plugin doesn't make sense.
      * @param {any} message - any message from host
      * @returns {void}
      */

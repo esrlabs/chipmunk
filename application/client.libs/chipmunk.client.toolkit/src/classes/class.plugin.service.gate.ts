@@ -44,8 +44,8 @@ export interface IPluginExports {
 }
 
 /**
- * Used for none-Angular plugins to delivery plugin's exports into core of chipmunk
- * Developer can create none-Angular plugin. In global namespace of main javascript file will be
+ * Used for none-Angular plugins to delivery plugin's exports into the core of chipmunk
+ * Developer can create none-Angular plugin. In global namespace of the main javascript file will be
  * available implementation of PluginServiceGate.
  * For example:
  * =================================================================================================
@@ -54,7 +54,7 @@ export interface IPluginExports {
  *     parser: new MyParserOfEachRow(),
  * });
  * =================================================================================================
- * This code snippet registred a new parser for output "MyParserOfEachRow"
+ * This code snippet registered a new parser for output "MyParserOfEachRow"
  * @usecases should be used for none-angular plugins to register parsers
  * @class APluginServiceGate
  */

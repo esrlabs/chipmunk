@@ -6,8 +6,8 @@ export interface IColumnWidth {
 const CSignature = 'ATypedRowRenderAPIColumns';
 
 /**
- * Allows to present line of stream as collection of columns.
- * It should be used with ATypedRowRender class (as generic class), like:
+ * Allows presenting a line of a stream as a collection of columns.
+ * It should be used with ATypedRowRender class (as a generic class), like:
  *
  * class ATypedRowRender<ATypedRowRenderAPIColumns> { ... }
  *
@@ -43,7 +43,7 @@ export abstract class ATypedRowRenderAPIColumns {
     public abstract getHeaders(): string[];
 
     /**
-     * Should return valuses of columns
+     * Should return values of columns
      * @param {string} str - single line from stream
      * @returns {string[]} values of columns
      */

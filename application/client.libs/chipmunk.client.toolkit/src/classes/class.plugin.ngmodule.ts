@@ -1,7 +1,7 @@
 const CSignature = 'PluginNgModule';
 
 /**
- * Root module class for Angular plugin. Should be used bby developer of plugin (based on Angular) to
+ * Root module class for Angular plugin. Should be used by the developer of a plugin (based on Angular) to
  * let core know, which module is a root module of plugin.
  * One plugin can have only one instance of this module.
  * @usecases views, complex components, addition tabs, Angular components
