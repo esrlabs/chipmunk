@@ -1,5 +1,38 @@
 # Changelog
 
+### [1.32.0] - 11/29/2019
+* [](fix) do not exit process on neon side
+  in certain error conditions we did exit the process which causes
+  the chipmunk app to crash.
+* wip
+* [](feat) plugin developer docs (draft)
+* [](feat) JSDocs for node lib IPC plugins
+* [](feat) update toolkit JS docs
+* [](doc) rest documentation for client.toolkit
+* [](docs) description of client.toolkit API
+* [](feat) convert test
+* [](fix) fix interface references
+* [](feat) remove unused references
+* [](feat) get rid of timeout in scope of indexer
+* [](fix) fix error on notification without sessions
+* [](feat) move rest IPC messages into common folder
+* [](feat) create common point for intefaces
+* [](feat) cancellation for indexing, merge
+* [](feat) indexer-neon: DLT cancel
+* [](feat) cancel indexer-neon processing
+* [](feat) cancel funnction for indexer-neon
+* [](feat) provide a fibex file path to indexer-neon
+* [](feat) UI to refer fibex file with DLT file
+* [](fix) correct cancel options request (open file operation)
+* [](feat) change exec path detection for darwin
+* [](fix) do not kill process when error occured in parsing
+* [](fix): fixed infinit parsing
+  when parsing invalid dlt files we could get stuck
+  exclude non running updater unit test
+  added tests for cancellation of async dlt processing
+* [](chor) do not fail on notarization step in non-production environments
+  add integration test for dlt indexing cancellation
+
 ### [1.31.1] - 11/25/2019
 * [](fix) use faster channel implementation for rust
 * [](refactor) dlt non-verbose integration
