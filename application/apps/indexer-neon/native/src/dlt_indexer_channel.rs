@@ -4,6 +4,7 @@ use dlt::fibex::FibexMetadata;
 use dlt::filtering;
 use indexer_base::chunks::ChunkResults;
 use indexer_base::config::IndexingConfig;
+use indexer_base::progress::{Notification, Severity};
 use neon::prelude::*;
 use std::fs;
 use std::path;
@@ -73,7 +74,12 @@ fn index_dlt_file_with_progress(
         Ok(file_meta) => file_meta.len() as usize,
         Err(_) => {
             error!("could not find out size of source file");
-            std::process::exit(2);
+            let _ = tx.try_send(Err(Notification {
+                severity: Severity::WARNING,
+                content: "could not find out size of source file".to_string(),
+                line: None,
+            }));
+            0
         }
     });
     match dlt::dlt_parse::create_index_and_mapping_dlt(
@@ -113,22 +119,27 @@ declare_types! {
             }
 
             let shutdown_channel = cc::unbounded();
-
-            let f = match fs::File::open(&file) {
-                Ok(file) => file,
-                Err(_) => {
-                    eprint!("could not open {}", file);
-                    std::process::exit(2)
-                }
-            };
-            let chunk_result_channel: (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
+            let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
             let mut emitter = IndexingDltEventEmitter {
-                event_receiver: Arc::new(Mutex::new(chunk_result_channel.1)),
+                event_receiver: Arc::new(Mutex::new(rx)),
                 shutdown_sender: shutdown_channel.0,
                 task_thread: None,
             };
+
+            let f = match fs::File::open(&file) {
+                Ok(file) => file,
+                Err(e) => {
+                    eprint!("could not open {}", file);
+                    let _ = tx.try_send(Err(Notification {
+                        severity: Severity::WARNING,
+                        content: format!("could not open file ({})", e),
+                        line: None,
+                    }));
+                    std::process::exit(2)
+                }
+            };
             emitter.start_indexing_dlt_in_thread(shutdown_channel.1,
-                chunk_result_channel.0,
+                tx,
                 chunk_size,
                 IndexingThreadConfig {
                     in_file: f,

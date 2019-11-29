@@ -12,13 +12,13 @@
 use crate::dlt;
 use crate::dlt::TryFrom;
 use crate::filtering;
+use crossbeam_channel as cc;
 use indexer_base::chunks::{ChunkFactory, ChunkResults};
 use indexer_base::config::IndexingConfig;
 use indexer_base::error_reporter::*;
 use indexer_base::progress::*;
 use indexer_base::utils;
 use serde::Serialize;
-use crossbeam_channel as cc;
 
 use buf_redux::policy::MinBuffered;
 use buf_redux::BufReader as ReduxReader;
@@ -28,11 +28,11 @@ use nom::bytes::streaming::{tag, take, take_while_m_n};
 use nom::{combinator::map, multi::count, number::streaming, sequence::tuple, IResult};
 use rustc_hash::FxHashMap;
 use std::fs;
-use std::rc::Rc;
 use std::io::{BufRead, BufWriter, Read, Write};
+use std::rc::Rc;
 
-use std::str;
 use crate::fibex::FibexMetadata;
+use std::str;
 
 const STOP_CHECK_LINE_THRESHOLD: usize = 250_000;
 const DLT_PATTERN: &[u8] = &[0x44, 0x4C, 0x54, 0x01];
