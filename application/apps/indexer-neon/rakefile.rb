@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'rake/clean'
+require '../../../rake-extensions'
 
 LOCAL_EXAMPLE_DIR = "#{Dir.home}/tmp/logviewer_usecases"
 TEST_DIR = './tests'
@@ -121,10 +122,20 @@ task cancelled: [:clean, OUT_DIR, 'neon:rebuild'] do
                      "#{LOCAL_EXAMPLE_DIR}/indexing/test.out")
 end
 
+def get_node_exec()
+  if OS.windows?
+    sh "set ELECTRON_RUN_AS_NODE=true"
+  else
+    print "MAC!!!"
+    sh "export ELECTRON_RUN_AS_NODE=true"
+  end
+  return "./node_modules/.bin/electron"
+end
+
 def call_test_function(function_name, *args)
   func_args = args.map { |a| "\"#{a}\"" }.join(',')
   node_exp = "require(\"./dist/tests.js\").#{function_name}(#{func_args})"
-  sh "node -e '#{node_exp}'"
+  sh "#{get_node_exec()} -e '#{node_exp}'"
 end
 
 def call_test_function_with_array(function_name, list, *args)
@@ -134,7 +145,7 @@ def call_test_function_with_array(function_name, list, *args)
              else
                "require(\"./dist/tests.js\").#{function_name}(#{func_args}, #{list})"
              end
-  sh "node -e '#{node_exp}'"
+  sh "#{get_node_exec()} -e '#{node_exp}'"
 end
 
 desc 'watch and rebuid ts files'
