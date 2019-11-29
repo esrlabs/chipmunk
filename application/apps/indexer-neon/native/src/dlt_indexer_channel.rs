@@ -6,7 +6,6 @@ use indexer_base::chunks::ChunkResults;
 use indexer_base::config::IndexingConfig;
 use indexer_base::progress::{Notification, Severity};
 use neon::prelude::*;
-use std::fs;
 use std::path;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -126,23 +125,12 @@ declare_types! {
                 task_thread: None,
             };
 
-            let f = match fs::File::open(&file) {
-                Ok(file) => file,
-                Err(e) => {
-                    eprint!("could not open {}", file);
-                    let _ = tx.try_send(Err(Notification {
-                        severity: Severity::WARNING,
-                        content: format!("could not open file ({})", e),
-                        line: None,
-                    }));
-                    std::process::exit(2)
-                }
-            };
+            let file_path = path::PathBuf::from(&file);
             emitter.start_indexing_dlt_in_thread(shutdown_channel.1,
                 tx,
                 chunk_size,
                 IndexingThreadConfig {
-                    in_file: f,
+                    in_file: file_path,
                     out_path,
                     append,
                     tag,

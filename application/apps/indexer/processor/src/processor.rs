@@ -26,7 +26,6 @@ use crossbeam_channel as cc;
 pub fn create_index_and_mapping(
     config: IndexingConfig,
     parse_timestamps: bool,
-    source_file_size: Option<usize>,
     update_channel: cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
 ) -> Result<(), Error> {
@@ -49,7 +48,6 @@ pub fn create_index_and_mapping(
         config,
         initial_line_nr,
         parse_timestamps,
-        source_file_size,
         update_channel,
         shutdown_receiver,
         // report,
@@ -60,7 +58,6 @@ pub fn index_file(
     config: IndexingConfig,
     initial_line_nr: usize,
     timestamps: bool,
-    source_file_size: Option<usize>,
     update_channel: cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
 ) -> Result<(), Error> {
@@ -69,11 +66,27 @@ pub fn index_file(
     let (out_file, current_out_file_size) =
         utils::get_out_file_and_size(config.append, &config.out_path)?;
 
+    let f = match fs::File::open(&config.in_file) {
+        Ok(file) => file,
+        Err(e) => {
+            eprint!("could not open {:?}", config.in_file);
+            let _ = update_channel.try_send(Err(Notification {
+                severity: Severity::WARNING,
+                content: format!("could not open file ({})", e),
+                line: None,
+            }));
+            return Err(err_msg(format!("could not open file ({})", e)));
+        }
+    };
+    let source_file_size: Option<usize> = fs::metadata(&config.in_file)
+        .ok()
+        .map(|md| md.len() as usize);
+
     let mut chunk_count = 0usize;
     let mut last_byte_index = 0usize;
     let mut chunk_factory = ChunkFactory::new(config.chunk_size, current_out_file_size);
 
-    let mut reader = BufReader::new(config.in_file);
+    let mut reader = BufReader::new(f);
     let mut line_nr = initial_line_nr;
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
 

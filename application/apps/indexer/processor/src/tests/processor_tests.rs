@@ -10,7 +10,6 @@ mod tests {
     use indexer_base::progress::{IndexingProgress, Notification};
     use pretty_assertions::assert_eq;
     use std::fs;
-    use std::fs::File;
     use std::path::PathBuf;
     use tempdir::TempDir;
     use crossbeam_channel::unbounded;
@@ -28,20 +27,16 @@ mod tests {
         fs::write(&test_file_path, test_content).expect("testfile could not be written");
 
         // call our function
-        let f = File::open(&test_file_path).unwrap();
-        let source_file_size = f.metadata().unwrap().len() as usize;
-
         let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
         create_index_and_mapping(
             IndexingConfig {
                 tag: tag_name,
                 chunk_size: chunksize,
-                in_file: f,
+                in_file: test_file_path,
                 out_path: &out_file_path,
                 append: tmp_file_name.is_some(),
             },
             false,
-            Some(source_file_size),
             tx,
             None,
         )
@@ -111,21 +106,17 @@ mod tests {
         let empty_file_path = tmp_dir.path().join("empty.log");
         // call our function
         fs::write(&empty_file_path, "").expect("testfile could not be written");
-        let empty_file = File::open(empty_file_path).unwrap();
         let out_path = tmp_dir.path().join("test_append_to_empty_output.log.out");
-        let source_file_size = empty_file.metadata().unwrap().len() as usize;
-
         let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
         create_index_and_mapping(
             IndexingConfig {
                 tag: "tag",
                 chunk_size: 1,
-                in_file: empty_file,
+                in_file: empty_file_path,
                 out_path: &out_path,
                 append: false,
             },
             false,
-            Some(source_file_size),
             tx,
             None,
         )
@@ -174,19 +165,16 @@ mod tests {
         println!("second time call to create_index_and_mapping ==================");
         let nonempty_file_path = tmp_dir.path().join("not_empty.log");
         fs::write(&nonempty_file_path, "A").unwrap();
-        let nonempty_file = File::open(nonempty_file_path).unwrap();
-        let source_file_size = nonempty_file.metadata().unwrap().len() as usize;
         let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
         create_index_and_mapping(
             IndexingConfig {
                 tag: "tag",
                 chunk_size: 1,
-                in_file: nonempty_file,
+                in_file: nonempty_file_path,
                 out_path: &out_path,
                 append: true,
             },
             false,
-            Some(source_file_size),
             tx,
             None,
         )
@@ -296,10 +284,8 @@ mod tests {
 
     fn test_input_output(dir_name: &str) {
         let in_path = PathBuf::from("..").join(&dir_name).join("in.txt");
-        let in_file = File::open(in_path).expect("in.txt file not found");
         let tmp_dir = TempDir::new("test_dir").expect("could not create temp dir");
         let out_file_path = tmp_dir.path().join("tmpTestFile.txt.out");
-        let in_file_size = in_file.metadata().unwrap().len() as usize;
         let append_to_this = PathBuf::from("..").join(&dir_name).join("append_here.log");
         let append_use_case = append_to_this.exists();
 
@@ -318,12 +304,11 @@ mod tests {
             IndexingConfig {
                 tag: "TAG",
                 chunk_size: 1,
-                in_file,
+                in_file: in_path,
                 out_path: &out_file_path,
                 append: append_use_case,
             },
             false,
-            Some(in_file_size),
             tx,
             None,
         )

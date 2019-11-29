@@ -3,7 +3,6 @@ use crossbeam_channel as cc;
 use dlt::dlt_parse::StatisticsResults;
 use indexer_base::progress::{Notification, Severity};
 use neon::prelude::*;
-use std::fs;
 use std::path;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -16,37 +15,25 @@ pub struct DltStatsEventEmitter {
 impl DltStatsEventEmitter {
     pub fn start_dlt_stats_in_thread(
         self: &mut DltStatsEventEmitter,
-        source_file: fs::File,
-        source_file_size: usize,
+        source_file: path::PathBuf,
         shutdown_rx: cc::Receiver<()>,
         chunk_result_sender: cc::Sender<StatisticsResults>,
     ) {
         // Spawn a thead to continue running after this method has returned.
         self.task_thread = Some(thread::spawn(move || {
-            dlt_stats_with_progress(
-                source_file,
-                source_file_size,
-                chunk_result_sender.clone(),
-                Some(shutdown_rx),
-            );
+            dlt_stats_with_progress(source_file, chunk_result_sender.clone(), Some(shutdown_rx));
             debug!("back after indexing finished!",);
         }));
     }
 }
 
 fn dlt_stats_with_progress(
-    source_file: fs::File,
-    source_file_size: usize,
+    source_file: path::PathBuf,
     tx: cc::Sender<StatisticsResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
 ) {
     trace!("calling dlt stats with progress");
-    match dlt::dlt_parse::get_dlt_file_info(
-        &source_file,
-        source_file_size,
-        tx.clone(),
-        shutdown_receiver,
-    ) {
+    match dlt::dlt_parse::get_dlt_file_info(&source_file, tx.clone(), shutdown_receiver) {
         Err(why) => {
             error!("couldn't collect statistics: {}", why);
             match tx.send(Err(Notification {
@@ -69,13 +56,6 @@ declare_types! {
             trace!("Rust: JsDltStatsEventEmitter");
             let file_name = cx.argument::<JsString>(0)?.value();
             let file_path = path::PathBuf::from(file_name);
-            let f = match fs::File::open(&file_path) {
-                Ok(file) => file,
-                Err(_) => {
-                    error!("could not open {:?}", file_path);
-                    std::process::exit(2)
-                }
-            };
             let chunk_result_channel: (cc::Sender<StatisticsResults>, cc::Receiver<StatisticsResults>) = cc::unbounded();
             let shutdown_channel = cc::unbounded();
             let mut emitter = DltStatsEventEmitter {
@@ -83,16 +63,8 @@ declare_types! {
                 shutdown_sender: shutdown_channel.0,
                 task_thread: None,
             };
-            let source_file_size = match fs::metadata(file_path) {
-                Ok(file_meta) => file_meta.len() as usize,
-                Err(_) => {
-                    error!("could not find out size of source file");
-                    std::process::exit(2)
-                }
-            };
             emitter.start_dlt_stats_in_thread(
-                f,
-                source_file_size,
+                file_path,
                 shutdown_channel.1,
                 chunk_result_channel.0
             );

@@ -2,8 +2,8 @@ use channels::{EventEmitterTask, IndexingThreadConfig};
 use crossbeam_channel as cc;
 use indexer_base::chunks::ChunkResults;
 use indexer_base::config::IndexingConfig;
+use indexer_base::progress::{Notification, Severity};
 use neon::prelude::*;
-use std::fs;
 use std::path;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -50,23 +50,19 @@ fn index_file_with_progress(
     shutdown_receiver: Option<cc::Receiver<()>>,
 ) {
     trace!("index_file_with_progress");
-    let source_file_size = Some(match config.in_file.metadata() {
-        Ok(file_meta) => file_meta.len() as usize,
-        Err(_) => {
-            error!("could not find out size of source file");
-            std::process::exit(2);
-        }
-    });
     match processor::processor::create_index_and_mapping(
         config,
         timestamps,
-        source_file_size,
-        tx,
+        tx.clone(),
         shutdown_receiver,
     ) {
         Err(why) => {
             error!("couldn't process: {}", why);
-            std::process::exit(2)
+            let _ = tx.try_send(Err(Notification {
+                severity: Severity::WARNING,
+                content: format!("couldn't process: {}", why),
+                line: None,
+            }));
         }
         Ok(_) => trace!("create_index_and_mapping returned ok"),
     }
@@ -84,13 +80,7 @@ declare_types! {
             let chunk_size: usize = cx.argument::<JsNumber>(5)?.value() as usize;
             let (shutdown_sender, shutdown_receiver) = cc::unbounded();
 
-            let f = match fs::File::open(&file) {
-                Ok(file) => file,
-                Err(_) => {
-                    eprint!("could not open {}", file);
-                    std::process::exit(2)
-                }
-            };
+            let file_path = path::PathBuf::from(file);
             let (chunk_result_sender, chunk_result_receiver): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
             let mut emitter = IndexingEventEmitter {
                 event_receiver: Arc::new(Mutex::new(chunk_result_receiver)),
@@ -102,7 +92,7 @@ declare_types! {
                 append,
                 chunk_size,
                 IndexingThreadConfig {
-                    in_file: f,
+                    in_file: file_path,
                     out_path,
                     append,
                     tag,

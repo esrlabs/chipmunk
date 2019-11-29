@@ -148,7 +148,7 @@ impl<T: 'static + Send + Debug + Serialize> Task for EventEmitterTask<T> {
 
 #[derive(Debug)]
 pub struct IndexingThreadConfig {
-    pub in_file: fs::File,
+    pub in_file: path::PathBuf,
     pub out_path: path::PathBuf,
     pub append: bool,
     pub tag: String,

@@ -359,6 +359,7 @@ fn main() {
     ) {
         if matches.is_present("input") && matches.is_present("tag") {
             let file = matches.value_of("input").expect("input must be present");
+            let file_path = path::PathBuf::from(file);
             let tag = matches.value_of("tag").expect("tag must be present");
             let tag_string = tag.to_string();
             let fallback_out = file.to_string() + ".out";
@@ -370,14 +371,6 @@ fn main() {
             let mapping_out_path: path::PathBuf =
                 path::PathBuf::from(file.to_string() + ".map.json");
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
-
-            let f = match fs::File::open(&file) {
-                Ok(file) => file,
-                Err(_) => {
-                    report_error(format!("could not open {}", file));
-                    std::process::exit(2)
-                }
-            };
 
             let source_file_size = if status_updates {
                 Some(match fs::metadata(file) {
@@ -402,12 +395,11 @@ fn main() {
                     IndexingConfig {
                         tag: tag_string.as_str(),
                         chunk_size,
-                        in_file: f,
+                        in_file: file_path,
                         out_path: &out_path,
                         append,
                     },
                     timestamps,
-                    source_file_size,
                     tx,
                     None,
                 ) {
@@ -594,13 +586,6 @@ fn main() {
             let file_path = path::PathBuf::from(file_name);
             let mapping_out_path: path::PathBuf =
                 path::PathBuf::from(file_name.to_string() + ".map.json");
-            let f = match fs::File::open(&file_path) {
-                Ok(file) => file,
-                Err(_) => {
-                    report_error(format!("could not open {:?}", file_path));
-                    std::process::exit(2)
-                }
-            };
 
             let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
@@ -610,7 +595,7 @@ fn main() {
                     IndexingConfig {
                         tag: tag_string.as_str(),
                         chunk_size,
-                        in_file: f,
+                        in_file: file_path,
                         out_path: &out_path,
                         append,
                     },
@@ -860,7 +845,7 @@ fn main() {
         ) = unbounded();
 
         thread::spawn(move || {
-            if let Err(why) = dlt::dlt_parse::get_dlt_file_info(&f, source_file_size, tx, None) {
+            if let Err(why) = dlt::dlt_parse::get_dlt_file_info(&file_path, tx, None) {
                 report_error(format!("couldn't collect statistics: {}", why));
                 std::process::exit(2)
             }

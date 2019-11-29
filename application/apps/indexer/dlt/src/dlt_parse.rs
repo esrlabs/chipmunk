@@ -953,9 +953,20 @@ pub fn index_dlt_file(
     let mut chunk_count = 0usize;
     let mut last_byte_index = 0usize;
     let mut chunk_factory = ChunkFactory::new(config.chunk_size, current_out_file_size);
-
-    let mut reader = ReduxReader::with_capacity(10 * 1024 * 1024, config.in_file)
-        .set_policy(MinBuffered(10 * 1024));
+    let f = match fs::File::open(&config.in_file) {
+        Ok(file) => file,
+        Err(e) => {
+            eprint!("could not open {:?}", config.in_file);
+            let _ = update_channel.try_send(Err(Notification {
+                severity: Severity::WARNING,
+                content: format!("could not open file ({})", e),
+                line: None,
+            }));
+            return Err(err_msg(format!("could not open file ({})", e)));
+        }
+    };
+    let mut reader =
+        ReduxReader::with_capacity(10 * 1024 * 1024, f).set_policy(MinBuffered(10 * 1024));
     let mut line_nr = initial_line_nr;
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
 
@@ -1206,13 +1217,21 @@ pub struct StatisticInfo {
 pub type StatisticsResults = std::result::Result<IndexingProgress<StatisticInfo>, Notification>;
 #[allow(dead_code)]
 pub fn get_dlt_file_info(
-    in_file: &fs::File,
-    source_file_size: usize,
+    in_file: &std::path::PathBuf,
     update_channel: cc::Sender<StatisticsResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
 ) -> Result<(), Error> {
+    let f = match fs::File::open(in_file) {
+        Ok(file) => file,
+        Err(e) => {
+            error!("could not open {:?}", in_file);
+            return Err(err_msg(format!("could not open {:?}", in_file)));
+        }
+    };
+
+    let source_file_size: usize = fs::metadata(&in_file)?.len() as usize;
     let mut reader =
-        ReduxReader::with_capacity(10 * 1024 * 1024, in_file).set_policy(MinBuffered(10 * 1024));
+        ReduxReader::with_capacity(10 * 1024 * 1024, f).set_policy(MinBuffered(10 * 1024));
 
     let mut app_ids: IdMap = FxHashMap::default();
     let mut context_ids: IdMap = FxHashMap::default();
@@ -1582,12 +1601,11 @@ mod tests {
         let in_path = PathBuf::from("..")
             .join("dlt/test_samples")
             .join("lukas_crash.dlt");
-        let in_file = fs::File::open(&in_path).unwrap();
         let out_path = PathBuf::from("..")
             .join("dlt/test_samples")
             .join("lukas_crash.dlt.out");
 
-        let source_file_size = Some(fs::metadata(in_path).unwrap().len() as usize);
+        let source_file_size = Some(fs::metadata(&in_path).unwrap().len() as usize);
         let (tx, _rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
         let chunk_size = 500usize;
         let tag_string = "TAG".to_string();
@@ -1595,7 +1613,7 @@ mod tests {
             IndexingConfig {
                 tag: tag_string.as_str(),
                 chunk_size,
-                in_file,
+                in_file: in_path,
                 out_path: &out_path,
                 append: false,
             },
