@@ -126,7 +126,6 @@ def get_node_exec()
   if OS.windows?
     sh "set ELECTRON_RUN_AS_NODE=true"
   else
-    print "MAC!!!"
     sh "export ELECTRON_RUN_AS_NODE=true"
   end
   return "./node_modules/.bin/electron"
