@@ -78,6 +78,12 @@ export class PluginIPCService extends EventEmitter {
         });
     }
 
+    /**
+     * Sends a message to plugin render (if it exists)
+     * @param {string} session id of session
+     * @param {any} message message
+     * @returns { Promise<void> }
+     */
     public sendToPluginHost(session: string, message: any): Promise<any> {
         return new Promise((resolve, reject) => {
             if (this._token === undefined) {
@@ -96,6 +102,12 @@ export class PluginIPCService extends EventEmitter {
         });
     }
 
+    /**
+     * Sends a request to plugin render (if it exists)
+     * @param {string} session id of session
+     * @param {any} message message
+     * @returns { Promise<any> } response from plugin render
+     */
     public requestToPluginHost(session: string, message: any): Promise<any> {
         return new Promise((resolve, reject) => {
             if (this._token === undefined) {
