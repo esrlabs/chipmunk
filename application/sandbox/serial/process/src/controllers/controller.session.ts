@@ -145,6 +145,8 @@ export class ControllerSession {
             event: ERenderEvents.spyState,
             streamId: this._session,
             load: this._readLoad,
+        }).catch((error: Error) => {
+            this._logger.error(error);
         });
     }
 

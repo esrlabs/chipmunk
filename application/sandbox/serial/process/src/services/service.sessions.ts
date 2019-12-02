@@ -236,6 +236,9 @@ class ServiceSessions {
             if (streamId === undefined) {
                 return reject(new Error(this._logger.warn(`No target stream ID provided`)));
             }
+            if (message === undefined) {
+                return reject(new Error(this._logger.error(`Fail to send message, because it's undefined`)))
+            }
             let controller: ControllerSession | undefined = this._sessions.get(streamId);
             if (controller === undefined) {
                 return reject(new Error(this._logger.error(`Fail to open port, because session isn't created.`)));
@@ -261,6 +264,9 @@ class ServiceSessions {
             if (streamId === undefined) {
                 return reject(new Error(this._logger.warn(`No target stream ID provided`)));
             }
+            if (message === undefined) {
+                return reject(new Error(this._logger.error(`Fail to send message, because it's undefined`)))
+            }
             let controller: ControllerSession | undefined = this._sessions.get(streamId);
             if (controller === undefined) {
                 return reject(new Error(this._logger.error(`Failed to open ports, because session isn't created.`)));
@@ -285,6 +291,9 @@ class ServiceSessions {
             const streamId: string | undefined = message.stream;
             if (streamId === undefined) {
                 return reject(new Error(this._logger.warn(`No target stream ID provided`)));
+            }
+            if (message === undefined) {
+                return reject(new Error(this._logger.error(`Fail to send message, because it's undefined`)))
             }
             let controller: ControllerSession | undefined = this._sessions.get(streamId);
             if (controller === undefined) {
