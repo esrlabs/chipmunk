@@ -21,11 +21,12 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
 
     @ViewChild('optionsCom', {static: false}) _optionsCom: SidebarVerticalPortOptionsWriteComponent;
 
-    @Input() private _onConnect: () => void;
-    @Input() private _requestPortList: () => IPortInfo[];
-    @Input() private _getSelected: (IPortInfo) => void;
-    @Input() private _get_optionsCom: (SidebarVerticalPortOptionsWriteComponent) => void;
-    @Input() private _stopSpy: () => void;
+    @Input() public _onConnect: () => void;
+    @Input() public _requestPortList: () => IPortInfo[];
+    @Input() public _getSelected: (IPortInfo) => void;
+    @Input() public _getOptionsCom: (SidebarVerticalPortOptionsWriteComponent) => void;
+    @Input() public _stopSpy: () => void;
+    @Input() public _getSpyState: () => { [key: string]: number };
 
     @Input() public _ng_getState: (IPortInfo) => IPortState;
     @Input() public _ng_canBeConnected: () => boolean;
@@ -33,7 +34,6 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
     @Input() public _ng_isPortSelected: (port: IPortInfo) => boolean;
     @Input() public _ng_onOptions: () => void;
     @Input() public _ng_onPortSelect: (port: IPortInfo) => void;
-    @Input() public _getSpyState: () => { [key: string]: number };
 
     private interval: any;
 
@@ -67,7 +67,7 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
 
     public _ng_onConnect() {
         this._getSelected(this._ng_selected);
-        this._get_optionsCom(this._optionsCom);
+        this._getOptionsCom(this._optionsCom);
         this._onConnect();
     }
 
