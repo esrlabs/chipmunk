@@ -4,7 +4,6 @@ import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, ViewChil
 import { EHostEvents, EHostCommands } from '../../common/host.events';
 import { IPortInfo, IPortState, IIOState } from '../../common/interface.portinfo';
 import { IOptions, CDefaultOptions } from '../../common/interface.options';
-import { SidebarVerticalPortOptionsWriteComponent } from './port.options.write/component';
 import { InputStandardComponent, DDListStandardComponent } from 'chipmunk-client-primitive';
 import { SidebarVerticalPortDialogComponent } from '../dialog/components';
 import { SidebarTitleAddComponent } from '../dialog/titlebar/components';
@@ -52,7 +51,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     private _chosenPort: string = undefined;
     private _portOptions: IOptions[] = [];
     private _options: IOptions = Object.assign({}, CDefaultOptions);
-    private _optionsCom: SidebarVerticalPortOptionsWriteComponent;
+    private _optionsCom: IOptions;
     private _messageQueue: {[port: string]: string[]} = {};
     private _openQueue: {[port: string]: boolean} = {};
 
@@ -162,7 +161,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         if (!this._ng_canBeConnected()) {
             return;
         }
-        const options: IOptions = this._getOptions();
+        const options: IOptions = this._optionsCom;
         this._ng_busy = true;
         this._ng_error = undefined;
         this._ng_options = false;
@@ -321,15 +320,6 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         }).catch((error: Error) => {
             this._logger.error(`Fail to get ports list due error: ${error.message}`);
         });
-    }
-
-    private _getOptions(): IOptions {
-        let options: IOptions = Object.assign({}, CDefaultOptions);
-        if (this._optionsCom && this._optionsCom !== null) {
-            options = this._optionsCom.getOptions();
-        }
-        options.path = this._ng_selected.comName;
-        return options;
     }
 
     private _error(msg: string): string {
@@ -544,7 +534,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                         _requestPortList: ( () => response.ports),
                         _forceUpdate: this._forceUpdate,
                         _getSelected: ((selected: IPortInfo) => { this._ng_selected = selected; }),
-                        _getOptionsCom: ((options: SidebarVerticalPortOptionsWriteComponent) => { this._optionsCom = options; }),
+                        _getOptionsCom: ((options: IOptions) => { this._optionsCom = options; }),
                         _stopSpy: (() => {
                             this._stopSpy();
                         })
