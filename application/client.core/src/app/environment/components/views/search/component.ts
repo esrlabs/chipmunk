@@ -115,7 +115,8 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._ng_session.getSessionSearch().getFiltersAPI().search({
             requestId: this._ng_searchRequestId,
             requests: [Toolkit.regTools.createFromStr(this._ng_request, 'gim') as RegExp],
-        }).then(() => {
+        }).then((count: number | undefined) => {
+            this._onSearchUpdated( { session: this._ng_session.getGuid(), rows: count } );
             // Search done
             this._ng_searchRequestId = undefined;
             this._ng_isRequestSaved = this._ng_session.getSessionSearch().getFiltersAPI().isRequestStored(this._ng_request);
