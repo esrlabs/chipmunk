@@ -1,5 +1,6 @@
 <div class="container" [ngStyle]="{'width': _ng_width + 'px', 'height': _ng_height + 'px'}">
-    <canvas id="view-chart-zoomer-canvas" [attr.width]="_ng_width" [attr.height]="_ng_height"></canvas>
+    <canvas id="view-chart-zoomer-filters-canvas" [attr.width]="_ng_width" [attr.height]="_ng_height"></canvas>
+    <canvas id="view-chart-zoomer-charts-canvas" [attr.width]="_ng_width" [attr.height]="_ng_height"></canvas>
 </div>
 <app-views-chart-zoomer-cursor-canvas 
     *ngIf="_ng_isCursorVisible"

@@ -3,7 +3,7 @@ import { Observable, Subscription } from 'rxjs';
 import { Chart } from 'chart.js';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
-import { ServiceData } from '../service.data';
+import { ServiceData, IResults } from '../service.data';
 import { ServicePosition } from '../service.position';
 
 @Component({
@@ -26,7 +26,8 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewChartZoomerCanvasComponent');
     private _destroyed: boolean = false;
-    private _chart: Chart | undefined;
+    private _filters: Chart | undefined;
+    private _charts: Chart | undefined;
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef) {
@@ -36,6 +37,7 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
     ngAfterViewInit() {
         // Data events
         this._subscriptions.onData = this.serviceData.getObservable().onData.subscribe(this._onData.bind(this));
+        this._subscriptions.onCharts = this.serviceData.getObservable().onCharts.subscribe(this._onChartData.bind(this));
         // Listen session changes event
         this._subscriptions.onViewResize = ViewsEventsService.getObservable().onResize.subscribe(this._onViewResize.bind(this));
         // Update size of canvas and containers
@@ -52,10 +54,10 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
     }
 
     public _ng_getLeftOffset(): number {
-        if (this._chart === undefined) {
+        if (this._filters === undefined) {
             return 0;
         }
-        return this._chart.chartArea.left;
+        return this._filters.chartArea.left;
     }
 
     private _resize(force: boolean = false) {
@@ -63,10 +65,13 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         this._ng_width = size.width;
         this._ng_height = size.height;
         this._forceUpdate();
-        if (this._chart !== undefined && (force || this._ng_offset === 0)) {
-            this._chart.resize();
-            this._ng_offset = this._chart.chartArea.left;
+        if (this._filters !== undefined && (force || this._ng_offset === 0)) {
+            this._filters.resize();
+            this._ng_offset = this._filters.chartArea.left;
             this._ng_onOffsetUpdated.emit();
+        }
+        if (this._charts !== undefined && force) {
+            this._charts.resize();
         }
     }
 
@@ -74,61 +79,132 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         if (this.serviceData === undefined) {
             return;
         }
-        if (this._chart !== undefined) {
-            this._chart.destroy();
-        }
-        let width: number = 0;
         if (this._ng_width < this.serviceData.getStreamSize()) {
-            width = Math.round(this._ng_width / 2);
             this._ng_isCursorVisible = true;
         } else {
-            width = this._ng_width;
             this._ng_isCursorVisible = false;
         }
-        const labels: string[] = this.serviceData.getLabes(width);
-        const datasets: Array<{ [key: string]: any }> = this.serviceData.getDatasets(width, undefined, true);
-        if (labels.length === 0 || datasets.length === 0) {
-            this._chart = undefined;
-            return;
-        }
-        this._chart = new Chart('view-chart-zoomer-canvas', {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: datasets,
-            },
-            options: {
-                title: {
-                    display: false,
-                },
-                legend: {
-                    display: false,
-                },
-                animation: {
-                    duration: 0,
-                },
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    yAxes: [{
-                        stacked: true,
-                        ticks: {
-                            beginAtZero: true
-                        },
-                        display: false,
-                    }],
-                    xAxes: [{
-                        stacked: true,
-                        display: false,
-                    }]
-                }
-            }
-        });
+        this._buildFilters();
+        this._buildCharts();
         this._ng_onOffsetUpdated.emit();
     }
 
+    private _buildFilters() {
+        let width: number = 0;
+        if (this._ng_width < this.serviceData.getStreamSize()) {
+            width = Math.round(this._ng_width / 2);
+        } else {
+            width = this._ng_width;
+        }
+        const labels: string[] = this.serviceData.getLabes(width);
+        const datasets: IResults = this.serviceData.getDatasets(width, undefined);
+        if (labels.length === 0 || datasets.dataset.length === 0) {
+            if (this._filters !== undefined) {
+                this._filters.destroy();
+                this._filters = undefined;
+            }
+            return;
+        }
+        if (this._filters === undefined) {
+            this._filters = new Chart('view-chart-zoomer-filters-canvas', {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: datasets.dataset,
+                },
+                options: {
+                    title: {
+                        display: false,
+                    },
+                    legend: {
+                        display: false,
+                    },
+                    animation: {
+                        duration: 0,
+                    },
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        yAxes: [{
+                            stacked: true,
+                            ticks: {
+                                beginAtZero: true
+                            },
+                            display: false,
+                        }],
+                        xAxes: [{
+                            stacked: true,
+                            display: false,
+                        }]
+                    }
+                }
+            });
+        } else {
+            this._filters.data.labels = labels;
+            this._filters.data.datasets = datasets.dataset;
+            setTimeout(() => {
+                this._filters.update();
+            });
+        }
+    }
+
+    private _buildCharts() {
+        const datasets: IResults = this.serviceData.getChartsDatasets(this._ng_width, undefined, true);
+        if (this._charts === undefined) {
+            this._charts = new Chart('view-chart-zoomer-charts-canvas', {
+                type: 'scatter',
+                data: {
+                    datasets: datasets.dataset,
+                },
+                options: {
+                    title: {
+                        display: false,
+                    },
+                    legend: {
+                        display: false,
+                    },
+                    animation: {
+                        duration: 0,
+                    },
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        xAxes: [{
+                            ticks: {
+                                min: 0,
+                                max: this.serviceData.getStreamSize(),
+                            },
+                            gridLines: {
+                                color: '#888',
+                                drawOnChartArea: false
+                            },
+                           display: false
+                        }],
+                        yAxes: [{
+                            display: false,
+                            ticks: {
+                                beginAtZero: true,
+                                max: Math.round(datasets.max + datasets.max * 0.1)
+                            },
+                        }]
+                     }
+                }
+            });
+            this._forceUpdate();
+        } else {
+            this._charts.data.datasets = datasets.dataset;
+            setTimeout(() => {
+                this._charts.update();
+            });
+        }
+    }
+
     private _onData() {
-        this._build();
+        this._buildFilters();
+    }
+
+    private _onChartData() {
+        this._buildCharts();
     }
 
     private _onViewResize() {
