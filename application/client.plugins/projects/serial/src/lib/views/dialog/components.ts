@@ -2,7 +2,7 @@
 
 import { Component, ChangeDetectorRef, Input, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { IPortInfo, IPortState } from '../../common/interface.portinfo';
-import { IOptions } from '../../common/interface.options';
+import { IOptions, CDefaultOptions } from '../../common/interface.options';
 import { SidebarVerticalPortOptionsWriteComponent } from '../sidebar.vertical/port.options.write/component';
 
 interface IConnected {
@@ -65,9 +65,18 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
         this._stopSpy();
     }
 
+    private _getOptions(): IOptions {
+        let options: IOptions = Object.assign({}, CDefaultOptions);
+        if (this._optionsCom && this._optionsCom !== null) {
+            options = this._optionsCom.getOptions();
+        }
+        options.path = this._ng_selected.comName;
+        return options;
+    }
+
     public _ng_onConnect() {
         this._getSelected(this._ng_selected);
-        this._getOptionsCom(this._optionsCom);
+        this._getOptionsCom(this._getOptions());
         this._onConnect();
     }
 
