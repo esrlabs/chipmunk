@@ -148,6 +148,7 @@ export default class ControllerStreamSearch {
             task.then((map: IMapItem[]) => {
                 this._inspect(requests);
                 this._requests = requests;
+                this._state.postman.notification(true);
                 resolve(this._state.map.getRowsCount());
             }).catch((searchErr: Error) => {
                 this._logger.error(`Fail to execute search due error: ${searchErr.message}`);
