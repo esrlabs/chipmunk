@@ -1,24 +1,13 @@
 <p class="caption t-small" *ngIf="_ng_filename !== undefined">{{_ng_filename}}</p>
 
 <div class="lists">
-    <div class="requests-wrapper" *ngIf="_ng_requests.length > 0">
-        <p class="caption t-small" *ngIf="_ng_requests.length > 0 && _ng_charts.length > 0">Available filters</p>
+    <div class="list-wrapper" *ngIf="_ng_requests.length > 0 || _ng_charts.length > 0">
         <ul #listrequests [attr.class]="'requests '" (focus)="_ng_onRequestsFocus()" (blur)="_ng_onRequestsBlur()" tabindex="1">
             <li [attr.class]="'request ' + (_ng_selectedRequestIndex === i ? 'selected' : '') + ' ' + (request.request.active ? '' : 'inactive')"
             (contextmenu)="_ng_onContexMenu($event, request, 'filters')"
             *ngFor="let request of _ng_requests; let i = index;">
                 <app-sidebar-app-search-request [request]="request"></app-sidebar-app-search-request>
             </li>
-        </ul>
-    </div>
-    
-    <div class="controlls" *ngIf="_ng_requests.length > 0">
-        <span class="ref-button" (click)="_ng_onRemoveAll()">Clear</span>
-    </div>
-    
-    <div class="charts-wrapper" *ngIf="_ng_charts.length > 0">
-        <p class="caption t-small" *ngIf="_ng_requests.length > 0 && _ng_charts.length > 0">Available charts</p>
-        <ul #listcharts [attr.class]="'requests '" (focus)="_ng_onChartsFocus()" (blur)="_ng_onChartsBlur()" tabindex="1">
             <li [attr.class]="'request ' + (_ng_selectedChartIndex === i ? 'selected' : '') + ' ' + (chart.request.active ? '' : 'inactive')"
                 (contextmenu)="_ng_onContexMenu($event, chart, 'charts')"
                 *ngFor="let chart of _ng_charts; let i = index;">
@@ -27,9 +16,10 @@
         </ul>
     </div>
     
-    <div class="controlls" *ngIf="_ng_charts.length > 0">
+    <div class="controlls" *ngIf="_ng_requests.length > 0">
         <span class="ref-button" (click)="_ng_onRemoveAll()">Clear</span>
-    </div>    
+    </div>
+       
 </div>
 
 <div class="details" *ngIf="_ng_selectedRequest !== undefined">

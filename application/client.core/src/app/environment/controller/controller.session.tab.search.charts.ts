@@ -84,6 +84,11 @@ export class ControllerSessionTabSearchCharts {
     public extract(options: IChartsOptions): Promise<IPCMessages.TChartResults> {
         return new Promise((resolve, reject) => {
             this.cancel().then(() => {
+                if (options.requests.length === 0) {
+                    this._data = {};
+                    resolve({});
+                    return this._subjects.onChartsResultsUpdated.next({});
+                }
                 this._extract(options).then((res: IPCMessages.TChartResults) => {
                     this._data = res;
                     resolve(res);
@@ -223,6 +228,25 @@ export class ControllerSessionTabSearchCharts {
         return this._subjects;
     }
 
+    public getChartColor(source: string): string | undefined {
+        let color: string | undefined;
+        this._stored.forEach((filter: IChartRequest) => {
+            if (color !== undefined) {
+                return;
+            }
+            if (filter.reg.source === source) {
+                color = filter.color;
+            }
+        });
+        return color;
+    }
+
+    public getActiveCharts(): IChartRequest[] {
+        return this._stored.filter((chart: IChartRequest) => {
+            return chart.active;
+        });
+    }
+
     private _isChartRegExpValid(regAsStr: string): string | undefined {
         // Check for groups
         if (regAsStr.search(/\(|\)/gi) === -1) {
@@ -263,7 +287,7 @@ export class ControllerSessionTabSearchCharts {
     }
 
     private _refresh() {
-        this.extract({ requestId: Toolkit.guid(), requests: this._stored.map((req: IChartRequest) => {
+        this.extract({ requestId: Toolkit.guid(), requests: this.getActiveCharts().map((req: IChartRequest) => {
             return {
                 source: req.reg.source,
                 flags: req.reg.flags,

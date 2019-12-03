@@ -2,7 +2,7 @@ import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewCont
 import { Observable, Subscription } from 'rxjs';
 import { Chart, ChartData } from 'chart.js';
 import * as Toolkit from 'chipmunk.client.toolkit';
-import { ServiceData, IRange } from '../service.data';
+import { ServiceData, IRange, IResults } from '../service.data';
 import { ServicePosition, IPositionChange } from '../service.position';
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
@@ -61,8 +61,12 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
     }
 
     @HostListener('wheel', ['$event']) _ng_onWheel(event: WheelEvent) {
-        const width: number = this._ng_filters.chartArea.right - this._ng_filters.chartArea.left;
-        const offset: number = event.offsetX - this._ng_filters.chartArea.left;
+        const chart: Chart | undefined = this._ng_filters || this._ng_charts;
+        if (chart === undefined) {
+            return;
+        }
+        const width: number = chart.chartArea.right - chart.chartArea.left;
+        const offset: number = event.offsetX - chart.chartArea.left;
         this.position.force({
             deltaY: event.deltaY,
             proportionX: offset / width,
@@ -164,6 +168,9 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         if (this._ng_filters !== undefined) {
             this._ng_filters.resize();
         }
+        if (this._ng_charts !== undefined) {
+            this._ng_charts.resize();
+        }
     }
 
     private _build(force: boolean = false) {
@@ -183,19 +190,27 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         if (this.service === undefined) {
             return;
         }
-        const labels: string[] = this.service.getLabes(this._ng_width, this._getRange());
-        const datasets: Array<{ [key: string]: any }> = this.service.getDatasets(this._ng_width, this._getRange());
-        if (labels.length === 0 || datasets.length === 0) {
-            this._ng_filters = undefined;
-            return;
+        let width: number = 0;
+        if (this._ng_width < this.service.getStreamSize()) {
+            width = Math.round(this._ng_width / 2);
+        } else {
+            width = this._ng_width;
         }
-        const max: number = this.service.getMaxForLastRange();
+        const labels: string[] = this.service.getLabes(width, this._getRange());
+        const datasets: IResults = this.service.getDatasets(width, this._getRange());
+        if (labels.length === 0 || datasets.dataset.length === 0) {
+            if (this._ng_filters !== undefined) {
+                this._ng_filters.destroy();
+            }
+            this._ng_filters = undefined;
+            return this._forceUpdate();
+        }
         if (this._ng_filters === undefined) {
             this._ng_filters = new Chart('view-chart-canvas-filters', {
                 type: 'bar',
                 data: {
                     labels: labels,
-                    datasets: datasets,
+                    datasets: datasets.dataset,
                 },
                 options: {
                     title: {
@@ -215,10 +230,11 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                     maintainAspectRatio: false,
                     scales: {
                         yAxes: [{
+                            display: false, // TODO: make axes visible
                             stacked: true,
                             ticks: {
                                 beginAtZero: true,
-                                max: Math.round(max + max * 0.1)
+                                max: Math.round(datasets.max + datasets.max * 0.1)
                             },
                         }],
                         xAxes: [{
@@ -231,8 +247,8 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             this._forceUpdate();
         } else {
             this._ng_filters.data.labels = labels;
-            this._ng_filters.data.datasets = datasets;
-            this._ng_filters.options.scales.yAxes[0].ticks.max = Math.round(max + max * 0.1);
+            this._ng_filters.data.datasets = datasets.dataset;
+            this._ng_filters.options.scales.yAxes[0].ticks.max = Math.round(datasets.max + datasets.max * 0.1);
             setTimeout(() => {
                 this._ng_filters.update();
             });
@@ -244,7 +260,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         if (this.service === undefined) {
             return;
         }
-        const datasets: Array<{ [key: string]: any }> = this.service.getChartsDatasets(this._ng_width, this._getRange());
+        const datasets: IResults = this.service.getChartsDatasets(this._ng_width, this._getRange());
         let range: IRange | undefined = this._getRange();
         if (range === undefined) {
             range = {
@@ -256,7 +272,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             this._ng_charts = new Chart('view-chart-canvas-charts', {
                 type: 'scatter',
                 data: {
-                    datasets: datasets,
+                    datasets: datasets.dataset,
                 },
                 options: {
                     title: {
@@ -269,27 +285,32 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                         duration: 0,
                     },
                     responsive: true,
+                    maintainAspectRatio: false,
                     scales: {
                         xAxes: [{
-                           ticks: {
-                              min: range.begin,
-                              max: range.end
-                           },
-                           gridLines: {
-                              color: '#888',
-                              drawOnChartArea: false
-                           },
+                            ticks: {
+                                min: range.begin,
+                                max: range.end
+                            },
+                            gridLines: {
+                                color: '#888',
+                                drawOnChartArea: false
+                            },
                            display: false
                         }],
                         yAxes: [{
-                           display: false
+                            display: false,
+                            ticks: {
+                                beginAtZero: true,
+                                max: Math.round(datasets.max + datasets.max * 0.1)
+                            },
                         }]
                      }
                 }
             });
             this._forceUpdate();
         } else {
-            this._ng_charts.data.datasets = datasets;
+            this._ng_charts.data.datasets = datasets.dataset;
             this._ng_charts.options.scales.xAxes[0].ticks.max = range.end;
             this._ng_charts.options.scales.xAxes[0].ticks.min = range.begin;
             setTimeout(() => {

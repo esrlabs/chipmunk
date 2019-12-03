@@ -377,7 +377,7 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         const newChart: IChartRequest | undefined = this._getNewChart(charts);
         this._ng_charts = this._getChartsItems(charts);
         if (newChart === undefined) {
-            if (this._ng_requests.length === 0) {
+            if (this._ng_charts.length === 0) {
                 this._ng_selectedChart = undefined;
                 this._ng_selectedChartIndex = -1;
             }

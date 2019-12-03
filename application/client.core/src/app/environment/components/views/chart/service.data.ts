@@ -11,6 +11,11 @@ export interface IRange {
     end: number;
 }
 
+export interface IResults {
+    dataset: Array<{ [key: string]: any }>;
+    max: number | undefined;
+}
+
 export class ServiceData {
 
     private _subscriptions: { [key: string]: Subscription } = {};
@@ -18,7 +23,6 @@ export class ServiceData {
     private _sessionController: ControllerSessionTab | undefined;
     private _stream: IStreamState | undefined;
     private _matches: IMapState | undefined;
-    private _max: number | undefined;
     private _charts: IPCMessages.TChartResults = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger(`Charts ServiceData`);
     private _cache: {
@@ -84,13 +88,12 @@ export class ServiceData {
         return labels;
     }
 
-    public getDatasets(width: number, range?: IRange, noColors: boolean = false): Array<{ [key: string]: any }> {
-        this._max = undefined;
+    public getDatasets(width: number, range?: IRange): IResults {
         if (this._stream === undefined || this._matches === undefined) {
-            return [];
+            return { dataset: [], max: undefined };
         }
         if (this._stream.count === 0 || this._matches.points.length === 0) {
-            return [];
+            return { dataset: [], max: undefined };
         }
         const results: any = {};
         const countInRange: number = range === undefined ? this._stream.count : (range.end - range.begin);
@@ -150,13 +153,12 @@ export class ServiceData {
             };
             datasets.push(dataset);
         });
-        this._max = max;
-        return datasets;
+        return { dataset: datasets, max: max };
     }
 
     /*
-    public getDatasets(width: number, range?: IRange, noColors: boolean = false): Array<{ [key: string]: any }> {
-        this._max = undefined;
+    public getDatasets(width: number, range?: IRange): Array<{ [key: string]: any }> {
+        this._maxMatches = undefined;
         if (this._stream === undefined || this._matches === undefined) {
             return [];
         }
@@ -220,19 +222,20 @@ export class ServiceData {
             };
             datasets.push(dataset);
         });
-        this._max = max;
+        this._maxMatches = max;
         return datasets;
     }
     */
 
-    public getChartsDatasets(width: number, range?: IRange, noColors: boolean = false): Array<{ [key: string]: any }> {
+    public getChartsDatasets(width: number, range?: IRange, preview: boolean = false ): IResults {
         if (this._stream === undefined || this._charts === undefined) {
-            return [];
+            return { dataset: [], max: undefined };
         }
         if (this._stream.count === 0 || Object.keys(this._charts).length === 0) {
-            return [];
+            return { dataset: [], max: undefined };
         }
         const results: any = {};
+        let max: number = -1;
         if (range === undefined) {
             range = {
                 begin: 0,
@@ -241,8 +244,10 @@ export class ServiceData {
         }
         Object.keys(this._charts).forEach((reg: string) => {
             const matches: IPCMessages.IChartMatch[] = this._charts[reg];
-            const border: { left: number | undefined, right: number | undefined } = { left: -1, right: undefined };
             let prev: number | undefined;
+            if (results[reg] === undefined) {
+                results[reg] = [];
+            }
             matches.forEach((point: IPCMessages.IChartMatch) => {
                 if (!(point.value instanceof Array) || point.value.length === 0) {
                     return;
@@ -251,19 +256,15 @@ export class ServiceData {
                 if (isNaN(value) || !isFinite(value)) {
                     return;
                 }
+                if (max < value) {
+                    max = value;
+                }
                 if (point.row < range.begin) {
-                    border.left = value;
                     return;
                 }
                 if (point.row > range.end) {
-                    if (border.right === undefined) {
-                        border.right = value;
-                    }
                     // TODO: here we can jump out
                     return;
-                }
-                if (results[reg] === undefined) {
-                    results[reg] = [];
                 }
                 if (prev !== undefined) {
                     results[reg].push({
@@ -277,61 +278,52 @@ export class ServiceData {
                 });
                 prev = value;
             });
-            if (results[reg] !== undefined && results[reg].length > 0) {
-                // console.log(border.left);
-                if (border.left !== -1 && range.begin <= results[reg][0].x) {
-                    results[reg].unshift(...[
-                        {
-                            x: range.begin,
-                            y: border.left,
-                        },
-                        {
-                            x: results[reg][0].x,
-                            y: border.left,
-                        },
+            // Find borders first
+            const left: number | undefined = this._getLeftBorderChartDS(reg, range.begin);
+            const right: number | undefined = this._getRightBorderChartDS(reg, range.end);
+            if (results[reg].length > 0) {
+                left !== undefined && results[reg].unshift(...[
+                    { x: range.begin,       y: left },
+                    { x: results[reg][0].x, y: left },
+                ]);
+                right !== undefined && results[reg].push(...[
+                    { x: results[reg][results[reg].length - 1].x, y: right },
+                    { x: range.end,                               y: right }
+                ]);
+            } else {
+                left !== undefined && results[reg].push(...[
+                    { x: range.begin, y: left }
+                ]);
+                right !== undefined && results[reg].push(...[
+                    { x: range.end, y: right }
+                ]);
+                if (results[reg].length !== 2) {
+                    left !== undefined && results[reg].push(...[
+                        { x: range.end, y: left }
                     ]);
-                }
-                if (border.right !== undefined && range.end > results[reg][results[reg].length - 1].x) {
-                    results[reg].push(...[
-                        {
-                            x: results[reg][results[reg].length - 1].x,
-                            y: border.right,
-                        },
-                        {
-                            x: range.end,
-                            y: border.right,
-                        }
+                    right !== undefined && results[reg].unshift(...[
+                        { x: range.begin, y: right }
                     ]);
                 }
             }
         });
         const datasets = [];
         Object.keys(results).forEach((filter: string) => {
-            const color: string | undefined = this._sessionController.getSessionSearch().getFiltersAPI().getRequestColor(filter);
+            const color: string | undefined = this._sessionController.getSessionSearch().getChartsAPI().getChartColor(filter);
             const dataset = {
                 label: filter,
                 borderColor: color === undefined ? ColorScheme.scheme_search_match : color,
                 data: results[filter],
                 borderWidth: 1,
-                pointRadius: 5,
-                pointHoverRadius: 5,
+                pointRadius: preview ? 1 : 2,
+                pointHoverRadius: preview ? 1 : 2,
                 fill: false,
                 tension: 0,
                 showLine: true
             };
             datasets.push(dataset);
         });
-        return datasets;
-    }
-
-    public getMaxForLastRange(): number | undefined {
-        if (this._stream === undefined) {
-            return undefined;
-        }
-        if (this._matches === undefined) {
-            return undefined;
-        }
-        return this._max;
+        return { dataset: datasets, max: max };
     }
 
     public getStreamSize(): number | undefined {
@@ -342,13 +334,16 @@ export class ServiceData {
     }
 
     public hasData(): boolean {
-        if (this._stream === undefined) {
+        if (this._stream === undefined || this._stream.count === 0) {
             return false;
         }
-        if (this._matches === undefined) {
+        if (this._matches === undefined && this._charts === undefined) {
             return false;
         }
-        return this._stream.count === 0 ? false : this._matches.points.length !== 0;
+        if (this._matches !== undefined && this._matches.points.length === 0 && this._charts !== undefined && Object.keys(this._charts).length === 0) {
+            return false;
+        }
+        return true;
     }
 
     public getSessionGuid(): string | undefined {
@@ -372,7 +367,9 @@ export class ServiceData {
         // Subscribe
         this._sessionSubscriptions.onSearchMapStateUpdate = controller.getStreamMap().getObservable().onStateUpdate.subscribe(this._onSearchMapStateUpdate.bind(this));
         this._sessionSubscriptions.onStreamStateUpdated = controller.getSessionStream().getOutputStream().getObservable().onStateUpdated.subscribe(this._onStreamStateUpdated.bind(this));
+        this._sessionSubscriptions.onRequestsUpdated = controller.getSessionSearch().getFiltersAPI().getObservable().onRequestsUpdated.subscribe(this._onRequestsUpdated.bind(this));
         this._sessionSubscriptions.onChartsResultsUpdated = controller.getSessionSearch().getChartsAPI().getObservable().onChartsResultsUpdated.subscribe(this._onChartsResultsUpdated.bind(this));
+        this._sessionSubscriptions.onChartsUpdated = controller.getSessionSearch().getChartsAPI().getObservable().onChartsUpdated.subscribe(this._onChartsUpdated.bind(this));
         // Get default data
         this._stream = controller.getSessionStream().getOutputStream().getState();
         this._matches = controller.getStreamMap().getState();
@@ -397,10 +394,89 @@ export class ServiceData {
         this._subjects.onData.next();
     }
 
+    private _onRequestsUpdated() {
+        // Some things like colors was changed. Trigger an update
+        this._subjects.onData.next();
+    }
+
     private _onChartsResultsUpdated(charts: IPCMessages.TChartResults) {
         this._charts = charts;
         this._subjects.onCharts.next();
-        console.log(charts);
+    }
+
+    private _onChartsUpdated() {
+        // Some things like colors was changed. Trigger an update
+        this._subjects.onCharts.next();
+    }
+
+    private _getLeftBorderChartDS(reg: string, begin: number): number | undefined {
+        const matches: IPCMessages.IChartMatch[] | undefined = this._charts[reg];
+        if (matches === undefined) {
+            return undefined;
+        }
+        try {
+            let prev: IPCMessages.IChartMatch | undefined;
+            matches.forEach((match: IPCMessages.IChartMatch) => {
+                if (match.row === begin) {
+                    throw match;
+                }
+                if (match.row > begin) {
+                    if (prev === undefined) {
+                        throw match;
+                    } else {
+                        throw prev;
+                    }
+                }
+                prev = match;
+            });
+            return this._getValidNumberValue(matches[0].value[0]);
+        } catch (target) {
+            if (typeof target === 'object' && target !== null && target.row && target.value) {
+                const value: number = parseInt(target.value[0], 10);
+                if (isNaN(value) || !isFinite(value)) {
+                    return;
+                }
+                return this._getValidNumberValue(target.value[0]);
+            }
+        }
+        return undefined;
+    }
+
+    private _getRightBorderChartDS(reg: string, end: number): number | undefined {
+        const matches: IPCMessages.IChartMatch[] | undefined = this._charts[reg];
+        if (matches === undefined || matches.length === 0) {
+            return undefined;
+        }
+        try {
+            let prev: IPCMessages.IChartMatch | undefined;
+            matches.forEach((match: IPCMessages.IChartMatch) => {
+                if (match.row === end) {
+                    throw match;
+                }
+                if (match.row > end) {
+                    if (prev === undefined) {
+                        throw match;
+                    } else {
+                        throw prev;
+                    }
+                }
+                prev = match;
+            });
+            return this._getValidNumberValue(matches[matches.length - 1].value[0]);
+        } catch (target) {
+            if (typeof target === 'object' && target !== null && target.row && target.value) {
+                return this._getValidNumberValue(target.value[0]);
+            }
+        }
+        return undefined;
+    }
+
+    private _getValidNumberValue(val: string): number | undefined {
+        const value: number = parseInt(val, 10);
+        if (isNaN(value) || !isFinite(value)) {
+            return undefined;
+        }
+        return value;
     }
 
     private _getHash(width: number): string | undefined {
