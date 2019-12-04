@@ -1,10 +1,11 @@
 import { Component, Input, AfterContentInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
-import { ControllerSessionTabSearchFilters } from '../../../../../controller/controller.session.tab.search.filters';
+import { ControllerSessionTabSearchFilters, IRequest } from '../../../../../controller/controller.session.tab.search.filters';
+import { ControllerSessionTabSearchCharts, IChartRequest } from '../../../../../controller/controller.session.tab.search.charts';
 import PopupsService from '../../../../../services/standalone/service.popups';
 import { DialogsRecentFitlersActionComponent } from '../../../../dialogs/recentfilter/component';
 import ElectronIpcService, { IPCMessages } from '../../../../../services/service.electron.ipc';
-import SearchSessionsService, { IRequest } from '../../../../../services/service.sessions.search';
+import SearchSessionsService from '../../../../../services/service.sessions.search';
 import { NotificationsService, INotification } from '../../../../../services.injectable/injectable.service.notifications';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -87,21 +88,38 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
                     message: `Fail to load filters due error: ${response.error}`
                 });
             }
-            const filters = response.filters.filter((filter) => {
-                return Toolkit.regTools.isRegStrValid(filter.reg);
+            const filters = response.filters.filter((request) => {
+                return Toolkit.regTools.isRegStrValid(request.reg);
             });
-            const controller: ControllerSessionTabSearchFilters | undefined  = SearchSessionsService.getFiltersAPI();
-            if (controller === undefined) {
+            const charts = response.charts.filter((request) => {
+                return Toolkit.regTools.isRegStrValid(request.reg);
+            });
+            const conFilters: ControllerSessionTabSearchFilters | undefined  = SearchSessionsService.getFiltersAPI();
+            if (conFilters === undefined) {
                 this._logger.error(`Fail to get FiltersAPI`);
                 return;
             }
-            controller.removeAllStored();
-            controller.insertStored(filters.map((filter) => {
+            const conCharts: ControllerSessionTabSearchCharts | undefined  = SearchSessionsService.getChartsAPI();
+            if (conCharts === undefined) {
+                this._logger.error(`Fail to get ChartsAPI`);
+                return;
+            }
+            conFilters.removeAllStored();
+            conFilters.insertStored(filters.map((filter) => {
                 return {
                     reg: Toolkit.regTools.createFromStr(filter.reg) as RegExp,
                     color: filter.color,
                     background: filter.background,
                     active: filter.active,
+                };
+            }));
+            conCharts.removeAllStored();
+            conCharts.insertStored(charts.map((chart) => {
+                return {
+                    reg: Toolkit.regTools.createFromStr(chart.reg) as RegExp,
+                    color: chart.color,
+                    active: chart.active,
+                    type: chart.type,
                 };
             }));
             this._setFile(response.file);
@@ -118,16 +136,17 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
         if (!saveAs && !this.changed) {
             return;
         }
-        const controller: ControllerSessionTabSearchFilters | undefined  = SearchSessionsService.getFiltersAPI();
-        if (controller === undefined) {
+        const conFilters: ControllerSessionTabSearchFilters | undefined  = SearchSessionsService.getFiltersAPI();
+        if (conFilters === undefined) {
             this._logger.error(`Fail to get FiltersAPI`);
             return;
         }
-        const requests: IRequest[] = controller.getStored();
-        if (requests.length === 0) {
+        const conCharts: ControllerSessionTabSearchCharts | undefined  = SearchSessionsService.getChartsAPI();
+        if (conCharts === undefined) {
+            this._logger.error(`Fail to get ChartsAPI`);
             return;
         }
-        const filters = requests.map((request: IRequest) => {
+        const filters = conFilters.getStored().map((request: IRequest) => {
             return {
                 reg: request.reg.source,
                 color: request.color,
@@ -135,7 +154,15 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
                 active: request.active
             };
         });
-        ElectronIpcService.request(new IPCMessages.FiltersSaveRequest({ filters: filters, file: saveAs ? undefined : this.filename }), IPCMessages.FiltersSaveResponse).then((response: IPCMessages.FiltersSaveResponse) => {
+        const charts = conCharts.getStored().map((request: IChartRequest) => {
+            return {
+                reg: request.reg.source,
+                color: request.color,
+                active: request.active,
+                type: request.type,
+            };
+        });
+        ElectronIpcService.request(new IPCMessages.FiltersSaveRequest({ filters: filters, charts: charts, file: saveAs ? undefined : this.filename }), IPCMessages.FiltersSaveResponse).then((response: IPCMessages.FiltersSaveResponse) => {
             if (response.error !== undefined) {
                 return this._notifications.add({
                     caption: 'Filters',

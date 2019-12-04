@@ -16,8 +16,7 @@ export interface IChartItem {
 }
 
 const CChartTypeIconMap = {
-    [EChartType.dots]: 'fas fa-chart-area',
-    [EChartType.line]: 'fas fa-chart-line',
+    [EChartType.scatter]: 'fas fa-chart-area',
 };
 
 @Component({
@@ -35,8 +34,8 @@ export class SidebarAppSearchChartEntryComponent implements OnDestroy, AfterCont
     public _ng_request: string = '';
     public _ng_active: boolean = true;
     public _ng_color: string = '';
-    public _ng_type: EChartType = EChartType.dots;
-    public _ng_typeCssClass: string = CChartTypeIconMap[EChartType.dots];
+    public _ng_type: EChartType = EChartType.scatter;
+    public _ng_typeCssClass: string = CChartTypeIconMap[EChartType.scatter];
     public _ng_edit: boolean = false;
     public _ng_shadow: boolean = false;
 

@@ -13,8 +13,7 @@ export interface IControllerSessionStreamCharts {
 }
 
 export enum EChartType {
-    dots = 'dots',
-    line = 'line'
+    scatter = 'scatter',
 }
 
 export interface IChartRequest {
@@ -151,7 +150,7 @@ export class ControllerSessionTabSearchCharts {
         this._stored.push({
             reg: Toolkit.regTools.createFromStr(request) as RegExp,
             color: ColorScheme.scheme_color_0,
-            type: EChartType.dots,
+            type: EChartType.scatter,
             active: true,
         });
         this._subjects.onChartsUpdated.next(this._stored);

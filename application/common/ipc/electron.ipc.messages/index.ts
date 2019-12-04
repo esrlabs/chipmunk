@@ -172,11 +172,11 @@ export { IMergeFilestimezoneResponse, MergeFilestimezoneResponse };
 import { FiltersLoadRequest, IFiltersLoadRequest } from './file.filters.load.request';
 export { FiltersLoadRequest, IFiltersLoadRequest };
 
-import { IFilter, IFiltersLoadResponse, FiltersLoadResponse } from './file.filters.load.response';
-export { IFilter, IFiltersLoadResponse, FiltersLoadResponse };
+import { IFiltersLoadResponse, FiltersLoadResponse } from './file.filters.load.response';
+export { IFiltersLoadResponse, FiltersLoadResponse };
 
-import { IFiltersSaveRequest, FiltersSaveRequest } from './file.filters.save.request';
-export { IFiltersSaveRequest, FiltersSaveRequest };
+import { IFiltersSaveRequest, FiltersSaveRequest, IChart as IChartSaveRequest, IFilter } from './file.filters.save.request';
+export { IFiltersSaveRequest, FiltersSaveRequest, IChartSaveRequest, IFilter };
 
 import { IFiltersSaveResponse, FiltersSaveResponse } from './file.filters.save.response';
 export { IFiltersSaveResponse, FiltersSaveResponse };

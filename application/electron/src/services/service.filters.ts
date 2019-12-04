@@ -5,9 +5,13 @@ import * as path from 'path';
 import { IService } from '../interfaces/interface.service';
 import ServiceElectron, { IPCMessages, Subscription } from './service.electron';
 import ServiceStorage, { IStorageScheme } from '../services/service.storage';
-import { rejects } from 'assert';
 
 const MAX_NUMBER_OF_RECENT_FILES = 100;
+
+interface IStoredFileData {
+    filters: IPCMessages.IFilter[];
+    charts: IPCMessages.IChartSaveRequest[];
+}
 
 /**
  * @class ServiceFilters
@@ -74,30 +78,34 @@ class ServiceFilters implements IService {
                     return;
                 }
                 const file: string = returnValue.filePaths[0];
-                this._loadFile(file).then((filters: IPCMessages.IFilter[]) => {
-                    this._saveAsRecentFile(file, filters.length);
+                this._loadFile(file).then((content: IStoredFileData) => {
+                    this._saveAsRecentFile(file, content.filters.length + content.charts.length);
                     response(new IPCMessages.FiltersLoadResponse({
-                        filters: filters,
+                        filters: content.filters,
+                        charts: content.charts,
                         file: file,
                     }));
                 }).catch((error: Error) => {
                     return response(new IPCMessages.FiltersLoadResponse({
                         filters: [],
+                        charts: [],
                         file: file,
                         error: this._logger.warn(`Fail to open file "${file}" due error: ${error.message}`),
                     }));
                 });
             });
         } else {
-            this._loadFile(request.file).then((filters: IPCMessages.IFilter[]) => {
-                this._saveAsRecentFile(request.file as string, filters.length);
+            this._loadFile(request.file).then((content: IStoredFileData) => {
+                this._saveAsRecentFile(request.file as string, content.filters.length + content.charts.length);
                 response(new IPCMessages.FiltersLoadResponse({
-                    filters: filters,
+                    filters: content.filters,
+                    charts: content.charts,
                     file: request.file as string,
                 }));
             }).catch((error: Error) => {
                 return response(new IPCMessages.FiltersLoadResponse({
                     filters: [],
+                    charts: [],
                     file: request.file as string,
                     error: this._logger.warn(`Fail to open file "${request.file}" due error: ${error.message}`),
                 }));
@@ -107,7 +115,10 @@ class ServiceFilters implements IService {
 
     private _ipc_onFiltersSaveRequest(message: IPCMessages.TMessage, response: (message: IPCMessages.TMessage) => Promise<void>) {
         const request: IPCMessages.FiltersSaveRequest = message as IPCMessages.FiltersSaveRequest;
-        const content: string = JSON.stringify(request.filters);
+        const content: string = JSON.stringify({
+            filters: request.filters,
+            charts: request.charts,
+        });
         if (typeof request.file === 'string') {
             if (!fs.existsSync(request.file)) {
                 request.file = undefined;
@@ -162,7 +173,7 @@ class ServiceFilters implements IService {
         response(new IPCMessages.FiltersFilesRecentResetResponse({ }));
     }
 
-    private _loadFile(file: string): Promise<IPCMessages.IFilter[]> {
+    private _loadFile(file: string): Promise<IStoredFileData> {
         return new Promise((resolve, reject) => {
             fs.stat(file, (error: NodeJS.ErrnoException | null, stats: fs.Stats) => {
                 if (error) {
@@ -174,11 +185,14 @@ class ServiceFilters implements IService {
                     }
                     data = data.toString();
                     try {
-                        const filters = JSON.parse(data);
-                        if (!(filters instanceof Array)) {
-                            return reject(new Error(`Fail to parse file "${file}" because content isn't an Array.`));
+                        const content: IStoredFileData = JSON.parse(data);
+                        if (typeof content !== 'object' || content === null) {
+                            return reject(new Error(`Fail to parse file "${file}" because content isn't an object.`));
                         }
-                        resolve(filters);
+                        if (!(content.filters instanceof Array) || !(content.charts instanceof Array)) {
+                            return reject(new Error(`Fail to parse file "${file}" because "filters" or "charts" aren't an Array.`));
+                        }
+                        resolve(content);
                     } catch (e) {
                         return reject(new Error(`Fail to parse file "${file}" due error: ${e.message}`));
                     }

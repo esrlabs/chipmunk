@@ -203,6 +203,7 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterContentInit, A
             this._ng_left = 0;
         }
         if (this._width === width) {
+            this._emitChanges();
             return;
         }
         if (this._width === -1) {
@@ -219,6 +220,7 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterContentInit, A
         // Calculate updated width of cursor
         this._ng_width = width * rate;
         this._ng_left = (this._ng_left - this.getLeftOffset()) / change + this.getLeftOffset();
+        this._emitChanges();
         this._forceUpdate();
     }
 
