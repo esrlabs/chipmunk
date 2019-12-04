@@ -182,7 +182,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._openSidebarSearchTab();
         this._ng_session.getSessionSearch().getFiltersAPI().addStored(this._ng_request);
         this._ng_isRequestSaved = this._ng_session.getSessionSearch().getFiltersAPI().isRequestStored(this._ng_request);
-        this._forceUpdate();
+        this._ng_onDropRequest();
     }
 
     public _ng_onStoreChart() {
@@ -192,7 +192,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._openSidebarSearchTab();
         this._ng_session.getSessionSearch().getChartsAPI().addStored(this._ng_request);
         this._ng_isRequestSaved = this._ng_session.getSessionSearch().getFiltersAPI().isRequestStored(this._ng_request);
-        this._forceUpdate();
+        this._ng_onDropRequest();
     }
 
     public _ng_getMatchesProc(): string {
