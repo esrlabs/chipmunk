@@ -5,6 +5,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 import { ServiceData, IResults } from '../service.data';
 import { ServicePosition } from '../service.position';
+import TabsSessionsService from '../../../../services/service.sessions.tabs';
 
 @Component({
     selector: 'app-views-chart-zoomer-canvas',
@@ -40,6 +41,8 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         this._subscriptions.onCharts = this.serviceData.getObservable().onCharts.subscribe(this._onChartData.bind(this));
         // Listen session changes event
         this._subscriptions.onViewResize = ViewsEventsService.getObservable().onResize.subscribe(this._onViewResize.bind(this));
+        // Listen session events
+        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         // Update size of canvas and containers
         this._resize(true);
         // Try to build chart
@@ -120,8 +123,12 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
                         display: false,
                     },
                     animation: {
-                        duration: 0,
+                        duration: 0
                     },
+                    hover: {
+                        animationDuration: 0
+                    },
+                    responsiveAnimationDuration: 0,
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
@@ -143,6 +150,9 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
             this._filters.data.labels = labels;
             this._filters.data.datasets = datasets.dataset;
             setTimeout(() => {
+                if (this._filters === undefined) {
+                    return;
+                }
                 this._filters.update();
             });
         }
@@ -164,8 +174,12 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
                         display: false,
                     },
                     animation: {
-                        duration: 0,
+                        duration: 0
                     },
+                    hover: {
+                        animationDuration: 0
+                    },
+                    responsiveAnimationDuration: 0,
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
@@ -194,6 +208,9 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         } else {
             this._charts.data.datasets = datasets.dataset;
             setTimeout(() => {
+                if (this._charts === undefined) {
+                    return;
+                }
                 this._charts.update();
             });
         }
@@ -209,6 +226,18 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
 
     private _onViewResize() {
         this._resize(false);
+    }
+
+    private _onSessionChange() {
+        if (this._filters !== undefined) {
+            this._filters.destroy();
+            this._filters = undefined;
+        }
+        if (this._charts !== undefined) {
+            this._charts.destroy();
+            this._charts = undefined;
+        }
+        this._build();
     }
 
     private _forceUpdate() {

@@ -7,6 +7,7 @@ import { ServicePosition, IPositionChange } from '../service.position';
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
+import TabsSessionsService from '../../../../services/service.sessions.tabs';
 
 const CSettings = {
     rebuildDelay: 250,
@@ -34,7 +35,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewChartCanvasComponent');
     private _destroyed: boolean = false;
     private _mainViewPosition: number | undefined;
-    private _redirectMainView: boolean = true;
+    private _redirectMainView: boolean = false;
     private _rebuild: {
         timer: any,
         last: number,
@@ -89,6 +90,8 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         this._subscriptions.onPosition = this.position.getObservable().onChange.subscribe(this._onPosition.bind(this));
         // Listen session changes event
         this._subscriptions.onViewResize = ViewsEventsService.getObservable().onResize.subscribe(this._onViewResize.bind(this));
+        // Listen session events
+        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         // Update size of canvas and containers
         this._resize();
         // Try to build chart
@@ -192,7 +195,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         }
         let width: number = 0;
         if (this._ng_width < this.service.getStreamSize()) {
-            width = Math.round(this._ng_width / 2);
+            width = Math.round(this._ng_width / 4);
         } else {
             width = this._ng_width;
         }
@@ -220,7 +223,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                         display: false,
                     },
                     animation: {
-                        duration: 0,
+                        duration: 0
                     },
                     hover: {
                         animationDuration: 0
@@ -250,6 +253,9 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             this._ng_filters.data.datasets = datasets.dataset;
             this._ng_filters.options.scales.yAxes[0].ticks.max = Math.round(datasets.max + datasets.max * 0.1);
             setTimeout(() => {
+                if (this._ng_filters === undefined) {
+                    return;
+                }
                 this._ng_filters.update();
             });
         }
@@ -282,8 +288,12 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                         display: false,
                     },
                     animation: {
-                        duration: 0,
+                        duration: 0
                     },
+                    hover: {
+                        animationDuration: 0
+                    },
+                    responsiveAnimationDuration: 0,
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
@@ -314,6 +324,9 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             this._ng_charts.options.scales.xAxes[0].ticks.max = range.end;
             this._ng_charts.options.scales.xAxes[0].ticks.min = range.begin;
             setTimeout(() => {
+                if (this._ng_charts === undefined) {
+                    return;
+                }
                 this._ng_charts.update();
             });
         }
@@ -392,6 +405,18 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
 
     private _onViewResize() {
         this._resize();
+    }
+
+    private _onSessionChange() {
+        if (this._ng_filters !== undefined) {
+            this._ng_filters.destroy();
+            this._ng_filters = undefined;
+        }
+        if (this._ng_charts !== undefined) {
+            this._ng_charts.destroy();
+            this._ng_charts = undefined;
+        }
+        this._build();
     }
 
     private _forceUpdate() {

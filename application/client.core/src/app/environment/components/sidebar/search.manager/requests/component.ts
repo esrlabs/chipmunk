@@ -1,13 +1,13 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewChild, AfterViewInit, Input, ElementRef } from '@angular/core';
 import * as Toolkit from 'chipmunk.client.toolkit';
-import { Subscription, Subject, Observable } from 'rxjs';
+import { Subscription, Subject } from 'rxjs';
 import SessionsService from '../../../../services/service.sessions.tabs';
 import SidebarSessionsService from '../../../../services/service.sessions.sidebar';
 import SearchSessionsService, { IRequest, IChartRequest } from '../../../../services/service.sessions.search';
 import { IRequestItem } from './request/component';
 import { IChartItem } from './chartentry/component';
-import { IRequestItem as IRequestDetailsItem, SidebarAppSearchRequestDetailsComponent } from './detailsrequest/component';
-import { IChartItem as IChartDetailsItem, SidebarAppSearchChartDetailsComponent } from './detailschart/component';
+import { IRequestItem as IRequestDetailsItem } from './detailsrequest/component';
+import { IChartItem as IChartDetailsItem } from './detailschart/component';
 import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
 import { SidebarAppSearchManagerControlsComponent } from './controls/component';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
@@ -35,7 +35,6 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
 
     public static StateKey = 'sidebar-app-search-requests';
 
-    @ViewChild('details', {static: false}) _detailsCom: SidebarAppSearchRequestDetailsComponent;
     @ViewChild('listrequests', {static: false}) _listRequestsElmRef: ElementRef;
     @ViewChild('listcharts', {static: false}) _listChartsElmRef: ElementRef;
 
@@ -85,6 +84,7 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         this._onKeyPress = this._onKeyPress.bind(this);
         this._session = SessionsService.getActive();
         this._ng_requests = this._getRequestItems(this._session.getSessionSearch().getFiltersAPI().getStored());
+        this._ng_charts = this._getChartsItems(this._session.getSessionSearch().getChartsAPI().getStored());
     }
 
     public ngOnDestroy() {
@@ -588,6 +588,7 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         }
         this._session = controller;
         this._onRequestsUpdated(this._session.getSessionSearch().getFiltersAPI().getStored());
+        this._onChartsUpdated(this._session.getSessionSearch().getChartsAPI().getStored());
     }
 
     private _toggleAllExcept(source: string | undefined, targetState: boolean) {

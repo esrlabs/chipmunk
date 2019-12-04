@@ -375,6 +375,7 @@ export class ServiceData {
         this._matches = controller.getStreamMap().getState();
         this._charts = controller.getSessionSearch().getChartsAPI().getChartsData();
         this._subjects.onData.next();
+        this._subjects.onCharts.next();
     }
 
     private _onSessionChange(controller: ControllerSessionTab) {
