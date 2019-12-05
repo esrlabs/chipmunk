@@ -7,7 +7,7 @@ import SearchSessionsService, { IRequest, IChartRequest } from '../../../../serv
 import { IRequestItem } from './request/component';
 import { IChartItem } from './chartentry/component';
 import { IRequestItem as IRequestDetailsItem } from './detailsrequest/component';
-import { IChartItem as IChartDetailsItem } from './detailschart/component';
+import { IChartItem as IChartDetailsItem, IOnChangeEvent } from './detailschart/component';
 import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
 import { SidebarAppSearchManagerControlsComponent } from './controls/component';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
@@ -527,8 +527,8 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         this._subjectsRequests.onChanges.next();
     }
 
-    private _onChartColorChanged(request: IChartRequest, color: string) {
-        this._session.getSessionSearch().getChartsAPI().updateStored(request.reg.source, { color: color });
+    private _onChartChanged(request: IChartRequest, event: IOnChangeEvent) {
+        this._session.getSessionSearch().getChartsAPI().updateStored(request.reg.source, event);
         this._subjectsRequests.onChanges.next();
     }
 
@@ -555,7 +555,7 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         this._ng_selectedRequestIndex = -1;
         this._ng_selectedChart = {
             request: this._ng_charts[index].request,
-            onChange: this._onChartColorChanged.bind(this, this._ng_charts[index].request),
+            onChange: this._onChartChanged.bind(this, this._ng_charts[index].request),
         };
         this._ng_selectedChartIndex = index;
         this._saveState();

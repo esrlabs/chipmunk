@@ -4,7 +4,9 @@ import { ControllerSessionTab, IStreamState } from '../../../controller/controll
 import { IMapState, IMapPoint } from '../../../controller/controller.session.tab.map';
 import { Observable, Subscription, Subject } from 'rxjs';
 import * as ColorScheme from '../../../theme/colors';
+import * as Datasets from './service.data.datasets';
 import { IPCMessages } from '../../../services/service.electron.ipc';
+import { EChartType } from '../../../controller/controller.session.tab.search.charts';
 
 export interface IRange {
     begin: number;
@@ -156,24 +158,14 @@ export class ServiceData {
         return { dataset: datasets, max: max };
     }
 
-    /*
-    public getDatasets(width: number, range?: IRange): Array<{ [key: string]: any }> {
-        this._maxMatches = undefined;
-        if (this._stream === undefined || this._matches === undefined) {
-            return [];
+    public getChartsDatasets(width: number, range?: IRange, preview: boolean = false ): IResults {
+        if (this._stream === undefined || this._charts === undefined) {
+            return { dataset: [], max: undefined };
         }
-        if (this._stream.count === 0 || this._matches.points.length === 0) {
-            return [];
+        if (this._stream.count === 0 || Object.keys(this._charts).length === 0) {
+            return { dataset: [], max: undefined };
         }
-        const results: any = {};
-        const countInRange: number = range === undefined ? this._stream.count : (range.end - range.begin);
-        let rate: number = width / countInRange;
-        const commonWidth: number = Math.floor(this._stream.count / (countInRange / width));
-        const maxes: number[] = (new Array(commonWidth)).fill(0);
-        if (rate >= 1) {
-            rate = 1;
-            width = countInRange;
-        }
+        const datasets = [];
         let max: number = -1;
         if (range === undefined) {
             range = {
@@ -181,53 +173,38 @@ export class ServiceData {
                 end: this._stream.count,
             };
         }
-        this._matches.points.forEach((point: IMapPoint) => {
-            if (!(point.regs instanceof Array)) {
+        Object.keys(this._charts).forEach((filter: string) => {
+            const matches: IPCMessages.IChartMatch[] = this._charts[filter];
+            const chartType: EChartType | undefined = this._sessionController.getSessionSearch().getChartsAPI().getChartType(filter, EChartType.smooth);
+            const dsGetter: Datasets.TDatasetGetter | undefined = Datasets[chartType];
+            if (dsGetter === undefined) {
+                this._logger.error(`Fail get dataset getter for chart "${chartType}"`);
                 return;
             }
-            let commonPosition: number = Math.floor(point.position * rate);
-            if (commonPosition > commonWidth - 1) {
-                commonPosition = commonWidth - 1;
+            const ds = dsGetter(
+                filter,
+                matches,
+                {
+                    getColor: (source: string) => {
+                        return this._sessionController.getSessionSearch().getChartsAPI().getChartColor(source);
+                    },
+                    getLeftPoint: this._getLeftBorderChartDS.bind(this),
+                    getRightPoint: this._getRightBorderChartDS.bind(this),
+                },
+                width,
+                range,
+                preview,
+            );
+            datasets.push(ds.dataset);
+            if (ds.max > max) {
+                max = ds.max;
             }
-            maxes[commonPosition] += point.regs.length;
-            if (maxes[commonPosition] > max) {
-                max = maxes[commonPosition];
-            }
-            if (point.position < range.begin) {
-                return;
-            }
-            if (point.position > range.end) {
-                return;
-            }
-            point.regs.forEach((reg: string) => {
-                let offsetedPosition: number = Math.floor((point.position - range.begin) * rate);
-                if (results[reg] === undefined) {
-                    results[reg] = (new Array(Math.round(width))).fill(0);
-                }
-                if (offsetedPosition > width - 1) {
-                    offsetedPosition = width - 1;
-                }
-                results[reg][offsetedPosition] += 1;
-            });
         });
-        const datasets = [];
-        Object.keys(results).forEach((filter: string) => {
-            const color: string | undefined = this._sessionController.getSessionSearch().getFiltersAPI().getRequestColor(filter);
-            const dataset = {
-                barPercentage: 1,
-                categoryPercentage: 1,
-                label: filter,
-                backgroundColor: color === undefined ? ColorScheme.scheme_search_match : color,
-               data: results[filter],
-            };
-            datasets.push(dataset);
-        });
-        this._maxMatches = max;
-        return datasets;
+        return { dataset: datasets, max: max };
     }
-    */
 
-    public getChartsDatasets(width: number, range?: IRange, preview: boolean = false ): IResults {
+    /*
+        public getChartsDatasets(width: number, range?: IRange, preview: boolean = false ): IResults {
         if (this._stream === undefined || this._charts === undefined) {
             return { dataset: [], max: undefined };
         }
@@ -319,12 +296,13 @@ export class ServiceData {
                 pointHoverRadius: preview ? 1 : 2,
                 fill: false,
                 tension: 0,
-                showLine: true
+                showLine: true,
             };
             datasets.push(dataset);
         });
         return { dataset: datasets, max: max };
     }
+    */
 
     public getStreamSize(): number | undefined {
         if (this._stream === undefined) {
@@ -443,7 +421,7 @@ export class ServiceData {
         return undefined;
     }
 
-    private _getRightBorderChartDS(reg: string, end: number): number | undefined {
+    private _getRightBorderChartDS(reg: string, end: number, previous: boolean): number | undefined {
         const matches: IPCMessages.IChartMatch[] | undefined = this._charts[reg];
         if (matches === undefined || matches.length === 0) {
             return undefined;
@@ -455,6 +433,9 @@ export class ServiceData {
                     throw match;
                 }
                 if (match.row > end) {
+                    if (!previous) {
+                        throw match;
+                    }
                     if (prev === undefined) {
                         throw match;
                     } else {

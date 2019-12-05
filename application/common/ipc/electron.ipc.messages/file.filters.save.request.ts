@@ -5,7 +5,8 @@ export interface IFilter {
     active: boolean;
 }
 export enum EChartType {
-    scatter = 'scatter',
+    stepped = 'stepped',
+    smooth = 'smooth',
 }
 export interface IChart {
     reg: string;

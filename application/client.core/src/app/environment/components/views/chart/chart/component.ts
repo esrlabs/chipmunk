@@ -208,6 +208,10 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             this._ng_filters = undefined;
             return this._forceUpdate();
         }
+        if (this._ng_filters !== undefined && (this._ng_filters.data.datasets === undefined || this._ng_filters.data.datasets.length === 0)) {
+            this._ng_filters.destroy();
+            this._ng_filters = undefined;
+        }
         if (this._ng_filters === undefined) {
             this._ng_filters = new Chart('view-chart-canvas-filters', {
                 type: 'bar',
@@ -273,6 +277,10 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                 begin: 0,
                 end: this.service.getStreamSize()
             };
+        }
+        if (this._ng_charts !== undefined && (this._ng_charts.data.datasets === undefined || this._ng_charts.data.datasets.length === 0)) {
+            this._ng_charts.destroy();
+            this._ng_charts = undefined;
         }
         if (this._ng_charts === undefined) {
             this._ng_charts = new Chart('view-chart-canvas-charts', {

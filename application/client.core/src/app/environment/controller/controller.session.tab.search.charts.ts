@@ -13,7 +13,8 @@ export interface IControllerSessionStreamCharts {
 }
 
 export enum EChartType {
-    scatter = 'scatter',
+    stepped = 'stepped',
+    smooth = 'smooth',
 }
 
 export interface IChartRequest {
@@ -150,7 +151,7 @@ export class ControllerSessionTabSearchCharts {
         this._stored.push({
             reg: Toolkit.regTools.createFromStr(request) as RegExp,
             color: ColorScheme.scheme_color_0,
-            type: EChartType.scatter,
+            type: EChartType.stepped,
             active: true,
         });
         this._subjects.onChartsUpdated.next(this._stored);
@@ -238,6 +239,22 @@ export class ControllerSessionTabSearchCharts {
             }
         });
         return color;
+    }
+
+    public getChartType(source: string, defaults: EChartType.smooth | undefined): EChartType {
+        let chartType: EChartType | undefined;
+        this._stored.forEach((filter: IChartRequest) => {
+            if (chartType !== undefined) {
+                return;
+            }
+            if (filter.reg.source === source) {
+                chartType = filter.type;
+            }
+        });
+        if (chartType === undefined) {
+            chartType = defaults;
+        }
+        return chartType;
     }
 
     public getActiveCharts(): IChartRequest[] {
