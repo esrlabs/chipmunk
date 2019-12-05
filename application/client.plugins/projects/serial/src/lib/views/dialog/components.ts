@@ -4,6 +4,8 @@ import { Component, ChangeDetectorRef, Input, OnInit, OnDestroy, ViewChild } fro
 import { IPortInfo, IPortState } from '../../common/interface.portinfo';
 import { IOptions, CDefaultOptions } from '../../common/interface.options';
 import { SidebarVerticalPortOptionsWriteComponent } from '../sidebar.vertical/port.options.write/component';
+import Service from '../../services/service';
+import { Subscription } from 'rxjs';
 
 interface IConnected {
     port: IPortInfo;
@@ -25,18 +27,16 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
     @Input() public _requestPortList: () => IPortInfo[];
     @Input() public _getSelected: (IPortInfo) => void;
     @Input() public _getOptionsCom: (SidebarVerticalPortOptionsWriteComponent) => void;
-    @Input() public _stopSpy: () => void;
     @Input() public _getSpyState: () => { [key: string]: number };
 
-    @Input() public _ng_getState: (IPortInfo) => IPortState;
     @Input() public _ng_canBeConnected: () => boolean;
     @Input() public _ng_connected: IConnected[];
-    @Input() public _ng_isPortSelected: (port: IPortInfo) => boolean;
     @Input() public _ng_onOptions: () => void;
     @Input() public _ng_onPortSelect: (port: IPortInfo) => void;
 
-    private interval: any;
 
+    private _subscriptions: { [key: string]: Subscription } = {};
+    private _destroyed: boolean = false;
     public _ng_ports: IPortInfo[] = [];
     public _ng_selected: IPortInfo | undefined;
     public _ng_busy: boolean = false;
@@ -48,6 +48,12 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit() {
+        this._subscriptions.Subscription = Service.getObservable().event.subscribe((message: any) => {
+            if (typeof message !== 'object' && message === null) {
+                return;
+            }
+            this._forceUpdate();
+        });
         this._ng_spyState = this._getSpyState();
         this._ng_ports = this._requestPortList();
         this._ng_ports.forEach(port => {
@@ -55,14 +61,17 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
                 this._ng_spyState[port.comName] = 0;
             }
         });
-        this.interval = setInterval(() => {
-            this._cdRef.detectChanges();
-        }, 200);
     }
 
     ngOnDestroy() {
-        clearInterval(this.interval);
-        this._stopSpy();
+        this._destroyed = true;
+    }
+
+    private _forceUpdate() {
+        if (this._destroyed) {
+            return;
+        }
+        this._cdRef.detectChanges();
     }
 
     private _getOptions(): IOptions {
@@ -74,10 +83,35 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
         return options;
     }
 
+    public _ng_isConnected(port: IPortInfo) {
+        return this._ng_connected.find(connected => connected.port.comName === port.comName);
+    }
+
     public _ng_onConnect() {
         this._getSelected(this._ng_selected);
         this._getOptionsCom(this._getOptions());
         this._onConnect();
+    }
+
+    public _ng_isPortSelected(port: IPortInfo): boolean {
+        if (this._ng_selected === undefined) {
+            return false;
+        }
+        return this._ng_selected.comName === port.comName ? true : false;
+    }
+
+    public _ng_getState(port: IPortInfo): IPortState {
+        const target: IConnected | undefined = this._ng_connected.find((connected: IConnected) => {
+            return connected.port.comName === port.comName;
+        });
+        if (target === undefined) {
+            return {
+                connections: 0,
+                ioState: { written: 0, read: 0 }
+            };
+        } else {
+            return target.state;
+        }
     }
 
     public _ng_formatLoad(load: number): string {
