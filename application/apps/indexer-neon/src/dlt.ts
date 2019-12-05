@@ -26,6 +26,7 @@ export interface StatisticInfo {
     app_ids: Array<[string, LevelDistribution]>;
     context_ids: Array<[string, LevelDistribution]>;
     ecu_ids: Array<[string, LevelDistribution]>;
+    contained_non_verbose: boolean,
 }
 export enum DltLogLevel {
     Fatal = 0x1 << 4,

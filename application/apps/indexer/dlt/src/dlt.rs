@@ -12,6 +12,7 @@
 #![allow(clippy::unit_arg)]
 
 use indexer_base::error_reporter::*;
+use crate::service_id::*;
 use bytes::{ByteOrder, BytesMut, BufMut};
 use chrono::{NaiveDateTime};
 use chrono::prelude::{Utc, DateTime};
@@ -383,13 +384,6 @@ pub enum TypeLength {
     BitLength64 = 64,
     BitLength128 = 128,
 }
-
-// pub fn type_info_strategy() -> impl Strategy<Value = TypeInfo> {
-//     any::<TypeInfoKind>()
-//         .prop_flat_map(|kind|
-//             (any::<StringCoding>(), any::<bool>(), Just())
-//         )
-// }
 
 pub fn signed_strategy() -> impl Strategy<Value = TypeInfoKind> {
     (any::<TypeLength>(), any::<bool>()).prop_filter_map(
@@ -891,6 +885,10 @@ pub enum Payload {
         strategy = "(0..10u32, prop::collection::vec(any::<u8>(), 0..20)).prop_map(|(a, b)| Payload::NonVerbose(a,b))"
     )]
     NonVerbose(u32, Vec<u8>),
+    #[proptest(
+        strategy = "(0..0x23u8, prop::collection::vec(any::<u8>(), 0..20)).prop_map(|(a, b)| Payload::ControlMsg(a,b))"
+    )]
+    ControlMsg(u8, Vec<u8>),
 }
 impl Payload {
     #[allow(dead_code)]
@@ -905,6 +903,11 @@ impl Payload {
             Payload::NonVerbose(msg_id, payload) => {
                 #[allow(deprecated)]
                 buf.put_u32::<T>(*msg_id);
+                buf.extend_from_slice(payload);
+            }
+            Payload::ControlMsg(ctrl_id, payload) => {
+                #[allow(deprecated)]
+                buf.put_u8(*ctrl_id);
                 buf.extend_from_slice(payload);
             }
         }
@@ -988,6 +991,13 @@ impl fmt::Display for Message {
                     .try_for_each(|arg| write!(f, "{}{}", DLT_ARGUMENT_SENTINAL, arg))
             }
             Payload::NonVerbose(id, data) => self.format_nonverbose_data(*id, data, f),
+            Payload::ControlMsg(ctrl_id, _data) => {
+                self.write_app_id_context_id_and_message_type(f)?;
+                match SERVICE_ID_MAPPING.get(&ctrl_id) {
+                    Some((name, _desc)) => write!(f, "[{}]", name),
+                    None => write!(f, "[Unknown CtrlCommand]"),
+                }
+            }
         }
     }
 }
@@ -1201,16 +1211,32 @@ impl Message {
             self.write_app_id_context_id_and_message_type(f)?;
         }
         if !is_written {
-            let as_string = str::from_utf8(&data).unwrap_or("").trim();
+            let mut as_string = "- fibex missing -";
+            if let Some(ext) = &self.extended_header {
+                match &ext.message_type {
+                    MessageType::Control(ct) => match ct {
+                        ControlType::Request => as_string = "control request",
+                        ControlType::Response => as_string = "control response",
+                        ControlType::Unknown(_) => as_string = "unknown control",
+                    },
+                    MessageType::NetworkTrace(ntt) => match ntt {
+                        NetworkTraceType::Ipc => as_string = "Ipc",
+                        NetworkTraceType::Can => as_string = "Can",
+                        NetworkTraceType::Flexray => as_string = "Flexray",
+                        NetworkTraceType::Most => as_string = "Most",
+                        NetworkTraceType::Ethernet => as_string = "Ethernet",
+                        NetworkTraceType::Someip => as_string = "Someip",
+                        NetworkTraceType::Invalid => as_string = "Invalid",
+                        _ => as_string = "unknown network trace",
+                    },
+                    _ => (),
+                }
+            }
+
             f.write_str(
                 &format!(
-                    "{}id:{}{}({:?}){}{:02X?}",
-                    DLT_ARGUMENT_SENTINAL,
-                    id,
-                    DLT_ARGUMENT_SENTINAL,
-                    as_string,
-                    DLT_ARGUMENT_SENTINAL,
-                    data
+                    "{}[{}]{} {}",
+                    DLT_ARGUMENT_SENTINAL, id, DLT_ARGUMENT_SENTINAL, as_string,
                 )[..],
             )?;
         }
@@ -1516,57 +1542,6 @@ impl TryFrom<u8> for MessageType {
             DLT_TYPE_CONTROL => Ok(MessageType::Control(ControlType::try_from(message_info)?)),
             v => Ok(MessageType::Unknown((v, (message_info >> 4) & 0b1111))),
         }
-    }
-}
-
-#[allow(dead_code)]
-#[inline]
-pub fn create_message_line(
-    out_buffer: &mut dyn std::io::Write,
-    msg: Message,
-) -> std::io::Result<()> {
-    // Messages without extended header (non-verbose) are unimplemented
-    if let Some(ext) = msg.extended_header {
-        let _level = match ext.message_type {
-            MessageType::Log(level) => level.into(),
-            MessageType::ApplicationTrace(_) | MessageType::NetworkTrace(_) => log::Level::Trace,
-            // Ignore everything else
-            _ => return Ok(()),
-        };
-
-        // dest.reserve(1024); // TODO reserve correct amount
-        // Format message: Join arguments as strings
-        if let Payload::Verbose(arguments) = msg.payload {
-            // Format tag by concatenating ecu_id, application_id and context_id
-            write!(
-                out_buffer,
-                "{}{}{}-{}",
-                msg.storage_header
-                    .map_or(String::new(), |storage_header| format!(
-                        "{}: ",
-                        storage_header.timestamp
-                    )),
-                msg.header
-                    .ecu_id
-                    .map(|id| format!("{}-", id))
-                    .unwrap_or_else(|| "".into()),
-                ext.application_id,
-                ext.context_id
-            )
-            .map_err(|e| Error::new(io::ErrorKind::Other, e))?;
-
-            // Format payload
-            arguments
-                .iter()
-                .try_for_each(|arg| write!(out_buffer, " {}", arg))
-                .map_err(|e| {
-                    report_error(format!("error iterating over messages: {}", e));
-                    Error::new(io::ErrorKind::Other, e)
-                })?;
-        }
-        writeln!(out_buffer).map_err(|e| Error::new(io::ErrorKind::Other, e))
-    } else {
-        Ok(())
     }
 }
 

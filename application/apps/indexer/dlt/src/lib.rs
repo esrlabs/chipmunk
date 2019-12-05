@@ -23,6 +23,7 @@ pub mod dlt;
 pub mod dlt_parse;
 pub mod fibex;
 pub mod filtering;
+pub mod service_id;
 
 #[cfg(test)]
 mod tests;

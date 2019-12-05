@@ -66,7 +66,7 @@ class ServiceDLTFiles implements IService {
         this._logger.debug("calling _onDLTStatsRequest with params: " + JSON.stringify(req));
         let stats: DLT.StatisticInfo | undefined;
         const task: CancelablePromise<void, void, DLT.TDltStatsEvents, DLT.TDltStatsEventObject> = indexer.dltStatsAsync(req.file).then(() => {
-            this._logger.debug("readAndWrite task finished.");
+            this._logger.debug("dltStatsAsync task finished");
             response(
                 new IPCMessages.DLTStatsResponse({
                     stats: stats,
@@ -102,6 +102,7 @@ class ServiceDLTFiles implements IService {
         }).on('config', (event: DLT.StatisticInfo) => {
             // stats
             stats = event;
+            this._logger.debug(`_onDLTStatsRequest: received config, contained non-verbose logs: ${event.contained_non_verbose}`);
         }).on('progress', (event: Progress.ITicks) => {
             const value: number = event.ellapsed / event.total; // 0 < value < 1
             ServiceStreams.updateProgressSession(taskId, value, req.session);

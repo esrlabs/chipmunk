@@ -592,38 +592,40 @@ struct DltArgumentParser {
     current_index: Option<usize>,
 }
 
-// type StreamError = nom::error::ErrorKind<(&[u8], nom::error::ErrorKind)>;
-// impl nom::error::ParseError<&[u8]> for StreamError {
-//     fn from_error_kind(input: &[u8], kind: nom::error::ErrorKind) -> Self {
-//         self
-//     }
-//     fn append(input: &[u8], kind: nom::error::ErrorKind, other: Self) -> Self {
-//         self
-//     }
-// }
 fn dlt_payload<T: NomByteOrder>(
     input: &[u8],
     verbose: bool,
     payload_length: usize,
     arg_cnt: u8,
+    is_controll_msg: bool,
 ) -> IResult<&[u8], dlt::Payload> {
     if !verbose {
-        match tuple((T::parse_u32, take(payload_length - 4)))(input) {
-            Ok((rest, (message_id, payload))) => {
-                Ok((rest, dlt::Payload::NonVerbose(message_id, payload.to_vec())))
+        if is_controll_msg {
+            match tuple((nom::number::complete::be_u8, take(payload_length - 1)))(input) {
+                Ok((rest, (control_msg_id, payload))) => Ok((
+                    rest,
+                    dlt::Payload::ControlMsg(control_msg_id, payload.to_vec()),
+                )),
+                Err(e) => Err(e),
             }
-            Err(e) => Err(e),
+        } else {
+            match tuple((T::parse_u32, take(payload_length - 4)))(input) {
+                Ok((rest, (message_id, payload))) => {
+                    Ok((rest, dlt::Payload::NonVerbose(message_id, payload.to_vec())))
+                }
+                Err(e) => Err(e),
+            }
         }
     } else {
         let (rest, arguments) = count(dlt_argument::<T>, arg_cnt as usize)(input)?;
         Ok((rest, dlt::Payload::Verbose(arguments)))
     }
 }
-/// a DLT message looks like this: [standard-header][extended-header][payload]
+/// a DLT message looks like this: [STANDARD-HEADER][EXTENDED-HEADER][PAYLOAD]
 /// if stored, an additional header is placed BEFORE all of this [storage-header][...]
 /// example: 444C5401 262CC94D D8A20C00 45435500 3500001F 45435500 3F88623A 16014150 5000434F 4E001100 00000472 656D6F
 /// --------------------------------------------
-/// storage-header: 444C5401 262CC94D D8A20C00 45435500
+/// [STORAGE-HEADER]: 444C5401 262CC94D D8A20C00 45435500
 ///     444C5401 = DLT + 0x01 (DLT Pattern)
 ///  timestamp_sec: 262CC94D = 0x4DC92C26
 ///  timestamp_us: D8A20C00 = 0x000CA2D8
@@ -631,28 +633,30 @@ fn dlt_payload<T: NomByteOrder>(
 ///
 /// 3500001F 45435500 3F88623A 16014150 5000434F 4E001100 00000472 656D6F (31 byte)
 /// --------------------------------------------
-/// header: 35 00 001F 45435500 3F88623A
-/// header type = 0x35 = 0b0011 0101
-///     UEH: 1 - > using extended header
-///     MSBF: 0 - > little endian
-///     WEID: 1 - > with ecu id
-///     WSID: 0 - > no session id
-///     WTMS: 1 - > with timestamp
-/// message counter = 0x00 = 0
-/// length = 001F = 31
-/// ecu-id = 45435500 = "ECU "
-/// timestamp = 3F88623A = 106590265.0 ms since ECU startup (~30 h)
+/// [HEADER]: 35 00 001F 45435500 3F88623A
+///   header type = 0x35 = 0b0011 0101
+///       UEH: 1 - > using extended header
+///       MSBF: 0 - > little endian
+///       WEID: 1 - > with ecu id
+///       WSID: 0 - > no session id
+///       WTMS: 1 - > with timestamp
+///   message counter = 0x00 = 0
+///   length = 001F = 31
+///   ecu-id = 45435500 = "ECU "
+///   timestamp = 3F88623A = 106590265.0 ms since ECU startup (~30 h)
 /// --------------------------------------------
-/// extended header: 16014150 5000434F 4E00
-/// message-info MSIN = 0x16 = 0b0001 0110
-/// 0 -> non-verbose
-/// 011 (MSTP Message Type) = 0x3 = Dlt Control Message
-/// 0001 (MTIN Message Type Info) = 0x1 = Request Control Message
-/// number of arguments NOAR = 0x01
-/// application id = 41505000 = "APP "
-/// context id = 434F4E00 = "CON "
+/// [EXTENDED HEADER]: 16014150 5000434F 4E00
+///   message-info MSIN = 0x16 = 0b0001 0110
+///   0 -> non-verbose
+///   011 (MSTP Message Type) = 0x3 = Dlt Control Message
+///   0001 (MTIN Message Type Info) = 0x1 = Request Control Message
+///   number of arguments NOAR = 0x01
+///   application id = 41505000 = "APP "
+///   context id = 434F4E00 = "CON "
 /// --------------------------------------------
 /// payload: 1100 00000472 656D6F
+///   0x11 == SetDefaultLogLevel
+///     00 == new log level (block all messages)
 ///
 pub fn dlt_message<'a>(
     input: &'a [u8],
@@ -662,20 +666,9 @@ pub fn dlt_message<'a>(
     update_channel: Option<cc::Sender<ChunkResults>>,
     fibex_metadata: Option<Rc<FibexMetadata>>,
 ) -> IResult<&'a [u8], Option<dlt::Message>> {
-    // println!(
-    //     "parsing dlt_message {:?} ({} bytes left)",
-    //     index,
-    //     input.len()
-    // );
     let (after_storage_header, storage_header) =
         dlt_storage_header(input, Some(index), update_channel.as_ref())?;
-    // println!(
-    //     "position after storage header: {}",
-    //     after_storage_header.len()
-    // );
     let (after_storage_and_normal_header, header) = dlt_standard_header(after_storage_header)?;
-    // let (after_storage_and_normal_header, (storage_header, header)) =
-    //     tuple((dlt_storage_header, dlt_standard_header))(input)?;
 
     // println!("parsing 2...let's validate the payload length");
     let payload_length =
@@ -687,12 +680,16 @@ pub fn dlt_message<'a>(
         };
 
     let mut verbose: bool = false;
+    let mut is_controll_msg = false;
     let mut arg_count = 0;
     let (after_headers, extended_header) = if header.has_extended_header {
         let (rest, ext_header) =
             dlt_extended_header(after_storage_and_normal_header, Some(index), update_channel)?;
         verbose = ext_header.verbose;
         arg_count = ext_header.argument_count;
+        is_controll_msg = ext_header.message_type
+            == dlt::MessageType::Control(dlt::ControlType::Request)
+            || ext_header.message_type == dlt::MessageType::Control(dlt::ControlType::Response);
         (rest, Some(ext_header))
     } else {
         (after_storage_and_normal_header, None)
@@ -733,9 +730,21 @@ pub fn dlt_message<'a>(
     }
     // println!("after_headers: {} bytes left", after_headers.len());
     let (i, payload) = if header.big_endian {
-        dlt_payload::<BigEndian>(after_headers, verbose, payload_length, arg_count)?
+        dlt_payload::<BigEndian>(
+            after_headers,
+            verbose,
+            payload_length,
+            arg_count,
+            is_controll_msg,
+        )?
     } else {
-        dlt_payload::<LittleEndian>(after_headers, verbose, payload_length, arg_count)?
+        dlt_payload::<LittleEndian>(
+            after_headers,
+            verbose,
+            payload_length,
+            arg_count,
+            is_controll_msg,
+        )?
     };
     // println!("after payload: {} bytes left", i.len());
     Ok((
@@ -771,12 +780,11 @@ fn validated_payload_length<T>(
     }
     Some(message_length - headers_length)
 }
-pub fn dlt_app_id_context_id<T>(
+pub fn dlt_statistic_row_info<T>(
     input: &[u8],
     index: Option<usize>,
     update_channel: Option<cc::Sender<IndexingResults<T>>>,
 ) -> IResult<&[u8], StatisticRowInfo> {
-    // println!("dlt_app_id_context_id");
     let update_channel_ref = update_channel.as_ref();
     let (after_storage_header, _) = dlt_skip_storage_header(input, index, update_channel_ref)?;
     let (after_storage_and_normal_header, header) = dlt_standard_header(after_storage_header)?;
@@ -790,6 +798,7 @@ pub fn dlt_app_id_context_id<T>(
                     app_id_context_id: None,
                     ecu_id: header.ecu_id,
                     level: None,
+                    verbose: false,
                 },
             ));
         }
@@ -803,6 +812,7 @@ pub fn dlt_app_id_context_id<T>(
                 app_id_context_id: None,
                 ecu_id: header.ecu_id,
                 level: None,
+                verbose: false,
             },
         ));
     }
@@ -821,6 +831,7 @@ pub fn dlt_app_id_context_id<T>(
             app_id_context_id: Some((extended_header.application_id, extended_header.context_id)),
             ecu_id: header.ecu_id,
             level,
+            verbose: extended_header.verbose,
         },
     ))
 }
@@ -1213,6 +1224,7 @@ pub struct StatisticInfo {
     app_ids: Vec<(String, LevelDistribution)>,
     context_ids: Vec<(String, LevelDistribution)>,
     ecu_ids: Vec<(String, LevelDistribution)>,
+    contained_non_verbose: bool,
 }
 pub type StatisticsResults = std::result::Result<IndexingProgress<StatisticInfo>, Notification>;
 #[allow(dead_code)]
@@ -1225,7 +1237,7 @@ pub fn get_dlt_file_info(
         Ok(file) => file,
         Err(e) => {
             error!("could not open {:?}", in_file);
-            return Err(err_msg(format!("could not open {:?}", in_file)));
+            return Err(err_msg(format!("could not open {:?} ({})", in_file, e)));
         }
     };
 
@@ -1238,6 +1250,7 @@ pub fn get_dlt_file_info(
     let mut ecu_ids: IdMap = FxHashMap::default();
     let mut index = 0usize;
     let mut processed_bytes = 0usize;
+    let mut contained_non_verbose = false;
     loop {
         match read_one_dlt_message_info(&mut reader, Some(index), Some(update_channel.clone())) {
             Ok(Some((
@@ -1246,8 +1259,10 @@ pub fn get_dlt_file_info(
                     app_id_context_id: Some((app_id, context_id)),
                     ecu_id: ecu,
                     level,
+                    verbose,
                 },
             ))) => {
+                contained_non_verbose = contained_non_verbose || !verbose;
                 reader.consume(consumed);
                 add_for_level(level, &mut app_ids, app_id);
                 add_for_level(level, &mut context_ids, context_id);
@@ -1263,8 +1278,10 @@ pub fn get_dlt_file_info(
                     app_id_context_id: None,
                     ecu_id: ecu,
                     level,
+                    verbose,
                 },
             ))) => {
+                contained_non_verbose = contained_non_verbose || !verbose;
                 reader.consume(consumed);
                 add_for_level(level, &mut app_ids, "NONE".to_string());
                 add_for_level(level, &mut context_ids, "NONE".to_string());
@@ -1318,6 +1335,7 @@ pub fn get_dlt_file_info(
         ecu_ids: ecu_ids
             .into_iter()
             .collect::<Vec<(String, LevelDistribution)>>(),
+        contained_non_verbose,
     };
 
     update_channel.send(Ok(IndexingProgress::GotItem { item: res }))?;
@@ -1330,6 +1348,7 @@ pub struct StatisticRowInfo {
     app_id_context_id: Option<(String, String)>,
     ecu_id: Option<String>,
     level: Option<dlt::LogLevel>,
+    verbose: bool,
 }
 fn read_one_dlt_message_info<T: Read>(
     reader: &mut ReduxReader<T, MinBuffered>,
@@ -1344,7 +1363,7 @@ fn read_one_dlt_message_info<T: Read>(
                 }
                 let available = content.len();
                 let res: nom::IResult<&[u8], StatisticRowInfo> =
-                    dlt_app_id_context_id(content, index, update_channel.clone());
+                    dlt_statistic_row_info(content, index, update_channel.clone());
                 match res {
                     Ok(r) => {
                         let consumed = available - r.0.len();
