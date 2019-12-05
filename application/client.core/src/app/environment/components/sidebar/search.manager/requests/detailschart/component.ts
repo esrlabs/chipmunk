@@ -1,13 +1,18 @@
 // tslint:disable:member-ordering
 
 import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, OnChanges } from '@angular/core';
-import { IChartRequest } from '../../../../../controller/controller.session.tab.search.charts';
+import { IChartRequest, EChartType } from '../../../../../controller/controller.session.tab.search.charts';
 import { CColors } from '../../../../../conts/colors';
 import { Subscription } from 'rxjs';
 
+export interface IOnChangeEvent {
+    color?: string;
+    type?: EChartType;
+}
+
 export interface IChartItem {
     request: IChartRequest;
-    onChange: (color: string) => void;
+    onChange: (event: IOnChangeEvent) => void;
 }
 
 @Component({
@@ -22,12 +27,18 @@ export class SidebarAppSearchChartDetailsComponent implements OnDestroy, AfterCo
 
     public _ng_request: string = '';
     public _ng_color: string = '';
+    public _ng_type: EChartType = EChartType.stepped;
     public _ng_colors: string[] = CColors;
     public _ng_colorIndex: number = -1;
+    public _ng_types: Array<{ caption: string, value: any, }> = [
+        { caption: 'Stepped Line', value: EChartType.stepped },
+        { caption: 'Smooth Line', value: EChartType.smooth },
+    ];
 
     private _subscriptions: { [key: string]: Subscription } = {};
 
     constructor(private _cdRef: ChangeDetectorRef) {
+        this._ng_onTypeChange = this._ng_onTypeChange.bind(this);
     }
 
     public ngAfterContentInit() {
@@ -50,7 +61,14 @@ export class SidebarAppSearchChartDetailsComponent implements OnDestroy, AfterCo
         }
         this._ng_color = this._ng_colors[index];
         this._updateIndexes();
-        this.chart.onChange(this._ng_color);
+        this.chart.onChange({ color: this._ng_color });
+        this._cdRef.detectChanges();
+    }
+
+    public _ng_onTypeChange(value: EChartType) {
+        this._ng_type = value;
+        this.chart.onChange({ type: this._ng_type });
+        console.log(value);
         this._cdRef.detectChanges();
     }
 
@@ -60,6 +78,7 @@ export class SidebarAppSearchChartDetailsComponent implements OnDestroy, AfterCo
         }
         this._ng_request = this.chart.request.reg.source;
         this._ng_color = this.chart.request.color;
+        this._ng_type = this.chart.request.type;
         this._updateIndexes();
         this._cdRef.detectChanges();
     }

@@ -108,6 +108,10 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
             }
             return;
         }
+        if (this._filters !== undefined && (this._filters.data.datasets === undefined || this._filters.data.datasets.length === 0)) {
+            this._filters.destroy();
+            this._filters = undefined;
+        }
         if (this._filters === undefined) {
             this._filters = new Chart('view-chart-zoomer-filters-canvas', {
                 type: 'bar',
@@ -160,6 +164,10 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
 
     private _buildCharts() {
         const datasets: IResults = this.serviceData.getChartsDatasets(this._ng_width, undefined, true);
+        if (this._charts !== undefined && (this._charts.data.datasets === undefined || this._charts.data.datasets.length === 0)) {
+            this._charts.destroy();
+            this._charts = undefined;
+        }
         if (this._charts === undefined) {
             this._charts = new Chart('view-chart-zoomer-charts-canvas', {
                 type: 'scatter',
