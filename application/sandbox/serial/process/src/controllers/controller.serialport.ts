@@ -188,7 +188,7 @@ export class ControllerSerialPort extends EventEmitter {
         if (!(chunk instanceof Buffer)) {
             return;
         }
-        this._read += chunk.byteLength;
+        this._read = chunk.byteLength;
         this.emit(ControllerSerialPort.Events.data, chunk);
     }
 

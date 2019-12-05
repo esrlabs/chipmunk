@@ -43,9 +43,9 @@ export class SidebarVerticalPortConnectedComponent implements AfterViewInit, OnD
     }
 
     ngOnChanges(changes: SimpleChanges) {
+        this._updateSize();
         if (changes.state !== undefined) {
             this.state = changes.state.currentValue;
-            this._updateSize();
         }
     }
 

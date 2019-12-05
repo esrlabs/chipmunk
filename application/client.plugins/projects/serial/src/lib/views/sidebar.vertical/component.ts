@@ -1,14 +1,14 @@
 // tslint:disable:no-inferrable-types
 
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, ViewChild } from '@angular/core';
-import { EHostEvents, EHostCommands } from '../../common/host.events';
+import { EHostEvents } from '../../common/host.events';
 import { IPortInfo, IPortState, IIOState } from '../../common/interface.portinfo';
 import { IOptions, CDefaultOptions } from '../../common/interface.options';
 import { InputStandardComponent, DDListStandardComponent } from 'chipmunk-client-primitive';
 import { SidebarVerticalPortDialogComponent } from '../dialog/components';
-import { SidebarTitleAddComponent } from '../dialog/titlebar/components';
-
+import { Subscription } from 'rxjs';
 import * as Toolkit from 'chipmunk.client.toolkit';
+import Service from '../../services/service';
 
 interface IState {
     _ng_ports: IPortInfo[];
@@ -29,7 +29,6 @@ interface IPortListItem {
 }
 
 const state: Toolkit.ControllerState<IState> = new Toolkit.ControllerState<IState>();
-const savedSession = new Map<string, { default: string, ports: IPortInfo[]}>();
 
 @Component({
     selector: Toolkit.EViewsTypes.sidebarVertical,
@@ -46,14 +45,13 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     @Input() public sessions: Toolkit.ControllerSessionsEvents;
 
     private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
+    private _subs: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger(`Plugin: serial: inj_output_bot:`);
     private _destroyed: boolean = false;
     private _chosenPort: string = undefined;
     private _portOptions: IOptions[] = [];
     private _options: IOptions = Object.assign({}, CDefaultOptions);
     private _optionsCom: IOptions;
-    private _messageQueue: {[port: string]: string[]} = {};
-    private _openQueue: {[port: string]: boolean} = {};
 
     public _ng_ports: IPortInfo[] = [];
     public _ng_connected: IConnected[] = [];
@@ -75,23 +73,21 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     ngOnDestroy() {
         this._destroyed = true;
         this._saveState();
+        Object.keys(this._subs).forEach((key: string) => {
+            this._subs[key].unsubscribe();
+        });
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
     }
 
     ngAfterViewInit() {
-        this.api.setSidebarTitleInjection({
-            factory: SidebarTitleAddComponent,
-            inputs: {
-                _ng_addPort: this._ng_connectDialog,
-            }
-        });
+        Service.popupButton(this._ng_connectDialog);
         this._restoreDropdownSession();
         this._loadSession();
 
         // Subscription to income events
-        this._subscriptions.incomeIPCHostMessage = this.api.getIPC().subscribeToHost((message: any) => {
+        this._subs.Subscription = Service.getObservable().event.subscribe((message: any) => {
             if (typeof message !== 'object' && message === null) {
                 // Unexpected format of message
                 return;
@@ -108,13 +104,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         this._subscriptions.onSessionClose = this.sessions.subscribe().onSessionClose(this._onSessionClose.bind(this));
         // Restore state
         this._loadState();
-    }
-
-    public _ng_isPortSelected(port: IPortInfo): boolean {
-        if (this._ng_selected === undefined) {
-            return false;
-        }
-        return this._ng_selected.comName === port.comName ? true : false;
+        this._hostEvents_onState(Service.state);
     }
 
     public _ng_onPortSelect(port: IPortInfo) {
@@ -166,11 +156,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         this._ng_error = undefined;
         this._ng_options = false;
         this._forceUpdate();
-        this.api.getIPC().requestToHost({
-            stream: this.session,
-            command: EHostCommands.open,
-            options: options,
-        }, this.session).then((response) => {
+        Service.connect(options).then(() => {
             this._ng_busy = false;
             this._ng_connected.push({
                 port: this._ng_selected,
@@ -190,26 +176,12 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         });
     }
 
-    public _ng_getState(port: IPortInfo): IPortState {
-        const target: IConnected | undefined = this._ng_connected.find((connected: IConnected) => {
-            return connected.port.comName === port.comName;
-        });
-        if (target === undefined) {
-            return {
-                connections: 0,
-                ioState: { written: 0, read: 0 }
-            };
-        } else {
-            return target.state;
-        }
-    }
-
     public _ng_onDisconnectPort(port: IPortInfo) {
 
         this._removeDropdownSession(port);
         this._removeDropdownElement(port);
 
-        Object.values(savedSession).forEach((element) => {
+        Object.values(Service.savedSession).forEach((element) => {
             const found = element.ports.find((eachPort: IPortInfo) => eachPort.comName === port.comName);
             if (!found) {
                 return;
@@ -223,11 +195,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         this._ng_options = false;
         this._forceUpdate();
         // Request list of available ports
-        this.api.getIPC().requestToHost({
-            stream: this.session,
-            command: EHostCommands.close,
-            path: port.comName,
-        }, this.session).then((response) => {
+        Service.disconnect(port.comName).then(() => {
             this._ng_busy = false;
             this._forceUpdate();
         }).catch((error: Error) => {
@@ -249,7 +217,6 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     private _onIncomeEvent(message: any) {
         switch (message.event) {
             case EHostEvents.connected:
-                this._hostEvents_onConnected(message.port);
                 break;
             case EHostEvents.disconnected:
                 this._hostEvents_onDisconnected(message.port);
@@ -258,7 +225,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                 this._hostEvents_onError(message.port, message.error);
                 break;
             case EHostEvents.state:
-                this._hostEvents_onState(message.state);
+                this._hostEvents_onState(Service.state);
                 break;
             case EHostEvents.spyState:
                 this._hostEvents_onSpyState(message.load);
@@ -278,7 +245,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     }
 
     private _onSessionClose(guid: string) {
-        savedSession.delete(guid);
+        //
     }
 
     private _saveState() {
@@ -308,13 +275,9 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     }
 
     private _requestPortsList() {
-        // Request list of available ports
         this._ng_ports = [];
-        this.api.getIPC().requestToHost({
-            stream: this.session,
-            command: EHostCommands.list,
-        }, this.session).then((response) => {
-            this._ng_ports = response.ports;
+        Service.requestPorts().then((resolve) => {
+            Object.assign(this._ng_ports, resolve.ports);
             this._saveState();
             this._forceUpdate();
         }).catch((error: Error) => {
@@ -330,19 +293,10 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         return msg;
     }
 
-    private _hostEvents_onConnected(port: string) {
-        this._openQueue[port] = true;
-        if (this._messageQueue[port]) {
-            this._messageQueue[port].forEach((message) => {
-                this._ng_sendMessage(message);
-            });
-        }
-    }
-
-    private _hostEvents_onState(ports: { [key: string]: IPortState }) {
+    private _hostEvents_onState(ports: {[port: string]: IPortState}) {
         this._ng_connected = this._ng_connected.map((connected: IConnected) => {
             if (ports[connected.port.comName]) {
-                connected.state = ports[connected.port.comName];
+                Object.assign(connected.state, ports[connected.port.comName]);
             }
             return connected;
         });
@@ -350,7 +304,6 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     }
 
     private _hostEvents_onDisconnected(port: string) {
-        this._openQueue[port] = false;
         this._ng_connected = this._ng_connected.filter((connected: IConnected) => {
             return connected.port.comName !== port;
         });
@@ -374,20 +327,10 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     }
 
     public _ng_sendMessage( message: string, event?: KeyboardEvent ) {
-        if (this._openQueue[this._chosenPort]) {
-        this.api.getIPC().requestToHost({
-            stream: this.session,
-            command: EHostCommands.write,
-            cmd: message,
-            path: this._chosenPort
-        }, this.session).catch((error: Error) => {
+        Service.sendMessage(message, this._chosenPort).catch((error: Error) => {
             this._logger.error(error);
-            }).finally(() => {
-        this._inputCom.setValue('');
             });
-        } else {
-            this._messageQueue[this._chosenPort].push(message);
-        }
+        this._inputCom.setValue('');
     }
 
     private _addDropdownElement(port: IPortInfo) {
@@ -415,6 +358,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     }
 
     private _saveDropdownSession(port: IPortInfo) {
+        const savedSession = Service.savedSession;
         if (!savedSession.has(this.session)) {
             savedSession.set(this.session, { default: undefined, ports: []});
         }
@@ -426,20 +370,20 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     }
 
     private _removeDropdownSession(port: IPortInfo) {
-        const session: {default: string, ports: IPortInfo[]} | undefined = savedSession.get(this.session);
+        const session: {default: string, ports: IPortInfo[]} | undefined = Service.savedSession.get(this.session);
         if (session === undefined) {
             return;
         }
-        session.ports.splice(savedSession.get(this.session).ports.indexOf(port), 1);
+        session.ports = session.ports.filter(each => each.comName !== port.comName);
         if (session.default === port.comName) {
             session.default = '';
         }
-        savedSession.set(this.session, session);
+        Service.savedSession.set(this.session, session);
     }
 
     private _restoreDropdownSession() {
-        if (savedSession.has(this.session)) {
-            const ports = savedSession.get(this.session).ports;
+        if (Service.savedSession.has(this.session)) {
+            const ports = Service.savedSession.get(this.session).ports;
             if (ports) {
                 for (const port of ports) {
                     this._addDropdownElement(port);
@@ -451,15 +395,15 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     public _ng_changeDropdownSelect(value: string) {
         this._chosenPort = value;
         this._ng_ports.forEach( port => {
-            if (port.comName === value && savedSession.has(this.session)) {
-                savedSession.get(this.session).default = port.comName;
+            if (port.comName === value && Service.savedSession.has(this.session)) {
+                Service.savedSession.get(this.session).default = port.comName;
             }
         });
     }
 
     private _loadSession() {
-        if (savedSession.has(this.session)) {
-            this._ng_defaultPort = savedSession.get(this.session).default;
+        if (Service.savedSession.has(this.session)) {
+            this._ng_defaultPort = Service.savedSession.get(this.session).default;
             this._forceUpdate();
         }
     }
@@ -479,24 +423,14 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
 
     private _startSpy() {
         this._createOptions();
-        this.api.getIPC().requestToHost({
-            stream: this.session,
-            command: EHostCommands.spyStart,
-            options: this._portOptions
-        }, this.session).then(() => {
-            this._ng_spyLoad = {};
-        }).catch((error: Error) => {
+        Service.startSpy(this._portOptions).catch((error: Error) => {
             this._logger.error(error);
         });
     }
 
     private _stopSpy() {
-        return new Promise((resolve, reject) => {
-            this.api.getIPC().requestToHost({
-                stream: this.session,
-                command: EHostCommands.spyStop,
-                options: this._portOptions
-            }, this.session).then(
+        return new Promise((resolve) => {
+            Service.stopSpy(this._portOptions).then(
                 resolve
             ).catch((error: Error) => {
                 this._logger.error(error);
@@ -506,14 +440,11 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     }
 
     private closePopup(popup: string) {
-        this.api.removePopup(popup);
+        Service.closePopup(popup);
     }
 
     public _ng_connectDialog() {
-        this.api.getIPC().requestToHost({
-            stream: this.session,
-            command: EHostCommands.list,
-        }, this.session).then((response) => {
+        Service.requestPorts().then((response) => {
             this._startSpy();
             const popupGuid: string = this.api.addPopup({
                 caption: 'Choose port to connect:',
@@ -521,23 +452,17 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                     factory: SidebarVerticalPortDialogComponent,
                     inputs: {
                         _onConnect: (() => {
-                        this._stopSpy().then(() => this._ng_onConnect());
-                        this.closePopup(popupGuid);
+                            this._stopSpy().then(() => this._ng_onConnect());
+                            this.closePopup(popupGuid);
                         }),
-                        _ng_getState: ((port: IPortInfo) => this._ng_getState(port)),
                         _ng_canBeConnected: this._ng_canBeConnected,
                         _ng_connected: this._ng_connected,
-                        _ng_isPortSelected: this._ng_isPortSelected,
                         _ng_onOptions: this._ng_onOptions,
                         _ng_onPortSelect: this._ng_onPortSelect,
                         _getSpyState: (() => this._ng_spyLoad),
                         _requestPortList: ( () => response.ports),
-                        _forceUpdate: this._forceUpdate,
                         _getSelected: ((selected: IPortInfo) => { this._ng_selected = selected; }),
                         _getOptionsCom: ((options: IOptions) => { this._optionsCom = options; }),
-                        _stopSpy: (() => {
-                            this._stopSpy();
-                        })
                     }
                 },
                 buttons: [
