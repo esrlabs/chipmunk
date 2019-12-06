@@ -184,6 +184,7 @@ export class ControllerSessionTabSearchCharts {
         let isUpdateRequired: boolean = false;
         this._stored = this._stored.map((stored: IChartRequest) => {
             if (request === stored.reg.source) {
+                const prev = Object.assign({}, stored);
                 if (updated.reguest !== undefined && stored.reg.source !== updated.reguest) {
                     isUpdateRequired = true;
                 }
@@ -195,6 +196,14 @@ export class ControllerSessionTabSearchCharts {
                 stored.type = updated.type === undefined ? stored.type : updated.type;
                 stored.active = updated.active === undefined ? stored.active : updated.active;
                 stored.options = updated.options === undefined ? stored.options : updated.options;
+                if (prev.type !== stored.type) {
+                    const controller: AChart = getController(stored.type);
+                    if (controller === undefined) {
+                        stored.options = {};
+                    } else {
+                        stored.options = controller.getDefaultsOptions();
+                    }
+                }
             }
             return stored;
         });
