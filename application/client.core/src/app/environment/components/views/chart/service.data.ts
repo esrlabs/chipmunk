@@ -16,6 +16,7 @@ export interface IRange {
 export interface IResults {
     dataset: Array<{ [key: string]: any }>;
     max: number | undefined;
+    min: number | undefined;
 }
 
 export class ServiceData {
@@ -92,10 +93,10 @@ export class ServiceData {
 
     public getDatasets(width: number, range?: IRange): IResults {
         if (this._stream === undefined || this._matches === undefined) {
-            return { dataset: [], max: undefined };
+            return { dataset: [], max: undefined, min: undefined };
         }
         if (this._stream.count === 0 || this._matches.points.length === 0) {
-            return { dataset: [], max: undefined };
+            return { dataset: [], max: undefined, min: undefined };
         }
         const results: any = {};
         const countInRange: number = range === undefined ? this._stream.count : (range.end - range.begin);
@@ -155,18 +156,19 @@ export class ServiceData {
             };
             datasets.push(dataset);
         });
-        return { dataset: datasets, max: max };
+        return { dataset: datasets, max: max, min: undefined };
     }
 
     public getChartsDatasets(width: number, range?: IRange, preview: boolean = false ): IResults {
         if (this._stream === undefined || this._charts === undefined) {
-            return { dataset: [], max: undefined };
+            return { dataset: [], max: undefined, min: undefined };
         }
         if (this._stream.count === 0 || Object.keys(this._charts).length === 0) {
-            return { dataset: [], max: undefined };
+            return { dataset: [], max: undefined, min: undefined };
         }
         const datasets = [];
         let max: number = -1;
+        let min: number = Infinity;
         if (range === undefined) {
             range = {
                 begin: 0,
@@ -202,8 +204,11 @@ export class ServiceData {
             if (ds.max > max) {
                 max = ds.max;
             }
+            if (ds.min < min) {
+                min = ds.min;
+            }
         });
-        return { dataset: datasets, max: max };
+        return { dataset: datasets, max: max, min: isFinite(min) ? min : undefined };
     }
 
     /*

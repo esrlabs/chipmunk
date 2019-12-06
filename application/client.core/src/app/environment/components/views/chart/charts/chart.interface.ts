@@ -67,7 +67,7 @@ export abstract class AChart {
         width: number,
         range: IRange,
         preview: boolean,
-    ): { dataset: { [key: string]: any }, max: number };
+    ): { dataset: { [key: string]: any }, max: number, min: number };
 
     abstract getOptions(opt: IOptionsObj): IOption[];
 

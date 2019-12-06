@@ -319,7 +319,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                         yAxes: [{
                             display: false,
                             ticks: {
-                                beginAtZero: true,
+                                min: datasets.min,
                                 max: Math.round(datasets.max + datasets.max * 0.1)
                             },
                         }]

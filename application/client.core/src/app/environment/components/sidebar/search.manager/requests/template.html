@@ -1,31 +1,24 @@
 <p class="caption t-small" *ngIf="_ng_filename !== undefined">{{_ng_filename}}</p>
 
 <div class="lists">
-    <div class="list-wrapper" *ngIf="_ng_requests.length > 0 || _ng_charts.length > 0">
-        <ul #listrequests [attr.class]="'requests '" (focus)="_ng_onRequestsFocus()" (blur)="_ng_onRequestsBlur()" tabindex="1">
-            <li [attr.class]="'request ' + (_ng_selectedRequestIndex === i ? 'selected' : '') + ' ' + (request.request.active ? '' : 'inactive')"
-            (contextmenu)="_ng_onContexMenu($event, request, 'filters')"
-            *ngFor="let request of _ng_requests; let i = index;">
-                <app-sidebar-app-search-request [request]="request"></app-sidebar-app-search-request>
-            </li>
-            <li [attr.class]="'request ' + (_ng_selectedChartIndex === i ? 'selected' : '') + ' ' + (chart.request.active ? '' : 'inactive')"
-                (contextmenu)="_ng_onContexMenu($event, chart, 'charts')"
-                *ngFor="let chart of _ng_charts; let i = index;">
-                <app-sidebar-app-search-chartentry [chart]="chart"></app-sidebar-app-search-chartentry>
+    <div class="list-wrapper" *ngIf="_ng_entries.length > 0">
+        <ul #listrequests [attr.class]="'requests '" (focus)="_ng_onListFocus()" (blur)="_ng_onListBlur()" tabindex="1">
+            <li [attr.class]="'request ' + (_ng_selectedEntryIndex === i ? 'selected' : '') + ' ' + (entry.request.active ? '' : 'inactive')"
+                (contextmenu)="_ng_onContexMenu($event, entry, _ng_getEntryType(entry))"
+                *ngFor="let entry of _ng_entries; let i = index;">
+                <app-sidebar-app-search-request *ngIf="_ng_getEntryType(entry) === 'filters'" [request]="entry"></app-sidebar-app-search-request>
+                <app-sidebar-app-search-chartentry *ngIf="_ng_getEntryType(entry) === 'charts'" [chart]="entry"></app-sidebar-app-search-chartentry>
             </li>
         </ul>
     </div>
     
-    <div class="controlls" *ngIf="_ng_requests.length > 0">
+    <div class="controlls" *ngIf="_ng_entries.length > 0">
         <span class="ref-button" (click)="_ng_onRemoveAll()">Clear</span>
     </div>
        
 </div>
 
-<div class="details" *ngIf="_ng_selectedRequest !== undefined">
-    <app-sidebar-app-search-request-details [request]="_ng_selectedRequest"></app-sidebar-app-search-request-details>
-</div>
-
-<div class="details" *ngIf="_ng_selectedChart !== undefined">
-    <app-sidebar-app-search-chart-details [chart]="_ng_selectedChart"></app-sidebar-app-search-chart-details>
+<div class="details" *ngIf="_ng_selectedEntry !== undefined">
+    <app-sidebar-app-search-request-details *ngIf="_ng_getEntryType(_ng_selectedEntry) === 'filters'" [request]="_ng_selectedEntry"></app-sidebar-app-search-request-details>
+    <app-sidebar-app-search-chart-details *ngIf="_ng_getEntryType(_ng_selectedEntry) === 'charts'" [chart]="_ng_selectedEntry"></app-sidebar-app-search-chart-details>
 </div>

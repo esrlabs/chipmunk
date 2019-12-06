@@ -16,9 +16,10 @@ export default class Chart extends AChart {
         width: number,
         range: IRange,
         preview: boolean,
-    ): { dataset: { [key: string]: any }, max: number } {
+    ): { dataset: { [key: string]: any }, max: number, min: number } {
         const results = [];
         let max: number = -1;
+        let min: number = Infinity;
         matches.forEach((point: IPCMessages.IChartMatch) => {
             if (!(point.value instanceof Array) || point.value.length === 0) {
                 return;
@@ -29,6 +30,9 @@ export default class Chart extends AChart {
             }
             if (max < value) {
                 max = value;
+            }
+            if (min > value) {
+                min = value;
             }
             if (point.row < range.begin) {
                 return;
@@ -75,14 +79,14 @@ export default class Chart extends AChart {
             borderColor: color === undefined ? ColorScheme.scheme_search_match : color,
             data: results,
             borderWidth: options.borderWidth,
-            pointRadius: preview ? 1 : 2,
-            pointHoverRadius: preview ? 1 : 2,
+            pointRadius: preview ? 0 : 2,
+            pointHoverRadius: preview ? 0 : 2,
             fill: false,
             tension: 0,
             showLine: true,
             lineTension: options.lineTension,
         };
-        return { dataset: dataset, max: max };
+        return { dataset: dataset, max: max, min: isFinite(min) ? min : undefined };
     }
 
     public getOptions(opt: any): IOption[] {

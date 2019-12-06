@@ -14,7 +14,7 @@ import { ControllerSessionTab } from '../../../../controller/controller.session.
 import ContextMenuService, { IMenu, IMenuItem } from '../../../../services/standalone/service.contextmenu';
 
 interface IState {
-    _ng_selectedRequestIndex: number;
+    _ng_selectedEntryIndex: number;
     _ng_filename: string | undefined;
     _filename: string | undefined;
     _changed: boolean;
@@ -38,19 +38,16 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
     @ViewChild('listrequests', {static: false}) _listRequestsElmRef: ElementRef;
     @ViewChild('listcharts', {static: false}) _listChartsElmRef: ElementRef;
 
-    public _ng_requests: IRequestItem[] = [];
-    public _ng_charts: IChartItem[] = [];
-    public _ng_selectedRequest: IRequestDetailsItem | undefined;
-    public _ng_selectedRequestIndex: number = -1;
-    public _ng_selectedChart: IChartDetailsItem | undefined;
-    public _ng_selectedChartIndex: number = -1;
+    public _ng_entries: Array<IRequestItem | IChartItem> = [];
+    public _ng_selectedEntry: IRequestDetailsItem | IChartDetailsItem | undefined;
+    public _ng_selectedEntryIndex: number = -1;
     public _ng_filename: string | undefined;
 
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppSearchRequestsComponent');
     private _destroyed: boolean = false;
     private _session: ControllerSessionTab | undefined;
-    private _focused: EEntityType | undefined;
+    private _focused: boolean = false;
     private _filename: string | undefined;
     private _changed: boolean = false;
     private _subjectsRequests: {
@@ -78,13 +75,15 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _notifications: NotificationsService) {
-        this._subscriptions.onRequestsUpdated = SearchSessionsService.getObservable().onRequestsUpdated.subscribe(this._onRequestsUpdated.bind(this));
-        this._subscriptions.onChartsUpdated = SearchSessionsService.getObservable().onChartsUpdated.subscribe(this._onChartsUpdated.bind(this));
+        this._subscriptions.onRequestsUpdated = SearchSessionsService.getObservable().onRequestsUpdated.subscribe(this._onEntriesUpdated.bind(this, EEntityType.filters));
+        this._subscriptions.onChartsUpdated = SearchSessionsService.getObservable().onChartsUpdated.subscribe(this._onEntriesUpdated.bind(this, EEntityType.charts));
         this._subscriptions.onSessionChange = SessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._onKeyPress = this._onKeyPress.bind(this);
         this._session = SessionsService.getActive();
-        this._ng_requests = this._getRequestItems(this._session.getSessionSearch().getFiltersAPI().getStored());
-        this._ng_charts = this._getChartsItems(this._session.getSessionSearch().getChartsAPI().getStored());
+        this._ng_entries = [
+            ...this._getRequestItems(this._session.getSessionSearch().getFiltersAPI().getStored()),
+            ...this._getChartsItems(this._session.getSessionSearch().getChartsAPI().getStored())
+        ];
     }
 
     public ngOnDestroy() {
@@ -131,19 +130,11 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         this._forceUpdate();
     }
 
-    public _ng_onRequestsFocus() {
-        this._focused = EEntityType.filters;
+    public _ng_onListFocus() {
+        this._focused = true;
     }
 
-    public _ng_onRequestsBlur() {
-        this._focused = undefined;
-    }
-
-    public _ng_onChartsFocus() {
-        this._focused = EEntityType.charts;
-    }
-
-    public _ng_onChartsBlur() {
+    public _ng_onListBlur() {
         this._focused = undefined;
     }
 
@@ -245,6 +236,15 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         });
     }
 
+    public _ng_getEntryType(entry: IRequestItem | IChartItem): EEntityType {
+        if ((entry.request as any).type !== undefined) {
+            // Field "type" has only chart
+            return EEntityType.charts;
+        } else {
+            return EEntityType.filters;
+        }
+    }
+
     private _setCurrentFileName(filename: string) {
         this._ng_filename = Toolkit.basename(filename);
         this._filename = filename;
@@ -253,60 +253,32 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
     }
 
     private _onKeyPress(event: KeyboardEvent) {
-        if (this._focused === undefined) {
+        if (!this._focused) {
             return;
         }
-        switch (this._focused) {
-            case EEntityType.filters:
-                if (this._ng_requests.length === 0) {
-                    return;
-                }
-                switch (event.key) {
-                    case 'ArrowDown':
-                        if (this._ng_selectedRequestIndex === -1 || this._ng_selectedRequestIndex === this._ng_requests.length - 1) {
-                            this._selectRequestByIndex(0);
-                        } else {
-                            this._selectRequestByIndex(this._ng_selectedRequestIndex + 1);
-                        }
-                        break;
-                    case 'ArrowUp':
-                        if (this._ng_selectedRequestIndex === -1 || this._ng_selectedRequestIndex === 0) {
-                            this._selectRequestByIndex(this._ng_requests.length - 1);
-                        } else {
-                            this._selectRequestByIndex(this._ng_selectedRequestIndex - 1);
-                        }
-                        break;
-                    case 'Enter':
-                        if (this._ng_selectedRequestIndex !== -1) {
-                            this._subjectsRequests.onEdit.next(this._ng_selectedRequest.request);
-                        }
-                        break;
+        switch (event.key) {
+            case 'ArrowDown':
+                if (this._ng_selectedEntryIndex === -1 || this._ng_selectedEntryIndex === this._ng_entries.length - 1) {
+                    this._selectEntryByIndex(0);
+                } else {
+                    this._selectEntryByIndex(this._ng_selectedEntryIndex + 1);
                 }
                 break;
-            case EEntityType.charts:
-                if (this._ng_charts.length === 0) {
-                    return;
+            case 'ArrowUp':
+                if (this._ng_selectedEntryIndex === -1 || this._ng_selectedEntryIndex === 0) {
+                    this._selectEntryByIndex(this._ng_entries.length - 1);
+                } else {
+                    this._selectEntryByIndex(this._ng_selectedEntryIndex - 1);
                 }
-                switch (event.key) {
-                    case 'ArrowDown':
-                        if (this._ng_selectedChartIndex === -1 || this._ng_selectedChartIndex === this._ng_charts.length - 1) {
-                            this._selectChartByIndex(0);
-                        } else {
-                            this._selectChartByIndex(this._ng_selectedChartIndex + 1);
-                        }
-                        break;
-                    case 'ArrowUp':
-                        if (this._ng_selectedChartIndex === -1 || this._ng_selectedChartIndex === 0) {
-                            this._selectChartByIndex(this._ng_charts.length - 1);
-                        } else {
-                            this._selectChartByIndex(this._ng_selectedChartIndex - 1);
-                        }
-                        break;
-                    case 'Enter':
-                        if (this._ng_selectedChartIndex !== -1) {
-                            this._subjectsCharts.onEdit.next(this._ng_selectedChart.request);
-                        }
-                        break;
+                break;
+            case 'Enter':
+                if (this._ng_selectedEntryIndex !== -1) {
+                    const entry = this._ng_entries[this._ng_selectedEntryIndex];
+                    if (this._ng_getEntryType(entry) === EEntityType.filters) {
+                        this._subjectsRequests.onEdit.next(entry.request as IRequest);
+                    } else {
+                        this._subjectsCharts.onEdit.next(entry.request as IChartRequest);
+                    }
                 }
                 break;
         }
@@ -325,19 +297,19 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         }
         const key: string | undefined = this._getStateGuid();
         this._session.getSessionsStates().applyStateTo(key, this);
-        this._selectRequestByIndex(this._ng_selectedRequestIndex);
+        this._selectEntryByIndex(this._ng_selectedEntryIndex);
         this._forceUpdate();
     }
 
     private _saveState(): void {
-        if (this._session === undefined || this._ng_requests.length === 0) {
+        if (this._session === undefined || this._ng_entries.length === 0) {
             return;
         }
         const key: string | undefined = this._getStateGuid();
         this._session.getSessionsStates().set<IState>(
             key,
             {
-                _ng_selectedRequestIndex: this._ng_selectedRequestIndex,
+                _ng_selectedEntryIndex: this._ng_selectedEntryIndex,
                 _ng_filename: this._ng_filename,
                 _filename: this._filename,
                 _changed: this._changed,
@@ -345,51 +317,41 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         );
     }
 
-    private _onRequestsUpdated(requests: IRequest[]) {
-        const session = SessionsService.getActive();
-        if (session === undefined || this._session === undefined) {
-            return;
+    private _onEntriesUpdated(type: EEntityType | undefined, entries: Array<IRequest | IChartRequest> | undefined) {
+        if (type === undefined && entries === undefined) {
+            this._ng_entries = [
+                ...this._getRequestItems(this._session.getSessionSearch().getFiltersAPI().getStored()),
+                ...this._getChartsItems(this._session.getSessionSearch().getChartsAPI().getStored())
+            ];
+            return this._forceUpdate();
         }
-        if (session.getGuid() !== this._session.getGuid()) {
-            return;
+        const addedEntry: IRequest | IChartRequest | undefined = this._getNewEntry(entries);
+        switch (type) {
+            case EEntityType.filters:
+                this._ng_entries = [
+                    ...this._getRequestItems(entries as IRequest[]),
+                    ...this._getChartsItems(this._session.getSessionSearch().getChartsAPI().getStored())
+                ];
+                break;
+            case EEntityType.charts:
+                this._ng_entries = [
+                    ...this._getRequestItems(this._session.getSessionSearch().getFiltersAPI().getStored()),
+                    ...this._getChartsItems(entries as IChartRequest[])
+                ];
+                break;
         }
-        const newRequest: IRequest | undefined = this._getNewRequest(requests);
-        this._ng_requests = this._getRequestItems(requests);
-        if (newRequest === undefined) {
-            if (this._ng_requests.length === 0) {
-                this._ng_selectedRequest = undefined;
-                this._ng_selectedRequestIndex = -1;
-            }
-            this._forceUpdate();
-        } else {
-            this._onSelectRequest(newRequest);
+        if (this._ng_entries.length === 0) {
+            this._ng_selectedEntry = undefined;
+            this._ng_selectedEntryIndex = -1;
+        } else if (addedEntry !== undefined) {
+            this._onSelectEntry(addedEntry);
         }
-    }
-
-    private _onChartsUpdated(charts: IChartRequest[]) {
-        const session = SessionsService.getActive();
-        if (session === undefined || this._session === undefined) {
-            return;
-        }
-        if (session.getGuid() !== this._session.getGuid()) {
-            return;
-        }
-        const newChart: IChartRequest | undefined = this._getNewChart(charts);
-        this._ng_charts = this._getChartsItems(charts);
-        if (newChart === undefined) {
-            if (this._ng_charts.length === 0) {
-                this._ng_selectedChart = undefined;
-                this._ng_selectedChartIndex = -1;
-            }
-            this._forceUpdate();
-        } else {
-            this._onSelectChart(newChart);
-        }
+        this._forceUpdate();
     }
 
     private _onSearchProcessing() {
-        this._ng_selectedRequest = undefined;
-        this._ng_selectedRequestIndex = -1;
+        this._ng_selectedEntry = undefined;
+        this._ng_selectedEntryIndex = -1;
         this._forceUpdate();
     }
 
@@ -399,7 +361,7 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
                 request: request,
                 onEdit: this._subjectsRequests.onEdit.asObservable(),
                 onEditCancel: this._subjectsRequests.onEditCancel.asObservable(),
-                onSelect: this._onSelectRequest.bind(this, request),
+                onSelect: this._onSelectEntry.bind(this, request),
                 onChangeState: this._onChangeStateRequest.bind(this, request),
                 onEditDone: this._onRequestValueChanged.bind(this, request),
             };
@@ -412,7 +374,7 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
                 request: chart,
                 onEdit: this._subjectsCharts.onEdit.asObservable(),
                 onEditCancel: this._subjectsCharts.onEditCancel.asObservable(),
-                onSelect: this._onSelectChart.bind(this, chart),
+                onSelect: this._onSelectEntry.bind(this, chart),
                 onChangeState: this._onChangeStateChart.bind(this, chart),
                 onEditDone: this._onChartValueChanged.bind(this, chart),
             };
@@ -426,11 +388,11 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         this._listRequestsElmRef.nativeElement.focus();
     }
 
-    private _getNewRequest(requests: IRequest[]): IRequest | undefined {
+    private _getNewEntry(entries: Array<IRequest | IChartRequest>): IRequest | IChartRequest | undefined {
         let result: IRequest | undefined;
-        requests.forEach((request: IRequest) => {
+        entries.forEach((request: IRequest) => {
             let exist: boolean = false;
-            this._ng_requests.forEach((stored: IRequestItem) => {
+            this._ng_entries.forEach((stored: IRequestItem) => {
                 if (stored.request.reg.source === request.reg.source) {
                     exist = true;
                 }
@@ -442,24 +404,6 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         this._subjectsRequests.onChanges.next();
         return result;
     }
-
-    private _getNewChart(charts: IChartRequest[]): IChartRequest | undefined {
-        let result: IChartRequest | undefined;
-        charts.forEach((request: IChartRequest) => {
-            let exist: boolean = false;
-            this._ng_charts.forEach((stored: IChartItem) => {
-                if (stored.request.reg.source === request.reg.source) {
-                    exist = true;
-                }
-            });
-            if (!exist) {
-                result = request;
-            }
-        });
-        this._subjectsRequests.onChanges.next();
-        return result;
-    }
-
 
     private _onRequestValueChanged(request: IRequest, value?: string) {
         this._subjectsRequests.onEditCancel.next();
@@ -473,11 +417,11 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         this._saveState();
     }
 
-    private _onSelectRequest(request: IRequest) {
-        if (this._ng_selectedRequest !== undefined && this._ng_selectedRequest.request.reg.source === request.reg.source) {
+    private _onSelectEntry(request: IRequest | IChartRequest) {
+        if (this._ng_selectedEntry !== undefined && this._ng_selectedEntry.request.reg.source === request.reg.source) {
             return;
         }
-        this._selectRequestByIndex(this._getIndexOfRequest(request));
+        this._selectEntryByIndex(this._getIndexOfEntry(request));
     }
 
     private _onRemoveRequest(request: IRequest) {
@@ -491,13 +435,6 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         this._forceUpdate();
     }
 
-    private _onSelectChart(chart: IChartRequest) {
-        if (this._ng_selectedChart !== undefined && this._ng_selectedChart.request.reg.source === chart.reg.source) {
-            return;
-        }
-        this._selectChartByIndex(this._getIndexOfChart(chart));
-    }
-
     private _onRemoveChart(request: IChartRequest) {
         this._session.getSessionSearch().getChartsAPI().removeStored(request.reg.source);
         this._subjectsRequests.onChanges.next();
@@ -508,7 +445,6 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         this._subjectsRequests.onChanges.next();
         this._forceUpdate();
     }
-
 
     private _onChartValueChanged(request: IChartRequest, value?: string) {
         this._subjectsRequests.onEditCancel.next();
@@ -532,49 +468,32 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         this._subjectsRequests.onChanges.next();
     }
 
-    private _selectRequestByIndex(index: number) {
-        if (this._ng_requests[index] === undefined) {
+    private _selectEntryByIndex(index: number) {
+        if (this._ng_entries[index] === undefined) {
             return;
         }
-        this._ng_selectedChart = undefined;
-        this._ng_selectedChartIndex = -1;
-        this._ng_selectedRequest = {
-            request: this._ng_requests[index].request,
-            onChange: this._onRequestColorChanged.bind(this, this._ng_requests[index].request),
-        };
-        this._ng_selectedRequestIndex = index;
+        switch (this._ng_getEntryType(this._ng_entries[index])) {
+            case EEntityType.filters:
+                this._ng_selectedEntry = {
+                    request: this._ng_entries[index].request,
+                    onChange: this._onRequestColorChanged.bind(this, this._ng_entries[index].request),
+                } as IRequestDetailsItem;
+                break;
+            case EEntityType.charts:
+                this._ng_selectedEntry = {
+                    request: this._ng_entries[index].request,
+                    onChange: this._onChartChanged.bind(this, this._ng_entries[index].request),
+                } as IChartDetailsItem;
+                break;
+        }
+        this._ng_selectedEntryIndex = index;
         this._saveState();
         this._forceUpdate();
     }
 
-    private _selectChartByIndex(index: number) {
-        if (this._ng_charts[index] === undefined) {
-            return;
-        }
-        this._ng_selectedRequest = undefined;
-        this._ng_selectedRequestIndex = -1;
-        this._ng_selectedChart = {
-            request: this._ng_charts[index].request,
-            onChange: this._onChartChanged.bind(this, this._ng_charts[index].request),
-        };
-        this._ng_selectedChartIndex = index;
-        this._saveState();
-        this._forceUpdate();
-    }
-
-    private _getIndexOfRequest(request: IRequest) {
+    private _getIndexOfEntry(request: IRequest | IChartRequest) {
         let index: number = -1;
-        this._ng_requests.forEach((item: IRequestItem, i: number) => {
-            if (item.request.reg.source === request.reg.source) {
-                index = i;
-            }
-        });
-        return index;
-    }
-
-    private _getIndexOfChart(request: IChartRequest) {
-        let index: number = -1;
-        this._ng_charts.forEach((item: IChartItem, i: number) => {
+        this._ng_entries.forEach((item: IRequestItem, i: number) => {
             if (item.request.reg.source === request.reg.source) {
                 index = i;
             }
@@ -587,12 +506,11 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
             return;
         }
         this._session = controller;
-        this._onRequestsUpdated(this._session.getSessionSearch().getFiltersAPI().getStored());
-        this._onChartsUpdated(this._session.getSessionSearch().getChartsAPI().getStored());
+        this._onEntriesUpdated(undefined, undefined);
     }
 
     private _toggleAllExcept(source: string | undefined, targetState: boolean) {
-        const requests: IRequest[] = this._ng_requests.map((item: IRequestItem) => {
+        const requests: IRequest[] = this._ng_entries.map((item: IRequestItem) => {
             item.request.active = item.request.reg.source === source ? targetState : !targetState;
             return Object.assign({}, item.request);
         });
