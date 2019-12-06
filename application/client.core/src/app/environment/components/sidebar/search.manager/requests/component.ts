@@ -345,6 +345,8 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
             this._ng_selectedEntryIndex = -1;
         } else if (addedEntry !== undefined) {
             this._onSelectEntry(addedEntry);
+        } else if (this._ng_selectedEntryIndex !== -1) {
+            this._selectEntryByIndex(this._ng_selectedEntryIndex);
         }
         this._forceUpdate();
     }
