@@ -433,19 +433,34 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             if (e.length === 0) {
                 return;
             }
-            if (e[0]._model === null || typeof e[0]._model !== 'object') {
-                return;
+            let label: any = this._getValueByPath(e[0], '_model.label');
+            if (label !== undefined) {
+                position = parseInt(label.replace(/\s-\s\d*/gi, ''), 10);
+            } else {
+                label = this._getValueByPath(e[0], '_chart.tooltip._model.body');
+                if (label instanceof Array && label.length > 0 && label[0].lines instanceof Array && label[0].lines.length > 0) {
+                    label = typeof label[0].lines[0] === 'string' ? label[0].lines[0] : undefined;
+                    if (label !== undefined) {
+                        position = parseInt(label.replace(/[\(\)]/gi, '').replace(/,\s\d*/gi, ''), 10);
+                    }
+                }
             }
-            const label: string = e[0]._model.label;
-            if (typeof label !== 'string') {
-                return;
-            }
-            position = parseInt(label.replace(/\s-\s\d*/gi, ''), 10);
             if (isNaN(position) || !isFinite(position)) {
                 position = undefined;
             }
         });
         return position;
+    }
+
+    private _getValueByPath(obj: any, path: string): any {
+        if (typeof obj !== 'object' || obj === null) {
+            return undefined;
+        }
+        const parts: string[] = path.split('.');
+        if (parts.length === 1) {
+            return obj[parts[0]];
+        }
+        return this._getValueByPath(obj[parts[0]], parts.slice(1, parts.length).join('.'));
     }
 
     private _forceUpdate() {
