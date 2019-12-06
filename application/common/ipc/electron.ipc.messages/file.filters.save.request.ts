@@ -13,6 +13,7 @@ export interface IChart {
     color: string;
     type: EChartType,
     active: boolean;
+    options: { [key: string]: string | number | boolean };
 }
 export interface IFiltersSaveRequest {
     filters: IFilter[];

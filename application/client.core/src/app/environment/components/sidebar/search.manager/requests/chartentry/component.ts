@@ -2,9 +2,10 @@
 
 import { Component, OnDestroy, ChangeDetectorRef, Input, HostListener, AfterContentInit, OnChanges, ViewChild } from '@angular/core';
 import * as Toolkit from 'chipmunk.client.toolkit';
-import { IChartRequest, EChartType } from '../../../../../controller/controller.session.tab.search.charts';
+import { IChartRequest } from '../../../../../controller/controller.session.tab.search.charts';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { InputStandardComponent } from 'chipmunk-client-primitive';
+import { EChartType } from '../../../../views/chart/charts/charts';
 
 export interface IChartItem {
     request: IChartRequest;
