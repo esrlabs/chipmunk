@@ -137,6 +137,7 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterContentInit, A
         this._subscriptions.onForce = this.servicePosition.getObservable().onForce.subscribe(this._onPositionForced.bind(this));
         // Data events
         this._subscriptions.onData = this.serviceData.getObservable().onData.subscribe(this._onResizeIsRequired.bind(this));
+        this._subscriptions.onCharts = this.serviceData.getObservable().onCharts.subscribe(this._onResizeIsRequired.bind(this));
         // Listen session changes event
         this._subscriptions.onViewResize = ViewsEventsService.getObservable().onResize.subscribe(this._onResizeIsRequired.bind(this));
         // Listen offset changes
