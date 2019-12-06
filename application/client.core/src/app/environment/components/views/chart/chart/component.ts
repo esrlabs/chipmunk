@@ -106,32 +106,18 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
     }
 
     public _ng_onClick(event: MouseEvent) {
-        if (this._ng_filters === undefined) {
+        if (event.target === undefined) {
             return;
         }
-        // This feature of chartjs isn't documented well,
-        // so that's why here we have many checks
-        const e: any[] = this._ng_filters.getElementAtEvent(event);
-        if (!(e instanceof Array)) {
-            return;
+        let position: number | undefined = this._getPositionByChartPointData(event);
+        // Try to get data
+        if (position === undefined) {
+            const rows: number = this.service.getStreamSize();
+            const size: ClientRect = (event.target as HTMLElement).getBoundingClientRect();
+            const rate: number = size.width / rows;
+            position = Math.round(event.offsetX / rate);
         }
-        if (e.length === 0) {
-            return;
-        }
-        if (e[0]._model === null || typeof e[0]._model !== 'object') {
-            return;
-        }
-        const label: string = e[0]._model.label;
-        if (typeof label !== 'string') {
-            return;
-        }
-        const position: number = parseInt(label.replace(/\s-\s\d*/gi, ''), 10);
-        if (isNaN(position) || !isFinite(position)) {
-            return;
-        }
-        if (this._redirectMainView) {
-            OutputRedirectionsService.select('chart', this.service.getSessionGuid(), position);
-        }
+        OutputRedirectionsService.select('chart', this.service.getSessionGuid(), position);
     }
 
     public _ng_onContexMenu(event: MouseEvent) {
@@ -427,6 +413,39 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             this._ng_charts = undefined;
         }
         this._build();
+    }
+
+    private _getPositionByChartPointData(event: MouseEvent): number | undefined {
+        let position: number | undefined;
+        [this._ng_charts, this._ng_filters].forEach((chart: Chart | undefined) => {
+            if (position !== undefined) {
+                return;
+            }
+            if (chart === undefined) {
+                return;
+            }
+            // This feature of chartjs isn't documented well,
+            // so that's why here we have many checks
+            const e: any[] = chart.getElementAtEvent(event);
+            if (!(e instanceof Array)) {
+                return;
+            }
+            if (e.length === 0) {
+                return;
+            }
+            if (e[0]._model === null || typeof e[0]._model !== 'object') {
+                return;
+            }
+            const label: string = e[0]._model.label;
+            if (typeof label !== 'string') {
+                return;
+            }
+            position = parseInt(label.replace(/\s-\s\d*/gi, ''), 10);
+            if (isNaN(position) || !isFinite(position)) {
+                position = undefined;
+            }
+        });
+        return position;
     }
 
     private _forceUpdate() {
