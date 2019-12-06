@@ -120,6 +120,7 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
                     color: chart.color,
                     active: chart.active,
                     type: chart.type,
+                    options: chart.options,
                 };
             }));
             this._setFile(response.file);
@@ -160,6 +161,7 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
                 color: request.color,
                 active: request.active,
                 type: request.type,
+                options: request.options,
             };
         });
         ElectronIpcService.request(new IPCMessages.FiltersSaveRequest({ filters: filters, charts: charts, file: saveAs ? undefined : this.filename }), IPCMessages.FiltersSaveResponse).then((response: IPCMessages.FiltersSaveResponse) => {

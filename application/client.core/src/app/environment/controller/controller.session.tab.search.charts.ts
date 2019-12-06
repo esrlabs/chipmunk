@@ -4,6 +4,7 @@ import { ControllerSessionScope } from './controller.session.tab.scope';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import ServiceElectronIpc, { IPCMessages } from '../services/service.electron.ipc';
 import * as ColorScheme from '../theme/colors';
+import { getController, AChart, EChartType, IOptionsObj } from '../components/views/chart/charts/charts';
 
 export interface IControllerSessionStreamCharts {
     guid: string;
@@ -12,16 +13,12 @@ export interface IControllerSessionStreamCharts {
     scope: ControllerSessionScope;
 }
 
-export enum EChartType {
-    stepped = 'stepped',
-    smooth = 'smooth',
-}
-
 export interface IChartRequest {
     reg: RegExp;
     color: string;
     type: EChartType;
     active: boolean;
+    options: { [key: string]: string | number | boolean };
 }
 
 export interface IChartsOptions {
@@ -148,11 +145,16 @@ export class ControllerSessionTabSearchCharts {
         if (errorMsg !== undefined) {
             return new Error(errorMsg);
         }
+        const controller: AChart | undefined = getController(EChartType.stepped);
+        if (controller === undefined) {
+            return new Error(`Fail to find controller for chart "${EChartType.stepped}"`);
+        }
         this._stored.push({
             reg: Toolkit.regTools.createFromStr(request) as RegExp,
             color: ColorScheme.scheme_color_0,
             type: EChartType.stepped,
             active: true,
+            options: controller.getDefaultsOptions(),
         });
         this._subjects.onChartsUpdated.next(this._stored);
         this._refresh();
@@ -178,7 +180,7 @@ export class ControllerSessionTabSearchCharts {
         this._subjects.onChartsUpdated.next([]);
     }
 
-    public updateStored(request: string, updated: { reguest?: string, color?: string, type?: EChartType, active?: boolean }) {
+    public updateStored(request: string, updated: { reguest?: string, color?: string, type?: EChartType, active?: boolean, options?: IOptionsObj }) {
         let isUpdateRequired: boolean = false;
         this._stored = this._stored.map((stored: IChartRequest) => {
             if (request === stored.reg.source) {
@@ -192,6 +194,7 @@ export class ControllerSessionTabSearchCharts {
                 stored.color = updated.color === undefined ? stored.color : updated.color;
                 stored.type = updated.type === undefined ? stored.type : updated.type;
                 stored.active = updated.active === undefined ? stored.active : updated.active;
+                stored.options = updated.options === undefined ? stored.options : updated.options;
             }
             return stored;
         });
@@ -239,6 +242,19 @@ export class ControllerSessionTabSearchCharts {
             }
         });
         return color;
+    }
+
+    public getChartOptions(source: string): IOptionsObj {
+        let options: IOptionsObj | undefined;
+        this._stored.forEach((filter: IChartRequest) => {
+            if (options !== undefined) {
+                return;
+            }
+            if (filter.reg.source === source) {
+                options = filter.options;
+            }
+        });
+        return options === undefined ? { } : options;
     }
 
     public getChartType(source: string, defaults: EChartType.smooth | undefined): EChartType {

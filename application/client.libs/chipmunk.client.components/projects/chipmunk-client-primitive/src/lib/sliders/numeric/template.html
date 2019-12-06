@@ -1,0 +1,6 @@
+<span class="line" #line></span>
+<span class="label min t-small">{{_ng_min}}</span>
+<span class="label max t-small">{{_ng_max}}</span>
+<div [attr.class]="'cursor ' + (_ng_value === _ng_max ? 'max' : '')" (mousedown)="_ng_onMouseDown($event)" [ngStyle]="{'left': _ng_getCursorLeft()}">
+    <span class="value t-small">{{_ng_value}}</span>
+</div>

@@ -4,9 +4,9 @@ import { ControllerSessionTab, IStreamState } from '../../../controller/controll
 import { IMapState, IMapPoint } from '../../../controller/controller.session.tab.map';
 import { Observable, Subscription, Subject } from 'rxjs';
 import * as ColorScheme from '../../../theme/colors';
-import * as Datasets from './service.data.datasets';
+import ChartsControllers, { AChart } from './charts/charts';
 import { IPCMessages } from '../../../services/service.electron.ipc';
-import { EChartType } from '../../../controller/controller.session.tab.search.charts';
+import { EChartType } from './charts/charts';
 
 export interface IRange {
     begin: number;
@@ -176,17 +176,20 @@ export class ServiceData {
         Object.keys(this._charts).forEach((filter: string) => {
             const matches: IPCMessages.IChartMatch[] = this._charts[filter];
             const chartType: EChartType | undefined = this._sessionController.getSessionSearch().getChartsAPI().getChartType(filter, EChartType.smooth);
-            const dsGetter: Datasets.TDatasetGetter | undefined = Datasets[chartType];
-            if (dsGetter === undefined) {
-                this._logger.error(`Fail get dataset getter for chart "${chartType}"`);
+            const controller: AChart | undefined = ChartsControllers[chartType];
+            if (controller === undefined) {
+                this._logger.error(`Fail get controller for chart "${chartType}"`);
                 return;
             }
-            const ds = dsGetter(
+            const ds = controller.getDataset(
                 filter,
                 matches,
                 {
                     getColor: (source: string) => {
                         return this._sessionController.getSessionSearch().getChartsAPI().getChartColor(source);
+                    },
+                    getOptions: (source: string) => {
+                        return this._sessionController.getSessionSearch().getChartsAPI().getChartOptions(source);
                     },
                     getLeftPoint: this._getLeftBorderChartDS.bind(this),
                     getRightPoint: this._getRightBorderChartDS.bind(this),

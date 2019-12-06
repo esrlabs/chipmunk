@@ -1,19 +1,34 @@
 // tslint:disable:member-ordering
 
 import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, OnChanges } from '@angular/core';
-import { IChartRequest, EChartType } from '../../../../../controller/controller.session.tab.search.charts';
+import { IChartRequest } from '../../../../../controller/controller.session.tab.search.charts';
 import { CColors } from '../../../../../conts/colors';
 import { Subscription } from 'rxjs';
+import { IComponentDesc } from 'chipmunk-client-containers';
+import { InputStandardComponent, DDListStandardComponent, SliderNumericComponent } from 'chipmunk-client-primitive';
+import ChartControllers, { AChart, IOption, EOptionType, IOptionsObj, EChartType } from '../../../../views/chart/charts/charts';
 
 export interface IOnChangeEvent {
     color?: string;
     type?: EChartType;
+    options?: { [key: string]: string | number | boolean };
 }
 
 export interface IChartItem {
     request: IChartRequest;
     onChange: (event: IOnChangeEvent) => void;
 }
+
+interface IOptionComponent {
+    component: IComponentDesc;
+    caption: string;
+}
+
+const COptionComponents = {
+    [EOptionType.slider]: SliderNumericComponent,
+    [EOptionType.list]: DDListStandardComponent,
+    [EOptionType.input]: InputStandardComponent,
+};
 
 @Component({
     selector: 'app-sidebar-app-search-chart-details',
@@ -34,6 +49,7 @@ export class SidebarAppSearchChartDetailsComponent implements OnDestroy, AfterCo
         { caption: 'Stepped Line', value: EChartType.stepped },
         { caption: 'Smooth Line', value: EChartType.smooth },
     ];
+    public _ng_options: IOptionComponent[] = [];
 
     private _subscriptions: { [key: string]: Subscription } = {};
 
@@ -79,6 +95,7 @@ export class SidebarAppSearchChartDetailsComponent implements OnDestroy, AfterCo
         this._ng_request = this.chart.request.reg.source;
         this._ng_color = this.chart.request.color;
         this._ng_type = this.chart.request.type;
+        this._ng_options = this._getOptions();
         this._updateIndexes();
         this._cdRef.detectChanges();
     }
@@ -89,6 +106,35 @@ export class SidebarAppSearchChartDetailsComponent implements OnDestroy, AfterCo
 
     private _getIndex(color: string) {
         return this._ng_colors.indexOf(color);
+    }
+
+    private _getOptions(): IOptionComponent[] {
+        if (this.chart === undefined) {
+            return [];
+        }
+        const controller: AChart | undefined = ChartControllers[this.chart.request.type];
+        if (controller === undefined) {
+            return;
+        }
+        return controller.getOptions(this.chart.request.options).map((option: IOption) => {
+            return {
+                component: {
+                    factory: COptionComponents[option.type],
+                    inputs: Object.assign({
+                        value: option.value,
+                        onChange: this._onOptionChange.bind(this, controller, option),
+                    }, option.option ),
+                },
+                caption: option.caption,
+            };
+        });
+    }
+
+    private _onOptionChange(controller: AChart, option: IOption, value: any) {
+        option.value = value;
+        this.chart.request.options = controller.setOption(this.chart.request.options, option);
+        this.chart.onChange({ options: Object.assign({}, this.chart.request.options) });
+        this._cdRef.detectChanges();
     }
 
 }
