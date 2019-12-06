@@ -58,7 +58,7 @@ export default class Transform extends Stream.Transform {
             if (parts.length < 2) {
                 return;
             }
-            const num: number = parseInt(parts[0], 10);
+            const num: number = parseFloat(parts[0]);
             if (isNaN(num) || !isFinite(num)) {
                 this._logger.warn(`Fail to detect line number for ${line}`);
                 return;
