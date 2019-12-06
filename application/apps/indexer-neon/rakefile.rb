@@ -122,19 +122,14 @@ task cancelled: [:clean, OUT_DIR, 'neon:rebuild'] do
                      "#{LOCAL_EXAMPLE_DIR}/indexing/test.out")
 end
 
-def get_node_exec()
-  if OS.windows?
-    sh "set ELECTRON_RUN_AS_NODE=true"
-  else
-    sh "export ELECTRON_RUN_AS_NODE=true"
-  end
-  return "./node_modules/.bin/electron"
+def exec_node_expression(node_exp)
+  system({'ELECTRON_RUN_AS_NODE' => 'true'}, "./node_modules/.bin/electron -e '#{node_exp}'")
 end
 
 def call_test_function(function_name, *args)
   func_args = args.map { |a| "\"#{a}\"" }.join(',')
   node_exp = "require(\"./dist/tests.js\").#{function_name}(#{func_args})"
-  sh "#{get_node_exec()} -e '#{node_exp}'"
+  exec_node_expression(node_exp)
 end
 
 def call_test_function_with_array(function_name, list, *args)
@@ -144,7 +139,7 @@ def call_test_function_with_array(function_name, list, *args)
              else
                "require(\"./dist/tests.js\").#{function_name}(#{func_args}, #{list})"
              end
-  sh "#{get_node_exec()} -e '#{node_exp}'"
+  exec_node_expression(node_exp)
 end
 
 desc 'watch and rebuid ts files'
