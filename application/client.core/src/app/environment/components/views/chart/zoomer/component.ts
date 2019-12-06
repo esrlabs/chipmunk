@@ -205,7 +205,7 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
                         yAxes: [{
                             display: false,
                             ticks: {
-                                beginAtZero: true,
+                                min: datasets.min,
                                 max: Math.round(datasets.max + datasets.max * 0.1)
                             },
                         }]

@@ -84,7 +84,6 @@ export class SidebarAppSearchChartDetailsComponent implements OnDestroy, AfterCo
     public _ng_onTypeChange(value: EChartType) {
         this._ng_type = value;
         this.chart.onChange({ type: this._ng_type });
-        console.log(value);
         this._cdRef.detectChanges();
     }
 
