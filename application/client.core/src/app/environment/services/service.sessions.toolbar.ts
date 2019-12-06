@@ -12,7 +12,13 @@ import { ViewChartComponent } from '../components/views/chart/component';
 import HotkeysService from './service.hotkeys';
 import LayoutStateService from './standalone/service.layout.state';
 
-export const CDefaultTabsGuids = {
+export interface IDefaultTabsGuids {
+    search: string;
+    charts: string;
+    notification: string;
+}
+
+export const CDefaultTabsGuids: IDefaultTabsGuids = {
     search: Toolkit.guid(),
     charts: Toolkit.guid(),
     notification: Toolkit.guid(),
@@ -57,7 +63,7 @@ export class ToolbarSessionsService implements IService {
     private _inputs: { [key: string]: any } = {};
 
     constructor() {
-
+        this.setCommonInputs({});
     }
 
     public init(): Promise<void> {
@@ -108,7 +114,10 @@ export class ToolbarSessionsService implements IService {
     }
 
     public setCommonInputs(inputs: { [key: string]: any }) {
-        this._inputs = inputs;
+        this._inputs = Object.assign({
+            setActiveTab: this.setActive.bind(this),
+            getDefaultsTabGuids: this.getDefaultsGuids.bind(this),
+        }, inputs);
     }
 
     public add(name: string, content: IComponentDesc, guid?: string): string {
@@ -132,6 +141,10 @@ export class ToolbarSessionsService implements IService {
 
     public setActive(guid: string) {
         this._tabsService.setActive(guid);
+    }
+
+    public getDefaultsGuids(): IDefaultTabsGuids {
+        return CDefaultTabsGuids;
     }
 
     private _getSidebarPlugins(): ISidebarPluginInfo[] {

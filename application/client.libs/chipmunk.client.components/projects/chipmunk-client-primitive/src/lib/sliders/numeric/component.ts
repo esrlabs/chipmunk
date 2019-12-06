@@ -89,7 +89,7 @@ export class SliderNumericComponent implements AfterContentInit, OnChanges, Afte
     public _ng_getCursorLeft(): string {
         const steps: number = (this._ng_max - this._ng_min) / this.step;
         const stepPx: number = this._width / steps;
-        const left: number = (this._ng_value / this.step) - 1;
+        const left: number = (this._ng_value / this.step) - (this._ng_min === 0 ? 0 : 1);
         const offset: number = left * stepPx;
         return offset + 'px';
     }
@@ -112,9 +112,14 @@ export class SliderNumericComponent implements AfterContentInit, OnChanges, Afte
         }
         const steps: number = (this._ng_max - this._ng_min) / this.step;
         const stepPx: number = this._width / steps;
-        const left: number = Math.round(this._ng_value / this.step) - 1;
+        const left: number = Math.round(this._ng_value / this.step) - (this._ng_min === 0 ? 0 : 1);
         const leftPx: number = stepPx * left;
         let leftPxUpdated: number = leftPx + offset;
+        if (offset > 0) {
+            leftPxUpdated += stepPx / 2;
+        } else {
+            leftPxUpdated -= stepPx / 2;
+        }
         leftPxUpdated = leftPxUpdated < 0 ? 0 : leftPxUpdated;
         leftPxUpdated = leftPxUpdated > this._width ? this._width : leftPxUpdated;
         let leftUpdated: number = 0;
@@ -127,6 +132,11 @@ export class SliderNumericComponent implements AfterContentInit, OnChanges, Afte
             return;
         }
         this._x = event.x;
+        if (offset > 0) {
+            this._x += stepPx / 2;
+        } else {
+            this._x -= stepPx / 2;
+        }
         this._ng_value = this._ng_min + this.step * leftUpdated;
         if (this._ng_value - Math.floor(this._ng_value) !== 0) {
             this._ng_value = parseFloat(this._ng_value.toFixed(2));

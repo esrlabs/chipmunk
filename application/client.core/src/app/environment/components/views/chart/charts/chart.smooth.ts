@@ -5,6 +5,7 @@ import * as ColorScheme from '../../../../theme/colors';
 interface IChartOptions {
     borderWidth: number;
     lineTension: number;
+    pointRadius: number;
 }
 
 export default class Chart extends AChart {
@@ -79,8 +80,8 @@ export default class Chart extends AChart {
             borderColor: color === undefined ? ColorScheme.scheme_search_match : color,
             data: results,
             borderWidth: options.borderWidth,
-            pointRadius: preview ? 0 : 2,
-            pointHoverRadius: preview ? 0 : 2,
+            pointRadius: preview ? 0 : options.pointRadius,
+            pointHoverRadius: preview ? 0 : options.pointRadius,
             fill: false,
             tension: 0,
             showLine: true,
@@ -105,6 +106,13 @@ export default class Chart extends AChart {
                 caption: 'Border Width, px',
                 value: options.borderWidth,
                 name: 'borderWidth'
+            },
+            {
+                type: EOptionType.slider,
+                option: { min: 0, max: 5, step: 1 },
+                caption: 'Point Radius, px',
+                value: options.pointRadius,
+                name: 'pointRadius'
             }
         ];
     }
@@ -113,6 +121,7 @@ export default class Chart extends AChart {
         return {
             borderWidth: 1,
             lineTension: 0.4,
+            pointRadius: 2,
         };
     }
 
@@ -131,6 +140,9 @@ export default class Chart extends AChart {
         }
         if (typeof opt.lineTension !== 'number' || isNaN(opt.lineTension) || !isFinite(opt.lineTension)) {
             opt.lineTension = 0.4;
+        }
+        if (typeof opt.pointRadius !== 'number' || isNaN(opt.pointRadius) || !isFinite(opt.pointRadius)) {
+            opt.pointRadius = 2;
         }
         return opt as IChartOptions;
     }

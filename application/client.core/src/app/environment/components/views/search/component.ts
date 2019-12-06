@@ -35,6 +35,8 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     @Input() public injectionIntoTitleBar: Subject<IComponentDesc>;
     @Input() public onBeforeTabRemove: Subject<void>;
+    @Input() public setActiveTab: (guid: string) => void;
+    @Input() public getDefaultsTabGuids: () => { charts: string };
 
     @ViewChild('output', {static: false}) _ng_outputComponent: ViewSearchOutputComponent;
     @ViewChild('requestinput', {static: false}) _ng_requestInput: ElementRef;
@@ -152,10 +154,11 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._forceUpdate();
     }
 
-    public _ng_onDropRequest() {
+    public _ng_onDropRequest(): Promise<string | void> {
         // Drop results
         this._ng_searchRequestId = Toolkit.guid();
-        this._ng_session.getSessionSearch().getFiltersAPI().drop(this._ng_searchRequestId).then(() => {
+        this._forceUpdate();
+        return this._ng_session.getSessionSearch().getFiltersAPI().drop(this._ng_searchRequestId).then(() => {
             this._ng_prevRequest = '';
             this._ng_request = '';
             this._ng_isRequestSaved = false;
@@ -172,7 +175,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
                 message: `Cannot drop results due error: ${droppingError.message}.`
             });
         });
-        this._forceUpdate();
     }
 
     public _ng_onStoreRequest() {
@@ -192,7 +194,12 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._openSidebarSearchTab();
         this._ng_session.getSessionSearch().getChartsAPI().addStored(this._ng_request);
         this._ng_isRequestSaved = this._ng_session.getSessionSearch().getFiltersAPI().isRequestStored(this._ng_request);
-        this._ng_onDropRequest();
+        this._ng_onDropRequest().then(() => {
+            if (this.setActiveTab === undefined || this.getDefaultsTabGuids === undefined) {
+                return;
+            }
+            this.setActiveTab(this.getDefaultsTabGuids().charts);
+        });
     }
 
     public _ng_getMatchesProc(): string {
