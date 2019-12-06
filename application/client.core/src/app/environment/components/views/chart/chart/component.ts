@@ -308,7 +308,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                         xAxes: [{
                             ticks: {
                                 min: range.begin,
-                                max: range.end
+                                max: range.end,
                             },
                             gridLines: {
                                 color: '#888',
@@ -319,8 +319,8 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                         yAxes: [{
                             display: false,
                             ticks: {
-                                min: datasets.min,
-                                max: Math.round(datasets.max + datasets.max * 0.1)
+                                min: Math.floor(datasets.min - datasets.min * 0.1),
+                                max: Math.ceil(datasets.max + datasets.max * 0.1),
                             },
                         }]
                      }
@@ -331,6 +331,8 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             this._ng_charts.data.datasets = datasets.dataset;
             this._ng_charts.options.scales.xAxes[0].ticks.max = range.end;
             this._ng_charts.options.scales.xAxes[0].ticks.min = range.begin;
+            this._ng_charts.options.scales.yAxes[0].ticks.max = Math.ceil(datasets.max + datasets.max * 0.1);
+            this._ng_charts.options.scales.yAxes[0].ticks.min = Math.floor(datasets.min - datasets.min * 0.1);
             setTimeout(() => {
                 if (this._ng_charts === undefined) {
                     return;

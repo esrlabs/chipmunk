@@ -206,7 +206,7 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
                             display: false,
                             ticks: {
                                 min: datasets.min,
-                                max: Math.round(datasets.max + datasets.max * 0.1)
+                                max: Math.round(datasets.max + datasets.max * 0.1),
                             },
                         }]
                      }
@@ -215,6 +215,8 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
             this._forceUpdate();
         } else {
             this._charts.data.datasets = datasets.dataset;
+            this._charts.options.scales.yAxes[0].ticks.max = Math.ceil(datasets.max + datasets.max * 0.1);
+            this._charts.options.scales.yAxes[0].ticks.min = datasets.min;
             setTimeout(() => {
                 if (this._charts === undefined) {
                     return;

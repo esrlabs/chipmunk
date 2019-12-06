@@ -24,6 +24,7 @@ export class SliderNumericComponent implements AfterContentInit, OnChanges, Afte
 
     private _x: number | undefined;
     private _width: number = 1;
+    private _destroyed: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef) {
         this._onMouseMove = this._onMouseMove.bind(this);
@@ -35,6 +36,7 @@ export class SliderNumericComponent implements AfterContentInit, OnChanges, Afte
     public ngOnDestroy() {
         window.removeEventListener('mousemove', this._onMouseMove);
         window.removeEventListener('mouseup', this._onMouseUp);
+        this._destroyed = true;
     }
 
     public ngAfterContentInit() {
@@ -44,7 +46,7 @@ export class SliderNumericComponent implements AfterContentInit, OnChanges, Afte
         this._ng_value = this.value;
         this._ng_min = this.min;
         this._ng_max = this.max;
-        this._cdRef.detectChanges();
+        this._forceUpadte();
     }
 
     public ngAfterViewInit() {
@@ -62,7 +64,7 @@ export class SliderNumericComponent implements AfterContentInit, OnChanges, Afte
         if (changes.max !== undefined) {
             this.max = changes.max.currentValue;
         }
-        this._cdRef.detectChanges();
+        this._forceUpadte();
     }
 
     public drop() {
@@ -76,7 +78,7 @@ export class SliderNumericComponent implements AfterContentInit, OnChanges, Afte
     public setValue(value: number, silence: boolean = false) {
         this._ng_value = value;
         if (silence) {
-            this._cdRef.detectChanges();
+            this._forceUpadte();
         } else {
             this._onChange();
         }
@@ -153,7 +155,7 @@ export class SliderNumericComponent implements AfterContentInit, OnChanges, Afte
 
     private _onChange() {
         this.onChange(this._ng_value, undefined);
-        this._cdRef.detectChanges();
+        this._forceUpadte();
     }
 
     private _resize() {
@@ -162,6 +164,13 @@ export class SliderNumericComponent implements AfterContentInit, OnChanges, Afte
         }
         const size: ClientRect = (this._lineElRef.nativeElement as HTMLElement).getBoundingClientRect();
         this._width = size.width;
+    }
+
+    private _forceUpadte() {
+        if (this._destroyed) {
+            return;
+        }
+        this._cdRef.detectChanges();
     }
 
 
