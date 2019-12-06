@@ -191,8 +191,14 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         if (this._ng_isRequestSaved) {
             return;
         }
+        const error: Error | undefined = this._ng_session.getSessionSearch().getChartsAPI().addStored(this._ng_request);
+        if (error instanceof Error) {
+            return this._notifications.add({
+                caption: 'Chart',
+                message: `Not valid regular expression for chart: "${this._ng_request}"`
+            });
+        }
         this._openSidebarSearchTab();
-        this._ng_session.getSessionSearch().getChartsAPI().addStored(this._ng_request);
         this._ng_isRequestSaved = this._ng_session.getSessionSearch().getFiltersAPI().isRequestStored(this._ng_request);
         this._ng_onDropRequest().then(() => {
             if (this.setActiveTab === undefined || this.getDefaultsTabGuids === undefined) {
