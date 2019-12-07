@@ -1,3 +1,4 @@
+[![LICENSE](https://img.shields.io/github/license/esrlabs/chipmunk?color=blue)](LICENSE.txt)
 [![](https://github.com/esrlabs/chipmunk/workflows/BuildAndReleaseMaster/badge.svg)](https://github.com/esrlabs/chipmunk/actions)
 [![](https://github.com/esrlabs/chipmunk/workflows/LintMaster/badge.svg)](https://github.com/esrlabs/chipmunk/actions)
 
@@ -5,6 +6,17 @@
 
 `chipmunk` is a fast logfile viewer that can deal with huge logfiles (>10 GB). It powers a super
 fast search and is supposed to be a useful tool for developers who have to analyze logfiles.
+
+## Download/Installation
+
+The latest release can be downloaded [here](https://github.com/esrlabs/chipmunk/releases).
+We support MacOS, Linux and Windwos. Releases on Windows and MacOS are signed.
+
+No installation is necessary, just download, unpack and execute.
+
+## Documentation
+
+We have a guide for using chipmunk [here](docs/README.md)
 
 ## basic searching & highlighting
 
