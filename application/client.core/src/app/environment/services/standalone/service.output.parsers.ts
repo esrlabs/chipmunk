@@ -1,9 +1,8 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
 import { Observable, Subject } from 'rxjs';
 import { ComponentFactory, ModuleWithComponentFactories } from '@angular/core';
-import { shadeColor, scheme_color_4, scheme_color_0 } from '../../theme/colors';
+import { shadeColor, scheme_color_4, scheme_color_0, getContrastColor } from '../../theme/colors';
 import { CColors } from '../../conts/colors';
-import { getContrastColor } from '../../theme/colors';
 
 export interface IRequest {
     reg: RegExp;
@@ -37,6 +36,7 @@ export class OutputParsersService {
         typed: new Map(),
     };
     private _search: Map<string, IRequest[]> = new Map();
+    private _charts: Map<string, IRequest[]> = new Map();
     private _highlights: Map<string, IRequest[]> = new Map();
     private _typedRowRenders: Map<string, Toolkit.ATypedRowRender<any>> = new Map();
     private _typedRowRendersHistory: {
@@ -92,11 +92,6 @@ export class OutputParsersService {
         this._subjects.onUpdatedSearch.next();
     }
 
-    public unsetSearchResults(sessionId: string) {
-        this._search.delete(sessionId);
-        this._subjects.onUpdatedSearch.next();
-    }
-
     public setHighlights(sessionId: string, requests: IRequest[]) {
         this._highlights.set(sessionId, requests.map((request: IRequest) => {
             return {
@@ -105,6 +100,25 @@ export class OutputParsersService {
                 background: request.background,
             };
         }));
+    }
+
+    public setCharts(sessionId: string, requests: IRequest[]) {
+        this._charts.set(sessionId, requests.map((request: IRequest) => {
+            return {
+                reg: new RegExp(this.serialize(request.reg.source), request.reg.flags),
+                color: request.color !== undefined ? getContrastColor(request.color, true) : undefined,
+                background: request.color,
+            };
+        }));
+    }
+
+    public unsetSearchResults(sessionId: string) {
+        this._search.delete(sessionId);
+        this._subjects.onUpdatedSearch.next();
+    }
+
+    public unsetChartsResults(sessionId: string) {
+        this._charts.delete(sessionId);
     }
 
     public getTypedRowRender(sourceName: string): Toolkit.ATypedRowRender<any> | undefined {
@@ -156,15 +170,19 @@ export class OutputParsersService {
         };
         const requests: IRequest[] | undefined = this._search.get(sessionId);
         const highlights: IRequest[] = this._highlights.get(sessionId);
-        if (requests === undefined && this._highlights === undefined) {
+        const charts: IRequest[] = this._charts.get(sessionId);
+        if (requests === undefined && this._highlights === undefined && charts === undefined) {
             return {
                 str: str,
             };
         }
         let first: IRequest | undefined;
         const applied: string[] = [];
-        if (highlights instanceof Array) {
-            highlights.forEach((request: IRequest) => {
+        if (highlights instanceof Array || charts instanceof Array) {
+            [
+                ...(highlights === undefined ? [] : highlights),
+                ...(charts === undefined ? [] : charts)
+            ].forEach((request: IRequest) => {
                 const bgcl: string = request.background === CColors[0] ? scheme_color_4 : (request.background === undefined ? scheme_color_4 : shadeColor(request.background, 30));
                 const fgcl: string = getContrastColor(bgcl, true);
                 str = str.replace(request.reg, (match: string) => {
