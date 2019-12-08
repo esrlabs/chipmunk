@@ -326,11 +326,14 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
             return this._forceUpdate();
         }
         let prev: IChartRequest | undefined;
-        if (this._ng_selectedEntryIndex !== -1) {
+        if (this._ng_selectedEntryIndex !== -1 && this._ng_entries[this._ng_selectedEntryIndex] !== undefined) {
             const selected: any = Object.assign({}, this._ng_entries[this._ng_selectedEntryIndex].request);
             if (selected.type !== undefined) {
                 prev = selected as IChartRequest;
             }
+        } else {
+            this._ng_selectedEntry = undefined;
+            this._ng_selectedEntryIndex = -1;
         }
         const addedEntry: IRequest | IChartRequest | undefined = this._getNewEntry(entries);
         switch (type) {
@@ -347,7 +350,7 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
                 ];
                 break;
         }
-        if (this._ng_entries.length === 0) {
+        if (this._ng_entries.length === 0 || (this._ng_selectedEntryIndex !== -1 && this._ng_entries[this._ng_selectedEntryIndex] === undefined)) {
             this._ng_selectedEntry = undefined;
             this._ng_selectedEntryIndex = -1;
         } else if (addedEntry !== undefined) {

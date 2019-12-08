@@ -2,6 +2,20 @@
 import { Component, Input, AfterContentInit, AfterViewInit, ChangeDetectorRef,
          OnChanges, SimpleChanges, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 
+declare class ResizeObserver {
+    constructor(callback: ResizeObserverCallback);
+    disconnect(): void;
+    observe(target: Element): void;
+    unobserve(target: Element): void;
+}
+
+type ResizeObserverCallback = (entries: ReadonlyArray<ResizeObserverEntry>) => void;
+
+interface ResizeObserverEntry {
+    readonly target: Element;
+    readonly contentRect: DOMRectReadOnly;
+}
+
 @Component({
     selector: 'lib-primitive-numeric-slider',
     templateUrl: './template.html',
@@ -25,17 +39,20 @@ export class SliderNumericComponent implements AfterContentInit, OnChanges, Afte
     private _x: number | undefined;
     private _width: number = 1;
     private _destroyed: boolean = false;
+    private _resizeObserver: ResizeObserver;
 
     constructor(private _cdRef: ChangeDetectorRef) {
         this._onMouseMove = this._onMouseMove.bind(this);
         this._onMouseUp = this._onMouseUp.bind(this);
         window.addEventListener('mousemove', this._onMouseMove);
         window.addEventListener('mouseup', this._onMouseUp);
+        this._resizeObserver = new ResizeObserver(this._onResize.bind(this));
     }
 
     public ngOnDestroy() {
         window.removeEventListener('mousemove', this._onMouseMove);
         window.removeEventListener('mouseup', this._onMouseUp);
+        this._resizeObserver.disconnect();
         this._destroyed = true;
     }
 
@@ -50,6 +67,10 @@ export class SliderNumericComponent implements AfterContentInit, OnChanges, Afte
     }
 
     public ngAfterViewInit() {
+        if (this._lineElRef === undefined) {
+            return;
+        }
+        this._resizeObserver.observe(this._lineElRef.nativeElement);
         this._resize();
     }
 
@@ -158,7 +179,19 @@ export class SliderNumericComponent implements AfterContentInit, OnChanges, Afte
         this._forceUpadte();
     }
 
-    private _resize() {
+    private _onResize(entries: ResizeObserverEntry[]) {
+        if (entries.length === 0) {
+            return;
+        }
+        this._resize(entries[0].contentRect.width);
+        this._forceUpadte();
+    }
+
+    private _resize(width?: number) {
+        if (width !== undefined) {
+            this._width = width;
+            return;
+        }
         if (this._lineElRef === undefined) {
             return;
         }
