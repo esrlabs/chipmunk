@@ -71,7 +71,7 @@ export abstract class AChart {
 
     abstract getOptions(opt: IOptionsObj): IOption[];
 
-    abstract getDefaultsOptions(): IOptionsObj;
+    abstract getDefaultsOptions(opt?: IOptionsObj): IOptionsObj;
 
     abstract setOption(opt: IOptionsObj, option: IOption): IOptionsObj;
 
