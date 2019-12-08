@@ -462,13 +462,13 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
     }
 
     private _onChartValueChanged(request: IChartRequest, value?: string) {
-        this._subjectsRequests.onEditCancel.next();
+        this._subjectsCharts.onEditCancel.next();
         this._focus();
         if (value === undefined) {
             return;
         }
         this._session.getSessionSearch().getChartsAPI().updateStored(request.reg.source, { reguest: value });
-        this._subjectsRequests.onChanges.next();
+        this._subjectsCharts.onChanges.next();
         this._changed = true;
         this._saveState();
     }
