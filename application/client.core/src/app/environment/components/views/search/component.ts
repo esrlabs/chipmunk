@@ -45,7 +45,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     public _ng_searchRequestId: string | undefined;
     public _ng_isRequestValid: boolean = true;
     public _ng_request: string = '';
-    public _ng_prevRequest: string = '';
     public _ng_isRequestSaved: boolean = false;
     public _ng_read: number = -1;
     public _ng_found: number = -1;
@@ -54,6 +53,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription | undefined } = { };
     private _destroyed: boolean = false;
+    public _prevRequest: string = '';
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef,
@@ -87,15 +87,15 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     public _ng_onKeyUpRequestInput(event: KeyboardEvent) {
+        if (event.key !== 'Enter' && event.key !== 'Escape') {
+            return;
+        }
         if (this._ng_searchRequestId !== undefined) {
             return;
         }
         this._ng_isRequestValid = Toolkit.regTools.isRegStrValid(this._ng_request);
         this._forceUpdate();
-        if (event.key !== 'Enter') {
-            return;
-        }
-        if (this._ng_request.trim() === '') {
+        if (event.key === 'Escape' || this._ng_request.trim() === '') {
             // Drop results
             return this._ng_onDropRequest();
         }
@@ -105,7 +105,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
                 message: `Regular expresion isn't valid. Please correct it.`
             });
         }
-        if (this._ng_prevRequest.trim() !== '' && this._ng_request === this._ng_prevRequest) {
+        if (this._prevRequest.trim() !== '' && this._ng_request === this._prevRequest) {
             if (this._ng_isRequestSaved) {
                 return;
             }
@@ -113,7 +113,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             return;
         }
         this._ng_searchRequestId = Toolkit.guid();
-        this._ng_prevRequest = this._ng_request;
+        this._prevRequest = this._ng_request;
         this._ng_session.getSessionSearch().getFiltersAPI().search({
             requestId: this._ng_searchRequestId,
             requests: [Toolkit.regTools.createFromStr(this._ng_request, 'gim') as RegExp],
@@ -150,7 +150,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     public _ng_onBlurRequestInput() {
-        this._ng_request = this._ng_prevRequest;
+        this._ng_request = this._prevRequest;
         this._forceUpdate();
     }
 
@@ -159,7 +159,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._ng_searchRequestId = Toolkit.guid();
         this._forceUpdate();
         return this._ng_session.getSessionSearch().getFiltersAPI().drop(this._ng_searchRequestId).then(() => {
-            this._ng_prevRequest = '';
+            this._prevRequest = '';
             this._ng_request = '';
             this._ng_isRequestSaved = false;
             this._ng_searchRequestId = undefined;
@@ -220,6 +220,10 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         return this._ng_read !== -1 && this._ng_found !== -1;
     }
 
+    public _ng_isButtonsVisible(): boolean {
+        return this._prevRequest === this._ng_request && this._ng_request !== '';
+    }
+
     private _onFocusSearchInput() {
         this._focus();
     }
@@ -274,7 +278,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             isRequestSaved: this._ng_isRequestSaved,
             isRequestValid: this._ng_isRequestValid,
             request: this._ng_request,
-            prevRequest: this._ng_prevRequest,
+            prevRequest: this._prevRequest,
             searchRequestId: this._ng_searchRequestId,
             found: this._ng_found,
             read: this._ng_read
@@ -291,7 +295,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             this._ng_isRequestSaved = false;
             this._ng_isRequestValid = true;
             this._ng_request = '';
-            this._ng_prevRequest = '';
+            this._prevRequest = '';
             this._ng_searchRequestId = undefined;
             this._ng_read = -1;
             this._ng_found = -1;
@@ -299,7 +303,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             this._ng_isRequestSaved = state.isRequestSaved;
             this._ng_isRequestValid = state.isRequestValid;
             this._ng_request = state.request;
-            this._ng_prevRequest = state.prevRequest;
+            this._prevRequest = state.prevRequest;
             this._ng_searchRequestId = state.searchRequestId;
             this._ng_found = state.found;
             this._ng_read = state.read;

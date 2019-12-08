@@ -1,4 +1,4 @@
-<div *ngIf="_ng_session !== undefined" [attr.class]="'request ' + (_ng_prevRequest !== '' ? 'with-buttons' : '')">
+<div *ngIf="_ng_session !== undefined" [attr.class]="'request ' + (_ng_isButtonsVisible() ? 'with-buttons' : '')">
   <div class="comstyle-input-holder search-input-wrapper">
     <div class="comstyle-input">
       <input #requestinput 
@@ -18,7 +18,7 @@
         </p>
     </div>
   </div>
-  <div class="request-buttons" *ngIf="_ng_prevRequest !== ''">
+  <div class="request-buttons" *ngIf="_ng_isButtonsVisible()">
     <span [attr.class]="'small-icon-button far fa-save ' + (_ng_isRequestSaved ? 'disabled' : '')" (click)="_ng_onStoreRequest()"></span>
     <span [attr.class]="'small-icon-button fas fa-chart-line '" (click)="_ng_onStoreChart()"></span>
     <span [attr.class]="'small-icon-button fas fa-backspace '" (click)="_ng_onDropRequest()"></span>
