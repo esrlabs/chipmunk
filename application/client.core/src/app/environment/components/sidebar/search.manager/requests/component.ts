@@ -124,6 +124,7 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
 
     public _ng_onRemoveAll() {
         this._session.getSessionSearch().getFiltersAPI().removeAllStored();
+        this._session.getSessionSearch().getChartsAPI().removeAllStored();
         this._subjectsRequests.onFileReset.next();
         this._ng_filename = undefined;
         this._filename = undefined;
@@ -148,11 +149,10 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
                 caption: `Edit`,
                 handler: () => {
                     if (type === EEntityType.filters) {
-
+                        this._subjectsRequests.onEdit.next((request as IRequestItem).request);
                     } else {
-
+                        this._subjectsCharts.onEdit.next((request as IChartItem).request);
                     }
-                    this._subjectsRequests.onEdit.next((request as IRequestItem).request);
                 },
             },
             { /* delimiter */ },
@@ -170,41 +170,25 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
             {
                 caption: `Deactivate all`,
                 handler: () => {
-                    if (type === EEntityType.filters) {
-                        this._toggleAllExcept(undefined, true);
-                    } else {
-                        //
-                    }
+                    this._toggleAllExcept(undefined, true);
                 },
             },
             {
                 caption: `Activate all`,
                 handler: () => {
-                    if (type === EEntityType.filters) {
-                        this._toggleAllExcept(undefined, false);
-                    } else {
-                        //
-                    }
+                    this._toggleAllExcept(undefined, false);
                 },
             },
             {
                 caption: `Deactivate all except this`,
                 handler: () => {
-                    if (type === EEntityType.filters) {
-                        this._toggleAllExcept(request.request.reg.source, true);
-                    } else {
-                        //
-                    }
+                    this._toggleAllExcept(request.request.reg.source, true);
                 },
             },
             {
                 caption: `Activate all except this`,
                 handler: () => {
-                    if (type === EEntityType.filters) {
-                        this._toggleAllExcept(request.request.reg.source, false);
-                    } else {
-                        //
-                    }
+                    this._toggleAllExcept(request.request.reg.source, false);
                 },
             },
             { /* delimiter */ },
@@ -221,11 +205,14 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
             {
                 caption: `Remove All`,
                 handler: () => {
-                    if (type === EEntityType.filters) {
-                        this._ng_onRemoveAll();
-                    } else {
-                        //
-                    }
+                    this._ng_onRemoveAll();
+                },
+            },
+            { /* delimiter */ },
+            {
+                caption: `Convert to ${type === EEntityType.filters ? 'chart' : 'filter'}`,
+                handler: () => {
+                    this._convert(request, type);
                 },
             },
         ]);
@@ -242,6 +229,27 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
             return EEntityType.charts;
         } else {
             return EEntityType.filters;
+        }
+    }
+
+    private _convert(request: IRequestItem | IChartItem, type: EEntityType) {
+        const source = request.request.reg.source;
+        this._ng_selectedEntryIndex = -1;
+        this._ng_selectedEntry = undefined;
+        this._forceUpdate();
+        if (type === EEntityType.filters) {
+            const err: string | undefined = this._session.getSessionSearch().getChartsAPI().isChartRegExpValid(source);
+            if (err !== undefined) {
+                return this._notifications.add({
+                    caption: 'Charts',
+                    message: `Fail to convert into chart, because: ${err}`
+                });
+            }
+            this._session.getSessionSearch().getFiltersAPI().removeStored(source);
+            this._session.getSessionSearch().getChartsAPI().addStored(source);
+        } else {
+            this._session.getSessionSearch().getChartsAPI().removeStored(source);
+            this._session.getSessionSearch().getFiltersAPI().addStored(source);
         }
     }
 
@@ -525,11 +533,20 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
     }
 
     private _toggleAllExcept(source: string | undefined, targetState: boolean) {
-        const requests: IRequest[] = this._ng_entries.map((item: IRequestItem) => {
+        // Set filters
+        this._session.getSessionSearch().getFiltersAPI().overwriteStored(this._ng_entries.filter((item: IRequestItem | IChartItem) => {
+            return this._ng_getEntryType(item) === EEntityType.filters;
+        }).map((item: IRequestItem) => {
             item.request.active = item.request.reg.source === source ? targetState : !targetState;
             return Object.assign({}, item.request);
-        });
-        this._session.getSessionSearch().getFiltersAPI().overwriteStored(requests);
+        }));
+        // Set charts
+        this._session.getSessionSearch().getChartsAPI().overwriteStored(this._ng_entries.filter((item: IRequestItem | IChartItem) => {
+            return this._ng_getEntryType(item) === EEntityType.charts;
+        }).map((item: IChartItem) => {
+            item.request.active = item.request.reg.source === source ? targetState : !targetState;
+            return Object.assign({}, item.request);
+        }));
     }
 
     private _forceUpdate() {
