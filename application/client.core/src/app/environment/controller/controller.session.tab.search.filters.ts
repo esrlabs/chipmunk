@@ -229,7 +229,7 @@ export class ControllerSessionTabSearchFilters {
             return request !== stored.reg.source;
         });
         this._subjects.onRequestsUpdated.next(this._stored);
-        if (count > 0 && this._stored.length === 0) {
+        if (count > 0 && (this._stored.length === 0 || this.getActiveStored().length === 0)) {
             this.drop(Toolkit.guid()).then(() => {
                 OutputParsersService.setHighlights(this.getGuid(), this._stored.slice());
                 OutputParsersService.updateRowsView();

@@ -141,7 +141,7 @@ export class ControllerSessionTabSearchCharts {
         if (!Toolkit.regTools.isRegStrValid(request)) {
             return new Error(`Not valid regexp "${request}"`);
         }
-        const errorMsg: string | undefined = this._isChartRegExpValid(request);
+        const errorMsg: string | undefined = this.isChartRegExpValid(request);
         if (errorMsg !== undefined) {
             return new Error(errorMsg);
         }
@@ -288,7 +288,7 @@ export class ControllerSessionTabSearchCharts {
         });
     }
 
-    private _isChartRegExpValid(regAsStr: string): string | undefined {
+    public isChartRegExpValid(regAsStr: string): string | undefined {
         // Check for groups
         if (regAsStr.search(/\(|\)/gi) === -1) {
             return `Regular expression should have at least one group`;
