@@ -117,12 +117,13 @@ export default class Chart extends AChart {
         ];
     }
 
-    public getDefaultsOptions(): IOptionsObj {
-        return {
-            borderWidth: 1,
-            lineTension: 0.4,
-            pointRadius: 2,
-        };
+    public getDefaultsOptions(opt?: IOptionsObj): IOptionsObj {
+        const defaults: IChartOptions = this._getDefaultOpt(opt);
+        const results: IOptionsObj = {};
+        ['borderWidth', 'lineTension', 'pointRadius'].forEach((prop: string) => {
+            results[prop] = defaults[prop];
+        });
+        return results;
     }
 
     public setOption(opt: IOptionsObj, option: IOption): IOptionsObj {

@@ -203,7 +203,7 @@ export class ControllerSessionTabSearchCharts {
                     if (controller === undefined) {
                         stored.options = {};
                     } else {
-                        stored.options = controller.getDefaultsOptions();
+                        stored.options = controller.getDefaultsOptions(stored.options);
                     }
                 }
             }
