@@ -5,6 +5,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import ServiceElectronIpc, { IPCMessages } from '../services/service.electron.ipc';
 import * as ColorScheme from '../theme/colors';
 import { getController, AChart, EChartType, IOptionsObj } from '../components/views/chart/charts/charts';
+import OutputParsersService from '../services/standalone/service.output.parsers';
 
 export interface IControllerSessionStreamCharts {
     guid: string;
@@ -54,6 +55,7 @@ export class ControllerSessionTabSearchCharts {
 
     public destroy(): Promise<void> {
         return new Promise((resolve) => {
+            OutputParsersService.unsetChartsResults(this._guid);
             this.cancel().catch((error: Error) => {
                 this._logger.error(`Fail to cancel a task of chart data extracting due error: ${error.message}`);
             }).finally(resolve);
@@ -207,6 +209,7 @@ export class ControllerSessionTabSearchCharts {
             }
             return stored;
         });
+        this._updateParsers();
         this._subjects.onChartsUpdated.next(this.getStored());
         if (!isUpdateRequired) {
             return;
@@ -334,8 +337,19 @@ export class ControllerSessionTabSearchCharts {
                 flags: req.reg.flags,
                 groups: true,
             };
-        })}).catch((error: Error) => {
+        })}).finally(() => {
+            this._updateParsers();
+        }).catch((error: Error) => {
             this._logger.error(`Fail to refresh charts data due error: ${error.message}`);
         });
+    }
+
+    private _updateParsers() {
+        OutputParsersService.setCharts(this.getGuid(), this._stored.filter((chart: IChartRequest) => {
+            return chart.active;
+        }).map((chart: IChartRequest) => {
+            return { reg: chart.reg, color: chart.color, background: undefined };
+        }));
+        OutputParsersService.updateRowsView();
     }
 }
