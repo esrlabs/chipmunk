@@ -1,5 +1,38 @@
 # Changelog
 
+### [1.33.0] - 12/09/2019
+* [](feat): added some documentation
+* [](fix) enable running integration tests with electron based node version
+* [#523](feat) muliple axes for charts (to have diffrent scale)
+* [#523](feat) mixing options of chart (different types)
+* [#523](feat) highlight chart matches
+* [#523](feat) convert charts to filters and filters to charts
+* [#523](fix) charts list: exit edit mode on esc and outside-click
+* [#523](feat) update search input logic
+* [#523](fix) fix slider element (resize)
+* [#523](feat) redirect from chart
+* [#523](feat) redirection from chart
+* [#523](feat) correct options view; prevent invalid chart request
+* [#523](feat) support of float type
+* [#523](feat) update chart options view on change type of chart
+* [#523](feat) auto open charts tab; fix for cursor
+* [#523](refact) update filters/charts manager
+* [#558](feat) chart's options
+* [#558](feat) support of diffrent types of charts
+* [#523](feat) support of charts (common functionlity)
+* [](feat) drop search input on storing
+* [#554](fix) correct statistic on search
+* [#523](feat) multiple charts support
+* [#523](feat) UI for charts
+* [#523](feat) charts proto-support
+* [#523](feat) update views
+* [#523](feat) communication, processing
+* [#561, #565, #572](feat) better dlt log message representation
+  also add information about if a file contained non-verbose
+  log messages
+* [](fix) remove logs
+* [](fix) using electron as node to start tests
+
 ### [1.32.0] - 11/29/2019
 * [](fix) do not exit process on neon side
   in certain error conditions we did exit the process which causes

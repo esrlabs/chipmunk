@@ -10,8 +10,9 @@ fast search and is supposed to be a useful tool for developers who have to analy
 ## Download/Installation
 
 The latest release can be downloaded [here](https://github.com/esrlabs/chipmunk/releases).
-We support MacOS, Linux and Windwos. Releases on Windows and MacOS are signed.
 
+We support **MacOS**, **Linux** and **Windows**. 
+(Releases on Windows and MacOS are signed.)
 No installation is necessary, just download, unpack and execute.
 
 ## Documentation
