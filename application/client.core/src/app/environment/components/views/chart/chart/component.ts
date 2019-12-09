@@ -337,8 +337,8 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                 id: dataset.yAxisID,
                 position: 'left',
                 ticks: {
-                    min: min === undefined ? undefined : Math.floor(min - min * 0.1),
-                    max: max === undefined ? undefined : Math.ceil(max + max * 0.1),
+                    min: min === undefined ? undefined : Math.floor(min - min * 0.02),
+                    max: max === undefined ? undefined : Math.ceil(max + max * 0.02),
                 },
             };
         });

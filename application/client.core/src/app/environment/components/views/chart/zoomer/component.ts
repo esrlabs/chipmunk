@@ -235,7 +235,7 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
                 position: 'left',
                 ticks: {
                     min: min === undefined ? undefined : Math.floor(min),
-                    max: max === undefined ? undefined : Math.ceil(max + max * 0.1),
+                    max: max === undefined ? undefined : Math.ceil(max + max * 0.02),
                 },
             };
         });
