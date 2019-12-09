@@ -3,7 +3,7 @@ import { Observable, Subscription } from 'rxjs';
 import { Chart } from 'chart.js';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
-import { ServiceData, IResults } from '../service.data';
+import { ServiceData, IResults, IChartsResults } from '../service.data';
 import { ServicePosition } from '../service.position';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 
@@ -163,7 +163,7 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
     }
 
     private _buildCharts() {
-        const datasets: IResults = this.serviceData.getChartsDatasets(this._ng_width, undefined, true);
+        const datasets: IChartsResults = this.serviceData.getChartsDatasets(this._ng_width, undefined, true);
         if (this._charts !== undefined && (this._charts.data.datasets === undefined || this._charts.data.datasets.length === 0)) {
             this._charts.destroy();
             this._charts = undefined;
@@ -202,21 +202,14 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
                             },
                            display: false
                         }],
-                        yAxes: [{
-                            display: false,
-                            ticks: {
-                                min: datasets.min,
-                                max: Math.round(datasets.max + datasets.max * 0.1),
-                            },
-                        }]
-                     }
+                        yAxes: this._getYAxes(datasets),
+                    }
                 }
             });
             this._forceUpdate();
         } else {
             this._charts.data.datasets = datasets.dataset;
-            this._charts.options.scales.yAxes[0].ticks.max = Math.ceil(datasets.max + datasets.max * 0.1);
-            this._charts.options.scales.yAxes[0].ticks.min = datasets.min;
+            this._charts.options.scales.yAxes = this._getYAxes(datasets);
             setTimeout(() => {
                 if (this._charts === undefined) {
                     return;
@@ -224,6 +217,28 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
                 this._charts.update();
             });
         }
+    }
+
+    private _getYAxes(datasets: IChartsResults) {
+        if (datasets.dataset.length === 0) {
+            return [{
+                display: false,
+            }];
+        }
+        return datasets.dataset.map((dataset, i: number) => {
+            const min: number = datasets.min[i];
+            const max: number = datasets.max[i];
+            return {
+                display: false,
+                type: 'linear',
+                id: dataset.yAxisID,
+                position: 'left',
+                ticks: {
+                    min: min === undefined ? undefined : Math.floor(min),
+                    max: max === undefined ? undefined : Math.ceil(max + max * 0.1),
+                },
+            };
+        });
     }
 
     private _onData() {
