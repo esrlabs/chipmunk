@@ -52,9 +52,6 @@ export class Service extends Toolkit.APluginService {
     private _onSessionClose(guid: string) {
         this.sessions = this.sessions.filter(session => session !== guid);
         this.savedSession[guid] = undefined;
-        if (this.sessions.length === 0) {
-            this.destroy();
-        }
     }
 
     private _onSessionChange(guid: string) {
@@ -67,12 +64,6 @@ export class Service extends Toolkit.APluginService {
         return {
             event: this._subjects.event.asObservable(),
         };
-    }
-
-    public destroy() {
-        Object.keys(this._subscriptions).forEach((key: string) => {
-            this._subscriptions[key].unsubscribe();
-        });
     }
 
     public incomeMessage() {
