@@ -9,12 +9,12 @@ export class Service extends Toolkit.APluginService {
 
     public state:  {[port: string]: IPortState} = {};
     public savedSession: {[session: string]: IPortSession} = {};
+    public sessionConnected: {[session: string]: {[port: string]: IPortState}} = {};
 
     private api: Toolkit.IAPI | undefined;
     private session: string;
     private sessions: string[] = [];
     private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
-    private _sessionConnected: {[session: string]: {[port: string]: IPortState}} = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger(`Plugin: serial: inj_output_bot:`);
     private _openQueue: {[port: string]: boolean} = {};
     private _messageQueue: {[port: string]: string[]} = {};
@@ -99,17 +99,19 @@ export class Service extends Toolkit.APluginService {
         });
     }
 
-    private _saveLoad(ports: { [key: string]: IPortState }): Promise<any> {
-        return new Promise((resolve) => {
-            if (Object.keys(this._sessionConnected).length > 0) {
-                Object.keys(this._sessionConnected).forEach(session => {
-                    Object.keys(this._sessionConnected[session]).forEach(port => {
+    private _saveLoad(ports: { [key: string]: IPortState }): Promise<{[port: string]: IPortState} | void> {
+        return new Promise<{[port: string]: IPortState}>((resolve) => {
+            if (Object.keys(this.sessionConnected).length > 0) {
+                Object.keys(this.sessionConnected).forEach(session => {
+                    Object.keys(this.sessionConnected[session]).forEach(port => {
                         if (ports[port]) {
-                            this._sessionConnected[session][port].ioState.read += ports[port].ioState.read;
+                            this.sessionConnected[session][port].ioState.read += ports[port].ioState.read;
                         }
                     });
                 });
-                resolve(this._sessionConnected[this.session]);
+                resolve(this.sessionConnected[this.session]);
+            } else {
+                resolve();
             }
         }).catch((error: Error) => {
             this._logger.error(error);
@@ -130,11 +132,11 @@ export class Service extends Toolkit.APluginService {
             command: EHostCommands.open,
             options: options,
         }, this.session).then(() => {
-            if (this._sessionConnected[this.session] === undefined) {
-                this._sessionConnected[this.session] = {};
+            if (this.sessionConnected[this.session] === undefined) {
+                this.sessionConnected[this.session] = {};
             }
-            if (this._sessionConnected[this.session][options.path] === undefined) {
-                this._sessionConnected[this.session][options.path] =  {connections: 0, ioState: { written: 0, read: 0}};
+            if (this.sessionConnected[this.session][options.path] === undefined) {
+                this.sessionConnected[this.session][options.path] =  {connections: 0, ioState: { written: 0, read: 0}};
             }
             this._openQueue[options.path] = true;
             this.emptyQueue(options.path);
@@ -150,7 +152,7 @@ export class Service extends Toolkit.APluginService {
             path: port,
         }, this.session).then(() => {
             this._openQueue[port] = false;
-            this._sessionConnected[this.session][port] = undefined;
+            this.sessionConnected[this.session][port] = undefined;
         }).catch((error: Error) => {
             this._logger.error(error);
         });
