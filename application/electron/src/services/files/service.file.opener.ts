@@ -170,6 +170,9 @@ class ServiceFileOpener implements IService {
 
     private _ipc_FilesRecentRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         this._validateRecentFiles().then((files: IStorageScheme.IRecentFile[]) => {
+            files.sort((a: IStorageScheme.IRecentFile, b: IStorageScheme.IRecentFile) => {
+                return a.timestamp < b.timestamp ? 1 : -1;
+            });
             response(new IPCMessages.FilesRecentResponse({
                 files: files,
             }));

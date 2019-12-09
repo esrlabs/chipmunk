@@ -160,6 +160,9 @@ class ServiceFilters implements IService {
 
     private _ipc_onFiltersRecentRequested(message: IPCMessages.TMessage, response: (message: IPCMessages.TMessage) => Promise<void>) {
         this._validateRecentFiles().then((files: IStorageScheme.IRecentFilterFile[]) => {
+            files.sort((a: IStorageScheme.IRecentFilterFile, b: IStorageScheme.IRecentFilterFile) => {
+                return a.timestamp < b.timestamp ? 1 : -1;
+            });
             response(new IPCMessages.FiltersFilesRecentResponse({
                 files: files,
             }));
