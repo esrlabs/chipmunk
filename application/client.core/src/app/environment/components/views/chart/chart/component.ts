@@ -2,7 +2,7 @@ import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewCont
 import { Observable, Subscription } from 'rxjs';
 import { Chart, ChartData } from 'chart.js';
 import * as Toolkit from 'chipmunk.client.toolkit';
-import { ServiceData, IRange, IResults } from '../service.data';
+import { ServiceData, IRange, IResults, IChartsResults } from '../service.data';
 import { ServicePosition, IPositionChange } from '../service.position';
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
@@ -256,7 +256,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         if (this.service === undefined) {
             return;
         }
-        const datasets: IResults = this.service.getChartsDatasets(this._ng_width, this._getRange());
+        const datasets: IChartsResults = this.service.getChartsDatasets(this._ng_width, this._getRange());
         let range: IRange | undefined = this._getRange();
         if (range === undefined) {
             range = {
@@ -302,14 +302,8 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                             },
                            display: false
                         }],
-                        yAxes: [{
-                            display: false,
-                            ticks: {
-                                min: Math.floor(datasets.min - datasets.min * 0.1),
-                                max: Math.ceil(datasets.max + datasets.max * 0.1),
-                            },
-                        }]
-                     }
+                        yAxes: this._getYAxes(datasets),
+                    }
                 }
             });
             this._forceUpdate();
@@ -317,8 +311,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             this._ng_charts.data.datasets = datasets.dataset;
             this._ng_charts.options.scales.xAxes[0].ticks.max = range.end;
             this._ng_charts.options.scales.xAxes[0].ticks.min = range.begin;
-            this._ng_charts.options.scales.yAxes[0].ticks.max = Math.ceil(datasets.max + datasets.max * 0.1);
-            this._ng_charts.options.scales.yAxes[0].ticks.min = Math.floor(datasets.min - datasets.min * 0.1);
+            this._ng_charts.options.scales.yAxes = this._getYAxes(datasets);
             setTimeout(() => {
                 if (this._ng_charts === undefined) {
                     return;
@@ -327,6 +320,28 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             });
         }
         this._scrollMainView();
+    }
+
+    private _getYAxes(datasets: IChartsResults) {
+        if (datasets.dataset.length === 0) {
+            return [{
+                display: false,
+            }];
+        }
+        return datasets.dataset.map((dataset, i: number) => {
+            const min: number = datasets.min[i];
+            const max: number = datasets.max[i];
+            return {
+                display: false,
+                type: 'linear',
+                id: dataset.yAxisID,
+                position: 'left',
+                ticks: {
+                    min: min === undefined ? undefined : Math.floor(min - min * 0.1),
+                    max: max === undefined ? undefined : Math.ceil(max + max * 0.1),
+                },
+            };
+        });
     }
 
     private _getRange(): IRange | undefined {

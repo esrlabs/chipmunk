@@ -76,6 +76,7 @@ export default class Chart extends AChart {
         const color: string | undefined = api.getColor(filter);
         const options: IChartOptions = this._getDefaultOpt(api.getOptions(filter));
         const dataset = {
+            yAxisID: `Y-${filter}`,
             label: filter,
             borderColor: color === undefined ? ColorScheme.scheme_search_match : color,
             data: results,
