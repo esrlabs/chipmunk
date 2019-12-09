@@ -35,6 +35,7 @@ export interface ISubjects {
     onFiltersProcessing: Subject<void>;
     onSearchProcessing: Subject<void>;
     onDropped: Subject<void>;
+    onSearchRequested: Subject<string>;
 }
 
 export class ControllerSessionTabSearchFilters {
@@ -50,12 +51,14 @@ export class ControllerSessionTabSearchFilters {
         onFiltersProcessing: new Subject<void>(),
         onSearchProcessing: new Subject<void>(),
         onDropped: new Subject<void>(),
+        onSearchRequested: new Subject<string>(),
     };
     private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = { };
     private _scope: ControllerSessionScope;
     private _output: ControllerSessionTabSearchOutput;
     private _state: ControllerSessionTabSearchState;
     private _activeRequestId: string | undefined;
+    private _requestedSearch: string | undefined;
 
     constructor(params: IControllerSessionStreamFilters) {
         this._guid = params.guid;
@@ -101,12 +104,14 @@ export class ControllerSessionTabSearchFilters {
         onFiltersProcessing: Observable<void>,
         onSearchProcessing: Observable<void>,
         onDropped: Observable<void>,
+        onSearchRequested: Observable<string>,
     } {
         return {
             onRequestsUpdated: this._subjects.onRequestsUpdated.asObservable(),
             onFiltersProcessing: this._subjects.onFiltersProcessing.asObservable(),
             onSearchProcessing: this._subjects.onSearchProcessing.asObservable(),
             onDropped: this._subjects.onDropped.asObservable(),
+            onSearchRequested: this._subjects.onSearchRequested.asObservable(),
         };
     }
 
@@ -353,6 +358,17 @@ export class ControllerSessionTabSearchFilters {
 
     public getSubjects(): ISubjects {
         return this._subjects;
+    }
+
+    public requestSearch(request: string) {
+        this._requestedSearch = request;
+        this._subjects.onSearchRequested.next(request);
+    }
+
+    public getRequestedSearch(): string | undefined {
+        const filter: string | undefined = this._requestedSearch;
+        this._requestedSearch = undefined;
+        return filter;
     }
 
     private _search(options: ISearchOptions): Promise<number | undefined> {
