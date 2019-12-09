@@ -1,11 +1,11 @@
+[back to overview](README.md)
 # Merging
 
 this is how merging works:
 
 ![](assets/merging.gif)
 
-ok!
+To help developers to deal with multiple logfiles, chipmunk can automatically detect timestamps and merge logs from multiple files.
 
-![](https://raw.githubusercontent.com/esrlabs/chipmunk/master/docs/assets/merging-timestamp-detection.png)
+![](assets/merging_sample.gif)
 
-done

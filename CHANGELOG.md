@@ -1,5 +1,11 @@
 # Changelog
 
+### [1.33.1] - 12/09/2019
+* [](feat) more documentation
+* [](feat) correct sorting files in recent dialogs
+* [#523](feat) quick way to set filter as an active
+* [#523](fix) fix scale for charts
+
 ### [1.33.0] - 12/09/2019
 * [](feat): added some documentation
 * [](fix) enable running integration tests with electron based node version

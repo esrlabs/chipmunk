@@ -1,2 +1,5 @@
+[back to overview](README.md)
 
-![](https://raw.githubusercontent.com/esrlabs/chipmunk/master/docs/assets/multiple-filters.png)
+Of course multiple searches are supported and filters can be saved and restored.
+
+![](assets/multiple-filters.png)

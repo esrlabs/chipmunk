@@ -30,3 +30,15 @@ timestamps.
 To better understand what's going on in a large logfile, it can be helpful to visualize data over
 time. `chipmunk` let's you define regular expressions that match a number and to use this expression
 to capture a value throughout a logfile.
+
+## [Bookmarks](bookmarks.md)
+
+<img src="assets/bookmark_sign.png" width="100" height="100">
+
+Add bookmarks to mark and remember important log entries. Jump between bookmarks with shortcuts (`j` and `k`).
+
+## [DLT - Diagnostic Log and Trace](dlt.md)
+
+<img src="assets/dlt.png" width="200" height="200">
+
+View and search and filter DLT files.
