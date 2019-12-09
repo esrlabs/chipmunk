@@ -2,7 +2,7 @@
 
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, ViewChild } from '@angular/core';
 import { EHostEvents } from '../../common/host.events';
-import { IPortInfo, IPortState, IIOState } from '../../common/interface.portinfo';
+import { IPortInfo, IPortState, IPortSession } from '../../common/interface.portinfo';
 import { IOptions, CDefaultOptions } from '../../common/interface.options';
 import { InputStandardComponent, DDListStandardComponent } from 'chipmunk-client-primitive';
 import { SidebarVerticalPortDialogComponent } from '../dialog/components';
@@ -44,8 +44,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     @Input() public session: string;
     @Input() public sessions: Toolkit.ControllerSessionsEvents;
 
-    private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
-    private _subs: { [key: string]: Subscription } = {};
+    private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger(`Plugin: serial: inj_output_bot:`);
     private _destroyed: boolean = false;
     private _chosenPort: string = undefined;
@@ -73,9 +72,6 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     ngOnDestroy() {
         this._destroyed = true;
         this._saveState();
-        Object.keys(this._subs).forEach((key: string) => {
-            this._subs[key].unsubscribe();
-        });
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
@@ -87,7 +83,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         this._loadSession();
 
         // Subscription to income events
-        this._subs.Subscription = Service.getObservable().event.subscribe((message: any) => {
+        this._subscriptions.Subscription = Service.getObservable().event.subscribe((message: any) => {
             if (typeof message !== 'object' && message === null) {
                 // Unexpected format of message
                 return;
@@ -98,10 +94,6 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             }
             this._onIncomeMessage(message);
         });
-        // Subscribe to sessions events
-        this._subscriptions.onSessionChange = this.sessions.subscribe().onSessionChange(this._onSessionChange.bind(this));
-        this._subscriptions.onSessionOpen = this.sessions.subscribe().onSessionOpen(this._onSessionOpen.bind(this));
-        this._subscriptions.onSessionClose = this.sessions.subscribe().onSessionClose(this._onSessionClose.bind(this));
         // Restore state
         this._loadState();
         this._hostEvents_onState(Service.state);
@@ -234,20 +226,6 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         this._forceUpdate();
     }
 
-    private _onSessionChange(guid: string) {
-        this._saveState();
-        this.session = guid;
-        this._loadState();
-    }
-
-    private _onSessionOpen(guid: string) {
-        //
-    }
-
-    private _onSessionClose(guid: string) {
-        //
-    }
-
     private _saveState() {
         state.save(this.session, {
             _ng_ports: this._ng_ports,
@@ -359,31 +337,31 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
 
     private _saveDropdownSession(port: IPortInfo) {
         const savedSession = Service.savedSession;
-        if (!savedSession.has(this.session)) {
-            savedSession.set(this.session, { default: undefined, ports: []});
+        if (!savedSession[this.session]) {
+            savedSession[this.session] =  {default: '', ports: []};
         }
-        const found = savedSession.get(this.session).ports.find(eachPort => eachPort.comName === port.comName);
-        if (found === undefined) {
-            savedSession.get(this.session).ports.unshift(port);
+        const found = savedSession[this.session].ports.find(eachPort => eachPort.comName === port.comName);
+        if (!found) {
+            savedSession[this.session].ports.unshift(port);
         }
-        savedSession.get(this.session).default = port.comName;
+        savedSession[this.session].default = port.comName;
     }
 
     private _removeDropdownSession(port: IPortInfo) {
-        const session: {default: string, ports: IPortInfo[]} | undefined = Service.savedSession.get(this.session);
-        if (session === undefined) {
+        const session: IPortSession | undefined = Service.savedSession[this.session];
+        if (!session) {
             return;
         }
         session.ports = session.ports.filter(each => each.comName !== port.comName);
         if (session.default === port.comName) {
             session.default = '';
         }
-        Service.savedSession.set(this.session, session);
+        Service.savedSession[this.session] = session;
     }
 
     private _restoreDropdownSession() {
-        if (Service.savedSession.has(this.session)) {
-            const ports = Service.savedSession.get(this.session).ports;
+        if (Service.savedSession[this.session]) {
+            const ports = Service.savedSession[this.session].ports;
             if (ports) {
                 for (const port of ports) {
                     this._addDropdownElement(port);
@@ -395,15 +373,15 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     public _ng_changeDropdownSelect(value: string) {
         this._chosenPort = value;
         this._ng_ports.forEach( port => {
-            if (port.comName === value && Service.savedSession.has(this.session)) {
-                Service.savedSession.get(this.session).default = port.comName;
+            if (port.comName === value && Service.savedSession[this.session]) {
+                Service.savedSession[this.session].default = port.comName;
             }
         });
     }
 
     private _loadSession() {
-        if (Service.savedSession.has(this.session)) {
-            this._ng_defaultPort = Service.savedSession.get(this.session).default;
+        if (Service.savedSession[this.session]) {
+            this._ng_defaultPort = Service.savedSession[this.session].default;
             this._forceUpdate();
         }
     }
@@ -459,10 +437,10 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                         _ng_connected: this._ng_connected,
                         _ng_onOptions: this._ng_onOptions,
                         _ng_onPortSelect: this._ng_onPortSelect,
-                        _getSpyState: (() => this._ng_spyLoad),
-                        _requestPortList: ( () => response.ports),
-                        _getSelected: ((selected: IPortInfo) => { this._ng_selected = selected; }),
-                        _getOptionsCom: ((options: IOptions) => { this._optionsCom = options; }),
+                        _getSpyState: () => this._ng_spyLoad,
+                        _requestPortList: () => response.ports,
+                        _getSelected: (selected: IPortInfo) => { this._ng_selected = selected; },
+                        _getOptionsCom: (options: IOptions) => { this._optionsCom = options; },
                     }
                 },
                 buttons: [
