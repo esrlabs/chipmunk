@@ -2,13 +2,13 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import { EHostCommands, EHostEvents } from '../common/host.events';
 import { IOptions } from '../common/interface.options';
 import { Observable, Subject } from 'rxjs';
-import { IPortInfo, IPortState } from '../common/interface.portinfo';
+import { IPortState, IPortSession } from '../common/interface.portinfo';
 import { SidebarTitleAddComponent } from '../views/dialog/titlebar/components';
 
 export class Service extends Toolkit.APluginService {
 
     public state:  {[port: string]: IPortState} = {};
-    public savedSession = new Map<string, { default: string, ports: IPortInfo[]}>();
+    public savedSession: {[session: string]: IPortSession} = {};
 
     private api: Toolkit.IAPI | undefined;
     private session: string;
@@ -35,6 +35,7 @@ export class Service extends Toolkit.APluginService {
         }
         this._subscriptions.onSessionOpen = this.api.getSessionsEventsHub().subscribe().onSessionOpen(this._onSessionOpen.bind(this));
         this._subscriptions.onSessionClose = this.api.getSessionsEventsHub().subscribe().onSessionClose(this._onSessionClose.bind(this));
+        this._subscriptions.onSessionChange = this.api.getSessionsEventsHub().subscribe().onSessionChange(this._onSessionChange.bind(this));
     }
 
     private _onSessionOpen() {
@@ -50,10 +51,14 @@ export class Service extends Toolkit.APluginService {
 
     private _onSessionClose(guid: string) {
         this.sessions = this.sessions.filter(session => session !== guid);
-        this.savedSession.delete(guid);
+        this.savedSession[guid] = undefined;
         if (this.sessions.length === 0) {
             this.destroy();
         }
+    }
+
+    private _onSessionChange(guid: string) {
+        this.session = guid;
     }
 
     public getObservable(): {
@@ -68,11 +73,7 @@ export class Service extends Toolkit.APluginService {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-        Object.keys(this._subjects).forEach((key: string) => {
-            this._subjects[key].unsubscribe();
-        });
     }
-
 
     public incomeMessage() {
         this._subscriptions.incomeIPCHostMessage = this.api.getIPC().subscribeToHost((message: any) => {
@@ -98,7 +99,7 @@ export class Service extends Toolkit.APluginService {
         });
     }
 
-    private _saveLoad(ports: { [key: string]: IPortState }) {
+    private _saveLoad(ports: { [key: string]: IPortState }): Promise<any> {
         return new Promise((resolve) => {
             if (Object.keys(this._sessionConnected).length > 0) {
                 Object.keys(this._sessionConnected).forEach(session => {
@@ -137,6 +138,8 @@ export class Service extends Toolkit.APluginService {
             }
             this._openQueue[options.path] = true;
             this.emptyQueue(options.path);
+        }).catch((error: Error) => {
+            this._logger.error(error);
         });
     }
 
@@ -148,6 +151,8 @@ export class Service extends Toolkit.APluginService {
         }, this.session).then(() => {
             this._openQueue[port] = false;
             this._sessionConnected[this.session][port] = undefined;
+        }).catch((error: Error) => {
+            this._logger.error(error);
         });
     }
 
@@ -155,7 +160,9 @@ export class Service extends Toolkit.APluginService {
         return this.api.getIPC().requestToHost({
             stream: this.session,
             command: EHostCommands.list,
-        }, this.session);
+        }, this.session).catch((error: Error) => {
+            this._logger.error(error);
+        });
     }
 
     public startSpy(options: IOptions[]) {
@@ -163,7 +170,9 @@ export class Service extends Toolkit.APluginService {
             stream: this.session,
             command: EHostCommands.spyStart,
             options: options,
-        }, this.session);
+        }, this.session).catch((error: Error) => {
+            this._logger.error(error);
+        });
     }
 
     public stopSpy(options: IOptions[]) {
@@ -171,7 +180,9 @@ export class Service extends Toolkit.APluginService {
             stream: this.session,
             command: EHostCommands.spyStop,
             options: options,
-        }, this.session);
+        }, this.session).catch((error: Error) => {
+            this._logger.error(error);
+        });
     }
 
     public sendMessage(message: string, port: string) {
@@ -180,10 +191,12 @@ export class Service extends Toolkit.APluginService {
             command: EHostCommands.write,
             cmd: message,
             path: port
-        }, this.session);
+        }, this.session).catch((error: Error) => {
+            this._logger.error(error);
+        });
     }
 
-    public popupButton(action: Function) {
+    public popupButton(action: () => void) {
         this.api.setSidebarTitleInjection({
             factory: SidebarTitleAddComponent,
             inputs: {
