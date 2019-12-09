@@ -12,6 +12,8 @@ import { NotificationsService } from '../../../../services.injectable/injectable
 import { SidebarAppSearchManagerControlsComponent } from './controls/component';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import ContextMenuService, { IMenu, IMenuItem } from '../../../../services/standalone/service.contextmenu';
+import ToolbarSessionsService from '../../../../services/service.sessions.toolbar';
+import LayoutStateService from '../../../../services/standalone/service.layout.state';
 
 interface IState {
     _ng_selectedEntryIndex: number;
@@ -157,6 +159,13 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
             },
             { /* delimiter */ },
             {
+                caption: `Show matches`,
+                handler: () => {
+                    this._requestSearch(request);
+                },
+            },
+            { /* delimiter */ },
+            {
                 caption: request.request.active ? `Deactivate` : `Activate`,
                 handler: () => {
                     if (type === EEntityType.filters) {
@@ -230,6 +239,22 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
         } else {
             return EEntityType.filters;
         }
+    }
+
+    public _ng_onDblClick(request: IRequestItem | IChartItem) {
+        this._requestSearch(request);
+    }
+
+    private _requestSearch(request: IRequestItem | IChartItem) {
+        if (this._session === undefined) {
+            return;
+        }
+        // Open toolbar
+        LayoutStateService.toolbarMax();
+        // Open sidebar
+        ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search);
+        // Trigger search request
+        this._session.getSessionSearch().getFiltersAPI().requestSearch(request.request.reg.source);
     }
 
     private _convert(request: IRequestItem | IChartItem, type: EEntityType) {

@@ -51,7 +51,8 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     // Out of state (stored in controller)
     public _ng_onSessionChanged: Subject<ControllerSessionTab> = new Subject<ControllerSessionTab>();
 
-    private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription | undefined } = { };
+    private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = { };
+    private _sessionSubscriptions: { [key: string]: Subscription } = { };
     private _destroyed: boolean = false;
     public _prevRequest: string = '';
 
@@ -62,12 +63,14 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._subscriptions.onFocusSearchInput = HotkeysService.getObservable().focusSearchInput.subscribe(this._onFocusSearchInput.bind(this));
         this._subscriptions.onStreamUpdated = TabsSessionsService.getSessionEventsHub().subscribe().onStreamUpdated(this._onStreamUpdated.bind(this));
         this._subscriptions.onSearchUpdated = TabsSessionsService.getSessionEventsHub().subscribe().onSearchUpdated(this._onSearchUpdated.bind(this));
+        this._onSearchRequested = this._onSearchRequested.bind(this);
         this._setActiveSession();
     }
 
     ngAfterViewInit() {
         this._loadState();
         this._focus();
+        this._applyRequestedSearch();
     }
 
     ngAfterContentInit() {
@@ -77,6 +80,9 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     public ngOnDestroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
+        });
+        Object.keys(this._sessionSubscriptions).forEach((key: string) => {
+            this._sessionSubscriptions[key].unsubscribe();
         });
         this._saveState();
         this._destroyed = true;
@@ -112,27 +118,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             this._ng_onStoreRequest();
             return;
         }
-        this._ng_searchRequestId = Toolkit.guid();
-        this._prevRequest = this._ng_request;
-        this._ng_session.getSessionSearch().getFiltersAPI().search({
-            requestId: this._ng_searchRequestId,
-            requests: [Toolkit.regTools.createFromStr(this._ng_request, 'gim') as RegExp],
-        }).then((count: number | undefined) => {
-            this._onSearchUpdated( { session: this._ng_session.getGuid(), rows: count } );
-            // Search done
-            this._ng_searchRequestId = undefined;
-            this._ng_isRequestSaved = this._ng_session.getSessionSearch().getFiltersAPI().isRequestStored(this._ng_request);
-            this._focus();
-            this._forceUpdate();
-        }).catch((searchError: Error) => {
-            this._ng_searchRequestId = undefined;
-            this._forceUpdate();
-            return this._notifications.add({
-                caption: 'Search',
-                message: `Cannot to do a search due error: ${searchError.message}.`
-            });
-        });
-        this._forceUpdate();
+        this._search(this._ng_request);
     }
 
     public _ng_onFocusRequestInput() {
@@ -224,6 +210,37 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         return this._prevRequest === this._ng_request && this._ng_request !== '';
     }
 
+    private _search(filter: string) {
+        if (!Toolkit.regTools.isRegStrValid(filter)) {
+            return this._notifications.add({
+                caption: 'Search',
+                message: `Regular expresion isn't valid. Please correct it.`
+            });
+        }
+        this._ng_request = filter;
+        this._ng_searchRequestId = Toolkit.guid();
+        this._prevRequest = this._ng_request;
+        this._ng_session.getSessionSearch().getFiltersAPI().search({
+            requestId: this._ng_searchRequestId,
+            requests: [Toolkit.regTools.createFromStr(this._ng_request, 'gim') as RegExp],
+        }).then((count: number | undefined) => {
+            this._onSearchUpdated( { session: this._ng_session.getGuid(), rows: count } );
+            // Search done
+            this._ng_searchRequestId = undefined;
+            this._ng_isRequestSaved = this._ng_session.getSessionSearch().getFiltersAPI().isRequestStored(this._ng_request);
+            this._focus();
+            this._forceUpdate();
+        }).catch((searchError: Error) => {
+            this._ng_searchRequestId = undefined;
+            this._forceUpdate();
+            return this._notifications.add({
+                caption: 'Search',
+                message: `Cannot to do a search due error: ${searchError.message}.`
+            });
+        });
+        this._forceUpdate();
+    }
+
     private _onFocusSearchInput() {
         this._focus();
     }
@@ -237,6 +254,9 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     private _onSessionChange(session: ControllerSessionTab | undefined) {
+        Object.keys(this._sessionSubscriptions).forEach((prop: string) => {
+            this._sessionSubscriptions[prop].unsubscribe();
+        });
         if (session === undefined) {
             this._ng_session = undefined;
             this._forceUpdate();
@@ -256,8 +276,24 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             return;
         }
         this._ng_session = session;
+        this._sessionSubscriptions.onSearchRequested = this._ng_session.getSessionSearch().getFiltersAPI().getObservable().onSearchRequested.subscribe(this._onSearchRequested);
         this._loadState();
         this._ng_onSessionChanged.next(this._ng_session);
+    }
+
+    private _onSearchRequested(filter: string) {
+        this._applyRequestedSearch();
+    }
+
+    private _applyRequestedSearch() {
+        if (this._ng_session === undefined) {
+            return;
+        }
+        const requested: string | undefined = this._ng_session.getSessionSearch().getFiltersAPI().getRequestedSearch();
+        if (requested === undefined) {
+            return;
+        }
+        this._search(requested);
     }
 
     private _focus(delay: number = 150) {
