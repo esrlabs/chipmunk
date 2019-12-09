@@ -30,7 +30,7 @@ export class Service extends Toolkit.APluginService {
     private _onAPIReady() {
         this.api = this.getAPI();
         if (this.api === undefined) {
-            // error message
+            this._logger.error('API not found!');
             return;
         }
         this._subscriptions.onSessionOpen = this.api.getSessionsEventsHub().subscribe().onSessionOpen(this._onSessionOpen.bind(this));
