@@ -96,7 +96,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         });
         // Restore state
         this._loadState();
-        this._hostEvents_onState(Service.state);
+        this._hostEvents_onState(Service.sessionConnected[this.session]);
     }
 
     public _ng_onPortSelect(port: IPortInfo) {
@@ -390,6 +390,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         const connectedPorts: string[] = this._ng_connected.map(connected => connected.port.comName);
         this._ng_ports.forEach(port => {
             if (connectedPorts.indexOf(port.comName) === -1) {
+                this._options.options.baudRate = 9600;
                 this._portOptions.push({path: port.comName, options: this._options.options, reader: this._options.reader});
             }
         });
