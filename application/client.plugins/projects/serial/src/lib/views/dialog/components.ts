@@ -83,7 +83,7 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
         return options;
     }
 
-    public _ng_isConnected(port: IPortInfo) {
+    public _ng_isConnected(port: IPortInfo): IConnected {
         return this._ng_connected.find(connected => connected.port.comName === port.comName);
     }
 

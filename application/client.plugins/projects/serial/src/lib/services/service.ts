@@ -149,7 +149,7 @@ export class Service extends Toolkit.APluginService {
         });
     }
 
-    public requestPorts() {
+    public requestPorts(): Promise<any> {
         return this.api.getIPC().requestToHost({
             stream: this.session,
             command: EHostCommands.list,
@@ -158,7 +158,7 @@ export class Service extends Toolkit.APluginService {
         });
     }
 
-    public startSpy(options: IOptions[]) {
+    public startSpy(options: IOptions[]): Promise<any> {
         return this.api.getIPC().requestToHost({
             stream: this.session,
             command: EHostCommands.spyStart,
@@ -168,7 +168,7 @@ export class Service extends Toolkit.APluginService {
         });
     }
 
-    public stopSpy(options: IOptions[]) {
+    public stopSpy(options: IOptions[]): Promise<any> {
         return this.api.getIPC().requestToHost({
             stream: this.session,
             command: EHostCommands.spyStop,
@@ -178,14 +178,14 @@ export class Service extends Toolkit.APluginService {
         });
     }
 
-    public sendMessage(message: string, port: string) {
+    public sendMessage(message: string, port: string): Promise<any> {
         return this.api.getIPC().requestToHost({
             stream: this.session,
             command: EHostCommands.write,
             cmd: message,
             path: port
         }, this.session).catch((error: Error) => {
-            this._logger.error(error);
+            this._logger.error(`Cannot send message due to error: ${error}`);
         });
     }
 
