@@ -1,5 +1,13 @@
 # Changelog
 
+### [1.33.2] - 12/10/2019
+* [](fix) correct "jumping" position from chart
+* [#555](feat) highlighting current line (row)
+* [#570](feat) remove dlt connector (JS implementation)
+* [](fix) choke on dlt stats for invalid file
+* [](fix) fix DLT row render (case of an incorrect income data)
+* [](feat) addes dlt documentation
+
 ### [1.33.1] - 12/09/2019
 * [](feat) more documentation
 * [](feat) correct sorting files in recent dialogs
