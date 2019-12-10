@@ -22,7 +22,7 @@ export class AppsStatusBarSearchStateComponent implements OnDestroy, AfterViewIn
     public _ng_found: number = 0;
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('AppsStatusBarSearchStateComponent');
-    private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription | undefined } = {};
+    private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
     private _activeSession: string | undefined;
     private _sessions: Map<string, IStorage> = new Map();
 

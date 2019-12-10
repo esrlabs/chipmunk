@@ -1,4 +1,4 @@
-<div *ngIf="_ng_isPending() === false" [attr.class]="'wrapper noreset ' + (_ng_bookmarked ? 'bookmarked' : '')" (contextmenu)="_ng_onContextMenu($event)">
+<div *ngIf="_ng_isPending() === false" [attr.class]="'wrapper noreset ' + (_ng_bookmarked ? 'bookmarked ' : ' ') + (_ng_isSelected() ? 'selected' : '')" (contextmenu)="_ng_onContextMenu($event)">
     <div class="container" #numbernode>
         <span   class="source-name" 
                 *ngIf="_ng_source" 

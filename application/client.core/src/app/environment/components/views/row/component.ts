@@ -61,7 +61,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     public _ng_numberDelimiter: string = '\u0008';
     public _ng_error: string | undefined;
 
-    private _subscriptions: { [key: string]: Subscription } = {};
+    private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = {};
     private _destroyed: boolean = false;
     private _subjects: {
         update: Subject<{ [key: string]: any }>
@@ -120,6 +120,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         this._subscriptions.onRemovedBookmark = this.bookmarks.getObservable().onRemoved.subscribe(this._onRemovedBookmark.bind(this));
         this._subscriptions.onSourceChange = this.sources.getObservable().onChanged.subscribe(this._onSourceChange.bind(this));
         this._subscriptions.onSizeRequested = this.scope.get<IRowNumberWidthData>(ControllerSessionScope.Keys.CRowNumberWidth).onSizeRequested.asObservable().subscribe(this._onSizeRequested.bind(this));
+        this._subscriptions.onRowWasSelected = OutputRedirectionsService.subscribe(this.sessionId, this._onRowWasSelected.bind(this));
     }
 
     public ngAfterContentChecked() {
@@ -185,9 +186,22 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
             });
             this._ng_bookmarked = true;
         }
-        if (!this._destroyed) {
-            this._cdRef.detectChanges();
+        this._forceUpdate();
+    }
+
+    public _ng_isSelected(): boolean {
+        if (this.controller === undefined) {
+            return false;
         }
+        return OutputRedirectionsService.isSelected(this.sessionId, this._getPosition());
+    }
+
+    private _onRowWasSelected(sender: string, row: number, prev: number | undefined) {
+        const position: number | undefined = this._getPosition();
+        if (position !== row && position !== prev) {
+            return;
+        }
+        this._forceUpdate();
     }
 
     private _getPosition(): number | undefined {
@@ -202,7 +216,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         const prev: boolean = this._ng_bookmarked;
         this._ng_bookmarked = this._getPosition() === bookmark.position ? true : this._ng_bookmarked;
         if (prev !== this._ng_bookmarked) {
-            this._cdRef.detectChanges();
+            this._forceUpdate();
         }
     }
 
@@ -210,7 +224,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         const prev: boolean = this._ng_bookmarked;
         this._ng_bookmarked = this._getPosition() === index ? false : this._ng_bookmarked;
         if (prev !== this._ng_bookmarked) {
-            this._cdRef.detectChanges();
+            this._forceUpdate();
         }
     }
 
@@ -266,7 +280,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
             return;
         }
         this._render();
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     private _onRepain() {
@@ -274,19 +288,19 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
             return;
         }
         this._render();
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     private _onRankChanged(rank: number) {
         this.rank = rank;
         this._ng_number_filler = this._getNumberFiller();
-        this._cdRef.detectChanges();
+        this._forceUpdate();
         this._checkNumberNodeWidth();
     }
 
     private _onSourceChange(source: boolean) {
         this._ng_source = source;
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     private _updateRenderComp() {
@@ -342,4 +356,10 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         info.onChanged.next();
     }
 
+    private _forceUpdate() {
+        if (this._destroyed) {
+            return;
+        }
+        this._cdRef.detectChanges();
+    }
 }
