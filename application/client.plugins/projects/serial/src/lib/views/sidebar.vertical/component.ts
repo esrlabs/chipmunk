@@ -406,7 +406,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         });
     }
 
-    private _stopSpy() {
+    private _stopSpy(): Promise<any> {
         return new Promise((resolve) => {
             Service.stopSpy(this._portOptions).then(
                 resolve
