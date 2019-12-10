@@ -37,7 +37,6 @@ CLIENT_NPM_LIBS_NAMES = %w[
   chipmunk-client-complex
 ].freeze
 COMPLEX_PLUGINS = [
-  'dlt',
   'serial',
   'processes'
   # "xterminal"
@@ -418,10 +417,6 @@ namespace :dev do
 
   task :processes_render do
     install_plugin_angular('processes')
-  end
-
-  task :dlt_render do
-    install_plugin_angular('dlt')
   end
 
   task :dltrender_render do
