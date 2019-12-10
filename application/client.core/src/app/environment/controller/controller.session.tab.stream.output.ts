@@ -92,6 +92,7 @@ export class ControllerSessionTabStreamOutput {
         onRangeLoaded: new Subject<ILoadedRange>(),
         onReset: new Subject<void>(),
         onScrollTo: new Subject<number>(),
+        onSelected: new Subject<number>(),
         onRankChanged: new Subject<number>(),
         onSourceChanged: new Subject<number>(),
         onHorScrollOffset: new Subject<number>(),
@@ -121,13 +122,14 @@ export class ControllerSessionTabStreamOutput {
 
      /**
      * List of available observables.
-     * @returns { onStateUpdated: Observable<IStreamState>, onRangeLoaded: Observable<ILoadedRange>, onReset: Observable<void>, onScrollTo: Observable<number>, onRankChanged: Observable<number> }
+     * @returns { onStateUpdated: Observable<IStreamState>, onRangeLoaded: Observable<ILoadedRange>, onReset: Observable<void>, onScrollTo: Observable<number>, onSelected: Observable<number>, onRankChanged: Observable<number> }
      */
     public getObservable(): {
         onStateUpdated: Observable<IStreamState>,
         onRangeLoaded: Observable<ILoadedRange>,
         onReset: Observable<void>,
         onScrollTo: Observable<number>,
+        onSelected: Observable<number>,
         onRankChanged: Observable<number>,
         onSourceChanged: Observable<number>,
         onHorScrollOffset: Observable<number>,
@@ -138,6 +140,7 @@ export class ControllerSessionTabStreamOutput {
             onRangeLoaded: this._subjects.onRangeLoaded.asObservable(),
             onReset: this._subjects.onReset.asObservable(),
             onScrollTo: this._subjects.onScrollTo.asObservable(),
+            onSelected: this._subjects.onSelected.asObservable(),
             onRankChanged: this._subjects.onRankChanged.asObservable(),
             onSourceChanged: this._subjects.onSourceChanged.asObservable(),
             onHorScrollOffset: this._subjects.onHorScrollOffset.asObservable(),

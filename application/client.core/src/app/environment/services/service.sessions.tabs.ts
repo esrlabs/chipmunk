@@ -11,6 +11,7 @@ import HotkeysService from './service.hotkeys';
 import { IAPI, IPopup, IComponentDesc } from 'chipmunk.client.toolkit';
 import PluginsService from './service.plugins';
 import PopupsService from './standalone/service.popups';
+import OutputRedirectionsService from './standalone/service.output.redirections';
 
 export { ControllerSessionTabSearch } from '../controller/controller.session.tab.search';
 export { IRequest } from '../controller/controller.session.tab.search.filters';
@@ -61,6 +62,10 @@ export class TabsSessionsService implements IService {
             this._subscriptions.onNewTab = HotkeysService.getObservable().newTab.subscribe(this._onNewTab.bind(this));
             this._subscriptions.onCloseTab = HotkeysService.getObservable().closeTab.subscribe(this._onCloseTab.bind(this));
             this._subscriptions.RenderSessionAddRequest = ElectronIpcService.subscribe(IPCMessages.RenderSessionAddRequest, this._ipc_RenderSessionAddRequest.bind(this));
+            OutputRedirectionsService.init(this._currentSessionGuid, {
+                onSessionChange: this.getObservable().onSessionChange,
+                onSessionClosed: this.getObservable().onSessionClosed,
+            });
             resolve();
         });
     }
