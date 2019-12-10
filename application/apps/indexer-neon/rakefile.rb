@@ -19,6 +19,11 @@ namespace :neon do
     sh 'node_modules/.bin/electron-build-env node_modules/.bin/neon build --release'
   end
 
+  desc 'test all but super huge'
+  task all: ['neon:dlt_nonverbose', 'neon:dlt_small_nonverbose', 'neon:dlt_cancelled_nonverbose',
+             'neon:dlt', 'neon:discover', 'neon:dlt_stats', 'neon:concat', 'neon:merge', 'neon:index',
+             'neon:index_short', :problem, :problem2, :cancelled]
+
   desc 'test neon integration: dlt non-verbose indexing'
   task dlt_nonverbose: [:clean, OUT_DIR, 'neon:rebuild'] do
     call_test_function('testDltIndexingAsync', "#{LOCAL_EXAMPLE_DIR}/dlt/nonverbose/longerlog.dlt",
@@ -59,7 +64,7 @@ namespace :neon do
 
   desc 'test neon integration: dlt stats'
   task dlt_stats: [:clean, OUT_DIR, 'neon:rebuild'] do
-    call_test_function('testCallDltStats', './tests/testfile.dlt')
+    call_test_function('testCallDltStats', "#{LOCAL_EXAMPLE_DIR}/dlt/morten_3.dlt")
   end
 
   desc 'test neon integration: concat'
@@ -80,7 +85,6 @@ namespace :neon do
     )
   end
 
-  desc 'test neon integration: regular indexing'
   task index: [:clean, OUT_DIR, 'neon:rebuild'] do
     call_test_function(
       'testIndexingAsync',
@@ -88,6 +92,7 @@ namespace :neon do
       "#{LOCAL_EXAMPLE_DIR}/indexing/test.out"
     )
   end
+  desc 'test neon integration: regular indexing'
   desc 'test neon integration: short indexing'
   task index_short: [:clean, OUT_DIR, 'neon:rebuild'] do
     call_test_function(
@@ -102,18 +107,20 @@ desc 'test neon integration for a problematic file'
 task problem: [:clean, OUT_DIR, 'neon:rebuild'] do
   call_test_function('testDltIndexingAsync',
                      "#{LOCAL_EXAMPLE_DIR}/dlt/morton_problem_file.dlt",
-                     "#{LOCAL_EXAMPLE_DIR}/dlt/morton_problem_file.dlt.out")
+                     "#{LOCAL_EXAMPLE_DIR}/dlt/morton_problem_file.dlt.out",
+                     5000)
+end
+desc 'test neon integration for a problematic file2'
+task problem2: [:clean, OUT_DIR, 'neon:rebuild'] do
+  call_test_function('testDltIndexingAsync',
+                     "#{LOCAL_EXAMPLE_DIR}/dlt/morten_3.dlt",
+                     "#{LOCAL_EXAMPLE_DIR}/dlt/morten_3.dlt.out",
+                     5000)
 end
 desc 'test neon integration stats for a huge file'
 task stats: [:clean, OUT_DIR, 'neon:rebuild'] do
   call_test_function('testCallDltStats',
                      "#{LOCAL_EXAMPLE_DIR}/dlt/huge.dlt")
-end
-desc 'test neon timed out task'
-task timedout: [:clean, OUT_DIR, 'neon:rebuild'] do
-  call_test_function('testTimedOutAsyncIndexing',
-                     "#{LOCAL_EXAMPLE_DIR}/indexing/access_huge.log",
-                     "#{LOCAL_EXAMPLE_DIR}/indexing/test.out")
 end
 desc 'test neon cancel task'
 task cancelled: [:clean, OUT_DIR, 'neon:rebuild'] do
@@ -123,7 +130,7 @@ task cancelled: [:clean, OUT_DIR, 'neon:rebuild'] do
 end
 
 def exec_node_expression(node_exp)
-  system({'ELECTRON_RUN_AS_NODE' => 'true'}, "./node_modules/.bin/electron -e '#{node_exp}'")
+  system({ 'ELECTRON_RUN_AS_NODE' => 'true' }, "./node_modules/.bin/electron -e '#{node_exp}'")
 end
 
 def call_test_function(function_name, *args)

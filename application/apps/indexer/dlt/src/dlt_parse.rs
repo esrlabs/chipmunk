@@ -54,7 +54,12 @@ fn skip_to_next_storage_header<'a, T>(
         }
         to_drop += 1;
     }
+
     if !found {
+        debug!(
+            "did not find another storage header (input left {})",
+            input.len()
+        );
         if let Some(tx) = update_channel {
             let _ = tx.send(Err(Notification {
                 severity: Severity::ERROR,
@@ -81,6 +86,7 @@ fn dlt_skip_storage_header<'a, T>(
     index: Option<usize>,
     update_channel: Option<&cc::Sender<IndexingResults<T>>>,
 ) -> IResult<&'a [u8], ()> {
+    // println!("dlt_skip_storage_header");
     match skip_to_next_storage_header(input, index, update_channel) {
         Some(rest) => {
             let (i, (_, _, _)): (&'a [u8], _) =
@@ -1302,6 +1308,25 @@ pub fn get_dlt_file_info(
             Err(e) => {
                 // we couldn't parse the message. try to skip it and find the next.
                 trace!("stats...try to skip and continue parsing: {}", e);
+                match e {
+                    DltParseError::ParsingHickup { reason } => {
+                        // we couldn't parse the message. try to skip it and find the next.
+                        reader.consume(4); // at least skip the magic DLT pattern
+                        trace!(
+                            "error parsing 1 dlt message, try to continue parsing: {}",
+                            reason
+                        );
+                    }
+                    DltParseError::Unrecoverable { cause } => {
+                        warn!("cannot continue parsing: {}", cause);
+                        update_channel.send(Err(Notification {
+                            severity: Severity::ERROR,
+                            content: format!("error parsing dlt file: {}", cause),
+                            line: None,
+                        }))?;
+                        break;
+                    }
+                }
             }
         }
         index += 1;
@@ -1354,7 +1379,7 @@ fn read_one_dlt_message_info<T: Read>(
     reader: &mut ReduxReader<T, MinBuffered>,
     index: Option<usize>,
     update_channel: Option<cc::Sender<StatisticsResults>>,
-) -> Result<Option<(usize, StatisticRowInfo)>, Error> {
+) -> Result<Option<(usize, StatisticRowInfo)>, DltParseError> {
     loop {
         match reader.fill_buf() {
             Ok(content) => {
@@ -1372,28 +1397,27 @@ fn read_one_dlt_message_info<T: Read>(
                     e => match e {
                         Err(nom::Err::Incomplete(_)) => continue,
                         Err(nom::Err::Error(_e)) => {
-                            return Err(err_msg(format!(
-                                "parsing error for dlt message info: {:?}",
-                                _e
-                            )));
+                            return Err(DltParseError::ParsingHickup {
+                                reason: format!("parsing error for dlt message info: {:?}", _e),
+                            });
                         }
                         Err(nom::Err::Failure(_e)) => {
-                            return Err(err_msg(format!(
-                                "parsing failure for dlt message infos: {:?}",
-                                _e
-                            )));
+                            return Err(DltParseError::Unrecoverable {
+                                cause: format!("parsing failure for dlt message infos: {:?}", _e),
+                            });
                         }
                         _ => {
-                            return Err(err_msg(format!(
-                                "error while parsing dlt message infos: {:?}",
-                                e
-                            )))
+                            return Err(DltParseError::Unrecoverable {
+                                cause: format!("error while parsing dlt message infos: {:?}", e),
+                            });
                         }
                     },
                 }
             }
             Err(e) => {
-                return Err(err_msg(format!("error while parsing dlt messages: {}", e)));
+                return Err(DltParseError::ParsingHickup {
+                    reason: format!("error while parsing dlt messages: {}", e),
+                });
             }
         }
     }

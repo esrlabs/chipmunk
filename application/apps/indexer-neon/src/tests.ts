@@ -1,4 +1,4 @@
-import { CancelablePromise } from './promise';
+import { CancelablePromise } from "./promise";
 import { indexAsync, IFilePath, discoverTimespanAsync } from "./processor";
 import { DltFilterConf, DltLogLevel, IIndexDltParams } from "./dlt";
 import indexer, { DLT, Units, Merge, Progress } from "./index";
@@ -15,6 +15,7 @@ import * as log from "loglevel";
 import { IConcatFilesParams, ConcatenatorInput } from "./merger";
 import { StdoutController } from "custom.stdout";
 import * as fs from "fs";
+import { on } from "cluster";
 
 const stdout = new StdoutController(process.stdout, { handleStdoutGlobal: true });
 
@@ -67,24 +68,31 @@ export function testCallMergeFiles(mergeConf: string, out: string) {
                 },
             );
             log.trace(`absolutePathConfig: ${JSON.stringify(absolutePathConfig)}`);
-            const promise: CancelablePromise<void, void, Merge.TMergeFilesEvents, Merge.TMergeFilesEventObject> = indexer.mergeFilesAsync(
-                absolutePathConfig,
-                out,
-                {
+            const promise: CancelablePromise<
+                void,
+                void,
+                Merge.TMergeFilesEvents,
+                Merge.TMergeFilesEventObject
+            > = indexer
+                .mergeFilesAsync(absolutePathConfig, out, {
                     append: true,
-                }
-            ).then(() => {
-                log.trace("TTT: done");
-                log.trace(`merged_lines: ${merged_lines}`);
-            }).catch((error: Error) => {
-                log.trace(`Fail to merge due error: ${error.message}`)
-            }).on('result', (event: IChunk) => {
-                onResult(event);
-            }).on('progress', (event: ITicks) => {
-                onProgress(event);
-            }).on('notification', (event: INeonNotification) => {
-                onNotification(event);
-            });
+                })
+                .then(() => {
+                    log.trace("TTT: done");
+                    log.trace(`merged_lines: ${merged_lines}`);
+                })
+                .catch((error: Error) => {
+                    log.trace(`Fail to merge due error: ${error.message}`);
+                })
+                .on("result", (event: IChunk) => {
+                    onResult(event);
+                })
+                .on("progress", (event: ITicks) => {
+                    onProgress(event);
+                })
+                .on("notification", (event: INeonNotification) => {
+                    onNotification(event);
+                });
         },
     });
 }
@@ -118,25 +126,32 @@ export function testCallConcatFiles(concatConfig: string, out: string) {
                     return input;
                 },
             );
-            const promise: CancelablePromise<void, void, Merge.TConcatFilesEvents, Merge.TConcatFilesEventObject> = indexer.concatFilesAsync(
-                absolutePathConfig,
-                out,
-                {
+            const promise: CancelablePromise<
+                void,
+                void,
+                Merge.TConcatFilesEvents,
+                Merge.TConcatFilesEventObject
+            > = indexer
+                .concatFilesAsync(absolutePathConfig, out, {
                     append: true,
                     chunk_size: 100,
-                }
-            ).then(() => {
-                log.trace("TTT: done ");
-                // progressBar.update(1.0);
-            }).catch((error: Error) => {
-                log.trace(`Fail to merge due error: ${error.message}`)
-            }).on('result', (event: IChunk) => {
-                onResult(event);
-            }).on('progress', (event: ITicks) => {
-                onProgress(event);
-            }).on('notification', (event: INeonNotification) => {
-                onNotification(event);
-            });
+                })
+                .then(() => {
+                    log.trace("TTT: done ");
+                    // progressBar.update(1.0);
+                })
+                .catch((error: Error) => {
+                    log.trace(`Fail to merge due error: ${error.message}`);
+                })
+                .on("result", (event: IChunk) => {
+                    onResult(event);
+                })
+                .on("progress", (event: ITicks) => {
+                    onProgress(event);
+                })
+                .on("notification", (event: INeonNotification) => {
+                    onNotification(event);
+                });
         },
     });
 }
@@ -180,32 +195,41 @@ function testDetectTimestampFormatsInFiles() {
     });
 }
 export function testCallDltStats(file: string) {
+    log.setDefaultLevel(log.levels.TRACE);
     const hrstart = process.hrtime();
     try {
         let onProgress = (ticks: ITicks) => {
-            log.trace("progress: " + ticks);
+            log.debug("progress: " + JSON.stringify(ticks));
         };
         let onConf = (conf: DLT.StatisticInfo) => {
-            log.trace("testCallDltStats.onConf:");
-            log.trace("conf.app_ids: " + JSON.stringify(conf.app_ids));
-            log.trace("conf.ecu_ids: " + JSON.stringify(conf.ecu_ids));
-            log.trace("conf.context_ids: " + JSON.stringify(conf.context_ids));
+            log.debug("testCallDltStats.onConf:");
+            log.debug("conf.app_ids: " + JSON.stringify(conf.app_ids));
+            log.debug("conf.ecu_ids: " + JSON.stringify(conf.ecu_ids));
+            log.debug("conf.context_ids: " + JSON.stringify(conf.context_ids));
         };
         measure({
             desc: "stats for " + file,
             f: () => {
-                indexer.dltStatsAsync(file).then(() => {
-                    const hrend = process.hrtime(hrstart);
-                    const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-                    log.trace("COMPLETELY DONE");
-                    log.info("Execution time for getting DLT stats : %dms", ms);
-                }).catch((error: Error) => {
-                    log.trace(`Failed with error: ${error.message}`);
-                }).on('config', (event: DLT.StatisticInfo) => {
-                    onConf(event);
-                }).on('progress', (ticks: Progress.ITicks) => {
-                    onProgress(ticks);
-                });
+                indexer
+                    .dltStatsAsync(file)
+                    .then(() => {
+                        const hrend = process.hrtime(hrstart);
+                        const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+                        log.debug("COMPLETELY DONE");
+                        log.info("Execution time for getting DLT stats : %dms", ms);
+                    })
+                    .catch((error: Error) => {
+                        log.warn(`Failed with error: ${error.message}`);
+                    })
+                    .on("config", (event: DLT.StatisticInfo) => {
+                        onConf(event);
+                    })
+                    .on("notification", (event: INeonNotification) => {
+                        log.debug(`notification: ${JSON.stringify(event)}`);
+                    })
+                    .on("progress", (ticks: Progress.ITicks) => {
+                        onProgress(ticks);
+                    });
             },
         });
     } catch (error) {
@@ -234,23 +258,26 @@ export function testDiscoverTimespanAsync(files: string[]) {
                 path: file,
             };
         });
-        discoverTimespanAsync(
-            items,
-        ).then(() => {
-            const hrend = process.hrtime(hrstart);
-            const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-            bar.update(100);
-            log.trace("COMPLETELY DONE");
-            log.info("Execution time for indexing : %dms", ms);
-        }).catch((error: Error) => {
-            log.trace(`Failed with error: ${error.message}`);
-        }).on('chunk', (event: Progress.ITimestampFormatResult) => {
-            onChunk(event);
-        }).on('progress', (event: Progress.ITicks) => {
-            onProgress(event);
-        }).on('notification', (event: Progress.INeonNotification) => {
-            onNotification(event);
-        });
+        discoverTimespanAsync(items)
+            .then(() => {
+                const hrend = process.hrtime(hrstart);
+                const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+                bar.update(100);
+                log.trace("COMPLETELY DONE");
+                log.info("Execution time for indexing : %dms", ms);
+            })
+            .catch((error: Error) => {
+                log.trace(`Failed with error: ${error.message}`);
+            })
+            .on("chunk", (event: Progress.ITimestampFormatResult) => {
+                onChunk(event);
+            })
+            .on("progress", (event: Progress.ITicks) => {
+                onProgress(event);
+            })
+            .on("notification", (event: Progress.INeonNotification) => {
+                onNotification(event);
+            });
     } catch (error) {
         log.error("error %s", error);
     }
@@ -314,20 +341,28 @@ export function testCancelledAsyncDltIndexing(
         stdout: false,
         statusUpdates: true,
     };
-    const task = indexer.indexDltAsync(dltParams).then(() => {
-        helper.done(AsyncResult.Completed);
-    }).catch((error: Error) => {
-        log.trace(`Failed with error: ${error.message}`);
-    }).canceled(() => {
-        log.trace(`Operation was canceled`);
-    }).on('chunk', (event: Progress.IChunk) => {
-        helper.onChunk(event);
-    }).on('progress', (event: Progress.ITicks) => {
-        helper.onProgress(event);
-    }).on('notification', (notification: Progress.INeonNotification) => {
-        helper.onNotification(notification);
-    });
-    setTimeout(function() {
+    const task = indexer
+        .indexDltAsync(dltParams)
+        .then(() => {
+            clearTimeout(timerId);
+            helper.done(AsyncResult.Completed);
+        })
+        .catch((error: Error) => {
+            log.trace(`Failed with error: ${error.message}`);
+        })
+        .canceled(() => {
+            log.trace(`Operation was canceled`);
+        })
+        .on("chunk", (event: Progress.IChunk) => {
+            helper.onChunk(event);
+        })
+        .on("progress", (event: Progress.ITicks) => {
+            helper.onProgress(event);
+        })
+        .on("notification", (notification: Progress.INeonNotification) => {
+            helper.onNotification(notification);
+        });
+    const timerId = setTimeout(function() {
         log.trace("cancelling operation after timeout");
         task.abort();
     }, 500);
@@ -339,7 +374,8 @@ export function testDltIndexingAsync(
     timeoutMs: number,
     fibexPath?: string,
 ) {
-    log.trace(`testDltIndexingAsync for ${fileToIndex} (out: "${outPath}")`);
+    log.setDefaultLevel(log.levels.DEBUG);
+    log.debug(`testDltIndexingAsync for ${fileToIndex} (out: "${outPath}")`);
     let helper = new IndexingHelper("dlt async indexing");
     try {
         const filterConfig: DltFilterConf = {
@@ -356,27 +392,36 @@ export function testDltIndexingAsync(
             stdout: false,
             statusUpdates: true,
         };
-        log.trace("calling indexDltAsync with fibex: " + fibexPath);
-        const promise = indexer.indexDltAsync(dltParams).then(() => {
-            helper.done(AsyncResult.Completed);
-        }).catch((error: Error) => {
-            log.trace(`Failed with error: ${error.message}`);
-        }).canceled(() => {
-            log.trace(`Operation was canceled`);
-        }).on('chunk', (event: Progress.IChunk) => {
-            helper.onChunk(event);
-        }).on('progress', (event: Progress.ITicks) => {
-            helper.onProgress(event);
-        }).on('notification', (notification: Progress.INeonNotification) => {
-            helper.onNotification(notification);
-        });
-        setTimeout(function() {
-            log.trace("cancelling operation after timeout");
+        log.debug("calling indexDltAsync with fibex: " + fibexPath);
+        const promise = indexer.indexDltAsync(dltParams);
+        promise
+            .then(() => {
+                clearTimeout(timerId);
+                helper.done(AsyncResult.Completed);
+            })
+            .catch((error: Error) => {
+                log.debug(`Failed with error: ${error.message}`);
+            })
+            .canceled(() => {
+                log.debug(`Operation was canceled`);
+            })
+            .on("chunk", (event: Progress.IChunk) => {
+                helper.onChunk(event);
+            })
+            .on("progress", (event: Progress.ITicks) => {
+                helper.onProgress(event);
+            })
+            .on("notification", (notification: Progress.INeonNotification) => {
+                helper.onNotification(notification);
+            });
+        const timerId = setTimeout(function() {
+            log.debug("cancelling operation after timeout");
             promise.abort();
         }, timeoutMs);
     } catch (error) {
-        log.error("error %s", error);
+        log.debug("error %s", error);
     }
+    log.debug("done with dlt test");
 }
 export function testIndexingAsync(inFile: string, outPath: string) {
     const hrstart = process.hrtime();
@@ -395,64 +440,29 @@ export function testIndexingAsync(inFile: string, outPath: string) {
         let onNotification = (notification: INeonNotification) => {
             log.trace("testIndexingAsync: received notification:" + JSON.stringify(notification));
         };
-        indexAsync(
-            inFile,
-            outPath,
-            'TAG',
-            { chunkSize: 500 }
-        ).then(() => {
-            bar.update(100);
-            const hrend = process.hrtime(hrstart);
-            const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-            log.trace("COMPLETELY DONE");
-            log.info("Execution time for indexing : %dms", ms);
-        }).catch((error: Error) => {
-            log.trace(`Failed with error: ${error.message}`);
-        }).on('chunk', (event: Progress.IChunk) => {
-            onChunk(event);
-        }).on('progress', (event: Progress.ITicks) => {
-            onProgress(event);
-        }).on('notification', (notification: Progress.INeonNotification) => {
-            onNotification(notification);
-        });
+        indexAsync(inFile, outPath, "TAG", { chunkSize: 500 })
+            .then(() => {
+                bar.update(100);
+                const hrend = process.hrtime(hrstart);
+                const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+                log.trace("COMPLETELY DONE");
+                log.info("Execution time for indexing : %dms", ms);
+            })
+            .catch((error: Error) => {
+                log.trace(`Failed with error: ${error.message}`);
+            })
+            .on("chunk", (event: Progress.IChunk) => {
+                onChunk(event);
+            })
+            .on("progress", (event: Progress.ITicks) => {
+                onProgress(event);
+            })
+            .on("notification", (notification: Progress.INeonNotification) => {
+                onNotification(notification);
+            });
     } catch (error) {
         log.error("error %s", error);
     }
-}
-export function testTimedOutAsyncIndexing(fileToIndex: string, outPath: string) {
-    const hrstart = process.hrtime();
-    let chunks: number = 0;
-    let onProgress = (ticks: ITicks) => {
-        log.trace("progress: " + ticks);
-    };
-    let onNotification = (notification: INeonNotification) => {
-        log.trace("test: received notification:" + notification);
-    };
-    let onChunk = (chunk: IChunk) => {
-        chunks += 1;
-        if (chunks % 100 === 0) {
-            process.stdout.write(".");
-        }
-    };
-    indexAsync(
-        fileToIndex,
-        outPath,
-        'TAG',
-        { chunkSize: 500 }
-    ).then(() => {
-        const hrend = process.hrtime(hrstart);
-        const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-        log.trace("first event emitter task finished");
-        log.info("Execution time for indexing : %dms", ms);
-    }).catch((error: Error) => {
-        log.trace(`Failed with error: ${error.message}`);
-    }).on('chunk', (event: Progress.IChunk) => {
-        onChunk(event);
-    }).on('progress', (event: Progress.ITicks) => {
-        onProgress(event);
-    }).on('notification', (notification: Progress.INeonNotification) => {
-        onNotification(notification);
-    });
 }
 
 export function testCancelledAsyncIndexing(fileToIndex: string, outPath: string) {
@@ -464,30 +474,31 @@ export function testCancelledAsyncIndexing(fileToIndex: string, outPath: string)
     let onNotification = (notification: INeonNotification) => {
         log.trace("test: received notification:" + notification);
     };
-    let onChunk = (chunk: IChunk) => {
-    };
-    const promise = indexAsync(
-        fileToIndex,
-        outPath,
-        'TAG',
-        { chunkSize: 500 }
-    ).then(() => {
-        const hrend = process.hrtime(hrstart);
-        const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-        log.trace("first event emitter task finished");
-        log.info("Execution time for indexing : %dms", ms);
-    }).catch((error: Error) => {
-        log.trace(`Failed with error: ${error.message}`);
-    }).canceled(() => {
-        log.trace(`Operation was canceled`);
-    }).on('chunk', (event: Progress.IChunk) => {
-        onChunk(event);
-    }).on('progress', (event: Progress.ITicks) => {
-        onProgress(event);
-    }).on('notification', (notification: Progress.INeonNotification) => {
-        onNotification(notification);
-    });
-    setTimeout(function() {
+    let onChunk = (chunk: IChunk) => {};
+    const promise = indexAsync(fileToIndex, outPath, "TAG", { chunkSize: 500 })
+        .then(() => {
+            const hrend = process.hrtime(hrstart);
+            const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+            clearTimeout(timerId);
+            log.trace("first event emitter task finished");
+            log.info("Execution time for indexing : %dms", ms);
+        })
+        .catch((error: Error) => {
+            log.trace(`Failed with error: ${error.message}`);
+        })
+        .canceled(() => {
+            log.trace(`Operation was canceled`);
+        })
+        .on("chunk", (event: Progress.IChunk) => {
+            onChunk(event);
+        })
+        .on("progress", (event: Progress.ITicks) => {
+            onProgress(event);
+        })
+        .on("notification", (notification: Progress.INeonNotification) => {
+            onNotification(notification);
+        });
+    const timerId = setTimeout(function() {
         log.trace("cancelling operation after timeout");
         promise.abort();
     }, 500);
@@ -509,23 +520,23 @@ function testVeryShortIndexing() {
             process.stdout.write(".");
         }
     };
-    indexAsync(
-        examplePath + "/indexing/access_tiny.log",
-        outPath,
-        'TAG',
-        { chunkSize: 500 }
-    ).then(() => {
-        const hrend = process.hrtime(hrstart);
-        const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-        log.trace("first event emitter task finished");
-        log.info("Execution time for indexing : %dms", ms);
-    }).catch((error: Error) => {
-        log.trace(`Failed with error: ${error.message}`);
-    }).on('chunk', (event: Progress.IChunk) => {
-        onChunk(event);
-    }).on('progress', (event: Progress.ITicks) => {
-        onProgress(event);
-    }).on('notification', (notification: Progress.INeonNotification) => {
-        onNotification(notification);
-    });
+    indexAsync(examplePath + "/indexing/access_tiny.log", outPath, "TAG", { chunkSize: 500 })
+        .then(() => {
+            const hrend = process.hrtime(hrstart);
+            const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+            log.trace("first event emitter task finished");
+            log.info("Execution time for indexing : %dms", ms);
+        })
+        .catch((error: Error) => {
+            log.trace(`Failed with error: ${error.message}`);
+        })
+        .on("chunk", (event: Progress.IChunk) => {
+            onChunk(event);
+        })
+        .on("progress", (event: Progress.ITicks) => {
+            onProgress(event);
+        })
+        .on("notification", (notification: Progress.INeonNotification) => {
+            onNotification(notification);
+        });
 }

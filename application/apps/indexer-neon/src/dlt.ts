@@ -153,6 +153,7 @@ export function indexDltAsync(
                     rowsStart: c.r[0],
                     rowsEnd: c.r[1],
                 });
+                chunks += 1;
             });
             emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
                 self.emit('progress', ticks);
@@ -160,7 +161,7 @@ export function indexDltAsync(
             emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
                 log("we got a stopped event after " + chunks + " chunks");
                 emitter.shutdownAcknowledged(() => {
-                    log("shutdown completed");
+                    log("indexDlt: shutdown completed after we got stopped");
                     // Operation is canceled.
                     cancel();
                 });
@@ -169,9 +170,9 @@ export function indexDltAsync(
                 self.emit('notification', notification);
             });
             emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
-                log("we got a finished event " + chunks + " chunks");
+                log("we got a finished event after " + chunks + " chunks");
                 emitter.shutdownAcknowledged(() => {
-                    log("shutdown completed");
+                    log("indexDlt: shutdown completed after finish event");
                     // Operation is done.
                     resolve();
                 });
