@@ -84,7 +84,7 @@ export class TabsSessionsService implements IService {
             const guid: string = Toolkit.guid();
             const session = new ControllerSessionTab({
                 guid: guid,
-                transports: ['processes', 'serial', 'dlt', 'dlt-render'],
+                transports: ['processes', 'serial', 'dlt-render'],
                 sessionsEventsHub: this._sessionsEventsHub,
             });
             session.init().then(() => {
