@@ -97,7 +97,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
         this.color = undefined;
         this.background = undefined;
         this._ng_columns = this.api.getColumns(this.str).map((column: string, index: number) => {
-            if (!this._columns[index].visible) {
+            if (!this._columns[index] || !this._columns[index].visible) {
                 return null;
             }
             // Rid of HTML

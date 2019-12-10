@@ -93,12 +93,10 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
     }
 
     private _setColumns() {
-        this._ng_columns = [];
-        Object.keys(this._columns).forEach((key: string) => {
-            if (!this._columns[key].visible) {
-                return;
-            }
-            this._ng_columns.push(this._columns[key]);
+        this._ng_columns = this._columns.map((column: IColumn) => {
+            return Object.assign({}, column);
+        }).filter((column: IColumn) => {
+            return column.visible;
         });
     }
 
