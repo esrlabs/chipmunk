@@ -404,27 +404,29 @@ export class SidebarAppSearchRequestsComponent implements OnDestroy, AfterConten
     }
 
     private _getRequestItems(requests: IRequest[]): IRequestItem[] {
-        return requests.map((request: IRequest, index: number) => {
+        return requests.map((request: IRequest) => {
+            const _request = Toolkit.copy(request);
             return {
-                request: request,
+                request: _request,
                 onEdit: this._subjectsRequests.onEdit.asObservable(),
                 onEditCancel: this._subjectsRequests.onEditCancel.asObservable(),
-                onSelect: this._onSelectEntry.bind(this, request),
-                onChangeState: this._onChangeStateRequest.bind(this, request),
-                onEditDone: this._onRequestValueChanged.bind(this, request),
+                onSelect: this._onSelectEntry.bind(this, _request),
+                onChangeState: this._onChangeStateRequest.bind(this, _request),
+                onEditDone: this._onRequestValueChanged.bind(this, _request),
             };
         });
     }
 
     private _getChartsItems(charts: IChartRequest[]): IChartItem[] {
-        return charts.map((chart: IChartRequest, index: number) => {
+        return charts.map((chart: IChartRequest) => {
+            const _chart = Toolkit.copy(chart);
             return {
-                request: chart,
+                request: _chart,
                 onEdit: this._subjectsCharts.onEdit.asObservable(),
                 onEditCancel: this._subjectsCharts.onEditCancel.asObservable(),
-                onSelect: this._onSelectEntry.bind(this, chart),
-                onChangeState: this._onChangeStateChart.bind(this, chart),
-                onEditDone: this._onChartValueChanged.bind(this, chart),
+                onSelect: this._onSelectEntry.bind(this, _chart),
+                onChangeState: this._onChangeStateChart.bind(this, _chart),
+                onEditDone: this._onChartValueChanged.bind(this, _chart),
             };
         });
     }
