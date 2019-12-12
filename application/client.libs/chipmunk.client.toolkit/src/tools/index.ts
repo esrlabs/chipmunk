@@ -9,4 +9,5 @@ import { sequences } from './tools.sequences';
 import * as regTools from './tools.regexp';
 import { hash } from './tools.hash';
 import { basename, dirname } from './tools.path';
-export { guid, hash, Emitter, Logger, LoggerParameters, Subscription, Subject, THandler, sequences, regTools, Queue, basename, dirname };
+import { copy } from './tools.object';
+export { guid, hash, Emitter, Logger, LoggerParameters, Subscription, Subject, THandler, sequences, regTools, Queue, basename, dirname, copy };
