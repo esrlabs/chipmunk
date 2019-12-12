@@ -37,7 +37,7 @@ export class SidebarVerticalPortInfoComponent implements AfterViewInit, OnDestro
             return;
         }
         Object.keys(this.port).forEach((key: string) => {
-            if (key === 'comName') {
+            if (key === 'path') {
                 return;
             }
             if (this.port[key] === undefined && this.port[key] === null) {

@@ -12,7 +12,7 @@ export interface IListeners {
 }
 
 export interface IPortInfo {
-    comName: string;
+    path: string;
     manufacturer?: string;
     serialNumber?: string;
     pnpId?: string;
