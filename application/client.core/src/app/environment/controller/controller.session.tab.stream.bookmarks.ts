@@ -104,7 +104,7 @@ export class ControllerSessionTabStreamBookmarks {
         if (event.session !== this._sessionId) {
             return;
         }
-        const keys: number[] = Array.from(this._bookmarks.keys());
+        const keys: number[] = Array.from(this._bookmarks.keys()).sort();
         if (keys.length === 0) {
             return;
         }
@@ -120,7 +120,7 @@ export class ControllerSessionTabStreamBookmarks {
         if (event.session !== this._sessionId) {
             return;
         }
-        const keys: number[] = Array.from(this._bookmarks.keys());
+        const keys: number[] = Array.from(this._bookmarks.keys()).sort();
         if (keys.length === 0) {
             return;
         }
