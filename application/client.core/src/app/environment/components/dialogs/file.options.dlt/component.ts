@@ -342,6 +342,9 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
         });
         if (Object.keys(this._ng_filters).length === 0) {
             this._ng_filters = undefined;
+            this._ng_more = false;
+        } else {
+            this._ng_more = true;
         }
         this._forceUpdate();
     }
