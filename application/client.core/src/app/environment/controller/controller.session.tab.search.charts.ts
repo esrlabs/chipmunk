@@ -179,7 +179,9 @@ export class ControllerSessionTabSearchCharts {
 
     public removeAllStored() {
         this._stored = [];
+        this._data = {};
         this._subjects.onChartsUpdated.next([]);
+        this._subjects.onChartsResultsUpdated.next({});
     }
 
     public updateStored(request: string, updated: { reguest?: string, color?: string, type?: EChartType, active?: boolean, options?: IOptionsObj }) {
