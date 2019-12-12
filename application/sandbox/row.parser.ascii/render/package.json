@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "ansi_up": "^4.0.4",
-    "chipmunk.client.toolkit": "0.0.72"
+    "chipmunk.client.toolkit": "0.0.74"
   },
   "repository": {
     "type": "git",
