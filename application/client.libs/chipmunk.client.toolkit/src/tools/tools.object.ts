@@ -11,14 +11,14 @@ function isObject(smth: any): boolean {
 
 export function copy(obj: any): any {
     if (obj instanceof Array) {
-        return obj.map(item => copy(item));
+        return obj.map((item) => { return copy(item); });
     } else if (!isObject(obj)) {
         return obj;
     }
     const _obj = Object.assign({}, obj);
     Object.keys(_obj).forEach((prop: string) => {
         if (_obj[prop] instanceof Array) {
-            _obj[prop] = _obj[prop].map(item => copy(item));
+            _obj[prop] = _obj[prop].map((item) => { return copy(item); });
         } else if (isObject(obj)) {
             _obj[prop] = copy(_obj[prop]);
         }
