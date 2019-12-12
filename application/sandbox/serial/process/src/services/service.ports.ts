@@ -104,12 +104,12 @@ class ServicePorts {
     public getList(): Promise<IPortInfo[]> {
         return new Promise((resolve, reject) => {
             SerialPort.list().then((ports: SerialPort.PortInfo[]) => {
-                return resolve(ports.map((port: SerialPort.PortInfo) => {
+                resolve(ports.map((port: SerialPort.PortInfo) => {
                     return Object.assign({ }, port);
                 }));
             }).catch((error: Error | null | undefined) => {
                 if (error) {
-                    return reject(new Error(this._logger.error(`Fail to get list of ports due error: ${error.message}`)));
+                    reject(new Error(this._logger.error(`Fail to get list of ports due error: ${error.message}`)));
                 }
                 reject(new Error(this._logger.error(`Fail to get list of ports because unknown error`)));
             });
