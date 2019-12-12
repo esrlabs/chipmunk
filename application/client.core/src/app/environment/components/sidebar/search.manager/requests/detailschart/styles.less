@@ -13,32 +13,6 @@
     & p.caption{
         color: @scheme-color-3;
     }
-    & div.options-wrapper{
-        position: relative;
-        width: 100%;
-        & div.toggle {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 1rem;
-            height: 100%;
-            & span.toggle-button{
-                position: absolute;
-                right: 0;
-                top: 2px;
-                transition: all 100ms ease-in-out;
-                &.opened{
-                    transform: rotateZ(180deg);
-                    top:0;
-                }
-            }
-        }
-        & div.options {
-            position: relative;
-            width: ~"calc(100% - 1rem)";
-            margin-left: 1rem;
-        }
-    }
     & span.spacer{
         position: relative;
         display: block;

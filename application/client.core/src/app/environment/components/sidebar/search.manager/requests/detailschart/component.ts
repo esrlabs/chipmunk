@@ -1,12 +1,12 @@
 // tslint:disable:member-ordering
 
-import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, OnChanges } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, OnChanges, EventEmitter } from '@angular/core';
 import { IChartRequest } from '../../../../../controller/controller.session.tab.search.charts';
 import { CColors } from '../../../../../conts/colors';
 import { Subscription } from 'rxjs';
 import { IComponentDesc } from 'chipmunk-client-containers';
-import { InputStandardComponent, DDListStandardComponent, SliderNumericComponent } from 'chipmunk-client-primitive';
-import ChartControllers, { AChart, IOption, EOptionType, IOptionsObj, EChartType } from '../../../../views/chart/charts/charts';
+import ChartControllers, { AChart, IOption, EOptionType, EChartType } from '../../../../views/chart/charts/charts';
+import { MatSlider, MatSliderChange } from '@angular/material';
 
 export interface IOnChangeEvent {
     color?: string;
@@ -25,9 +25,14 @@ interface IOptionComponent {
 }
 
 const COptionComponents = {
-    [EOptionType.slider]: SliderNumericComponent,
-    [EOptionType.list]: DDListStandardComponent,
-    [EOptionType.input]: InputStandardComponent,
+    [EOptionType.slider]: MatSlider,
+};
+
+const CComponentsInputs = {
+    [EOptionType.slider]: {
+        thumbLabel: true,
+        tickInterval: 1,
+    },
 };
 
 @Component({
@@ -116,21 +121,29 @@ export class SidebarAppSearchChartDetailsComponent implements OnDestroy, AfterCo
             return;
         }
         return controller.getOptions(this.chart.request.options).map((option: IOption) => {
+            // Create emitter
+            const emitter: EventEmitter<MatSliderChange> = new EventEmitter<MatSliderChange>();
+            // Create defaults inputs
+            const inputs = Object.assign({
+                value: option.value,
+                change: emitter,
+            }, CComponentsInputs[option.type]);
+            // Subscribe emitter
+            this._subscriptions[`emitter_${option.name.replace(/\s/, '_')}`] = emitter.asObservable().subscribe(this._onOptionChange.bind(this, controller, option));
+            // Returns dynamic component description
             return {
                 component: {
                     factory: COptionComponents[option.type],
-                    inputs: Object.assign({
-                        value: option.value,
-                        onChange: this._onOptionChange.bind(this, controller, option),
-                    }, option.option ),
+                    inputs: Object.assign(inputs, option.option ),
                 },
                 caption: option.caption,
             };
         });
     }
 
-    private _onOptionChange(controller: AChart, option: IOption, value: any) {
-        option.value = value;
+    private _onOptionChange(controller: AChart, option: IOption, event: MatSliderChange) {
+        option.value = event.value;
+        event.source.blur();
         this.chart.request.options = controller.setOption(this.chart.request.options, option);
         this.chart.onChange({ options: Object.assign({}, this.chart.request.options) });
         this._cdRef.detectChanges();
