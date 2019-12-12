@@ -4,7 +4,7 @@
         <tr [attr.class]="'port ' + (_ng_isPortSelected(port) ? 'selected' : '')" *ngFor="let port of _ng_ports" (click)="_ng_onPortSelect(port)">
             <td><lib-sb-portinfo-com [port]="port"></lib-sb-portinfo-com></td>
             <td *ngIf="_ng_isConnected(port)"><span class="size t-small color-scheme-2">connected</span></td>
-            <td *ngIf="!_ng_isConnected(port)"><span class="size t-small color-scheme-2">{{_ng_formatLoad(_ng_spyState[port.comName])}}</span></td>
+            <td *ngIf="!_ng_isConnected(port)"><span class="size t-small color-scheme-2">{{_ng_formatLoad(_ng_spyState[port.path])}}</span></td>
         </tr>
     </table>
     <div *ngIf="_ng_options">

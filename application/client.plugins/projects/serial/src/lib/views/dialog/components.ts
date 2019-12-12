@@ -57,8 +57,8 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
         this._ng_spyState = this._getSpyState();
         this._ng_ports = this._requestPortList();
         this._ng_ports.forEach(port => {
-            if (this._ng_spyState[port.comName] === undefined ) {
-                this._ng_spyState[port.comName] = 0;
+            if (this._ng_spyState[port.path] === undefined ) {
+                this._ng_spyState[port.path] = 0;
             }
         });
     }
@@ -79,12 +79,12 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
         if (this._optionsCom && this._optionsCom !== null) {
             options = this._optionsCom.getOptions();
         }
-        options.path = this._ng_selected.comName;
+        options.path = this._ng_selected.path;
         return options;
     }
 
     public _ng_isConnected(port: IPortInfo): IConnected {
-        return this._ng_connected.find(connected => connected.port.comName === port.comName);
+        return this._ng_connected.find(connected => connected.port.path === port.path);
     }
 
     public _ng_onConnect() {
@@ -97,12 +97,12 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
         if (this._ng_selected === undefined) {
             return false;
         }
-        return this._ng_selected.comName === port.comName ? true : false;
+        return this._ng_selected.path === port.path ? true : false;
     }
 
     public _ng_getState(port: IPortInfo): IPortState {
         const target: IConnected | undefined = this._ng_connected.find((connected: IConnected) => {
-            return connected.port.comName === port.comName;
+            return connected.port.path === port.path;
         });
         if (target === undefined) {
             return {

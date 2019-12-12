@@ -4,7 +4,7 @@
             (click)="_ng_onMore($event)"></span>
 </div>
 <div class="info">
-    <p class="t-small color-scheme-1">{{port.comName}}</p>
+    <p class="t-small color-scheme-1">{{port.path}}</p>
     <span class="size t-small color-scheme-2">{{_ng_read}}</span>
     <div class="more" *ngIf="_ng_isMoreOpened()">
         <lib-sb-port-options-read-com *ngIf="options !== undefined" [options]="options"></lib-sb-port-options-read-com>
