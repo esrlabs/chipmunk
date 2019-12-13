@@ -71,6 +71,7 @@ export class ToolbarSessionsService implements IService {
             this._subscriptions.onFocusSearchInput = HotkeysService.getObservable().focusSearchInput.subscribe(this._onFocusSearchInput.bind(this));
             this._subscriptions.onSessionClosed = TabsSessionsService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
             this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+            TabsSessionsService.setSidebarTabOpener(this.setActive.bind(this));
             resolve();
         });
     }

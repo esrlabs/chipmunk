@@ -35,13 +35,14 @@ export class SidebarSessionsService implements IService {
     };
 
     constructor() {
-        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-        this._subscriptions.onSessionClosed = TabsSessionsService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
-        this._subscriptions.onSidebarTitleInjection = TabsSessionsService.getObservable().onSidebarTitleInjection.subscribe(this._onSidebarTitleInjection.bind(this));
     }
 
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
+            this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+            this._subscriptions.onSessionClosed = TabsSessionsService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
+            this._subscriptions.onSidebarTitleInjection = TabsSessionsService.getObservable().onSidebarTitleInjection.subscribe(this._onSidebarTitleInjection.bind(this));
+            TabsSessionsService.setSidebarTabOpener(this.open.bind(this));
             resolve();
         });
     }
@@ -112,6 +113,33 @@ export class SidebarSessionsService implements IService {
             return service;
         }
         service.setActive(tab);
+    }
+
+    public open(guid: string, session?: string): Error | undefined {
+        const service: TabsService | Error = this._getSessionTabsService(session);
+        if (service instanceof Error) {
+            return service;
+        }
+        if (service.has(guid)) {
+            service.setActive(guid);
+            return undefined;
+        }
+        const available: ITab[] | undefined = this.getAvailableTabs();
+        if (available === undefined) {
+            return new Error(`No tab found`);
+        }
+        let added: boolean = false;
+        available.forEach((tab: ITab) => {
+            if (added) {
+                return;
+            }
+            if (tab.guid === guid) {
+                added = true;
+                this.add(tab, session);
+                this.setActive(guid);
+            }
+        });
+        return added ? undefined : new Error(`Tab ${guid} wasn't found in a list of available tabs.`);
     }
 
     public getAvailableTabs(session?: string): ITab[] | undefined {

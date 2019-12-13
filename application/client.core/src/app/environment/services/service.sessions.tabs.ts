@@ -12,11 +12,14 @@ import { IAPI, IPopup, IComponentDesc } from 'chipmunk.client.toolkit';
 import PluginsService from './service.plugins';
 import PopupsService from './standalone/service.popups';
 import OutputRedirectionsService from './standalone/service.output.redirections';
-
+import LayoutStateService from './standalone/service.layout.state';
 export { ControllerSessionTabSearch } from '../controller/controller.session.tab.search';
 export { IRequest } from '../controller/controller.session.tab.search.filters';
 
 export type TSessionGuid = string;
+
+export type TSidebarTabOpener = (guid: string, session?: string) => Error | undefined;
+export type TToolbarTabOpener = (guid: string, session?: string) => Error | undefined;
 
 export interface IServiceSubjects {
     onSessionChange: Subject<ControllerSessionTab | undefined>;
@@ -33,6 +36,8 @@ export class TabsSessionsService implements IService {
     private _subscriptions: { [key: string]: Subscription | SubscriptionRX | undefined } = { };
     private _currentSessionGuid: string;
     private _sessionsEventsHub: Toolkit.ControllerSessionsEvents = new Toolkit.ControllerSessionsEvents();
+    private _sidebarTabOpener: TSidebarTabOpener | undefined;
+    private _toolbarTabOpener: TToolbarTabOpener | undefined;
     private _defaults: {
         views: IDefaultView[],
     } = {
@@ -78,6 +83,14 @@ export class TabsSessionsService implements IService {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
+    }
+
+    public setSidebarTabOpener(opener: TSidebarTabOpener) {
+        this._sidebarTabOpener = opener;
+    }
+
+    public setToolbarTabOpener(opener: TToolbarTabOpener) {
+        this._toolbarTabOpener = opener;
     }
 
     public setDefaultViews(views: IDefaultView[]) {
@@ -221,7 +234,21 @@ export class TabsSessionsService implements IService {
             },
             setSidebarTitleInjection: (component: IComponentDesc) => {
                 this._subjects.onSidebarTitleInjection.next(component);
-            }
+            },
+            openSidebarApp: (appId: string) => {
+                if (this._sidebarTabOpener === undefined) {
+                    return;
+                }
+                LayoutStateService.sidebarMax();
+                this._sidebarTabOpener(appId, this._tabsService.getActiveTab().guid);
+            },
+            openToolbarApp: (appId: string) => {
+                if (this._toolbarTabOpener === undefined) {
+                    return;
+                }
+                LayoutStateService.toolbarMax();
+                this._toolbarTabOpener(appId);
+            },
         };
     }
 
