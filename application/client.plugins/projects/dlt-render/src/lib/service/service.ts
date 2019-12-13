@@ -33,7 +33,6 @@ export class Service extends Toolkit.APluginService {
             this._logger.error('API not found!');
             return;
         }
-        // this._subscriptions.onSessionOpen = this.api.getSessionsEventsHub().subscribe().onSessionOpen(this._onSessionOpen.bind(this));
         this._subscriptions.onSessionClose = this.api.getSessionsEventsHub().subscribe().onSessionClose(this._onSessionClose.bind(this));
         this._subscriptions.onSessionChange = this.api.getSessionsEventsHub().subscribe().onSessionChange(this._onSessionChange.bind(this));
     }
@@ -42,10 +41,11 @@ export class Service extends Toolkit.APluginService {
         if (!isDLTSource(event.source.name)) {
             return;
         }
-        this.api.openSidebarApp('dlt-render');
+        this.api.openSidebarApp('dlt-render', true);
     }
 
     private _onSessionChange(guid: string) {
+        this._session = guid;
         Object.keys(this._sessionSubscriptions).forEach((key: string) => {
             this._sessionSubscriptions[key].unsubscribe();
         });
@@ -56,7 +56,10 @@ export class Service extends Toolkit.APluginService {
         this._sessionSubscriptions.onRowSelected = EventsHub.getSubject().onRowSelected.subscribe(this._onRowSelected.bind(this));
     }
 
-    private _onSessionClose() {
+    private _onSessionClose(guid: string) {
+        if (this._session !== guid) {
+            return;
+        }
         Object.keys(this._sessionSubscriptions).forEach((key: string) => {
             this._sessionSubscriptions[key].unsubscribe();
         });
