@@ -4,6 +4,7 @@ import ElectronIpcService, { IPCMessages, Subscription } from '../../../services
 import FileOpenerService from '../../../services/service.file.opener';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import { NotificationsService, INotification } from '../../../services.injectable/injectable.service.notifications';
+import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 
 @Component({
     selector: 'app-views-dialogs-recentfilescation-map',
@@ -47,22 +48,13 @@ export class DialogsRecentFilesActionComponent implements AfterContentInit {
     }
 
     public _ng_open(file: IPCMessages.IRecentFileInfo) {
-        TabsSessionsService.add().then(() => {
-            FileOpenerService.openFileByName(file.file).catch((openFileErr: Error) => {
-                this._logger.error(`Fail to open new session due error: ${openFileErr.message}`);
-                this._notificationsService.add({
-                    caption: 'Fail open file',
-                    message: `Fail to open file "${file.file}" due error: ${openFileErr.message}`
-                });
-            });
-        }).catch((addSessionErr: Error) => {
-            this._logger.error(`Fail to open new session due error: ${addSessionErr.message}`);
+        FileOpenerService.openFileByName(file.file).catch((openFileErr: Error) => {
+            this._logger.error(`Fail to open new session due error: ${openFileErr.message}`);
             this._notificationsService.add({
                 caption: 'Fail open file',
-                message: `Fail to open file "${file.file}" due error: ${addSessionErr.message}`
+                message: `Fail to open file "${file.file}" due error: ${openFileErr.message}`
             });
         });
-
         this.close();
     }
 
