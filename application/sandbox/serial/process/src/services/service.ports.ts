@@ -104,7 +104,9 @@ class ServicePorts {
     public getList(): Promise<IPortInfo[]> {
         return new Promise((resolve, reject) => {
             SerialPort.list().then((ports: SerialPort.PortInfo[]) => {
-                resolve(ports.map((port: SerialPort.PortInfo) => {
+                const portsU = ports as unknown;
+                const portsI: IPortInfo[] = portsU as IPortInfo[];
+                resolve(portsI.map((port: IPortInfo) => {
                     return Object.assign({ }, port);
                 }));
             }).catch((error: Error | null | undefined) => {
