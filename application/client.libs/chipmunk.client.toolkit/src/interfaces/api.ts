@@ -75,4 +75,16 @@ export interface IAPI {
      * @returns {void}
      */
     setSidebarTitleInjection: (component: IComponentDesc | undefined) => void;
+
+    /**
+     * Opens sidebar app by ID
+     * @param {string} appId - id of app
+     */
+    openSidebarApp: (appId: string) => void;
+
+    /**
+     * Opens toolbar app by ID
+     * @param {string} appId - id of app
+     */
+    openToolbarApp: (appId: string) => void;
 }
