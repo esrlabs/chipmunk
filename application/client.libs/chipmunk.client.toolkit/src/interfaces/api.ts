@@ -79,12 +79,14 @@ export interface IAPI {
     /**
      * Opens sidebar app by ID
      * @param {string} appId - id of app
+     * @param {boolean} silence - do not make tab active
      */
-    openSidebarApp: (appId: string) => void;
+    openSidebarApp: (appId: string, silence: boolean) => void;
 
     /**
      * Opens toolbar app by ID
      * @param {string} appId - id of app
+     * @param {boolean} silence - do not make tab active
      */
-    openToolbarApp: (appId: string) => void;
+    openToolbarApp: (appId: string, silence: boolean) => void;
 }
