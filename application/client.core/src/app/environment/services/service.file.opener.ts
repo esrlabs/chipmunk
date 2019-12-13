@@ -73,64 +73,69 @@ export class FileOpenerService implements IService, IFileOpenerService {
         if (files.length === 0) {
             return;
         }
-        const active: ControllerSessionTab | undefined = TabsSessionsService.getActive();
-        if (active === undefined) {
-            this._logger.warn(`No active session. Cannot continue with opening file.`);
+        if (files.length === 0) {
             return;
         }
-        if (files.length === 1) {
-            // Single file
-            ServiceElectronIpc.request(new IPCMessages.FileOpenRequest({
-                file: files[0].path,
-                session: TabsSessionsService.getActive().getGuid(),
-            }), IPCMessages.FileOpenResponse).then((response: IPCMessages.FileReadResponse) => {
-                if (response.error !== undefined) {
-                    this._logger.error(`Fail open file "${files[0].path}" due error: ${response.error}`);
-                    // TODO: add notification here
-                    return;
-                }
-            }).catch((error: Error) => {
-                this._logger.error(`Fail open file "${files[0].path}" due error: ${error.message}`);
-                // TODO: add notification here
-            });
-            return;
-        } else if (files.length > 0) {
-            // Multiple files
-            // Stored panding files
-            this._pending = files;
-            // Select way: merge or concat
-            PopupsService.add({
-                caption: `Opening files`,
-                component: {
-                    factory: DialogsMultipleFilesActionComponent,
-                    inputs: {
-                        files: files
+        this._setSessionForFile().then(() => {
+            if (files.length === 1) {
+                // Single file
+                ServiceElectronIpc.request(new IPCMessages.FileOpenRequest({
+                    file: files[0].path,
+                    session: TabsSessionsService.getActive().getGuid(),
+                }), IPCMessages.FileOpenResponse).then((response: IPCMessages.FileReadResponse) => {
+                    if (response.error !== undefined) {
+                        this._logger.error(`Fail open file "${files[0].path}" due error: ${response.error}`);
+                        // TODO: add notification here
+                        return;
                     }
-                },
-                buttons: [
-                    { caption: 'Merge', handler: this.merge.bind(this, files), },
-                    { caption: 'Concat', handler: this.concat.bind(this, files), },
-                ],
-            });
-        }
+                }).catch((error: Error) => {
+                    this._logger.error(`Fail open file "${files[0].path}" due error: ${error.message}`);
+                    // TODO: add notification here
+                });
+            } else {
+                // Multiple files
+                // Stored panding files
+                this._pending = files;
+                // Select way: merge or concat
+                PopupsService.add({
+                    caption: `Opening files`,
+                    component: {
+                        factory: DialogsMultipleFilesActionComponent,
+                        inputs: {
+                            files: files
+                        }
+                    },
+                    buttons: [
+                        { caption: 'Merge', handler: this.merge.bind(this, files), },
+                        { caption: 'Concat', handler: this.concat.bind(this, files), },
+                    ],
+                });
+            }
+        }).catch((error: Error) => {
+            this._logger.error(`Cannot continue with opening file, because fail to prepare session due error: ${error.message}`);
+        });
     }
 
     public openFileByName(file: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            ServiceElectronIpc.request(new IPCMessages.FileOpenRequest({
-                file: file,
-                session: TabsSessionsService.getActive().getGuid(),
-            }), IPCMessages.FileOpenResponse).then((response: IPCMessages.FileReadResponse) => {
-                if (response.error !== undefined) {
-                    this._logger.error(`Fail open file "${file}" due error: ${response.error}`);
+            this._setSessionForFile().then(() => {
+                ServiceElectronIpc.request(new IPCMessages.FileOpenRequest({
+                    file: file,
+                    session: TabsSessionsService.getActive().getGuid(),
+                }), IPCMessages.FileOpenResponse).then((response: IPCMessages.FileReadResponse) => {
+                    if (response.error !== undefined) {
+                        this._logger.error(`Fail open file "${file}" due error: ${response.error}`);
+                        // TODO: add notification here
+                        return reject(new Error(response.error));
+                    }
+                    resolve();
+                }).catch((error: Error) => {
+                    this._logger.error(`Fail open file "${file}" due error: ${error.message}`);
                     // TODO: add notification here
-                    return reject(new Error(response.error));
-                }
-                resolve();
+                    reject(error);
+                });
             }).catch((error: Error) => {
-                this._logger.error(`Fail open file "${file}" due error: ${error.message}`);
-                // TODO: add notification here
-                reject(error);
+                this._logger.error(`Cannot continue with opening file, because fail to prepare session due error: ${error.message}`);
             });
         });
     }
@@ -178,6 +183,23 @@ export class FileOpenerService implements IService, IFileOpenerService {
         }
         // Trigger event
         this._subjects[CSubjects[guid].subject].next(this._pending.slice());
+    }
+
+    private _setSessionForFile(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            // Check active session before
+            const active: ControllerSessionTab = TabsSessionsService.getActive();
+            if (active !== undefined && active.getSessionStream().getOutputStream().getRowsCount() === 0) {
+                // Active session is empty, we can use it
+                return resolve();
+            }
+            // Active session has content, create new one
+            TabsSessionsService.add().then(() => {
+                resolve();
+            }).catch((addSessionErr: Error) => {
+                reject(addSessionErr);
+            });
+        });
     }
 }
 
