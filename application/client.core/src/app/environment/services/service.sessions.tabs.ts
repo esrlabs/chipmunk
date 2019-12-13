@@ -18,8 +18,8 @@ export { IRequest } from '../controller/controller.session.tab.search.filters';
 
 export type TSessionGuid = string;
 
-export type TSidebarTabOpener = (guid: string, session?: string) => Error | undefined;
-export type TToolbarTabOpener = (guid: string, session?: string) => Error | undefined;
+export type TSidebarTabOpener = (guid: string, session: string | undefined, silence: boolean) => Error | undefined;
+export type TToolbarTabOpener = (guid: string, session: string | undefined, silence: boolean) => Error | undefined;
 
 export interface IServiceSubjects {
     onSessionChange: Subject<ControllerSessionTab | undefined>;
@@ -235,19 +235,19 @@ export class TabsSessionsService implements IService {
             setSidebarTitleInjection: (component: IComponentDesc) => {
                 this._subjects.onSidebarTitleInjection.next(component);
             },
-            openSidebarApp: (appId: string) => {
+            openSidebarApp: (appId: string, silence: boolean) => {
                 if (this._sidebarTabOpener === undefined) {
                     return;
                 }
                 LayoutStateService.sidebarMax();
-                this._sidebarTabOpener(appId, this._tabsService.getActiveTab().guid);
+                this._sidebarTabOpener(appId, this._tabsService.getActiveTab().guid, silence);
             },
-            openToolbarApp: (appId: string) => {
+            openToolbarApp: (appId: string, silence: boolean) => {
                 if (this._toolbarTabOpener === undefined) {
                     return;
                 }
                 LayoutStateService.toolbarMax();
-                this._toolbarTabOpener(appId);
+                this._toolbarTabOpener(appId, undefined, silence);
             },
         };
     }

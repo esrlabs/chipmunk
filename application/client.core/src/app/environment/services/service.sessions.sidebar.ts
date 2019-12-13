@@ -115,13 +115,15 @@ export class SidebarSessionsService implements IService {
         service.setActive(tab);
     }
 
-    public open(guid: string, session?: string): Error | undefined {
+    public open(guid: string, session: string | undefined, silence: boolean = false): Error | undefined {
         const service: TabsService | Error = this._getSessionTabsService(session);
         if (service instanceof Error) {
             return service;
         }
         if (service.has(guid)) {
-            service.setActive(guid);
+            if (!silence) {
+                this.setActive(guid);
+            }
             return undefined;
         }
         const available: ITab[] | undefined = this.getAvailableTabs();
@@ -136,7 +138,9 @@ export class SidebarSessionsService implements IService {
             if (tab.guid === guid) {
                 added = true;
                 this.add(tab, session);
-                this.setActive(guid);
+                if (!silence) {
+                    this.setActive(guid);
+                }
             }
         });
         return added ? undefined : new Error(`Tab ${guid} wasn't found in a list of available tabs.`);
