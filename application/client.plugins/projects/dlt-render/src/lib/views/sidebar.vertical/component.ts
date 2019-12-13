@@ -42,7 +42,11 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy, After
     }
 
     public ngAfterViewInit() {
-        this._cdRef.detectChanges();
+        if (this.api.getViewportEventsHub().getSelected() !== undefined) {
+            this._onRowSelected(this.api.getViewportEventsHub().getSelected());
+        } else {
+            this._forceUpdate();
+        }
     }
 
     private _onRowSelected(event: Toolkit.IOnRowSelectedEvent) {

@@ -3,9 +3,10 @@
  */
 
 import { DLTRowColumns } from './lib/render/row.columns';
+import Service from './lib/service/service';
 
 const customRowRender = new DLTRowColumns();
 
-export { customRowRender };
+export { customRowRender, Service };
 
 export * from './lib/module';
