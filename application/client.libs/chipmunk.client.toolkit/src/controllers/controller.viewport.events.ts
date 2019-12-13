@@ -32,6 +32,13 @@ export class ControllerViewportEvents {
     } = {
         onRowSelected: new Subject<IOnRowSelectedEvent>(),
     };
+    private _selected: IOnRowSelectedEvent | undefined;
+
+    constructor() {
+        this._subscriptions.onRowSelected = this.getSubject().onRowSelected.subscribe((event: IOnRowSelectedEvent) => {
+            this._selected = event;
+        });
+    }
 
     public destroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
@@ -43,6 +50,14 @@ export class ControllerViewportEvents {
         onRowSelected: Subject<IOnRowSelectedEvent>,
     } {
         return this._subjects;
+    }
+
+    public drop() {
+        this._selected = undefined;
+    }
+
+    public getSelected(): IOnRowSelectedEvent | undefined {
+        return this._selected;
     }
 
 }
