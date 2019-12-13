@@ -28,7 +28,6 @@ export class Service extends Toolkit.APluginService {
     }
 
     private _onAPIReady() {
-        debugger;
         this.api = this.getAPI();
         if (this.api === undefined) {
             this._logger.error('API not found!');
