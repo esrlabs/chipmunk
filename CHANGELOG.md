@@ -1,5 +1,18 @@
 # Changelog
 
+### [1.34.0] - 12/13/2019
+* [#553](fix) remove debug stuff
+* [#553](feat) upgrade DLT render plugin
+* [#553](feat) update client API
+* [#553](feat) chipmunk.client.toolkit -> 0.0.76
+* [#551](feat) new logic of opening file (recent, dropping)
+* [#574](fix) fixing hotkeys (mac)
+* [#588](fix) fix movement across bookmarks
+* [#564](feat) open dlt-stats on load
+* [](fix) fix issue with options of chart
+* [](fix) fix "remove all" chart issue
+* [#586](feat) including angular/material
+
 ### [1.33.2] - 12/10/2019
 * [](fix) correct "jumping" position from chart
 * [#555](feat) highlighting current line (row)
