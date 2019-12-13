@@ -15,8 +15,6 @@ import { SidebarAppSearchManagerComponent       } from './search.manager/compone
 import { SidebarAppNotificationsModule          } from '../views/notifications/module';
 import { SidebarAppNotificationsComponent       } from '../views/notifications/component';
 
-import { SidebarAppChartsModule                 } from './charts/module';
-
 @NgModule({
     entryComponents : [  ],
     imports         : [ CommonModule ],
@@ -26,8 +24,7 @@ import { SidebarAppChartsModule                 } from './charts/module';
         SidebarAppSearchManagerModule,
         SidebarAppParsingModule,
         SidebarAppNotificationsModule,
-        SidebarAppConcatFilesModule,
-        SidebarAppChartsModule
+        SidebarAppConcatFilesModule
     ]
 })
 

@@ -6,7 +6,6 @@ import { DialogsHotkeysMapComponent             } from './hotkeys/component';
 import { DialogsMultipleFilesActionComponent    } from './multiplefiles/component';
 import { DialogsRecentFilesActionComponent      } from './recentfile/component';
 import { DialogsRecentFitlersActionComponent    } from './recentfilter/component';
-import { DialogsChartsNewActionComponent        } from './charts.new/component';
 
 import { PrimitiveModule                        } from 'chipmunk-client-primitive';
 import { ContainersModule                       } from 'chipmunk-client-containers';
@@ -16,8 +15,7 @@ const CDialogs = [
     DialogsHotkeysMapComponent,
     DialogsMultipleFilesActionComponent,
     DialogsRecentFilesActionComponent,
-    DialogsRecentFitlersActionComponent,
-    DialogsChartsNewActionComponent
+    DialogsRecentFitlersActionComponent
 ];
 
 @NgModule({
