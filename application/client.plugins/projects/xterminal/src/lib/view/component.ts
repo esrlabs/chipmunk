@@ -91,9 +91,9 @@ export class SidebarViewComponent implements AfterViewInit, OnDestroy {
     private _setTheme(xterm: Terminal) {
         // xterm.setOption('allowTransparency', true);
         xterm.setOption('fontFamily', 'monospace');
-        xterm.setOption('fontSize', 14);
-        xterm.setOption('fontWeight', 500);
-        xterm.setOption('fontWeightBold', 600);
+        xterm.setOption('fontSize', 13);
+        xterm.setOption('fontWeight', 300);
+        xterm.setOption('fontWeightBold', 400);
         // xterm.setOption('lineHeight', 15);
         xterm.setOption('theme', {
             background: '#333333',
@@ -113,11 +113,11 @@ export class SidebarViewComponent implements AfterViewInit, OnDestroy {
     private _onIncomeEvent(message: any) {
         switch (message.event) {
             case EHostEvents.data:
-                if (this._xterm === undefined) {
+                if (this._xterm === undefined || this._fitAddon === undefined) {
                     return;
                 }
                 this._xterm.write(message.data);
-                (this._xterm as any).fit();
+                this._fitAddon.fit();
                 break;
         }
         this._cdRef.detectChanges();
