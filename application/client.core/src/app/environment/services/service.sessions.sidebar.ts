@@ -347,6 +347,9 @@ export class SidebarSessionsService implements IService {
         }
         this._services.delete(session);
         this._tabs.delete(session);
+        if (this._tabs.size === 0) {
+            this.setTitleInjection(undefined);
+        }
     }
 
     private _onSidebarTitleInjection(component: IComponentDesc | undefined) {
