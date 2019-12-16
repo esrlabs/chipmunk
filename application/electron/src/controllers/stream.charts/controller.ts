@@ -126,6 +126,12 @@ export default class ControllerStreamCharts {
         this._pending.bytesToRead = { from: -1, to: -1 };
         this._pending.rowOffset = -1;
         this._extract(this._charts, Tools.guid(), bytes.from, bytes.to, rowsOffset).then((data: TChartData) => {
+            ServiceElectron.IPC.send(new IPCElectronMessages.ChartResultsUpdated({
+                streamId: this._state.getGuid(),
+                results: data,
+            })).catch((sendMsgErr: Error) => {
+                this._logger.error(`Fail notify render due error: ${sendMsgErr.message}`);
+            });
             // console.log(data);
         }).catch((searchErr: Error) => {
             this._logger.warn(`Fail to append search results (range: ${bytes.from} - ${bytes.to}) due error: ${searchErr.message}`);

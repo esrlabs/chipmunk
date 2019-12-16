@@ -232,6 +232,9 @@ export { IChartRequestCancelResponse, ChartRequestCancelResponse };
 import { IChartRequestResults, IMatch as IChartMatch, ChartRequestResults, TResults as TChartResults } from './chart.request.results';
 export { IChartRequestResults, IChartMatch, ChartRequestResults, TChartResults };
 
+import { IChartResultsUpdated, ChartResultsUpdated } from './chart.results.updated';
+export { IChartResultsUpdated, ChartResultsUpdated };
+
 // Common type for expected message implementation
 export type TMessage =  HostState |
                         HostStateHistory |
@@ -308,7 +311,8 @@ export type TMessage =  HostState |
                         ChartRequest |
                         ChartRequestCancelRequest |
                         ChartRequestCancelResponse |
-                        ChartRequestResults;
+                        ChartRequestResults |
+                        ChartResultsUpdated;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -407,4 +411,5 @@ export const Map = {
     [ChartRequestCancelRequest.signature    ]: ChartRequestCancelRequest,
     [ChartRequestCancelResponse.signature   ]: ChartRequestCancelResponse,
     [ChartRequestResults.signature          ]: ChartRequestResults,
+    [ChartResultsUpdated.signature          ]: ChartResultsUpdated,
 };
