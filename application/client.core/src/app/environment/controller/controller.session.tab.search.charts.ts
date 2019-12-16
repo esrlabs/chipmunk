@@ -370,5 +370,6 @@ export class ControllerSessionTabSearchCharts {
             }
             this._data[chart].push(...message.results[chart]);
         });
+        this._subjects.onChartsResultsUpdated.next(this._data);
     }
 }
