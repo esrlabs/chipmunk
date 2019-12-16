@@ -28,11 +28,13 @@ export default class Transform extends Stream.Transform {
     private _matches: IMatch[] = [];
     private _groups: boolean = false;
     private _stopped: boolean = false;
+    private _rowOffset: number = 0;
 
-    constructor(options: Stream.TransformOptions, groups: boolean = false) {
+    constructor(options: Stream.TransformOptions, rowOffset = 0, groups: boolean = false) {
         super(options);
         this._logger = new Logger(`Transform.Charting`);
         this._groups = groups;
+        this._rowOffset = rowOffset;
     }
 
     public getMatches(): IMatch[] {
@@ -64,7 +66,7 @@ export default class Transform extends Stream.Transform {
                 return;
             }
             const match: IMatch = {
-                row: num,
+                row: num + this._rowOffset,
                 value: this._groups ? parts[1].split(CGroupDelimiter) : undefined,
             };
             this._matches.push(match);

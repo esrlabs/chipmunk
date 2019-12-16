@@ -32,7 +32,7 @@ export class OperationAppend extends EventEmitter {
         this._streamGuid = streamGuid;
         this._streamFile = streamFile;
         this._searchFile = searchFile;
-        this._logger = new Logger(`OperationAppend (${streamGuid})`);
+        this._logger = new Logger(`Search operation: append (${streamGuid})`);
         this._clear = this._clear.bind(this);
     }
 
@@ -58,7 +58,7 @@ export class OperationAppend extends EventEmitter {
         this._last = Object.assign(range);
         return new CancelablePromise<IMapItem[], void>((resolve, reject, cancel, self) => {
             const id: string = guid();
-            this._logger.measure(`Appending (#${id}): \nbytes: ${range.from} - ${range.to}; \noffset: ${mapOffset.bytes} bytes; ${mapOffset.rows} rows.`);
+            this._logger.measure(`Appending (#${id}): bytes: ${range.from} - ${range.to}; offset: ${mapOffset.bytes} bytes; ${mapOffset.rows} rows.`);
             // Start measuring
             const measurer = this._logger.measure(`appending search #${id}`);
             // Create transformer to build map

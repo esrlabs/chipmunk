@@ -1,8 +1,8 @@
 import Subject from '../../tools/subject';
-import { IRange } from '../stream.main/file.map';
+import { IMapItem } from '../stream.main/file.map';
 
 interface ISubjects {
-    onStreamBytesMapUpdated: Subject<IRange>;
+    onStreamBytesMapUpdated: Subject<IMapItem>;
 }
 
 export class EventsHub {

@@ -21,12 +21,13 @@ export class OperationAppend extends EventEmitter {
     private _streamFile: string;
     private _streamGuid: string;
     private _cleaners: Map<string, THandler> = new Map();
+    private _last: { from: number, to: number } | undefined;
 
     constructor(streamGuid: string, streamFile: string) {
         super();
         this._streamGuid = streamGuid;
         this._streamFile = streamFile;
-        this._logger = new Logger(`OperationAppend (${streamGuid})`);
+        this._logger = new Logger(`Chart operation: append (${streamGuid})`);
     }
 
     public destroy() {
@@ -35,68 +36,71 @@ export class OperationAppend extends EventEmitter {
 
     public perform( regExp: RegExp,
                     range: { from: number, to: number },
+                    rowOffset: number,
                     groups: boolean = false,
     ): CancelablePromise<IMatch[], void> {
         const taskId: string = guid();
         return new CancelablePromise<IMatch[], void>((resolve, reject) => {
-            fs.exists(this._streamFile, (exists: boolean) => {
-                if (!exists) {
-                    return resolve([]);
+            if (this._last !== undefined) {
+                if (this._last.to !== range.from - 1 && this._last.to !== range.to) {
+                    this._logger.error(`Last ranage was finished with ${this._last.to} bytes, but new range is started from ${range.from} byte.`);
+                    return reject(new Error(`Wrong range for append operation`));
                 }
-                // Get count of groups
-                const groupsCount: number = this._getGroupsCount(regExp.source);
-                groups = !groups ? false : (groupsCount > 0);
-                // Start measuring
-                const measurer = this._logger.measure(`charting #${guid()}`);
-                // Create reader
-                const reader: ReadStream = fs.createReadStream(this._streamFile, { encoding: 'utf8', start: range.from, end: range.to });
-                // Create writer
-                const writer: NullWritableStream = new NullWritableStream();
-                // Create transform
-                const transform = new Transform({}, groups);
-                // Create process
-                const process = spawn(ServicePaths.getRG(), this._getProcArgs(regExp.source, '-', groups ? groupsCount : 0), {
-                    cwd: path.dirname(this._streamFile),
-                    stdio: [ 'pipe', 'pipe', 'pipe' ],
-                    detached: true,
+            }
+            this._last = Object.assign(range);
+            // Get count of groups
+            const groupsCount: number = this._getGroupsCount(regExp.source);
+            groups = !groups ? false : (groupsCount > 0);
+            // Start measuring
+            const measurer = this._logger.measure(`Appending (#${taskId}): bytes: ${range.from} - ${range.to};`);
+            // Create reader
+            const reader: ReadStream = fs.createReadStream(this._streamFile, { encoding: 'utf8', start: range.from, end: range.to });
+            // Create writer
+            const writer: NullWritableStream = new NullWritableStream();
+            // Create transform
+            const transform = new Transform({}, rowOffset, groups);
+            // Create process
+            const process = spawn(ServicePaths.getRG(), this._getProcArgs(regExp.source, '-', groups ? groupsCount : 0), {
+                cwd: path.dirname(this._streamFile),
+                stdio: [ 'pipe', 'pipe', 'pipe' ],
+                detached: true,
+            });
+            // Pipe process with reader: reader -> ripgrep
+            reader.pipe(process.stdin);
+            // Pipe process with writer: ripgrep -> writer (NULL writer)
+            process.stdout.pipe(transform).pipe(writer);
+            // Handeling errors
+            [process, process.stdout, writer, reader].forEach((smth: NullWritableStream | ChildProcess | Readable | ReadStream) => {
+                smth.once('error', (error: Error) => {
+                    this._logger.error(`Error during charting: ${error.message}`);
+                    if (!this._cleaners.has(taskId)) {
+                        return;
+                    }
+                    reject(error);
                 });
-                // Pipe process with reader: reader -> ripgrep
-                reader.pipe(process.stdin);
-                // Pipe process with writer: ripgrep -> writer (NULL writer)
-                process.stdout.pipe(transform).pipe(writer);
-                // Handeling errors
-                [process, process.stdout, writer, reader].forEach((smth: NullWritableStream | ChildProcess | Readable | ReadStream) => {
-                    smth.once('error', (error: Error) => {
-                        this._logger.error(`Error during charting: ${error.message}`);
-                        if (!this._cleaners.has(taskId)) {
-                            return;
-                        }
-                        reject(error);
-                    });
-                });
-                // Handeling finishing
-                process.once('close', () => {
-                    resolve(transform.getMatches());
-                });
-                // Create cleaner
-                this._cleaners.set(taskId, () => {
-                    // Stop reader
-                    reader.removeAllListeners();
-                    reader.close();
-                    // Stop transform
-                    transform.stop();
-                    transform.removeAllListeners();
-                    // Kill process
-                    process.removeAllListeners();
-                    process.stdout.removeAllListeners();
-                    process.stdout.unpipe();
-                    process.stdout.destroy();
-                    process.kill();
-                    // Remove cleaner
-                    this._cleaners.delete(taskId);
-                    // Measure spent time
-                    measurer();
-                });
+            });
+            // Handeling finishing
+            process.once('close', () => {
+                resolve(transform.getMatches());
+            });
+            // Create cleaner
+            this._cleaners.set(taskId, () => {
+                // Stop reader
+                reader.removeAllListeners();
+                reader.close();
+                // Stop transform
+                transform.stop();
+                transform.removeAllListeners();
+                // Kill process
+                process.removeAllListeners();
+                process.stdout.removeAllListeners();
+                process.stdout.unpipe();
+                process.stdout.destroy();
+                process.kill();
+                // Remove cleaner
+                this._cleaners.delete(taskId);
+                // Measure spent time
+                measurer();
             });
         }).finally(this._clear.bind(this, taskId));
     }

@@ -26,7 +26,7 @@ export class OperationCharting extends EventEmitter {
         super();
         this._streamGuid = streamGuid;
         this._streamFile = streamFile;
-        this._logger = new Logger(`OperationCharting (${streamGuid})`);
+        this._logger = new Logger(`Chart operation: inspecting (${streamGuid})`);
     }
 
     public destroy() {
@@ -50,7 +50,7 @@ export class OperationCharting extends EventEmitter {
                 // Create writer
                 const writer: NullWritableStream = new NullWritableStream();
                 // Create transform
-                const transform = new Transform({}, groups);
+                const transform = new Transform({}, 0, groups);
                 // Create process
                 const process = spawn(ServicePaths.getRG(), this._getProcArgs(regExp.source, '-', groups ? groupsCount : 0), {
                     cwd: path.dirname(this._streamFile),

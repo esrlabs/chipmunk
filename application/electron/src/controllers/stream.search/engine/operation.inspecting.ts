@@ -26,7 +26,7 @@ export class OperationInspecting extends EventEmitter {
         this._streamGuid = streamGuid;
         this._streamFile = streamFile;
         this._searchFile = searchFile;
-        this._logger = new Logger(`OperationInspecting (${streamGuid})`);
+        this._logger = new Logger(`Search operation: inspecting (${streamGuid})`);
     }
 
     public destroy() {

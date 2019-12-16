@@ -4,6 +4,7 @@ import State from '../state';
 import { CancelablePromise } from '../../../tools/promise.cancelable';
 import ServiceStreams from '../../../services/service.streams';
 import { OperationCharting, IMatch } from './operation.charting';
+import { OperationAppend } from './operation.append';
 
 export type TChartData = { [key: string]: IMatch[] };
 
@@ -30,14 +31,16 @@ export class ChartingEngine {
     };
     private _operations: {
         charting: OperationCharting,
+        appending: OperationAppend,
     };
 
     constructor(state: State) {
         this._state = state;
-        this._logger = new Logger(`ControllerSearchEngine: ${this._state.getGuid()}`);
+        this._logger = new Logger(`ControllerChartEngine: ${this._state.getGuid()}`);
         // Create operations controllers
         this._operations = {
             charting: new OperationCharting(this._state.getGuid(), this._state.getStreamFile()),
+            appending: new OperationAppend(this._state.getGuid(), this._state.getStreamFile()),
         };
     }
 
@@ -48,7 +51,7 @@ export class ChartingEngine {
         });
     }
 
-    public extract(requests: IChartRequest[], from?: number, to?: number): CancelablePromise<TChartData, void> | Error {
+    public extract(requests: IChartRequest[], from?: number, to?: number, rowOffset?: number): CancelablePromise<TChartData, void> | Error {
         if (this._stock.charting.size !== 0) {
             return new Error(`Fail to start extracting chart's values because previous wasn't finished.`);
         }
@@ -71,8 +74,12 @@ export class ChartingEngine {
             requests.forEach((request: IChartRequest) => {
                 // Task id
                 const requestTaskId: string = guid();
-                // Task
-                const task: CancelablePromise<IMatch[], void> = this._operations.charting.perform(request.regExp, request.groups);
+                let task: CancelablePromise<IMatch[], void>;
+                if (typeof from === 'number' && typeof to === 'number' && rowOffset !== undefined) {
+                    task = this._operations.appending.perform(request.regExp, { from: from, to: to }, rowOffset, request.groups);
+                } else {
+                    task = this._operations.charting.perform(request.regExp, request.groups);
+                }
                 // Store task
                 stock.set(requestTaskId, task);
                 // Processing results
@@ -97,6 +104,7 @@ export class ChartingEngine {
                 notFinishedTask.break();
             });
             stock.clear();
+            this._stock.charting.delete(taskId);
             // Drop progress tracking
             ServiceStreams.removeProgressSession(taskId, this._state.getGuid());
             measure();

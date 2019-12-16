@@ -1,12 +1,12 @@
 import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from '../../services/service.electron';
 import Logger from '../../tools/env.logger';
-import * as fs from 'fs';
 import ControllerStreamFileReader from '../stream.main/file.reader';
 import ControllerStreamProcessor from '../stream.main/controller';
 import State from './state';
 import { EventsHub } from '../stream.common/events';
 import { ChartingEngine, TChartData, IMatch, IChartRequest } from './engine/controller';
 import * as Tools from '../../tools/index';
+import { IMapItem } from '../stream.main/file.map';
 
 export interface IRange {
     from: number;
@@ -17,10 +17,6 @@ export interface IRangeMapItem {
     rows: IRange;
     bytes: IRange;
 }
-
-const CSettings = {
-    delayOnAppend: 250, // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is blocked
-};
 
 export default class ControllerStreamCharts {
 
@@ -34,8 +30,10 @@ export default class ControllerStreamCharts {
     private _charts: IChartRequest[] = [];
     private _pending: {
         bytesToRead: IRange,
+        rowOffset: number,
     } = {
         bytesToRead: { from: -1, to: -1 },
+        rowOffset: -1,
     };
 
     constructor(guid: string, streamFile: string, searchFile: string, stream: ControllerStreamProcessor, streamState: EventsHub) {
@@ -81,7 +79,7 @@ export default class ControllerStreamCharts {
         });
     }
 
-    private _extract(charts: IChartRequest[], requestId: string, from?: number, to?: number): Promise<TChartData> {
+    private _extract(charts: IChartRequest[], requestId: string, from?: number, to?: number, rowOffset?: number): Promise<TChartData> {
         return new Promise((resolve, reject) => {
             if (this._processor.getStreamSize() === 0) {
                 // Save requests
@@ -90,7 +88,7 @@ export default class ControllerStreamCharts {
                 return resolve({});
             }
             // Start inspecting
-            const inspecting = this._charting.extract(charts, from, to);
+            const inspecting = this._charting.extract(charts, from, to, rowOffset);
             if (inspecting instanceof Error) {
                 this._logger.warn(`Fail to start extract chart data due error: ${inspecting.message}`);
                 return;
@@ -105,24 +103,31 @@ export default class ControllerStreamCharts {
         });
     }
 
-    private _append(updated?: IRange): void {
+    private _append(updated?: IMapItem): void {
         if (this._charts.length === 0) {
             return;
         }
         if (updated !== undefined) {
-            if (this._pending.bytesToRead.from === -1 || this._pending.bytesToRead.from > updated.from) {
-                this._pending.bytesToRead.from = updated.from;
+            if (this._pending.rowOffset === -1) {
+                this._pending.rowOffset = updated.rows.from;
             }
-            if (this._pending.bytesToRead.to === -1 || this._pending.bytesToRead.to < updated.to) {
-                this._pending.bytesToRead.to = updated.to;
+            if (this._pending.bytesToRead.from === -1 || this._pending.bytesToRead.from > updated.bytes.from) {
+                this._pending.bytesToRead.from = updated.bytes.from;
+            }
+            if (this._pending.bytesToRead.to === -1 || this._pending.bytesToRead.to < updated.bytes.to) {
+                this._pending.bytesToRead.to = updated.bytes.to;
             }
         }
         if (this._charting.isWorking()) {
             return;
         }
         const bytes: IRange = { from: this._pending.bytesToRead.from, to: this._pending.bytesToRead.to };
+        const rowsOffset: number = this._pending.rowOffset;
         this._pending.bytesToRead = { from: -1, to: -1 };
-        this._extract(this._charts, Tools.guid(), bytes.from, bytes.to).catch((searchErr: Error) => {
+        this._pending.rowOffset = -1;
+        this._extract(this._charts, Tools.guid(), bytes.from, bytes.to, rowsOffset).then((data: TChartData) => {
+            // console.log(data);
+        }).catch((searchErr: Error) => {
             this._logger.warn(`Fail to append search results (range: ${bytes.from} - ${bytes.to}) due error: ${searchErr.message}`);
         }).finally(() => {
             this._reappend();
@@ -221,8 +226,8 @@ export default class ControllerStreamCharts {
         });
     }
 
-    private _stream_onUpdate(bytes: IRange) {
-        this._append(bytes);
+    private _stream_onUpdate(map: IMapItem) {
+        this._append(map);
     }
 
 }

@@ -114,7 +114,10 @@ export default class ControllerStreamProcessor {
                         // Send notification to render
                         this._state.postman.notification();
                         // Trigger event on stream was updated
-                        this._events.getSubject().onStreamBytesMapUpdated.emit(converted.map.bytes);
+                        this._events.getSubject().onStreamBytesMapUpdated.emit({
+                            bytes: Object.assign({}, converted.map.bytes),
+                            rows: Object.assign({}, converted.map.rows),
+                        });
                         if (writeError) {
                             const error: Error = new Error(this._logger.error(`Fail to write data into stream file due error: ${writeError.message}`));
                             rejectBeforeCallback(error);
@@ -158,7 +161,10 @@ export default class ControllerStreamProcessor {
             // Send notification to render
             this._state.postman.notification();
             // Trigger event on stream was updated
-            this._events.getSubject().onStreamBytesMapUpdated.emit({ from: map[0].bytes.from, to: map[map.length - 1].bytes.to });
+            this._events.getSubject().onStreamBytesMapUpdated.emit({
+                bytes: { from: map[0].bytes.from, to: map[map.length - 1].bytes.to },
+                rows: { from: map[0].rows.from, to: map[map.length - 1].rows.to },
+            });
         });
         if (options.decoder !== undefined) {
             options.reader.pipe(options.decoder).pipe(transform).pipe(stream);
@@ -183,16 +189,28 @@ export default class ControllerStreamProcessor {
     public rewriteStreamFileMap(map: IMapItem[]) {
         this._state.map.rewrite(map);
         this._notify({
-            from: map.length !== 0 ? map[0].bytes.from : -1,
-            to: map.length !== 0 ? map[map.length - 1].bytes.to : -1,
+            bytes: {
+                from: map.length !== 0 ? map[0].bytes.from : -1,
+                to: map.length !== 0 ? map[map.length - 1].bytes.to : -1,
+            },
+            rows: {
+                from: map.length !== 0 ? map[0].rows.from : -1,
+                to: map.length !== 0 ? map[map.length - 1].rows.to : -1,
+            },
         });
     }
 
     public pushToStreamFileMap(map: IMapItem[]) {
         this._state.map.push(map);
         this._notify({
-            from: map.length !== 0 ? map[0].bytes.from : -1,
-            to: map.length !== 0 ? map[map.length - 1].bytes.to : -1,
+            bytes: {
+                from: map.length !== 0 ? map[0].bytes.from : -1,
+                to: map.length !== 0 ? map[map.length - 1].bytes.to : -1,
+            },
+            rows: {
+                from: map.length !== 0 ? map[0].rows.from : -1,
+                to: map.length !== 0 ? map[map.length - 1].rows.to : -1,
+            },
         });
     }
 
@@ -227,6 +245,10 @@ export default class ControllerStreamProcessor {
 
     public getStreamSize(): number {
         return this._state.map.getByteLength();
+    }
+
+    public getStreamLength(): number {
+        return this._state.map.getRowsCount();
     }
 
     private _getStreamFileHandle(): fs.WriteStream | undefined {
@@ -376,12 +398,12 @@ export default class ControllerStreamProcessor {
         });
     }
 
-    private _notify(bytes?: IRange) {
+    private _notify(map?: IMapItem) {
         // Send notification to render
         this._state.postman.notification();
-        if (bytes !== undefined) {
+        if (map !== undefined) {
             // Trigger event on stream was updated
-            this._events.getSubject().onStreamBytesMapUpdated.emit(bytes);
+            this._events.getSubject().onStreamBytesMapUpdated.emit(map);
         }
     }
 
