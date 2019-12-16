@@ -31,7 +31,7 @@ export class OperationSearch extends EventEmitter {
         this._streamGuid = streamGuid;
         this._streamFile = streamFile;
         this._searchFile = searchFile;
-        this._logger = new Logger(`OperationSearch (${streamGuid})`);
+        this._logger = new Logger(`Search: search (${streamGuid})`);
         this._clear = this._clear.bind(this);
     }
 

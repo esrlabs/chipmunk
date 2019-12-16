@@ -19,10 +19,6 @@ export interface IRangeMapItem {
     bytes: IRange;
 }
 
-const CSettings = {
-    delayOnAppend: 250, // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is blocked
-};
-
 export default class ControllerStreamSearch {
 
     private _logger: Logger;
@@ -336,8 +332,8 @@ export default class ControllerStreamSearch {
         });
     }
 
-    private _stream_onUpdate(bytes: IRange) {
-        this._append(bytes);
+    private _stream_onUpdate(map: IMapItem) {
+        this._append(map.bytes);
     }
 
 }
