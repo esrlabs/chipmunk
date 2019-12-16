@@ -7,6 +7,7 @@ export declare class SidebarViewComponent implements AfterViewInit, OnDestroy {
     session: string;
     private _subscription;
     private _xterm;
+    private _fitAddon;
     constructor(_cdRef: ChangeDetectorRef);
     ngOnDestroy(): void;
     ngAfterViewInit(): void;

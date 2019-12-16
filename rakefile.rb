@@ -38,8 +38,8 @@ CLIENT_NPM_LIBS_NAMES = %w[
 ].freeze
 COMPLEX_PLUGINS = [
   'serial',
-  'processes'
-  # "xterminal"
+  'processes',
+  'xterminal'
 ].freeze
 ANGULAR_PLUGINS = ['dlt-render'].freeze
 STANDALONE_PLUGINS = ['row.parser.ascii'].freeze
@@ -640,11 +640,11 @@ task :updatepluginipc do
     puts 'Update toolkits for: processes pluginplugin'
     npm_reinstall('chipmunk.plugin.ipc@latest')
   end
-  # cd "#{PLUGINS_SANDBOX}/xterminal/process" do
-  #  puts "Update toolkits for: xterminal plugin"
-  #  sh "npm uninstall chipmunk.plugin.ipc"
-  #  npm_install("chipmunk.plugin.ipc@latest")
-  # end
+  cd "#{PLUGINS_SANDBOX}/xterminal/process" do
+    puts "Update toolkits for: xterminal plugin"
+    sh "npm uninstall chipmunk.plugin.ipc"
+    npm_install("chipmunk.plugin.ipc@latest")
+  end
 end
 
 desc 'build updater'
