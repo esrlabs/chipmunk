@@ -82,14 +82,22 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         if (this.serviceData === undefined) {
             return;
         }
+        this._updateCursor();
+        this._buildFilters();
+        this._buildCharts();
+        this._ng_onOffsetUpdated.emit();
+    }
+
+    private _updateCursor() {
+        const prev: boolean = this._ng_isCursorVisible;
         if (this._ng_width < this.serviceData.getStreamSize()) {
             this._ng_isCursorVisible = true;
         } else {
             this._ng_isCursorVisible = false;
         }
-        this._buildFilters();
-        this._buildCharts();
-        this._ng_onOffsetUpdated.emit();
+        if (this._ng_isCursorVisible !== prev) {
+            this._forceUpdate();
+        }
     }
 
     private _buildFilters() {
@@ -210,6 +218,7 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         } else {
             this._charts.data.datasets = datasets.dataset;
             this._charts.options.scales.yAxes = this._getYAxes(datasets);
+            this._charts.options.scales.xAxes[0].ticks.max = this.serviceData.getStreamSize();
             setTimeout(() => {
                 if (this._charts === undefined) {
                     return;
@@ -242,10 +251,12 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
     }
 
     private _onData() {
+        this._updateCursor();
         this._buildFilters();
     }
 
     private _onChartData() {
+        this._updateCursor();
         this._buildCharts();
     }
 
