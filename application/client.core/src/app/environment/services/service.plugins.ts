@@ -12,6 +12,7 @@ import * as LogviewerClientPrimitive from 'chipmunk-client-primitive';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import * as XTerm from 'xterm';
 import * as XTermAddonFit from 'xterm-addon-fit';
+import * as ChartJS from 'chart.js';
 
 import { Subscription  } from 'rxjs';
 import { Compiler, Injector } from '@angular/core';
@@ -357,6 +358,7 @@ export class PluginsService extends Toolkit.Emitter implements IService {
             'chipmunk.client.toolkit': Toolkit,
             'xterm': XTerm,
             'xterm-addon-fit': XTermAddonFit,
+            'chart.js': ChartJS,
             'electron': Electron
         };
     }
