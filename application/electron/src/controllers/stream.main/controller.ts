@@ -225,6 +225,10 @@ export default class ControllerStreamProcessor {
         });
     }
 
+    public getStreamSize(): number {
+        return this._state.map.getByteLength();
+    }
+
     private _getStreamFileHandle(): fs.WriteStream | undefined {
         if (this._blocked) {
             return undefined;

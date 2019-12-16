@@ -48,7 +48,7 @@ export class ChartingEngine {
         });
     }
 
-    public extract(requests: IChartRequest[]): CancelablePromise<TChartData, void> | Error {
+    public extract(requests: IChartRequest[], from?: number, to?: number): CancelablePromise<TChartData, void> | Error {
         if (this._stock.charting.size !== 0) {
             return new Error(`Fail to start extracting chart's values because previous wasn't finished.`);
         }
@@ -72,7 +72,7 @@ export class ChartingEngine {
                 // Task id
                 const requestTaskId: string = guid();
                 // Task
-                const task: CancelablePromise<IMatch[], void> = this._operations.charting.perform(request.regExp, 0, request.groups);
+                const task: CancelablePromise<IMatch[], void> = this._operations.charting.perform(request.regExp, request.groups);
                 // Store task
                 stock.set(requestTaskId, task);
                 // Processing results

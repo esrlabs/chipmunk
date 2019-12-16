@@ -72,7 +72,7 @@ export class SearchEngine extends EventEmitter {
 
     public search(requests: RegExp[], from?: number, to?: number): CancelablePromise<IMapItem[], void> | Error {
         if (this._stock.search.size !== 0) {
-            return new Error(`Fail to start inspecting because previous wasn't finished.`);
+            return new Error(`Fail to start search because previous wasn't finished.`);
         }
         let error: CancelablePromise<IMapItem[], void> | Error;
         // Try to create task
@@ -99,15 +99,16 @@ export class SearchEngine extends EventEmitter {
         const task = (error as CancelablePromise<IMapItem[], void>);
         // Wrap task to track it
         return new CancelablePromise<IMapItem[], void>((resolve, reject) => {
+            // Tracking guid
+            const taskId: string = guid();
+            // Store task into stock
+            this._stock.search.set(taskId, task);
             // Get current size of file
             fs.stat(this._state.getStreamFile(), (err: NodeJS.ErrnoException | null, stats: fs.Stats) => {
                 if (err) {
+                    this._stock.search.delete(taskId);
                     return reject(err);
                 }
-                // Tracking guid
-                const taskId: string = guid();
-                // Store task into stock
-                this._stock.search.set(taskId, task);
                 // Start tracking
                 ServiceStreams.addProgressSession(taskId, 'search', this._state.getGuid());
                 ServiceStreams.updateProgressSession(taskId, 0, this._state.getGuid());
@@ -123,7 +124,6 @@ export class SearchEngine extends EventEmitter {
                     this._stock.search.delete(taskId);
                 });
             });
-
         }).cancel(() => {
             task.break();
         });
@@ -180,17 +180,20 @@ export class SearchEngine extends EventEmitter {
                     reject(error);
                 });
             });
+            self.finally(() => {
+                // Remove unfinishing task (because in case of cancel we also will be here)
+                stock.forEach((notFinishedTask: CancelablePromise<number[], void>) => {
+                    notFinishedTask.break();
+                });
+                stock.clear();
+                // Drop progress tracking
+                ServiceStreams.removeProgressSession(taskId, this._state.getGuid());
+                // Clean tasks stock
+                this._stock.inspecting.delete(taskId);
+                measure();
+            });
         }).cancel(() => {
             this._logger.env(`Inspecting was canceled.`);
-        }).finally(() => {
-            // Remove unfinishing task (because in case of cancel we also will be here)
-            stock.forEach((notFinishedTask: CancelablePromise<number[], void>) => {
-                notFinishedTask.break();
-            });
-            stock.clear();
-            // Drop progress tracking
-            ServiceStreams.removeProgressSession(taskId, this._state.getGuid());
-            measure();
         });
     }
 

@@ -25,6 +25,7 @@ export class OperationAppend extends EventEmitter {
     private _searchFile: string;
     private _streamGuid: string;
     private _cleaner: THandler | undefined;
+    private _last: { from: number, to: number } | undefined;
 
     constructor(streamGuid: string, streamFile: string, searchFile: string) {
         super();
@@ -48,9 +49,18 @@ export class OperationAppend extends EventEmitter {
             this._logger.warn(`Attempt to start search, while previous isn't finished`);
             return new Error(`(search) Fail to start search, because previous process isn't finished.`);
         }
+        if (this._last !== undefined) {
+            if (this._last.to !== range.from - 1) {
+                this._logger.error(`Last ranage was finished with ${this._last.to} bytes, but new range is started from ${range.from} byte.`);
+                return new Error(`Wrong range for append operation`);
+            }
+        }
+        this._last = Object.assign(range);
         return new CancelablePromise<IMapItem[], void>((resolve, reject, cancel, self) => {
+            const id: string = guid();
+            this._logger.measure(`Appending (#${id}): \nbytes: ${range.from} - ${range.to}; \noffset: ${mapOffset.bytes} bytes; ${mapOffset.rows} rows.`);
             // Start measuring
-            const measurer = this._logger.measure(`appending search #${guid()}`);
+            const measurer = this._logger.measure(`appending search #${id}`);
             // Create transformer to build map
             const transform: Transform = new Transform({}, this._streamGuid, mapOffset);
             transform.on(Transform.Events.found, (event: IMapChunkEvent) => {
@@ -59,7 +69,7 @@ export class OperationAppend extends EventEmitter {
             // Create reader
             const reader: ReadStream = fs.createReadStream(this._streamFile, { encoding: 'utf8', start: range.from, end: range.to });
             // Create writer
-            const writer: WriteStream = fs.createWriteStream(this._searchFile, { flags: 'a', mode: 666 });
+            const writer: WriteStream = fs.createWriteStream(this._searchFile, { flags: 'a' });
             // Create process
             const process: ChildProcess = spawn(ServicePaths.getRG(), this._getProcArgs(regExp, '-'), {
                 cwd: path.dirname(this._streamFile),
