@@ -298,6 +298,10 @@ class ServiceStreams implements IService  {
                 const server: Net.Server = Net.createServer(this._acceptConnectionToSocket.bind(this, guid));
                 // Create stream state
                 const events: EventsHub = new EventsHub(guid);
+                // Create controllers
+                const streamController: ControllerStreamProcessor   = new ControllerStreamProcessor(guid, streamFile, events);
+                const searchController: ControllerStreamSearch      = new ControllerStreamSearch(guid, streamFile, searchFile, streamController, events);
+                const chartsController: ControllerStreamCharts      = new ControllerStreamCharts(guid, streamFile, searchFile, streamController, events);
                 // Create connection to trigger creation of server
                 const stream: IStreamInfo = {
                     guid: guid,
@@ -316,9 +320,9 @@ class ServiceStreams implements IService  {
                         });
                     },
                     events: events,
-                    processor: new ControllerStreamProcessor(guid, streamFile, events),
-                    search: new ControllerStreamSearch(guid, streamFile, searchFile, events),
-                    charts: new ControllerStreamCharts(guid, streamFile, searchFile, events),
+                    processor: streamController,
+                    search: searchController,
+                    charts: chartsController,
                     received: 0,
                 };
                 // Bind server with file

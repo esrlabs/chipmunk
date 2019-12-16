@@ -2,6 +2,7 @@ import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } fro
 import Logger from '../../tools/env.logger';
 import * as fs from 'fs';
 import ControllerStreamFileReader from '../stream.main/file.reader';
+import ControllerStreamProcessor from '../stream.main/controller';
 import State from './state';
 import { EventsHub } from '../stream.common/events';
 import { IMapItem } from './file.map';
@@ -30,17 +31,17 @@ export default class ControllerStreamSearch {
     private _state: State;
     private _searching: SearchEngine;
     private _events: EventsHub;
+    private _processor: ControllerStreamProcessor;
     private _requests: RegExp[] = [];
     private _pending: {
-        bytes: IRange,
-        timer: any,
+        bytesToRead: IRange,
     } = {
-        bytes: { from: -1, to: -1 },
-        timer: -1,
+        bytesToRead: { from: -1, to: -1 },
     };
 
-    constructor(guid: string, streamFile: string, searchFile: string, streamState: EventsHub) {
+    constructor(guid: string, streamFile: string, searchFile: string, stream: ControllerStreamProcessor, streamState: EventsHub) {
         this._events = streamState;
+        this._processor = stream;
         // Create controllers
         this._state = new State(guid, streamFile, searchFile);
         this._logger = new Logger(`ControllerStreamSearch: ${this._state.getGuid()}`);
@@ -115,31 +116,43 @@ export default class ControllerStreamSearch {
     }
 
     private _append(updated?: IRange): void {
-        clearTimeout(this._pending.timer);
         if (this._requests.length === 0) {
             return;
         }
         if (updated !== undefined) {
-            if (this._pending.bytes.from === -1 || this._pending.bytes.from > updated.from) {
-                this._pending.bytes.from = updated.from;
+            if (this._pending.bytesToRead.from === -1 || this._pending.bytesToRead.from > updated.from) {
+                this._pending.bytesToRead.from = updated.from;
             }
-            if (this._pending.bytes.to === -1 || this._pending.bytes.to < updated.to) {
-                this._pending.bytes.to = updated.to;
+            if (this._pending.bytesToRead.to === -1 || this._pending.bytesToRead.to < updated.to) {
+                this._pending.bytesToRead.to = updated.to;
             }
         }
         if (this._searching.isWorking()) {
-            this._pending.timer = setTimeout(this._append.bind(this), CSettings.delayOnAppend);
             return;
         }
-        const bytes: IRange = { from: this._pending.bytes.from, to: this._pending.bytes.to };
-        this._pending.bytes = { from: -1, to: -1 };
+        const bytes: IRange = { from: this._pending.bytesToRead.from, to: this._pending.bytesToRead.to };
+        this._pending.bytesToRead = { from: -1, to: -1 };
         this._search(this._requests, Tools.guid(), bytes.from, bytes.to).catch((searchErr: Error) => {
             this._logger.warn(`Fail to append search results (range: ${bytes.from} - ${bytes.to}) due error: ${searchErr.message}`);
+        }).finally(() => {
+            this._reappend();
         });
+    }
+
+    private _reappend() {
+        if (this._pending.bytesToRead.from !== -1 && this._pending.bytesToRead.to !== -1) {
+            this._append();
+        }
     }
 
     private _search(requests: RegExp[], id: string, from?: number, to?: number): Promise<number> {
         return new Promise((resolve, reject) => {
+            if (this._processor.getStreamSize() === 0) {
+                // Save requests
+                this._requests = requests;
+                // Stream file doesn't exist yet
+                return resolve(0);
+            }
             const task = this._searching.search(requests, from, to);
             if (task instanceof Error) {
                 this._logger.error(`Fail to create task for search due error: ${task.message}`);
@@ -176,6 +189,8 @@ export default class ControllerStreamSearch {
             });
         }).catch((execErr: Error) => {
             this._logger.warn(`Fail to make inspecting search results due error: ${execErr.message}`);
+        }).finally(() => {
+            this._reappend();
         });
     }
 

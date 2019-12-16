@@ -15,7 +15,7 @@ export { IMatch };
 
 type THandler = () => void;
 
-export class OperationCharting extends EventEmitter {
+export class OperationAppend extends EventEmitter {
 
     private _logger: Logger;
     private _streamFile: string;
@@ -26,14 +26,17 @@ export class OperationCharting extends EventEmitter {
         super();
         this._streamGuid = streamGuid;
         this._streamFile = streamFile;
-        this._logger = new Logger(`OperationCharting (${streamGuid})`);
+        this._logger = new Logger(`OperationAppend (${streamGuid})`);
     }
 
     public destroy() {
         this.removeAllListeners();
     }
 
-    public perform(regExp: RegExp, groups: boolean = false): CancelablePromise<IMatch[], void> {
+    public perform( regExp: RegExp,
+                    range: { from: number, to: number },
+                    groups: boolean = false,
+    ): CancelablePromise<IMatch[], void> {
         const taskId: string = guid();
         return new CancelablePromise<IMatch[], void>((resolve, reject) => {
             fs.exists(this._streamFile, (exists: boolean) => {
@@ -46,7 +49,7 @@ export class OperationCharting extends EventEmitter {
                 // Start measuring
                 const measurer = this._logger.measure(`charting #${guid()}`);
                 // Create reader
-                const reader: ReadStream = fs.createReadStream(this._streamFile, { encoding: 'utf8' });
+                const reader: ReadStream = fs.createReadStream(this._streamFile, { encoding: 'utf8', start: range.from, end: range.to });
                 // Create writer
                 const writer: NullWritableStream = new NullWritableStream();
                 // Create transform
