@@ -32,7 +32,7 @@
     "moment": "^2.24.0",
     "rxjs": "^6.5.3",
     "systemjs": "^6.1.4",
-    "xterm": "^4.1.0",
+    "xterm": "^4.3.0",
     "xterm-addon-fit": "^0.3.0",
     "zone.js": "^0.10.2"
   },
