@@ -39,6 +39,7 @@ export class ControllerSessionTabSearchCharts {
     private _logger: Toolkit.Logger;
     private _guid: string;
     private _stored: IChartRequest[] = [];
+    private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
     private _subjects: ISubjects = {
         onChartsUpdated: new Subject<IChartRequest[]>(),
         onExtractingStarted: new Subject<void>(),
@@ -51,10 +52,14 @@ export class ControllerSessionTabSearchCharts {
     constructor(params: IControllerSessionStreamCharts) {
         this._guid = params.guid;
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearchCharts: ${params.guid}`);
+        this._subscriptions.ChartResultsUpdated = ServiceElectronIpc.subscribe(IPCMessages.ChartResultsUpdated, this._ipc_ChartResultsUpdated.bind(this));
     }
 
     public destroy(): Promise<void> {
         return new Promise((resolve) => {
+            Object.keys(this._subscriptions).forEach((prop: string) => {
+                this._subscriptions[prop].unsubscribe();
+            });
             OutputParsersService.unsetChartsResults(this._guid);
             this.cancel().catch((error: Error) => {
                 this._logger.error(`Fail to cancel a task of chart data extracting due error: ${error.message}`);
@@ -353,5 +358,17 @@ export class ControllerSessionTabSearchCharts {
             return { reg: chart.reg, color: chart.color, background: undefined };
         }));
         OutputParsersService.updateRowsView();
+    }
+
+    private _ipc_ChartResultsUpdated(message: IPCMessages.ChartResultsUpdated) {
+        if (message.streamId !== this._guid) {
+            return;
+        }
+        Object.keys(message.results).forEach((chart: string) => {
+            if (this._data[chart] === undefined) {
+                this._data[chart] = [];
+            }
+            this._data[chart].push(...message.results[chart]);
+        });
     }
 }
