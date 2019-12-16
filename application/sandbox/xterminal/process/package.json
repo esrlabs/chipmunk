@@ -22,7 +22,7 @@
     "electron": "7.1.1",
     "electron-rebuild": "^1.8.6",
     "chipmunk.plugin.ipc": "0.0.33",
-    "node-gyp": "^6.0.0",
-    "node-pty": "^0.8.1"
+    "node-gyp": "5.0.7",
+    "node-pty": "0.9.0"
   }
 }
