@@ -1,9 +1,7 @@
 import { OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
 import { IPortInfo, IPortState } from '../../common/interface.portinfo';
 import { IOptions } from '../../common/interface.options';
-import { SidebarVerticalPortOptionsWriteComponent } from './port.options.write/component';
-import { DDListStandardComponent } from 'chipmunk-client-primitive';
-import { InputStandardComponent } from 'chipmunk-client-primitive';
+import { InputStandardComponent, DDListStandardComponent } from 'chipmunk-client-primitive';
 import * as Toolkit from 'chipmunk.client.toolkit';
 interface IConnected {
     port: IPortInfo;
@@ -11,12 +9,11 @@ interface IConnected {
     state: IPortState;
 }
 interface IPortListItem {
-    comPort: IPortInfo;
+    value: string;
     caption: string;
 }
 export declare class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     private _cdRef;
-    _optionsCom: SidebarVerticalPortOptionsWriteComponent;
     _inputCom: InputStandardComponent;
     _selectCom: DDListStandardComponent;
     api: Toolkit.IAPI;
@@ -26,47 +23,55 @@ export declare class SidebarVerticalComponent implements AfterViewInit, OnDestro
     private _logger;
     private _destroyed;
     private _chosenPort;
-    private _portItem;
+    private _portOptions;
+    private _options;
+    private _optionsCom;
     _ng_ports: IPortInfo[];
     _ng_connected: IConnected[];
     _ng_selected: IPortInfo | undefined;
     _ng_busy: boolean;
     _ng_error: string | undefined;
     _ng_options: boolean;
+    _ng_spyLoad: {
+        [key: string]: number;
+    };
     _ng_msg: string;
     _ng_portList: IPortListItem[];
+    _ng_defaultPort: string | undefined;
     constructor(_cdRef: ChangeDetectorRef);
     ngOnDestroy(): void;
     ngAfterViewInit(): void;
-    _ng_isPortSelected(port: IPortInfo): boolean;
     _ng_onPortSelect(port: IPortInfo): boolean;
     _ng_canBeConnected(): boolean;
     _ng_onOptions(): void;
     _ng_onConnect(): void;
-    _ng_getState(port: IPortInfo): IPortState;
     _ng_onDisconnectPort(port: IPortInfo): void;
     _ng_onReloadPortsList(): void;
     private _onIncomeMessage;
     private _onIncomeEvent;
-    private _onSessionChange;
-    private _onSessionOpen;
-    private _onSessionClose;
     private _saveState;
     private _loadState;
     private _requestPortsList;
-    private _getOptions;
     private _error;
     private _hostEvents_onState;
     private _hostEvents_onDisconnected;
     private _hostEvents_onError;
+    private _hostEvents_onSpyState;
     private _forceUpdate;
-    _ng_sendMessage(value: string, event: KeyboardEvent): void;
-    private _createDropdownElement;
+    _ng_sendMessage(message: string, event?: KeyboardEvent): void;
+    private _addDropdownElement;
     private _removeDropdownElement;
-    _ng_change(): void;
-    private _updateDisconnectPort;
-    private _updateConnectPort;
-    private _checkOption;
-    private _loadOption;
+    private _setDropdownDefault;
+    private _saveDropdownSession;
+    private _removeDropdownSession;
+    private _restoreDropdownSession;
+    _ng_changeDropdownSelect(value: string): void;
+    private _loadSession;
+    private _createOptions;
+    private _removeOptions;
+    private _startSpy;
+    private _stopSpy;
+    private closePopup;
+    _ng_connectDialog(): void;
 }
 export {};

@@ -60,5 +60,8 @@
     "tslib": "^1.9.0",
     "tslint": "^5.20.0",
     "typescript": "3.5.1"
+  },
+  "resolutions": {
+    "serialize-javascript": ">=2.1.2"
   }
 }

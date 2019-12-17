@@ -171,6 +171,10 @@ def npm_install(what = '')
   sh "npm install #{what} --prefere-offline"
 end
 
+def npm_force_resolutions()
+  sh "npx npm-force-resolutions"
+end
+
 def npm_reinstall(package_and_version)
   xs = package_and_version.split('@')
   package = xs[0]
@@ -264,6 +268,7 @@ namespace :client do
       puts 're-installing: core'
       npm_install
       npm_reinstall('chipmunk.client.toolkit@latest')
+      npm_force_resolutions
     end
   end
 
@@ -273,6 +278,7 @@ namespace :client do
     cd 'application/client.libs/chipmunk.client.components' do
       puts 'Installing: components'
       npm_install
+      npm_force_resolutions
       touch 'node_modules'
     end
   end
@@ -284,6 +290,7 @@ namespace :client do
     cd CLIENT_PLUGIN_DIR do
       npm_install
       npm_install('chipmunk.client.toolkit@latest')
+      npm_force_resolutions
     end
   end
   task build_plugins: plugin_toolkit_installation
@@ -315,6 +322,7 @@ namespace :client do
     puts "NPM isn't installed in project application/client.plugin. Installing..."
     cd CLIENT_PLUGIN_DIR do
       npm_install
+      npm_force_resolutions
       touch 'node_modules'
     end
   end
@@ -325,6 +333,7 @@ namespace :client do
     puts "NPM isn't installed in project #{CLIENT_CORE_DIR}. Installing..."
     cd CLIENT_CORE_DIR do
       npm_install
+      npm_force_resolutions
       touch 'node_modules'
     end
   end
@@ -333,6 +342,7 @@ namespace :client do
   file core_toolkit_installation => FileList["#{CLIENT_CORE_DIR}/*.json"] do |_t|
     cd CLIENT_CORE_DIR do
       npm_install
+      npm_force_resolutions
       npm_install('chipmunk.client.toolkit@latest')
     end
   end
@@ -380,6 +390,7 @@ file prepare_electron_application => FileList['application/electron/*.json'] do 
   puts "NPM isn't installed in project application/electron. Installing..."
   cd ELECTRON_DIR do
     npm_install
+    npm_force_resolutions
     touch 'node_modules'
   end
 end
@@ -563,6 +574,7 @@ def install_plugin_standalone(plugin)
   cd src do
     npm_install
     npm_reinstall('chipmunk.client.toolkit@latest')
+    npm_force_resolutions
     sh "#{NPM_RUN} build"
   end
   dest = "#{PLUGINS_SANDBOX}/#{plugin}"
@@ -579,6 +591,7 @@ def install_plugin_complex(plugin)
   puts "Installing plugin: #{plugin}"
   cd "#{PLUGINS_SANDBOX}/#{plugin}/process" do
     npm_install
+    npm_force_resolutions
     npm_install("electron@#{ELECTRON_VERSION} electron-rebuild@#{ELECTRON_REBUILD_VERSION}")
     sh './node_modules/.bin/electron-rebuild'
     sh 'npm uninstall electron electron-rebuild'
@@ -682,6 +695,7 @@ file local_neon_installation => FileList['application/electron/*.json'] do |_t|
   puts "NPM isn't installed in project application/electron. Installing..."
   cd "#{APPS_DIR}/indexer-neon" do
     npm_install
+    npm_force_resolutions
     touch 'node_modules'
   end
 end

@@ -1,5 +1,5 @@
 export interface IPortInfo {
-    comName: string;
+    path: string;
     manufacturer?: string;
     serialNumber?: string;
     pnpId?: string;
@@ -14,4 +14,8 @@ export interface IIOState {
 export interface IPortState {
     ioState: IIOState;
     connections: number;
+}
+export interface IPortSession {
+    default: string;
+    ports: IPortInfo[];
 }

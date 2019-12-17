@@ -25,6 +25,9 @@
     "ansi_up": "^4.0.4",
     "chipmunk.client.toolkit": "0.0.77"
   },
+  "resolutions": {
+    "serialize-javascript": ">=2.1.2"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/esrlabs/logviewer.git"
