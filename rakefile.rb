@@ -71,6 +71,7 @@ task clean: :rust_clean
 CLOBBER.include([
                   '**/node_modules',
                   '**/dist',
+                  '**/package-lock.json',
                   "#{APPS_DIR}/indexer/target",
                   "#{APPS_DIR}/indexer-neon/dist",
                   "#{APPS_DIR}/indexer-neon/native/target"
@@ -587,6 +588,23 @@ def install_plugin_standalone(plugin)
   compress_plugin(arch, plugin)
 end
 
+def sign_plugin_binary(plugin_path)
+  if OS.mac?
+    developer_id = ''
+    if (ENV['APPLEID'] != nil)
+      developer_id = ENV['APPLEID']
+    elsif (ENV['CHIPMUNK_DEVELOPER_ID'] != nil)
+      developer_id = ENV['CHIPMUNK_DEVELOPER_ID']
+    else
+      abort "Fail to sign plugins because cannot find DEVELOPER_ID. Define it in APPLEID (for production) or in CHIPMUNK_DEVELOPER_ID (for developing)"
+    end
+    puts "Detected next MACOS_DEVELOPER_ID = #{developer_id}"
+    puts "Try to sign code for: #{plugin_path}"
+    full_plugin_path = File.expand_path(plugin_path, File.dirname(__FILE__));
+    sh "find #{full_plugin_path} -name \"*.node\" -type f -exec codesign --force --options runtime --deep --sign \"#{developer_id}\" {} \\;"
+  end
+end
+
 def install_plugin_complex(plugin)
   puts "Installing plugin: #{plugin}"
   cd "#{PLUGINS_SANDBOX}/#{plugin}/process" do
@@ -594,6 +612,7 @@ def install_plugin_complex(plugin)
     npm_force_resolutions
     npm_install("electron@#{ELECTRON_VERSION} electron-rebuild@#{ELECTRON_REBUILD_VERSION}")
     sh './node_modules/.bin/electron-rebuild'
+    sign_plugin_binary("#{PLUGINS_SANDBOX}/#{plugin}/process")
     sh 'npm uninstall electron electron-rebuild'
     sh "#{NPM_RUN} build"
   end
