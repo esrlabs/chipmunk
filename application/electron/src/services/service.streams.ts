@@ -502,11 +502,11 @@ class ServiceStreams implements IService  {
                 this._subjects.onSessionClosed.emit(message.guid);
                 response(new IPCElectronMessages.StreamRemoveResponse({ guid: message.guid }));
             }).catch((plugingsError: Error) => {
-                this._logger.warn(`Fail to correctly destroy session "${message.guid}" due error: ${plugingsError.message}.`);
+                this._logger.error(`Fail to correctly destroy session "${message.guid}" due error: ${plugingsError.message}.`);
                 response(new IPCElectronMessages.StreamRemoveResponse({ guid: message.guid, error: plugingsError.message }));
             });
         }).catch((destroyError: Error) => {
-            this._logger.warn(`Fail to correctly destroy session "${message.guid}" due error: ${destroyError.message}.`);
+            this._logger.error(`Fail to correctly destroy session "${message.guid}" due error: ${destroyError.message}.`);
             response(new IPCElectronMessages.StreamRemoveResponse({ guid: message.guid, error: destroyError.message }));
         });
     }

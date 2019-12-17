@@ -183,9 +183,10 @@ export default class ControllerPluginProcessSingle extends Emitter {
     }
 
     public unbindStream(guid: string): Promise<void> {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             if (this._process === undefined) {
-                return reject(new Error(this._logger.warn(`Attempt to unbind stream to plugin, which doesn't attached. Stream GUID: ${guid}.`)));
+                this._logger.warn(`Attempt to unbind stream to plugin, which doesn't attached. Stream GUID: ${guid}.`);
+                return resolve();
             }
             if (!this._connections.has(guid)) {
                 this._logger.warn(`Plugin process is already unbound from stream "${guid}" or it wasn't bound at all, because plugin doesn't listen "openStream" event`);
@@ -195,6 +196,10 @@ export default class ControllerPluginProcessSingle extends Emitter {
             this._process.send(`${CStdoutSocketAliases.unbind}${guid}`);
             this._setUnbindResolver(guid, resolve);
         });
+    }
+
+    public isAttached(): boolean {
+        return this._process !== undefined;
     }
 
     private _bindRefWithId(socket: Net.Socket): Promise<void> {
