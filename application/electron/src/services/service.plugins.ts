@@ -333,14 +333,15 @@ export class ServicePlugins implements IService {
                 // Init single plugins (single)
                 tasks.push(...singles.map((plugin: IPlugin) => {
                     return new Promise<void>((resolveTask, rejectTask) => {
+                        const controller: ControllerPluginProcessSingle = plugin.single as ControllerPluginProcessSingle;
+                        if (!controller.isAttached()) {
+                            this._logger.warn(`Plugin "${plugin.name}" is defined as single, but wasn't atteched. This plugin will be ignored for session "${streamId}"`);
+                            return resolveTask();
+                        }
                         // Binding controller
                         connectionFactory(plugin.name).then((connection: { socket: Net.Socket, file: string }) => {
-                            if (plugin.single === undefined) {
-                                // This point never will be achived. It's just for TS compiler here
-                                return;
-                            }
                             // Send data to plugin
-                            plugin.single.bindStream(streamId, connection).then(() => {
+                            controller.bindStream(streamId, connection).then(() => {
                                 // Send notification
                                 ServiceElectronService.logStateToRender(`[${plugin.name}]: attached to session "${streamId}".`);
                                 this._logger.env(`[${plugin.name}]: attached to session "${streamId}"`);

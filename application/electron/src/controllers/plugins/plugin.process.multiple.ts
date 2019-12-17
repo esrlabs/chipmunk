@@ -167,6 +167,10 @@ export default class ControllerPluginProcessMultiple extends Emitter {
         });
     }
 
+    public isAttached(): boolean {
+        return this._process !== undefined;
+    }
+
     private _bindRefWithId(socket: Net.Socket): Promise<void> {
         return new Promise((resolve, reject) => {
             socket.write(`[plugin:${this._plugin.id}]`, (error: Error) => {
