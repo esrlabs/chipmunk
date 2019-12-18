@@ -596,21 +596,19 @@ def sign_plugin_binary(plugin_path)
         developer_id = ENV['APPLEID']
       elsif (ENV['CHIPMUNK_DEVELOPER_ID'] != nil)
         developer_id = ENV['CHIPMUNK_DEVELOPER_ID']
-      else
-        abort "Fail to sign plugins because cannot find DEVELOPER_ID. Define it in APPLEID (for production) or in CHIPMUNK_DEVELOPER_ID (for developing)"
       end
-      puts "Detected next MACOS_DEVELOPER_ID = #{developer_id}"
-      puts "Try to sign code for: #{plugin_path}"
-      full_plugin_path = File.expand_path(plugin_path, File.dirname(__FILE__));
-      sh "find #{full_plugin_path} -name \"*.node\" -type f -exec codesign --force --options runtime --deep --sign \"#{developer_id}\" {} \\;"
+      if (developer_id.eql?(""))
+        puts "Cannot sign plugins because cannot find DEVELOPER_ID. Define it in APPLEID (for production) or in CHIPMUNK_DEVELOPER_ID (for developing)"
+      else
+        puts "Detected next MACOS_DEVELOPER_ID = #{developer_id}"
+        puts "Try to sign code for: #{plugin_path}"
+        full_plugin_path = File.expand_path(plugin_path, File.dirname(__FILE__));
+        sh "find #{full_plugin_path} -name \"*.node\" -type f -exec codesign --force --options runtime --deep --sign \"#{developer_id}\" {} \\;"
+      end
     else
       puts "Sing binary of plugins will be skipped"
     end
   end
-end
-
-task :testma do
-  sign_plugin_binary('application/sandbox/xterminal/process');
 end
 
 def install_plugin_complex(plugin)
