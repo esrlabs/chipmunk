@@ -28,16 +28,13 @@
             width: 100%;
         }
     }
-    & div.error{
-        position: relative;
-        padding: 0.5rem 0;
-    }
     & .container{
         position: relative;
         display: block;
         box-sizing: border-box;
         width: 100%;
-        overflow: hidden;
+        max-height: 200px;
+        overflow: scroll;
         & div.input-wrapper {
             position: relative;
             display: block;
@@ -46,28 +43,16 @@
             margin-left: -0.5rem;
         }
     }
-    & div.toggle {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 1rem;
-        height: 100%;
-        z-index: 2;
-        & span.toggle-button{
-            position: absolute;
-            top: 1px;
-            left: -2px;
-            transition: all 100ms ease-in-out;
-            &.opened{
-                transform: rotateZ(180deg);
-            }
-        }
-    }
-    & span.size{
+    & p.size{
         white-space: nowrap;
-        position: absolute;
+        position: relative;
         display: block;
-        right: 5px;
-        top: 5px;
+        text-align: right;
+        width: 60px;
+    }
+
+    & canvas.sparkline {
+        width: 125px;
+        height: 25px;
     }
 }
