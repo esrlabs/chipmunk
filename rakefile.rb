@@ -36,10 +36,10 @@ CLIENT_NPM_LIBS_NAMES = %w[
   chipmunk-client-primitive
   chipmunk-client-complex
 ].freeze
-COMPLEX_PLUGINS = [
-  'serial',
-  'processes',
-  'xterminal'
+COMPLEX_PLUGINS = %w[
+  serial
+  processes
+  xterminal
 ].freeze
 ANGULAR_PLUGINS = ['dlt-render'].freeze
 STANDALONE_PLUGINS = ['row.parser.ascii'].freeze
@@ -172,8 +172,8 @@ def npm_install(what = '')
   sh "npm install #{what} --prefere-offline"
 end
 
-def npm_force_resolutions()
-  sh "npx npm-force-resolutions"
+def npm_force_resolutions
+  sh 'npx npm-force-resolutions'
 end
 
 def npm_reinstall(package_and_version)
@@ -589,25 +589,26 @@ def install_plugin_standalone(plugin)
 end
 
 def sign_plugin_binary(plugin_path)
-  if OS.mac?
-    if (!ENV['SKIP_NOTARIZE'].eql?("true")) 
-      developer_id = ''
-      if (ENV['APPLEID'] != nil)
-        developer_id = ENV['APPLEID']
-      elsif (ENV['CHIPMUNK_DEVELOPER_ID'] != nil)
-        developer_id = ENV['CHIPMUNK_DEVELOPER_ID']
-      end
-      if (developer_id.eql?(""))
-        puts "Cannot sign plugins because cannot find DEVELOPER_ID. Define it in APPLEID (for production) or in CHIPMUNK_DEVELOPER_ID (for developing)"
-      else
-        puts "Detected next MACOS_DEVELOPER_ID = #{developer_id}"
-        puts "Try to sign code for: #{plugin_path}"
-        full_plugin_path = File.expand_path(plugin_path, File.dirname(__FILE__));
-        sh "find #{full_plugin_path} -name \"*.node\" -type f -exec codesign --force --options runtime --deep --sign \"#{developer_id}\" {} \\;"
-      end
+  return unless OS.mac?
+
+  if !ENV['SKIP_NOTARIZE'].eql?('true')
+    developer_id = ''
+    if ENV.key?('APPLEID')
+      developer_id = ENV['APPLEID']
+    elsif ENV.key?['CHIPMUNK_DEVELOPER_ID']
+      developer_id = ENV['CHIPMUNK_DEVELOPER_ID']
     else
-      puts "Sing binary of plugins will be skipped"
+      puts 'Cannot sign plugins because cannot find DEVELOPER_ID.'
+      puts 'Define it in APPLEID (for production) or in CHIPMUNK_DEVELOPER_ID (for developing)'
+      return
     end
+    puts "Detected next MACOS_DEVELOPER_ID = #{developer_id}"
+    puts "Try to sign code for: #{plugin_path}"
+    full_plugin_path = File.expand_path(plugin_path, File.dirname(__FILE__))
+    codesign_execution = "codesign --force --options runtime --deep --sign \"#{developer_id}\" {} \\;"
+    sh "find #{full_plugin_path} -name \"*.node\" -type f -exec #{codesign_execution}"
+  else
+    puts 'Sing binary of plugins will be skipped'
   end
 end
 
@@ -679,9 +680,9 @@ task :updatepluginipc do
     npm_reinstall('chipmunk.plugin.ipc@latest')
   end
   cd "#{PLUGINS_SANDBOX}/xterminal/process" do
-    puts "Update toolkits for: xterminal plugin"
-    sh "npm uninstall chipmunk.plugin.ipc"
-    npm_install("chipmunk.plugin.ipc@latest")
+    puts 'Update toolkits for: xterminal plugin'
+    sh 'npm uninstall chipmunk.plugin.ipc'
+    npm_install('chipmunk.plugin.ipc@latest')
   end
 end
 
@@ -867,7 +868,7 @@ def app_folder_and_path(base, file_name)
   [folder, path]
 end
 
-def package_version()
+def package_version
   package = JSON.parse(File.read(APP_PACKAGE_JSON))
   package['version']
 end
