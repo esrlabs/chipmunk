@@ -590,7 +590,7 @@ end
 
 def sign_plugin_binary(plugin_path)
   if OS.mac?
-    if (ENV['SKIP_NOTARIZE'].eql?("true")) 
+    if (!ENV['SKIP_NOTARIZE'].eql?("true")) 
       developer_id = ''
       if (ENV['APPLEID'] != nil)
         developer_id = ENV['APPLEID']
