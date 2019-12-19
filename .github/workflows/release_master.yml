@@ -27,10 +27,15 @@ jobs:
         uses: actions/setup-ruby@v1
         with:
           ruby-version: '2.x'
+      - name: install dotenv
+        run: gem install dotenv
       - name: install node
         uses: actions/setup-node@master
         with:
           node-version: '10.16.3'
+      - name: install typescript
+        if: "!startsWith(matrix.os, 'windows')"
+        run: npm install --global typescript@3.5.1
       - name: install neon cli
         run: npm install --global neon-cli@0.3.1
       - name: install rust

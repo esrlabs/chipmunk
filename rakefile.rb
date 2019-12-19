@@ -13,8 +13,8 @@ NPM_RUN = 'npm run --quiet'
 ELECTRON_VERSION = '7.1.1'
 ELECTRON_REBUILD_VERSION = '1.8.6'
 RIPGREP_VERSION = '11.0.2'
-NEON_CLI_VERSION = '0.3.1'
-TYPESCRIPT_VERSION = '3.5.1'
+NEON_CLI_NPM_VERSION = '0.3.1'
+TYPESCRIPT_NPM_VERSION = '3.5.1'
 ELECTRON_DIR = 'application/electron'
 ELECTRON_COMPILED_DIR = "#{ELECTRON_DIR}/dist/compiled"
 ELECTRON_RELEASE_DIR = "#{ELECTRON_DIR}/dist/release"
@@ -215,20 +215,23 @@ task :check_environment do
   end
   sh "tsc --version" do |ok,res|
     if !ok
-      abort "Typescript is required. Please install it globally using \"npm install typescript@#{TYPESCRIPT_VERSION} --global\". Note, to avoid potential conflicts, it's better to use a suggested version."
+      abort "Typescript is required. Please install it globally using \"npm install typescript@#{TYPESCRIPT_NPM_VERSION} --global\". Note, to avoid potential conflicts, it's better to use a suggested version."
     end
   end
   sh "neon version" do |ok,res|
     if !ok 
-      abort "Neon CLI is required. Please install it globally using \"npm install neon-cli@#{NEON_CLI_VERSION} --global\". Note, to avoid potential conflicts, it's better to use a suggested version."
+      abort "Neon CLI is required. Please install it globally using \"npm install neon-cli@#{NEON_CLI_NPM_VERSION} --global\". Note, to avoid potential conflicts, it's better to use a suggested version."
+    end
+  end
+  sh "gem list -i dotenv" do |ok,res|
+    if !ok
+      abort "Dotenv is required. Please install it globally using \"gem install dotenv\"."
     end
   end
 end
 
 desc 'setup build environment'
 task :setup_environment do
-  res = `gem list -i dotenv`.strip
-  sh 'gem install dotenv' unless res.eql?('true')
   puts 'Updateing process'
   if OS.windows?
     config_file_path = File.join(Dir.home, '.cargo', 'config')
