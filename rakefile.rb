@@ -195,6 +195,25 @@ task start: :ripgrepdelivery do
   end
 end
 
+desc 'checking local environment'
+task :check_environment do
+  sh "node --version" do |ok,res|
+    if !ok 
+      abort 'NodeJS is required. Please install NodeJS'
+    end
+  end
+  sh "cargo --version" do |ok,res|
+    if !ok 
+      abort 'Rust is required. Please install Rust'
+    end
+  end
+  sh "py --version" do |ok,res|
+    if !ok 
+      abort 'Python is required. Please install Python'
+    end
+  end
+end
+
 desc 'setup build environment'
 task :setup_environment do
   res = `gem list -i dotenv`.strip
@@ -957,13 +976,14 @@ task dev: %i[install
              add_package_json]
 
 desc 'Build the full build pipeline for a given platform'
-task full_pipeline: %i[setup_environment
-                       install
-                       plugins
-                       ripgrepdelivery
-                       build_and_package_electron
-                       create_release_file_list
-                       prepare_to_deploy]
+task full_pipeline: %i[check_environment
+                       setup_environment]
+                       #install
+                       #plugins
+                       #ripgrepdelivery
+                       #build_and_package_electron
+                       #create_release_file_list
+                       #prepare_to_deploy]
 
 desc 'find duplicate files in workspace'
 task :dups do
