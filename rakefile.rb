@@ -13,6 +13,7 @@ NPM_RUN = 'npm run --quiet'
 ELECTRON_VERSION = '7.1.1'
 ELECTRON_REBUILD_VERSION = '1.8.6'
 RIPGREP_VERSION = '11.0.2'
+NEON_CLI_VERSION = '0.3.1'
 ELECTRON_DIR = 'application/electron'
 ELECTRON_COMPILED_DIR = "#{ELECTRON_DIR}/dist/compiled"
 ELECTRON_RELEASE_DIR = "#{ELECTRON_DIR}/dist/release"
@@ -199,7 +200,12 @@ task :setup_environment do
   res = `gem list -i dotenv`.strip
   sh 'gem install dotenv' unless res.eql?('true')
   puts 'Installing npm libs, which is needed for installing / updateing process'
-  npm_install('typescript --global') unless system('tsc --version')
+  if OS.mac?
+    npm_install('typescript --global') unless system('tsc --version')
+  elsif OS.windows?
+    npm_install('typescript --global') unless system('tsc --version')
+    npm_install("neon-cli@#{NEON_CLI_VERSION} --global") 
+  end
   if OS.windows?
     config_file_path = File.join(Dir.home, '.cargo', 'config')
     needs_entry = false
