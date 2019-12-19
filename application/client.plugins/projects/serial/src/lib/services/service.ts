@@ -51,7 +51,7 @@ export class Service extends Toolkit.APluginService {
 
     private _onSessionClose(guid: string) {
         this.sessions = this.sessions.filter(session => session !== guid);
-        this.savedSession[guid] = undefined;
+        delete this.savedSession[guid];
     }
 
     private _onSessionChange(guid: string) {
