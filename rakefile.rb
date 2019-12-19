@@ -207,7 +207,7 @@ task :check_environment do
       abort 'Rust is required. Please install Rust'
     end
   end
-  sh "py --version" do |ok,res|
+  sh "python --version" do |ok,res|
     if !ok 
       abort 'Python is required. Please install Python'
     end
