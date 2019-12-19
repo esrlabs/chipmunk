@@ -14,6 +14,7 @@ interface Irgb {
     red: number;
     green: number;
     blue: number;
+    opacity: 1;
 }
 
 interface IConnected {
@@ -75,7 +76,7 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
             if (message.event === EHostEvents.spyState) {
                 Object.keys(message.load).forEach((port: string) => {
                     if (this._portSpark[port] === undefined) {
-                        this._portSpark[port] = new Array(10);
+                        this._portSpark[port] = new Array(this._step + 1).fill(0);
                     }
                     const diff = message.load[port] - this._portBefore[port];
                     if (diff <= 0) {
@@ -91,7 +92,7 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
         this._ng_spyState = this._getSpyState();
         this._ng_ports = this._requestPortList();
         this._ng_ports.forEach(port => {
-            this._portSpark[port.path] = new Array(10).fill(0);
+            this._portSpark[port.path] = new Array(this._step + 1).fill(0);
             this._portBefore[port.path] = 0;
             if (this._ng_spyState[port.path] === undefined) {
                 this._ng_spyState[port.path] = 0;
@@ -135,16 +136,14 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
         return Math.round(Math.random() * 255);
     }
 
-    private _stringify(red: number, green: number, blue: number, opacity: number): string {
-        return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
-    }
     private _colorize(): string {
         const rgb: Irgb = {
             red: this._color(),
             green: this._color(),
-            blue: this._color()
+            blue: this._color(),
+            opacity: 1,
         };
-        return this._stringify(rgb.red, rgb.green, rgb.blue, 1);
+        return `rgba(${rgb.red}, ${rgb.green}, ${rgb.blue}, ${rgb.opacity})`;
     }
 
     private _createChart(port: string): Promise<void> {
@@ -175,7 +174,6 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
                             xAxes: [{
                                 ticks: {
                                     display: false,
-                                    reverse: true,
                                 },
                                 gridLines: {
                                     drawOnChartArea: false
@@ -206,7 +204,8 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
         if (Object.keys(this._portChart).length > 0) {
             this._interval = setInterval(() => {
                 Object.keys(this._portChart).forEach((port: string) => {
-                    this._portSpark[port].unshift(this._portRead[port]);
+                    this._portSpark[port].shift();
+                    this._portSpark[port].push(this._portRead[port]);
                     this._portChart[port].update();
                     this._portRead[port] = 0;
                 });
