@@ -977,13 +977,13 @@ task dev: %i[install
 
 desc 'Build the full build pipeline for a given platform'
 task full_pipeline: %i[check_environment
-                       setup_environment]
-                       #install
-                       #plugins
-                       #ripgrepdelivery
-                       #build_and_package_electron
-                       #create_release_file_list
-                       #prepare_to_deploy]
+                       setup_environment
+                       install
+                       plugins
+                       ripgrepdelivery
+                       build_and_package_electron
+                       create_release_file_list
+                       prepare_to_deploy]
 
 desc 'find duplicate files in workspace'
 task :dups do
