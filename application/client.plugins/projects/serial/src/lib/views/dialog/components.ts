@@ -5,17 +5,8 @@ import { IPortInfo, IPortState } from '../../common/interface.portinfo';
 import { IOptions, CDefaultOptions } from '../../common/interface.options';
 import { SidebarVerticalPortOptionsWriteComponent } from '../sidebar.vertical/port.options.write/component';
 import { EHostEvents } from '../../common/host.events';
-import { Logger } from 'chipmunk.client.toolkit';
-import { Subscription } from 'rxjs';
+import { Subscription, Subject, Observable } from 'rxjs';
 import Service from '../../services/service';
-import Chart from 'chart.js';
-
-interface Irgb {
-    red: number;
-    green: number;
-    blue: number;
-    opacity: 1;
-}
 
 interface IConnected {
     port: IPortInfo;
@@ -44,19 +35,11 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
     @Input() public _ng_onOptions: () => void;
     @Input() public _ng_onPortSelect: (port: IPortInfo) => void;
 
-    private _canvas: HTMLCanvasElement;
-    private _ctx: any;
     private _interval: any;
-    private _step = 10;
     private _timeout = 1000;
-    private _animation = 5000;
-    private _portRead: { [port: string]: number } = {};
-    private _portSpark: { [port: string]: Array<number> } = {};
-    private _portChart: { [port: string]: Chart } = {};
-    private _portBefore: { [port: string]: number } = {};
-    private _logger: Logger = new Logger(`Plugin: serial: inj_output_bot:`);
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
+    private _subjects = { event: new Subject<any>() };
 
     public _ng_ports: IPortInfo[] = [];
     public _ng_selected: IPortInfo | undefined;
@@ -67,6 +50,46 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
 
     constructor(private _cdRef: ChangeDetectorRef) {
     }
+    ngAfterViewInit() {
+        var ctx = document.getElementById('myChart') as HTMLCanvasElement;
+        var g = ctx.getContext('2d');
+        var myChart = new Chart(g, {
+            type: 'bar',
+            data: {
+                labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+                datasets: [{
+                    label: '# of Votes',
+                    data: [12, 19, 3, 5, 2, 3],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)',
+                        'rgba(75, 192, 192, 0.2)',
+                        'rgba(153, 102, 255, 0.2)',
+                        'rgba(255, 159, 64, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: true
+                        }
+                    }]
+                }
+            }
+        });
+    }
 
     ngOnInit() {
         this._subscriptions.Subscription = Service.getObservable().event.subscribe((message: any) => {
@@ -74,55 +97,23 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
                 return;
             }
             if (message.event === EHostEvents.spyState) {
-                Object.keys(message.load).forEach((port: string) => {
-                    if (this._portSpark[port] === undefined) {
-                        this._portSpark[port] = new Array(this._step + 1).fill(0);
-                    }
-                    const diff = message.load[port] - this._portBefore[port];
-                    if (diff <= 0) {
-                        this._portRead[port] = 0;
-                    } else {
-                        this._portRead[port] = diff;
-                    }
-                    this._portBefore[port] = message.load[port];
-                });
+                this._subjects.event.next(message.load);
             }
             this._forceUpdate();
         });
         this._ng_spyState = this._getSpyState();
         this._ng_ports = this._requestPortList();
         this._ng_ports.forEach(port => {
-            this._portSpark[port.path] = new Array(this._step + 1).fill(0);
-            this._portBefore[port.path] = 0;
             if (this._ng_spyState[port.path] === undefined) {
                 this._ng_spyState[port.path] = 0;
             }
         });
-    }
-
-    ngAfterViewInit() {
-        const promises: Promise<void>[] = [];
-        this._ng_ports.forEach((port) => {
-            if (!this._ng_isConnected(port)) {
-                this._portRead[port.path] = 0;
-                this._canvas = document.getElementById(`canvas_${port.path}`) as HTMLCanvasElement;
-                promises.push(this._createChart(port.path));
-            }
-        });
-        Promise.all(promises).then(() => {
-            this._update();
-        }).catch((error: Error) => {
-            this._logger.error(error.message);
-        });
+        this._interval = setInterval(() => {
+            this._subjects.event.next(true);
+        }, this._timeout);
     }
 
     ngOnDestroy() {
-        Object.keys(this._portChart).forEach((port) => {
-            this._portSpark[port] = [];
-            if (this._portChart[port]) {
-                this._portChart[port].destroy();
-            }
-        });
         if (this._interval) {
             clearTimeout(this._interval);
         }
@@ -132,85 +123,8 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
         this._destroyed = true;
     }
 
-    private _color(): number {
-        return Math.round(Math.random() * 255);
-    }
-
-    private _colorize(): string {
-        const rgb: Irgb = {
-            red: this._color(),
-            green: this._color(),
-            blue: this._color(),
-            opacity: 1,
-        };
-        return `rgba(${rgb.red}, ${rgb.green}, ${rgb.blue}, ${rgb.opacity})`;
-    }
-
-    private _createChart(port: string): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this._ctx = this._canvas.getContext('2d');
-            if (this._portChart[port]) {
-                reject('Chart for this port already exists!');
-            } else {
-                this._portChart[port] = new Chart(this._ctx, {
-                    type: 'line',
-                    data: {
-                        labels: new Array(this._step).fill(''),
-                        datasets: [{
-                            data: this._portSpark[port],
-                            borderColor: this._colorize(),
-                            pointRadius: 0,
-                            fill: false,
-                        }]
-                    },
-                    options: {
-                        animation: {
-                            duration: this._animation,
-                        },
-                        tooltips: {
-                            displayColors: false
-                        },
-                        scales: {
-                            xAxes: [{
-                                ticks: {
-                                    display: false,
-                                },
-                                gridLines: {
-                                    drawOnChartArea: false
-                                }
-                            }],
-                            yAxes: [{
-                                display: false,
-                                stacked: true,
-                                ticks: {
-                                    beginAtZero: true,
-                                },
-                                gridLines: {
-                                    drawOnChartArea: false
-                                }
-                            }]
-                        },
-                        legend: {
-                            display: false
-                        }
-                    }
-                });
-                resolve();
-            }
-        });
-    }
-
-    private _update() {
-        if (Object.keys(this._portChart).length > 0) {
-            this._interval = setInterval(() => {
-                Object.keys(this._portChart).forEach((port: string) => {
-                    this._portSpark[port].shift();
-                    this._portSpark[port].push(this._portRead[port]);
-                    this._portChart[port].update();
-                    this._portRead[port] = 0;
-                });
-            }, this._timeout);
-        }
+    public observe(): { event: Observable<any> } {
+        return { event: this._subjects.event.asObservable() };
     }
 
     private _forceUpdate() {
@@ -227,10 +141,6 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
         }
         options.path = this._ng_selected.path;
         return options;
-    }
-
-    public _ng_isConnected(port: IPortInfo): IConnected {
-        return this._ng_connected.find(connected => connected.port.path === port.path);
     }
 
     public _ng_onConnect() {
@@ -258,19 +168,5 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
         } else {
             return target.state;
         }
-    }
-
-    public _ng_formatLoad(load: number): string {
-        let read: string = '';
-        if (load > 1024 * 1024 * 1024) {
-            read = (load / 1024 / 1024 / 1024).toFixed(2) + ' Gb';
-        } else if (load > 1024 * 1024) {
-            read = (load / 1024 / 1024).toFixed(2) + ' Mb';
-        } else if (load > 1024) {
-            read = (load / 1024).toFixed(2) + ' Kb';
-        } else {
-            read = load + ' b';
-        }
-        return read;
     }
 }

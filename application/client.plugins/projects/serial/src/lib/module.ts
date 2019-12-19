@@ -10,6 +10,7 @@ import { SidebarVerticalPortDialogComponent } from './views/dialog/components';
 import { SidebarTitleAddComponent } from './views/dialog/titlebar/components';
 import { SerialRowComponent } from './views/row/component';
 import { PrimitiveModule } from 'chipmunk-client-primitive';
+import { DialogAvailablePortComponent } from './views/dialog/port.available/components';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 const CComponents = [
@@ -20,7 +21,8 @@ const CComponents = [
     SidebarVerticalPortOptionsWriteComponent,
     SidebarVerticalPortDialogComponent,
     SidebarTitleAddComponent,
-    SerialRowComponent
+    SerialRowComponent,
+    DialogAvailablePortComponent,
 ];
 
 @NgModule({
