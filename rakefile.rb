@@ -620,7 +620,7 @@ def sign_plugin_binary(plugin_path)
     developer_id = ''
     if ENV.key?('APPLEID')
       developer_id = ENV['APPLEID']
-    elsif ENV.key?['CHIPMUNK_DEVELOPER_ID']
+    elsif ENV.key?('CHIPMUNK_DEVELOPER_ID')
       developer_id = ENV['CHIPMUNK_DEVELOPER_ID']
     else
       puts 'Cannot sign plugins because cannot find DEVELOPER_ID.'
