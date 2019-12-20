@@ -12,6 +12,8 @@ export enum EHotkeyActionRef {
     showHotkeysMapDialog = 'showHotkeysMapDialog',
     sidebarToggle = 'sidebarToggle',
     toolbarToggle = 'toolbarToggle',
+    recentFiles = 'recentFiles',
+    recentFilters = 'recentFilters',
 }
 
 export interface IHotkeyCall {

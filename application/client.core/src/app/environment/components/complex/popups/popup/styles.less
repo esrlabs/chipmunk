@@ -4,46 +4,53 @@
     position: absolute;
     display: block;
     left: 50%;
-    & div.wrapper{
-        position: relative;
-        display: block;
+    & div.container {
+        &.minimalistic{
+            margin-top: -0.5rem;
+        }
         background: @scheme-color-5;
-        width: 100%;
-        border-radius: 4px;
-        box-shadow: 0 0 0.5rem rgba(0,0,0, 0.4);
-        overflow: hidden;
-        .border-based-5;
-        & p.caption{
+        & div.wrapper{
             position: relative;
             display: block;
-            margin: 0;
-            padding: 0.1rem 0.5rem;
-            color: @scheme-color-1;
-            cursor: default;
-            font-size: 0.95rem;
-            .gradient(linear; darken(@scheme-color-5, 2%), lighten(@scheme-color-5, 2%));
-            & span.close-button{
-                position: absolute;
+            background: @scheme-color-5;
+            width: 100%;
+            border-radius: 4px;
+            box-shadow: 0 0 0.5rem rgba(0,0,0, 0.4);
+            overflow: hidden;
+            .border-based-5;
+            & p.caption{
+                position: relative;
                 display: block;
-                right: 0.5rem;
-                top: 0.4rem;
-                font-size: 0.8rem;
+                margin: 0;
+                padding: 0.1rem 0.5rem;
                 color: @scheme-color-1;
+                cursor: default;
+                font-size: 0.95rem;
+                .gradient(linear; darken(@scheme-color-5, 2%), lighten(@scheme-color-5, 2%));
+                & span.close-button{
+                    position: absolute;
+                    display: block;
+                    right: 0.5rem;
+                    top: 0.4rem;
+                    font-size: 0.8rem;
+                    color: @scheme-color-1;
+                }
+            }
+            & p.content,
+            & div.content{
+                position: relative;
+                display: block;
+                margin: 0;
+                padding: 0.25rem 0.5rem;
+                color: @scheme-color-1;
+                font-size: 0.85rem;
+            }
+            & div.buttons{
+                position: relative;
+                text-align: right;
+                padding: 0.5rem;
             }
         }
-        & p.content,
-        & div.content{
-            position: relative;
-            display: block;
-            margin: 0;
-            padding: 0.25rem 0.5rem;
-            color: @scheme-color-1;
-            font-size: 0.85rem;
-        }
-        & div.buttons{
-            position: relative;
-            text-align: right;
-            padding: 0.5rem;
-        }
     }
+
 }

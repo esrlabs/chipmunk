@@ -1,6 +1,8 @@
-import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { DialogsRecentFilesActionComponent } from '../../../components/dialogs/recentfile/component';
 import PopupsService from '../../../services/standalone/service.popups';
+import HotkeysService from '../../../services/service.hotkeys';
+import { Subscription } from 'rxjs';
 
 @Component({
     selector: 'app-layout-area-primary-controls',
@@ -8,20 +10,19 @@ import PopupsService from '../../../services/standalone/service.popups';
     styleUrls: ['./styles.less']
 })
 
-export class LayoutPrimiryAreaControlsComponent implements AfterViewInit, OnDestroy {
+export class LayoutPrimiryAreaControlsComponent implements OnDestroy {
 
     @Input() public onNewTab: () => void;
+    private _subscriptions: { [key: string]: Subscription } = {};
 
     constructor(private _cdRef: ChangeDetectorRef) {
-
-    }
-
-    ngAfterViewInit() {
-
+        this._subscriptions.recentFiles = HotkeysService.getObservable().recentFiles.subscribe(this._ng_onRecent.bind(this));
     }
 
     ngOnDestroy() {
-
+        Object.keys(this._subscriptions).forEach((prop: string) => {
+            this._subscriptions[prop].unsubscribe();
+        });
     }
 
     public _ng_onAddNew(event: MouseEvent) {
@@ -36,7 +37,7 @@ export class LayoutPrimiryAreaControlsComponent implements AfterViewInit, OnDest
 
     public _ng_onRecent(event: MouseEvent) {
         const popupId: string = PopupsService.add({
-            caption: `Open Recent Files`,
+            caption: ``,
             component: {
                 factory: DialogsRecentFilesActionComponent,
                 inputs: {
@@ -45,16 +46,10 @@ export class LayoutPrimiryAreaControlsComponent implements AfterViewInit, OnDest
                     }
                 }
             },
-            buttons: [
-                {
-                    caption: 'Cancel',
-                    handler: () => {
-                        PopupsService.remove(popupId);
-                    }
-                },
-            ],
+            buttons: [],
             options: {
-                width: 40
+                width: 40,
+                minimalistic: true,
             }
         });
     }

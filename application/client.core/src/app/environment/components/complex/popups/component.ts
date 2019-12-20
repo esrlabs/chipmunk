@@ -4,10 +4,6 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 
 import PopupsService from '../../../services/standalone/service.popups';
 
-const DEFAULT_OPTIONS = {
-    closeDelay: 4000,           // ms
-    closingAnimationDelay: 1000 // ms
-};
 
 @Component({
     selector: 'app-popups',
@@ -61,6 +57,7 @@ export class PopupsComponent implements OnDestroy {
         popup.id = typeof popup.id === 'string' ? (popup.id.trim() !== '' ? popup.id : Toolkit.guid()) : Toolkit.guid();
         popup.options = typeof popup.options === 'object' ? (popup.options !== null ? popup.options : {}) : {};
         popup.options.closable = typeof popup.options.closable === 'boolean' ? popup.options.closable : true;
+        popup.options.minimalistic = typeof popup.options.minimalistic === 'boolean' ? popup.options.minimalistic : false;
         popup.buttons = popup.buttons instanceof Array ? popup.buttons : [];
         popup.buttons = popup.buttons.map((button) => {
             if (typeof button.caption !== 'string' || button.caption.trim() === '') {

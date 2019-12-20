@@ -6,7 +6,8 @@ import PopupsService from '../../../../../services/standalone/service.popups';
 import { DialogsRecentFitlersActionComponent } from '../../../../dialogs/recentfilter/component';
 import ElectronIpcService, { IPCMessages } from '../../../../../services/service.electron.ipc';
 import SearchSessionsService from '../../../../../services/service.sessions.search';
-import { NotificationsService, INotification } from '../../../../../services.injectable/injectable.service.notifications';
+import { NotificationsService } from '../../../../../services.injectable/injectable.service.notifications';
+import HotkeysService from '../../../../../services/service.hotkeys';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
@@ -30,7 +31,7 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _notifications: NotificationsService) {
-
+        HotkeysService.getObservable().recentFilters.subscribe(this._ng_onRecentOpen.bind(this));
     }
 
     ngAfterContentInit() {
@@ -57,23 +58,10 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
                     }
                 }
             },
-            buttons: [
-                {
-                    caption: 'Clear Recent History',
-                    handler: () => {
-                        this._clearRecentHistory();
-                        PopupsService.remove(popupId);
-                    }
-                },
-                {
-                    caption: 'Cancel',
-                    handler: () => {
-                        PopupsService.remove(popupId);
-                    }
-                },
-            ],
+            buttons: [ ],
             options: {
-                width: 40
+                width: 40,
+                minimalistic: true,
             }
         });
     }
