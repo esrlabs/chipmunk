@@ -73,7 +73,6 @@ task clean: :rust_clean
 CLOBBER.include([
                   '**/node_modules',
                   '**/dist',
-                  '**/package-lock.json',
                   "#{APPS_DIR}/indexer/target",
                   "#{APPS_DIR}/indexer-neon/dist",
                   "#{APPS_DIR}/indexer-neon/native/target"
@@ -188,46 +187,33 @@ end
 
 desc 'start'
 task start: :ripgrepdelivery do
-  config_windows_path = File.join(Dir.home, '.chipmunk', 'config.window.json')
-  rm_f config_windows_path
+  # config_windows_path = File.join(Dir.home, '.chipmunk', 'config.window.json')
+  # rm_f config_windows_path
   cd ELECTRON_DIR do
     require 'dotenv/load'
     sh "#{NPM_RUN} electron"
   end
 end
 
+def check_program(existence_check, warning)
+  sh existence_check do |ok, _res|
+    abort warning unless ok
+  end
+end
 desc 'checking local environment'
 task :check_environment do
-  sh "node --version" do |ok,res|
-    if !ok 
-      abort 'NodeJS is required. Please install NodeJS'
-    end
-  end
-  sh "cargo --version" do |ok,res|
-    if !ok 
-      abort 'Rust is required. Please install Rust'
-    end
-  end
-  sh "python --version" do |ok,res|
-    if !ok 
-      abort 'Python is required. Please install Python'
-    end
-  end
-  sh "tsc --version" do |ok,res|
-    if !ok
-      abort "Typescript is required. Please install it globally using \"npm install typescript@#{TYPESCRIPT_NPM_VERSION} --global\". Note, to avoid potential conflicts, it's better to use a suggested version."
-    end
-  end
-  sh "neon version" do |ok,res|
-    if !ok 
-      abort "Neon CLI is required. Please install it globally using \"npm install neon-cli@#{NEON_CLI_NPM_VERSION} --global\". Note, to avoid potential conflicts, it's better to use a suggested version."
-    end
-  end
-  sh "gem list -i dotenv" do |ok,res|
-    if !ok
-      abort "Dotenv is required. Please install it globally using \"gem install dotenv\"."
-    end
-  end
+  check_program('node --version', 'NodeJS is required. Please install NodeJS')
+  check_program('cargo --version', 'Rust is required. Please install Rust')
+  check_program('python --version', 'Python is required. Please install Python')
+  check_program('tsc --version',
+                'Typescript is required. Please install it globally using '\
+                "\"npm install typescript@#{TYPESCRIPT_NPM_VERSION} --global\". "\
+                "Note, to avoid potential conflicts, it's better to use a suggested version.")
+  check_program('neon version',
+                'Neon CLI is required. Please install it globally using '\
+                "\"npm install neon-cli@#{NEON_CLI_NPM_VERSION} --global\""\
+                ". Note, to avoid potential conflicts, it's better to use a suggested version.")
+  check_program('gem list -i dotenv', 'Dotenv is required. Please install it globally using "gem install dotenv".')
 end
 
 desc 'setup build environment'
@@ -621,6 +607,10 @@ def install_plugin_standalone(plugin)
   compress_plugin(arch, plugin)
 end
 
+task :sign do
+  require 'dotenv/load'
+  sign_plugin_binary("#{PLUGINS_SANDBOX}/serial/process")
+end
 def sign_plugin_binary(plugin_path)
   return unless OS.mac?
 
@@ -635,8 +625,7 @@ def sign_plugin_binary(plugin_path)
       puts 'Define it in APPLEID (for production) or in CHIPMUNK_DEVELOPER_ID (for developing)'
       return
     end
-    puts "Detected next MACOS_DEVELOPER_ID = #{developer_id}"
-    puts "Try to sign code for: #{plugin_path}"
+    puts "Detected next MACOS_DEVELOPER_ID = #{developer_id}\nTry to sign code for: #{plugin_path}"
     full_plugin_path = File.expand_path(plugin_path, File.dirname(__FILE__))
     codesign_execution = "codesign --force --options runtime --deep --sign \"#{developer_id}\" {} \\;"
     sh "find #{full_plugin_path} -name \"*.node\" -type f -exec #{codesign_execution}"
@@ -647,6 +636,7 @@ end
 
 def install_plugin_complex(plugin)
   puts "Installing plugin: #{plugin}"
+  require 'dotenv/load'
   cd "#{PLUGINS_SANDBOX}/#{plugin}/process" do
     npm_install
     npm_force_resolutions
@@ -910,10 +900,10 @@ electron_build_output = "#{ELECTRON_RELEASE_DIR}/chipmunk-#{package_version}-#{t
 file electron_build_output => FileList["#{ELECTRON_DIR}/src/**/*.*",
                                        "#{ELECTRON_DIR}/scripts/**/*.*",
                                        "#{ELECTRON_DIR}/*.json"] do |_t|
+  require 'dotenv/load'
   cd ELECTRON_DIR do
     if OS.mac?
       begin
-        require 'dotenv/load'
         if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS')
           sh 'export CSC_IDENTITY_AUTO_DISCOVERY=true; npm run build-mac'
           check_signature('dist/release/mac/chipmunk.app')
