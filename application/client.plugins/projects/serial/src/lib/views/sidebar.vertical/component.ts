@@ -58,7 +58,6 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     public _ng_busy: boolean = false;
     public _ng_error: string | undefined;
     public _ng_options: boolean = false;
-    public _ng_spyLoad: { [key: string]: number } = {};
     public _ng_msg: string;
     public _ng_portList: IPortListItem[] = [];
     public _ng_defaultPort: string | undefined = undefined;
@@ -158,7 +157,6 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                     connections: 0,
                 },
             });
-            this._ng_spyLoad[this._ng_selected.path] = 0;
             this._addDropdownElement(this._ng_selected);
             this._saveDropdownSession(this._ng_selected);
             this._ng_selected = undefined;
@@ -218,9 +216,6 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                 break;
             case EHostEvents.state:
                 this._hostEvents_onState(Service.state);
-                break;
-            case EHostEvents.spyState:
-                this._hostEvents_onSpyState(message.load);
                 break;
         }
         this._forceUpdate();
@@ -291,10 +286,6 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
 
     private _hostEvents_onError(port: string, error: string) {
         this._error(`Port "${port}" error: ${error}`);
-    }
-
-    private _hostEvents_onSpyState(load: { [key: string]: number }) {
-        Object.assign(this._ng_spyLoad, load);
     }
 
     private _forceUpdate() {
@@ -437,7 +428,6 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                         _ng_connected: this._ng_connected,
                         _ng_onOptions: this._ng_onOptions,
                         _ng_onPortSelect: this._ng_onPortSelect,
-                        _getSpyState: () => this._ng_spyLoad,
                         _requestPortList: () => response.ports,
                         _getSelected: (selected: IPortInfo) => { this._ng_selected = selected; },
                         _getOptionsCom: (options: IOptions) => { this._optionsCom = options; },

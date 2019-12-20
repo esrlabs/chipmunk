@@ -6,7 +6,7 @@ import { IOptions } from '../../../common/interface.options';
 import { Logger } from 'chipmunk.client.toolkit';
 import Chart from 'chart.js';
 import { Observable, Subscription } from 'rxjs';
-import { EHostEvents } from '../../../common/host.events';
+import Service from '../../../services/service';
 
 interface IConnected {
     port: IPortInfo;
@@ -38,7 +38,6 @@ export class DialogAvailablePortComponent implements OnDestroy, AfterViewInit {
     private _canvas: HTMLCanvasElement;
     private _ctx: any;
     private _step = 10;
-    private _before = 0;
     private _animation = 5000;
     private _read: number;
     private _chart: Chart;
@@ -64,16 +63,14 @@ export class DialogAvailablePortComponent implements OnDestroy, AfterViewInit {
             if (typeof message !== 'object' && message === null) {
                 return;
             }
-            if (message === true) {
+            if (message) {
                 this._update();
-            } else if (message[this.port.path]) {
-                const diff = message[this.port.path] - this._before;
-                if (diff <= 0) {
-                    this._read = 0;
-                } else {
-                    this._read = diff;
-                }
-                this._before = message[this.port.path];
+            }
+        });
+
+        this._subscriptions.Subscription = Service.getObservable().event.subscribe((message: any) => {
+            if (message[this.port.path]) {
+                    this._read = message[this.port.path];
             }
         });
     }
