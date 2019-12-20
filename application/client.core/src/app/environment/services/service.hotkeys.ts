@@ -18,19 +18,21 @@ export enum EHotkeyCategory {
 }
 
 export const CKeysMap = {
-    [IPCMessages.EHotkeyActionRef.newTab]:                  { shortkeys: ['⌘ + T', 'Ctrl + T'],                 description: 'Open new tab',                    category: EHotkeyCategory.Tabs },
-    [IPCMessages.EHotkeyActionRef.closeTab]:                { shortkeys: ['⌘ + W', 'Ctrl + W'],                 description: 'Close active tab',                category: EHotkeyCategory.Tabs },
-    [IPCMessages.EHotkeyActionRef.openTextFile]:            { shortkeys: ['⌘ + O', 'Ctrl + O'],                 description: 'Open text file',                  category: EHotkeyCategory.Files },
-    [IPCMessages.EHotkeyActionRef.openDltFile]:             { shortkeys: ['⌘ + D', 'Ctrl + D'],                 description: 'Open DLT file',                   category: EHotkeyCategory.Files },
-    [IPCMessages.EHotkeyActionRef.openSearchFiltersTab]:    { shortkeys: ['Shift + ⌘ + F', 'Shift + Ctrl + F'], description: 'Show filters tab',                category: EHotkeyCategory.Areas },
-    [IPCMessages.EHotkeyActionRef.selectNextRow]:           { shortkeys: ['j'],                                 description: 'Select next bookmarked row',      category: EHotkeyCategory.Movement },
-    [IPCMessages.EHotkeyActionRef.selectPrevRow]:           { shortkeys: ['k'],                                 description: 'Select previous bookmarked row',  category: EHotkeyCategory.Movement },
-    [IPCMessages.EHotkeyActionRef.focusSearchInput]:        { shortkeys: ['⌘ + F', 'Ctrl + F', '/'],            description: 'Focus on search input',           category: EHotkeyCategory.Focus },
-    [IPCMessages.EHotkeyActionRef.focusMainView]:           { shortkeys: ['⌘ + 1', 'Ctrl + 1'],                 description: 'Focus on main output',            category: EHotkeyCategory.Focus },
-    [IPCMessages.EHotkeyActionRef.focusSearchView]:         { shortkeys: ['⌘ + 2', 'Ctrl + 2'],                 description: 'Focus on search results output',  category: EHotkeyCategory.Focus },
-    [IPCMessages.EHotkeyActionRef.sidebarToggle]:           { shortkeys: ['⌘ + B', 'Ctrl + B'],                 description: 'Toggle sidebar',                  category: EHotkeyCategory.Areas },
-    [IPCMessages.EHotkeyActionRef.toolbarToggle]:           { shortkeys: ['⌘ + J', 'Ctrl + J'],                 description: 'Toggle toolbar',                  category: EHotkeyCategory.Areas },
-    [IPCMessages.EHotkeyActionRef.showHotkeysMapDialog]:    { shortkeys: ['?'],                                 description: 'Show this dialog',                category: EHotkeyCategory.Other },
+    [IPCMessages.EHotkeyActionRef.newTab]:                  { shortkeys: ['⌘ + T', 'Ctrl + T'],                         description: 'Open new tab',                    category: EHotkeyCategory.Tabs },
+    [IPCMessages.EHotkeyActionRef.closeTab]:                { shortkeys: ['⌘ + W', 'Ctrl + W'],                         description: 'Close active tab',                category: EHotkeyCategory.Tabs },
+    [IPCMessages.EHotkeyActionRef.recentFiles]:             { shortkeys: ['⌘ + J', 'Ctrl + P'],                         description: 'Open recent files',               category: EHotkeyCategory.Files },
+    [IPCMessages.EHotkeyActionRef.recentFilters]:           { shortkeys: ['Shift + ⌘ + J', 'Shift + Ctrl + P'],         description: 'Open recent filtres',             category: EHotkeyCategory.Files },
+    [IPCMessages.EHotkeyActionRef.openTextFile]:            { shortkeys: ['⌘ + O', 'Ctrl + O'],                         description: 'Open text file',                  category: EHotkeyCategory.Files },
+    [IPCMessages.EHotkeyActionRef.openDltFile]:             { shortkeys: ['⌘ + D', 'Ctrl + D'],                         description: 'Open DLT file',                   category: EHotkeyCategory.Files },
+    [IPCMessages.EHotkeyActionRef.openSearchFiltersTab]:    { shortkeys: ['Shift + ⌘ + F', 'Shift + Ctrl + F'],         description: 'Show filters tab',                category: EHotkeyCategory.Areas },
+    [IPCMessages.EHotkeyActionRef.selectNextRow]:           { shortkeys: ['j'],                                         description: 'Select next bookmarked row',      category: EHotkeyCategory.Movement },
+    [IPCMessages.EHotkeyActionRef.selectPrevRow]:           { shortkeys: ['k'],                                         description: 'Select previous bookmarked row',  category: EHotkeyCategory.Movement },
+    [IPCMessages.EHotkeyActionRef.focusSearchInput]:        { shortkeys: ['⌘ + F', 'Ctrl + F', '/'],                    description: 'Focus on search input',           category: EHotkeyCategory.Focus },
+    [IPCMessages.EHotkeyActionRef.focusMainView]:           { shortkeys: ['⌘ + 1', 'Ctrl + 1'],                         description: 'Focus on main output',            category: EHotkeyCategory.Focus },
+    [IPCMessages.EHotkeyActionRef.focusSearchView]:         { shortkeys: ['⌘ + 2', 'Ctrl + 2'],                         description: 'Focus on search results output',  category: EHotkeyCategory.Focus },
+    [IPCMessages.EHotkeyActionRef.sidebarToggle]:           { shortkeys: ['⌘ + B', 'Ctrl + B'],                         description: 'Toggle sidebar',                  category: EHotkeyCategory.Areas },
+    [IPCMessages.EHotkeyActionRef.toolbarToggle]:           { shortkeys: ['⌘ + J', 'Ctrl + J'],                         description: 'Toggle toolbar',                  category: EHotkeyCategory.Areas },
+    [IPCMessages.EHotkeyActionRef.showHotkeysMapDialog]:    { shortkeys: ['?'],                                         description: 'Show this dialog',                category: EHotkeyCategory.Other },
 };
 
 export interface IHotkeyEvent {
@@ -60,6 +62,8 @@ export class HotkeysService implements IService {
         showHotkeysMapDialog: new Subject<IHotkeyEvent>(),
         sidebarToggle: new Subject<IHotkeyEvent>(),
         toolbarToggle: new Subject<IHotkeyEvent>(),
+        recentFiles: new Subject<IHotkeyEvent>(),
+        recentFilters: new Subject<IHotkeyEvent>(),
     };
 
     constructor() {
@@ -106,6 +110,8 @@ export class HotkeysService implements IService {
         showHotkeysMapDialog: Observable<IHotkeyEvent>,
         sidebarToggle: Observable<IHotkeyEvent>,
         toolbarToggle: Observable<IHotkeyEvent>,
+        recentFiles: Observable<IHotkeyEvent>,
+        recentFilters: Observable<IHotkeyEvent>,
     } {
         return {
             newTab: this._subjects.newTab.asObservable(),
@@ -121,6 +127,8 @@ export class HotkeysService implements IService {
             showHotkeysMapDialog: this._subjects.showHotkeysMapDialog.asObservable(),
             sidebarToggle: this._subjects.sidebarToggle.asObservable(),
             toolbarToggle: this._subjects.toolbarToggle.asObservable(),
+            recentFiles: this._subjects.recentFiles.asObservable(),
+            recentFilters: this._subjects.recentFilters.asObservable(),
         };
     }
 

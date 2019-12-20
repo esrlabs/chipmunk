@@ -10,6 +10,21 @@ import { DialogsRecentFitlersActionComponent    } from './recentfilter/component
 import { PrimitiveModule                        } from 'chipmunk-client-primitive';
 import { ContainersModule                       } from 'chipmunk-client-containers';
 
+import {
+    MatFormField,
+    MatInput,
+    MatAutocomplete } from '@angular/material';
+import {
+    MatFormFieldModule,
+    MatInputModule,
+    MatAutocompleteModule,
+    MatOptionModule } from '@angular/material';
+import {
+    FormsModule,
+    ReactiveFormsModule } from '@angular/forms';
+
+const entryComponents = [MatFormField, MatAutocomplete];
+
 const CDialogs = [
     DialogsFileOptionsDltComponent,
     DialogsHotkeysMapComponent,
@@ -19,8 +34,18 @@ const CDialogs = [
 ];
 
 @NgModule({
-    entryComponents : [ ...CDialogs ],
-    imports         : [ CommonModule, PrimitiveModule, ContainersModule ],
+    entryComponents : [ ...CDialogs, ...entryComponents ],
+    imports         : [
+        CommonModule,
+        PrimitiveModule,
+        ContainersModule,
+        FormsModule,
+        ReactiveFormsModule,
+        MatInputModule,
+        MatFormFieldModule,
+        MatAutocompleteModule,
+        MatOptionModule
+    ],
     declarations    : [ ...CDialogs ],
     exports         : [ ...CDialogs ]
 })

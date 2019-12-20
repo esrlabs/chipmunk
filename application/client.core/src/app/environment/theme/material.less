@@ -1,3 +1,52 @@
 & mat-slider {
     width: 100%;
 }
+& mat-form-field{
+    width: 100%;
+}
+& mat-option.mat-option.small{
+    position: relative;
+    height: 1.5rem!important;
+    line-height: 1.5rem!important;
+    max-height: 1.5rem!important;
+}
+& mat-form-field.recent-files{
+    & input,
+    & label {
+        padding: 0 0.5rem;
+        width: ~"calc(100% - 1rem)";
+    }
+}
+& mat-option.recent-files {
+    & span.mat-option-text {
+        position: relative;
+        padding: 0 0.5rem;
+        & span.filename {
+            display: inline-block;
+            position: relative;
+            font-weight: 600;
+            padding: 0 0.5rem;
+            vertical-align: top;
+            color: @scheme-color-0;
+        }
+        & span.folder {
+            display: inline-block;
+            position: relative;
+            max-width: 12rem;
+            text-overflow: ellipsis;
+            direction: rtl;
+            overflow: hidden;
+            color: @scheme-color-2;
+            vertical-align: top;
+        }
+        & span.size {
+            display: inline-block;
+            position: relative;
+            max-width: 12rem;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            color: @scheme-color-2;
+            vertical-align: top;
+        }
+    }
+}

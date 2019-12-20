@@ -1,10 +1,12 @@
-import { Component, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
+import { Component, ChangeDetectorRef, Input, AfterContentInit, OnInit, OnDestroy, ViewChild, AfterViewInit } from '@angular/core';
 import * as Toolkit from 'chipmunk.client.toolkit';
-import ElectronIpcService, { IPCMessages, Subscription } from '../../../services/service.electron.ipc';
+import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
 import FileOpenerService from '../../../services/service.file.opener';
-import TabsSessionsService from '../../../services/service.sessions.tabs';
-import { NotificationsService, INotification } from '../../../services.injectable/injectable.service.notifications';
-import { ControllerSessionTab } from '../../../controller/controller.session.tab';
+import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
+import { map, startWith } from 'rxjs/operators';
+import { FormControl } from '@angular/forms';
+import { MatInput, MatAutocompleteTrigger } from '@angular/material';
+import { Observable } from 'rxjs';
 
 @Component({
     selector: 'app-views-dialogs-recentfilescation-map',
@@ -12,26 +14,35 @@ import { ControllerSessionTab } from '../../../controller/controller.session.tab
     styleUrls: ['./styles.less']
 })
 
-export class DialogsRecentFilesActionComponent implements AfterContentInit {
+export class DialogsRecentFilesActionComponent implements OnInit, AfterViewInit, OnDestroy {
 
-    public _ng_files: Array<IPCMessages.IRecentFileInfo> = [];
+    @ViewChild(MatInput, {static: false}) _inputComRef: MatInput;
+    @ViewChild(MatAutocompleteTrigger, {static: false}) _autoComRef: MatAutocompleteTrigger;
+
+    public _ng_files: Observable<IPCMessages.IRecentFileInfo[]>;
     public _files: Array<IPCMessages.IRecentFileInfo> = [];
+    public _ng_inputCtrl = new FormControl();
     private _logger: Toolkit.Logger = new Toolkit.Logger('DialogsRecentFilesActionComponent');
+    private _destroyed: boolean = false;
 
     @Input() close: () => void = () => {};
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _notificationsService: NotificationsService) {
-        this._ng_onFilterChange = this._ng_onFilterChange.bind(this);
+        this._ng_displayWith = this._ng_displayWith.bind(this);
     }
 
-    public ngAfterContentInit() {
+    public ngOnDestroy() {
+        this._destroyed = true;
+    }
+
+    public ngOnInit() {
         ElectronIpcService.request(new IPCMessages.FilesRecentRequest(), IPCMessages.FilesRecentResponse).then((response: IPCMessages.FilesRecentResponse) => {
             if (response.error !== undefined) {
                 this._logger.error(`Fail to get list of recent files due error: ${response.error}`);
                 return;
             }
-            this._ng_files = response.files.map((file: IPCMessages.IRecentFileInfo) => {
+            this._files = response.files.map((file: IPCMessages.IRecentFileInfo) => {
                 if (file.filename === undefined) {
                     file.filename = Toolkit.basename(file.file);
                 }
@@ -40,14 +51,27 @@ export class DialogsRecentFilesActionComponent implements AfterContentInit {
                 }
                 return file;
             });
-            this._files = this._ng_files.slice();
-            this._cdRef.detectChanges();
+            this._ng_files = this._ng_inputCtrl.valueChanges.pipe(
+                startWith(''),
+                map(value => this._filter(value))
+            );
+            this._ng_files.subscribe(() => {
+                this._focus();
+            });
         }).catch((error: Error) => {
             this._logger.error(`Fail to get list of recent files due error: ${error}`);
         });
     }
 
-    public _ng_open(file: IPCMessages.IRecentFileInfo) {
+    public ngAfterViewInit() {
+        this._focus();
+    }
+
+    public _ng_onPanelClosed() {
+        this.close();
+    }
+
+    public _ng_onFileSelected(file: IPCMessages.IRecentFileInfo) {
         FileOpenerService.openFileByName(file.file).catch((openFileErr: Error) => {
             this._logger.error(`Fail to open new session due error: ${openFileErr.message}`);
             this._notificationsService.add({
@@ -58,21 +82,37 @@ export class DialogsRecentFilesActionComponent implements AfterContentInit {
         this.close();
     }
 
-    public _ng_getLocalTime(timestamp: number) {
-        const date: Date = new Date(timestamp);
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    public _ng_displayWith(file: IPCMessages.IRecentFileInfo): string {
+        if (file === null || file === undefined) {
+            return '';
+        }
+        return file.filename;
     }
 
-    public _ng_onFilterChange(value: string, event: KeyboardEvent) {
-        const reg: RegExp | Error = Toolkit.regTools.createFromStr(value);
-        if (reg instanceof Error) {
-            this._ng_files = this._files.slice();
-            this._cdRef.detectChanges();
+    private _focus() {
+        this._forceUpdate();
+        if (this._inputComRef === undefined || this._autoComRef === undefined) {
             return;
         }
-        this._ng_files = this._files.filter((file: IPCMessages.IRecentFileInfo) => {
-            return file.filename.search(reg) !== -1 || file.folder.search(reg) !== -1;
+        this._autoComRef.openPanel();
+        this._inputComRef.focus();
+    }
+
+    private _filter(value: string): IPCMessages.IRecentFileInfo[] {
+        if (typeof value !== 'string') {
+            return;
+        }
+        const filted = value.toLowerCase();
+        this._focus();
+        return this._files.filter((file: IPCMessages.IRecentFileInfo) => {
+            return file.file.includes(filted);
         });
+    }
+
+    private _forceUpdate() {
+        if (this._destroyed) {
+            return;
+        }
         this._cdRef.detectChanges();
     }
 

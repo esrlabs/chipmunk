@@ -1,17 +1,18 @@
-<p class="t-normal" *ngIf="_files.length === 0">No any recent files</p>
-<div class="input-wrapper" *ngIf="_files.length > 1">
-    <lib-primitive-input 
-        [type]="'text'"
-        [placeholder]="'type name of file'"
-        [onChange]="_ng_onFilterChange"
-        [autoFocusOnInit]="true"
-    ></lib-primitive-input>
-</div>
-<div class="files" *ngIf="_ng_files.length > 0">
-    <table class="files-table">
-        <tr [attr.class]="'file-row '" *ngFor="let file of _ng_files" (click)="_ng_open(file)">
-            <td class="t-console color-scheme-2" [attr.title]="file.file"><span class="filename">{{file.filename}}</span> <span class="folder">{{file.folder}}</span></td>
-            <td class="t-console color-scheme-2">{{file.filters}} filters</td>
-        </tr>
-    </table>
-</div>
+<p class="t-normal" *ngIf="_files.length === 0">No any recent filters</p>
+<mat-form-field class="recent-files" *ngIf="_files.length > 1">
+    <input  type="text" 
+            placeholder="Recent Filtres"
+            aria-label="Filter"
+            matInput
+            [formControl]="_ng_inputCtrl"
+            [matAutocomplete]="auto">
+    <mat-autocomplete #auto="matAutocomplete" 
+        (optionSelected)="_ng_onFileSelected($event.option.value)"
+        (closed)="_ng_onPanelClosed()"
+        [autoActiveFirstOption]="true"
+        [displayWith]="_ng_displayWith">
+        <mat-option *ngFor="let file of _ng_files | async" [value]="file" [attr.title]="file.file" class="recent-files small t-console t-small">
+            <span class="filename">{{file.filename}}</span><span class="folder">{{file.folder}}</span><span class="size">{{file.filters}} filters</span>
+        </mat-option>
+    </mat-autocomplete>
+</mat-form-field>

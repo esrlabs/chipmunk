@@ -15,6 +15,11 @@ export interface IOptions {
     width?: number;
 
     /**
+     * @property {boolean} minimalistic - with TRUE shows only container, without title and border; default - FALSE
+     */
+    minimalistic?: boolean;
+
+    /**
      * @depricated
      * this property comes from INotifications and should be removed from popup interfaces
      */

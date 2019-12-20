@@ -19,6 +19,8 @@ const CHotkeyMap = {
     [IPCMessages.EHotkeyActionRef.focusSearchView]:         { darwin: ['Cmd+2'],            other: ['Ctrl+2'] },
     [IPCMessages.EHotkeyActionRef.sidebarToggle]:           { darwin: ['Cmd+B'],            other: ['Ctrl+B'] },
     [IPCMessages.EHotkeyActionRef.toolbarToggle]:           { darwin: ['Cmd+J'],            other: ['Ctrl+J'] },
+    [IPCMessages.EHotkeyActionRef.recentFiles]:             { darwin: ['Cmd+P'],            other: ['Ctrl+P'] },
+    [IPCMessages.EHotkeyActionRef.recentFilters]:           { darwin: ['Shift+Cmd+P'],      other: ['Shift+Ctrl+P'] },
     [IPCMessages.EHotkeyActionRef.showHotkeysMapDialog]:    {                               other: ['?'] },
 };
 

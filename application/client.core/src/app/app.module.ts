@@ -1,12 +1,24 @@
 import { BrowserModule                          } from '@angular/platform-browser';
-import { COMPILER_OPTIONS, CompilerFactory,
-         Compiler, NgModule                     } from '@angular/core';
-import { FormsModule                            } from '@angular/forms';
-import { MatSliderModule                        } from '@angular/material';
 import { JitCompilerFactory                     } from '@angular/platform-browser-dynamic';
 import { AppComponent                           } from './app.component';
 import { EnvironmentModule                      } from './environment/module';
 import { BrowserAnimationsModule                } from '@angular/platform-browser/animations';
+import { MatNativeDateModule                    } from '@angular/material/core';
+import {
+    FormsModule,
+    ReactiveFormsModule } from '@angular/forms';
+import {
+    COMPILER_OPTIONS,
+    CompilerFactory,
+    Compiler,
+    NgModule } from '@angular/core';
+import {
+    MatSliderModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatAutocompleteModule,
+    MatOptionModule } from '@angular/material';
+
 
 export function createCompiler(fn: CompilerFactory): Compiler {
     return fn.createCompiler();
@@ -19,8 +31,14 @@ export function createCompiler(fn: CompilerFactory): Compiler {
     imports: [
         BrowserModule,
         FormsModule,
+        ReactiveFormsModule,
+        MatNativeDateModule,
         MatSliderModule,
         EnvironmentModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatAutocompleteModule,
+        MatOptionModule,
         BrowserAnimationsModule
     ],
     providers: [
