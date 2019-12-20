@@ -140,7 +140,7 @@ export class ControllerSession {
         if(this._readLoad[port] === undefined) {
             this._readLoad[port] = 0;
         }
-        this._readLoad[port] += chunk.length;
+        this._readLoad[port] = chunk.length;
         PluginIPCService.sendToPluginHost(this._session, {
             event: ERenderEvents.spyState,
             streamId: this._session,

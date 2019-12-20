@@ -28,7 +28,6 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
     @Input() public _requestPortList: () => IPortInfo[];
     @Input() public _getSelected: (IPortInfo) => void;
     @Input() public _getOptionsCom: (SidebarVerticalPortOptionsWriteComponent) => void;
-    @Input() public _getSpyState: () => { [key: string]: number };
 
     @Input() public _ng_canBeConnected: () => boolean;
     @Input() public _ng_connected: IConnected[];
@@ -46,7 +45,7 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
     public _ng_busy: boolean = false;
     public _ng_error: string | undefined;
     public _ng_options: boolean = false;
-    public _ng_spyState: { [key: string]: number };
+    public _ng_spyState: { [key: string]: number } = {};
 
     constructor(private _cdRef: ChangeDetectorRef) {
     }
@@ -56,12 +55,11 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
             if (typeof message !== 'object' && message === null) {
                 return;
             }
-            if (message.event === EHostEvents.spyState) {
-                this._subjects.event.next(message.load);
+            if (message) {
+                this._onSpyState(message);
             }
             this._forceUpdate();
         });
-        this._ng_spyState = this._getSpyState();
         this._ng_ports = this._requestPortList();
         this._ng_ports.forEach(port => {
             if (this._ng_spyState[port.path] === undefined) {
@@ -85,6 +83,16 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
 
     public observe(): { event: Observable<any> } {
         return { event: this._subjects.event.asObservable() };
+    }
+
+    private _onSpyState(msg: {[key: string]: number}) {
+        Object.keys(msg).forEach((port: string) => {
+            if (this._ng_spyState[port]) {
+                this._ng_spyState[port] += msg[port];
+            } else {
+                this._ng_spyState[port] = msg[port];
+            }
+        });
     }
 
     private _forceUpdate() {

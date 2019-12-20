@@ -74,6 +74,10 @@ export class Service extends Toolkit.APluginService {
             if (message.streamId !== this.session && message.streamId !== '*') {
                 return;
             }
+            if (message.event === EHostEvents.spyState) {
+                this._subjects.event.next(message.load);
+                return;
+            }
             if (message.event === EHostEvents.state) {
                 this._saveLoad(message.state).then((response: {[port: string]: IPortState}) => {
                     if (response === undefined) {
