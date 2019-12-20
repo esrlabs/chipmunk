@@ -1,4 +1,16 @@
-<lib-sb-portinfo-com [port]="port"></lib-sb-portinfo-com>
-<p *ngIf="_ng_isConnected(port)" class="size t-small color-scheme-2">connected</p>
-<canvas *ngIf="!_ng_isConnected(port)" [attr.id]="'canvas_' + port.path"></canvas>
-<p *ngIf="!_ng_isConnected(port)" class="size t-small color-scheme-2">{{_ng_read(port)}}</p>
+<div class="container">
+    <div class="portInfo">
+        <lib-sb-portinfo-com [port]="port"></lib-sb-portinfo-com>
+    </div>
+    <div *ngIf="_ng_isConnected(port)">
+        <p class="size t-small color-scheme-2">connected</p>
+    </div>
+    <div class="container" *ngIf="!_ng_isConnected(port)">
+        <div>
+            <canvas  [attr.id]="'canvas_' + port.path"></canvas>
+        </div>
+        <div>
+            <p class="size t-small color-scheme-2">{{_ng_read(port)}}</p>
+        </div>
+    </div>
+</div>
