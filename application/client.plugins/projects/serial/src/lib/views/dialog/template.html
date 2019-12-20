@@ -1,6 +1,5 @@
 <div class="container">
     <p class="t-normal">Available ports</p>
-    <lib-dia-port-available-com [port]="_ng_ports[0]"></lib-dia-port-available-com>
     <table class="ports">
         <tr [attr.class]="'port ' + (_ng_isPortSelected(port) ? 'selected' : '')" *ngFor="let port of _ng_ports" (click)="_ng_onPortSelect(port)">
             <td><lib-dia-port-available-com [port]="port" [connected]="_ng_connected" [spyState]="_ng_spyState" [observer]="observe()"></lib-dia-port-available-com></td>            
