@@ -58,7 +58,7 @@ pub fn init_logging() -> Result<(), std::io::Error> {
         .build(
             Root::builder()
                 .appender(appender_name)
-                .build(LevelFilter::Trace),
+                .build(LevelFilter::Warn),
         )
         .expect("logging config was incorrect");
 

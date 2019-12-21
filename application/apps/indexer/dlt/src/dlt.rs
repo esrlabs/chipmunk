@@ -684,8 +684,12 @@ impl TryFrom<u32> for TypeInfo {
 /// the physical value (phy_v), offset and quantization:
 ///     log_v = phy_v * quantization + offset
 ///
+/// * phy_v is what we received in the dlt message
+/// * log_v is the real value
+/// example: the degree celcius is transmitted,
+/// quantization = 0.01, offset = -50
+/// now the transmitted value phy_v = (log_v - offset)/quantization = 7785
 ///
-/// offset
 /// The width depends on the TYLE value
 ///     * i32 bit if Type Length (TYLE) equals 1,2 or 3
 ///     * i64 bit if Type Length (TYLE) equals 4
@@ -704,6 +708,48 @@ pub struct Argument {
     pub value: Value,
 }
 impl Argument {
+    fn value_as_f64(&self) -> Option<f64> {
+        match self.value {
+            Value::I8(v) => Some(v as f64),
+            Value::I16(v) => Some(v as f64),
+            Value::I32(v) => Some(v as f64),
+            Value::I64(v) => Some(v as f64),
+            Value::U8(v) => Some(v as f64),
+            Value::U16(v) => Some(v as f64),
+            Value::U32(v) => Some(v as f64),
+            Value::U64(v) => Some(v as f64),
+            _ => None,
+        }
+    }
+    fn log_v(&self) -> Option<u64> {
+        match &self.fixed_point {
+            Some(FixedPoint {
+                quantization,
+                offset,
+            }) => {
+                if let Some(value) = self.value_as_f64() {
+                    match offset {
+                        FixedPointValue::I32(v) => {
+                            Some((value * *quantization as f64) as u64 + *v as u64)
+                        }
+                        FixedPointValue::I64(v) => {
+                            Some((value * *quantization as f64) as u64 + *v as u64)
+                        }
+                    }
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+    pub(crate) fn to_real_value(&self) -> Option<u64> {
+        match (&self.type_info.kind, &self.fixed_point) {
+            (TypeInfoKind::SignedFixedPoint(_), Some(_)) => self.log_v(),
+            (TypeInfoKind::UnsignedFixedPoint(_), Some(_)) => self.log_v(),
+            _ => None,
+        }
+    }
     #[allow(dead_code)]
     pub fn valid(&self) -> bool {
         let mut valid = true;
@@ -1758,7 +1804,11 @@ impl fmt::Display for Argument {
         if let Some(u) = &self.unit {
             u.fmt(f)?;
         }
-        self.value.fmt(f)?;
+        if let Some(v) = self.to_real_value() {
+            write!(f, "{}", v)?;
+        } else {
+            self.value.fmt(f)?;
+        }
 
         Ok(())
     }
