@@ -7,7 +7,7 @@
     </div>
     <div class="container" *ngIf="!_ng_isConnected(port)">
         <div>
-            <canvas  [attr.id]="'canvas_' + port.path"></canvas>
+            <canvas #canvas  [attr.id]="'canvas_' + port.path"></canvas>
         </div>
         <div>
             <p class="size t-small color-scheme-2">{{_ng_read(port)}}</p>
