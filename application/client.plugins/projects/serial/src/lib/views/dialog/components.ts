@@ -52,12 +52,10 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
 
     ngOnInit() {
         this._subscriptions.Subscription = Service.getObservable().event.subscribe((message: any) => {
-            if (typeof message !== 'object' && message === null) {
+            if (typeof message !== 'object' || message === null) {
                 return;
             }
-            if (message) {
-                this._onSpyState(message);
-            }
+            this._onSpyState(message);
             this._forceUpdate();
         });
         this._ng_ports = this._requestPortList();
@@ -72,16 +70,14 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy() {
-        if (this._interval) {
-            clearTimeout(this._interval);
-        }
+        clearTimeout(this._interval);
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
         this._destroyed = true;
     }
 
-    public observe(): { event: Observable<any> } {
+    public onInterval(): { event: Observable<any> } {
         return { event: this._subjects.event.asObservable() };
     }
 

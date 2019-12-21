@@ -1,6 +1,6 @@
 // tslint:disable:no-inferrable-types
 
-import { Component, OnDestroy, ChangeDetectorRef, Input, AfterViewInit } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, Input, AfterViewInit, ViewChildren, QueryList, ElementRef } from '@angular/core';
 import { IPortInfo, IPortState } from '../../../common/interface.portinfo';
 import { IOptions } from '../../../common/interface.options';
 import { Logger } from 'chipmunk.client.toolkit';
@@ -18,7 +18,7 @@ interface Irgb {
     red: number;
     green: number;
     blue: number;
-    opacity: 1;
+    opacity: number;
 }
 
 @Component({
@@ -34,8 +34,10 @@ export class DialogAvailablePortComponent implements OnDestroy, AfterViewInit {
     @Input() public connected: IConnected[];
     @Input() public spyState: { [key: string]: number };
 
+    @ViewChildren('canvas') canvases: QueryList<ElementRef>;
+
     private _subscriptions: { [key: string]: Subscription } = {};
-    private _canvas: HTMLCanvasElement;
+    private _canvas: ElementRef;
     private _ctx: any;
     private _step = 10;
     private _animation = 5000;
@@ -51,12 +53,9 @@ export class DialogAvailablePortComponent implements OnDestroy, AfterViewInit {
     ngAfterViewInit() {
         if (!this._ng_isConnected(this.port)) {
             this._read = 0;
-            this._canvas = document.getElementById(`canvas_${this.port.path}`) as HTMLCanvasElement;
-            this._createChart().then(() => {
-                this._update();
-            }).catch((error: Error) => {
-                this._logger.error(error.message);
-            });
+            this._canvas = this.canvases.find(canvas => canvas.nativeElement.id === `canvas_${this.port.path}`);
+            this._createChart();
+            this._update();
         }
 
         this._subscriptions.Subscription = this.observer.event.subscribe((message: any) => {
@@ -132,56 +131,49 @@ export class DialogAvailablePortComponent implements OnDestroy, AfterViewInit {
         return `rgba(${rgb.red}, ${rgb.green}, ${rgb.blue}, ${rgb.opacity})`;
     }
 
-    private _createChart(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this._ctx = this._canvas.getContext('2d');
-            if (this._chart) {
-                reject(`Chart for ${this.port.path} already exists!`);
-            } else {
-                this._chart = new Chart(this._ctx, {
-                    type: 'line',
-                    data: {
-                        labels: new Array(this._step).fill(''),
-                        datasets: [{
-                            data: this._spark,
-                            borderColor: this._colorize(),
-                            pointRadius: 0,
-                            fill: false,
-                        }]
-                    },
-                    options: {
-                        animation: {
-                            duration: this._animation,
+    private _createChart() {
+        this._ctx = this._canvas.nativeElement.getContext('2d');
+        this._chart = new Chart(this._ctx, {
+            type: 'line',
+            data: {
+                labels: new Array(this._step).fill(''),
+                datasets: [{
+                    data: this._spark,
+                    borderColor: this._colorize(),
+                    pointRadius: 0,
+                    fill: false,
+                }]
+            },
+            options: {
+                animation: {
+                    duration: this._animation,
+                },
+                tooltips: {
+                    displayColors: false
+                },
+                scales: {
+                    xAxes: [{
+                        ticks: {
+                            display: false,
                         },
-                        tooltips: {
-                            displayColors: false
-                        },
-                        scales: {
-                            xAxes: [{
-                                ticks: {
-                                    display: false,
-                                },
-                                gridLines: {
-                                    drawOnChartArea: false
-                                }
-                            }],
-                            yAxes: [{
-                                display: false,
-                                stacked: true,
-                                ticks: {
-                                    beginAtZero: true,
-                                },
-                                gridLines: {
-                                    drawOnChartArea: false
-                                }
-                            }]
-                        },
-                        legend: {
-                            display: false
+                        gridLines: {
+                            drawOnChartArea: false
                         }
-                    }
-                });
-                resolve();
+                    }],
+                    yAxes: [{
+                        display: false,
+                        stacked: true,
+                        ticks: {
+                            beginAtZero: true,
+                        },
+                        gridLines: {
+                            drawOnChartArea: false
+                        }
+                    }]
+                },
+                legend: {
+                    display: false
+                }
             }
         });
     }
