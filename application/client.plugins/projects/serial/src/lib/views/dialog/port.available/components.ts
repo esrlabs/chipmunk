@@ -3,7 +3,6 @@
 import { Component, OnDestroy, ChangeDetectorRef, Input, AfterViewInit, ViewChildren, QueryList, ElementRef } from '@angular/core';
 import { IPortInfo, IPortState } from '../../../common/interface.portinfo';
 import { IOptions } from '../../../common/interface.options';
-import { Logger } from 'chipmunk.client.toolkit';
 import Chart from 'chart.js';
 import { Observable, Subscription } from 'rxjs';
 import Service from '../../../services/service';
@@ -30,7 +29,7 @@ interface Irgb {
 export class DialogAvailablePortComponent implements OnDestroy, AfterViewInit {
 
     @Input() public port: IPortInfo;
-    @Input() public observer: { event: Observable<any> };
+    @Input() public ticker: { tick: Observable<boolean> };
     @Input() public connected: IConnected[];
     @Input() public spyState: { [key: string]: number };
 
@@ -44,7 +43,6 @@ export class DialogAvailablePortComponent implements OnDestroy, AfterViewInit {
     private _read: number;
     private _chart: Chart;
     private _spark = Array<number>(this._step + 1).fill(0);
-    private _logger: Logger = new Logger(`Plugin: serial: inj_output_bot:`);
     private _destroyed: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef) {
@@ -58,11 +56,8 @@ export class DialogAvailablePortComponent implements OnDestroy, AfterViewInit {
             this._update();
         }
 
-        this._subscriptions.Subscription = this.observer.event.subscribe((message: any) => {
-            if (typeof message !== 'object' && message === null) {
-                return;
-            }
-            if (message) {
+        this._subscriptions.Subscription = this.ticker.tick.subscribe((tick: boolean) => {
+            if (tick) {
                 this._update();
             }
         });
