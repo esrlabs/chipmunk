@@ -20,7 +20,7 @@ interface IConnected {
     styleUrls: ['./styles.less']
 })
 
-export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
+export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, AfterViewInit {
 
     @ViewChild('optionsCom', {static: false}) _optionsCom: SidebarVerticalPortOptionsWriteComponent;
 
@@ -38,7 +38,7 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
     private _timeout = 1000;
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
-    private _subjects = { event: new Subject<any>() };
+    private _subjects = { tick: new Subject<boolean>() };
 
     public _ng_ports: IPortInfo[] = [];
     public _ng_selected: IPortInfo | undefined;
@@ -64,9 +64,10 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
                 this._ng_spyState[port.path] = 0;
             }
         });
-        this._interval = setInterval(() => {
-            this._subjects.event.next(true);
-        }, this._timeout);
+    }
+
+    ngAfterViewInit() {
+        this._next();
     }
 
     ngOnDestroy() {
@@ -77,8 +78,14 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy {
         this._destroyed = true;
     }
 
-    public onInterval(): { event: Observable<any> } {
-        return { event: this._subjects.event.asObservable() };
+    public onTick(): { tick: Observable<boolean> } {
+        return { tick: this._subjects.tick.asObservable() };
+    }
+
+    private _next() {
+        clearTimeout(this._interval);
+        this._subjects.tick.next(true);
+        this._interval = setTimeout(this._next.bind(this), this._timeout);
     }
 
     private _onSpyState(msg: {[key: string]: number}) {
