@@ -9,12 +9,11 @@ import { DialogsRecentFitlersActionComponent    } from './recentfilter/component
 
 import { PrimitiveModule                        } from 'chipmunk-client-primitive';
 import { ContainersModule                       } from 'chipmunk-client-containers';
+import { AppDirectiviesModule                   } from '../../directives/module';
 
 import {
     MatFormField,
-    MatInput,
-    MatAutocomplete } from '@angular/material';
-import {
+    MatAutocomplete,
     MatFormFieldModule,
     MatInputModule,
     MatAutocompleteModule,
@@ -44,10 +43,11 @@ const CDialogs = [
         MatInputModule,
         MatFormFieldModule,
         MatAutocompleteModule,
-        MatOptionModule
+        MatOptionModule,
+        AppDirectiviesModule
     ],
     declarations    : [ ...CDialogs ],
-    exports         : [ ...CDialogs ]
+    exports         : [ ...CDialogs ],
 })
 
 export class EnvironmentDialogsModule {

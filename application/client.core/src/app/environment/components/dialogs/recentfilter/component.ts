@@ -39,22 +39,23 @@ export class DialogsRecentFitlersActionComponent implements OnInit, AfterViewIni
     public ngOnInit() {
         ElectronIpcService.request(new IPCMessages.FiltersFilesRecentRequest(), IPCMessages.FiltersFilesRecentResponse).then((response: IPCMessages.FiltersFilesRecentResponse) => {
             if (response.error) {
+                this._files = [];
                 this._notificationsService.add({
                     caption: 'Fail load recent filters',
-                    message: `Fail to load recent files due error: ${response.error}`
+                    message: `Fail to load recent filters due error: ${response.error}`
                 });
                 this._logger.warn(`Fail to load recent files due error: ${response.error}`);
-                return;
+            } else {
+                this._files = response.files.map((file: IPCMessages.IRecentFilterFileInfo) => {
+                    if (file.filename === undefined) {
+                        file.filename = Toolkit.basename(file.file);
+                    }
+                    if (file.folder === undefined) {
+                        file.folder = Toolkit.dirname(file.file);
+                    }
+                    return file;
+                });
             }
-            this._files = response.files.map((file: IPCMessages.IRecentFilterFileInfo) => {
-                if (file.filename === undefined) {
-                    file.filename = Toolkit.basename(file.file);
-                }
-                if (file.folder === undefined) {
-                    file.folder = Toolkit.dirname(file.file);
-                }
-                return file;
-            });
             this._ng_files = this._ng_inputCtrl.valueChanges.pipe(
                 startWith(''),
                 map(value => this._filter(value))

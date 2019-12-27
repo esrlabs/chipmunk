@@ -1,12 +1,14 @@
-<p class="t-normal" *ngIf="_files.length === 0">No any recent files</p>
-<mat-form-field class="recent-files" *ngIf="_files.length > 1">
+<p class="t-normal no-results" *ngIf="_files.length === 0">No any recent files</p>
+<mat-form-field class="recent-files" *ngIf="_files.length !== 0">
     <input  type="text" 
             placeholder="Recent Files"
             aria-label="Filter"
             matInput
             [formControl]="_ng_inputCtrl"
+            appMatAutocompleteScrollModificationAccessor
+            [optionHeight]="24"
             [matAutocomplete]="auto">
-    <mat-autocomplete #auto="matAutocomplete" 
+    <mat-autocomplete #auto="matAutocomplete"
         (optionSelected)="_ng_onFileSelected($event.option.value)"
         (closed)="_ng_onPanelClosed()"
         [autoActiveFirstOption]="true"

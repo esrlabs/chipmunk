@@ -1,13 +1,16 @@
-import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from '../../services/service.electron';
-import Logger from '../../tools/env.logger';
-import * as fs from 'fs';
-import ControllerStreamFileReader from '../stream.main/file.reader';
-import ControllerStreamProcessor from '../stream.main/controller';
-import State from './state';
 import { EventsHub } from '../stream.common/events';
 import { IMapItem } from './file.map';
 import { SearchEngine, IMapData, IMapChunkEvent } from './engine/controller';
+
+import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from '../../services/service.electron';
+
+import Logger from '../../tools/env.logger';
+import ControllerStreamFileReader from '../stream.main/file.reader';
+import ControllerStreamProcessor from '../stream.main/controller';
+import State from './state';
+
 import * as Tools from '../../tools/index';
+import * as fs from 'fs';
 
 export interface IRange {
     from: number;

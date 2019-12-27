@@ -49,6 +49,21 @@ class ServiceFilters implements IService {
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to subscribe to render event "FiltersFilesRecentResetRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
             });
+            ServiceElectron.IPC.subscribe(IPCMessages.SearchRecentRequest, this._ipc_onSearchRecentRequest.bind(this)).then((subscription: Subscription) => {
+                this._subscriptions.SearchRecentRequest = subscription;
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to subscribe to render event "SearchRecentRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+            });
+            ServiceElectron.IPC.subscribe(IPCMessages.SearchRecentClearRequest, this._ipc_onSearchRecentClearRequest.bind(this)).then((subscription: Subscription) => {
+                this._subscriptions.SearchRecentClearRequest = subscription;
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to subscribe to render event "SearchRecentClearRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+            });
+            ServiceElectron.IPC.subscribe(IPCMessages.SearchRecentAddRequest, this._ipc_onSearchRecentAddRequest.bind(this)).then((subscription: Subscription) => {
+                this._subscriptions.SearchRecentAddRequest = subscription;
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to subscribe to render event "SearchRecentAddRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+            });
             resolve();
         });
     }
@@ -174,6 +189,52 @@ class ServiceFilters implements IService {
             recentFiltersFiles: [],
         });
         response(new IPCMessages.FiltersFilesRecentResetResponse({ }));
+    }
+
+    private _ipc_onSearchRecentRequest(_message: IPCMessages.TMessage, response: (isntance: IPCMessages.TMessage) => any) {
+        const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
+        response(new IPCMessages.SearchRecentResponse({
+            requests: stored.recentSearchRequests,
+        }));
+    }
+
+    private _ipc_onSearchRecentClearRequest(message: IPCMessages.TMessage, response: (message: IPCMessages.TMessage) => Promise<void>) {
+        ServiceStorage.get().set({
+            recentSearchRequests: [],
+        });
+        response(new IPCMessages.SearchRecentClearResponse({ }));
+    }
+
+    private _ipc_onSearchRecentAddRequest(_message: IPCMessages.TMessage, response: (isntance: IPCMessages.TMessage) => any) {
+        const message: IPCMessages.SearchRecentAddRequest = _message as IPCMessages.SearchRecentAddRequest;
+        if (typeof message.request !== 'string' || message.request.trim() === '') {
+            response(new IPCMessages.SearchRecentAddResponse({
+                error: `Search request isn't correct. It should be not empty string.`,
+            }));
+            return;
+        }
+        let stored: IStorageScheme.IRecentSearchRequest[] = ServiceStorage.get().get().recentSearchRequests;
+        let updated: IStorageScheme.IRecentSearchRequest | undefined;
+        // Update usage of filter
+        stored = stored.filter((recent: IStorageScheme.IRecentSearchRequest) => {
+            if (recent.request === message.request) {
+                recent.used += 1;
+                updated = recent;
+                return false;
+            }
+            return true;
+        });
+        if (updated === undefined) {
+            updated = {
+                request: message.request,
+                used: 0,
+            };
+        }
+        stored.unshift(updated);
+        ServiceStorage.get().set({
+            recentSearchRequests: stored,
+        });
+        response(new IPCMessages.SearchRecentAddResponse({ }));
     }
 
     private _loadFile(file: string): Promise<IStoredFileData> {

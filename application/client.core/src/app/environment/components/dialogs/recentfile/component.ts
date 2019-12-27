@@ -11,7 +11,7 @@ import { Observable } from 'rxjs';
 @Component({
     selector: 'app-views-dialogs-recentfilescation-map',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
 
 export class DialogsRecentFilesActionComponent implements OnInit, AfterViewInit, OnDestroy {
@@ -39,18 +39,23 @@ export class DialogsRecentFilesActionComponent implements OnInit, AfterViewInit,
     public ngOnInit() {
         ElectronIpcService.request(new IPCMessages.FilesRecentRequest(), IPCMessages.FilesRecentResponse).then((response: IPCMessages.FilesRecentResponse) => {
             if (response.error !== undefined) {
+                this._files = [];
                 this._logger.error(`Fail to get list of recent files due error: ${response.error}`);
-                return;
+                this._notificationsService.add({
+                    caption: 'Fail load recent files',
+                    message: `Fail to load recent files due error: ${response.error}`
+                });
+            } else {
+                this._files = response.files.map((file: IPCMessages.IRecentFileInfo) => {
+                    if (file.filename === undefined) {
+                        file.filename = Toolkit.basename(file.file);
+                    }
+                    if (file.folder === undefined) {
+                        file.folder = Toolkit.dirname(file.file);
+                    }
+                    return file;
+                });
             }
-            this._files = response.files.map((file: IPCMessages.IRecentFileInfo) => {
-                if (file.filename === undefined) {
-                    file.filename = Toolkit.basename(file.file);
-                }
-                if (file.folder === undefined) {
-                    file.folder = Toolkit.dirname(file.file);
-                }
-                return file;
-            });
             this._ng_files = this._ng_inputCtrl.valueChanges.pipe(
                 startWith(''),
                 map(value => this._filter(value))
