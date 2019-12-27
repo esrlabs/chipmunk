@@ -50,3 +50,82 @@
         }
     }
 }
+& mat-form-field.recent-requests{
+    & input,
+    & label {
+        padding: 0 0.5rem;
+        width: ~"calc(100% - 1rem)";
+        padding-top: 4px;
+        & span{
+            color: @scheme-color-2;
+            font-size: 0.9rem;
+        }
+    }
+    & .mat-form-field-label-wrapper{
+        overflow: visible;
+    }
+    & .mat-form-field-ripple{
+        visibility: hidden;
+    }
+}
+
+& mat-option.recent-requests {
+    & span.mat-option-text {
+        position: relative;
+        padding: 0 0.5rem;
+        & span.filename {
+            display: inline-block;
+            position: relative;
+            font-weight: 600;
+            padding: 0 0.5rem;
+            vertical-align: top;
+            color: @scheme-color-0;
+        }
+        & span.folder {
+            display: inline-block;
+            position: relative;
+            max-width: 12rem;
+            text-overflow: ellipsis;
+            direction: rtl;
+            overflow: hidden;
+            color: @scheme-color-2;
+            vertical-align: top;
+        }
+        & span.size {
+            display: inline-block;
+            position: relative;
+            max-width: 12rem;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            color: @scheme-color-2;
+            vertical-align: top;
+        }
+    }
+}
+
+& .autocomplete-panel-controls-holder {
+    position: absolute;
+    bottom: 2px;
+    right: 0;
+    height: 27px;
+    width: 5rem;
+    z-index: 1;
+    & .autocomplete-panel-controls {
+        position: fixed;
+        height: 27px;
+        right: 0;
+        margin-right: 2.5rem;
+    }
+}
+.mat-autocomplete-panel .autocomplete-hide-label label.mat-form-field-label{
+    transition: all 150ms linear;
+    transform: none!important;
+    opacity: 1;
+}
+
+.autocomplete-hide-label.mat-focused label.mat-form-field-label,
+.autocomplete-hide-label.mat-form-field-should-float label.mat-form-field-label{
+    transform: none!important;
+    opacity: 0;
+}
+

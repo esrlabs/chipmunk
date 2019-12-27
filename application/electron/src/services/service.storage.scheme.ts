@@ -14,12 +14,19 @@ export interface IRecentFilterFile {
     filters: number;
 }
 
+export interface IRecentSearchRequest {
+    request: string;
+    used: number;
+}
+
 export interface IStorage {
     recentFiles: IRecentFile[];
     recentFiltersFiles: IRecentFilterFile[];
+    recentSearchRequests: IRecentSearchRequest[];
 }
 
 export const defaults: IStorage = {
     recentFiles: [],
     recentFiltersFiles: [],
+    recentSearchRequests: [],
 };

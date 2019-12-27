@@ -26,7 +26,7 @@ export function createCompiler(fn: CompilerFactory): Compiler {
 
 @NgModule({
     declarations: [
-        AppComponent
+        AppComponent,
     ],
     imports: [
         BrowserModule,
@@ -39,7 +39,7 @@ export function createCompiler(fn: CompilerFactory): Compiler {
         MatInputModule,
         MatAutocompleteModule,
         MatOptionModule,
-        BrowserAnimationsModule
+        BrowserAnimationsModule,
     ],
     providers: [
         {

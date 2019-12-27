@@ -1,6 +1,5 @@
 import { NgModule                               } from '@angular/core';
 import { CommonModule                           } from '@angular/common';
-import { FormsModule                            } from '@angular/forms';
 import { ScrollingModule                        } from '@angular/cdk/scrolling';
 
 import { ViewSearchComponent                    } from './component';
@@ -10,14 +9,38 @@ import { ViewSearchControlsComponent            } from './output/controls/compon
 import { PrimitiveModule                        } from 'chipmunk-client-primitive';
 import { ContainersModule                       } from 'chipmunk-client-containers';
 import { ComplexModule                          } from 'chipmunk-client-complex';
+import { AppDirectiviesModule                   } from '../../../directives/module';
 
+import {
+    MatFormField,
+    MatAutocomplete,
+    MatFormFieldModule,
+    MatInputModule,
+    MatAutocompleteModule,
+    MatOptionModule } from '@angular/material';
+import {
+    FormsModule,
+    ReactiveFormsModule } from '@angular/forms';
 
-const entryComponents = [ ViewSearchComponent, ViewSearchOutputComponent, ViewSearchControlsComponent ];
-const components = [ ViewSearchComponent, ...entryComponents ];
+const entryComponents = [ ViewSearchComponent, ViewSearchOutputComponent, ViewSearchControlsComponent, MatFormField, MatAutocomplete ];
+const components = [ ViewSearchComponent, ViewSearchComponent, ViewSearchOutputComponent, ViewSearchControlsComponent ];
 
 @NgModule({
     entryComponents : [ ...entryComponents ],
-    imports         : [ CommonModule, ScrollingModule, PrimitiveModule, ContainersModule, ComplexModule, FormsModule ],
+    imports         : [
+        CommonModule,
+        ScrollingModule,
+        PrimitiveModule,
+        ContainersModule,
+        ComplexModule,
+        FormsModule,
+        ReactiveFormsModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatAutocompleteModule,
+        MatOptionModule,
+        AppDirectiviesModule
+    ],
     declarations    : [ ...components ],
     exports         : [ ...components ]
 })

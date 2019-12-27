@@ -1,22 +1,37 @@
 <div *ngIf="_ng_session !== undefined" [attr.class]="'request ' + (_ng_isButtonsVisible() ? 'with-buttons' : '')">
   <div class="comstyle-input-holder search-input-wrapper">
-    <div class="comstyle-input">
-      <input #requestinput 
-        [attr.class]="'comstyle-input ' + (_ng_isRequestValid ? '' : 'not-valid')"
-        type="text"
-        [attr.placeholder]="_ng_isWorking() ? 'working ...' : 'type regular expression to search'"
-        [attr.disabled]="_ng_isWorking() ? '' : null"
-        [(ngModel)]="_ng_request"
-        (focus)="_ng_onFocusRequestInput()"
-        (blur)="_ng_onBlurRequestInput()"
-        (keyup)="_ng_onKeyUpRequestInput($event)"/>
-        <div class="spinner" *ngIf="_ng_isWorking()">
-          <lib-primitive-spinner-regular></lib-primitive-spinner-regular>
-        </div>
-        <p class="t-small color-scheme-2 summary" *ngIf="_ng_isSummaryVisible()">
-          ({{_ng_getMatchesProc()}}% or rows matched. {{_ng_found}} out of {{_ng_read}})
-        </p>
+    <mat-form-field class="recent-requests autocomplete-hide-label">
+      <input  type="text" 
+              placeholder="Type a Search Request"
+              aria-label="Filter"
+              (focus)="_ng_onFocusRequestInput()"
+              (blur)="_ng_onBlurRequestInput()"
+              (keyup)="_ng_onKeyUpRequestInput($event)"
+              matInput
+              [formControl]="_ng_inputCtrl"
+              [readonly]="_ng_isWorking()"
+              appMatAutocompleteScrollModificationAccessor
+              [optionHeight]="24"
+              [matAutocomplete]="auto">
+      <mat-autocomplete #auto="matAutocomplete"
+          (optionSelected)="_ng_onFileSelected($event)"
+          [classList]="'recent-requests'"
+          [disableRipple]="true">
+          <mat-option *ngFor="let recent of _ng_recent | async" [value]="file" [attr.title]="recent" class="recent-requests small t-console t-small">
+              {{recent}}
+          </mat-option>
+          <div class="autocomplete-panel-controls-holder">
+            <div class="autocomplete-panel-controls">
+              <span class="ref-button" (click)="_ng_onClearRecent()">Clear</span>
+            </div>          </div>
+      </mat-autocomplete>
+    </mat-form-field>
+    <div class="spinner" *ngIf="_ng_isWorking()">
+      <lib-primitive-spinner-regular></lib-primitive-spinner-regular>
     </div>
+    <p class="t-small color-scheme-2 summary" *ngIf="_ng_isSummaryVisible()">
+      ({{_ng_getMatchesProc()}}% or rows matched. {{_ng_found}} out of {{_ng_read}})
+    </p>
   </div>
   <div class="request-buttons" *ngIf="_ng_isButtonsVisible()">
     <span [attr.class]="'small-icon-button far fa-save ' + (_ng_isRequestSaved ? 'disabled' : '')" (click)="_ng_onStoreRequest()"></span>

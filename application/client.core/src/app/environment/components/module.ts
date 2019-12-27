@@ -24,7 +24,7 @@ const modules = [
     entryComponents : [ ],
     imports         : [ CommonModule ],
     declarations    : [ ],
-    exports         : [ ...modules  ]
+    exports         : [ ...modules ]
 })
 
 export class EnvironmentComponentsModule {

@@ -85,6 +85,24 @@ export { ISearchRequestResults, SearchRequestResults };
 import { ISearchResultMapState, SearchResultMapState } from './search.results.state';
 export { ISearchResultMapState, SearchResultMapState };
 
+import { SearchRecentRequest } from './search.recent.request';
+export { SearchRecentRequest };
+
+import { ISearchRecentResponse, IRecentSearchRequest, SearchRecentResponse } from './search.recent.response';
+export { ISearchRecentResponse, IRecentSearchRequest, SearchRecentResponse };
+
+import { SearchRecentClearRequest } from './search.recent.clear.request';
+export { SearchRecentClearRequest };
+
+import { ISearchRecentClearResponse, SearchRecentClearResponse } from './search.recent.clear.response';
+export { ISearchRecentClearResponse, SearchRecentClearResponse };
+
+import { ISearchRecentAddRequest, SearchRecentAddRequest } from './search.recent.add.request';
+export { ISearchRecentAddRequest, SearchRecentAddRequest };
+
+import { ISearchRecentAddResponse, SearchRecentAddResponse } from './search.recent.add.response';
+export { ISearchRecentAddResponse, SearchRecentAddResponse };
+
 import { IFileGetOptionsRequest, FileGetOptionsRequest } from './file.getoptions.request';
 export { IFileGetOptionsRequest, FileGetOptionsRequest };
 
@@ -265,6 +283,12 @@ export type TMessage =  HostState |
                         SearchResultMapState |
                         SearchUpdated |
                         SearchChunk |
+                        SearchRecentRequest |
+                        SearchRecentResponse |
+                        SearchRecentClearRequest |
+                        SearchRecentClearResponse |
+                        SearchRecentAddRequest |
+                        SearchRecentAddResponse |
                         FileReadRequest |
                         FileReadResponse |
                         FileOpenRequest |
@@ -352,6 +376,12 @@ export const Map = {
     [SearchResultMapState.signature         ]: SearchResultMapState,
     [SearchChunk.signature                  ]: SearchChunk,
     [SearchUpdated.signature                ]: SearchUpdated,
+    [SearchRecentRequest.signature          ]: SearchRecentRequest,
+    [SearchRecentResponse.signature         ]: SearchRecentResponse,
+    [SearchRecentClearRequest.signature     ]: SearchRecentClearRequest,
+    [SearchRecentClearResponse.signature    ]: SearchRecentClearResponse,
+    [SearchRecentAddRequest.signature       ]: SearchRecentAddRequest,
+    [SearchRecentAddResponse.signature      ]: SearchRecentAddResponse,
 
     [FileGetOptionsRequest.signature        ]: FileGetOptionsRequest,
     [FileGetOptionsResponse.signature       ]: FileGetOptionsResponse,
