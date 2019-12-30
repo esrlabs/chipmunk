@@ -434,6 +434,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                         _ng_connected: this._ng_connected,
                         _ng_onOptions: this._ng_onOptions,
                         _ng_onPortSelect: this._ng_onPortSelect,
+                        _options: this._portOptions,
                         _requestPortList: () => recent ? this._filterPorts(response.ports) : response.ports,
                         _getSelected: (selected: IPortInfo) => { this._ng_selected = selected; },
                         _getOptionsCom: (options: IOptions) => { this._optionsCom = options; },
@@ -443,7 +444,6 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                     {
                         caption: 'Cancel',
                         handler: () => {
-                            this._stopSpy();
                             this._closePopup(popupGuid);
                         }
                     }
