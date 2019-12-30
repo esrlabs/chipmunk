@@ -114,7 +114,10 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
         return options;
     }
 
-    public _ng_onConnect() {
+    public _ng_onConnect(port?: IPortInfo) {
+        if (port) {
+            this._ng_selected = port;
+        }
         this._getSelected(this._ng_selected);
         this._getOptionsCom(this._getOptions());
         this._onConnect();

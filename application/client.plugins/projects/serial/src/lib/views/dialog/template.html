@@ -1,7 +1,7 @@
 <div class="container">
     <p class="t-normal">Available ports</p>
     <table class="ports">
-        <tr [attr.class]="'port ' + (_ng_isPortSelected(port) ? 'selected' : '')" *ngFor="let port of _ng_ports" (click)="_ng_onPortSelect(port)">
+        <tr [attr.class]="'port ' + (_ng_isPortSelected(port) ? 'selected' : '')" *ngFor="let port of _ng_ports" (click)="_ng_onPortSelect(port)" (dblclick)="_ng_onConnect(port)">
             <td><lib-dia-port-available-com [port]="port" [connected]="_ng_connected" [spyState]="_ng_spyState" [ticker]="onTick()"></lib-dia-port-available-com></td>            
         </tr>
     </table>
