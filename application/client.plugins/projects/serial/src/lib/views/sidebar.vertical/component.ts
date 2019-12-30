@@ -408,11 +408,17 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         });
     }
 
-    private closePopup(popup: string) {
+    private _closePopup(popup: string) {
         Service.closePopup(popup);
     }
 
-    public _ng_connectDialog() {
+    private _filterPorts(ports: IPortInfo[]): IPortInfo[] {
+        return ports.filter(port => {
+            return Service.recentPorts.includes(port.path);
+        });
+    }
+
+    public _ng_connectDialog(recent: boolean) {
         Service.requestPorts().then((response) => {
             this._startSpy();
             const popupGuid: string = this.api.addPopup({
@@ -422,13 +428,13 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                     inputs: {
                         _onConnect: (() => {
                             this._stopSpy().then(() => this._ng_onConnect());
-                            this.closePopup(popupGuid);
+                            this._closePopup(popupGuid);
                         }),
                         _ng_canBeConnected: this._ng_canBeConnected,
                         _ng_connected: this._ng_connected,
                         _ng_onOptions: this._ng_onOptions,
                         _ng_onPortSelect: this._ng_onPortSelect,
-                        _requestPortList: () => response.ports,
+                        _requestPortList: () => recent ? this._filterPorts(response.ports) : response.ports,
                         _getSelected: (selected: IPortInfo) => { this._ng_selected = selected; },
                         _getOptionsCom: (options: IOptions) => { this._optionsCom = options; },
                     }
@@ -438,7 +444,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                         caption: 'Cancel',
                         handler: () => {
                             this._stopSpy();
-                            this.closePopup(popupGuid);
+                            this._closePopup(popupGuid);
                         }
                     }
                 ]
