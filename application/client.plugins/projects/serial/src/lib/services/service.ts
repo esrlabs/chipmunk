@@ -10,6 +10,7 @@ export class Service extends Toolkit.APluginService {
     public state:  {[port: string]: IPortState} = {};
     public savedSession: {[session: string]: IPortSession} = {};
     public sessionConnected: {[session: string]: {[port: string]: IPortState}} = {};
+    public recentPorts: string[] = [];
 
     private api: Toolkit.IAPI | undefined;
     private session: string;
@@ -127,6 +128,7 @@ export class Service extends Toolkit.APluginService {
             command: EHostCommands.open,
             options: options,
         }, this.session).then(() => {
+            this.recentPorts.push(options.path);
             if (this.sessionConnected[this.session] === undefined) {
                 this.sessionConnected[this.session] = {};
             }
@@ -193,7 +195,7 @@ export class Service extends Toolkit.APluginService {
         });
     }
 
-    public popupButton(action: () => void) {
+    public popupButton(action: (boolean) => void) {
         this.api.setSidebarTitleInjection({
             factory: SidebarTitleAddComponent,
             inputs: {

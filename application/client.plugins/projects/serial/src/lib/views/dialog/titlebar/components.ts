@@ -8,6 +8,6 @@ import { Component, Input } from '@angular/core';
 
 export class SidebarTitleAddComponent {
 
-    @Input() public _ng_addPort: () => void;
+    @Input() public _ng_addPort: (boolean) => void;
 
 }
