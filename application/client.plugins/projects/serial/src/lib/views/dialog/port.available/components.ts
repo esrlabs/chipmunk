@@ -38,11 +38,11 @@ export class DialogAvailablePortComponent implements OnDestroy, AfterViewInit {
     private _subscriptions: { [key: string]: Subscription } = {};
     private _canvas: ElementRef;
     private _ctx: any;
-    private _step = 10;
+    private _step = 50;
     private _animation = 5000;
     private _read: number;
     private _chart: Chart;
-    private _spark = Array<number>(this._step + 1).fill(0);
+    private _spark = Array<number>(this._step + 1);
     private _destroyed: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef) {

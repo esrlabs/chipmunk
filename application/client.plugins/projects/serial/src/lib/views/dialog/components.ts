@@ -4,7 +4,6 @@ import { Component, ChangeDetectorRef, Input, OnInit, OnDestroy, ViewChild, Afte
 import { IPortInfo, IPortState } from '../../common/interface.portinfo';
 import { IOptions, CDefaultOptions } from '../../common/interface.options';
 import { SidebarVerticalPortOptionsWriteComponent } from '../sidebar.vertical/port.options.write/component';
-import { EHostEvents } from '../../common/host.events';
 import { Subscription, Subject, Observable } from 'rxjs';
 import Service from '../../services/service';
 
