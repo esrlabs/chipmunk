@@ -1,12 +1,10 @@
-<div class="wrapper" *ngIf="_ng_isInProgress()">
+<div *ngIf="_ng_showHistory" class="history">
+    <lib-containers-frame [content]="_ng_component" [options]="_ng_frame_options"></lib-containers-frame>
+</div>
+<div class="wrapper" *ngIf="_ng_isInProgress()" (click)="_ng_onToggleHistory()">
     <div class="progress">
-        <lib-primitive-spinner-circle></lib-primitive-spinner-circle>
+        <mat-progress-bar mode="determinate" [value]="_ng_getDeterminate()"></mat-progress-bar>
     </div>
-    <ul class="tasks" *ngFor="let task of _ng_tasks">
-        <li><span class="info" [attr.title]="task.name">{{task.name}}</span><span *ngIf="task.progress > 0" class="value">{{task.progress}}%</span></li>
-    </ul>
-    <ul class="pipes" *ngFor="let pipe of _ng_pipes">
-        <li><span class="info" [attr.title]="pipe.name">{{pipe.name}}</span><span class="value">{{pipe.done}}/{{pipe.size}}Mb</span></li>
-    </ul>
+    <div class="title t-small">{{_ng_getDeterminate()}}% / {{_ng_tasks.length}} task(s)</div>
 </div>
 
