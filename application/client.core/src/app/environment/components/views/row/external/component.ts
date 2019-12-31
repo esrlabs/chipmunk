@@ -1,5 +1,4 @@
 import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding } from '@angular/core';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import OutputParsersService from '../../../../services/standalone/service.output.parsers';
 import { AOutputRenderComponent, IOutputRenderInputs } from '../../../../interfaces/interface.output.render';
 import { IComponentDesc } from 'chipmunk-client-containers';
@@ -25,13 +24,15 @@ export class ViewOutputRowExternalComponent extends AOutputRenderComponent imple
     @Input() public component: IComponentDesc | undefined;
     @Input() public scope: ControllerSessionScope | undefined;
 
+    public _ng_component: IComponentDesc | undefined;
+
     private _subjects: {
         update: Subject<{ [key: string]: any }>
     } = {
         update: new Subject<{ [key: string]: any }>()
     };
 
-    constructor(private _sanitizer: DomSanitizer, private _cdRef: ChangeDetectorRef ) {
+    constructor(private _cdRef: ChangeDetectorRef ) {
         super();
     }
 
@@ -43,7 +44,7 @@ export class ViewOutputRowExternalComponent extends AOutputRenderComponent imple
     }
 
     public ngAfterContentInit() {
-        this._render();
+        this._setComponent();
     }
 
     public ngAfterContentChecked() {
@@ -60,7 +61,7 @@ export class ViewOutputRowExternalComponent extends AOutputRenderComponent imple
         });
     }
 
-    private _render() {
+    private _setComponent() {
         if (this.pluginId === -1) {
             return;
         }
@@ -70,14 +71,19 @@ export class ViewOutputRowExternalComponent extends AOutputRenderComponent imple
         if (TabsSessionsService.getActive() === undefined) {
             return;
         }
+        this._ng_component = {
+            factory: this.component.factory,
+            resolved: this.component.resolved,
+            inputs: Object.assign({}, this.component.inputs)
+        };
         // Define inputs for custom render
-        const inputs = Object.assign(this.component.inputs, {
+        this._ng_component.inputs = Object.assign(this._ng_component.inputs, {
             str: this.str,
             html: this._getHTML(this.str),
             api: TabsSessionsService.getPluginAPI(this.pluginId),
             update: this._subjects.update
         });
-        this.component.inputs = inputs;
+        this._cdRef.markForCheck();
     }
 
     private _getHTML(str: string): string {
