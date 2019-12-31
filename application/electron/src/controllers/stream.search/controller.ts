@@ -233,11 +233,30 @@ export default class ControllerStreamSearch {
         }
         // Check count of requests
         if (request.requests.length === 0) {
-            return this._ipc_searchRequestResponse(response, {
-                id: request.requestId,
-                started: started,
-                found: 0,
-            });
+            if (this._requests.length !== 0) {
+                this._clear().then(() => {
+                    this._ipc_searchRequestResponse(response, {
+                        id: request.requestId,
+                        started: started,
+                        found: 0,
+                    });
+                }).catch((error: Error) => {
+                    this._logger.error(`Fail to clean search request due error: ${error.message}`);
+                    this._ipc_searchRequestResponse(response, {
+                        id: request.requestId,
+                        started: started,
+                        found: 0,
+                        error: error.message,
+                    });
+                });
+            } else {
+                this._ipc_searchRequestResponse(response, {
+                    id: request.requestId,
+                    started: started,
+                    found: 0,
+                });
+            }
+            return;
         }
         // Clear results file
         this._clear().then(() => {
