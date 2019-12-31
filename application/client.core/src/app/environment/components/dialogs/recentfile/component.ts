@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, Input, AfterContentInit, OnInit, OnDestroy, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, ChangeDetectorRef, Input, OnInit, OnDestroy, ViewChild, AfterViewInit } from '@angular/core';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
 import FileOpenerService from '../../../services/service.file.opener';

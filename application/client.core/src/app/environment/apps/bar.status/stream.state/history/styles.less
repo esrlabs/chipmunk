@@ -1,0 +1,65 @@
+@import '../../../../theme/scheme.less';
+
+:host {
+    position: relative;
+    display: block;
+    box-sizing: border-box;
+    height: 100%;
+    width: ~"calc(100% - 0.5rem)";
+    overflow-x: hidden;
+    overflow-y: auto;
+    & ul.tasks{
+        position: relative;
+        display: block;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        white-space: nowrap;
+        & li{
+            position: relative;
+            display: block;
+            white-space: nowrap;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            & span{
+                position: relative;
+                display: inline-block;
+                color: @scheme-color-2;
+                vertical-align: top;
+                &.info {
+                    position: relative;
+                    display: inline-block;
+                    padding: 2px 0.5rem;
+                    width: ~"calc(100% - 8rem)";
+                    overflow: hidden;
+                    height: 100%;
+                    text-overflow: ellipsis;
+                    cursor: default;
+                    vertical-align: top;
+                    direction: rtl;
+                }
+                &.bar {
+                    position: relative;
+                    display: inline-block;
+                    width: 5rem;
+                    margin: 0.5rem 0.3rem 0 0;
+                }
+                &.value {
+                    position: relative;
+                    display: inline-block;
+                    width: 2rem;
+                    text-align: center;
+                }
+            }
+            &.complete{
+                & span{
+                    &.info {
+                        max-width: 100%;
+                        width: 100%;
+                    }
+                }
+            }
+        }
+    }
+}

@@ -12,70 +12,34 @@
         width: auto;
         height: 100%;
         white-space: nowrap;
+        &:hover{
+            background: @scheme-color-4;
+        }
         & div.progress{
             position: relative;
             display: inline-block;
-            width: 8px;
-            height: 8px;
-            margin: 4px 5px 0 5px;
+            width: 45px;
+            height: 5px;
+            margin: 9px 5px 0 5px;
             vertical-align: top;
         }
-        & ul.tasks,
-        & ul.pipes {
+        & div.title {
             position: relative;
-            height: 100%;
             display: inline-block;
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            white-space: nowrap;
+            height: 100%;
+            margin: 2px 5px 0 5px;
             vertical-align: top;
-            & li{
-                position: relative;
-                display: inline-block;
-                white-space: nowrap;
-                padding: 0;
-                margin: 0;
-                vertical-align: top;
-                & .info {
-                    position: relative;
-                    display: inline-block;
-                    color: @scheme-color-2;
-                    padding: 2px 0.5rem;
-                    max-width: 5rem;
-                    overflow: hidden;
-                    height: 100%;
-                    text-overflow: ellipsis;
-                    cursor: default;
-                    font-size: 0.8rem;
-                    font-weight: 300;
-                    vertical-align: top;
-                    direction: rtl;
-                    transition: all 150ms ease-in-out;
-                }
-                & .value {
-                    position: relative;
-                    display: inline-block;
-                    color: @scheme-color-1;
-                    padding: 2px 0.5rem;
-                    height: 100%;
-                    cursor: default;
-                    font-size: 0.8rem;
-                    font-weight: 300;
-                    vertical-align: top;
-                    font-variant-numeric: tabular-nums;
-                    transition: all 150ms ease-in-out;
-                }
-                &:hover{
-                    & .info {
-                        max-width: 20rem;
-                        color: @scheme-color-1;
-                    }
-                    & .value {
-                        color: @scheme-color-0;
-                    }
-                }
-            }
         }
+    }
+    & div.history{
+        position: fixed;
+        display: block;
+        max-height: 20rem;
+        width: 20rem;
+        max-width: 20rem;
+        bottom: @status-bar-height;
+        right: unit(@status-bar-height-abs / 2, rem);
+        box-sizing: border-box;
+        z-index: 2;
     }
 }

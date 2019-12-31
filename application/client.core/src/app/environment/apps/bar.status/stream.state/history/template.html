@@ -1,0 +1,10 @@
+<ul class="tasks" *ngFor="let task of tasks">
+    <li class="complete" *ngIf="task.progress === 100">
+        <span class="info t-small" [attr.title]="task.name">[done]: {{task.name}}</span>
+    </li>
+    <li *ngIf="task.progress !== 100">
+        <span class="info t-small" [attr.title]="task.name">{{task.name}}</span>
+        <span class="bar"><mat-progress-bar mode="determinate" [value]="task.progress"></mat-progress-bar></span>
+        <span class="value t-small">{{task.progress}}%</span>
+    </li>
+</ul>

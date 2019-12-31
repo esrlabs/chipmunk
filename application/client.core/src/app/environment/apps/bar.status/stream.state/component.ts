@@ -1,13 +1,17 @@
-import ServiceElectronIpc, { IPCMessages } from '../../../services/service.electron.ipc';
-import { Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import * as Toolkit from 'chipmunk.client.toolkit';
-import TabsSessionsService from '../../../services/service.sessions.tabs';
-import { Subscription } from 'rxjs';
+import { Subscription, Observable, Subject } from 'rxjs';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
+import { TasksHistoryComponent } from './history/component';
+import { IComponentDesc, IFrameOptions } from 'chipmunk-client-containers';
+import { Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
+
+import TabsSessionsService from '../../../services/service.sessions.tabs';
+
+import ServiceElectronIpc, { IPCMessages } from '../../../services/service.electron.ipc';
 
 interface IStorage {
     tasks: IPCMessages.IStreamProgressTrack[];
-    pipes: IPCMessages.IStreamPipeProgress[];
 }
 
 @Component({
@@ -19,18 +23,35 @@ interface IStorage {
 export class AppsStatusBarStreamStateComponent implements OnDestroy {
 
     public _ng_tasks: IPCMessages.IStreamProgressTrack[] = [];
-    public _ng_pipes: IPCMessages.IStreamPipeProgress[] = [];
+    public _ng_showHistory: boolean = false;
+    public _ng_frame_options: IFrameOptions = {
+        closable: true,
+        caption: 'All tasks in queue',
+        onClose: undefined,
+        style: {
+            maxHeight: '14rem'
+        }
+    };
+    public _ng_component: IComponentDesc = {
+        factory: TasksHistoryComponent,
+        inputs: {
+            tasks: []
+        }
+    };
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('AppsStatusBarStreamStateComponent');
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription | undefined } = {};
     private _sessionId: string | undefined;
     private _sessions: Map<string, IStorage> = new Map();
+    private _updated: Subject<IPCMessages.IStreamProgressTrack[]> = new Subject<IPCMessages.IStreamProgressTrack[]>();
 
     constructor(private _cdRef: ChangeDetectorRef) {
-        this._subscriptions.StreamPipeState = ServiceElectronIpc.subscribe(IPCMessages.StreamPipeState, this._onStreamPipeState.bind(this));
         this._subscriptions.StreamProgressState = ServiceElectronIpc.subscribe(IPCMessages.StreamProgressState, this._onStreamProgressState.bind(this));
         this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._subscriptions.onSessionClosed = TabsSessionsService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
+        this._ng_onToggleHistory = this._ng_onToggleHistory.bind(this);
+        this._ng_frame_options.onClose = this._ng_onToggleHistory;
+        this._ng_component.inputs.updated = this._updated.asObservable();
         const controller: ControllerSessionTab | undefined = TabsSessionsService.getActive();
         if (controller === undefined) {
             return;
@@ -45,27 +66,45 @@ export class AppsStatusBarStreamStateComponent implements OnDestroy {
     }
 
     public _ng_isInProgress(): boolean {
-        return (this._ng_tasks.length + this._ng_pipes.length) > 0;
+        return this._ng_tasks.length > 0;
     }
 
-    private _onStreamPipeState(message: IPCMessages.StreamPipeState) {
-        this._add(message.streamId);
+    public _ng_getDeterminate(): number {
         const storage: IStorage | undefined = this._sessions.get(this._sessionId);
         if (storage === undefined) {
-            return;
+            return 100;
         }
-        this._sessions.set(message.streamId, {
-            tasks: storage.tasks,
-            pipes: message.tracks.map((pipe: IPCMessages.IStreamPipeProgress) => {
-                pipe.done = parseFloat((pipe.done / 1024 / 1024).toFixed(2));
-                pipe.size = parseFloat((pipe.size / 1024 / 1024).toFixed(2));
-                return pipe;
-            })
+        let min: number = 100;
+        storage.tasks.forEach((task: IPCMessages.IStreamProgressTrack) => {
+            if (min > task.progress) {
+                min = task.progress;
+            }
         });
-        if (this._sessionId !== message.streamId) {
+        return min;
+    }
+
+    public _ng_onToggleHistory() {
+        const storage: IStorage | undefined = this._sessions.get(this._sessionId);
+        if (storage === undefined) {
+            this._ng_showHistory = false;
+        } else {
+            this._ng_showHistory = !this._ng_showHistory;
+            this._ng_component.inputs.tasks = storage.tasks;
+            this._cdRef.detectChanges();
+        }
+    }
+
+    private _updateHistory() {
+        if (!this._ng_showHistory) {
             return;
         }
-        this._switch();
+        const storage: IStorage | undefined = this._sessions.get(this._sessionId);
+        if (storage === undefined || storage.tasks.length === 0) {
+            this._ng_showHistory = false;
+            this._cdRef.detectChanges();
+            return;
+        }
+        this._updated.next(storage.tasks);
     }
 
     private _onStreamProgressState(message: IPCMessages.StreamProgressState) {
@@ -75,7 +114,6 @@ export class AppsStatusBarStreamStateComponent implements OnDestroy {
             return;
         }
         this._sessions.set(message.streamId, {
-            pipes: storage.pipes,
             tasks: message.tracks.map((track: IPCMessages.IStreamProgressTrack) => {
                 track.progress = Math.round(track.progress * 100);
                 return track;
@@ -84,6 +122,7 @@ export class AppsStatusBarStreamStateComponent implements OnDestroy {
         if (this._sessionId !== message.streamId) {
             return;
         }
+        this._updateHistory();
         this._switch();
     }
 
@@ -91,6 +130,7 @@ export class AppsStatusBarStreamStateComponent implements OnDestroy {
         if (controller === undefined) {
             return;
         }
+        this._ng_showHistory = false;
         this._sessionId = controller.getGuid();
         this._add(this._sessionId);
         this._switch();
@@ -98,6 +138,7 @@ export class AppsStatusBarStreamStateComponent implements OnDestroy {
 
     private _onSessionClosed(sessionId: string) {
         this._remove(sessionId);
+        this._ng_showHistory = false;
         if (this._sessionId === sessionId) {
             const controller: ControllerSessionTab | undefined = TabsSessionsService.getActive();
             if (controller === undefined) {
@@ -115,7 +156,6 @@ export class AppsStatusBarStreamStateComponent implements OnDestroy {
         }
         this._sessions.set(sessionId, {
             tasks: [],
-            pipes: [],
         });
     }
 
@@ -126,17 +166,14 @@ export class AppsStatusBarStreamStateComponent implements OnDestroy {
     private _switch() {
         if (this._sessionId === undefined) {
             this._ng_tasks = [];
-            this._ng_pipes = [];
             this._cdRef.detectChanges();
             return;
         }
         const storage: IStorage | undefined = this._sessions.get(this._sessionId);
         if (storage === undefined) {
             this._ng_tasks = [];
-            this._ng_pipes = [];
         } else {
             this._ng_tasks = storage.tasks;
-            this._ng_pipes = storage.pipes;
         }
         this._cdRef.detectChanges();
     }
