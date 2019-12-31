@@ -105,6 +105,10 @@ export class OperationAppend extends EventEmitter {
         }).finally(this._clear.bind(this, taskId));
     }
 
+    public dropCursorPosition() {
+        this._last = undefined;
+    }
+
     private _clear(id: string) {
         const cleaner: THandler | undefined = this._cleaners.get(id);
         if (cleaner === undefined) {

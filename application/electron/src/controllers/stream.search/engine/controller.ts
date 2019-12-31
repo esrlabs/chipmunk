@@ -75,8 +75,13 @@ export class SearchEngine extends EventEmitter {
             return new Error(`Fail to start search because previous wasn't finished.`);
         }
         let error: CancelablePromise<IMapItem[], void> | Error;
+        // Drop last cursor point because search is new
+        if (typeof from !== 'number' || typeof to !== 'number') {
+            this._operations.append.dropCursorPosition();
+        }
         // Try to create task
         if (typeof from === 'number' && typeof to === 'number') {
+            // Call append operation
             error = this._operations.append.perform(requests, {
                 from: from,
                 to: to,
@@ -85,6 +90,7 @@ export class SearchEngine extends EventEmitter {
                 rows: this._state.map.getRowsCount(),
             });
         } else {
+            // Call search operation
             error = this._operations.search.perform(requests, {
                 bytes: this._state.map.getByteLength(),
                 rows: this._state.map.getRowsCount(),
@@ -103,26 +109,19 @@ export class SearchEngine extends EventEmitter {
             const taskId: string = guid();
             // Store task into stock
             this._stock.search.set(taskId, task);
-            // Get current size of file
-            fs.stat(this._state.getStreamFile(), (err: NodeJS.ErrnoException | null, stats: fs.Stats) => {
-                if (err) {
-                    this._stock.search.delete(taskId);
-                    return reject(err);
-                }
-                // Start tracking
-                ServiceStreams.addProgressSession(taskId, 'search', this._state.getGuid());
-                ServiceStreams.updateProgressSession(taskId, 0, this._state.getGuid());
-                // Handeling finishing
-                task.then((map: IMapItem[]) => {
-                    resolve(map);
-                }).cancel(() => {
-                    this._logger.env(`Search was canceled.`);
-                }).catch((searchErr: Error) => {
-                    reject(searchErr);
-                }).finally(() => {
-                    ServiceStreams.removeProgressSession(taskId, this._state.getGuid());
-                    this._stock.search.delete(taskId);
-                });
+            // Start tracking
+            ServiceStreams.addProgressSession(taskId, 'search', this._state.getGuid());
+            ServiceStreams.updateProgressSession(taskId, 0, this._state.getGuid());
+            // Handeling finishing
+            task.then((map: IMapItem[]) => {
+                resolve(map);
+            }).cancel(() => {
+                this._logger.env(`Search was canceled.`);
+            }).catch((searchErr: Error) => {
+                reject(searchErr);
+            }).finally(() => {
+                ServiceStreams.removeProgressSession(taskId, this._state.getGuid());
+                this._stock.search.delete(taskId);
             });
         }).cancel(() => {
             task.break();

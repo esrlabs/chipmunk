@@ -118,6 +118,10 @@ export class OperationAppend extends EventEmitter {
         }).finally(this._clear.bind(this));
     }
 
+    public dropCursorPosition() {
+        this._last = undefined;
+    }
+
     private _clear() {
         if (this._cleaner === undefined) {
             return;
