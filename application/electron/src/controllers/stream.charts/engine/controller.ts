@@ -70,6 +70,10 @@ export class ChartingEngine {
             this._stock.charting.set(taskId, self);
             // Results storage
             const results: TChartData = { };
+            // Drop append cursor if it's "fresh" inspecting
+            if (typeof from !== 'number' || typeof to !== 'number' || rowOffset === undefined) {
+                this._operations.appending.dropCursorPosition();
+            }
             // Create task for each regexp
             requests.forEach((request: IChartRequest) => {
                 // Task id
