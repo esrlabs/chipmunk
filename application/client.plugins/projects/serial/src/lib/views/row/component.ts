@@ -24,12 +24,14 @@ export class SerialRowComponent implements AfterViewInit, OnDestroy, AfterConten
     public _ng_title: string = '';
 
     private _subscriptions: { [key: string]: Subscription } = {};
+    private _destroyed: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
 
     }
 
     public ngOnDestroy() {
+        this._destroyed = true;
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
@@ -64,8 +66,14 @@ export class SerialRowComponent implements AfterViewInit, OnDestroy, AfterConten
         this._ng_html = this._sanitizer.bypassSecurityTrustHtml(signature.clean);
         this._ng_color = signature.color;
         this._ng_title = signature.title;
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
+    private _forceUpdate() {
+        if (this._destroyed) {
+            return;
+        }
+        this._cdRef.detectChanges();
+    }
 
 }
