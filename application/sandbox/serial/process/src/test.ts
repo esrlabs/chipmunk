@@ -25,8 +25,9 @@ function createPort(name: string) {
         }
     ).then(() => {
         const write = () => {
-            ServicePorts.write(name, `${Math.random()}-${Math.random()}-${Math.random()}\n${Math.random()}-${Math.random()}-${Math.random()}\n`);
-            setTimeout(write, 100 + Math.random() * 500);
+            ServicePorts.write(name, `${Math.random()}-${Math.random()}-${Math.random()}\n${Math.random()}-${Math.random()}-${Math.random()}\n`)
+            .catch((error: Error) => { console.log(`Fail to send message due to error: ${error.message}`) })
+            .then(() => setTimeout(write, 100 + Math.random() * 500));
         }
         write();
     }).catch((error: Error) => {
