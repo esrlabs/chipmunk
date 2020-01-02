@@ -2,9 +2,9 @@ import * as Net from 'net';
 import * as Stream from 'stream';
 import { EventEmitter } from 'events';
 import { IMessagePackage, IPCMessagePackage } from './plugin.ipc.service.message';
-import Subscription, { THandler } from './tools.subscription';
-import * as IPCMessages from '../../../common/ipc/plugins.ipc.messages/index';
-import guid from './tools.guid';
+import Subscription, { THandler } from '../tools/tools.subscription';
+import * as IPCMessages from '../../../../common/ipc/plugins.ipc.messages/index';
+import guid from '../tools/tools.guid';
 
 export { IPCMessages };
 

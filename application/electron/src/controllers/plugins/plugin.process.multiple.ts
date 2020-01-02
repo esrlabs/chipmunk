@@ -8,6 +8,7 @@ import { IPlugin } from '../../services/service.plugins';
 import Logger from '../../tools/env.logger';
 import ControllerIPCPlugin from './plugin.process.ipc';
 import ServiceProduction from '../../services/service.production';
+import ServicePaths from '../../services/service.paths';
 import { CStdoutSocketAliases } from '../../consts/controller.plugin.process';
 
 const CDebugPluginPorts: { [key: string]: number } = {
@@ -76,7 +77,10 @@ export default class ControllerPluginProcessMultiple extends Emitter {
             if (!FS.isExist(mainFile)) {
                 return reject(new Error(this._logger.error(`Cannot find file defined in "main" of package.json. File: ${mainFile}.`)));
             }
-            const args: string[] = [];
+            const args: string[] = [
+                `--chipmunk-settingspath=${ServicePaths.getPluginsCfgFolder()}`,
+                `--chipmunk-plugin-alias=${this._plugin.name.replace(/[^\d\w-_]/gi, '_')}`,
+            ];
             if (!ServiceProduction.isProduction()) {
                 args.push(`--inspect=127.0.0.1:${CDebugPluginPorts[this._plugin.name] === undefined ? (9229 + this._plugin.id - 1) : CDebugPluginPorts[this._plugin.name]}`);
             }
@@ -89,7 +93,7 @@ export default class ControllerPluginProcessMultiple extends Emitter {
                     'pipe', // stderr - listened by parent process. Whole output from it goes to logs of parent process
                     'ipc',  // ipc    - used by parent process as command sender / reciever
                     // 'pipe', // Stream is deliveried as UNIX socket. We don't need it at the moment. But probably in th future it will be used as channel for sending big data
-                ] });
+                ]});
             // Getting data events
             this._process.stderr.on('data', this._onSTDData);
             this._process.stdout.on('data', this._onSTDData);

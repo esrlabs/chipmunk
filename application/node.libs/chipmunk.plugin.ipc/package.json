@@ -1,9 +1,9 @@
 {
   "name": "chipmunk.plugin.ipc",
-  "version": "0.0.33",
+  "version": "0.0.38",
   "description": "IPC transport and protocol for communication via plugin process and main process for logviewer ",
-  "main": "./dist/node.libs/chipmunk.plugin.ipc/src/plugin.ipc.service.js",
-  "types": "./dist/node.libs/chipmunk.plugin.ipc/src/plugin.ipc.service.d.ts",
+  "main": "./dist/node.libs/chipmunk.plugin.ipc/src/index.js",
+  "types": "./dist/node.libs/chipmunk.plugin.ipc/src/index.d.ts",
   "scripts": {
     "build": "tsc -p ./tsconfig.json",
     "build:watch": "tsc -p ./tsconfig.json -w",
