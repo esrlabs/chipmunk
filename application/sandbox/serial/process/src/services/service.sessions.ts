@@ -135,27 +135,26 @@ class ServiceSessions {
                             command: message.data.command
                         }
                     }));
-                });
-                
+                });                
             case ECommands.spyStop:
-                    return this._income_onSpyStop(message).then(() => {
-                        response(new IPCMessages.PluginInternalMessage({
-                            data: {
-                                status: 'done'
-                            },
-                            token: message.token,
-                            stream: message.stream
-                        }));
-                    }).catch((error: Error) => {
-                        response(new IPCMessages.PluginError({
-                            message: error.message,
-                            stream: message.stream,
-                            token: message.token,
-                            data: {
-                                command: message.data.command
-                            }
-                        }));
-                    });
+                return this._income_onSpyStop(message).then(() => {
+                    response(new IPCMessages.PluginInternalMessage({
+                        data: {
+                            status: 'done'
+                        },
+                        token: message.token,
+                        stream: message.stream
+                    }));
+                }).catch((error: Error) => {
+                    response(new IPCMessages.PluginError({
+                        message: error.message,
+                        stream: message.stream,
+                        token: message.token,
+                        data: {
+                            command: message.data.command
+                        }
+                    }));
+                });
             default:
                 this._logger.warn(`Unknown commad: ${message.data.command}`);
         }
@@ -269,7 +268,7 @@ class ServiceSessions {
                 return reject(new Error(this._logger.warn(`No target stream ID provided`)));
             }
             if (message === undefined) {
-                return reject(new Error(this._logger.error(`Fail to send message, because it's undefined`)))
+                return reject(new Error(this._logger.error(`Fail to start spying, because message is undefined`)))
             }
             let controller: ControllerSession | undefined = this._sessions.get(streamId);
             if (controller === undefined) {
@@ -297,7 +296,7 @@ class ServiceSessions {
                 return reject(new Error(this._logger.warn(`No target stream ID provided`)));
             }
             if (message === undefined) {
-                return reject(new Error(this._logger.error(`Fail to send message, because it's undefined`)))
+                return reject(new Error(this._logger.error(`Fail to stop spying, because message is undefined`)));
             }
             let controller: ControllerSession | undefined = this._sessions.get(streamId);
             if (controller === undefined) {
