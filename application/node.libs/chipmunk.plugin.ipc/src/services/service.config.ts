@@ -36,7 +36,7 @@ export class ServiceConfig {
      * @param {T} defaults - defaults settings (optional)
      * @returns {Promise<T>} - T an interface of settings
      */
-    public get<T>(defaults?: T): Promise<T> {
+    public read<T>(defaults?: T): Promise<T> {
         return new Promise<T>((resolve, reject) => {
             if (this._path === undefined) {
                 return reject(new Error(`Fail to get settings because path of settings isn't defined by core`));
@@ -88,7 +88,7 @@ export class ServiceConfig {
      * Saves settings into file
      * @param { {[key: string]: any} } changes - changes of settings.
      */
-    public set(changes: {[key: string]: any}): Promise<void> {
+    public write(changes: {[key: string]: any}): Promise<void> {
         return new Promise((resolve, reject) => {
             if (this._path === undefined) {
                 return reject(new Error(`Fail to set settings because path of settings isn't defined by core`));
@@ -96,7 +96,7 @@ export class ServiceConfig {
             if (this._alias === undefined) {
                 return reject(new Error(`Fail to set settings because alias of settings isn't defined by core`));
             }
-            this.get<{[key: string]: any}>().then((settings: {[key: string]: any}) => {
+            this.read<{[key: string]: any}>().then((settings: {[key: string]: any}) => {
                 Object.keys(changes).forEach((key: string) => {
                     settings[key] = changes[key];
                 });
