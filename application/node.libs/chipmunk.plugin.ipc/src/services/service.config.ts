@@ -17,8 +17,6 @@ export class ServiceConfig {
     constructor() {
         this._setProp(CSettingsArg, '_path');
         this._setProp(CPluginAliasArg, '_alias');
-        console.log(`!!!>>> ${this._path}`);
-        console.log(`!!!>>> ${this._alias}`);
     }
 
     /**
