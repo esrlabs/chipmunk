@@ -5,6 +5,7 @@ import { ControllerSessionsEvents } from '../controllers/controller.sessions.eve
 import { PluginIPC } from '../classes/class.ipc';
 import { IPopup } from './client.popup';
 import { IComponentDesc } from './client.components.containers';
+import { INotification } from './client.notification';
 
 /**
  * Plugin's API. Gives access to:
@@ -89,4 +90,10 @@ export interface IAPI {
      * @param {boolean} silence - do not make tab active
      */
     openToolbarApp: (appId: string, silence: boolean) => void;
+
+    /**
+     * Adds new notification
+     * @param {INotification} notification - notification to be added
+     */
+    addNotification: (notification: INotification) => void;
 }

@@ -26,8 +26,6 @@ import { IService } from '../interfaces/interface.service';
 import { ControllerPluginGate } from '../controller/controller.plugin.gate';
 import { IAPI } from 'chipmunk.client.toolkit';
 
-type TPluginModule = any;
-
 export type TRowParser = (str: string) => string;
 
 export interface IPluginControllers {

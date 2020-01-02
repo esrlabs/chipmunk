@@ -1,47 +1,15 @@
 import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
-import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
-import * as Toolkit from 'chipmunk.client.toolkit';
-import TabsSessionsService from '../services/service.sessions.tabs';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
+import { INotification, ENotificationType, INotificationButton as IButton } from 'chipmunk.client.toolkit';
 
-export enum ENotificationType {
-    info = 'info',
-    error = 'error',
-    warning = 'warning',
-}
+import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
 
-export interface IOptions {
-    closeDelay?: number;
-    closable?: boolean;
-    type?: ENotificationType;
-    once?: boolean;
-}
+import * as Toolkit from 'chipmunk.client.toolkit';
 
-export interface IButton {
-    caption: string;
-    handler: (...args: any[]) => any;
-}
+import TabsSessionsService from '../services/service.sessions.tabs';
 
-export interface IComponent {
-    factory: any;
-    inputs: any;
-}
-
-export interface INotification {
-    session?: string;
-    id?: string;
-    caption: string;
-    row?: number;
-    file?: string;
-    message?: string;
-    component?: IComponent;
-    progress?: boolean;
-    buttons?: IButton[];
-    options?: IOptions;
-    closing?: boolean;
-    read?: boolean;
-}
+export { INotification, ENotificationType };
 
 const CCloseDelay = {
     [ENotificationType.error]: 4000,
@@ -69,6 +37,8 @@ export class NotificationsService {
 
     constructor() {
         this._subscriptions.onProcessNotification = ServiceElectronIpc.subscribe(IPCMessages.Notification, this._onProcessNotification.bind(this));
+        // Share notifications methods
+        TabsSessionsService.setNotificationOpener(this.add.bind(this));
     }
 
     public destroy() {
