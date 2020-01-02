@@ -16,6 +16,6 @@
     }
   },
   "files": [
-    "./src/plugin.ipc.service.ts"
+    "src/index.ts"
   ]
 }

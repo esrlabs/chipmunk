@@ -10,11 +10,11 @@ import { IService } from '../../src/interfaces/interface.service';
 
 const HOME_FOLDER = '.chipmunk';
 const PLUGINS_FOLDER = 'plugins';
+const PLUGINS_CONFIG_FOLDER = 'plugins.cfg';
 const SOCKETS_FOLDER = 'sockets';
 const STREAMS_FOLDER = 'streams';
 const DOWNLOADS_FOLDER = 'downloads';
 const APPS_FOLDER = 'apps';
-const APPLICATION_FILE = 'chipmunk';
 
 export function getHomeFolder(): string {
     return Path.resolve(OS.homedir(), HOME_FOLDER);
@@ -30,6 +30,7 @@ class ServicePaths implements IService {
     private _logger: Logger = new Logger('ServicePaths');
     private _home: string = '';
     private _plugins: string = '';
+    private _pluginsCfgFolder: string = '';
     private _app: string = '';
     private _root: string = '';
     private _exec: string = '';
@@ -53,6 +54,7 @@ class ServicePaths implements IService {
             this._streams = Path.resolve(this._home, STREAMS_FOLDER);
             this._downloads = Path.resolve(this._home, DOWNLOADS_FOLDER);
             this._apps = Path.resolve(this._home, APPS_FOLDER);
+            this._pluginsCfgFolder = Path.resolve(this._home, PLUGINS_CONFIG_FOLDER);
             const resources: Error | string = this._getResourcePath();
             if (resources instanceof Error) {
                 return reject(resources);
@@ -78,10 +80,10 @@ class ServicePaths implements IService {
             this._appModules = Path.resolve(this._root, '../../node_modules');
             this._rg = Path.resolve(this._root, `apps/${OS.platform() === 'win32' ? 'rg.exe' : 'rg'}`);
             this._createHomeFolder().then(() => {
-                Promise.all([this._home, this._plugins, this._sockets, this._streams, this._downloads, this._apps].map((folder: string) => {
+                Promise.all([this._home, this._plugins, this._sockets, this._streams, this._downloads, this._apps, this._pluginsCfgFolder].map((folder: string) => {
                     return this._mkdir(folder);
                 })).then(() => {
-                    this._logger.env(`Paths:\n\thome: ${this._home}\n\troot: ${this._root}\n\tapp: ${this._app}\n\texec ${this._exec}\n\tresources ${this._resources}\n\tplugins ${this._plugins}\n\tdefault plugins ${this._defaultPlugins}\n\tsockets ${this._sockets}\n\tstreams ${this._streams}\n\tmodules ${this._appModules}`);
+                    this._logger.env(`Paths:\n\thome: ${this._home}\n\troot: ${this._root}\n\tapp: ${this._app}\n\texec ${this._exec}\n\tresources ${this._resources}\n\tplugins ${this._plugins}\n\tplugins settings ${this._pluginsCfgFolder}\n\tdefault plugins ${this._defaultPlugins}\n\tsockets ${this._sockets}\n\tstreams ${this._streams}\n\tmodules ${this._appModules}`);
                     resolve();
                 }).catch((error: Error) => {
                     this._logger.error(`Fail to initialize paths due error: ${error.message}`);
@@ -139,6 +141,14 @@ class ServicePaths implements IService {
      */
     public getPlugins(): string {
         return this._plugins;
+    }
+
+    /**
+     * Returns path to plugins configuration folder
+     * @returns string
+     */
+    public getPluginsCfgFolder(): string {
+        return this._pluginsCfgFolder;
     }
 
     /**
@@ -275,12 +285,6 @@ class ServicePaths implements IService {
                     return new Error(`Cannot find target in ".app" package in path: ${exec}. Probably you forget to switch application into developer mode. Use env variable "CHIPMUNK_DEVELOPING_MODE=ON" to activate it.`);
                 }
                 return exec.replace(`/Contents/MacOS/app`, '');
-                /*
-                if (this._root.search(new RegExp(`[^\\\/]*${APPLICATION_FILE}[^\\\/]*\\.app`)) === -1) {
-                    return new Error(`Cannot find target file name "${APPLICATION_FILE}.app" in path: ${this._root}. Probably you forget to switch application into developer mode. Use env variable "CHIPMUNK_DEVELOPING_MODE=ON" to activate it.`);
-                }
-                return `${this._root.replace(new RegExp(`(\\b${APPLICATION_FILE}\\.app\\b)(?!.*\\b\\1\\b)(.*)`, 'gi'), '')}${APPLICATION_FILE}.app`;
-                */
             case 'win32':
                 return exec;
             default:
