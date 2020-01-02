@@ -20,6 +20,7 @@ export type TSessionGuid = string;
 
 export type TSidebarTabOpener = (guid: string, session: string | undefined, silence: boolean) => Error | undefined;
 export type TToolbarTabOpener = (guid: string, session: string | undefined, silence: boolean) => Error | undefined;
+export type TNotificationOpener = (notification: Toolkit.INotification) => void;
 
 export interface IServiceSubjects {
     onSessionChange: Subject<ControllerSessionTab | undefined>;
@@ -38,6 +39,8 @@ export class TabsSessionsService implements IService {
     private _sessionsEventsHub: Toolkit.ControllerSessionsEvents = new Toolkit.ControllerSessionsEvents();
     private _sidebarTabOpener: TSidebarTabOpener | undefined;
     private _toolbarTabOpener: TToolbarTabOpener | undefined;
+    private _notificationOpener: TNotificationOpener | undefined;
+
     private _defaults: {
         views: IDefaultView[],
     } = {
@@ -91,6 +94,10 @@ export class TabsSessionsService implements IService {
 
     public setToolbarTabOpener(opener: TToolbarTabOpener) {
         this._toolbarTabOpener = opener;
+    }
+
+    public setNotificationOpener(opener: TNotificationOpener) {
+        this._notificationOpener = opener;
     }
 
     public setDefaultViews(views: IDefaultView[]) {
@@ -249,6 +256,12 @@ export class TabsSessionsService implements IService {
                 LayoutStateService.toolbarMax();
                 this._toolbarTabOpener(appId, undefined, silence);
             },
+            addNotification: (notification: Toolkit.INotification) => {
+                if (this._notificationOpener === undefined) {
+                    return;
+                }
+                this._notificationOpener(notification);
+            }
         };
     }
 
