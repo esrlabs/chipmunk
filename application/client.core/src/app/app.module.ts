@@ -17,8 +17,8 @@ import {
     MatFormFieldModule,
     MatInputModule,
     MatAutocompleteModule,
-    MatOptionModule } from '@angular/material';
-
+    MatOptionModule,
+    MatProgressBarModule } from '@angular/material';
 
 export function createCompiler(fn: CompilerFactory): Compiler {
     return fn.createCompiler();
@@ -39,6 +39,7 @@ export function createCompiler(fn: CompilerFactory): Compiler {
         MatInputModule,
         MatAutocompleteModule,
         MatOptionModule,
+        MatProgressBarModule,
         BrowserAnimationsModule,
     ],
     providers: [
