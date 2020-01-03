@@ -20,14 +20,10 @@
           <mat-option *ngFor="let recent of _ng_recent | async" [value]="file" [attr.title]="recent" class="recent-requests small t-console t-small">
               {{recent}}
           </mat-option>
-          <div class="autocomplete-panel-controls-holder">
-            <div class="autocomplete-panel-controls">
-              <span class="ref-button" (click)="_ng_onClearRecent()">Clear</span>
-            </div>          </div>
       </mat-autocomplete>
     </mat-form-field>
     <div class="spinner" *ngIf="_ng_isWorking()">
-      <lib-primitive-spinner-regular></lib-primitive-spinner-regular>
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     </div>
     <p class="t-small color-scheme-2 summary" *ngIf="_ng_isSummaryVisible()">
       ({{_ng_getMatchesProc()}}% or rows matched. {{_ng_found}} out of {{_ng_read}})
@@ -40,7 +36,8 @@
   </div>
 </div>
 <div *ngIf="_ng_session !== undefined" class="rows noreset">
-  <app-views-search-output #output 
+  <app-views-search-output #output
+    [getParentButtons]="_ng_getParentButtons"
     [injectionIntoTitleBar]="injectionIntoTitleBar"
     [onSessionChanged]="_ng_onSessionChanged"
     [session]="_ng_session"></app-views-search-output>

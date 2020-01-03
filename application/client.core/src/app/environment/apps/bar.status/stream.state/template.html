@@ -3,7 +3,7 @@
 </div>
 <div class="wrapper" *ngIf="_ng_isInProgress()" (click)="_ng_onToggleHistory()">
     <div class="progress">
-        <mat-progress-bar mode="determinate" [value]="_ng_getDeterminate()"></mat-progress-bar>
+        <mat-progress-bar [mode]="_ng_getDeterminate() !== 0 ? 'determinate' : 'indeterminate'" [value]="_ng_getDeterminate()"></mat-progress-bar>
     </div>
     <div class="title t-small">{{_ng_getDeterminate()}}% / {{_ng_tasks.length}} task(s)</div>
 </div>
