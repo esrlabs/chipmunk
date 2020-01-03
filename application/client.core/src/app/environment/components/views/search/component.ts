@@ -1,4 +1,4 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, ViewChild, Input, AfterContentInit } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { ViewSearchOutputComponent } from './output/component';
 import { IComponentDesc } from 'chipmunk-client-containers';
@@ -48,6 +48,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     @ViewChild('output', {static: false}) _ng_outputComponent: ViewSearchOutputComponent;
     @ViewChild(MatInput, {static: false}) _ng_inputComRef: MatInput;
+    @ViewChild('requestinput', {static: false}) _ng_requestInput: ElementRef;
     @ViewChild(MatAutocompleteTrigger, {static: false}) _ng_autoComRef: MatAutocompleteTrigger;
 
     public _ng_session: ControllerSessionTab | undefined;
@@ -156,11 +157,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         if (this._ng_inputComRef === undefined) {
             return;
         }
-        // Select whole content
-        /*
-        const input: HTMLInputElement = (this._ng_requestInput.nativeElement as HTMLInputElement);
-        input.setSelectionRange(0, input.value.length);
-        */
     }
 
     public _ng_onBlurRequestInput() {
@@ -363,7 +359,12 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             if (this._ng_inputComRef === undefined || this._ng_inputComRef === null) {
                 return;
             }
-            // this._ng_inputComRef.focus();
+            this._ng_inputComRef.focus();
+            setTimeout(() => {
+                // Select whole content
+                const input: HTMLInputElement = (this._ng_requestInput.nativeElement as HTMLInputElement);
+                input.setSelectionRange(0, input.value.length);
+            });
         }, delay);
     }
 
@@ -425,7 +426,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     private _onStreamUpdated(event: Toolkit.IEventStreamUpdate) {
-        if (this._ng_searchRequestId === undefined) {
+        if (!this._ng_isButtonsVisible()) {
             return;
         }
         this._ng_read = event.rows;
@@ -434,7 +435,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     private _onSearchUpdated(event: Toolkit.IEventSearchUpdate) {
-        if (this._ng_searchRequestId === undefined) {
+        if (!this._ng_isButtonsVisible()) {
             return;
         }
         this._ng_found = event.rows;
@@ -450,7 +451,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             return;
         }
         const filted = value.toLowerCase();
-        this._focus();
         return this._recent.filter((recent: string) => {
             return recent.includes(filted);
         });

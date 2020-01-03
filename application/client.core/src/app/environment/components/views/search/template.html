@@ -1,7 +1,8 @@
 <div *ngIf="_ng_session !== undefined" [attr.class]="'request ' + (_ng_isButtonsVisible() ? 'with-buttons' : '')">
   <div class="comstyle-input-holder search-input-wrapper">
     <mat-form-field class="recent-requests autocomplete-hide-label">
-      <input  type="text" 
+      <input  #requestinput
+              type="text" 
               placeholder="Type a Search Request"
               aria-label="Filter"
               (focus)="_ng_onFocusRequestInput()"
