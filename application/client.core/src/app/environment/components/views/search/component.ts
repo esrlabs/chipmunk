@@ -7,7 +7,8 @@ import { ControllerSessionScope } from '../../../controller/controller.session.t
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { map, startWith } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
-import { MatInput, MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material';
+import { MatInput, MatAutocompleteSelectedEvent, MatAutocompleteTrigger, MatFormField } from '@angular/material';
+import { IButton } from './output/controls/component';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import HotkeysService from '../../../services/service.hotkeys';
@@ -75,6 +76,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._subscriptions.onStreamUpdated = TabsSessionsService.getSessionEventsHub().subscribe().onStreamUpdated(this._onStreamUpdated.bind(this));
         this._subscriptions.onSearchUpdated = TabsSessionsService.getSessionEventsHub().subscribe().onSearchUpdated(this._onSearchUpdated.bind(this));
         this._onSearchRequested = this._onSearchRequested.bind(this);
+        this._ng_getParentButtons = this._ng_getParentButtons.bind(this);
         this._setActiveSession();
     }
 
@@ -164,8 +166,11 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     public _ng_onBlurRequestInput() {
         // Do it with timeout, because it might be selection by click in panel
         setTimeout(() => {
-            this._ng_inputCtrl.setValue(this._prevRequest);
-            this._forceUpdate();
+            this._ng_inputCtrl.setValue(this._prevRequest, { emitEvent: true, emitModelToViewChange: true, emitViewToModelChange: false });
+            // And do this because Angular still didn't fix a bug: https://github.com/angular/components/issues/7066
+            setTimeout(() => {
+                this._forceUpdate();
+            });
         }, 250);
     }
 
@@ -244,7 +249,17 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._ng_onKeyUpRequestInput();
     }
 
-    public _ng_onClearRecent() {
+    public _ng_getParentButtons(): IButton[] {
+        return [{
+            alias: 'clearrecent',
+            icon: `small-icon-button fas fa-eraser`,
+            disabled: false,
+            handler: this._clearRecent.bind(this),
+            title: 'Drop history of recent filters'
+        }];
+    }
+
+    private _clearRecent() {
         this._ng_autoComRef.closePanel();
         this._ng_inputCtrl.updateValueAndValidity();
         ElectronIpcService.request(new IPCMessages.SearchRecentClearRequest(), IPCMessages.SearchRecentClearResponse).then((response: IPCMessages.SearchRecentClearResponse) => {

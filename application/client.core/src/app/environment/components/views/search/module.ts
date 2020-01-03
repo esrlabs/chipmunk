@@ -1,6 +1,7 @@
 import { NgModule                               } from '@angular/core';
 import { CommonModule                           } from '@angular/common';
 import { ScrollingModule                        } from '@angular/cdk/scrolling';
+import { MatProgressBarModule                   } from '@angular/material';
 
 import { ViewSearchComponent                    } from './component';
 import { ViewSearchOutputComponent              } from './output/component';
@@ -39,7 +40,8 @@ const components = [ ViewSearchComponent, ViewSearchComponent, ViewSearchOutputC
         MatInputModule,
         MatAutocompleteModule,
         MatOptionModule,
-        AppDirectiviesModule
+        AppDirectiviesModule,
+        MatProgressBarModule
     ],
     declarations    : [ ...components ],
     exports         : [ ...components ]

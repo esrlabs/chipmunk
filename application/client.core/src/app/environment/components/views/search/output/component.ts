@@ -18,6 +18,8 @@ const CSettings: {
     preloadCount: 100
 };
 
+type TParentButtonsGetter = () => IButton[];
+
 @Component({
     selector: 'app-views-search-output',
     templateUrl: './template.html',
@@ -31,6 +33,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
     @Input() public session: ControllerSessionTab | undefined;
     @Input() public onSessionChanged: Subject<ControllerSessionTab> | undefined;
     @Input() public injectionIntoTitleBar: Subject<IComponentDesc>;
+    @Input() public getParentButtons: TParentButtonsGetter | undefined;
 
     public _ng_outputAPI: IDataAPI;
 
@@ -339,11 +342,13 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
 
     private _ctrl_getButtons(): IButton[] {
         return [
+            ...(this.getParentButtons === undefined ? [] : this.getParentButtons()),
             {
                 alias: 'scroll',
                 icon: `small-icon-button fa-arrow-alt-circle-down ${this._controls.keepScrollDown ? 'fas' : 'far'}`,
                 disabled: false,
-                handler: this._ctrl_onScrollDown.bind(this)
+                handler: this._ctrl_onScrollDown.bind(this),
+                title: 'Scroll with updates'
             }
         ];
     }

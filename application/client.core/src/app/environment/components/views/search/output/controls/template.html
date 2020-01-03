@@ -1,5 +1,5 @@
 <ul>
     <li *ngFor="let button of _ng_buttons" (click)="_ng_onClick(button)">
-        <span [attr.class]="button.icon + (button.disabled ? 'disabled' : '')"></span>
+        <span [attr.class]="button.icon + (button.disabled ? 'disabled' : '')" [attr.title]="button.title"></span>
     </li>
 </ul>

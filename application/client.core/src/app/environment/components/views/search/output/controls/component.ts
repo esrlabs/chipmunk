@@ -6,6 +6,7 @@ export interface IButton {
     icon: string;
     handler: (button: IButton) => void;
     disabled: boolean;
+    title: string;
 }
 
 @Component({
