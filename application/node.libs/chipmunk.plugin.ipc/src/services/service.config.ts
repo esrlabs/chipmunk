@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { copy, isObject } from '../tools/tools.object';
 
 const CSettingsArg = '--chipmunk-settingspath';
 const CPluginAliasArg = '--chipmunk-plugin-alias';
@@ -20,15 +21,26 @@ export class ServiceConfig {
     }
 
     /**
+     * As default, service trys to find path to settings folder in process.args.
+     * This method can be used for manual settings path and alias
+     * @param {string} _path - path to folder with settings
+     * @param {string} _alias - unique alias of plugin
+     */
+    public setup(_path: string, _alias: string) {
+        this._path = _path;
+        this._alias = _alias;
+    }
+
+    /**
      * This method store default settins.
      * Default settings will be used if any settings were not saved before
      * @param {T} defaults - defaults settings
      */
     public setDefault<T>(defaults: T) {
-        if (typeof defaults !== 'object' || defaults === null) {
+        if (!isObject(defaults)) {
             return;
         }
-        this._defaults = Object.assign({}, defaults);
+        this._defaults = copy(defaults);
     }
 
     /**
@@ -45,14 +57,14 @@ export class ServiceConfig {
                 return reject(new Error(`Fail to get settings because alias of settings isn't defined by core`));
             }
             this.setDefault(defaults);
-            if (typeof this._defaults !== 'object' || this._defaults === null) {
+            if (!isObject(this._defaults)) {
                 return reject(new Error(`Fail to get settings because defaults settings aren't setup. Please, setup defaults first using method "setDefault"`));
             }
-            const file: string = this._getFileName();
+            const file: string = this.getFileName();
             fs.open(file, 'r', (err: NodeJS.ErrnoException | null, fd: number) => {
                 if (err) {
                     if (err.code === 'ENOENT') {
-                        return resolve(Object.assign({}, this._defaults) as T);
+                        return resolve(copy(this._defaults) as T);
                     } else {
                         return reject(`Fail get settings from "${file}" due error: [${err.code}] ${err.message}`);
                     }
@@ -70,7 +82,7 @@ export class ServiceConfig {
                     } catch (e) {
                         return reject(`Fail get settings from "${file}" due error: ${e.message}. Settings: "${data}"`);
                     }
-                    if (typeof settings !== 'object' || settings === null) {
+                    if (!isObject(settings)) {
                         settings = {};
                     }
                     Object.keys(this._defaults).forEach((key: string) => {
@@ -87,8 +99,9 @@ export class ServiceConfig {
     /**
      * Saves settings into file
      * @param { {[key: string]: any} } changes - changes of settings.
+     * @returns {Promise<void>}
      */
-    public write(changes: {[key: string]: any}): Promise<void> {
+    public write(changes?: {[key: string]: any}): Promise<void> {
         return new Promise((resolve, reject) => {
             if (this._path === undefined) {
                 return reject(new Error(`Fail to set settings because path of settings isn't defined by core`));
@@ -97,10 +110,12 @@ export class ServiceConfig {
                 return reject(new Error(`Fail to set settings because alias of settings isn't defined by core`));
             }
             this.read<{[key: string]: any}>().then((settings: {[key: string]: any}) => {
-                Object.keys(changes).forEach((key: string) => {
-                    settings[key] = changes[key];
-                });
-                const file: string = this._getFileName();
+                if (isObject(changes)) {
+                    Object.keys(changes as any).forEach((key: string) => {
+                        settings[key] = (changes as any)[key];
+                    });
+                }
+                const file: string = this.getFileName();
                 fs.writeFile(file, JSON.stringify(settings), 'utf8', (error: NodeJS.ErrnoException | null) => {
                     if (error) {
                         return reject(new Error(`Fail to write settings file "${file}" due error: [${error.code}] ${error.message}`));
@@ -113,7 +128,43 @@ export class ServiceConfig {
         });
     }
 
-    private _getFileName(): string {
+    /**
+     * Removes plugin's setting file
+     * @returns {Promise<void>}
+     */
+    public drop(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (this._path === undefined) {
+                return reject(new Error(`Fail to drop settings because path of settings isn't defined by core`));
+            }
+            if (this._alias === undefined) {
+                return reject(new Error(`Fail to drop settings because alias of settings isn't defined by core`));
+            }
+            const file: string = this.getFileName();
+            fs.open(file, 'r', (err: NodeJS.ErrnoException | null) => {
+                if (err) {
+                    if (err.code === 'ENOENT') {
+                        // File doesn't exist
+                        return resolve();
+                    } else {
+                        return reject(`Fail drop settings from "${file}" due error: [${err.code}] ${err.message}`);
+                    }
+                }
+                fs.unlink(file, (unlinkErr: NodeJS.ErrnoException | null) => {
+                    if (unlinkErr) {
+                        return reject(`Fail to remove settings file "${file}" due error: [${unlinkErr.code}] ${unlinkErr.message}`);
+                    }
+                    resolve();
+                });
+            });
+        });
+    }
+
+    /**
+     * Returns name of setting file (with path)
+     * @returns {string}
+     */
+    public getFileName(): string {
         if (this._path === undefined || this._alias === undefined) {
             return '';
         }

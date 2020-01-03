@@ -2,6 +2,7 @@ import PluginIPCService from './ipc/plugin.ipc.service';
 import ServiceConfig from './services/service.config';
 import GUID from './tools/tools.guid';
 import Subscription from './tools/tools.subscription';
+import { copy, isObject } from './tools/tools.object';
 
 export { ServiceConfig as IServiceConfig } from './services/service.config';
 
@@ -22,6 +23,8 @@ export {
 export {
     GUID,
     Subscription,
+    copy,
+    isObject,
     ServiceConfig,
     PluginIPCService,
 };
