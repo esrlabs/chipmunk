@@ -1,3 +1,13 @@
+
+export enum ELogLevels {
+    INFO = 'INFO',
+    DEBUG = 'DEBUG',
+    WARNING = 'WARNING',
+    VERBOS = 'VERBOS',
+    ERROR = 'ERROR',
+    ENV = 'ENV',
+}
+
 const DEFAUT_ALLOWED_CONSOLE = {
     DEBUG: true,
     ENV: true,
@@ -7,7 +17,22 @@ const DEFAUT_ALLOWED_CONSOLE = {
     WARNING: true,
 };
 
+const LOGS_LEVEL_TABLE = {
+    ENV: [ELogLevels.ENV, ELogLevels.VERBOS, ELogLevels.DEBUG, ELogLevels.INFO, ELogLevels.WARNING, ELogLevels.ERROR],
+    VERBOS: [ELogLevels.VERBOS, ELogLevels.DEBUG, ELogLevels.INFO, ELogLevels.WARNING, ELogLevels.ERROR],
+    DEBUG: [ELogLevels.DEBUG, ELogLevels.INFO, ELogLevels.WARNING, ELogLevels.ERROR],
+    INFO: [ELogLevels.INFO, ELogLevels.WARNING, ELogLevels.ERROR],
+    WARNING: [ELogLevels.WARNING, ELogLevels.ERROR],
+    ERROR: [ELogLevels.ERROR],
+};
+
 export type TOutputFunc = (...args: any[]) => any;
+
+let level: ELogLevels | undefined;
+
+export function setGlobalLogLevel(lev: ELogLevels) {
+    level = lev;
+}
 
 /**
  * @class
@@ -36,5 +61,11 @@ export class LoggerParameters {
         this.console = console;
         this.output = output;
         this.allowedConsole = allowedConsole;
+        if (level !== undefined && LOGS_LEVEL_TABLE[level] !== undefined) {
+            Object.keys(this.allowedConsole).forEach((key: string) => {
+                this.allowedConsole[key] = LOGS_LEVEL_TABLE[level].indexOf(key as ELogLevels) !== -1;
+            });
+        }
+
     }
 }

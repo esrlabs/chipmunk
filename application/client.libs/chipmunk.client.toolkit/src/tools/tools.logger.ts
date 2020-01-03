@@ -1,13 +1,6 @@
-import { LoggerParameters, TOutputFunc } from './tools.logger.parameters';
+import { LoggerParameters, ELogLevels, TOutputFunc } from './tools.logger.parameters';
 
-enum ELogLevels {
-    INFO = 'INFO',
-    DEBUG = 'DEBUG',
-    WARNING = 'WARNING',
-    VERBOS = 'VERBOS',
-    ERROR = 'ERROR',
-    ENV = 'ENV',
-}
+export { ELogLevels };
 
 /**
  * @class
