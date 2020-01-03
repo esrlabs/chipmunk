@@ -1,7 +1,6 @@
 import { NgModule                               } from '@angular/core';
 import { CommonModule                           } from '@angular/common';
 import { ScrollingModule                        } from '@angular/cdk/scrolling';
-import { MatProgressBarModule                   } from '@angular/material';
 
 import { ViewSearchComponent                    } from './component';
 import { ViewSearchOutputComponent              } from './output/component';
@@ -18,7 +17,8 @@ import {
     MatFormFieldModule,
     MatInputModule,
     MatAutocompleteModule,
-    MatOptionModule } from '@angular/material';
+    MatOptionModule,
+    MatProgressBarModule } from '@angular/material';
 import {
     FormsModule,
     ReactiveFormsModule } from '@angular/forms';
