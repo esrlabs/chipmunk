@@ -68,6 +68,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     private _prevRequest: string = '';
     private _recent: string[] = [ ];
     private _fakeInputKeyEvent: boolean = false;
+    private _selectedTextOnInputClick: boolean = false;
     private _destroyed: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef,
@@ -154,20 +155,26 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         }
         // Trigger processing event
         this._ng_session.getSessionSearch().getFiltersAPI().getSubjects().onSearchProcessing.next();
-        if (this._ng_inputComRef === undefined) {
+    }
+
+    public _ng_onClickRequestInput() {
+        if (this._selectedTextOnInputClick) {
             return;
         }
+        this._selectedTextOnInputClick = true;
+        this._selectTextInInput();
     }
 
     public _ng_onBlurRequestInput() {
         // Do it with timeout, because it might be selection by click in panel
         setTimeout(() => {
-            this._ng_inputCtrl.setValue(this._prevRequest, { emitEvent: true, emitModelToViewChange: true, emitViewToModelChange: false });
+            this._ng_inputCtrl.setValue(this._prevRequest);
             // And do this because Angular still didn't fix a bug: https://github.com/angular/components/issues/7066
             setTimeout(() => {
                 this._forceUpdate();
             });
         }, 250);
+        this._selectedTextOnInputClick = false;
     }
 
     public _ng_onDropRequest(): Promise<string | void> {
@@ -360,12 +367,19 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
                 return;
             }
             this._ng_inputComRef.focus();
-            setTimeout(() => {
-                // Select whole content
-                const input: HTMLInputElement = (this._ng_requestInput.nativeElement as HTMLInputElement);
-                input.setSelectionRange(0, input.value.length);
-            });
+            this._selectTextInInput();
         }, delay);
+    }
+
+    private _selectTextInInput() {
+        setTimeout(() => {
+            if (this._ng_requestInput === undefined || this._ng_requestInput === null) {
+                return;
+            }
+            // Select whole content
+            const input: HTMLInputElement = (this._ng_requestInput.nativeElement as HTMLInputElement);
+            input.setSelectionRange(0, input.value.length);
+        });
     }
 
     private _saveState() {
