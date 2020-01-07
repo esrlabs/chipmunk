@@ -169,8 +169,10 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         // Do it with timeout, because it might be selection by click in panel
         setTimeout(() => {
             this._ng_inputCtrl.setValue(this._prevRequest);
+            this._ng_autoComRef.closePanel();
             // And do this because Angular still didn't fix a bug: https://github.com/angular/components/issues/7066
             setTimeout(() => {
+                this._ng_autoComRef.closePanel();
                 this._forceUpdate();
             });
         }, 250);
