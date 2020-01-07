@@ -1,21 +1,12 @@
 import { inspect } from 'util';
-import { LoggerParameters } from './env.logger.parameters';
+import { LoggerParameters, ELogLevels, setGlobalLogLevel } from './env.logger.parameters';
 import guid from './tools.guid';
 import * as FS from './fs';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 
-enum ELogLevels {
-    INFO = 'INFO',
-    DEBUG = 'DEBUG',
-    WARNING = 'WARNING',
-    VERBOS = 'VERBOS',
-    ERROR = 'ERROR',
-    ENV = 'ENV',
-}
-
-type TOutputFunc = (...args: any[]) => any;
+export { setGlobalLogLevel, ELogLevels };
 
 const HOME_FOLDER = path.resolve(os.homedir(), '.chipmunk');
 const LOG_FILE = path.resolve(os.homedir(), '.chipmunk/chipmunk.log');

@@ -66,6 +66,5 @@ export class LoggerParameters {
                 this.allowedConsole[key] = LOGS_LEVEL_TABLE[level].indexOf(key as ELogLevels) !== -1;
             });
         }
-
     }
 }
