@@ -10,7 +10,6 @@ export class Service extends Toolkit.APluginService {
     public state:  {[port: string]: IPortState} = {};
     public savedSession: {[session: string]: IPortSession} = {};
     public sessionConnected: {[session: string]: {[port: string]: IPortState}} = {};
-    public recentPorts: string[] = [];
 
     private api: Toolkit.IAPI | undefined;
     private session: string;
@@ -128,7 +127,7 @@ export class Service extends Toolkit.APluginService {
             command: EHostCommands.open,
             options: options,
         }, this.session).then(() => {
-            this.recentPorts.push(options.path);
+            this.writeConfig(options);
             if (this.sessionConnected[this.session] === undefined) {
                 this.sessionConnected[this.session] = {};
             }
@@ -187,11 +186,40 @@ export class Service extends Toolkit.APluginService {
     public sendMessage(message: string, port: string): Promise<any> {
         return this.api.getIPC().requestToHost({
             stream: this.session,
-            command: EHostCommands.write,
+            command: EHostCommands.send,
             cmd: message,
             path: port
         }, this.session).catch((error: Error) => {
             this._logger.error(`Cannot send message due to error: ${error}`);
+        });
+    }
+
+    public writeConfig(options: IOptions): Promise<void> {
+        return this.api.getIPC().requestToHost({
+            stream: this.session,
+            command: EHostCommands.write,
+            options: options
+        }, this.session).catch((error: Error) => {
+            this._logger.error(error);
+        });
+    }
+
+    public readConfig(): Promise<any> {
+        return this.api.getIPC().requestToHost({
+            stream: this.session,
+            command: EHostCommands.read,
+        }, this.session).catch((error: Error) => {
+            this._logger.error(error);
+        });
+    }
+
+    public removeConfig(port: string): Promise<void> {
+        return this.api.getIPC().requestToHost({
+            stream: this.session,
+            command: EHostCommands.remove,
+            port: port
+        }, this.session).catch((error: Error) => {
+            this._logger.error(error);
         });
     }
 

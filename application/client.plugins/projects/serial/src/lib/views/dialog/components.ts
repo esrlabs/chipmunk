@@ -6,6 +6,7 @@ import { IOptions, CDefaultOptions } from '../../common/interface.options';
 import { SidebarVerticalPortOptionsWriteComponent } from '../sidebar.vertical/port.options.write/component';
 import { Subscription, Subject, Observable } from 'rxjs';
 import Service from '../../services/service';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 interface IConnected {
     port: IPortInfo;
@@ -24,7 +25,7 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
     @ViewChild('optionsCom', {static: false}) _optionsCom: SidebarVerticalPortOptionsWriteComponent;
 
     @Input() public _onConnect: () => void;
-    @Input() public _requestPortList: () => IPortInfo[];
+    @Input() public _requestPortList: () => Promise<IPortInfo[]>;
     @Input() public _getSelected: (IPortInfo) => void;
     @Input() public _getOptionsCom: (SidebarVerticalPortOptionsWriteComponent) => void;
     @Input() public _options: IOptions[];
@@ -32,12 +33,14 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
     @Input() public _ng_connected: IConnected[];
     @Input() public _ng_onOptions: () => void;
     @Input() public _ng_onPortSelect: (port: IPortInfo) => void;
+    @Input() public _ng_recent: boolean;
 
     private _interval: any;
     private _timeout = 1000;
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
     private _subjects = { tick: new Subject<boolean>() };
+    private _logger: Toolkit.Logger = new Toolkit.Logger(`Plugin: serial: inj_output_bot:`);
 
     public _ng_ports: IPortInfo[] = [];
     public _ng_selected: IPortInfo | undefined;
@@ -57,12 +60,7 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
             this._onSpyState(message);
             this._forceUpdate();
         });
-        this._ng_ports = this._requestPortList();
-        this._ng_ports.forEach(port => {
-            if (this._ng_spyState[port.path] === undefined) {
-                this._ng_spyState[port.path] = 0;
-            }
-        });
+        this._refreshPortList();
     }
 
     ngAfterViewInit() {
@@ -76,6 +74,20 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
             this._subscriptions[key].unsubscribe();
         });
         this._destroyed = true;
+    }
+
+    private _refreshPortList() {
+        this._requestPortList().then((response: IPortInfo[]) => {
+            this._ng_ports = response;
+            this._ng_ports.forEach(port => {
+                if (this._ng_spyState[port.path] === undefined) {
+                    this._ng_spyState[port.path] = 0;
+                }
+            });
+            this._forceUpdate();
+        }).catch((error: Error) => {
+            this._logger.error(`Failed to load port list due to error: ${error.message}`);
+        });
     }
 
     public onTick(): { tick: Observable<boolean> } {
@@ -142,5 +154,13 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
         } else {
             return target.state;
         }
+    }
+
+    public _ng_onRemovePort(port: string) {
+        Service.removeConfig(port).then(() => {
+            this._refreshPortList();
+        }).catch((error: Error) => {
+            this._logger.error(`Failed to remove all recent ports due to error: ${error.message}`);
+        });
     }
 }

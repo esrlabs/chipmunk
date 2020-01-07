@@ -20,6 +20,11 @@ interface Irgb {
     opacity: number;
 }
 
+const COptions = {
+    STEP: 50,
+    ANIMATION: 5000,
+};
+
 @Component({
     selector: 'lib-dia-port-available-com',
     templateUrl: './template.html',
@@ -38,11 +43,9 @@ export class DialogAvailablePortComponent implements OnDestroy, AfterViewInit {
     private _subscriptions: { [key: string]: Subscription } = {};
     private _canvas: ElementRef;
     private _ctx: any;
-    private _step = 50;
-    private _animation = 5000;
     private _read: number;
     private _chart: Chart;
-    private _spark = Array<number>(this._step + 1);
+    private _spark = Array<number>(COptions.STEP + 1);
     private _destroyed: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef) {
@@ -131,7 +134,7 @@ export class DialogAvailablePortComponent implements OnDestroy, AfterViewInit {
         this._chart = new Chart(this._ctx, {
             type: 'line',
             data: {
-                labels: new Array(this._step).fill(''),
+                labels: new Array(COptions.STEP).fill(''),
                 datasets: [{
                     data: this._spark,
                     borderColor: this._colorize(),
@@ -141,7 +144,7 @@ export class DialogAvailablePortComponent implements OnDestroy, AfterViewInit {
             },
             options: {
                 animation: {
-                    duration: this._animation,
+                    duration: COptions.ANIMATION,
                 },
                 tooltips: false,
                 scales: {

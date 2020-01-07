@@ -412,9 +412,17 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         Service.closePopup(popup);
     }
 
-    private _filterPorts(ports: IPortInfo[]): IPortInfo[] {
-        return ports.filter(port => {
-            return Service.recentPorts.includes(port.path);
+    private _filterPorts(ports: IPortInfo[]): Promise<IPortInfo[]> {
+        return new Promise((resolve, reject) => {
+            const CPORTS = {};
+            Service.readConfig().then((response: {[key: string]: any}) => {
+                Object.assign(CPORTS, response.settings);
+                resolve(ports.filter((port: IPortInfo) => {
+                    return CPORTS[port.path];
+                }));
+            }).catch((error: Error) => {
+                reject(error);
+            });
         });
     }
 
@@ -435,7 +443,20 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                         _ng_onOptions: this._ng_onOptions,
                         _ng_onPortSelect: this._ng_onPortSelect,
                         _options: this._portOptions,
-                        _requestPortList: () => recent ? this._filterPorts(response.ports) : response.ports,
+                        _ng_recent: recent,
+                        _requestPortList: (): Promise<IPortInfo[]> =>  {
+                            return new Promise((resolve) => {
+                                if (recent) {
+                                    this._filterPorts(response.ports).then((ports: IPortInfo[]) => {
+                                        return resolve(ports);
+                                    }).catch((error: Error) => {
+                                        this._logger.error(`Failed to load recenty used ports due to error: ${error.message}`);
+                                    });
+                                } else {
+                                    return resolve(response.ports);
+                                }
+                            });
+                        },
                         _getSelected: (selected: IPortInfo) => { this._ng_selected = selected; },
                         _getOptionsCom: (options: IOptions) => { this._optionsCom = options; },
                     }
@@ -447,7 +468,10 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                             this._closePopup(popupGuid);
                         }
                     }
-                ]
+                ],
+                options: {
+                    width: 26
+                }
             });
         }).catch((error: Error) => {
             this._logger.error(`Fail to get ports list due error: ${error.message}`);

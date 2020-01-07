@@ -1,9 +1,36 @@
 import Logger from '../env/env.logger';
-import PluginIPCService from 'chipmunk.plugin.ipc';
-import { IPCMessages } from 'chipmunk.plugin.ipc';
+import PluginIPCService, { IPCMessages, ServiceConfig } from 'chipmunk.plugin.ipc';
 import { ControllerSession } from '../controllers/controller.session';
 import { ECommands } from '../consts/commands';
 import ServicePorts, { IPortInfo } from './service.ports';
+
+export interface IPortOptions {
+    autoOpen?: boolean;
+    baudRate?: 115200|57600|38400|19200|9600|4800|2400|1800|1200|600|300|200|150|134|110|75|50|number;
+    dataBits?: 8|7|6|5;
+    highWaterMark?: number;
+    lock?: boolean;
+    stopBits?: 1|2;
+    parity?: 'none'|'even'|'mark'|'odd'|'space';
+    rtscts?: boolean;
+    xon?: boolean;
+    xoff?: boolean;
+    xany?: boolean;
+    bindingOptions?: {
+        vmin?: number;
+        vtime?: number;
+    };
+}
+
+export interface IOptions {
+    path: string;
+    options: IPortOptions;
+    reader: {
+        delimiter: string | number[];
+        encoding?: 'ascii' | 'utf8' | 'utf16le' | 'ucs2' | 'base64' | 'binary' | 'hex' | undefined;
+        includeDelimiter?: boolean | undefined;
+    };
+}
 
 class ServiceSessions {
 
@@ -17,6 +44,7 @@ class ServiceSessions {
         PluginIPCService.subscribe(IPCMessages.PluginInternalMessage, this._onIncomeRenderIPCMessage);
         PluginIPCService.on(PluginIPCService.Events.openStream, this._onOpenStream);
         PluginIPCService.on(PluginIPCService.Events.closeStream, this._onCloseStream);
+        ServiceConfig.setDefault<{[ports:string]: {[port: string]: IPortOptions}}>( { ports: {} } );
     }
 
     public destroy(): Promise<void> {
@@ -98,8 +126,8 @@ class ServiceSessions {
                         }
                     }));
                 });
-            case ECommands.write:
-                return this._income_onWrite(message).then(() => {
+            case ECommands.send:
+                return this._income_onSend(message).then(() => {
                     response(new IPCMessages.PluginInternalMessage({
                         data: {
                             status: 'sent',
@@ -138,6 +166,64 @@ class ServiceSessions {
                 });                
             case ECommands.spyStop:
                 return this._income_onSpyStop(message).then(() => {
+                    response(new IPCMessages.PluginInternalMessage({
+                        data: {
+                            status: 'done'
+                        },
+                        token: message.token,
+                        stream: message.stream
+                    }));
+                }).catch((error: Error) => {
+                    response(new IPCMessages.PluginError({
+                        message: error.message,
+                        stream: message.stream,
+                        token: message.token,
+                        data: {
+                            command: message.data.command
+                        }
+                    }));
+                });
+            case ECommands.write:
+                return this._income_onWriteConfig(message).then(() => {
+                    response(new IPCMessages.PluginInternalMessage({
+                        data: {
+                            status: 'done'
+                        },
+                        token: message.token,
+                        stream: message.stream
+                    }));
+                }).catch((error: Error) => {
+                    response(new IPCMessages.PluginError({
+                        message: error.message,
+                        stream: message.stream,
+                        token: message.token,
+                        data: {
+                            command: message.data.command
+                        }
+                    }));
+                });
+            case ECommands.read:
+                return this._income_onReadConfig(message).then((settings: {[port: string]: IOptions}) => {
+                    response(new IPCMessages.PluginInternalMessage({
+                        data: {
+                            status: 'done',
+                            settings: settings
+                        },
+                        token: message.token,
+                        stream: message.stream
+                    }));
+                }).catch((error: Error) => {
+                    response(new IPCMessages.PluginError({
+                        message: error.message,
+                        stream: message.stream,
+                        token: message.token,
+                        data: {
+                            command: message.data.command
+                        }
+                    }));
+                });
+            case ECommands.remove:
+                return this._income_onRemoveConfig(message).then(() => {
                     response(new IPCMessages.PluginInternalMessage({
                         data: {
                             status: 'done'
@@ -229,7 +315,7 @@ class ServiceSessions {
         });
     }
 
-    private _income_onWrite(message: IPCMessages.PluginInternalMessage): Promise<void> {
+    private _income_onSend(message: IPCMessages.PluginInternalMessage): Promise<void> {
         return new Promise((resolve, reject) => {
             if(message.data.cmd === '') {
                 PluginIPCService.sendToStream(Buffer.from('\n'), message.stream);
@@ -315,6 +401,68 @@ class ServiceSessions {
                 reject(error);
             });
         });
+    }
+
+    private _income_onWriteConfig(message: IPCMessages.PluginInternalMessage): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (message === undefined) {
+                return reject(new Error(this._logger.error(`Fail to save configuration, because message is undefined`)));
+            }
+            const CONFIG = this._updateConfig(message.data.options);
+            ServiceConfig.write(CONFIG).then(() => {
+                resolve();
+            }).catch((error: Error) => {
+                this._logger.error(`Failed to save configurations due error: ${error.message}`);
+                return reject(error);
+            });
+        });
+    }
+
+    private _income_onReadConfig(message: IPCMessages.PluginInternalMessage): Promise<{[port: string]: IOptions}> {
+        return new Promise((resolve, reject) => {
+            ServiceConfig.read<{[key: string]: {[port: string]: IOptions}}>().then(settings => {
+                resolve(settings['ports']);
+            }).catch((error: Error) => {
+                this._logger.error(`Failed to load configurations due error: ${error.message}`);
+                reject(error);
+            });
+        });
+    }
+
+    private _income_onRemoveConfig(message: IPCMessages.PluginInternalMessage): Promise<void> {
+        return new Promise((resolve, reject) => {
+            ServiceConfig.read<{[key: string]: {[port: string]: IOptions}}>().then((settings: {[key: string]: {[port: string]: IOptions}}) => {
+                if (!settings['ports'] || Object.keys(settings['ports']).length === 0) {
+                    return;
+                }
+                if (message.data.port === '*') {
+                    settings['ports'] = {};
+                } else {
+                    delete settings['ports'][message.data.port];
+                }
+                ServiceConfig.write(settings).then(() => {
+                    resolve();
+                }).catch((error: Error) => {
+                    return reject(error);
+                });
+            }).catch((error: Error) => {
+                this._logger.error(`Failed to remove settings due to error: ${error.message}`);
+            });
+        });
+    }
+
+    private _updateConfig(options: IOptions): {} {
+        const update = {};
+        ServiceConfig.read<{[key: string]: any}>().then((settings: {[key: string]: any}) => {
+            if (!settings['ports']) {
+                settings['ports'] = {};
+            }
+            settings['ports'][options.path] = options;
+            Object.assign(update, settings);
+        }).catch((error: Error) => {
+            this._logger.error(`Failed to update settings due to error: ${error.message}`);
+        });
+        return update;
     }
 
     private _onOpenStream(session: string) {
