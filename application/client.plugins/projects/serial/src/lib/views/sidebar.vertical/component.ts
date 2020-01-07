@@ -470,7 +470,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                     }
                 ],
                 options: {
-                    width: 26
+                    width: recent ? 26 : 24
                 }
             });
         }).catch((error: Error) => {
