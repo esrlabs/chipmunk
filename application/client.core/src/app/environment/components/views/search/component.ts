@@ -114,11 +114,18 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     public _ng_onKeyUpRequestInput(event?: KeyboardEvent) {
         if (this._fakeInputKeyEvent) {
+            // We need fake flag to allow selecting item from popup by keyboard.
+            // The issue is: we have 2 events there: pressed ENTER
+            // _ng_onKeyUpRequestInput and also _ng_onRecentSelected
             this._fakeInputKeyEvent = false;
             return;
         }
         if (event === undefined) {
             this._fakeInputKeyEvent = true;
+            setTimeout(() => {
+                // Drop fake event flag with timeout
+                this._fakeInputKeyEvent = false;
+            }, 500);
         }
         if (event !== undefined && event.key !== 'Enter' && event.key !== 'Escape') {
             return;
@@ -150,6 +157,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     public _ng_onFocusRequestInput() {
+        this._ng_autoComRef.openPanel();
         if (this._ng_inputCtrl.value === '') {
             return;
         }
@@ -249,7 +257,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         return this._prevRequest === this._ng_inputCtrl.value && this._ng_inputCtrl.value !== '';
     }
 
-    public _ng_onFileSelected(event: MatAutocompleteSelectedEvent) {
+    public _ng_onRecentSelected(event: MatAutocompleteSelectedEvent) {
         this._ng_inputCtrl.setValue(event.option.viewValue);
         this._ng_onKeyUpRequestInput();
     }
