@@ -16,7 +16,7 @@
               [optionHeight]="24"
               [matAutocomplete]="auto">
       <mat-autocomplete #auto="matAutocomplete"
-          (optionSelected)="_ng_onFileSelected($event)"
+          (optionSelected)="_ng_onRecentSelected($event)"
           [classList]="'recent-requests'"
           [disableRipple]="true">
           <mat-option *ngFor="let recent of _ng_recent | async" [value]="file" [attr.title]="recent" class="recent-requests small t-console t-small">
