@@ -5,11 +5,10 @@ import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } fro
 import ServicePlugins from '../../services/service.plugins';
 import ServiceStreamSource from '../../services/service.stream.sources';
 import ControllerIPCPlugin, { IPCMessages as IPCPluginMessages} from '../plugins/plugin.process.ipc';
-import Transform, { ITransformResult } from './file.map.transform';
 import { IMapItem } from './file.map';
 import State from './state';
 import { EventsHub } from '../stream.common/events';
-import { IRange } from './file.map';
+import { FileWriter, ITransformResult } from './file.writer';
 
 export interface IPipeOptions {
     reader: fs.ReadStream;
@@ -51,7 +50,7 @@ export default class ControllerStreamProcessor {
     private _subscriptions: { [key: string ]: Subscription | undefined } = { };
     private _state: State;
     private _events: EventsHub;
-    private _blocked: boolean = false;
+    private _writer: FileWriter;
 
     constructor(guid: string, file: string, events: EventsHub) {
         this._guid = guid;
@@ -59,6 +58,8 @@ export default class ControllerStreamProcessor {
         this._events = events;
         this._logger = new Logger(`ControllerStreamProcessor: ${this._guid}`);
         this._state = new State(this._guid, this._file);
+        this._writer = new FileWriter(guid, file, this._state.map);
+        this._writer.on(FileWriter.Events.ChunkWritten, this._onChunkWritten.bind(this));
         this._ipc_onStreamChunkRequested = this._ipc_onStreamChunkRequested.bind(this);
         ServiceElectron.IPC.subscribe(IPCElectronMessages.StreamChunk, this._ipc_onStreamChunkRequested).then((subscription: Subscription) => {
             this._subscriptions.StreamChunk = subscription;
@@ -68,13 +69,17 @@ export default class ControllerStreamProcessor {
     }
 
     public destroy(): Promise<void> {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             this._state.destroy();
+            this._writer.removeAllListeners();
             // Unsubscribe IPC messages / events
             Object.keys(this._subscriptions).forEach((key: string) => {
                 (this._subscriptions as any)[key].destroy();
             });
-            resolve();
+            this._writer.destroy().then(resolve).catch((error: Error) => {
+                this._logger.error(`Fail to correctly destroy writer due error: ${error.message}`);
+                resolve();
+            });
         });
     }
 
@@ -96,81 +101,48 @@ export default class ControllerStreamProcessor {
             if (sourceInfo instanceof Error) {
                 return reject(new Error(`Fail to write data due error: ${sourceInfo.message}`));
             }
+            this._writer.write(output, sourceInfo.id).then(() => {
+                // Send notification to render
+                this._state.postman.notification();
+                resolve();
+            }).catch(reject);
+            /*
             // Convert chunk to string
             const transform: Transform = new Transform( {},
                                                         this._guid,
                                                         sourceInfo.id,
                                                         { bytes: this._state.map.getByteLength(), rows: this._state.map.getRowsCount() });
-            transform.setBeforeCallbackHandle((converted: ITransformResult) => {
-                return new Promise((resolveBeforeCallback, rejectBeforeCallback) => {
-                    // Add data into map
-                    this._state.map.add(converted.map);
-                    // Write data
-                    const stream: fs.WriteStream | undefined = this._getStreamFileHandle();
-                    if (stream === undefined) {
-                        return reject(new Error(`Stream is blocked for writting.`));
+            transform.convert(output, (converted: ITransformResult) => {
+                if (converted.output === '') {
+                    // Nothing to write
+                    return resolve();
+                }
+                // Write data
+                const stream: fs.WriteStream | undefined = this._getStreamFileHandle();
+                if (stream === undefined) {
+                    return reject(new Error(`Stream is blocked for writting.`));
+                }
+                // Add data into map
+                // We should update map here, because it might be next write operation is already started.
+                // So cursor in map should be already moved forward.
+                this._state.map.add(converted.map);
+                stream.write(converted.output, (writeError: Error | null | undefined) => {
+                    if (writeError) {
+                        const error: Error = new Error(this._logger.error(`Fail to write data into stream file due error: ${writeError.message}`));
+                        return reject(error);
                     }
-                    stream.write(converted.output, (writeError: Error | null | undefined) => {
-                        // Send notification to render
-                        this._state.postman.notification();
-                        // Trigger event on stream was updated
-                        this._events.getSubject().onStreamBytesMapUpdated.emit({
-                            bytes: Object.assign({}, converted.map.bytes),
-                            rows: Object.assign({}, converted.map.rows),
-                        });
-                        if (writeError) {
-                            const error: Error = new Error(this._logger.error(`Fail to write data into stream file due error: ${writeError.message}`));
-                            rejectBeforeCallback(error);
-                            return reject(error);
-                        }
-                        resolveBeforeCallback();
-                        resolve();
+                    // Send notification to render
+                    this._state.postman.notification();
+                    // Trigger event on stream was updated
+                    this._events.getSubject().onStreamBytesMapUpdated.emit({
+                        bytes: Object.assign({}, converted.map.bytes),
+                        rows: Object.assign({}, converted.map.rows),
                     });
+                    resolve();
                 });
             });
-            transform.convert(output);
+            */
         });
-    }
-
-    public pipe(options: IPipeOptions): Error | undefined {
-        // Get plugin info
-        const sourceInfo: ISourceInfo | Error = this._getSourceInfo(undefined, options.sourceId);
-        if (sourceInfo instanceof Error) {
-            return new Error(`Fail to pipe data due error: ${sourceInfo.message}`);
-        }
-        const transform: Transform = new Transform( {},
-                                                    this._guid,
-                                                    options.sourceId,
-                                                    { bytes: this._state.map.getByteLength(), rows: this._state.map.getRowsCount() });
-        const stream: fs.WriteStream | undefined = this._getStreamFileHandle();
-        if (stream === undefined) {
-            return new Error(`Stream is blocked for writting.`);
-        }
-        transform.on(Transform.Events.onMap, (map: IMapItem, written: number) => {
-            // Add data into map
-            this._state.map.add(map);
-            // Send notification to render
-            this._state.postman.notification();
-        });
-        stream.once('finish', () => {
-            const map: IMapItem[] = transform.getMap();
-            if (map.length === 0) {
-                this._logger.warn(`Transformer doesn't have any item of map`);
-                return;
-            }
-            // Send notification to render
-            this._state.postman.notification();
-            // Trigger event on stream was updated
-            this._events.getSubject().onStreamBytesMapUpdated.emit({
-                bytes: { from: map[0].bytes.from, to: map[map.length - 1].bytes.to },
-                rows: { from: map[0].rows.from, to: map[map.length - 1].rows.to },
-            });
-        });
-        if (options.decoder !== undefined) {
-            options.reader.pipe(options.decoder).pipe(transform).pipe(stream);
-        } else {
-            options.reader.pipe(transform).pipe(stream);
-        }
     }
 
     public addProgressSession(pipeId: string, name: string) {
@@ -215,12 +187,13 @@ export default class ControllerStreamProcessor {
     }
 
     public reattach() {
-        this._getStreamFileHandle();
+        this._writer.stop();
+        this._writer.resume();
     }
 
     public reset(): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._blocked = true;
+            this._writer.stop();
             // Close stream
             if (this._stream !== undefined) {
                 this._stream.close();
@@ -233,9 +206,7 @@ export default class ControllerStreamProcessor {
                 }
                 // Drop map
                 this._state.map.drop();
-                this._blocked = false;
-                // Reattach reader
-                this._getStreamFileHandle();
+                this._writer.resume();
                 // Notification
                 this._notify();
                 resolve();
@@ -251,14 +222,12 @@ export default class ControllerStreamProcessor {
         return this._state.map.getRowsCount();
     }
 
-    private _getStreamFileHandle(): fs.WriteStream | undefined {
-        if (this._blocked) {
-            return undefined;
-        }
-        if (this._stream === undefined) {
-            this._stream = fs.createWriteStream(this._file, { encoding: 'utf8', flags: 'a' });
-        }
-        return this._stream;
+    private _onChunkWritten(map: IMapItem) {
+        // Trigger event on stream was updated
+        this._events.getSubject().onStreamBytesMapUpdated.emit({
+            bytes: Object.assign({}, map.bytes),
+            rows: Object.assign({}, map.rows),
+        });
     }
 
     private _dropStreamFile() {
