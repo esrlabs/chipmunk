@@ -185,7 +185,7 @@ export class ControllerSessionTabSearchOutput {
         }
         // Confirm: range is fount correctly
         if (rows.length !== range.end - range.start + 1) {
-            return new Error(this._logger.error(`Calculation error: gotten ${rows.length} rows; should be: ${range.end - range.start}. State was { start: ${stored.start}, end: ${stored.end}}, became { start: ${this._state.stored.start}, end: ${this._state.stored.end}}.`));
+            return new Error(this._logger.error(`Calculation error: gotten ${rows.length} rows; should be: ${range.end - range.start + 1}. State was { start: ${stored.start}, end: ${stored.end}}, became { start: ${this._state.stored.start}, end: ${this._state.stored.end}}.`));
         }
         this.setFrame(range);
         return rows;
