@@ -1,8 +1,9 @@
-import Logger from '../tools/env.logger';
+import Logger, { setGlobalLogLevel, ELogLevels } from '../tools/env.logger';
 import { getEnvVar } from 'chipmunk.shell.env';
 import { IService } from '../interfaces/interface.service';
 
 const CDEV_ENV_VAR = 'CHIPMUNK_DEVELOPING_MODE';
+const CDEV_LOG_LEVEL = 'CHIPMUNK_DEV_LOGLEVEL';
 const CDEV_ENV_VAR_VALUE = 'ON';
 
 /**
@@ -20,13 +21,23 @@ class ServiceProduction implements IService {
      * @returns Promise<void>
      */
     public init(): Promise<void> {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             getEnvVar(CDEV_ENV_VAR).then((value: string) => {
                 if (value === CDEV_ENV_VAR_VALUE) {
                     this._production = false;
+                    getEnvVar(CDEV_LOG_LEVEL).then((level: string) => {
+                        setGlobalLogLevel(level as ELogLevels);
+                        this._logger.env(`Production is: ${this._production ? 'ON' : 'OFF'}`);
+                        resolve();
+                    }).catch((error: Error) => {
+                        this._logger.warn(`Fail to get value for ${CDEV_LOG_LEVEL} due error: ${error.message}`);
+                        resolve();
+                    });
+                } else {
+                    setGlobalLogLevel(ELogLevels.ERROR);
+                    this._logger.env(`Production is: ${this._production ? 'ON' : 'OFF'}`);
+                    resolve();
                 }
-                this._logger.env(`Production is: ${this._production ? 'ON' : 'OFF'}`);
-                resolve();
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to get value for ${CDEV_ENV_VAR} due error: ${error.message}`);
                 resolve();
