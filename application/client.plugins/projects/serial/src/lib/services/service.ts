@@ -1,4 +1,5 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
+import { ENotificationType } from 'chipmunk.client.toolkit';
 import { EHostCommands, EHostEvents } from '../common/host.events';
 import { IOptions } from '../common/interface.options';
 import { Observable, Subject } from 'rxjs';
@@ -234,6 +235,15 @@ export class Service extends Toolkit.APluginService {
 
     public closePopup(popup: string) {
         this.api.removePopup(popup);
+    }
+    public notify(caption: string, message: string, type: ENotificationType) {
+        this.api.addNotification({
+            caption: caption,
+            message: message,
+            options: {
+                type: type
+            }
+        });
     }
 }
 

@@ -7,6 +7,7 @@ import { SidebarVerticalPortOptionsWriteComponent } from '../sidebar.vertical/po
 import { Subscription, Subject, Observable } from 'rxjs';
 import Service from '../../services/service';
 import * as Toolkit from 'chipmunk.client.toolkit';
+import { ENotificationType } from 'chipmunk.client.toolkit';
 
 interface IConnected {
     port: IPortInfo;
@@ -86,12 +87,23 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
             });
             this._forceUpdate();
         }).catch((error: Error) => {
-            this._logger.error(`Failed to load port list due to error: ${error.message}`);
+            this._notify('Error', `Failed to load port list due to error: ${error.message}`, ENotificationType.error);
         });
     }
 
     public onTick(): { tick: Observable<boolean> } {
         return { tick: this._subjects.tick.asObservable() };
+    }
+
+    private _notify(caption: string, message: string, type: ENotificationType) {
+        Service.notify(caption, message, type);
+        if (type === ENotificationType.error) {
+            this._logger.error(message);
+        } else if (type === ENotificationType.warning) {
+            this._logger.warn(message);
+        } else {
+            this._logger.info(message);
+        }
     }
 
     private _next() {
@@ -160,7 +172,7 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
         Service.removeConfig(port).then(() => {
             this._refreshPortList();
         }).catch((error: Error) => {
-            this._logger.error(`Failed to remove all recent ports due to error: ${error.message}`);
+            this._notify('Error', `Failed to remove all recent ports due to error: ${error.message}`, ENotificationType.error);
         });
     }
 }
