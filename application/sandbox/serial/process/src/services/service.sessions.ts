@@ -436,7 +436,9 @@ class ServiceSessions {
                     return;
                 }
                 if (message.data.port === '*') {
-                    settings['ports'] = {};
+                    Object.keys(settings['ports']).forEach((port: string) => {
+                        delete settings['ports'][port];
+                    });
                 } else {
                     delete settings['ports'][message.data.port];
                 }
