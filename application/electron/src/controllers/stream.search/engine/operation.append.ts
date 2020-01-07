@@ -6,7 +6,7 @@ import Logger from '../../../tools/env.logger';
 import guid from '../../../tools/tools.guid';
 import { CancelablePromise } from '../../../tools/promise.cancelable';
 import ServicePaths from '../../../services/service.paths';
-import Transform, { IMapItem, IMapChunkEvent } from './transform.map';
+import Transform, { IMapItem, IMapChunkEvent, IOffset } from './transform.map';
 import { EventEmitter } from 'events';
 import { Readable } from 'stream';
 
@@ -25,7 +25,8 @@ export class OperationAppend extends EventEmitter {
     private _searchFile: string;
     private _streamGuid: string;
     private _cleaner: THandler | undefined;
-    private _last: { from: number, to: number } | undefined;
+    private _readFrom: number = 0;
+    private _offset: IOffset = { bytes: 0, rows: 0 };
 
     constructor(streamGuid: string, streamFile: string, searchFile: string) {
         super();
@@ -42,32 +43,25 @@ export class OperationAppend extends EventEmitter {
 
     public perform(
         regExp: RegExp | RegExp[],
-        range: { from: number, to: number },
-        mapOffset: { bytes: number, rows: number },
+        readTo: number,
     ): CancelablePromise<IMapItem[], void> | Error {
         if (this._cleaner !== undefined) {
             this._logger.warn(`Attempt to start search, while previous isn't finished`);
             return new Error(`(search) Fail to start search, because previous process isn't finished.`);
         }
-        if (this._last !== undefined) {
-            if (this._last.to !== range.from - 1) {
-                this._logger.error(`Last ranage was finished with ${this._last.to} bytes, but new range is started from ${range.from} byte.`);
-                return new Error(`Wrong range for append operation`);
-            }
-        }
-        this._last = Object.assign(range);
         return new CancelablePromise<IMapItem[], void>((resolve, reject, cancel, self) => {
             const id: string = guid();
-            this._logger.measure(`Appending (#${id}): bytes: ${range.from} - ${range.to}; offset: ${mapOffset.bytes} bytes; ${mapOffset.rows} rows.`);
+            // this._logger.measure(`Appending (#${id}): bytes: ${range.from} - ${range.to}; offset: ${mapOffset.bytes} bytes; ${mapOffset.rows} rows.`);
             // Start measuring
             const measurer = this._logger.measure(`appending search #${id}`);
-            // Create transformer to build map
-            const transform: Transform = new Transform({}, this._streamGuid, mapOffset);
+            // Unblock transform
+            const transform: Transform = new Transform({}, this._streamGuid, this._offset);
+            // Listen map event
             transform.on(Transform.Events.found, (event: IMapChunkEvent) => {
                 this.emit(OperationAppend.Events.onMapUpdated, event);
             });
             // Create reader
-            const reader: ReadStream = fs.createReadStream(this._streamFile, { encoding: 'utf8', start: range.from, end: range.to });
+            const reader: ReadStream = fs.createReadStream(this._streamFile, { encoding: 'utf8', start: this._readFrom, end: readTo });
             // Create writer
             const writer: WriteStream = fs.createWriteStream(this._searchFile, { flags: 'a' });
             // Create process
@@ -91,6 +85,7 @@ export class OperationAppend extends EventEmitter {
             });
             // Handeling fiinishing
             process.once('close', () => {
+                this.setReadFrom(readTo + 1);
                 resolve(transform.getMap());
             });
             // Create cleaner
@@ -104,7 +99,7 @@ export class OperationAppend extends EventEmitter {
                 writer.removeAllListeners();
                 writer.close();
                 // Stop transform
-                transform.stop();
+                transform.lock();
                 transform.removeAllListeners();
                 // Kill process
                 process.removeAllListeners();
@@ -118,8 +113,21 @@ export class OperationAppend extends EventEmitter {
         }).finally(this._clear.bind(this));
     }
 
-    public dropCursorPosition() {
-        this._last = undefined;
+    public setOffset(offset: IOffset) {
+        this._offset = offset;
+    }
+
+    public setReadFrom(read: number) {
+        this._readFrom = read;
+    }
+
+    public drop() {
+        // TODO: what if task is in progress?
+        if (this._cleaner !== undefined) {
+            this._logger.error(`Dropping append controller, while append operation is still in progress.`);
+        }
+        this._readFrom = 0;
+        this._offset = { bytes: 0, rows: 0 };
     }
 
     private _clear() {

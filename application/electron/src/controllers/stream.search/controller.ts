@@ -33,9 +33,9 @@ export default class ControllerStreamSearch {
     private _processor: ControllerStreamProcessor;
     private _requests: RegExp[] = [];
     private _pending: {
-        bytesToRead: IRange,
+        bytesReadTo: number,
     } = {
-        bytesToRead: { from: -1, to: -1 },
+        bytesReadTo: 0,
     };
 
     constructor(guid: string, streamFile: string, searchFile: string, stream: ControllerStreamProcessor, streamState: EventsHub) {
@@ -118,33 +118,28 @@ export default class ControllerStreamSearch {
         if (this._requests.length === 0) {
             return;
         }
-        if (updated !== undefined) {
-            if (this._pending.bytesToRead.from === -1 || this._pending.bytesToRead.from > updated.from) {
-                this._pending.bytesToRead.from = updated.from;
-            }
-            if (this._pending.bytesToRead.to === -1 || this._pending.bytesToRead.to < updated.to) {
-                this._pending.bytesToRead.to = updated.to;
-            }
+        if (updated !== undefined && this._pending.bytesReadTo < updated.to) {
+            this._pending.bytesReadTo = updated.to;
         }
         if (this._searching.isWorking()) {
             return;
         }
-        const bytes: IRange = { from: this._pending.bytesToRead.from, to: this._pending.bytesToRead.to };
-        this._pending.bytesToRead = { from: -1, to: -1 };
-        this._search(this._requests, Tools.guid(), bytes.from, bytes.to).catch((searchErr: Error) => {
-            this._logger.warn(`Fail to append search results (range: ${bytes.from} - ${bytes.to}) due error: ${searchErr.message}`);
+        this._search(this._requests, Tools.guid(), this._pending.bytesReadTo).catch((searchErr: Error) => {
+            this._logger.warn(`Fail to append search results due error: ${searchErr.message}`);
         }).finally(() => {
             this._reappend();
         });
+        this._pending.bytesReadTo = -1;
     }
 
     private _reappend() {
-        if (this._pending.bytesToRead.from !== -1 && this._pending.bytesToRead.to !== -1) {
-            this._append();
+        if (this._pending.bytesReadTo === -1) {
+            return;
         }
+        this._append();
     }
 
-    private _search(requests: RegExp[], id: string, from?: number, to?: number): Promise<number> {
+    private _search(requests: RegExp[], id: string, to?: number): Promise<number> {
         return new Promise((resolve, reject) => {
             if (this._processor.getStreamSize() === 0) {
                 // Save requests
@@ -152,7 +147,7 @@ export default class ControllerStreamSearch {
                 // Stream file doesn't exist yet
                 return resolve(0);
             }
-            const task = this._searching.search(requests, from, to);
+            const task = this._searching.search(requests, to);
             if (task instanceof Error) {
                 this._logger.error(`Fail to create task for search due error: ${task.message}`);
                 return reject(task);

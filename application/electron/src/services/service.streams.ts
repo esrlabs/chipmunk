@@ -177,24 +177,6 @@ class ServiceStreams implements IService  {
         });
     }
 
-    public pipeWith(options: IPipeOptions): Promise<void> {
-        return new Promise((resolve, reject) => {
-            // Get stream id
-            if (options.streamId === undefined) {
-                options.streamId = this._activeStreamGuid;
-            }
-            // Get stream info
-            const stream: IStreamInfo | undefined = this._streams.get(options.streamId);
-            if (stream === undefined) {
-                return reject(new Error(this._logger.warn(`Fail to find a stream data for stream guid "${options.streamId}"`)));
-            }
-            options.reader.once('end', () => {
-                resolve();
-            });
-            stream.processor.pipe(options);
-        });
-    }
-
     public getActiveStreamId(): string {
         return this._activeStreamGuid;
     }

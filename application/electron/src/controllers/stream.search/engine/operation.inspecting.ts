@@ -20,6 +20,9 @@ export class OperationInspecting extends EventEmitter {
     private _searchFile: string;
     private _streamGuid: string;
     private _cleaners: Map<string, THandler> = new Map();
+    private _readTo: number = 0;
+    private _readFrom: number = 0;
+    private _matches: number[] = [];
 
     constructor(streamGuid: string, streamFile: string, searchFile: string) {
         super();
@@ -33,7 +36,7 @@ export class OperationInspecting extends EventEmitter {
         this.removeAllListeners();
     }
 
-    public perform(regExp: RegExp, from: number | undefined): CancelablePromise<number[], void> {
+    public perform(regExp: RegExp): CancelablePromise<number[], void> {
         const taskId: string = guid();
         return new CancelablePromise<number[], void>((resolve, reject) => {
             fs.exists(this._streamFile, (exists: boolean) => {
@@ -43,7 +46,7 @@ export class OperationInspecting extends EventEmitter {
                 // Start measuring
                 const measurer = this._logger.measure(`inspecting #${guid()}`);
                 // Create reader
-                const reader: ReadStream = fs.createReadStream(this._searchFile, { encoding: 'utf8', start: from });
+                const reader: ReadStream = fs.createReadStream(this._searchFile, { encoding: 'utf8', start: this._readFrom, end: this._readTo });
                 // Create writer
                 const writer: NullWritableStream = new NullWritableStream();
                 // Create transform
@@ -70,7 +73,9 @@ export class OperationInspecting extends EventEmitter {
                 });
                 // Handeling finishing
                 process.once('close', () => {
-                    resolve(transform.getLines());
+                    const added: number[] = transform.getLines();
+                    this._matches.push(...added);
+                    resolve(this._matches);
                 });
                 // Create cleaner
                 this._cleaners.set(taskId, () => {
@@ -91,8 +96,20 @@ export class OperationInspecting extends EventEmitter {
                     // Measure spent time
                     measurer();
                 });
-            });
+        });
         }).finally(this._clear.bind(this, taskId));
+    }
+
+    public drop() {
+        // TODO: what if task is in progress?
+        this._readTo = 0;
+        this._readFrom = 0;
+        this._matches = [];
+    }
+
+    public setReadTo(read: number) {
+        this._readFrom = this._readTo;
+        this._readTo = read;
     }
 
     private _clear(id: string) {

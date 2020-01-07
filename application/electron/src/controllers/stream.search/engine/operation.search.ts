@@ -6,7 +6,7 @@ import guid from '../../../tools/tools.guid';
 import Logger from '../../../tools/env.logger';
 import { CancelablePromise } from '../../../tools/promise.cancelable';
 import ServicePaths from '../../../services/service.paths';
-import Transform, { IMapItem, IMapChunkEvent } from './transform.map';
+import Transform, { IMapItem, IMapChunkEvent, IOffset } from './transform.map';
 import { EventEmitter } from 'events';
 import { Readable } from 'stream';
 
@@ -25,6 +25,8 @@ export class OperationSearch extends EventEmitter {
     private _searchFile: string;
     private _streamGuid: string;
     private _cleaner: THandler | undefined;
+    private _offset: IOffset = { bytes: 0, rows: 0 };
+    private _read: number = 0;
 
     constructor(streamGuid: string, streamFile: string, searchFile: string) {
         super();
@@ -41,67 +43,91 @@ export class OperationSearch extends EventEmitter {
 
     public perform(
         regExp: RegExp | RegExp[],
-        mapOffset: { bytes: number, rows: number },
     ): CancelablePromise<IMapItem[], void> | Error {
         if (this._cleaner !== undefined) {
             this._logger.warn(`Attempt to start search, while previous isn't finished`);
             return new Error(`(search) Fail to start search, because previous process isn't finished.`);
         }
         return new CancelablePromise<IMapItem[], void>((resolve, reject, cancel, self) => {
-            // Start measuring
-            const measurer = this._logger.measure(`search #${guid()}`);
-            // Create transformer to build map
-            const transform: Transform = new Transform({}, this._streamGuid, mapOffset);
-            transform.on(Transform.Events.found, (event: IMapChunkEvent) => {
-                this.emit(OperationSearch.Events.onMapUpdated, event);
-            });
-            // Create writer
-            const writer: WriteStream = fs.createWriteStream(this._searchFile);
-            // Create process
-            const process: ChildProcess = spawn(ServicePaths.getRG(), this._getProcArgs(regExp, this._streamFile), {
-                cwd: path.dirname(this._streamFile),
-                stdio: [ 'pipe', 'pipe', 'pipe' ],
-            });
-            // Handeling errors
-            [process, process.stdout, writer].forEach((smth: WriteStream | ChildProcess | ReadStream | Readable) => {
-                smth.once('error', (error: Error) => {
-                    this._logger.error(`Error during search: ${error.message}`);
-                    if (this._cleaner === undefined) {
-                        return;
-                    }
-                    reject(error);
+            fs.stat(this._streamFile, (err: NodeJS.ErrnoException | null, stats: fs.Stats) => {
+                if (err) {
+                    reject(err);
+                }
+                // Remember file size
+                this._read = stats.size;
+                // Start measuring
+                const measurer = this._logger.measure(`search #${guid()}`);
+                // Create transform
+                const transform = new Transform({}, this._streamGuid);
+                // Listen map event
+                transform.on(Transform.Events.found, (event: IMapChunkEvent) => {
+                    this.emit(OperationSearch.Events.onMapUpdated, event);
                 });
+                // Create writer
+                const writer: WriteStream = fs.createWriteStream(this._searchFile);
+                // Create process
+                const process: ChildProcess = spawn(ServicePaths.getRG(), this._getProcArgs(regExp, this._streamFile), {
+                    cwd: path.dirname(this._streamFile),
+                    stdio: [ 'pipe', 'pipe', 'pipe' ],
+                });
+                // Handeling errors
+                [process, process.stdout, writer].forEach((smth: WriteStream | ChildProcess | ReadStream | Readable) => {
+                    smth.once('error', (error: Error) => {
+                        this._logger.error(`Error during search: ${error.message}`);
+                        if (this._cleaner === undefined) {
+                            return;
+                        }
+                        reject(error);
+                    });
+                });
+                // Handeling finishing
+                process.once('close', () => {
+                    this._offset = transform.getOffsets();
+                    resolve(transform.getMap());
+                });
+                // Start reading / writing output of ripgrep
+                process.stdout.pipe(transform).pipe(writer);
+                // Create cleaner
+                this._cleaner = () => {
+                    // Attention. Using of writer.destroy() here will give "Uncatchable error: Cannot call write after a stream was destroyed"
+                    // it doesn't block any how main process, but not okay to have it for sure
+                    // Stop writer
+                    writer.removeAllListeners();
+                    writer.close();
+                    // Stop transform
+                    transform.lock();
+                    transform.removeAllListeners();
+                    // Kill process
+                    process.removeAllListeners();
+                    process.stdout.removeAllListeners();
+                    process.stdout.unpipe();
+                    process.stdout.destroy();
+                    process.kill();
+                    // Measure spent time
+                    measurer();
+                };
             });
-            // Handeling finishing
-            process.once('close', () => {
-                resolve(transform.getMap());
-            });
-            // Start reading / writing output of ripgrep
-            process.stdout.pipe(transform).pipe(writer);
-            // Create cleaner
-            this._cleaner = () => {
-                // Attention. Using of writer.destroy() here will give "Uncatchable error: Cannot call write after a stream was destroyed"
-                // it doesn't block any how main process, but not okay to have it for sure
-                // Stop writer
-                writer.removeAllListeners();
-                writer.close();
-                // Stop transform
-                transform.stop();
-                transform.removeAllListeners();
-                // Kill process
-                process.removeAllListeners();
-                process.stdout.removeAllListeners();
-                process.stdout.unpipe();
-                process.stdout.destroy();
-                process.kill();
-                // Measure spent time
-                measurer();
-            };
         }).finally(this._clear);
+    }
+
+    public getOffset(): IOffset {
+        return Object.assign({}, this._offset);
+    }
+
+    public getReadBytesAmount(): number {
+        return this._read;
     }
 
     public isBusy(): boolean {
         return this._cleaner !== undefined;
+    }
+
+    public drop() {
+        // TODO: what if task is in progress?
+        if (this._cleaner !== undefined) {
+            this._logger.error(`Dropping search controller, while search operation is still in progress.`);
+        }
+        this._offset = { bytes: 0, rows: 0 };
     }
 
     private _clear() {

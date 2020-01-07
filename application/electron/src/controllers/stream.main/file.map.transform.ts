@@ -11,7 +11,7 @@ export interface ITransformResult {
     map: IMapItem;
 }
 
-export type TBeforeCallbackHandle = (results: ITransformResult) => Promise<void>;
+export type TCustomCallback = (results: ITransformResult) => void;
 
 export function getSourceMarker(sourceId: string | number): string {
     return `${StreamMarkers.PluginId}${sourceId}${StreamMarkers.PluginId}`;
@@ -27,7 +27,6 @@ export default class Transform extends Stream.Transform {
     private _pluginId: number;
     private _rest: string = '';
     private _streamId: string;
-    private _beforeCallbackHandle: TBeforeCallbackHandle | undefined;
     private _offsets: { bytes: number, rows: number } = { bytes: 0, rows: 0 };
     private _map: IMapItem[] = [];
     private _writtenBytes: number = 0;
@@ -44,13 +43,10 @@ export default class Transform extends Stream.Transform {
         this._logger = new Logger(`ControllerStreamTransformer: ${this._streamId}`);
     }
 
-    public setBeforeCallbackHandle(handle: TBeforeCallbackHandle | undefined) {
-        this._beforeCallbackHandle = handle;
-    }
-
     public _transform(  chunk: Buffer | string,
                         encoding: string,
-                        callback: Stream.TransformCallback | undefined): ITransformResult {
+                        callback: Stream.TransformCallback | undefined,
+                        customCB?: TCustomCallback): ITransformResult {
 
         // Convert to utf8 and insert rest from previos
         let output: string = '';
@@ -94,27 +90,17 @@ export default class Transform extends Stream.Transform {
         // Store map
         this._map.push(results.map);
         if (callback !== undefined) {
-            if (typeof this._beforeCallbackHandle === 'function') {
-                this._beforeCallbackHandle(results).then(() => {
-                    callback(undefined, output);
-                }).catch((error: Error) => {
-                    this._logger.warn(`Error from "beforeCallbackHandle": ${error.message}`);
-                    callback(undefined, output);
-                });
-            } else {
-                callback(undefined, output);
-            }
-        } else if (typeof this._beforeCallbackHandle === 'function') {
-            this._beforeCallbackHandle(results).catch((error: Error) => {
-                this._logger.warn(`Error from "beforeCallbackHandle": ${error.message}`);
-            });
+            callback(undefined, output);
+        }
+        if (customCB !== undefined) {
+            customCB(results);
         }
         this.emit(Transform.Events.onMap, results.map, size);
         return results;
     }
 
-    public convert(chunk: Buffer | string): ITransformResult {
-        return this._transform(chunk, 'utf8', undefined);
+    public convert(chunk: Buffer | string, callback?: TCustomCallback): ITransformResult {
+        return this._transform(chunk, 'utf8', undefined, callback);
     }
 
     public getMap(): IMapItem[] {
