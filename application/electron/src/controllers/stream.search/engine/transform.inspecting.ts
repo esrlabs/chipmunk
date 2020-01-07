@@ -32,7 +32,6 @@ export default class Transform extends Stream.Transform {
         const rest = this._getRest(output);
         this._rest = rest.rest;
         output = rest.cleared;
-
         // Get indexes
         const matches: RegExpMatchArray | null = output.match(/\u0002\d*\u0002/gi);
         if (matches !== null) {
@@ -45,22 +44,6 @@ export default class Transform extends Stream.Transform {
                 this._lines.push(num);
             });
         }
-        /*
-        // Get lines
-        const lines: string[] = output.split(/[\n\r]/gi);
-        lines.forEach((line: string) => {
-            const parts = line.split(':');
-            if (parts.length < 2) {
-                return;
-            }
-            const num: number = parseInt(parts[0], 10);
-            if (isNaN(num) || !isFinite(num)) {
-                this._logger.warn(`Fail to detect line number for ${line}`);
-                return;
-            }
-            this._lines.push(num);
-        });
-        */
         // Check state
         if (this._stopped) {
             return;

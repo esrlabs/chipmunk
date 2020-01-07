@@ -18,6 +18,11 @@ export interface IMapChunkEvent {
     map: IMapItem;
 }
 
+export interface IOffset {
+    bytes: number;
+    rows: number;
+}
+
 export default class Transform extends Stream.Transform {
 
     public static Events = {
@@ -28,18 +33,18 @@ export default class Transform extends Stream.Transform {
     private _rest: string = '';
     private _streamId: string;
     private _beforeCallbackHandle: TBeforeCallbackHandle | undefined;
-    private _offsets: { bytes: number, rows: number } = { bytes: 0, rows: 0 };
+    private _offsets: IOffset = { bytes: 0, rows: 0 };
     private _map: IMapItem[] = [];
     private _stopped: boolean = false;
     private _found: number = 0;
 
     constructor(options: Stream.TransformOptions,
                 streamId: string,
-                offsets: { bytes: number, rows: number }) {
+                offsets?: IOffset) {
 
         super(options);
         this._streamId = streamId;
-        this._offsets = offsets;
+        this._offsets = offsets === undefined ? { bytes: 0, rows: 0 } : offsets;
         this._logger = new Logger(`Transform.Map: ${this._streamId}`);
     }
 
@@ -122,7 +127,11 @@ export default class Transform extends Stream.Transform {
         return this._map;
     }
 
-    public stop() {
+    public getOffsets(): IOffset {
+        return Object.assign({}, this._offsets);
+    }
+
+    public lock() {
         this._stopped = true;
     }
 

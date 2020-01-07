@@ -1,3 +1,6 @@
+import ServiceProduction from '../../services/service.production';
+import Logger from '../../tools/env.logger';
+
 export interface IRange {
     from: number;
     to: number;
@@ -8,11 +11,22 @@ export interface IMapItem {
     bytes: IRange;
 }
 
+const COptions = {
+    // In developing mode will validate whole map with each N adding map-item operation
+    validateOnEachPush: 100,
+};
+
 export default class BytesRowsMap {
 
     private _map: IMapItem[] = [];
     private _bytes: number = 0;
     private _rows: number = 0;
+    private _logger: Logger = new Logger(`StreamBytesRowsMap`);
+    private _debugging: {
+        validateOnEachPushIndex: number,
+    } = {
+        validateOnEachPushIndex: 0,
+    };
 
     public destroy() {
         this.drop();
@@ -35,6 +49,7 @@ export default class BytesRowsMap {
         this._map.push(...item);
         this._bytes = item[item.length - 1].bytes.to + 1;
         this._rows = item[item.length - 1].rows.to + 1;
+        this.validate();
     }
 
     public getBytesRange(requested: IRange): IMapItem | Error {
@@ -90,6 +105,40 @@ export default class BytesRowsMap {
         this._map = [];
         this._bytes = 0;
         this._rows = 0;
+    }
+
+    public validate(): string[] | undefined {
+        if (ServiceProduction.isProduction()) {
+            return;
+        }
+        if (this._debugging.validateOnEachPushIndex < COptions.validateOnEachPush) {
+            this._debugging.validateOnEachPushIndex += 1;
+            return;
+        }
+        this._debugging.validateOnEachPushIndex = 0;
+        const errors: string[] = [];
+        this._map.forEach((item: IMapItem, i: number) => {
+            if (i !== 0) {
+                if (this._map[i].bytes.from !== this._map[i - 1].bytes.to + 1) {
+                    errors.push(`Indexes ${i - 1}-${i} :: bytes dismiss`);
+                }
+                if (this._map[i].rows.from !== this._map[i - 1].rows.to + 1) {
+                    errors.push(`Indexes ${i - 1}-${i} :: rows dismiss`);
+                }
+            }
+            if (item.bytes.from >= item.bytes.to) {
+                errors.push(`Index ${i} :: wrong bytes position`);
+            }
+            if (item.rows.from > item.rows.to) {
+                errors.push(`Index ${i} :: wrong rows position`);
+            }
+        });
+        if (errors.length === 0) {
+            this._logger.debug(`map is checked. All good.`);
+            return;
+        }
+        this._logger.error(`${'='.repeat(20)}\n${errors.join('\n')}\n${'='.repeat(20)}`);
+        return errors;
     }
 
 }

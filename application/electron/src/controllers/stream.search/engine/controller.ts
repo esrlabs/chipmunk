@@ -1,11 +1,13 @@
 import Logger from '../../../tools/env.logger';
 import guid from '../../../tools/tools.guid';
 import State from '../state';
-import { IMapItem } from '../file.map';
+import ServiceStreams from '../../../services/service.streams';
+
 import * as fs from 'fs';
+
+import { IMapItem } from '../file.map';
 import { CancelablePromise } from '../../../tools/promise.cancelable';
 import { EventEmitter } from 'events';
-import ServiceStreams from '../../../services/service.streams';
 import { OperationSearch, IMapChunkEvent } from './operation.search';
 import { OperationAppend } from './operation.append';
 import { OperationInspecting } from './operation.inspecting';
@@ -45,6 +47,7 @@ export class SearchEngine extends EventEmitter {
         append: OperationAppend,
         inspecting: OperationInspecting,
     };
+    private _size: number = 0;
 
     constructor(state: State) {
         super();
@@ -70,31 +73,26 @@ export class SearchEngine extends EventEmitter {
         });
     }
 
-    public search(requests: RegExp[], from?: number, to?: number): CancelablePromise<IMapItem[], void> | Error {
+    public search(requests: RegExp[], to?: number): CancelablePromise<IMapItem[], void> | Error {
         if (this._stock.search.size !== 0) {
             return new Error(`Fail to start search because previous wasn't finished.`);
         }
         let error: CancelablePromise<IMapItem[], void> | Error;
+        const isSearchOperation: boolean = typeof to !== 'number';
         // Drop last cursor point because search is new
-        if (typeof from !== 'number' || typeof to !== 'number') {
-            this._operations.append.dropCursorPosition();
+        if (isSearchOperation) {
+            // TODO: what if task is in progress?
+            this._operations.append.drop();
+            this._operations.search.drop();
+            this._operations.inspecting.drop();
         }
         // Try to create task
-        if (typeof from === 'number' && typeof to === 'number') {
+        if (typeof to === 'number') {
             // Call append operation
-            error = this._operations.append.perform(requests, {
-                from: from,
-                to: to,
-            }, {
-                bytes: this._state.map.getByteLength(),
-                rows: this._state.map.getRowsCount(),
-            });
+            error = this._operations.append.perform(requests, to);
         } else {
             // Call search operation
-            error = this._operations.search.perform(requests, {
-                bytes: this._state.map.getByteLength(),
-                rows: this._state.map.getRowsCount(),
-            });
+            error = this._operations.search.perform(requests);
         }
         // Break if failed (could be one reason: previous operation is still going)
         if (error instanceof Error) {
@@ -114,7 +112,13 @@ export class SearchEngine extends EventEmitter {
             ServiceStreams.updateProgressSession(taskId, 0, this._state.getGuid());
             // Handeling finishing
             task.then((map: IMapItem[]) => {
-                resolve(map);
+                fs.stat(this._state.getSearchFile(), (err: NodeJS.ErrnoException | null, stats: fs.Stats) => {
+                    if (!err) {
+                        // Get size here, because inspecting happens in parallel.
+                        this._size = stats.size;
+                    }
+                    resolve(map);
+                });
             }).cancel(() => {
                 this._logger.env(`Search was canceled.`);
             }).catch((searchErr: Error) => {
@@ -122,6 +126,10 @@ export class SearchEngine extends EventEmitter {
             }).finally(() => {
                 ServiceStreams.removeProgressSession(taskId, this._state.getGuid());
                 this._stock.search.delete(taskId);
+                if (isSearchOperation) {
+                    this._operations.append.setOffset(this._operations.search.getOffset());
+                    this._operations.append.setReadFrom(this._operations.search.getReadBytesAmount());
+                }
             });
         }).cancel(() => {
             task.break();
@@ -150,12 +158,15 @@ export class SearchEngine extends EventEmitter {
                 stats: {},
                 map: {},
             };
+            // We have to "set" a size of file now and limit inspecting with it because we are doing multiple requestes
+            // in parallel and might be, while request #n is going, size of file already changed.
+            this._operations.inspecting.setReadTo(this._size);
             // Create task for each regexp
             requests.forEach((request: RegExp) => {
                 // Task id
                 const requestTaskId: string = guid();
                 // Task
-                const task: CancelablePromise<number[], void> = this._operations.inspecting.perform(request, 0);
+                const task: CancelablePromise<number[], void> = this._operations.inspecting.perform(request);
                 // Store task
                 stock.set(requestTaskId, task);
                 // Processing results
