@@ -308,8 +308,8 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
 
     public _ng_sendMessage( message: string, event?: KeyboardEvent ) {
         Service.sendMessage(message, this._chosenPort).catch((error: Error) => {
-            this._logger.error(error);
-            });
+            this._notify('Error', error.message, ENotificationType.error);
+        });
         this._inputCom.setValue('');
     }
 
@@ -397,25 +397,27 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         });
     }
 
-    private _removeOptions() {
-        this._portOptions = [];
+    private _removeOptions(): Promise<void> {
+        return new Promise(resolve => {
+            this._portOptions = [];
+            resolve();
+        });
     }
 
     private _startSpy() {
         this._createOptions();
         Service.startSpy(this._portOptions).catch((error: Error) => {
-            this._logger.error(error);
+            this._notify('Error', error.message, ENotificationType.error);
         });
     }
 
     private _stopSpy(): Promise<any> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             Service.stopSpy(this._portOptions).then(
                 resolve
             ).catch((error: Error) => {
-                this._logger.error(error);
+                reject(error);
             });
-            this._removeOptions();
         });
     }
 
@@ -442,14 +444,20 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                     factory: SidebarVerticalPortDialogComponent,
                     inputs: {
                         _onConnect: (() => {
-                            this._stopSpy().then(() => this._ng_onConnect());
-                            Service.removePopup();
+                            this._stopSpy().then(() => {
+                                this._removeOptions().then(() => {
+                                    this._ng_onConnect();
+                                    Service.removePopup();
+                                });
+                            }).catch((error: Error) => {
+                                this._notify('Error', error.message, ENotificationType.error);
+                            });
                         }),
                         _ng_canBeConnected: this._ng_canBeConnected,
                         _ng_connected: this._ng_connected,
                         _ng_onOptions: this._ng_onOptions,
                         _ng_onPortSelect: this._ng_onPortSelect,
-                        _options: this._portOptions,
+                        _options: () => this._portOptions,
                         _ng_recent: recent,
                         _requestPortList: (): Promise<IPortInfo[]> =>  {
                             return new Promise((resolve) => {
