@@ -1,5 +1,5 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
-import { ENotificationType } from 'chipmunk.client.toolkit';
+import { IPopup, ENotificationType } from 'chipmunk.client.toolkit';
 import { EHostCommands, EHostEvents } from '../common/host.events';
 import { IOptions } from '../common/interface.options';
 import { Observable, Subject } from 'rxjs';
@@ -19,6 +19,7 @@ export class Service extends Toolkit.APluginService {
     private _logger: Toolkit.Logger = new Toolkit.Logger(`Plugin: serial: inj_output_bot:`);
     private _openQueue: {[port: string]: boolean} = {};
     private _messageQueue: {[port: string]: string[]} = {};
+    private _popupGuid: string;
     private _subjects = {
         event: new Subject<any>(),
     };
@@ -233,9 +234,14 @@ export class Service extends Toolkit.APluginService {
         });
     }
 
-    public closePopup(popup: string) {
-        this.api.removePopup(popup);
+    public removePopup() {
+        this.api.removePopup(this._popupGuid);
     }
+
+    public addPopup(popup: IPopup) {
+        this._popupGuid = this.api.addPopup(popup);
+    }
+
     public notify(caption: string, message: string, type: ENotificationType) {
         this.api.addNotification({
             caption: caption,
