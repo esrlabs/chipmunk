@@ -41,9 +41,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     @ViewChild('msgInput', {static: false}) _inputCom: InputStandardComponent;
     @ViewChild('selectPort', {static: false}) _selectCom: DDListStandardComponent;
 
-    @Input() public api: Toolkit.IAPI;
     @Input() public session: string;
-    @Input() public sessions: Toolkit.ControllerSessionsEvents;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger(`Plugin: serial: inj_output_bot:`);
@@ -421,10 +419,6 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         });
     }
 
-    private _closePopup(popup: string) {
-        Service.closePopup(popup);
-    }
-
     private _filterPorts(ports: IPortInfo[]): Promise<IPortInfo[]> {
         return new Promise((resolve, reject) => {
             const CPORTS = {};
@@ -442,14 +436,14 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     public _ng_connectDialog(recent: boolean) {
         Service.requestPorts().then((response) => {
             this._startSpy();
-            const popupGuid: string = this.api.addPopup({
+            Service.addPopup({
                 caption: 'Choose port to connect:',
                 component: {
                     factory: SidebarVerticalPortDialogComponent,
                     inputs: {
                         _onConnect: (() => {
                             this._stopSpy().then(() => this._ng_onConnect());
-                            this._closePopup(popupGuid);
+                            Service.removePopup();
                         }),
                         _ng_canBeConnected: this._ng_canBeConnected,
                         _ng_connected: this._ng_connected,
@@ -479,7 +473,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                     {
                         caption: 'Cancel',
                         handler: () => {
-                            this._closePopup(popupGuid);
+                            Service.removePopup();
                         }
                     }
                 ],
@@ -488,7 +482,6 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                 }
             });
         }).catch((error: Error) => {
-
             this._notify('Error', `Fail to get ports list due error: ${error.message}`, ENotificationType.error);
         });
     }
