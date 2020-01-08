@@ -408,9 +408,12 @@ class ServiceSessions {
             if (message === undefined) {
                 return reject(new Error(this._logger.error(`Fail to save configuration, because message is undefined`)));
             }
-            const CONFIG = this._updateConfig(message.data.options);
-            ServiceConfig.write(CONFIG).then(() => {
-                resolve();
+            this._updateConfig(message.data.options).then((settings: {}) => {
+                ServiceConfig.write(settings).then(() => {
+                    resolve();
+                }).catch((error: Error) => {
+                    reject(error);
+                });
             }).catch((error: Error) => {
                 this._logger.error(`Failed to save configurations due error: ${error.message}`);
                 return reject(error);
@@ -453,18 +456,18 @@ class ServiceSessions {
         });
     }
 
-    private _updateConfig(options: IOptions): {} {
-        const update = {};
-        ServiceConfig.read<{[key: string]: any}>().then((settings: {[key: string]: any}) => {
-            if (!settings['ports']) {
-                settings['ports'] = {};
-            }
-            settings['ports'][options.path] = options;
-            Object.assign(update, settings);
-        }).catch((error: Error) => {
-            this._logger.error(`Failed to update settings due to error: ${error.message}`);
+    private _updateConfig(options: IOptions): Promise<{}> {
+        return new Promise((resolve, reject)=> {
+            ServiceConfig.read<{[key: string]: any}>().then((settings: {[key: string]: any}) => {
+                if (!settings['ports']) {
+                    settings['ports'] = {};
+                }
+                settings['ports'][options.path] = options;
+                resolve(settings);
+            }).catch((error: Error) => {
+                reject(error);
+            });
         });
-        return update;
     }
 
     private _onOpenStream(session: string) {

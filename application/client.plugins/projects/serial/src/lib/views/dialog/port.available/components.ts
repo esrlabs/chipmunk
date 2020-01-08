@@ -76,6 +76,7 @@ export class DialogAvailablePortComponent implements OnDestroy, AfterViewInit {
         this._spark = [];
         if (this._chart) {
             this._chart.destroy();
+            this._chart = undefined;
         }
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
@@ -175,6 +176,9 @@ export class DialogAvailablePortComponent implements OnDestroy, AfterViewInit {
     }
 
     private _update() {
+        if (this._destroyed) {
+            return;
+        }
         if (this._chart) {
             this._spark.shift();
             this._spark.push(this._read);
