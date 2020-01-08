@@ -112,7 +112,7 @@ export class Service extends Toolkit.APluginService {
             if (Object.keys(this.sessionConnected).length > 0) {
                 Object.keys(this.sessionConnected).forEach(session => {
                     Object.keys(this.sessionConnected[session]).forEach(port => {
-                        if (ports[port]) {
+                        if (ports[port] && this.sessionConnected[session][port]) {
                             this.sessionConnected[session][port].ioState.read += ports[port].ioState.read;
                         }
                     });
