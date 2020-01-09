@@ -161,7 +161,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             this._ng_selected = undefined;
             this._forceUpdate();
         }).catch((error: Error) => {
-            this._notify('Error',
+            Service.notify('Error',
                 this._error(`Fail to connect to port "${options.path}" due error: ${error.message}`), ENotificationType.error);
         });
     }
@@ -189,7 +189,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             this._ng_busy = false;
             this._forceUpdate();
         }).catch((error: Error) => {
-            this._notify('Error', this._error(`Fail to close port "${port.path}" due error: ${error.message}`), ENotificationType.error);
+            Service.notify('Error', this._error(`Fail to close port "${port.path}" due error: ${error.message}`), ENotificationType.error);
         });
     }
 
@@ -254,7 +254,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
             this._saveState();
             this._forceUpdate();
         }).catch((error: Error) => {
-            this._notify('Error', `Fail to get ports list due error: ${error.message}`, ENotificationType.error);
+            Service.notify('Error', `Fail to get ports list due error: ${error.message}`, ENotificationType.error);
         });
     }
 
@@ -295,20 +295,9 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         this._cdRef.detectChanges();
     }
 
-    private _notify(caption: string, message: string, type: ENotificationType) {
-        Service.notify(caption, message, type);
-        if (type === ENotificationType.error) {
-            this._logger.error(message);
-        } else if (type === ENotificationType.warning) {
-            this._logger.warn(message);
-        } else {
-            this._logger.info(message);
-        }
-    }
-
     public _ng_sendMessage( message: string, event?: KeyboardEvent ) {
         Service.sendMessage(message, this._chosenPort).catch((error: Error) => {
-            this._notify('Error', error.message, ENotificationType.error);
+            Service.notify('Error', error.message, ENotificationType.error);
         });
         this._inputCom.setValue('');
     }
@@ -400,12 +389,12 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     private _startSpy() {
         this._createOptions();
         Service.startSpy(this._portOptions).catch((error: Error) => {
-            this._notify('Error', error.message, ENotificationType.error);
+            Service.notify('Error', error.message, ENotificationType.error);
         });
     }
 
     private _filterPorts(ports: IPortInfo[]): Promise<IPortInfo[]> {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             const CPORTS = {};
             Service.readConfig().then((response: {[key: string]: any}) => {
                 Object.assign(CPORTS, response.settings);
@@ -413,7 +402,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                     return CPORTS[port.path];
                 }));
             }).catch((error: Error) => {
-                reject(error);
+                throw(error);
             });
         });
     }
@@ -432,7 +421,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                                 this._ng_onConnect();
                                 Service.removePopup();
                             }).catch((error: Error) => {
-                                this._notify('Error', error.message, ENotificationType.error);
+                                Service.notify('Error', error.message, ENotificationType.error);
                             });
                         }),
                         _ng_canBeConnected: this._ng_canBeConnected,
@@ -450,8 +439,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                                     this._filterPorts(response.ports).then((ports: IPortInfo[]) => {
                                         return resolve(ports);
                                     }).catch((error: Error) => {
-                                        this._notify('Error',
-                                            `Failed to load recenty used ports due to error: ${error.message}`, ENotificationType.error);
+                                        throw(error);
                                     });
                                 } else {
                                     return resolve(response.ports);
@@ -475,7 +463,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                 }
             });
         }).catch((error: Error) => {
-            this._notify('Error', `Fail to get ports list due error: ${error.message}`, ENotificationType.error);
+            Service.notify('Error', `Fail to get ports list due error: ${error.message}`, ENotificationType.error);
         });
     }
 }
