@@ -397,27 +397,10 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         });
     }
 
-    private _removeOptions(): Promise<void> {
-        return new Promise(resolve => {
-            this._portOptions = [];
-            resolve();
-        });
-    }
-
     private _startSpy() {
         this._createOptions();
         Service.startSpy(this._portOptions).catch((error: Error) => {
             this._notify('Error', error.message, ENotificationType.error);
-        });
-    }
-
-    private _stopSpy(): Promise<any> {
-        return new Promise((resolve, reject) => {
-            Service.stopSpy(this._portOptions).then(
-                resolve
-            ).catch((error: Error) => {
-                reject(error);
-            });
         });
     }
 
@@ -444,11 +427,10 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                     factory: SidebarVerticalPortDialogComponent,
                     inputs: {
                         _onConnect: (() => {
-                            this._stopSpy().then(() => {
-                                this._removeOptions().then(() => {
-                                    this._ng_onConnect();
-                                    Service.removePopup();
-                                });
+                            Service.stopSpy(this._portOptions).then(() => {
+                                this._portOptions = [];
+                                this._ng_onConnect();
+                                Service.removePopup();
                             }).catch((error: Error) => {
                                 this._notify('Error', error.message, ENotificationType.error);
                             });
@@ -457,7 +439,10 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                         _ng_connected: this._ng_connected,
                         _ng_onOptions: this._ng_onOptions,
                         _ng_onPortSelect: this._ng_onPortSelect,
-                        _options: () => this._portOptions,
+                        _getPortOptions: () => this._portOptions,
+                        _setPortOptions: (options: IOptions[]) => {
+                            this._portOptions = options;
+                        },
                         _ng_recent: recent,
                         _requestPortList: (): Promise<IPortInfo[]> =>  {
                             return new Promise((resolve) => {

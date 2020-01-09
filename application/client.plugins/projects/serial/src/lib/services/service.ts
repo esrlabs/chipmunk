@@ -187,12 +187,17 @@ export class Service extends Toolkit.APluginService {
     }
 
     public stopSpy(options: IOptions[]): Promise<any> {
-        return this.api.getIPC().requestToHost({
-            stream: this.session,
-            command: EHostCommands.spyStop,
-            options: options,
-        }, this.session).catch((error: Error) => {
-            this._notify('error', `Failed to stop spying on ports: ${error.message}`, ENotificationType.error);
+        if (options.length > 0) {
+            return this.api.getIPC().requestToHost({
+                stream: this.session,
+                command: EHostCommands.spyStop,
+                options: options,
+            }, this.session).catch((error: Error) => {
+                this._notify('error', `Failed to stop spying on ports: ${error.message}`, ENotificationType.error);
+            });
+        }
+        return new Promise((resolve) => {
+            resolve();
         });
     }
 
