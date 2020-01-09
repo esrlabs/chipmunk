@@ -29,7 +29,8 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
     @Input() public _requestPortList: () => Promise<IPortInfo[]>;
     @Input() public _getSelected: (IPortInfo) => void;
     @Input() public _getOptionsCom: (SidebarVerticalPortOptionsWriteComponent) => void;
-    @Input() public _options: () => IOptions[];
+    @Input() public _getPortOptions: () => IOptions[];
+    @Input() public _setPortOptions: (options: IOptions[]) => void;
     @Input() public _ng_canBeConnected: () => boolean;
     @Input() public _ng_connected: IConnected[];
     @Input() public _ng_onOptions: () => void;
@@ -70,7 +71,7 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
 
     ngOnDestroy() {
         clearTimeout(this._interval);
-        Service.stopSpy(this._options());
+        this._stopSpy();
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
@@ -127,6 +128,12 @@ export class SidebarVerticalPortDialogComponent implements OnInit, OnDestroy, Af
             return;
         }
         this._cdRef.detectChanges();
+    }
+
+    private _stopSpy() {
+        Service.stopSpy(this._getPortOptions()).then(() => {
+            this._setPortOptions([]);
+        });
     }
 
     private _getOptions(): IOptions {
