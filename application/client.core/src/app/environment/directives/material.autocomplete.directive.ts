@@ -1,4 +1,4 @@
-import { Directive } from '@angular/core';
+import { Directive, ChangeDetectorRef } from '@angular/core';
 import { Host, Self, Optional, Input, OnInit } from '@angular/core';
 import { MatAutocompleteTrigger, AUTOCOMPLETE_OPTION_HEIGHT, AUTOCOMPLETE_PANEL_HEIGHT } from '@angular/material';
 import {
@@ -16,7 +16,7 @@ export class MatAutocompleteTriggerDirective implements OnInit {
     @Input() panelHeight: number = AUTOCOMPLETE_PANEL_HEIGHT;
 
     constructor(
-        @Host() @Self() @Optional() public _refTrigger: MatAutocompleteTrigger
+        @Host() @Self() @Optional() public _refTrigger: MatAutocompleteTrigger,
     ) { }
 
     public ngOnInit() {
@@ -48,6 +48,7 @@ export class MatAutocompleteTriggerDirective implements OnInit {
             );
             this.autocomplete._setScrollTop(newScrollPosition);
         }
+        ((this as any)['_changeDetectorRef'] as ChangeDetectorRef).detectChanges();
     }
 
 }
