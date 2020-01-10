@@ -32,6 +32,14 @@ export interface IOptions {
     };
 }
 
+interface IRecentPortData {
+    [port: string]: IOptions;
+};
+
+interface IPluginSettings {
+    recent: IRecentPortData;
+}
+
 class ServiceSessions {
 
     private _sessions: Map<string, ControllerSession> = new Map();
@@ -44,7 +52,7 @@ class ServiceSessions {
         PluginIPCService.subscribe(IPCMessages.PluginInternalMessage, this._onIncomeRenderIPCMessage);
         PluginIPCService.on(PluginIPCService.Events.openStream, this._onOpenStream);
         PluginIPCService.on(PluginIPCService.Events.closeStream, this._onCloseStream);
-        ServiceConfig.setDefault<{[ports:string]: {[port: string]: IPortOptions}}>( { ports: {} } );
+        ServiceConfig.setDefault<IPluginSettings>( { recent: {} } );
     }
 
     public destroy(): Promise<void> {
@@ -203,7 +211,7 @@ class ServiceSessions {
                     }));
                 });
             case ECommands.read:
-                return this._income_onReadConfig(message).then((settings: {[port: string]: IOptions}) => {
+                return this._income_onReadConfig(message).then((settings: IRecentPortData) => {
                     response(new IPCMessages.PluginInternalMessage({
                         data: {
                             status: 'done',
@@ -421,10 +429,10 @@ class ServiceSessions {
         });
     }
 
-    private _income_onReadConfig(message: IPCMessages.PluginInternalMessage): Promise<{[port: string]: IOptions}> {
+    private _income_onReadConfig(message: IPCMessages.PluginInternalMessage): Promise<IRecentPortData> {
         return new Promise((resolve, reject) => {
-            ServiceConfig.read<{[key: string]: {[port: string]: IOptions}}>().then(settings => {
-                resolve(settings['ports']);
+            ServiceConfig.read<IPluginSettings>().then(settings => {
+                resolve(settings.recent);
             }).catch((error: Error) => {
                 this._logger.error(`Failed to load configurations due error: ${error.message}`);
                 reject(error);
@@ -434,16 +442,16 @@ class ServiceSessions {
 
     private _income_onRemoveConfig(message: IPCMessages.PluginInternalMessage): Promise<void> {
         return new Promise((resolve, reject) => {
-            ServiceConfig.read<{[key: string]: {[port: string]: IOptions}}>().then((settings: {[key: string]: {[port: string]: IOptions}}) => {
-                if (!settings['ports'] || Object.keys(settings['ports']).length === 0) {
+            ServiceConfig.read<IPluginSettings>().then((settings: IPluginSettings) => {
+                if (!settings.recent || Object.keys(settings.recent).length === 0) {
                     return;
                 }
                 if (message.data.port === '*') {
-                    Object.keys(settings['ports']).forEach((port: string) => {
-                        delete settings['ports'][port];
+                    Object.keys(settings.recent).forEach((port: string) => {
+                        delete settings.recent[port];
                     });
                 } else {
-                    delete settings['ports'][message.data.port];
+                    delete settings.recent[message.data.port];
                 }
                 ServiceConfig.write(settings).then(() => {
                     resolve();
@@ -458,11 +466,11 @@ class ServiceSessions {
 
     private _updateConfig(options: IOptions): Promise<{}> {
         return new Promise((resolve, reject)=> {
-            ServiceConfig.read<{[key: string]: any}>().then((settings: {[key: string]: any}) => {
-                if (!settings['ports']) {
-                    settings['ports'] = {};
+            ServiceConfig.read<IPluginSettings>().then((settings: IPluginSettings) => {
+                if (!settings.recent) {
+                    settings.recent = {};
                 }
-                settings['ports'][options.path] = options;
+                settings.recent[options.path] = options;
                 resolve(settings);
             }).catch((error: Error) => {
                 reject(error);
