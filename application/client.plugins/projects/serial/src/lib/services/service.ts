@@ -150,7 +150,7 @@ export class Service extends Toolkit.APluginService {
             path: port,
         }, this.session).then(() => {
             this._openQueue[port] = false;
-            this.sessionConnected[this.session][port] = undefined;
+            delete this.sessionConnected[this.session][port];
         }).catch((error: Error) => {
             this.notify('error', `Failed to disconnect from ${port}: ${error.message}`, ENotificationType.error);
         });
