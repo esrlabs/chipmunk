@@ -18,6 +18,9 @@
     }
 }
 & mat-option.recent-files {
+    &.mat-active{
+        background: @scheme-color-3;
+    }
     & span.mat-option-text {
         position: relative;
         padding: 0 0.5rem;
@@ -49,6 +52,7 @@
         }
     }
 }
+
 & mat-form-field.recent-requests{
     & input,
     & label {
@@ -69,6 +73,9 @@
 }
 
 & mat-option.recent-requests {
+    &.mat-active{
+        background: @scheme-color-3;
+    }
     & span.mat-option-text {
         position: relative;
         padding: 0 0.5rem;

@@ -135,7 +135,17 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         }
         this._ng_isRequestValid = Toolkit.regTools.isRegStrValid(this._ng_inputCtrl.value);
         this._forceUpdate();
-        if ((event !== undefined && event.key === 'Escape') || this._ng_inputCtrl.value === undefined || this._ng_inputCtrl.value.trim() === '') {
+        if (event !== undefined && event.key === 'Escape') {
+            if (this._ng_inputCtrl.value !== '') {
+                // Drop results
+                this._ng_onDropRequest();
+            } else {
+                // Drop a focus
+                this._blur();
+            }
+            return;
+        }
+        if (this._ng_inputCtrl.value === undefined || this._ng_inputCtrl.value.trim() === '') {
             // Drop results
             return this._ng_onDropRequest();
         }
@@ -379,6 +389,13 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             this._ng_inputComRef.focus();
             this._selectTextInInput();
         }, delay);
+    }
+
+    private _blur() {
+        if (this._ng_requestInput === undefined || this._ng_requestInput === null) {
+            return;
+        }
+        (this._ng_requestInput.nativeElement as HTMLInputElement).blur();
     }
 
     private _selectTextInInput() {
