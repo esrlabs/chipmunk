@@ -11,6 +11,7 @@ export default {
     // DLT
     dltStatsAsync               : DLT.dltStatsAsync,
     indexDltAsync               : DLT.indexDltAsync,
+    dltOverSocket               : DLT.dltOverSocket,
     // Indexing
     indexAsync                  : Processor.indexAsync,
     detectTimestampInString     : Processor.detectTimestampInString,

@@ -51,6 +51,20 @@ mod tests {
         );
     }
     #[test]
+    fn test_filter_nothing_with_invalid_level() {
+        let extended_header = ExtendedHeader {
+            argument_count: 1,
+            verbose: true,
+            message_type: MessageType::Log(LogLevel::Invalid(1)),
+            application_id: "abc".to_string(),
+            context_id: "CON".to_string(),
+        };
+        assert!(!extended_header.skip_with_level(LogLevel::Verbose));
+        assert!(!extended_header.skip_with_level(LogLevel::Invalid(0)));
+        assert!(!extended_header.skip_with_level(LogLevel::Invalid(1)));
+        assert!(extended_header.skip_with_level(LogLevel::Invalid(2)));
+    }
+    #[test]
     fn test_filter_out_non_relevant_ext_headers() {
         let extended_header = ExtendedHeader {
             argument_count: 1,

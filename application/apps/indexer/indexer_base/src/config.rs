@@ -1,4 +1,4 @@
-// Copyright (c) 2019 E.S.R.Labs. All rights reserved.
+// Copyright (c) 2020 E.S.R.Labs. All rights reserved.
 //
 // NOTICE:  All information contained herein is, and remains
 // the property of E.S.R.Labs and its suppliers, if any.
@@ -9,6 +9,7 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
+use serde::{Deserialize, Serialize};
 use std::path;
 
 #[derive(Debug)]
@@ -18,4 +19,25 @@ pub struct IndexingConfig<'a> {
     pub in_file: path::PathBuf,
     pub out_path: &'a path::PathBuf,
     pub append: bool,
+}
+
+/// network socket config
+/// if udp packets are sent via multicast, then the `multicast_addr` has to
+/// be specified
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SocketConfig {
+    pub multicast_addr: Option<MulticastInfo>,
+    pub bind_addr: String,
+    pub port: String,
+}
+/// Multicast config information.
+/// `multiaddr` address must be a valid multicast address
+/// `interface` is the address of the local interface with which the
+/// system should join the
+/// multicast group. If it's equal to `INADDR_ANY` then an appropriate
+/// interface is chosen by the system.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct MulticastInfo {
+    pub multiaddr: String,
+    pub interface: Option<String>,
 }

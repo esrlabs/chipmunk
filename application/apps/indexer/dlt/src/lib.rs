@@ -20,6 +20,7 @@ extern crate log;
 extern crate failure;
 
 pub mod dlt;
+pub mod dlt_net;
 pub mod dlt_parse;
 pub mod fibex;
 pub mod filtering;

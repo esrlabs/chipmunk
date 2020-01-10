@@ -416,7 +416,12 @@ impl ExtendedHeader {
     }
     pub fn skip_with_level(self: &ExtendedHeader, level: LogLevel) -> bool {
         match self.message_type {
-            MessageType::Log(n) => level < n,
+            MessageType::Log(n) => match (n, level) {
+                (LogLevel::Invalid(a), LogLevel::Invalid(b)) => a < b,
+                (LogLevel::Invalid(_), _) => false,
+                (_, LogLevel::Invalid(_)) => true,
+                _ => level < n,
+            },
             _ => false,
         }
     }

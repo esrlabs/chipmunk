@@ -375,23 +375,43 @@ mod tests {
     }
     #[test]
     fn test_detect_timestamp_in_string_no_year() {
+        use chrono::{NaiveDate, NaiveDateTime, Utc, Datelike};
+        let year = Utc::now().date().year();
         match detect_timestamp_in_string("07-30 10:08:02.555", Some(0)) {
-            Ok((timestamp, _, _)) => assert_eq!(1_564_481_282_555, timestamp),
+            Ok((timestamp, _, _)) => {
+                let date_time: NaiveDateTime = NaiveDate::from_ymd(year, 7, 30).and_hms(10, 8, 2);
+                let ts_in_ms = date_time.timestamp() * 1000 + 555;
+                assert_eq!(ts_in_ms, timestamp)
+            }
             Err(e) => panic!(format!("error happened in detection: {}", e)),
         }
         match detect_timestamp_in_string("07-30 12:08:02.555 +0200", None) {
-            Ok((timestamp, _, _)) => assert_eq!(1_564_481_282_555, timestamp),
+            Ok((timestamp, _, _)) => {
+                let date_time: NaiveDateTime = NaiveDate::from_ymd(year, 7, 30).and_hms(10, 8, 2);
+                let ts_in_ms = date_time.timestamp() * 1000 + 555;
+                assert_eq!(ts_in_ms, timestamp)
+            }
             Err(e) => panic!(format!("error happened in detection: {}", e)),
         }
     }
     #[test]
     fn test_detect_timestamp_in_string_no_year_with_t() {
+        use chrono::{NaiveDate, NaiveDateTime, Utc, Datelike};
+        let year = Utc::now().date().year();
         match detect_timestamp_in_string("07-30T10:08:02.555", Some(0)) {
-            Ok((timestamp, _, _)) => assert_eq!(1_564_481_282_555, timestamp),
+            Ok((timestamp, _, _)) => {
+                let date_time: NaiveDateTime = NaiveDate::from_ymd(year, 7, 30).and_hms(10, 8, 2);
+                let ts_in_ms = date_time.timestamp() * 1000 + 555;
+                assert_eq!(ts_in_ms, timestamp)
+            }
             Err(e) => panic!(format!("error happened in detection: {}", e)),
         }
         match detect_timestamp_in_string("07-30T15:08:02.555 +05:00", None) {
-            Ok((timestamp, _, _)) => assert_eq!(1_564_481_282_555, timestamp),
+            Ok((timestamp, _, _)) => {
+                let date_time: NaiveDateTime = NaiveDate::from_ymd(year, 7, 30).and_hms(10, 8, 2);
+                let ts_in_ms = date_time.timestamp() * 1000 + 555;
+                assert_eq!(ts_in_ms, timestamp)
+            }
             Err(e) => panic!(format!("error happened in detection: {}", e)),
         }
     }

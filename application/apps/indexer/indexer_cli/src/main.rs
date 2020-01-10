@@ -19,7 +19,7 @@ extern crate dirs;
 use indexer_base::progress::IndexingResults;
 use dlt::dlt_parse::StatisticsResults;
 use indexer_base::chunks::{serialize_chunks, Chunk, ChunkResults};
-use indexer_base::config::IndexingConfig;
+use indexer_base::config::*;
 use indexer_base::error_reporter::*;
 use crossbeam_channel::unbounded;
 use crossbeam_channel as cc;
@@ -62,7 +62,7 @@ fn init_logging() -> Result<()> {
         .build(
             Root::builder()
                 .appender(appender_name)
-                .build(LevelFilter::Trace),
+                .build(LevelFilter::Warn),
         )
         .unwrap();
 
@@ -254,7 +254,7 @@ fn main() {
         )
         .subcommand(
             SubCommand::with_name("dlt")
-                .about("handling dtl input")
+                .about("handling dlt input")
                 .arg(
                     Arg::with_name("input")
                         .short("i")
@@ -315,6 +315,69 @@ fn main() {
                 ),
         )
         .subcommand(
+            SubCommand::with_name("dlt-udp")
+                .about("handling dlt udp input")
+                .arg(
+                    Arg::with_name("ip")
+                        .short("i")
+                        .long("ip")
+                        .help("the ip address + port")
+                        .required(true)
+                        .index(1),
+                )
+                .arg(
+                    Arg::with_name("tag")
+                        .short("t")
+                        .long("tag")
+                        .value_name("TAG")
+                        .help("tag for each log entry")
+                        .required(true),
+                )
+                .arg(
+                    Arg::with_name("max_lines")
+                        .short("n")
+                        .long("max_lines")
+                        .help("How many lines to collect before dumping")
+                        .required(false)
+                        .default_value("1000000"),
+                )
+                .arg(
+                    Arg::with_name("chunk_size")
+                        .short("c")
+                        .long("chunk_size")
+                        .help("How many lines should be in a chunk (used for access later)")
+                        .required(false)
+                        .default_value("500"),
+                )
+                .arg(
+                    Arg::with_name("append")
+                        .short("a")
+                        .long("append")
+                        .help("append to file if exists"),
+                )
+                .arg(
+                    Arg::with_name("output")
+                        .short("o")
+                        .long("out")
+                        .value_name("OUT")
+                        .required(true)
+                        .help("Output file"),
+                )
+                .arg(
+                    Arg::with_name("filter_config")
+                        .short("f")
+                        .long("filter")
+                        .value_name("FILTER_CONFIG")
+                        .help("json file that defines dlt filter settings"),
+                )
+                .arg(
+                    Arg::with_name("stdout")
+                        .short("s")
+                        .long("stdout")
+                        .help("put out chunk information on stdout"),
+                ),
+        )
+        .subcommand(
             SubCommand::with_name("dlt-stats")
                 .about("dlt statistics")
                 .arg(
@@ -346,6 +409,8 @@ fn main() {
         handle_format_subcommand(matches, start, use_stderr_for_status_updates)
     } else if let Some(matches) = matches.subcommand_matches("dlt") {
         handle_dlt_subcommand(matches, start, use_stderr_for_status_updates)
+    } else if let Some(matches) = matches.subcommand_matches("dlt-udp") {
+        handle_dlt_udp_subcommand(matches)
     } else if let Some(matches) = matches.subcommand_matches("dlt-stats") {
         handle_dlt_stats_subcommand(matches, start, use_stderr_for_status_updates)
     } else if let Some(matches) = matches.subcommand_matches("discover") {
@@ -601,7 +666,7 @@ fn main() {
                     },
                     source_file_size,
                     filter_conf,
-                    tx,
+                    &tx,
                     None,
                     // dlt::filtering::DltFilterConfig {
                     //     min_log_level: verbosity_log_level,
@@ -644,6 +709,113 @@ fn main() {
                                 "MB".to_string(),
                             )
                         }
+                        break;
+                    }
+                    Ok(Ok(IndexingProgress::Progress { ticks })) => {
+                        trace!(
+                            "progress... ({:.0} %)",
+                            (ticks.0 as f64 / ticks.1 as f64) * 100.0
+                        );
+                    }
+                    Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
+                        chunks.push(chunk);
+                    }
+                    Ok(Err(Notification {
+                        severity,
+                        content,
+                        line,
+                    })) => {
+                        if severity == Severity::WARNING {
+                            report_warning_ln(content, line);
+                        } else {
+                            report_error_ln(content, line);
+                        }
+                    }
+                    Ok(_) => report_warning("process finished without result"),
+                }
+            }
+
+            println!("done done");
+            std::process::exit(0)
+        }
+    }
+    fn handle_dlt_udp_subcommand(matches: &clap::ArgMatches) {
+        debug!("handle_dlt_udp_subcommand");
+        if let (Some(ip_address), Some(tag), Some(output)) = (
+            matches.value_of("ip"),
+            matches.value_of("tag"),
+            matches.value_of("output"),
+        ) {
+            let filter_conf: Option<dlt::filtering::DltFilterConfig> = match matches
+                .value_of("filter_config")
+            {
+                Some(filter_config_file_name) => {
+                    let config_path = path::PathBuf::from(filter_config_file_name);
+                    let mut cnf_file = match fs::File::open(&config_path) {
+                        Ok(file) => file,
+                        Err(_) => {
+                            report_error(format!("could not open filter config {:?}", config_path));
+                            std::process::exit(2)
+                        }
+                    };
+                    dlt::filtering::read_filter_options(&mut cnf_file).ok()
+                }
+                None => None,
+            };
+            let append: bool = matches.is_present("append");
+            let out_path = path::PathBuf::from(output);
+            let mapping_out_path: path::PathBuf =
+                path::PathBuf::from(output.to_string() + ".map.json");
+
+            let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
+            let shutdown_channel = async_std::sync::channel(1);
+            let tag_string = tag.to_string();
+            let multicast_conf = MulticastInfo {
+                multiaddr: "243.2.2.2".to_string(),
+                interface: None,
+            };
+            let socket_conf = SocketConfig {
+                multicast_addr: Some(multicast_conf),
+                bind_addr: "0.0.0.0".to_string(),
+                port: "8888".to_string(),
+            };
+            thread::spawn(move || {
+                if let Err(why) = dlt::dlt_parse::create_index_and_mapping_dlt_from_socket(
+                    socket_conf,
+                    append,
+                    tag_string.as_str(),
+                    &out_path,
+                    filter_conf,
+                    &tx,
+                    shutdown_channel.1,
+                    Some(std::rc::Rc::new(
+                        dlt::fibex::read_fibex(
+                            &std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                                .join("../dlt/tests/dlt-messages.xml"),
+                        )
+                        .unwrap_or_else(|_e| {
+                            report_error(format!(
+                                "could not open {:?}",
+                                std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                                    .join("../dlt/tests/dlt-messages.xml")
+                            ));
+                            std::process::exit(3);
+                        }),
+                    )),
+                ) {
+                    report_error(format!("couldn't process: {}", why));
+                    std::process::exit(2)
+                }
+            });
+            let mut chunks: Vec<Chunk> = vec![];
+            loop {
+                match rx.recv() {
+                    Err(why) => {
+                        report_error(format!("couldn't process: {}", why));
+                        std::process::exit(2)
+                    }
+                    Ok(Ok(IndexingProgress::Finished { .. })) => {
+                        let _ = serialize_chunks(&chunks, &mapping_out_path);
                         break;
                     }
                     Ok(Ok(IndexingProgress::Progress { ticks })) => {
@@ -845,7 +1017,7 @@ fn main() {
         ) = unbounded();
 
         thread::spawn(move || {
-            if let Err(why) = dlt::dlt_parse::get_dlt_file_info(&file_path, tx, None) {
+            if let Err(why) = dlt::dlt_parse::get_dlt_file_info(&file_path, &tx, None) {
                 report_error(format!("couldn't collect statistics: {}", why));
                 std::process::exit(2)
             }

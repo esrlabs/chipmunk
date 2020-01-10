@@ -5,6 +5,7 @@ authors = ["Oliver Mueller <oliver.mueller@esrlabs.com>"]
 license = "MIT"
 build = "build.rs"
 exclude = ["artifacts.json", "index.node"]
+edition = "2018"
 
 [lib]
 name = "chipmunk_integration"
@@ -31,3 +32,4 @@ log4rs = "0.8"
 dirs = "2.0"
 failure = "0.1.5"
 crossbeam-channel = "0.4"
+async-std = { version = "1.4"}

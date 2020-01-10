@@ -1,4 +1,4 @@
-use channels::EventEmitterTask;
+use crate::channels::EventEmitterTask;
 use crossbeam_channel as cc;
 use indexer_base::progress::Notification;
 use indexer_base::progress::{IndexingResults, Severity};

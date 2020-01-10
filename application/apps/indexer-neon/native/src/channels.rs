@@ -44,13 +44,13 @@ impl<T: 'static + Send + Debug + Serialize> Task for EventEmitterTask<T> {
         // Attempt to read from the channel. Block for at most 100 ms.
         match rx.recv_timeout(Duration::from_millis(100)) {
             Ok(event) => {
-                // match event {
-                //     Ok(IndexingProgress::GotItem { .. }) => debug!("DEBUG: GotItem"),
-                //     Ok(IndexingProgress::Finished { .. }) => debug!("DEBUG: Finished"),
-                //     Ok(IndexingProgress::Progress { .. }) => debug!("DEBUG: Progress"),
-                //     Ok(IndexingProgress::Stopped { .. }) => debug!("DEBUG: Stopped"),
-                //     Err(Notification { .. }) => debug!("DEBUG: Notification"),
-                // };
+                match event {
+                    Ok(IndexingProgress::GotItem { .. }) => debug!("DEBUG: GotItem"),
+                    Ok(IndexingProgress::Finished { .. }) => debug!("DEBUG: Finished"),
+                    Ok(IndexingProgress::Progress { .. }) => debug!("DEBUG: Progress"),
+                    Ok(IndexingProgress::Stopped { .. }) => debug!("DEBUG: Stopped"),
+                    Err(Notification { .. }) => debug!("DEBUG: Notification"),
+                };
                 Ok(Some(event))
             }
             Err(cc::RecvTimeoutError::Timeout) => Ok(None),
@@ -153,6 +153,13 @@ pub struct IndexingThreadConfig {
     pub append: bool,
     pub tag: String,
     pub timestamps: bool,
+}
+
+#[derive(Debug)]
+pub struct SocketThreadConfig {
+    pub out_path: path::PathBuf,
+    pub append: bool,
+    pub tag: String,
 }
 
 #[derive(Debug)]

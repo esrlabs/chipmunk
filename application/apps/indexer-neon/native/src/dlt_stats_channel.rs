@@ -1,4 +1,4 @@
-use channels::EventEmitterTask;
+use crate::channels::EventEmitterTask;
 use crossbeam_channel as cc;
 use dlt::dlt_parse::StatisticsResults;
 use indexer_base::progress::{Notification, Severity};
@@ -33,7 +33,7 @@ fn dlt_stats_with_progress(
     shutdown_receiver: Option<cc::Receiver<()>>,
 ) {
     trace!("calling dlt stats with progress");
-    match dlt::dlt_parse::get_dlt_file_info(&source_file, tx.clone(), shutdown_receiver) {
+    match dlt::dlt_parse::get_dlt_file_info(&source_file, &tx, shutdown_receiver) {
         Err(why) => {
             error!("couldn't collect statistics: {}", why);
             match tx.send(Err(Notification {

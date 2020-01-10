@@ -1,4 +1,4 @@
-use channels::{EventEmitterTask, IndexingThreadConfig};
+use crate::channels::{EventEmitterTask, IndexingThreadConfig};
 use crossbeam_channel as cc;
 use indexer_base::chunks::ChunkResults;
 use indexer_base::config::IndexingConfig;

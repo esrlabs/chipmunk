@@ -13,6 +13,7 @@ extern crate serde;
 mod channels;
 mod concatenator_channel;
 mod dlt_indexer_channel;
+mod dlt_socket_channel;
 mod dlt_stats_channel;
 mod indexer_channel;
 mod logging;
@@ -20,7 +21,8 @@ mod merger_channel;
 mod timestamp_detector_channel;
 use concatenator_channel::JsConcatenatorEmitter;
 use crossbeam_channel as cc;
-use dlt_indexer_channel::*;
+use dlt_indexer_channel::JsDltIndexerEventEmitter;
+use dlt_socket_channel::JsDltSocketEventEmitter;
 use dlt_stats_channel::JsDltStatsEventEmitter;
 use indexer_base::progress::{IndexingProgress, IndexingResults};
 use indexer_base::progress::{Notification, Severity};
@@ -109,7 +111,7 @@ fn detect_timestamp_format_in_file(mut cx: FunctionContext) -> JsResult<JsValue>
     loop {
         match rx.recv() {
             Ok(Ok(IndexingProgress::GotItem { item: res })) => match serde_json::to_string(&res) {
-                Ok(stats) => println!("{}", stats),
+                Ok(stats) => debug!("{}", stats),
                 Err(_e) => {
                     return Ok(js_err_value);
                 }
@@ -152,6 +154,7 @@ register_module!(mut cx, {
     cx.export_class::<JsIndexerEventEmitter>("RustIndexerEventEmitter")?;
     cx.export_class::<JsDltIndexerEventEmitter>("RustDltIndexerEventEmitter")?;
     cx.export_class::<JsDltStatsEventEmitter>("RustDltStatsEventEmitter")?;
+    cx.export_class::<JsDltSocketEventEmitter>("RustDltSocketEventEmitter")?;
     cx.export_class::<JsTimestampFormatDetectionEmitter>("RustTimestampFormatDetectionEmitter")?;
     cx.export_class::<JsConcatenatorEmitter>("RustConcatenatorEmitter")?;
     cx.export_class::<JsMergerEmitter>("RustMergerEmitter")?;

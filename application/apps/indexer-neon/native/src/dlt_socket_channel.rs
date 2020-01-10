@@ -1,32 +1,32 @@
-use crate::channels::{EventEmitterTask, IndexingThreadConfig};
+use crate::channels::EventEmitterTask;
+use crate::channels::SocketThreadConfig;
 use crossbeam_channel as cc;
 use dlt::fibex::FibexMetadata;
 use dlt::filtering;
 use indexer_base::chunks::ChunkResults;
-use indexer_base::config::IndexingConfig;
-use indexer_base::progress::{Notification, Severity};
+use indexer_base::config::SocketConfig;
 use neon::prelude::*;
 use std::path;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-pub struct IndexingDltEventEmitter {
+pub struct SocketDltEventEmitter {
     pub event_receiver: Arc<Mutex<cc::Receiver<ChunkResults>>>,
-    pub shutdown_sender: cc::Sender<()>,
+    pub shutdown_sender: async_std::sync::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
-impl IndexingDltEventEmitter {
-    pub fn start_indexing_dlt_in_thread(
-        self: &mut IndexingDltEventEmitter,
-        shutdown_rx: cc::Receiver<()>,
+impl SocketDltEventEmitter {
+    pub fn start_indexing_socket_in_thread(
+        self: &mut SocketDltEventEmitter,
+        shutdown_rx: async_std::sync::Receiver<()>,
         chunk_result_sender: cc::Sender<ChunkResults>,
-        chunk_size: usize,
-        thread_conf: IndexingThreadConfig,
+        thread_conf: SocketThreadConfig,
+        socket_conf: SocketConfig,
         filter_conf: Option<filtering::DltFilterConfig>,
         fibex: Option<String>,
     ) {
-        info!("start_indexing_dlt_in_thread: {:?}", thread_conf);
+        info!("start_indexing_socket_in_thread: {:?}", thread_conf);
 
         // Spawn a thead to continue running after this method has returned.
         self.task_thread = Some(thread::spawn(move || {
@@ -43,49 +43,40 @@ impl IndexingDltEventEmitter {
                     }
                 }
             };
-            index_dlt_file_with_progress(
-                IndexingConfig {
-                    tag: thread_conf.tag.as_str(),
-                    chunk_size,
-                    in_file: thread_conf.in_file,
-                    out_path: &thread_conf.out_path,
-                    append: thread_conf.append,
-                },
+            index_from_socket(
+                socket_conf,
                 filter_conf,
                 chunk_result_sender.clone(),
-                Some(shutdown_rx),
                 fibex_metadata,
+                thread_conf.append,
+                thread_conf.tag.as_str(),
+                &thread_conf.out_path,
+                shutdown_rx,
             );
             debug!("back after DLT indexing finished!");
         }));
     }
 }
 
-fn index_dlt_file_with_progress(
-    config: IndexingConfig,
+#[allow(clippy::too_many_arguments)]
+fn index_from_socket(
+    socket_conf: SocketConfig,
     filter_conf: Option<filtering::DltFilterConfig>,
-    tx: cc::Sender<ChunkResults>,
-    shutdown_receiver: Option<cc::Receiver<()>>,
+    update_channel: cc::Sender<ChunkResults>,
     fibex_metadata: Option<Rc<FibexMetadata>>,
+    append: bool,
+    tag: &str,
+    out_path: &std::path::PathBuf,
+    shutdown_receiver: async_std::sync::Receiver<()>,
 ) {
-    trace!("index_dlt_file_with_progress");
-    let source_file_size = Some(match config.in_file.metadata() {
-        Ok(file_meta) => file_meta.len() as usize,
-        Err(_) => {
-            error!("could not find out size of source file");
-            let _ = tx.try_send(Err(Notification {
-                severity: Severity::WARNING,
-                content: "could not find out size of source file".to_string(),
-                line: None,
-            }));
-            0
-        }
-    });
-    match dlt::dlt_parse::create_index_and_mapping_dlt(
-        config,
-        source_file_size,
+    trace!("index_from_socket");
+    match dlt::dlt_parse::create_index_and_mapping_dlt_from_socket(
+        socket_conf,
+        append,
+        tag,
+        out_path,
         filter_conf,
-        &tx,
+        &update_channel,
         shutdown_receiver,
         fibex_metadata,
     ) {
@@ -97,19 +88,18 @@ fn index_dlt_file_with_progress(
 }
 // interface of the Rust code for js, exposes the `poll` and `shutdown` methods
 declare_types! {
-    pub class JsDltIndexerEventEmitter for IndexingDltEventEmitter {
+    pub class JsDltSocketEventEmitter for SocketDltEventEmitter {
         init(mut cx) {
-            trace!("Rust: JsDltIndexerEventEmitter");
-            let file = cx.argument::<JsString>(0)?.value();
+            trace!("Rust: JsDltSocketEventEmitter");
+            let arg_socket_conf = cx.argument::<JsValue>(0)?;
+            let socket_conf: SocketConfig = neon_serde::from_value(&mut cx, arg_socket_conf)?;
             let tag = cx.argument::<JsString>(1)?.value();
             let out_path = path::PathBuf::from(cx.argument::<JsString>(2)?.value().as_str());
             let append: bool = cx.argument::<JsBoolean>(3)?.value();
-            let chunk_size: usize = cx.argument::<JsNumber>(4)?.value() as usize;
-            let arg_filter_conf = cx.argument::<JsValue>(5)?;
+            let arg_filter_conf = cx.argument::<JsValue>(4)?;
             let filter_conf: dlt::filtering::DltFilterConfig = neon_serde::from_value(&mut cx, arg_filter_conf)?;
-            trace!("{:?}", filter_conf);
             let mut fibex: Option<String> = None;
-            if let Some(arg) = cx.argument_opt(6) {
+            if let Some(arg) = cx.argument_opt(5) {
                 if arg.is_a::<JsString>() {
                     fibex = Some(arg.downcast::<JsString>().or_throw(&mut cx)?.value());
                 } else if arg.is_a::<JsUndefined>() {
@@ -117,25 +107,23 @@ declare_types! {
                 }
             }
 
-            let shutdown_channel = cc::unbounded();
+            let shutdown_channel = async_std::sync::channel(1);
             let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
-            let mut emitter = IndexingDltEventEmitter {
+            let mut emitter = SocketDltEventEmitter {
                 event_receiver: Arc::new(Mutex::new(rx)),
                 shutdown_sender: shutdown_channel.0,
                 task_thread: None,
             };
 
-            let file_path = path::PathBuf::from(&file);
-            emitter.start_indexing_dlt_in_thread(shutdown_channel.1,
+            emitter.start_indexing_socket_in_thread(
+                shutdown_channel.1,
                 tx,
-                chunk_size,
-                IndexingThreadConfig {
-                    in_file: file_path,
+                SocketThreadConfig {
                     out_path,
                     append,
                     tag,
-                    timestamps: false,
                 },
+                socket_conf,
                 Some(filter_conf),
                 fibex,
             );
@@ -165,10 +153,12 @@ declare_types! {
 
             // Unwrap the shutdown channel and send a shutdown command
             cx.borrow(&this, |emitter| {
-                match emitter.shutdown_sender.send(()) {
-                    Err(e) => trace!("error happened when sending: {}", e),
-                    Ok(()) => trace!("sent command Shutdown")
-                }
+                async_std::task::block_on(
+                    async {
+                        emitter.shutdown_sender.send(()).await;
+                        trace!("sent command Shutdown")
+                    }
+                );
             });
             Ok(JsUndefined::new().upcast())
         }

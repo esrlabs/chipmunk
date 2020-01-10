@@ -127,7 +127,7 @@ mod tests {
         ];
         raw1.extend_from_slice(&raw2);
         let res1: IResult<&[u8], Option<Message>> =
-            dlt_message(&raw1[..], None, 0, 0, None, None, true);
+            dlt_message(&raw1[..], None, 0, None, None, true);
         trace!("res1 was: {:?}", res1);
         // let res2: IResult<&[u8], Option<Message>> = dlt_message(&raw2[..], None, 0, 0);
         // trace!("res was: {:?}", res2);
@@ -229,7 +229,7 @@ mod tests {
             msg_bytes.extend(b"----");
             // dump_to_file(&msg_bytes)?;
             let expected: IResult<&[u8], Option<Message>> = Ok((b"----", Some(msg)));
-            assert_eq!(expected, dlt_message(&msg_bytes, None, 0, 0, None, None, false));
+            assert_eq!(expected, dlt_message(&msg_bytes, None, 0, None, None, false));
         }
     }
     fn dump_to_file(msg_bytes: &[u8]) -> std::io::Result<()> {
@@ -277,7 +277,7 @@ mod tests {
 
         msg_bytes.extend(b"----");
         let res: IResult<&[u8], Option<Message>> =
-            dlt_message(&msg_bytes, None, 0, 0, None, None, false);
+            dlt_message(&msg_bytes, None, 0, None, None, false);
         let expected: IResult<&[u8], Option<Message>> = Ok((b"----", Some(msg)));
         assert_eq!(expected, res);
     }
@@ -305,7 +305,7 @@ mod tests {
             },
             source_file_size,
             None,
-            tx,
+            &tx,
             None,
             None,
         );

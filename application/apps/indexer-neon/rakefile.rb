@@ -14,6 +14,7 @@ CLEAN.include(["#{OUT_DIR}/*.*",
 # FileList["#{LOCAL_EXAMPLE_DIR}/dlt/*.out"].each { |f| rm f }
 
 namespace :neon do
+  desc 'rebuild neon'
   task :rebuild do
     # sh 'neon build --release'
     sh 'node_modules/.bin/electron-build-env node_modules/.bin/neon build --release'
@@ -66,6 +67,13 @@ namespace :neon do
   task dlt_stats: [:clean, OUT_DIR, 'neon:rebuild'] do
     call_test_function('testCallDltStats', "#{LOCAL_EXAMPLE_DIR}/dlt/morten_3.dlt")
   end
+
+  desc 'test neon integration: dlt over socket'
+  task dlt_socket: [:clean, OUT_DIR, 'neon:rebuild'] do
+    call_test_function('testSocketDlt', "#{LOCAL_EXAMPLE_DIR}/dlt/socket_upd.out")
+  end
+
+# export function testSocketDlt(outPath: string) {
 
   desc 'test neon integration: concat'
   task concat: [:clean, OUT_DIR, 'neon:rebuild'] do
