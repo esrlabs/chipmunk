@@ -23,7 +23,7 @@ mod tests {
             let stdout = ConsoleAppender::builder().build();
             let config = Config::builder()
                 .appender(Appender::builder().build("stdout", Box::new(stdout)))
-                .build(Root::builder().appender("stdout").build(LevelFilter::Trace))
+                .build(Root::builder().appender("stdout").build(LevelFilter::Error))
                 .unwrap();
 
             match log4rs::init_config(config) {

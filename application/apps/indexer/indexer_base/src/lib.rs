@@ -16,5 +16,7 @@ pub mod progress;
 pub mod timedline;
 pub mod utils;
 
+extern crate log;
+
 #[cfg(test)]
 mod tests;

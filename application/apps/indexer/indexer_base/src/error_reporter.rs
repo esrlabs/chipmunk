@@ -12,6 +12,7 @@
 use serde::Serialize;
 use std::borrow::Cow;
 use rustc_hash::FxHashMap;
+use log::*;
 use crate::progress::Severity;
 
 type IncidentMap = FxHashMap<String, usize>;
@@ -74,19 +75,19 @@ impl Reporter {
 }
 pub fn report_warning<'a, S: Into<Cow<'a, str>>>(text: S) {
     let incident = Incident::new(Severity::WARNING, text, None);
-    eprintln!(
+    warn!(
         "{}",
         serde_json::to_string(&incident).unwrap_or_else(|_| "".to_string())
     )
 }
 pub fn report_warning_ln<'a, S: Into<Cow<'a, str>>>(text: S, line_nr: Option<usize>) {
-    eprintln!("{}", create_incident(Severity::WARNING, text, line_nr))
+    warn!("{}", create_incident(Severity::WARNING, text, line_nr))
 }
 pub fn report_error<'a, S: Into<Cow<'a, str>>>(text: S) {
-    eprintln!("{}", create_incident(Severity::ERROR, text, None))
+    error!("{}", create_incident(Severity::ERROR, text, None))
 }
 pub fn report_error_ln<'a, S: Into<Cow<'a, str>>>(text: S, line_nr: Option<usize>) {
-    eprintln!("{}", create_incident(Severity::ERROR, text, line_nr))
+    error!("{}", create_incident(Severity::ERROR, text, line_nr))
 }
 fn create_incident<'a, S: Into<Cow<'a, str>>>(
     severity: Severity,

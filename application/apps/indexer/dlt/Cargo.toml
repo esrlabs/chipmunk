@@ -12,7 +12,7 @@ buf_redux = "0.8.1"
 failure = "0.1.5"
 chrono = "0.4"
 nom = "5.0"
-log = "0.4.6"
+log = "0.4"
 proptest = "0.9.4"
 proptest-derive = "0.1.2"
 indexer_base = { path = "../indexer_base" }
@@ -28,6 +28,8 @@ crossbeam-channel = "0.4"
 rand = "0.7"
 pretty_assertions = "0.6"
 criterion = "0.2"
+dirs = "2.0"
+env_logger = "0.7"
 
 [[bench]]
 name = "dlt_benchmarks"
