@@ -32,7 +32,7 @@ export class Service extends Toolkit.APluginService {
     private _onAPIReady() {
         this.api = this.getAPI();
         if (this.api === undefined) {
-            this.notify('error', 'API not found', ENotificationType.error);
+            this._logger.error('API not found!');
             return;
         }
         this._subscriptions.onSessionOpen = this.api.getSessionsEventsHub().subscribe().onSessionOpen(this._onSessionOpen.bind(this));
@@ -88,7 +88,7 @@ export class Service extends Toolkit.APluginService {
                     this.state = response;
                     this._subjects.event.next(message);
                 }).catch((error: Error) => {
-                    throw(error);
+                    this.notify('Error', error.message, ENotificationType.error);
                 });
                 return;
             }
@@ -101,7 +101,7 @@ export class Service extends Toolkit.APluginService {
             if (Object.keys(this.sessionConnected).length > 0) {
                 Object.keys(this.sessionConnected).forEach(session => {
                     Object.keys(this.sessionConnected[session]).forEach(port => {
-                        if (ports[port] && this.sessionConnected[session][port]) {
+                        if (ports[port]) {
                             this.sessionConnected[session][port].ioState.read += ports[port].ioState.read;
                         }
                     });
@@ -111,7 +111,7 @@ export class Service extends Toolkit.APluginService {
                 resolve();
             }
         }).catch((error: Error) => {
-            throw(error);
+            this.notify('error', `Failed to save read load of ports: ${error.message}`, ENotificationType.error);
         });
     }
 
@@ -139,7 +139,7 @@ export class Service extends Toolkit.APluginService {
             this._openQueue[options.path] = true;
             this.emptyQueue(options.path);
         }).catch((error: Error) => {
-            throw(error);
+            this.notify('error', `Failed to connect to ${options.path}: ${error.message}`, ENotificationType.error);
         });
     }
 
@@ -152,7 +152,7 @@ export class Service extends Toolkit.APluginService {
             this._openQueue[port] = false;
             this.sessionConnected[this.session][port] = undefined;
         }).catch((error: Error) => {
-            throw(error);
+            this.notify('error', `Failed to disconnect from ${port}: ${error.message}`, ENotificationType.error);
         });
     }
 
@@ -161,7 +161,7 @@ export class Service extends Toolkit.APluginService {
             stream: this.session,
             command: EHostCommands.list,
         }, this.session).catch((error: Error) => {
-            throw(error);
+            this.notify('error', `Failed to request port list: ${error.message}`, ENotificationType.error);
         });
     }
 
@@ -171,7 +171,7 @@ export class Service extends Toolkit.APluginService {
             command: EHostCommands.spyStart,
             options: options,
         }, this.session).catch((error: Error) => {
-            throw(error);
+            this.notify('error', `Failed to start spying on ports: ${error.message}`, ENotificationType.error);
         });
     }
 
@@ -182,12 +182,10 @@ export class Service extends Toolkit.APluginService {
                 command: EHostCommands.spyStop,
                 options: options,
             }, this.session).catch((error: Error) => {
-                throw(error);
+                this.notify('error', `Failed to stop spying on ports: ${error.message}`, ENotificationType.error);
             });
         }
-        return new Promise((resolve) => {
-            resolve();
-        });
+        return Promise.resolve();
     }
 
     public sendMessage(message: string, port: string): Promise<any> {
@@ -197,7 +195,7 @@ export class Service extends Toolkit.APluginService {
             cmd: message,
             path: port
         }, this.session).catch((error: Error) => {
-            throw(error);
+            this.notify('error', `Failed to send message to port: ${error.message}`, ENotificationType.error);
         });
     }
 
@@ -207,7 +205,7 @@ export class Service extends Toolkit.APluginService {
             command: EHostCommands.write,
             options: options
         }, this.session).catch((error: Error) => {
-            throw(error);
+            this.notify('error', `Failed to write port configuration: ${error.message}`, ENotificationType.error);
         });
     }
 
@@ -216,7 +214,7 @@ export class Service extends Toolkit.APluginService {
             stream: this.session,
             command: EHostCommands.read,
         }, this.session).catch((error: Error) => {
-            throw(error);
+            this.notify('error', `Failed to read port configuration: ${error.message}`, ENotificationType.error);
         });
     }
 
@@ -226,7 +224,7 @@ export class Service extends Toolkit.APluginService {
             command: EHostCommands.remove,
             port: port
         }, this.session).catch((error: Error) => {
-            throw(error);
+            this.notify('error', `Failed to remove port configuration: ${error.message}`, ENotificationType.error);
         });
     }
 
@@ -248,13 +246,17 @@ export class Service extends Toolkit.APluginService {
     }
 
     public notify(caption: string, message: string, type: ENotificationType) {
-        this.api.addNotification({
-            caption: caption,
-            message: message,
-            options: {
-                type: type
-            }
-        });
+        if (this.api) {
+            this.api.addNotification({
+                caption: caption,
+                message: message,
+                options: {
+                    type: type
+                }
+            });
+        } else {
+            this._logger.error('API not found!');
+        }
         if (type === ENotificationType.error) {
             this._logger.error(message);
         } else if (type === ENotificationType.warning) {

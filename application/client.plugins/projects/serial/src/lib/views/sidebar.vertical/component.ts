@@ -402,7 +402,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                     return CPORTS[port.path];
                 }));
             }).catch((error: Error) => {
-                throw(error);
+                Service.notify('Error', error.message, ENotificationType.error);
             });
         });
     }
@@ -439,7 +439,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
                                     this._filterPorts(response.ports).then((ports: IPortInfo[]) => {
                                         return resolve(ports);
                                     }).catch((error: Error) => {
-                                        throw(error);
+                                        Service.notify('Error', error.message, ENotificationType.error);
                                     });
                                 } else {
                                     return resolve(response.ports);
