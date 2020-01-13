@@ -6,6 +6,81 @@ mod tests {
     use pretty_assertions::assert_eq;
     use std::fs;
     use std::path::PathBuf;
+    use proptest::prelude::*;
+
+    static VALID_TIMESTAMP_FORMAT: &str = "[+-]{1}[0-9]{2}[0-5]{1}[0-9]{1}";
+
+    proptest! {
+        #[test]
+        fn offset_from_timezone_in_ms_doesnt_crash(s in "\\PC*") {
+            let _ = parse_timezone(&s);
+        }
+        #[test]
+        fn parses_all_valid_dates(s in VALID_TIMESTAMP_FORMAT) {
+            parse_timezone(&s).unwrap();
+        }
+    }
+    #[test]
+    fn test_date_parsers() {
+        assert_eq!(any_date_format("MMM23"), Ok(("23", FormatPiece::MonthName)));
+        assert_eq!(any_date_format("DD23"), Ok(("23", FormatPiece::Day)));
+        assert_eq!(
+            any_date_format("sss23"),
+            Ok(("23", FormatPiece::AbsoluteMilliseconds))
+        );
+        assert_eq!(any_date_format("MM23"), Ok(("23", FormatPiece::Month)));
+        assert_eq!(any_date_format("DDMM"), Ok(("MM", FormatPiece::Day)));
+        assert_eq!(any_date_format("YYYY-"), Ok(("-", FormatPiece::Year)));
+        assert_eq!(any_date_format("yy-"), Ok(("-", FormatPiece::YearShort)));
+
+        assert_eq!(
+            any_date_format("-YYYY"),
+            Ok(("YYYY", FormatPiece::SeperatorChar('-')))
+        );
+    }
+
+    #[test]
+    fn test_offset_from_timezone_in_ms_non_ascii() {
+        assert!(parse_timezone("aࡠA").is_err());
+    }
+    #[test]
+    fn test_offset_from_timezone_in_ms_invalid_input() {
+        assert!(parse_timezone("0Aaa0").is_err());
+    }
+
+    #[test]
+    fn test_timezone_parser() {
+        if let Ok(res) = parse_timezone("+01:00") {
+            dbg!(res);
+        } else {
+            println!("could not parse");
+        }
+    }
+    #[test]
+    fn test_offset_from_timezone_in_ms() {
+        assert_eq!(0, parse_timezone("+0000").expect("could not parse"));
+        assert_eq!(0, parse_timezone("-0000").expect("could not parse"));
+        assert_eq!(
+            2 * 3600 * 1000,
+            parse_timezone("+0200").expect("could not parse")
+        );
+        assert_eq!(
+            2 * 3600 * 1000,
+            parse_timezone("+02:00").expect("could not parse")
+        );
+        assert_eq!(
+            2 * 3600 * 1000 + 30 * 60 * 1000,
+            parse_timezone("+0230").expect("could not parse")
+        );
+        assert_eq!(
+            -2 * 3600 * 1000,
+            parse_timezone("-0200").expect("could not parse")
+        );
+        assert_eq!(
+            -30 * 60 * 1000,
+            parse_timezone("-00:30").expect("could not parse")
+        );
+    }
 
     #[test]
     fn test_date_parsers_escapes() {
@@ -83,6 +158,19 @@ mod tests {
     fn test_date_format_str_to_regex_empty() {
         let regex = lookup_regex_for_format_str("");
         assert!(regex.is_err());
+    }
+    #[test]
+    fn test_full_timestamp_parser() {
+        let input = "109.169.248.247 - - [13/Dec/2015:18:25:11 +0100] GET /administrator";
+        let regex = lookup_regex_for_format_str("DD/MMM/YYYY:hh:mm:ss TZD").unwrap();
+        let res = parse_full_timestamp(input, &regex);
+        if let Ok((expected, _, _)) = detect_timestamp_in_string(input, None) {
+            if let Ok((time, _)) = res {
+                assert_eq!(expected, time);
+                println!("{}", posix_timestamp_as_string(time));
+            }
+        };
+        println!("res: {:?}", res);
     }
     #[test]
     fn test_parse_date_line_no_year_with_timezone() {
