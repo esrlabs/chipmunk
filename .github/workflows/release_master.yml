@@ -49,6 +49,7 @@ jobs:
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           APPLEID: ${{ secrets.APPLEID }}
           APPLEIDPASS: ${{ secrets.APPLEIDPASS }}
+          SIGNING_ID: ${{ secrets.SIGNING_ID }}
       - run: ls
       - name: Release
         uses: softprops/action-gh-release@v1

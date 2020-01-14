@@ -615,19 +615,19 @@ def sign_plugin_binary(plugin_path)
   return unless OS.mac?
 
   if !ENV['SKIP_NOTARIZE'].eql?('true')
-    developer_id = ''
-    if ENV.key?('APPLEID')
-      developer_id = ENV['APPLEID']
+    signing_id = ''
+    if ENV.key?('SIGNING_ID')
+      signing_id = ENV['SIGNING_ID']
     elsif ENV.key?('CHIPMUNK_DEVELOPER_ID')
-      developer_id = ENV['CHIPMUNK_DEVELOPER_ID']
+      signing_id = ENV['CHIPMUNK_DEVELOPER_ID']
     else
-      puts 'Cannot sign plugins because cannot find DEVELOPER_ID.'
+      puts 'Cannot sign plugins because cannot find signing_id.'
       puts 'Define it in APPLEID (for production) or in CHIPMUNK_DEVELOPER_ID (for developing)'
       return
     end
-    puts "Detected next MACOS_DEVELOPER_ID = #{developer_id}\nTry to sign code for: #{plugin_path}"
+    puts "Detected next SIGNING_ID = #{signing_id}\nTry to sign code for: #{plugin_path}"
     full_plugin_path = File.expand_path(plugin_path, File.dirname(__FILE__))
-    codesign_execution = "codesign --force --options runtime --deep --sign \"#{developer_id}\" {} \\;"
+    codesign_execution = "codesign --force --options runtime --deep --sign \"#{signing_id}\" {} \\;"
     sh "find #{full_plugin_path} -name \"*.node\" -type f -exec #{codesign_execution}"
   else
     puts 'Sing binary of plugins will be skipped'
@@ -902,6 +902,8 @@ file electron_build_output => FileList["#{ELECTRON_DIR}/src/**/*.*",
                                        "#{ELECTRON_DIR}/*.json"] do |_t|
   require 'dotenv/load'
   cd ELECTRON_DIR do
+    sh 'tsc -p tsconfig.json'
+    sh "tsc -p #{File.join('scripts', 'tsconfig.json')}"
     if OS.mac?
       begin
         if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS')
@@ -916,10 +918,8 @@ file electron_build_output => FileList["#{ELECTRON_DIR}/src/**/*.*",
       end
     elsif OS.linux?
       sh 'npm run build-linux'
-    else
+    else # windows
       electron_builder_exe = File.join('node_modules', '.bin', 'electron-builder')
-      sh 'tsc -p tsconfig.json'
-      sh "tsc -p #{File.join('scripts', 'tsconfig.json')}"
       sh "#{electron_builder_exe} --win"
     end
   end
