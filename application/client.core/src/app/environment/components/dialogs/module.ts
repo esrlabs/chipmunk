@@ -2,6 +2,8 @@ import { NgModule                               } from '@angular/core';
 import { CommonModule                           } from '@angular/common';
 
 import { DialogsFileOptionsDltComponent         } from './file.options.dlt/component';
+import { DialogsFileOptionsDltStatsComponent    } from './file.options.dlt/stats/component';
+
 import { DialogsHotkeysMapComponent             } from './hotkeys/component';
 import { DialogsMultipleFilesActionComponent    } from './multiplefiles/component';
 import { DialogsRecentFilesActionComponent      } from './recentfile/component';
@@ -14,18 +16,38 @@ import { AppDirectiviesModule                   } from '../../directives/module'
 import {
     MatFormField,
     MatAutocomplete,
+    MatProgressBar,
+    MatCheckbox,
+    MatButton,
+    MatSelect,
     MatFormFieldModule,
     MatInputModule,
     MatAutocompleteModule,
-    MatOptionModule } from '@angular/material';
+    MatOptionModule,
+    MatSortModule,
+    MatTable,
+    MatProgressBarModule,
+    MatCheckboxModule,
+    MatButtonModule,
+    MatSelectModule,
+    MatTableModule } from '@angular/material';
 import {
     FormsModule,
     ReactiveFormsModule } from '@angular/forms';
 
-const entryComponents = [MatFormField, MatAutocomplete];
+const entryComponents = [
+    MatFormField,
+    MatAutocomplete,
+    MatTable,
+    MatProgressBar,
+    MatCheckbox,
+    MatButton,
+    MatSelect,
+];
 
 const CDialogs = [
     DialogsFileOptionsDltComponent,
+    DialogsFileOptionsDltStatsComponent,
     DialogsHotkeysMapComponent,
     DialogsMultipleFilesActionComponent,
     DialogsRecentFilesActionComponent,
@@ -44,6 +66,12 @@ const CDialogs = [
         MatFormFieldModule,
         MatAutocompleteModule,
         MatOptionModule,
+        MatSortModule,
+        MatTableModule,
+        MatProgressBarModule,
+        MatCheckboxModule,
+        MatButtonModule,
+        MatSelectModule,
         AppDirectiviesModule
     ],
     declarations    : [ ...CDialogs ],

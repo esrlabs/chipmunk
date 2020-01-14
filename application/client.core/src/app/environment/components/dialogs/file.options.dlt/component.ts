@@ -1,10 +1,11 @@
-import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit } from '@angular/core';
+import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewChildren, QueryList } from '@angular/core';
 import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
-import * as ThemeColors from '../../../theme/colors';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import { CommonInterfaces } from '../../../interfaces/interface.common';
+import { Subject } from 'rxjs';
+import { DialogsFileOptionsDltStatsComponent, IStatRow, IForceSortData } from './stats/component';
 
 export enum EMTIN {
     // If MSTP == DLT_TYPE_LOG
@@ -46,7 +47,6 @@ const CStatCaptions = {
     app_ids: 'APID',
     context_ids: 'CTID',
     ecu_ids: 'ECUID',
-
 };
 
 const CLevels = {
@@ -60,27 +60,6 @@ const CLevels = {
     log_invalid: 'log_invalid',
 };
 
-const CLevelsColors = {
-    [CLevels.non_log]: ThemeColors.scheme_color_3,
-    [CLevels.log_fatal]: ThemeColors.scheme_color_error,
-    [CLevels.log_error]: ThemeColors.scheme_color_error,
-    [CLevels.log_warning]: ThemeColors.scheme_color_warning,
-    [CLevels.log_debug]: ThemeColors.scheme_color_2,
-    [CLevels.log_verbose]: ThemeColors.scheme_color_3,
-    [CLevels.log_invalid]: ThemeColors.scheme_color_warning,
-};
-
-const CLevelCaptions = {
-    [CLevels.non_log]: { short: 'n/d', full: 'No Data' },
-    [CLevels.log_fatal]: { short: 'FATAL', full: 'FATAL' },
-    [CLevels.log_error]: { short: 'ERR', full: 'ERROR' },
-    [CLevels.log_warning]: { short: 'WARN', full: 'WARNING' },
-    [CLevels.log_info]: { short: 'INFO', full: 'INFO' },
-    [CLevels.log_debug]: { short: 'DEBUG', full: 'DEBUG' },
-    [CLevels.log_verbose]: { short: 'VERBOSE', full: 'VERBOSE' },
-    [CLevels.log_invalid]: { short: 'invalid', full: 'invalid value' },
-};
-
 const CLevelOrder = [
     CLevels.log_fatal,
     CLevels.log_error,
@@ -92,6 +71,17 @@ const CLevelOrder = [
     CLevels.log_invalid,
 ];
 
+interface IStatData {
+    caption: string;
+    stats: IStatRow[];
+}
+
+interface IStats {
+    app_ids: IStatData;
+    context_ids: IStatData;
+    ecu_ids: IStatData;
+}
+
 @Component({
     selector: 'app-views-dialogs-file-options-dlt',
     templateUrl: './template.html',
@@ -99,6 +89,8 @@ const CLevelOrder = [
 })
 
 export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentInit {
+
+    @ViewChildren(DialogsFileOptionsDltStatsComponent) public _ng_sectionsRefs: QueryList<DialogsFileOptionsDltStatsComponent>;
 
     @Input() public fullFileName: string = '';
     @Input() public fileName: string = '';
@@ -109,7 +101,6 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     public _ng_size: string = '';
     public _ng_logLevelDefault: EMTIN = EMTIN.DLT_LOG_VERBOSE;
     public _ng_scanning: boolean = true;
-    public _ng_more: boolean = false;
     public _ng_sortByLogLevel: number = -1;
     public _ng_logLevels: Array<{ value: string; caption: string}> = [
         { value: EMTIN.DLT_LOG_FATAL, caption: 'Fatal' },
@@ -119,13 +110,13 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
         { value: EMTIN.DLT_LOG_DEBUG, caption: 'Debug' },
         { value: EMTIN.DLT_LOG_VERBOSE, caption: 'Verbose' },
     ];
-    public _ng_filters: { [key: string]: {
-        caption: string,
-        items: Array<{ name: string, state: boolean, stats: number[] }>
-     } } | undefined = undefined;
-    public _ng_headers: Array<{ short: string, full: string }> = [];
+    public _ng_filters: IStats | undefined = undefined;
     public _ng_fibexFile: IPCMessages.IFilePickerFileInfo | undefined;
     public _ng_error: string | undefined;
+    public _ng_dispayed = ['id', ...CLevelOrder];
+    public _ng_filterSubject: Subject<string> = new Subject<string>();
+    public _ng_filterValue: string = '';
+    public _ng_sortSubject: Subject<IForceSortData> = new Subject<IForceSortData>();
 
     private _logLevel: EMTIN = EMTIN.DLT_LOG_VERBOSE;
     private _stats: CommonInterfaces.DLT.StatisticInfo | undefined;
@@ -140,9 +131,6 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
 
     public ngAfterContentInit() {
         this._ng_size = `${(this.size / 1024 / 1024).toFixed(2)}Mb`;
-        this._ng_headers = CLevelOrder.map((key: string) => {
-            return CLevelCaptions[key];
-        });
         const session: string = TabsSessionsService.getActive().getGuid();
         this._requestId = Toolkit.guid();
         ElectronIpcService.request(new IPCMessages.DLTStatsRequest({
@@ -203,20 +191,11 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
         this._logLevel = value;
     }
 
-    public _ng_onFilters() {
-        this._ng_more = !this._ng_more;
-        this._forceUpdate();
-    }
-
     public _ng_onOpen() {
         const filters: CommonInterfaces.DLT.IDLTFilters = {};
-        if (this._ng_filters !== undefined) {
-            Object.keys(this._ng_filters).forEach((key: string) => {
-                filters[key] = this._ng_filters[key].items.filter((item) => item.state).map((item) => {
-                    return item.name;
-                });
-            });
-        }
+        this._ng_sectionsRefs.map((section: DialogsFileOptionsDltStatsComponent) => {
+            filters[section.getId()] = section.getSelected();
+        });
         this.onDone({
             logLevel: CLogLevel[this._logLevel],
             filters: filters,
@@ -226,51 +205,6 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
 
     public _ng_onCancel() {
         this.onCancel();
-    }
-
-    public _ng_onChangeFilter(filter: string, index: number) {
-        this._ng_filters[filter].items[index].state = !this._ng_filters[filter].items[index].state;
-        this._forceUpdate();
-    }
-
-    public _ng_onSelect(filter: string) {
-        this._ng_filters[filter].items = this._ng_filters[filter].items.map((item) => {
-            item.state = true;
-            return item;
-        });
-        this._forceUpdate();
-    }
-
-    public _ng_onUnselect(filter: string) {
-        this._ng_filters[filter].items = this._ng_filters[filter].items.map((item) => {
-            item.state = false;
-            return item;
-        });
-        this._forceUpdate();
-    }
-
-    public _ng_onReverse(filter: string) {
-        this._ng_filters[filter].items = this._ng_filters[filter].items.map((item) => {
-            item.state = !item.state;
-            return item;
-        });
-        this._forceUpdate();
-    }
-
-    public _ng_getStatColor(index: number, value: number): string {
-        if (value === 0) {
-            return ThemeColors.scheme_color_3;
-        }
-        return CLevelsColors[CLevelOrder[index]];
-    }
-
-    public _ng_onSortClick(index: number) {
-        if (index === this._ng_sortByLogLevel || index === -1) {
-            this._ng_sortByLogLevel = -1;
-        } else {
-            this._ng_sortByLogLevel = index;
-        }
-        this._setFilters();
     }
 
     public _ng_onFibex() {
@@ -302,17 +236,17 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
         });
     }
 
-    private _getEntityKeyByIndex(index: number): string | undefined {
-        return CLevelOrder[index];
+    public _ng_onKeyUpFilterInput(event: KeyboardEvent) {
+        this._ng_filterSubject.next(this._ng_filterValue);
     }
 
     private _setFilters() {
-        this._ng_filters = {};
-        Object.keys(this._stats).forEach((section: string) => {
+        (this._ng_filters as any) = { };
+        Object.keys(this._stats).forEach((section: string, index: number) => {
             if (CStatCaptions[section] === undefined || !(this._stats[section] instanceof Array)) {
                 return;
             }
-            let items = this._stats[section].filter((item: Array<string | CommonInterfaces.DLT.LevelDistribution>) => {
+            const items: IStatRow = this._stats[section].filter((item: Array<string | CommonInterfaces.DLT.LevelDistribution>) => {
                 if (item.length !== 2) {
                     return false;
                 }
@@ -320,32 +254,20 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
                     return false;
                 }
                 return true;
-            }).sort((a: Array<string | CommonInterfaces.DLT.LevelDistribution>, b: Array<string | CommonInterfaces.DLT.LevelDistribution>) => {
-                return a[0] > b[0] ? 1 : -1;
-            });
-            if (this._ng_sortByLogLevel !== -1 && this._getEntityKeyByIndex(this._ng_sortByLogLevel) !== undefined) {
-                const key: string = this._getEntityKeyByIndex(this._ng_sortByLogLevel);
-                items = items.sort((a: Array<string | CommonInterfaces.DLT.LevelDistribution>, b: Array<string | CommonInterfaces.DLT.LevelDistribution>) => {
-                    return a[1][key] < b[1][key] ? 1 : -1;
+            }).map((item: Array<string | CommonInterfaces.DLT.LevelDistribution>) => {
+                const stats: any = { };
+                CLevelOrder.map((key: string) => {
+                    stats[key] = item[1][key] === undefined ? 0 : item[1][key];
                 });
-            }
-            items = items.map((item: Array<string | CommonInterfaces.DLT.LevelDistribution>) => {
-                const stats: number[] = CLevelOrder.map((key: string) => {
-                    return item[1][key] === undefined ? 0 : item[1][key];
-                });
-                return { name: item[0], state: true, stats: stats };
+                stats.id = item[0];
+                stats.state = true;
+                return stats as IStatRow;
             });
-            this._ng_filters[section] = {
+            (this._ng_filters as any)[section] = {
                 caption: CStatCaptions[section],
-                items: items,
+                stats: items,
             };
         });
-        if (Object.keys(this._ng_filters).length === 0) {
-            this._ng_filters = undefined;
-            this._ng_more = false;
-        } else {
-            this._ng_more = true;
-        }
         this._forceUpdate();
     }
 

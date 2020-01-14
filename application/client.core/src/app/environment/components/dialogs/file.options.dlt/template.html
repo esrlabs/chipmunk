@@ -1,51 +1,39 @@
 <p class="caption t-normal">File: {{fileName}} ({{_ng_size}})</p>
 <span class="spliter"></span>
 <p class="caption t-normal">Required log level:</p>
-<div class="settings">
-    <div *ngIf="!_ng_scanning" class="toggle">
-        <span   *ngIf="_ng_error === undefined"
-                [attr.class]="'toggle-button small-icon-button fas fa-angle-double-down' + (_ng_more ? ' opened' : '')"
-                title="Open/Hide Filters"
-                (click)="_ng_onFilters()"></span>
-        <span   *ngIf="_ng_error !== undefined"
-                [attr.class]="'error-button small-icon-button fas fa-exclamation-triangle'"
-                [attr.title]="_ng_error"></span>
-    </div>
-    <div *ngIf="_ng_scanning" class="progress">
-        <lib-primitive-spinner-regular></lib-primitive-spinner-regular>
-    </div>
-    <div [attr.class]="'logs ' + (_ng_scanning ? 'in-progress' : '') + (_ng_error !== undefined ? 'with-error' : '')">
-        <lib-primitive-dropdownlist #loglevelcom [defaults]="_ng_logLevelDefault" [items]="_ng_logLevels" [onChange]="_ng_onLogLevelChange"></lib-primitive-dropdownlist>
-    </div>
+<div [attr.class]="'logs ' + (_ng_error !== undefined ? 'with-error' : '')">
+    <lib-primitive-dropdownlist #loglevelcom [defaults]="_ng_logLevelDefault" [items]="_ng_logLevels" [onChange]="_ng_onLogLevelChange"></lib-primitive-dropdownlist>
 </div>
-<div *ngIf="_ng_filters !== undefined && _ng_more" class="filters">
+<div *ngIf="_ng_scanning" class="progress">
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+</div>
+<div *ngIf="_ng_filters !== undefined" class="filter">
+    <input
+        class="standard"
+        type="text" 
+        placeholder="Filter: APID, CTID or ECUID"
+        aria-label="Filter"
+        (keyup)="_ng_onKeyUpFilterInput($event)"
+        [(ngModel)]="_ng_filterValue"
+        matInput>
+</div>
+<div *ngIf="_ng_filters !== undefined" class="filters">
     <span class="spliter"></span>
     <div *ngFor="let filter of _ng_filters | keyvalue" class="group">
-        <div class="wrapper">
-            <table>
-                <tr>
-                    <th (click)="_ng_onSortClick(-1)"><span class="sorted fas fa-caret-down" *ngIf="_ng_sortByLogLevel === -1"></span>{{filter.value.caption}}</th>
-                    <th *ngFor="let header of _ng_headers; let i = index;" title="header.full" (click)="_ng_onSortClick(i)"><span class="sorted fas fa-caret-down" *ngIf="i === _ng_sortByLogLevel"></span>{{header.short}}</th>
-                </tr>
-                <tr *ngFor="let item of filter.value.items; let i = index;">
-                    <td>
-                        <lib-primitive-checkbox-simple [labelOn]="item.name" [labelOff]="item.name" [checked]="item.state" [onChange]="_ng_onChangeFilter.bind(this, filter.key, i)"></lib-primitive-checkbox-simple>
-                    </td>
-                    <td *ngFor="let stat of item.stats; let i = index;" [ngStyle]="{'color': _ng_getStatColor(i, stat)}">{{stat}}</td>
-                </tr>
-            </table>
-        </div>
-        <div class="sub-controlls">
-            <span class="small-icon-button fas fa-plus-circle" (click)="_ng_onSelect(filter.key)"><span class="label">Select All</span></span>
-            <span class="small-icon-button fas fa-minus-circle" (click)="_ng_onUnselect(filter.key)"><span class="label">Unselect All</span></span>
-            <span class="small-icon-button fas fa-retweet" (click)="_ng_onReverse(filter.key)"><span class="label">Reverse</span></span>
-        </div>
+        <app-views-dialogs-file-options-dlt-stats
+            [id]="filter.key"
+            [caption]="filter.value.caption"
+            [sort]="_ng_sortSubject"
+            [filter]="_ng_filterSubject"
+            [display]="_ng_dispayed"
+            [stats]="filter.value.stats">
+        </app-views-dialogs-file-options-dlt-stats>
     </div>
     <span class="spliter"></span>
 </div>
 <p class="t-small" *ngIf="_ng_fibexFile !== undefined">Refered fibex file: {{_ng_fibexFile.name}} ({{(_ng_fibexFile.size / 1024).toFixed(2)}} kB)</p>
 <div class="controlls">
-    <span class="small-button" (click)="_ng_onOpen()">Open</span>
-    <span class="small-button" (click)="_ng_onFibex()">Ref Fibex File</span>
-    <span class="small-button" (click)="_ng_onCancel()">Cancel</span>
+    <button class="noreset basicreset" mat-stroked-button color="primary" (click)="_ng_onOpen()">Open</button>
+    <button class="noreset basicreset" mat-stroked-button color="primary" (click)="_ng_onFibex()">Ref Fibex File</button>
+    <button class="noreset basicreset" mat-stroked-button color="primary" (click)="_ng_onCancel()">Cancel</button>
 </div>

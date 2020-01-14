@@ -1,0 +1,78 @@
+@import '../../../../theme/scheme.less';
+
+:host {
+    position: relative;
+    display: block;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    & div.wrapper{
+        position: relative;
+        padding: 0;
+        margin: 0;
+        list-style: none;
+        max-height: 10rem;
+        overflow: auto;
+        & table{
+            position: relative;
+            border-collapse: collapse;
+            margin: 0;
+            width: 100%;
+            & tr {
+                height: 16px;
+                background: @scheme-color-4;
+                border-bottom: none;
+                &:first-child{
+                    position: sticky;
+                    top: 0;
+                    z-index: 1;
+                    padding: 4px 0;
+                    & th {
+                        position: sticky;
+                        top: 0;
+                        z-index: 1;
+                        background: @scheme-color-5;
+                        color: @scheme-color-0;
+                        font-weight: 400;
+                        font-size: 10px;
+                    }
+                }
+                & td:first-child,
+                & th:first-child{
+                    width: 6rem;
+                    min-width: 6rem;
+                    max-width: 6rem;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    text-align: left;
+                    white-space: nowrap;
+                }
+                & th:first-child{
+                    text-align: right;
+                }
+                & td,
+                & th {
+                    min-width: 1.75rem;
+                    border-right: dotted 1px @scheme-color-4;
+                    padding: 0 0.25rem;
+                    box-sizing: border-box;
+                    padding-left: 11px;
+                    border-bottom: none;
+                    & span.sorted{
+                        position: absolute;
+                        top:0;
+                        left:3px;
+                        font-size: 10px;
+                        color: scheme-color-0;
+                    }
+                }
+                & th{
+                    text-align: right;
+                }
+                & td{
+                    text-align: right;
+                }
+            }
+        }
+    }
+}
