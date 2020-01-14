@@ -11,7 +11,7 @@ export class ControllerDltFileOptions extends AControllerFileOptions {
             const guid: string = PopupsService.add({
                 options: {
                     closable: false,
-                    width: 30,
+                    width: 40,
                 },
                 caption: `Opening ${request.fileName}`,
                 component: {

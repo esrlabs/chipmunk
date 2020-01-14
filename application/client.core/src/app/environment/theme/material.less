@@ -121,3 +121,40 @@
     opacity: 0;
 }
 
+& mat-checkbox.small {
+    line-height: 16px;
+    & label.mat-checkbox-layout{
+        line-height: 16px;
+        display: inline-block;
+        position: relative;
+        align-items: baseline;
+        vertical-align: top;
+        & .mat-checkbox-inner-container{
+            height: 12px;
+            width: 12px;
+            margin: 0;
+            margin-right: 8px;
+            display: inline-block;
+            vertical-align: top;
+            margin-top: 2px;
+        }
+        & .mat-checkbox-label{
+            line-height: 16px;
+            display: inline-block;
+            vertical-align: top;
+        }
+    }
+}
+
+input.mat-input-element.standard{
+    margin: 5px 0px;
+    padding: 0 6px;
+    border: thin @scheme-color-4 solid;
+    box-sizing: border-box;
+    width: 100%;
+    height: 22px;
+    background: none;
+    &:focus{
+        background: @scheme-color-7;
+    }
+}
