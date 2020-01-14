@@ -9,7 +9,10 @@ export declare enum EHostCommands {
     open = "open",
     close = "close",
     list = "list",
-    write = "write",
+    send = "send",
     spyStart = "spyStart",
-    spyStop = "spyStop"
+    spyStop = "spyStop",
+    write = "write",
+    read = "read",
+    remove = "remove"
 }

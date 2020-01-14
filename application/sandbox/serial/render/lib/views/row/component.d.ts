@@ -15,10 +15,12 @@ export declare class SerialRowComponent implements AfterViewInit, OnDestroy, Aft
     _ng_color: string;
     _ng_title: string;
     private _subscriptions;
+    private _destroyed;
     constructor(_cdRef: ChangeDetectorRef, _sanitizer: DomSanitizer);
     ngOnDestroy(): void;
     ngAfterViewInit(): void;
     ngAfterContentInit(): void;
     private _onInputsUpdated;
     private _getHTML;
+    private _forceUpdate;
 }

@@ -1,3 +1,3 @@
 export declare class SidebarTitleAddComponent {
-    _ng_addPort: () => void;
+    _ng_addPort: (boolean: any) => void;
 }

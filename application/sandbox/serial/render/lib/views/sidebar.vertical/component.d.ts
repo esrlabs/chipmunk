@@ -2,7 +2,6 @@ import { OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
 import { IPortInfo, IPortState } from '../../common/interface.portinfo';
 import { IOptions } from '../../common/interface.options';
 import { InputStandardComponent, DDListStandardComponent } from 'chipmunk-client-primitive';
-import * as Toolkit from 'chipmunk.client.toolkit';
 interface IConnected {
     port: IPortInfo;
     options: IOptions;
@@ -16,9 +15,7 @@ export declare class SidebarVerticalComponent implements AfterViewInit, OnDestro
     private _cdRef;
     _inputCom: InputStandardComponent;
     _selectCom: DDListStandardComponent;
-    api: Toolkit.IAPI;
     session: string;
-    sessions: Toolkit.ControllerSessionsEvents;
     private _subscriptions;
     private _logger;
     private _destroyed;
@@ -32,9 +29,6 @@ export declare class SidebarVerticalComponent implements AfterViewInit, OnDestro
     _ng_busy: boolean;
     _ng_error: string | undefined;
     _ng_options: boolean;
-    _ng_spyLoad: {
-        [key: string]: number;
-    };
     _ng_msg: string;
     _ng_portList: IPortListItem[];
     _ng_defaultPort: string | undefined;
@@ -56,7 +50,6 @@ export declare class SidebarVerticalComponent implements AfterViewInit, OnDestro
     private _hostEvents_onState;
     private _hostEvents_onDisconnected;
     private _hostEvents_onError;
-    private _hostEvents_onSpyState;
     private _forceUpdate;
     _ng_sendMessage(message: string, event?: KeyboardEvent): void;
     private _addDropdownElement;
@@ -68,10 +61,8 @@ export declare class SidebarVerticalComponent implements AfterViewInit, OnDestro
     _ng_changeDropdownSelect(value: string): void;
     private _loadSession;
     private _createOptions;
-    private _removeOptions;
     private _startSpy;
-    private _stopSpy;
-    private closePopup;
-    _ng_connectDialog(): void;
+    private _filterPorts;
+    _ng_connectDialog(recent: boolean): void;
 }
 export {};
