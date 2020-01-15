@@ -909,7 +909,9 @@ file electron_build_output => FileList["#{ELECTRON_DIR}/src/**/*.*",
         if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS')
           sh 'export CSC_IDENTITY_AUTO_DISCOVERY=true; npm run build-mac'
           check_signature('dist/release/mac/chipmunk.app')
-          check_notarization('dist/release/mac/chipmunk.app')
+          if !ENV.key?('SKIP_NOTARIZE')
+            check_notarization('dist/release/mac/chipmunk.app')
+          end
         else
           sh 'npm run build-mac -c.mac.identity=null'
         end
