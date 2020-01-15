@@ -33,7 +33,7 @@
 </div>
 <p class="t-small" *ngIf="_ng_fibexFile !== undefined">Refered fibex file: {{_ng_fibexFile.name}} ({{(_ng_fibexFile.size / 1024).toFixed(2)}} kB)</p>
 <div class="controlls">
-    <button class="noreset basicreset" mat-stroked-button color="primary" (click)="_ng_onOpen()">Open</button>
-    <button class="noreset basicreset" mat-stroked-button color="primary" (click)="_ng_onFibex()">Ref Fibex File</button>
-    <button class="noreset basicreset" mat-stroked-button color="primary" (click)="_ng_onCancel()">Cancel</button>
+    <button mat-stroked-button color="primary" (click)="_ng_onOpen()">Open</button>
+    <button mat-stroked-button color="primary" (click)="_ng_onFibex()">Ref Fibex File</button>
+    <button mat-stroked-button color="primary" (click)="_ng_onCancel()">Cancel</button>
 </div>

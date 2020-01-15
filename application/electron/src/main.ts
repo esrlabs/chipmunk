@@ -29,6 +29,7 @@ import ServiceAppState from './services/service.app.state';
 import ServiceUpdate from './services/service.update';
 import ServiceDLTFiles from './services/parsers/service.dlt.files';
 import ServicePatchesBefore from './services/service.patches.before';
+import ServiceDLTDeamonConnector from './services/connectors/service.dlt.deamon';
 
 const InitializeStages = [
     // Apply patches ("before")
@@ -55,7 +56,7 @@ const InitializeStages = [
         ServiceFilters, ServiceFileReader,
         ServiceFileOpener, ServiceAppState,
         ServiceDLTFiles, ServiceHotkeys,
-        ServiceFilePicker,
+        ServiceFilePicker, ServiceDLTDeamonConnector,
     ],
     // Stage #10. Init plugins
     [   ServicePlugins ],

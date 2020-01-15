@@ -1,0 +1,47 @@
+<mat-expansion-panel (click)="_ng_onPanelClick()" [expanded]="_ng_panels.binding" (opened)="_ng_onPanelToggle('binding', true)" (closed)="_ng_onPanelToggle('binding', false)">
+    <mat-expansion-panel-header>
+        <mat-panel-title>
+            Basic options
+        </mat-panel-title>
+        <mat-panel-description>
+            IP and PORT
+        </mat-panel-description>
+    </mat-expansion-panel-header>
+    <mat-form-field>
+        <input matInput placeholder="IP Address" [(ngModel)]="_ng_settings.bindingAddress" [attr.disabled]="_ng_state === 'disconnected' ? null : ''">
+    </mat-form-field>
+    <mat-form-field>
+        <input matInput placeholder="Port" [(ngModel)]="_ng_settings.bindingPort" [attr.disabled]="_ng_state === 'disconnected' ? null : ''">
+    </mat-form-field>
+</mat-expansion-panel>
+
+<span class="slitter"></span>
+
+<mat-expansion-panel (click)="_ng_onPanelClick()" [expanded]="_ng_panels.multicast" (opened)="_ng_onPanelToggle('multicast', true)" (closed)="_ng_onPanelToggle('multicast', false)">
+    <mat-expansion-panel-header>
+        <mat-panel-title>
+            Multicast
+        </mat-panel-title>
+        <mat-panel-description>
+            IP and Interface
+        </mat-panel-description>
+    </mat-expansion-panel-header>
+    <mat-form-field>
+        <input matInput placeholder="IP Address" [(ngModel)]="_ng_settings.multicastAddress" [attr.disabled]="_ng_state === 'disconnected' ? null : ''">
+    </mat-form-field>
+    <mat-form-field>
+        <input matInput placeholder="Interface" [(ngModel)]="_ng_settings.multicastInterface" [attr.disabled]="_ng_state === 'disconnected' ? null : ''">
+    </mat-form-field>
+</mat-expansion-panel>
+
+<span class="slitter"></span>
+
+<div *ngIf="_ng_state === 'progress'" class="progress">
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    <span class="slitter"></span>
+</div>
+
+<div class="controlls">
+    <button *ngIf="_ng_state === 'disconnected'" mat-stroked-button color="primary" (click)="_ng_onConnectClick()">Connect</button>
+    <button *ngIf="_ng_state === 'connected'" mat-stroked-button color="primary" (click)="_ng_onDisconnectClick()">Disconnect</button>
+</div>

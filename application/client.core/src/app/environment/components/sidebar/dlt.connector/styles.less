@@ -1,0 +1,23 @@
+@import '../../../theme/scheme.less';
+
+
+:host {
+    position: absolute;
+    display: block;
+    padding: 0 0.5rem 0 0;
+    margin: 0;
+    bottom: 0;
+    right: 0;
+    left: 0.5rem;
+    top: 0.5rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    & span.slitter{
+        position: relative;
+        display: inline-block;
+        height: 8px;
+    }
+    & .controlls{
+        text-align: right;
+    }
+}
