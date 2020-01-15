@@ -1,26 +1,22 @@
+use indexer_base::chunks::Chunk;
 use crate::dlt_parse::*;
 use crate::dlt::*;
 use std::rc::Rc;
 use futures::FutureExt;
 use futures::stream::StreamExt;
-
 use failure::Error;
-
 use indexer_base::progress::*;
 use std::io::{BufWriter, Write};
 use indexer_base::utils;
 use indexer_base::config::SocketConfig;
 use indexer_base::chunks::{ChunkFactory, ChunkResults};
-
 use async_std::net::{Ipv4Addr, UdpSocket};
 use std::net::SocketAddr;
 use async_std::task;
 use crate::dlt_parse::dlt_message;
 use crate::fibex::FibexMetadata;
-
 use crossbeam_channel as cc;
 use crate::filtering;
-
 #[allow(clippy::too_many_arguments)]
 pub fn index_from_socket(
     socket_config: SocketConfig,
@@ -39,7 +35,6 @@ pub fn index_from_socket(
     let (out_file, current_out_file_size) = utils::get_out_file_and_size(append, out_path)?;
     let mut chunk_factory = ChunkFactory::new(0, current_out_file_size);
     let mut line_nr = initial_line_nr;
-
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
     let mut chunk_count = 0usize;
     let mut last_byte_index = 0usize;
@@ -56,6 +51,12 @@ pub fn index_from_socket(
             socket.join_multicast_v4(multi_addr, inter)?;
         }
         trace!("created socket...");
+        update_channel.send(Ok(IndexingProgress::GotItem {
+            item: Chunk {
+                r: (0, 0),
+                b: (0, 0),
+            },
+        }))?;
         let p = UdpMessageProducer {
             socket,
             update_channel: update_channel.clone(),
@@ -76,7 +77,7 @@ pub fn index_from_socket(
             let maybe_msg = match event {
                 Event::Shutdown => {
                     debug!("received shutdown through future channel");
-                    update_channel.send(Ok(IndexingProgress::Finished))?;
+                    update_channel.send(Ok(IndexingProgress::Stopped))?;
                     break;
                 }
                 Event::Msg(Ok(maybe_msg)) => maybe_msg,
@@ -103,6 +104,7 @@ pub fn index_from_socket(
                 }
             }
         }
+        update_channel.send(Ok(IndexingProgress::Finished))?;
         Ok(())
     })
 }
@@ -176,7 +178,6 @@ impl futures::Stream for UdpMessageProducer {
         }
     }
 }
-
 pub fn receive_from_socket() -> Result<Option<Message>, DltParseError> {
     // let (out_file, current_out_file_size) = utils::get_out_file_and_size(append, &out_path)?;
     // let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
@@ -186,7 +187,6 @@ pub fn receive_from_socket() -> Result<Option<Message>, DltParseError> {
         let multi_addr = Ipv4Addr::new(234, 2, 2, 2);
         let inter = Ipv4Addr::new(0, 0, 0, 0);
         socket.join_multicast_v4(multi_addr, inter)?;
-
         let (_amt, _src) = socket.recv_from(&mut buf).await?;
         let m = dlt_message(&buf, None, 0, None, None, false).unwrap().1;
         Ok(m)
