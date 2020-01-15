@@ -34,9 +34,8 @@ export class DLTConnectionController extends EventEmitter {
     private _dlt: IDLTOptions;
     private _session: string;
     private _logger: Logger;
-    private _task: CancelablePromise<void, void, DLT.TIndexDltAsyncEvents, DLT.TIndexDltAsyncEventObject> | undefined;
+    private _task: CancelablePromise<void, void, DLT.TDLTSocketEvents, DLT.TDLTSocketEventObject> | undefined;
     private _bytes: number = 0;
-    private _connected: boolean = false;
 
     constructor(session: string, connection: IConnectionOptions, dlt?: IDLTOptions) {
         super();
@@ -106,14 +105,11 @@ export class DLTConnectionController extends EventEmitter {
                 this._logger.warn(`Exception: ${error.message}`);
                 this.emit(DLTConnectionController.Events.error, error);
             }).finally(() => {
-                this._connected = false;
                 this._task = undefined;
                 this.emit(DLTConnectionController.Events.disconnect);
+            }).on('connect', () => {
+                this.emit(DLTConnectionController.Events.connect);
             }).on('chunk', (event: Progress.IChunk) => {
-                if (!this._connected) {
-                    this._connected = true;
-                    this.emit(DLTConnectionController.Events.connect);
-                }
                 ServiceStreams.pushToStreamFileMap(streamInfo.streamId, [{
                     rows: { from: event.rowsStart, to: event.rowsEnd },
                     bytes: { from: event.bytesStart, to: event.bytesEnd },

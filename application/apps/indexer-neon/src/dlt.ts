@@ -229,15 +229,26 @@ export function indexDltAsync(
 	});
 }
 
+export type TDLTSocketEvents = 'chunk' | 'progress' | 'notification' | 'connect';
+export type TDLTSocketEventChunk = (event: IChunk) => void;
+export type TDLTSocketEventConnect = () => void;
+export type TDLTSocketEventProgress = (event: ITicks) => void;
+export type TDLTSocketEventNotification = (event: INeonNotification) => void;
+export type TDLTSocketEventObject =
+	| TDLTSocketEventChunk
+	| TDLTSocketEventConnect
+	| TDLTSocketEventProgress
+	| TDLTSocketEventNotification;
+
 export function dltOverSocket(
 	params: IDltSocketParams,
 	socketConfig: ISocketConfig,
-): CancelablePromise<void, void, TIndexDltAsyncEvents, TIndexDltAsyncEventObject> {
+): CancelablePromise<void, void, TDLTSocketEvents, TDLTSocketEventObject> {
 	return new CancelablePromise<
 		void,
 		void,
-		TIndexDltAsyncEvents,
-		TIndexDltAsyncEventObject
+		TDLTSocketEvents,
+		TDLTSocketEventObject
 	>((resolve, reject, cancel, refCancelCB, self) => {
 		log(`dltOverSocket: params: ${JSON.stringify(params)}`);
 		try {
@@ -262,13 +273,17 @@ export function dltOverSocket(
 			let chunks: number = 0;
 			// Add listenters
 			emitter.on(NativeEventEmitter.EVENTS.GotItem, (c: INeonTransferChunk) => {
-				self.emit('chunk', {
-					bytesStart: c.b[0],
-					bytesEnd: c.b[1],
-					rowsStart: c.r[0],
-					rowsEnd: c.r[1]
-				});
-				chunks += 1;
+				if (c.b[0] === 0 && c.b[1] === 0) {
+					self.emit('connect');
+				} else {
+					self.emit('chunk', {
+						bytesStart: c.b[0],
+						bytesEnd: c.b[1],
+						rowsStart: c.r[0],
+						rowsEnd: c.r[1]
+					});
+					chunks += 1;
+				}
 			});
 			emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
 				self.emit('progress', ticks);
