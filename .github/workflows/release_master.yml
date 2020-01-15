@@ -50,10 +50,11 @@ jobs:
           APPLEID: ${{ secrets.APPLEID }}
           APPLEIDPASS: ${{ secrets.APPLEIDPASS }}
           SIGNING_ID: ${{ secrets.SIGNING_ID }}
+          SKIP_NOTARIZE: true
       - run: ls
       - name: Release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') && !startsWith(matrix.os, 'macOS')
         with:
           files: "*.tgz"
           draft: true
