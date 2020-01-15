@@ -79,7 +79,7 @@ export class DLTConnectionController extends EventEmitter {
             };
             // Creating source alias
             const sourceName: string = `${this._connection.bindingAddress}:${this._connection.bindingPort}`;
-            const sourceId: number = ServiceStreamSource.add({ name: sourceName, session: this._session });
+            const sourceId: number = ServiceStreamSource.add({ name: sourceName, session: this._session, meta: 'dlt' });
             // Get stream file
             const streamInfo = ServiceStreams.getStreamFile(this._session);
             if (streamInfo instanceof Error) {
@@ -89,7 +89,7 @@ export class DLTConnectionController extends EventEmitter {
             const params: DLT.IDltSocketParams = {
                 filterConfig: this._dlt.filters,
                 fibex: this._dlt.fibex,
-                tag: sourceId.toString(),
+                tag: `${sourceId}`,
                 out: streamInfo.file,
                 append: this._dlt.append as boolean,
                 stdout: this._dlt.stdout as boolean,

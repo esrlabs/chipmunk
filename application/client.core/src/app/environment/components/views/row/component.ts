@@ -14,6 +14,7 @@ import { AOutputRenderComponent } from '../../../interfaces/interface.output.ren
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { ENotificationType } from '../../../../../../../common/ipc/electron.ipc.messages/index';
+import { CSourceSignatureRegExp } from '../../../controller/helpers/row.helpers';
 
 enum ERenderType {
     standard = 'standard',
@@ -62,6 +63,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     public _ng_error: string | undefined;
 
     private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = {};
+    private _sourceMeta: string | undefined;
     private _destroyed: boolean = false;
     private _subjects: {
         update: Subject<{ [key: string]: any }>
@@ -114,6 +116,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         } else {
             this._ng_sourceName = sourceName;
         }
+        this._sourceMeta = SourcesService.getSourceMeta(this.pluginId);
         this._ng_source = this.sources.isVisible();
         this._subscriptions.onRankChanged = this.controller.getObservable().onRankChanged.subscribe(this._onRankChanged);
         this._subscriptions.onAddedBookmark = this.bookmarks.getObservable().onAdded.subscribe(this._onAddedBookmark.bind(this));
@@ -238,7 +241,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         this._ng_sourceColor = SourcesService.getSourceColor(this.pluginId);
         this._ng_number = this._getPosition().toString();
         this._ng_number_filler = this._getNumberFiller();
-        const render: Toolkit.ATypedRowRender<any> | undefined = OutputParsersService.getTypedRowRender(this._ng_sourceName);
+        const render: Toolkit.ATypedRowRender<any> | undefined = OutputParsersService.getTypedRowRender(this._ng_sourceName, this._sourceMeta);
         if (render === undefined) {
             this._ng_render = ERenderType.standard;
             return this._updateRenderComp();

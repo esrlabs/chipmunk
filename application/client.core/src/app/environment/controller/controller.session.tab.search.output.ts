@@ -1,11 +1,14 @@
 import { IPCMessages } from '../services/service.electron.ipc';
 import { Observable, Subject, Subscription } from 'rxjs';
-import * as Toolkit from 'chipmunk.client.toolkit';
 import { ControllerSessionTabStreamOutput } from '../controller/controller.session.tab.stream.output';
 import { ControllerSessionTabStreamBookmarks, IBookmark } from './controller.session.tab.stream.bookmarks';
 import { ControllerSessionTabSourcesState } from './controller.session.tab.sources.state';
 import { ControllerSessionScope } from './controller.session.tab.scope';
+import { extractPluginId, extractRowPosition, clearRowStr } from './helpers/row.helpers';
+
 import OutputRedirectionsService from '../services/standalone/service.output.redirections';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 export type TRequestDataHandler = (start: number, end: number) => Promise<IPCMessages.StreamChunk>;
 
@@ -532,10 +535,10 @@ export class ControllerSessionTabSearchOutput {
                         return;
                     }
                 }
-                const position: number = this._extractRowPosition(str); // Get position
-                const pluginId: number = this._extractPluginId(str);    // Get plugin id
+                const position: number = extractRowPosition(str); // Get position
+                const pluginId: number = extractPluginId(str);    // Get plugin id
                 packets.push({
-                    str: this._clearRowStr(str),
+                    str: clearRowStr(str),
                     position: from + i,
                     positionInStream: position,
                     pluginId: pluginId,
@@ -629,42 +632,6 @@ export class ControllerSessionTabSearchOutput {
         // Setup parameters of starage
         this._state.stored.start = this._getFirstPosNotBookmarkedRow().position;
         this._state.stored.end = this._getLastPosNotBookmarkedRow().position;
-    }
-
-    /**
-     * Extracts row number in stream
-     * @param { string } rowStr - row string data
-     * @returns number
-     */
-    private _extractRowPosition(rowStr: string): number {
-        const value: RegExpMatchArray | null = rowStr.match(/\u0002(\d*)\u0002/gi);
-        if (value === null || value.length !== 1) {
-            return -1;
-        }
-        return parseInt(value[0].substring(1, value[0].length - 1), 10);
-    }
-
-    /**
-     * Extracts from row string data plugin ID (id of data source)
-     * @param { string } rowStr - row string data
-     * @returns number
-     */
-    private _extractPluginId(rowStr: string): number {
-        const value: RegExpMatchArray | null = rowStr.match(/\u0003(\d*)\u0003/gi);
-        if (value === null || value.length !== 1) {
-            return -1;
-        }
-        return parseInt(value[0].substring(1, value[0].length - 1), 10);
-    }
-
-    /**
-     * Remove from row's string all markers (marker of plugin, marker of row's number)
-     * Returns cleared row's string.
-     * @param { string } rowStr - row string data
-     * @returns string
-     */
-    private _clearRowStr(rowStr: string): string {
-        return rowStr.replace(/\u0002(\d*)\u0002/gi, '').replace(/\u0003(\d*)\u0003/gi, '');
     }
 
     private _setTotalStreamCount(count: number) {

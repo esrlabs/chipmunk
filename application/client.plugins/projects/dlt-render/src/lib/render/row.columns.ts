@@ -1,11 +1,14 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
 import { DLTRowColumnsAPI } from './row.columns.api';
 
-export function isDLTSource(sourceName: string): boolean {
+export function isDLTSource(sourceName: string, sourceMeta?: string): boolean {
     if (typeof sourceName !== 'string') {
         return false;
     }
-    if (sourceName.search(/\.dlt$/gi) === -1) {
+    if (typeof sourceMeta === 'string' && sourceMeta.toLowerCase().indexOf('dlt') === 0) {
+        return true;
+    }
+    if (sourceName.search(/\.dlt$/gi) === -1 && sourceName.search(/\u0011dlt\u0011/gi) === -1) {
         return false;
     }
     return true;
@@ -23,8 +26,8 @@ export class DLTRowColumns extends Toolkit.ATypedRowRender<DLTRowColumnsAPI> {
         return Toolkit.ETypedRowRenders.columns;
     }
 
-    public isTypeMatch(sourceName: string): boolean {
-        return isDLTSource(sourceName);
+    public isTypeMatch(sourceName: string, sourceMeta?: string): boolean {
+        return isDLTSource(sourceName, sourceMeta);
     }
 
     public getAPI(): DLTRowColumnsAPI {

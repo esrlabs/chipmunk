@@ -2,6 +2,7 @@ export interface IStreamSourceNew {
     id: number;
     name: string;
     session: string;
+    meta?: string;
 }
 
 export class StreamSourceNew {
@@ -10,6 +11,7 @@ export class StreamSourceNew {
     public id: number;
     public name: string;
     public session: string;
+    public meta?: string;
 
     constructor(params: IStreamSourceNew) {
         if (typeof params !== 'object' || params === null) {
@@ -27,5 +29,6 @@ export class StreamSourceNew {
         this.id = params.id;
         this.name = params.name;
         this.session = params.session;
+        this.meta = params.meta;
     }
 }
