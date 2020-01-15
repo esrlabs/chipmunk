@@ -217,6 +217,18 @@ export { HotkeyInputIn };
 import { HotkeyInputOut } from './hotkey.input.out';
 export { HotkeyInputOut };
 
+import { IDLTDeamonDisconnectRequest, DLTDeamonDisconnectRequest } from './dlt.deamon.disconnect.request';
+export { IDLTDeamonDisconnectRequest, DLTDeamonDisconnectRequest };
+
+import { IDLTDeamonDisconnectResponse, DLTDeamonDisconnectResponse } from './dlt.deamon.disconnect.response';
+export { IDLTDeamonDisconnectResponse, DLTDeamonDisconnectResponse };
+
+import { IDLTDeamonConnectRequest, DLTDeamonConnectRequest } from './dlt.deamon.connect.request';
+export { IDLTDeamonConnectRequest, DLTDeamonConnectRequest };
+
+import { IDLTDeamonConnectResponse, DLTDeamonConnectResponse } from './dlt.deamon.connect.response';
+export { IDLTDeamonConnectResponse, DLTDeamonConnectResponse };
+
 import { IDLTStatsCancelRequest, DLTStatsCancelRequest } from './dlt.filestats.cancel.request';
 export { IDLTStatsCancelRequest, DLTStatsCancelRequest };
 
@@ -325,6 +337,10 @@ export type TMessage =  HostState |
                         HotkeyInputIn |
                         HotkeyInputOut |
                         HotkeyResume |
+                        DLTDeamonDisconnectRequest |
+                        DLTDeamonDisconnectResponse |
+                        DLTDeamonConnectRequest |
+                        DLTDeamonConnectResponse |
                         DLTStatsRequest |
                         DLTStatsResponse |
                         DLTStatsCancelRequest |
@@ -427,6 +443,10 @@ export const Map = {
     [HotkeyInputIn.signature                ]: HotkeyInputIn,
     [HotkeyInputOut.signature               ]: HotkeyInputOut,
 
+    [DLTDeamonDisconnectRequest.signature   ]: DLTDeamonDisconnectRequest,
+    [DLTDeamonDisconnectResponse.signature  ]: DLTDeamonDisconnectResponse,
+    [DLTDeamonConnectRequest.signature      ]: DLTDeamonConnectRequest,
+    [DLTDeamonConnectResponse.signature     ]: DLTDeamonConnectResponse,
     [DLTStatsRequest.signature              ]: DLTStatsRequest,
     [DLTStatsResponse.signature             ]: DLTStatsResponse,
     [DLTStatsCancelRequest.signature        ]: DLTStatsCancelRequest,

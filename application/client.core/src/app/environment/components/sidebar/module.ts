@@ -12,6 +12,9 @@ import { SidebarAppConcatFilesComponent         } from './concat/component';
 import { SidebarAppSearchManagerModule          } from './search.manager/module';
 import { SidebarAppSearchManagerComponent       } from './search.manager/component';
 
+import { SidebarAppDLTConnectorModule           } from './dlt.connector/module';
+import { SidebarAppDLTConnectorComponent        } from './dlt.connector/component';
+
 import { SidebarAppNotificationsModule          } from '../views/notifications/module';
 import { SidebarAppNotificationsComponent       } from '../views/notifications/component';
 
@@ -24,7 +27,8 @@ import { SidebarAppNotificationsComponent       } from '../views/notifications/c
         SidebarAppSearchManagerModule,
         SidebarAppParsingModule,
         SidebarAppNotificationsModule,
-        SidebarAppConcatFilesModule
+        SidebarAppConcatFilesModule,
+        SidebarAppDLTConnectorModule
     ]
 })
 

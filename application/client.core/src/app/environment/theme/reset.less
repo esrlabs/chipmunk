@@ -1,13 +1,19 @@
 @import './colors.less';
 
-*:not(.noreset){
-    font-family: 'primary';
+body, p, h1, h2, h3, h4, h5, h6, ul, li {
     padding: 0;
     margin: 0;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    color: @scheme-color-1;
-    user-select: none;
+}
+
+*:not(.noreset){
+    &:not(*[class^="mat-"]){
+        font-family: 'primary';
+
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        color: @scheme-color-1;
+        /*user-select: none;*/
+    }
 }
 .noreset:not(.basicreset) * {
     font-family: 'console';

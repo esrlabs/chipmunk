@@ -1,6 +1,7 @@
 import { SidebarAppSearchManagerComponent } from '../components/sidebar/search.manager/component';
 import { SidebarAppMergeFilesComponent } from '../components/sidebar/merge/component';
 import { SidebarAppConcatFilesComponent } from '../components/sidebar/concat/component';
+import { SidebarAppDLTConnectorComponent } from '../components/sidebar/dlt.connector/component';
 import { ITab } from 'chipmunk-client-complex';
 
 export { ITab };
@@ -9,7 +10,7 @@ export const CGuids = {
     search: 'search',
     merging: 'merging',
     concat: 'concat',
-    charts: 'charts',
+    dltdeamon: 'dltdeamon',
 };
 
 export interface IDefaultSidebarApp {
@@ -53,6 +54,20 @@ export const DefaultSidebarApps: IDefaultSidebarApp[] = [
             name: 'Concat',
             content: {
                 factory: SidebarAppConcatFilesComponent,
+                resolved: false,
+                inputs: {},
+            },
+            closable: true,
+            active: true,
+        }
+    },
+    {
+        addedAsDefault: false,
+        tab: {
+            guid: CGuids.dltdeamon,
+            name: 'DLT Deamon',
+            content: {
+                factory: SidebarAppDLTConnectorComponent,
                 resolved: false,
                 inputs: {},
             },
