@@ -14,6 +14,7 @@ interface IState {
     multicastInterface: string;
     binding: boolean;
     multicast: boolean;
+    state: 'progress' | 'connected' | 'disconnected';
 }
 
 interface IDLTDeamonSettings {
@@ -158,6 +159,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         }
         const state: IState | undefined = this._ng_session.getSessionsStates().get<IState>(this._getStateGuid());
         if (state) {
+            this._ng_state = state.state;
             this._ng_panels.binding = state.binding;
             this._ng_panels.multicast = state.multicast;
             this._ng_settings.bindingPort = state.bindingPort;
@@ -174,6 +176,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         this._ng_session.getSessionsStates().set<IState>(
             this._getStateGuid(),
             {
+                state: this._ng_state,
                 binding: this._ng_panels.binding,
                 multicast: this._ng_panels.multicast,
                 bindingPort: this._ng_settings.bindingPort,

@@ -46,8 +46,9 @@ export abstract class ARowTypedParser {
     /**
      * This method will be called for each line of stream before method "parse" will be called.
      * @param {string} sourceName - name of source
+     * @param {string} sourceMeta - optional description of source
      * @returns {boolean} - true - method "parse" will be called for this line; false - parser will be ignored
      */
-    public abstract isTypeMatch(sourceName: string): boolean;
+    public abstract isTypeMatch(sourceName: string, sourceMeta?: string): boolean;
 
 }

@@ -6,6 +6,7 @@ export type TSourceId = number;
 export interface ISource {
     name: string;
     session: string;
+    meta?: string;
 }
 
 export class ServiceStreamSources implements IService  {
@@ -57,6 +58,7 @@ export class ServiceStreamSources implements IService  {
             id: id,
             name: source.name,
             session: source.session,
+            meta: source.meta,
         })).catch((error: Error) => {
             this._logger.warn(`Fail to notify render about new source ("${name}") due error: ${error.message}`);
         });

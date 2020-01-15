@@ -4,12 +4,14 @@ import PluginsService, { IPluginData } from './service.plugins';
 import { IService } from '../interfaces/interface.service';
 
 export type TSourceId = number;
+
 export interface ISource {
     name: string;
     color: string;
     shadow: string;
     pluginId: number | undefined;
     session: string;
+    meta?: string;
 }
 
 export class SourcesService implements IService {
@@ -46,6 +48,14 @@ export class SourcesService implements IService {
             return undefined;
         }
         return data.name;
+    }
+
+    public getSourceMeta(id: TSourceId): string | undefined {
+        const data = this._sources.get(id);
+        if (data === undefined) {
+            return undefined;
+        }
+        return data.meta;
     }
 
     public getSourceColor(id: TSourceId): string | undefined {
@@ -102,6 +112,7 @@ export class SourcesService implements IService {
             shadow: `rgba(${r},${g},${b}, 0.15)`,
             pluginId: undefined,
             session: message.session,
+            meta: message.meta,
         });
         this._setCountOfSource();
     }

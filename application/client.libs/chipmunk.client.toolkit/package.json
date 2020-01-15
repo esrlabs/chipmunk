@@ -1,6 +1,6 @@
 {
   "name": "chipmunk.client.toolkit",
-  "version": "0.0.82",
+  "version": "0.0.83",
   "description": "Toolkit for developing render part of plugin of logviewer ",
   "main": "./dist/toolkit.js",
   "types": "./dist/toolkit.d.ts",
@@ -27,7 +27,9 @@
     "webpack": "^4.41.2",
     "webpack-cli": "^3.3.9"
   },
-  "dependencies": {},
+  "dependencies": {
+    "build": "^0.1.4"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/esrlabs/chipmunk.git"

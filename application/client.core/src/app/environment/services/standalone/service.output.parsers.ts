@@ -121,8 +121,8 @@ export class OutputParsersService {
         this._charts.delete(sessionId);
     }
 
-    public getTypedRowRender(sourceName: string): Toolkit.ATypedRowRender<any> | undefined {
-        return this._getTypedRowRenderBySource(sourceName);
+    public getTypedRowRender(sourceName: string, sourceMeta?: string): Toolkit.ATypedRowRender<any> | undefined {
+        return this._getTypedRowRenderBySource(sourceName, sourceMeta);
     }
 
     public row(row: IRow): string {
@@ -338,25 +338,26 @@ export class OutputParsersService {
         return render;
     }
 
-    private _getTypedRowRenderBySource(sourceName: string): Toolkit.ATypedRowRender<any> | undefined {
-        if (this._typedRowRendersHistory.sources.indexOf(sourceName) !== -1) {
-            const storedGuid: string | undefined = this._typedRowRendersHistory.aliases.get(sourceName);
+    private _getTypedRowRenderBySource(sourceName: string, sourceMeta?: string): Toolkit.ATypedRowRender<any> | undefined {
+        const hash: string = sourceName + (typeof sourceMeta === 'string' ? sourceMeta : '');
+        if (this._typedRowRendersHistory.sources.indexOf(hash) !== -1) {
+            const storedGuid: string | undefined = this._typedRowRendersHistory.aliases.get(hash);
             if (storedGuid === undefined) {
                 return undefined;
             }
             return this._typedRowRenders.get(storedGuid);
         }
-        this._typedRowRendersHistory.sources.push(sourceName);
+        this._typedRowRendersHistory.sources.push(hash);
         let guid: string | undefined;
         this._typedRowRenders.forEach((typedRowComponent: any, alias: string) => {
-            if (typedRowComponent.isTypeMatch(sourceName)) {
+            if (typedRowComponent.isTypeMatch(sourceName, sourceMeta)) {
                 guid = alias;
             }
         });
         if (guid === undefined) {
             return undefined;
         }
-        this._typedRowRendersHistory.aliases.set(sourceName, guid);
+        this._typedRowRendersHistory.aliases.set(hash, guid);
         return this._typedRowRenders.get(guid);
     }
 
