@@ -1,3 +1,7 @@
+import { IConnectionOptions } from '../controllers/connections/dlt.connection';
+
+export { IConnectionOptions };
+
 export interface IRecentFile {
     file: string;
     filename: string;
@@ -23,10 +27,12 @@ export interface IStorage {
     recentFiles: IRecentFile[];
     recentFiltersFiles: IRecentFilterFile[];
     recentSearchRequests: IRecentSearchRequest[];
+    recentDLTConnectorSettings: IConnectionOptions[];
 }
 
 export const defaults: IStorage = {
     recentFiles: [],
     recentFiltersFiles: [],
     recentSearchRequests: [],
+    recentDLTConnectorSettings: [],
 };

@@ -6,6 +6,7 @@ import { SidebarAppDLTConnectorComponent        } from './component';
 
 import { PrimitiveModule                        } from 'chipmunk-client-primitive';
 import { ContainersModule                       } from 'chipmunk-client-containers';
+import { AppDirectiviesModule                   } from '../../../directives/module';
 
 import {
     FormsModule,
@@ -16,6 +17,7 @@ import {
     MatButtonModule,
     MatProgressBarModule,
     MatCheckboxModule,
+    MatAutocompleteModule
 
 } from '@angular/material';
 
@@ -35,7 +37,9 @@ const components = [ ...entryComponents ];
         FormsModule,
         ReactiveFormsModule,
         MatProgressBarModule,
-        MatCheckboxModule
+        MatCheckboxModule,
+        MatAutocompleteModule,
+        AppDirectiviesModule
     ],
     declarations    : [ ...components ],
     exports         : [ ...components ]

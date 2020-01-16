@@ -4,16 +4,10 @@ import ServiceStreamSource from '../../services/service.stream.sources';
 import ServiceNotifications from "../../services/service.notifications";
 
 import indexer, { Progress, DLT, CancelablePromise } from "indexer-neon";
-
+import { IDLTDeamonConnectionOptions as IConnectionOptions } from '../../../../common/ipc/electron.ipc.messages/dlt.deamon.recent.response';
 import { EventEmitter } from 'events';
 
-export interface IConnectionOptions {
-    ecu: string;
-    bindingAddress: string;
-    bindingPort: string;
-    multicastAddress: string;
-    multicastInterface: string;
-}
+export { IConnectionOptions };
 
 export interface IDLTOptions {
     filters: DLT.DltFilterConf;
