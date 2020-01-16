@@ -8,6 +8,7 @@ import indexer, { Progress, DLT, CancelablePromise } from "indexer-neon";
 import { EventEmitter } from 'events';
 
 export interface IConnectionOptions {
+    ecu: string;
     bindingAddress: string;
     bindingPort: string;
     multicastAddress: string;
@@ -33,12 +34,14 @@ export class DLTConnectionController extends EventEmitter {
     private _connection: IConnectionOptions;
     private _dlt: IDLTOptions;
     private _session: string;
+    private _guid: string;
     private _logger: Logger;
     private _task: CancelablePromise<void, void, DLT.TDLTSocketEvents, DLT.TDLTSocketEventObject> | undefined;
     private _bytes: number = 0;
 
-    constructor(session: string, connection: IConnectionOptions, dlt?: IDLTOptions) {
+    constructor(guid: string, session: string, connection: IConnectionOptions, dlt?: IDLTOptions) {
         super();
+        this._guid = guid;
         this._session = session;
         this._connection = connection;
         this._dlt = {
@@ -58,6 +61,9 @@ export class DLTConnectionController extends EventEmitter {
 
     public connect(): Promise<void> {
         return new Promise((resolve, reject) => {
+            if (typeof this._connection.ecu !== 'string' || this._connection.ecu.trim() === '') {
+                return reject(new Error(`ecu isn't defined in options, value: ${this._connection.ecu}`));
+            }
             if (typeof this._connection.bindingAddress !== 'string' || this._connection.bindingAddress.trim() === '') {
                 return reject(new Error(`bindingAddress isn't defined in options, value: ${this._connection.bindingAddress}`));
             }
@@ -78,7 +84,7 @@ export class DLTConnectionController extends EventEmitter {
                 multicast_addr: multicast,
             };
             // Creating source alias
-            const sourceName: string = `${this._connection.bindingAddress}:${this._connection.bindingPort}`;
+            const sourceName: string = `${this._connection.ecu}::${this._connection.bindingAddress}:${this._connection.bindingPort}`;
             const sourceId: number = ServiceStreamSource.add({ name: sourceName, session: this._session, meta: 'dlt' });
             // Get stream file
             const streamInfo = ServiceStreams.getStreamFile(this._session);
@@ -97,7 +103,7 @@ export class DLTConnectionController extends EventEmitter {
             };
             // Connecting
             this._logger.info(`Connecting`);
-            this._task = indexer.dltOverSocket("UDP-ECU", params, socket).then(() => {
+            this._task = indexer.dltOverSocket(this._connection.ecu, params, socket).then(() => {
                 this._logger.info(`Disconnected`);
             }).canceled(() => {
                 this._logger.info(`Task was canceled`);

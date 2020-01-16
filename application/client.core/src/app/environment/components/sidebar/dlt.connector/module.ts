@@ -15,6 +15,8 @@ import {
     MatInputModule,
     MatButtonModule,
     MatProgressBarModule,
+    MatCheckboxModule,
+
 } from '@angular/material';
 
 const entryComponents = [ SidebarAppDLTConnectorComponent ];
@@ -33,6 +35,7 @@ const components = [ ...entryComponents ];
         FormsModule,
         ReactiveFormsModule,
         MatProgressBarModule,
+        MatCheckboxModule
     ],
     declarations    : [ ...components ],
     exports         : [ ...components ]

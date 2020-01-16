@@ -1,11 +1,8 @@
 import ServiceElectron, { IPCMessages } from "../service.electron";
 import Logger from "../../tools/env.logger";
-import * as Tools from "../../tools/index";
 import { Subscription } from "../../tools/index";
 import { IService } from "../../interfaces/interface.service";
-import indexer, { Progress, DLT, CancelablePromise } from "indexer-neon";
 import ServiceStreams from "../service.streams";
-import ServiceStreamSource from '../service.stream.sources';
 import { DLTConnectionController } from '../../controllers/connections/dlt.connection';
 
 /**
@@ -17,7 +14,7 @@ class ServiceDLTDeamonConnector implements IService {
 
     private _logger: Logger = new Logger("ServiceDLTDeamonConnector");
     // Should detect by executable file
-    private _subscription: { [key: string]: Subscription } = {};
+    private _subscriptions: { [key: string]: Subscription } = {};
     private _connections: Map<string, DLTConnectionController> = new Map();
 
     /**
@@ -26,12 +23,13 @@ class ServiceDLTDeamonConnector implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
+            this._subscriptions.onSessionClosed = ServiceStreams.getSubjects().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
             Promise.all([
                 ServiceElectron.IPC.subscribe(IPCMessages.DLTDeamonConnectRequest, this._onDLTDeamonConnectRequest.bind(this)).then((subscription: Subscription) => {
-                    this._subscription.DLTDeamonConnectRequest = subscription;
+                    this._subscriptions.DLTDeamonConnectRequest = subscription;
                 }),
                 ServiceElectron.IPC.subscribe(IPCMessages.DLTDeamonDisconnectRequest, this._onDLTDeamonDisconnectRequest.bind(this)).then((subscription: Subscription) => {
-                    this._subscription.DLTDeamonDisconnectRequest = subscription;
+                    this._subscriptions.DLTDeamonDisconnectRequest = subscription;
                 }),
             ]).then(() => {
                 resolve();
@@ -44,8 +42,8 @@ class ServiceDLTDeamonConnector implements IService {
 
     public destroy(): Promise<void> {
         return new Promise(resolve => {
-            Object.keys(this._subscription).forEach((key: string) => {
-                this._subscription[key].destroy();
+            Object.keys(this._subscriptions).forEach((key: string) => {
+                this._subscriptions[key].destroy();
             });
             Promise.all(Array.from(this._connections.values()).map((connection: DLTConnectionController) => {
                 return connection.destroy();
@@ -75,8 +73,10 @@ class ServiceDLTDeamonConnector implements IService {
         }
         // Create connection
         const connection: DLTConnectionController = new DLTConnectionController(
+            req.id,
             req.session,
             {
+                ecu: req.ecu,
                 bindingAddress: req.bindingAddress,
                 bindingPort: req.bindingPort,
                 multicastInterface: req.multicastInterface,
@@ -106,6 +106,12 @@ class ServiceDLTDeamonConnector implements IService {
                         session: req.session,
                     }),
                 );
+                ServiceElectron.IPC.send(new IPCMessages.DLTDeamonConnectEvent({
+                    id: req.id,
+                    session: req.session,
+                })).catch((error: Error) => {
+                    this._logger.warn(`Fail to notify front-end about connection due error: ${error.message}`);
+                });
                 this._logger.info(`connected`);
                 state.connected = true;
             });
@@ -114,6 +120,12 @@ class ServiceDLTDeamonConnector implements IService {
                 this._logger.info(`disconnected`);
                 connection.removeAllListeners();
                 this._connections.delete(req.session);
+                ServiceElectron.IPC.send(new IPCMessages.DLTDeamonDisconnectEvent({
+                    id: req.id,
+                    session: req.session,
+                })).catch((error: Error) => {
+                    this._logger.warn(`Fail to notify front-end about disconnection due error: ${error.message}`);
+                });
             });
             // Lsiten for error
             connection.once(DLTConnectionController.Events.error, (error: Error) => {
@@ -158,6 +170,12 @@ class ServiceDLTDeamonConnector implements IService {
         connection.destroy().then(() => {
             connection.removeAllListeners();
             this._connections.delete(req.session);
+            ServiceElectron.IPC.send(new IPCMessages.DLTDeamonDisconnectEvent({
+                id: req.id,
+                session: req.session,
+            })).catch((error: Error) => {
+                this._logger.warn(`Fail to notify front-end about disconnection due error: ${error.message}`);
+            });
             return response(
                 new IPCMessages.DLTDeamonConnectResponse({
                     id: req.id,
@@ -174,6 +192,20 @@ class ServiceDLTDeamonConnector implements IService {
             );
         });
     }
+
+    private _onSessionClosed(guid: string) {
+        // Checking for active task
+        const connection: DLTConnectionController | undefined = this._connections.get(guid);
+        if (connection === undefined) {
+            return;
+        }
+        connection.destroy().then(() => {
+            this._connections.delete(guid);
+        }).catch((error: Error) => {
+            this._logger.error(`Fail to disconnect in scope of the session "${guid}" due error: ${error.message}`);
+        });
+    }
+
 }
 
 export default new ServiceDLTDeamonConnector();
