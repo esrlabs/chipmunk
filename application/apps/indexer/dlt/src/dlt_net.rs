@@ -1,3 +1,4 @@
+use std::time::{SystemTime, UNIX_EPOCH};
 use indexer_base::chunks::Chunk;
 use crate::dlt_parse::*;
 use crate::dlt::*;
@@ -25,11 +26,10 @@ pub fn index_from_socket(
     fibex_metadata: Option<Rc<FibexMetadata>>,
     append: bool,
     tag: &str,
+    ecu_id: String,
     out_path: &std::path::PathBuf,
     initial_line_nr: usize,
     shutdown_receiver: async_std::sync::Receiver<()>,
-    // socket_addr: &str, // local socket bind address with port, e.g. "0.0.0.0:8888"
-    // ip_address: &str,  // multicast address
 ) -> Result<(), Error> {
     trace!("index_from_socket for socket conf: {:?}", socket_config);
     let (out_file, current_out_file_size) = utils::get_out_file_and_size(append, out_path)?;
@@ -51,29 +51,34 @@ pub fn index_from_socket(
             socket.join_multicast_v4(multi_addr, inter)?;
         }
         trace!("created socket...");
+        // send (0,0),(0,0) to indicate connection established
         update_channel.send(Ok(IndexingProgress::GotItem {
             item: Chunk {
                 r: (0, 0),
                 b: (0, 0),
             },
         }))?;
-        let p = UdpMessageProducer {
+        let udp_msg_producer = UdpMessageProducer {
             socket,
             update_channel: update_channel.clone(),
+            ecu_id,
             fibex_metadata,
             filter_config,
         };
+        // listen for both a shutdown request and incomming messages
+        // to do this we need to select over streams of the same type
+        // the type we use to unify is this Event enum
         enum Event {
             Shutdown,
             Msg(Result<Option<Message>, DltParseError>),
         }
-        let rec = shutdown_receiver.map(|_| {
+        let shutdown_stream = shutdown_receiver.map(|_| {
             debug!("shutdown_receiver event");
             Event::Shutdown
         });
-        let p_event = p.map(Event::Msg);
-        let mut f = futures::stream::select(p_event, rec);
-        while let Some(event) = f.next().await {
+        let message_stream = udp_msg_producer.map(Event::Msg);
+        let mut event_stream = futures::stream::select(message_stream, shutdown_stream);
+        while let Some(event) = event_stream.next().await {
             let maybe_msg = match event {
                 Event::Shutdown => {
                     debug!("received shutdown through future channel");
@@ -111,27 +116,9 @@ pub fn index_from_socket(
 struct UdpMessageProducer {
     socket: UdpSocket,
     update_channel: cc::Sender<ChunkResults>,
+    ecu_id: String,
     fibex_metadata: Option<Rc<FibexMetadata>>,
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
-}
-impl UdpMessageProducer {
-    #[allow(dead_code)]
-    async fn new(
-        update_channel: &cc::Sender<ChunkResults>,
-        filter_config: Option<filtering::ProcessedDltFilterConfig>,
-        fibex_metadata: Option<Rc<FibexMetadata>>,
-    ) -> Result<UdpMessageProducer, std::io::Error> {
-        let socket = UdpSocket::bind("0.0.0.0:8888").await?;
-        let multi_addr = Ipv4Addr::new(234, 2, 2, 2);
-        let inter = Ipv4Addr::new(0, 0, 0, 0);
-        socket.join_multicast_v4(multi_addr, inter)?;
-        Ok(UdpMessageProducer {
-            socket,
-            update_channel: update_channel.clone(),
-            filter_config,
-            fibex_metadata,
-        })
-    }
 }
 impl futures::Stream for UdpMessageProducer {
     type Item = Result<Option<Message>, DltParseError>;
@@ -162,7 +149,26 @@ impl futures::Stream for UdpMessageProducer {
                 false,
             ) {
                 Ok((_, None)) => futures::task::Poll::Ready(None),
-                Ok((_, Some(m))) => futures::task::Poll::Ready(Some(Ok(Some(m)))),
+                Ok((_, Some(m))) => {
+                    let msg_with_storage_header = match m.storage_header {
+                        Some(_) => m,
+                        None => {
+                            let now = SystemTime::now();
+                            let since_the_epoch = now
+                                .duration_since(UNIX_EPOCH)
+                                .unwrap_or(std::time::Duration::from_secs(0));
+                            let in_ms = since_the_epoch.as_millis();
+                            Message {
+                                storage_header: Some(StorageHeader {
+                                    timestamp: DltTimeStamp::from_ms(in_ms as u64),
+                                    ecu_id: self.ecu_id.clone(),
+                                }),
+                                ..m
+                            }
+                        }
+                    };
+                    futures::task::Poll::Ready(Some(Ok(Some(msg_with_storage_header))))
+                }
                 Err(nom::Err::Incomplete(_n)) => futures::task::Poll::Pending,
                 Err(nom::Err::Error(_e)) => {
                     futures::task::Poll::Ready(Some(Err(DltParseError::ParsingHickup {
@@ -177,18 +183,4 @@ impl futures::Stream for UdpMessageProducer {
             }
         }
     }
-}
-pub fn receive_from_socket() -> Result<Option<Message>, DltParseError> {
-    // let (out_file, current_out_file_size) = utils::get_out_file_and_size(append, &out_path)?;
-    // let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
-    task::block_on(async {
-        let socket = UdpSocket::bind("0.0.0.0:8888").await?;
-        let mut buf = [0u8; 65535];
-        let multi_addr = Ipv4Addr::new(234, 2, 2, 2);
-        let inter = Ipv4Addr::new(0, 0, 0, 0);
-        socket.join_multicast_v4(multi_addr, inter)?;
-        let (_amt, _src) = socket.recv_from(&mut buf).await?;
-        let m = dlt_message(&buf, None, 0, None, None, false).unwrap().1;
-        Ok(m)
-    })
 }

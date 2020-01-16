@@ -771,7 +771,7 @@ fn main() {
             let shutdown_channel = async_std::sync::channel(1);
             let tag_string = tag.to_string();
             let multicast_conf = MulticastInfo {
-                multiaddr: "243.2.2.2".to_string(),
+                multiaddr: ip_address.to_string(),
                 interface: None,
             };
             let socket_conf = SocketConfig {
@@ -784,6 +784,7 @@ fn main() {
                     socket_conf,
                     append,
                     tag_string.as_str(),
+                    "myEcuId".to_string(),
                     &out_path,
                     filter_conf,
                     &tx,

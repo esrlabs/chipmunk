@@ -476,6 +476,7 @@ export function testSocketDlt(outPath: string) {
 			port: '8888'
 		};
 		const promise = dltOverSocket(
+			"myEcuId",
 			{
 				filterConfig,
 				fibex: undefined,

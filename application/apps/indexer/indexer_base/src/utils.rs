@@ -228,24 +228,6 @@ pub fn get_out_file_and_size(
     Ok((out_file, current_out_file_size))
 }
 
-#[inline]
-pub fn report_progress(
-    line_nr: usize,
-    current_byte_index: usize,
-    processed_bytes: usize,
-    source_file_size: usize,
-    progress_every_n_lines: usize,
-) {
-    if line_nr % progress_every_n_lines == 0 {
-        eprintln!(
-            "processed {} lines -- byte-index {} ({} %)",
-            line_nr,
-            current_byte_index,
-            (processed_bytes as f32 / source_file_size as f32 * 100.0).round()
-        );
-    }
-}
-
 pub fn get_processed_bytes(append: bool, out: &path::PathBuf) -> u64 {
     if append {
         match fs::metadata(out) {

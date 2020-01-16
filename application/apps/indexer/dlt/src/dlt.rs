@@ -47,6 +47,14 @@ pub struct DltTimeStamp {
     #[proptest(strategy = "0..=1_000_000u32")]
     pub microseconds: u32,
 }
+impl DltTimeStamp {
+    pub fn from_ms(ms: u64) -> Self {
+        DltTimeStamp {
+            seconds: (ms / 1000) as u32,
+            microseconds: (ms % 1000) as u32 * 1000,
+        }
+    }
+}
 impl fmt::Display for DltTimeStamp {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         let naive: Option<NaiveDateTime> =

@@ -97,7 +97,7 @@ export class DLTConnectionController extends EventEmitter {
             };
             // Connecting
             this._logger.info(`Connecting`);
-            this._task = indexer.dltOverSocket(params, socket).then(() => {
+            this._task = indexer.dltOverSocket("UDP-ECU", params, socket).then(() => {
                 this._logger.info(`Disconnected`);
             }).canceled(() => {
                 this._logger.info(`Task was canceled`);

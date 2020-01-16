@@ -50,6 +50,7 @@ impl SocketDltEventEmitter {
                 fibex_metadata,
                 thread_conf.append,
                 thread_conf.tag.as_str(),
+                thread_conf.ecu_id,
                 &thread_conf.out_path,
                 shutdown_rx,
             );
@@ -66,6 +67,7 @@ fn index_from_socket(
     fibex_metadata: Option<Rc<FibexMetadata>>,
     append: bool,
     tag: &str,
+    ecu_id: String,
     out_path: &std::path::PathBuf,
     shutdown_receiver: async_std::sync::Receiver<()>,
 ) {
@@ -74,6 +76,7 @@ fn index_from_socket(
         socket_conf,
         append,
         tag,
+        ecu_id,
         out_path,
         filter_conf,
         &update_channel,
@@ -91,15 +94,16 @@ declare_types! {
     pub class JsDltSocketEventEmitter for SocketDltEventEmitter {
         init(mut cx) {
             trace!("Rust: JsDltSocketEventEmitter");
-            let arg_socket_conf = cx.argument::<JsValue>(0)?;
+            let ecu_id = cx.argument::<JsString>(0)?.value();
+            let arg_socket_conf = cx.argument::<JsValue>(1)?;
             let socket_conf: SocketConfig = neon_serde::from_value(&mut cx, arg_socket_conf)?;
-            let tag = cx.argument::<JsString>(1)?.value();
-            let out_path = path::PathBuf::from(cx.argument::<JsString>(2)?.value().as_str());
-            let append: bool = cx.argument::<JsBoolean>(3)?.value();
-            let arg_filter_conf = cx.argument::<JsValue>(4)?;
+            let tag = cx.argument::<JsString>(2)?.value();
+            let out_path = path::PathBuf::from(cx.argument::<JsString>(3)?.value().as_str());
+            let append: bool = cx.argument::<JsBoolean>(4)?.value();
+            let arg_filter_conf = cx.argument::<JsValue>(5)?;
             let filter_conf: dlt::filtering::DltFilterConfig = neon_serde::from_value(&mut cx, arg_filter_conf)?;
             let mut fibex: Option<String> = None;
-            if let Some(arg) = cx.argument_opt(5) {
+            if let Some(arg) = cx.argument_opt(6) {
                 if arg.is_a::<JsString>() {
                     fibex = Some(arg.downcast::<JsString>().or_throw(&mut cx)?.value());
                 } else if arg.is_a::<JsUndefined>() {
@@ -122,6 +126,7 @@ declare_types! {
                     out_path,
                     append,
                     tag,
+                    ecu_id,
                 },
                 socket_conf,
                 Some(filter_conf),

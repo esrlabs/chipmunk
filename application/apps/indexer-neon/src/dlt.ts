@@ -241,6 +241,7 @@ export type TDLTSocketEventObject =
 	| TDLTSocketEventNotification;
 
 export function dltOverSocket(
+	ecuId: string,
 	params: IDltSocketParams,
 	socketConfig: ISocketConfig,
 ): CancelablePromise<void, void, TDLTSocketEvents, TDLTSocketEventObject> {
@@ -261,6 +262,7 @@ export function dltOverSocket(
 			});
 			// Create channel
 			const channel = new RustDltSocketChannel(
+				ecuId,
 				socketConfig,
 				params.tag,
 				params.out,
