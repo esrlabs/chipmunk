@@ -488,6 +488,12 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     private _onSearchUpdated(event: Toolkit.IEventSearchUpdate) {
+        if (this._ng_session === undefined) {
+            return;
+        }
+        if (this._ng_session.getGuid() !== event.session) {
+            return;
+        }
         if (!this._ng_isButtonsVisible()) {
             return;
         }
