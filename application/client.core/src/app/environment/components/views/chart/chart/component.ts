@@ -103,6 +103,14 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
+        if (this._ng_charts !== undefined) {
+            this._ng_charts.destroy();
+            this._ng_charts = undefined;
+        }
+        if (this._ng_filters !== undefined) {
+            this._ng_filters.destroy();
+            this._ng_filters = undefined;
+        }
     }
 
     public _ng_onClick(event: MouseEvent) {
@@ -139,6 +147,9 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
     }
 
     private _resize(force: boolean = false) {
+        if (this._destroyed) {
+            return;
+        }
         const size: ClientRect = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect();
         if (this._ng_width === size.width && this._ng_height === size.height) {
             return;
@@ -243,6 +254,9 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             this._ng_filters.data.datasets = datasets.dataset;
             this._ng_filters.options.scales.yAxes[0].ticks.max = Math.round(datasets.max + datasets.max * 0.1);
             setTimeout(() => {
+                if (this._destroyed) {
+                    return;
+                }
                 if (this._ng_filters === undefined) {
                     return;
                 }
@@ -313,6 +327,9 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             this._ng_charts.options.scales.xAxes[0].ticks.min = range.begin;
             this._ng_charts.options.scales.yAxes = this._getYAxes(datasets);
             setTimeout(() => {
+                if (this._destroyed) {
+                    return;
+                }
                 if (this._ng_charts === undefined) {
                     return;
                 }
