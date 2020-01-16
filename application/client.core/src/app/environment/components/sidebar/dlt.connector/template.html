@@ -1,4 +1,5 @@
 <mat-expansion-panel
+    (contextmenu)="_ng_onContexMenu($event)"
     (click)="_ng_onPanelClick()"
     [expanded]="_ng_panels.binding"
     (opened)="_ng_onPanelToggle('binding', true)"
@@ -12,7 +13,22 @@
         </mat-panel-description>
     </mat-expansion-panel-header>
     <mat-form-field>
-        <input matInput placeholder="ECU ID" [(ngModel)]="_ng_settings.ecu" [disabled]="_ng_state === 'disconnected' ? null : true" [errorStateMatcher]="_ng_errorStates.ecu">
+        <input
+            matInput
+            placeholder="ECU ID"
+            [(ngModel)]="_ng_settings.ecu"
+            (ngModelChange)="_ng_onECUChange($event)"
+            [disabled]="_ng_state === 'disconnected' ? null : true"
+            appMatAutocompleteScrollModificationAccessor
+            [optionHeight]="24"
+            [matAutocomplete]="auto"
+            [errorStateMatcher]="_ng_errorStates.ecu">
+        <mat-autocomplete #auto="matAutocomplete"
+            (optionSelected)="_ng_onRecentSelected($event)">
+            <mat-option *ngFor="let recent of _ng_recent" [value]="file" [attr.title]="recent" class="recent-requests small t-console t-small">
+                {{recent}}
+            </mat-option>
+        </mat-autocomplete>
         <mat-error *ngIf="_ng_errorStates.ecu.getErrorCode() === 'INVALID'">
             Use can use not more 4 symbols
         </mat-error>

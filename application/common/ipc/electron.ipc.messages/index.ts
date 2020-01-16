@@ -217,6 +217,18 @@ export { HotkeyInputIn };
 import { HotkeyInputOut } from './hotkey.input.out';
 export { HotkeyInputOut };
 
+import { DLTDeamonRecentDropRequest } from './dlt.deamon.recent.drop.request';
+export { DLTDeamonRecentDropRequest };
+
+import { DLTDeamonRecentDropResponse } from './dlt.deamon.recent.drop.response';
+export { DLTDeamonRecentDropResponse };
+
+import { DLTDeamonRecentRequest } from './dlt.deamon.recent.request';
+export { DLTDeamonRecentRequest };
+
+import { IDLTDeamonRecentResponse, DLTDeamonRecentResponse, IDLTDeamonConnectionOptions } from './dlt.deamon.recent.response';
+export { IDLTDeamonRecentResponse, DLTDeamonRecentResponse, IDLTDeamonConnectionOptions };
+
 import { IDLTDeamonConnectEvent, DLTDeamonConnectEvent } from './dlt.deamon.connect.event';
 export { IDLTDeamonConnectEvent, DLTDeamonConnectEvent };
 
@@ -343,6 +355,10 @@ export type TMessage =  HostState |
                         HotkeyInputIn |
                         HotkeyInputOut |
                         HotkeyResume |
+                        DLTDeamonRecentDropRequest |
+                        DLTDeamonRecentDropResponse |
+                        DLTDeamonRecentRequest |
+                        DLTDeamonRecentResponse |
                         DLTDeamonConnectEvent |
                         DLTDeamonDisconnectEvent |
                         DLTDeamonDisconnectRequest |
@@ -451,6 +467,10 @@ export const Map = {
     [HotkeyInputIn.signature                ]: HotkeyInputIn,
     [HotkeyInputOut.signature               ]: HotkeyInputOut,
 
+    [DLTDeamonRecentDropRequest.signature   ]: DLTDeamonRecentDropRequest,
+    [DLTDeamonRecentDropResponse.signature  ]: DLTDeamonRecentDropResponse,
+    [DLTDeamonRecentRequest.signature       ]: DLTDeamonRecentRequest,
+    [DLTDeamonRecentResponse.signature      ]: DLTDeamonRecentResponse,
     [DLTDeamonConnectEvent.signature        ]: DLTDeamonConnectEvent,
     [DLTDeamonDisconnectEvent.signature     ]: DLTDeamonDisconnectEvent,
     [DLTDeamonDisconnectRequest.signature   ]: DLTDeamonDisconnectRequest,

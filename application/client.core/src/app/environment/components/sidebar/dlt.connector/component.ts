@@ -1,5 +1,5 @@
 import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, AfterViewInit } from '@angular/core';
-import { ErrorStateMatcher } from '@angular/material';
+import { ErrorStateMatcher, MatAutocompleteSelectedEvent } from '@angular/material';
 import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
 import { Subscription, Subject } from 'rxjs';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
@@ -11,6 +11,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
 import SessionsService from '../../../services/service.sessions.tabs';
 import ConnectionsService, { IConnectEvent } from '../../../services/service.connections';
+import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
 
 interface IState {
     bindingAddress: string;
@@ -58,6 +59,15 @@ enum EDLTSettingsErrorCodes {
     REQUIRED = 'REQUIRED',
     INVALID = 'INVALID',
 }
+
+const CDefaulsDLTSettingsField = {
+    ecu: '',
+    bindingAddress: '',
+    bindingPort: '',
+    multicast: false,
+    multicastAddress: '',
+    multicastInterface: '0.0.0.0',
+};
 
 export class DLTDeamonSettingsErrorStateMatcher implements ErrorStateMatcher {
 
@@ -142,14 +152,15 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
 
     public _ng_session: ControllerSessionTab | undefined;
     public _ng_state: 'progress' | 'connected' | 'disconnected' = 'disconnected';
+    public _ng_recent: string[] = [];
     public _ng_settings: IDLTDeamonSettings = {
         connectionId: '',
-        ecu: '',
-        bindingAddress: '',
-        bindingPort: '',
-        multicast: false,
-        multicastAddress: '',
-        multicastInterface: '0.0.0.0',
+        ecu: CDefaulsDLTSettingsField.ecu,
+        bindingAddress: CDefaulsDLTSettingsField.bindingAddress,
+        bindingPort: CDefaulsDLTSettingsField.bindingPort,
+        multicast: CDefaulsDLTSettingsField.multicast,
+        multicastAddress: CDefaulsDLTSettingsField.multicastAddress,
+        multicastInterface: CDefaulsDLTSettingsField.multicastInterface,
     };
     public _ng_panels: {
         binding: boolean,
@@ -169,6 +180,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppDLTConnectorComponent');
     private _destroyed: boolean = false;
+    private _recent: IPCMessages.IDLTDeamonConnectionOptions[] = [];
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _notifications: NotificationsService) {
@@ -185,6 +197,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     }
 
     public ngAfterContentInit() {
+        this._loadRecent();
     }
 
     public ngAfterViewInit() {
@@ -233,6 +246,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
             multicastInterface: this._ng_settings.multicastInterface,
         }), IPCMessages.DLTDeamonConnectResponse).then((response: IPCMessages.DLTDeamonConnectResponse) => {
             this._ng_state = 'connected';
+            this._loadRecent();
             this._forceUpdate();
         }).catch((error: Error) => {
             this._ng_state = prevState;
@@ -284,6 +298,54 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
 
     public _ng_onMuliticastingStateChange() {
         this._forceUpdate();
+    }
+
+    public _ng_onECUChange(value: string) {
+        if (typeof value === 'string') {
+            this._ng_recent = this._recent.filter((options: IPCMessages.IDLTDeamonConnectionOptions) => {
+                return options.ecu.toLowerCase().includes(value.toLowerCase());
+            }).map((options: IPCMessages.IDLTDeamonConnectionOptions) => {
+                return options.ecu;
+            });
+        } else {
+            this._ng_recent = this._recent.map((options: IPCMessages.IDLTDeamonConnectionOptions) => {
+                return options.ecu;
+            });
+        }
+        this._forceUpdate();
+    }
+
+    public _ng_onRecentSelected(event: MatAutocompleteSelectedEvent) {
+        const ecu: string = event.option.viewValue;
+        if (typeof ecu !== 'string' || ecu.trim() === '') {
+            return;
+        }
+        this._ng_settings.ecu = ecu;
+        this._applyRecent(ecu);
+    }
+
+    public _ng_onContexMenu(event: MouseEvent) {
+        const items: IMenuItem[] = [
+            {
+                caption: `Clear Recent Options`,
+                handler: () => {
+                    ElectronIpcService.request(new IPCMessages.DLTDeamonRecentDropRequest(), IPCMessages.DLTDeamonRecentDropResponse).then(() => {
+                        this._recent = [];
+                        this._ng_recent = [];
+                        this._forceUpdate();
+                    }).catch((error: Error) => {
+                        this._logger.error(`Fail drop recent options due error: ${error.message}`);
+                    });
+                },
+            },
+        ];
+        ContextMenuService.show({
+            items: items,
+            x: event.pageX,
+            y: event.pageY,
+        });
+        event.stopImmediatePropagation();
+        event.preventDefault();
     }
 
     private _onBeforeTabRemove() {
@@ -376,6 +438,45 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     private _dropConnectionState() {
         this._ng_settings.connectionId = '';
         this._ng_state = 'disconnected';
+        this._forceUpdate();
+    }
+
+    private _loadRecent() {
+        ElectronIpcService.request(new IPCMessages.DLTDeamonRecentRequest(), IPCMessages.DLTDeamonRecentResponse).then((response: IPCMessages.DLTDeamonRecentResponse) => {
+            if (response.recent instanceof Array) {
+                this._recent = response.recent;
+                this._ng_recent = this._recent.map((options: IPCMessages.IDLTDeamonConnectionOptions) => {
+                    return options.ecu;
+                });
+            } else {
+                this._recent = [];
+            }
+        }).catch((error: Error) => {
+            this._logger.error(`Fail to get recent options due error: ${error.message}`);
+            this._recent = [];
+        });
+    }
+
+    private _applyRecent(ecu: string) {
+        const options: IPCMessages.IDLTDeamonConnectionOptions | undefined = this._recent.find((opt: IPCMessages.IDLTDeamonConnectionOptions) => {
+            return opt.ecu === ecu;
+        });
+        if (options === undefined) {
+            return;
+        }
+        this._ng_settings.bindingAddress = options.bindingAddress;
+        this._ng_settings.bindingPort = options.bindingPort;
+        if (options.multicastAddress === '') {
+            this._ng_settings.multicastAddress = CDefaulsDLTSettingsField.multicastAddress;
+            this._ng_settings.multicastInterface = CDefaulsDLTSettingsField.multicastInterface;
+            this._ng_settings.multicast = CDefaulsDLTSettingsField.multicast;
+            this._ng_panels.multicast = CDefaulsDLTSettingsField.multicast;
+        } else {
+            this._ng_settings.multicastAddress = options.multicastAddress;
+            this._ng_settings.multicastInterface = options.multicastInterface;
+            this._ng_settings.multicast = true;
+            this._ng_panels.multicast = true;
+        }
         this._forceUpdate();
     }
 

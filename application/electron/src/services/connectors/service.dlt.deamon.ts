@@ -1,9 +1,12 @@
-import ServiceElectron, { IPCMessages } from "../service.electron";
-import Logger from "../../tools/env.logger";
 import { Subscription } from "../../tools/index";
 import { IService } from "../../interfaces/interface.service";
+import { DLTConnectionController, IConnectionOptions } from '../../controllers/connections/dlt.connection';
+
 import ServiceStreams from "../service.streams";
-import { DLTConnectionController } from '../../controllers/connections/dlt.connection';
+import Logger from "../../tools/env.logger";
+
+import ServiceStorage, { IStorageScheme } from '../service.storage';
+import ServiceElectron, { IPCMessages } from "../service.electron";
 
 /**
  * @class ServiceDLTDeamonConnector
@@ -30,6 +33,12 @@ class ServiceDLTDeamonConnector implements IService {
                 }),
                 ServiceElectron.IPC.subscribe(IPCMessages.DLTDeamonDisconnectRequest, this._onDLTDeamonDisconnectRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.DLTDeamonDisconnectRequest = subscription;
+                }),
+                ServiceElectron.IPC.subscribe(IPCMessages.DLTDeamonRecentRequest, this._onDLTDeamonRecentRequest.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.DLTDeamonRecentRequest = subscription;
+                }),
+                ServiceElectron.IPC.subscribe(IPCMessages.DLTDeamonRecentDropRequest, this._onDLTDeamonRecentDropRequest.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.DLTDeamonRecentDropRequest = subscription;
                 }),
             ]).then(() => {
                 resolve();
@@ -72,16 +81,17 @@ class ServiceDLTDeamonConnector implements IService {
             );
         }
         // Create connection
+        const options: IConnectionOptions = {
+            ecu: req.ecu,
+            bindingAddress: req.bindingAddress,
+            bindingPort: req.bindingPort,
+            multicastInterface: req.multicastInterface,
+            multicastAddress: req.multicastAddress,
+        };
         const connection: DLTConnectionController = new DLTConnectionController(
             req.id,
             req.session,
-            {
-                ecu: req.ecu,
-                bindingAddress: req.bindingAddress,
-                bindingPort: req.bindingPort,
-                multicastInterface: req.multicastInterface,
-                multicastAddress: req.multicastAddress,
-            },
+            options,
         );
         // Scope connection state
         const state: {
@@ -100,18 +110,22 @@ class ServiceDLTDeamonConnector implements IService {
                 if (state.error) {
                     return;
                 }
+                // Response to client
                 response(
                     new IPCMessages.DLTDeamonConnectResponse({
                         id: req.id,
                         session: req.session,
                     }),
                 );
+                // Send notification
                 ServiceElectron.IPC.send(new IPCMessages.DLTDeamonConnectEvent({
                     id: req.id,
                     session: req.session,
                 })).catch((error: Error) => {
                     this._logger.warn(`Fail to notify front-end about connection due error: ${error.message}`);
                 });
+                // Save/update recent data
+                this._updateRecent(options);
                 this._logger.info(`connected`);
                 state.connected = true;
             });
@@ -193,6 +207,24 @@ class ServiceDLTDeamonConnector implements IService {
         });
     }
 
+    private _onDLTDeamonRecentRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        const stored: IStorageScheme.IConnectionOptions[] = ServiceStorage.get().get().recentDLTConnectorSettings;
+        response(
+            new IPCMessages.DLTDeamonRecentResponse({
+                recent: stored instanceof Array ? stored : [],
+            }),
+        );
+    }
+
+    private _onDLTDeamonRecentDropRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        ServiceStorage.get().set({
+            recentDLTConnectorSettings: [],
+        });
+        response(
+            new IPCMessages.DLTDeamonRecentDropResponse(),
+        );
+    }
+
     private _onSessionClosed(guid: string) {
         // Checking for active task
         const connection: DLTConnectionController | undefined = this._connections.get(guid);
@@ -203,6 +235,24 @@ class ServiceDLTDeamonConnector implements IService {
             this._connections.delete(guid);
         }).catch((error: Error) => {
             this._logger.error(`Fail to disconnect in scope of the session "${guid}" due error: ${error.message}`);
+        });
+    }
+
+    private _updateRecent(settings: IConnectionOptions) {
+        let stored: IStorageScheme.IConnectionOptions[] = ServiceStorage.get().get().recentDLTConnectorSettings;
+        let updated: IStorageScheme.IConnectionOptions | undefined;
+        stored = stored.filter((recent: IStorageScheme.IConnectionOptions) => {
+            if (recent.ecu === settings.ecu) {
+                return false;
+            }
+            return true;
+        });
+        if (updated === undefined) {
+            updated = settings;
+        }
+        stored.unshift(updated);
+        ServiceStorage.get().set({
+            recentDLTConnectorSettings: stored,
         });
     }
 
