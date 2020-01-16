@@ -28,7 +28,7 @@ impl SocketDltEventEmitter {
     ) {
         info!("start_indexing_socket_in_thread: {:?}", thread_conf);
 
-        // Spawn a thead to continue running after this method has returned.
+        // Spawn a thread to continue running after this method has returned.
         self.task_thread = Some(thread::spawn(move || {
             let fibex_metadata: Option<Rc<FibexMetadata>> = match fibex {
                 None => None,
@@ -43,52 +43,25 @@ impl SocketDltEventEmitter {
                     }
                 }
             };
-            index_from_socket(
+            match dlt::dlt_parse::create_index_and_mapping_dlt_from_socket(
                 socket_conf,
-                filter_conf,
-                chunk_result_sender.clone(),
-                fibex_metadata,
                 thread_conf.append,
                 thread_conf.tag.as_str(),
                 thread_conf.ecu_id,
                 &thread_conf.out_path,
+                filter_conf,
+                &chunk_result_sender,
                 shutdown_rx,
-            );
+                fibex_metadata,
+            ) {
+                Ok(_) => {}
+                Err(e) => warn!("error for socket dlt stream: {}", e),
+            }
             debug!("back after DLT indexing finished!");
         }));
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn index_from_socket(
-    socket_conf: SocketConfig,
-    filter_conf: Option<filtering::DltFilterConfig>,
-    update_channel: cc::Sender<ChunkResults>,
-    fibex_metadata: Option<Rc<FibexMetadata>>,
-    append: bool,
-    tag: &str,
-    ecu_id: String,
-    out_path: &std::path::PathBuf,
-    shutdown_receiver: async_std::sync::Receiver<()>,
-) {
-    trace!("index_from_socket");
-    match dlt::dlt_parse::create_index_and_mapping_dlt_from_socket(
-        socket_conf,
-        append,
-        tag,
-        ecu_id,
-        out_path,
-        filter_conf,
-        &update_channel,
-        shutdown_receiver,
-        fibex_metadata,
-    ) {
-        Err(why) => {
-            error!("couldn't process: {}", why);
-        }
-        Ok(_) => trace!("create_index_and_mapping_dlt returned ok"),
-    }
-}
 // interface of the Rust code for js, exposes the `poll` and `shutdown` methods
 declare_types! {
     pub class JsDltSocketEventEmitter for SocketDltEventEmitter {

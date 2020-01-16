@@ -24,7 +24,7 @@ impl IndexingEventEmitter {
     ) {
         info!("call event_thread with chunk size: {}", chunk_size);
 
-        // Spawn a thead to continue running after this method has returned.
+        // Spawn a thread to continue running after this method has returned.
         self.task_thread = Some(thread::spawn(move || {
             index_file_with_progress(
                 IndexingConfig {

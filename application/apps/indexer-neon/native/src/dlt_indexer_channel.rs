@@ -28,7 +28,7 @@ impl IndexingDltEventEmitter {
     ) {
         info!("start_indexing_dlt_in_thread: {:?}", thread_conf);
 
-        // Spawn a thead to continue running after this method has returned.
+        // Spawn a thread to continue running after this method has returned.
         self.task_thread = Some(thread::spawn(move || {
             let fibex_metadata: Option<Rc<FibexMetadata>> = match fibex {
                 None => None,

@@ -5,7 +5,6 @@ use crate::dlt::*;
 use std::rc::Rc;
 use futures::FutureExt;
 use futures::stream::StreamExt;
-use failure::Error;
 use indexer_base::progress::*;
 use std::io::{BufWriter, Write};
 use indexer_base::utils;
@@ -18,6 +17,37 @@ use crate::dlt_parse::dlt_message;
 use crate::fibex::FibexMetadata;
 use crossbeam_channel as cc;
 use crate::filtering;
+
+#[derive(Debug, Fail)]
+pub enum ConnectionError {
+    #[fail(display = "socket configuration seems to be broken: {}", cause)]
+    WrongConfiguration { cause: String },
+    #[fail(display = "could not establish a connection: {}", reason)]
+    UnableToConnect { reason: String },
+    #[fail(display = "error trying to connect: {}", info)]
+    Other { info: String },
+}
+impl From<std::io::Error> for ConnectionError {
+    fn from(err: std::io::Error) -> ConnectionError {
+        ConnectionError::Other {
+            info: format!("{}", err),
+        }
+    }
+}
+impl From<std::net::AddrParseError> for ConnectionError {
+    fn from(err: std::net::AddrParseError) -> ConnectionError {
+        ConnectionError::WrongConfiguration {
+            cause: format!("{}", err),
+        }
+    }
+}
+impl From<failure::Error> for ConnectionError {
+    fn from(err: failure::Error) -> ConnectionError {
+        ConnectionError::Other {
+            info: format!("{}", err),
+        }
+    }
+}
 #[allow(clippy::too_many_arguments)]
 pub fn index_from_socket(
     socket_config: SocketConfig,
@@ -30,7 +60,7 @@ pub fn index_from_socket(
     out_path: &std::path::PathBuf,
     initial_line_nr: usize,
     shutdown_receiver: async_std::sync::Receiver<()>,
-) -> Result<(), Error> {
+) -> Result<(), ConnectionError> {
     trace!("index_from_socket for socket conf: {:?}", socket_config);
     let (out_file, current_out_file_size) = utils::get_out_file_and_size(append, out_path)?;
     let mut chunk_factory = ChunkFactory::new(0, current_out_file_size);
@@ -48,16 +78,20 @@ pub fn index_from_socket(
                 Some(s) => s.parse()?,
                 None => Ipv4Addr::new(0, 0, 0, 0),
             };
-            socket.join_multicast_v4(multi_addr, inter)?;
+            if let Err(e) = socket.join_multicast_v4(multi_addr, inter) {
+                return Err(ConnectionError::UnableToConnect {
+                    reason: format!("error joining multicast group: {}", e),
+                });
+            }
         }
         trace!("created socket...");
         // send (0,0),(0,0) to indicate connection established
-        update_channel.send(Ok(IndexingProgress::GotItem {
+        let _ = update_channel.send(Ok(IndexingProgress::GotItem {
             item: Chunk {
                 r: (0, 0),
                 b: (0, 0),
             },
-        }))?;
+        }));
         let udp_msg_producer = UdpMessageProducer {
             socket,
             update_channel: update_channel.clone(),
@@ -82,11 +116,18 @@ pub fn index_from_socket(
             let maybe_msg = match event {
                 Event::Shutdown => {
                     debug!("received shutdown through future channel");
-                    update_channel.send(Ok(IndexingProgress::Stopped))?;
+                    let _ = update_channel.send(Ok(IndexingProgress::Stopped));
                     break;
                 }
                 Event::Msg(Ok(maybe_msg)) => maybe_msg,
-                Event::Msg(Err(DltParseError::ParsingHickup { .. })) => None,
+                Event::Msg(Err(DltParseError::ParsingHickup { reason })) => {
+                    let _ = update_channel.send(Err(Notification {
+                        severity: Severity::WARNING,
+                        content: format!("parsing faild for one message: {}", reason),
+                        line: None,
+                    }));
+                    None
+                }
                 Event::Msg(Err(DltParseError::Unrecoverable { .. })) => break,
             };
             match maybe_msg {
@@ -100,7 +141,7 @@ pub fn index_from_socket(
                     {
                         chunk_count += 1;
                         last_byte_index = chunk.b.1;
-                        update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }))?;
+                        let _ = update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }));
                         buf_writer.flush()?;
                     }
                 }
@@ -109,7 +150,6 @@ pub fn index_from_socket(
                 }
             }
         }
-        update_channel.send(Ok(IndexingProgress::Finished))?;
         Ok(())
     })
 }

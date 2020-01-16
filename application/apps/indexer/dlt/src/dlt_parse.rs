@@ -1159,11 +1159,11 @@ pub fn create_index_and_mapping_dlt_from_socket(
     fibex_metadata: Option<Rc<FibexMetadata>>,
 ) -> Result<(), Error> {
     trace!("create_index_and_mapping_dlt_from_socket");
-    match utils::next_line_nr(out_path) {
+    let res = match utils::next_line_nr(out_path) {
         Ok(initial_line_nr) => {
             let filter_config: Option<filtering::ProcessedDltFilterConfig> =
                 dlt_filter.map(filtering::process_filter_config);
-            index_from_socket(
+            match index_from_socket(
                 socket_config,
                 filter_config,
                 update_channel.clone(),
@@ -1174,7 +1174,33 @@ pub fn create_index_and_mapping_dlt_from_socket(
                 out_path,
                 initial_line_nr,
                 shutdown_receiver,
-            )
+            ) {
+                Err(ConnectionError::WrongConfiguration { cause }) => {
+                    let _ = update_channel.send(Err(Notification {
+                        severity: Severity::ERROR,
+                        content: cause.clone(),
+                        line: None,
+                    }));
+                    Err(err_msg(cause))
+                }
+                Err(ConnectionError::UnableToConnect { reason }) => {
+                    let _ = update_channel.send(Err(Notification {
+                        severity: Severity::ERROR,
+                        content: reason.clone(),
+                        line: None,
+                    }));
+                    Err(err_msg(reason))
+                }
+                Err(ConnectionError::Other { info }) => {
+                    let _ = update_channel.send(Err(Notification {
+                        severity: Severity::ERROR,
+                        content: info.clone(),
+                        line: None,
+                    }));
+                    Err(err_msg(info))
+                }
+                Ok(_) => Ok(()),
+            }
         }
         Err(e) => {
             let content = format!(
@@ -1188,7 +1214,9 @@ pub fn create_index_and_mapping_dlt_from_socket(
             }));
             Err(err_msg(content))
         }
-    }
+    };
+    let _ = update_channel.send(Ok(IndexingProgress::Finished));
+    res
 }
 pub fn create_index_and_mapping_dlt(
     config: IndexingConfig,
