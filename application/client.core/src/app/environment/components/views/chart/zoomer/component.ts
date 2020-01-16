@@ -54,6 +54,14 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
+        if (this._charts !== undefined) {
+            this._charts.destroy();
+            this._charts = undefined;
+        }
+        if (this._filters !== undefined) {
+            this._filters.destroy();
+            this._filters = undefined;
+        }
     }
 
     public _ng_getLeftOffset(): number {
@@ -64,6 +72,9 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
     }
 
     private _resize(force: boolean = false) {
+        if (this._destroyed) {
+            return;
+        }
         const size: ClientRect = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect();
         this._ng_width = size.width;
         this._ng_height = size.height;
@@ -162,6 +173,9 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
             this._filters.data.labels = labels;
             this._filters.data.datasets = datasets.dataset;
             setTimeout(() => {
+                if (this._destroyed) {
+                    return;
+                }
                 if (this._filters === undefined) {
                     return;
                 }
@@ -220,6 +234,9 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
             this._charts.options.scales.yAxes = this._getYAxes(datasets);
             this._charts.options.scales.xAxes[0].ticks.max = this.serviceData.getStreamSize();
             setTimeout(() => {
+                if (this._destroyed) {
+                    return;
+                }
                 if (this._charts === undefined) {
                     return;
                 }
