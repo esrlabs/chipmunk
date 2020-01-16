@@ -9,6 +9,7 @@ import TabsSessionsService from './service.sessions.tabs';
 import SearchSessionsService from './service.sessions.search';
 import FileOpenerService from './service.file.opener';
 import HotkeysService from './service.hotkeys';
+import ConnectionsService from './service.connections';
 import TabSelectionParserService from './tabs/service.tab.selection.parser';
 import * as Defaults from '../states/state.default';
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -22,7 +23,7 @@ const InitializeStages = [
     // Stage #3
     [PluginsIPCService],
     // Stage #4
-    [TabsSessionsService, ToolbarSessionsService, SidebarSessionsService, FileOptionsService, FileOpenerService, HotkeysService ],
+    [TabsSessionsService, ToolbarSessionsService, SidebarSessionsService, FileOptionsService, FileOpenerService, HotkeysService, ConnectionsService ],
     // Stage #5
     [SearchSessionsService, TabSelectionParserService]
 ];

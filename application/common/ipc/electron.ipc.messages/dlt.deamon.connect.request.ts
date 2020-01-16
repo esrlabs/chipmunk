@@ -1,6 +1,7 @@
 export interface IDLTDeamonConnectRequest {
     id: string;
     session: string;
+    ecu: string;
     bindingAddress: string;
     bindingPort: string;
     multicastAddress: string;
@@ -13,6 +14,7 @@ export class DLTDeamonConnectRequest {
     public signature: string = DLTDeamonConnectRequest.signature;
     public id: string = '';
     public session: string = '';
+    public ecu: string = '';
     public bindingAddress: string = '';
     public bindingPort: string = '';
     public multicastAddress: string = '';
@@ -28,6 +30,9 @@ export class DLTDeamonConnectRequest {
         if (typeof params.session !== 'string' || params.session.trim() === '') {
             throw new Error(`session should be defined.`);
         }
+        if (typeof params.ecu !== 'string' || params.ecu.trim() === '') {
+            throw new Error(`ecu should be defined.`);
+        }
         if (typeof params.bindingAddress !== 'string' || params.bindingAddress.trim() === '') {
             throw new Error(`session should be defined.`);
         }
@@ -42,6 +47,7 @@ export class DLTDeamonConnectRequest {
         }
         this.id = params.id;
         this.session = params.session;
+        this.ecu = params.ecu;
         this.bindingAddress = params.bindingAddress;
         this.bindingPort = params.bindingPort;
         this.multicastAddress = params.multicastAddress;
