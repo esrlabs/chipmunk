@@ -109,6 +109,7 @@ export class NotificationsService {
         const row: number | undefined = typeof message.row === 'string' ? parseInt(message.row, 10) : (typeof message.row === 'number' ? message.row : undefined);
         const notification: INotification = {
             id: Toolkit.guid(),
+            session: message.session !== '*' ? message.session : undefined,
             caption: message.caption.length > 150 ? `${message.caption.substr(0, 150)}...` : message.caption,
             message: message.message.length > 1500 ? `${message.message.substr(0, 1500)}...` : message.message,
             row: isNaN(row) ? undefined : (!isFinite(row) ? undefined : row),
