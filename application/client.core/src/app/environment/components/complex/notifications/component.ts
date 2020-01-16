@@ -2,7 +2,7 @@ import { Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Subscription } from 'rxjs';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import ToolbarSessionsService, { CDefaultTabsGuids } from '../../../services/service.sessions.toolbar';
-import { NotificationsService, INotification } from '../../../services.injectable/injectable.service.notifications';
+import { NotificationsService, INotification, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 
 const DEFAULT_OPTIONS = {
     closeDelay: 4000,           // ms
@@ -34,12 +34,18 @@ export class NotificationsComponent implements OnDestroy {
     }
 
     private _onNotification(notification: INotification) {
+        /*
+        // It makes UI crazy on many DLT (as example) errors
         if (this.notifications.length > 5) {
             ToolbarSessionsService.setActive(CDefaultTabsGuids.notification);
             return;
         }
+        */
         notification = this._normalize(notification);
         if (notification === null) {
+            return false;
+        }
+        if (notification.options.type !== ENotificationType.error) {
             return false;
         }
         this.notifications.push(notification);
