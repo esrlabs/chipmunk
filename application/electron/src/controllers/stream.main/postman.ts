@@ -4,14 +4,13 @@ import BytesRowsMap, { IMapItem } from './file.map';
 
 const CSettings = {
     notificationDelayOnStream: 250,             // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is blocked
-    maxPostponedNotificationMessages: 100,      // How many IPC messages to render (client) should be postponed via timer
 };
 
 export default class ControllerStreamUpdatesPostman {
 
     private _logger: Logger;
     private _streamId: string;
-    private _notification: { timer: any, attempts: number } = { timer: -1, attempts: 0 };
+    private _notification: { timer: any, last: number } = { timer: -1, last: 0 };
     private _map: BytesRowsMap;
     private _destroyed: boolean = false;
     private _working: boolean = false;
@@ -27,23 +26,25 @@ export default class ControllerStreamUpdatesPostman {
         this._destroyed = true;
     }
 
-    public notification(): void {
+    public notification(ignoreQueue: boolean = false): void {
         if (this._destroyed) {
             this._logger.warn(`Attempt to notify after postman was destroyed.`);
             return;
         }
         clearTimeout(this._notification.timer);
-        if (!this._working && this._notification.attempts > CSettings.maxPostponedNotificationMessages) {
-            return this._notify();
+        const past: number = Date.now() - this._notification.last;
+        if (!this._working && (past >= CSettings.notificationDelayOnStream || ignoreQueue)) {
+            this._notify();
+            return;
         }
-        this._notification.attempts += 1;
+        const delay = past > CSettings.notificationDelayOnStream ? 0 : (CSettings.notificationDelayOnStream - past);
         this._notification.timer = setTimeout(() => {
             this._notify();
-        }, CSettings.notificationDelayOnStream);
+        }, delay);
     }
 
     private _notify(): void {
-        this._notification.attempts = 0;
+        this._notification.last = Date.now();
         this._working = true;
         if (isNaN(this._map.getByteLength()) || !isFinite(this._map.getByteLength())) {
             this._logger.error(`Unexpected state of map`);

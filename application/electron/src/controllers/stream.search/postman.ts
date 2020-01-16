@@ -52,7 +52,6 @@ export default class ControllerSearchUpdatesPostman {
             rowsCount: this._map.getRowsCount(),
         })).then(() => {
             this._working = false;
-            // console.log(`[!!!!] Notification about search state was done: ${this._map.getRowsCount()}`);
         }).catch((error: Error) => {
             this._logger.warn(`Fail send notification to render due error: ${error.message}`);
         });

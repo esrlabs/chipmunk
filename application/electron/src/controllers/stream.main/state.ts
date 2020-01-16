@@ -1,6 +1,6 @@
 import ProgressState from '../render/controller.progress';
 import BytesRowsMap from './file.map';
-import StreamUpdatesPostman from './file.map.postman';
+import StreamUpdatesPostman from './postman';
 import ControllerStreamFileReader from './file.reader';
 
 export default class State {
