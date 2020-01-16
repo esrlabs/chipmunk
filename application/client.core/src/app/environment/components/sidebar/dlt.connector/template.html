@@ -12,34 +12,34 @@
         </mat-panel-description>
     </mat-expansion-panel-header>
     <mat-form-field>
-        <input matInput placeholder="ECU ID" [(ngModel)]="_ng_settings.ecu" [attr.disabled]="_ng_state === 'disconnected' ? null : ''" [errorStateMatcher]="_ng_errorStates.ecu">
+        <input matInput placeholder="ECU ID" [(ngModel)]="_ng_settings.ecu" [disabled]="_ng_state === 'disconnected' ? null : true" [errorStateMatcher]="_ng_errorStates.ecu">
         <mat-error *ngIf="_ng_errorStates.ecu.getErrorCode() === 'INVALID'">
-            Please enter a ECU ID
+            Use can use not more 4 symbols
         </mat-error>
         <mat-error *ngIf="_ng_errorStates.ecu.getErrorCode() === 'REQUIRED'">
-            ECU ID is <strong>required</strong>
+           <strong>required</strong>
         </mat-error>
     </mat-form-field>
     <mat-form-field>
-        <input matInput placeholder="IP Address" [(ngModel)]="_ng_settings.bindingAddress" [attr.disabled]="_ng_state === 'disconnected' ? null : ''" [errorStateMatcher]="_ng_errorStates.bindingAddress">
+        <input matInput placeholder="IP Address" [(ngModel)]="_ng_settings.bindingAddress" [disabled]="_ng_state === 'disconnected' ? null : true" [errorStateMatcher]="_ng_errorStates.bindingAddress">
         <mat-error *ngIf="_ng_errorStates.bindingAddress.getErrorCode() === 'INVALID'">
             Please enter a valid IPv4 address
         </mat-error>
         <mat-error *ngIf="_ng_errorStates.bindingAddress.getErrorCode() === 'REQUIRED'">
-            IP address is <strong>required</strong>
+            <strong>required</strong>
         </mat-error>
     </mat-form-field>
     <mat-form-field>
-        <input matInput placeholder="Port" [(ngModel)]="_ng_settings.bindingPort" [attr.disabled]="_ng_state === 'disconnected' ? null : ''" [errorStateMatcher]="_ng_errorStates.bindingPort">
+        <input matInput placeholder="Port" [(ngModel)]="_ng_settings.bindingPort" [disabled]="_ng_state === 'disconnected' ? null : true" [errorStateMatcher]="_ng_errorStates.bindingPort">
         <mat-error *ngIf="_ng_errorStates.bindingPort.getErrorCode() === 'INVALID'">
             Please enter a valid port value
         </mat-error>
         <mat-error *ngIf="_ng_errorStates.bindingPort.getErrorCode() === 'REQUIRED'">
-            Port is <strong>required</strong>
+            <strong>required</strong>
         </mat-error>
     </mat-form-field>
     <span class="slitter"></span>
-    <mat-checkbox [(ngModel)]="_ng_settings.multicast" (change)="_ng_onMuliticastingStateChange($event)">UDP muliticast</mat-checkbox>
+    <mat-checkbox [(ngModel)]="_ng_settings.multicast" (change)="_ng_onMuliticastingStateChange($event)" [disabled]="_ng_state === 'disconnected' ? null : true">UDP muliticast</mat-checkbox>
 </mat-expansion-panel>
 
 <span class="slitter"></span>
@@ -59,21 +59,21 @@
         </mat-panel-description>
     </mat-expansion-panel-header>
     <mat-form-field>
-        <input matInput placeholder="IP Address" [(ngModel)]="_ng_settings.multicastAddress" [attr.disabled]="_ng_state === 'disconnected' ? null : ''" [errorStateMatcher]="_ng_errorStates.multicastAddress">
+        <input matInput placeholder="IP Address" [(ngModel)]="_ng_settings.multicastAddress" [disabled]="_ng_state === 'disconnected' ? null : true" [errorStateMatcher]="_ng_errorStates.multicastAddress">
         <mat-error *ngIf="_ng_errorStates.multicastAddress.getErrorCode() === 'INVALID'">
             Please enter a valid IPv4 address
         </mat-error>
         <mat-error *ngIf="_ng_errorStates.multicastAddress.getErrorCode() === 'REQUIRED'">
-            IP address is <strong>required</strong>
+            <strong>required</strong>
         </mat-error>
     </mat-form-field>
     <mat-form-field>
-        <input matInput placeholder="Interface" [(ngModel)]="_ng_settings.multicastInterface" [attr.disabled]="_ng_state === 'disconnected' ? null : ''" [errorStateMatcher]="_ng_errorStates.multicastInterface">
+        <input matInput placeholder="Interface" [(ngModel)]="_ng_settings.multicastInterface" [disabled]="_ng_state === 'disconnected' ? null : true" [errorStateMatcher]="_ng_errorStates.multicastInterface">
         <mat-error *ngIf="_ng_errorStates.multicastInterface.getErrorCode() === 'INVALID'">
             Please define valid interface
         </mat-error>
         <mat-error *ngIf="_ng_errorStates.multicastInterface.getErrorCode() === 'REQUIRED'">
-            Interface is <strong>required</strong>
+            <strong>required</strong>
         </mat-error>
     </mat-form-field>
 </mat-expansion-panel>
@@ -86,6 +86,6 @@
 </div>
 
 <div class="controlls">
-    <button *ngIf="_ng_state === 'disconnected'" mat-stroked-button color="primary" (click)="_ng_onConnectClick()" [attr.disabled]="_ng_isSettingsValid() ? null : ''">Connect</button>
+    <button *ngIf="_ng_state === 'disconnected'" mat-stroked-button color="primary" (click)="_ng_onConnectClick()" [disabled]="_ng_isSettingsValid() ? null : true">Connect</button>
     <button *ngIf="_ng_state === 'connected'" mat-stroked-button color="primary" (click)="_ng_onDisconnectClick()">Disconnect</button>
 </div>

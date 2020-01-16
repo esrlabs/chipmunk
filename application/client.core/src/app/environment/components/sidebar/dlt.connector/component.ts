@@ -205,7 +205,10 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
 
     public _ng_isSettingsValid(): boolean {
         let valid: boolean = true;
-        Object.keys(this._ng_errorStates).forEach((key: string) => {
+        Object.keys(this._ng_errorStates).forEach((key: EDLTSettingsFieldAlias) => {
+            if ([EDLTSettingsFieldAlias.multicastAddress, EDLTSettingsFieldAlias.multicastInterface].includes(key) && this._ng_settings.multicast === false) {
+                return;
+            }
             if (!(this._ng_errorStates[key] as DLTDeamonSettingsErrorStateMatcher).isValid()) {
                 valid = false;
             }
