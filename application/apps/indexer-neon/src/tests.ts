@@ -482,7 +482,6 @@ export function testSocketDlt(outPath: string) {
 				fibex: undefined,
 				tag: 'TAG',
 				out: outPath,
-				append: false,
 				stdout: false,
 				statusUpdates: false
 			},

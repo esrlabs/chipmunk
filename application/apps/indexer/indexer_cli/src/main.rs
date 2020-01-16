@@ -350,12 +350,6 @@ fn main() {
                         .default_value("500"),
                 )
                 .arg(
-                    Arg::with_name("append")
-                        .short("a")
-                        .long("append")
-                        .help("append to file if exists"),
-                )
-                .arg(
                     Arg::with_name("output")
                         .short("o")
                         .long("out")
@@ -762,7 +756,6 @@ fn main() {
                 }
                 None => None,
             };
-            let append: bool = matches.is_present("append");
             let out_path = path::PathBuf::from(output);
             let mapping_out_path: path::PathBuf =
                 path::PathBuf::from(output.to_string() + ".map.json");
@@ -782,7 +775,6 @@ fn main() {
             thread::spawn(move || {
                 if let Err(why) = dlt::dlt_parse::create_index_and_mapping_dlt_from_socket(
                     socket_conf,
-                    append,
                     tag_string.as_str(),
                     "myEcuId".to_string(),
                     &out_path,

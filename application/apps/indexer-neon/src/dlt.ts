@@ -40,7 +40,6 @@ export interface IDltSocketParams {
 	fibex?: string;
 	tag: string;
 	out: string;
-	append: boolean;
 	stdout: boolean;
 	statusUpdates: boolean;
 }
@@ -266,7 +265,6 @@ export function dltOverSocket(
 				socketConfig,
 				params.tag,
 				params.out,
-				params.append,
 				params.filterConfig,
 				params.fibex
 			);

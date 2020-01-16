@@ -45,7 +45,6 @@ impl SocketDltEventEmitter {
             };
             match dlt::dlt_parse::create_index_and_mapping_dlt_from_socket(
                 socket_conf,
-                thread_conf.append,
                 thread_conf.tag.as_str(),
                 thread_conf.ecu_id,
                 &thread_conf.out_path,
@@ -72,11 +71,10 @@ declare_types! {
             let socket_conf: SocketConfig = neon_serde::from_value(&mut cx, arg_socket_conf)?;
             let tag = cx.argument::<JsString>(2)?.value();
             let out_path = path::PathBuf::from(cx.argument::<JsString>(3)?.value().as_str());
-            let append: bool = cx.argument::<JsBoolean>(4)?.value();
-            let arg_filter_conf = cx.argument::<JsValue>(5)?;
+            let arg_filter_conf = cx.argument::<JsValue>(4)?;
             let filter_conf: dlt::filtering::DltFilterConfig = neon_serde::from_value(&mut cx, arg_filter_conf)?;
             let mut fibex: Option<String> = None;
-            if let Some(arg) = cx.argument_opt(6) {
+            if let Some(arg) = cx.argument_opt(5) {
                 if arg.is_a::<JsString>() {
                     fibex = Some(arg.downcast::<JsString>().or_throw(&mut cx)?.value());
                 } else if arg.is_a::<JsUndefined>() {
@@ -97,7 +95,6 @@ declare_types! {
                 tx,
                 SocketThreadConfig {
                     out_path,
-                    append,
                     tag,
                     ecu_id,
                 },

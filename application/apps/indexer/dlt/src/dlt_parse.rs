@@ -1149,7 +1149,6 @@ impl FileMessageProducer {
 #[allow(clippy::too_many_arguments)]
 pub fn create_index_and_mapping_dlt_from_socket(
     socket_config: SocketConfig,
-    append: bool,
     tag: &str,
     ecu_id: String,
     out_path: &std::path::PathBuf,
@@ -1168,7 +1167,6 @@ pub fn create_index_and_mapping_dlt_from_socket(
                 filter_config,
                 update_channel.clone(),
                 fibex_metadata,
-                append,
                 tag,
                 ecu_id,
                 out_path,

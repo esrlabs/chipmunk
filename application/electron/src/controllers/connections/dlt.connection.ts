@@ -18,7 +18,6 @@ export interface IConnectionOptions {
 export interface IDLTOptions {
     filters: DLT.DltFilterConf;
     fibex?: string;
-    append?: boolean;
     stdout?: boolean;
     statusUpdates?: boolean;
 }
@@ -47,7 +46,6 @@ export class DLTConnectionController extends EventEmitter {
         this._dlt = {
             filters: !dlt ? { min_log_level: DLT.DltLogLevel.Debug } : dlt.filters,
             fibex: !dlt ? undefined : (typeof dlt.fibex === 'string' ? dlt.fibex : undefined),
-            append: !dlt ? false : (typeof dlt.append === 'boolean' ? dlt.append : false),
             stdout: !dlt ? false : (typeof dlt.stdout === 'boolean' ? dlt.stdout : false),
             statusUpdates: !dlt ? false : (typeof dlt.statusUpdates === 'boolean' ? dlt.statusUpdates : false),
         };
@@ -97,7 +95,6 @@ export class DLTConnectionController extends EventEmitter {
                 fibex: this._dlt.fibex,
                 tag: `${sourceId}`,
                 out: streamInfo.file,
-                append: this._dlt.append as boolean,
                 stdout: this._dlt.stdout as boolean,
                 statusUpdates: this._dlt.statusUpdates as boolean,
             };

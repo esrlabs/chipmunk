@@ -54,7 +54,6 @@ pub fn index_from_socket(
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
     update_channel: cc::Sender<ChunkResults>,
     fibex_metadata: Option<Rc<FibexMetadata>>,
-    append: bool,
     tag: &str,
     ecu_id: String,
     out_path: &std::path::PathBuf,
@@ -62,7 +61,7 @@ pub fn index_from_socket(
     shutdown_receiver: async_std::sync::Receiver<()>,
 ) -> Result<(), ConnectionError> {
     trace!("index_from_socket for socket conf: {:?}", socket_config);
-    let (out_file, current_out_file_size) = utils::get_out_file_and_size(append, out_path)?;
+    let (out_file, current_out_file_size) = utils::get_out_file_and_size(true, out_path)?;
     let mut chunk_factory = ChunkFactory::new(0, current_out_file_size);
     let mut line_nr = initial_line_nr;
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
@@ -141,8 +140,8 @@ pub fn index_from_socket(
                     {
                         chunk_count += 1;
                         last_byte_index = chunk.b.1;
-                        let _ = update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }));
                         buf_writer.flush()?;
+                        let _ = update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }));
                     }
                 }
                 None => {
