@@ -667,9 +667,9 @@ fn main() {
                     //     components: None,
                     // },
                     Some(std::rc::Rc::new(
-                        dlt::fibex::read_fibex(
-                            &std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                                .join("../dlt/tests/dlt-messages.xml"),
+                        dlt::fibex::read_fibexes(
+                            &[&std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                                .join("../dlt/tests/dlt-messages.xml")],
                         )
                         .unwrap_or_else(|_e| {
                             report_error(format!(
@@ -782,9 +782,9 @@ fn main() {
                     &tx,
                     shutdown_channel.1,
                     Some(std::rc::Rc::new(
-                        dlt::fibex::read_fibex(
-                            &std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                                .join("../dlt/tests/dlt-messages.xml"),
+                        dlt::fibex::read_fibexes(
+                            &[&std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                                .join("../dlt/tests/dlt-messages.xml")],
                         )
                         .unwrap_or_else(|_e| {
                             report_error(format!(

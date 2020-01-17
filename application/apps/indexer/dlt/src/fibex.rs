@@ -136,32 +136,38 @@ fn type_info_for_signal_ref(signal_ref: String) -> TypeInfo {
     }
 }
 
-pub fn read_fibex(f: &Path) -> Result<FibexMetadata> {
-    let mut reader = Reader::from_file(f)?;
-    let mut pdu_by_id = HashMap::new();
+pub fn read_fibexes(files: &[&Path]) -> Result<FibexMetadata> {
     let mut frames = vec![];
     let mut frame_map_with_key = HashMap::new();
     let mut frame_map = HashMap::new();
-    loop {
-        match reader.read_event()? {
-            Event::PduStart { id } => {
-                let (description, signal_refs) = read_pdu(&mut reader)?;
-                pdu_by_id.insert(
-                    id,
-                    Rc::new(PduMetadata {
-                        description,
-                        signal_types: signal_refs
-                            .into_iter()
-                            .map(type_info_for_signal_ref)
-                            .collect(),
-                    }),
-                );
+    let mut pdu_by_id = HashMap::new();
+    for &f in files {
+        let mut reader = Reader::from_file(f)?;
+        loop {
+            match reader.read_event()? {
+                Event::PduStart { id } => {
+                    let (description, signal_refs) = read_pdu(&mut reader)?;
+                    if pdu_by_id.contains_key(&id) {
+                        warn!("duplicate PDU ID {} found in fibexes", id);
+                    } else {
+                        pdu_by_id.insert(
+                            id,
+                            Rc::new(PduMetadata {
+                                description,
+                                signal_types: signal_refs
+                                    .into_iter()
+                                    .map(type_info_for_signal_ref)
+                                    .collect(),
+                            }),
+                        );
+                    }
+                }
+                Event::FrameStart { id } => {
+                    frames.push((FrameId(id), read_frame(&mut reader)?));
+                }
+                Event::Eof => break,
+                _ => {}
             }
-            Event::FrameStart { id } => {
-                frames.push((FrameId(id), read_frame(&mut reader)?));
-            }
-            Event::Eof => break,
-            _ => {}
         }
     }
     for (
@@ -175,30 +181,39 @@ pub fn read_fibex(f: &Path) -> Result<FibexMetadata> {
             pdu_refs,
         },
     ) in frames
-    {
-        let frame = Rc::new(FrameMetadata {
-            short_name,
-            pdus: pdu_refs
-                .into_iter()
-                .map(|r| {
-                    pdu_by_id
-                        .get(&r)
-                        .cloned()
-                        .ok_or_else(|| format_err!("pdu {} not found", &r))
-                })
-                .collect::<Result<Vec<_>>>()?,
-            application_id,
-            context_id,
-            message_type,
-            message_info,
-        });
-        if let (Some(context_id), Some(application_id)) =
-            (frame.context_id.clone(), frame.application_id.clone())
         {
-            frame_map_with_key.insert((context_id, application_id, id.clone()), frame.clone());
-        } // else error?
-        frame_map.insert(id, frame);
-    }
+            let frame = Rc::new(FrameMetadata {
+                short_name,
+                pdus: pdu_refs
+                    .into_iter()
+                    .map(|r| {
+                        pdu_by_id
+                            .get(&r)
+                            .cloned()
+                            .ok_or_else(|| format_err!("pdu {} not found", &r))
+                    })
+                    .collect::<Result<Vec<_>>>()?,
+                application_id,
+                context_id,
+                message_type,
+                message_info,
+            });
+            if let (Some(context_id), Some(application_id)) =
+            (frame.context_id.clone(), frame.application_id.clone())
+            {
+                let key = (context_id, application_id, id.clone());
+                if frame_map_with_key.contains_key(&key) {
+                    warn!("duplicate Frame context_id={} application_id={} id={}", key.0, key.1, key.2);
+                } else {
+                    frame_map_with_key.insert(key, frame.clone());
+                }
+            } // else error?
+            if frame_map.contains_key(&id) {
+                warn!("duplicate Frame id={}", id);
+            } else {
+                frame_map.insert(id, frame);
+            }
+        }
     Ok(FibexMetadata {
         frame_map_with_key,
         frame_map,
