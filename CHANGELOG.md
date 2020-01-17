@@ -1,5 +1,28 @@
 # Changelog
 
+### [1.36.0] - 01/17/2020
+* [](feat) recent options for DLT connector
+* [](fix) fix issue with charts update on destroyed parent
+* [](fix) fix postman of stream
+* [](fix) fix search update state (search bar)
+* [](fix) fix global style reset issue
+* [](fix) fix validation issues (DLT connector)
+* [](fix) fix issue with updating stream status (search bar)
+* [](fix) fix notification wrong session issue
+* [562](fix) mapping was corrupted when reconnecting
+* [562](fix) added missing events for udp multicast lifecycle
+* [#562](fix) added missing storage header
+* [](feat) support of plugins meta-data
+* [](feat) added "connect" event (DLT socket connector)
+* [](feat) correction abort event (DLT socket connector)
+* [](feat) DLT connector
+* [#644](refact) upgrade DLT options UI
+* [](fix) mat-autocomplete fix key handler
+* [](fix) only check notarization if we do it
+* [](fix) skip notarization step for macOS until we have
+  a valid solution for signing plugins
+* [](fix) some fixes for mac builds
+
 ### [1.35.0] - 01/13/2020
 * [](chore) package.json update
   package-lock
