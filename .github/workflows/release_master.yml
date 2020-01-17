@@ -42,15 +42,39 @@ jobs:
         uses: hecrj/setup-rust-action@v1
         with:
           rust-version: ${{ matrix.rust }}
+      - name: setup keychain for signing and notarising
+        if: runner.os == 'macOS'
+        env:
+          KEYCHAIN_NAME: "build.keychain"
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          KEYCHAIN_PWD: ${{ secrets.KEYCHAIN_PWD }}
+        run: |
+          security create-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN_NAME"
+          security default-keychain -s "$KEYCHAIN_NAME"
+          certfile="${HOME}/buildcert.p12"
+          echo "$CSC_LINK" | base64 -d > "$certfile"
+          security import \
+            "$certfile" \
+            -P "$CSC_KEY_PASSWORD" \
+            -A \
+            -k "$KEYCHAIN_NAME"
+          rm "$certfile"
+          security set-key-partition-list \
+            -S 'apple:' \
+            -s \
+            -k "$KEYCHAIN_PWD" \
+            "$KEYCHAIN_NAME"
       - name: build release
         run: rake full_pipeline --trace
         env:
+          KEYCHAIN_NAME: "build.keychain"
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           APPLEID: ${{ secrets.APPLEID }}
           APPLEIDPASS: ${{ secrets.APPLEIDPASS }}
           SIGNING_ID: ${{ secrets.SIGNING_ID }}
-          SKIP_NOTARIZE: true
+          KEYCHAIN_PWD: ${{ secrets.KEYCHAIN_PWD }}
       - run: ls
       - name: Release
         uses: softprops/action-gh-release@v1
