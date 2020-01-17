@@ -1,177 +1,72 @@
 # Changelog
 
 ### [1.36.0] - 01/17/2020
-* [](feat) recent options for DLT connector
-* [](fix) fix issue with charts update on destroyed parent
-* [](fix) fix postman of stream
-* [](fix) fix search update state (search bar)
-* [](fix) fix global style reset issue
-* [](fix) fix validation issues (DLT connector)
-* [](fix) fix issue with updating stream status (search bar)
-* [](fix) fix notification wrong session issue
-* [562](fix) mapping was corrupted when reconnecting
-* [562](fix) added missing events for udp multicast lifecycle
-* [#562](fix) added missing storage header
-* [](feat) support of plugins meta-data
-* [](feat) added "connect" event (DLT socket connector)
-* [](feat) correction abort event (DLT socket connector)
-* [](feat) DLT connector
-* [#644](refact) upgrade DLT options UI
-* [](fix) mat-autocomplete fix key handler
-* [](fix) only check notarization if we do it
-* [](fix) skip notarization step for macOS until we have
-  a valid solution for signing plugins
-* [](fix) some fixes for mac builds
 
-### [1.35.0] - 01/13/2020
-* [](chore) package.json update
-  package-lock
-  updated package-lock files
+#### support for DLT streaming over multicast
+
 * [#562](feat) support live streaming of DLT messages via UDP
-* [](test) move testcase to test file
-* [](feat) correct display of fixed point values
-  more docu
+* [](feat) recent options for DLT connector
+* [](feat) DLT UDP connector UI
+* [](feat) DLT: correct display of fixed point values
 * [](feat) serializing of dlt messages
       move tests to seperate file
       improved types of dlt entities
-* [](chore) refactored rakefile
-  correct location of dotenv in rakefile
-  rake
-* [#632](refact) Interface instead of long types
+* [#644](refact) upgrade DLT options UI
+* [](fix) fix validation issues (DLT connector)
+* [#562](fix) added missing storage header
+* [562](fix) mapping was corrupted when reconnecting
+
+#### Extension API changes
+
+* [](feat) support of plugins meta-data
+* [](fix) some fixes for mac builds
 * [#632](fix) remove recent popup, fix iostate bug
-* [#632](refact) Replace throw with notification
-* [](refact) Throw error to upper instance to notify
-* [](fix) Solve stopSpy issue
 * [](fix) Fixed issue with iostate
-* [](fix) Call of stopSpy twice to single
-* [](refact) Add notifications to serial service
-* [](fix) Fix empty chart update, patchy config file
-* [](refact) Move all API methods to service
-* [](feat) Show notification on error
-* [#632](refact) Change popup window size
-* [](fix) Fix issue with UI upon remove all ports
-* [](feat) Read/Write/Remove recent ports as popup
-* [#621](refact) Code refactoring
-* [](fix) small fixes for search input and autocomplete
-* [](fix) fixing open / close panel issue (search input)
-* [](fix) fix focus issue (search input)
-* [](refact) update search controller
-* [#625](refact) refactoring of stream support
-* [](feat) custom level logs on backend
-* [](refact) update tabs style
-* [](fix) fix debug output
-* [#621](fix) Fix error message of test port
-* [](refact) Connected text alignment to right
-* [](fix) Fix error message on test ports
-* [](feat) Double click to connect to port
-* [](fix) Stop spy when popup window close
-* [](refact) Change Sparkline looks
-* [](feat) Popup window for recently used ports
-* [](feat)(refact) empty message creates new line
-* [](feat) select text on fisrt focus on input (search)
-* [](fix) fix styles of recent dialogs
-* [](refact) change progressbar on load
-* [](fix) fixing hotkey for search
-* [](fix) fixing search input area and progress bar
 * [](feat) plugin's settings API: support of droping; deep copy of objects
-* [](feat) global log level (client side)
 * [](fix) better naming for config API
-* [](fix) js lint fixes
 * [](feat) Notifications API (client)
-* [](fix) remove debug output from chipmunk.plugin.ipc
 * [](feat) support settings of plugins
-* [](fix) correct template of row (external)
-* [](fix) correct drop of search
-* [](fix) fix serial port row render
-* [](fix) fixing external row render controller
-* [](fix) drop cursor on append operation (search, charting)
-* [#526](feat) upgrade stream's tasks monitor
-* [](feat) update search view UI
-* [#615](refact) Code cleanup, better naming
-* [#615](refact) Change for comments
-* [#615](refact) Adjust elements size/position
-* [#613](fix) Multiple sparkline fix
-* [#613](refact) Move available ports in component
-* [](refact) Put available ports in component
-* [#613](refact) Change dialog window size
-* [](fix) Close all sessions issue fix
-* [#613](fix) Fix sparkline start look
+
+## Serial Port Plugin
+
+* [](feat) Double click to connect to port
+* [](feat) Popup window for recently used ports
 * [#613](feat) Implement sparklines for open-port
-* [#592](feat) update recent files/filters view
-* [](feat) update rakefile and git actions
-* [](fix) update rakefile (remove installation env part)
-* [](feat) update package-lock.json files
-* [](fix) fix rakefile
-* [](feat) rakefile - remove debug stuff
-* [](fix) correct rakefile
-* [](feat) add into rakefile checking local environment
-* [](feat) update rakefile for windows and linux cases
-* [](refactor) rakefile refactoring
-* [](fix) fix rakefile (env checking)
-* [](fix) fix condition in rakefile
-* [](fix) skip sign of binary with SKIP_NOTARIZE = true
-* [](feat) upgrade package-lock.json
-* [](feat) sign binary of plugins (mac)
-* [](feat) do not lock sessions because plugins error
-* [#612](feat) resolutions for npm dependencies
-* [](feat) upgrade package-lock.json
-* [](feat) xterminal alive
-* [](feat) update chipmunk.client.toolkit
-* [](feat) update xterm
-* [](feat) update node-pty
-* [](fix) remove injected content from sidebar on session remove
-* [#606](feat) update chart state on render with update of stream
-* [#606](feat) delivery updates of chart's data to render
-* [#606](feat) append operation for charts
-* [](refact) remove unused module's references
-* [](feat) add chart.js lib into plugin's namespace
-* [#606](fix) fix search in stream mode
-* [#547](refact) Update version
-* [#547](fix) Fix issue with updated serialport lib
-* [#547](fix) Fix issue with return promise
-* [#547](fix) Change deprecated name
-* [#547](fix) Update code with promise
-* [#547](refact) Add return types
-* [#547](fix) Fix subsciption issue
-* [#547](fix) Visual bug fix and review change
-* [#547](refact) Add error message
-* [#547](refact) Apply changes reqeuested in review
-* [#547](fix) Overlap of spyload and text fixed
-* [#547](refact) Move api methods to seperate file
-* [#547](refact) Remove view as argument
-* [#547](refact) Fixing most of comments
-* [](fix) Fix duplicate issue with dropdown list
-* [](fix) Pseudo session for spying
-* [](fix) Error handling of spying port disconnect
-* [](refact) Proper refactoring of tslint errors
-* [](refact) FIxing errors listed in github
-* [](fix) Reset spy load when open serial dialog
-* [](refact) Send message char by char with timeout
-* [](refact) remove log sent message in output
-* [](refact) Change serial send message function
-* [](fix) adjust position of read load
-* [](refact) default spyload 0, remove dot indicator
-* [](fix) Show either spy state or read amount
-* [#337](fix) Show either state of spy or connected
-* [#318](clean) CSS of serial plugin cleanup
-* [#318](fix) popup refresh port list on open
-* [](fix) Show received amount either spy or connect
-* [](refact) Change add port to small-icon-button
-* [](fix) Fixed issue with no controller created
-* [#337](refact) Send/Queue message when port ready
-* [#337](feat) Show sent message in output
-* [](refact) change function to variable and refact
-* [](fix) stop spying when click 'x' button
-* [](fix) Popup window options fix
-* [](feat) Popup window serial, show active port
-* [#337] (refact) Use lib-primitive-dropdownlist
-* [](fix) Use self-defined HTML elements
-* [#337] (fix) Timeout and send char by char
 * [] (feat) Newly connected port as default to send
+* [](refact) Add notifications to serial service
+* [](refact) Change Sparkline looks
+* [](refact) Put available ports in component
+* [](fix) Stop spy when popup window close
+* [#337] (fix) Timeout and send char by char
+* [](fix) Solve stopSpy issue
 * [] (fix) Memorize port in ddlist
-* [#435] [#337] (feat) (feat) Single mode, Send data
-* [](feat) DLT render plugin: update UX
-* [](feat) chipmunk.client.toolkit -> 0.0.77
+
+#### Charts
+
+* [#606](feat) delivery updates of chart's data
+* [#606](feat) append operation for charts
+* [](fix) Fix empty chart update, patchy config file
+
+#### Other changes
+
+* [](feat) improved and more documentation
+* [#526](feat) upgrade stream's tasks monitor
+* [](feat)(refact) empty message creates new line
+* [](feat) change progressbar on load
+* [#592](feat) update recent files/filters view
+* [](feat) sign binaries of plugins (mac)
+* [](feat) do not lock sessions because plugins error
+* [](feat) xterminal alive
+* [](refact) move testcase to test file
+* [](refact) update tabs style
+* [](fix) fix search update state (search bar)
+* [](fix) fix global style reset issue
+* [](fix) fix issue with updating stream status (search bar)
+* [](fix) fix notification wrong session issue
+* [](fix) small fixes for search input and autocomplete
+* [](fix) fix focus issue (search input)
+* [](fix) fixing hotkey for search
+* [](fix) Close all sessions issue fix
 
 ### [1.34.0] - 12/13/2019
 * [#553](fix) remove debug stuff
