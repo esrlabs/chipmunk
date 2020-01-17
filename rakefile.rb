@@ -627,6 +627,9 @@ def sign_plugin_binary(plugin_path)
     end
     puts "Detected next SIGNING_ID = #{signing_id}\nTry to sign code for: #{plugin_path}"
     full_plugin_path = File.expand_path(plugin_path, File.dirname(__FILE__))
+    if ENV.key?('KEYCHAIN_NAME')
+      sh "security unlock-keychain -p \"$KEYCHAIN_PWD\" \"$KEYCHAIN_NAME\""
+    end
     codesign_execution = "codesign --force --options runtime --deep --sign \"#{signing_id}\" {} \\;"
     sh "find #{full_plugin_path} -name \"*.node\" -type f -exec #{codesign_execution}"
   else
