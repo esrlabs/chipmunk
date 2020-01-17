@@ -34,7 +34,7 @@ impl IndexingDltEventEmitter {
                 None => None,
                 Some(fibex_path) => {
                     let path = &std::path::PathBuf::from(fibex_path);
-                    match dlt::fibex::read_fibex(path) {
+                    match dlt::fibex::read_fibexes(&[path]) {
                         Ok(res) => Some(std::rc::Rc::new(res)),
                         Err(e) => {
                             warn!("error reading fibex {}", e);
