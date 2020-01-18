@@ -199,7 +199,8 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
         this.onDone({
             logLevel: CLogLevel[this._logLevel],
             filters: filters,
-            fibexFilePath: this._ng_fibexFile === undefined ? undefined : this._ng_fibexFile.path,
+            // TODO Dmitry
+            fibexFilePath: this._ng_fibexFile === undefined ? undefined : { fibex_file_paths: [this._ng_fibexFile.path]},
         });
     }
 

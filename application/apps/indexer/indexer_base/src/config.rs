@@ -21,6 +21,10 @@ pub struct IndexingConfig<'a> {
     pub append: bool,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct FibexConfig {
+    pub fibex_file_paths: Vec<String>,
+}
 /// network socket config
 /// if udp packets are sent via multicast, then the `multicast_addr` has to
 /// be specified

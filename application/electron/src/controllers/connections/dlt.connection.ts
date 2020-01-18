@@ -6,12 +6,13 @@ import ServiceNotifications from "../../services/service.notifications";
 import indexer, { Progress, DLT, CancelablePromise } from "indexer-neon";
 import { IDLTDeamonConnectionOptions as IConnectionOptions } from '../../../../common/ipc/electron.ipc.messages/dlt.deamon.recent.response';
 import { EventEmitter } from 'events';
+import { IFibexConfig } from "../../../../apps/indexer-neon/dist/dlt";
 
 export { IConnectionOptions };
 
 export interface IDLTOptions {
     filters: DLT.DltFilterConf;
-    fibex?: string;
+    fibex: IFibexConfig;
     stdout?: boolean;
     statusUpdates?: boolean;
 }
@@ -39,7 +40,7 @@ export class DLTConnectionController extends EventEmitter {
         this._connection = connection;
         this._dlt = {
             filters: !dlt ? { min_log_level: DLT.DltLogLevel.Debug } : dlt.filters,
-            fibex: !dlt ? undefined : (typeof dlt.fibex === 'string' ? dlt.fibex : undefined),
+            fibex: !dlt ? {fibex_file_paths: []} : dlt.fibex,
             stdout: !dlt ? false : (typeof dlt.stdout === 'boolean' ? dlt.stdout : false),
             statusUpdates: !dlt ? false : (typeof dlt.statusUpdates === 'boolean' ? dlt.statusUpdates : false),
         };

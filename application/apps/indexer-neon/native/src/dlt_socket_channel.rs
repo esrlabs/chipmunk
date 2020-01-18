@@ -1,9 +1,11 @@
 use crate::channels::EventEmitterTask;
 use crate::channels::SocketThreadConfig;
+use crate::fibex_utils::gather_fibex_data;
 use crossbeam_channel as cc;
 use dlt::fibex::FibexMetadata;
 use dlt::filtering;
 use indexer_base::chunks::ChunkResults;
+use indexer_base::config::FibexConfig;
 use indexer_base::config::SocketConfig;
 use neon::prelude::*;
 use std::path;
@@ -24,25 +26,13 @@ impl SocketDltEventEmitter {
         thread_conf: SocketThreadConfig,
         socket_conf: SocketConfig,
         filter_conf: Option<filtering::DltFilterConfig>,
-        fibex: Option<String>,
+        fibex: FibexConfig,
     ) {
         info!("start_indexing_socket_in_thread: {:?}", thread_conf);
 
         // Spawn a thread to continue running after this method has returned.
         self.task_thread = Some(thread::spawn(move || {
-            let fibex_metadata: Option<Rc<FibexMetadata>> = match fibex {
-                None => None,
-                Some(fibex_path) => {
-                    let path = &std::path::PathBuf::from(fibex_path);
-                    match dlt::fibex::read_fibexes(&[path]) {
-                        Ok(res) => Some(std::rc::Rc::new(res)),
-                        Err(e) => {
-                            warn!("error reading fibex {}", e);
-                            None
-                        }
-                    }
-                }
-            };
+            let fibex_metadata: Option<Rc<FibexMetadata>> = gather_fibex_data(fibex);
             match dlt::dlt_parse::create_index_and_mapping_dlt_from_socket(
                 socket_conf,
                 thread_conf.tag.as_str(),
@@ -68,19 +58,22 @@ declare_types! {
             trace!("Rust: JsDltSocketEventEmitter");
             let ecu_id = cx.argument::<JsString>(0)?.value();
             let arg_socket_conf = cx.argument::<JsValue>(1)?;
+            trace!("Rust: 1");
             let socket_conf: SocketConfig = neon_serde::from_value(&mut cx, arg_socket_conf)?;
+            trace!("Rust: 2");
             let tag = cx.argument::<JsString>(2)?.value();
+            trace!("Rust: 3");
             let out_path = path::PathBuf::from(cx.argument::<JsString>(3)?.value().as_str());
+            trace!("Rust: 4");
             let arg_filter_conf = cx.argument::<JsValue>(4)?;
+            trace!("Rust: 5");
             let filter_conf: dlt::filtering::DltFilterConfig = neon_serde::from_value(&mut cx, arg_filter_conf)?;
-            let mut fibex: Option<String> = None;
-            if let Some(arg) = cx.argument_opt(5) {
-                if arg.is_a::<JsString>() {
-                    fibex = Some(arg.downcast::<JsString>().or_throw(&mut cx)?.value());
-                } else if arg.is_a::<JsUndefined>() {
-                    trace!("fibex arg was not set");
-                }
-            }
+            trace!("Rust: 6");
+
+            let arg_fibex_conf = cx.argument::<JsValue>(5)?;
+            trace!("Rust: 7");
+            let fibex_conf: FibexConfig = neon_serde::from_value(&mut cx, arg_fibex_conf)?;
+            trace!("Rust: 8");
 
             let shutdown_channel = async_std::sync::channel(1);
             let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
@@ -100,7 +93,7 @@ declare_types! {
                 },
                 socket_conf,
                 Some(filter_conf),
-                fibex,
+                fibex_conf,
             );
             Ok(emitter)
         }

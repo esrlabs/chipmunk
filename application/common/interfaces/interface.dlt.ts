@@ -1,3 +1,5 @@
+import { IFibexConfig } from '../../apps/indexer-neon/dist/dlt';
+
 export { DltFilterConf, LevelDistribution, StatisticInfo, DltLogLevel, IIndexDltParams } from '../../apps/indexer-neon/dist/dlt';
 
 export interface IDLTFilters {
@@ -7,5 +9,5 @@ export interface IDLTFilters {
 export interface IDLTOptions {
     logLevel: number;
     filters: IDLTFilters;
-    fibexFilePath?: string;
+    fibexFilePath: IFibexConfig;
 }

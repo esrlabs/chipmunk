@@ -10,6 +10,9 @@ export interface DltFilterConf {
 	ecu_ids?: Array<string>;
 	context_ids?: Array<string>;
 }
+export interface IFibexConfig {
+    fibex_file_paths: Array<String>,
+}
 
 export interface LevelDistribution {
 	non_log: number;
@@ -37,7 +40,7 @@ export enum DltLogLevel {
 }
 export interface IDltSocketParams {
 	filterConfig: DltFilterConf;
-	fibex?: string;
+	fibex: IFibexConfig;
 	tag: string;
 	out: string;
 	stdout: boolean;
@@ -61,7 +64,7 @@ export interface IMulticastInfo {
 export interface IIndexDltParams {
 	dltFile: string;
 	filterConfig: DltFilterConf;
-	fibex?: string;
+	fibex: IFibexConfig;
 	tag: string;
 	out: string;
 	chunk_size?: number;
@@ -273,6 +276,7 @@ export function dltOverSocket(
 			let chunks: number = 0;
 			// Add listenters
 			emitter.on(NativeEventEmitter.EVENTS.GotItem, (c: INeonTransferChunk) => {
+				log('received over socket: ' + JSON.stringify(c));
 				if (c.b[0] === 0 && c.b[1] === 0) {
 					self.emit('connect');
 				} else {

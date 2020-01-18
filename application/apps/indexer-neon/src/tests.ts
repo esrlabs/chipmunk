@@ -319,7 +319,7 @@ export function testCancelledAsyncDltIndexing(
 	const dltParams: IIndexDltParams = {
 		dltFile: fileToIndex,
 		filterConfig,
-		fibex: fibexPath,
+		fibex: { fibex_file_paths: []},
 		tag: 'TAG',
 		out: outPath,
 		chunk_size: 500,
@@ -362,10 +362,11 @@ export function testDltIndexingAsync(fileToIndex: string, outPath: string, timeo
 		const filterConfig: DltFilterConf = {
 			min_log_level: DltLogLevel.Debug
 		};
+		const fibex_paths = fibexPath === undefined ? [] : [fibexPath];
 		const dltParams: IIndexDltParams = {
 			dltFile: fileToIndex,
 			filterConfig,
-			fibex: fibexPath,
+			fibex: { fibex_file_paths: fibex_paths},
 			tag: 'TAG',
 			out: outPath,
 			chunk_size: 500,
@@ -476,10 +477,10 @@ export function testSocketDlt(outPath: string) {
 			port: '8888'
 		};
 		const promise = dltOverSocket(
-			"myEcuId",
+			'myEcuId',
 			{
 				filterConfig,
-				fibex: undefined,
+				fibex: { fibex_file_paths: [] },
 				tag: 'TAG',
 				out: outPath,
 				stdout: false,

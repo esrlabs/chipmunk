@@ -1,8 +1,10 @@
 use crate::channels::{EventEmitterTask, IndexingThreadConfig};
+use crate::fibex_utils::gather_fibex_data;
 use crossbeam_channel as cc;
 use dlt::fibex::FibexMetadata;
 use dlt::filtering;
 use indexer_base::chunks::ChunkResults;
+use indexer_base::config::FibexConfig;
 use indexer_base::config::IndexingConfig;
 use indexer_base::progress::{Notification, Severity};
 use neon::prelude::*;
@@ -24,25 +26,13 @@ impl IndexingDltEventEmitter {
         chunk_size: usize,
         thread_conf: IndexingThreadConfig,
         filter_conf: Option<filtering::DltFilterConfig>,
-        fibex: Option<String>,
+        fibex: FibexConfig,
     ) {
         info!("start_indexing_dlt_in_thread: {:?}", thread_conf);
 
         // Spawn a thread to continue running after this method has returned.
         self.task_thread = Some(thread::spawn(move || {
-            let fibex_metadata: Option<Rc<FibexMetadata>> = match fibex {
-                None => None,
-                Some(fibex_path) => {
-                    let path = &std::path::PathBuf::from(fibex_path);
-                    match dlt::fibex::read_fibexes(&[path]) {
-                        Ok(res) => Some(std::rc::Rc::new(res)),
-                        Err(e) => {
-                            warn!("error reading fibex {}", e);
-                            None
-                        }
-                    }
-                }
-            };
+            let fibex_metadata: Option<Rc<FibexMetadata>> = gather_fibex_data(fibex);
             index_dlt_file_with_progress(
                 IndexingConfig {
                     tag: thread_conf.tag.as_str(),
@@ -108,14 +98,8 @@ declare_types! {
             let arg_filter_conf = cx.argument::<JsValue>(5)?;
             let filter_conf: dlt::filtering::DltFilterConfig = neon_serde::from_value(&mut cx, arg_filter_conf)?;
             trace!("{:?}", filter_conf);
-            let mut fibex: Option<String> = None;
-            if let Some(arg) = cx.argument_opt(6) {
-                if arg.is_a::<JsString>() {
-                    fibex = Some(arg.downcast::<JsString>().or_throw(&mut cx)?.value());
-                } else if arg.is_a::<JsUndefined>() {
-                    trace!("fibex arg was not set");
-                }
-            }
+            let arg_fibex_conf = cx.argument::<JsValue>(6)?;
+            let fibex_conf: FibexConfig = neon_serde::from_value(&mut cx, arg_fibex_conf)?;
 
             let shutdown_channel = cc::unbounded();
             let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
@@ -137,7 +121,7 @@ declare_types! {
                     timestamps: false,
                 },
                 Some(filter_conf),
-                fibex,
+                fibex_conf,
             );
             Ok(emitter)
         }

@@ -136,12 +136,12 @@ fn type_info_for_signal_ref(signal_ref: String) -> TypeInfo {
     }
 }
 
-pub fn read_fibexes(files: &[&Path]) -> Result<FibexMetadata> {
+pub fn read_fibexes(files: Vec<PathBuf>) -> Result<FibexMetadata> {
     let mut frames = vec![];
     let mut frame_map_with_key = HashMap::new();
     let mut frame_map = HashMap::new();
     let mut pdu_by_id = HashMap::new();
-    for &f in files {
+    for f in files {
         let mut reader = Reader::from_file(f)?;
         loop {
             match reader.read_event()? {
@@ -181,39 +181,42 @@ pub fn read_fibexes(files: &[&Path]) -> Result<FibexMetadata> {
             pdu_refs,
         },
     ) in frames
-        {
-            let frame = Rc::new(FrameMetadata {
-                short_name,
-                pdus: pdu_refs
-                    .into_iter()
-                    .map(|r| {
-                        pdu_by_id
-                            .get(&r)
-                            .cloned()
-                            .ok_or_else(|| format_err!("pdu {} not found", &r))
-                    })
-                    .collect::<Result<Vec<_>>>()?,
-                application_id,
-                context_id,
-                message_type,
-                message_info,
-            });
-            if let (Some(context_id), Some(application_id)) =
+    {
+        let frame = Rc::new(FrameMetadata {
+            short_name,
+            pdus: pdu_refs
+                .into_iter()
+                .map(|r| {
+                    pdu_by_id
+                        .get(&r)
+                        .cloned()
+                        .ok_or_else(|| format_err!("pdu {} not found", &r))
+                })
+                .collect::<Result<Vec<_>>>()?,
+            application_id,
+            context_id,
+            message_type,
+            message_info,
+        });
+        if let (Some(context_id), Some(application_id)) =
             (frame.context_id.clone(), frame.application_id.clone())
-            {
-                let key = (context_id, application_id, id.clone());
-                if frame_map_with_key.contains_key(&key) {
-                    warn!("duplicate Frame context_id={} application_id={} id={}", key.0, key.1, key.2);
-                } else {
-                    frame_map_with_key.insert(key, frame.clone());
-                }
-            } // else error?
-            if frame_map.contains_key(&id) {
-                warn!("duplicate Frame id={}", id);
+        {
+            let key = (context_id, application_id, id.clone());
+            if frame_map_with_key.contains_key(&key) {
+                warn!(
+                    "duplicate Frame context_id={} application_id={} id={}",
+                    key.0, key.1, key.2
+                );
             } else {
-                frame_map.insert(id, frame);
+                frame_map_with_key.insert(key, frame.clone());
             }
+        } // else error?
+        if frame_map.contains_key(&id) {
+            warn!("duplicate Frame id={}", id);
+        } else {
+            frame_map.insert(id, frame);
         }
+    }
     Ok(FibexMetadata {
         frame_map_with_key,
         frame_map,

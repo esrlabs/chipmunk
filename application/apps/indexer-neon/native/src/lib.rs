@@ -15,6 +15,7 @@ mod concatenator_channel;
 mod dlt_indexer_channel;
 mod dlt_socket_channel;
 mod dlt_stats_channel;
+mod fibex_utils;
 mod indexer_channel;
 mod logging;
 mod merger_channel;
