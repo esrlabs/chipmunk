@@ -1,4 +1,4 @@
-const addon = require("../native");
+import { getNativeModule } from './native';
 import { log } from "./logging";
 import {
     AsyncResult,
@@ -180,11 +180,11 @@ export function indexAsync(
 }
 
 export function detectTimestampInString(input: string): string {
-    return addon.detectTimestampInString(input);
+    return getNativeModule().detectTimestampInString(input);
 }
 
 export function detectTimestampFormatInFile(input: string): string {
-    return addon.detectTimestampFormatInFile(input);
+    return getNativeModule().detectTimestampFormatInFile(input);
 }
 
 function getDefaultProcessorOptions(options: IIndexOptions | undefined): IIndexOptionsChecked {
