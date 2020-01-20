@@ -1,23 +1,27 @@
 import { TabsService, DockingComponent, DockDef, DocksService, ITab } from 'chipmunk-client-complex';
 import { Subscription } from './service.electron.ipc';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
-import * as Toolkit from 'chipmunk.client.toolkit';
 import { IService } from '../interfaces/interface.service';
 import { Observable, Subject, Subscription as SubscriptionRX } from 'rxjs';
 import { IDefaultView } from '../states/state.default';
+import { IAPI, IPopup, IComponentDesc } from 'chipmunk.client.toolkit';
+import { LayoutPrimiryAreaTabTitleControlsComponent } from '../layout/area.primary/tab-title-controls/component';
+import { TabTitleContentService } from '../layout/area.primary/tab-title-controls/service';
+
 import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
 import SourcesService from './service.sources';
 import HotkeysService from './service.hotkeys';
-import { IAPI, IPopup, IComponentDesc } from 'chipmunk.client.toolkit';
 import PluginsService from './service.plugins';
 import PopupsService from './standalone/service.popups';
 import OutputRedirectionsService from './standalone/service.output.redirections';
 import LayoutStateService from './standalone/service.layout.state';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
+
 export { ControllerSessionTabSearch } from '../controller/controller.session.tab.search';
 export { IRequest } from '../controller/controller.session.tab.search.filters';
 
 export type TSessionGuid = string;
-
 export type TSidebarTabOpener = (guid: string, session: string | undefined, silence: boolean) => Error | undefined;
 export type TToolbarTabOpener = (guid: string, session: string | undefined, silence: boolean) => Error | undefined;
 export type TNotificationOpener = (notification: Toolkit.INotification) => void;
@@ -104,13 +108,15 @@ export class TabsSessionsService implements IService {
         this._defaults.views = views;
     }
 
-    public add(): Promise<string> {
+    public add(): Promise<ControllerSessionTab> {
         return new Promise((resolve, reject) => {
             const guid: string = Toolkit.guid();
+            const tabTitleContentService: TabTitleContentService = new TabTitleContentService(guid);
             const session = new ControllerSessionTab({
                 guid: guid,
-                transports: ['processes', 'serial', 'dlt-render'],
+                transports: [ 'processes', 'serial', 'dlt-render' ],
                 sessionsEventsHub: this._sessionsEventsHub,
+                tabTitleContentService: tabTitleContentService,
             });
             session.init().then(() => {
                 this._subscriptions[`onSourceChanged:${guid}`] = session.getObservable().onSourceChanged.subscribe(this._onSourceChanged.bind(this, guid));
@@ -119,6 +125,12 @@ export class TabsSessionsService implements IService {
                     guid: guid,
                     name: 'New',
                     active: true,
+                    tabCaptionInjection: {
+                        factory: LayoutPrimiryAreaTabTitleControlsComponent,
+                        inputs: {
+                            service: tabTitleContentService
+                        },
+                    },
                     content: {
                         factory: DockingComponent,
                         inputs: {
@@ -139,7 +151,7 @@ export class TabsSessionsService implements IService {
                 });
                 this._sessionsEventsHub.emit().onSessionOpen(guid);
                 this.setActive(guid);
-                resolve(guid);
+                resolve(session);
             }).catch((error: Error) => {
                 session.destroy().catch((destroyErr: Error) => {
                     this._logger.error(`Fail to destroy incorrectly created session due error: ${destroyErr.message}`);
@@ -322,8 +334,8 @@ export class TabsSessionsService implements IService {
     }
 
     private _ipc_RenderSessionAddRequest(message: IPCMessages.RenderSessionAddRequest, response: (message: IPCMessages.TMessage) => void) {
-        this.add().then((guid: string) => {
-            response(new IPCMessages.RenderSessionAddResponse({ session: guid }));
+        this.add().then((session: ControllerSessionTab) => {
+            response(new IPCMessages.RenderSessionAddResponse({ session: session.getGuid() }));
         }).catch((error: Error) => {
             response(new IPCMessages.RenderSessionAddResponse({ session: '', error: error.message }));
         });
