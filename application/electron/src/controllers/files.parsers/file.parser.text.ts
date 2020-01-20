@@ -32,6 +32,10 @@ export default class FileParser extends AFileParser {
         return "text";
     }
 
+    public getMeta(): string {
+        return 'plain/text';
+    }
+
     public getExtnameFilters(): Array<{ name: string; extensions: string[] }> {
         return [{ name: "Text files", extensions: ExtNames }];
     }

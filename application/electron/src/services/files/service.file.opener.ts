@@ -16,6 +16,12 @@ import { Subscription } from '../../tools/index';
 import { IService } from '../../interfaces/interface.service';
 
 const MAX_NUMBER_OF_RECENT_FILES = 150;
+
+interface IOpenFileResult {
+    sourceId: number;
+    options: any;
+}
+
 /**
  * @class ServiceFileOpener
  * @description Opens files dropped on render
@@ -75,7 +81,7 @@ class ServiceFileOpener implements IService {
         return 'ServiceFileOpener';
     }
 
-    public open(file: string, sessionId: string, parser?: AFileParser): Promise<boolean> {
+    public open(file: string, sessionId: string, parser?: AFileParser, opts?: any): Promise<IOpenFileResult> {
         return new Promise((resolve, reject) => {
             fs.stat(file, (error: NodeJS.ErrnoException | null, stats: fs.Stats) => {
                 if (error) {
@@ -90,11 +96,11 @@ class ServiceFileOpener implements IService {
                     }
                     // To resolve TS type checks, we need this here.
                     const instanceParser: AFileParser = detectedParser;
-                    // Request options to open file
-                    this._getOptions(file, path.basename(file), instanceParser, stats.size).then((options: any) => {
+                    // Create file opener
+                    const open = (options: any) => {
                         if (typeof options === 'boolean') {
                             this._logger.env(`User canceled opening file.`);
-                            return resolve(false);
+                            return resolve({ sourceId: -1, options: undefined });
                         }
                         const trackingId: string = Tools.guid();
                         this._setProgress(instanceParser, trackingId, file);
@@ -103,10 +109,10 @@ class ServiceFileOpener implements IService {
                         // Store parser
                         this._active.set(sessionId, instanceParser);
                         // Parser has direct method of reading and writing
-                        this._directReadWrite(file, sessionId, instanceParser, options, trackingId).then(() => {
+                        this._directReadWrite(file, sessionId, instanceParser, options, trackingId).then((sourceId: number) => {
                             instanceParser.destroy().then(() => {
                                 this._saveAsRecentFile(file, stats.size);
-                                resolve(true);
+                                resolve({ sourceId: sourceId, options: options });
                             });
                         }).catch((pipeError: Error) => {
                             instanceParser.destroy().then(() => {
@@ -119,9 +125,18 @@ class ServiceFileOpener implements IService {
                             ServiceStreams.reattachSessionFileHandle(sessionId);
                             this._active.delete(sessionId);
                         });
-                    }).catch((getOptionsError: Error) => {
-                        reject(new Error(this._logger.error(`File "${file}" (${instanceParser.getAlias()}) will not be opened due error: ${getOptionsError.message}`)));
-                    });
+                    };
+                    if (opts !== undefined) {
+                        // Options are delivered already
+                        open(opts);
+                    } else {
+                        // Request options to open file
+                        this._getOptions(file, path.basename(file), instanceParser, stats.size).then((options: any) => {
+                            open(options);
+                        }).catch((getOptionsError: Error) => {
+                            reject(new Error(this._logger.error(`File "${file}" (${instanceParser.getAlias()}) will not be opened due error: ${getOptionsError.message}`)));
+                        });
+                    }
                 }).catch((gettingParserError: Error) => {
                     reject(new Error(this._logger.warn(`Fail to find parser due error: ${gettingParserError.message}`)));
                 });
@@ -158,12 +173,20 @@ class ServiceFileOpener implements IService {
     }
 
     private _ipc_FileOpenRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
-        const req: IPCMessages.FileReadRequest = request as IPCMessages.FileReadRequest;
-        this.open(req.file, req.session).then(() => {
-            response(new IPCMessages.FileOpenResponse({}));
+        const req: IPCMessages.FileOpenRequest = request as IPCMessages.FileOpenRequest;
+        this.open(req.file, req.session, undefined, req.options).then((result: IOpenFileResult) => {
+            const info = ServiceStreamSource.get(result.sourceId);
+            if (info !== undefined) {
+                (info as IPCMessages.IStreamSourceNew).id = result.sourceId;
+            }
+            response(new IPCMessages.FileOpenResponse({
+                stream: info as IPCMessages.IStreamSourceNew,
+                options: result.options,
+            }));
         }).catch((openError: Error) => {
             response(new IPCMessages.FileOpenResponse({
                 error: openError.message,
+                stream: undefined,
             }));
         });
     }
@@ -198,10 +221,10 @@ class ServiceFileOpener implements IService {
         });
     }
 
-    private _directReadWrite(file: string, sessionId: string, parser: AFileParser, options: { [key: string]: any }, trackingId: string): Tools.CancelablePromise<void, void> {
-        return new Tools.CancelablePromise<void, void>((resolve, reject, cancel) => {
+    private _directReadWrite(file: string, sessionId: string, parser: AFileParser, options: { [key: string]: any }, trackingId: string): Tools.CancelablePromise<number, void> {
+        return new Tools.CancelablePromise<number, void>((resolve, reject, cancel) => {
             // Add new description of source
-            const sourceId: number = ServiceStreamSource.add({ name: path.basename(file), session: sessionId });
+            const sourceId: number = ServiceStreamSource.add({ name: path.basename(file), session: sessionId, meta: parser.getMeta() });
             // Get destination file
             const dest: { streamId: string, file: string } | Error = ServiceStreams.getStreamFile();
             if (dest instanceof Error) {
@@ -217,7 +240,7 @@ class ServiceFileOpener implements IService {
             }).then((map: IMapItem[]) => {
                 // Doesn't need to update map here, because it's updated on fly
                 // Notify render
-                resolve();
+                resolve(sourceId);
             }).cancel(() => {
                 cancel();
             }).catch((error: Error) => {

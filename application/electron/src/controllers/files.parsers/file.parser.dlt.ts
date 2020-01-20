@@ -7,6 +7,8 @@ import * as Tools from "../../tools/index";
 import ServiceNotifications, { ENotificationType } from "../../services/service.notifications";
 import { CommonInterfaces } from '../../interfaces/interface.common';
 
+export const CMetaData = 'dlt';
+
 const ExtNames = ["dlt"];
 
 export default class FileParser extends AFileParser {
@@ -29,6 +31,10 @@ export default class FileParser extends AFileParser {
 
     public getAlias(): string {
         return "dlt";
+    }
+
+    public getMeta(): string {
+        return CMetaData;
     }
 
     public getExtnameFilters(): Array<{ name: string; extensions: string[] }> {
@@ -72,6 +78,14 @@ export default class FileParser extends AFileParser {
             if (options.filters !== undefined && options.filters.ecu_ids instanceof Array) {
                 ecuIds = options.filters.ecu_ids;
             }
+            if (typeof options.fibex !== 'object' || options.fibex === null) {
+                options.fibex = {
+                    fibex_file_paths: [],
+                };
+            }
+            if (!(options.fibex.fibex_file_paths instanceof Array)) {
+                options.fibex.fibex_file_paths = [];
+            }
             const filterConfig: DLT.DltFilterConf = {
                 min_log_level: options.logLevel,
                 app_ids: appIds,
@@ -80,7 +94,7 @@ export default class FileParser extends AFileParser {
             };
             const dltParams: DLT.IIndexDltParams = {
                 dltFile: srcFile,
-                fibex: options.fibexFilePath,
+                fibex: options.fibex,
                 filterConfig,
                 tag: sourceId.toString(),
                 out: destFile,

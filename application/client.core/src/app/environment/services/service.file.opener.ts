@@ -8,7 +8,9 @@ import { ControllerSessionTab } from '../controller/controller.session.tab';
 import LayoutStateService from './standalone/service.layout.state';
 import { DialogsMultipleFilesActionComponent } from '../components/dialogs/multiplefiles/component';
 import PopupsService from './standalone/service.popups';
+import FileOptionsService from './service.file.options';
 import { CGuids } from '../states/state.default.sidebar.apps';
+import { Storage } from '../controller/helpers/virtualstorage';
 
 export enum EActionType {
     concat = 'concat',
@@ -118,16 +120,17 @@ export class FileOpenerService implements IService, IFileOpenerService {
 
     public openFileByName(file: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._setSessionForFile().then(() => {
+            this._setSessionForFile().then((session: ControllerSessionTab) => {
                 ServiceElectronIpc.request(new IPCMessages.FileOpenRequest({
                     file: file,
                     session: TabsSessionsService.getActive().getGuid(),
-                }), IPCMessages.FileOpenResponse).then((response: IPCMessages.FileReadResponse) => {
+                }), IPCMessages.FileOpenResponse).then((response: IPCMessages.FileOpenResponse) => {
                     if (response.error !== undefined) {
                         this._logger.error(`Fail open file "${file}" due error: ${response.error}`);
                         // TODO: add notification here
                         return reject(new Error(response.error));
                     }
+                    this._setReopenCallback(session, file, response.stream, response.options);
                     resolve();
                 }).catch((error: Error) => {
                     this._logger.error(`Fail open file "${file}" due error: ${error.message}`);
@@ -185,17 +188,42 @@ export class FileOpenerService implements IService, IFileOpenerService {
         this._subjects[CSubjects[guid].subject].next(this._pending.slice());
     }
 
-    private _setSessionForFile(): Promise<void> {
+    private _setReopenCallback(
+        session: ControllerSessionTab,
+        file: string,
+        stream: IPCMessages.IStreamSourceNew | undefined,
+        options: any
+    ) {
+        if (stream === undefined) {
+            return;
+        }
+        if (!FileOptionsService.hasOptions(stream.meta)) {
+            return;
+        }
+        const storage: Storage<any> = new Storage<any>(options);
+        const opener = FileOptionsService.getReopenOptionsCallback<any>(session, stream.meta, file, storage);
+        if (opener === undefined) {
+            return;
+        }
+        session.getTabTitleContentService().addIconButton({
+            cssClass: 'fas fa-retweet',
+            handler: opener,
+            title: 'Reopen File',
+            id: Toolkit.guid(),
+        });
+    }
+
+    private _setSessionForFile(): Promise<ControllerSessionTab> {
         return new Promise((resolve, reject) => {
             // Check active session before
             const active: ControllerSessionTab = TabsSessionsService.getActive();
             if (active !== undefined && active.getSessionStream().getOutputStream().getRowsCount() === 0) {
                 // Active session is empty, we can use it
-                return resolve();
+                return resolve(active);
             }
             // Active session has content, create new one
-            TabsSessionsService.add().then(() => {
-                resolve();
+            TabsSessionsService.add().then((session: ControllerSessionTab) => {
+                resolve(session);
             }).catch((addSessionErr: Error) => {
                 reject(addSessionErr);
             });

@@ -95,6 +95,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     @Input() public fullFileName: string = '';
     @Input() public fileName: string = '';
     @Input() public size: number = -1;
+    @Input() public options: CommonInterfaces.DLT.IDLTOptions | undefined;
     @Input() public onDone: (options: CommonInterfaces.DLT.IDLTOptions) => void;
     @Input() public onCancel: () => void;
 
@@ -130,44 +131,12 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     }
 
     public ngAfterContentInit() {
-        this._ng_size = `${(this.size / 1024 / 1024).toFixed(2)}Mb`;
-        const session: string = TabsSessionsService.getActive().getGuid();
-        this._requestId = Toolkit.guid();
-        ElectronIpcService.request(new IPCMessages.DLTStatsRequest({
-            file: this.fullFileName,
-            id: this._requestId,
-            session: 'none',
-        }), IPCMessages.DLTStatsResponse).then((response: IPCMessages.DLTStatsResponse) => {
-            this._requestId = undefined;
-            this._ng_scanning = false;
-            if (typeof response.error === 'string' && response.error.trim() !== '') {
-                this._ng_error = response.error;
-                this._notifications.add({
-                    caption: `Errors during scan ${this.fileName}`,
-                    message: response.error,
-                    session: response.session,
-                    options: {
-                        type: ENotificationType.error,
-                    }
-                });
-                this._forceUpdate();
-                return;
-            }
-            this._stats = response.stats;
-            this._setFilters();
-        }).catch((error: Error) => {
-            this._ng_scanning = false;
-            this._ng_error = error.message;
-            this._forceUpdate();
-            this._notifications.add({
-                caption: `Fail to scan ${this.fileName}`,
-                message: error.message,
-                session: session,
-                options: {
-                    type: ENotificationType.error,
-                }
-            });
-        });
+        this._ng_size = this.size === -1 ? '' : `${(this.size / 1024 / 1024).toFixed(2)}Mb`;
+        if (this.options !== undefined && this.options.stats !== undefined) {
+            this._initAsReopen();
+        } else {
+            this._initAsNewOpen();
+        }
     }
 
     public ngOnDestroy() {
@@ -199,8 +168,10 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
         this.onDone({
             logLevel: CLogLevel[this._logLevel],
             filters: filters,
+            stats: this._stats,
             // TODO Dmitry
-            fibexFilePath: this._ng_fibexFile === undefined ? undefined : { fibex_file_paths: [this._ng_fibexFile.path]},
+            fibex: this._ng_fibexFile === undefined ? undefined : { fibex_file_paths: [this._ng_fibexFile.path]},
+            fibexFilesInfo: this._ng_fibexFile === undefined ? [] : [ this._ng_fibexFile ],
         });
     }
 
@@ -241,6 +212,68 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
         this._ng_filterSubject.next(this._ng_filterValue);
     }
 
+    private _initAsNewOpen() {
+        const session: string = TabsSessionsService.getActive().getGuid();
+        this._requestId = Toolkit.guid();
+        ElectronIpcService.request(new IPCMessages.DLTStatsRequest({
+            file: this.fullFileName,
+            id: this._requestId,
+            session: 'none',
+        }), IPCMessages.DLTStatsResponse).then((response: IPCMessages.DLTStatsResponse) => {
+            this._requestId = undefined;
+            this._ng_scanning = false;
+            if (typeof response.error === 'string' && response.error.trim() !== '') {
+                this._ng_error = response.error;
+                this._notifications.add({
+                    caption: `Errors during scan ${this.fileName}`,
+                    message: response.error,
+                    session: response.session,
+                    options: {
+                        type: ENotificationType.error,
+                    }
+                });
+                this._forceUpdate();
+                return;
+            }
+            this._stats = response.stats;
+            this._setFilters();
+        }).catch((error: Error) => {
+            this._ng_scanning = false;
+            this._ng_error = error.message;
+            this._forceUpdate();
+            this._notifications.add({
+                caption: `Fail to scan ${this.fileName}`,
+                message: error.message,
+                session: session,
+                options: {
+                    type: ENotificationType.error,
+                }
+            });
+        });
+    }
+
+    private _initAsReopen() {
+        this._ng_scanning = false;
+        this._stats = this.options.stats;
+        this._ng_logLevelDefault = this._getEMTINLogLevel(this.options.logLevel);
+        this._logLevel = this._ng_logLevelDefault;
+        this._setFilters();
+        if (this.options.fibexFilesInfo instanceof Array && this.options.fibexFilesInfo.length > 0) {
+            this._ng_fibexFile = this.options.fibexFilesInfo[0];
+        }
+        this._forceUpdate();
+    }
+
+    private _getEMTINLogLevel(level: number): EMTIN {
+        let log: EMTIN = EMTIN.DLT_LOG_VERBOSE;
+        Object.keys(CLogLevel).forEach((key: EMTIN) => {
+            if (level === CLogLevel[key]) {
+                log = key;
+            }
+        });
+        return log;
+    }
+
     private _setFilters() {
         (this._ng_filters as any) = { };
         Object.keys(this._stats).forEach((section: string, index: number) => {
@@ -261,7 +294,15 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
                     stats[key] = item[1][key] === undefined ? 0 : item[1][key];
                 });
                 stats.id = item[0];
-                stats.state = true;
+                if (this.options !== undefined ) {
+                    if (this.options.filters[section] instanceof Array && this.options.filters[section].indexOf(stats.id) !== -1) {
+                        stats.state = true;
+                    } else {
+                        stats.state = false;
+                    }
+                } else {
+                    stats.state = true;
+                }
                 return stats as IStatRow;
             });
             (this._ng_filters as any)[section] = {

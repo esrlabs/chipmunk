@@ -1,6 +1,7 @@
 export interface IFileOpenRequest {
     file: string;
     session: string;
+    options?: any;
 }
 
 export class FileOpenRequest {
@@ -9,6 +10,7 @@ export class FileOpenRequest {
     public signature: string = FileOpenRequest.signature;
     public file: string = '';
     public session: string = '';
+    public options?: string = '';
 
     constructor(params: IFileOpenRequest) {
         if (typeof params !== 'object' || params === null) {
@@ -22,5 +24,6 @@ export class FileOpenRequest {
         }
         this.file = params.file;
         this.session = params.session;
+        this.options = params.options;
     }
 }
