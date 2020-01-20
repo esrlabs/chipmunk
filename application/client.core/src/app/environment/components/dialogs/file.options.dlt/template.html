@@ -1,4 +1,4 @@
-<p class="caption t-normal">File: {{fileName}} ({{_ng_size}})</p>
+<p class="caption t-normal">File: {{fileName}} {{_ng_size === '' ? '' : '(' + _ng_size + ')'}}</p>
 <span class="spliter"></span>
 <p class="caption t-normal">Required log level:</p>
 <div [attr.class]="'logs ' + (_ng_error !== undefined ? 'with-error' : '')">

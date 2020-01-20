@@ -1,9 +1,14 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
+
 import { Observable, Subject } from 'rxjs';
 import { IService } from '../interfaces/interface.service';
-import ServiceElectronIpc, { IPCMessages, Subscription, TResponseFunc } from './service.electron.ipc';
 import { AControllerFileOptions } from '../interfaces/interface.controller.file.options';
 import { ControllerDltFileOptions } from '../controller/file.options/controller.file.dlt';
+import { ControllerSessionTab } from '../controller/controller.session.tab';
+import { Storage } from '../controller/helpers/virtualstorage';
+
+import ServiceElectronIpc, { IPCMessages, Subscription, TResponseFunc } from './service.electron.ipc';
+
 import EventsHubService from './standalone/service.eventshub';
 
 enum EFileTypes {
@@ -13,6 +18,12 @@ enum EFileTypes {
 const CControllers = {
     [EFileTypes.dlt]: ControllerDltFileOptions
 };
+
+const CMetaRegs = {
+    [EFileTypes.dlt]: /^dlt/gi,
+};
+
+type TReopenCallback = () => void;
 
 export class FileOptionsService implements IService {
 
@@ -53,6 +64,58 @@ export class FileOptionsService implements IService {
         return {
             onFileOpenRequest: this._subjects.onFileOpenRequest.asObservable(),
         };
+    }
+
+    public hasOptions(meta: string): boolean {
+        return this._getOptionsController(meta) !== undefined;
+    }
+
+    public getReopenOptionsCallback<T>(session: ControllerSessionTab, meta: string, file: string, storage: Storage<T>): TReopenCallback | undefined {
+        const classRef: Function = this._getOptionsController(meta);
+        if (classRef === undefined) {
+            return undefined;
+        }
+        return () => {
+            // Create instance of controller
+            const inst: AControllerFileOptions = new (classRef as any)();
+            // Call reopen functionlity
+            inst.reopen(file, storage.get()).then((opt: any) => {
+                // Drop current session
+                session.resetSessionContent().then(() => {
+                    // Open file again
+                    ServiceElectronIpc.request(new IPCMessages.FileOpenRequest({
+                        file: file,
+                        options: opt,
+                        session: session.getGuid(),
+                    }), IPCMessages.FileOpenResponse).then((response: IPCMessages.FileOpenResponse) => {
+                        if (response.error) {
+                            this._logger.error(`Fail reopen file due error: ${response.error}`);
+                        }
+                        storage.set(opt);
+                        // TODO: update reopener handler (because OPTIONS were updated)
+                    }).catch((openError: Error) => {
+                        this._logger.error(`Unexpected error during reopening file: ${openError.message}`);
+                    });
+                }).catch((error: Error) => {
+                    this._logger.error(`Fail to drop session content due error: ${error.message}`);
+                });
+            }).catch((getOptionsError: Error) => {
+                this._logger.error(`Fail to get options for file "${file}" due error: ${getOptionsError.message}`);
+            });
+        };
+    }
+
+    private _getOptionsController(meta: string): Function | undefined {
+        let alias: EFileTypes | undefined;
+        Object.keys(CMetaRegs).forEach((key: EFileTypes) => {
+            if (meta.search(CMetaRegs[key]) !== -1) {
+                alias = key;
+            }
+        });
+        if (alias === undefined || CControllers[alias] === undefined) {
+            return undefined;
+        }
+        return CControllers[alias];
     }
 
     private _onRequest(request: IPCMessages.FileGetOptionsRequest, response: TResponseFunc) {

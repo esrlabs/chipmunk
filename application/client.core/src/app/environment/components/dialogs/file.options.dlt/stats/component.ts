@@ -137,6 +137,14 @@ export class DialogsFileOptionsDltStatsComponent implements OnDestroy, AfterView
         });
     }
 
+    public getUnselected(): string[] {
+        return this.stats.filter((stat: IStatRow) => {
+            return !stat.state;
+        }).map((stat: IStatRow) => {
+            return stat.id;
+        });
+    }
+
     public getId(): string {
         return this.id;
     }

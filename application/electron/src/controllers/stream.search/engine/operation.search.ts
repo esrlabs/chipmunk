@@ -127,6 +127,7 @@ export class OperationSearch extends EventEmitter {
         if (this._cleaner !== undefined) {
             this._logger.error(`Dropping search controller, while search operation is still in progress.`);
         }
+        this._read = 0;
         this._offset = { bytes: 0, rows: 0 };
     }
 

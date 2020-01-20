@@ -25,6 +25,8 @@ export abstract class AFileParser {
 
     public abstract abort(): Promise<void>;
 
+    public abstract getMeta(): string;
+
     public abstract parseAndIndex(
         srcFile: string,
         destFile: string,

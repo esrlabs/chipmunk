@@ -6,13 +6,12 @@ import ServiceNotifications from "../../services/service.notifications";
 import indexer, { Progress, DLT, CancelablePromise } from "indexer-neon";
 import { IDLTDeamonConnectionOptions as IConnectionOptions } from '../../../../common/ipc/electron.ipc.messages/dlt.deamon.recent.response';
 import { EventEmitter } from 'events';
-import { IFibexConfig } from "../../../../apps/indexer-neon/dist/dlt";
+import { CMetaData } from '../files.parsers/file.parser.dlt';
 
 export { IConnectionOptions };
 
 export interface IDLTOptions {
     filters: DLT.DltFilterConf;
-    fibex: IFibexConfig;
     stdout?: boolean;
     statusUpdates?: boolean;
 }
@@ -40,7 +39,7 @@ export class DLTConnectionController extends EventEmitter {
         this._connection = connection;
         this._dlt = {
             filters: !dlt ? { min_log_level: DLT.DltLogLevel.Debug } : dlt.filters,
-            fibex: !dlt ? {fibex_file_paths: []} : dlt.fibex,
+            // fibex: !dlt ? {fibex_file_paths: []} : dlt.fibex,
             stdout: !dlt ? false : (typeof dlt.stdout === 'boolean' ? dlt.stdout : false),
             statusUpdates: !dlt ? false : (typeof dlt.statusUpdates === 'boolean' ? dlt.statusUpdates : false),
         };
@@ -78,7 +77,7 @@ export class DLTConnectionController extends EventEmitter {
             };
             // Creating source alias
             const sourceName: string = `${this._connection.ecu}::${this._connection.bindingAddress}:${this._connection.bindingPort}`;
-            const sourceId: number = ServiceStreamSource.add({ name: sourceName, session: this._session, meta: 'dlt' });
+            const sourceId: number = ServiceStreamSource.add({ name: sourceName, session: this._session, meta: CMetaData });
             // Get stream file
             const streamInfo = ServiceStreams.getStreamFile(this._session);
             if (streamInfo instanceof Error) {
@@ -87,7 +86,9 @@ export class DLTConnectionController extends EventEmitter {
             // Setup DLT indexer settings
             const params: DLT.IDltSocketParams = {
                 filterConfig: this._dlt.filters,
-                fibex: this._dlt.fibex,
+                fibex: {
+                    fibex_file_paths: [],
+                },
                 tag: `${sourceId}`,
                 out: streamInfo.file,
                 stdout: this._dlt.stdout as boolean,

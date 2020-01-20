@@ -92,24 +92,29 @@ export default class ControllerStreamSearch {
 
     public reset(): Promise<void> {
         return new Promise((resolve, reject) => {
-            // Clear search file
-            this._clear().then(() => {
-                // Create file
-                fs.open(this._state.getSearchFile(), 'w', (createFileError: NodeJS.ErrnoException | null, fd: number) => {
-                    if (createFileError) {
-                        return reject(createFileError);
-                    }
-                    fs.close(fd, (closeFileError: NodeJS.ErrnoException | null) => {
-                        if (closeFileError) {
-                            return reject(closeFileError);
+            // Drop search controller
+            this._searching.drop().then(() => {
+                // Clear search file
+                this._clear().then(() => {
+                    // Create file
+                    fs.open(this._state.getSearchFile(), 'w', (createFileError: NodeJS.ErrnoException | null, fd: number) => {
+                        if (createFileError) {
+                            return reject(createFileError);
                         }
-                        // Notification
-                        this._state.postman.notification(true);
-                        resolve();
+                        fs.close(fd, (closeFileError: NodeJS.ErrnoException | null) => {
+                            if (closeFileError) {
+                                return reject(closeFileError);
+                            }
+                            // Notification
+                            this._state.postman.notification(true);
+                            resolve();
+                        });
                     });
+                }).catch((clearErr: Error) => {
+                    reject(clearErr);
                 });
-            }).catch((clearErr: Error) => {
-                reject(clearErr);
+            }).catch((dropError: Error) => {
+                reject(dropError);
             });
         });
     }
@@ -194,8 +199,6 @@ export default class ControllerStreamSearch {
             this._searching.cancel();
             // Drop map
             this._state.map.drop();
-            // Clear stored requests
-            this._requests = [];
             // Check and drop file
             if (!fs.existsSync(this._state.getSearchFile())) {
                 return resolve();
@@ -351,6 +354,16 @@ export default class ControllerStreamSearch {
 
     private _stream_onUpdate(map: IMapItem) {
         this._append(map.bytes);
+        /*
+        if (map === undefined) {
+            if (this._requests.length === 0) {
+                return;
+            }
+            this._search(this._requests, Tools.guid());
+        } else {
+            this._append(map.bytes);
+        }
+        */
     }
 
 }

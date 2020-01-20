@@ -73,6 +73,15 @@ export class SearchEngine extends EventEmitter {
         });
     }
 
+    public drop(): Promise<void> {
+        return new Promise((resolve) => {
+            this._operations.append.drop();
+            this._operations.inspecting.drop();
+            this._operations.search.drop();
+            resolve();
+        });
+    }
+
     public search(requests: RegExp[], to?: number): CancelablePromise<IMapItem[], void> | Error {
         if (this._stock.search.size !== 0) {
             return new Error(`Fail to start search because previous wasn't finished.`);
