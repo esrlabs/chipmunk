@@ -146,6 +146,13 @@
     }
 }
 
+input.mat-input-element{
+    color: @scheme-color-1;
+    &:focus{
+        color: @scheme-color-0;
+    }
+}
+
 input.mat-input-element.standard{
     margin: 5px 0px;
     padding: 0 6px;
@@ -154,6 +161,7 @@ input.mat-input-element.standard{
     width: 100%;
     height: 22px;
     background: none;
+    color: @scheme-color-0;
     &:focus{
         background: @scheme-color-7;
     }
