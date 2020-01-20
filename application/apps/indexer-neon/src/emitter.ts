@@ -6,7 +6,7 @@ const {
     RustTimestampFormatDetectionEmitter: RustTimestampChannel,
     RustConcatenatorEmitter: RustConcatenatorChannel,
     RustMergerEmitter: RustMergerChannel,
-} = require("../native/index.node");
+} = require("../../../../native/index.node");
 const { EventEmitter } = require("events");
 export {
     EventEmitter,
