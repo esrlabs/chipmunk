@@ -1,43 +1,29 @@
-const addon = require('../native');
 import { log } from './logging';
 import { ITicks, INeonTransferChunk, INeonNotification, IChunk } from './progress';
 import { NativeEventEmitter, RustDltIndexerChannel, RustDltStatsChannel, RustDltSocketChannel } from './emitter';
 import { CancelablePromise } from './promise';
+import { 
+	IDLTFilters,
+	IDLTOptions,
+	IIndexDltParams,
+	DltFilterConf,
+	DltLogLevel,
+	LevelDistribution,
+	StatisticInfo,
+	IFibexConfig
+} from '../../../common/interfaces/interface.dlt';
 
-export interface DltFilterConf {
-	min_log_level?: DltLogLevel;
-	app_ids?: Array<string>;
-	ecu_ids?: Array<string>;
-	context_ids?: Array<string>;
-}
-export interface IFibexConfig {
-    fibex_file_paths: Array<String>,
+export {
+	IDLTFilters,
+	IDLTOptions,
+	IIndexDltParams,
+	DltFilterConf,
+	DltLogLevel,
+	LevelDistribution,
+	StatisticInfo,
+	IFibexConfig
 }
 
-export interface LevelDistribution {
-	non_log: number;
-	log_fatal: number;
-	log_error: number;
-	log_warning: number;
-	log_info: number;
-	log_debug: number;
-	log_verbose: number;
-	log_invalid: number;
-}
-export interface StatisticInfo {
-	app_ids: Array<[string, LevelDistribution]>;
-	context_ids: Array<[string, LevelDistribution]>;
-	ecu_ids: Array<[string, LevelDistribution]>;
-	contained_non_verbose: boolean;
-}
-export enum DltLogLevel {
-	Fatal = 0x1 << 4,
-	Error = 0x2 << 4,
-	Warn = 0x3 << 4,
-	Info = 0x4 << 4,
-	Debug = 0x5 << 4,
-	Verbose = 0x6 << 4
-}
 export interface IDltSocketParams {
 	filterConfig: DltFilterConf;
 	fibex: IFibexConfig;
@@ -46,6 +32,7 @@ export interface IDltSocketParams {
 	stdout: boolean;
 	statusUpdates: boolean;
 }
+
 export interface ISocketConfig {
     multicast_addr?: IMulticastInfo,
     bind_addr: string,
@@ -61,17 +48,7 @@ export interface IMulticastInfo {
     multiaddr: string,
     interface?: string,
 }
-export interface IIndexDltParams {
-	dltFile: string;
-	filterConfig: DltFilterConf;
-	fibex: IFibexConfig;
-	tag: string;
-	out: string;
-	chunk_size?: number;
-	append: boolean;
-	stdout: boolean;
-	statusUpdates: boolean;
-}
+
 export interface IIndexDltOptions {}
 export interface IIndexDltOptionsChecked {}
 

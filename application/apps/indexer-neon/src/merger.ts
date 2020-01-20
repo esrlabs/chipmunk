@@ -1,4 +1,3 @@
-const addon = require("../native");
 import { log } from "./logging";
 import {
     ITicks,
