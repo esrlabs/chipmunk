@@ -1,0 +1,5 @@
+<span 
+    [attr.class]="'small-icon-button ' + icon.cssClass"
+    [attr.title]="icon.title"
+    (click)="_ng_onIconButtonClick($event, icon.handler)"
+    *ngFor="let icon of _ng_icons"></span>

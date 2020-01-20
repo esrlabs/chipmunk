@@ -1,5 +1,9 @@
+import HotkeysService from '../services/service.hotkeys';
+import LayoutStateService from '../services/standalone/service.layout.state';
+
 import PluginsService, { IPluginData } from '../services/service.plugins';
 import ServiceElectronIpc, { IPCMessages, Subscription as IPCSubscription } from '../services/service.electron.ipc';
+
 import { Subscription, Observable, Subject } from 'rxjs';
 import { ControllerSessionTabStream, IStreamState } from './controller.session.tab.stream';
 import { ControllerSessionTabSearch } from './controller.session.tab.search';
@@ -7,9 +11,9 @@ import { ControllerSessionTabStates } from './controller.session.tab.states';
 import { ControllerSessionTabMap } from './controller.session.tab.map';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope } from './controller.session.tab.scope';
+import { TabTitleContentService } from '../layout/area.primary/tab-title-controls/service';
+
 import * as Toolkit from 'chipmunk.client.toolkit';
-import HotkeysService from '../services/service.hotkeys';
-import LayoutStateService from '../services/standalone/service.layout.state';
 
 export { IStreamState };
 
@@ -17,6 +21,7 @@ export interface IControllerSession {
     guid: string;
     transports: string[];
     sessionsEventsHub: Toolkit.ControllerSessionsEvents;
+    tabTitleContentService: TabTitleContentService;
 }
 
 export interface IInjectionAddEvent {
@@ -40,6 +45,9 @@ export class ControllerSessionTab {
     private _scope: ControllerSessionScope;
     private _map: ControllerSessionTabMap;
     private _viewportEventsHub: Toolkit.ControllerViewportEvents;
+    private _tabTitleContentService: TabTitleContentService;
+    private _sourceInfo: IPCMessages.IStreamSourceNew | undefined;
+    private _openSourceOptions: any;
     private _subscriptions: { [key: string]: Subscription | IPCSubscription } = { };
     private _subjects: {
         onOutputInjectionAdd: Subject<IInjectionAddEvent>,
@@ -74,6 +82,7 @@ export class ControllerSessionTab {
         this._viewportEventsHub = new Toolkit.ControllerViewportEvents();
         this.addOutputInjection = this.addOutputInjection.bind(this);
         this.removeOutputInjection = this.removeOutputInjection.bind(this);
+        this._tabTitleContentService = params.tabTitleContentService;
         this._subscriptions.onOpenSearchFiltersTab = HotkeysService.getObservable().openSearchFiltersTab.subscribe(this._onOpenSearchFiltersTab.bind(this));
     }
 
@@ -185,6 +194,15 @@ export class ControllerSessionTab {
             });
         });
         return injections;
+    }
+
+    public getTabTitleContentService(): TabTitleContentService {
+        return this._tabTitleContentService;
+    }
+
+    public setSourceInfo(source: IPCMessages.IStreamSourceNew, options: any) {
+        this._sourceInfo = source;
+        this._openSourceOptions = options;
     }
 
     public addOutputInjection(injection: Toolkit.IComponentInjection, type: Toolkit.EViewsTypes) {
