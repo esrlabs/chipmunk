@@ -31,7 +31,19 @@
     </div>
     <span class="spliter"></span>
 </div>
-<p class="t-small" *ngIf="_ng_fibexFile !== undefined">Refered fibex file: {{_ng_fibexFile.name}} ({{(_ng_fibexFile.size / 1024).toFixed(2)}} kB)</p>
+
+<p class="t-small" *ngIf="_ng_fibex.length > 0">Refered fibex files:</p>
+<div class="fibex">
+    <ul class="standard-reorderable-list" *ngIf="_ng_fibex.length > 0" cdkDropList (cdkDropListDropped)="_ng_onFibexFileDragged($event)">
+        <li class="standard-reorderable-list" cdkDrag *ngFor="let file of _ng_fibex" (contextmenu)="_ng_onFibexContexMenu($event, file)">
+            <span class="t-console color-scheme-0">{{file.name}}</span>
+            <span class="t-console color-scheme-2">{{file.viewPath}}</span>
+            <span class="t-console color-scheme-2">{{(file.size / 1024).toFixed(2)}} kB</span>
+        </li>
+    </ul>
+</div>
+<span class="spliter" *ngIf="_ng_fibex.length > 0"></span>
+
 <div class="controlls">
     <button mat-stroked-button color="primary" (click)="_ng_onOpen()">Open</button>
     <button mat-stroked-button color="primary" (click)="_ng_onFibex()">Ref Fibex File</button>
