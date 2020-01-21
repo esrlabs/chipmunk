@@ -67,7 +67,7 @@ enum EDLTSettingsErrorCodes {
 
 const CDefaulsDLTSettingsField = {
     ecu: '',
-    bindingAddress: '',
+    bindingAddress: '0.0.0.0',
     bindingPort: '',
     multicast: false,
     multicastAddress: '',
@@ -449,6 +449,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
             this._ng_state = state.state;
             this._ng_panels.binding = state.bindingPanel;
             this._ng_panels.multicast = state.multicastPanel;
+            this._ng_panels.fibex = state.fibex;
             this._ng_settings.connectionId = state.connectionId;
             this._ng_settings.ecu = state.ecu;
             this._ng_settings.multicast = state.multicast;
