@@ -34,8 +34,8 @@
 
 <p class="t-small" *ngIf="_ng_fibex.length > 0">Refered fibex files:</p>
 <div class="fibex">
-    <ul class="standard-reorderable-list" *ngIf="_ng_fibex.length > 0" cdkDropList (cdkDropListDropped)="_ng_onFibexFileDragged($event)">
-        <li class="standard-reorderable-list" cdkDrag *ngFor="let file of _ng_fibex" (contextmenu)="_ng_onFibexContexMenu($event, file)">
+    <ul class="reorderable-list-a" *ngIf="_ng_fibex.length > 0" cdkDropList (cdkDropListDropped)="_ng_onFibexFileDragged($event)">
+        <li class="reorderable-list-a" cdkDrag *ngFor="let file of _ng_fibex" (contextmenu)="_ng_onFibexContexMenu($event, file)">
             <span class="t-console color-scheme-0">{{file.name}}</span>
             <span class="t-console color-scheme-2">{{file.viewPath}}</span>
             <span class="t-console color-scheme-2">{{(file.size / 1024).toFixed(2)}} kB</span>

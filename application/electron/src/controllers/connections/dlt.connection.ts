@@ -87,7 +87,9 @@ export class DLTConnectionController extends EventEmitter {
             const params: DLT.IDltSocketParams = {
                 filterConfig: this._dlt.filters,
                 fibex: {
-                    fibex_file_paths: [],
+                    fibex_file_paths: !(this._connection.fibex instanceof Array) ? [] : this._connection.fibex.map((file) => {
+                        return file.path;
+                    }),
                 },
                 tag: `${sourceId}`,
                 out: streamInfo.file,
