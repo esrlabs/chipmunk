@@ -5,6 +5,7 @@ import { Subscription, Subject } from 'rxjs';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 import { IServices } from '../../../services/shared.services.sidebar';
+import { CdkDragDrop } from '@angular/cdk/drag-drop';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -23,6 +24,7 @@ interface IState {
     bindingPanel: boolean;
     multicastPanel: boolean;
     multicast: boolean;
+    fibex: boolean;
     state: 'progress' | 'connected' | 'disconnected';
 }
 
@@ -36,6 +38,9 @@ interface IDLTDeamonSettings {
     multicast: boolean;
     multicastAddress: string;
     multicastInterface: string;
+    // fibex
+    fibex: boolean;
+    fibexFiles: IPCMessages.IFilePickerFileInfo[];
 }
 
 interface IDLTDeamonSettingsErrorStateMatcher {
@@ -67,6 +72,8 @@ const CDefaulsDLTSettingsField = {
     multicast: false,
     multicastAddress: '',
     multicastInterface: '0.0.0.0',
+    fibex: false,
+    fibexFiles: [],
 };
 
 export class DLTDeamonSettingsErrorStateMatcher implements ErrorStateMatcher {
@@ -161,13 +168,17 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         multicast: CDefaulsDLTSettingsField.multicast,
         multicastAddress: CDefaulsDLTSettingsField.multicastAddress,
         multicastInterface: CDefaulsDLTSettingsField.multicastInterface,
+        fibex: CDefaulsDLTSettingsField.fibex,
+        fibexFiles: CDefaulsDLTSettingsField.fibexFiles,
     };
     public _ng_panels: {
         binding: boolean,
         multicast: boolean,
+        fibex: boolean,
     } = {
         binding: true,
         multicast: false,
+        fibex: false,
     };
     public _ng_errorStates: IDLTDeamonSettingsErrorStateMatcher = {
         ecu: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.ecu),
@@ -244,6 +255,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
             bindingPort: this._ng_settings.bindingPort,
             multicastAddress: this._ng_settings.multicastAddress,
             multicastInterface: this._ng_settings.multicastInterface,
+            fibex: this._ng_settings.fibexFiles,
         }), IPCMessages.DLTDeamonConnectResponse).then((response: IPCMessages.DLTDeamonConnectResponse) => {
             this._ng_state = 'connected';
             this._loadRecent();
@@ -348,6 +360,82 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         event.preventDefault();
     }
 
+    public _ng_onAddFibexFile() {
+        ElectronIpcService.request(new IPCMessages.FilePickerRequest({
+            filter: [{ name: 'XML files', extensions: ['xml'] }],
+            multiple: true,
+        }), IPCMessages.FilePickerResponse).then((responce: IPCMessages.FilePickerResponse) => {
+            if (typeof responce.error === 'string') {
+                return this._notifications.add({
+                    caption: `Fail open`,
+                    message: `Fail to pickup file due error: ${responce.error}`,
+                    options: {
+                        type: ENotificationType.error,
+                    }
+                });
+            }
+            responce.files = responce.files.filter((incomeFile: IPCMessages.IFilePickerFileInfo) => {
+                let fileIsIn: boolean = false;
+                this._ng_settings.fibexFiles.forEach((existFile: IPCMessages.IFilePickerFileInfo) => {
+                    if (existFile.path === incomeFile.path) {
+                        fileIsIn = true;
+                    }
+                });
+                return !fileIsIn;
+            }).map((file: IPCMessages.IFilePickerFileInfo) => {
+                (file as any).viewPath = file.path.replace(file.name, '').replace(/[^\w\d\.\_\-]$/gi, '');
+                return file;
+            });
+            this._ng_settings.fibexFiles.push(...responce.files);
+            this._forceUpdate();
+        }).catch((error: Error) => {
+            this._notifications.add({
+                caption: `Fail open`,
+                message: `Fail to pickup file due error: ${error.message}`,
+                options: {
+                    type: ENotificationType.error,
+                }
+            });
+        });
+    }
+
+    public _ng_onFibexFileDragged(event: CdkDragDrop<string[]>) {
+        const target: IPCMessages.IFilePickerFileInfo = Object.assign({}, this._ng_settings.fibexFiles[event.previousIndex]);
+        this._ng_settings.fibexFiles = this._ng_settings.fibexFiles.filter((file: IPCMessages.IFilePickerFileInfo, i: number) => {
+            return i !== event.previousIndex;
+        });
+        this._ng_settings.fibexFiles.splice(event.currentIndex, 0, target);
+        this._forceUpdate();
+    }
+
+    public _ng_onFibexContexMenu(event: MouseEvent, file: IPCMessages.IFilePickerFileInfo) {
+        const items: IMenuItem[] = [
+            {
+                caption: `Remove`,
+                handler: () => {
+                    this._ng_settings.fibexFiles = this._ng_settings.fibexFiles.filter((item: IPCMessages.IFilePickerFileInfo) => {
+                        return file.path !== item.path;
+                    });
+                    this._forceUpdate();
+                },
+            },
+            {
+                caption: `Remove All`,
+                handler: () => {
+                    this._ng_settings.fibexFiles = [];
+                    this._forceUpdate();
+                },
+            }
+        ];
+        ContextMenuService.show({
+            items: items,
+            x: event.pageX,
+            y: event.pageY,
+        });
+        event.stopImmediatePropagation();
+        event.preventDefault();
+    }
+
     private _onBeforeTabRemove() {
         this._ng_session.getSessionsStates().drop(this._getStateGuid());
     }
@@ -364,6 +452,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
             this._ng_settings.connectionId = state.connectionId;
             this._ng_settings.ecu = state.ecu;
             this._ng_settings.multicast = state.multicast;
+            this._ng_settings.fibex = state.fibex;
             this._ng_settings.bindingPort = state.bindingPort;
             this._ng_settings.bindingAddress = state.bindingAddress;
             this._ng_settings.multicastAddress = state.multicastAddress;
@@ -384,6 +473,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
                 connectionId: this._ng_settings.connectionId,
                 ecu: this._ng_settings.ecu,
                 multicast: this._ng_settings.multicast,
+                fibex: this._ng_settings.fibex,
                 bindingPort: this._ng_settings.bindingPort,
                 bindingAddress: this._ng_settings.bindingAddress,
                 multicastAddress: this._ng_settings.multicastAddress,
@@ -476,6 +566,15 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
             this._ng_settings.multicastInterface = options.multicastInterface;
             this._ng_settings.multicast = true;
             this._ng_panels.multicast = true;
+        }
+        if (options.fibex instanceof Array && options.fibex.length > 0) {
+            this._ng_panels.fibex = true;
+            this._ng_settings.fibex = true;
+            this._ng_settings.fibexFiles = options.fibex;
+        } else {
+            this._ng_panels.fibex = false;
+            this._ng_settings.fibex = CDefaulsDLTSettingsField.fibex;
+            this._ng_settings.fibexFiles = CDefaulsDLTSettingsField.fibexFiles;
         }
         this._forceUpdate();
     }

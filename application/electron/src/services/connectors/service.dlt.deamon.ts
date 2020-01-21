@@ -87,6 +87,7 @@ class ServiceDLTDeamonConnector implements IService {
             bindingPort: req.bindingPort,
             multicastInterface: req.multicastInterface,
             multicastAddress: req.multicastAddress,
+            fibex: req.fibex,
         };
         const connection: DLTConnectionController = new DLTConnectionController(
             req.id,

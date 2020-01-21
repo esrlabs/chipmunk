@@ -17,8 +17,7 @@ import {
     MatButtonModule,
     MatProgressBarModule,
     MatCheckboxModule,
-    MatAutocompleteModule
-
+    MatAutocompleteModule,
 } from '@angular/material';
 
 const entryComponents = [ SidebarAppDLTConnectorComponent ];

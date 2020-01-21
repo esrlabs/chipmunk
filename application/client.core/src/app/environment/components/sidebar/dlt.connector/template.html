@@ -56,6 +56,8 @@
     </mat-form-field>
     <span class="slitter"></span>
     <mat-checkbox [(ngModel)]="_ng_settings.multicast" (change)="_ng_onMuliticastingStateChange($event)" [disabled]="_ng_state === 'disconnected' ? null : true">UDP muliticast</mat-checkbox>
+    <span class="slitter"></span>
+    <mat-checkbox [(ngModel)]="_ng_settings.fibex" (change)="_ng_onMuliticastingStateChange($event)" [disabled]="_ng_state === 'disconnected' ? null : true">Fibex is required</mat-checkbox>
 </mat-expansion-panel>
 
 <span class="slitter"></span>
@@ -92,6 +94,37 @@
             <strong>required</strong>
         </mat-error>
     </mat-form-field>
+</mat-expansion-panel>
+
+<span class="slitter"></span>
+
+<mat-expansion-panel 
+    *ngIf="_ng_settings.fibex"
+    (click)="_ng_onPanelClick()"
+    [expanded]="_ng_panels.fibex"
+    (opened)="_ng_onPanelToggle('fibex', true)"
+    (closed)="_ng_onPanelToggle('fibex', false)">
+    <mat-expansion-panel-header>
+        <mat-panel-title>
+            Fibex
+        </mat-panel-title>
+        <mat-panel-description>
+            Refered files
+        </mat-panel-description>
+    </mat-expansion-panel-header>
+    <div class="fibex">
+        <ul class="reorderable-list-b" *ngIf="_ng_settings.fibexFiles.length > 0" cdkDropList (cdkDropListDropped)="_ng_onFibexFileDragged($event)">
+            <li class="reorderable-list-b" cdkDrag *ngFor="let file of _ng_settings.fibexFiles" (contextmenu)="_ng_onFibexContexMenu($event, file)">
+                <span class="t-console color-scheme-0">{{file.name}}</span>
+                <span class="t-console color-scheme-2">{{file.viewPath}}</span>
+                <span class="t-console color-scheme-2">{{(file.size / 1024).toFixed(2)}} kB</span>
+            </li>
+        </ul>
+    </div>
+    <span class="slitter" *ngIf="_ng_settings.fibexFiles.length > 0"></span>
+    <div class="controlls">
+        <button mat-stroked-button color="primary" (click)="_ng_onAddFibexFile()">Ref Fibex File</button>
+    </div>
 </mat-expansion-panel>
 
 <span class="slitter"></span>

@@ -1,9 +1,12 @@
+import { IFilePickerFileInfo } from './file.filepicker.response';
+
 export interface IDLTDeamonConnectionOptions {
     ecu: string;
     bindingAddress: string;
     bindingPort: string;
     multicastAddress: string;
     multicastInterface: string;
+    fibex: IFilePickerFileInfo[];
 }
 
 export interface IDLTDeamonRecentResponse {
