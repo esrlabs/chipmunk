@@ -6,6 +6,8 @@ import TabsSessionsService from '../../../services/service.sessions.tabs';
 import { CommonInterfaces } from '../../../interfaces/interface.common';
 import { Subject } from 'rxjs';
 import { DialogsFileOptionsDltStatsComponent, IStatRow, IForceSortData } from './stats/component';
+import { CdkDragDrop } from '@angular/cdk/drag-drop';
+import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
 
 export enum EMTIN {
     // If MSTP == DLT_TYPE_LOG
@@ -112,7 +114,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
         { value: EMTIN.DLT_LOG_VERBOSE, caption: 'Verbose' },
     ];
     public _ng_filters: IStats | undefined = undefined;
-    public _ng_fibexFile: IPCMessages.IFilePickerFileInfo | undefined;
+    public _ng_fibex: IPCMessages.IFilePickerFileInfo[] = [];
     public _ng_error: string | undefined;
     public _ng_dispayed = ['id', ...CLevelOrder];
     public _ng_filterSubject: Subject<string> = new Subject<string>();
@@ -169,9 +171,10 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
             logLevel: CLogLevel[this._logLevel],
             filters: filters,
             stats: this._stats,
-            // TODO Dmitry
-            fibex: this._ng_fibexFile === undefined ? undefined : { fibex_file_paths: [this._ng_fibexFile.path]},
-            fibexFilesInfo: this._ng_fibexFile === undefined ? [] : [ this._ng_fibexFile ],
+            fibex: { fibex_file_paths: this._ng_fibex.map((file) => {
+                return file.path;
+            }) },
+            fibexFilesInfo: this._ng_fibex,
         });
     }
 
@@ -181,7 +184,8 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
 
     public _ng_onFibex() {
         ElectronIpcService.request(new IPCMessages.FilePickerRequest({
-            filter: [{ name: 'XML files', extensions: ['xml'] }]
+            filter: [{ name: 'XML files', extensions: ['xml'] }],
+            multiple: true,
         }), IPCMessages.FilePickerResponse).then((responce: IPCMessages.FilePickerResponse) => {
             if (typeof responce.error === 'string') {
                 return this._notifications.add({
@@ -192,10 +196,19 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
                     }
                 });
             }
-            if (responce.files.length !== 1) {
-                return;
-            }
-            this._ng_fibexFile = responce.files[0];
+            responce.files = responce.files.filter((incomeFile: IPCMessages.IFilePickerFileInfo) => {
+                let fileIsIn: boolean = false;
+                this._ng_fibex.forEach((existFile: IPCMessages.IFilePickerFileInfo) => {
+                    if (existFile.path === incomeFile.path) {
+                        fileIsIn = true;
+                    }
+                });
+                return !fileIsIn;
+            }).map((file: IPCMessages.IFilePickerFileInfo) => {
+                (file as any).viewPath = file.path.replace(file.name, '').replace(/[^\w\d\.\_\-]$/gi, '');
+                return file;
+            });
+            this._ng_fibex.push(...responce.files);
             this._forceUpdate();
         }).catch((error: Error) => {
             this._notifications.add({
@@ -210,6 +223,43 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
 
     public _ng_onKeyUpFilterInput(event: KeyboardEvent) {
         this._ng_filterSubject.next(this._ng_filterValue);
+    }
+
+    public _ng_onFibexFileDragged(event: CdkDragDrop<string[]>) {
+        const target: IPCMessages.IFilePickerFileInfo = Object.assign({}, this._ng_fibex[event.previousIndex]);
+        this._ng_fibex = this._ng_fibex.filter((file: IPCMessages.IFilePickerFileInfo, i: number) => {
+            return i !== event.previousIndex;
+        });
+        this._ng_fibex.splice(event.currentIndex, 0, target);
+        this._forceUpdate();
+    }
+
+    public _ng_onFibexContexMenu(event: MouseEvent, file: IPCMessages.IFilePickerFileInfo) {
+        const items: IMenuItem[] = [
+            {
+                caption: `Remove`,
+                handler: () => {
+                    this._ng_fibex = this._ng_fibex.filter((item: IPCMessages.IFilePickerFileInfo) => {
+                        return file.path !== item.path;
+                    });
+                    this._forceUpdate();
+                },
+            },
+            {
+                caption: `Remove All`,
+                handler: () => {
+                    this._ng_fibex = [];
+                    this._forceUpdate();
+                },
+            }
+        ];
+        ContextMenuService.show({
+            items: items,
+            x: event.pageX,
+            y: event.pageY,
+        });
+        event.stopImmediatePropagation();
+        event.preventDefault();
     }
 
     private _initAsNewOpen() {
@@ -258,8 +308,8 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
         this._ng_logLevelDefault = this._getEMTINLogLevel(this.options.logLevel);
         this._logLevel = this._ng_logLevelDefault;
         this._setFilters();
-        if (this.options.fibexFilesInfo instanceof Array && this.options.fibexFilesInfo.length > 0) {
-            this._ng_fibexFile = this.options.fibexFilesInfo[0];
+        if (this.options.fibexFilesInfo instanceof Array) {
+            this._ng_fibex = this.options.fibexFilesInfo;
         }
         this._forceUpdate();
     }

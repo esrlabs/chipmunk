@@ -12,6 +12,7 @@ import { DialogsRecentFitlersActionComponent    } from './recentfilter/component
 import { PrimitiveModule                        } from 'chipmunk-client-primitive';
 import { ContainersModule                       } from 'chipmunk-client-containers';
 import { AppDirectiviesModule                   } from '../../directives/module';
+import { DragDropModule                         } from '@angular/cdk/drag-drop';
 
 import {
     MatFormField,
@@ -72,7 +73,8 @@ const CDialogs = [
         MatCheckboxModule,
         MatButtonModule,
         MatSelectModule,
-        AppDirectiviesModule
+        AppDirectiviesModule,
+        DragDropModule
     ],
     declarations    : [ ...CDialogs ],
     exports         : [ ...CDialogs ],

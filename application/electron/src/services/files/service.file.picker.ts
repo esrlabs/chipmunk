@@ -57,7 +57,7 @@ class ServiceFilePicker implements IService {
         const req: IPCMessages.FilePickerRequest = request as IPCMessages.FilePickerRequest;
         this._open(
             req.filter instanceof Array ? req.filter : [],
-            typeof req.filter === 'boolean' ? req.multiple : false,
+            typeof req.multiple === 'boolean' ? req.multiple : false,
         ).then((files: string[]) => {
             if (files.length === 0) {
                 return response(new IPCMessages.FilePickerResponse({
