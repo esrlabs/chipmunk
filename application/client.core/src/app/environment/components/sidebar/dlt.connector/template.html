@@ -57,7 +57,7 @@
     <span class="slitter"></span>
     <mat-checkbox [(ngModel)]="_ng_settings.multicast" (change)="_ng_onMuliticastingStateChange($event)" [disabled]="_ng_state === 'disconnected' ? null : true">UDP muliticast</mat-checkbox>
     <span class="slitter"></span>
-    <mat-checkbox [(ngModel)]="_ng_settings.fibex" (change)="_ng_onMuliticastingStateChange($event)" [disabled]="_ng_state === 'disconnected' ? null : true">Fibex is required</mat-checkbox>
+    <mat-checkbox [(ngModel)]="_ng_settings.fibex" (change)="_ng_onMuliticastingStateChange($event)" [disabled]="_ng_state === 'disconnected' ? null : true">Add fibex data</mat-checkbox>
 </mat-expansion-panel>
 
 <span class="slitter"></span>
@@ -123,7 +123,7 @@
     </div>
     <span class="slitter" *ngIf="_ng_settings.fibexFiles.length > 0"></span>
     <div class="controlls">
-        <button mat-stroked-button color="primary" (click)="_ng_onAddFibexFile()">Ref Fibex File</button>
+        <button mat-stroked-button color="primary" (click)="_ng_onAddFibexFile()">Add File(s)</button>
     </div>
 </mat-expansion-panel>
 
