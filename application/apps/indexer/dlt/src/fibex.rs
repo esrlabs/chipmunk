@@ -11,6 +11,7 @@ use quick_xml::{
     Reader as XmlReader,
 };
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use derive_more::{Deref, Display};
 use crate::dlt::{TypeInfo, TypeInfoKind, TypeLength, StringCoding, FloatWidth};
 
@@ -147,19 +148,17 @@ pub fn read_fibexes(files: Vec<PathBuf>) -> Result<FibexMetadata> {
             match reader.read_event()? {
                 Event::PduStart { id } => {
                     let (description, signal_refs) = read_pdu(&mut reader)?;
-                    if pdu_by_id.contains_key(&id) {
-                        warn!("duplicate PDU ID {} found in fibexes", id);
-                    } else {
-                        pdu_by_id.insert(
-                            id,
-                            Rc::new(PduMetadata {
+                    match pdu_by_id.entry(id.clone()) {
+                        Entry::Occupied(_) => warn!("duplicate PDU ID {} found in fibexes", id),
+                        Entry::Vacant(v) => {
+                            v.insert(Rc::new(PduMetadata {
                                 description,
                                 signal_types: signal_refs
                                     .into_iter()
                                     .map(type_info_for_signal_ref)
                                     .collect(),
-                            }),
-                        );
+                            }));
+                        }
                     }
                 }
                 Event::FrameStart { id } => {
@@ -202,19 +201,22 @@ pub fn read_fibexes(files: Vec<PathBuf>) -> Result<FibexMetadata> {
             (frame.context_id.clone(), frame.application_id.clone())
         {
             let key = (context_id, application_id, id.clone());
-            if frame_map_with_key.contains_key(&key) {
-                warn!(
+
+            match frame_map_with_key.entry(key.clone()) {
+                Entry::Occupied(_) => warn!(
                     "duplicate Frame context_id={} application_id={} id={}",
                     key.0, key.1, key.2
-                );
-            } else {
-                frame_map_with_key.insert(key, frame.clone());
+                ),
+                Entry::Vacant(_) => {
+                    frame_map_with_key.insert(key, frame.clone());
+                }
             }
         } // else error?
-        if frame_map.contains_key(&id) {
-            warn!("duplicate Frame id={}", id);
-        } else {
-            frame_map.insert(id, frame);
+        match frame_map.entry(id.clone()) {
+            Entry::Occupied(_) => warn!("duplicate Frame id={}", id),
+            Entry::Vacant(_) => {
+                frame_map.insert(id, frame);
+            }
         }
     }
     Ok(FibexMetadata {
