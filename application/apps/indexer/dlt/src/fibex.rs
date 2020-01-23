@@ -207,15 +207,15 @@ pub fn read_fibexes(files: Vec<PathBuf>) -> Result<FibexMetadata> {
                     "duplicate Frame context_id={} application_id={} id={}",
                     key.0, key.1, key.2
                 ),
-                Entry::Vacant(_) => {
-                    frame_map_with_key.insert(key, frame.clone());
+                Entry::Vacant(entry) => {
+                    entry.insert(frame.clone());
                 }
             }
         } // else error?
         match frame_map.entry(id.clone()) {
             Entry::Occupied(_) => warn!("duplicate Frame id={}", id),
-            Entry::Vacant(_) => {
-                frame_map.insert(id, frame);
+            Entry::Vacant(entry) => {
+                entry.insert(frame);
             }
         }
     }

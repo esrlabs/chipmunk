@@ -667,7 +667,7 @@ fn main() {
                     //     components: None,
                     // },
                     Some(std::rc::Rc::new(
-                        dlt::fibex::read_fibexes(&[&std::path::PathBuf::from(env!(
+                        dlt::fibex::read_fibexes(vec![std::path::PathBuf::from(env!(
                             "CARGO_MANIFEST_DIR"
                         ))
                         .join("../dlt/tests/dlt-messages.xml")])
@@ -782,7 +782,7 @@ fn main() {
                     &tx,
                     shutdown_channel.1,
                     Some(std::rc::Rc::new(
-                        dlt::fibex::read_fibexes(&[&std::path::PathBuf::from(env!(
+                        dlt::fibex::read_fibexes(vec![std::path::PathBuf::from(env!(
                             "CARGO_MANIFEST_DIR"
                         ))
                         .join("../dlt/tests/dlt-messages.xml")])
