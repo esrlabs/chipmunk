@@ -4,12 +4,10 @@ mod tests {
     use crate::dlt::*;
     use crate::proptest_strategies::*;
     use std::io::Write;
-    use crossbeam_channel as cc;
     use nom::IResult;
     use proptest::prelude::*;
     use dirs;
-    use indexer_base::chunks::{Chunk, ChunkResults};
-    use indexer_base::config::IndexingConfig;
+    use indexer_base::chunks::{Chunk};
 
     use byteorder::{BigEndian, LittleEndian};
     use bytes::BytesMut;
@@ -126,8 +124,7 @@ mod tests {
             0x65, 0x72, 0x3A, 0x3A, 0x70, 0x6F, 0x6C, 0x6C, 0x5D, 0x20, 0x72,
         ];
         raw1.extend_from_slice(&raw2);
-        let res1: IResult<&[u8], Option<Message>> =
-            dlt_message(&raw1[..], None, 0, None, None, true);
+        let res1: IResult<&[u8], ParsedMessage> = dlt_message(&raw1[..], None, 0, None, None, true);
         trace!("res1 was: {:?}", res1);
         // let res2: IResult<&[u8], Option<Message>> = dlt_message(&raw2[..], None, 0, 0);
         // trace!("res was: {:?}", res2);
@@ -228,7 +225,7 @@ mod tests {
             // println!("msg bytes: {:02X?}", msg_bytes);
             msg_bytes.extend(b"----");
             // dump_to_file(&msg_bytes)?;
-            let expected: IResult<&[u8], Option<Message>> = Ok((b"----", Some(msg)));
+            let expected: IResult<&[u8], ParsedMessage> = Ok((b"----", ParsedMessage::Item(msg)));
             assert_eq!(expected, dlt_message(&msg_bytes, None, 0, None, None, false));
         }
     }
@@ -276,39 +273,10 @@ mod tests {
         println!("--> test_parse_msg: msg_bytes: {:02X?}", msg_bytes);
 
         msg_bytes.extend(b"----");
-        let res: IResult<&[u8], Option<Message>> =
+        let res: IResult<&[u8], ParsedMessage> =
             dlt_message(&msg_bytes, None, 0, None, None, false);
-        let expected: IResult<&[u8], Option<Message>> = Ok((b"----", Some(msg)));
+        let expected: IResult<&[u8], ParsedMessage> = Ok((b"----", ParsedMessage::Item(msg)));
         assert_eq!(expected, res);
-    }
-    use std::path::PathBuf;
-    #[test]
-    fn test_storage_header_illegeal() {
-        let in_path = PathBuf::from("..")
-            .join("dlt/test_samples")
-            .join("lukas_crash.dlt");
-        let out_path = PathBuf::from("..")
-            .join("dlt/test_samples")
-            .join("lukas_crash.dlt.out");
-
-        let source_file_size = Some(std::fs::metadata(&in_path).unwrap().len() as usize);
-        let (tx, _rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
-        let chunk_size = 500usize;
-        let tag_string = "TAG".to_string();
-        let _res = create_index_and_mapping_dlt(
-            IndexingConfig {
-                tag: tag_string.as_str(),
-                chunk_size,
-                in_file: in_path,
-                out_path: &out_path,
-                append: false,
-            },
-            source_file_size,
-            None,
-            &tx,
-            None,
-            None,
-        );
     }
 
     #[test]

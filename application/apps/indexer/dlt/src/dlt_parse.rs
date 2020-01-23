@@ -10,14 +10,11 @@
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
 use crate::dlt::*;
-use crate::dlt_net::*;
 use crate::filtering;
 use crossbeam_channel as cc;
-use indexer_base::chunks::{ChunkFactory, ChunkResults};
-use indexer_base::config::*;
+use indexer_base::chunks::{ChunkResults};
 use indexer_base::error_reporter::*;
 use indexer_base::progress::*;
-use indexer_base::utils;
 use serde::Serialize;
 
 use buf_redux::policy::MinBuffered;
@@ -28,14 +25,14 @@ use nom::bytes::streaming::{tag, take, take_while_m_n};
 use nom::{combinator::map, multi::count, number::streaming, sequence::tuple, IResult};
 use rustc_hash::FxHashMap;
 use std::fs;
-use std::io::{BufRead, BufWriter, Read, Write};
+use std::io::{BufRead, Read};
 use std::rc::Rc;
 
 use crate::fibex::FibexMetadata;
 use std::str;
 
 const STOP_CHECK_LINE_THRESHOLD: usize = 250_000;
-const DLT_PATTERN_SIZE: usize = 4;
+pub(crate) const DLT_PATTERN_SIZE: usize = 4;
 const DLT_PATTERN: &[u8] = &[0x44, 0x4C, 0x54, 0x01];
 
 pub(crate) fn parse_ecu_id(input: &[u8]) -> IResult<&[u8], &str> {
@@ -714,7 +711,7 @@ fn dlt_payload<T: NomByteOrder>(
 
 #[inline]
 fn dbg_parsed(_name: &str, _before: &[u8], _after: &[u8]) {
-    // #[cfg(feature = "debug_parser")]
+    #[cfg(feature = "debug_parser")]
     {
         let input_len = _before.len();
         let now_len = _after.len();
@@ -722,15 +719,18 @@ fn dbg_parsed(_name: &str, _before: &[u8], _after: &[u8]) {
         if parsed_len == 0 {
             trace!("{}: not parsed", _name);
         } else {
-            trace!(
-                "parsed {} ({} bytes): {:02X?}",
-                _name,
-                parsed_len,
-                &_before[0..parsed_len]
-            );
+            trace!("parsed {} ({} bytes)", _name, parsed_len,);
         }
     }
 }
+
+#[derive(Debug, PartialEq)]
+pub enum ParsedMessage {
+    Item(Message),
+    Skipped,
+    Invalid,
+}
+
 /// a DLT message looks like this: [STANDARD-HEADER][EXTENDED-HEADER][PAYLOAD]
 /// if stored, an additional header is placed BEFORE all of this [storage-header][...]
 /// example: 444C5401 262CC94D D8A20C00 45435500 3500001F 45435500 3F88623A 16014150 5000434F 4E001100 00000472 656D6F
@@ -775,7 +775,7 @@ pub fn dlt_message<'a>(
     update_channel: Option<&cc::Sender<ChunkResults>>,
     fibex_metadata: Option<Rc<FibexMetadata>>,
     with_storage_header: bool,
-) -> IResult<&'a [u8], Option<Message>> {
+) -> IResult<&'a [u8], ParsedMessage> {
     // trace!("starting to parse dlt_message==================");
     let (after_storage_header, storage_header) = if with_storage_header {
         dlt_storage_header(input, Some(index), update_channel)?
@@ -783,7 +783,6 @@ pub fn dlt_message<'a>(
         (input, None)
     };
     dbg_parsed("storage header", &input, &after_storage_header);
-    // trace!("dlt_msg 2");
     let (after_storage_and_normal_header, header) = dlt_standard_header(after_storage_header)?;
     // trace!(
     //     "parsed header is {}",
@@ -804,7 +803,7 @@ pub fn dlt_message<'a>(
     let payload_length = match validated_payload_length(&header, Some(index), update_channel) {
         Some(length) => length,
         None => {
-            return Ok((after_storage_and_normal_header, None));
+            return Ok((after_storage_and_normal_header, ParsedMessage::Invalid));
         }
     };
 
@@ -854,21 +853,21 @@ pub fn dlt_message<'a>(
                 if h.skip_with_level(min_filter_level) {
                     // trace!("no need to parse further, skip payload (skipped level)");
                     let (after_message, _) = take(payload_length)(after_headers)?;
-                    return Ok((after_message, None));
+                    return Ok((after_message, ParsedMessage::Skipped));
                 }
             }
             if let Some(only_these_components) = &filter_config.app_ids {
                 if !only_these_components.contains(&h.application_id) {
                     // trace!("no need to parse further, skip payload (skipped app id)");
                     let (after_message, _) = take(payload_length)(after_headers)?;
-                    return Ok((after_message, None));
+                    return Ok((after_message, ParsedMessage::Skipped));
                 }
             }
             if let Some(only_these_context_ids) = &filter_config.context_ids {
                 if !only_these_context_ids.contains(&h.context_id) {
                     // trace!("no need to parse further, skip payload (skipped context id)");
                     let (after_message, _) = take(payload_length)(after_headers)?;
-                    return Ok((after_message, None));
+                    return Ok((after_message, ParsedMessage::Skipped));
                 }
             }
             if let Some(only_these_ecu_ids) = &filter_config.ecu_ids {
@@ -876,7 +875,7 @@ pub fn dlt_message<'a>(
                     if !only_these_ecu_ids.contains(ecu_id) {
                         // trace!("no need to parse further, skip payload (skipped ecu id)");
                         let (after_message, _) = take(payload_length)(after_headers)?;
-                        return Ok((after_message, None));
+                        return Ok((after_message, ParsedMessage::Skipped));
                     }
                 }
             }
@@ -915,7 +914,7 @@ pub fn dlt_message<'a>(
     // trace!("after payload: {} bytes left", i.len());
     Ok((
         i,
-        Some(Message {
+        ParsedMessage::Item(Message {
             storage_header,
             header,
             extended_header,
@@ -1015,362 +1014,6 @@ impl From<std::io::Error> for DltParseError {
             cause: format!("{}", err),
         }
     }
-}
-
-pub struct FileMessageProducer {
-    reader: ReduxReader<fs::File, MinBuffered>,
-    filter_config: Option<filtering::ProcessedDltFilterConfig>,
-    index: usize,
-    update_channel: cc::Sender<ChunkResults>,
-    with_storage_header: bool,
-}
-
-impl FileMessageProducer {
-    fn new(
-        in_file: &std::path::PathBuf,
-        filter_config: Option<filtering::ProcessedDltFilterConfig>,
-        index: usize,
-        update_channel: cc::Sender<ChunkResults>,
-        with_storage_header: bool,
-    ) -> Result<FileMessageProducer, Error> {
-        let f = match fs::File::open(&in_file) {
-            Ok(file) => file,
-            Err(e) => {
-                eprint!("could not open {:?}", in_file);
-                let _ = update_channel.try_send(Err(Notification {
-                    severity: Severity::WARNING,
-                    content: format!("could not open file ({})", e),
-                    line: None,
-                }));
-                return Err(err_msg(format!("could not open file ({})", e)));
-            }
-        };
-        let reader =
-            ReduxReader::with_capacity(10 * 1024 * 1024, f).set_policy(MinBuffered(10 * 1024));
-        Ok(FileMessageProducer {
-            reader,
-            filter_config,
-            index,
-            update_channel,
-            with_storage_header,
-        })
-    }
-}
-impl FileMessageProducer {
-    fn produce_next_message(
-        &mut self,
-        fibex_metadata: Option<Rc<FibexMetadata>>,
-    ) -> (usize, Result<Option<Message>, DltParseError>) {
-        #[allow(clippy::never_loop)]
-        let res = loop {
-            match self.reader.fill_buf() {
-                Ok(content) => {
-                    trace!("got content: {} bytes", content.len());
-                    if content.is_empty() {
-                        return (0, Ok(None));
-                    }
-                    let available = content.len();
-
-                    let res: nom::IResult<&[u8], Option<Message>> = dlt_message(
-                        content,
-                        self.filter_config.as_ref(),
-                        self.index,
-                        Some(&self.update_channel),
-                        fibex_metadata,
-                        self.with_storage_header,
-                    );
-                    match res {
-                        Ok(r) => {
-                            let consumed = available - r.0.len();
-                            trace!("parse ok, consumed: {}", consumed);
-                            break (consumed, Ok(r.1));
-                        }
-                        Err(nom::Err::Incomplete(n)) => {
-                            trace!("parse incomplete");
-                            let needed = match n {
-                                nom::Needed::Size(s) => format!("{}", s),
-                                nom::Needed::Unknown => "unknown".to_string(),
-                            };
-                            break (0, Err(DltParseError::Unrecoverable {
-                            cause: format!(
-                            "read_one_dlt_message: imcomplete parsing error for dlt messages: (bytes left: {}, but needed: {})",
-                            content.len(),
-                            needed
-                        ),
-                        }));
-                        }
-                        Err(nom::Err::Error(_e)) => {
-                            trace!("parse error");
-                            break (
-                                DLT_PATTERN_SIZE,
-                                Err(DltParseError::ParsingHickup {
-                                    reason: format!(
-                                    "read_one_dlt_message: parsing error for dlt messages: {:?}",
-                                    _e
-                                ),
-                                }),
-                            );
-                        }
-                        Err(nom::Err::Failure(_e)) => {
-                            trace!("parse failure");
-                            break (
-                                0,
-                                Err(DltParseError::Unrecoverable {
-                                    cause: format!(
-                                    "read_one_dlt_message: parsing failure for dlt messages: {:?}",
-                                    _e
-                                ),
-                                }),
-                            );
-                        }
-                    }
-                }
-                Err(e) => {
-                    trace!("no more content");
-                    break (
-                        0,
-                        Err(DltParseError::Unrecoverable {
-                            cause: format!("error for filling buffer with dlt messages: {:?}", e),
-                        }),
-                    );
-                }
-            }
-        };
-        self.reader.consume(res.0);
-        res
-    }
-}
-// pub trait MessageProducer {
-//     fn produce_next_message(
-//         &mut self,
-//         fibex_metadata: Option<Rc<FibexMetadata>>,
-//     ) -> (usize, Result<Option<Message>, DltParseError>);
-// }
-#[allow(clippy::too_many_arguments)]
-pub fn create_index_and_mapping_dlt_from_socket(
-    socket_config: SocketConfig,
-    tag: &str,
-    ecu_id: String,
-    out_path: &std::path::PathBuf,
-    dlt_filter: Option<filtering::DltFilterConfig>,
-    update_channel: &cc::Sender<ChunkResults>,
-    shutdown_receiver: async_std::sync::Receiver<()>,
-    fibex_metadata: Option<Rc<FibexMetadata>>,
-) -> Result<(), Error> {
-    trace!("create_index_and_mapping_dlt_from_socket");
-    let res = match utils::next_line_nr(out_path) {
-        Ok(initial_line_nr) => {
-            let filter_config: Option<filtering::ProcessedDltFilterConfig> =
-                dlt_filter.map(filtering::process_filter_config);
-            match index_from_socket(
-                socket_config,
-                filter_config,
-                update_channel.clone(),
-                fibex_metadata,
-                tag,
-                ecu_id,
-                out_path,
-                initial_line_nr,
-                shutdown_receiver,
-            ) {
-                Err(ConnectionError::WrongConfiguration { cause }) => {
-                    let _ = update_channel.send(Err(Notification {
-                        severity: Severity::ERROR,
-                        content: cause.clone(),
-                        line: None,
-                    }));
-                    Err(err_msg(cause))
-                }
-                Err(ConnectionError::UnableToConnect { reason }) => {
-                    let _ = update_channel.send(Err(Notification {
-                        severity: Severity::ERROR,
-                        content: reason.clone(),
-                        line: None,
-                    }));
-                    Err(err_msg(reason))
-                }
-                Err(ConnectionError::Other { info }) => {
-                    let _ = update_channel.send(Err(Notification {
-                        severity: Severity::ERROR,
-                        content: info.clone(),
-                        line: None,
-                    }));
-                    Err(err_msg(info))
-                }
-                Ok(_) => Ok(()),
-            }
-        }
-        Err(e) => {
-            let content = format!(
-                "could not determine last line number of {:?} ({})",
-                out_path, e
-            );
-            let _ = update_channel.send(Err(Notification {
-                severity: Severity::ERROR,
-                content: content.clone(),
-                line: None,
-            }));
-            Err(err_msg(content))
-        }
-    };
-    let _ = update_channel.send(Ok(IndexingProgress::Finished));
-    res
-}
-pub fn create_index_and_mapping_dlt(
-    config: IndexingConfig,
-    source_file_size: Option<usize>,
-    dlt_filter: Option<filtering::DltFilterConfig>,
-    update_channel: &cc::Sender<ChunkResults>,
-    shutdown_receiver: Option<cc::Receiver<()>>,
-    fibex_metadata: Option<Rc<FibexMetadata>>,
-) -> Result<(), Error> {
-    trace!("create_index_and_mapping_dlt");
-    match utils::next_line_nr(config.out_path) {
-        Ok(initial_line_nr) => {
-            let filter_config: Option<filtering::ProcessedDltFilterConfig> =
-                dlt_filter.map(filtering::process_filter_config);
-            let mut message_producer = FileMessageProducer::new(
-                &config.in_file,
-                filter_config,
-                initial_line_nr,
-                update_channel.clone(),
-                true,
-            )?;
-            index_dlt_content(
-                config,
-                initial_line_nr,
-                source_file_size,
-                update_channel,
-                shutdown_receiver,
-                fibex_metadata,
-                &mut message_producer,
-            )
-        }
-        Err(e) => {
-            let content = format!(
-                "could not determine last line number of {:?} ({})",
-                config.out_path, e
-            );
-            let _ = update_channel.send(Err(Notification {
-                severity: Severity::ERROR,
-                content: content.clone(),
-                line: None,
-            }));
-            Err(err_msg(content))
-        }
-    }
-}
-
-/// create index for a dlt file
-/// source_file_size: if progress updates should be made, add this value
-pub fn index_dlt_content(
-    config: IndexingConfig,
-    initial_line_nr: usize,
-    source_file_size: Option<usize>,
-    update_channel: &cc::Sender<ChunkResults>,
-    shutdown_receiver: Option<cc::Receiver<()>>,
-    fibex_metadata: Option<Rc<FibexMetadata>>,
-    message_producer: &mut FileMessageProducer,
-) -> Result<(), Error> {
-    trace!("index_dlt_file {:?}", config);
-    let (out_file, current_out_file_size) =
-        utils::get_out_file_and_size(config.append, &config.out_path)?;
-
-    let mut chunk_count = 0usize;
-    let mut last_byte_index = 0usize;
-    let mut chunk_factory = ChunkFactory::new(config.chunk_size, current_out_file_size);
-    let mut line_nr = initial_line_nr;
-    let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
-
-    let mut progress_reporter = ProgressReporter::new(source_file_size, update_channel.clone());
-
-    let mut stopped = false;
-    loop {
-        if stopped {
-            info!("we were stopped in dlt-indexer",);
-            break;
-        };
-        let (consumed, next) = message_producer.produce_next_message(fibex_metadata.clone());
-        if consumed == 0 {
-            break;
-        } else {
-            progress_reporter.make_progress(consumed);
-        }
-        match next {
-            Ok(Some(msg)) => {
-                trace!("next was Ok(msg){} bytes", msg.as_bytes().len());
-                let written_bytes_len =
-                    utils::create_tagged_line_d(config.tag, &mut buf_writer, &msg, line_nr, true)?;
-                line_nr += 1;
-                if let Some(chunk) =
-                    chunk_factory.create_chunk_if_needed(line_nr, written_bytes_len)
-                {
-                    // check if stop was requested
-                    if let Some(rx) = shutdown_receiver.as_ref() {
-                        match rx.try_recv() {
-                            // Shutdown if we have received a command or if there is
-                            // nothing to send it.
-                            Ok(_) | Err(cc::TryRecvError::Disconnected) => {
-                                info!("shutdown received in indexer",);
-                                stopped = true // stop
-                            }
-                            // No shutdown command, continue
-                            Err(cc::TryRecvError::Empty) => (),
-                        }
-                    };
-                    chunk_count += 1;
-                    last_byte_index = chunk.b.1;
-                    update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }))?;
-                    buf_writer.flush()?;
-                }
-            }
-            Ok(None) => {
-                trace!("next was Ok(None)");
-            }
-            Err(e) => match e {
-                DltParseError::ParsingHickup { reason } => {
-                    trace!(
-                        "error parsing 1 dlt message, try to continue parsing: {}",
-                        reason
-                    );
-                }
-                DltParseError::Unrecoverable { cause } => {
-                    warn!("cannot continue parsing: {}", cause);
-                    update_channel.send(Err(Notification {
-                        severity: Severity::ERROR,
-                        content: format!("error parsing dlt file: {}", cause),
-                        line: None,
-                    }))?;
-                    break;
-                }
-            },
-        }
-    }
-
-    buf_writer.flush()?;
-    if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunk_count == 0) {
-        update_channel.send(Ok(IndexingProgress::GotItem {
-            item: chunk.clone(),
-        }))?;
-        chunk_count += 1;
-        last_byte_index = chunk.b.1;
-    }
-    if chunk_count > 0 {
-        let last_expected_byte_index = fs::metadata(config.out_path).map(|md| md.len() as usize)?;
-        if last_expected_byte_index != last_byte_index {
-            update_channel.send(Err(Notification {
-                severity: Severity::ERROR,
-                content: format!(
-                    "error in computation! last byte in chunks is {} but should be {}",
-                    last_byte_index, last_expected_byte_index
-                ),
-                line: Some(line_nr),
-            }))?;
-        }
-    }
-    trace!("sending IndexingProgress::Finished");
-    update_channel.send(Ok(IndexingProgress::Finished))?;
-    Ok(())
 }
 
 #[derive(Serialize, Debug, Default)]
@@ -1562,12 +1205,12 @@ pub fn get_dlt_file_info(
             //     )))
             Err(e) => {
                 // we couldn't parse the message. try to skip it and find the next.
-                trace!("stats...try to skip and continue parsing: {}", e);
+                debug!("stats...try to skip and continue parsing: {}", e);
                 match e {
                     DltParseError::ParsingHickup { reason } => {
                         // we couldn't parse the message. try to skip it and find the next.
                         reader.consume(4); // at least skip the magic DLT pattern
-                        trace!(
+                        debug!(
                             "error parsing 1 dlt message, try to continue parsing: {}",
                             reason
                         );
@@ -1651,7 +1294,7 @@ fn read_one_dlt_message_info<T: Read>(
                 }
                 e => match e {
                     Err(nom::Err::Incomplete(n)) => {
-                        trace!("parse incomplete");
+                        warn!("parse incomplete");
                         let needed = match n {
                             nom::Needed::Size(s) => format!("{}", s),
                             nom::Needed::Unknown => "unknown".to_string(),

@@ -32,6 +32,13 @@ namespace :neon do
                        50_000,
                        "#{LOCAL_EXAMPLE_DIR}/dlt/nonverbose/longerlog.xml")
   end
+  desc 'test neon integration: broken simple.xml'
+  task dlt_nonverbose_broken: [:clean, OUT_DIR, 'neon:rebuild'] do
+    call_test_function('testDltIndexingAsync', "#{LOCAL_EXAMPLE_DIR}/dlt/nonverbose/longerlog3.dlt",
+                       "#{LOCAL_EXAMPLE_DIR}/dlt/nonverbose/longerlog3.out",
+                       50_000,
+                       "#{LOCAL_EXAMPLE_DIR}/dlt/nonverbose/simple.xml")
+  end
 
   desc 'test neon integration: small dlt non-verbose indexing'
   task dlt_small_nonverbose: [:clean, OUT_DIR, 'neon:rebuild'] do
@@ -138,6 +145,7 @@ task cancelled: [:clean, OUT_DIR, 'neon:rebuild'] do
 end
 
 def exec_node_expression(node_exp)
+  puts "executing rust function: #{node_exp}"
   system({ 'ELECTRON_RUN_AS_NODE' => 'true' }, "./node_modules/.bin/electron -e '#{node_exp}'")
 end
 

@@ -16,6 +16,7 @@ use std::fs;
 use std::io::{BufReader, Read, Seek, SeekFrom};
 use std::path;
 use std::str;
+use std::io::Write;
 
 pub const ROW_NUMBER_SENTINAL: char = '\u{0002}';
 pub const PLUGIN_ID_SENTINAL: char = '\u{0003}';
@@ -36,12 +37,13 @@ pub fn is_newline(c: char) -> bool {
 #[inline]
 pub fn create_tagged_line_d<T: Display>(
     tag: &str,
-    out_buffer: &mut dyn std::io::Write,
+    out_buffer: &mut std::io::BufWriter<std::fs::File>,
     trimmed_line: T,
     line_nr: usize,
     with_newline: bool,
 ) -> std::io::Result<usize> {
-    let s = format!(
+    let bytes_buffered = out_buffer.buffer().len();
+    if let Err(e) = out_buffer.write_fmt(format_args!(
         "{}{}{}{}{}{}{}{}",
         trimmed_line, //trimmed_line,
         PLUGIN_ID_SENTINAL,
@@ -51,10 +53,26 @@ pub fn create_tagged_line_d<T: Display>(
         line_nr,
         ROW_NUMBER_SENTINAL,
         if with_newline { "\n" } else { "" },
-    );
-    let len = s.len();
-    write!(out_buffer, "{}", s)?;
-    Ok(len)
+    )) {
+        error!("error happened in create_tagged_line_d!!! {}", e);
+    }
+    let consumed = out_buffer.buffer().len() - bytes_buffered;
+    Ok(consumed)
+    // let s = format!(
+    //     "{}{}{}{}{}{}{}{}",
+    //     trimmed_line, //trimmed_line,
+    //     PLUGIN_ID_SENTINAL,
+    //     tag,
+    //     PLUGIN_ID_SENTINAL,
+    //     ROW_NUMBER_SENTINAL,
+    //     line_nr,
+    //     ROW_NUMBER_SENTINAL,
+    //     if with_newline { "\n" } else { "" },
+    // );
+    // let len = s.len();
+    // trace!("trying to create_tagged_line len {}", len);
+    // write!(out_buffer, "{}", s)?;
+    // Ok(len)
 }
 #[inline]
 pub fn create_tagged_line(

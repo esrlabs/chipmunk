@@ -15,7 +15,6 @@ import * as log from 'loglevel';
 import { IConcatFilesParams, ConcatenatorInput } from './merger';
 import { StdoutController } from 'custom.stdout';
 import * as fs from 'fs';
-import { on } from 'cluster';
 
 const stdout = new StdoutController(process.stdout, { handleStdoutGlobal: true });
 
@@ -360,7 +359,8 @@ export function testDltIndexingAsync(fileToIndex: string, outPath: string, timeo
 	let helper = new IndexingHelper('dlt async indexing');
 	try {
 		const filterConfig: DltFilterConf = {
-			min_log_level: DltLogLevel.Debug
+			min_log_level: DltLogLevel.Warn,
+			app_ids: ["Cdng","Coor","LOGC","UTC","Hlth","FuSa","AM","EM","DEM","Mdtr","-NI-","Omc","Bs","MON","psn","SYS","DltL","Heat","DR","Fasi","DET","psl","DLTD","CryD","PTS","VSom","PwrM","PTC","MTSC","udsd","cras","Vin","Stm","StdD","Diag","FRay","Bsd3","Para","Bsd2","PSEL","Darh","Bsd1","TEMP","Dlog","FOSE","NONE","Plan","MSM","Perc","SysT","SINA","DA1"],
 		};
 		const fibex_paths = fibexPath === undefined ? [] : [fibexPath];
 		const dltParams: IIndexDltParams = {

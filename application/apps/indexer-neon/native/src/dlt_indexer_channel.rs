@@ -9,7 +9,6 @@ use indexer_base::config::IndexingConfig;
 use indexer_base::progress::{Notification, Severity};
 use neon::prelude::*;
 use std::path;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
@@ -32,7 +31,7 @@ impl IndexingDltEventEmitter {
 
         // Spawn a thread to continue running after this method has returned.
         self.task_thread = Some(thread::spawn(move || {
-            let fibex_metadata: Option<Rc<FibexMetadata>> = gather_fibex_data(fibex);
+            let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex);
             index_dlt_file_with_progress(
                 IndexingConfig {
                     tag: thread_conf.tag.as_str(),
@@ -56,7 +55,7 @@ fn index_dlt_file_with_progress(
     filter_conf: Option<filtering::DltFilterConfig>,
     tx: cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
-    fibex_metadata: Option<Rc<FibexMetadata>>,
+    fibex_metadata: Option<FibexMetadata>,
 ) {
     trace!("index_dlt_file_with_progress");
     let source_file_size = Some(match config.in_file.metadata() {
@@ -71,7 +70,7 @@ fn index_dlt_file_with_progress(
             0
         }
     });
-    match dlt::dlt_parse::create_index_and_mapping_dlt(
+    match dlt::dlt_file::create_index_and_mapping_dlt(
         config,
         source_file_size,
         filter_conf,
@@ -80,7 +79,7 @@ fn index_dlt_file_with_progress(
         fibex_metadata,
     ) {
         Err(why) => {
-            error!("couldn't process: {}", why);
+            error!("create_index_and_mapping_dlt: couldn't process: {}", why);
         }
         Ok(_) => trace!("create_index_and_mapping_dlt returned ok"),
     }

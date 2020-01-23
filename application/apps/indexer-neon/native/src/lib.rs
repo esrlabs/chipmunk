@@ -36,11 +36,6 @@ use processor::parse::DiscoverItem;
 use processor::parse::TimestampFormatResult;
 use timestamp_detector_channel::JsTimestampFormatDetectionEmitter;
 
-use log::LevelFilter;
-use log4rs::append::file::FileAppender;
-use log4rs::config::{Appender, Config, Root};
-use log4rs::encode::pattern::PatternEncoder;
-
 #[no_mangle]
 pub extern "C" fn __cxa_pure_virtual() {
     #[allow(clippy::empty_loop)]
@@ -48,25 +43,16 @@ pub extern "C" fn __cxa_pure_virtual() {
 }
 
 pub fn init_logging() -> Result<(), std::io::Error> {
-    // log::set_logger(&LOGGER).map(|()| log::set_max_level(LevelFilter::Trace))?;
     let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
-    let log_path = home_dir.join(".chipmunk").join("chipmunk.indexer.log");
-    let appender_name = "indexer-root";
-    let logfile = FileAppender::builder()
-        .encoder(Box::new(PatternEncoder::new("{d} - {l}:: {m}\n")))
-        .build(log_path)?;
+    let log_config_path = home_dir.join(".chipmunk").join("log4rs.yaml");
+    if !log_config_path.exists() {
+        let log_config_content = std::include_str!("../log4rs.yaml")
+            .replace("$HOME_DIR", &home_dir.to_string_lossy()[..]);
+        std::fs::write(&log_config_path, log_config_content)?;
+    }
 
-    let config = Config::builder()
-        .appender(Appender::builder().build(appender_name, Box::new(logfile)))
-        .build(
-            Root::builder()
-                .appender(appender_name)
-                .build(LevelFilter::Warn),
-        )
-        .expect("logging config was incorrect");
-
-    log4rs::init_config(config).expect("logging config could not be applied");
-    trace!("logging initialized");
+    log4rs::init_file(log_config_path, Default::default()).unwrap();
+    info!("logging initialized");
     Ok(())
 }
 
@@ -138,7 +124,7 @@ fn detect_timestamp_format_in_file(mut cx: FunctionContext) -> JsResult<JsValue>
                 trace!("stopped...");
             }
             Err(e) => {
-                error!("couldn't process: {}", e);
+                error!("detect_timestamp_format_in_file: couldn't process: {}", e);
             }
         }
     }

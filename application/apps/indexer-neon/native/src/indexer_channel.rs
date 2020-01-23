@@ -57,7 +57,7 @@ fn index_file_with_progress(
         shutdown_receiver,
     ) {
         Err(why) => {
-            error!("couldn't process: {}", why);
+            error!("create_index_and_mapping: couldn't process: {}", why);
             let _ = tx.try_send(Err(Notification {
                 severity: Severity::WARNING,
                 content: format!("couldn't process: {}", why),

@@ -78,6 +78,17 @@ def create_changelog(current_version, next_version)
   end
 end
 
+def build_debug
+  sh 'cargo build'
+  current_version = read_current_version
+  debug_folder = 'target/debug'
+  os_ext = 'darwin'
+  cd debug_folder.to_s, verbose: false do
+    cp CLI_EXE_NAME.to_s, EXE_NAME.to_s
+    cp EXE_NAME.to_s, "#{HOME}/bin/#{EXE_NAME}"
+    sh "tar -cvzf indexing@#{current_version}-#{os_ext}.tgz #{EXE_NAME}"
+  end
+end
 def build_the_release
   sh 'cargo build --release'
   current_version = read_current_version
@@ -155,6 +166,10 @@ task :create_release do
   end
 end
 
+desc 'build debug, no version bump'
+task :build_debug do
+  build_debug
+end
 desc 'build release, no version bump'
 task :build_release do
   build_the_release

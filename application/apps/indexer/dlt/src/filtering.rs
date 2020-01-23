@@ -30,6 +30,7 @@ pub struct DltFilterConfig {
     pub ecu_ids: Option<Vec<String>>,
     pub context_ids: Option<Vec<String>>,
 }
+#[derive(Clone)]
 pub struct ProcessedDltFilterConfig {
     pub min_log_level: Option<dlt::LogLevel>,
     pub app_ids: Option<HashSet<String>>,

@@ -55,8 +55,8 @@ impl<T: 'static + Send + Debug + Serialize> Task for EventEmitterTask<T> {
             }
             Err(cc::RecvTimeoutError::Timeout) => Ok(None),
             Err(cc::RecvTimeoutError::Disconnected) => {
-                debug!("(libuv): Disconnected");
-                Err("Failed to receive rust event".to_string())
+                debug!("(receiving from channel in libuv-thread): Channel Disconnected");
+                Err("(receiving in channels.rs): Channel was Disconnected".to_string())
             }
         }
     }
