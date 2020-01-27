@@ -1,5 +1,13 @@
 # Changelog
 
+### [1.37.0] - 01/27/2020
+
+* [#655](feat) support fibex file for DLT-connector
+* [#638](feat) support multiple fibex files
+* [#638](feat) support DLT file reopening
+* [#638](feat) support injections to title of tab (session's scope)
+* [#658](feat) added support for multiple fibex configuration files
+
 ### [1.36.0] - 01/17/2020
 
 #### support for DLT streaming over multicast
