@@ -1,14 +1,17 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef, ViewEncapsulation } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { ViewSearchOutputComponent } from './output/component';
 import { IComponentDesc } from 'chipmunk-client-containers';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { ControllerSessionScope } from '../../../controller/controller.session.tab.scope';
+import { FiltersStorage, FilterRequest } from '../../../controller/controller.session.tab.search.filters.storage';
+import { ChartsStorage, ChartRequest } from '../../../controller/controller.session.tab.search.charts.storage';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { map, startWith } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
 import { MatInput, MatAutocompleteSelectedEvent, MatAutocompleteTrigger, MatFormField } from '@angular/material';
 import { IButton } from './output/controls/component';
+import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import HotkeysService from '../../../services/service.hotkeys';
@@ -18,7 +21,10 @@ import LayoutStateService from '../../../services/standalone/service.layout.stat
 import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
-
+import { EChartType } from '../chart/charts/charts';
+/*
+TODO: numbers from x xxx xxx to xK or xM -> to safe space in status bar (summury <P>)
+*/
 interface IViewState {
     searchRequestId: string | undefined;
     isRequestValid: boolean;
@@ -36,7 +42,8 @@ const CSettings = {
 @Component({
     selector: 'app-views-search',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
+    encapsulation: ViewEncapsulation.None
 })
 
 export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterContentInit {
@@ -45,6 +52,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     @Input() public onBeforeTabRemove: Subject<void>;
     @Input() public setActiveTab: (guid: string) => void;
     @Input() public getDefaultsTabGuids: () => { charts: string };
+    @Input() public onTitleContextMenu: Observable<MouseEvent>;
 
     @ViewChild('output', {static: false}) _ng_outputComponent: ViewSearchOutputComponent;
     @ViewChild(MatInput, {static: false}) _ng_inputComRef: MatInput;
@@ -61,6 +69,15 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     public _ng_onSessionChanged: Subject<ControllerSessionTab> = new Subject<ControllerSessionTab>();
     public _ng_inputCtrl = new FormControl();
     public _ng_recent: Observable<string[]>;
+    public _ng_flags: {
+        casesensitive: boolean,
+        wholeword: boolean,
+        regexp: boolean,
+    } = {
+        casesensitive: false,
+        wholeword: false,
+        regexp: true,
+    };
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewSearchComponent');
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = { };
@@ -69,6 +86,8 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     private _recent: string[] = [ ];
     private _fakeInputKeyEvent: boolean = false;
     private _selectedTextOnInputClick: boolean = false;
+    private _filtersStorage: FiltersStorage | undefined;
+    private _chartsStorage: ChartsStorage | undefined;
     private _destroyed: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef,
@@ -77,19 +96,17 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._subscriptions.onFocusSearchInput = HotkeysService.getObservable().focusSearchInput.subscribe(this._onFocusSearchInput.bind(this));
         this._subscriptions.onStreamUpdated = TabsSessionsService.getSessionEventsHub().subscribe().onStreamUpdated(this._onStreamUpdated.bind(this));
         this._subscriptions.onSearchUpdated = TabsSessionsService.getSessionEventsHub().subscribe().onSearchUpdated(this._onSearchUpdated.bind(this));
-        this._onSearchRequested = this._onSearchRequested.bind(this);
-        this._ng_getParentButtons = this._ng_getParentButtons.bind(this);
         this._setActiveSession();
     }
 
     ngAfterViewInit() {
         this._loadState();
         this._focus();
-        this._applyRequestedSearch();
     }
 
     ngAfterContentInit() {
         this._subscriptions.onBeforeTabRemove = this.onBeforeTabRemove.asObservable().subscribe(this._onBeforeTabRemove.bind(this));
+        this._subscriptions.onTitleContextMenu = this.onTitleContextMenu.subscribe(this._onTitleContextMenu.bind(this));
         this._loadRecentFilters();
         this._ng_recent = this._ng_inputCtrl.valueChanges.pipe(
             startWith(''),
@@ -162,8 +179,8 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             this._ng_onStoreRequest();
             return;
         }
-        this._addRecentFilter(this._ng_inputComRef.value);
-        this._search(this._ng_inputCtrl.value);
+        this._addRecentFilter();
+        this._search();
     }
 
     public _ng_onFocusRequestInput() {
@@ -171,8 +188,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         if (this._ng_inputCtrl.value === '') {
             return;
         }
-        // Trigger processing event
-        this._ng_session.getSessionSearch().getFiltersAPI().getSubjects().onSearchProcessing.next();
     }
 
     public _ng_onClickRequestInput() {
@@ -231,8 +246,15 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             return;
         }
         this._openSidebarSearchTab();
-        this._ng_session.getSessionSearch().getFiltersAPI().addStored(this._ng_inputCtrl.value);
-        this._ng_isRequestSaved = this._ng_session.getSessionSearch().getFiltersAPI().isRequestStored(this._ng_inputCtrl.value);
+        const request: FilterRequest | Error = this._getCurrentFilter();
+        if (request instanceof Error) {
+            return;
+        }
+        if (this._filtersStorage.has(request)) {
+            return;
+        }
+        this._filtersStorage.add(request);
+        this._ng_isRequestSaved = true;
         this._ng_onDropRequest();
     }
 
@@ -240,15 +262,22 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         if (this._ng_isRequestSaved) {
             return;
         }
-        const error: Error | undefined = this._ng_session.getSessionSearch().getChartsAPI().addStored(this._ng_inputCtrl.value);
-        if (error instanceof Error) {
+        this._openSidebarSearchTab();
+        const request: ChartRequest | Error = this._getCurrentChart();
+        if (request instanceof Error) {
+            return;
+        }
+        if (this._chartsStorage.has(request)) {
+            return;
+        }
+        if (request instanceof Error) {
             return this._notifications.add({
                 caption: 'Chart',
-                message: `Not valid regular expression for chart: "${this._ng_inputCtrl.value}"`
+                message: `Not valid regular expression for chart: "${request.message}"`
             });
         }
-        this._openSidebarSearchTab();
-        this._ng_isRequestSaved = this._ng_session.getSessionSearch().getFiltersAPI().isRequestStored(this._ng_inputCtrl.value);
+        this._chartsStorage.add(request);
+        this._ng_isRequestSaved = true;
         this._ng_onDropRequest().then(() => {
             if (this.setActiveTab === undefined || this.getDefaultsTabGuids === undefined) {
                 return;
@@ -270,7 +299,13 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     public _ng_isButtonsVisible(): boolean {
-        return this._prevRequest === this._ng_inputCtrl.value && this._ng_inputCtrl.value !== '';
+        if (this._prevRequest === this._ng_inputCtrl.value && this._ng_inputCtrl.value !== '') {
+            this._ng_session.getSessionSearch().getFiltersAPI().getState().lock();
+            return true;
+        } else {
+            this._ng_session.getSessionSearch().getFiltersAPI().getState().unlock();
+            return false;
+        }
     }
 
     public _ng_onRecentSelected(event: MatAutocompleteSelectedEvent) {
@@ -278,14 +313,38 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._ng_onKeyUpRequestInput();
     }
 
-    public _ng_getParentButtons(): IButton[] {
-        return [{
-            alias: 'clearrecent',
-            icon: `small-icon-button fas fa-eraser`,
-            disabled: false,
-            handler: this._clearRecent.bind(this),
-            title: 'Drop history of recent filters'
-        }];
+    public _ng_flagsToggle(event: MouseEvent, key: string) {
+        this._ng_flags[key] = !this._ng_flags[key];
+        this._forceUpdate();
+        if (this._ng_session.getSessionSearch().getFiltersAPI().getState().isLocked()) {
+            // Trigger re-search only if it was done already before
+            this._search();
+        }
+        (event.target as any).focus();
+        event.preventDefault();
+        event.stopImmediatePropagation();
+    }
+
+    private _getCurrentFilter(): FilterRequest | Error {
+        try {
+            return new FilterRequest({
+                request: this._ng_inputCtrl.value,
+                flags: Object.assign({}, this._ng_flags)
+            });
+        } catch (err) {
+            return err;
+        }
+    }
+
+    private _getCurrentChart(): ChartRequest | Error {
+        try {
+            return new ChartRequest({
+                request: this._ng_inputCtrl.value,
+                type: EChartType.stepped,
+            });
+        } catch (err) {
+            return err;
+        }
     }
 
     private _clearRecent() {
@@ -301,24 +360,21 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         });
     }
 
-    private _search(filter: string) {
-        if (!Toolkit.regTools.isRegStrValid(filter)) {
+    private _search() {
+        const request: FilterRequest | Error = this._getCurrentFilter();
+        if (request instanceof Error) {
             return this._notifications.add({
                 caption: 'Search',
                 message: `Regular expresion isn't valid. Please correct it.`
             });
         }
-        this._ng_inputCtrl.setValue(filter);
         this._ng_searchRequestId = Toolkit.guid();
         this._prevRequest = this._ng_inputCtrl.value;
-        this._ng_session.getSessionSearch().getFiltersAPI().search({
-            requestId: this._ng_searchRequestId,
-            requests: [Toolkit.regTools.createFromStr(this._ng_inputCtrl.value, 'gim') as RegExp],
-        }).then((count: number | undefined) => {
+        this._ng_session.getSessionSearch().getFiltersAPI().search(this._ng_searchRequestId, request).then((count: number | undefined) => {
             this._onSearchUpdated( { session: this._ng_session.getGuid(), rows: count } );
             // Search done
             this._ng_searchRequestId = undefined;
-            this._ng_isRequestSaved = this._ng_session.getSessionSearch().getFiltersAPI().isRequestStored(this._ng_inputCtrl.value);
+            this._ng_isRequestSaved = this._filtersStorage.has(request);
             this._focus();
             this._forceUpdate();
         }).catch((searchError: Error) => {
@@ -350,6 +406,8 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         });
         if (session === undefined) {
             this._ng_session = undefined;
+            this._filtersStorage = undefined;
+            this._chartsStorage = undefined;
             this._forceUpdate();
             return;
         }
@@ -367,24 +425,10 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             return;
         }
         this._ng_session = session;
-        this._sessionSubscriptions.onSearchRequested = this._ng_session.getSessionSearch().getFiltersAPI().getObservable().onSearchRequested.subscribe(this._onSearchRequested);
+        this._filtersStorage = session.getSessionSearch().getFiltersAPI().getStorage();
+        this._chartsStorage = session.getSessionSearch().getChartsAPI().getStorage();
         this._loadState();
         this._ng_onSessionChanged.next(this._ng_session);
-    }
-
-    private _onSearchRequested(filter: string) {
-        this._applyRequestedSearch();
-    }
-
-    private _applyRequestedSearch() {
-        if (this._ng_session === undefined) {
-            return;
-        }
-        const requested: string | undefined = this._ng_session.getSessionSearch().getFiltersAPI().getRequestedSearch();
-        if (requested === undefined) {
-            return;
-        }
-        this._search(requested);
     }
 
     private _focus(delay: number = 150) {
@@ -455,7 +499,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             this._ng_read = state.read;
             // Get actual data if active search is present
             if (this._ng_searchRequestId !== undefined) {
-                this._ng_searchRequestId = this._ng_session.getSessionSearch().getFiltersAPI().getActiveRequestId();
+                this._ng_searchRequestId = this._ng_session.getSessionSearch().getFiltersAPI().getState().getId();
                 if (this._ng_searchRequestId !== undefined) {
                     this._ng_read = this._ng_session.getSessionStream().getOutputStream().getRowsCount();
                     this._ng_found = this._ng_session.getSessionSearch().getOutputStream().getRowsCount();
@@ -470,6 +514,31 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     private _onBeforeTabRemove() {
         this._saveState();
+    }
+
+    private _onTitleContextMenu(event: MouseEvent) {
+        const items: IMenuItem[] = [
+            {
+                caption: `Clear recent history`,
+                handler: () => {
+                    this._clearRecent();
+                },
+            },
+            { /* delimiter */ },
+            {
+                caption: `Keep scrolling with content`,
+                handler: () => {
+                    
+                },
+            }
+        ];
+        ContextMenuService.show({
+            items: items,
+            x: event.pageX,
+            y: event.pageY,
+        });
+        event.stopImmediatePropagation();
+        event.preventDefault();
     }
 
     private _onStreamUpdated(event: Toolkit.IEventStreamUpdate) {
@@ -529,12 +598,12 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         });
     }
 
-    private _addRecentFilter(filter: string) {
-        if (filter.trim() === '') {
+    private _addRecentFilter() {
+        if (this._ng_inputComRef.value.trim() === '') {
             return;
         }
         ElectronIpcService.request(new IPCMessages.SearchRecentAddRequest({
-            request: filter,
+            request: this._ng_inputComRef.value,
         }), IPCMessages.SearchRecentAddResponse).then((response: IPCMessages.SearchRecentAddResponse) => {
             if (response.error) {
                 return this._logger.error(`Fail to add a recent filter due error: ${response.error}`);
