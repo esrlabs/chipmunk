@@ -70,8 +70,8 @@ export { ISearchChunk, SearchChunk };
 import { ISearchUpdated, SearchUpdated } from './search.updated';
 export { ISearchUpdated, SearchUpdated };
 
-import { ISearchRequest, SearchRequest, IRegExpStr } from './search.request';
-export { ISearchRequest, SearchRequest, IRegExpStr };
+import { ISearchRequest, SearchRequest, ISearchExpression, ISearchExpressionFlags } from './search.request';
+export { ISearchRequest, SearchRequest, ISearchExpression, ISearchExpressionFlags };
 
 import { ISearchRequestCancelRequest, SearchRequestCancelRequest } from './search.request.cancel.request';
 export { ISearchRequestCancelRequest, SearchRequestCancelRequest };
