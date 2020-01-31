@@ -8,7 +8,7 @@ export { IComponentDesc };
 
 export interface ITabSubjects {
     onTitleContextMenu: Subject<MouseEvent>;
-    onBeforeTabRemove: Subject<void>
+    onBeforeTabRemove: Subject<void>;
 }
 
 export interface ITab {

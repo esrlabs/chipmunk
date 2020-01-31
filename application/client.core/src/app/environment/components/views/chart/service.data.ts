@@ -201,12 +201,12 @@ export class ServiceData {
                 matches,
                 {
                     getColor: (source: string) => {
-                        const chart: ChartRequest | undefined = this._getChartBySource(source);
-                        return chart === undefined ? undefined : chart.getColor();
+                        const _chart: ChartRequest | undefined = this._getChartBySource(source);
+                        return _chart === undefined ? undefined : chart.getColor();
                     },
                     getOptions: (source: string) => {
-                        const chart: ChartRequest | undefined = this._getChartBySource(source);
-                        return chart === undefined ? undefined : chart.getOptions();
+                        const _chart: ChartRequest | undefined = this._getChartBySource(source);
+                        return _chart === undefined ? undefined : chart.getOptions();
                     },
                     getLeftPoint: this._getLeftBorderChartDS.bind(this),
                     getRightPoint: this._getRightBorderChartDS.bind(this),

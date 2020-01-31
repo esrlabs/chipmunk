@@ -3,7 +3,6 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { WriteStream, ReadStream } from 'fs';
 import Logger from '../../../tools/env.logger';
-import guid from '../../../tools/tools.guid';
 import { CancelablePromise } from '../../../tools/promise.cancelable';
 import ServicePaths from '../../../services/service.paths';
 import Transform, { IMapItem, IMapChunkEvent, IOffset } from './transform.map';

@@ -528,7 +528,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             {
                 caption: `Keep scrolling with content`,
                 handler: () => {
-                    
+                    // TODO
                 },
             }
         ];
