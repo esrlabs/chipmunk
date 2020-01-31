@@ -3,24 +3,29 @@ import { ControllerSessionTabSearchOutput } from './controller.session.tab.searc
 import { ControllerSessionTabStreamOutput } from './controller.session.tab.stream.output';
 import { ControllerSessionTabSearchState} from './controller.session.tab.search.state';
 import { ControllerSessionScope } from './controller.session.tab.scope';
-import QueueService, { IQueueController } from '../services/standalone/service.queue';
-import * as Toolkit from 'chipmunk.client.toolkit';
+import {
+    FilterRequest,
+    IFilterFlags,
+    IFilterDesc,
+    IFiltersStorageUpdated,
+    IFiltersChangeEvent,
+    IFilterDescOptional,
+    IFilterDescUpdating,
+    FiltersStorage,
+} from './controller.session.tab.search.filters.storage';
+
 import ServiceElectronIpc, { IPCMessages } from '../services/service.electron.ipc';
 import OutputParsersService from '../services/standalone/service.output.parsers';
-import * as ColorScheme from '../theme/colors';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
+
+export { FilterRequest, IFilterFlags, FiltersStorage };
 
 export interface IControllerSessionStreamFilters {
     guid: string;
     stream: ControllerSessionTabStreamOutput;
     transports: string[];
     scope: ControllerSessionScope;
-}
-
-export interface IRequest {
-    reg: RegExp;
-    color: string;
-    background: string;
-    active: boolean;
 }
 
 export interface ISearchOptions {
@@ -31,33 +36,27 @@ export interface ISearchOptions {
 }
 
 export interface ISubjects {
-    onRequestsUpdated: Subject<IRequest[]>;
-    onFiltersProcessing: Subject<void>;
-    onSearchProcessing: Subject<void>;
-    onDropped: Subject<void>;
-    onSearchRequested: Subject<string>;
+    updated: Subject<FiltersStorage>;
+    searching: Subject<void>;
+    complited: Subject<void>;
+    dropped: Subject<void>;
 }
 
 export class ControllerSessionTabSearchFilters {
 
     private _logger: Toolkit.Logger;
-    private _queue: Toolkit.Queue;
-    private _queueController: IQueueController | undefined;
     private _guid: string;
-    private _active: RegExp[] = [];
-    private _stored: IRequest[] = [];
+    private _storage: FiltersStorage;
     private _subjects: ISubjects = {
-        onRequestsUpdated: new Subject<IRequest[]>(),
-        onFiltersProcessing: new Subject<void>(),
-        onSearchProcessing: new Subject<void>(),
-        onDropped: new Subject<void>(),
-        onSearchRequested: new Subject<string>(),
+        updated: new Subject<FiltersStorage>(),
+        searching: new Subject<void>(),
+        complited: new Subject<void>(),
+        dropped: new Subject<void>(),
     };
     private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = { };
     private _scope: ControllerSessionScope;
     private _output: ControllerSessionTabSearchOutput;
     private _state: ControllerSessionTabSearchState;
-    private _activeRequestId: string | undefined;
     private _requestedSearch: string | undefined;
 
     constructor(params: IControllerSessionStreamFilters) {
@@ -68,26 +67,23 @@ export class ControllerSessionTabSearchFilters {
             guid: params.guid,
             requestDataHandler: this._requestStreamData.bind(this),
             stream: params.stream,
-            getActiveSearchRequests: this.getActiveAsRegs.bind(this),
             scope: this._scope,
         });
-        this._queue = new Toolkit.Queue(this._logger.error.bind(this._logger), 0);
+        this._storage = new FiltersStorage(params.guid);
         this._state = new ControllerSessionTabSearchState(params.guid);
-        // Subscribe to queue events
-        this._queue_onDone = this._queue_onDone.bind(this);
-        this._queue_onNext = this._queue_onNext.bind(this);
-        this._queue.subscribe(Toolkit.Queue.Events.done, this._queue_onDone);
-        this._queue.subscribe(Toolkit.Queue.Events.next, this._queue_onNext);
         this._subscriptions.SearchUpdated = ServiceElectronIpc.subscribe(IPCMessages.SearchUpdated, this._ipc_onSearchUpdated.bind(this));
+        this._subscriptions.onStorageUpdated = this._storage.getObservable().updated.subscribe(this._onStorageUpdated.bind(this));
+        this._subscriptions.onStorageChanged = this._storage.getObservable().changed.subscribe(this._onStorageChanged.bind(this));
     }
 
     public destroy(): Promise<void> {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             // TODO: Cancelation of current
-            this._output.destroy();
-            this._queue.unsubscribeAll();
-            OutputParsersService.unsetSearchResults(this._guid);
-            resolve();
+            this._storage.destroy().then(() => {
+                this._output.destroy();
+                OutputParsersService.unsetSearchResults(this._guid);
+                resolve();
+            });
         });
     }
 
@@ -100,33 +96,25 @@ export class ControllerSessionTabSearchFilters {
     }
 
     public getObservable(): {
-        onRequestsUpdated: Observable<IRequest[]>,
-        onFiltersProcessing: Observable<void>,
-        onSearchProcessing: Observable<void>,
-        onDropped: Observable<void>,
-        onSearchRequested: Observable<string>,
+        updated: Observable<FiltersStorage>,
+        searching: Observable<void>,
+        complited: Observable<void>,
+        dropped: Observable<void>,
     } {
         return {
-            onRequestsUpdated: this._subjects.onRequestsUpdated.asObservable(),
-            onFiltersProcessing: this._subjects.onFiltersProcessing.asObservable(),
-            onSearchProcessing: this._subjects.onSearchProcessing.asObservable(),
-            onDropped: this._subjects.onDropped.asObservable(),
-            onSearchRequested: this._subjects.onSearchRequested.asObservable(),
+            updated: this._subjects.updated.asObservable(),
+            searching: this._subjects.searching.asObservable(),
+            complited: this._subjects.complited.asObservable(),
+            dropped: this._subjects.dropped.asObservable(),
         };
     }
 
-    public search(options: ISearchOptions): Promise<number | undefined> {
+    public search(requestId: string, requests?: FilterRequest | FilterRequest[]): Promise<number | undefined> {
         return new Promise((resolve, reject) => {
-            // Setup default options
-            options.filters = typeof options.filters !== 'boolean' ? false : options.filters;
-            options.cancelPrev = typeof options.cancelPrev !== 'boolean' ? true : options.cancelPrev;
-            if (!this._state.isDone() && !options.cancelPrev) {
-                return reject(new Error(`Cannot start new search request while current isn't finished.`));
-            }
-            if (!this._state.isDone() && options.cancelPrev) {
+            if (!this._state.isDone()) {
                 const toBeCancelReq: string = this._state.getId();
                 this.cancel(toBeCancelReq).then(() => {
-                    this._search(options).then((res: number | undefined) => {
+                    this._search(requestId, requests).then((res: number | undefined) => {
                         resolve(res);
                     }).catch((err: Error) => {
                         reject(err);
@@ -136,7 +124,7 @@ export class ControllerSessionTabSearchFilters {
                     reject(cancelErr);
                 });
             } else {
-                this._search(options).then((res: number | undefined) => {
+                this._search(requestId, requests).then((res: number | undefined) => {
                     resolve(res);
                 }).catch((err: Error) => {
                     reject(err);
@@ -194,44 +182,43 @@ export class ControllerSessionTabSearchFilters {
         });
     }
 
-    public isRequestStored(request: string): boolean {
-        let result: boolean = false;
-        this._stored.forEach((stored: IRequest) => {
-            if (request === stored.reg.source) {
-                result = true;
-            }
-        });
-        return result;
+    public getStorage(): FiltersStorage {
+        return this._storage;
     }
 
-    public addStored(request: string): Error | undefined {
-        if (this.isRequestStored(request)) {
-            return new Error(`Request "${request}" already exist`);
-        }
-        if (!Toolkit.regTools.isRegStrValid(request)) {
+    public getState(): ControllerSessionTabSearchState {
+        return this._state;
+    }
+/*
+    public addStored(request: string, flags: IFilterFlags): Error | FilterRequest {
+        let srchRqst: FilterRequest;
+        try {
+            // Create search request
+            srchRqst = new FilterRequest(request, flags);
+            // Subscribe on update event
+            srchRqst.onUpdated(this._onRequestUpdated.bind(this));
+        } catch (err) {
             return new Error(`Not valid regexp "${request}"`);
         }
-        this._stored.push({
-            reg: Toolkit.regTools.createFromStr(request) as RegExp,
-            color: ColorScheme.scheme_color_0,
-            background: ColorScheme.scheme_color_2,
-            active: true,
-        });
+        if (this.isRequestStored(srchRqst)) {
+            return new Error(`Request "${request}" already exist`);
+        }
+        this._stored.push(srchRqst);
         this._subjects.onRequestsUpdated.next(this._stored);
-        this._applyFilters();
-        return undefined;
+        this._update();
+        return srchRqst;
     }
 
-    public insertStored(requests: IRequest[]) {
+    public insertStored(requests: FilterRequest[]) {
         this._stored.push(...requests);
         this._subjects.onRequestsUpdated.next(this._stored);
-        this._applyFilters();
+        this._update();
     }
 
-    public removeStored(request: string) {
+    public removeStored(request: FilterRequest) {
         const count: number = this._stored.length;
-        this._stored = this._stored.filter((stored: IRequest) => {
-            return request !== stored.reg.source;
+        this._stored = this._stored.filter((stored: FilterRequest) => {
+            return request.getHash() !== stored.getHash();
         });
         this._subjects.onRequestsUpdated.next(this._stored);
         if (count > 0 && (this._stored.length === 0 || this.getActiveStored().length === 0)) {
@@ -242,7 +229,7 @@ export class ControllerSessionTabSearchFilters {
                 this._logger.error(`Fail to drop search results`);
             });
         } else {
-            this._applyFilters();
+            this._update();
         }
     }
 
@@ -264,7 +251,7 @@ export class ControllerSessionTabSearchFilters {
     public updateStored(request: string, updated: { reguest?: string, color?: string, background?: string, active?: boolean }) {
         let isUpdateRequired: boolean = false;
         const active: number = this.getActiveStored().length;
-        this._stored = this._stored.map((stored: IRequest) => {
+        this._stored = this._stored.map((stored: FilterRequest) => {
             if (request === stored.reg.source) {
                 if (updated.reguest !== undefined && stored.reg.source !== updated.reguest) {
                     isUpdateRequired = true;
@@ -289,7 +276,7 @@ export class ControllerSessionTabSearchFilters {
                     this._logger.error(`Fail to drop search results of stored filters due error: ${error.message}`);
                 });
             } else {
-                this._applyFilters();
+                this._update();
             }
         } else {
             OutputParsersService.setHighlights(this.getGuid(), this.getStored());
@@ -310,14 +297,8 @@ export class ControllerSessionTabSearchFilters {
                 this._logger.error(`Fail to drop search results of stored filters due error: ${error.message}`);
             });
         } else {
-            this._applyFilters();
+            this._update();
         }
-    }
-
-    public getStored(): IRequest[] {
-        return this._stored.map((filter: IRequest) => {
-            return Object.assign({}, filter);
-        });
     }
 
     public getActiveRequestId(): string | undefined {
@@ -359,7 +340,6 @@ export class ControllerSessionTabSearchFilters {
     public getSubjects(): ISubjects {
         return this._subjects;
     }
-
     public requestSearch(request: string) {
         this._requestedSearch = request;
         this._subjects.onSearchRequested.next(request);
@@ -370,36 +350,58 @@ export class ControllerSessionTabSearchFilters {
         this._requestedSearch = undefined;
         return filter;
     }
+    */
 
-    private _search(options: ISearchOptions): Promise<number | undefined> {
+    private _onStorageUpdated(event: IFiltersStorageUpdated | undefined) {
+        OutputParsersService.setHighlights(this.getGuid(), this.getStorage().get());
+        OutputParsersService.updateRowsView();
+        this._subjects.updated.next(this._storage);
+        if (this._state.isLocked()) {
+            // Do not apply search, because we have active search
+            return;
+        }
+        if (this._storage.getActive().length === 0) {
+            this.drop(Toolkit.guid()).catch((error: Error) => {
+                this._logger.error(`Fail to drop search results of stored filters due error: ${error.message}`);
+            });
+        } else {
+            this._update();
+        }
+    }
+
+    private _onStorageChanged(event: IFiltersChangeEvent) {
+        if (event.reapply) {
+            this._onStorageUpdated(undefined);
+        } else {
+            OutputParsersService.setHighlights(this.getGuid(), this.getStorage().get());
+            OutputParsersService.updateRowsView();    
+        }
+    }
+
+    private _search(requestId: string, requests?: FilterRequest | FilterRequest[]): Promise<number | undefined> {
         return new Promise((resolve, reject) => {
+            let _requests: FilterRequest[] = [];
+            if (requests === undefined) {
+                _requests = this._storage.getActive();
+            } else  if (!(requests instanceof Array)) {
+                _requests = [requests];
+            } else {
+                _requests = requests;
+            }
             if (!this._state.isDone()) {
                 return reject(new Error(`Cannot start new search request while current isn't finished.`));
             }
-            this._state.start(options.requestId, resolve, reject);
-            if (!options.filters) {
-                // Save active requests
-                this._active = options.requests;
-                this._subjects.onSearchProcessing.next();
-            } else {
-                this._subjects.onFiltersProcessing.next();
-            }
+            this._state.start(requestId, resolve, reject);
+            this._subjects.searching.next();
             // Drop output
             this._output.clearStream();
-            // Store request Id
-            this._activeRequestId = options.requestId;
             // Start search
             ServiceElectronIpc.request(new IPCMessages.SearchRequest({
-                requests: options.requests.map((reg: RegExp) => {
-                    return {
-                        source: reg.source,
-                        flags: reg.flags
-                    };
-                }),
-                streamId: this._guid,
-                requestId: options.requestId,
+                requests: _requests.map(reg => reg.asIPC()),
+                session: this._guid,
+                id: requestId,
             }), IPCMessages.SearchRequestResults).then((results: IPCMessages.SearchRequestResults) => {
-                this._activeRequestId = undefined;
+                this._subjects.complited.next();
                 this._logger.env(`Search request ${results.requestId} was finished in ${((results.duration) / 1000).toFixed(2)}s.`);
                 if (results.error !== undefined) {
                     // Some error during processing search request
@@ -407,15 +409,13 @@ export class ControllerSessionTabSearchFilters {
                     return this._state.fail(new Error(results.error));
                 }
                 // Share results
-                OutputParsersService.setSearchResults(this._guid, options.requests.map((reg: RegExp) => {
-                    return { reg: reg, color: undefined, background: undefined };
-                }));
+                OutputParsersService.setSearchResults(this._guid, _requests);
                 // Update stream for render
                 this._output.updateStreamState(results.found);
                 // Done
                 this._state.done(results.found);
             }).catch((error: Error) => {
-                this._activeRequestId = undefined;
+                this._subjects.complited.next();
                 this._state.fail(error);
             });
         });
@@ -424,7 +424,6 @@ export class ControllerSessionTabSearchFilters {
     private _drop(requestId: string): Promise<number | undefined> {
         return new Promise((resolve, reject) => {
             // Drop active requests
-            this._active = [];
             if (!this._state.isDone()) {
                 return reject(new Error(`Cannot start new search request while current isn't finished.`));
             }
@@ -432,12 +431,12 @@ export class ControllerSessionTabSearchFilters {
             // Drop output
             this._output.clearStream();
             // Trigger event
-            this._subjects.onDropped.next();
+            this._subjects.dropped.next();
             // Start search
             ServiceElectronIpc.request(new IPCMessages.SearchRequest({
                 requests: [],
-                streamId: this._guid,
-                requestId: requestId,
+                session: this._guid,
+                id: requestId,
             }), IPCMessages.SearchRequestResults).then((results: IPCMessages.SearchRequestResults) => {
                 this._logger.env(`Search request ${results.requestId} was finished in ${((results.duration) / 1000).toFixed(2)}s.`);
                 if (results.error !== undefined) {
@@ -452,29 +451,16 @@ export class ControllerSessionTabSearchFilters {
                 // Done
                 this._state.done(0);
                 // Aplly filters if exsists
-                this._applyFilters();
+                this._update();
             }).catch((error: Error) => {
                 this._state.fail(error);
             });
         });
     }
 
-    private _applyFilters() {
-        if (this._active.length > 0) {
-            return;
-        }
-        const active: IRequest[] = this.getActiveStored();
-        if (active.length === 0) {
-            return;
-        }
-        this.search({
-            requestId: Toolkit.guid(),
-            requests: active.map((request: IRequest) => {
-                return request.reg;
-            }),
-            filters: true,
-        }).then(() => {
-            OutputParsersService.setHighlights(this.getGuid(), this._stored.slice());
+    private _update() {
+        this.search(Toolkit.guid()).then(() => {
+            OutputParsersService.setHighlights(this.getGuid(), this._storage.get());
             OutputParsersService.updateRowsView();
         }).catch((error: Error) => {
             this._logger.error(`Cannot apply filters due error: ${error.message}`);
@@ -498,21 +484,6 @@ export class ControllerSessionTabSearchFilters {
                 resolve(response);
             });
         });
-    }
-
-    private _queue_onNext(done: number, total: number) {
-        if (this._queueController === undefined) {
-            this._queueController = QueueService.create('reading');
-        }
-        this._queueController.next(done, total);
-    }
-
-    private _queue_onDone() {
-        if (this._queueController === undefined) {
-            return;
-        }
-        this._queueController.done();
-        this._queueController = undefined;
     }
 
     private _ipc_onSearchUpdated(message: IPCMessages.StreamUpdated) {

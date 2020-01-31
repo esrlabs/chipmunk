@@ -12,14 +12,15 @@ export class ControllerSessionTabSearchState {
     private _finished: number;
     private _resolver: TResolver;
     private _rejector: TRejector;
+    private _locked: boolean = false;
 
     constructor(session: string) {
         this._session = session;
         this._logger = new Toolkit.Logger(`SearchState [${session}]`);
     }
 
-    public getId(): string {
-        return this._id as string;
+    public getId(): string | undefined {
+        return this._id;
     }
 
     public start(id: string, resolver: TResolver, rejector: TRejector) {
@@ -63,6 +64,18 @@ export class ControllerSessionTabSearchState {
             this._resolver(undefined);
         }
         this._clear();
+    }
+
+    public lock() {
+        this._locked = true;
+    }
+
+    public unlock() {
+        this._locked = false;
+    }
+
+    public isLocked(): boolean {
+        return this._locked;
     }
 
     private _clear() {

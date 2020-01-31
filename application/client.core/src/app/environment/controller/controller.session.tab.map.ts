@@ -1,7 +1,7 @@
 import { Subject, Observable, Subscription } from 'rxjs';
 import ServiceElectronIpc, { IPCMessages, Subscription as IPCSubscription } from '../services/service.electron.ipc';
 import { ControllerSessionTabSearch } from './controller.session.tab.search';
-import { IRequest } from './controller.session.tab.search.filters';
+import { FilterRequest } from './controller.session.tab.search.filters';
 import { ControllerSessionTabStream } from './controller.session.tab.stream';
 import { IPositionData } from './controller.session.tab.stream.output';
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -77,7 +77,7 @@ export class ControllerSessionTabMap {
         this._stream = params.stream;
         this._subscriptions.SearchResultMap = ServiceElectronIpc.subscribe(IPCMessages.SearchResultMap, this._ipc_SearchResultMap.bind(this));
         this._subscriptions.StreamUpdated = ServiceElectronIpc.subscribe(IPCMessages.StreamUpdated, this._ipc_onStreamUpdated.bind(this));
-        this._subscriptions.onSearchDropped = this._search.getFiltersAPI().getObservable().onDropped.subscribe(this._onSearchDropped.bind(this));
+        this._subscriptions.onSearchDropped = this._search.getFiltersAPI().getObservable().dropped.subscribe(this._onSearchDropped.bind(this));
         this._subscriptions.onPositionChanged = this._stream.getOutputStream().getObservable().onPositionChanged.subscribe(this._onPositionChanged.bind(this));
 
     }
@@ -247,9 +247,9 @@ export class ControllerSessionTabMap {
         if (!message.append) {
             this._dropSearchColumns();
         }
-        const map: { [key: string]: IRequest } = {};
-        this._search.getFiltersAPI().getAppliedRequests().forEach((request: IRequest) => {
-            map[request.reg.source] = request;
+        const map: { [key: string]: FilterRequest } = {};
+        this._search.getFiltersAPI().getStorage().get().forEach((request: FilterRequest) => {
+            map[request.asDesc().request] = request;
         });
         const data: IPCMessages.ISearchResultMapData = message.getData();
         // Remove search colums
@@ -273,7 +273,7 @@ export class ControllerSessionTabMap {
                     }
                     const point: IMapPoint = {
                         position: typeof key === 'number' ? key : parseInt(key, 10),
-                        color: map[match] === undefined ? '' : (map[match].background !== '' ? map[match].background : map[match].color),
+                        color: map[match] === undefined ? '' : (map[match].getBackground() !== '' ? map[match].getBackground() : map[match].getColor()),
                         column: columns[match],
                         description: match,
                         reg: match,
@@ -289,7 +289,7 @@ export class ControllerSessionTabMap {
                 const match: string = matches[0];
                 const point: IMapPoint = {
                     position: typeof key === 'number' ? key : parseInt(key, 10),
-                    color: map[match] === undefined ? '' : (map[match].background !== '' ? map[match].background : map[match].color),
+                    color: map[match] === undefined ? '' : (map[match].getBackground() !== '' ? map[match].getBackground() : map[match].getColor()),
                     column: index,
                     description: matches.join(', '),
                     reg: match,
