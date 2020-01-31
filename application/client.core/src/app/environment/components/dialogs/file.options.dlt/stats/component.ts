@@ -71,7 +71,7 @@ export class DialogsFileOptionsDltStatsComponent implements OnDestroy, AfterView
     private _subscriptions: { [key: string]: Subscription } = { };
     private _event: IForceSortData | undefined;
 
-    constructor(private _cdRef: ChangeDetectorRef, private zone: NgZone) {
+    constructor(private _cdRef: ChangeDetectorRef, private _zone: NgZone) {
     }
 
     public ngAfterViewInit() {
@@ -167,7 +167,7 @@ export class DialogsFileOptionsDltStatsComponent implements OnDestroy, AfterView
     }
 
     private _onFilterChange(filter: string) {
-        this.zone.run(() => {
+        this._zone.run(() => {
             this._ng_source.filter = filter.trim().toLowerCase();
             this._forceUpdate();
         });
