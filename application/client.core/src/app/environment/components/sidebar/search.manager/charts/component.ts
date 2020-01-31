@@ -19,6 +19,7 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
     @Input() reorder: Subject<IReorderEvent>;
     @Input() selected: Subject<string>;
 
+    // tslint:disable-next-line:no-output-on-prefix
     @Output() onContextMenu: EventEmitter<IContextMenuEvent> = new EventEmitter();
 
     public _ng_observables: {

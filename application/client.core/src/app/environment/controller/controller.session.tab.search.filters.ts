@@ -374,7 +374,7 @@ export class ControllerSessionTabSearchFilters {
             this._onStorageUpdated(undefined);
         } else {
             OutputParsersService.setHighlights(this.getGuid(), this.getStorage().get());
-            OutputParsersService.updateRowsView();    
+            OutputParsersService.updateRowsView();
         }
     }
 

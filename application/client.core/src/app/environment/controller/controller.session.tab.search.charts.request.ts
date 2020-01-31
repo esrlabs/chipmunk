@@ -38,16 +38,6 @@ export interface IDescUpdating {
 
 export class ChartRequest {
 
-    static isValid(request: string): boolean {
-        if (!Toolkit.regTools.isRegStrValid(request)) {
-            return false;
-        }
-        if (request.search(/\([^\(]*\)/gi) === -1) {
-            return false;
-        }
-        return true;
-    }
-
     private _flags: ISearchExpressionFlags;
     private _request: string;
     private _color: string;
@@ -71,6 +61,16 @@ export class ChartRequest {
         updated: new Subject<ChartRequest>(),
         changed: new Subject<ChartRequest>(),
     };
+
+    static isValid(request: string): boolean {
+        if (!Toolkit.regTools.isRegStrValid(request)) {
+            return false;
+        }
+        if (request.search(/\([^\(]*\)/gi) === -1) {
+            return false;
+        }
+        return true;
+    }
 
     constructor(desc: IDescOptional) {
         // Check regexp

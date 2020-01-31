@@ -36,13 +36,6 @@ export interface IDescUpdating {
 
 export class FilterRequest {
 
-    static isValid(request: string): boolean {
-        if (!Toolkit.regTools.isRegStrValid(request)) {
-            return false;
-        }
-        return true;
-    }
-
     private _flags: ISearchExpressionFlags;
     private _request: string;
     private _color: string;
@@ -65,6 +58,13 @@ export class FilterRequest {
         updated: new Subject<FilterRequest>(),
         changed: new Subject<FilterRequest>(),
     };
+
+    static isValid(request: string): boolean {
+        if (!Toolkit.regTools.isRegStrValid(request)) {
+            return false;
+        }
+        return true;
+    }
 
     constructor(desc: IDescOptional) {
         if (desc.flags.regexp && !Toolkit.regTools.isRegStrValid(desc.request)) {

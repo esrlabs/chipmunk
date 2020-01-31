@@ -74,6 +74,7 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
                     this._ng_directive.setEditFlag(false);
                     this._forceUpdate();
                 });
+                break;
             case 'Enter':
                 this._zone.run(() => {
                     if (ChartRequest.isValid(this._ng_request)) {

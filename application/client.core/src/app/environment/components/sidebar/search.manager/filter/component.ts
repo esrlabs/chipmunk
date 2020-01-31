@@ -84,6 +84,7 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
                     this._ng_directive.setEditFlag(false);
                     this._forceUpdate();
                 });
+                break;
             case 'Enter':
                 this._zone.run(() => {
                     if (FilterRequest.isValid(this._ng_request)) {
