@@ -1,6 +1,7 @@
 import { EventsHub } from '../stream.common/events';
 import { IMapItem } from './file.map';
 import { SearchEngine, IMapData, IMapChunkEvent } from './engine/controller';
+import { getSearchRegExp } from '../../../../common/functionlity/functions.search.requests';
 
 import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from '../../services/service.electron';
 
@@ -226,22 +227,29 @@ export default class ControllerStreamSearch {
         // Store starting tile
         const started: number = Date.now();
         // Check target stream
-        if (this._state.getGuid() !== request.streamId) {
+        if (this._state.getGuid() !== request.session) {
             return;
         }
+        // Clean requests
+        request.requests = request.requests.filter((filter: IPCElectronMessages.ISearchExpression) => {
+            if (filter.request === '') {
+                this._logger.warn(`From client was gotten empty search request. Session: ${request.session}. Request will be ignored.`);
+            }
+            return filter.request !== '';
+        });
         // Check count of requests
         if (request.requests.length === 0) {
             if (this._requests.length !== 0) {
                 this._clear().then(() => {
                     this._ipc_searchRequestResponse(response, {
-                        id: request.requestId,
+                        id: request.session,
                         started: started,
                         found: 0,
                     });
                 }).catch((error: Error) => {
                     this._logger.error(`Fail to clean search request due error: ${error.message}`);
                     this._ipc_searchRequestResponse(response, {
-                        id: request.requestId,
+                        id: request.session,
                         started: started,
                         found: 0,
                         error: error.message,
@@ -249,7 +257,7 @@ export default class ControllerStreamSearch {
                 });
             } else {
                 this._ipc_searchRequestResponse(response, {
-                    id: request.requestId,
+                    id: request.session,
                     started: started,
                     found: 0,
                 });
@@ -259,19 +267,19 @@ export default class ControllerStreamSearch {
         // Clear results file
         this._clear().then(() => {
             // Create regexps
-            const requests: RegExp[] = request.requests.map((regInfo: IPCElectronMessages.IRegExpStr) => {
-                return new RegExp(regInfo.source, regInfo.flags);
+            const requests: RegExp[] = request.requests.map((req: IPCElectronMessages.ISearchExpression) => {
+                return getSearchRegExp(req.request, req.flags);
             });
-            this._search(requests, request.requestId).then((rows: number) => {
+            this._search(requests, request.session).then((rows: number) => {
                 // Responce with results
                 this._ipc_searchRequestResponse(response, {
-                    id: request.requestId,
+                    id: request.session,
                     started: started,
                     found: rows,
                 });
             }).catch((searchErr: Error) => {
                 return this._ipc_searchRequestResponse(response, {
-                    id: request.requestId,
+                    id: request.session,
                     started: started,
                     error: searchErr.message,
                 });
@@ -279,7 +287,7 @@ export default class ControllerStreamSearch {
         }).catch((droppingErr: Error) => {
             this._logger.error(`Fail drop search file due error: ${droppingErr.message}`);
             return this._ipc_searchRequestResponse(response, {
-                id: request.requestId,
+                id: request.session,
                 started: started,
                 error: droppingErr.message,
             });
