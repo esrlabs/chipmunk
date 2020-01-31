@@ -6,6 +6,11 @@ import { ControllerSessionsHistroy } from './controller.histroy';
 
 export { IComponentDesc };
 
+export interface ITabSubjects {
+    onTitleContextMenu: Subject<MouseEvent>;
+    onBeforeTabRemove: Subject<void>
+}
+
 export interface ITab {
     guid?: string;
     name: string;
@@ -13,33 +18,43 @@ export interface ITab {
     closable?: boolean;
     content?: IComponentDesc;
     tabCaptionInjection?: IComponentDesc;
-    unshift?: boolean;
+}
+
+export interface ITabInternal {
+    guid: string;
+    name: string;
+    active: boolean;
+    closable: boolean;
+    subjects: ITabSubjects;
+    content?: IComponentDesc;
+    tabCaptionInjection?: IComponentDesc;
+    unshift: boolean;
 }
 
 export class TabsService {
 
     private _subjects: {
-        new: Subject<ITab>,
+        new: Subject<ITabInternal>,
         removed: Subject<string>,
         clear: Subject<void>,
-        active: Subject<ITab>,
-        updated: Subject<ITab>,
+        active: Subject<ITabInternal>,
+        updated: Subject<ITabInternal>,
         options: Subject<TabsOptions>,
     } = {
-        new: new Subject<ITab>(),
+        new: new Subject<ITabInternal>(),
         removed: new Subject<string>(),
         clear: new Subject<void>(),
-        active: new Subject<ITab>(),
-        updated: new Subject<ITab>(),
+        active: new Subject<ITabInternal>(),
+        updated: new Subject<ITabInternal>(),
         options: new Subject<TabsOptions>(),
     };
 
     private _observable: {
-        new: Observable<ITab>,
+        new: Observable<ITabInternal>,
         removed: Observable<string>,
         clear: Observable<void>,
-        active: Observable<ITab>,
-        updated: Observable<ITab>,
+        active: Observable<ITabInternal>,
+        updated: Observable<ITabInternal>,
         options: Observable<TabsOptions>,
     } = {
         new: this._subjects.new.asObservable(),
@@ -50,13 +65,13 @@ export class TabsService {
         options: this._subjects.options.asObservable(),
     };
 
-    private _tabs: Map<string, ITab> = new Map();
+    private _tabs: Map<string, ITabInternal> = new Map();
     private _options: TabsOptions = new TabsOptions();
     private _minimized: boolean = false;
     private _history: ControllerSessionsHistroy = new ControllerSessionsHistroy();
 
     constructor(params?: {
-        tabs?: Map<string, ITab>,
+        tabs?: Map<string, ITabInternal>,
         options?: TabsOptions
     }) {
         params = params ? params : {};
@@ -75,11 +90,11 @@ export class TabsService {
     }
 
     public getObservable(): {
-        new: Observable<ITab>,
+        new: Observable<ITabInternal>,
         removed: Observable<string>,
         clear: Observable<void>,
-        active: Observable<ITab>,
-        updated: Observable<ITab>,
+        active: Observable<ITabInternal>,
+        updated: Observable<ITabInternal>,
         options: Observable<TabsOptions>,
     } {
         return this._observable;
@@ -97,32 +112,32 @@ export class TabsService {
     }
 
     public add(tab: ITab) {
-        tab = this._normalize(tab);
-        if (tab === null) {
+        const _tab = this._normalize(tab);
+        if (_tab === null) {
             return;
         }
-        this._tabs.set(tab.guid, tab);
-        this._subjects.new.next(tab);
-        if (tab.active) {
-            this.setActive(tab.guid);
+        this._tabs.set(_tab.guid, _tab);
+        this._subjects.new.next(_tab);
+        if (_tab.active) {
+            this.setActive(_tab.guid);
         }
     }
 
     public unshift(tab: ITab) {
-        tab = this._normalize(tab);
-        if (tab === null) {
+        const _tab = this._normalize(tab);
+        if (_tab === null) {
             return;
         }
-        tab.unshift = true;
-        const tabs: Map<string, ITab> = new Map();
-        tabs.set(tab.guid, tab);
-        this._tabs.forEach((t: ITab, k: string) => {
+        _tab.unshift = true;
+        const tabs: Map<string, ITabInternal> = new Map();
+        tabs.set(_tab.guid, _tab);
+        this._tabs.forEach((t: ITabInternal, k: string) => {
             tabs.set(k, t);
         });
         this._tabs = tabs;
-        this._subjects.new.next(tab);
-        if (tab.active) {
-            this.setActive(tab.guid);
+        this._subjects.new.next(_tab);
+        if (_tab.active) {
+            this.setActive(_tab.guid);
         }
     }
 
@@ -157,7 +172,7 @@ export class TabsService {
         return result;
     }
 
-    public getTabs(): Map<string, ITab> {
+    public getTabs(): Map<string, ITabInternal> {
         return this._tabs;
     }
 
@@ -181,9 +196,9 @@ export class TabsService {
         return true;
     }
 
-    public getActiveTab(): ITab | undefined {
-        let active: ITab | undefined;
-        this._tabs.forEach((tab: ITab) => {
+    public getActiveTab(): ITabInternal | undefined {
+        let active: ITabInternal | undefined;
+        this._tabs.forEach((tab: ITabInternal) => {
             if (active !== undefined) {
                 return;
             }
@@ -200,7 +215,7 @@ export class TabsService {
     }
 
     public setTitle(guid: string, title: string): Error | undefined {
-        const tab: ITab | undefined = this._tabs.get(guid);
+        const tab: ITabInternal | undefined = this._tabs.get(guid);
         if (tab === undefined) {
             return new Error(`Fail to find tab "${guid}", tab doesn't exist.`);
         }
@@ -210,20 +225,29 @@ export class TabsService {
 
     }
 
-    private _normalize(tab: ITab): ITab {
+    private _normalize(tab: ITab): ITabInternal | null {
         if (typeof tab !== 'object' || tab === null) {
             return null;
         }
-        tab.guid = typeof tab.guid === 'string' ? (tab.guid.trim() !== '' ? tab.guid : Tools.guid()) : Tools.guid();
-        tab.closable = typeof tab.closable === 'boolean' ? tab.closable : true;
-        if (tab.content !== undefined) {
-            if (typeof tab.content.inputs !== 'object' || tab.content.inputs === null) {
-                tab.content.inputs = {};
+        const _tab: ITabInternal = tab as ITabInternal;
+        _tab.guid = typeof _tab.guid === 'string' ? (_tab.guid.trim() !== '' ? _tab.guid : Tools.guid()) : Tools.guid();
+        _tab.closable = typeof _tab.closable === 'boolean' ? _tab.closable : true;
+        _tab.unshift = false;
+        _tab.subjects = {
+            onTitleContextMenu: new Subject<MouseEvent>(),
+            onBeforeTabRemove: new Subject<void>(),
+        };
+        if (_tab.content !== undefined) {
+            if (typeof _tab.content.inputs !== 'object' || _tab.content.inputs === null) {
+                _tab.content.inputs = {};
             }
-            if (tab.content.inputs.onBeforeTabRemove === undefined) {
-                tab.content.inputs.onBeforeTabRemove = new Subject();
+            if (_tab.content.inputs.onBeforeTabRemove === undefined) {
+                _tab.content.inputs.onBeforeTabRemove = _tab.subjects.onBeforeTabRemove;
+            }
+            if (_tab.content.inputs.onTitleContextMenu === undefined) {
+                _tab.content.inputs.onTitleContextMenu = _tab.subjects.onTitleContextMenu.asObservable();
             }
         }
-        return tab;
+        return _tab;
     }
 }

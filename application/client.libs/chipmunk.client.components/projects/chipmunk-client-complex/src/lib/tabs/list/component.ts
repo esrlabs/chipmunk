@@ -1,5 +1,5 @@
 import { Component, OnDestroy, Input, AfterViewInit, ChangeDetectorRef, ViewChild, ElementRef, ViewChildren, QueryList } from '@angular/core';
-import { ITab, TabsService } from '../service';
+import { ITabInternal, TabsService } from '../service';
 import { TabsOptions, ETabsListDirection } from '../options';
 import { Subscription } from 'rxjs';
 
@@ -20,10 +20,11 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
 
     public _ng_options: TabsOptions = new TabsOptions();
     public _ng_offset: number = 0;
+    public tabs: ITabInternal[] = [];
 
     private _subscriptions: { [key: string]: Subscription } = { };
     private _destroyed: boolean = false;
-    private _tabs: Map<string, ITab> = new Map();
+    private _tabs: Map<string, ITabInternal> = new Map();
     private _sizes: {
         space: number,
         holder: number,
@@ -35,8 +36,6 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
         tabs: [],
         first: 0,
     };
-
-    public tabs: ITab[] = [];
 
     constructor(private _cdRef: ChangeDetectorRef) {
         this._subscribeToWinEvents();
@@ -52,9 +51,7 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
         this._subscriptions.options = this.service.getObservable().options.subscribe(this._onOptionsUpdated.bind(this));
         this._subscriptions.updated = this.service.getObservable().updated.subscribe(this._onTabUpdated.bind(this));
         this._tabs = this.service.getTabs();
-        this._tabs.forEach((tab: ITab) => {
-            this.tabs.push(tab);
-        });
+        this.tabs = Array.from(this._tabs.values());
         this._getDefaultOptions();
         this._onWindowResize(null);
     }
@@ -128,6 +125,10 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
         this._forceUpdate();
     }
 
+    public _ng_onContextMenu(event: MouseEvent, tab: ITabInternal) {
+        tab.subjects.onTitleContextMenu.next(event);
+    }
+
     private _subscribeToWinEvents() {
         this._onWindowResize = this._onWindowResize.bind(this);
         window.addEventListener('resize', this._onWindowResize);
@@ -137,7 +138,7 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
         window.removeEventListener('resize', this._onWindowResize);
     }
 
-    private async onNewTab(tab: ITab) {
+    private async onNewTab(tab: ITabInternal) {
         this._tabs.set(tab.guid, await tab);
         if (tab.unshift === true) {
             this.tabs.unshift(tab);
@@ -149,15 +150,15 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
 
     private async onRemoveTab(guid: string) {
         this._tabs.delete(guid);
-        this.tabs = this.tabs.filter((tab: ITab) => {
+        this.tabs = this.tabs.filter((tab: ITabInternal) => {
             return tab.guid !== guid;
         });
         this._forceUpdate(true);
         this._checkOffset();
     }
 
-    private async onActiveTabChange(tab: ITab) {
-        this._tabs.forEach((storedTab: ITab, guid: string) => {
+    private async onActiveTabChange(tab: ITabInternal) {
+        this._tabs.forEach((storedTab: ITabInternal, guid: string) => {
             if (storedTab.guid !== tab.guid && storedTab.active) {
                 storedTab.active = false;
                 this._tabs.set(guid, storedTab);
@@ -180,9 +181,9 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
         this._forceUpdate(true);
     }
 
-    private async _onTabUpdated(tab: ITab) {
+    private async _onTabUpdated(tab: ITabInternal) {
         this._tabs.set(tab.guid, tab);
-        this.tabs = this.tabs.map((storedTab: ITab) => {
+        this.tabs = this.tabs.map((storedTab: ITabInternal) => {
             if (storedTab.guid === tab.guid) {
                 return tab;
             }
