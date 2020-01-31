@@ -1,0 +1,13 @@
+<mat-checkbox [(ngModel)]="_ng_state" (change)="_ng_onStateChange($event)"></mat-checkbox>
+<span class="type far fa-chart-bar"></span>
+<span class="color" [ngStyle]="{'background': _ng_color}"></span>
+<span class="request" *ngIf="!_ng_directive.getEditFlag()">{{_ng_request}}</span>
+<input #requestInput *ngIf="_ng_directive.getEditFlag()"
+    matInput
+    class="request"
+    placeholder="Request"
+    (keyup)="_ng_onRequestInputKeyUp($event)"
+    (blur)="_ng_onRequestInputBlur()"
+    [(ngModel)]="_ng_request"
+    (ngModelChange)="_ng_onRequestInputChange($event)"
+    [errorStateMatcher]="_ng_errorStateMatcher"/>

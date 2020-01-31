@@ -1,0 +1,18 @@
+<mat-checkbox [(ngModel)]="_ng_state" (change)="_ng_onStateChange($event)"></mat-checkbox>
+<span class="color" [ngStyle]="{'background': _ng_color}"></span>
+<span class="background" [ngStyle]="{'background': _ng_background}"></span>
+<span class="request" *ngIf="!_ng_directive.getEditFlag()">{{_ng_request}}</span>
+<input #requestInput *ngIf="_ng_directive.getEditFlag()"
+    matInput
+    class="request"
+    placeholder="Request"
+    (keyup)="_ng_onRequestInputKeyUp($event)"
+    (blur)="_ng_onRequestInputBlur()"
+    [(ngModel)]="_ng_request"
+    (ngModelChange)="_ng_onRequestInputChange($event)"
+    [errorStateMatcher]="_ng_errorStateMatcher"/>
+<span class="flags">
+    <span [attr.class]="'small-icon-button codicon codicon-case-sensitive ' + (_ng_flags.casesensitive ? 'active' : 'inactive')" (click)="_ng_flagsToggle($event, 'casesensitive')"></span>
+    <span [attr.class]="'small-icon-button codicon codicon-whole-word ' + (_ng_flags.wholeword ? 'active' : 'inactive')" (click)="_ng_flagsToggle($event, 'wholeword')"></span>
+    <span [attr.class]="'small-icon-button codicon codicon-regex ' + (_ng_flags.regexp ? 'active' : 'inactive')" (click)="_ng_flagsToggle($event, 'regexp')"></span>
+</span>

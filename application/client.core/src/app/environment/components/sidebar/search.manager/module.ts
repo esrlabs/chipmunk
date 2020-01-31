@@ -1,22 +1,76 @@
 import { NgModule                               } from '@angular/core';
 import { CommonModule                           } from '@angular/common';
-
-import { SidebarAppSearchManagerComponent       } from './component';
-import { SidebarAppSearchManagerControlsComponent} from './requests/controls/component';
-import { SidebarAppSearchRequestsModule         } from './requests/module';
-
 import { PrimitiveModule                        } from 'chipmunk-client-primitive';
 import { ContainersModule                       } from 'chipmunk-client-containers';
+import { AppDirectiviesModule                   } from '../../../directives/module';
+import { DragDropModule                         } from '@angular/cdk/drag-drop';
+import { EnvironmentCommonModule                } from '../../common/module';
 
-const entryComponents = [ SidebarAppSearchManagerComponent, SidebarAppSearchManagerControlsComponent ];
+import {
+    MatFormFieldModule,
+    MatInputModule,
+    MatAutocompleteModule,
+    MatOptionModule,
+    MatSortModule,
+    MatProgressBarModule,
+    MatCheckboxModule,
+    MatButtonModule,
+    MatSelectModule,
+    MatExpansionModule,
+    MatSliderModule,
+    MatTableModule,
+    MatSlider } from '@angular/material';
+import {
+    FormsModule,
+    ReactiveFormsModule } from '@angular/forms';
+
+import { SidebarAppSearchManagerChartsComponent         } from './charts/component';
+import { SidebarAppSearchManagerFiltersComponent        } from './filters/component';
+import { SidebarAppSearchManagerChartComponent          } from './chart/component';
+import { SidebarAppSearchManagerFilterComponent         } from './filter/component';
+import { SidebarAppSearchManagerChartDetailsComponent   } from './chart.details/component';
+import { SidebarAppSearchManagerFilterDetailsComponent  } from './filter.details/component';
+import { SidebarAppSearchManagerComponent               } from './component';
+import { SidebarAppSearchManagerItemDirective           } from './directives/item.directive';
+
+const entryComponents = [
+    SidebarAppSearchManagerComponent,
+    SidebarAppSearchManagerChartsComponent,
+    SidebarAppSearchManagerFiltersComponent,
+    SidebarAppSearchManagerChartComponent,
+    SidebarAppSearchManagerFilterComponent,
+    SidebarAppSearchManagerChartDetailsComponent,
+    SidebarAppSearchManagerFilterDetailsComponent,
+];
 const components = [ ...entryComponents ];
-const modules = [ CommonModule, PrimitiveModule, ContainersModule, SidebarAppSearchRequestsModule ];
+const modules = [
+    CommonModule,
+    PrimitiveModule,
+    ContainersModule,
+    FormsModule,
+    ReactiveFormsModule,
+    MatInputModule,
+    MatFormFieldModule,
+    MatAutocompleteModule,
+    MatOptionModule,
+    MatSortModule,
+    MatTableModule,
+    MatProgressBarModule,
+    MatCheckboxModule,
+    MatButtonModule,
+    MatSelectModule,
+    AppDirectiviesModule,
+    MatExpansionModule,
+    MatSliderModule,
+    DragDropModule,
+    EnvironmentCommonModule
+];
 
 @NgModule({
-    entryComponents : [ ...entryComponents ],
+    entryComponents : [ ...entryComponents, MatSlider ],
     imports         : [ ...modules ],
-    declarations    : [ ...components ],
-    exports         : [ ...components ]
+    declarations    : [ ...components, SidebarAppSearchManagerItemDirective ],
+    exports         : [ ...components, SidebarAppSearchManagerItemDirective ]
 })
 
 export class SidebarAppSearchManagerModule {

@@ -6,17 +6,16 @@
     display: block;
     padding: 0;
     margin: 0;
-    bottom: 0;
-    right: 0;
-    left:0;
-    top:0;
-    & p.caption{
-        color: @scheme-color-2;
-    }
-    & div.requests{
-        position: absolute;
-        top: 0;
-        width: 100%;
-        bottom: 0;
+    bottom: 0.5rem;
+    right: 0.5rem;
+    left: 0.5rem;
+    top: 0.5rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+    outline: none;
+    & span.slitter{
+        position: relative;
+        display: block;
+        height: 8px;
     }
 }
