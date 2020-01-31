@@ -1,12 +1,11 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import { ControllerSessionTab, IStreamState } from '../../../controller/controller.session.tab';
+import { ChartRequest } from '../../../controller/controller.session.tab.search.charts.request';
 import { IMapState, IMapPoint } from '../../../controller/controller.session.tab.map';
 import { Observable, Subscription, Subject } from 'rxjs';
-import * as ColorScheme from '../../../theme/colors';
 import ChartsControllers, { AChart } from './charts/charts';
 import { IPCMessages } from '../../../services/service.electron.ipc';
-import { EChartType } from './charts/charts';
 
 export interface IRange {
     begin: number;
@@ -151,12 +150,16 @@ export class ServiceData {
         });
         const datasets = [];
         Object.keys(results).forEach((filter: string) => {
-            const color: string | undefined = this._sessionController.getSessionSearch().getFiltersAPI().getRequestColor(filter);
+            const chart: ChartRequest | undefined = this._getChartBySource(filter);
+            if (chart === undefined) {
+                this._logger.error(`Fail to find a chart with source "${filter}"`);
+                return;
+            }
             const dataset = {
                 barPercentage: 1,
                 categoryPercentage: 1,
                 label: filter,
-                backgroundColor: color === undefined ? ColorScheme.scheme_search_match : color,
+                backgroundColor: chart.getColor(),
                 showLine: false,
                 data: results[filter],
             };
@@ -182,11 +185,15 @@ export class ServiceData {
             };
         }
         Object.keys(this._charts).forEach((filter: string) => {
+            const chart: ChartRequest | undefined = this._getChartBySource(filter);
+            if (chart === undefined) {
+                this._logger.error(`[datasets] Fail to find a chart with source "${filter}"`);
+                return;
+            }
             const matches: IPCMessages.IChartMatch[] = this._charts[filter];
-            const chartType: EChartType | undefined = this._sessionController.getSessionSearch().getChartsAPI().getChartType(filter, EChartType.smooth);
-            const controller: AChart | undefined = ChartsControllers[chartType];
+            const controller: AChart | undefined = ChartsControllers[chart.getType()];
             if (controller === undefined) {
-                this._logger.error(`Fail get controller for chart "${chartType}"`);
+                this._logger.error(`Fail get controller for chart "${chart.getType()}"`);
                 return;
             }
             const ds = controller.getDataset(
@@ -194,10 +201,12 @@ export class ServiceData {
                 matches,
                 {
                     getColor: (source: string) => {
-                        return this._sessionController.getSessionSearch().getChartsAPI().getChartColor(source);
+                        const chart: ChartRequest | undefined = this._getChartBySource(source);
+                        return chart === undefined ? undefined : chart.getColor();
                     },
                     getOptions: (source: string) => {
-                        return this._sessionController.getSessionSearch().getChartsAPI().getChartOptions(source);
+                        const chart: ChartRequest | undefined = this._getChartBySource(source);
+                        return chart === undefined ? undefined : chart.getOptions();
                     },
                     getLeftPoint: this._getLeftBorderChartDS.bind(this),
                     getRightPoint: this._getRightBorderChartDS.bind(this),
@@ -240,6 +249,13 @@ export class ServiceData {
         return this._sessionController.getGuid();
     }
 
+    private _getChartBySource(source: string): ChartRequest | undefined {
+        if (this._sessionController === undefined) {
+            return undefined;
+        }
+        return this._sessionController.getSessionSearch().getChartsAPI().getStorage().getBySource(source);
+    }
+
     private _init(controller?: ControllerSessionTab) {
         controller = controller === undefined ? TabsSessionsService.getActive() : controller;
         if (controller === undefined) {
@@ -254,7 +270,7 @@ export class ServiceData {
         // Subscribe
         this._sessionSubscriptions.onSearchMapStateUpdate = controller.getStreamMap().getObservable().onStateUpdate.subscribe(this._onSearchMapStateUpdate.bind(this));
         this._sessionSubscriptions.onStreamStateUpdated = controller.getSessionStream().getOutputStream().getObservable().onStateUpdated.subscribe(this._onStreamStateUpdated.bind(this));
-        this._sessionSubscriptions.onRequestsUpdated = controller.getSessionSearch().getFiltersAPI().getObservable().onRequestsUpdated.subscribe(this._onRequestsUpdated.bind(this));
+        this._sessionSubscriptions.onRequestsUpdated = controller.getSessionSearch().getFiltersAPI().getObservable().updated.subscribe(this._onRequestsUpdated.bind(this));
         this._sessionSubscriptions.onChartsResultsUpdated = controller.getSessionSearch().getChartsAPI().getObservable().onChartsResultsUpdated.subscribe(this._onChartsResultsUpdated.bind(this));
         this._sessionSubscriptions.onChartsUpdated = controller.getSessionSearch().getChartsAPI().getObservable().onChartsUpdated.subscribe(this._onChartsUpdated.bind(this));
         // Get default data
@@ -292,7 +308,7 @@ export class ServiceData {
         this._subjects.onCharts.next();
     }
 
-    private _onChartsUpdated() {
+    private _onChartsUpdated(charts: ChartRequest[]) {
         // Some things like colors was changed. Trigger an update
         this._subjects.onCharts.next();
     }
@@ -368,16 +384,6 @@ export class ServiceData {
             return undefined;
         }
         return value;
-    }
-
-    private _getHash(width: number): string | undefined {
-        if (this._sessionController === undefined) {
-            return undefined;
-        }
-        const hash: string = `${this._sessionController.getSessionSearch().getFiltersAPI().getActiveAsRegs().map((reg: RegExp) => {
-            return reg.source;
-        }).join('-')}${this._sessionController.getGuid()}-${width}`;
-        return hash;
     }
 
 }
