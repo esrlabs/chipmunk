@@ -23,6 +23,7 @@ export class OperationInspecting extends EventEmitter {
     private _readTo: number = 0;
     private _readFrom: number = 0;
     private _matches: number[] = [];
+    private _tasks: Map<string, CancelablePromise<number[], void>> = new Map();
 
     constructor(streamGuid: string, streamFile: string, searchFile: string) {
         super();
@@ -38,8 +39,16 @@ export class OperationInspecting extends EventEmitter {
 
     public perform(regExp: RegExp): CancelablePromise<number[], void> {
         const taskId: string = guid();
-        return new CancelablePromise<number[], void>((resolve, reject) => {
+        const task: CancelablePromise<number[], void> = new CancelablePromise<number[], void>((resolve, reject, cancel, self) => {
+            // Listen cancel for case if it will be canceled while fs.stat
+            let canceled: boolean = false;
+            self.cancel(() => {
+                canceled = true;
+            });
             fs.exists(this._streamFile, (exists: boolean) => {
+                if (canceled) {
+                    return;
+                }
                 if (!exists) {
                     return resolve([]);
                 }
@@ -52,7 +61,7 @@ export class OperationInspecting extends EventEmitter {
                 // Create transform
                 const transform = new Transform({});
                 // Create process
-                const process = spawn(ServicePaths.getRG(), this._getProcArgs(regExp.source, '-'), {
+                const process = spawn(ServicePaths.getRG(), this._getProcArgs(regExp, '-'), {
                     cwd: path.dirname(this._streamFile),
                     stdio: [ 'pipe', 'pipe', 'pipe' ],
                     detached: true,
@@ -74,7 +83,7 @@ export class OperationInspecting extends EventEmitter {
                 // Handeling finishing
                 process.once('close', () => {
                     const added: number[] = transform.getLines();
-                    this._matches.push(...added);
+                    this._matches = this._matches.concat(added);
                     resolve(this._matches);
                 });
                 // Create cleaner
@@ -98,10 +107,19 @@ export class OperationInspecting extends EventEmitter {
                 });
         });
         }).finally(this._clear.bind(this, taskId));
+        this._tasks.set(taskId, task);
+        return task;
     }
 
     public drop() {
-        // TODO: what if task is in progress?
+        // Cancel all tasks before
+        this._tasks.forEach((task: CancelablePromise<number[], void>, id: string) => {
+            this._logger.warn(`Dropping search controller, while search operation is still in progress. Current task "${id}" will be dropped`);
+            task.break();
+        });
+        // Drop data
+        this._tasks.clear();
+        this._cleaners.clear();
         this._readTo = 0;
         this._readFrom = 0;
         this._matches = [];
@@ -114,24 +132,28 @@ export class OperationInspecting extends EventEmitter {
 
     private _clear(id: string) {
         const cleaner: THandler | undefined = this._cleaners.get(id);
-        if (cleaner === undefined) {
-            return;
-        }
         this._cleaners.delete(id);
-        cleaner();
+        this._tasks.delete(id);
+        if (cleaner !== undefined) {
+            cleaner();
+        }
     }
 
-    private _getProcArgs(reg: string, target: string): string[] {
+    private _isCaseInsensitive(reg: RegExp): boolean {
+        return reg.flags.includes('i') ? true : false;
+    }
+
+    private _getProcArgs(reg: RegExp, target: string): string[] {
         // TODO: here also should be excluded possible matches with line index and tag in line of source file
         const args = [
             '-N',
             '--text', // https://github.com/BurntSushi/ripgrep/issues/306 this issue is about a case, when not printable symble is in a file
             '--pcre2',
-            '-i',
+            this._isCaseInsensitive(reg) ? '-i' : '',
             '-e',
-            reg,
+            reg.source,
             target,
-        ];
+        ].filter(x => x !== '');
         this._logger.env(`Next regular expresition will be used with ripgrep: ${reg}. Full command: rg ${args.join(' ')}`);
         return args;
     }
