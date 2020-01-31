@@ -2,7 +2,7 @@ const isValidRegExpCache: { [key: string]: boolean } = {};
 const safelyCreateRegExpCache: { [key: string]: RegExp | Error } = {};
 
 export function serializeRegStr(str: string): string {
-    const chars = '\\{}[]+$^/!.*|():?,=';
+    const chars = '\\{}[]+$^/!.*|():?,=<>';
     Array.prototype.forEach.call(chars, (char: string) => {
         str = str.replace(new RegExp('\\' + char, 'gi'), '\\' + char);
     });
