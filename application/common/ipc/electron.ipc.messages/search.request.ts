@@ -1,36 +1,42 @@
-export interface IRegExpStr {
-    source: string;
-    flags: string;
+export interface ISearchExpressionFlags {
+    casesensitive: boolean;
+    wholeword: boolean;
+    regexp: boolean;
+}
+
+export interface ISearchExpression {
+    request: string;
+    flags: ISearchExpressionFlags;
 }
 
 export interface ISearchRequest {
-    streamId: string;
-    requestId: string;
-    requests: IRegExpStr[];
+    session: string;
+    id: string;
+    requests: ISearchExpression[];
 }
 
 export class SearchRequest {
     public static signature: string = 'SearchRequest';
     public signature: string = SearchRequest.signature;
-    public streamId: string;
-    public requestId: string;
-    public requests: IRegExpStr[];
+    public session: string;
+    public id: string;
+    public requests: ISearchExpression[];
 
     constructor(params: ISearchRequest) {
         if (typeof params !== 'object' || params === null) {
             throw new Error(`Incorrect parameters for SearchRequest message`);
         }
-        if (typeof params.streamId !== 'string' || params.streamId.trim() === '') {
-            throw new Error(`Field "streamId" should be defined`);
+        if (typeof params.session !== 'string' || params.session.trim() === '') {
+            throw new Error(`Field "session" should be defined`);
         }
-        if (typeof params.requestId !== 'string' || params.requestId.trim() === '') {
-            throw new Error(`Field "requestId" should be defined`);
+        if (typeof params.id !== 'string' || params.id.trim() === '') {
+            throw new Error(`Field "id" should be defined`);
         }
         if (!(params.requests instanceof Array)) {
-            throw new Error(`Field "request" should be an instance of IRegExpStr[]`);
+            throw new Error(`Field "request" should be an instance of ISearchExpression[]`);
         }
-        this.streamId = params.streamId;
-        this.requestId = params.requestId;
+        this.session = params.session;
+        this.id = params.id;
         this.requests = params.requests;
     }
 }
