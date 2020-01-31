@@ -1,0 +1,24 @@
+<!--
+* add value of option into title
+
+-->
+<mat-form-field>
+    <mat-label>Chart type</mat-label>
+    <mat-select [(ngModel)]="_ng_type" (selectionChange)="_ng_onChartTypeChange($event)">
+        <mat-option *ngFor="let option of _ng_types" [value]="option.value">
+            {{option.title}}
+        </mat-option>
+    </mat-select>
+</mat-form-field>
+
+<div class="option" *ngFor="let option of _ng_options">
+    <span class="spliter"></span>
+    <p class="caption t-small">{{option.caption}}: <b>{{option.value}}</b></p>
+    <lib-containers-dynamic [component]="option.component"></lib-containers-dynamic>
+</div>
+
+<span class="spliter"></span>
+
+<p class="caption t-small">Color line</p>
+
+<app-com-color-selector [colors]="_ng_colors" [color]="_ng_color" (change)="_ng_onColorChange($event)"></app-com-color-selector>

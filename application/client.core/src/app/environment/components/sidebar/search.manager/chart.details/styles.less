@@ -1,0 +1,30 @@
+@import '../../../../theme/scheme.less';
+
+app-sidebar-app-searchmanager-chart-details {
+    position: relative;
+    display: block;
+    & .mat-form-field-wrapper{
+        margin-bottom: -17px;
+    }
+    & span.spliter{
+        position: relative;
+        display: block;
+        height: 8px;
+    }
+    & p.caption{
+        font-size: 10px;
+        font-weight: 400;
+        color: @scheme-color-1;
+    }
+    & div.option {
+        & mat-slider {
+            height: 24px;
+            padding: 0px;
+            & .mat-slider-wrapper{
+                left:0;
+                right:0;
+                top:15px;
+            }
+        }
+    }
+}
