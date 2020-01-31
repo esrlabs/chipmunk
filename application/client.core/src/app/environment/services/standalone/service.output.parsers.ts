@@ -3,6 +3,7 @@ import { Observable, Subject } from 'rxjs';
 import { ComponentFactory, ModuleWithComponentFactories } from '@angular/core';
 import { shadeColor, scheme_color_4, scheme_color_0, getContrastColor } from '../../theme/colors';
 import { CColors } from '../../conts/colors';
+import { FilterRequest } from '../../controller/controller.session.tab.search.filters.request';
 
 export interface IRequest {
     reg: RegExp;
@@ -81,23 +82,23 @@ export class OutputParsersService {
         this._setTypedCustomRowRender(exports);
     }
 
-    public setSearchResults(sessionId: string, requests: IRequest[] ) {
-        this._search.set(sessionId, requests.map((request: IRequest) => {
+    public setSearchResults(sessionId: string, requests: FilterRequest[] ) {
+        this._search.set(sessionId, requests.map((request: FilterRequest) => {
             return {
-                reg: new RegExp(this.serialize(request.reg.source), request.reg.flags),
-                color: request.color,
-                background: request.background,
+                reg: request.asRegExp(),
+                color: request.getColor(),
+                background: request.getBackground(),
             };
         }));
         this._subjects.onUpdatedSearch.next();
     }
 
-    public setHighlights(sessionId: string, requests: IRequest[]) {
-        this._highlights.set(sessionId, requests.map((request: IRequest) => {
+    public setHighlights(sessionId: string, requests: FilterRequest[]) {
+        this._highlights.set(sessionId, requests.map((request: FilterRequest) => {
             return {
-                reg: new RegExp(this.serialize(request.reg.source), request.reg.flags),
-                color: request.color,
-                background: request.background,
+                reg: request.asRegExp(),
+                color: request.getColor(),
+                background: request.getBackground(),
             };
         }));
     }
