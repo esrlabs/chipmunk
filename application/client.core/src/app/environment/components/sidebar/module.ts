@@ -19,8 +19,10 @@ import { SidebarAppNotificationsModule          } from '../views/notifications/m
 import { SidebarAppNotificationsComponent       } from '../views/notifications/component';
 
 @NgModule({
-    entryComponents : [  ],
-    imports         : [ CommonModule ],
+    entryComponents : [ ],
+    imports         : [
+        CommonModule,
+    ],
     declarations    : [  ],
     exports         : [
         SidebarAppMergeFilesModule,
