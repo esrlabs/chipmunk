@@ -1,0 +1,5 @@
+<ul>
+    <li [attr.class]="color === colorItem ? 'selected' : ''"
+        (click)="_ng_onColorSelect(colorItem)"
+        *ngFor="let colorItem of colors" [ngStyle]="{'background': colorItem}"></li>
+</ul>
