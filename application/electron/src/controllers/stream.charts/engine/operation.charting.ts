@@ -21,6 +21,7 @@ export class OperationCharting extends EventEmitter {
     private _streamFile: string;
     private _streamGuid: string;
     private _cleaners: Map<string, THandler> = new Map();
+    private _tasks: Map<string, CancelablePromise<IMatch[], void>> = new Map();
 
     constructor(streamGuid: string, streamFile: string) {
         super();
@@ -35,8 +36,16 @@ export class OperationCharting extends EventEmitter {
 
     public perform(regExp: RegExp, groups: boolean = false): CancelablePromise<IMatch[], void> {
         const taskId: string = guid();
-        return new CancelablePromise<IMatch[], void>((resolve, reject) => {
+        const task: CancelablePromise<IMatch[], void> = new CancelablePromise<IMatch[], void>((resolve, reject, cancel, self) => {
+            let canceled: boolean = false;
+            self.cancel(() => {
+                this._tasks.delete(taskId);
+                canceled = true;
+            });
             fs.exists(this._streamFile, (exists: boolean) => {
+                if (canceled) {
+                    return;
+                }
                 if (!exists) {
                     return resolve([]);
                 }
@@ -52,7 +61,7 @@ export class OperationCharting extends EventEmitter {
                 // Create transform
                 const transform = new Transform({}, 0, groups);
                 // Create process
-                const process = spawn(ServicePaths.getRG(), this._getProcArgs(regExp.source, '-', groups ? groupsCount : 0), {
+                const process = spawn(ServicePaths.getRG(), this._getProcArgs(regExp, '-', groups ? groupsCount : 0), {
                     cwd: path.dirname(this._streamFile),
                     stdio: [ 'pipe', 'pipe', 'pipe' ],
                     detached: true,
@@ -96,15 +105,28 @@ export class OperationCharting extends EventEmitter {
                 });
             });
         }).finally(this._clear.bind(this, taskId));
+        this._tasks.set(taskId, task);
+        return task;
+    }
+
+    public drop() {
+        // Cancel all tasks before
+        this._tasks.forEach((task: CancelablePromise<IMatch[], void>, id: string) => {
+            this._logger.warn(`Dropping charting controller, while charting operation is still in progress. Current task "${id}" will be dropped`);
+            task.break();
+        });
+        // Drop data
+        this._tasks.clear();
+        this._cleaners.clear();
     }
 
     private _clear(id: string) {
         const cleaner: THandler | undefined = this._cleaners.get(id);
-        if (cleaner === undefined) {
-            return;
-        }
         this._cleaners.delete(id);
-        cleaner();
+        this._tasks.delete(id);
+        if (cleaner !== undefined) {
+            cleaner();
+        }
     }
 
     private _getGroupsCount(regAsStr: string): number {
@@ -115,7 +137,11 @@ export class OperationCharting extends EventEmitter {
         return matches.length;
     }
 
-    private _getProcArgs(reg: string, target: string, groups: number = 0): string[] {
+    private _isCaseInsensitive(reg: RegExp): boolean {
+        return reg.flags.includes('i') ? true : false;
+    }
+
+    private _getProcArgs(reg: RegExp, target: string, groups: number = 0): string[] {
         // TODO: here also should be excluded possible matches with line index and tag in line of source file
         // example of usage: rg -n --text --pcre2 -i -e "ma\w{2,}h" -o ./small.log
         // capturing a groups: rg -n --text --pcre2 -i -e "(ma)\w{2,}h" -o ./small.log -r '$1'
@@ -123,11 +149,11 @@ export class OperationCharting extends EventEmitter {
             '-n',
             '--text', // https://github.com/BurntSushi/ripgrep/issues/306 this issue is about a case, when not printable symble is in a file
             '--pcre2',
-            '-i',
+            this._isCaseInsensitive(reg) ? '-i' : '',
             '-e',
-            reg,
+            reg.source,
             '-o',
-        ];
+        ].filter(x => x !== '');
         if (groups > 0) {
             args.push(...[
                 '-r',
@@ -137,7 +163,7 @@ export class OperationCharting extends EventEmitter {
             ]);
         }
         args.push(target);
-        this._logger.env(`Next regular expresition will be used with ripgrep: ${reg}. Full command: rg ${args.join(' ')}`);
+        this._logger.env(`Next regular expresition will be used with ripgrep: ${reg.source}. Full command: rg ${args.join(' ')}`);
         return args;
     }
 }

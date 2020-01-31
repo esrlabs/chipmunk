@@ -27,6 +27,7 @@ export class OperationSearch extends EventEmitter {
     private _cleaner: THandler | undefined;
     private _offset: IOffset = { bytes: 0, rows: 0 };
     private _read: number = 0;
+    private _task: CancelablePromise<IMapItem[], void> | undefined;
 
     constructor(streamGuid: string, streamFile: string, searchFile: string) {
         super();
@@ -43,20 +44,29 @@ export class OperationSearch extends EventEmitter {
 
     public perform(
         regExp: RegExp | RegExp[],
+        guid: string,
     ): CancelablePromise<IMapItem[], void> | Error {
         if (this._cleaner !== undefined) {
             this._logger.warn(`Attempt to start search, while previous isn't finished`);
             return new Error(`(search) Fail to start search, because previous process isn't finished.`);
         }
-        return new CancelablePromise<IMapItem[], void>((resolve, reject, cancel, self) => {
+        this._task = new CancelablePromise<IMapItem[], void>((resolve, reject, cancel, self) => {
+            // Listen cancel for case if it will be canceled while fs.stat
+            let canceled: boolean = false;
+            self.cancel(() => {
+                canceled = true;
+            });
             fs.stat(this._streamFile, (err: NodeJS.ErrnoException | null, stats: fs.Stats) => {
+                if (canceled) {
+                    return;
+                }
                 if (err) {
                     reject(err);
                 }
                 // Remember file size
                 this._read = stats.size;
                 // Start measuring
-                const measurer = this._logger.measure(`search #${guid()}`);
+                const measurer = this._logger.measure(`search #${guid}`);
                 // Create transform
                 const transform = new Transform({}, this._streamGuid);
                 // Listen map event
@@ -108,6 +118,7 @@ export class OperationSearch extends EventEmitter {
                 };
             });
         }).finally(this._clear);
+        return this._task;
     }
 
     public getOffset(): IOffset {
@@ -123,19 +134,21 @@ export class OperationSearch extends EventEmitter {
     }
 
     public drop() {
-        // TODO: what if task is in progress?
-        if (this._cleaner !== undefined) {
-            this._logger.error(`Dropping search controller, while search operation is still in progress.`);
+        if (this._task !== undefined) {
+            this._logger.warn(`Dropping search controller, while search operation is still in progress. Current task will be dropped`);
+            this._task.break();
         }
         this._read = 0;
         this._offset = { bytes: 0, rows: 0 };
     }
 
     private _clear() {
-        if (this._cleaner === undefined) {
-            return;
+        if (this._cleaner !== undefined) {
+            this._cleaner();
         }
-        this._cleaner();
+        // Drop task
+        this._task = undefined;
+        // Drop cleaner
         this._cleaner = undefined;
     }
 
@@ -143,10 +156,19 @@ export class OperationSearch extends EventEmitter {
         if (!(regulars instanceof Array)) {
             regulars = [regulars];
         }
+        const i: boolean = this._isCaseInsensitive(regulars);
         const regs: string[] = regulars.map((regular: RegExp) => {
-            return regular.source;
+            return i ? `((?i)${regular.source})` : regular.source;
         });
         return `(${regs.join('|')}).*\\x{0003}\\d*\\x{0003}`;
+    }
+
+    private _isCaseInsensitive(regulars: RegExp | RegExp[]): boolean {
+        if (regulars instanceof Array) {
+            return regulars.length > 0 ? (regulars[0].flags.includes('i') ? true : false) : true;
+        } else {
+            return regulars.flags.includes('i') ? true : false;
+        }
     }
 
     private _getProcArgs(regulars: RegExp | RegExp[], target: string): string[] {
@@ -155,11 +177,10 @@ export class OperationSearch extends EventEmitter {
             '-N',
             '--text', // https://github.com/BurntSushi/ripgrep/issues/306 this issue is about a case, when not printable symble is in a file
             '--pcre2',
-            '-i',
             '-e',
             expression,
             target,
-        ];
+        ].filter(x => x !== '');
         this._logger.env(`Next regular expresition will be used with ripgrep: ${expression}. Full command: rg ${args.join(' ')}`);
         return args;
     }

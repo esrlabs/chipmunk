@@ -75,6 +75,7 @@ export class SearchEngine extends EventEmitter {
 
     public drop(): Promise<void> {
         return new Promise((resolve) => {
+            // Before drop, always cancel
             this._operations.append.drop();
             this._operations.inspecting.drop();
             this._operations.search.drop();
@@ -83,6 +84,8 @@ export class SearchEngine extends EventEmitter {
     }
 
     public search(requests: RegExp[], to?: number): CancelablePromise<IMapItem[], void> | Error {
+        // Tracking guid
+        const taskId: string = guid();
         if (this._stock.search.size !== 0) {
             return new Error(`Fail to start search because previous wasn't finished.`);
         }
@@ -98,10 +101,10 @@ export class SearchEngine extends EventEmitter {
         // Try to create task
         if (typeof to === 'number') {
             // Call append operation
-            error = this._operations.append.perform(requests, to);
+            error = this._operations.append.perform(requests, to, taskId);
         } else {
             // Call search operation
-            error = this._operations.search.perform(requests);
+            error = this._operations.search.perform(requests, taskId);
         }
         // Break if failed (could be one reason: previous operation is still going)
         if (error instanceof Error) {
@@ -112,8 +115,6 @@ export class SearchEngine extends EventEmitter {
         const task = (error as CancelablePromise<IMapItem[], void>);
         // Wrap task to track it
         return new CancelablePromise<IMapItem[], void>((resolve, reject) => {
-            // Tracking guid
-            const taskId: string = guid();
             // Store task into stock
             this._stock.search.set(taskId, task);
             // Start tracking
@@ -129,7 +130,7 @@ export class SearchEngine extends EventEmitter {
                     resolve(map);
                 });
             }).cancel(() => {
-                this._logger.env(`Search was canceled.`);
+                this._logger.env(`Search "${taskId}" was canceled.`);
             }).catch((searchErr: Error) => {
                 reject(searchErr);
             }).finally(() => {
