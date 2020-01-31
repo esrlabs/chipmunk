@@ -1,12 +1,12 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
 import { IService } from '../interfaces/interface.service';
 import { Observable, Subject, Subscription } from 'rxjs';
-import TabsSessionsService, { ControllerSessionTabSearch, IRequest } from './service.sessions.tabs';
+import TabsSessionsService, { ControllerSessionTabSearch } from './service.sessions.tabs';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
-import { ControllerSessionTabSearchFilters } from '../controller/controller.session.tab.search.filters';
+import { ControllerSessionTabSearchFilters, FiltersStorage } from '../controller/controller.session.tab.search.filters';
 import { ControllerSessionTabSearchCharts, IChartRequest } from '../controller/controller.session.tab.search.charts';
 
-export { ControllerSessionTabSearch, IRequest, IChartRequest };
+export { ControllerSessionTabSearch, IChartRequest };
 
 export class SearchSessionsService implements IService {
 
@@ -15,10 +15,10 @@ export class SearchSessionsService implements IService {
     private _subscriptionsSessionSearch: { [key: string]: Subscription | undefined } = { };
     private _session: ControllerSessionTabSearch | undefined;
     private _subjects: {
-        onRequestsUpdated: Subject<IRequest[]>,
+        requestsUpdated: Subject<FiltersStorage>,
         onChartsUpdated: Subject<IChartRequest[]>,
     } = {
-        onRequestsUpdated: new Subject<IRequest[]>(),
+        requestsUpdated: new Subject<FiltersStorage>(),
         onChartsUpdated: new Subject<IChartRequest[]>(),
     };
 
@@ -49,11 +49,11 @@ export class SearchSessionsService implements IService {
     }
 
     public getObservable(): {
-        onRequestsUpdated: Observable<IRequest[]>,
+        requestsUpdated: Observable<FiltersStorage>,
         onChartsUpdated: Observable<IChartRequest[]>,
     } {
         return {
-            onRequestsUpdated: this._subjects.onRequestsUpdated.asObservable(),
+            requestsUpdated: this._subjects.requestsUpdated.asObservable(),
             onChartsUpdated: this._subjects.onChartsUpdated.asObservable(),
         };
     }
@@ -77,7 +77,7 @@ export class SearchSessionsService implements IService {
         if (this._session === undefined) {
             return;
         }
-        this._subscriptionsSessionSearch.onRequestsUpdated = this._session.getFiltersAPI().getObservable().onRequestsUpdated.subscribe(this._onRequestsUpdated.bind(this));
+        this._subscriptionsSessionSearch.onRequestsUpdated = this._session.getFiltersAPI().getObservable().updated.subscribe(this._onRequestsUpdated.bind(this));
         this._subscriptionsSessionSearch.onChartsUpdated = this._session.getChartsAPI().getObservable().onChartsUpdated.subscribe(this._onChartsUpdated.bind(this));
     }
 
@@ -99,11 +99,11 @@ export class SearchSessionsService implements IService {
             return this._logger.warn(`Cannot get active session, after it was changed.`);
         }
         this._bindSearchSessionEvents();
-        this._subjects.onRequestsUpdated.next(this._session.getFiltersAPI().getStored());
+        this._subjects.requestsUpdated.next(this._session.getFiltersAPI().getStorage());
     }
 
-    private _onRequestsUpdated(requests: IRequest[]) {
-        this._subjects.onRequestsUpdated.next(requests);
+    private _onRequestsUpdated(storage: FiltersStorage) {
+        this._subjects.requestsUpdated.next(storage);
     }
 
     private _onChartsUpdated(requests: IChartRequest[]) {

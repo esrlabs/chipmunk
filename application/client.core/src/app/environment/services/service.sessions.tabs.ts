@@ -19,7 +19,6 @@ import LayoutStateService from './standalone/service.layout.state';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 export { ControllerSessionTabSearch } from '../controller/controller.session.tab.search';
-export { IRequest } from '../controller/controller.session.tab.search.filters';
 
 export type TSessionGuid = string;
 export type TSidebarTabOpener = (guid: string, session: string | undefined, silence: boolean) => Error | undefined;

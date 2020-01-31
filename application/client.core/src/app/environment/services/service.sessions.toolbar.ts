@@ -175,7 +175,7 @@ export class ToolbarSessionsService implements IService {
             if (this._tabsService.has(defaultView.guid)) {
                 return;
             }
-            this._tabsService.unshift({
+           this._tabsService.unshift({
                 guid: defaultView.guid,
                 name: defaultView.name,
                 active: i === DefaultViews.length - 1,
