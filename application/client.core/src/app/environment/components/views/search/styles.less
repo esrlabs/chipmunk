@@ -1,7 +1,7 @@
 @import '../../../theme/scheme.less';
 
 
-:host {
+app-views-search {
     display: flex;
     flex-flow: column;
     height: 100%;
@@ -11,15 +11,41 @@
         height: 1.75rem;
         left:0;
         right: 0;
+        display: flex;
         & div.search-input-wrapper{
-            position: absolute;
-            top:-16px;
-            bottom: 0;
-            left:0;
-            right: 0;
             transition: right 150ms ease-in-out;
+            position: relative;
+            display: block;
+            flex: auto;
             & input.not-valid{
                 color: @scheme-color-error!important;
+            }
+            & mat-form-field{
+                margin: 0 4px;
+                width: calc(100% - 8px);
+                & .mat-form-field-flex{
+                    height: 31px;
+                }
+                & .mat-form-field-infix{
+                    margin: 4px 0 0 0;
+                    padding: 0;
+                    border: none;
+                }
+                & .mat-form-field-outline-start,
+                & .mat-form-field-outline-end{
+                    border-width: 1px;
+                    border-color: @scheme-color-4;
+                    border-radius: 0;
+                }
+                &.mat-focused{
+                    & .mat-form-field-outline{
+                        background: @scheme-color-4;
+                    }
+                    & .mat-form-field-outline-start,
+                    & .mat-form-field-outline-end{
+                        border-color: @scheme-color-2;
+                    }
+                }
             }
             & div.spinner{
                 position: absolute;
@@ -29,30 +55,51 @@
                 height: 1px;
                 overflow: hidden;
             }
-            & p.summary{
+            & div.request-mode-buttons{
                 position: absolute;
-                top: 24px;
-                right: 8px;
-                transition: right ease-in-out 350ms;
-                pointer-events: none;
+                right: 0;
+                bottom: -2px;
+                width: 5.5rem;
+                overflow: hidden;
+                white-space: nowrap;
+                height: 25px;
+                color: @scheme-color-0;
+                cursor: default;
+                & span.small-icon-button{
+                    line-height: 1.5rem;
+                    transition: all 50ms ease-in-out;
+                    outline: none;
+                    &:hover{
+                        color: @scheme-color-1;
+                    }
+                    &.active {
+                        background: fade(@scheme-color-accent, 25%);
+                    }
+                    &.inactive {
+                        background: none;
+                        color: @scheme-color-1;
+                    }
+                }
             }
         }
         & div.request-buttons{
-            position: absolute;
-            right: 0;
-            top:4px;
-            bottom: 0;
-            width: 5rem;
-            overflow: hidden;
+            position: relative;
+            display: block;
+            flex: 0;
             white-space: nowrap;
+            padding-top: 3px;
             & span.small-icon-button{
                 line-height: 1.5rem;
             }
         }
-        &.with-buttons{
-            & div.search-input-wrapper{
-                right: 4.7rem;
-            }
+        & p.summary{
+            position: relative;
+            display: block;
+            flex: 0;
+            white-space: nowrap;
+            transition: right ease-in-out 350ms;
+            pointer-events: none;
+            padding: 7px 8px 0 8px;
         }
     }
 
