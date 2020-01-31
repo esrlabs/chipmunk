@@ -6,6 +6,16 @@ import ServiceElectronIpc, { IPCMessages } from '../services/service.electron.ip
 import * as ColorScheme from '../theme/colors';
 import { getController, AChart, EChartType, IOptionsObj } from '../components/views/chart/charts/charts';
 import OutputParsersService from '../services/standalone/service.output.parsers';
+import {
+    ChartRequest,
+    IChartFlags,
+    IChartDesc,
+    IChartsChangeEvent,
+    IChartsStorageUpdated,
+    IChartDescOptional,
+    IChartDescUpdating,
+    ChartsStorage,
+} from './controller.session.tab.search.charts.storage';
 
 export interface IControllerSessionStreamCharts {
     guid: string;
@@ -28,7 +38,7 @@ export interface IChartsOptions {
 }
 
 export interface ISubjects {
-    onChartsUpdated: Subject<IChartRequest[]>;
+    onChartsUpdated: Subject<ChartRequest[]>;
     onExtractingStarted: Subject<void>;
     onExtractingFinished: Subject<void>;
     onChartsResultsUpdated: Subject<IPCMessages.TChartResults>;
@@ -38,10 +48,10 @@ export class ControllerSessionTabSearchCharts {
 
     private _logger: Toolkit.Logger;
     private _guid: string;
-    private _stored: IChartRequest[] = [];
-    private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
+    private _storage: ChartsStorage;
+    private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = {};
     private _subjects: ISubjects = {
-        onChartsUpdated: new Subject<IChartRequest[]>(),
+        onChartsUpdated: new Subject<ChartRequest[]>(),
         onExtractingStarted: new Subject<void>(),
         onExtractingFinished: new Subject<void>(),
         onChartsResultsUpdated: new Subject<IPCMessages.TChartResults>(),
@@ -52,7 +62,10 @@ export class ControllerSessionTabSearchCharts {
     constructor(params: IControllerSessionStreamCharts) {
         this._guid = params.guid;
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearchCharts: ${params.guid}`);
+        this._storage = new ChartsStorage(params.guid);
         this._subscriptions.ChartResultsUpdated = ServiceElectronIpc.subscribe(IPCMessages.ChartResultsUpdated, this._ipc_ChartResultsUpdated.bind(this));
+        this._subscriptions.onStorageUpdated = this._storage.getObservable().updated.subscribe(this._onStorageUpdated.bind(this));
+        this._subscriptions.onStorageChanged = this._storage.getObservable().changed.subscribe(this._onStorageChanged.bind(this));
     }
 
     public destroy(): Promise<void> {
@@ -72,7 +85,7 @@ export class ControllerSessionTabSearchCharts {
     }
 
     public getObservable(): {
-        onChartsUpdated: Observable<IChartRequest[]>,
+        onChartsUpdated: Observable<ChartRequest[]>,
         onExtractingStarted: Observable<void>,
         onExtractingFinished: Observable<void>,
         onChartsResultsUpdated: Observable<IPCMessages.TChartResults>,
@@ -131,6 +144,10 @@ export class ControllerSessionTabSearchCharts {
         });
     }
 
+    public getStorage(): ChartsStorage {
+        return this._storage;
+    }
+/*
     public isChartStored(request: string): boolean {
         let result: boolean = false;
         this._stored.forEach((stored: IChartRequest) => {
@@ -241,7 +258,7 @@ export class ControllerSessionTabSearchCharts {
     public getCharts(): IChartRequest[] {
         return this._stored;
     }
-
+*/
     public getChartsData(): IPCMessages.TChartResults {
         return this._data;
     }
@@ -249,7 +266,7 @@ export class ControllerSessionTabSearchCharts {
     public getSubjects(): ISubjects {
         return this._subjects;
     }
-
+/*
     public getChartColor(source: string): string | undefined {
         let color: string | undefined;
         this._stored.forEach((filter: IChartRequest) => {
@@ -305,6 +322,28 @@ export class ControllerSessionTabSearchCharts {
         }
         return undefined;
     }
+*/
+
+
+    private _onStorageUpdated(event: IChartsStorageUpdated) {
+        this._refresh();
+    }
+
+    private _onStorageChanged(request: IChartsChangeEvent) {
+        if (request.reapply) {
+            this._refresh();
+        } else {
+            this._updateRowsViews();
+        }
+    }
+
+    private _updateRowsViews() {
+        OutputParsersService.setCharts(this.getGuid(), this._storage.getActive().map((chart: ChartRequest) => {
+            return { reg: chart.asRegExp(), color: chart.getColor(), background: undefined };
+        }));
+        OutputParsersService.updateRowsView();
+        this._subjects.onChartsUpdated.next(this._storage.getActive());
+    }
 
     private _extract(options: IChartsOptions): Promise<IPCMessages.TChartResults> {
         return new Promise((resolve, reject) => {
@@ -338,27 +377,19 @@ export class ControllerSessionTabSearchCharts {
     }
 
     private _refresh() {
-        this.extract({ requestId: Toolkit.guid(), requests: this.getActiveCharts().map((req: IChartRequest) => {
+        this.extract({ requestId: Toolkit.guid(), requests: this._storage.getActive().map((chart: ChartRequest) => {
             return {
-                source: req.reg.source,
-                flags: req.reg.flags,
+                source: chart.asRegExp().source,
+                flags: chart.asRegExp().flags,
                 groups: true,
             };
         })}).finally(() => {
-            this._updateParsers();
+            this._updateRowsViews();
         }).catch((error: Error) => {
             this._logger.error(`Fail to refresh charts data due error: ${error.message}`);
         });
     }
 
-    private _updateParsers() {
-        OutputParsersService.setCharts(this.getGuid(), this._stored.filter((chart: IChartRequest) => {
-            return chart.active;
-        }).map((chart: IChartRequest) => {
-            return { reg: chart.reg, color: chart.color, background: undefined };
-        }));
-        OutputParsersService.updateRowsView();
-    }
 
     private _ipc_ChartResultsUpdated(message: IPCMessages.ChartResultsUpdated) {
         if (message.streamId !== this._guid) {

@@ -12,12 +12,9 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 
 export type TRequestDataHandler = (start: number, end: number) => Promise<IPCMessages.StreamChunk>;
 
-export type TGetActiveSearchRequestsHandler = () => RegExp[];
-
 export interface IParameters {
     guid: string;
     requestDataHandler: TRequestDataHandler;
-    getActiveSearchRequests: TGetActiveSearchRequestsHandler;
     stream: ControllerSessionTabStreamOutput;
     scope: ControllerSessionScope;
 }
@@ -69,7 +66,6 @@ export class ControllerSessionTabSearchOutput {
     private _logger: Toolkit.Logger;
     private _rows: ISearchStreamPacket[] = [];
     private _requestDataHandler: TRequestDataHandler;
-    private _getActiveSearchRequests: TGetActiveSearchRequestsHandler;
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
     private _stream: ControllerSessionTabStreamOutput;
     private _scope: ControllerSessionScope;
@@ -107,7 +103,6 @@ export class ControllerSessionTabSearchOutput {
         this._bookmakrs = params.stream.getBookmarks();
         this._sources = new ControllerSessionTabSourcesState(this._guid);
         this._requestDataHandler = params.requestDataHandler;
-        this._getActiveSearchRequests = params.getActiveSearchRequests;
         this._scope = params.scope;
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearchOutput: ${this._guid}`);
         this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(this._guid, this._onRowSelected.bind(this));
