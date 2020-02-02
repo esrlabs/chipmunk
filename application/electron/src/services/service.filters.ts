@@ -13,6 +13,49 @@ interface IStoredFileData {
     charts: IPCMessages.IChartSaveRequest[];
 }
 
+function normalizeStoredFilters(filters: any[]): IPCMessages.IFilter[] {
+    // back compatibility for filters
+    if (!(filters instanceof Array)) {
+        return [];
+    }
+    return filters.map((filter: any) => {
+        const expression: IPCMessages.ISearchExpression = {
+            request: typeof filter.reg === 'string' ? filter.reg : filter.expression.request,
+            flags: typeof filter.expression === 'object' ? filter.expression.flags : {
+                casesensitive: false,
+                wholeword: false,
+                regexp: true,
+            },
+        };
+        return {
+            expression: expression,
+            color: typeof filter.color === 'string' ? filter.color : '',
+            background: typeof filter.background === 'string' ? filter.background : '',
+            active: typeof filter.active === 'boolean' ? filter.active : true,
+        };
+    }).filter((filter: IPCMessages.IFilter) => {
+        return filter.expression.request !== '';
+    });
+}
+
+function normalizeStoredCharts(charts: any[]): IPCMessages.IChartSaveRequest[] {
+    // back compatibility for charts
+    if (!(charts instanceof Array)) {
+        return [];
+    }
+    return charts.map((chart: any) => {
+        return {
+            color: typeof chart.color === 'string' ? chart.color : '',
+            request: typeof chart.reg === 'string' ? chart.reg : chart.request,
+            active: typeof chart.active === 'boolean' ? chart.active : true,
+            options: typeof chart.options === 'object' ? chart.options : {},
+            type: typeof chart.type === 'string' ? chart.type : '',
+        };
+    }).filter((chart: IPCMessages.IChartSaveRequest) => {
+        return chart.request !== '' && (chart as any).type !== '';
+    });
+}
+
 /**
  * @class ServiceFilters
  * @description Just keep information about filters
@@ -96,8 +139,8 @@ class ServiceFilters implements IService {
                 this._loadFile(file).then((content: IStoredFileData) => {
                     this._saveAsRecentFile(file, content.filters.length + content.charts.length);
                     response(new IPCMessages.FiltersLoadResponse({
-                        filters: content.filters,
-                        charts: content.charts,
+                        filters: normalizeStoredFilters(content.filters),
+                        charts: normalizeStoredCharts(content.charts),
                         file: file,
                     }));
                 }).catch((error: Error) => {
@@ -113,8 +156,8 @@ class ServiceFilters implements IService {
             this._loadFile(request.file).then((content: IStoredFileData) => {
                 this._saveAsRecentFile(request.file as string, content.filters.length + content.charts.length);
                 response(new IPCMessages.FiltersLoadResponse({
-                    filters: content.filters,
-                    charts: content.charts,
+                    filters: normalizeStoredFilters(content.filters),
+                    charts: normalizeStoredCharts(content.charts),
                     file: request.file as string,
                 }));
             }).catch((error: Error) => {
