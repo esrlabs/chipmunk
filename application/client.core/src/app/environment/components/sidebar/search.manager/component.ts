@@ -8,6 +8,8 @@ import { IChartsStorageUpdated, ChartRequest } from 'src/app/environment/control
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import { EChartType } from '../../views/chart/charts/charts';
 
+import * as Toolkit from 'chipmunk.client.toolkit';
+
 export interface IContextMenuEvent {
     event: MouseEvent;
     request: FilterRequest | ChartRequest;
@@ -37,6 +39,7 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
     public _ng_selected: Subject<string> = new Subject<string>();
     public _ng_filter: FilterRequest | undefined;
     public _ng_chart: ChartRequest | undefined;
+    public _ng_filename: string = '';
 
     private _subjects: {
         select: Subject<number>,
@@ -85,6 +88,9 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         this._destroyed = true;
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
+        });
+        Object.keys(this._sessionSubscriptions).forEach((prop: string) => {
+            this._sessionSubscriptions[prop].unsubscribe();
         });
         window.removeEventListener('keyup', this._onGlobalKeyUp);
     }
@@ -174,6 +180,11 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         });
         event.event.stopImmediatePropagation();
         event.event.preventDefault();
+    }
+
+    public _ng_onFileNameChange(filename: string) {
+        this._ng_filename = Toolkit.basename(filename);
+        this._forceUpdate();
     }
 
     private _toggleAllInList(target: 'filters' | 'charts', state: boolean, exception?: number) {

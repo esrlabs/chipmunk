@@ -1,4 +1,4 @@
-import { Component, Input, AfterContentInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, AfterContentInit, OnDestroy, ChangeDetectorRef, EventEmitter, Output } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
 import { ControllerSessionTabSearchFilters } from '../../../../controller/controller.session.tab.search.filters';
 import { ControllerSessionTabSearchCharts } from '../../../../controller/controller.session.tab.search.charts';
@@ -13,7 +13,6 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import ElectronIpcService, { IPCMessages } from '../../../../services/service.electron.ipc';
 
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
-import SearchSessionsService from '../../../../services/service.sessions.search';
 import HotkeysService from '../../../../services/service.hotkeys';
 import PopupsService from '../../../../services/standalone/service.popups';
 
@@ -25,9 +24,11 @@ import PopupsService from '../../../../services/standalone/service.popups';
 
 export class SidebarAppSearchManagerControlsComponent implements AfterContentInit, OnDestroy {
 
-    private _filename: string;
-    private _changes: boolean = false;
+    @Output() public filename: EventEmitter<string> = new EventEmitter();
+
+    private _filename: string = '';
     private _subscriptions: { [key: string]: Subscription } = {};
+    private _sessionSubscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppSearchManagerControlsComponent');
     private _destroyed: boolean = false;
 
@@ -37,7 +38,8 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
     }
 
     ngAfterContentInit() {
-
+        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._onSessionChange();
     }
 
     ngOnDestroy() {
@@ -45,6 +47,10 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
+        Object.keys(this._sessionSubscriptions).forEach((prop: string) => {
+            this._sessionSubscriptions[prop].unsubscribe();
+        });
+        this._autoSave();
     }
 
     public _ng_onRecentOpen() {
@@ -106,6 +112,7 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
                     options: chart.options,
                 };
             }));
+            this._setCurrentFile(response.file);
         }).catch((error: Error) => {
             return this._notifications.add({
                 caption: 'Filters',
@@ -114,7 +121,7 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
         });
     }
 
-    public _ng_onSave(saveAs: boolean = false) {
+    public _ng_onSave(filename?: string) {
         const session: ControllerSessionTab | undefined = TabsSessionsService.getActive();
         if (session === undefined) {
             return;
@@ -145,20 +152,64 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
                     options: desc.options,
                 };
             }),
-            file: saveAs ? undefined : this._filename
+            file: filename
         }), IPCMessages.FiltersSaveResponse).then((response: IPCMessages.FiltersSaveResponse) => {
             if (response.error !== undefined) {
+                this._setCurrentFile('');
                 return this._notifications.add({
                     caption: 'Filters',
                     message: `Fail to save filters into file "${response.filename}" due error: ${response.error}`
                 });
             }
+            this._setCurrentFile(response.filename);
         }).catch((error: Error) => {
+            this._setCurrentFile('');
             return this._notifications.add({
                 caption: 'Filters',
                 message: `Fail to save filters due error: ${error.message}`
             });
         });
+    }
+
+    private _onSessionChange() {
+        Object.keys(this._sessionSubscriptions).forEach((prop: string) => {
+            this._sessionSubscriptions[prop].unsubscribe();
+        });
+        const session: ControllerSessionTab | undefined = TabsSessionsService.getActive();
+        if (session === undefined) {
+            return;
+        }
+        // Get refs to storages
+        const filters: FiltersStorage = session.getSessionSearch().getFiltersAPI().getStorage();
+        const charts: ChartsStorage = session.getSessionSearch().getChartsAPI().getStorage();
+        // Subscribe to any change
+        this._sessionSubscriptions.filtersStorageUpdate = filters.getObservable().updated.subscribe(this._autoSave.bind(this));
+        this._sessionSubscriptions.chartsStorageUpdate = charts.getObservable().updated.subscribe(this._autoSave.bind(this));
+        this._sessionSubscriptions.filtersStorageChanged = filters.getObservable().changed.subscribe(this._autoSave.bind(this));
+        this._sessionSubscriptions.chartsStorageChanged = charts.getObservable().changed.subscribe(this._autoSave.bind(this));
+    }
+
+    private _autoSave() {
+        if (this._filename === '') {
+            return;
+        }
+        const session: ControllerSessionTab | undefined = TabsSessionsService.getActive();
+        if (session === undefined) {
+            return;
+        }
+        // Get refs to storages
+        const filters: FiltersStorage = session.getSessionSearch().getFiltersAPI().getStorage();
+        const charts: ChartsStorage = session.getSessionSearch().getChartsAPI().getStorage();
+        if (filters.get().length === 0 && charts.get().length === 0) {
+            // Do not save if it was cleared
+            return;
+        }
+        this._ng_onSave(this._filename);
+    }
+
+    private _setCurrentFile(filename: string) {
+        this._filename = filename;
+        this.filename.emit(filename);
     }
 
     private _clearRecentHistory() {
