@@ -203,12 +203,12 @@ class ServiceFilters implements IService {
                 this._saveFile(results.filePath, content).then(() => {
                     this._saveAsRecentFile(results.filePath as string, request.filters.length);
                     response(new IPCMessages.FiltersSaveResponse({
-                        filename: path.basename(results.filePath as string),
+                        filename: results.filePath as string,
                     }));
                 }).catch((error: Error) => {
                     this._logger.warn(`Error during saving filters into file "${results.filePath}": ${error.message}`);
                     response(new IPCMessages.FiltersSaveResponse({
-                        filename: path.basename(results.filePath as string),
+                        filename: results.filePath as string,
                         error: error.message,
                     }));
                 });
