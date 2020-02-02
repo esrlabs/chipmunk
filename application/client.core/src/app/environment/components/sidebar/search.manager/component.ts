@@ -343,8 +343,8 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         Object.keys(this._sessionSubscriptions).forEach((prop: string) => {
             this._sessionSubscriptions[prop].unsubscribe();
         });
-        this._ng_filters = undefined;
-        this._ng_charts = undefined;
+        this._ng_filters = [];
+        this._ng_charts = [];
         if (session === undefined) {
             session = TabsSessionsService.getActive();
         }
@@ -357,7 +357,6 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         this._setCharts();
         this._sessionSubscriptions.filtersStorageUpdate = session.getSessionSearch().getFiltersAPI().getStorage().getObservable().updated.subscribe(this._setFilters.bind(this));
         this._sessionSubscriptions.chartsStorageUpdate = session.getSessionSearch().getChartsAPI().getStorage().getObservable().updated.subscribe(this._setCharts.bind(this));
-        this._forceUpdate();
     }
 
     private _setFilters() {
@@ -365,6 +364,7 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
             return;
         }
         this._ng_filters = this._session.getSessionSearch().getFiltersAPI().getStorage().get();
+        this._forceUpdate();
     }
 
     private _setCharts() {
@@ -372,6 +372,7 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
             return;
         }
         this._ng_charts = this._session.getSessionSearch().getChartsAPI().getStorage().get();
+        this._forceUpdate();
     }
 
     private _forceUpdate() {
