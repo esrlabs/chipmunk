@@ -63,3 +63,16 @@
     <app-sidebar-app-searchmanager-filter-details *ngIf="_ng_filter" [request]="_ng_filter"></app-sidebar-app-searchmanager-filter-details>
     <app-sidebar-app-searchmanager-chart-details *ngIf="_ng_chart" [request]="_ng_chart"></app-sidebar-app-searchmanager-chart-details>
 </mat-expansion-panel>
+
+<span class="slitter"></span>
+
+<mat-expansion-panel
+    [expanded]="true"
+    (click)="_ng_onPanelClick()">
+    <mat-expansion-panel-header>
+        <mat-panel-title>
+            Manage
+        </mat-panel-title>
+    </mat-expansion-panel-header>
+    <app-sidebar-app-searchmanager-controls></app-sidebar-app-searchmanager-controls>
+</mat-expansion-panel>

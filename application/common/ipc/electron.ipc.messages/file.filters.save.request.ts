@@ -1,5 +1,7 @@
+import { ISearchExpression } from './search.request';
+
 export interface IFilter {
-    reg: string;
+    expression: ISearchExpression;
     color: string;
     background: string;
     active: boolean;
@@ -9,7 +11,7 @@ export enum EChartType {
     smooth = 'smooth',
 }
 export interface IChart {
-    reg: string;
+    request: string;
     color: string;
     type: EChartType,
     active: boolean;

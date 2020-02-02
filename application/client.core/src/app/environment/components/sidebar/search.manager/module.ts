@@ -32,6 +32,7 @@ import { SidebarAppSearchManagerChartDetailsComponent   } from './chart.details/
 import { SidebarAppSearchManagerFilterDetailsComponent  } from './filter.details/component';
 import { SidebarAppSearchManagerComponent               } from './component';
 import { SidebarAppSearchManagerItemDirective           } from './directives/item.directive';
+import { SidebarAppSearchManagerControlsComponent       } from './manager/component';
 
 const entryComponents = [
     SidebarAppSearchManagerComponent,
@@ -41,6 +42,7 @@ const entryComponents = [
     SidebarAppSearchManagerFilterComponent,
     SidebarAppSearchManagerChartDetailsComponent,
     SidebarAppSearchManagerFilterDetailsComponent,
+    SidebarAppSearchManagerControlsComponent,
 ];
 const components = [ ...entryComponents ];
 const modules = [
