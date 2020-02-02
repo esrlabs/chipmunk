@@ -1,0 +1,22 @@
+@import '../../../../theme/scheme.less';
+
+
+:host {
+    position: relative;
+    display: block;
+    & span.slitter{
+        position: relative;
+        display: block;
+        height: 8px;
+    }
+    & .controlls{
+        text-align: right;
+        white-space: nowrap;
+        & * {
+            margin-right: 8px;
+            &:last-child {
+                margin-right: 0;
+            }
+        }
+    }
+}
