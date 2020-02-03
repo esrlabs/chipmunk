@@ -6,7 +6,6 @@ import FileOptionsService from './service.file.options';
 import ToolbarSessionsService from './service.sessions.toolbar';
 import SidebarSessionsService from './service.sessions.sidebar';
 import TabsSessionsService from './service.sessions.tabs';
-import SearchSessionsService from './service.sessions.search';
 import FileOpenerService from './service.file.opener';
 import HotkeysService from './service.hotkeys';
 import ConnectionsService from './service.connections';
@@ -25,7 +24,7 @@ const InitializeStages = [
     // Stage #4
     [TabsSessionsService, ToolbarSessionsService, SidebarSessionsService, FileOptionsService, FileOpenerService, HotkeysService, ConnectionsService ],
     // Stage #5
-    [SearchSessionsService, TabSelectionParserService]
+    [TabSelectionParserService]
 ];
 
 // TODO: Destroy method, even dummy

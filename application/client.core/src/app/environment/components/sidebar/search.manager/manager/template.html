@@ -1,5 +1,5 @@
 <div class="controlls">
-    <button mat-stroked-button color="primary" (click)="_ng_onSave()" [disabled]="false">{{this._filename !== '' ? 'Save As' : 'Save'}}</button>
+    <button mat-stroked-button color="primary" (click)="_ng_onSave()" [disabled]="false">{{_ng_getSaveButtonLabel()}}</button>
     <button mat-stroked-button color="primary" (click)="_ng_onLoad()" [disabled]="false">Load</button>
     <button mat-stroked-button color="primary" (click)="_ng_onRecentOpen()" [disabled]="false">Recent</button>
 </div>
