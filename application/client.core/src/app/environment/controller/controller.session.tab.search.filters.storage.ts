@@ -9,12 +9,12 @@ import {
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-interface IUpdateEvent {
+export interface IUpdateEvent {
     requests: FilterRequest[];
     updated?: FilterRequest;
 }
 
-interface IChangeEvent {
+export interface IChangeEvent {
     request: FilterRequest;
     reapply: boolean;
 }

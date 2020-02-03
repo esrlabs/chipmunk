@@ -1,7 +1,7 @@
 import { Subject, Observable, Subscription } from 'rxjs';
 import ServiceElectronIpc, { IPCMessages, Subscription as IPCSubscription } from '../services/service.electron.ipc';
 import { ControllerSessionTabSearch } from './controller.session.tab.search';
-import { FilterRequest } from './controller.session.tab.search.filters';
+import { FilterRequest, IChangeEvent } from './controller.session.tab.search.filters.storage';
 import { ControllerSessionTabStream } from './controller.session.tab.stream';
 import { IPositionData } from './controller.session.tab.stream.output';
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -62,11 +62,13 @@ export class ControllerSessionTabMap {
         onPositionUpdate: Subject<IMapState>,
         onRepaint: Subject<void>,
         onRepainted: Subject<void>,
+        onRestyle: Subject<FilterRequest>,
     } = {
         onStateUpdate: new Subject(),
         onPositionUpdate: new Subject(),
         onRepaint: new Subject(),
         onRepainted: new Subject(),
+        onRestyle: new Subject(),
     };
 
     constructor(params: IControllerSessionTabMap) {
@@ -79,7 +81,7 @@ export class ControllerSessionTabMap {
         this._subscriptions.StreamUpdated = ServiceElectronIpc.subscribe(IPCMessages.StreamUpdated, this._ipc_onStreamUpdated.bind(this));
         this._subscriptions.onSearchDropped = this._search.getFiltersAPI().getObservable().dropped.subscribe(this._onSearchDropped.bind(this));
         this._subscriptions.onPositionChanged = this._stream.getOutputStream().getObservable().onPositionChanged.subscribe(this._onPositionChanged.bind(this));
-
+        this._subscriptions.onFiltersStyleUpdate = this._search.getFiltersAPI().getStorage().getObservable().changed.subscribe(this._onFiltersStyleUpdate.bind(this));
     }
 
     public destroy() {
@@ -101,12 +103,14 @@ export class ControllerSessionTabMap {
         onPositionUpdate: Observable<IMapState>,
         onRepaint: Observable<void>,
         onRepainted: Observable<void>,
+        onRestyle: Observable<FilterRequest>,
     } {
         return {
             onStateUpdate: this._subjects.onStateUpdate.asObservable(),
             onPositionUpdate: this._subjects.onPositionUpdate.asObservable(),
             onRepaint: this._subjects.onRepaint.asObservable(),
             onRepainted: this._subjects.onRepainted.asObservable(),
+            onRestyle: this._subjects.onRestyle.asObservable(),
         };
     }
 
@@ -215,6 +219,10 @@ export class ControllerSessionTabMap {
             }
         });
         return target;
+    }
+
+    private _onFiltersStyleUpdate(event: IChangeEvent) {
+        this._subjects.onRestyle.next(event.request);
     }
 
     private _onSearchDropped() {

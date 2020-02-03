@@ -1,6 +1,7 @@
 import { Component, Input, OnDestroy, AfterContentInit, ChangeDetectorRef, ElementRef, ViewChild, AfterViewInit, HostBinding, HostListener } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ControllerSessionTabMap, IMapPoint, IMapState } from '../../../../controller/controller.session.tab.map';
+import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.storage';
 import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
@@ -79,6 +80,7 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         this._subscriptions.onPositionUpdateSubject = this.service.getObservable().onPositionUpdate.subscribe(this._onPositionUpdate.bind(this));
         this._subscriptions.onRepaintSubject = this.service.getObservable().onRepaint.subscribe(this._onRepaint.bind(this));
         this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(this._onRepaint.bind(this, true));
+        this._subscriptions.onRestyleSubject = this.service.getObservable().onRestyle.subscribe(this._onRestyle.bind(this));
         this._setState(this.service.getState());
         this._onRepaint();
     }
@@ -144,6 +146,18 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         this._forceUpdate();
         this._draw();
         this.service.repainted();
+    }
+
+    private _onRestyle(request: FilterRequest) {
+        const desc = request.asDesc();
+        this._state.points = this._state.points.map((point: IMapPoint) => {
+            if (point.reg !== desc.request) {
+                return point;
+            }
+            point.color = desc.background;
+            return point;
+        });
+        this._draw();
     }
 
     private _draw() {
