@@ -33,6 +33,7 @@ export class ControllerSessionTabSearchRecent {
             Object.keys(this._subscriptions).forEach((key: string) => {
                 this._subscriptions[key].unsubscribe();
             });
+            resolve();
         });
     }
 
