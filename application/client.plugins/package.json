@@ -7,6 +7,7 @@
     "build": "./node_modules/.bin/ng build",
     "build:terminal": "./node_modules/.bin/ng build terminal",
     "build:serial": "./node_modules/.bin/ng build serial",
+    "build:myplugin": "./node_modules/.bin/ng build myplugin",
     "build:processes": "./node_modules/.bin/ng build processes",
     "build:xterminal": "./node_modules/.bin/ng build xterminal",
     "build:file": "./node_modules/.bin/ng build file",
@@ -33,6 +34,7 @@
     "electron": "^7.0.0",
     "rxjs": "^6.5.2",
     "rxjs-compat": "^6.5.2",
+    "tslib": "^1.10.0",
     "xterm": "^4.3.0",
     "xterm-addon-fit": "^0.3.0",
     "zone.js": "^0.10.2"
