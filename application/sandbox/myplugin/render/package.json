@@ -1,0 +1,21 @@
+{
+  "name": "myplugin",
+  "version": "0.0.1",
+  "peerDependencies": {
+    "@angular/common": "^8.2.14",
+    "@angular/core": "^8.2.14"
+  },
+  "main": "bundles/myplugin.umd.js",
+  "module": "fesm5/myplugin.js",
+  "es2015": "fesm2015/myplugin.js",
+  "esm5": "esm5/myplugin.js",
+  "esm2015": "esm2015/myplugin.js",
+  "fesm5": "fesm5/myplugin.js",
+  "fesm2015": "fesm2015/myplugin.js",
+  "typings": "myplugin.d.ts",
+  "metadata": "myplugin.metadata.json",
+  "sideEffects": false,
+  "dependencies": {
+    "tslib": "^1.9.0"
+  }
+}

@@ -59,6 +59,12 @@
       ],
       "serial/*": [
         "dist/serial/*"
+      ],
+      "myplugin": [
+        "dist/myplugin"
+      ],
+      "myplugin/*": [
+        "dist/myplugin/*"
       ]
     }
   }

@@ -42,6 +42,7 @@ COMPLEX_PLUGINS = %w[
   serial
   processes
   xterminal
+  myplugin
 ].freeze
 ANGULAR_PLUGINS = ['dlt-render'].freeze
 STANDALONE_PLUGINS = ['row.parser.ascii'].freeze
@@ -446,6 +447,10 @@ task install: [:folders,
                :add_package_json]
 
 namespace :dev do
+  task :myplugin_render do
+    install_plugin_angular('myplugin')
+  end
+
   task :serial_render do
     install_plugin_angular('serial')
   end
