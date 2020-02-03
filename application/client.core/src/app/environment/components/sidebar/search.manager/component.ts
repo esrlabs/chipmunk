@@ -71,17 +71,6 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         this._onGlobalKeyUp = this._onGlobalKeyUp.bind(this);
         this._subscriptions.reorder = this._ng_reorder.asObservable().subscribe(this._onReorderList.bind(this));
         this._subscriptions.selected = this._ng_selected.asObservable().subscribe(this._onSelectedInList.bind(this));
-        /*
-        this._ng_filters.push(new FilterRequest({ request: 'example #1', flags: { casesensitive: true, wholeword: false, regexp: true }}));
-        this._ng_filters.push(new FilterRequest({ request: 'example #2', flags: { casesensitive: true, wholeword: false, regexp: true }}));
-        this._ng_filters.push(new FilterRequest({ request: 'example foo', flags: { casesensitive: true, wholeword: false, regexp: true }}));
-        this._ng_filters.push(new FilterRequest({ request: 'example bar bar', flags: { casesensitive: true, wholeword: false, regexp: true }}));
-        this._ng_filters.push(new FilterRequest({ request: 'example something long here but why', flags: { casesensitive: true, wholeword: false, regexp: true }}));
-        this._ng_charts.push(new ChartRequest({ request: 'temperature:.Core.0:.(\\d+)', options: { borderWidth: 1, pointRadius:2 }, type: EChartType.stepped }));
-        this._ng_charts.push(new ChartRequest({ request: 'temperature:.Core.1:.(\\d+)', options: { borderWidth: 1, pointRadius:2, lineTension: 0.4 }, type: EChartType.smooth }));
-        this._ng_charts.push(new ChartRequest({ request: 'temperature:.Core.2:.(\\d+)', options: { borderWidth: 1, pointRadius:2, lineTension: 0.4 }, type: EChartType.smooth }));
-        this._ng_charts.push(new ChartRequest({ request: 'temperature:.Core.3:.(\\d+)', options: { borderWidth: 1, pointRadius:2 }, type: EChartType.stepped }));
-        */
     }
 
     public ngOnDestroy() {
