@@ -2,6 +2,7 @@ import { ControllerSessionTabSearchFilters } from './controller.session.tab.sear
 import { ControllerSessionTabSearchCharts } from './controller.session.tab.search.charts';
 import { ControllerSessionTabSearchOutput } from './controller.session.tab.search.output';
 import { ControllerSessionTabStreamOutput } from './controller.session.tab.stream.output';
+import { ControllerSessionTabSearchRecent } from './controller.session.tab.search.recent';
 import { ControllerSessionScope } from './controller.session.tab.scope';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -17,6 +18,7 @@ export class ControllerSessionTabSearch {
     private _logger: Toolkit.Logger;
     private _filters: ControllerSessionTabSearchFilters;
     private _charts: ControllerSessionTabSearchCharts;
+    private _recent: ControllerSessionTabSearchRecent;
     private _guid: string;
 
     constructor(params: IControllerSessionStream) {
@@ -24,6 +26,11 @@ export class ControllerSessionTabSearch {
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearch: ${params.guid}`);
         this._filters = new ControllerSessionTabSearchFilters(params);
         this._charts = new ControllerSessionTabSearchCharts(params);
+        this._recent = new ControllerSessionTabSearchRecent(
+            params.guid,
+            this._filters.getStorage(),
+            this._charts.getStorage(),
+        );
     }
 
     public destroy(): Promise<void> {
@@ -31,6 +38,7 @@ export class ControllerSessionTabSearch {
             Promise.all([
                 this._filters.destroy(),
                 this._charts.destroy(),
+                this._recent.destroy(),
             ]).then(() => {
                 resolve();
             });
@@ -51,6 +59,10 @@ export class ControllerSessionTabSearch {
 
     public getChartsAPI(): ControllerSessionTabSearchCharts {
         return this._charts;
+    }
+
+    public getRecentAPI(): ControllerSessionTabSearchRecent {
+        return this._recent;
     }
 
 }
