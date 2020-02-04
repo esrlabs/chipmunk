@@ -32,7 +32,7 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
 
     public _ng_observables: {
         select: Observable<number>,
-        edit: Observable<void>,
+        edit: Observable<FilterRequest | ChartRequest | undefined>,
     };
     public _ng_reorder: Subject<IReorderEvent> = new Subject<IReorderEvent>();
     public _ng_filters: FilterRequest[] = [];
@@ -44,10 +44,10 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
 
     private _subjects: {
         select: Subject<number>,
-        edit: Subject<void>,
+        edit: Subject<FilterRequest | ChartRequest | undefined>,
     } = {
         select: new Subject<number>(),
-        edit: new Subject<void>(),
+        edit: new Subject<FilterRequest | ChartRequest | undefined>(),
     };
     private _session: ControllerSessionTab | undefined;
     private _selected: number = -1;
@@ -139,6 +139,7 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
             {
                 caption: 'Edit',
                 handler: () => {
+                    this._subjects.edit.next(event.request);
                 },
             },
             { /* delimiter */ },

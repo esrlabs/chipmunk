@@ -13,7 +13,7 @@ import { IReorderEvent, IContextMenuEvent } from '../component';
 export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterContentInit {
 
     @Input() select: Observable<number>;
-    @Input() edit: Observable<void>;
+    @Input() edit: Observable<ChartRequest | undefined>;
     @Input() requests: ChartRequest[] = [];
     @Input() offset: number = 0;
     @Input() reorder: Subject<IReorderEvent>;
@@ -84,11 +84,15 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
         this._subjects.select.next(this._selected === -1 ? '' : this.requests[this._selected].getGUID());
     }
 
-    private _onEditIn() {
-        if (this._selected === -1 || this.requests[this._selected] === undefined) {
-            return;
+    private _onEditIn(request: ChartRequest | undefined) {
+        if (request === undefined) {
+            if (this._selected === -1 || this.requests[this._selected] === undefined) {
+                return;
+            }
+            this._subjects.edit.next(this.requests[this._selected].getGUID());
+        } else {
+            this._subjects.edit.next(request.getGUID());
         }
-        this._subjects.edit.next(this.requests[this._selected].getGUID());
     }
 
     private _forceUpdate() {
