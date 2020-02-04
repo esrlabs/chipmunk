@@ -66,6 +66,10 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
         this._forceUpdate();
     }
 
+    public _ng_onStateClick(event: MouseEvent) {
+        this._ng_directive.ignoreMouseClick(event);
+    }
+
     public _ng_flagsToggle(event: MouseEvent, flag: 'casesensitive' | 'wholeword' | 'regexp') {
         this._ng_flags[flag] = !this._ng_flags[flag];
         this.request.setFlags(this._ng_flags);

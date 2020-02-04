@@ -63,6 +63,10 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
         this._forceUpdate();
     }
 
+    public _ng_onStateClick(event: MouseEvent) {
+        this._ng_directive.ignoreMouseClick(event);
+    }
+
     public _ng_onRequestInputChange(request: string) {
     }
 

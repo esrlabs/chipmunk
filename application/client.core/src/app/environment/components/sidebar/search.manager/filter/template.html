@@ -1,4 +1,4 @@
-<mat-checkbox [(ngModel)]="_ng_state" (change)="_ng_onStateChange($event)"></mat-checkbox>
+<mat-checkbox [(ngModel)]="_ng_state" (change)="_ng_onStateChange($event)" (click)="_ng_onStateClick($event)"></mat-checkbox>
 <span class="color" [ngStyle]="{'background': _ng_color}"></span>
 <span class="background" [ngStyle]="{'background': _ng_background}"></span>
 <span class="request" *ngIf="!_ng_directive.getEditFlag()">{{_ng_request}}</span>
