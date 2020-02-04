@@ -113,7 +113,7 @@ export class TabsSessionsService implements IService {
             const tabTitleContentService: TabTitleContentService = new TabTitleContentService(guid);
             const session = new ControllerSessionTab({
                 guid: guid,
-                transports: [ 'processes', 'serial', 'dlt-render' ],
+                transports: [ 'processes', 'serial', 'dlt-render', 'myplugin' ],
                 sessionsEventsHub: this._sessionsEventsHub,
                 tabTitleContentService: tabTitleContentService,
             });
