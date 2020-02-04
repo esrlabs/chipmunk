@@ -19,6 +19,7 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
     private _subscriptions: { [key: string]: Subscription } = {};
     private _guid: string | undefined;
     private _destroyed: boolean = false;
+    private _ignore: boolean = false;
 
     @HostBinding('class.selected') get cssClassSelected() {
         return this._ng_selected;
@@ -27,12 +28,15 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
         return this._ng_edit;
     }
     @HostListener('click', ['$event.target']) onClick() {
+        if (this._ignore) {
+            this._ignore = false;
+            return;
+        }
         if (this._ng_edit) {
             return;
         }
         this._zone.run(() => {
             this.selected.next(this._guid);
-            this._ng_selected = true;
             this._forceUpdate();
         });
     }
@@ -81,6 +85,10 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
         return this._ng_selected;
     }
 
+    public ignoreMouseClick(event: MouseEvent) {
+        this._ignore = true;
+    }
+
     private _getInputRef(): MatInput | undefined {
         if ((this._view as any)._data === undefined) {
             return undefined;
@@ -111,7 +119,7 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
 
     private _onSelected(guid: string) {
         this._zone.run(() => {
-            this._ng_selected = this._guid === guid;
+            this._ng_selected = this._guid === guid ? !this._ng_selected : false;
             if (!this._ng_selected) {
                 this._ng_edit = false;
             }
