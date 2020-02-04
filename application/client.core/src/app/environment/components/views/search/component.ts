@@ -155,7 +155,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         if (event !== undefined && event.key === 'Escape') {
             if (this._ng_inputCtrl.value !== '') {
                 // Drop results
-                this._ng_onDropRequest();
+                this._ng_onDropRequest(true);
             } else {
                 // Drop a focus
                 this._blur();
@@ -164,7 +164,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         }
         if (this._ng_inputCtrl.value === undefined || this._ng_inputCtrl.value.trim() === '') {
             // Drop results
-            return this._ng_onDropRequest();
+            return this._ng_onDropRequest(true);
         }
         if (!this._ng_isRequestValid) {
             return this._notifications.add({
@@ -218,7 +218,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._selectedTextOnInputClick = false;
     }
 
-    public _ng_onDropRequest(): Promise<string | void> {
+    public _ng_onDropRequest(focus: boolean = false): Promise<string | void> {
         // Drop results
         this._ng_searchRequestId = Toolkit.guid();
         this._forceUpdate();
@@ -229,8 +229,10 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             this._ng_searchRequestId = undefined;
             this._ng_found = -1;
             this._ng_read = -1;
-            this._focus();
             this._forceUpdate();
+            if (focus) {
+                this._focus();
+            }
         }).catch((droppingError: Error) => {
             this._ng_searchRequestId = undefined;
             this._forceUpdate();
@@ -255,7 +257,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         }
         this._filtersStorage.add(request);
         this._ng_isRequestSaved = true;
-        this._ng_onDropRequest();
+        this._ng_onDropRequest(false);
     }
 
     public _ng_onStoreChart() {
@@ -278,7 +280,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         }
         this._chartsStorage.add(request);
         this._ng_isRequestSaved = true;
-        this._ng_onDropRequest().then(() => {
+        this._ng_onDropRequest(false).then(() => {
             if (this.setActiveTab === undefined || this.getDefaultsTabGuids === undefined) {
                 return;
             }
