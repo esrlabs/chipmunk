@@ -4,12 +4,8 @@ import { ControllerSessionTabSearchRecent } from '../../../../controller/control
 import { DialogsRecentFitlersActionComponent } from '../../../dialogs/recentfilter/component';
 import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
-import { FiltersStorage, FilterRequest } from 'src/app/environment/controller/controller.session.tab.search.filters.storage';
-import { ChartsStorage, ChartRequest } from 'src/app/environment/controller/controller.session.tab.search.charts.storage';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
-
-import ElectronIpcService, { IPCMessages } from '../../../../services/service.electron.ipc';
 
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import HotkeysService from '../../../../services/service.hotkeys';
@@ -22,8 +18,6 @@ import PopupsService from '../../../../services/standalone/service.popups';
 })
 
 export class SidebarAppSearchManagerControlsComponent implements AfterContentInit, OnDestroy {
-
-    @Output() public filename: EventEmitter<string> = new EventEmitter();
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _sessionSubscriptions: { [key: string]: Subscription } = {};
@@ -160,7 +154,6 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
             return;
         }
         this._controller.setCurrentFile(filename);
-        this.filename.emit(filename);
     }
 
     private _forceUpdate() {

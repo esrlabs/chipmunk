@@ -7,6 +7,7 @@ import { IFiltersStorageUpdated, FilterRequest } from 'src/app/environment/contr
 import { IChartsStorageUpdated, ChartRequest } from 'src/app/environment/controller/controller.session.tab.search.charts.storage';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import { EChartType } from '../../views/chart/charts/charts';
+import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -62,8 +63,47 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
     @HostListener('blur', ['$event.target']) onBlur() {
         this._focused = false;
     }
+    @HostListener('contextmenu', ['$event']) onContextMenu(event: MouseEvent) {
+        const items: IMenuItem[] = [
+            {
+                caption: 'Remove All',
+                handler: () => {
+                    if (this._session === undefined) {
+                        return;
+                    }
+                    // Drop filters file if it wqs definened
+                    this._session.getSessionSearch().getRecentAPI().setCurrentFile('');
+                    // Clean all
+                    this._removeFromList('filters', undefined);
+                    this._removeFromList('charts', undefined);
+                },
+            },
+            { /* delimiter */ },
+            {
+                caption: `Clear recent history`,
+                handler: () => {
+                    this._session.getSessionSearch().getRecentAPI().clear().catch((error: Error) => {
+                        this._notifications.add({
+                            caption: 'Error',
+                            message: `Fail to drop recent filters history due error: ${error.message}`
+                        });
+                    });
+                },
+            },
+        ];
+        ContextMenuService.show({
+            items: items,
+            x: event.pageX,
+            y: event.pageY,
+        });
+        event.stopImmediatePropagation();
+        event.preventDefault();
+    }
 
-    constructor(private _cdRef: ChangeDetectorRef) {
+    constructor(
+        private _cdRef: ChangeDetectorRef,
+        private _notifications: NotificationsService,
+    ) {
         this._ng_observables = {
             select: this._subjects.select.asObservable(),
             edit: this._subjects.edit.asObservable(),
@@ -169,11 +209,6 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         });
         event.event.stopImmediatePropagation();
         event.event.preventDefault();
-    }
-
-    public _ng_onFileNameChange(filename: string) {
-        this._ng_filename = Toolkit.basename(filename);
-        this._forceUpdate();
     }
 
     private _toggleAllInList(target: 'filters' | 'charts', state: boolean, exception?: number) {
@@ -357,6 +392,7 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         this._setCharts();
         this._sessionSubscriptions.filtersStorageUpdate = session.getSessionSearch().getFiltersAPI().getStorage().getObservable().updated.subscribe(this._setFilters.bind(this));
         this._sessionSubscriptions.chartsStorageUpdate = session.getSessionSearch().getChartsAPI().getStorage().getObservable().updated.subscribe(this._setCharts.bind(this));
+        this._sessionSubscriptions.filename = session.getSessionSearch().getRecentAPI().getObservable().filename.subscribe(this._onFilenameChanged.bind(this));
     }
 
     private _setFilters() {
@@ -372,6 +408,11 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
             return;
         }
         this._ng_charts = this._session.getSessionSearch().getChartsAPI().getStorage().get();
+        this._forceUpdate();
+    }
+
+    private _onFilenameChanged(filename: string) {
+        this._ng_filename = Toolkit.basename(filename);
         this._forceUpdate();
     }
 
