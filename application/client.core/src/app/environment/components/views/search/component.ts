@@ -427,8 +427,20 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._ng_session = session;
         this._filtersStorage = session.getSessionSearch().getFiltersAPI().getStorage();
         this._chartsStorage = session.getSessionSearch().getChartsAPI().getStorage();
+        this._sessionSubscriptions.forceSearch = session.getSessionSearch().getObservable().search.subscribe(this._onForceSearch.bind(this));
         this._loadState();
         this._ng_onSessionChanged.next(this._ng_session);
+    }
+
+    private _onForceSearch(request: FilterRequest) {
+        if (this._ng_searchRequestId !== undefined) {
+            return;
+        }
+        this._ng_inputCtrl.setValue(request.asDesc().request);
+        this._ng_flags = request.asDesc().flags;
+        this._addRecentFilter();
+        this._search();
+        this._forceUpdate();
     }
 
     private _focus(delay: number = 150) {

@@ -1,9 +1,10 @@
-import { ControllerSessionTabSearchFilters } from './controller.session.tab.search.filters';
+import { ControllerSessionTabSearchFilters, FilterRequest } from './controller.session.tab.search.filters';
 import { ControllerSessionTabSearchCharts } from './controller.session.tab.search.charts';
 import { ControllerSessionTabSearchOutput } from './controller.session.tab.search.output';
 import { ControllerSessionTabStreamOutput } from './controller.session.tab.stream.output';
 import { ControllerSessionTabSearchRecent } from './controller.session.tab.search.recent';
 import { ControllerSessionScope } from './controller.session.tab.scope';
+import { Subject, Observable } from 'rxjs';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 export interface IControllerSessionStream {
@@ -19,6 +20,11 @@ export class ControllerSessionTabSearch {
     private _filters: ControllerSessionTabSearchFilters;
     private _charts: ControllerSessionTabSearchCharts;
     private _recent: ControllerSessionTabSearchRecent;
+    private _subjects: {
+        search: Subject<FilterRequest>,
+    } = {
+        search: new Subject<FilterRequest>(),
+    };
     private _guid: string;
 
     constructor(params: IControllerSessionStream) {
@@ -49,6 +55,14 @@ export class ControllerSessionTabSearch {
         return this._guid;
     }
 
+    public getObservable(): {
+        search: Observable<FilterRequest>,
+    } {
+        return {
+            search: this._subjects.search.asObservable(),
+        };
+    }
+
     public getOutputStream(): ControllerSessionTabSearchOutput {
         return this._filters.getOutputStream();
     }
@@ -63,6 +77,10 @@ export class ControllerSessionTabSearch {
 
     public getRecentAPI(): ControllerSessionTabSearchRecent {
         return this._recent;
+    }
+
+    public search(request: FilterRequest) {
+        this._subjects.search.next(request);
     }
 
 }
