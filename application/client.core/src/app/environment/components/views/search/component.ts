@@ -54,9 +54,9 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     @Input() public getDefaultsTabGuids: () => { charts: string };
     @Input() public onTitleContextMenu: Observable<MouseEvent>;
 
-    @ViewChild('output', {static: false}) _ng_outputComponent: ViewSearchOutputComponent;
-    @ViewChild(MatInput, {static: false}) _ng_inputComRef: MatInput;
-    @ViewChild('requestinput', {static: false}) _ng_requestInput: ElementRef;
+    @ViewChild('output', { static: false }) _ng_outputComponent: ViewSearchOutputComponent;
+    @ViewChild(MatInput, { static: false }) _ng_inputComRef: MatInput;
+    @ViewChild('requestinput', { static: false }) _ng_requestInputComRef: ElementRef;
     @ViewChild(MatAutocompleteTrigger, {static: false}) _ng_autoComRef: MatAutocompleteTrigger;
 
     public _ng_session: ControllerSessionTab | undefined;
@@ -318,7 +318,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._forceUpdate();
         if (this._ng_session.getSessionSearch().getFiltersAPI().getState().isLocked()) {
             // Trigger re-search only if it was done already before
-            this._search();
+            this._search(false);
         }
         (event.target as any).focus();
         event.preventDefault();
@@ -360,7 +360,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         });
     }
 
-    private _search() {
+    private _search(focus: boolean = true) {
         const request: FilterRequest | Error = this._getCurrentFilter();
         if (request instanceof Error) {
             return this._notifications.add({
@@ -375,7 +375,9 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             // Search done
             this._ng_searchRequestId = undefined;
             this._ng_isRequestSaved = this._filtersStorage.has(request);
-            this._focus();
+            if (focus) {
+                this._focus();
+            }
             this._forceUpdate();
         }).catch((searchError: Error) => {
             this._ng_searchRequestId = undefined;
@@ -439,8 +441,9 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._ng_inputCtrl.setValue(request.asDesc().request);
         this._ng_flags = request.asDesc().flags;
         this._addRecentFilter();
-        this._search();
+        this._search(false);
         this._forceUpdate();
+        this._blur();
     }
 
     private _focus(delay: number = 150) {
@@ -454,19 +457,19 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     private _blur() {
-        if (this._ng_requestInput === undefined || this._ng_requestInput === null) {
+        if (this._ng_requestInputComRef === undefined || this._ng_requestInputComRef === null) {
             return;
         }
-        (this._ng_requestInput.nativeElement as HTMLInputElement).blur();
+        (this._ng_requestInputComRef.nativeElement as HTMLInputElement).blur();
     }
 
     private _selectTextInInput() {
         setTimeout(() => {
-            if (this._ng_requestInput === undefined || this._ng_requestInput === null) {
+            if (this._ng_requestInputComRef === undefined || this._ng_requestInputComRef === null) {
                 return;
             }
             // Select whole content
-            const input: HTMLInputElement = (this._ng_requestInput.nativeElement as HTMLInputElement);
+            const input: HTMLInputElement = (this._ng_requestInputComRef.nativeElement as HTMLInputElement);
             input.setSelectionRange(0, input.value.length);
         });
     }
