@@ -13,6 +13,11 @@ export class ControllerSessionTabSearchRecent {
     private _logger: Toolkit.Logger;
     private _guid: string;
     private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = { };
+    private _subjects: {
+        filename: Subject<string>,
+    } = {
+        filename: new Subject<string>(),
+    };
     private _filename: string = '';
     private _filters: FiltersStorage;
     private _charts: ChartsStorage;
@@ -35,6 +40,14 @@ export class ControllerSessionTabSearchRecent {
             });
             resolve();
         });
+    }
+
+    public getObservable(): {
+        filename: Observable<string>,
+    } {
+        return {
+            filename: this._subjects.filename.asObservable(),
+        };
     }
 
     public getCurrentFile(): string {
@@ -79,7 +92,7 @@ export class ControllerSessionTabSearchRecent {
                         options: chart.options,
                     };
                 }));
-                this._filename = response.file;
+                this.setCurrentFile(response.file);
                 resolve(response.file);
             }).catch((error: Error) => {
                 this._logger.error(`Fail to load filters due error: ${error.message}`);
@@ -118,7 +131,7 @@ export class ControllerSessionTabSearchRecent {
                 if (response.error !== undefined) {
                     return new Error(response.error);
                 }
-                this._filename = response.filename;
+                this.setCurrentFile(response.filename);
                 resolve(response.filename);
             }).catch((error: Error) => {
                 this._logger.error(`Fail to save filters due error: ${error.message}`);
@@ -144,6 +157,7 @@ export class ControllerSessionTabSearchRecent {
 
     public setCurrentFile(filename: string) {
         this._filename = filename;
+        this._subjects.filename.next(filename);
     }
 
 }
