@@ -16,7 +16,7 @@ app-views-search {
             transition: right 150ms ease-in-out;
             position: relative;
             display: block;
-            flex: auto;
+            width: 20rem;
             & input.not-valid{
                 color: @scheme-color-error!important;
             }
@@ -95,11 +95,12 @@ app-views-search {
         & p.summary{
             position: relative;
             display: block;
-            flex: 0;
+            flex: auto;
             white-space: nowrap;
             transition: right ease-in-out 350ms;
             pointer-events: none;
             padding: 7px 8px 0 8px;
+            text-align: right;
         }
     }
 

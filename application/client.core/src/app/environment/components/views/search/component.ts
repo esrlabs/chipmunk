@@ -597,7 +597,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         }
         const filted = value.toLowerCase();
         return this._recent.filter((recent: string) => {
-            return recent.includes(filted);
+            return recent.includes(filted) && recent !== filted;
         });
     }
 
