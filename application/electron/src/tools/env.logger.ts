@@ -91,6 +91,19 @@ export default class Logger {
         return this._log(this._getMessage(...args), ELogLevels.ENV);
     }
 
+    /**
+     * Publish WTF logs.
+     * The thing is, if we get at least one WTF log, only WTF logs will be
+     * published after.
+     * It's useful for quick debug
+     * @param {any} args - Any input for logs
+     * @returns {string} - Formatted log-string
+     */
+    public wtf(...args: any[]) {
+        setGlobalLogLevel(ELogLevels.WTF);
+        return this._log(this._getMessage(...args), ELogLevels.WTF);
+    }
+
     public measure(operation: string): () => void {
         const id: string = guid();
         this._unixtimes[id] = Date.now();
@@ -148,7 +161,11 @@ export default class Logger {
     }
 
     private _log(message: string, level: ELogLevels) {
-        message = `[${this._getTime()}][${level}][${this._signature}]: ${message}`;
+        if (level === ELogLevels.WTF) {
+            message = 'WTF >>> ' + message;
+        } else {
+            message = `[${this._getTime()}][${level}][${this._signature}]: ${message}`;
+        }
         this._console(message, level);
         this._output(message);
         this._write(message);
