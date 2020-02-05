@@ -121,7 +121,8 @@ export default class ControllerStreamSearch {
     }
 
     private _append(updated?: IRange): void {
-        if (this._requests.length === 0) {
+        if (this._requests.length === 0 || this._processor.getStreamSize() === 0) {
+            this._pending.bytesReadTo = 0;
             return;
         }
         if (updated !== undefined && this._pending.bytesReadTo < updated.to) {
@@ -130,7 +131,7 @@ export default class ControllerStreamSearch {
         if (this._searching.isWorking()) {
             return;
         }
-        this._search(this._requests, Tools.guid(), this._pending.bytesReadTo).catch((searchErr: Error) => {
+        this._search(Tools.guid(), this._pending.bytesReadTo).catch((searchErr: Error) => {
             this._logger.warn(`Fail to append search results due error: ${searchErr.message}`);
         }).finally(() => {
             this._reappend();
@@ -145,22 +146,15 @@ export default class ControllerStreamSearch {
         this._append();
     }
 
-    private _search(requests: RegExp[], id: string, to?: number): Promise<number> {
+    private _search(id: string, to?: number): Promise<number> {
         return new Promise((resolve, reject) => {
-            if (this._processor.getStreamSize() === 0) {
-                // Save requests
-                this._requests = requests;
-                // Stream file doesn't exist yet
-                return resolve(0);
-            }
-            const task = this._searching.search(requests, to);
+            const task = this._searching.search(this._requests, to);
             if (task instanceof Error) {
                 this._logger.error(`Fail to create task for search due error: ${task.message}`);
                 return reject(task);
             }
             task.then((map: IMapItem[]) => {
-                this._inspect(requests);
-                this._requests = requests;
+                this._inspect();
                 this._state.postman.notification(true);
                 resolve(this._state.map.getRowsCount());
             }).catch((searchErr: Error) => {
@@ -170,9 +164,12 @@ export default class ControllerStreamSearch {
         });
     }
 
-    private _inspect(requests: RegExp[]) {
+    private _inspect() {
+        if (this._requests.length === 0 || this._processor.getStreamSize() === 0) {
+            return;
+        }
         // Start inspecting
-        const inspecting = this._searching.inspect(requests);
+        const inspecting = this._searching.inspect(this._requests);
         if (inspecting instanceof Error) {
             this._logger.warn(`Fail to start inspecting search results due error: ${inspecting.message}`);
             return;
@@ -222,6 +219,10 @@ export default class ControllerStreamSearch {
         this._state.postman.notification(false);
     }
 
+    private _setCurrentRequests(requests: RegExp[]) {
+        this._requests = requests;
+    }
+
     private _ipc_onSearchRequest(message: IPCElectronMessages.TMessage, response: (instance: any) => any) {
         const request: IPCElectronMessages.SearchRequest = message as IPCElectronMessages.SearchRequest;
         // Store starting tile
@@ -239,6 +240,7 @@ export default class ControllerStreamSearch {
         });
         // Check count of requests
         if (request.requests.length === 0) {
+            // Clean if necessary
             if (this._requests.length !== 0) {
                 this._clear().then(() => {
                     this._ipc_searchRequestResponse(response, {
@@ -255,6 +257,8 @@ export default class ControllerStreamSearch {
                         error: error.message,
                     });
                 });
+                // Drop requests
+                this._setCurrentRequests([]);
             } else {
                 this._ipc_searchRequestResponse(response, {
                     id: request.session,
@@ -264,13 +268,22 @@ export default class ControllerStreamSearch {
             }
             return;
         }
+        // Save requests
+        this._setCurrentRequests(request.requests.map((req: IPCElectronMessages.ISearchExpression) => {
+            return getSearchRegExp(req.request, req.flags);
+        }));
         // Clear results file
         this._clear().then(() => {
-            // Create regexps
-            const requests: RegExp[] = request.requests.map((req: IPCElectronMessages.ISearchExpression) => {
-                return getSearchRegExp(req.request, req.flags);
-            });
-            this._search(requests, request.session).then((rows: number) => {
+            // Check stream
+            if (this._processor.getStreamSize() === 0) {
+                // Stream file doesn't exist yet
+                return this._ipc_searchRequestResponse(response, {
+                    id: request.session,
+                    started: started,
+                    found: 0,
+                });
+            }
+            this._search(request.session).then((rows: number) => {
                 // Responce with results
                 this._ipc_searchRequestResponse(response, {
                     id: request.session,
@@ -310,6 +323,7 @@ export default class ControllerStreamSearch {
 
     private _ipc_onSearchRequestCancelRequest(message: IPCElectronMessages.TMessage, response: (instance: any) => any) {
         const request: IPCElectronMessages.SearchRequestCancelRequest = message as IPCElectronMessages.SearchRequestCancelRequest;
+        this._setCurrentRequests([]);
         // Clear results file
         this._clear().then(() => {
             response(new IPCElectronMessages.SearchRequestCancelResponse({
@@ -362,16 +376,6 @@ export default class ControllerStreamSearch {
 
     private _stream_onUpdate(map: IMapItem) {
         this._append(map.bytes);
-        /*
-        if (map === undefined) {
-            if (this._requests.length === 0) {
-                return;
-            }
-            this._search(this._requests, Tools.guid());
-        } else {
-            this._append(map.bytes);
-        }
-        */
     }
 
 }
