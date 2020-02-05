@@ -31,6 +31,13 @@ export interface ITabInternal {
     unshift: boolean;
 }
 
+export interface ITabAPI {
+    tabCaptionInjection?: IComponentDesc;
+    subjects: ITabSubjects;
+    getGUID: () => string;
+    close: () => void;
+}
+
 export class TabsService {
 
     private _subjects: {
@@ -111,7 +118,7 @@ export class TabsService {
         this._history.add(guid);
     }
 
-    public add(tab: ITab) {
+    public add(tab: ITab): ITabAPI | undefined {
         const _tab = this._normalize(tab);
         if (_tab === null) {
             return;
@@ -121,6 +128,12 @@ export class TabsService {
         if (_tab.active) {
             this.setActive(_tab.guid);
         }
+        return {
+            tabCaptionInjection: _tab.tabCaptionInjection,
+            subjects: _tab.subjects,
+            getGUID: () => _tab.guid,
+            close: this.remove.bind(this, _tab.guid),
+        };
     }
 
     public unshift(tab: ITab) {
@@ -241,12 +254,8 @@ export class TabsService {
             if (typeof _tab.content.inputs !== 'object' || _tab.content.inputs === null) {
                 _tab.content.inputs = {};
             }
-            if (_tab.content.inputs.onBeforeTabRemove === undefined) {
-                _tab.content.inputs.onBeforeTabRemove = _tab.subjects.onBeforeTabRemove;
-            }
-            if (_tab.content.inputs.onTitleContextMenu === undefined) {
-                _tab.content.inputs.onTitleContextMenu = _tab.subjects.onTitleContextMenu.asObservable();
-            }
+            _tab.content.inputs.onBeforeTabRemove = _tab.subjects.onBeforeTabRemove;
+            _tab.content.inputs.onTitleContextMenu = _tab.subjects.onTitleContextMenu.asObservable();
         }
         return _tab;
     }
