@@ -94,6 +94,9 @@ export class OperationCharting extends EventEmitter {
                     transform.removeAllListeners();
                     // Kill process
                     process.removeAllListeners();
+                    process.stdin.removeAllListeners();
+                    process.stdin.end();
+                    process.stdin.destroy();
                     process.stdout.removeAllListeners();
                     process.stdout.unpipe();
                     process.stdout.destroy();
