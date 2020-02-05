@@ -77,12 +77,12 @@ export class OperationAppend extends EventEmitter {
             // Pipe process with writer: ripgrep -> writer
             process.stdout.pipe(transform).pipe(writer);
             // Handeling errors
-            [process, process.stdin, process.stdout, writer, reader, transform].forEach((smth: WriteStream | ChildProcess | ReadStream | Readable | Writable) => {
+            [process, process.stdin, process.stdout, writer, reader, transform].forEach((smth: WriteStream | ChildProcess | ReadStream | Readable | Writable, i: number) => {
                 smth.once('error', (error: Error) => {
-                    this._logger.error(`Error during append: ${error.message}`);
                     if (this._cleaner === undefined) {
                         return;
                     }
+                    this._logger.error(`Error during append (task: ${guid}): ${error.message}`);
                     reject(error);
                 });
             });

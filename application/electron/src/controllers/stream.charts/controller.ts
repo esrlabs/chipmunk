@@ -41,7 +41,7 @@ export default class ControllerStreamCharts {
         this._processor = stream;
         // Create controllers
         this._state = new State(guid, streamFile, searchFile);
-        this._logger = new Logger(`ControllerStreamSearch: ${this._state.getGuid()}`);
+        this._logger = new Logger(`ControllerStreamCharts: ${this._state.getGuid()}`);
         this._charting = new ChartingEngine(this._state);
         this._reader = new ControllerStreamFileReader(this._state.getGuid(), this._state.getStreamFile());
         // Listen stream update event

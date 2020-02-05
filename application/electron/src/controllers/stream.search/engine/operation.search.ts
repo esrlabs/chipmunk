@@ -7,7 +7,7 @@ import { CancelablePromise } from '../../../tools/promise.cancelable';
 import ServicePaths from '../../../services/service.paths';
 import Transform, { IMapItem, IMapChunkEvent, IOffset } from './transform.map';
 import { EventEmitter } from 'events';
-import { Readable } from 'stream';
+import { Readable, Writable } from 'stream';
 
 export { IMapChunkEvent };
 
@@ -80,12 +80,12 @@ export class OperationSearch extends EventEmitter {
                     stdio: [ 'pipe', 'pipe', 'pipe' ],
                 });
                 // Handeling errors
-                [process, process.stdout, writer].forEach((smth: WriteStream | ChildProcess | ReadStream | Readable) => {
+                [process, process.stdin, process.stdout, writer].forEach((smth: WriteStream | ChildProcess | ReadStream | Readable | Writable) => {
                     smth.once('error', (error: Error) => {
-                        this._logger.error(`Error during search: ${error.message}`);
                         if (this._cleaner === undefined) {
                             return;
                         }
+                        this._logger.error(`Error during search: ${error.message}`);
                         reject(error);
                     });
                 });
