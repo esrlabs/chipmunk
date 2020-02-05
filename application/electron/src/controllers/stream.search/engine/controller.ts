@@ -132,6 +132,7 @@ export class SearchEngine extends EventEmitter {
             }).cancel(() => {
                 this._logger.env(`Search "${taskId}" was canceled.`);
             }).catch((searchErr: Error) => {
+                this._logger.error(`Error during search (task: ${taskId}): ${searchErr.message}`);
                 reject(searchErr);
             }).finally(() => {
                 ServiceStreams.removeProgressSession(taskId, this._state.getGuid());
@@ -196,6 +197,10 @@ export class SearchEngine extends EventEmitter {
                         return resolve(results);
                     }
                 }).catch((error: Error) => {
+                    stock.delete(requestTaskId);
+                    if (stock.size === 0) {
+                        return resolve(results);
+                    }
                     this._logger.warn(`Fail to inspect request "${request.source}" due error: ${error.message}`);
                     reject(error);
                 });
