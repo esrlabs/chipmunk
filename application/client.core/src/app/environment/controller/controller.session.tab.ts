@@ -3,7 +3,9 @@ import LayoutStateService from '../services/standalone/service.layout.state';
 
 import PluginsService, { IPluginData } from '../services/service.plugins';
 import ServiceElectronIpc, { IPCMessages, Subscription as IPCSubscription } from '../services/service.electron.ipc';
+import ContextMenuService, { IMenuItem } from '../services//standalone/service.contextmenu';
 
+import { ITabAPI } from 'chipmunk-client-complex';
 import { Subscription, Observable, Subject } from 'rxjs';
 import { ControllerSessionTabStream, IStreamState } from './controller.session.tab.stream';
 import { ControllerSessionTabSearch } from './controller.session.tab.search';
@@ -11,6 +13,7 @@ import { ControllerSessionTabStates } from './controller.session.tab.states';
 import { ControllerSessionTabMap } from './controller.session.tab.map';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope } from './controller.session.tab.scope';
+import { ControllerSessionTabTitleContextMenu } from './controller.session.tab.titlemenu';
 import { TabTitleContentService } from '../layout/area.primary/tab-title-controls/service';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -45,9 +48,11 @@ export class ControllerSessionTab {
     private _scope: ControllerSessionScope;
     private _map: ControllerSessionTabMap;
     private _viewportEventsHub: Toolkit.ControllerViewportEvents;
+    private _tabAPI: ITabAPI | undefined;
     private _tabTitleContentService: TabTitleContentService;
     private _sourceInfo: IPCMessages.IStreamSourceNew | undefined;
     private _openSourceOptions: any;
+    private _titleContextMenu: ControllerSessionTabTitleContextMenu | undefined;
     private _subscriptions: { [key: string]: Subscription | IPCSubscription } = { };
     private _subjects: {
         onOutputInjectionAdd: Subject<IInjectionAddEvent>,
@@ -200,6 +205,10 @@ export class ControllerSessionTab {
         return this._tabTitleContentService;
     }
 
+    public getTabTitleContextMenuService(): ControllerSessionTabTitleContextMenu | undefined {
+        return this._titleContextMenu;
+    }
+
     public setSourceInfo(source: IPCMessages.IStreamSourceNew, options: any) {
         this._sourceInfo = source;
         this._openSourceOptions = options;
@@ -238,6 +247,18 @@ export class ControllerSessionTab {
 
     public setActive() {
         PluginsService.fire().onSessionChange(this._sessionId);
+    }
+
+    public setTabAPI(api: ITabAPI | undefined) {
+        if (api === undefined || this._titleContextMenu !== undefined) {
+            return;
+        }
+        this._tabAPI = api;
+        this._titleContextMenu = new ControllerSessionTabTitleContextMenu(this._sessionId, api);
+    }
+
+    public getTabAPI(): ITabAPI | undefined {
+        return this._tabAPI;
     }
 
     private _onOpenSearchFiltersTab() {

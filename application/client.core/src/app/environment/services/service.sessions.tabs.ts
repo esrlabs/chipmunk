@@ -1,4 +1,4 @@
-import { TabsService, DockingComponent, DockDef, DocksService, ITab } from 'chipmunk-client-complex';
+import { TabsService, DockingComponent, DockDef, DocksService, ITab, ITabAPI } from 'chipmunk-client-complex';
 import { Subscription } from './service.electron.ipc';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
 import { IService } from '../interfaces/interface.service';
@@ -120,7 +120,7 @@ export class TabsSessionsService implements IService {
             session.init().then(() => {
                 this._subscriptions[`onSourceChanged:${guid}`] = session.getObservable().onSourceChanged.subscribe(this._onSourceChanged.bind(this, guid));
                 this._sessions.set(guid, session);
-                this._tabsService.add({
+                const tabAPI: ITabAPI | undefined = this._tabsService.add({
                     guid: guid,
                     name: 'New',
                     active: true,
@@ -141,6 +141,9 @@ export class TabsSessionsService implements IService {
                                         factory: this._defaults.views[0].component,
                                         inputs: {
                                             session: session,
+                                            getTabAPI: (): ITabAPI => {
+                                                return tabAPI;
+                                            }
                                         }
                                     }
                                 })
@@ -148,6 +151,7 @@ export class TabsSessionsService implements IService {
                         }
                     }
                 });
+                session.setTabAPI(tabAPI);
                 this._sessionsEventsHub.emit().onSessionOpen(guid);
                 this.setActive(guid);
                 resolve(session);

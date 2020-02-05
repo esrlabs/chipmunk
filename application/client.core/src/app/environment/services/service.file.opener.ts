@@ -42,6 +42,8 @@ export interface IFileOpenerService {
     dropPendingFiles: () => void;
 }
 
+const CReopenContextMenuItemId = 'reopen_file_item';
+
 export class FileOpenerService implements IService, IFileOpenerService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('FileOpenerService');
@@ -121,12 +123,27 @@ export class FileOpenerService implements IService, IFileOpenerService {
     public openFileByName(file: string): Promise<void> {
         return new Promise((resolve, reject) => {
             this._setSessionForFile().then((session: ControllerSessionTab) => {
+                session.getTabTitleContextMenuService().unshift({
+                    id: CReopenContextMenuItemId + 'delimiter',
+                });
+                session.getTabTitleContextMenuService().unshift({
+                    id: CReopenContextMenuItemId,
+                    caption: 'Reopen File (indexing...)',
+                    disabled: true,
+                    handler: opener,
+                });
                 ServiceElectronIpc.request(new IPCMessages.FileOpenRequest({
                     file: file,
                     session: TabsSessionsService.getActive().getGuid(),
                 }), IPCMessages.FileOpenResponse).then((response: IPCMessages.FileOpenResponse) => {
                     if (response.error !== undefined) {
                         this._logger.error(`Fail open file "${file}" due error: ${response.error}`);
+                        session.getTabTitleContextMenuService().update({
+                            id: CReopenContextMenuItemId,
+                            caption: 'Reopen File',
+                            disabled: true,
+                            handler: opener,
+                        });
                         // TODO: add notification here
                         return reject(new Error(response.error));
                     }
@@ -194,23 +211,32 @@ export class FileOpenerService implements IService, IFileOpenerService {
         stream: IPCMessages.IStreamSourceNew | undefined,
         options: any
     ) {
-        if (stream === undefined) {
-            return;
-        }
-        if (!FileOptionsService.hasOptions(stream.meta)) {
+        if (stream === undefined || !FileOptionsService.hasOptions(stream.meta)) {
+            session.getTabTitleContextMenuService().update({
+                id: CReopenContextMenuItemId,
+                caption: 'Reopen File',
+                disabled: true,
+                handler: () => {},
+            });
             return;
         }
         const storage: Storage<any> = new Storage<any>(options);
         const opener = FileOptionsService.getReopenOptionsCallback<any>(session, stream.meta, file, storage);
-        if (opener === undefined) {
-            return;
+        if (opener !== undefined) {
+            session.getTabTitleContextMenuService().update({
+                id: CReopenContextMenuItemId,
+                caption: 'Reopen File',
+                disabled: false,
+                handler: opener,
+            });
+        } else {
+            session.getTabTitleContextMenuService().update({
+                id: CReopenContextMenuItemId,
+                caption: 'Reopen File',
+                disabled: true,
+                handler: () => {},
+            });
         }
-        session.getTabTitleContentService().addIconButton({
-            cssClass: 'fas fa-retweet',
-            handler: opener,
-            title: 'Reopen File',
-            id: Toolkit.guid(),
-        });
     }
 
     private _setSessionForFile(): Promise<ControllerSessionTab> {

@@ -3,6 +3,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import { IComponentDesc } from 'chipmunk-client-containers';
 
 export interface IMenuItem {
+    id?: string;
     caption?: string;
     handler?: () => void;
     disabled?: boolean;

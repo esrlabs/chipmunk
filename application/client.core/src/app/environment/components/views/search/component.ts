@@ -10,7 +10,6 @@ import { NotificationsService } from '../../../services.injectable/injectable.se
 import { map, startWith } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
 import { MatInput, MatAutocompleteSelectedEvent, MatAutocompleteTrigger, MatFormField } from '@angular/material';
-import { IButton } from './output/controls/component';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
@@ -541,13 +540,14 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
                     this._clearRecent();
                 },
             },
-            { /* delimiter */ },
+            /*
+            { * delimiter * },
             {
                 caption: `Keep scrolling with content`,
                 handler: () => {
                     // TODO
                 },
-            }
+            }*/
         ];
         ContextMenuService.show({
             items: items,
