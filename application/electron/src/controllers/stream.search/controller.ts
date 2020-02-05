@@ -344,6 +344,16 @@ export default class ControllerStreamSearch {
         if (message.guid !== this._state.getGuid()) {
             return;
         }
+        // Check current state
+        if (this._requests.length === 0) {
+            return response(new IPCElectronMessages.SearchChunk({
+                guid: this._state.getGuid(),
+                start: 0,
+                end: 0,
+                rows: 0,
+                length: 0,
+            }));
+        }
         // Get bytes range (convert rows range to bytes range)
         const range: IMapItem | Error = this._state.map.getBytesRange({
             from: message.start,

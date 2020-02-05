@@ -445,6 +445,11 @@ export class ControllerSessionTabSearchOutput {
         this._state.lastLoadingRequestId = setTimeout(() => {
             this._state.lastLoadingRequestId = undefined;
             this._requestDataHandler(request.start, request.end).then((message: IPCMessages.StreamChunk) => {
+                // Check: response is empty
+                if (message.data === undefined) {
+                    // Response is empty. Looks like search was dropped.
+                    return;
+                }
                 // Check: do we already have other request
                 if (this._state.lastLoadingRequestId !== undefined) {
                     // No need to parse - new request was created
