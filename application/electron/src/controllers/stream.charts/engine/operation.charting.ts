@@ -9,7 +9,7 @@ import ServicePaths from '../../../services/service.paths';
 import NullWritableStream from '../../../classes/stream.writable.null';
 import Transform, { IMatch, CGroupDelimiter } from './transform.charting';
 import { EventEmitter } from 'events';
-import { Readable } from 'stream';
+import { Readable, Writable } from 'stream';
 
 export { IMatch };
 
@@ -71,12 +71,12 @@ export class OperationCharting extends EventEmitter {
                 // Pipe process with writer: ripgrep -> writer (NULL writer)
                 process.stdout.pipe(transform).pipe(writer);
                 // Handeling errors
-                [process, process.stdout, writer, reader].forEach((smth: NullWritableStream | ChildProcess | Readable | ReadStream) => {
+                [process, process.stdin, process.stdout, writer, reader].forEach((smth: NullWritableStream | ChildProcess | Readable | ReadStream | Writable) => {
                     smth.once('error', (error: Error) => {
-                        this._logger.error(`Error during charting: ${error.message}`);
                         if (!this._cleaners.has(taskId)) {
                             return;
                         }
+                        this._logger.error(`Error during charting: ${error.message}`);
                         reject(error);
                     });
                 });
