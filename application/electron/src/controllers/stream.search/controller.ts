@@ -122,7 +122,7 @@ export default class ControllerStreamSearch {
 
     private _append(updated?: IRange): void {
         if (this._requests.length === 0 || this._processor.getStreamSize() === 0) {
-            this._pending.bytesReadTo = 0;
+            this._pending.bytesReadTo = -1;
             return;
         }
         if (updated !== undefined && this._pending.bytesReadTo < updated.to) {
