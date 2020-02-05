@@ -5,6 +5,7 @@ export enum ELogLevels {
     VERBOS = 'VERBOS',
     ERROR = 'ERROR',
     ENV = 'ENV',
+    WTF = 'WTF',
 }
 
 const DEFAUT_ALLOWED_CONSOLE = {
@@ -14,6 +15,7 @@ const DEFAUT_ALLOWED_CONSOLE = {
     INFO: true,
     VERBOS: false,
     WARNING: true,
+    WTF: true,
 };
 
 const LOGS_LEVEL_TABLE = {
@@ -23,6 +25,7 @@ const LOGS_LEVEL_TABLE = {
     INFO: [ELogLevels.INFO, ELogLevels.WARNING, ELogLevels.ERROR],
     WARNING: [ELogLevels.WARNING, ELogLevels.ERROR],
     ERROR: [ELogLevels.ERROR],
+    WTF: [ELogLevels.WTF, ELogLevels.ERROR],
 };
 
 type TOutputFunc = (...args: any[]) => any;
