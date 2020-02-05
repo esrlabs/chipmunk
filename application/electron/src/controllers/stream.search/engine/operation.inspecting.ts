@@ -52,6 +52,9 @@ export class OperationInspecting extends EventEmitter {
                 if (!exists) {
                     return resolve([]);
                 }
+                if (this._readFrom >= this._readTo || isNaN(this._readFrom) || !isFinite(this._readFrom) || isNaN(this._readTo) || !isFinite(this._readTo)) {
+                    return reject(new Error(`(inspecting) Cannot perform search because a range isn't correct: from = ${this._readFrom}; to = ${this._readTo}`));
+                }
                 // Start measuring
                 const measurer = this._logger.measure(`inspecting #${guid()}`);
                 // Create reader

@@ -7,7 +7,7 @@ import { CancelablePromise } from '../../../tools/promise.cancelable';
 import ServicePaths from '../../../services/service.paths';
 import Transform, { IMapItem, IMapChunkEvent, IOffset } from './transform.map';
 import { EventEmitter } from 'events';
-import { Readable } from 'stream';
+import { Readable, Writable } from 'stream';
 
 export { IMapChunkEvent };
 
@@ -46,6 +46,9 @@ export class OperationAppend extends EventEmitter {
         readTo: number,
         guid: string,
     ): CancelablePromise<IMapItem[], void> | Error {
+        if (this._readFrom >= readTo || isNaN(this._readFrom) || !isFinite(this._readFrom) || isNaN(readTo) || !isFinite(readTo)) {
+            return new Error(`(append) Cannot perform search because a range isn't correct: from = ${this._readFrom}; to = ${readTo}`);
+        }
         if (this._cleaner !== undefined) {
             this._logger.warn(`Attempt to start search, while previous isn't finished`);
             return new Error(`(append) Fail to start search, because previous process isn't finished.`);
@@ -74,9 +77,9 @@ export class OperationAppend extends EventEmitter {
             // Pipe process with writer: ripgrep -> writer
             process.stdout.pipe(transform).pipe(writer);
             // Handeling errors
-            [process, process.stdout, writer, reader].forEach((smth: WriteStream | ChildProcess | ReadStream | Readable) => {
+            [process, process.stdin, process.stdout, writer, reader, transform].forEach((smth: WriteStream | ChildProcess | ReadStream | Readable | Writable) => {
                 smth.once('error', (error: Error) => {
-                    this._logger.error(`Error during search: ${error.message}`);
+                    this._logger.error(`Error during append: ${error.message}`);
                     if (this._cleaner === undefined) {
                         return;
                     }
