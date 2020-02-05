@@ -4,6 +4,8 @@ import { ControllerSessionTabSearch } from './controller.session.tab.search';
 import { FilterRequest, IChangeEvent } from './controller.session.tab.search.filters.storage';
 import { ControllerSessionTabStream } from './controller.session.tab.stream';
 import { IPositionData } from './controller.session.tab.stream.output';
+import { Lock } from './helpers/lock';
+
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 export interface IMapPoint {
@@ -57,6 +59,7 @@ export class ControllerSessionTabMap {
     private _width: number = CSettings.columnNarroweWidth;
     private _search: ControllerSessionTabSearch;
     private _stream: ControllerSessionTabStream;
+    private _lock: Lock = new Lock();
     private _subjects: {
         onStateUpdate: Subject<IMapState>,
         onPositionUpdate: Subject<IMapState>,
@@ -80,6 +83,7 @@ export class ControllerSessionTabMap {
         this._subscriptions.SearchResultMap = ServiceElectronIpc.subscribe(IPCMessages.SearchResultMap, this._ipc_SearchResultMap.bind(this));
         this._subscriptions.StreamUpdated = ServiceElectronIpc.subscribe(IPCMessages.StreamUpdated, this._ipc_onStreamUpdated.bind(this));
         this._subscriptions.onSearchDropped = this._search.getFiltersAPI().getObservable().dropped.subscribe(this._onSearchDropped.bind(this));
+        this._subscriptions.onSearchStarted = this._search.getFiltersAPI().getObservable().searching.subscribe(this._onSearchStarted.bind(this));
         this._subscriptions.onPositionChanged = this._stream.getOutputStream().getObservable().onPositionChanged.subscribe(this._onPositionChanged.bind(this));
         this._subscriptions.onFiltersStyleUpdate = this._search.getFiltersAPI().getStorage().getObservable().changed.subscribe(this._onFiltersStyleUpdate.bind(this));
     }
@@ -182,7 +186,7 @@ export class ControllerSessionTabMap {
             return col;
         });
         // Trigger event
-        this._subjects.onStateUpdate.next(this._state);
+        this._saveTriggerStateUpdate();
     }
 
     public getSettings(): {
@@ -226,12 +230,19 @@ export class ControllerSessionTabMap {
     }
 
     private _onSearchDropped() {
+        // Lock update workflow
+        this._lock.lock();
         // Drop points
         this._dropSearchColumns();
         // Remove search colums
         this._columns = this._columns.filter(c => !c.search);
         // Trigger event
-        this._subjects.onStateUpdate.next(this._state);
+        this._saveTriggerStateUpdate();
+    }
+
+    private _onSearchStarted() {
+        // Unlock update workflow
+        this._lock.unlock();
     }
 
     private _onPositionChanged(position: IPositionData) {
@@ -248,8 +259,21 @@ export class ControllerSessionTabMap {
         this._state.points = this._state.points.filter(p => toBeReset.indexOf(p.column) === -1);
     }
 
+    private _saveTriggerStateUpdate() {
+        this._subjects.onStateUpdate.next({
+            count: this._state.count,
+            position: this._state.position,
+            rowsInView: this._state.rowsInView,
+            points: this._state.points,
+        });
+    }
+
     private _ipc_SearchResultMap(message: IPCMessages.SearchResultMap) {
         if (message.streamId !== this._guid) {
+            return;
+        }
+        if (this._lock.isLocked()) {
+            // Update workflow is locked
             return;
         }
         if (!message.append) {
@@ -322,7 +346,7 @@ export class ControllerSessionTabMap {
             return col;
         });
         // Trigger event
-        this._subjects.onStateUpdate.next(this._state);
+        this._saveTriggerStateUpdate();
     }
 
     private _ipc_onStreamUpdated(message: IPCMessages.StreamUpdated) {
@@ -330,6 +354,6 @@ export class ControllerSessionTabMap {
             return;
         }
         this._state.count = message.rowsCount;
-        this._subjects.onStateUpdate.next(this._state);
+        this._saveTriggerStateUpdate();
     }
 }

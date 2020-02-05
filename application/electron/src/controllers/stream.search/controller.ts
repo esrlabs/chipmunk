@@ -132,7 +132,7 @@ export default class ControllerStreamSearch {
             return;
         }
         this._search(Tools.guid(), this._pending.bytesReadTo).catch((searchErr: Error) => {
-            this._logger.warn(`Fail to append search results due error: ${searchErr.message}`);
+            this._logger.error(`Fail to append search results due error: ${searchErr.message}`);
         }).finally(() => {
             this._reappend();
         });
