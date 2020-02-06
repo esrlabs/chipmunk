@@ -64,7 +64,7 @@ export class PluginsIPCService implements IService {
     private _onPluginMessage(message: IPCElectronMessages.PluginInternalMessage) {
         this._ipcs.forEach((ipc: ControllerPluginIPC, token: TToken) => {
             if (token === message.token) {
-                ipc.acceptHostMessage(message.data);
+                ipc.accept(message.data);
             }
         });
     }

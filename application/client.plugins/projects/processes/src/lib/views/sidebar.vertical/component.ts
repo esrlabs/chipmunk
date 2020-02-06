@@ -56,7 +56,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
 
     ngAfterViewInit() {
         // Subscription to income events
-        this._subscriptions.incomeIPCHostMessage = this.api.getIPC().subscribeToHost((message: any) => {
+        this._subscriptions.incomeIPCHostMessage = this.api.getIPC().subscribe((message: any) => {
             if (typeof message !== 'object' && message === null) {
                 // Unexpected format of message
                 return;
@@ -94,7 +94,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         if (this._ng_cmd.trim() === '') {
             return;
         }
-        this.api.getIPC().requestToHost({
+        this.api.getIPC().request({
             stream: this.session,
             command: EHostCommands.command,
             cmd: this._ng_cmd,
@@ -108,7 +108,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         if (!this._ng_working) {
             return;
         }
-        this.api.getIPC().requestToHost({
+        this.api.getIPC().request({
             stream: this.session,
             command: EHostCommands.stop,
         }, this.session).catch((error: Error) => {
@@ -117,7 +117,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
     }
 
     private _sendInput(event: KeyboardEvent) {
-        this.api.getIPC().requestToHost({
+        this.api.getIPC().request({
             stream: this.session,
             command: EHostCommands.write,
             input: event.key
@@ -216,14 +216,14 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
 
     private _initState() {
         // Request current settings
-        this.api.getIPC().requestToHost({
+        this.api.getIPC().request({
             stream: this.session,
             command: EHostCommands.getSettings,
         }, this.session).then((response) => {
             this._settingsUpdated(response.settings);
         });
         // Request current cwd
-        this.api.getIPC().requestToHost({
+        this.api.getIPC().request({
             stream: this.session,
             command: EHostCommands.getSettings,
         }, this.session).then((response) => {

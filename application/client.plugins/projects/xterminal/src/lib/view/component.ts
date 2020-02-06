@@ -31,7 +31,7 @@ export class SidebarViewComponent implements AfterViewInit, OnDestroy {
         if (this._subscription !== undefined) {
             this._subscription.destroy();
             // Send command to host to destroy pty
-            this.api.getIPC().sentToHost({
+            this.api.getIPC().send({
                 session: this.session,
                 command: EHostCommands.destroy
             }).then((response) => {
@@ -43,7 +43,7 @@ export class SidebarViewComponent implements AfterViewInit, OnDestroy {
 
     ngAfterViewInit() {
         // Subscription to income events
-        this._subscription = this.api.getIPC().subscribeToHost((message: any) => {
+        this._subscription = this.api.getIPC().subscribe((message: any) => {
             if (typeof message !== 'object' && message === null) {
                 // Unexpected format of message
                 return;
@@ -71,7 +71,7 @@ export class SidebarViewComponent implements AfterViewInit, OnDestroy {
         this._fitAddon.fit();
         this._setTheme(this._xterm);
         this._xterm.onData((data) => {
-            this.api.getIPC().requestToHost({
+            this.api.getIPC().request({
                 session: this.session,
                 command: EHostCommands.write,
                 data: data
@@ -80,7 +80,7 @@ export class SidebarViewComponent implements AfterViewInit, OnDestroy {
             });
         });
         // Send command to host to create instance of pty
-        this.api.getIPC().requestToHost({
+        this.api.getIPC().request({
             session: this.session,
             command: EHostCommands.create
         }).then((response) => {

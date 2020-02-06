@@ -1,4 +1,6 @@
 
+@import '../../../../../../theme/variables.less';
+
 :host {
     position: absolute;
     display: block;
@@ -8,6 +10,9 @@
     bottom: 0.5rem;
     overflow-x: hidden;
     overflow-y: auto;
+    & * {
+        color: @scheme-color-0;
+    }
     & div.wrapper{
         position: relative;
         display: block;
@@ -32,7 +37,6 @@
                 border-bottom: thin dotted grey;
                 & * {
                     display: inline-block;
-    
                     vertical-align: top;
                     overflow: hidden;
                     text-overflow: ellipsis;
