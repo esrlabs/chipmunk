@@ -49,7 +49,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
 
     ngAfterViewInit() {
         // Subscription to income events
-        this._subscription = this.api.getIPC().subscribeToHost((message: any) => {
+        this._subscription = this.api.getIPC().subscribe((message: any) => {
             if (typeof message !== 'object' && message === null) {
                 // Unexpected format of message
                 return;
@@ -137,7 +137,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         }
         this._ng_state = EState.connecting;
         this._cdRef.detectChanges();
-        this.api.getIPC().requestToHost({
+        this.api.getIPC().request({
             streamId: this.session,
             command: EHostCommands.connect,
             ip: this._ng_addr,
@@ -151,7 +151,7 @@ export class SidebarVerticalComponent implements AfterViewInit, OnDestroy {
         if (this._ng_state !== EState.connected) {
             return;
         }
-        this.api.getIPC().requestToHost({
+        this.api.getIPC().request({
             streamId: this.session,
             command: EHostCommands.disconnect,
         }, this.session).then((response) => {

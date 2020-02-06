@@ -1,6 +1,6 @@
 {
   "name": "serial",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "peerDependencies": {
     "@angular/common": "^7.0.0",
     "@angular/core": "^7.0.0"

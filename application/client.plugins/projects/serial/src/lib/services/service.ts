@@ -69,7 +69,7 @@ export class Service extends Toolkit.APluginService {
     }
 
     public incomeMessage() {
-        this._subscriptions.incomeIPCHostMessage = this.api.getIPC().subscribeToHost((message: any) => {
+        this._subscriptions.incomeIPCHostMessage = this.api.getIPC().subscribe((message: any) => {
             if (typeof message !== 'object' && message === null) {
                 return;
             }
@@ -124,7 +124,7 @@ export class Service extends Toolkit.APluginService {
     }
 
     public connect(options: IOptions): Promise<void> {
-        return this.api.getIPC().requestToHost({
+        return this.api.getIPC().request({
             stream: this.session,
             command: EHostCommands.open,
             options: options,
@@ -144,7 +144,7 @@ export class Service extends Toolkit.APluginService {
     }
 
     public disconnect(port: string): Promise<any> {
-        return this.api.getIPC().requestToHost({
+        return this.api.getIPC().request({
             stream: this.session,
             command: EHostCommands.close,
             path: port,
@@ -157,7 +157,7 @@ export class Service extends Toolkit.APluginService {
     }
 
     public requestPorts(): Promise<any> {
-        return this.api.getIPC().requestToHost({
+        return this.api.getIPC().request({
             stream: this.session,
             command: EHostCommands.list,
         }, this.session).catch((error: Error) => {
@@ -166,7 +166,7 @@ export class Service extends Toolkit.APluginService {
     }
 
     public startSpy(options: IOptions[]): Promise<any> {
-        return this.api.getIPC().requestToHost({
+        return this.api.getIPC().request({
             stream: this.session,
             command: EHostCommands.spyStart,
             options: options,
@@ -177,7 +177,7 @@ export class Service extends Toolkit.APluginService {
 
     public stopSpy(options: IOptions[]): Promise<any> {
         if (options.length > 0) {
-            return this.api.getIPC().requestToHost({
+            return this.api.getIPC().request({
                 stream: this.session,
                 command: EHostCommands.spyStop,
                 options: options,
@@ -189,7 +189,7 @@ export class Service extends Toolkit.APluginService {
     }
 
     public sendMessage(message: string, port: string): Promise<any> {
-        return this.api.getIPC().requestToHost({
+        return this.api.getIPC().request({
             stream: this.session,
             command: EHostCommands.send,
             cmd: message,
@@ -200,7 +200,7 @@ export class Service extends Toolkit.APluginService {
     }
 
     public writeConfig(options: IOptions): Promise<void> {
-        return this.api.getIPC().requestToHost({
+        return this.api.getIPC().request({
             stream: this.session,
             command: EHostCommands.write,
             options: options
@@ -210,7 +210,7 @@ export class Service extends Toolkit.APluginService {
     }
 
     public readConfig(): Promise<any> {
-        return this.api.getIPC().requestToHost({
+        return this.api.getIPC().request({
             stream: this.session,
             command: EHostCommands.read,
         }, this.session).catch((error: Error) => {
@@ -219,7 +219,7 @@ export class Service extends Toolkit.APluginService {
     }
 
     public removeConfig(port: string): Promise<void> {
-        return this.api.getIPC().requestToHost({
+        return this.api.getIPC().request({
             stream: this.session,
             command: EHostCommands.remove,
             port: port
