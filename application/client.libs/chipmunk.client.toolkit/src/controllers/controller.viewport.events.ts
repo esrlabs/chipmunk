@@ -46,6 +46,17 @@ export class ControllerViewportEvents {
         });
     }
 
+    public subscribe(): {
+        onRowSelected: (handler: (event: IOnRowSelectedEvent) => void) => Subscription;
+    } {
+        return {
+            onRowSelected: (handler: (event: IOnRowSelectedEvent) => void) => {
+                return this._subjects.onRowSelected.subscribe(handler);
+            },
+        }
+    }
+
+    // Will be deprecated
     public getSubject(): {
         onRowSelected: Subject<IOnRowSelectedEvent>,
     } {
