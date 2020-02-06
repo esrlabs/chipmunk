@@ -1,7 +1,7 @@
 import { EThemeType } from '../consts/enums';
 import { IRowInfo } from '../interfaces/row';
 
-const CSignature = 'ARowTypedParser';
+const CSignature = 'RowTypedParser';
 
 /**
  * Allows creating row parser with checking the type of source before.
@@ -10,9 +10,9 @@ const CSignature = 'ARowTypedParser';
  * @usecases decoding stream output content; converting stream output into human-readable format
  * @requirements TypeScript or JavaScript
  * @examples Base64string parser, HEX converting into a string and so on
- * @class ARowTypedParser
+ * @class RowTypedParser
  */
-export abstract class ARowTypedParser {
+export abstract class RowTypedParser {
 
     /**
      * Internal usage
@@ -52,3 +52,6 @@ export abstract class ARowTypedParser {
     public abstract isTypeMatch(sourceName: string, sourceMeta?: string): boolean;
 
 }
+
+// Back compatibility (from 0.0.87)
+export { RowTypedParser as ARowTypedParser };

@@ -1,14 +1,14 @@
 import * as Tools from '../tools/index';
 
 /**
- * @class PluginIPC
+ * @class IPC
  * Abstract class, which used for creating a plugin IPC controller.
  * Plugin IPC controller allows communicating between render part of a plugin
  * and backend part of a plugin.
  * Render part (render) - a plugin's part, which executes on front-end in browser
  * Backend part (host) - a plugin's part, which executes on back-end on nodejs level
  */
-export abstract class PluginIPC {
+export abstract class IPC {
 
     public readonly token: string;
     public readonly name: string;
@@ -19,7 +19,7 @@ export abstract class PluginIPC {
     constructor(name: string, token: string) {
         this.token = token;
         this.name = name;
-        this._logger = new Tools.Logger(`ControllerPluginIPC: ${name}`);
+        this._logger = new Tools.Logger(`ControllerIPC: ${name}`);
     }
 
     /**
@@ -51,7 +51,7 @@ export abstract class PluginIPC {
      * @param streamId - id of related stream
      * @returns {Promise<void>} resolved on message successfully sent; reject on sending errors
      */
-    public abstract sentToHost(message: any, streamId?: string): Promise<void>;
+    public abstract send(message: any, streamId?: string): Promise<void>;
 
     /**
      * Sends a request from render to host.
@@ -60,14 +60,14 @@ export abstract class PluginIPC {
      * @param {string} streamId - id of related stream
      * @returns {Promise<void>} resolved with host's response; reject on sending errors
      */
-    public abstract requestToHost(message: any, streamId?: string): Promise<any>;
+    public abstract request(message: any, streamId?: string): Promise<any>;
 
     /**
      * Subscriber to host messages
      * @param {(message: any) => void} handler - will be called with each host message
      * @returns {Subscription} subscription object, which could be used to unsubscribe
      */
-    public subscribeToHost(handler: Tools.THandler): Tools.Subscription {
+    public subscribe(handler: Tools.THandler): Tools.Subscription {
         const signature: string = this.name;
         const subscriptionId: string = Tools.guid();
         this._handlers.set(subscriptionId, handler);
@@ -82,7 +82,7 @@ export abstract class PluginIPC {
      * @param {any} message - any message from host
      * @returns {void}
      */
-    public acceptHostMessage(message: any): void {
+    public accept(message: any): void {
         this._handlers.forEach((handler: Tools.THandler) => {
             try {
                 handler(message);
@@ -93,3 +93,6 @@ export abstract class PluginIPC {
     }
 
 }
+
+// Back compatibility (from 0.0.87)
+export { IPC as PluginIPC };

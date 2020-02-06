@@ -49,16 +49,16 @@ export interface IPluginExports {
  * available implementation of PluginServiceGate.
  * For example:
  * =================================================================================================
- * const gate: Toolkit.APluginServiceGate | undefined = (window as any).logviewer;
+ * const gate: Toolkit.PluginServiceGate | undefined = (window as any).logviewer;
  * gate.setPluginExports({
  *     parser: new MyParserOfEachRow(),
  * });
  * =================================================================================================
  * This code snippet registered a new parser for output "MyParserOfEachRow"
  * @usecases should be used for none-angular plugins to register parsers
- * @class APluginServiceGate
+ * @class PluginServiceGate
  */
-export abstract class APluginServiceGate {
+export abstract class PluginServiceGate {
     /**
      * Internal usage
      */
@@ -75,3 +75,6 @@ export abstract class APluginServiceGate {
     public abstract getRequireFunc(): TRequire;
 
 }
+
+// Back compatibility (from 0.0.87)
+export { PluginServiceGate as APluginServiceGate };

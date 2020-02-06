@@ -1,16 +1,16 @@
 import { EThemeType } from '../consts/enums';
 import { IRowInfo } from '../interfaces/row';
 
-const CSignature = 'ARowCommonParser';
+const CSignature = 'RowCommonParser';
 
 /**
  * Allows creating row parser, which will be applied to each new line in stream.
  * @usecases decoding stream output content; converting stream output into human-readable format
  * @requirements TypeScript or JavaScript
  * @examples Base64string parser, HEX converting into a string and so on
- * @class ARowCommonParser
+ * @class RowCommonParser
  */
-export abstract class ARowCommonParser {
+export abstract class RowCommonParser {
 
     /**
      * Internal usage
@@ -42,3 +42,6 @@ export abstract class ARowCommonParser {
     public abstract parse(str: string, themeTypeRef: EThemeType, row: IRowInfo): string;
 
 }
+
+// Back compatibility (from 0.0.87)
+export { RowCommonParser as ARowCommonParser };

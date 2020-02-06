@@ -2,7 +2,7 @@ import * as Components from './components';
 import * as Enums from '../consts/enums';
 import { ControllerViewportEvents } from '../controllers/controller.viewport.events';
 import { ControllerSessionsEvents } from '../controllers/controller.sessions.events';
-import { PluginIPC } from '../classes/class.ipc';
+import { IPC } from '../classes/class.ipc';
 import { IPopup } from './client.popup';
 import { IComponentDesc } from './client.components.containers';
 import { INotification } from './client.notification';
@@ -15,9 +15,9 @@ import { INotification } from './client.notification';
  */
 export interface IAPI {
     /**
-     * @returns {PluginIPC} Returns PluginAPI object for host and render plugin communication
+     * @returns {IPC} Returns PluginAPI object for host and render plugin communication
      */
-    getIPC: () => PluginIPC | undefined;
+    getIPC: () => IPC | undefined;
 
     /**
      * @returns {string} ID of active stream (active tab)

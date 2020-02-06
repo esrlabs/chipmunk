@@ -1,7 +1,7 @@
 import { IAPI } from '../interfaces/api';
 import Subject from '../tools/tools.subject';
 
-const CSignature = 'APluginService';
+const CSignature = 'PluginService';
 
 /**
  * Service which can be used to get access to plugin API
@@ -15,9 +15,9 @@ const CSignature = 'APluginService';
  * with APluginServiceGate.setPluginExports (for none-Angular plugins)
  *
  * @usecases Create global (in the scope of plugin) service with access to plugin's API and core's API
- * @class APluginService
+ * @class PluginService
  */
-export abstract class APluginService {
+export abstract class PluginService {
 
     private _apiGetter: () => IAPI | undefined;
 
@@ -64,3 +64,6 @@ export abstract class APluginService {
     }
 
 }
+
+// Back compatibility (from 0.0.87)
+export { PluginService as APluginService };

@@ -1,17 +1,17 @@
 import { ETypedRowRenders } from '../consts/enums';
 
-const CSignature = 'ATypedRowRender';
+const CSignature = 'TypedRowRender';
 
 /**
  * This class is used for more complex renders of stream output. Like:
- * - ATypedRowRenderAPIColumns - to show stream line as columns
- * - ATypedRowRenderAPIExternal - to use custom Angular component as stream
+ * - TypedRowRenderAPIColumns - to show stream line as columns
+ * - TypedRowRenderAPIExternal - to use custom Angular component as stream
  * line render
  *
  * @usecases to show content in columns; to have full HTML/LESS features for rendering
- * @class ATypedRowRender
+ * @class TypedRowRender
  */
-export abstract class ATypedRowRender<T> {
+export abstract class TypedRowRender<T> {
 
     /**
      * Internal usage
@@ -50,9 +50,12 @@ export abstract class ATypedRowRender<T> {
 
     /**
      * Should return an implementation of custom render. An instance of one of the next renders:
-     * - ATypedRowRenderAPIColumns
-     * - ATypedRowRenderAPIExternal
+     * - TypedRowRenderAPIColumns
+     * - TypedRowRenderAPIExternal
      */
     public abstract getAPI(): T;
 
 }
+
+// Back compatibility (from 0.0.87)
+export { TypedRowRender as ATypedRowRender };
