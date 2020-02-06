@@ -93,6 +93,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
                 private _notifications: NotificationsService) {
         this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._subscriptions.onFocusSearchInput = HotkeysService.getObservable().focusSearchInput.subscribe(this._onFocusSearchInput.bind(this));
+        this._subscriptions.onToolbarToggle = HotkeysService.getObservable().toolbarToggle.subscribe(this._onToolbarToggle.bind(this));
         this._subscriptions.onStreamUpdated = TabsSessionsService.getSessionEventsHub().subscribe().onStreamUpdated(this._onStreamUpdated.bind(this));
         this._subscriptions.onSearchUpdated = TabsSessionsService.getSessionEventsHub().subscribe().onSearchUpdated(this._onSearchUpdated.bind(this));
         this._setActiveSession();
@@ -393,6 +394,13 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     private _onFocusSearchInput() {
         this._focus();
+    }
+
+    private _onToolbarToggle() {
+        if (this._ng_autoComRef === undefined) {
+            return;
+        }
+        this._ng_autoComRef.closePanel();
     }
 
     private _openSidebarSearchTab() {
