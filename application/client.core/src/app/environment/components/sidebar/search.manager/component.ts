@@ -1,4 +1,4 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, HostBinding, HostListener } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, HostBinding, HostListener, ElementRef } from '@angular/core';
 import { Subject, Observable, Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
@@ -102,6 +102,7 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
 
     constructor(
         private _cdRef: ChangeDetectorRef,
+        private _self: ElementRef,
         private _notifications: NotificationsService,
     ) {
         this._ng_observables = {
@@ -320,9 +321,13 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         this._setCurrent();
     }
 
+    private _focus() {
+        this._self.nativeElement.focus();
+    }
+
     private _onReorderList(event: IReorderEvent) {
         if (event.ddEvent.currentIndex === event.ddEvent.previousIndex) {
-            return;
+            return this._focus();
         }
         switch (event.target) {
             case 'charts':
@@ -360,12 +365,12 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         });
         if (this._selected === index) {
             this._selected = -1;
-
         } else {
             this._selected = index;
         }
         this._subjects.select.next(this._selected);
         this._setCurrent();
+        this._focus();
     }
 
     private _setCurrent() {
@@ -377,6 +382,7 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
             this._ng_chart = this._ng_charts[this._selected - this._ng_filters.length];
         }
         this._forceUpdate();
+        this._focus();
     }
 
     private _onSessionChange(session: ControllerSessionTab | undefined) {
@@ -404,20 +410,58 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         this._sessionSubscriptions.filename = session.getSessionSearch().getRecentAPI().getObservable().filename.subscribe(this._onFilenameChanged.bind(this));
     }
 
-    private _setFilters() {
+    private _setFilters(event?: IFiltersStorageUpdated) {
         if (this._session === undefined) {
             return;
         }
         this._ng_filters = this._session.getSessionSearch().getFiltersAPI().getStorage().get();
-        this._forceUpdate();
+        if (event !== undefined && event.added instanceof FilterRequest) {
+            this._forceUpdate();
+            this._selectFilter(event.added);
+        } else {
+            this._selected = -1;
+            this._subjects.select.next(-1);
+            this._forceUpdate();
+        }
     }
 
-    private _setCharts() {
+    private _setCharts(event?: IChartsStorageUpdated) {
         if (this._session === undefined) {
             return;
         }
         this._ng_charts = this._session.getSessionSearch().getChartsAPI().getStorage().get();
-        this._forceUpdate();
+        if (event !== undefined && event.added instanceof ChartRequest) {
+            this._forceUpdate();
+            this._selectChart(event.added);
+        } else {
+            this._selected = -1;
+            this._subjects.select.next(-1);
+            this._forceUpdate();
+        }
+    }
+
+    private _selectFilter(filter: FilterRequest) {
+        this._ng_filters.forEach((item: FilterRequest, index: number) => {
+            if (item.getGUID() === filter.getGUID()) {
+                this._ng_filter = filter;
+                this._ng_chart = undefined;
+                this._selected = index;
+                this._subjects.select.next(index);
+                this._forceUpdate();
+            }
+        });
+    }
+
+    private _selectChart(chart: ChartRequest) {
+        this._ng_charts.forEach((item: ChartRequest, index: number) => {
+            if (item.getGUID() === chart.getGUID()) {
+                this._ng_filter = undefined;
+                this._ng_chart = chart;
+                this._selected = index + this._ng_filters.length;
+                this._subjects.select.next(index + this._ng_filters.length);
+                this._forceUpdate();
+            }
+        });
     }
 
     private _onFilenameChanged(filename: string) {

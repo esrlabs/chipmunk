@@ -12,6 +12,8 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 export interface IUpdateEvent {
     requests: FilterRequest[];
     updated?: FilterRequest;
+    added?: FilterRequest | FilterRequest[];
+    removed?: FilterRequest;
 }
 
 export interface IChangeEvent {
@@ -80,6 +82,7 @@ export class FiltersStorage {
             descs = [descs];
         }
         const prevCount: number = this._stored.length;
+        const added: FilterRequest[] = [];
         try {
             descs.forEach((desc: IFilterDescOptional | FilterRequest) => {
                     // Create search request
@@ -92,6 +95,7 @@ export class FiltersStorage {
                     }
                     // Add request
                     this._stored.push(srchRqst);
+                    added.push(srchRqst);
                     // Listent request
                     srchRqst.onChanged((request: FilterRequest) => {
                         this._subjects.changed.next({
@@ -112,7 +116,7 @@ export class FiltersStorage {
         if (this._stored.length === prevCount) {
             return;
         }
-        this._subjects.updated.next({ requests: this._stored });
+        this._subjects.updated.next({ requests: this._stored, added: added.length === 1 ? added[0] : added });
         return undefined;
     }
 
@@ -128,7 +132,7 @@ export class FiltersStorage {
         if (this._stored.length === prevCount) {
             return;
         }
-        this._subjects.updated.next({ requests: this._stored });
+        this._subjects.updated.next({ requests: this._stored, removed: request });
     }
 
     public clear() {

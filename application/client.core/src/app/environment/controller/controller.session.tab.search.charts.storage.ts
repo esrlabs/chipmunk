@@ -12,6 +12,8 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 interface IUpdateEvent {
     requests: ChartRequest[];
     updated?: ChartRequest;
+    added?: ChartRequest | ChartRequest[];
+    removed?: ChartRequest;
 }
 
 interface IChangeEvent {
@@ -80,6 +82,7 @@ export class ChartsStorage {
             descs = [descs];
         }
         const prevCount: number = this._stored.length;
+        const added: ChartRequest[] = [];
         try {
             descs.forEach((desc: IChartDescOptional | ChartRequest) => {
                     // Create search request
@@ -92,6 +95,7 @@ export class ChartsStorage {
                     }
                     // Add request
                     this._stored.push(srchRqst);
+                    added.push(srchRqst),
                     // Listent request
                     srchRqst.onChanged((request: ChartRequest) => {
                         this._subjects.changed.next({
@@ -112,7 +116,7 @@ export class ChartsStorage {
         if (this._stored.length === prevCount) {
             return;
         }
-        this._subjects.updated.next({ requests: this._stored });
+        this._subjects.updated.next({ requests: this._stored, added: added.length === 1 ? added[0] : added });
         return undefined;
     }
 
