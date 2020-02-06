@@ -16,7 +16,8 @@ app-views-search {
             transition: right 150ms ease-in-out;
             position: relative;
             display: block;
-            width: 20rem;
+            min-width: 20rem;
+            width: calc(100% - 22rem);
             & input.not-valid{
                 color: @scheme-color-error!important;
             }

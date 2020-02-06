@@ -37,7 +37,7 @@
     </div>
   </div>
   <p class="t-small color-scheme-2 summary" *ngIf="_ng_isSummaryVisible()">
-    ({{_ng_getMatchesProc()}}% or rows matched. {{_ng_found}} out of {{_ng_read}})
+    ({{_ng_getMatchesProc()}}% or rows matched. {{_ng_getFound()}} out of {{_ng_getTotal()}})
   </p>
   <div class="request-buttons" *ngIf="_ng_isButtonsVisible()">
     <span [attr.class]="'small-icon-button far fa-save ' + (_ng_isRequestSaved ? 'disabled' : '')" (click)="_ng_onStoreRequest()"></span>

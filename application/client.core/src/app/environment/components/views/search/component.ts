@@ -7,9 +7,10 @@ import { ControllerSessionScope } from '../../../controller/controller.session.t
 import { FiltersStorage, FilterRequest } from '../../../controller/controller.session.tab.search.filters.storage';
 import { ChartsStorage, ChartRequest } from '../../../controller/controller.session.tab.search.charts.storage';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
+import { rankedNumberAsString } from '../../../controller/helpers/ranks';
 import { map, startWith } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
-import { MatInput, MatAutocompleteSelectedEvent, MatAutocompleteTrigger, MatFormField } from '@angular/material';
+import { MatInput, MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
@@ -325,6 +326,22 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         (event.target as any).focus();
         event.preventDefault();
         event.stopImmediatePropagation();
+    }
+
+    public _ng_getFound(): string {
+        if (this._ng_found <= 0) {
+            return '0';
+        } else {
+            return rankedNumberAsString(this._ng_found);
+        }
+    }
+
+    public _ng_getTotal(): string {
+        if (this._ng_read <= 0) {
+            return '0';
+        } else {
+            return rankedNumberAsString(this._ng_read);
+        }
     }
 
     private _getCurrentFilter(): FilterRequest | Error {
