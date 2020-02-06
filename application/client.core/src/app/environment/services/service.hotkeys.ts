@@ -205,12 +205,16 @@ export class HotkeysService implements IService {
     }
 
     private _checkFocusedElement() {
-        const tag: string = document.activeElement.tagName.toLowerCase();
-        if (['input', 'textarea'].indexOf(tag) !== -1) {
-            this.inputIn();
-        } else {
-            this.inputOut();
-        }
+        // We have to use here litle delay, because some angular material components makes changes
+        // asynch. To catch last state of components we have to let "them" update itselfs
+        setTimeout(() => {
+            const tag: string = document.activeElement.tagName.toLowerCase();
+            if (['input', 'textarea'].indexOf(tag) !== -1) {
+                this.inputIn();
+            } else {
+                this.inputOut();
+            }
+        }, 150);
     }
 
 }
