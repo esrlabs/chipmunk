@@ -1,7 +1,7 @@
 import { EThemeType } from '../consts/enums';
 import { IRowInfo } from '../interfaces/row';
 
-const CSignature = 'ARowBoundParser';
+const CSignature = 'RowBoundParser';
 
 /**
  * Allows creating row parser, which will bound with plugin's host.
@@ -15,9 +15,9 @@ const CSignature = 'ARowBoundParser';
  * @usecases decoding stream output content; converting stream output into human-readable format
  * @requirements TypeScript or JavaScript
  * @examples Base64string parser, HEX converting into a string and so on
- * @class ARowBoundParser
+ * @class RowBoundParser
  */
-export abstract class ARowBoundParser {
+export abstract class RowBoundParser {
 
     /**
      * Internal usage
@@ -49,3 +49,6 @@ export abstract class ARowBoundParser {
     public abstract parse(str: string, themeTypeRef: EThemeType, row: IRowInfo): string;
 
 }
+
+// Back compatibility (from 0.0.87)
+export { RowBoundParser as ARowBoundParser };

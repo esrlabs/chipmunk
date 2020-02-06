@@ -1,16 +1,16 @@
-const CSignature = 'ATypedRowRenderAPIExternal';
+const CSignature = 'TypedRowRenderAPIExternal';
 
 /**
  * Allows injecting Angular component into view as each row render
- * It should be used with ATypedRowRender class (as a generic class), like:
+ * It should be used with TypedRowRender class (as a generic class), like:
  *
- * class ATypedRowRender<ATypedRowRenderAPIExternal> { ... }
+ * class TypedRowRender<TypedRowRenderAPIExternal> { ... }
  *
  * @usecases decode / convert line of stream and show with specific render
  * @requirements Angualr, TypeScript
- * @class ATypedRowRenderAPIExternal
+ * @class TypedRowRenderAPIExternal
  */
-export abstract class ATypedRowRenderAPIExternal {
+export abstract class TypedRowRenderAPIExternal {
 
     /**
      * Internal usage
@@ -66,3 +66,6 @@ export abstract class ATypedRowRenderAPIExternal {
         return this._factory;
     }
 }
+
+// Back compatibility (from 0.0.87)
+export { TypedRowRenderAPIExternal as ATypedRowRenderAPIExternal };

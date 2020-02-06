@@ -1,7 +1,7 @@
 import { EThemeType } from '../consts/enums';
 import { THTMLString } from '../types/index';
 
-const CSignature = 'ASelectionParser';
+const CSignature = 'SelectionParser';
 
 /**
  * Allows creating parser of selection.
@@ -10,9 +10,9 @@ const CSignature = 'ASelectionParser';
  * @usecases decoding selected content; converting selected content into human-readable format
  * @requirements TypeScript or JavaScript
  * @examples encrypting of data, Base64string parser, HEX converting into a string and so on
- * @class ASelectionParser
+ * @class SelectionParser
  */
-export abstract class ASelectionParser {
+export abstract class SelectionParser {
 
     /**
      * Internal usage
@@ -50,3 +50,6 @@ export abstract class ASelectionParser {
     public abstract getParserName(str: string): string | undefined;
 
 }
+
+// Back compatibility (from 0.0.87)
+export { SelectionParser as ASelectionParser };

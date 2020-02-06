@@ -3,19 +3,19 @@ export interface IColumnWidth {
     min: number;
 }
 
-const CSignature = 'ATypedRowRenderAPIColumns';
+const CSignature = 'TypedRowRenderAPIColumns';
 
 /**
  * Allows presenting a line of a stream as a collection of columns.
- * It should be used with ATypedRowRender class (as a generic class), like:
+ * It should be used with TypedRowRender class (as a generic class), like:
  *
- * class ATypedRowRender<ATypedRowRenderAPIColumns> { ... }
+ * class TypedRowRender<TypedRowRenderAPIColumns> { ... }
  *
  * @usecases decode / convert line of stream and show it as columns
  * @requirements TypeScript or JavaScript
- * @class ATypedRowRenderAPIColumns
+ * @class TypedRowRenderAPIColumns
  */
-export abstract class ATypedRowRenderAPIColumns {
+export abstract class TypedRowRenderAPIColumns {
     /**
      * Internal usage
      */
@@ -56,3 +56,6 @@ export abstract class ATypedRowRenderAPIColumns {
     public abstract getDefaultWidths(): IColumnWidth[];
 
 }
+
+// Back compatibility (from 0.0.87)
+export { TypedRowRenderAPIColumns as ATypedRowRenderAPIColumns };
