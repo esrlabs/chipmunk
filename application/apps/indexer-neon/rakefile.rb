@@ -16,7 +16,7 @@ CLEAN.include(["#{OUT_DIR}/*.*",
 
 namespace :neon do
   desc 'rebuild neon'
-  task :rebuild do
+  task :rebuild => :ts_build do
     # sh 'neon build --release'
     sh 'node_modules/.bin/electron-build-env node_modules/.bin/neon build --release'
   end
@@ -30,6 +30,13 @@ namespace :neon do
                        "#{LOCAL_EXAMPLE_DIR}/dlt/nonverbose/longerlog.out",
                        50_000,
                        "#{LOCAL_EXAMPLE_DIR}/dlt/nonverbose/longerlog.xml")
+  end
+  task all: 'neon:dlt_nonverbose'
+
+  desc 'test neon integration: dlt pcap indexing'
+  task dlt_pcap: [:clean, OUT_DIR, 'neon:rebuild'] do
+    call_test_function('testIndexingPcap', "#{LOCAL_EXAMPLE_DIR}/dlt/test.pcapng",
+                       "#{LOCAL_EXAMPLE_DIR}/dlt/test.pcapng.out")
   end
   task all: 'neon:dlt_nonverbose'
 
@@ -188,4 +195,8 @@ end
 desc 'watch and rebuid ts files'
 task :ts_watch do
   sh 'tsc -p ./tsconfig.json -w'
+end
+desc 'rebuid ts files'
+task :ts_build do
+  sh 'tsc -p ./tsconfig.json'
 end

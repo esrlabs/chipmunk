@@ -831,7 +831,7 @@ fn main() {
                 let ecu_id = "dummy_id".to_string();
 
                 thread::spawn(move || {
-                    let pcap_future = dlt::dlt_pcap::create_index_and_mapping_dlt_from_pcap(
+                    let why = dlt::dlt_pcap::create_index_and_mapping_dlt_from_pcap(
                         IndexingConfig {
                             tag: tag_string.as_str(),
                             chunk_size,
@@ -845,7 +845,6 @@ fn main() {
                         shutdown_channel.1,
                         load_test_fibex_rc(),
                     );
-                    let why = task::block_on(pcap_future);
 
                     if let Err(reason) = why {
                         report_error(format!("couldn't process: {}", reason));

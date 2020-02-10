@@ -1,8 +1,14 @@
 import { log } from './logging';
 import { ITicks, INeonTransferChunk, INeonNotification, IChunk } from './progress';
-import { NativeEventEmitter, RustDltIndexerChannel, RustDltStatsChannel, RustDltSocketChannel } from './emitter';
+import {
+	NativeEventEmitter,
+	RustDltIndexerChannel,
+	RustDltStatsChannel,
+	RustDltSocketChannel,
+	RustDltPcapChannel
+} from './emitter';
 import { CancelablePromise } from './promise';
-import { 
+import {
 	IDLTFilters,
 	IDLTOptions,
 	IIndexDltParams,
@@ -22,7 +28,7 @@ export {
 	LevelDistribution,
 	StatisticInfo,
 	IFibexConfig
-}
+};
 
 export interface IDltSocketParams {
 	filterConfig: DltFilterConf;
@@ -34,9 +40,9 @@ export interface IDltSocketParams {
 }
 
 export interface ISocketConfig {
-    multicast_addr?: IMulticastInfo,
-    bind_addr: string,
-    port: string,
+	multicast_addr?: IMulticastInfo;
+	bind_addr: string;
+	port: string;
 }
 /// Multicast config information.
 /// `multiaddr` address must be a valid multicast address
@@ -45,8 +51,8 @@ export interface ISocketConfig {
 /// multicast group. If it's equal to `INADDR_ANY` then an appropriate
 /// interface is chosen by the system.
 export interface IMulticastInfo {
-    multiaddr: string,
-    interface?: string,
+	multiaddr: string;
+	interface?: string;
 }
 
 export interface IIndexDltOptions {}
@@ -219,10 +225,95 @@ export type TDLTSocketEventObject =
 	| TDLTSocketEventProgress
 	| TDLTSocketEventNotification;
 
+export function indexPcapDlt(
+	ecuId: string,
+	params: IIndexDltParams
+): CancelablePromise<void, void, TDLTSocketEvents, TDLTSocketEventObject> {
+	log('indexPcapDlt');
+	return new CancelablePromise<
+		void,
+		void,
+		TDLTSocketEvents,
+		TDLTSocketEventObject
+	>((resolve, reject, cancel, refCancelCB, self) => {
+		log(`indexPcapDlt: params: ${JSON.stringify(params)}`);
+		try {
+			// Add cancel callback
+			refCancelCB(() => {
+				// Cancelation is started, but not canceled
+				log(`Get command "break" operation. Requesting shutdown.`);
+				emitter.requestShutdown();
+			});
+			// Create channel
+			const channel = new RustDltPcapChannel(
+				params.dltFile,
+				params.tag,
+				ecuId,
+				params.out,
+				params.chunk_size,
+				params.filterConfig,
+				params.append,
+				params.fibex
+			);
+			log('created channel');
+			// Create emitter
+			const emitter: NativeEventEmitter = new NativeEventEmitter(channel);
+			log('created emitter');
+			let chunks: number = 0;
+			// Add listenters
+			emitter.on(NativeEventEmitter.EVENTS.GotItem, (c: INeonTransferChunk) => {
+				log('received pcap item: ' + JSON.stringify(c));
+				self.emit('chunk', {
+					bytesStart: c.b[0],
+					bytesEnd: c.b[1],
+					rowsStart: c.r[0],
+					rowsEnd: c.r[1]
+				});
+				chunks += 1;
+			});
+			emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
+				self.emit('progress', ticks);
+			});
+			emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
+				log('pcap: we got a stopped event after ' + chunks + ' chunks');
+				emitter.shutdownAcknowledged(() => {
+					log('pcap: shutdown completed after we got stopped');
+					// Operation is canceled.
+					cancel();
+				});
+			});
+			emitter.on(NativeEventEmitter.EVENTS.Notification, (notification: INeonNotification) => {
+				self.emit('notification', notification);
+			});
+			emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
+				log('pcap: we got a finished event after ' + chunks + ' chunks');
+				emitter.shutdownAcknowledged(() => {
+					log('pcap: shutdown completed after finish event');
+					// Operation is done.
+					resolve();
+				});
+			});
+			// Handle finale of promise
+			self.finally(() => {
+				log('processing dlt pcap is finished');
+			});
+		} catch (err) {
+			if (!(err instanceof Error)) {
+				log(`pcap operation is stopped. Error isn't valid:`);
+				log(err);
+				err = new Error(`pcap operation is stopped. Error isn't valid.`);
+			} else {
+				log(`pcap: operation is stopped due error: ${err.message}`);
+			}
+			// Operation is rejected
+			reject(err);
+		}
+	});
+}
 export function dltOverSocket(
 	ecuId: string,
 	params: IDltSocketParams,
-	socketConfig: ISocketConfig,
+	socketConfig: ISocketConfig
 ): CancelablePromise<void, void, TDLTSocketEvents, TDLTSocketEventObject> {
 	return new CancelablePromise<
 		void,

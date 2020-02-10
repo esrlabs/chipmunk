@@ -225,7 +225,7 @@ impl futures::Stream for PcapMessageProducer {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub async fn index_from_pcap<'a>(
+pub fn index_from_pcap<'a>(
     config: IndexingConfig<'a>,
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
     ecu_id: String,
@@ -262,56 +262,65 @@ pub async fn index_from_pcap<'a>(
     });
     let message_stream = pcap_msg_producer.map(Event::Msg);
     let mut event_stream = futures::stream::select(message_stream, shutdown_stream);
-    while let Some(event) = event_stream.next().await {
-        // trace!("received event: {:?}", event);
-        match event {
-            Event::Shutdown => {
-                debug!("received shutdown through future channel");
-                let _ = update_channel.send(Ok(IndexingProgress::Stopped));
-                break;
-            }
-            Event::Msg(Ok(MessageStreamItem::Item(msg))) => {
-                let written_bytes_len =
-                    utils::create_tagged_line_d(config.tag, &mut buf_writer, &msg, line_nr, true)?;
-                line_nr += 1;
-                if let Some(chunk) =
-                    chunk_factory.create_chunk_if_needed(line_nr, written_bytes_len)
-                {
-                    // trace!("[line {}]: write to file {:?}", line_nr, out_file_name);
-                    buf_writer.flush()?;
-                    let _ = update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }));
+
+    task::block_on(async {
+        while let Some(event) = event_stream.next().await {
+            // trace!("received event: {:?}", event);
+            match event {
+                Event::Shutdown => {
+                    debug!("received shutdown through future channel");
+                    let _ = update_channel.send(Ok(IndexingProgress::Stopped));
+                    break;
                 }
-            }
-            Event::Msg(Ok(MessageStreamItem::Skipped)) => {
-                trace!("msg was skipped due to filters");
-            }
-            Event::Msg(Ok(MessageStreamItem::Incomplete)) => {
-                trace!("msg was incomplete");
-            }
-            Event::Msg(Ok(MessageStreamItem::Done)) => {
-                trace!("MessageStreamItem::Done received");
-                let _ = update_channel.send(Ok(IndexingProgress::Finished));
-                break;
-            }
-            Event::Msg(Err(DltParseError::ParsingHickup { reason })) => {
-                warn!("parsing hickup error in stream: {}", reason);
-                let _ = update_channel.send(Err(Notification {
-                    severity: Severity::WARNING,
-                    content: format!("parsing faild for one message: {}", reason),
-                    line: None,
-                }));
-            }
-            Event::Msg(Err(DltParseError::Unrecoverable { cause })) => {
-                warn!("Unrecoverable error in stream: {}", cause);
-                break;
-            }
-        };
-    }
-    trace!("finished index_from_pcap()");
-    Ok(())
+                Event::Msg(Ok(MessageStreamItem::Item(msg))) => {
+                    let written_bytes_len = utils::create_tagged_line_d(
+                        config.tag,
+                        &mut buf_writer,
+                        &msg,
+                        line_nr,
+                        true,
+                    )?;
+                    line_nr += 1;
+                    if let Some(chunk) =
+                        chunk_factory.create_chunk_if_needed(line_nr, written_bytes_len)
+                    {
+                        // trace!("[line {}]: write to file {:?}", line_nr, out_file_name);
+                        buf_writer.flush()?;
+                        let _ = update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }));
+                    }
+                }
+                Event::Msg(Ok(MessageStreamItem::Skipped)) => {
+                    trace!("msg was skipped due to filters");
+                }
+                Event::Msg(Ok(MessageStreamItem::Incomplete)) => {
+                    trace!("msg was incomplete");
+                }
+                Event::Msg(Ok(MessageStreamItem::Done)) => {
+                    trace!("MessageStreamItem::Done received");
+                    let _ = update_channel.send(Ok(IndexingProgress::Finished));
+                    break;
+                }
+                Event::Msg(Err(DltParseError::ParsingHickup { reason })) => {
+                    warn!("parsing hickup error in stream: {}", reason);
+                    let _ = update_channel.send(Err(Notification {
+                        severity: Severity::WARNING,
+                        content: format!("parsing faild for one message: {}", reason),
+                        line: None,
+                    }));
+                }
+                Event::Msg(Err(DltParseError::Unrecoverable { cause })) => {
+                    warn!("Unrecoverable error in stream: {}", cause);
+                    let _ = update_channel.send(Ok(IndexingProgress::Finished));
+                    break;
+                }
+            };
+        }
+        trace!("finished index_from_pcap()");
+        Ok(())
+    })
 }
 
-pub async fn create_index_and_mapping_dlt_from_pcap<'a>(
+pub fn create_index_and_mapping_dlt_from_pcap<'a>(
     config: IndexingConfig<'a>,
     ecu_id: String,
     dlt_filter: Option<filtering::DltFilterConfig>,
@@ -332,9 +341,7 @@ pub async fn create_index_and_mapping_dlt_from_pcap<'a>(
                 update_channel.clone(),
                 shutdown_receiver,
                 fibex_metadata,
-            )
-            .await
-            {
+            ) {
                 Ok(()) => Ok(()),
                 Err(e) => {
                     let content = format!("{}", e);

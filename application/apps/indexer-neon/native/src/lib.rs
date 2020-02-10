@@ -13,6 +13,7 @@ extern crate serde;
 mod channels;
 mod concatenator_channel;
 mod dlt_indexer_channel;
+mod dlt_pcap_channel;
 mod dlt_socket_channel;
 mod dlt_stats_channel;
 mod fibex_utils;
@@ -20,6 +21,7 @@ mod indexer_channel;
 mod logging;
 mod merger_channel;
 mod timestamp_detector_channel;
+use crate::dlt_pcap_channel::JsDltPcapEventEmitter;
 use concatenator_channel::JsConcatenatorEmitter;
 use crossbeam_channel as cc;
 use dlt_indexer_channel::JsDltIndexerEventEmitter;
@@ -57,7 +59,10 @@ pub fn init_logging() -> Result<(), std::io::Error> {
     }
 
     match log4rs::init_file(&log_config_path, Default::default()) {
-        Ok(_) => println!("successfully initialized logging from {:?}", log_config_path),
+        Ok(_) => println!(
+            "successfully initialized logging from {:?}",
+            log_config_path
+        ),
         Err(e) => {
             eprintln!("could not initialize logging with init_file: {}", e);
             let log_path = home_dir.join(".chipmunk").join("chipmunk.indexer.log");
@@ -76,7 +81,7 @@ pub fn init_logging() -> Result<(), std::io::Error> {
                 .expect("logging config was incorrect");
             log4rs::init_config(config).expect("logging config could not be applied");
             println!("initialized logging from fallback config");
-        },
+        }
     }
     Ok(())
 }
@@ -165,6 +170,7 @@ register_module!(mut cx, {
     )?;
     cx.export_class::<JsIndexerEventEmitter>("RustIndexerEventEmitter")?;
     cx.export_class::<JsDltIndexerEventEmitter>("RustDltIndexerEventEmitter")?;
+    cx.export_class::<JsDltPcapEventEmitter>("RustDltPcapEventEmitter")?;
     cx.export_class::<JsDltStatsEventEmitter>("RustDltStatsEventEmitter")?;
     cx.export_class::<JsDltSocketEventEmitter>("RustDltSocketEventEmitter")?;
     cx.export_class::<JsTimestampFormatDetectionEmitter>("RustTimestampFormatDetectionEmitter")?;

@@ -1,6 +1,14 @@
 import { CancelablePromise } from './promise';
 import { indexAsync, IFilePath, discoverTimespanAsync } from './processor';
-import { DltFilterConf, DltLogLevel, IIndexDltParams, dltOverSocket, ISocketConfig, IMulticastInfo } from './dlt';
+import {
+	DltFilterConf,
+	DltLogLevel,
+	IIndexDltParams,
+	dltOverSocket,
+	ISocketConfig,
+	IMulticastInfo,
+	indexPcapDlt
+} from './dlt';
 import indexer, { DLT, Units, Merge, Progress } from './index';
 import {
 	ITicks,
@@ -318,7 +326,7 @@ export function testCancelledAsyncDltIndexing(
 	const dltParams: IIndexDltParams = {
 		dltFile: fileToIndex,
 		filterConfig,
-		fibex: { fibex_file_paths: []},
+		fibex: { fibex_file_paths: [] },
 		tag: 'TAG',
 		out: outPath,
 		chunk_size: 500,
@@ -360,13 +368,66 @@ export function testDltIndexingAsync(fileToIndex: string, outPath: string, timeo
 	try {
 		const filterConfig: DltFilterConf = {
 			min_log_level: DltLogLevel.Warn,
-			app_ids: ["Cdng","Coor","LOGC","UTC","Hlth","FuSa","AM","EM","DEM","Mdtr","-NI-","Omc","Bs","MON","psn","SYS","DltL","Heat","DR","Fasi","DET","psl","DLTD","CryD","PTS","VSom","PwrM","PTC","MTSC","udsd","cras","Vin","Stm","StdD","Diag","FRay","Bsd3","Para","Bsd2","PSEL","Darh","Bsd1","TEMP","Dlog","FOSE","NONE","Plan","MSM","Perc","SysT","SINA","DA1"],
+			app_ids: [
+				'Cdng',
+				'Coor',
+				'LOGC',
+				'UTC',
+				'Hlth',
+				'FuSa',
+				'AM',
+				'EM',
+				'DEM',
+				'Mdtr',
+				'-NI-',
+				'Omc',
+				'Bs',
+				'MON',
+				'psn',
+				'SYS',
+				'DltL',
+				'Heat',
+				'DR',
+				'Fasi',
+				'DET',
+				'psl',
+				'DLTD',
+				'CryD',
+				'PTS',
+				'VSom',
+				'PwrM',
+				'PTC',
+				'MTSC',
+				'udsd',
+				'cras',
+				'Vin',
+				'Stm',
+				'StdD',
+				'Diag',
+				'FRay',
+				'Bsd3',
+				'Para',
+				'Bsd2',
+				'PSEL',
+				'Darh',
+				'Bsd1',
+				'TEMP',
+				'Dlog',
+				'FOSE',
+				'NONE',
+				'Plan',
+				'MSM',
+				'Perc',
+				'SysT',
+				'SINA',
+				'DA1'
+			]
 		};
-		const fibex_paths = fibexPath === undefined ? [] : [fibexPath];
+		const fibex_paths = fibexPath === undefined ? [] : [ fibexPath ];
 		const dltParams: IIndexDltParams = {
 			dltFile: fileToIndex,
 			filterConfig,
-			fibex: { fibex_file_paths: fibex_paths},
+			fibex: { fibex_file_paths: fibex_paths },
 			tag: 'TAG',
 			out: outPath,
 			chunk_size: 500,
@@ -404,6 +465,61 @@ export function testDltIndexingAsync(fileToIndex: string, outPath: string, timeo
 		log.debug('error %s', error);
 	}
 	log.debug('done with dlt test');
+}
+export function testIndexingPcap(fileToIndex: string, outPath: string) {
+	const hrstart = process.hrtime();
+	const bar = stdout.createProgressBar({ caption: 'index file', width: 60 });
+	try {
+		let chunks: number = 0;
+		let onProgress = (ticks: ITicks) => {
+			bar.update(Math.round(100 * ticks.ellapsed / ticks.total));
+		};
+		let onChunk = (chunk: IChunk) => {
+			chunks += 1;
+			if (chunks % 100 === 0) {
+				process.stdout.write('.');
+			}
+		};
+		let onNotification = (notification: INeonNotification) => {
+			log.trace('testIndexingPcap: received notification:' + JSON.stringify(notification));
+		};
+		const filterConfig: DltFilterConf = {
+			min_log_level: DltLogLevel.Debug
+		};
+		const dltParams: IIndexDltParams = {
+			dltFile: fileToIndex,
+			filterConfig,
+			fibex: { fibex_file_paths: [] },
+			tag: 'TAG',
+			out: outPath,
+			chunk_size: 500,
+			append: false,
+			stdout: false,
+			statusUpdates: true
+		};
+		indexPcapDlt('ECU', dltParams)
+			.then(() => {
+				bar.update(100);
+				const hrend = process.hrtime(hrstart);
+				const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+				log.trace('COMPLETELY DONE');
+				log.info('Execution time for indexing : %dms', ms);
+			})
+			.catch((error: Error) => {
+				log.trace(`Failed with error: ${error.message}`);
+			})
+			.on('chunk', (event: Progress.IChunk) => {
+				onChunk(event);
+			})
+			.on('progress', (event: Progress.ITicks) => {
+				onProgress(event);
+			})
+			.on('notification', (notification: Progress.INeonNotification) => {
+				onNotification(notification);
+			});
+	} catch (error) {
+		log.error('error %s', error);
+	}
 }
 export function testIndexingAsync(inFile: string, outPath: string) {
 	const hrstart = process.hrtime();

@@ -1,13 +1,13 @@
 export interface IDLTFilters {
-    [key: string]: string[];
+	[key: string]: string[];
 }
 
 export interface IDLTOptions {
-    logLevel: number;
+	logLevel: number;
 	filters: IDLTFilters;
 	stats?: StatisticInfo;
 	fibex: IFibexConfig;
-	fibexFilesInfo?: Array<{ name: string, path: string, size: number, created: number, changed: number }>
+	fibexFilesInfo?: Array<{ name: string; path: string; size: number; created: number; changed: number }>;
 }
 
 export interface IIndexDltParams {
@@ -57,5 +57,5 @@ export interface StatisticInfo {
 }
 
 export interface IFibexConfig {
-    fibex_file_paths: Array<string>,
+	fibex_file_paths: Array<string>;
 }
