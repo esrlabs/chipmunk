@@ -24,16 +24,17 @@ use concatenator_channel::JsConcatenatorEmitter;
 use crossbeam_channel as cc;
 use dlt_indexer_channel::JsDltIndexerEventEmitter;
 use dlt_socket_channel::JsDltSocketEventEmitter;
+
 use dlt_stats_channel::JsDltStatsEventEmitter;
-use indexer_base::progress::{IndexingProgress, IndexingResults};
-use indexer_base::progress::{Notification, Severity};
+use indexer_base::progress::{IndexingProgress, IndexingResults, Notification, Severity};
 use indexer_channel::JsIndexerEventEmitter;
+use log::LevelFilter;
+use log4rs::append::file::FileAppender;
+use log4rs::config::{Appender, Config, Root};
+use log4rs::encode::pattern::PatternEncoder;
 use merger_channel::JsMergerEmitter;
 use neon::prelude::*;
-use processor::parse;
-use processor::parse::timespan_in_files;
-use processor::parse::DiscoverItem;
-use processor::parse::TimestampFormatResult;
+use processor::parse::{self, timespan_in_files, DiscoverItem, TimestampFormatResult};
 use timestamp_detector_channel::JsTimestampFormatDetectionEmitter;
 
 #[no_mangle]
@@ -44,15 +45,39 @@ pub extern "C" fn __cxa_pure_virtual() {
 
 pub fn init_logging() -> Result<(), std::io::Error> {
     let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
+    let log_file_path = home_dir.join(".chipmunk").join("chipmunk.indexer.log");
     let log_config_path = home_dir.join(".chipmunk").join("log4rs.yaml");
     if !log_config_path.exists() {
         let log_config_content = std::include_str!("../log4rs.yaml")
-            .replace("$HOME_DIR", &home_dir.to_string_lossy()[..]);
-        std::fs::write(&log_config_path, log_config_content)?;
+            .replace("$LOG_FILE_PATH", &log_file_path.to_string_lossy()[..]);
+        match std::fs::write(&log_config_path, log_config_content) {
+            Ok(_) => (),
+            Err(e) => eprintln!("error while trying to write log config file: {}", e),
+        }
     }
 
-    log4rs::init_file(log_config_path, Default::default()).unwrap();
-    info!("logging initialized");
+    match log4rs::init_file(&log_config_path, Default::default()) {
+        Ok(_) => println!("successfully initialized logging from {:?}", log_config_path),
+        Err(e) => {
+            eprintln!("could not initialize logging with init_file: {}", e);
+            let log_path = home_dir.join(".chipmunk").join("chipmunk.indexer.log");
+            let appender_name = "indexer-root";
+            let logfile = FileAppender::builder()
+                .encoder(Box::new(PatternEncoder::new("{d} - {l}:: {m}\n")))
+                .build(log_path)?;
+
+            let config = Config::builder()
+                .appender(Appender::builder().build(appender_name, Box::new(logfile)))
+                .build(
+                    Root::builder()
+                        .appender(appender_name)
+                        .build(LevelFilter::Warn),
+                )
+                .expect("logging config was incorrect");
+            log4rs::init_config(config).expect("logging config could not be applied");
+            println!("initialized logging from fallback config");
+        },
+    }
     Ok(())
 }
 

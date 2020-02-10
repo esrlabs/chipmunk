@@ -14,7 +14,7 @@ appenders:
     # kind: console
 
     kind: file
-    path: "$HOME_DIR/.chipmunk/chipmunk.indexer.log"
+    path: $LOG_CONFIG_PATH
 
     # The remainder of the configuration is passed along to the appender's
     # builder, and will vary based on the kind of appender.

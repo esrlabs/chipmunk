@@ -191,7 +191,11 @@ task start: :ripgrepdelivery do
   # rm_f config_windows_path
   cd ELECTRON_DIR do
     require 'dotenv/load'
-    sh "#{NPM_RUN} electron"
+    if OS.windows?
+      sh "#{NPM_RUN} electron-win"
+    else
+      sh "#{NPM_RUN} electron"
+    end
   end
 end
 
