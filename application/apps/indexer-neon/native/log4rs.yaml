@@ -14,7 +14,7 @@ appenders:
     # kind: console
 
     kind: file
-    path: $LOG_CONFIG_PATH
+    path: $LOG_FILE_PATH
 
     # The remainder of the configuration is passed along to the appender's
     # builder, and will vary based on the kind of appender.
