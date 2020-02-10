@@ -91,12 +91,6 @@ export class OperationInspecting extends EventEmitter {
                 });
                 // Create cleaner
                 this._cleaners.set(taskId, () => {
-                    // Stop reader
-                    reader.removeAllListeners();
-                    reader.close();
-                    // Stop transform
-                    transform.stop();
-                    transform.removeAllListeners();
                     // Kill process
                     process.removeAllListeners();
                     process.stdin.removeAllListeners();
@@ -106,6 +100,13 @@ export class OperationInspecting extends EventEmitter {
                     process.stdout.unpipe();
                     process.stdout.destroy();
                     process.kill();
+                    // Stop reader
+                    reader.removeAllListeners();
+                    reader.close();
+                    reader.destroy();
+                    // Stop transform
+                    transform.stop();
+                    transform.removeAllListeners();
                     // Remove cleaner
                     this._cleaners.delete(taskId);
                     // Measure spent time

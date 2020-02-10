@@ -93,17 +93,6 @@ export class OperationAppend extends EventEmitter {
             });
             // Create cleaner
             this._cleaner = () => {
-                // Attention. Using of writer.destroy() here will give "Uncatchable error: Cannot call write after a stream was destroyed"
-                // it doesn't block any how main process, but not okay to have it for sure
-                // Stop reader
-                reader.removeAllListeners();
-                reader.close();
-                // Stop writer
-                writer.removeAllListeners();
-                writer.close();
-                // Stop transform
-                transform.lock();
-                transform.removeAllListeners();
                 // Kill process
                 process.removeAllListeners();
                 process.stdin.removeAllListeners();
@@ -113,6 +102,18 @@ export class OperationAppend extends EventEmitter {
                 process.stdout.unpipe();
                 process.stdout.destroy();
                 process.kill();
+                // Attention. Using of writer.destroy() here will give "Uncatchable error: Cannot call write after a stream was destroyed"
+                // it doesn't block any how main process, but not okay to have it for sure
+                // Stop reader
+                reader.removeAllListeners();
+                reader.close();
+                reader.destroy();
+                // Stop writer
+                writer.removeAllListeners();
+                writer.close();
+                // Stop transform
+                transform.lock();
+                transform.removeAllListeners();
                 // Measure spent time
                 measurer();
             };
