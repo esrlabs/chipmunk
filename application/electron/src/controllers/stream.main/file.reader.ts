@@ -15,15 +15,16 @@ export default class ControllerStreamFileReader {
     }
 
     public destroy() {
-        this.drop();
+        this.close();
     }
 
-    public drop() {
+    public close() {
         if (this._stream === undefined) {
             return;
         }
-        this._stream.close();
         this._stream.removeAllListeners();
+        this._stream.close();
+        this._stream.destroy();
         this._stream = undefined;
     }
 
@@ -35,47 +36,45 @@ export default class ControllerStreamFileReader {
      */
     public read(from: number, to: number): Promise<string> {
         return new Promise((resolve, reject) => {
-            const size: number = this._getSize();
-            const options: { [key: string]: any } = { autoClose: true, encoding: 'utf8' };
-            if (to < 0) {
-                return reject(new Error(this._logger.error(`Both parameters (from, to) cannot be < 0`)));
-            }
-            if (from < 0) {
-                // Reading from end
-                options.start = size - to;
-                options.end = size - 1;
-            } else if (from >= 0 && to > 0) {
-                // Reading in a middle
-                options.start = from;
-                options.end = to;
-            }
-            let output: string = '';
-            this._stream = fs.createReadStream(this._file, options);
-            this._stream.on('data', (chunk: string) => {
-                output += chunk;
-                if (this._stream !== undefined && this._stream.bytesRead >= (options.end - options.start)) {
-                    this._stream.close();
-                    this._stream.removeAllListeners();
-                    this._stream = undefined;
-                    resolve(output);
+            fs.stat(this._file, (err: NodeJS.ErrnoException | null, stat: fs.Stats) => {
+                if (err) {
+                    return reject(err);
                 }
-            });
-            this._stream.on('end', () => {
-                if (this._stream !== undefined) {
-                    this._stream.close();
-                    this._stream.removeAllListeners();
-                    this._stream = undefined;
+                const options: { [key: string]: any } = { autoClose: true, encoding: 'utf8' };
+                if (to < 0) {
+                    return reject(new Error(this._logger.error(`Both parameters (from, to) cannot be < 0`)));
                 }
-                const stat: fs.Stats = fs.statSync(this._file);
-                this._logger.warn(`Reader finished read data unexpectable. File size: ${stat.size} bytes. Requested: ${options.start} - ${options.end}`);
-                resolve(output);
+                if (from < 0) {
+                    // Reading from end
+                    options.start = stat.size - to;
+                    options.end = stat.size - 1;
+                } else if (from >= 0 && to > 0) {
+                    // Reading in a middle
+                    options.start = from;
+                    options.end = to;
+                }
+                let output: string = '';
+                this._stream = fs.createReadStream(this._file, options);
+                this._stream.on('data', (chunk: string) => {
+                    output += chunk;
+                    if (this._stream !== undefined && this._stream.bytesRead >= (options.end - options.start)) {
+                        this.close();
+                        resolve(output);
+                    }
+                });
+                this._stream.on('end', () => {
+                    this.close();
+                    fs.stat(this._file, (err: NodeJS.ErrnoException | null, updatedStat: fs.Stats) => {
+                        if (err) {
+                            this._logger.warn(`Reader finished read data unexpectable. Requested: ${options.start} - ${options.end}. Fail get stat file information due error: ${err.message}`);
+                        } else {
+                            this._logger.warn(`Reader finished read data unexpectable. File size: ${updatedStat.size} bytes. Requested: ${options.start} - ${options.end}`);
+                        }
+                        resolve(output);
+                    });
+                });
             });
         });
-    }
-
-    private _getSize(): number {
-        const stat: fs.Stats = fs.statSync(this._file);
-        return stat.size;
     }
 
 }

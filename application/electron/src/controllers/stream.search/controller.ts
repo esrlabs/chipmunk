@@ -197,17 +197,27 @@ export default class ControllerStreamSearch {
             this._searching.cancel();
             // Drop map
             this._state.map.drop();
+            // Close reader
+            this._reader.close();
             // Check and drop file
-            if (!fs.existsSync(this._state.getSearchFile())) {
-                return resolve();
-            }
-            fs.unlink(this._state.getSearchFile(), (error: NodeJS.ErrnoException | null) => {
-                if (error) {
-                    return reject(this._logger.error(`Fail to remove search file due error: ${error.message}`));
+            fs.open(this._state.getSearchFile(), 'r', (err: NodeJS.ErrnoException | null, fd: number) => {
+                if (err) {
+                    if (err.code === 'ENOENT') {
+                        return resolve();
+                    }
+                    return reject(this._logger.error(`Unexpected error with file "${this._state.getSearchFile()}": ${err.code}:: ${err.message}`));
                 }
-                // Drop reader
-                this._reader.drop();
-                resolve();
+                fs.close(fd, (closeFileError: NodeJS.ErrnoException | null) => {
+                    if (closeFileError) {
+                        return reject(closeFileError);
+                    }
+                    fs.unlink(this._state.getSearchFile(), (error: NodeJS.ErrnoException | null) => {
+                        if (error) {
+                            return reject(this._logger.error(`Fail to remove search file due error: ${error.message}`));
+                        }
+                        resolve();
+                    });
+                });
             });
         });
     }
