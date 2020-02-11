@@ -64,9 +64,9 @@ export default class ControllerStreamFileReader {
                 });
                 this._stream.on('end', () => {
                     this.close();
-                    fs.stat(this._file, (err: NodeJS.ErrnoException | null, updatedStat: fs.Stats) => {
-                        if (err) {
-                            this._logger.warn(`Reader finished read data unexpectable. Requested: ${options.start} - ${options.end}. Fail get stat file information due error: ${err.message}`);
+                    fs.stat(this._file, (statErr: NodeJS.ErrnoException | null, updatedStat: fs.Stats) => {
+                        if (statErr) {
+                            this._logger.warn(`Reader finished read data unexpectable. Requested: ${options.start} - ${options.end}. Fail get stat file information due error: ${statErr.message}`);
                         } else {
                             this._logger.warn(`Reader finished read data unexpectable. File size: ${updatedStat.size} bytes. Requested: ${options.start} - ${options.end}`);
                         }
