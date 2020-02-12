@@ -14,10 +14,12 @@ export default class ControllerSearchUpdatesPostman {
     private _map: BytesRowsMap;
     private _destroyed: boolean = false;
     private _working: boolean = false;
+    private _hasActiveRequests: () => boolean;
 
-    constructor(streamId: string, map: BytesRowsMap) {
+    constructor(streamId: string, map: BytesRowsMap, hasActiveRequests: () => boolean) {
         this._streamId = streamId;
         this._map = map;
+        this._hasActiveRequests = hasActiveRequests;
         this._logger = new Logger(`ControllerSearchUpdatesPostman: ${this._streamId}`);
     }
 
@@ -43,8 +45,15 @@ export default class ControllerSearchUpdatesPostman {
         }, delay);
     }
 
+    public drop() {
+        clearTimeout(this._notification.timer);
+    }
+
     private _notify(): void {
         this._notification.last = Date.now();
+        if (!this._hasActiveRequests()) {
+            return;
+        }
         this._working = true;
         ServiceElectron.IPC.send(new IPCElectronMessages.SearchUpdated({
             guid: this._streamId,
