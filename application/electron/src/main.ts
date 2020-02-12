@@ -1,5 +1,6 @@
 // Libs
 import Logger from './tools/env.logger';
+import LogsService from './tools/env.logger.service';
 import { app as electronApp, dialog, MessageBoxReturnValue } from 'electron';
 import * as FS from './tools/fs';
 // Services
@@ -203,7 +204,10 @@ class Application {
         // Destroy services
         this.destroy().then(() => {
             this.logger.env(`Application are ready to be closed.`);
-            process.exit(0);
+            this.logger.env(`LogsService will be shutdown.`);
+            LogsService.shutdown().then(() => {
+                process.exit(0);
+            });
         });
     }
 

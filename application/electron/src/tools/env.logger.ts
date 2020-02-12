@@ -117,8 +117,6 @@ export default class Logger {
         }
     }
 
-
-
     private _output(message: string) {
         if (typeof this._parameters.output === 'function') {
             this._parameters.output(message);
