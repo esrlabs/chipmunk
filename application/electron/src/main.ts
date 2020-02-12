@@ -110,8 +110,6 @@ class Application {
 
     public destroy(): Promise<void> {
         return new Promise((resolve, reject) => {
-            // Remove existing handlers
-            process.removeAllListeners();
             this._destroy(InitializeStages.length - 1, (error?: Error) => {
                 if (error instanceof Error) {
                     return reject(error);
@@ -158,8 +156,12 @@ class Application {
         this.logger.env(`Application destroy: stage #${stage + 1}: starting...`);
         const services: any[] = InitializeStages[stage];
         const tasks: Array<Promise<any>> = services.map((ref: any) => {
-            this.logger.env(`Destroy: ${ref.getName()}`);
-            return ref.destroy();
+            this.logger.env(`Destroy: ${ref.getName()}: started...`);
+            return ref.destroy().then(() => {
+                this.logger.env(`Destroy: ${ref.getName()}: DONE`);
+            }).catch((err: Error) => {
+                this.logger.error(`Destroy: ${ref.getName()}: FAILED due: ${err.message}`);
+            });
         });
         if (tasks.length === 0) {
             return this._destroy(stage - 1, callback);
@@ -174,8 +176,8 @@ class Application {
     }
 
     private _bindProcessEvents() {
-        process.on('exit', this._process_onExit.bind(this));
-        process.on('SIGINT', this._process_onExit.bind(this));
+        process.once('exit', this._process_onExit.bind(this));
+        process.once('SIGINT', this._process_onExit.bind(this));
         process.on('uncaughtException', this._onUncaughtException.bind(this));
         process.on('unhandledRejection', this._onUnhandledRejection.bind(this));
     }
@@ -193,8 +195,9 @@ class Application {
     }
 
     private _process_onExit() {
+        this.logger.env(`Application would be closed.`);
         // Remove existing handlers
-        process.removeAllListeners();
+        // process.removeAllListeners();
         // Prevent closing application
         process.stdin.resume();
         // Destroy services
