@@ -1,5 +1,5 @@
-import * as FS from 'fs';
-import * as Path from 'path';
+import * as fs from "fs";
+import * as Path from "path";
 
 /**
  * Check is file/folder exist
@@ -8,16 +8,35 @@ import * as Path from 'path';
  */
 export function isExist(path: string): boolean {
     try {
-        return FS.existsSync(path);
+        return fs.existsSync(path);
     } catch (error) {
         return false;
     }
 }
 
 export enum EReadingFolderTarget {
-    all = 'all',
-    files = 'files',
-    folders = 'folders',
+    all = "all",
+    files = "files",
+    folders = "folders",
+}
+
+/**
+ * Check is file/folder exist
+ * @param {string} path path to file / folder
+ * @returns boolean
+ */
+export function doesExist(path: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+        fs.stat(path, (err: NodeJS.ErrnoException | null, stat: fs.Stats) => {
+            if (err) {
+                if (err.code === "ENOENT") {
+                    return resolve(false);
+                }
+                return reject(err);
+            }
+            return resolve(true);
+        });
+    });
 }
 
 /**
@@ -25,9 +44,12 @@ export enum EReadingFolderTarget {
  * @param {string} path path to folder
  * @returns Promise<string[]>
  */
-export function readFolder(path: string, target: EReadingFolderTarget = EReadingFolderTarget.all): Promise<string[]> {
+export function readFolder(
+    path: string,
+    target: EReadingFolderTarget = EReadingFolderTarget.all,
+): Promise<string[]> {
     return new Promise((resolve, reject) => {
-        FS.readdir(path, (error: NodeJS.ErrnoException | null, files: string[]) => {
+        fs.readdir(path, (error: NodeJS.ErrnoException | null, files: string[]) => {
             if (error) {
                 return reject(error);
             }
@@ -38,17 +60,24 @@ export function readFolder(path: string, target: EReadingFolderTarget = EReading
                 return resolve(files);
             }
             const result: string[] = [];
-            Promise.all(files.map((file: string) => {
-                return getEntityInfo(Path.resolve(path, file)).then((stat: FS.Stats) => {
-                    if ((target === EReadingFolderTarget.files && !stat.isDirectory()) || (target === EReadingFolderTarget.folders && stat.isDirectory())) {
-                        result.push(file);
-                    }
+            Promise.all(
+                files.map((file: string) => {
+                    return getEntityInfo(Path.resolve(path, file)).then((stat: fs.Stats) => {
+                        if (
+                            (target === EReadingFolderTarget.files && !stat.isDirectory()) ||
+                            (target === EReadingFolderTarget.folders && stat.isDirectory())
+                        ) {
+                            result.push(file);
+                        }
+                    });
+                }),
+            )
+                .then(() => {
+                    resolve(result);
+                })
+                .catch((errorReadingStat: Error) => {
+                    reject(errorReadingStat);
                 });
-            })).then(() => {
-                resolve(result);
-            }).catch((errorReadingStat: Error) => {
-                reject(errorReadingStat);
-            });
         });
     });
 }
@@ -74,14 +103,14 @@ export function readFolders(path: string): Promise<string[]> {
 /**
  * Returns information about file/folder
  * @param {string} entity path to entity. Can be file or folder
- * @returns Promise<FS.Stats>
+ * @returns Promise<fs.Stats>
  */
-export function getEntityInfo(entity: string): Promise<FS.Stats> {
+export function getEntityInfo(entity: string): Promise<fs.Stats> {
     return new Promise((resolve, reject) => {
         if (!isExist(entity)) {
             return reject(new Error(`Entity "${entity}" doesn't exist.`));
         }
-        FS.stat(entity, (error: NodeJS.ErrnoException | null, stats: FS.Stats) => {
+        fs.stat(entity, (error: NodeJS.ErrnoException | null, stats: fs.Stats) => {
             if (error) {
                 return reject(error);
             }
@@ -94,14 +123,14 @@ export function getEntityInfo(entity: string): Promise<FS.Stats> {
  * Returns text content of file
  * @param {string} file path to file
  * @param {string} codding codding name (default: utf8)
- * @returns Promise<FS.Stats>
+ * @returns Promise<fs.Stats>
  */
-export function readTextFile(file: string, codding: string = 'utf8'): Promise<string> {
+export function readTextFile(file: string, codding: string = "utf8"): Promise<string> {
     return new Promise((resolve, reject) => {
         if (!isExist(file)) {
             return reject(new Error(`File "${file}" doesn't exist.`));
         }
-        FS.readFile(file, codding, (error: NodeJS.ErrnoException | null, data: string) => {
+        fs.readFile(file, codding, (error: NodeJS.ErrnoException | null, data: string) => {
             if (error) {
                 return reject(error);
             }
@@ -115,14 +144,18 @@ export function readTextFile(file: string, codding: string = 'utf8'): Promise<st
  * @param {string} file path to file
  * @param {string} content content
  * @param {string} codding codding name (default: utf8)
- * @returns Promise<FS.Stats>
+ * @returns Promise<fs.Stats>
  */
-export function writeTextFile(file: string, content: string, overwrite: boolean = true): Promise<string> {
+export function writeTextFile(
+    file: string,
+    content: string,
+    overwrite: boolean = true,
+): Promise<string> {
     return new Promise((resolve, reject) => {
-        if (isExist(file) && !overwrite) {
-            return reject(new Error(`File "${file}" doesn't exist.`));
+        if (!overwrite && isExist(file)) {
+            return reject(new Error(`File "${file}" already exists.`));
         }
-        FS.writeFile(file, content, (error: NodeJS.ErrnoException | null) => {
+        fs.writeFile(file, content, (error: NodeJS.ErrnoException | null) => {
             if (error) {
                 return reject(error);
             }
@@ -141,7 +174,7 @@ export function unlink(file: string): Promise<void> {
         if (!isExist(file)) {
             return resolve();
         }
-        FS.unlink(file, (error: NodeJS.ErrnoException | null) => {
+        fs.unlink(file, (error: NodeJS.ErrnoException | null) => {
             if (error) {
                 return reject(error);
             }
@@ -160,7 +193,7 @@ export function mkdir(dir: string): Promise<void> {
         if (isExist(dir)) {
             return resolve();
         }
-        FS.mkdir(dir, (error: NodeJS.ErrnoException | null) => {
+        fs.mkdir(dir, (error: NodeJS.ErrnoException | null) => {
             if (error) {
                 return reject(error);
             }
@@ -189,44 +222,48 @@ export function rmdir(dir: string): Promise<void> {
             readFolders(dir).then((nestedDirs: string[]) => {
                 folders.push(...nestedDirs);
             }),
-        ]).then(() => {
-            // Remove files
-            Promise.all([
-                ...files.map((nestedFile: string) => {
-                    return unlink(Path.resolve(dir, nestedFile));
-                }),
-                ...folders.map((nestedFolder) => {
-                    return rmdir(Path.resolve(dir, nestedFolder));
-                }),
-            ]).then(() => {
-                FS.rmdir(dir, (error: NodeJS.ErrnoException | null) => {
-                    if (error instanceof Error) {
-                        return reject(error);
-                    }
-                    resolve();
-                });
-            }).catch((removingError: Error) => {
-                reject(removingError);
+        ])
+            .then(() => {
+                // Remove files
+                Promise.all([
+                    ...files.map((nestedFile: string) => {
+                        return unlink(Path.resolve(dir, nestedFile));
+                    }),
+                    ...folders.map(nestedFolder => {
+                        return rmdir(Path.resolve(dir, nestedFolder));
+                    }),
+                ])
+                    .then(() => {
+                        fs.rmdir(dir, (error: NodeJS.ErrnoException | null) => {
+                            if (error instanceof Error) {
+                                return reject(error);
+                            }
+                            resolve();
+                        });
+                    })
+                    .catch((removingError: Error) => {
+                        reject(removingError);
+                    });
+            })
+            .catch((error: Error) => {
+                reject(error);
             });
-        }).catch((error: Error) => {
-            reject(error);
-        });
     });
 }
 
 export function copyFolder(source: string, dest: string) {
     const destFolder = Path.join(dest, Path.basename(source));
-    if (!FS.existsSync(destFolder)) {
-        FS.mkdirSync(destFolder);
+    if (!fs.existsSync(destFolder)) {
+        fs.mkdirSync(destFolder);
     }
-    if (FS.lstatSync(source).isDirectory() ) {
-        const files = FS.readdirSync(source);
+    if (fs.lstatSync(source).isDirectory()) {
+        const files = fs.readdirSync(source);
         files.forEach((file: string) => {
             const fullname = Path.join(source, file);
-            if (FS.lstatSync(fullname).isDirectory() ) {
+            if (fs.lstatSync(fullname).isDirectory()) {
                 copyFolder(fullname, destFolder);
             } else {
-                FS.copyFileSync(fullname, Path.join(destFolder, file));
+                fs.copyFileSync(fullname, Path.join(destFolder, file));
             }
         });
     }
