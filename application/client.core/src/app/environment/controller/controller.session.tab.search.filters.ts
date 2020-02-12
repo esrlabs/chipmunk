@@ -288,7 +288,7 @@ export class ControllerSessionTabSearchFilters {
                 // Share results
                 OutputParsersService.setSearchResults(this._guid, []);
                 // Update stream for render
-                this._output.updateStreamState(results.found);
+                this._output.updateStreamState(0);
                 // Done
                 this._state.done(0);
                 // Aplly filters if exsists
@@ -327,7 +327,7 @@ export class ControllerSessionTabSearchFilters {
         });
     }
 
-    private _ipc_onSearchUpdated(message: IPCMessages.StreamUpdated) {
+    private _ipc_onSearchUpdated(message: IPCMessages.SearchUpdated) {
         if (this._guid !== message.guid) {
             return;
         }

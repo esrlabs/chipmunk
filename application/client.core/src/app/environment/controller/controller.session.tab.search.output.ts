@@ -240,12 +240,16 @@ export class ControllerSessionTabSearchOutput {
      * @returns { IRange | undefined } returns undefined if no need to load rows
      */
     public updateStreamState(rowsCount: number): void {
-        // Update count of rows
-        this._setTotalStreamCount(rowsCount);
-        // Update bookmarks state
-        this._updateBookmarksData();
-        // Trigger events
-        this._subjects.onStateUpdated.next(Object.assign({}, this._state));
+        if (rowsCount === 0) {
+            this.clearStream();
+        } else {
+            // Update count of rows
+            this._setTotalStreamCount(rowsCount);
+            // Update bookmarks state
+            this._updateBookmarksData();
+            // Trigger events
+            this._subjects.onStateUpdated.next(Object.assign({}, this._state));
+        }
     }
 
     public getRowsCount(): number {

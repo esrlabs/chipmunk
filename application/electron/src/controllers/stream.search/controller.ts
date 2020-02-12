@@ -32,7 +32,6 @@ export default class ControllerStreamSearch {
     private _searching: SearchEngine;
     private _events: EventsHub;
     private _processor: ControllerStreamProcessor;
-    private _requests: RegExp[] = [];
     private _pending: {
         bytesReadTo: number,
     } = {
@@ -121,7 +120,7 @@ export default class ControllerStreamSearch {
     }
 
     private _append(updated?: IRange): void {
-        if (this._requests.length === 0 || this._processor.getStreamSize() === 0) {
+        if (!this._state.hasActiveRequests() || this._processor.getStreamSize() === 0) {
             this._pending.bytesReadTo = -1;
             return;
         }
@@ -148,7 +147,7 @@ export default class ControllerStreamSearch {
 
     private _search(id: string, to?: number): Promise<number> {
         return new Promise((resolve, reject) => {
-            const task = this._searching.search(this._requests, to);
+            const task = this._searching.search(this._state.getRequests(), to);
             if (task instanceof Error) {
                 this._logger.error(`Fail to create task for search due error: ${task.message}`);
                 return reject(task);
@@ -165,11 +164,11 @@ export default class ControllerStreamSearch {
     }
 
     private _inspect() {
-        if (this._requests.length === 0 || this._processor.getStreamSize() === 0) {
+        if (!this._state.hasActiveRequests() || this._processor.getStreamSize() === 0) {
             return;
         }
         // Start inspecting
-        const inspecting = this._searching.inspect(this._requests);
+        const inspecting = this._searching.inspect(this._state.getRequests());
         if (inspecting instanceof Error) {
             this._logger.warn(`Fail to start inspecting search results due error: ${inspecting.message}`);
             return;
@@ -197,6 +196,8 @@ export default class ControllerStreamSearch {
             this._searching.cancel();
             // Drop map
             this._state.map.drop();
+            // Drop postman
+            this._state.postman.drop();
             // Close reader
             this._reader.close();
             // Check and drop file
@@ -229,10 +230,6 @@ export default class ControllerStreamSearch {
         this._state.postman.notification(false);
     }
 
-    private _setCurrentRequests(requests: RegExp[]) {
-        this._requests = requests;
-    }
-
     private _ipc_onSearchRequest(message: IPCElectronMessages.TMessage, response: (instance: any) => any) {
         const request: IPCElectronMessages.SearchRequest = message as IPCElectronMessages.SearchRequest;
         // Store starting tile
@@ -251,7 +248,7 @@ export default class ControllerStreamSearch {
         // Check count of requests
         if (request.requests.length === 0) {
             // Clean if necessary
-            if (this._requests.length !== 0) {
+            if (this._state.hasActiveRequests()) {
                 this._clear().then(() => {
                     this._ipc_searchRequestResponse(response, {
                         id: request.session,
@@ -268,7 +265,7 @@ export default class ControllerStreamSearch {
                     });
                 });
                 // Drop requests
-                this._setCurrentRequests([]);
+                this._state.setRequests([]);
             } else {
                 this._ipc_searchRequestResponse(response, {
                     id: request.session,
@@ -281,7 +278,7 @@ export default class ControllerStreamSearch {
         // Clear results file
         this._clear().then(() => {
             // Save requests
-            this._setCurrentRequests(request.requests.map((req: IPCElectronMessages.ISearchExpression) => {
+            this._state.setRequests(request.requests.map((req: IPCElectronMessages.ISearchExpression) => {
                 return getSearchRegExp(req.request, req.flags);
             }));
             // Check stream
@@ -310,7 +307,7 @@ export default class ControllerStreamSearch {
             });
         }).catch((droppingErr: Error) => {
             // Drop requests
-            this._setCurrentRequests([]);
+            this._state.setRequests([]);
             this._logger.error(`Fail drop search file due error: ${droppingErr.message}`);
             return this._ipc_searchRequestResponse(response, {
                 id: request.session,
@@ -336,7 +333,7 @@ export default class ControllerStreamSearch {
 
     private _ipc_onSearchRequestCancelRequest(message: IPCElectronMessages.TMessage, response: (instance: any) => any) {
         const request: IPCElectronMessages.SearchRequestCancelRequest = message as IPCElectronMessages.SearchRequestCancelRequest;
-        this._setCurrentRequests([]);
+        this._state.setRequests([]);
         // Clear results file
         this._clear().then(() => {
             response(new IPCElectronMessages.SearchRequestCancelResponse({
@@ -358,7 +355,7 @@ export default class ControllerStreamSearch {
             return;
         }
         // Check current state
-        if (this._requests.length === 0) {
+        if (!this._state.hasActiveRequests()) {
             return response(new IPCElectronMessages.SearchChunk({
                 guid: this._state.getGuid(),
                 start: 0,

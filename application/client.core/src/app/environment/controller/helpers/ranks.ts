@@ -5,6 +5,9 @@ const CRanks = [
     { rank: 1000, label: 'K' },
 ];
 export function rankedNumberAsString(num: number): string {
+    if (typeof num !== 'number') {
+        return '';
+    }
     let target;
     CRanks.forEach((rank) => {
         if (num > rank.rank && target === undefined) {
