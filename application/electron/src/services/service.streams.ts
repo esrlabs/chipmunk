@@ -121,14 +121,15 @@ class ServiceStreams implements IService  {
             });
             // Destroy all connections / servers to UNIX sockets
             this._streams.forEach((stream: IStreamInfo, guid: TGuid) => {
-                stream.connections.forEach((connection: Net.Socket) => {
-                    connection.removeAllListeners();
-                    connection.unref();
-                    connection.destroy();
+                stream.processor.destroy().then(() => {
+                    stream.connections = [];
+                    stream.server.unref();
+                    stream.connections.forEach((connection: Net.Socket) => {
+                        connection.unref();
+                        connection.destroy();
+                        connection.removeAllListeners();
+                    });
                 });
-                stream.connections = [];
-                stream.server.unref();
-                stream.processor.destroy();
             });
             // Remove all UNIX socket's files
             this._cleanUp().then(() => {
