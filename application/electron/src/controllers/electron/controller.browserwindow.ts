@@ -111,7 +111,6 @@ export default class ControllerBrowserWindow extends EventEmitter {
         }
         this._window.on('resize', this._onUpdate);
         this._window.on('move', this._onUpdate);
-        this._window.on('close', this._onUpdate);
         this._window.on('ready-to-show', this._onReady);
         this._window.on('closed', this._onClosed);
     }
@@ -131,11 +130,12 @@ export default class ControllerBrowserWindow extends EventEmitter {
     }
 
     private _onReady() {
+        this._logger.info('Event "ready-to-show" is emitted');
         this.emit(ControllerBrowserWindow.Events.ready);
     }
 
     private _onClosed() {
-        this.destroy();
+        this._logger.info('Event "close" is emitted');
         this.emit(ControllerBrowserWindow.Events.closed);
     }
 }
