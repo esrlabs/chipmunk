@@ -1,9 +1,5 @@
 import { LogsBlackbox } from "./env.logger.blackbox";
 import LogsBuffer from "./env.logger.buffer";
-import * as FS from "./fs";
-import * as path from "path";
-import * as fs from "fs";
-import * as os from "os";
 
 export enum ELogLevels {
     INFO = "INFO",
@@ -155,6 +151,18 @@ class Service {
 
     public write(msg: string) {
         this._blackbox.write(msg);
+    }
+
+    public shutdown(): Promise<void> {
+        return new Promise((resolve) => {
+            this._blackbox.shutdown().then(() => {
+                resolve();
+            }).catch((err: Error) => {
+                // tslint:disable-next-line:no-console
+                console.log(`Fail to shutdown logger due error: ${err.message}`);
+                resolve();
+            });
+        });
     }
 }
 
