@@ -39,13 +39,18 @@ export default class ControllerBrowserWindow extends EventEmitter {
         });
     }
 
-    public destroy() {
-        this.unsubscribeAll();
-        if (this._ipc !== undefined) {
-            this._ipc.destroy();
-        }
-        this._ipc = undefined;
-        this._window = undefined;
+    public destroy(): Promise<void> {
+        return new Promise((resolve) => {
+            this.unsubscribeAll();
+            if (this._ipc !== undefined) {
+                this._ipc.destroy();
+            }
+            this._ipc = undefined;
+            this._window = undefined;
+            this._logger.debug(`BrowserWindow guid "${this._guid}" is destroyed.`);
+            resolve();
+        });
+
     }
 
     public debug() {

@@ -52,7 +52,6 @@ class ServiceElectron implements IService {
         this._onReady = this._onReady.bind(this);
         this._onClosed = this._onClosed.bind(this);
         this._onActivate = this._onActivate.bind(this);
-        this._onWindowClosed = this._onWindowClosed.bind(this);
         this._configure();
         this._bind();
     }
@@ -71,6 +70,12 @@ class ServiceElectron implements IService {
 
     public destroy(): Promise<void> {
         return new Promise((resolve) => {
+            if (this._controllerBrowserWindow === undefined) {
+                return resolve();
+            }
+            this._logger.env(`Destroing browser window`);
+            this._controllerBrowserWindow.destroy();
+            this._controllerBrowserWindow = undefined;
             resolve();
         });
     }
@@ -202,21 +207,11 @@ class ServiceElectron implements IService {
         }
         this._logger.env(`Creating new browser window`);
         this._controllerBrowserWindow = new ControllerBrowserWindow(uuid.v4());
-        this._controllerBrowserWindow.subscribe(ControllerBrowserWindow.Events.closed, this._onWindowClosed);
         this._controllerBrowserWindow.getIpc().then((ipc: ControllerElectronIpc) => {
             this._ipc = ipc;
         }).catch((error: Error) => {
             this._logger.error(`Fail to get IPC: ${error.message}`);
         });
-    }
-
-    private _destroyBrowserWindow() {
-        if (this._controllerBrowserWindow === undefined) {
-            return;
-        }
-        this._logger.env(`Destroing browser window`);
-        this._controllerBrowserWindow.destroy();
-        this._controllerBrowserWindow = undefined;
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -233,7 +228,7 @@ class ServiceElectron implements IService {
     }
 
     private _onClosed() {
-        this._destroyBrowserWindow();
+        this._logger.debug(`Event "window-all-closed" is emited. Quit will be forced.`);
         return app.quit();
         /*
         if (process.platform !== 'darwin') {
@@ -242,14 +237,6 @@ class ServiceElectron implements IService {
         }
         this._logger.env(`Darwin platform is detected. Application is deactivated.`);
         */
-    }
-
-    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-     * Browser window events
-     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    private _onWindowClosed() {
-        this._logger.env(`Window is closed.`);
-        this._destroyBrowserWindow();
     }
 
 }

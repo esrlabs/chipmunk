@@ -132,7 +132,6 @@ export default class ControllerStreamCharts {
             })).catch((sendMsgErr: Error) => {
                 this._logger.error(`Fail notify render due error: ${sendMsgErr.message}`);
             });
-            // console.log(data);
         }).catch((searchErr: Error) => {
             this._logger.warn(`Fail to append search results (range: ${bytes.from} - ${bytes.to}) due error: ${searchErr.message}`);
         }).finally(() => {
