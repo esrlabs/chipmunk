@@ -28,7 +28,9 @@ pub fn convert_to_dlt_file(
 ) -> Result<(), Error> {
     let filter_config: Option<filtering::ProcessedDltFilterConfig> =
         dlt_filter.map(filtering::process_filter_config);
-    let ending = &pcap_path.extension().expect("could not get extension");
+    let ending = &pcap_path
+        .extension()
+        .ok_or_else(|| err_msg("could not get extension"))?;
     trace!(
         "convert_to_dlt_file({:?}) with ending: {:?}",
         pcap_path,

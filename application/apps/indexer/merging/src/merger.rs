@@ -37,10 +37,9 @@ pub struct MergeItemOptions {
 
 pub fn read_merge_options(f: &mut fs::File) -> Result<Vec<MergeItemOptions>, failure::Error> {
     let mut contents = String::new();
-    f.read_to_string(&mut contents)
-        .expect("something went wrong reading the file");
+    f.read_to_string(&mut contents)?;
 
-    let v: Vec<MergeItemOptions> = serde_json::from_str(&contents[..])?; //.expect("could not parse merge item file");
+    let v: Vec<MergeItemOptions> = serde_json::from_str(&contents[..])?;
     Ok(v)
 }
 
@@ -165,14 +164,11 @@ pub fn merge_and_sort_files(
     let mut heap: BinaryHeap<TimedLine> = BinaryHeap::new();
     let mut line_nr = 0;
     let out_file: std::fs::File = if append {
-        std::fs::OpenOptions::new()
-            .append(true)
-            .open(out_path)
-            .expect("could not open file to append")
+        std::fs::OpenOptions::new().append(true).open(out_path)?
     } else {
-        std::fs::File::create(&out_path).unwrap()
+        std::fs::File::create(&out_path)?
     };
-    let original_file_size = out_file.metadata().expect("could not read metadata").len() as usize;
+    let original_file_size = out_file.metadata()?.len() as usize;
     let mut chunks = vec![];
     let mut chunk_factory = ChunkFactory::new(chunk_size, original_file_size);
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);

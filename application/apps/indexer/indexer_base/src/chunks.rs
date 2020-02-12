@@ -10,8 +10,8 @@
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
 use serde::{Deserialize, Serialize};
-use serde_json::Result;
 use std::fs;
+use failure::Error;
 use crate::progress::{IndexingProgress, Notification};
 
 pub type ChunkResults = std::result::Result<IndexingProgress<Chunk>, Notification>;
@@ -21,10 +21,10 @@ pub struct Chunk {
     pub r: (usize, usize),
     pub b: (usize, usize),
 }
-pub fn serialize_chunks(chunks: &[Chunk], out_file_name: &std::path::Path) -> Result<()> {
+pub fn serialize_chunks(chunks: &[Chunk], out_file_name: &std::path::Path) -> Result<(), Error> {
     // Serialize it to a JSON string.
     let j = serde_json::to_string(chunks)?;
-    fs::write(out_file_name, j).expect("Unable to write file");
+    fs::write(out_file_name, j)?;
     Ok(())
 }
 pub struct ChunkFactory {

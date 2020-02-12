@@ -160,7 +160,7 @@ mod tests {
         // type raw .....................................v||      ||||
         // variable info................................v|||      ||||
         //0b 1000 0100 0101
-        let expected1: u32 = 0b0000_0000_0000_0000_1000_1000_0001_0001;
+        let expected1: u32 = 0b0000_0000_0000_0000_1000_1000_0001_0000;
         let expected2: u32 = 0b0000_0000_0000_0000_0001_0000_0100_0011;
         let expected3: u32 = 0b0000_0000_0000_0000_1000_0010_0000_0000;
         // string coding .......................^^.^|||      ||||
@@ -214,7 +214,7 @@ mod tests {
             name: Some("foo".to_string()),
             unit: None,
             fixed_point: None,
-            value: Value::Bool(true),
+            value: Value::Bool(0x1),
         };
         let mut expected = type_info.as_bytes::<BigEndian>();
         expected.extend(vec![0x0, 0x4]); // length of name + zero
@@ -235,7 +235,7 @@ mod tests {
             name: None,
             unit: None,
             fixed_point: None,
-            value: Value::Bool(true),
+            value: Value::Bool(0x1),
         };
         expected2.extend(vec![0x1]); // value for bool (true == 1)
         assert_eq!(expected2, argument2.as_bytes::<BigEndian>());

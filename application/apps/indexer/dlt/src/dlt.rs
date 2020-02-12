@@ -351,7 +351,7 @@ pub fn fixed_point_value_width(v: &FixedPointValue) -> usize {
 }
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum Value {
-    Bool(bool),
+    Bool(u8),
     U8(u8),
     U16(u16),
     U32(u32),
@@ -372,6 +372,8 @@ pub enum Value {
 pub enum StringCoding {
     ASCII,
     UTF8,
+    #[proptest(strategy = "(2..=7u8).prop_map(StringCoding::Reserved)")]
+    Reserved(u8),
 }
 #[derive(Debug, Clone, PartialEq, Copy, Arbitrary, Serialize)]
 pub enum FloatWidth {
@@ -392,6 +394,27 @@ pub enum TypeLength {
     BitLength32 = 32,
     BitLength64 = 64,
     BitLength128 = 128,
+}
+
+impl FloatWidth {
+    pub fn width_in_bytes(self) -> usize {
+        match self {
+            FloatWidth::Width32 => 4,
+            FloatWidth::Width64 => 8,
+        }
+    }
+}
+
+impl TypeLength {
+    pub fn width_in_bytes(self) -> usize {
+        match self {
+            TypeLength::BitLength8 => 1,
+            TypeLength::BitLength16 => 2,
+            TypeLength::BitLength32 => 4,
+            TypeLength::BitLength64 => 8,
+            TypeLength::BitLength128 => 16,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Arbitrary, Serialize)]
@@ -480,7 +503,6 @@ impl TypeInfo {
             TypeInfoKind::SignedFixedPoint(len) => info |= TypeInfo::type_length_bits_float(len),
             TypeInfoKind::Unsigned(len) => info |= TypeInfo::type_length_bits(len),
             TypeInfoKind::UnsignedFixedPoint(len) => info |= TypeInfo::type_length_bits_float(len),
-            TypeInfoKind::Bool => info |= TypeInfo::type_length_bits(TypeLength::BitLength8),
             _ => (),
         }
         match self.kind {
@@ -506,11 +528,14 @@ impl TypeInfo {
         match self.coding {
             StringCoding::ASCII => info |= 0b000 << 15,
             StringCoding::UTF8 => info |= 0b001 << 15,
+            StringCoding::Reserved(v) => info |= ((0b111 & v) as u32) << 15,
         }
+        trace!("writing type info: {:#b}", info);
 
         let mut buf = BytesMut::with_capacity(4);
         let mut b = [0; 4];
         T::write_u32(&mut b, info);
+        trace!("type info bytes: {:02X?}", b);
         buf.put_slice(&b);
         buf.to_vec()
     }
@@ -581,9 +606,9 @@ impl TryFrom<u32> for TypeInfo {
         let coding = match (info >> 15) & 0b111 {
             0x00 => (StringCoding::ASCII),
             0x01 => (StringCoding::UTF8),
-            _ => {
-                // Unknown coding in TypeInfo, assume UTF8
-                (StringCoding::UTF8)
+            v => {
+                trace!("Unknown coding in TypeInfo, assume UTF8");
+                (StringCoding::Reserved(v as u8))
             }
         };
         Ok(TypeInfo {
@@ -684,12 +709,74 @@ impl Argument {
         }
         valid
     }
-    pub fn len<T: ByteOrder>(&self) -> usize {
+    pub fn len_old<T: ByteOrder>(&self) -> usize {
         self.as_bytes::<T>().len()
     }
-    pub fn is_empty<T: ByteOrder>(&self) -> bool {
-        self.len::<T>() == 0
+    fn fixed_point_capacity(&self, float_width: FloatWidth) -> usize {
+        let mut capacity = float_width.width_in_bytes();
+        if let Some(fp) = &self.fixed_point {
+            capacity += 4 /*quantixation */ + fixed_point_value_width(&fp.offset);
+        }
+        capacity
     }
+
+    pub fn len_new(self: &Argument) -> usize {
+        let name_space = match &self.name {
+            Some(n) => 2 /* length of name */ + n.len() + 1,
+            _ => 0,
+        };
+        let unit_space = match &self.unit {
+            Some(u) => 2 /* length of unit */ + u.len() + 1,
+            _ => 0,
+        };
+        let without_type_info = match self.type_info.kind {
+            TypeInfoKind::Bool => name_space + 1,
+            TypeInfoKind::Signed(bit_width) => name_space + unit_space + bit_width.width_in_bytes(),
+            TypeInfoKind::Unsigned(bit_width) => {
+                name_space + unit_space + bit_width.width_in_bytes()
+            }
+            TypeInfoKind::SignedFixedPoint(float_width) => {
+                name_space + unit_space + self.fixed_point_capacity(float_width)
+            }
+            TypeInfoKind::UnsignedFixedPoint(float_width) => {
+                name_space + unit_space + self.fixed_point_capacity(float_width)
+            }
+            TypeInfoKind::Float(float_width) => {
+                name_space + unit_space + float_width.width_in_bytes()
+            }
+            TypeInfoKind::StringType => {
+                let mut capacity = 2 /* length of string and termination char */ + name_space;
+                match &self.value {
+                    Value::StringVal(sv) => {
+                        capacity += sv.len() + 1;
+                    }
+                    _ => {
+                        error!("Found typeinfokind StringType but no StringValue!");
+                    }
+                }
+                capacity
+            }
+            TypeInfoKind::Raw => {
+                let mut capacity = 2 /* length of string and termination char */ + name_space;
+                match &self.value {
+                    Value::Raw(bytes) => capacity += bytes.len(),
+                    _ => {
+                        error!("Found typeinfokind StringType but no StringValue!");
+                    }
+                }
+                capacity
+            }
+        };
+        without_type_info + TYPE_INFO_LENGTH
+    }
+
+    pub fn is_empty<T: ByteOrder>(&self) -> bool {
+        let old_len = self.len_old::<T>();
+        let new_len = self.len_new();
+        assert_eq!(old_len, new_len);
+        new_len == 0
+    }
+
     fn mut_buf_with_typeinfo_name<T: ByteOrder>(
         &self,
         info: &TypeInfo,
@@ -716,7 +803,13 @@ impl Argument {
         unit: &Option<String>,
         fixed_point: &Option<FixedPoint>,
     ) -> BytesMut {
-        // println!("mut_buf_with_typeinfo_name_unit {:?}/{:?}", name, unit);
+        // trace!(
+        //     "mut_buf_with_typeinfo_name_unit (info: {:?}) {:?}/{:?} (fp: {:?})",
+        //     info,
+        //     name,
+        //     unit,
+        //     fixed_point
+        // );
         let mut capacity = TYPE_INFO_LENGTH;
         if info.has_variable_info {
             if let Some(n) = name {
@@ -785,18 +878,21 @@ impl Argument {
         // println!("typeinfo + name + unit as bytes: {:02X?}", buf.to_vec());
         buf
     }
-    #[allow(dead_code)]
+
     pub fn as_bytes<T: ByteOrder>(self: &Argument) -> Vec<u8> {
+        trace!("argument as_bytes ===================================");
         match self.type_info.kind {
             TypeInfoKind::Bool => {
                 let mut buf = self.mut_buf_with_typeinfo_name::<T>(&self.type_info, &self.name);
-                let v = if self.value == Value::Bool(true) {
-                    0x1
-                } else {
-                    0x0
+                let v = match self.value {
+                    Value::Bool(x) => x,
+                    _ => {
+                        error!("Argument typeinfokind was bool but value was not!");
+                        0x0
+                    }
                 };
                 buf.put_u8(v);
-                dbg_bytes(buf.len(), "bool argument", &buf.to_vec()[..]);
+                dbg_bytes("bool argument", &buf.to_vec()[..]);
                 buf.to_vec()
             }
             TypeInfoKind::Signed(_) => {
@@ -807,7 +903,7 @@ impl Argument {
                     &self.fixed_point,
                 );
                 put_signed_value::<T>(&self.value, &mut buf);
-                dbg_bytes(buf.len(), "signed argument", &buf.to_vec()[..]);
+                dbg_bytes("signed argument", &buf.to_vec()[..]);
                 buf.to_vec()
             }
             TypeInfoKind::SignedFixedPoint(_) => {
@@ -818,7 +914,7 @@ impl Argument {
                     &self.fixed_point,
                 );
                 put_signed_value::<T>(&self.value, &mut buf);
-                dbg_bytes(buf.len(), "signed fixed point argument", &buf.to_vec()[..]);
+                dbg_bytes("signed fixed point argument", &buf.to_vec()[..]);
                 buf.to_vec()
             }
             TypeInfoKind::Unsigned(_) => {
@@ -829,7 +925,7 @@ impl Argument {
                     &self.fixed_point,
                 );
                 put_unsigned_value::<T>(&self.value, &mut buf);
-                dbg_bytes(buf.len(), "unsigned argument", &buf.to_vec()[..]);
+                dbg_bytes("unsigned argument", &buf.to_vec()[..]);
                 buf.to_vec()
             }
             TypeInfoKind::UnsignedFixedPoint(_) => {
@@ -840,7 +936,7 @@ impl Argument {
                     &self.fixed_point,
                 );
                 put_unsigned_value::<T>(&self.value, &mut buf);
-                dbg_bytes(buf.len(), "unsigned FP argument", &buf.to_vec()[..]);
+                dbg_bytes("unsigned FP argument", &buf.to_vec()[..]);
                 buf.to_vec()
             }
             TypeInfoKind::Float(_) => {
@@ -866,7 +962,7 @@ impl Argument {
                     &self.fixed_point,
                 );
                 write_value::<T>(&self.value, &mut buf);
-                dbg_bytes(buf.len(), "float argument", &buf.to_vec()[..]);
+                dbg_bytes("float argument", &buf.to_vec()[..]);
                 buf.to_vec()
             }
             // TypeInfoKind::Array => {
@@ -896,11 +992,7 @@ impl Argument {
                                 buf.put_u8(0x0); // null termination
                                 buf.extend_from_slice(s.as_bytes());
                                 buf.put_u8(0x0); // null termination
-                                dbg_bytes(
-                                    buf.len(),
-                                    "StringType with variable info",
-                                    &buf.to_vec()[..],
-                                );
+                                dbg_bytes("StringType with variable info", &buf.to_vec()[..]);
                                 buf.to_vec()
                             }
                             v => {
@@ -922,10 +1014,10 @@ impl Argument {
                                 buf.put_u16::<T>(s.len() as u16 + 1);
                                 buf.extend_from_slice(s.as_bytes());
                                 buf.put_u8(0x0); // null termination
-                                dbg_bytes(
-                                    buf.len(),
+                                dbg_bytes_with_info(
                                     "StringType, no variable info",
                                     &buf.to_vec()[..],
+                                    Some(s),
                                 );
                                 buf.to_vec()
                             }
@@ -962,7 +1054,7 @@ impl Argument {
                                 buf.extend_from_slice(var_name.as_bytes());
                                 buf.put_u8(0x0); // null termination
                                 buf.extend_from_slice(bytes);
-                                dbg_bytes(buf.len(), "Raw, with variable info", &buf.to_vec()[..]);
+                                dbg_bytes("Raw, with variable info", &buf.to_vec()[..]);
                                 buf.to_vec()
                             }
                             _ => {
@@ -983,7 +1075,7 @@ impl Argument {
                                 #[allow(deprecated)]
                                 buf.put_u16::<T>(bytes.len() as u16);
                                 buf.extend_from_slice(bytes);
-                                dbg_bytes(buf.len(), "Raw, no variable info", &buf.to_vec()[..]);
+                                dbg_bytes("Raw, no variable info", &buf.to_vec()[..]);
                                 buf.to_vec()
                             }
                             _ => {
@@ -1089,7 +1181,10 @@ pub enum PayloadContent {
 fn payload_content_len<T: ByteOrder>(content: &PayloadContent) -> usize {
     match content {
         PayloadContent::Verbose(args) => args.iter().fold(0usize, |mut sum, arg| {
-            sum += arg.len::<T>();
+            let old_len = arg.len_old::<T>();
+            let new_len = arg.len_new();
+            assert_eq!(old_len, new_len);
+            sum += new_len;
             sum
         }),
         PayloadContent::NonVerbose(_id, payload) => 4usize + payload.len(),
@@ -1130,20 +1225,12 @@ impl Payload2 {
         }
     }
 
-    #[allow(dead_code)]
     pub(crate) fn as_bytes<T: ByteOrder>(&self) -> Vec<u8> {
-        // println!("...Payload2::as_bytes for {:?}", self);
         let mut buf = BytesMut::with_capacity(payload_content_len::<T>(&self.payload_content));
         match &self.payload_content {
             PayloadContent::Verbose(args) => {
-                // println!(
-                //     "...Payload2::as_bytes, writing verbose args ({}), buf.len = {}",
-                //     args.len(),
-                //     buf.len()
-                // );
                 for arg in args {
                     let arg_bytes = &arg.as_bytes::<T>();
-                    // println!("  arg_bytes: {:02X?}", arg_bytes);
                     buf.extend_from_slice(arg_bytes);
                 }
             }
@@ -1202,14 +1289,21 @@ pub struct MessageConfig {
 }
 
 #[inline]
-fn dbg_bytes(_index: usize, _name: &str, _bytes: &[u8]) {
-    // println!(
-    //     "writing {}[{}]: {} {:02X?}",
-    //     _name,
-    //     _index,
-    //     _bytes.len(),
-    //     _bytes
-    // );
+fn dbg_bytes_with_info(_name: &str, _bytes: &[u8], _info: Option<&str>) {
+    trace!(
+        "writing {}: {} {:02X?} {}",
+        _name,
+        _bytes.len(),
+        _bytes,
+        match _info {
+            Some(i) => i,
+            None => "",
+        }
+    );
+}
+#[inline]
+fn dbg_bytes(_name: &str, _bytes: &[u8]) {
+    dbg_bytes_with_info(_name, _bytes, None);
 }
 impl Message {
     pub fn new(
@@ -1271,25 +1365,21 @@ impl Message {
             // println!("using capacity: {}", capacity);
             BytesMut::with_capacity(capacity)
         };
-        dbg_bytes(buf.len(), "header", &self.header.header_as_bytes()[..]);
-        buf.extend_from_slice(&self.header.header_as_bytes()[..]);
+        dbg_bytes("header", &self.header.header_as_bytes());
+        buf.extend_from_slice(&self.header.header_as_bytes());
         if let Some(ext_header) = &self.extended_header {
             let ext_header_bytes = ext_header.as_bytes();
-            dbg_bytes(buf.len(), "ext_header", &ext_header_bytes[..]);
-            buf.extend_from_slice(&ext_header_bytes[..]);
+            dbg_bytes("ext_header", &ext_header_bytes);
+            buf.extend_from_slice(&ext_header_bytes);
         }
         if self.header.endianness == Endianness::Big {
             let big_endian_payload = self.payload.as_bytes::<BigEndian>();
-            dbg_bytes(buf.len(), "big endian payload", &big_endian_payload[..]);
-            buf.extend_from_slice(&big_endian_payload[..]);
+            dbg_bytes("--> big endian payload", &big_endian_payload);
+            buf.extend_from_slice(&big_endian_payload);
         } else {
             let little_endian_payload = self.payload.as_bytes::<LittleEndian>();
-            dbg_bytes(
-                buf.len(),
-                "little endian payload",
-                &little_endian_payload[..],
-            );
-            buf.extend_from_slice(&little_endian_payload[..]);
+            dbg_bytes("--> little endian payload", &little_endian_payload);
+            buf.extend_from_slice(&little_endian_payload);
         }
 
         buf.to_vec()
@@ -1556,6 +1646,8 @@ impl From<&MessageType> for u8 {
         }
     }
 }
+/// The Message Type is encoded in bit 1-3 of the MessageInfo
+/// xxxx 321x
 impl TryFrom<u8> for MessageType {
     type Error = Error;
     fn try_from(message_info: u8) -> Result<MessageType, Error> {

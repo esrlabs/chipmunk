@@ -1,3 +1,5 @@
+extern crate dirs;
+use crate::dlt_file::create_dlt_tmp_file;
 use std::time::{SystemTime, UNIX_EPOCH};
 use indexer_base::chunks::Chunk;
 use crate::dlt_parse::*;
@@ -63,6 +65,9 @@ pub async fn index_from_socket2(
 ) -> Result<(), ConnectionError> {
     trace!("index_from_socket for socket conf: {:?}", socket_config);
     let (out_file, current_out_file_size) = utils::get_out_file_and_size(true, out_path)?;
+    let tmp_dlt_file = create_dlt_tmp_file("socket")?;
+
+    let mut tmp_writer = BufWriter::new(tmp_dlt_file);
     let mut chunk_factory = ChunkFactory::new(0, current_out_file_size);
     let mut line_nr = initial_line_nr;
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
@@ -130,7 +135,8 @@ pub async fn index_from_socket2(
         };
         match maybe_msg {
             Some(msg) => {
-                // trace!("got msg ...({} bytes)", msg.as_bytes().len());
+                trace!("got msg ...({} bytes)", msg.as_bytes().len());
+                tmp_writer.write_all(&msg.as_bytes())?;
                 let written_bytes_len =
                     utils::create_tagged_line_d(tag, &mut buf_writer, &msg, line_nr, true)?;
                 line_nr += 1;
@@ -146,6 +152,7 @@ pub async fn index_from_socket2(
             }
         }
     }
+    tmp_writer.flush()?;
     Ok(())
 }
 #[allow(clippy::too_many_arguments)]

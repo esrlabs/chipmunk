@@ -29,10 +29,9 @@ pub struct ConcatItemOptions {
 
 pub fn read_concat_options(f: &mut fs::File) -> Result<Vec<ConcatItemOptions>, failure::Error> {
     let mut contents = String::new();
-    f.read_to_string(&mut contents)
-        .expect("something went wrong reading the file");
+    f.read_to_string(&mut contents)?;
 
-    let v: Vec<ConcatItemOptions> = serde_json::from_str(&contents[..])?; //.expect("could not parse concat item file");
+    let v: Vec<ConcatItemOptions> = serde_json::from_str(&contents[..])?;
     Ok(v)
 }
 
@@ -65,9 +64,8 @@ pub fn concat_files_use_config_file(
         .map(|o: ConcatItemOptions| ConcatenatorInput {
             path: PathBuf::from(&dir_name)
                 .join(o.path)
-                .to_str()
-                .expect("path should be convertible to string")
-                .to_string(),
+                .to_string_lossy()
+                .into(),
             tag: o.tag,
         })
         .collect();

@@ -30,7 +30,7 @@ use crate::fibex::FibexMetadata;
 
 pub fn create_index_and_mapping_dlt(
     config: IndexingConfig,
-    source_file_size: Option<usize>,
+    source_file_size: usize,
     dlt_filter: Option<filtering::DltFilterConfig>,
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
@@ -201,7 +201,7 @@ impl FileMessageProducer {
 #[allow(clippy::cognitive_complexity)]
 pub fn index_dlt_content(
     config: IndexingConfig,
-    source_file_size: Option<usize>,
+    source_file_size: usize,
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
     fibex_metadata: Option<FibexMetadata>,
@@ -219,6 +219,8 @@ pub fn index_dlt_content(
     } else {
         0
     };
+    let tmp_file = create_dlt_tmp_file("file")?;
+    let mut tmp_writer = BufWriter::with_capacity(10 * 1024 * 1024, tmp_file);
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
 
     let mut progress_reporter = ProgressReporter::new(source_file_size, update_channel.clone());
@@ -243,6 +245,7 @@ pub fn index_dlt_content(
                 let written_bytes_len =
                     utils::create_tagged_line_d(config.tag, &mut buf_writer, &msg, line_nr, true)?;
                 trace!("written_bytes_len: {}", written_bytes_len);
+                tmp_writer.write_all(&msg.as_bytes())?;
                 line_nr += 1;
                 if let Some(chunk) =
                     chunk_factory.create_chunk_if_needed(line_nr, written_bytes_len)
@@ -283,7 +286,7 @@ pub fn index_dlt_content(
                     );
                 }
                 DltParseError::Unrecoverable { cause } => {
-                    warn!("cannot continue parsing: {}", cause);
+                    warn!("dlt_file: cannot continue parsing: {}", cause);
                     update_channel.send(Err(Notification {
                         severity: Severity::ERROR,
                         content: format!("error parsing dlt file: {}", cause),
@@ -297,6 +300,7 @@ pub fn index_dlt_content(
 
     trace!("buf_writer.flush()");
     buf_writer.flush()?;
+    tmp_writer.flush()?;
     if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunk_count == 0) {
         trace!("send chunk {:?}", chunk);
         update_channel.send(Ok(IndexingProgress::GotItem {
@@ -324,4 +328,16 @@ pub fn index_dlt_content(
     );
     update_channel.send(Ok(IndexingProgress::Finished))?;
     Ok(())
+}
+
+pub(crate) fn create_dlt_tmp_file(id: &str) -> Result<std::fs::File, Error> {
+    use chrono::Local;
+    let home_dir = dirs::home_dir().ok_or_else(|| err_msg("couldn't get home directory"))?;
+    let now = Local::now();
+    let tmp_file_name = format!("dlt_{}_trace_{}.dlt", id, now.format("%Y%b%d_%H-%M-%S"));
+    let tmp_dlt_file_path = home_dir
+        .join(".chipmunk")
+        .join("streams")
+        .join(tmp_file_name);
+    Ok(std::fs::File::create(tmp_dlt_file_path)?)
 }

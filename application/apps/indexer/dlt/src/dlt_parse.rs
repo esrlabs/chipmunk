@@ -294,14 +294,14 @@ fn dlt_variable_name_and_unit<T: NomByteOrder>(
     // println!("dlt_variable_name_and_unit");
     if type_info.has_variable_info {
         |input| {
-            let (i2, (name_size, unit_size)) = tuple((T::parse_u16, T::parse_u16))(input)?;
-            dbg_parsed("namesize, unitsize", input, i2);
+            let (i2, name_size_unit_size) = tuple((T::parse_u16, T::parse_u16))(input)?;
+            dbg_parsed("namesize, unitsize", input, i2, &name_size_unit_size);
             // println!("(name_size, unit_size): {:?}", (name_size, unit_size));
-            let (i3, name) = dlt_zero_terminated_string(i2, name_size as usize)?;
-            dbg_parsed("name", i2, i3);
+            let (i3, name) = dlt_zero_terminated_string(i2, name_size_unit_size.0 as usize)?;
+            dbg_parsed("name", i2, i3, &name);
             // println!("name: {}", name);
-            let (rest, unit) = dlt_zero_terminated_string(i3, unit_size as usize)?;
-            dbg_parsed("unit", i3, rest);
+            let (rest, unit) = dlt_zero_terminated_string(i3, name_size_unit_size.1 as usize)?;
+            dbg_parsed("unit", i3, rest, &unit);
             // println!("unit: {}", unit);
             Ok((rest, (Some(name.to_string()), Some(unit.to_string()))))
         }
@@ -441,7 +441,11 @@ pub(crate) fn dlt_fint<T: NomByteOrder>(width: FloatWidth) -> fn(&[u8]) -> IResu
 pub(crate) fn dlt_type_info<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], TypeInfo> {
     let (i, info) = T::parse_u32(input)?;
     match TypeInfo::try_from(info) {
-        Ok(type_info) => Ok((i, type_info)),
+        Ok(type_info) => {
+            trace!("type_info parse input: {:02X?}", &input[..4]);
+            trace!("type_info parsed: {:#b}", info);
+            Ok((i, type_info))
+        }
         Err(_) => {
             report_error(format!("dlt_type_info no type_info for 0x{:02X?}", info));
             Err(nom::Err::Error((&[], nom::error::ErrorKind::Verify)))
@@ -480,41 +484,41 @@ pub(crate) fn dlt_fixed_point<T: NomByteOrder>(
     }
 }
 pub(crate) fn dlt_argument<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], Argument> {
+    trace!("parsing argument: ===================================");
     let (i, type_info) = dlt_type_info::<T>(input)?;
-    dbg_parsed("type info", input, i);
+    dbg_parsed("type info", input, i, &type_info);
     // println!("type info: {:?}", type_info);
     match type_info.kind {
         TypeInfoKind::Signed(width) => {
-            let (before_val, (name, unit)) = dlt_variable_name_and_unit::<T>(&type_info)(i)?;
-            dbg_parsed("name and unit", i, before_val);
-            let (after_fixed_point, fixed_point) = (before_val, None);
-            dbg_parsed("fixed_point", before_val, after_fixed_point);
-            let (rest, value) = dlt_sint::<T>(width)(after_fixed_point)?;
+            let (before_val, name_unit) = dlt_variable_name_and_unit::<T>(&type_info)(i)?;
+            dbg_parsed("name and unit", i, before_val, &name_unit);
+            let (rest, value) = dlt_sint::<T>(width)(before_val)?;
+            dbg_parsed("sint", before_val, rest, &value);
             Ok((
                 rest,
                 Argument {
-                    name,
-                    unit,
+                    name: name_unit.0,
+                    unit: name_unit.1,
                     value,
-                    fixed_point,
+                    fixed_point: None,
                     type_info,
                 },
             ))
         }
         TypeInfoKind::SignedFixedPoint(width) => {
             // println!("parsing TypeInfoKind::Signed");
-            let (before_val, (name, unit)) = dlt_variable_name_and_unit::<T>(&type_info)(i)?;
-            dbg_parsed("name and unit", i, before_val);
+            let (before_val, name_unit) = dlt_variable_name_and_unit::<T>(&type_info)(i)?;
+            dbg_parsed("name and unit", i, before_val, &name_unit);
             let (r, fp) = dlt_fixed_point::<T>(before_val, width)?;
             let (after_fixed_point, fixed_point) = (r, Some(fp));
-            dbg_parsed("fixed_point", before_val, after_fixed_point);
+            dbg_parsed("fixed_point", before_val, after_fixed_point, &fixed_point);
             let (rest, value) =
                 dlt_sint::<T>(float_width_to_type_length(width))(after_fixed_point)?;
             Ok((
                 rest,
                 Argument {
-                    name,
-                    unit,
+                    name: name_unit.0,
+                    unit: name_unit.1,
                     value,
                     fixed_point,
                     type_info,
@@ -525,6 +529,7 @@ pub(crate) fn dlt_argument<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], Argu
             let (before_val, (name, unit)) = dlt_variable_name_and_unit::<T>(&type_info)(i)?;
             // println!("Unsigned: calling dlt_uint for {:02X?}", before_val);
             let (rest, value) = dlt_uint::<T>(width)(before_val)?;
+            dbg_parsed("unsigned", before_val, rest, &value);
             Ok((
                 rest,
                 Argument {
@@ -600,9 +605,9 @@ pub(crate) fn dlt_argument<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], Argu
             } else {
                 (i, None)
             };
-            dbg_parsed("var name", i, after_var_name);
+            dbg_parsed("var name", i, after_var_name, &name);
             let (rest, bool_value) = streaming::be_u8(after_var_name)?;
-            dbg_parsed("bool value", after_var_name, rest);
+            dbg_parsed("bool value", after_var_name, rest, &bool_value);
             Ok((
                 rest,
                 Argument {
@@ -610,7 +615,7 @@ pub(crate) fn dlt_argument<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], Argu
                     name,
                     unit: None,
                     fixed_point: None,
-                    value: Value::Bool(bool_value != 0),
+                    value: Value::Bool(bool_value),
                 },
             ))
         }
@@ -622,6 +627,7 @@ pub(crate) fn dlt_argument<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], Argu
                 (i2, None)
             };
             let (rest, value) = dlt_zero_terminated_string(i3, size as usize)?;
+            dbg_parsed("StringType", i3, rest, &value);
             // println!(
             //     "was stringtype: \"{}\", size should have been {}",
             //     value, size
@@ -710,8 +716,8 @@ fn dlt_payload<T: NomByteOrder>(
 }
 
 #[inline]
-fn dbg_parsed(_name: &str, _before: &[u8], _after: &[u8]) {
-    #[cfg(feature = "debug_parser")]
+fn dbg_parsed<T: std::fmt::Debug>(_name: &str, _before: &[u8], _after: &[u8], _value: &T) {
+    // #[cfg(feature = "debug_parser")]
     {
         let input_len = _before.len();
         let now_len = _after.len();
@@ -719,7 +725,13 @@ fn dbg_parsed(_name: &str, _before: &[u8], _after: &[u8]) {
         if parsed_len == 0 {
             trace!("{}: not parsed", _name);
         } else {
-            trace!("parsed {} ({} bytes)", _name, parsed_len,);
+            trace!(
+                "parsed {} ({} bytes: {:02X?}) => {:?}",
+                _name,
+                parsed_len,
+                &_before[0..parsed_len],
+                _value
+            );
         }
     }
 }
@@ -782,7 +794,12 @@ pub fn dlt_message<'a>(
     } else {
         (input, None)
     };
-    dbg_parsed("storage header", &input, &after_storage_header);
+    dbg_parsed(
+        "storage header",
+        &input,
+        &after_storage_header,
+        &storage_header,
+    );
     let (after_storage_and_normal_header, header) = dlt_standard_header(after_storage_header)?;
     // trace!(
     //     "parsed header is {}",
@@ -796,6 +813,7 @@ pub fn dlt_message<'a>(
         "normal header",
         &after_storage_header,
         &after_storage_and_normal_header,
+        &header,
     );
     // trace!("dlt_msg 3, header: {:?}", serde_json::to_string(&header));
 
@@ -831,15 +849,16 @@ pub fn dlt_message<'a>(
         //     arg_count,
         //     is_controll_msg
         // );
+        dbg_parsed(
+            "extended header",
+            &after_storage_and_normal_header,
+            &rest,
+            &ext_header,
+        );
         (rest, Some(ext_header))
     } else {
         (after_storage_and_normal_header, None)
     };
-    dbg_parsed(
-        "extended header",
-        &after_storage_and_normal_header,
-        &after_headers,
-    );
     // trace!(
     //     "extended header: {:?}",
     //     serde_json::to_string(&extended_header)
@@ -910,7 +929,7 @@ pub fn dlt_message<'a>(
             is_controll_msg,
         )?
     };
-    dbg_parsed("payload", &after_headers, &i);
+    dbg_parsed("payload", &after_headers, &i, &payload);
     // trace!("after payload: {} bytes left", i.len());
     Ok((
         i,

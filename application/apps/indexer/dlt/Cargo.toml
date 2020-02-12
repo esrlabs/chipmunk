@@ -5,6 +5,7 @@ authors = ["Oliver Mueller <oliver.mueller@esrlabs.com>"]
 edition = "2018"
 
 [dependencies]
+dirs = "2.0"
 bytes = "0.4"
 lazy_static = "1.4.0"
 byteorder = "1.3"

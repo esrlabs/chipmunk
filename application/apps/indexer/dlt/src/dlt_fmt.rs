@@ -337,7 +337,7 @@ impl Message {
                                     if data.len() < offset {
                                         return fmt::Result::Err(fmt::Error);
                                     }
-                                    Value::Bool(data[offset - 1] != 0)
+                                    Value::Bool(data[offset - 1])
                                 }
                                 TypeInfoKind::Float(width) => {
                                     let length = width as usize / 8;
@@ -494,6 +494,23 @@ impl Message {
             ) {}
         }
         Ok(())
+    }
+}
+impl fmt::Display for TypeInfo {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        let kind = match self.kind {
+            TypeInfoKind::Bool => "Bool".into(),
+            TypeInfoKind::Signed(type_length) => format!("Signed ({:?})", type_length),
+            TypeInfoKind::SignedFixedPoint(float_width) => format!("Signed FP ({:?})", float_width),
+            TypeInfoKind::Unsigned(type_length) => format!("Unsigned ({:?})", type_length),
+            TypeInfoKind::UnsignedFixedPoint(float_width) => {
+                format!("Signed FP ({:?})", float_width)
+            }
+            TypeInfoKind::Float(float_width) => format!("Float ({:?})", float_width),
+            TypeInfoKind::StringType => "String".into(),
+            TypeInfoKind::Raw => "Raw".into(),
+        };
+        write!(f, "TypeInfo {}", kind)
     }
 }
 fn get_message_type_string<'a>(extended_header: &Option<ExtendedHeader>) -> &'a str {

@@ -20,11 +20,80 @@ mod tests {
     fn init_logging() {
         INIT.call_once(|| {
             if std::env::var("RUST_LOG").is_err() {
-                std::env::set_var("RUST_LOG", "error,dlt=error,dlt_parse_tests=error");
+                std::env::set_var("RUST_LOG", "error,dlt=warn,dlt::tests=warn");
             }
             env_logger::init();
         });
     }
+
+    #[test]
+    fn test_dlt_roundtrip_msg() {
+        init_logging();
+        #[rustfmt::skip]
+        let raw1: Vec<u8> = vec![
+            0x44, 0x4C, 0x54, 0x01, 0x46, 0x93, 0x01, 0x5D, 0x79, 0x39, 0x0E, 0x00, 0x48, 0x46,
+            0x50, 0x50, 0x3D, 0x1E, 0x00, 0xA8, 0x48, 0x46, 0x50, 0x50, 0x00, 0x00, 0x02, 0x48,
+            0x00, 0x1C, 0x76, 0x49, 0x51, 0x08, 0x50, 0x61, 0x72, 0x61, 0x76, 0x63, 0x73, 0x6F,
+            0x00, 0x82, 0x00, 0x00, 0x1A, 0x00, 0x5B, 0x35, 0x38, 0x34, 0x3A, 0x20, 0x53, 0x6F,
+            0x6D, 0x65, 0x49, 0x70, 0x50, 0x6F, 0x73, 0x69, 0x78, 0x43, 0x6C, 0x69, 0x65, 0x6E,
+            0x74, 0x5D, 0x20, 0x00, 0x00, 0x82, 0x00, 0x00, 0x12, 0x00, 0x53, 0x65, 0x6E, 0x64,
+            0x53, 0x6F, 0x6D, 0x65, 0x49, 0x70, 0x4D, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x00,
+            0x00, 0x82, 0x00, 0x00, 0x02, 0x00, 0x3A, 0x00, 0x23, 0x00, 0x00, 0x00, 0x10, 0x01,
+            0x00, 0x00, 0x00, 0x82, 0x00, 0x00, 0x11, 0x00, 0x3A, 0x20, 0x69, 0x6E, 0x73, 0x74,
+            0x61, 0x6E, 0x63, 0x65, 0x5F, 0x69, 0x64, 0x20, 0x30, 0x78, 0x00, 0x42, 0x00, 0x01,
+            0x00, 0x01, 0x00, 0x00, 0x82, 0x00, 0x00, 0x17, 0x00, 0x20, 0x6D, 0x65, 0x6D, 0x6F,
+            0x72, 0x79, 0x20, 0x62, 0x75, 0x66, 0x66, 0x65, 0x72, 0x20, 0x6C, 0x65, 0x6E, 0x67,
+            0x74, 0x68, 0x20, 0x00, 0x44, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00,
+        ];
+        match dlt_message(&raw1[..], None, 0, None, None, true) {
+            Ok((_rest, ParsedMessage::Item(msg))) => {
+                let msg_bytes = msg.as_bytes();
+                assert_eq!(raw1, msg_bytes);
+            }
+            _ => panic!("could not parse message"),
+        }
+    }
+
+    #[test]
+    fn test_dlt_bool_msg() {
+        init_logging();
+        #[rustfmt::skip]
+        let raw1: Vec<u8> = vec![
+            // --------------- storage header
+            /* DLT + 0x01 */ 0x44, 0x4C, 0x54, 0x01,
+            /* timestamp sec */ 0x2B, 0x2C, 0xC9, 0x4D,
+            /* timestamp us */ 0x7A, 0xE8, 0x01, 0x00,
+            /* ecu id "ECU" */ 0x45, 0x43, 0x55, 0x00,
+            // --------------- header
+            /* header-type       0b0010 0001 */ 0x21,
+            /* extended header        | |||^ */
+            /* MSBF: 0  little endian | ||^  */
+            /* WEID: 0  no ecu id     | |^   */
+            /* WSID: 0  sess id       | ^    */
+            /* WTMS: 0 no timestamp   ^      */
+            /* version nummber 1   ^^^       */
+            /* message counter */ 0x0A,
+            /* length = 0 */ 0x00, 0x13,
+            // --------------- extended header
+            0x41, // MSIN 0b0100 0001 => verbose, MST log, ApplicationTraceType::State
+            0x01, // arg count
+            0x4C, 0x4F, 0x47, 0x00, // app id LOG
+            0x54, 0x45, 0x53, 0x32, // context id TES2
+            // --------------- payload
+            /* type info 0b0001 0000 => type bool */ 0x10, 0x00, 0x00, 0x00,
+             0x6F,
+        ];
+        match dlt_message(&raw1[..], None, 0, None, None, true) {
+            Ok((_rest, ParsedMessage::Item(msg))) => {
+                let msg_bytes = msg.as_bytes();
+                assert_eq!(raw1, msg_bytes);
+            }
+            _ => panic!("could not parse message"),
+        }
+        // println!("msg bytes: {:02X?}", msg_bytes);
+    }
+
     #[test]
     fn test_dlt_message_parsing() {
         let mut raw1: Vec<u8> = vec![
@@ -150,6 +219,15 @@ mod tests {
             parse_ecu_id(b"ecu")
         );
     }
+    #[test]
+    fn test_parse_example_type_info() {
+        init_logging();
+        let type_info_bytes = vec![0x42, 0x00, 0x01, 0x00];
+        trace!("{:02X?}", type_info_bytes);
+        let res: TypeInfo = dlt_type_info::<LittleEndian>(&type_info_bytes).unwrap().1;
+        let type_info_as_bytes = res.as_bytes::<LittleEndian>();
+        assert_eq!(type_info_bytes, type_info_as_bytes);
+    }
 
     proptest! {
         #[test]
@@ -192,8 +270,8 @@ mod tests {
             let expected: IResult<&[u8], TypeInfo> = Ok((b"----", type_info));
             assert_eq!(expected, res);
         }
-        #[test]
 
+        #[test]
         fn test_parse_any_argument(argument in argument_strategy()) {
             let mut argument_bytes = argument.as_bytes::<BigEndian>();
             argument_bytes.extend(b"----");
@@ -342,7 +420,7 @@ mod tests {
                 name: None,
                 unit: None,
                 fixed_point: None,
-                value: Value::Bool(true),
+                value: Value::Bool(0x1),
             };
             println!("argument: {:?}", argument);
             let mut argument_bytes = argument.as_bytes::<BigEndian>();
@@ -365,7 +443,7 @@ mod tests {
                 name: Some("abc".to_string()),
                 unit: None,
                 fixed_point: None,
-                value: Value::Bool(true),
+                value: Value::Bool(0x1),
             };
             println!("argument: {:?}", argument);
             let mut argument_bytes = argument.as_bytes::<BigEndian>();

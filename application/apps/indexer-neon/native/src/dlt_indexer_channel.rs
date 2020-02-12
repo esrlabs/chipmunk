@@ -58,7 +58,7 @@ fn index_dlt_file_with_progress(
     fibex_metadata: Option<FibexMetadata>,
 ) {
     trace!("index_dlt_file_with_progress");
-    let source_file_size = Some(match config.in_file.metadata() {
+    let source_file_size = match config.in_file.metadata() {
         Ok(file_meta) => file_meta.len() as usize,
         Err(_) => {
             error!("could not find out size of source file");
@@ -69,7 +69,7 @@ fn index_dlt_file_with_progress(
             }));
             0
         }
-    });
+    };
     match dlt::dlt_file::create_index_and_mapping_dlt(
         config,
         source_file_size,

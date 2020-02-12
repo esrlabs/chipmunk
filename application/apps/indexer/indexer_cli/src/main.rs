@@ -66,7 +66,8 @@ fn init_logging() -> Result<()> {
             .replace("$HOME_DIR", &home_dir.to_string_lossy()[..]);
         std::fs::write(&log_config_path, log_config_content)?;
     }
-    log4rs::init_file(log_config_path, Default::default()).unwrap();
+    log4rs::init_file(log_config_path, Default::default())
+        .expect("init logging with file did not work");
     info!("logging initialized");
     Ok(())
 }
@@ -465,7 +466,7 @@ fn main() {
     } else if let Some(matches) = matches.subcommand_matches("format") {
         handle_format_subcommand(matches, start, use_stderr_for_status_updates)
     } else if let Some(matches) = matches.subcommand_matches("dlt") {
-        handle_dlt_subcommand(matches, start, use_stderr_for_status_updates, &progress_bar)
+        handle_dlt_subcommand(matches, start, &progress_bar)
     } else if let Some(matches) = matches.subcommand_matches("dlt-pcap") {
         handle_dlt_pcap_subcommand(matches, &progress_bar)
     } else if let Some(matches) = matches.subcommand_matches("dlt-udp") {
@@ -671,7 +672,6 @@ fn main() {
     fn handle_dlt_subcommand(
         matches: &clap::ArgMatches,
         start: std::time::Instant,
-        status_updates: bool,
         progress_bar: &ProgressBar,
     ) {
         debug!("handle_dlt_subcommand");
@@ -693,16 +693,12 @@ fn main() {
                 None => None,
             };
             let append: bool = matches.is_present("append");
-            let source_file_size = if status_updates {
-                Some(match fs::metadata(file_name) {
-                    Ok(file_meta) => file_meta.len() as usize,
-                    Err(_) => {
-                        report_error("could not find out size of source file");
-                        std::process::exit(2);
-                    }
-                })
-            } else {
-                None
+            let source_file_size = match fs::metadata(file_name) {
+                Ok(file_meta) => file_meta.len() as usize,
+                Err(_) => {
+                    report_error("could not find out size of source file");
+                    std::process::exit(2);
+                }
             };
             let fallback_out = file_name.to_string() + ".out";
             let out_path = path::PathBuf::from(
@@ -749,22 +745,21 @@ fn main() {
                     }
                     Ok(Ok(IndexingProgress::Finished { .. })) => {
                         let _ = serialize_chunks(&chunks, &mapping_out_path);
-                        if let Some(original_file_size) = source_file_size {
-                            let file_size_in_mb = original_file_size as f64 / 1024.0 / 1024.0;
-                            duration_report_throughput(
-                                start,
-                                format!("processing ~{} MB", file_size_in_mb.round()),
-                                file_size_in_mb,
-                                "MB".to_string(),
-                            )
-                        }
+                        let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
+                        duration_report_throughput(
+                            start,
+                            format!("processing ~{} MB", file_size_in_mb.round()),
+                            file_size_in_mb,
+                            "MB".to_string(),
+                        );
+                        println!("received finish event");
                         progress_bar.finish_and_clear();
                         break;
                     }
                     Ok(Ok(IndexingProgress::Progress { ticks })) => {
                         let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
-                        trace!("progress... ({:.0} %)", progress_fraction * 100.0);
-                        progress_bar.set_position((progress_fraction * (TOTAL as f64)) as u64);
+                        let pos = (progress_fraction * (TOTAL as f64)) as u64;
+                        progress_bar.set_position(pos);
                     }
                     Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
                         chunks.push(chunk);
@@ -784,7 +779,7 @@ fn main() {
                 }
             }
 
-            println!("done done");
+            println!("done with handle_dlt_subcommand");
             std::process::exit(0)
         }
     }
@@ -887,7 +882,7 @@ fn main() {
                     }
                 }
 
-                println!("done done");
+                println!("done with handle_dlt_pcap_subcommand");
                 std::process::exit(0)
             }
         }
@@ -986,7 +981,7 @@ fn main() {
                 }
             }
 
-            println!("done done");
+            println!("done with handle_dlt_udp_subcommand");
             std::process::exit(0)
         }
     }

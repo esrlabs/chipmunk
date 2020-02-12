@@ -43,9 +43,12 @@ macro_rules! add_twice {
         $a.push($var);
         $m.insert(
             concat!($var, " TZD"),
-            date_format_str_to_regex(concat!($var, " TZD")).unwrap(),
+            date_format_str_to_regex(concat!($var, " TZD")).expect("static regex failed"),
         );
-        $m.insert($var, date_format_str_to_regex($var).unwrap());
+        $m.insert(
+            $var,
+            date_format_str_to_regex($var).expect("static regex failed"),
+        );
     };
 }
 
@@ -352,8 +355,7 @@ pub struct FormatTestOptions {
 
 pub fn read_format_string_options(f: &mut fs::File) -> Result<FormatTestOptions, failure::Error> {
     let mut contents = String::new();
-    f.read_to_string(&mut contents)
-        .expect("something went wrong reading the file");
+    f.read_to_string(&mut contents)?;
     let v: FormatTestOptions = serde_json::from_str(&contents[..])?;
     Ok(v)
 }

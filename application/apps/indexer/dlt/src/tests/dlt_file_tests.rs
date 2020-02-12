@@ -15,7 +15,7 @@ mod tests {
             .join("dlt/test_samples")
             .join("lukas_crash.dlt.out");
 
-        let source_file_size = Some(std::fs::metadata(&in_path).unwrap().len() as usize);
+        let source_file_size = std::fs::metadata(&in_path).unwrap().len() as usize;
         let (tx, _rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
         let chunk_size = 500usize;
         let tag_string = "TAG".to_string();

@@ -35,10 +35,10 @@ pub struct ProgressReporter {
     update_channel: cc::Sender<ChunkResults>,
     processed_bytes: usize,
     progress_percentage: usize,
-    total: Option<usize>,
+    total: usize,
 }
 impl ProgressReporter {
-    pub fn new(total: Option<usize>, update_channel: cc::Sender<ChunkResults>) -> ProgressReporter {
+    pub fn new(total: usize, update_channel: cc::Sender<ChunkResults>) -> ProgressReporter {
         ProgressReporter {
             update_channel,
             processed_bytes: 0,
@@ -48,17 +48,15 @@ impl ProgressReporter {
     }
     pub fn make_progress(&mut self, consumed: usize) {
         self.processed_bytes += consumed;
-        if let Some(file_size) = self.total {
-            let new_progress_percentage: usize =
-                (self.processed_bytes as f64 / file_size as f64 * 100.0).round() as usize;
-            if new_progress_percentage != self.progress_percentage {
-                self.progress_percentage = new_progress_percentage;
-                match self.update_channel.send(Ok(IndexingProgress::Progress {
-                    ticks: (self.processed_bytes, file_size),
-                })) {
-                    Ok(()) => (),
-                    Err(e) => warn!("could not send: {}", e),
-                }
+        let new_progress_percentage: usize =
+            (self.processed_bytes as f64 / self.total as f64 * 100.0).round() as usize;
+        if new_progress_percentage != self.progress_percentage {
+            self.progress_percentage = new_progress_percentage;
+            match self.update_channel.send(Ok(IndexingProgress::Progress {
+                ticks: (self.processed_bytes, self.total),
+            })) {
+                Ok(()) => (),
+                Err(e) => warn!("could not send: {}", e),
             }
         }
     }

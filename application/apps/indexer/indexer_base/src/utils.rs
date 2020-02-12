@@ -190,8 +190,8 @@ pub fn next_line_nr(path: &std::path::Path) -> Result<usize, Error> {
     if !path.exists() {
         return Ok(0);
     }
-    let file = fs::File::open(path).expect("opening file did not work");
-    let file_size = file.metadata().expect("could not read file metadata").len();
+    let file = fs::File::open(path)?;
+    let file_size = file.metadata()?.len();
     if file_size == 0 {
         return Ok(0);
     };
@@ -208,20 +208,17 @@ pub fn next_line_nr(path: &std::path::Path) -> Result<usize, Error> {
     };
     let size_of_slice = seek_offset.abs() as usize;
     let mut buf: Vec<u8> = vec![0; size_of_slice];
-    reader
-        .read_exact(&mut buf)
-        .expect("reading to buffer should succeed");
+    reader.read_exact(&mut buf)?;
     // |tag|#row#\n
     for i in 0..size_of_slice - 1 {
         if buf[i] == (PLUGIN_ID_SENTINAL as u8) && buf[i + 1] == ROW_NUMBER_SENTINAL as u8 {
             // row nr starts at i + 2
             let row_slice = &buf[i + 2..];
-            let row_string = std::str::from_utf8(row_slice).expect("could not parse row number");
+            let row_string = std::str::from_utf8(row_slice)?;
             let row_nr: usize = row_string
                 .trim_end_matches(is_newline)
                 .trim_end_matches(ROW_NUMBER_SENTINAL)
-                .parse()
-                .expect("expected number was was none");
+                .parse()?;
             return Ok(row_nr + 1);
         }
     }

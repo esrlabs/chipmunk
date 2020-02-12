@@ -102,7 +102,7 @@ prop_compose! {
 fn value_strategy(info: &TypeInfo) -> impl Strategy<Value = Value> {
     // println!("value_strategy for {:?}", info);
     match &info.kind {
-        TypeInfoKind::Bool => any::<bool>().prop_map(Value::Bool).boxed(),
+        TypeInfoKind::Bool => (0..10u8).prop_map(Value::Bool).boxed(),
         TypeInfoKind::Float(FloatWidth::Width32) => any::<f32>().prop_map(Value::F32).boxed(),
         TypeInfoKind::Float(FloatWidth::Width64) => any::<f64>().prop_map(Value::F64).boxed(),
         TypeInfoKind::Raw => prop::collection::vec(any::<u8>(), 0..5)
