@@ -278,12 +278,12 @@ export default class ControllerStreamSearch {
             }
             return;
         }
-        // Save requests
-        this._setCurrentRequests(request.requests.map((req: IPCElectronMessages.ISearchExpression) => {
-            return getSearchRegExp(req.request, req.flags);
-        }));
         // Clear results file
         this._clear().then(() => {
+            // Save requests
+            this._setCurrentRequests(request.requests.map((req: IPCElectronMessages.ISearchExpression) => {
+                return getSearchRegExp(req.request, req.flags);
+            }));
             // Check stream
             if (this._processor.getStreamSize() === 0) {
                 // Stream file doesn't exist yet
@@ -301,6 +301,7 @@ export default class ControllerStreamSearch {
                     found: rows,
                 });
             }).catch((searchErr: Error) => {
+                this._logger.error(`Fail to procceed search request due error: ${searchErr.message}`);
                 return this._ipc_searchRequestResponse(response, {
                     id: request.session,
                     started: started,
@@ -308,6 +309,8 @@ export default class ControllerStreamSearch {
                 });
             });
         }).catch((droppingErr: Error) => {
+            // Drop requests
+            this._setCurrentRequests([]);
             this._logger.error(`Fail drop search file due error: ${droppingErr.message}`);
             return this._ipc_searchRequestResponse(response, {
                 id: request.session,
