@@ -1,20 +1,9 @@
 import { inspect } from 'util';
-import { LoggerParameters, ELogLevels, setGlobalLogLevel } from './env.logger.parameters';
+import { LoggerParameters, ELogLevels, LogsService } from './env.logger.parameters';
+import LogsBuffer from './env.logger.buffer';
 import guid from './tools.guid';
-import * as FS from './fs';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
 
-export { setGlobalLogLevel, ELogLevels };
-
-const HOME_FOLDER = path.resolve(os.homedir(), '.chipmunk');
-const LOG_FILE = path.resolve(os.homedir(), '.chipmunk/chipmunk.log');
-
-// Check home folder
-if (!FS.isExist(HOME_FOLDER)) {
-    FS.mkdir(HOME_FOLDER);
-}
+export { LogsService, ELogLevels };
 
 /**
  * @class
@@ -25,6 +14,7 @@ export default class Logger {
     private _signature: string = '';
     private _parameters: LoggerParameters = new LoggerParameters({});
     private _unixtimes: { [key: string]: number } = { };
+
     /**
      * @constructor
      * @param {string} signature        - Signature of logger instance
@@ -100,7 +90,7 @@ export default class Logger {
      * @returns {string} - Formatted log-string
      */
     public wtf(...args: any[]) {
-        setGlobalLogLevel(ELogLevels.WTF);
+        LogsService.setGlobalLevel(ELogLevels.WTF);
         return this._log(this._getMessage(...args), ELogLevels.WTF);
     }
 
@@ -118,19 +108,16 @@ export default class Logger {
         if (!this._parameters.console) {
             return false;
         }
-        /* tslint:disable */
-        this._parameters.allowedConsole[level] && console.log(message);
-        /* tslint:enable */
+        if (LogsBuffer.isLocked()) {
+            return LogsBuffer.buffer(level, message);
+        }
+        if (LogsService.getAllowedConsoleOutput()[level]) {
+            // tslint:disable-next-line: no-console
+            console.log(message);
+        }
     }
 
-    private _write(message: string) {
-        fs.appendFile(LOG_FILE, `${message}\n`, { encoding: 'utf8' }, (error: NodeJS.ErrnoException | null) => {
-            if (error) {
-                // tslint:disable-next-line:no-console
-                console.error(`Fail to write logs into file due error: ${error.message}`);
-            }
-        });
-    }
+
 
     private _output(message: string) {
         if (typeof this._parameters.output === 'function') {
@@ -155,20 +142,16 @@ export default class Logger {
         return message;
     }
 
-    private _getTime(): string {
-        const time: Date = new Date();
-        return `${time.toJSON()}`;
-    }
-
     private _log(message: string, level: ELogLevels) {
+        LogsService.introduce();
         if (level === ELogLevels.WTF) {
-            message = 'WTF >>> ' + message;
+            message = LogsService.getTimestamp() + 'WTF >>> ' + message;
         } else {
-            message = `[${this._getTime()}][${level}][${this._signature}]: ${message}`;
+            message = LogsService.getTimestamp() + '[' + ' '.repeat(level.length > 7 ? 0 : (7 - level.length)) + level + ']' + '[' + this._signature + ']: ' + message;
         }
         this._console(message, level);
         this._output(message);
-        this._write(message);
+        LogsService.write(message);
         return message;
     }
 

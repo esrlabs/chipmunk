@@ -1,0 +1,161 @@
+import { LogsBlackbox } from "./env.logger.blackbox";
+import LogsBuffer from "./env.logger.buffer";
+import * as FS from "./fs";
+import * as path from "path";
+import * as fs from "fs";
+import * as os from "os";
+
+export enum ELogLevels {
+    INFO = "INFO",
+    DEBUG = "DEBUG",
+    WARNING = "WARNING",
+    VERBOS = "VERBOS",
+    ERROR = "ERROR",
+    ENV = "ENV",
+    WTF = "WTF",
+}
+
+export const DEFAUT_ALLOWED_CONSOLE = {
+    DEBUG: true,
+    ENV: true,
+    ERROR: true,
+    INFO: true,
+    VERBOS: false,
+    WARNING: true,
+    WTF: true,
+};
+
+export const LOGS_LEVEL_TABLE = {
+    VERBOS: [
+        ELogLevels.ENV,
+        ELogLevels.VERBOS,
+        ELogLevels.DEBUG,
+        ELogLevels.INFO,
+        ELogLevels.WARNING,
+        ELogLevels.ERROR,
+    ],
+    ENV: [ELogLevels.ENV, ELogLevels.DEBUG, ELogLevels.INFO, ELogLevels.WARNING, ELogLevels.ERROR],
+    DEBUG: [ELogLevels.DEBUG, ELogLevels.INFO, ELogLevels.WARNING, ELogLevels.ERROR],
+    INFO: [ELogLevels.INFO, ELogLevels.WARNING, ELogLevels.ERROR],
+    WARNING: [ELogLevels.WARNING, ELogLevels.ERROR],
+    WARN: [ELogLevels.WARNING, ELogLevels.ERROR],
+    ERROR: [ELogLevels.ERROR],
+    WTF: [ELogLevels.WTF, ELogLevels.ERROR],
+};
+
+export const LOGS_LEVEL_TABLE_ALIASES = {
+    ENV: ELogLevels.ENV,
+    EN: ELogLevels.ENV,
+    VERBOSE: ELogLevels.VERBOS,
+    VERBOS: ELogLevels.VERBOS,
+    VERB: ELogLevels.VERBOS,
+    VER: ELogLevels.VERBOS,
+    V: ELogLevels.VERBOS,
+    DEBUG: ELogLevels.DEBUG,
+    DEB: ELogLevels.DEBUG,
+    D: ELogLevels.DEBUG,
+    INFO: ELogLevels.INFO,
+    INF: ELogLevels.INFO,
+    I: ELogLevels.INFO,
+    WARNING: ELogLevels.WARNING,
+    WARN: ELogLevels.WARNING,
+    WAR: ELogLevels.WARNING,
+    W: ELogLevels.WARNING,
+    ERROR: ELogLevels.ERROR,
+    ERR: ELogLevels.ERROR,
+    E: ELogLevels.ERROR,
+    WTF: ELogLevels.WTF,
+};
+
+export type TOutputFunc = (...args: any[]) => any;
+
+class Service {
+    private _level: ELogLevels | undefined;
+    private _introduced: boolean = false;
+    private _lasttimestamp: number = 0;
+    private _blackbox: LogsBlackbox = new LogsBlackbox();
+
+    public introduce() {
+        if (this._introduced) {
+            return;
+        }
+        this._introduced = true;
+        const msg: string = `\n${"-".repeat(30)} Chipmunk session is started at: ${new Date().toUTCString()} ${"-".repeat(30)}\n`;
+        LogsBuffer.buffer(
+            ELogLevels.INFO,
+            msg,
+        );
+        this.write(msg);
+    }
+
+    public setGlobalLevel(lev: any) {
+        lev = this.getLogLevelFromStr(lev);
+        if (lev === undefined) {
+            lev = ELogLevels.VERBOS;
+        }
+        this._level = lev;
+        const msg: string = `${"-".repeat(30)}\nGlobal loglevel is set to: ${lev}\n${"-".repeat(30)}`;
+        LogsBuffer.buffer(
+            ELogLevels.INFO,
+            msg,
+        );
+        LogsBuffer.apply(this.getAllowedConsoleOutput());
+        this.write(msg);
+    }
+
+    public isGlobalSet(): boolean {
+        return this._level !== undefined;
+    }
+
+    public getAllowedConsoleOutput(): { [key: string]: boolean } {
+        if (this._level === undefined) {
+            return DEFAUT_ALLOWED_CONSOLE;
+        }
+        const level: ELogLevels = this._level;
+        const allowed: { [key: string]: boolean } = {};
+        const table = (LOGS_LEVEL_TABLE as any)[level];
+        Object.keys(LOGS_LEVEL_TABLE).forEach((key: string) => {
+            allowed[key] = table.indexOf(key) !== -1;
+        });
+        return allowed;
+    }
+
+    public isValidLevel(level: string): boolean {
+        return this.getLogLevelFromStr(level) !== undefined;
+    }
+
+    public getLogLevelFromStr(str: string): ELogLevels | undefined {
+        if (typeof str !== "string") {
+            return undefined;
+        }
+        str = str.toUpperCase();
+        if ((LOGS_LEVEL_TABLE_ALIASES as any)[str] === undefined) {
+            return undefined;
+        }
+        return (LOGS_LEVEL_TABLE_ALIASES as any)[str];
+    }
+
+    public getTimestamp(): string {
+        if (this._lasttimestamp === 0) {
+            this._lasttimestamp = Date.now();
+        }
+        const now: number = Date.now();
+        const diff: number = now - this._lasttimestamp;
+        const diffStr: string = (diff > 0 ? "+" : diff === 0 ? "" : "-") + diff + "ms";
+        const stamp: string =
+            "[" +
+            now +
+            "][" +
+            " ".repeat(diffStr.length > 8 ? 0 : 8 - diffStr.length) +
+            diffStr +
+            "]";
+        this._lasttimestamp = now;
+        return stamp;
+    }
+
+    public write(msg: string) {
+        this._blackbox.write(msg);
+    }
+}
+
+export default new Service();

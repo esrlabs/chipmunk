@@ -1,4 +1,4 @@
-import Logger, { setGlobalLogLevel, ELogLevels } from '../tools/env.logger';
+import Logger, { LogsService, ELogLevels } from '../tools/env.logger';
 import { getEnvVar } from 'chipmunk.shell.env';
 import { IService } from '../interfaces/interface.service';
 
@@ -25,19 +25,24 @@ class ServiceProduction implements IService {
             getEnvVar(CDEV_ENV_VAR).then((value: string) => {
                 if (value === CDEV_ENV_VAR_VALUE) {
                     this._production = false;
-                    getEnvVar(CDEV_LOG_LEVEL).then((level: string) => {
-                        setGlobalLogLevel(level as ELogLevels);
-                        this._logger.env(`Production is: ${this._production ? 'ON' : 'OFF'}`);
-                        resolve();
-                    }).catch((error: Error) => {
-                        this._logger.warn(`Fail to get value for ${CDEV_LOG_LEVEL} due error: ${error.message}`);
-                        resolve();
-                    });
                 } else {
-                    setGlobalLogLevel(ELogLevels.ERROR);
-                    this._logger.env(`Production is: ${this._production ? 'ON' : 'OFF'}`);
-                    resolve();
+                    this._production = true;
                 }
+                this._logger.env(`Production is: ${this._production ? 'ON' : 'OFF'}`);
+                getEnvVar(CDEV_LOG_LEVEL).then((level: string) => {
+                    if (LogsService.isValidLevel(level)) {
+                        LogsService.setGlobalLevel(level as ELogLevels);
+                    } else if (this._production) {
+                        LogsService.setGlobalLevel(ELogLevels.ERROR);
+                    } else {
+                        LogsService.setGlobalLevel(ELogLevels.ENV);
+                    }
+                    resolve();
+                }).catch((error: Error) => {
+                    LogsService.setGlobalLevel(ELogLevels.ERROR);
+                    this._logger.warn(`Fail to get value for ${CDEV_LOG_LEVEL} due error: ${error.message}`);
+                    resolve();
+                });
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to get value for ${CDEV_ENV_VAR} due error: ${error.message}`);
                 resolve();
