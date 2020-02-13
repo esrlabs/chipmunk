@@ -2,8 +2,10 @@ import HotkeysService from '../services/service.hotkeys';
 import LayoutStateService from '../services/standalone/service.layout.state';
 
 import PluginsService, { IPluginData } from '../services/service.plugins';
-import ServiceElectronIpc, { IPCMessages, Subscription as IPCSubscription } from '../services/service.electron.ipc';
-import ContextMenuService, { IMenuItem } from '../services//standalone/service.contextmenu';
+import ServiceElectronIpc, {
+    IPCMessages,
+    Subscription as IPCSubscription,
+} from '../services/service.electron.ipc';
 
 import { ITabAPI } from 'chipmunk-client-complex';
 import { Subscription, Observable, Subject } from 'rxjs';
@@ -38,7 +40,6 @@ export interface IInjectionRemoveEvent {
 }
 
 export class ControllerSessionTab {
-
     private _logger: Toolkit.Logger;
     private _sessionId: string;
     private _transports: string[];
@@ -53,13 +54,13 @@ export class ControllerSessionTab {
     private _sourceInfo: IPCMessages.IStreamSourceNew | undefined;
     private _openSourceOptions: any;
     private _titleContextMenu: ControllerSessionTabTitleContextMenu | undefined;
-    private _subscriptions: { [key: string]: Subscription | IPCSubscription } = { };
+    private _subscriptions: { [key: string]: Subscription | IPCSubscription } = {};
     private _subjects: {
-        onOutputInjectionAdd: Subject<IInjectionAddEvent>,
-        onOutputInjectionRemove: Subject<IInjectionRemoveEvent>
+        onOutputInjectionAdd: Subject<IInjectionAddEvent>;
+        onOutputInjectionRemove: Subject<IInjectionRemoveEvent>;
     } = {
         onOutputInjectionAdd: new Subject<IInjectionAddEvent>(),
-        onOutputInjectionRemove: new Subject<IInjectionRemoveEvent>()
+        onOutputInjectionRemove: new Subject<IInjectionRemoveEvent>(),
     };
 
     constructor(params: IControllerSession) {
@@ -88,7 +89,9 @@ export class ControllerSessionTab {
         this.addOutputInjection = this.addOutputInjection.bind(this);
         this.removeOutputInjection = this.removeOutputInjection.bind(this);
         this._tabTitleContentService = params.tabTitleContentService;
-        this._subscriptions.onOpenSearchFiltersTab = HotkeysService.getObservable().openSearchFiltersTab.subscribe(this._onOpenSearchFiltersTab.bind(this));
+        this._subscriptions.onOpenSearchFiltersTab = HotkeysService.getObservable().openSearchFiltersTab.subscribe(
+            this._onOpenSearchFiltersTab.bind(this),
+        );
     }
 
     public destroy(): Promise<void> {
@@ -98,46 +101,74 @@ export class ControllerSessionTab {
             });
             ServiceElectronIpc.request(
                 new IPCMessages.StreamRemoveRequest({ guid: this.getGuid() }),
-                IPCMessages.StreamRemoveResponse
-            ).then((response: IPCMessages.StreamRemoveResponse) => {
-                if (response.error) {
-                    return reject(new Error(this._logger.warn(`Fail to destroy session "${this.getGuid()}" due error: ${response.error}`)));
-                }
-                PluginsService.fire().onSessionClose(this._sessionId);
-                this._viewportEventsHub.destroy();
-                Promise.all([
-                    this._stream.destroy(),
-                    this._search.destroy(),
-                    this._states.destroy()
-                ]).then(() => {
-                    this._scope.destroy();
-                    resolve();
-                }).catch((error: Error) => {
-                    reject(error);
+                IPCMessages.StreamRemoveResponse,
+            )
+                .then((response: IPCMessages.StreamRemoveResponse) => {
+                    if (response.error) {
+                        return reject(
+                            new Error(
+                                this._logger.warn(
+                                    `Fail to destroy session "${this.getGuid()}" due error: ${
+                                        response.error
+                                    }`,
+                                ),
+                            ),
+                        );
+                    }
+                    PluginsService.fire().onSessionClose(this._sessionId);
+                    this._viewportEventsHub.destroy();
+                    Promise.all([
+                        this._stream.destroy(),
+                        this._search.destroy(),
+                        this._states.destroy(),
+                    ])
+                        .then(() => {
+                            this._scope.destroy();
+                            resolve();
+                        })
+                        .catch((error: Error) => {
+                            reject(error);
+                        });
+                })
+                .catch((sendingError: Error) => {
+                    reject(
+                        new Error(
+                            this._logger.warn(
+                                `Fail to destroy session "${this.getGuid()}" due IPC error: ${
+                                    sendingError.message
+                                }`,
+                            ),
+                        ),
+                    );
                 });
-            }).catch((sendingError: Error) => {
-                reject(new Error(this._logger.warn(`Fail to destroy session "${this.getGuid()}" due IPC error: ${sendingError.message}`)));
-            });
-
         });
     }
 
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._stream.init().then(() => {
-                PluginsService.fire().onSessionOpen(this._sessionId);
-                // this._sidebar();
-                resolve();
-            }).catch((error: Error) => {
-                reject(new Error(this._logger.error(`Fail to init controller due error: ${error.message}`)));
-            });
+            this._stream
+                .init()
+                .then(() => {
+                    PluginsService.fire().onSessionOpen(this._sessionId);
+                    // this._sidebar();
+                    resolve();
+                })
+                .catch((error: Error) => {
+                    reject(
+                        new Error(
+                            this._logger.error(
+                                `Fail to init controller due error: ${error.message}`,
+                            ),
+                        ),
+                    );
+                });
         });
     }
 
     public getObservable(): {
-        onSourceChanged: Observable<number>,
-        onOutputInjectionAdd: Observable<IInjectionAddEvent>,
-        onOutputInjectionRemove: Observable<IInjectionRemoveEvent>
+        onSourceChanged: Observable<number>;
+        onOutputInjectionAdd: Observable<IInjectionAddEvent>;
+        onOutputInjectionRemove: Observable<IInjectionRemoveEvent>;
     } {
         return {
             onSourceChanged: this._stream.getObservable().onSourceChanged,
@@ -178,12 +209,16 @@ export class ControllerSessionTab {
         return this._transports.slice();
     }
 
-    public getOutputInjections(type: Toolkit.EViewsTypes): Map<string, Toolkit.IComponentInjection> {
+    public getOutputInjections(
+        type: Toolkit.EViewsTypes,
+    ): Map<string, Toolkit.IComponentInjection> {
         const injections: Map<string, Toolkit.IComponentInjection> = new Map();
         this._transports.forEach((pluginName: string) => {
             const plugin: IPluginData | undefined = PluginsService.getPlugin(pluginName);
             if (plugin === undefined) {
-                this._logger.warn(`Plugin "${pluginName}" is defined as transport, but doesn't exist in storage.`);
+                this._logger.warn(
+                    `Plugin "${pluginName}" is defined as transport, but doesn't exist in storage.`,
+                );
                 return;
             }
             if (plugin.factories[type] === undefined) {
@@ -194,8 +229,8 @@ export class ControllerSessionTab {
                 factory: plugin.factories[type],
                 inputs: {
                     ipc: plugin.ipc,
-                    session: this._sessionId
-                }
+                    session: this._sessionId,
+                },
             });
         });
         return injections;
@@ -234,14 +269,19 @@ export class ControllerSessionTab {
 
     public resetSessionContent(): Promise<void> {
         return new Promise((resolve, reject) => {
-            ServiceElectronIpc.request(new IPCMessages.StreamResetRequest({
-                guid: this._sessionId,
-            }), IPCMessages.StreamResetResponse).then((response: IPCMessages.StreamResetResponse) => {
-                this.getSessionBooksmarks().reset();
-                resolve();
-            }).catch((error: Error) => {
-                reject(error);
-            });
+            ServiceElectronIpc.request(
+                new IPCMessages.StreamResetRequest({
+                    guid: this._sessionId,
+                }),
+                IPCMessages.StreamResetResponse,
+            )
+                .then((response: IPCMessages.StreamResetResponse) => {
+                    this.getSessionBooksmarks().reset();
+                    resolve();
+                })
+                .catch((error: Error) => {
+                    reject(error);
+                });
         });
     }
 
@@ -264,5 +304,4 @@ export class ControllerSessionTab {
     private _onOpenSearchFiltersTab() {
         LayoutStateService.sidebarMax();
     }
-
 }
