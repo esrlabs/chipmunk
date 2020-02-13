@@ -162,6 +162,12 @@ export class FiltersStorage {
         this._subjects.updated.next({ requests: this._stored, updated: undefined });
     }
 
+    public getBySource(source: string): FilterRequest | undefined {
+        return this._stored.find((filter: FilterRequest) => {
+            return filter.asRegExp().source === source;
+        });
+    }
+
     private _onRequestUpdated(request: FilterRequest) {
         this._subjects.updated.next({ requests: this._stored, updated: request });
     }

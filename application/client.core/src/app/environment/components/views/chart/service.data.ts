@@ -2,10 +2,12 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import { ControllerSessionTab, IStreamState } from '../../../controller/controller.session.tab';
 import { ChartRequest } from '../../../controller/controller.session.tab.search.charts.request';
+import { FilterRequest } from '../../../controller/controller.session.tab.search.filters.request';
 import { IMapState, IMapPoint } from '../../../controller/controller.session.tab.map';
 import { Observable, Subscription, Subject } from 'rxjs';
 import ChartsControllers, { AChart } from './charts/charts';
 import { IPCMessages } from '../../../services/service.electron.ipc';
+import { scheme_color_accent } from '../../../theme/colors';
 
 export interface IRange {
     begin: number;
@@ -25,7 +27,6 @@ export interface IChartsResults {
 }
 
 export class ServiceData {
-
     private _subscriptions: { [key: string]: Subscription } = {};
     private _sessionSubscriptions: { [key: string]: Subscription } = {};
     private _sessionController: ControllerSessionTab | undefined;
@@ -33,16 +34,9 @@ export class ServiceData {
     private _matches: IMapState | undefined;
     private _charts: IPCMessages.TChartResults = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger(`Charts ServiceData`);
-    private _cache: {
-        data: { [reg: string]: number[] },
-        hash: string,
-    } = {
-        data: {},
-        hash: '',
-    };
     private _subjects: {
-        onData: Subject<void>,
-        onCharts: Subject<IPCMessages.TChartResults>
+        onData: Subject<void>;
+        onCharts: Subject<IPCMessages.TChartResults>;
     } = {
         onData: new Subject<void>(),
         onCharts: new Subject<IPCMessages.TChartResults>(),
@@ -50,7 +44,9 @@ export class ServiceData {
 
     constructor() {
         this._init();
-        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(
+            this._onSessionChange.bind(this),
+        );
     }
 
     public destroy() {
@@ -62,8 +58,8 @@ export class ServiceData {
     }
 
     public getObservable(): {
-        onData: Observable<void>,
-        onCharts: Observable<IPCMessages.TChartResults>
+        onData: Observable<void>;
+        onCharts: Observable<IPCMessages.TChartResults>;
     } {
         return {
             onData: this._subjects.onData.asObservable(),
@@ -78,7 +74,8 @@ export class ServiceData {
         if (this._stream.count === 0 || this._matches.points.length === 0) {
             return [];
         }
-        const countInRange: number = range === undefined ? this._stream.count : (range.end - range.begin);
+        const countInRange: number =
+            range === undefined ? this._stream.count : range.end - range.begin;
         let rate: number = width / countInRange;
         if (isNaN(rate) || !isFinite(rate)) {
             return [];
@@ -88,10 +85,10 @@ export class ServiceData {
             width = countInRange;
         }
         const offset: number = range === undefined ? 0 : range.begin;
-        const labels: string[] = (new Array(width)).fill('').map((value: string, i: number) => {
+        const labels: string[] = new Array(width).fill('').map((value: string, i: number) => {
             const left: number = Math.round(i / rate) + offset;
             const right: number = Math.round((i + 1) / rate) + offset;
-            return left !== (right - 1) ? ('' + left + ' - ' + right) : (left + '');
+            return left !== right - 1 ? '' + left + ' - ' + right : left + '';
         });
         return labels;
     }
@@ -104,10 +101,11 @@ export class ServiceData {
             return { dataset: [], max: undefined, min: undefined };
         }
         const results: any = {};
-        const countInRange: number = range === undefined ? this._stream.count : (range.end - range.begin);
+        const countInRange: number =
+            range === undefined ? this._stream.count : range.end - range.begin;
         let rate: number = width / countInRange;
         const commonWidth: number = Math.floor(this._stream.count / (countInRange / width));
-        const maxes: number[] = (new Array(commonWidth)).fill(0);
+        const maxes: number[] = new Array(commonWidth).fill(0);
         if (rate >= 1) {
             rate = 1;
             width = countInRange;
@@ -140,7 +138,7 @@ export class ServiceData {
             point.regs.forEach((reg: string) => {
                 let offsetedPosition: number = Math.floor((point.position - range.begin) * rate);
                 if (results[reg] === undefined) {
-                    results[reg] = (new Array(Math.round(width))).fill(0);
+                    results[reg] = new Array(Math.round(width)).fill(0);
                 }
                 if (offsetedPosition > width - 1) {
                     offsetedPosition = width - 1;
@@ -150,16 +148,16 @@ export class ServiceData {
         });
         const datasets = [];
         Object.keys(results).forEach((filter: string) => {
-            const chart: ChartRequest | undefined = this._getChartBySource(filter);
-            if (chart === undefined) {
-                this._logger.error(`Fail to find a chart with source "${filter}"`);
-                return;
+            const smth: FilterRequest | ChartRequest | undefined = this._getFilterOrChart(filter);
+            let color: string = scheme_color_accent;
+            if (smth !== undefined) {
+                color = smth instanceof FilterRequest ? smth.getBackground() : smth.getColor();
             }
             const dataset = {
                 barPercentage: 1,
                 categoryPercentage: 1,
                 label: filter,
-                backgroundColor: chart.getColor(),
+                backgroundColor: color,
                 showLine: false,
                 data: results[filter],
             };
@@ -168,7 +166,11 @@ export class ServiceData {
         return { dataset: datasets, max: max, min: undefined };
     }
 
-    public getChartsDatasets(width: number, range?: IRange, preview: boolean = false ): IChartsResults {
+    public getChartsDatasets(
+        width: number,
+        range?: IRange,
+        preview: boolean = false,
+    ): IChartsResults {
         if (this._stream === undefined || this._charts === undefined) {
             return { dataset: [], max: undefined, min: undefined };
         }
@@ -236,7 +238,12 @@ export class ServiceData {
         if (this._matches === undefined && this._charts === undefined) {
             return false;
         }
-        if (this._matches !== undefined && this._matches.points.length === 0 && this._charts !== undefined && Object.keys(this._charts).length === 0) {
+        if (
+            this._matches !== undefined &&
+            this._matches.points.length === 0 &&
+            this._charts !== undefined &&
+            Object.keys(this._charts).length === 0
+        ) {
             return false;
         }
         return true;
@@ -253,7 +260,27 @@ export class ServiceData {
         if (this._sessionController === undefined) {
             return undefined;
         }
-        return this._sessionController.getSessionSearch().getChartsAPI().getStorage().getBySource(source);
+        return this._sessionController
+            .getSessionSearch()
+            .getChartsAPI()
+            .getStorage()
+            .getBySource(source);
+    }
+
+    private _getFilterBySource(source: string): FilterRequest | undefined {
+        if (this._sessionController === undefined) {
+            return undefined;
+        }
+        return this._sessionController
+            .getSessionSearch()
+            .getFiltersAPI()
+            .getStorage()
+            .getBySource(source);
+    }
+
+    private _getFilterOrChart(source: string): FilterRequest | ChartRequest | undefined {
+        const chart: ChartRequest | undefined = this._getChartBySource(source);
+        return chart === undefined ? this._getFilterBySource(source) : chart;
     }
 
     private _init(controller?: ControllerSessionTab) {
@@ -268,15 +295,40 @@ export class ServiceData {
             this._sessionSubscriptions[key].unsubscribe();
         });
         // Subscribe
-        this._sessionSubscriptions.onSearchMapStateUpdate = controller.getStreamMap().getObservable().onStateUpdate.subscribe(this._onSearchMapStateUpdate.bind(this));
-        this._sessionSubscriptions.onStreamStateUpdated = controller.getSessionStream().getOutputStream().getObservable().onStateUpdated.subscribe(this._onStreamStateUpdated.bind(this));
-        this._sessionSubscriptions.onRequestsUpdated = controller.getSessionSearch().getFiltersAPI().getObservable().updated.subscribe(this._onRequestsUpdated.bind(this));
-        this._sessionSubscriptions.onChartsResultsUpdated = controller.getSessionSearch().getChartsAPI().getObservable().onChartsResultsUpdated.subscribe(this._onChartsResultsUpdated.bind(this));
-        this._sessionSubscriptions.onChartsUpdated = controller.getSessionSearch().getChartsAPI().getObservable().onChartsUpdated.subscribe(this._onChartsUpdated.bind(this));
+        this._sessionSubscriptions.onSearchMapStateUpdate = controller
+            .getStreamMap()
+            .getObservable()
+            .onStateUpdate.subscribe(this._onSearchMapStateUpdate.bind(this));
+        this._sessionSubscriptions.onStreamStateUpdated = controller
+            .getSessionStream()
+            .getOutputStream()
+            .getObservable()
+            .onStateUpdated.subscribe(this._onStreamStateUpdated.bind(this));
+        this._sessionSubscriptions.onRequestsUpdated = controller
+            .getSessionSearch()
+            .getFiltersAPI()
+            .getObservable()
+            .updated.subscribe(this._onRequestsUpdated.bind(this));
+        this._sessionSubscriptions.onChartsResultsUpdated = controller
+            .getSessionSearch()
+            .getChartsAPI()
+            .getObservable()
+            .onChartsResultsUpdated.subscribe(this._onChartsResultsUpdated.bind(this));
+        this._sessionSubscriptions.onChartsUpdated = controller
+            .getSessionSearch()
+            .getChartsAPI()
+            .getObservable()
+            .onChartsUpdated.subscribe(this._onChartsUpdated.bind(this));
         // Get default data
-        this._stream = controller.getSessionStream().getOutputStream().getState();
+        this._stream = controller
+            .getSessionStream()
+            .getOutputStream()
+            .getState();
         this._matches = controller.getStreamMap().getState();
-        this._charts = controller.getSessionSearch().getChartsAPI().getChartsData();
+        this._charts = controller
+            .getSessionSearch()
+            .getChartsAPI()
+            .getChartsData();
         this._subjects.onData.next();
         this._subjects.onCharts.next();
     }
@@ -346,7 +398,11 @@ export class ServiceData {
         return undefined;
     }
 
-    private _getRightBorderChartDS(reg: string, end: number, previous: boolean): number | undefined {
+    private _getRightBorderChartDS(
+        reg: string,
+        end: number,
+        previous: boolean,
+    ): number | undefined {
         const matches: IPCMessages.IChartMatch[] | undefined = this._charts[reg];
         if (matches === undefined || matches.length === 0) {
             return undefined;
@@ -385,5 +441,4 @@ export class ServiceData {
         }
         return value;
     }
-
 }
