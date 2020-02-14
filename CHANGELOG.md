@@ -1,5 +1,37 @@
 # Changelog
 
+### [1.38.0] - 02/14/2020
+* [](chore) set development env var for rake start
+* [#563](feat) more standard conform parsing of dlt arguments
+  * bool in particular was assuming either 0x0 or 0x1 but can in fact be
+    a different uint8
+  * accept reserved string encoding (also valid...we used to assume either
+    UTF8 or ASCII)
+* [](feat) Add new plugin as template (example plugin)
+* [](fix) Show search results in chart view
+* [](fix) Wait before shutdown while all logs will be written
+* [](refact) Change close app workflow
+* [#397](feat) pcap API integration
+* [](feat) Ranked output for stats info in search
+* [](feat) Close autocompete popup on toggle of toolbar
+* [](fix) Correct dlt details view styles
+* [](feat) Add context menu on view's tabs
+* [#397](feat): basic pcap support
+  * reading dlt files from pcap files
+  * working future stream for socket
+  * better error handling
+* rust: Added global logging configuration in log4rs.yaml file
+  * users can adopt the log level at runtime
+* [](fix) Stability: Prevent search with incorrect ranges
+* [](fix) Stability: Prevent search without filters
+* [](feat) Clean recent filters history; drop current filters file
+* [](feat) Update search overview annotations (main view) when user
+    changes the style of a filter
+* [](feat) Added autosaving of filters
+* [](feat) Support loading/saveing filters form/to file
+* [](feat) Upgrade search input area
+* [](fix) Fix bug with asynch operationn in scope of search
+
 ### [1.37.0] - 01/27/2020
 
 * [#655](feat) support fibex file for DLT-connector

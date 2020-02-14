@@ -837,15 +837,7 @@ task :create_release_file_list do
   end
 end
 
-desc 'create new version and release'
-task :create_release do
-  current_tag = `git describe --tags`
-  versioner = Versioner.for(:package_json, ELECTRON_DIR)
-  current_electron_app_version = versioner.get_current_version
-  unless current_tag.start_with?(current_electron_app_version)
-    raise "current tag #{current_tag} does not match with current electron app version: #{current_electron_app_version}"
-  end
-
+def do_create_release(versioner)
   require 'highline'
   cli = HighLine.new
   cli.choose do |menu|
@@ -864,6 +856,23 @@ task :create_release do
     menu.default = default
   end
 end
+
+desc 'create new version and release'
+task :create_release do
+  current_tag = `git describe --tags`
+  versioner = Versioner.for(:package_json, ELECTRON_DIR)
+  current_electron_app_version = versioner.get_current_version
+  unless current_tag.start_with?(current_electron_app_version)
+    raise "current tag #{current_tag} does not match with current electron app version: #{current_electron_app_version}"
+  end
+  do_create_release(versioner)
+end
+# same task but do not check previous version
+task :create_release_f do
+  versioner = Versioner.for(:package_json, ELECTRON_DIR)
+  do_create_release(versioner)
+end
+
 def create_and_tag_new_version(versioner, jump)
   current_version = versioner.get_current_version
   next_version = versioner.get_next_version(jump)

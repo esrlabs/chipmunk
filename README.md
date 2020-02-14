@@ -17,7 +17,7 @@ No installation is necessary, just download, unpack and execute.
 
 ## Documentation
 
-We have a guide for using chipmunk [here](docs/README.md)
+We have a guide for using chipmunk [here](https://esrlabs.github.io/chipmunk-docs/)
 
 ## Features
 
@@ -30,4 +30,4 @@ We have a guide for using chipmunk [here](docs/README.md)
 * developer friendly keyboard shortcuts
 * extensible via plugin system
 
-![](docs/assets/overview.png)
+![](https://esrlabs.github.io/chipmunk-docs/images/overview.png)
