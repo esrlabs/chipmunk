@@ -31,6 +31,7 @@ import ServiceUpdate from './services/service.update';
 import ServiceDLTFiles from './services/parsers/service.dlt.files';
 import ServicePatchesBefore from './services/service.patches.before';
 import ServiceDLTDeamonConnector from './services/connectors/service.dlt.deamon';
+import { CommonInterfaces } from './interfaces/interface.common';
 
 const InitializeStages = [
     // Apply patches ("before")
@@ -76,6 +77,7 @@ class Application {
      */
     public init(): Promise<Application> {
         return new Promise((resolve, reject) => {
+            this._initGlobalNamespace();
             this._bindProcessEvents();
             this._init(0, (error?: Error) => {
                 if (error instanceof Error) {
@@ -209,6 +211,22 @@ class Application {
                 process.exit(0);
             });
         });
+    }
+
+    private _initGlobalNamespace() {
+        const gLogger: Logger = new Logger('Global');
+        const cGlobal: CommonInterfaces.NodeGlobal.IChipmunkNodeGlobal = {
+            logger: {
+                warn: gLogger.warn.bind(gLogger),
+                debug: gLogger.debug.bind(gLogger),
+                env: gLogger.env.bind(gLogger),
+                error: gLogger.error.bind(gLogger),
+                info: gLogger.info.bind(gLogger),
+                verbose: gLogger.verbose.bind(gLogger),
+                wtf: gLogger.wtf.bind(gLogger),
+            },
+        };
+        (global as any).chipmunk = cGlobal;
     }
 
 }
