@@ -1,20 +1,21 @@
 import { AFileParser, IMapItem } from "./interface";
 import * as path from "path";
-import indexer, { CancelablePromise, Processor, Progress } from "indexer-neon";
+import indexer, { DLT, Progress, CancelablePromise } from "indexer-neon";
 import ServiceStreams from "../../services/service.streams";
-import * as ft from "file-type";
-import * as fs from "fs";
-import * as Tools from "../../tools/index";
 import Logger from "../../tools/env.logger";
+import * as Tools from "../../tools/index";
 import ServiceNotifications, { ENotificationType } from "../../services/service.notifications";
+import { CommonInterfaces } from '../../interfaces/interface.common';
 
-const ExtNames = ["txt", "log", "logs", "json", "less", "css", "sass", "ts", "js"];
+export const CMetaData = 'dlt';
+
+const ExtNames = ["pcapng"];
 
 export default class FileParser extends AFileParser {
 
     private _guid: string | undefined;
-    private _logger: Logger = new Logger("Plain Text Indexing");
-    private _task: CancelablePromise<void, void, Processor.TIndexAsyncEvents, Processor.TIndexAsyncEventObject> | undefined;
+    private _logger: Logger = new Logger("DLT PCAP Indexing");
+    private _task: CancelablePromise<void, void, DLT.TIndexDltAsyncEvents, DLT.TIndexDltAsyncEventObject> | undefined;
 
     constructor() {
         super();
@@ -25,55 +26,28 @@ export default class FileParser extends AFileParser {
     }
 
     public getName(): string {
-        return "text format";
+        return "DLT format (PCAP wrapped)";
     }
 
     public getAlias(): string {
-        return "text";
+        return "pcap_dlt";
     }
 
     public getMeta(): string {
-        return 'plain/text';
+        return CMetaData;
     }
 
     public getExtnameFilters(): Array<{ name: string; extensions: string[] }> {
-        return [{ name: "Text files", extensions: ExtNames }];
+        return [{ name: "DLT Files wrapped into PCAP", extensions: ExtNames }];
     }
 
     public isSupported(file: string): Promise<boolean> {
         return new Promise((resolve, reject) => {
-            fs.open(file, "r", (openError: NodeJS.ErrnoException | null, fd: number) => {
-                if (openError) {
-                    return reject(openError);
-                }
-                const buffer: Buffer = Buffer.alloc(ft.minimumBytes);
-                fs.read(
-                    fd,
-                    buffer,
-                    0,
-                    ft.minimumBytes,
-                    0,
-                    (readError: NodeJS.ErrnoException | null, read: number, buf: Buffer) => {
-                        if (readError) {
-                            return reject(readError);
-                        }
-                        const type: ft.FileTypeResult | undefined = ft(buf);
-                        if (type === undefined) {
-                            const extname: string = path
-                                .extname(file)
-                                .toLowerCase()
-                                .replace(".", "");
-                            resolve(ExtNames.indexOf(extname) !== -1);
-                        } else if (
-                            type.mime.indexOf("text") !== -1 ||
-                            type.mime.indexOf("application") !== -1
-                        ) {
-                            resolve(true);
-                        }
-                        resolve(false);
-                    },
-                );
-            });
+            const extname: string = path
+                .extname(file)
+                .toLowerCase()
+                .replace(".", "");
+            resolve(ExtNames.indexOf(extname) !== -1);
         });
     }
 
@@ -81,27 +55,61 @@ export default class FileParser extends AFileParser {
         srcFile: string,
         destFile: string,
         sourceId: string,
-        options: { [key: string]: any },
+        options: CommonInterfaces.DLT.IDLTOptions,
         onMapUpdated?: (map: IMapItem[]) => void,
         onProgress?: (ticks: Progress.ITicks) => void,
     ): Tools.CancelablePromise<IMapItem[], void> {
-        return new Tools.CancelablePromise<IMapItem[], void>((resolve, reject, cancel, self) => {
+        return new Tools.CancelablePromise<IMapItem[], void>((resolve, reject, cancel) => {
+            if (this._guid !== undefined) {
+                return reject(new Error(`Parsing is already started.`));
+            }
             this._guid = ServiceStreams.getActiveStreamId();
-            let completeTicks: number = 0;
             const collectedChunks: IMapItem[] = [];
             const hrstart = process.hrtime();
-            this._task = indexer.indexAsync(
-                srcFile,
-                destFile,
-                sourceId.toString(),
-                { chunkSize: 500 },
-            ).then(() => {
-                if (onProgress !== undefined) {
-                    onProgress({
-                        ellapsed: completeTicks,
-                        total: completeTicks,
-                    });
-                }
+            let appIds: string[] | undefined;
+            let contextIds: string[] | undefined;
+            let ecuIds: string[] | undefined;
+            if (options === undefined) {
+                (options as any) = {
+                    logLevel: 6,
+                };
+            }
+            if (options.filters !== undefined && options.filters.app_ids instanceof Array) {
+                appIds = options.filters.app_ids;
+            }
+            if (options.filters !== undefined && options.filters.context_ids instanceof Array) {
+                contextIds = options.filters.context_ids;
+            }
+            if (options.filters !== undefined && options.filters.ecu_ids instanceof Array) {
+                ecuIds = options.filters.ecu_ids;
+            }
+            if (typeof options.fibex !== 'object' || options.fibex === null) {
+                options.fibex = {
+                    fibex_file_paths: [],
+                };
+            }
+            if (!(options.fibex.fibex_file_paths instanceof Array)) {
+                options.fibex.fibex_file_paths = [];
+            }
+            const filterConfig: DLT.DltFilterConf = {
+                min_log_level: options.logLevel,
+                app_ids: appIds,
+                context_ids: contextIds,
+                ecu_ids: ecuIds,
+            };
+            const dltParams: DLT.IIndexDltParams = {
+                dltFile: srcFile,
+                fibex: options.fibex,
+                filterConfig,
+                tag: sourceId.toString(),
+                out: destFile,
+                chunk_size: 500,
+                append: false,
+                stdout: false,
+                statusUpdates: true,
+            };
+            this._logger.debug("calling indexPcapDlt with params: " + JSON.stringify(dltParams));
+            this._task = indexer.indexPcapDlt(dltParams).then(() => {
                 resolve(collectedChunks);
             }).catch((error: Error) => {
                 ServiceNotifications.notify({
@@ -134,11 +142,15 @@ export default class FileParser extends AFileParser {
                 }
             }).on('progress', (event: Progress.ITicks) => {
                 if (onProgress !== undefined) {
-                    completeTicks = event.total;
                     onProgress(event);
                 }
             }).on('notification', (event: Progress.INeonNotification) => {
-                ServiceNotifications.notifyFromNeon(event, "Indexing", this._guid, srcFile);
+                ServiceNotifications.notifyFromNeon(
+                    event,
+                    "DLT-PCAP-Indexing",
+                    this._guid,
+                    srcFile,
+                );
             });
         });
     }
