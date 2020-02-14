@@ -137,5 +137,5 @@
 <div class="controlls">
     <button *ngIf="_ng_state === 'disconnected'" mat-stroked-button color="primary" (click)="_ng_onConnectClick()" [disabled]="_ng_isSettingsValid() ? null : true">Connect</button>
     <button *ngIf="_ng_state === 'connected'" mat-stroked-button color="primary" (click)="_ng_onDisconnectClick()">Disconnect</button>
-    <button *ngIf="_ng_state === 'connected'" mat-stroked-button color="primary" (click)="_ng_onSaveAsClick()">Save As</button>
+    <button *ngIf="_ng_allowSaveAs" mat-stroked-button color="primary" (click)="_ng_onSaveAsClick()">Save As</button>
 </div>
