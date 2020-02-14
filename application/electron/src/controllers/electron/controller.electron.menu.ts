@@ -136,14 +136,13 @@ export default class ControllerElectronMenu {
     }
 
     private _getFilesLocalSubmenu(): Array<{ label: string, click: () => any }> {
-        const items: Array<{ label: string, click: () => any }> = FileParsers.map((parser) => {
-            const wrapper: FunctionOpenLocalFile = new FunctionOpenLocalFile(new parser.class());
-            return {
-                label: wrapper.getLabel(),
-                click: wrapper.getHandler(),
-            };
-        });
-        return items;
+        const wrapper: FunctionOpenLocalFile = new FunctionOpenLocalFile(FileParsers.map((parser) => {
+            return new parser.class();
+        }));
+        return [{
+            label: wrapper.getLabel(),
+            click: wrapper.getHandler(),
+        }];
     }
 
     private _getRecentFiles(): Array<{ label: string, click: () => any }> {
