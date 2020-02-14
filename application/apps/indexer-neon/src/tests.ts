@@ -497,7 +497,7 @@ export function testIndexingPcap(fileToIndex: string, outPath: string) {
 			stdout: false,
 			statusUpdates: true
 		};
-		indexPcapDlt('ECU', dltParams)
+		indexPcapDlt(dltParams)
 			.then(() => {
 				bar.update(100);
 				const hrend = process.hrtime(hrstart);
@@ -592,7 +592,9 @@ export function testSocketDlt(outPath: string) {
 			bind_addr: '0.0.0.0',
 			port: '8888'
 		};
+		const session_id = `dlt_${new Date().toISOString()}`;
 		const promise = dltOverSocket(
+			session_id,
 			'myEcuId',
 			{
 				filterConfig,

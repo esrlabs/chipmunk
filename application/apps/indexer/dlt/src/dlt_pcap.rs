@@ -42,13 +42,8 @@ pub fn convert_to_dlt_file(
     } else {
         trace!("was legacy format");
     };
-    let mut pcap_producer = PcapMessageProducer::new(
-        &pcap_path,
-        update_channel,
-        "PCAP".to_string(),
-        fibex,
-        filter_config,
-    )?;
+    let mut pcap_producer =
+        PcapMessageProducer::new(&pcap_path, update_channel, fibex, filter_config)?;
     task::block_on(async {
         while let Some(item) = pcap_producer.next().await {
             match item {
@@ -68,7 +63,6 @@ pub fn convert_to_dlt_file(
 struct PcapMessageProducer {
     reader: PcapNGReader<File>,
     update_channel: cc::Sender<ChunkResults>,
-    ecu_id: String,
     index: usize,
     fibex_metadata: Option<Rc<FibexMetadata>>,
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
@@ -79,7 +73,6 @@ impl PcapMessageProducer {
     pub fn new(
         pcap_path: &std::path::PathBuf,
         update_channel: cc::Sender<ChunkResults>,
-        ecu_id: String,
         fibex_metadata: Option<Rc<FibexMetadata>>,
         filter_config: Option<filtering::ProcessedDltFilterConfig>,
     ) -> Result<Self, Error> {
@@ -89,7 +82,6 @@ impl PcapMessageProducer {
                 reader,
                 index: 0,
                 update_channel,
-                ecu_id,
                 fibex_metadata,
                 filter_config,
             }),
@@ -156,10 +148,12 @@ impl futures::Stream for PcapMessageProducer {
                                 false,
                             ) {
                                 Ok((_, ParsedMessage::Item(m))) => {
+                                    let ecu_id =
+                                        m.header.ecu_id.clone().unwrap_or_else(|| "ECU".into());
                                     let msg_with_storage_header = Message {
                                         storage_header: Some(StorageHeader {
                                             timestamp: DltTimeStamp::from_ms(last_in_ms as u64),
-                                            ecu_id: self.ecu_id.clone(),
+                                            ecu_id,
                                         }),
                                         ..m
                                     };
@@ -230,7 +224,6 @@ impl futures::Stream for PcapMessageProducer {
 pub fn index_from_pcap<'a>(
     config: IndexingConfig<'a>,
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
-    ecu_id: String,
     initial_line_nr: usize,
     update_channel: cc::Sender<ChunkResults>,
     shutdown_receiver: async_std::sync::Receiver<()>,
@@ -246,7 +239,6 @@ pub fn index_from_pcap<'a>(
     let pcap_msg_producer = PcapMessageProducer::new(
         &config.in_file,
         update_channel.clone(),
-        ecu_id,
         fibex_metadata,
         filter_config,
     )?;
@@ -324,7 +316,6 @@ pub fn index_from_pcap<'a>(
 
 pub fn create_index_and_mapping_dlt_from_pcap<'a>(
     config: IndexingConfig<'a>,
-    ecu_id: String,
     dlt_filter: Option<filtering::DltFilterConfig>,
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: async_std::sync::Receiver<()>,
@@ -338,7 +329,6 @@ pub fn create_index_and_mapping_dlt_from_pcap<'a>(
             match index_from_pcap(
                 config,
                 filter_config,
-                ecu_id,
                 initial_line_nr,
                 update_channel.clone(),
                 shutdown_receiver,

@@ -1,5 +1,5 @@
 extern crate dirs;
-use crate::dlt_file::create_dlt_tmp_file;
+use crate::dlt_file::create_dlt_session_file;
 use std::time::{SystemTime, UNIX_EPOCH};
 use indexer_base::chunks::Chunk;
 use crate::dlt_parse::*;
@@ -53,19 +53,20 @@ impl From<failure::Error> for ConnectionError {
 }
 #[allow(clippy::too_many_arguments)]
 pub async fn index_from_socket2(
+    session_id: String,
     socket_config: SocketConfig,
+    ecu_id: String,
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
     update_channel: cc::Sender<ChunkResults>,
     fibex_metadata: Option<FibexMetadata>,
     tag: &str,
-    ecu_id: String,
     out_path: &std::path::PathBuf,
     initial_line_nr: usize,
     shutdown_receiver: async_std::sync::Receiver<()>,
 ) -> Result<(), ConnectionError> {
     trace!("index_from_socket for socket conf: {:?}", socket_config);
     let (out_file, current_out_file_size) = utils::get_out_file_and_size(true, out_path)?;
-    let tmp_dlt_file = create_dlt_tmp_file("socket")?;
+    let tmp_dlt_file = create_dlt_session_file(&session_id)?;
 
     let mut tmp_writer = BufWriter::new(tmp_dlt_file);
     let mut chunk_factory = ChunkFactory::new(0, current_out_file_size);
@@ -261,9 +262,10 @@ pub fn index_from_socket(
 }
 #[allow(clippy::too_many_arguments)]
 pub async fn create_index_and_mapping_dlt_from_socket(
+    session_id: String,
     socket_config: SocketConfig,
-    tag: &str,
     ecu_id: String,
+    tag: &str,
     out_path: &std::path::PathBuf,
     dlt_filter: Option<filtering::DltFilterConfig>,
     update_channel: &cc::Sender<ChunkResults>,
@@ -276,12 +278,13 @@ pub async fn create_index_and_mapping_dlt_from_socket(
             let filter_config: Option<filtering::ProcessedDltFilterConfig> =
                 dlt_filter.map(filtering::process_filter_config);
             match index_from_socket2(
+                session_id,
                 socket_config,
+                ecu_id,
                 filter_config,
                 update_channel.clone(),
                 fibex_metadata,
                 tag,
-                ecu_id,
                 out_path,
                 initial_line_nr,
                 shutdown_receiver,

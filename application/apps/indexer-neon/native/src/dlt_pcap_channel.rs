@@ -21,7 +21,6 @@ impl PcapDltEventEmitter {
     #[allow(clippy::too_many_arguments)]
     pub fn start_indexing_pcap_file_in_thread(
         self: &mut Self,
-        ecu_id: String,
         chunk_size: usize,
         shutdown_rx: async_std::sync::Receiver<()>,
         chunk_result_sender: cc::Sender<ChunkResults>,
@@ -42,7 +41,6 @@ impl PcapDltEventEmitter {
                     out_path: &thread_conf.out_path,
                     append: thread_conf.append,
                 },
-                ecu_id,
                 filter_conf,
                 &chunk_result_sender,
                 shutdown_rx,
@@ -63,14 +61,13 @@ declare_types! {
             trace!("Rust: JsDltPcapEventEmitter");
             let file = cx.argument::<JsString>(0)?.value();
             let tag = cx.argument::<JsString>(1)?.value();
-            let ecu_id = cx.argument::<JsString>(2)?.value();
-            let out_path = path::PathBuf::from(cx.argument::<JsString>(3)?.value().as_str());
-            let chunk_size: usize = cx.argument::<JsNumber>(4)?.value() as usize;
-            let arg_filter_conf = cx.argument::<JsValue>(5)?;
+            let out_path = path::PathBuf::from(cx.argument::<JsString>(2)?.value().as_str());
+            let chunk_size: usize = cx.argument::<JsNumber>(3)?.value() as usize;
+            let arg_filter_conf = cx.argument::<JsValue>(4)?;
             let filter_conf: dlt::filtering::DltFilterConfig = neon_serde::from_value(&mut cx, arg_filter_conf)?;
-            let append: bool = cx.argument::<JsBoolean>(6)?.value();
+            let append: bool = cx.argument::<JsBoolean>(5)?.value();
 
-            let arg_fibex_conf = cx.argument::<JsValue>(7)?;
+            let arg_fibex_conf = cx.argument::<JsValue>(6)?;
             let fibex_conf: FibexConfig = neon_serde::from_value(&mut cx, arg_fibex_conf)?;
 
             let shutdown_channel = async_std::sync::channel(1);
@@ -83,7 +80,6 @@ declare_types! {
             let file_path = path::PathBuf::from(&file);
 
             emitter.start_indexing_pcap_file_in_thread(
-                ecu_id,
                 chunk_size,
                 shutdown_channel.1,
                 tx,

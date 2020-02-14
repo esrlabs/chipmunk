@@ -823,7 +823,6 @@ fn main() {
                 let _ = convert_to_dlt_file(file_path, filter_conf, tx, load_test_fibex_rc());
             } else {
                 let shutdown_channel = async_std::sync::channel(1);
-                let ecu_id = "dummy_id".to_string();
 
                 thread::spawn(move || {
                     let why = dlt::dlt_pcap::create_index_and_mapping_dlt_from_pcap(
@@ -834,7 +833,6 @@ fn main() {
                             out_path: &out_path,
                             append,
                         },
-                        ecu_id,
                         filter_conf,
                         &tx,
                         shutdown_channel.1,
@@ -927,11 +925,15 @@ fn main() {
                 port: "8888".to_string(),
             };
 
+            use chrono::Local;
+            let now = Local::now();
+            let session_id = format!("dlt_session_id_{}.dlt", now.format("%Y%b%d_%H-%M-%S"));
             thread::spawn(move || {
                 let dlt_socket_future = dlt::dlt_net::create_index_and_mapping_dlt_from_socket(
+                    session_id,
                     socket_conf,
-                    tag_string.as_str(),
                     "myEcuId".to_string(),
+                    tag_string.as_str(),
                     &out_path,
                     filter_conf,
                     &tx,

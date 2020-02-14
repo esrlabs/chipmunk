@@ -341,3 +341,13 @@ pub(crate) fn create_dlt_tmp_file(id: &str) -> Result<std::fs::File, Error> {
         .join(tmp_file_name);
     Ok(std::fs::File::create(tmp_dlt_file_path)?)
 }
+
+pub(crate) fn create_dlt_session_file(session_id: &str) -> Result<std::fs::File, Error> {
+    let home_dir = dirs::home_dir().ok_or_else(|| err_msg("couldn't get home directory"))?;
+    let tmp_file_name = format!("{}.dlt", session_id);
+    let tmp_dlt_file_path = home_dir
+        .join(".chipmunk")
+        .join("streams")
+        .join(tmp_file_name);
+    Ok(std::fs::File::create(tmp_dlt_file_path)?)
+}

@@ -12,6 +12,7 @@ import {
 	IDLTFilters,
 	IDLTOptions,
 	IIndexDltParams,
+	IFileSaveParams,
 	DltFilterConf,
 	DltLogLevel,
 	LevelDistribution,
@@ -122,6 +123,27 @@ export function dltStatsAsync(
 	});
 }
 
+export type TDltFileAsyncEvents =  'progress';
+export type TDltFileAsyncEventProgress = (event: ITicks) => void;
+export type TDltFileAsyncEventObject =
+	| TDltFileAsyncEventProgress;
+
+export function saveDltFile(
+	params: IFileSaveParams,
+): CancelablePromise<void, void, TDltFileAsyncEvents, TDltFileAsyncEventObject> {
+	return new CancelablePromise<
+		void,
+		void,
+		TDltFileAsyncEvents,
+		TDltFileAsyncEventObject
+	>((resolve, reject, cancel, refCancelCB, self) => {
+					log('saveDltFile: not yet implemented NYI');
+					// Operation is done.
+					resolve();
+	
+	});
+}
+
 export type TIndexDltAsyncEvents = 'chunk' | 'progress' | 'notification';
 export type TIndexDltAsyncEventChunk = (event: IChunk) => void;
 export type TIndexDltAsyncEventProgress = (event: ITicks) => void;
@@ -226,15 +248,14 @@ export type TDLTSocketEventObject =
 	| TDLTSocketEventNotification;
 
 export function indexPcapDlt(
-	ecuId: string,
 	params: IIndexDltParams
-): CancelablePromise<void, void, TDLTSocketEvents, TDLTSocketEventObject> {
+): CancelablePromise<void, void, TIndexDltAsyncEvents, TIndexDltAsyncEventObject> {
 	log('indexPcapDlt');
 	return new CancelablePromise<
 		void,
 		void,
-		TDLTSocketEvents,
-		TDLTSocketEventObject
+		TIndexDltAsyncEvents,
+		TIndexDltAsyncEventObject
 	>((resolve, reject, cancel, refCancelCB, self) => {
 		log(`indexPcapDlt: params: ${JSON.stringify(params)}`);
 		try {
@@ -248,7 +269,6 @@ export function indexPcapDlt(
 			const channel = new RustDltPcapChannel(
 				params.dltFile,
 				params.tag,
-				ecuId,
 				params.out,
 				params.chunk_size,
 				params.filterConfig,
@@ -311,6 +331,7 @@ export function indexPcapDlt(
 	});
 }
 export function dltOverSocket(
+	sessionId: String,
 	ecuId: string,
 	params: IDltSocketParams,
 	socketConfig: ISocketConfig
@@ -332,6 +353,7 @@ export function dltOverSocket(
 			});
 			// Create channel
 			const channel = new RustDltSocketChannel(
+				sessionId,
 				ecuId,
 				socketConfig,
 				params.tag,

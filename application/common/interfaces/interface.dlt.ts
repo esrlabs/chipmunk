@@ -10,6 +10,19 @@ export interface IDLTOptions {
 	fibexFilesInfo?: Array<{ name: string; path: string; size: number; created: number; changed: number }>;
 }
 
+
+// describes a section of a file by indicies
+// to identify lines 10-12 (inclusively) => firstLine = 10, last_line = 12
+// to identify only line 13: first_line = 13, last_line = 13
+export interface IIndexSection {
+	first_line: number;
+	last_line: number;
+}
+export interface IFileSaveParams {
+	session_id: string;
+	target_file: string;
+	sections: Array<IIndexSection>;
+}
 export interface IIndexDltParams {
 	dltFile: string;
 	filterConfig: DltFilterConf;
