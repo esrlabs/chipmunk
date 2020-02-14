@@ -23,6 +23,8 @@ export abstract class AFileParser {
 
     public abstract getExtnameFilters(): Array<{ name: string, extensions: string[] }>;
 
+    public abstract getExtensions(): string[];
+
     public abstract abort(): Promise<void>;
 
     public abstract getMeta(): string;
