@@ -308,6 +308,33 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         this._forceUpdate();
     }
 
+    public _ng_onSaveAsClick() {
+        ElectronIpcService.request(new IPCMessages.DLTDeamonSaveRequest({
+            session: this._ng_session.getGuid(),
+        }), IPCMessages.DLTDeamonSaveResponse).then((response: IPCMessages.DLTDeamonSaveResponse) => {
+            if (typeof response.error === 'string') {
+                this._notifications.add({
+                    caption: `DLT Saving`,
+                    message: `Error: ${response.error}`,
+                    options: {
+                        type: ENotificationType.error
+                    }
+                });
+                this._logger.error(`Fail to correctly save DLT stream due error: ${response.error}`);
+            }
+            this._forceUpdate();
+        }).catch((error: Error) => {
+            this._logger.error(`Fail to save DLT due error: ${error.message}`);
+            this._notifications.add({
+                caption: `DLT Saving`,
+                message: `Error: ${error.message}`,
+                options: {
+                    type: ENotificationType.error
+                }
+            });
+        });
+    }
+
     public _ng_onMuliticastingStateChange() {
         this._forceUpdate();
     }
