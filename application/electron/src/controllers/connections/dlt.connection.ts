@@ -2,11 +2,13 @@ import Logger from "../../tools/env.logger";
 import ServiceStreams from "../../services/service.streams";
 import ServiceStreamSource from '../../services/service.stream.sources';
 import ServiceNotifications from "../../services/service.notifications";
+import ServiceElectron from '../../services/service.electron';
 
 import indexer, { Progress, DLT, CancelablePromise } from "indexer-neon";
 import { IDLTDeamonConnectionOptions as IConnectionOptions } from '../../../../common/ipc/electron.ipc.messages/dlt.deamon.recent.response';
 import { EventEmitter } from 'events';
 import { CMetaData } from '../files.parsers/file.parser.dlt';
+import { dialog, SaveDialogReturnValue } from 'electron';
 
 export { IConnectionOptions };
 
@@ -29,7 +31,8 @@ export class DLTConnectionController extends EventEmitter {
     private _session: string;
     private _guid: string;
     private _logger: Logger;
-    private _task: CancelablePromise<void, void, DLT.TDLTSocketEvents, DLT.TDLTSocketEventObject> | undefined;
+    private _connector: CancelablePromise<void, void, DLT.TDLTSocketEvents, DLT.TDLTSocketEventObject> | undefined;
+    private _saver: CancelablePromise<void, void, DLT.TDLTSocketEvents, DLT.TDLTSocketEventObject> | undefined;
     private _bytes: number = 0;
 
     constructor(guid: string, session: string, connection: IConnectionOptions, dlt?: IDLTOptions) {
@@ -98,7 +101,7 @@ export class DLTConnectionController extends EventEmitter {
             };
             // Connecting
             this._logger.info(`Connecting`);
-            this._task = indexer.dltOverSocket(this._session, this._connection.ecu, params, socket).then(() => {
+            this._connector = indexer.dltOverSocket(this._session, this._connection.ecu, params, socket).then(() => {
                 this._logger.info(`Disconnected`);
             }).canceled(() => {
                 this._logger.info(`Task was canceled`);
@@ -106,7 +109,7 @@ export class DLTConnectionController extends EventEmitter {
                 this._logger.warn(`Exception: ${error.message}`);
                 this.emit(DLTConnectionController.Events.error, error);
             }).finally(() => {
-                this._task = undefined;
+                this._connector = undefined;
                 this.emit(DLTConnectionController.Events.disconnect);
             }).on('connect', () => {
                 this.emit(DLTConnectionController.Events.connect);
@@ -133,12 +136,64 @@ export class DLTConnectionController extends EventEmitter {
 
     public disconnect(): Promise<void> {
         return new Promise((resolve) => {
-            if (this._task === undefined) {
+            if (this._connector === undefined) {
                 return resolve();
             }
-            this._task.finally(() => {
+            this._connector.finally(() => {
                 resolve();
             }).abort();
+        });
+    }
+
+    public save(): Promise<string | undefined> {
+        return new Promise((resolve, reject) => {
+            this._getFileName().then((filename: string | undefined) => {
+                if (filename === undefined) {
+                    return resolve(undefined);
+                }
+                this._logger.info(`Saving`);
+                this._saver = indexer.saveDltFile({
+                    session_id: this._session,
+                    target_file: filename,
+                    sections: [],
+                }).then(() => {
+                    this._logger.info(`Saved`);
+                    // Resolving
+                    resolve(filename);
+                }).canceled(() => {
+                    this._logger.info(`Saving was canceled`);
+                }).catch((error: Error) => {
+                    this._logger.warn(`Exception: ${error.message}`);
+                    reject(error);
+                }).finally(() => {
+                    this._saver = undefined;
+                }).on('progress', (event: Progress.ITicks) => {
+                    // TODO: Do we need this event at all?
+                });
+            }).catch((error: Error) => {
+                reject(error);
+            });
+        });
+    }
+
+    private _getFileName(): Promise<string | undefined> {
+        return new Promise((resolve, reject) => {
+            const win = ServiceElectron.getBrowserWindow();
+            if (win === undefined) {
+                return;
+            }
+            dialog.showSaveDialog(win, {
+                title: 'Saving DLT stream',
+                filters: [{
+                    name: 'DLT Files',
+                    extensions: ['dlt'],
+                }],
+            }).then((returnValue: SaveDialogReturnValue) => {
+                resolve(returnValue.filePath);
+            }).catch((error: Error) => {
+                this._logger.error(`Fail get filename for saving due error: ${error.message}`);
+                reject(error);
+            });
         });
     }
 

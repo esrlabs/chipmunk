@@ -40,6 +40,9 @@ class ServiceDLTDeamonConnector implements IService {
                 ServiceElectron.IPC.subscribe(IPCMessages.DLTDeamonRecentDropRequest, this._onDLTDeamonRecentDropRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.DLTDeamonRecentDropRequest = subscription;
                 }),
+                ServiceElectron.IPC.subscribe(IPCMessages.DLTDeamonSaveRequest, this._onDLTDeamonSaveRequest.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.DLTDeamonSaveRequest = subscription;
+                }),
             ]).then(() => {
                 resolve();
             }).catch((error: Error) => {
@@ -224,6 +227,35 @@ class ServiceDLTDeamonConnector implements IService {
         response(
             new IPCMessages.DLTDeamonRecentDropResponse(),
         );
+    }
+
+    private _onDLTDeamonSaveRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        const req: IPCMessages.DLTDeamonSaveRequest = request as IPCMessages.DLTDeamonSaveRequest;
+        const connection: DLTConnectionController | undefined = this._connections.get(req.session);
+        if (connection === undefined) {
+            return response(
+                new IPCMessages.DLTDeamonSaveResponse({
+                    session: req.session,
+                    error: `Fail to find connection for session "${req.session}"`,
+                }),
+            );
+        }
+        connection.save().then((filename: string | undefined) => {
+            response(
+                new IPCMessages.DLTDeamonSaveResponse({
+                    session: req.session,
+                    filename: filename,
+                }),
+            );
+        }).catch((error: Error) => {
+            this._logger.error(`Fail to save DLT Stream due error: ${error.message}`);
+            response(
+                new IPCMessages.DLTDeamonSaveResponse({
+                    session: req.session,
+                    error: error.message,
+                }),
+            );
+        });
     }
 
     private _onSessionClosed(guid: string) {

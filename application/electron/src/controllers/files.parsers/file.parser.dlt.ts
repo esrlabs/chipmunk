@@ -14,7 +14,7 @@ const ExtNames = ["dlt"];
 export default class FileParser extends AFileParser {
 
     private _guid: string | undefined;
-    private _logger: Logger = new Logger("indexing");
+    private _logger: Logger = new Logger("DLT Indexing");
     private _task: CancelablePromise<void, void, DLT.TIndexDltAsyncEvents, DLT.TIndexDltAsyncEventObject> | undefined;
 
     constructor() {
