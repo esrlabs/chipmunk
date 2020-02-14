@@ -10,6 +10,7 @@ export class ControllerDltFileOptions extends AControllerFileOptions {
     public getOptions(request: IPCMessages.FileGetOptionsRequest): Promise<CommonInterfaces.DLT.IDLTOptions> {
         return new Promise((resolve, reject) => {
             const guid: string = PopupsService.add({
+                id: 'dlt-options-dialog',
                 options: {
                     closable: false,
                     width: 40,
@@ -38,6 +39,7 @@ export class ControllerDltFileOptions extends AControllerFileOptions {
     public reopen(file: string, options: CommonInterfaces.DLT.IDLTOptions): Promise<CommonInterfaces.DLT.IDLTOptions> {
         return new Promise((resolve, reject) => {
             const guid: string = PopupsService.add({
+                id: 'dlt-options-dialog-reopen',
                 options: {
                     closable: false,
                     width: 40,
