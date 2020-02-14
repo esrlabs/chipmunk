@@ -4,6 +4,7 @@ import {
 	NativeEventEmitter,
 	RustDltIndexerChannel,
 	RustDltStatsChannel,
+	RustDltSaveFileChannel,
 	RustDltSocketChannel,
 	RustDltPcapChannel
 } from './emitter';
@@ -123,13 +124,12 @@ export function dltStatsAsync(
 	});
 }
 
-export type TDltFileAsyncEvents =  'progress';
+export type TDltFileAsyncEvents = 'progress' | 'notification';
 export type TDltFileAsyncEventProgress = (event: ITicks) => void;
-export type TDltFileAsyncEventObject =
-	| TDltFileAsyncEventProgress;
+export type TDltFileAsyncEventObject = TDltFileAsyncEventProgress;
 
 export function saveDltFile(
-	params: IFileSaveParams,
+	params: IFileSaveParams
 ): CancelablePromise<void, void, TDltFileAsyncEvents, TDltFileAsyncEventObject> {
 	return new CancelablePromise<
 		void,
@@ -137,10 +137,58 @@ export function saveDltFile(
 		TDltFileAsyncEvents,
 		TDltFileAsyncEventObject
 	>((resolve, reject, cancel, refCancelCB, self) => {
-					log('saveDltFile: not yet implemented NYI');
+		try {
+			log(`using file-save-parmams: ${params}`);
+			// Get defaults options
+			// Add cancel callback
+			refCancelCB(() => {
+				// Cancelation is started, but not canceled
+				log(`save file command "break" operation`);
+				emitter.requestShutdown();
+			});
+			// Create channel
+			const channel = new RustDltSaveFileChannel(params);
+			// Create emitter
+			const emitter: NativeEventEmitter = new NativeEventEmitter(channel);
+			let chunks: number = 0;
+			// Add listenters
+			emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
+				self.emit('progress', ticks);
+			});
+			emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
+				log('we got a stopped event while saving dlt file with id: ' + params.sessionId);
+				emitter.shutdownAcknowledged(() => {
+					log('indexDlt: shutdown completed after we got stopped');
+					// Operation is canceled.
+					cancel();
+				});
+			});
+			emitter.on(NativeEventEmitter.EVENTS.Notification, (notification: INeonNotification) => {
+				self.emit('notification', notification);
+			});
+			emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
+				log('we got a finished event after ' + chunks + ' chunks');
+				emitter.shutdownAcknowledged(() => {
+					log('indexDlt: shutdown completed after finish event');
 					// Operation is done.
 					resolve();
-	
+				});
+			});
+			// Handle finale of promise
+			self.finally(() => {
+				log('processing dlt indexing is finished');
+			});
+		} catch (err) {
+			if (!(err instanceof Error)) {
+				log(`operation is stopped. Error isn't valid:`);
+				log(err);
+				err = new Error(`operation is stopped. Error isn't valid.`);
+			} else {
+				log(`operation is stopped due error: ${err.message}`);
+			}
+			// Operation is rejected
+			reject(err);
+		}
 	});
 }
 

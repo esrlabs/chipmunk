@@ -78,7 +78,7 @@ jobs:
       - run: ls
       - name: Release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/') && !startsWith(matrix.os, 'macOS')
+        if: startsWith(github.ref, 'refs/tags/')
         with:
           files: "*.tgz"
           draft: true

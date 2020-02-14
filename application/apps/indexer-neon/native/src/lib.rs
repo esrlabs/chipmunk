@@ -12,6 +12,7 @@ extern crate serde;
 
 mod channels;
 mod concatenator_channel;
+mod dlt_export_channel;
 mod dlt_indexer_channel;
 mod dlt_pcap_channel;
 mod dlt_socket_channel;
@@ -27,6 +28,7 @@ use crossbeam_channel as cc;
 use dlt_indexer_channel::JsDltIndexerEventEmitter;
 use dlt_socket_channel::JsDltSocketEventEmitter;
 
+use dlt_export_channel::JsDltExporterEventEmitter;
 use dlt_stats_channel::JsDltStatsEventEmitter;
 use indexer_base::progress::{IndexingProgress, IndexingResults, Notification, Severity};
 use indexer_channel::JsIndexerEventEmitter;
@@ -176,6 +178,7 @@ register_module!(mut cx, {
     cx.export_class::<JsTimestampFormatDetectionEmitter>("RustTimestampFormatDetectionEmitter")?;
     cx.export_class::<JsConcatenatorEmitter>("RustConcatenatorEmitter")?;
     cx.export_class::<JsMergerEmitter>("RustMergerEmitter")?;
+    cx.export_class::<JsDltExporterEventEmitter>("RustDltExporterEventEmitter")?;
     // detect_timestamp_formats_in_files
     Ok(())
 });

@@ -12,15 +12,15 @@ export interface IDLTOptions {
 
 
 // describes a section of a file by indicies
-// to identify lines 10-12 (inclusively) => firstLine = 10, last_line = 12
-// to identify only line 13: first_line = 13, last_line = 13
+// to identify lines 10-12 (inclusively) => firstLine = 10, lastLine = 12
+// to identify only line 13: firstLine = 13, lastLine = 13
 export interface IIndexSection {
-	first_line: number;
-	last_line: number;
+	firstLine: number;
+	lastLine: number;
 }
 export interface IFileSaveParams {
-	session_id: string;
-	target_file: string;
+	sessionId: string;
+	targetFile: string;
 	sections: Array<IIndexSection>;
 }
 export interface IIndexDltParams {
