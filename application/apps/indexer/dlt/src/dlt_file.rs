@@ -219,8 +219,8 @@ pub fn index_dlt_content(
     } else {
         0
     };
-    let tmp_file = create_dlt_tmp_file("file")?;
-    let mut tmp_writer = BufWriter::with_capacity(10 * 1024 * 1024, tmp_file);
+    // let tmp_file = create_dlt_tmp_file("file")?;
+    // let mut tmp_writer = BufWriter::with_capacity(10 * 1024 * 1024, tmp_file);
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
 
     let mut progress_reporter = ProgressReporter::new(source_file_size, update_channel.clone());
@@ -245,7 +245,7 @@ pub fn index_dlt_content(
                 let written_bytes_len =
                     utils::create_tagged_line_d(config.tag, &mut buf_writer, &msg, line_nr, true)?;
                 trace!("written_bytes_len: {}", written_bytes_len);
-                tmp_writer.write_all(&msg.as_bytes())?;
+                // tmp_writer.write_all(&msg.as_bytes())?;
                 line_nr += 1;
                 if let Some(chunk) =
                     chunk_factory.create_chunk_if_needed(line_nr, written_bytes_len)
@@ -300,7 +300,7 @@ pub fn index_dlt_content(
 
     trace!("buf_writer.flush()");
     buf_writer.flush()?;
-    tmp_writer.flush()?;
+    // tmp_writer.flush()?;
     if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunk_count == 0) {
         trace!("send chunk {:?}", chunk);
         update_channel.send(Ok(IndexingProgress::GotItem {

@@ -189,6 +189,7 @@ desc 'start'
 task start: :ripgrepdelivery do
   # config_windows_path = File.join(Dir.home, '.chipmunk', 'config.window.json')
   # rm_f config_windows_path
+  ENV['CHIPMUNK_DEVELOPING_MODE'] = 'ON'
   cd ELECTRON_DIR do
     require 'dotenv/load'
     if OS.windows?
