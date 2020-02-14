@@ -29,7 +29,7 @@ export class PopupsService {
         };
     }
 
-    public add(popup: Toolkit.IPopup): string {
+    public add(popup: Toolkit.IPopup, noDuplicate: boolean = true): string | undefined {
         // Check before plugins factories
         if (popup.component === undefined) {
             return;
@@ -54,6 +54,9 @@ export class PopupsService {
         }
         if (typeof popup.id !== 'string' || popup.id.trim() === '') {
             popup.id = Toolkit.guid();
+        }
+        if (noDuplicate && this._opened.has(popup.id)) {
+            return undefined;
         }
         this._subjects.onNew.next(popup);
         this._opened.set(popup.id, true);

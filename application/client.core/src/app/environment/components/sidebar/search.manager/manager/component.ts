@@ -47,6 +47,7 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
 
     public _ng_onRecentOpen() {
         const popupId: string = PopupsService.add({
+            id: 'recent-filters-dialog',
             caption: `Open Recent Filters`,
             component: {
                 factory: DialogsRecentFitlersActionComponent,
