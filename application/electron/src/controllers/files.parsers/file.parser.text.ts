@@ -40,6 +40,10 @@ export default class FileParser extends AFileParser {
         return [{ name: "Text files", extensions: ExtNames }];
     }
 
+    public getExtensions(): string[] {
+        return ExtNames.slice();
+    }
+
     public isSupported(file: string): Promise<boolean> {
         return new Promise((resolve, reject) => {
             fs.open(file, "r", (openError: NodeJS.ErrnoException | null, fd: number) => {

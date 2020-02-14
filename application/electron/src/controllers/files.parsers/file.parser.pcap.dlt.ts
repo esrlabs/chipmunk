@@ -41,6 +41,10 @@ export default class FileParser extends AFileParser {
         return [{ name: "DLT Files wrapped into PCAP", extensions: ExtNames }];
     }
 
+    public getExtensions(): string[] {
+        return ExtNames.slice();
+    }
+
     public isSupported(file: string): Promise<boolean> {
         return new Promise((resolve, reject) => {
             const extname: string = path
