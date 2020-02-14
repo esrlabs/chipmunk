@@ -14,7 +14,7 @@ use crate::dlt_parse::DLT_PATTERN_SIZE;
 use crate::dlt_parse::{DltParseError, ParsedMessage};
 use crate::filtering;
 use crossbeam_channel as cc;
-use indexer_base::chunks::{ChunkResults, ChunkFactory};
+use indexer_base::chunks::{ChunkFactory, ChunkResults};
 use indexer_base::config::*;
 use indexer_base::progress::*;
 use indexer_base::utils;
@@ -24,6 +24,7 @@ use buf_redux::BufReader as ReduxReader;
 use failure::{err_msg, Error};
 use std::fs;
 use std::io::{BufRead, BufWriter, Write};
+use std::path::PathBuf;
 use std::rc::Rc;
 
 use crate::fibex::FibexMetadata;
@@ -66,7 +67,7 @@ pub struct FileMessageProducer {
 
 impl FileMessageProducer {
     fn new(
-        in_path: &std::path::PathBuf,
+        in_path: &PathBuf,
         filter_config: Option<filtering::ProcessedDltFilterConfig>,
         update_channel: cc::Sender<ChunkResults>,
         with_storage_header: bool,
@@ -330,16 +331,30 @@ pub fn index_dlt_content(
     Ok(())
 }
 
-pub(crate) fn create_dlt_tmp_file(id: &str) -> Result<std::fs::File, Error> {
-    use chrono::Local;
-    let home_dir = dirs::home_dir().ok_or_else(|| err_msg("couldn't get home directory"))?;
-    let now = Local::now();
-    let tmp_file_name = format!("dlt_{}_trace_{}.dlt", id, now.format("%Y%b%d_%H-%M-%S"));
-    let tmp_dlt_file_path = home_dir
-        .join(".chipmunk")
-        .join("streams")
-        .join(tmp_file_name);
-    Ok(std::fs::File::create(tmp_dlt_file_path)?)
+pub fn export_as_dlt_file(
+    session_id: String,
+    destination_path: PathBuf,
+    sections: SectionConfig,
+) -> Result<(), Error> {
+    trace!(
+        "export_as_dlt_file with id: {} to file: {:?}, exporting {:?}",
+        session_id,
+        destination_path,
+        sections
+    );
+    if destination_path.exists() {
+        return Err(err_msg(format!(
+            "cannot export to {:?}, file already exists!",
+            &destination_path
+        )));
+    }
+    let mut session_file = create_dlt_session_file(&session_id)?;
+    let out_file = std::fs::File::create(destination_path)?;
+
+    let mut out_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
+    std::io::copy(&mut session_file, &mut out_writer)?;
+    out_writer.flush()?;
+    Ok(())
 }
 
 pub(crate) fn create_dlt_session_file(session_id: &str) -> Result<std::fs::File, Error> {

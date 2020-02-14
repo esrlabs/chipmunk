@@ -12,6 +12,20 @@
 use serde::{Deserialize, Serialize};
 use std::path;
 
+/// A IndexSection describes a section of a file by indicies
+/// to identify lines 10-12 (inclusively) => first_line = 10, last_line = 12
+/// to identify only line 13: first_line = 13, last_line = 13
+#[derive(Serialize, Deserialize, Debug)]
+pub struct IndexSection {
+    first_line: usize,
+    last_line: usize,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SectionConfig {
+    pub sections: Vec<IndexSection>,
+}
+
 #[derive(Debug)]
 pub struct IndexingConfig<'a> {
     pub tag: &'a str,
