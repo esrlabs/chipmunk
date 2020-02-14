@@ -37,6 +37,7 @@ export class LayoutPrimiryAreaControlsComponent implements OnDestroy {
 
     public _ng_onRecent(event: MouseEvent) {
         const popupId: string = PopupsService.add({
+            id: 'recent-files-dialog',
             caption: ``,
             component: {
                 factory: DialogsRecentFilesActionComponent,

@@ -102,6 +102,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
                 this._pending = files;
                 // Select way: merge or concat
                 PopupsService.add({
+                    id: 'opening-file-dialog',
                     caption: `Opening files`,
                     component: {
                         factory: DialogsMultipleFilesActionComponent,
