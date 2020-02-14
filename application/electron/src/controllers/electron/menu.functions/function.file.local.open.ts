@@ -1,7 +1,6 @@
 import { dialog, OpenDialogReturnValue } from 'electron';
 import ServiceFileOpener from '../../../services/files/service.file.opener';
-import ServiceStreams from '../../../services/service.streams';
-import ServiceElectron from '../../../services/service.electron';
+import ServiceElectron, { IPCMessages } from '../../../services/service.electron';
 import { AFileParser, getParserForFile } from '../../../controllers/files.parsers/index';
 
 import Logger from '../../../tools/env.logger';
@@ -48,8 +47,16 @@ export default class FunctionOpenLocalFile {
                         this._logger.error(`Fail to find a parser for file: ${filename}`);
                         return;
                     }
-                    ServiceFileOpener.open(filename, ServiceStreams.getActiveStreamId(), parser).catch((error: Error) => {
-                        this._logger.warn(`Fail open file "${filename}" due error: ${error.message}`);
+                    ServiceElectron.IPC.request(new IPCMessages.RenderSessionAddRequest(), IPCMessages.RenderSessionAddResponse).then((response: IPCMessages.RenderSessionAddResponse) => {
+                        if (response.error !== undefined) {
+                            this._logger.warn(`Fail to add new session for file "${filename}" due error: ${response.error}`);
+                            return;
+                        }
+                        ServiceFileOpener.open(filename, response.session, parser).catch((error: Error) => {
+                            this._logger.warn(`Fail open file "${filename}" due error: ${error.message}`);
+                        });
+                    }).catch((addSessionErr: Error) => {
+                        this._logger.warn(`Fail to add new session for file "${filename}" due error: ${addSessionErr.message}`);
                     });
                 }).catch((error: Error) => {
                     this._logger.error(`Error to open file "${filename}" due error: ${error.message}`);
