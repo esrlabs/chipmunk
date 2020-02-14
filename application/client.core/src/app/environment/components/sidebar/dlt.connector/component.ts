@@ -191,6 +191,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppDLTConnectorComponent');
     private _destroyed: boolean = false;
+    private _ng_allowSaveAs: boolean = false;
     private _recent: IPCMessages.IDLTDeamonConnectionOptions[] = [];
 
     constructor(private _cdRef: ChangeDetectorRef,
@@ -291,6 +292,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
                 });
                 this._logger.error(`Fail to correctly disconnect due error: ${response.error}`);
             }
+            this._ng_allowSaveAs = true;
             this._ng_state = 'disconnected';
             this._ng_settings.connectionId = '';
             this._forceUpdate();
