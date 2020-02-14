@@ -6,9 +6,6 @@ extern crate tar;
 extern crate log;
 extern crate log4rs;
 
-#[cfg(target_os = "windows")]
-use std::os::windows::process::CommandExt;
-
 use flate2::read::GzDecoder;
 use log::LevelFilter;
 use log4rs::append::file::FileAppender;
@@ -107,7 +104,7 @@ fn remove_application_folder(app: &Path) -> Result<PathBuf> {
         app
     } else {
         app.parent()
-            .expect(format!("could not get parent of {:?}", app).as_str())
+            .unwrap_or_else(|| panic!("could not get parent of {:?}", app))
     };
 
     debug!("This folder will be clean: {:?}", app_folder);
