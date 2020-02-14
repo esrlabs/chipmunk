@@ -1,5 +1,6 @@
 import FileParserText from './file.parser.text';
 import FileParserDlt from './file.parser.dlt';
+import FileParserPcapDlt from './file.parser.pcap.dlt';
 import { AFileParser } from './interface';
 
 export interface IFileParser {
@@ -22,6 +23,12 @@ const FileParsers: IFileParser[] = [
         alias: 'dlt',
         desc: 'Parser for DLT files',
         class: FileParserDlt,
+    },
+    {
+        name: 'DLT',
+        alias: 'pcap_dlt',
+        desc: 'Parser for DLT files, wrapped PCAP',
+        class: FileParserPcapDlt,
     },
 ];
 
