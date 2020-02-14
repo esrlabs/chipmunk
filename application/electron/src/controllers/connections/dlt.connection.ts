@@ -153,8 +153,8 @@ export class DLTConnectionController extends EventEmitter {
                 }
                 this._logger.info(`Saving`);
                 this._saver = indexer.saveDltFile({
-                    session_id: this._session,
-                    target_file: filename,
+                    sessionId: this._session,
+                    targetFile: filename,
                     sections: [],
                 }).then(() => {
                     this._logger.info(`Saved`);
