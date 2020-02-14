@@ -10,6 +10,7 @@ export { CancelablePromise, Processor, Progress, DLT, Merge, Units };
 export default {
     // DLT
     dltStatsAsync               : DLT.dltStatsAsync,
+    saveDltFile                 : DLT.saveDltFile,
     indexDltAsync               : DLT.indexDltAsync,
     dltOverSocket               : DLT.dltOverSocket,
     indexPcapDlt                : DLT.indexPcapDlt,
