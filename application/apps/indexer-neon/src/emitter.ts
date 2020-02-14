@@ -2,7 +2,7 @@ const {
     RustIndexerEventEmitter: RustIndexerChannel,
     RustDltIndexerEventEmitter: RustDltIndexerChannel,
     RustDltStatsEventEmitter: RustDltStatsChannel,
-    RustDltSaveFileEventEmitter: RustDltSaveFileChannel,
+    RustDltExporterEventEmitter: RustDltSaveFileChannel,
     RustDltSocketEventEmitter: RustDltSocketChannel,
     RustDltPcapEventEmitter: RustDltPcapChannel,
     RustTimestampFormatDetectionEmitter: RustTimestampChannel,

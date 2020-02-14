@@ -129,6 +129,8 @@ export type TDltFileAsyncEventProgress = (event: ITicks) => void;
 export type TDltFileAsyncEventObject = TDltFileAsyncEventProgress;
 
 export function saveDltFile(
+	sessionId: string,
+	targetFile: string,
 	params: IFileSaveParams
 ): CancelablePromise<void, void, TDltFileAsyncEvents, TDltFileAsyncEventObject> {
 	return new CancelablePromise<
@@ -147,7 +149,7 @@ export function saveDltFile(
 				emitter.requestShutdown();
 			});
 			// Create channel
-			const channel = new RustDltSaveFileChannel(params);
+			const channel = new RustDltSaveFileChannel(sessionId, targetFile, params);
 			// Create emitter
 			const emitter: NativeEventEmitter = new NativeEventEmitter(channel);
 			let chunks: number = 0;
@@ -156,7 +158,7 @@ export function saveDltFile(
 				self.emit('progress', ticks);
 			});
 			emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
-				log('we got a stopped event while saving dlt file with id: ' + params.sessionId);
+				log('we got a stopped event while saving dlt file with id: ' + sessionId);
 				emitter.shutdownAcknowledged(() => {
 					log('indexDlt: shutdown completed after we got stopped');
 					// Operation is canceled.
