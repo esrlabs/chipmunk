@@ -53,9 +53,9 @@ export class DLTConnectionController extends EventEmitter {
 
     public connect(): Promise<void> {
         return new Promise((resolve, reject) => {
-            if (typeof this._connection.ecu !== 'string' || this._connection.ecu.trim() === '') {
-                return reject(new Error(`ecu isn't defined in options, value: ${this._connection.ecu}`));
-            }
+            // if (typeof this._connection.ecu !== 'string' || this._connection.ecu.trim() === '') {
+            //     return reject(new Error(`ecu isn't defined in options, value: ${this._connection.ecu}`));
+            // }
             if (typeof this._connection.bindingAddress !== 'string' || this._connection.bindingAddress.trim() === '') {
                 return reject(new Error(`bindingAddress isn't defined in options, value: ${this._connection.bindingAddress}`));
             }
@@ -98,7 +98,7 @@ export class DLTConnectionController extends EventEmitter {
             };
             // Connecting
             this._logger.info(`Connecting`);
-            this._connector = indexer.dltOverSocket(this._session, this._connection.ecu, params, socket).then(() => {
+            this._connector = indexer.dltOverSocket(this._session, params, socket).then(() => {
                 this._logger.info(`Disconnected`);
             }).canceled(() => {
                 this._logger.info(`Task was canceled`);

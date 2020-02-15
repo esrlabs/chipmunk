@@ -382,7 +382,6 @@ export function indexPcapDlt(
 }
 export function dltOverSocket(
 	sessionId: String,
-	ecuId: string,
 	params: IDltSocketParams,
 	socketConfig: ISocketConfig
 ): CancelablePromise<void, void, TDLTSocketEvents, TDLTSocketEventObject> {
@@ -404,7 +403,6 @@ export function dltOverSocket(
 			// Create channel
 			const channel = new RustDltSocketChannel(
 				sessionId,
-				ecuId,
 				socketConfig,
 				params.tag,
 				params.out,

@@ -11,18 +11,18 @@
 // from E.S.R.Labs.
 #![allow(clippy::unit_arg)]
 
-use indexer_base::error_reporter::*;
 use crate::proptest_strategies::*;
-use bytes::{ByteOrder, BytesMut, BufMut};
+use byteorder::{BigEndian, LittleEndian};
+use bytes::{BufMut, ByteOrder, BytesMut};
+use indexer_base::error_reporter::*;
+use serde::Serialize;
 use std::fmt;
 use std::io;
-use std::io::{Error};
+use std::io::Error;
 use std::rc::Rc;
-use serde::Serialize;
-use byteorder::{BigEndian, LittleEndian};
 
-use proptest_derive::Arbitrary;
 use proptest::prelude::*;
+use proptest_derive::Arbitrary;
 
 use std::str;
 
@@ -188,7 +188,7 @@ impl StandardHeader {
     }
 
     #[allow(dead_code)]
-    pub fn header_as_bytes(&self) -> Vec<u8> {
+    pub fn as_bytes(&self) -> Vec<u8> {
         let header_type_byte = self.header_type_byte();
         let size = calculate_standard_header_length(header_type_byte);
         let mut buf = BytesMut::with_capacity(size as usize);
@@ -880,7 +880,6 @@ impl Argument {
     }
 
     pub fn as_bytes<T: ByteOrder>(self: &Argument) -> Vec<u8> {
-        trace!("argument as_bytes ===================================");
         match self.type_info.kind {
             TypeInfoKind::Bool => {
                 let mut buf = self.mut_buf_with_typeinfo_name::<T>(&self.type_info, &self.name);
@@ -1290,16 +1289,19 @@ pub struct MessageConfig {
 
 #[inline]
 fn dbg_bytes_with_info(_name: &str, _bytes: &[u8], _info: Option<&str>) {
-    trace!(
-        "writing {}: {} {:02X?} {}",
-        _name,
-        _bytes.len(),
-        _bytes,
-        match _info {
-            Some(i) => i,
-            None => "",
-        }
-    );
+    #[cfg(feature = "debug_parser")]
+    {
+        trace!(
+            "writing {}: {} {:02X?} {}",
+            _name,
+            _bytes.len(),
+            _bytes,
+            match _info {
+                Some(i) => i,
+                None => "",
+            }
+        );
+    }
 }
 #[inline]
 fn dbg_bytes(_name: &str, _bytes: &[u8]) {
@@ -1346,27 +1348,17 @@ impl Message {
     }
 
     pub fn as_bytes(self: &Message) -> Vec<u8> {
-        // println!(
-        //     "message header overall_length: {}",
-        //     self.header.overall_length()
-        // );
         let mut capacity = self.header.overall_length() as usize;
         let mut buf = if let Some(storage_header) = &self.storage_header {
             capacity += STORAGE_HEADER_LENGTH;
-            // println!("using capacity: {}", capacity);
             let mut b = BytesMut::with_capacity(capacity);
-            // println!(
-            //     "writing storage_header: {}",
-            //     storage_header.as_bytes().len()
-            // );
             b.extend_from_slice(&storage_header.as_bytes()[..]);
             b
         } else {
-            // println!("using capacity: {}", capacity);
             BytesMut::with_capacity(capacity)
         };
-        dbg_bytes("header", &self.header.header_as_bytes());
-        buf.extend_from_slice(&self.header.header_as_bytes());
+        dbg_bytes("header", &self.header.as_bytes());
+        buf.extend_from_slice(&self.header.as_bytes());
         if let Some(ext_header) = &self.extended_header {
             let ext_header_bytes = ext_header.as_bytes();
             dbg_bytes("ext_header", &ext_header_bytes);
@@ -1384,6 +1376,36 @@ impl Message {
 
         buf.to_vec()
     }
+
+    pub fn byte_len(&self) -> u16 {
+        self.header.overall_length()
+    }
+
+    pub fn add_storage_header(mut self, time_stamp: Option<DltTimeStamp>) -> Self {
+        let timestamp = match time_stamp {
+            Some(ts) => ts,
+            None => {
+                use std::time::{SystemTime, UNIX_EPOCH};
+                let now = SystemTime::now();
+                let since_the_epoch = now
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or(std::time::Duration::from_secs(0));
+                let in_ms = since_the_epoch.as_millis();
+                DltTimeStamp::from_ms(in_ms as u64)
+            }
+        };
+        let ecu_id = self
+            .header
+            .ecu_id
+            .clone()
+            .unwrap_or_else(|| DEFAULT_ECU_ID.into());
+        self = Message {
+            storage_header: Some(StorageHeader { timestamp, ecu_id }),
+            ..self
+        };
+        self
+    }
+
     pub(crate) fn write_app_id_context_id_and_message_type(
         &self,
         f: &mut fmt::Formatter,
@@ -1451,6 +1473,7 @@ pub trait TryFrom<T>: Sized {
     fn try_from(value: T) -> Result<Self, Self::Error>;
 }
 
+pub const DEFAULT_ECU_ID: &str = "ECU";
 // StorageHeader
 pub const STORAGE_HEADER_PATTERN_LENGTH: usize = 4;
 pub const STORAGE_HEADER_LENGTH: usize = 16;

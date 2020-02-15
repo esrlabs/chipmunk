@@ -12,7 +12,7 @@
 use crate::dlt::*;
 use crate::filtering;
 use crossbeam_channel as cc;
-use indexer_base::chunks::{ChunkResults};
+use indexer_base::chunks::ChunkResults;
 use indexer_base::error_reporter::*;
 use indexer_base::progress::*;
 use serde::Serialize;
@@ -79,21 +79,7 @@ fn skip_to_next_storage_header<'a, T>(
     }
     Some(&input[to_drop..])
 }
-fn dlt_skip_storage_header<'a, T>(
-    input: &'a [u8],
-    index: Option<usize>,
-    update_channel: Option<&cc::Sender<IndexingResults<T>>>,
-) -> IResult<&'a [u8], ()> {
-    // println!("dlt_skip_storage_header");
-    match skip_to_next_storage_header(input, index, update_channel) {
-        Some(rest) => {
-            let (i, (_, _, _)): (&'a [u8], _) =
-                tuple((tag("DLT"), tag(&[0x01]), take(12usize)))(rest)?;
-            Ok((i, ()))
-        }
-        None => Err(nom::Err::Error((&[], nom::error::ErrorKind::Verify))),
-    }
-}
+
 pub(crate) fn dlt_storage_header<'a, T>(
     input: &'a [u8],
     index: Option<usize>,
@@ -717,7 +703,7 @@ fn dlt_payload<T: NomByteOrder>(
 
 #[inline]
 fn dbg_parsed<T: std::fmt::Debug>(_name: &str, _before: &[u8], _after: &[u8], _value: &T) {
-    // #[cfg(feature = "debug_parser")]
+    #[cfg(feature = "debug_parser")]
     {
         let input_len = _before.len();
         let now_len = _after.len();
@@ -739,7 +725,7 @@ fn dbg_parsed<T: std::fmt::Debug>(_name: &str, _before: &[u8], _after: &[u8], _v
 #[derive(Debug, PartialEq)]
 pub enum ParsedMessage {
     Item(Message),
-    Skipped,
+    FilteredOut,
     Invalid,
 }
 
@@ -872,21 +858,21 @@ pub fn dlt_message<'a>(
                 if h.skip_with_level(min_filter_level) {
                     // trace!("no need to parse further, skip payload (skipped level)");
                     let (after_message, _) = take(payload_length)(after_headers)?;
-                    return Ok((after_message, ParsedMessage::Skipped));
+                    return Ok((after_message, ParsedMessage::FilteredOut));
                 }
             }
             if let Some(only_these_components) = &filter_config.app_ids {
                 if !only_these_components.contains(&h.application_id) {
                     // trace!("no need to parse further, skip payload (skipped app id)");
                     let (after_message, _) = take(payload_length)(after_headers)?;
-                    return Ok((after_message, ParsedMessage::Skipped));
+                    return Ok((after_message, ParsedMessage::FilteredOut));
                 }
             }
             if let Some(only_these_context_ids) = &filter_config.context_ids {
                 if !only_these_context_ids.contains(&h.context_id) {
                     // trace!("no need to parse further, skip payload (skipped context id)");
                     let (after_message, _) = take(payload_length)(after_headers)?;
-                    return Ok((after_message, ParsedMessage::Skipped));
+                    return Ok((after_message, ParsedMessage::FilteredOut));
                 }
             }
             if let Some(only_these_ecu_ids) = &filter_config.ecu_ids {
@@ -894,7 +880,7 @@ pub fn dlt_message<'a>(
                     if !only_these_ecu_ids.contains(ecu_id) {
                         // trace!("no need to parse further, skip payload (skipped ecu id)");
                         let (after_message, _) = take(payload_length)(after_headers)?;
-                        return Ok((after_message, ParsedMessage::Skipped));
+                        return Ok((after_message, ParsedMessage::FilteredOut));
                     }
                 }
             }
@@ -942,6 +928,7 @@ pub fn dlt_message<'a>(
         }),
     ))
 }
+
 fn validated_payload_length<T>(
     header: &StandardHeader,
     index: Option<usize>,
@@ -970,7 +957,16 @@ pub fn dlt_statistic_row_info<'a, T>(
     update_channel: Option<&cc::Sender<IndexingResults<T>>>,
 ) -> IResult<&'a [u8], StatisticRowInfo> {
     let update_channel_ref = update_channel;
-    let (after_storage_header, _) = dlt_skip_storage_header(input, index, update_channel_ref)?;
+    let skip_res: IResult<&'a [u8], ()> =
+        match skip_to_next_storage_header(input, index, update_channel_ref) {
+            Some(rest) => {
+                let (i, (_, _, _)): (&'a [u8], _) =
+                    tuple((tag("DLT"), tag(&[0x01]), take(12usize)))(rest)?;
+                Ok((i, ()))
+            }
+            None => Err(nom::Err::Error((&[], nom::error::ErrorKind::Verify))),
+        };
+    let (after_storage_header, _) = skip_res?; //dlt_skip_storage_header(input, index, update_channel_ref)?;
     let (after_storage_and_normal_header, header) = dlt_standard_header(after_storage_header)?;
 
     let payload_length = match validated_payload_length(&header, index, update_channel_ref) {

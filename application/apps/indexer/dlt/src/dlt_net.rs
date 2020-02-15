@@ -1,25 +1,24 @@
 extern crate dirs;
-use crate::dlt_file::create_dlt_session_file;
-use std::time::{SystemTime, UNIX_EPOCH};
-use indexer_base::chunks::Chunk;
-use crate::dlt_parse::*;
 use crate::dlt::*;
-use std::rc::Rc;
-use futures::FutureExt;
-use futures::stream::StreamExt;
-use indexer_base::progress::*;
-use failure::err_msg;
-use std::io::{BufWriter, Write};
-use indexer_base::utils;
-use indexer_base::config::SocketConfig;
-use indexer_base::chunks::{ChunkFactory, ChunkResults};
-use async_std::net::{Ipv4Addr, UdpSocket};
-use std::net::SocketAddr;
-use async_std::task;
+use crate::dlt_file::create_dlt_session_file;
 use crate::dlt_parse::dlt_message;
+use crate::dlt_parse::*;
 use crate::fibex::FibexMetadata;
-use crossbeam_channel as cc;
 use crate::filtering;
+use async_std::net::{Ipv4Addr, UdpSocket};
+use async_std::task;
+use crossbeam_channel as cc;
+use failure::err_msg;
+use futures::stream::StreamExt;
+use futures::FutureExt;
+use indexer_base::chunks::Chunk;
+use indexer_base::chunks::{ChunkFactory, ChunkResults};
+use indexer_base::config::SocketConfig;
+use indexer_base::progress::*;
+use indexer_base::utils;
+use std::io::{BufWriter, Write};
+use std::net::SocketAddr;
+use std::rc::Rc;
 
 #[derive(Debug, Fail)]
 pub enum ConnectionError {
@@ -55,7 +54,6 @@ impl From<failure::Error> for ConnectionError {
 pub async fn index_from_socket2(
     session_id: String,
     socket_config: SocketConfig,
-    ecu_id: String,
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
     update_channel: cc::Sender<ChunkResults>,
     fibex_metadata: Option<FibexMetadata>,
@@ -98,7 +96,6 @@ pub async fn index_from_socket2(
     let udp_msg_producer = UdpMessageProducer {
         socket,
         update_channel: update_channel.clone(),
-        ecu_id,
         fibex_metadata: fibex_metadata.map(Rc::new),
         filter_config,
     };
@@ -136,7 +133,7 @@ pub async fn index_from_socket2(
         };
         match maybe_msg {
             Some(msg) => {
-                trace!("got msg ...({} bytes)", msg.as_bytes().len());
+                trace!("socket: got msg ...({} bytes)", msg.byte_len());
                 tmp_writer.write_all(&msg.as_bytes())?;
                 let written_bytes_len =
                     utils::create_tagged_line_d(tag, &mut buf_writer, &msg, line_nr, true)?;
@@ -163,7 +160,6 @@ pub fn index_from_socket(
     update_channel: cc::Sender<ChunkResults>,
     fibex_metadata: Option<Rc<FibexMetadata>>,
     tag: &str,
-    ecu_id: String,
     out_path: &std::path::PathBuf,
     initial_line_nr: usize,
     shutdown_receiver: async_std::sync::Receiver<()>,
@@ -202,7 +198,6 @@ pub fn index_from_socket(
         let udp_msg_producer = UdpMessageProducer {
             socket,
             update_channel: update_channel.clone(),
-            ecu_id,
             fibex_metadata,
             filter_config,
         };
@@ -264,7 +259,6 @@ pub fn index_from_socket(
 pub async fn create_index_and_mapping_dlt_from_socket(
     session_id: String,
     socket_config: SocketConfig,
-    ecu_id: String,
     tag: &str,
     out_path: &std::path::PathBuf,
     dlt_filter: Option<filtering::DltFilterConfig>,
@@ -280,7 +274,6 @@ pub async fn create_index_and_mapping_dlt_from_socket(
             match index_from_socket2(
                 session_id,
                 socket_config,
-                ecu_id,
                 filter_config,
                 update_channel.clone(),
                 fibex_metadata,
@@ -337,7 +330,6 @@ pub async fn create_index_and_mapping_dlt_from_socket(
 struct UdpMessageProducer {
     socket: UdpSocket,
     update_channel: cc::Sender<ChunkResults>,
-    ecu_id: String,
     fibex_metadata: Option<Rc<FibexMetadata>>,
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
 }
@@ -348,19 +340,24 @@ impl futures::Stream for UdpMessageProducer {
         cx: &mut std::task::Context,
     ) -> futures::task::Poll<Option<Self::Item>> {
         let mut buf = [0u8; 65535];
-        let pending = {
+        let (pending, _received_bytes) = {
             let mut f = self.socket.recv_from(&mut buf).boxed();
             match f.as_mut().poll(cx) {
-                futures::task::Poll::Pending => true,
+                futures::task::Poll::Pending => (true, 0),
                 futures::task::Poll::Ready(Err(e)) => {
                     return futures::task::Poll::Ready(Some(Err(e.into())));
                 }
-                futures::task::Poll::Ready(Ok((_amt, _src))) => false,
+                futures::task::Poll::Ready(Ok((amt, _src))) => (false, amt),
             }
         };
         if pending {
             futures::task::Poll::Pending
         } else {
+            // trace!(
+            //     "UdpMessageProducer stream, received {} bytes: {:02X?}",
+            //     received_bytes,
+            //     &buf[..received_bytes]
+            // );
             match dlt_message(
                 &buf,
                 self.filter_config.as_ref(),
@@ -370,24 +367,11 @@ impl futures::Stream for UdpMessageProducer {
                 false,
             ) {
                 Ok((_, ParsedMessage::Invalid)) => futures::task::Poll::Ready(None),
-                Ok((_, ParsedMessage::Skipped)) => futures::task::Poll::Ready(None),
+                Ok((_, ParsedMessage::FilteredOut)) => futures::task::Poll::Ready(None),
                 Ok((_, ParsedMessage::Item(m))) => {
                     let msg_with_storage_header = match m.storage_header {
                         Some(_) => m,
-                        None => {
-                            let now = SystemTime::now();
-                            let since_the_epoch = now
-                                .duration_since(UNIX_EPOCH)
-                                .unwrap_or(std::time::Duration::from_secs(0));
-                            let in_ms = since_the_epoch.as_millis();
-                            Message {
-                                storage_header: Some(StorageHeader {
-                                    timestamp: DltTimeStamp::from_ms(in_ms as u64),
-                                    ecu_id: self.ecu_id.clone(),
-                                }),
-                                ..m
-                            }
-                        }
+                        None => m.add_storage_header(None),
                     };
                     futures::task::Poll::Ready(Some(Ok(Some(msg_with_storage_header))))
                 }

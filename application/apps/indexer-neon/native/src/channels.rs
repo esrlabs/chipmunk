@@ -159,7 +159,6 @@ pub struct IndexingThreadConfig {
 pub struct SocketThreadConfig {
     pub out_path: path::PathBuf,
     pub tag: String,
-    pub ecu_id: String,
 }
 
 #[derive(Debug)]

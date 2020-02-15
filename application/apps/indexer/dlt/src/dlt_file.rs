@@ -9,6 +9,7 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
+use crate::dlt::Message;
 use crate::dlt_parse::dlt_message;
 use crate::dlt_parse::DLT_PATTERN_SIZE;
 use crate::dlt_parse::{DltParseError, ParsedMessage};
@@ -21,13 +22,52 @@ use indexer_base::utils;
 
 use buf_redux::policy::MinBuffered;
 use buf_redux::BufReader as ReduxReader;
+use crossbeam_channel::unbounded;
 use failure::{err_msg, Error};
+use futures::stream::StreamExt;
 use std::fs;
 use std::io::{BufRead, BufWriter, Write};
 use std::path::PathBuf;
 use std::rc::Rc;
 
 use crate::fibex::FibexMetadata;
+
+pub async fn parse_dlt_file(
+    in_file: PathBuf,
+    filter_config: Option<filtering::ProcessedDltFilterConfig>,
+    fibex_metadata: Option<Rc<FibexMetadata>>,
+) -> Result<Vec<Message>, Error> {
+    trace!("parse_dlt_file");
+    let source_file_size = fs::metadata(&in_file)?.len() as usize;
+    let (update_channel, _rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
+    let mut progress_reporter = ProgressReporter::new(source_file_size, update_channel.clone());
+    let mut messages: Vec<Message> = Vec::new();
+    let mut message_stream = FileMessageProducer::new(
+        &in_file,
+        filter_config,
+        update_channel.clone(),
+        true,
+        fibex_metadata,
+    )?;
+    // type Item = Result<Option<Message>, DltParseError>;
+    while let Some(msg_result) = message_stream.next().await {
+        trace!("got message from stream: {:?}", msg_result);
+        match msg_result {
+            Ok((consumed, Some(msg))) => {
+                progress_reporter.make_progress(consumed);
+                messages.push(msg)
+            }
+            Ok((consumed, None)) => {
+                if consumed == 0 {
+                    break;
+                }
+                progress_reporter.make_progress(consumed);
+            }
+            Err(e) => warn!("could not produce message: {}", e),
+        }
+    }
+    Ok(messages)
+}
 
 pub fn create_index_and_mapping_dlt(
     config: IndexingConfig,
@@ -40,14 +80,19 @@ pub fn create_index_and_mapping_dlt(
     trace!("create_index_and_mapping_dlt");
     let filter_config: Option<filtering::ProcessedDltFilterConfig> =
         dlt_filter.map(filtering::process_filter_config);
-    let mut message_producer =
-        FileMessageProducer::new(&config.in_file, filter_config, update_channel.clone(), true)?;
+    let mut message_producer = FileMessageProducer::new(
+        &config.in_file,
+        filter_config,
+        update_channel.clone(),
+        true,
+        fibex_metadata.map(Rc::new),
+    )?;
+    // TODO do not clone metadata...if we use it in FileMessageProducer, we should not need it in index_dlt_content
     index_dlt_content(
         config,
         source_file_size,
         update_channel,
         shutdown_receiver,
-        fibex_metadata,
         &mut message_producer,
     )
 }
@@ -63,6 +108,7 @@ pub struct FileMessageProducer {
     stats: MessageStats,
     update_channel: cc::Sender<ChunkResults>,
     with_storage_header: bool,
+    fibex_metadata: Option<Rc<FibexMetadata>>,
 }
 
 impl FileMessageProducer {
@@ -71,6 +117,7 @@ impl FileMessageProducer {
         filter_config: Option<filtering::ProcessedDltFilterConfig>,
         update_channel: cc::Sender<ChunkResults>,
         with_storage_header: bool,
+        fibex_metadata: Option<Rc<FibexMetadata>>,
     ) -> Result<FileMessageProducer, Error> {
         let f = match fs::File::open(&in_path) {
             Ok(file) => file,
@@ -95,14 +142,12 @@ impl FileMessageProducer {
             },
             update_channel,
             with_storage_header,
+            fibex_metadata,
         })
     }
 }
 impl FileMessageProducer {
-    fn produce_next_message(
-        &mut self,
-        fibex_metadata: Option<Rc<FibexMetadata>>,
-    ) -> (usize, Result<ParsedMessage, DltParseError>) {
+    fn produce_next_message(&mut self) -> (usize, Result<ParsedMessage, DltParseError>) {
         #[allow(clippy::never_loop)]
         let consume_and_parse_result = loop {
             trace!(
@@ -124,7 +169,7 @@ impl FileMessageProducer {
                         self.filter_config.as_ref(),
                         self.stats.parsed + self.stats.no_parse,
                         Some(&self.update_channel),
-                        fibex_metadata,
+                        self.fibex_metadata.clone(),
                         self.with_storage_header,
                     );
                     match parse_result {
@@ -196,6 +241,25 @@ impl FileMessageProducer {
         consume_and_parse_result
     }
 }
+impl futures::Stream for FileMessageProducer {
+    type Item = Result<(usize, Option<Message>), DltParseError>;
+    fn poll_next(
+        mut self: std::pin::Pin<&mut Self>,
+        _cx: &mut std::task::Context,
+    ) -> futures::task::Poll<Option<Self::Item>> {
+        let (consumed, next) = self.produce_next_message();
+        match next {
+            Ok(ParsedMessage::Item(msg)) => {
+                futures::task::Poll::Ready(Some(Ok((consumed, Some(msg)))))
+            }
+            Ok(ParsedMessage::Invalid) => futures::task::Poll::Ready(Some(Ok((consumed, None)))),
+            Ok(ParsedMessage::FilteredOut) => {
+                futures::task::Poll::Ready(Some(Ok((consumed, None))))
+            }
+            Err(e) => futures::task::Poll::Ready(Some(Err(e))),
+        }
+    }
+}
 
 /// create index for a dlt file
 /// source_file_size: if progress updates should be made, add this value
@@ -205,7 +269,6 @@ pub fn index_dlt_content(
     source_file_size: usize,
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
-    fibex_metadata: Option<FibexMetadata>,
     message_producer: &mut FileMessageProducer,
 ) -> Result<(), Error> {
     trace!("index_dlt_file {:?}", config);
@@ -225,7 +288,6 @@ pub fn index_dlt_content(
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
 
     let mut progress_reporter = ProgressReporter::new(source_file_size, update_channel.clone());
-    let fibex_rc = fibex_metadata.map(Rc::new);
 
     let mut stopped = false;
     let mut skipped = 0usize;
@@ -234,7 +296,7 @@ pub fn index_dlt_content(
             info!("we were stopped in dlt-indexer",);
             break;
         };
-        let (consumed, next) = message_producer.produce_next_message(fibex_rc.clone());
+        let (consumed, next) = message_producer.produce_next_message();
         if consumed == 0 {
             break;
         } else {
@@ -275,7 +337,7 @@ pub fn index_dlt_content(
             Ok(ParsedMessage::Invalid) => {
                 trace!("next was Ok(ParsedMessage::Invalid)");
             }
-            Ok(ParsedMessage::Skipped) => {
+            Ok(ParsedMessage::FilteredOut) => {
                 trace!("next was Ok(ParsedMessage::Skipped)");
                 skipped += 1;
             }
@@ -335,6 +397,7 @@ pub fn export_as_dlt_file(
     session_id: String,
     destination_path: PathBuf,
     sections: SectionConfig,
+    update_channel: cc::Sender<ChunkResults>,
 ) -> Result<(), Error> {
     trace!(
         "export_as_dlt_file with id: {} to file: {:?}, exporting {:?}",
@@ -342,27 +405,47 @@ pub fn export_as_dlt_file(
         destination_path,
         sections
     );
-    if destination_path.exists() {
-        return Err(err_msg(format!(
-            "cannot export to {:?}, file already exists!",
-            &destination_path
-        )));
-    }
-    let mut session_file = create_dlt_session_file(&session_id)?;
-    let out_file = std::fs::File::create(destination_path)?;
+    let session_file_path = session_file_path(&session_id)?;
+    if session_file_path.exists() {
+        trace!("found session_file: {:?}", &session_file_path);
+        let f = fs::File::open(session_file_path)?;
+        let mut reader = std::io::BufReader::new(f);
+        let out_file = std::fs::File::create(destination_path)?;
+        // if destination_path.exists() {
+        //     return Err(err_msg(format!(
+        //         "cannot export to {:?}, file already exists!",
+        //         &destination_path
+        //     )));
+        // }
+        trace!("created out_file: {:?}", &out_file);
 
-    let mut out_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
-    std::io::copy(&mut session_file, &mut out_writer)?;
-    out_writer.flush()?;
-    Ok(())
+        let mut out_writer = BufWriter::new(out_file);
+        std::io::copy(&mut reader, &mut out_writer)?;
+        trace!("copied content of file");
+        out_writer.flush()?;
+        let _ = update_channel.send(Ok(IndexingProgress::Finished));
+        Ok(())
+    } else {
+        let reason = format!("couln't find session file: {:?}", session_file_path,);
+        let _ = update_channel.send(Err(Notification {
+            severity: Severity::ERROR,
+            content: reason.clone(),
+            line: None,
+        }));
+        Err(err_msg(reason))
+    }
+}
+
+pub(crate) fn session_file_path(session_id: &str) -> Result<PathBuf, Error> {
+    let home_dir = dirs::home_dir().ok_or_else(|| err_msg("couldn't get home directory"))?;
+    let tmp_file_name = format!("{}.dlt", session_id);
+    Ok(home_dir
+        .join(".chipmunk")
+        .join("streams")
+        .join(tmp_file_name))
 }
 
 pub(crate) fn create_dlt_session_file(session_id: &str) -> Result<std::fs::File, Error> {
-    let home_dir = dirs::home_dir().ok_or_else(|| err_msg("couldn't get home directory"))?;
-    let tmp_file_name = format!("{}.dlt", session_id);
-    let tmp_dlt_file_path = home_dir
-        .join(".chipmunk")
-        .join("streams")
-        .join(tmp_file_name);
-    Ok(std::fs::File::create(tmp_dlt_file_path)?)
+    let path = session_file_path(session_id)?;
+    Ok(std::fs::File::create(path)?)
 }

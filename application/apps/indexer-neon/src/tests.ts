@@ -595,7 +595,6 @@ export function testSocketDlt(outPath: string) {
 		const session_id = `dlt_${new Date().toISOString()}`;
 		const promise = dltOverSocket(
 			session_id,
-			'myEcuId',
 			{
 				filterConfig,
 				fibex: { fibex_file_paths: [] },

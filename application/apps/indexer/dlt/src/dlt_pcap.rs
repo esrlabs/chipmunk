@@ -1,24 +1,24 @@
-use indexer_base::config::IndexingConfig;
-use pcap_parser::{PcapNGReader};
-use pcap_parser::*;
-use pcap_parser::traits::PcapReaderIterator;
-use async_std::task;
-use futures::stream::StreamExt;
-use std::time::{SystemTime, UNIX_EPOCH};
 use crate::dlt::*;
 use crate::dlt_parse::*;
+use crate::fibex::FibexMetadata;
+use crate::filtering;
+use async_std::task;
+use crossbeam_channel as cc;
+use etherparse::*;
 use failure::err_msg;
 use failure::Error;
-use etherparse::*;
-use crate::filtering;
-use crossbeam_channel as cc;
-use indexer_base::chunks::{ChunkResults, ChunkFactory};
-use indexer_base::utils;
+use futures::stream::StreamExt;
+use indexer_base::chunks::{ChunkFactory, ChunkResults};
+use indexer_base::config::IndexingConfig;
 use indexer_base::progress::*;
+use indexer_base::utils;
+use pcap_parser::traits::PcapReaderIterator;
+use pcap_parser::PcapNGReader;
+use pcap_parser::*;
+use std::fs::*;
 use std::io::{BufWriter, Write};
 use std::rc::Rc;
-use std::fs::*;
-use crate::fibex::FibexMetadata;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn convert_to_dlt_file(
     pcap_path: std::path::PathBuf,
@@ -148,20 +148,14 @@ impl futures::Stream for PcapMessageProducer {
                                 false,
                             ) {
                                 Ok((_, ParsedMessage::Item(m))) => {
-                                    let ecu_id =
-                                        m.header.ecu_id.clone().unwrap_or_else(|| "ECU".into());
-                                    let msg_with_storage_header = Message {
-                                        storage_header: Some(StorageHeader {
-                                            timestamp: DltTimeStamp::from_ms(last_in_ms as u64),
-                                            ecu_id,
-                                        }),
-                                        ..m
-                                    };
+                                    let msg_with_storage_header = m.add_storage_header(Some(
+                                        DltTimeStamp::from_ms(last_in_ms as u64),
+                                    ));
                                     futures::task::Poll::Ready(Some(Ok(MessageStreamItem::Item(
                                         msg_with_storage_header,
                                     ))))
                                 }
-                                Ok((_, ParsedMessage::Skipped)) => {
+                                Ok((_, ParsedMessage::FilteredOut)) => {
                                     futures::task::Poll::Ready(Some(Ok(MessageStreamItem::Skipped)))
                                 }
                                 Ok((_, ParsedMessage::Invalid)) => {

@@ -9,28 +9,28 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
-extern crate processor;
-extern crate indexer_base;
-extern crate dlt;
-extern crate merging;
 extern crate chrono;
 extern crate dirs;
+extern crate dlt;
+extern crate indexer_base;
+extern crate merging;
+extern crate processor;
 
 #[macro_use]
 extern crate lazy_static;
 
-use std::rc::Rc;
-use dlt::fibex::FibexMetadata;
-use dlt::dlt_pcap::convert_to_dlt_file;
 use async_std::task;
-use indexer_base::progress::IndexingResults;
+use crossbeam_channel as cc;
+use crossbeam_channel::unbounded;
 use dlt::dlt_parse::StatisticsResults;
+use dlt::dlt_pcap::convert_to_dlt_file;
+use dlt::fibex::FibexMetadata;
 use indexer_base::chunks::{serialize_chunks, Chunk, ChunkResults};
 use indexer_base::config::*;
 use indexer_base::error_reporter::*;
-use crossbeam_channel::unbounded;
-use crossbeam_channel as cc;
+use indexer_base::progress::IndexingResults;
 use indicatif::{ProgressBar, ProgressStyle};
+use std::rc::Rc;
 
 const TOTAL: u64 = 1000;
 lazy_static! {
@@ -44,16 +44,16 @@ extern crate clap;
 #[macro_use]
 extern crate log;
 use clap::{App, Arg, SubCommand};
+use indexer_base::progress::{IndexingProgress, Notification, Severity};
+use processor::parse::{
+    detect_timestamp_in_string, line_matching_format_expression, match_format_string_in_file,
+    posix_timestamp_as_string, read_format_string_options, timespan_in_files, DiscoverItem,
+    FormatTestOptions, TimestampFormatResult,
+};
 use std::fs;
-use std::io::{Read};
+use std::io::Read;
 use std::path;
 use std::time::Instant;
-use processor::parse::{
-    line_matching_format_expression, match_format_string_in_file, read_format_string_options,
-    FormatTestOptions, DiscoverItem, TimestampFormatResult, posix_timestamp_as_string,
-    detect_timestamp_in_string, timespan_in_files,
-};
-use indexer_base::progress::{IndexingProgress, Notification, Severity};
 
 use std::io::Result;
 use std::thread;
@@ -713,6 +713,12 @@ fn main() {
             let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
             let tag_string = tag.to_string();
+
+            // let filter_config: Option<dlt::filtering::ProcessedDltFilterConfig> =
+            //     filter_conf.map(dlt::filtering::process_filter_config);
+            // let dlt_file_future = parse_dlt_file(file_path, filter_config, None);
+            // let res = task::block_on(dlt_file_future);
+
             thread::spawn(move || {
                 if let Err(why) = dlt::dlt_file::create_index_and_mapping_dlt(
                     IndexingConfig {
@@ -932,7 +938,6 @@ fn main() {
                 let dlt_socket_future = dlt::dlt_net::create_index_and_mapping_dlt_from_socket(
                     session_id,
                     socket_conf,
-                    "myEcuId".to_string(),
                     tag_string.as_str(),
                     &out_path,
                     filter_conf,

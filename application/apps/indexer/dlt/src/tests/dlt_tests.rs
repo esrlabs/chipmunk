@@ -1,16 +1,31 @@
 #[cfg(test)]
 mod tests {
-    use proptest::prelude::*;
     use crate::dlt::*;
+    use crate::proptest_strategies::argument_strategy;
     use byteorder::ByteOrder;
+    use proptest::prelude::*;
 
-    use pretty_assertions::assert_eq;
     use byteorder::{BigEndian, LittleEndian};
+    use pretty_assertions::assert_eq;
 
     proptest! {
         #[test]
         fn convert_type_info_to_bytes_doesnt_crash(type_info: TypeInfo) {
             let _ = type_info.as_bytes::<BigEndian>();
+        }
+        #[test]
+        fn length_of_dlt_arg_is_number_of_bytes(arg in argument_strategy()) {
+            let expected = arg.as_bytes::<BigEndian>().len();
+            let expected_using_little_endian = arg.as_bytes::<LittleEndian>().len();
+            let calculated = arg.len_new();
+            assert_eq!(
+                expected,
+                calculated
+            );
+            assert_eq!(
+                expected_using_little_endian,
+                calculated
+            );
         }
     }
 
@@ -47,7 +62,7 @@ mod tests {
                 0x61, 0x62, 0x63, 0x0, // ecu id "abc"
                 0x0, 0x0, 0x0, 0x5, // timestamp
             ],
-            header.header_as_bytes()
+            header.as_bytes()
         );
     }
     #[test]

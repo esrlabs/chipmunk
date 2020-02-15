@@ -87,6 +87,14 @@ task :clean_electron do
   rm_f "#{ELECTRON_DIR}/dist"
 end
 
+task :clean_javascript => :clean_electron do
+  Dir.glob('**/dist').each do |d|
+    unless d =~ /node_modules/
+      rm_r d if Dir.exist? d
+    end
+  end
+end
+
 def rust_exec_in_build_dir(name)
   app_name = "#{APPS_DIR}/#{name}/target/release/#{name}"
   if OS.windows?

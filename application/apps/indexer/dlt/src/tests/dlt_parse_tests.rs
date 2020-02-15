@@ -1,13 +1,13 @@
 #[cfg(test)]
 mod tests {
-    use crate::dlt_parse::*;
     use crate::dlt::*;
+    use crate::dlt_parse::*;
     use crate::proptest_strategies::*;
-    use std::io::Write;
+    use dirs;
+    use indexer_base::chunks::Chunk;
     use nom::IResult;
     use proptest::prelude::*;
-    use dirs;
-    use indexer_base::chunks::{Chunk};
+    use std::io::Write;
 
     use byteorder::{BigEndian, LittleEndian};
     use bytes::BytesMut;
@@ -20,7 +20,7 @@ mod tests {
     fn init_logging() {
         INIT.call_once(|| {
             if std::env::var("RUST_LOG").is_err() {
-                std::env::set_var("RUST_LOG", "error,dlt=warn,dlt::tests=warn");
+                std::env::set_var("RUST_LOG", "error,dlt=warn,dlt::tests=debug");
             }
             env_logger::init();
         });
@@ -247,7 +247,7 @@ mod tests {
         #[test]
         fn test_dlt_standard_header(header_to_expect in header_strategy(4, Endianness::Big)) {
             init_logging();
-            let mut header_bytes = header_to_expect.header_as_bytes();
+            let mut header_bytes = header_to_expect.as_bytes();
             header_bytes.extend(b"----");
             let res: IResult<&[u8], StandardHeader> = dlt_standard_header(&header_bytes);
             let expected: IResult<&[u8], StandardHeader> = Ok((b"----", header_to_expect));

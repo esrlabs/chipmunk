@@ -37,7 +37,6 @@ impl SocketDltEventEmitter {
             let socket_future = dlt::dlt_net::create_index_and_mapping_dlt_from_socket(
                 session_id,
                 socket_conf,
-                thread_conf.ecu_id,
                 thread_conf.tag.as_str(),
                 &thread_conf.out_path,
                 filter_conf,
@@ -62,15 +61,14 @@ declare_types! {
         init(mut cx) {
             trace!("Rust: JsDltSocketEventEmitter");
             let session_id = cx.argument::<JsString>(0)?.value();
-            let ecu_id = cx.argument::<JsString>(1)?.value();
-            let arg_socket_conf = cx.argument::<JsValue>(2)?;
+            let arg_socket_conf = cx.argument::<JsValue>(1)?;
             let socket_conf: SocketConfig = neon_serde::from_value(&mut cx, arg_socket_conf)?;
-            let tag = cx.argument::<JsString>(3)?.value();
-            let out_path = path::PathBuf::from(cx.argument::<JsString>(4)?.value().as_str());
-            let arg_filter_conf = cx.argument::<JsValue>(5)?;
+            let tag = cx.argument::<JsString>(2)?.value();
+            let out_path = path::PathBuf::from(cx.argument::<JsString>(3)?.value().as_str());
+            let arg_filter_conf = cx.argument::<JsValue>(4)?;
             let filter_conf: dlt::filtering::DltFilterConfig = neon_serde::from_value(&mut cx, arg_filter_conf)?;
 
-            let arg_fibex_conf = cx.argument::<JsValue>(6)?;
+            let arg_fibex_conf = cx.argument::<JsValue>(5)?;
             let fibex_conf: FibexConfig = neon_serde::from_value(&mut cx, arg_fibex_conf)?;
 
             let shutdown_channel = async_std::sync::channel(1);
@@ -88,7 +86,6 @@ declare_types! {
                 SocketThreadConfig {
                     out_path,
                     tag,
-                    ecu_id,
                 },
                 socket_conf,
                 Some(filter_conf),
