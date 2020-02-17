@@ -109,6 +109,12 @@ export { IFileGetOptionsRequest, FileGetOptionsRequest };
 import { IFileGetOptionsResponse, FileGetOptionsResponse } from './file.getoptions.response';
 export { IFileGetOptionsResponse, FileGetOptionsResponse };
 
+import { IFileOpenDoneEvent, FileOpenDoneEvent } from './file.open.done.event';
+export { IFileOpenDoneEvent, FileOpenDoneEvent };
+
+import { IFileOpenInprogressEvent, FileOpenInprogressEvent } from './file.open.inprogress.event';
+export { IFileOpenInprogressEvent, FileOpenInprogressEvent };
+
 import { IFileReadRequest, FileReadRequest } from './file.read.request';
 export { IFileReadRequest, FileReadRequest };
 
@@ -325,6 +331,8 @@ export type TMessage =  HostState |
                         SearchRecentClearResponse |
                         SearchRecentAddRequest |
                         SearchRecentAddResponse |
+                        FileOpenDoneEvent |
+                        FileOpenInprogressEvent |
                         FileReadRequest |
                         FileReadResponse |
                         FileOpenRequest |
@@ -431,6 +439,8 @@ export const Map = {
     [SearchRecentAddRequest.signature       ]: SearchRecentAddRequest,
     [SearchRecentAddResponse.signature      ]: SearchRecentAddResponse,
 
+    [FileOpenDoneEvent.signature            ]: FileOpenDoneEvent,
+    [FileOpenInprogressEvent.signature      ]: FileOpenInprogressEvent,
     [FileGetOptionsRequest.signature        ]: FileGetOptionsRequest,
     [FileGetOptionsResponse.signature       ]: FileGetOptionsResponse,
     [FileReadRequest.signature              ]: FileReadRequest,

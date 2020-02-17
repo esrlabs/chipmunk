@@ -1,7 +1,7 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
 import { IService } from '../interfaces/interface.service';
 import { Observable, Subject } from 'rxjs';
-import ServiceElectronIpc, { IPCMessages } from './service.electron.ipc';
+import ServiceElectronIpc, { IPCMessages, Subscription } from './service.electron.ipc';
 import TabsSessionsService from './service.sessions.tabs';
 import SidebarSessionsService from './service.sessions.sidebar';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
@@ -48,6 +48,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('FileOpenerService');
     private _pending: IFile[] = [];
+    private _subscriptions: { [key: string]: Subscription } = {};
     private _subjects = {
         onFilesToBeMerged: new Subject<IFile[]>(),
         onFilesToBeConcat: new Subject<IFile[]>(),
@@ -59,6 +60,8 @@ export class FileOpenerService implements IService, IFileOpenerService {
 
     public init(): Promise<void> {
         return new Promise((resolve) => {
+            this._subscriptions.FileOpenDoneEvent = ServiceElectronIpc.subscribe(IPCMessages.FileOpenDoneEvent, this._onFileOpenDoneEvent.bind(this));
+            this._subscriptions.FileOpenInprogressEvent = ServiceElectronIpc.subscribe(IPCMessages.FileOpenInprogressEvent, this._onFileOpenInprogressEvent.bind(this));
             resolve();
         });
     }
@@ -69,6 +72,9 @@ export class FileOpenerService implements IService, IFileOpenerService {
 
     public desctroy(): Promise<void> {
         return new Promise((resolve) => {
+            Object.keys(this._subscriptions).forEach((key: string) => {
+                this._subscriptions[key].destroy();
+            });
             resolve();
         });
     }
@@ -124,31 +130,15 @@ export class FileOpenerService implements IService, IFileOpenerService {
     public openFileByName(file: string): Promise<void> {
         return new Promise((resolve, reject) => {
             this._setSessionForFile().then((session: ControllerSessionTab) => {
-                session.getTabTitleContextMenuService().unshift({
-                    id: CReopenContextMenuItemId + 'delimiter',
-                });
-                session.getTabTitleContextMenuService().unshift({
-                    id: CReopenContextMenuItemId,
-                    caption: 'Reopen File (indexing...)',
-                    disabled: true,
-                    handler: opener,
-                });
                 ServiceElectronIpc.request(new IPCMessages.FileOpenRequest({
                     file: file,
                     session: TabsSessionsService.getActive().getGuid(),
                 }), IPCMessages.FileOpenResponse).then((response: IPCMessages.FileOpenResponse) => {
                     if (response.error !== undefined) {
                         this._logger.error(`Fail open file "${file}" due error: ${response.error}`);
-                        session.getTabTitleContextMenuService().update({
-                            id: CReopenContextMenuItemId,
-                            caption: 'Reopen File',
-                            disabled: true,
-                            handler: opener,
-                        });
                         // TODO: add notification here
                         return reject(new Error(response.error));
                     }
-                    this._setReopenCallback(session, file, response.stream, response.options);
                     resolve();
                 }).catch((error: Error) => {
                     this._logger.error(`Fail open file "${file}" due error: ${error.message}`);
@@ -218,7 +208,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
                 caption: 'Reopen File',
                 disabled: true,
                 handler: () => {},
-            });
+            }, 'unshift');
             return;
         }
         const storage: Storage<any> = new Storage<any>(options);
@@ -229,14 +219,14 @@ export class FileOpenerService implements IService, IFileOpenerService {
                 caption: 'Reopen File',
                 disabled: false,
                 handler: opener,
-            });
+            }, 'unshift');
         } else {
             session.getTabTitleContextMenuService().update({
                 id: CReopenContextMenuItemId,
                 caption: 'Reopen File',
                 disabled: true,
                 handler: () => {},
-            });
+            }, 'unshift');
         }
     }
 
@@ -254,6 +244,32 @@ export class FileOpenerService implements IService, IFileOpenerService {
             }).catch((addSessionErr: Error) => {
                 reject(addSessionErr);
             });
+        });
+    }
+
+    private _onFileOpenDoneEvent(msg: IPCMessages.FileOpenDoneEvent) {
+        const session: ControllerSessionTab | Error = TabsSessionsService.getSessionController(msg.session);
+        if (session instanceof Error) {
+            this._logger.warn(`Fail to find a session "${msg.session}"`);
+            return;
+        }
+        this._setReopenCallback(session, msg.file, msg.stream, msg.options);
+    }
+
+    private _onFileOpenInprogressEvent(msg: IPCMessages.FileOpenInprogressEvent) {
+        const session: ControllerSessionTab | Error = TabsSessionsService.getSessionController(msg.session);
+        if (session instanceof Error) {
+            this._logger.warn(`Fail to find a session "${msg.session}"`);
+            return;
+        }
+        session.getTabTitleContextMenuService().unshift({
+            id: CReopenContextMenuItemId + 'delimiter',
+        });
+        session.getTabTitleContextMenuService().unshift({
+            id: CReopenContextMenuItemId,
+            caption: 'Reopen File (indexing...)',
+            disabled: true,
+            handler: opener,
         });
     }
 }

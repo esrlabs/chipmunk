@@ -34,12 +34,18 @@ export class ControllerSessionTabTitleContextMenu {
         if (typeof item.id !== 'string') {
             return new Error(`ID of menu item should be defined`);
         }
+        if (this._exist(item.id)) {
+            return new Error(`Item with ID "${item.id}" already exist`);
+        }
         this._menu.push(item);
     }
 
     public unshift(item: IMenuItem): Error | undefined {
         if (typeof item.id !== 'string') {
             return new Error(`ID of menu item should be defined`);
+        }
+        if (this._exist(item.id)) {
+            return new Error(`Item with ID "${item.id}" already exist`);
         }
         this._menu.unshift(item);
     }
@@ -50,17 +56,39 @@ export class ControllerSessionTabTitleContextMenu {
         });
     }
 
-    public update(updated: IMenuItem) {
+    public update(updated: IMenuItem, cmdIfDoesNotExist?: 'push' | 'unshift' | undefined) {
         if (typeof updated.id !== 'string') {
             return new Error(`ID of menu item should be defined`);
         }
+        let updatedFlag: boolean = false;
         this._menu = this._menu.map((item: IMenuItem) => {
             if (item.id === updated.id) {
+                updatedFlag = true;
                 return updated;
             } else {
                 return item;
             }
         });
+        if (!updatedFlag && cmdIfDoesNotExist !== undefined) {
+            switch (cmdIfDoesNotExist) {
+                case 'push':
+                    this.push(updated);
+                    break;
+                case 'unshift':
+                    this.unshift(updated);
+                    break;
+            }
+        }
+    }
+
+    private _exist(id: string): boolean {
+        let exist: boolean = false;
+        this._menu.forEach((item: IMenuItem) => {
+            if (item.id === id) {
+                exist = true;
+            }
+        });
+        return exist;
     }
 
     private _onTabTitleContextMenu(event: MouseEvent) {

@@ -107,10 +107,33 @@ class ServiceFileOpener implements IService {
                         this._incrProgress(instanceParser, trackingId, sessionId, 0);
                         // Store parser
                         this._active.set(sessionId, instanceParser);
+                        // Send notification about opening
+                        ServiceElectron.IPC.send(new IPCMessages.FileOpenInprogressEvent({
+                            session: sessionId,
+                            file: file,
+                        })).catch((progressNotificationErr: Error) => {
+                            this._logger.warn(`Fail notify render about starting of opening file "${file}" due error: ${progressNotificationErr.message}`);
+                        });
                         // Parser has direct method of reading and writing
                         this._directReadWrite(file, sessionId, instanceParser, options, trackingId).then((sourceId: number) => {
                             instanceParser.destroy().then(() => {
+                                // Save recent
                                 this._saveAsRecentFile(file, stats.size);
+                                // Get meta file info
+                                const info = ServiceStreamSource.get(sourceId);
+                                if (info !== undefined) {
+                                    (info as IPCMessages.IStreamSourceNew).id = sourceId;
+                                }
+                                // Send meta info data
+                                ServiceElectron.IPC.send(new IPCMessages.FileOpenDoneEvent({
+                                    session: sessionId,
+                                    file: file,
+                                    stream: info as IPCMessages.IStreamSourceNew,
+                                    options: options,
+                                })).catch((confirmNotificationErr: Error) => {
+                                    this._logger.warn(`Fail notify render about opening file "${file}" due error: ${confirmNotificationErr.message}`);
+                                });
+                                // Resolve
                                 resolve({ sourceId: sourceId, options: options });
                             });
                         }).catch((pipeError: Error) => {
