@@ -4,8 +4,8 @@ import ServiceStorage, { IStorageScheme } from '../service.storage';
 import ServiceStreamSource from '../service.stream.sources';
 import ServiceHotkeys from '../service.hotkeys';
 import { getDefaultFileParser, AFileParser, getParserForFile } from '../../controllers/files.parsers/index';
-import FileParserText from '../../controllers/files.parsers/file.parser.text';
-import FileParserDlt from '../../controllers/files.parsers/file.parser.dlt';
+import { FileParsers } from '../../controllers/files.parsers/index';
+
 import { IMapItem, ITicks } from '../../controllers/files.parsers/interface';
 import { dialog, OpenDialogReturnValue } from 'electron';
 import Logger from '../../tools/env.logger';
@@ -49,8 +49,7 @@ class ServiceFileOpener implements IService {
                 }),
             ]).then(() => {
                 this._subscriptions.onSessionClosed = ServiceStreams.getSubjects().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
-                this._subscriptions.openTextFile = ServiceHotkeys.getSubject().openTextFile.subscribe(this._hotkey_openTextFile.bind(this));
-                this._subscriptions.openDltFile = ServiceHotkeys.getSubject().openDltFile.subscribe(this._hotkey_openDltFile.bind(this));
+                this._subscriptions.openLocalFile = ServiceHotkeys.getSubject().openLocalFile.subscribe(this._hotkey_openLocalFile.bind(this));
                 resolve();
             }).catch((error: Error) => {
                 this._logger.error(`Fail to init module due error: ${error.message}`);
@@ -165,6 +164,10 @@ class ServiceFileOpener implements IService {
         });
     }
 
+    public selectAndOpenFile(): Promise<string | undefined> {
+        return this._openFile();
+    }
+
     public clearRecent() {
         ServiceStorage.get().set({
             recentFiles: [],
@@ -250,33 +253,87 @@ class ServiceFileOpener implements IService {
 
     }
 
-    private _openFile(parser: AFileParser) {
-        const win = ServiceElectron.getBrowserWindow();
-        if (win === undefined) {
-            return;
-        }
-        dialog.showOpenDialog(win, {
-            properties: ['openFile', 'showHiddenFiles'],
-            filters: parser.getExtnameFilters(),
-        }).then((returnValue: OpenDialogReturnValue) => {
-            if (!(returnValue.filePaths instanceof Array) || returnValue.filePaths.length !== 1) {
-                return;
+    private _openFile(parser?: AFileParser): Promise<string | undefined> {
+        return new Promise((resolve, reject) => {
+            const win = ServiceElectron.getBrowserWindow();
+            if (win === undefined) {
+                return reject(new Error(`No window found`));
             }
-            const file: string = returnValue.filePaths[0];
-            this.open(file, ServiceStreams.getActiveStreamId(), parser).catch((error: Error) => {
-                this._logger.warn(`Fail open file due error: ${error.message}`);
-            });
-        }).catch((error: Error) => {
-            this._logger.error(`Fail open file due error: ${error.message}`);
+            if (parser !== undefined) {
+                dialog.showOpenDialog(win, {
+                    properties: ['openFile', 'showHiddenFiles'],
+                    filters: parser.getExtnameFilters(),
+                }).then((returnValue: OpenDialogReturnValue) => {
+                    if (!(returnValue.filePaths instanceof Array) || returnValue.filePaths.length !== 1) {
+                        return resolve(undefined);
+                    }
+                    const file: string = returnValue.filePaths[0];
+                    this.open(file, ServiceStreams.getActiveStreamId(), parser).then(() => {
+                        resolve(file);
+                    }).catch((error: Error) => {
+                        this._logger.warn(`Fail open file due error: ${error.message}`);
+                        reject(new Error(`Fail open file due error: ${error.message}`));
+                    });
+                }).catch((error: Error) => {
+                    this._logger.error(`Fail open file due error: ${error.message}`);
+                    reject(new Error(`Fail open file due error: ${error.message}`));
+                });
+            } else {
+                const extensions: string[] = [];
+                FileParsers.map((_parser: any) => {
+                    return new _parser.class();
+                }).forEach((_parser: AFileParser) => {
+                    extensions.push(..._parser.getExtensions());
+                });
+                dialog.showOpenDialog(win, {
+                    properties: ['openFile', 'showHiddenFiles'],
+                    filters: [
+                        {
+                            name: 'Supported Files',
+                            extensions: extensions,
+                        },
+                    ],
+                }).then((returnValue: OpenDialogReturnValue) => {
+                    if (!(returnValue.filePaths instanceof Array) || returnValue.filePaths.length !== 1) {
+                        return resolve(undefined);
+                    }
+                    const filename: string = returnValue.filePaths[0];
+                    getParserForFile(filename).then((_parser: AFileParser | undefined) => {
+                        if (_parser === undefined) {
+                            this._logger.error(`Fail to find a parser for file: ${filename}`);
+                            return reject(new Error(`Fail to find a parser for file: ${filename}`));
+                        }
+                        ServiceElectron.IPC.request(new IPCMessages.RenderSessionAddRequest(), IPCMessages.RenderSessionAddResponse).then((response: IPCMessages.RenderSessionAddResponse) => {
+                            if (response.error !== undefined) {
+                                this._logger.warn(`Fail to add new session for file "${filename}" due error: ${response.error}`);
+                                return reject(new Error(`Fail to add new session for file "${filename}" due error: ${response.error}`));
+                            }
+                            this.open(filename, response.session, _parser).then(() => {
+                                resolve(filename);
+                            }).catch((error: Error) => {
+                                this._logger.warn(`Fail open file "${filename}" due error: ${error.message}`);
+                                reject(new Error(`Fail open file "${filename}" due error: ${error.message}`));
+                            });
+                        }).catch((addSessionErr: Error) => {
+                            this._logger.warn(`Fail to add new session for file "${filename}" due error: ${addSessionErr.message}`);
+                            reject(new Error(`Fail to add new session for file "${filename}" due error: ${addSessionErr.message}`));
+                        });
+                    }).catch((error: Error) => {
+                        this._logger.error(`Error to open file "${filename}" due error: ${error.message}`);
+                        reject(new Error(`Error to open file "${filename}" due error: ${error.message}`));
+                    });
+                }).catch((error: Error) => {
+                    this._logger.error(`Fail open file due error: ${error.message}`);
+                    reject(new Error(`Fail open file due error: ${error.message}`));
+                });
+            }
         });
     }
 
-    private _hotkey_openTextFile() {
-        this._openFile(new FileParserText());
-    }
-
-    private _hotkey_openDltFile() {
-        this._openFile(new FileParserDlt());
+    private _hotkey_openLocalFile() {
+        this._openFile().catch((error: Error) => {
+            this._logger.error(`Fail open file on CMD + P: ${error.message}`);
+        });
     }
 
     private _saveAsRecentFile(file: string, size: number) {

@@ -9,8 +9,7 @@ import { app, globalShortcut } from 'electron';
 const CHotkeyMap = {
     [IPCMessages.EHotkeyActionRef.newTab]:                  { darwin: ['Cmd+T'],            other: ['Ctrl+T'] },
     [IPCMessages.EHotkeyActionRef.closeTab]:                { darwin: ['Cmd+W'],            other: ['Ctrl+w'] },
-    [IPCMessages.EHotkeyActionRef.openTextFile]:            { darwin: ['Cmd+O'],            other: ['Ctrl+O'] },
-    [IPCMessages.EHotkeyActionRef.openDltFile]:             { darwin: ['Cmd+D'],            other: ['Ctrl+D'] },
+    [IPCMessages.EHotkeyActionRef.openLocalFile]:           { darwin: ['Cmd+O'],            other: ['Ctrl+O'] },
     [IPCMessages.EHotkeyActionRef.focusSearchInput]:        { darwin: ['Cmd+F', '/'],       other: ['Ctrl+F', '/'] },
     [IPCMessages.EHotkeyActionRef.openSearchFiltersTab]:    { darwin: ['Shift+Cmd+F'],      other: ['Shift+Ctrl+F'] },
     [IPCMessages.EHotkeyActionRef.selectNextRow]:           { darwin: ['Cmd+[', 'j'],       other: ['Ctrl+[', 'j'] },
@@ -34,8 +33,7 @@ const CInputRelatedHotkeys = [
 ];
 
 export interface IServiceSubjects {
-    openTextFile: Subject<void>;
-    openDltFile: Subject<void>;
+    openLocalFile: Subject<void>;
 }
 
 /**
@@ -49,8 +47,7 @@ class ServiceHotkeys implements IService {
     private _subscriptions: { [key: string ]: Subscription | undefined } = { };
     private _locked: boolean = false;
     private _subjects: IServiceSubjects = {
-        openTextFile: new Subject('openTextFile'),
-        openDltFile: new Subject('openDltFile'),
+        openLocalFile: new Subject('openLocalFile'),
     };
 
     /**
