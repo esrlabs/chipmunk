@@ -27,7 +27,7 @@ type TReopenCallback = () => void;
 
 export class FileOptionsService implements IService {
 
-    private _subscription: Subscription | undefined;
+    private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('FileOptionsService');
     private _subjects = {
         onFileOpenRequest: new Subject<void>()
@@ -39,7 +39,7 @@ export class FileOptionsService implements IService {
 
     public init(): Promise<void> {
         return new Promise((resolve) => {
-            this._subscription = ServiceElectronIpc.subscribe(IPCMessages.FileGetOptionsRequest, this._onRequest.bind(this));
+            this._subscriptions.FileGetOptionsRequest = ServiceElectronIpc.subscribe(IPCMessages.FileGetOptionsRequest, this._onRequest.bind(this));
             resolve();
         });
     }
@@ -50,10 +50,9 @@ export class FileOptionsService implements IService {
 
     public desctroy(): Promise<void> {
         return new Promise((resolve) => {
-            if (this._subscription === undefined) {
-                return resolve();
-            }
-            this._subscription.destroy();
+            Object.keys(this._subscriptions).forEach((key: string) => {
+                this._subscriptions[key].destroy();
+            });
             resolve();
         });
     }
