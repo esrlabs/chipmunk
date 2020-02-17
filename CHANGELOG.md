@@ -1,6 +1,17 @@
 # Changelog
 
+### [1.38.1] - 02/17/2020
+
+* [#563](feat) some corrections for saving dlt traces
+  received over socket.
+  * added API for sync reading dlt file
+  * add API to save a DLT file created in a session
+* [](fix) open any type of file on CMD-O/(Ctrl-O on windows/linux)
+* [](feat) allow to save DLT stream on disconnect
+* [](feat) PCAP files support (UI)
+
 ### [1.38.0] - 02/14/2020
+
 * [](chore) set development env var for rake start
 * [#563](feat) more standard conform parsing of dlt arguments
   * bool in particular was assuming either 0x0 or 0x1 but can in fact be
