@@ -1,8 +1,7 @@
 export enum EHotkeyActionRef {
     newTab = 'newTab',
     closeTab = 'closeTab',
-    openTextFile = 'openTextFile',
-    openDltFile = 'openDltFile',
+    openLocalFile = 'openLocalFile',
     focusSearchInput = 'focusSearchInput',
     openSearchFiltersTab = 'openSearchFiltersTab',
     selectNextRow = 'selectNextRow',
