@@ -2,7 +2,6 @@ import { IPCMessages } from '../services/service.electron.ipc';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { ControllerSessionTabStreamOutput } from '../controller/controller.session.tab.stream.output';
 import { ControllerSessionTabStreamBookmarks, IBookmark } from './controller.session.tab.stream.bookmarks';
-import { ControllerSessionTabSourcesState } from './controller.session.tab.sources.state';
 import { ControllerSessionScope } from './controller.session.tab.scope';
 import { extractPluginId, extractRowPosition, clearRowStr } from './helpers/row.helpers';
 
@@ -29,7 +28,6 @@ export interface ISearchStreamPacket {
     scope: ControllerSessionScope;
     controller: ControllerSessionTabStreamOutput;
     bookmarks: ControllerSessionTabStreamBookmarks;
-    sources: ControllerSessionTabSourcesState;
     parent: string;
 }
 
@@ -71,7 +69,6 @@ export class ControllerSessionTabSearchOutput {
     private _scope: ControllerSessionScope;
     private _preloadTimestamp: number = -1;
     private _bookmakrs: ControllerSessionTabStreamBookmarks;
-    private _sources: ControllerSessionTabSourcesState;
     private _lastRequestedRows: ISearchStreamPacket[] = [];
     private _state: IStreamState = {
         count: 0,
@@ -101,7 +98,6 @@ export class ControllerSessionTabSearchOutput {
         this._guid = params.guid;
         this._stream = params.stream;
         this._bookmakrs = params.stream.getBookmarks();
-        this._sources = new ControllerSessionTabSourcesState(this._guid);
         this._requestDataHandler = params.requestDataHandler;
         this._scope = params.scope;
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearchOutput: ${this._guid}`);
@@ -345,7 +341,6 @@ export class ControllerSessionTabSearchOutput {
                     pluginId: inserted.pluginId,
                     sessionId: this._guid,
                     bookmarks: this._bookmakrs,
-                    sources: this._sources,
                     parent: 'search',
                     scope: this._scope,
                     controller: this._stream
@@ -549,7 +544,6 @@ export class ControllerSessionTabSearchOutput {
                     rank: this._stream.getRank(),
                     sessionId: this._guid,
                     bookmarks: this._bookmakrs,
-                    sources: this._sources,
                     parent: 'search',
                     scope: this._scope,
                     controller: this._stream
@@ -582,7 +576,6 @@ export class ControllerSessionTabSearchOutput {
                 rank: this._stream.getRank(),
                 sessionId: this._guid,
                 bookmarks: this._bookmakrs,
-                sources: this._sources,
                 parent: 'search',
                 scope: this._scope,
                 controller: this._stream

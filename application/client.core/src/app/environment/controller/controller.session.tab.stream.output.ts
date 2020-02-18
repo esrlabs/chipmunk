@@ -1,7 +1,6 @@
 import { IPCMessages } from '../services/service.electron.ipc';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
-import { ControllerSessionTabSourcesState } from './controller.session.tab.sources.state';
 import { ControllerSessionScope } from './controller.session.tab.scope';
 import { extractPluginId, extractRowPosition, clearRowStr } from './helpers/row.helpers';
 
@@ -27,7 +26,6 @@ export interface IStreamPacket {
     scope: ControllerSessionScope;
     controller: ControllerSessionTabStreamOutput;
     bookmarks: ControllerSessionTabStreamBookmarks;
-    sources: ControllerSessionTabSourcesState;
     parent: string;
 }
 
@@ -69,7 +67,6 @@ export class ControllerSessionTabStreamOutput {
     private _rows: IStreamPacket[] = [];
     private _requestDataHandler: TRequestDataHandler;
     private _bookmarks: ControllerSessionTabStreamBookmarks;
-    private _sources: ControllerSessionTabSourcesState;
     private _scope: ControllerSessionScope;
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription} = {};
     private _preloadTimestamp: number = -1;
@@ -107,7 +104,6 @@ export class ControllerSessionTabStreamOutput {
         this._requestDataHandler = params.requestDataHandler;
         this._bookmarks = params.bookmarks;
         this._scope = params.scope;
-        this._sources = new ControllerSessionTabSourcesState(this._guid);
         this._logger = new Toolkit.Logger(`ControllerSessionTabStreamOutput: ${this._guid}`);
         this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(this._guid, this._onRowSelected.bind(this));
         this._subscriptions.onBookmarkRowSelected = this._bookmarks.getObservable().onSelected.subscribe(this._onRowSelected.bind(this, 'bookmark'));
@@ -448,7 +444,6 @@ export class ControllerSessionTabStreamOutput {
                     sessionId: this._guid,
                     controller: this,
                     bookmarks: this._bookmarks,
-                    sources: this._sources,
                     scope: this._scope,
                     parent: 'stream',
                 });
@@ -477,7 +472,6 @@ export class ControllerSessionTabStreamOutput {
                 sessionId: this._guid,
                 controller: this,
                 bookmarks: this._bookmarks,
-                sources: this._sources,
                 scope: this._scope,
                 parent: 'stream',
             };
