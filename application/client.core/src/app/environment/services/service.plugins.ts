@@ -5,6 +5,8 @@ import * as AngularCore from '@angular/core';
 import * as AngularCommon from '@angular/common';
 import * as AngularForms from '@angular/forms';
 import * as AngularPlatformBrowser from '@angular/platform-browser';
+import * as AngularMaterial from '@angular/material';
+import * as AngularCDK from '@angular/cdk';
 import * as RXJS from 'rxjs';
 import * as LogviewerClientComplex from 'chipmunk-client-complex';
 import * as LogviewerClientContainers from 'chipmunk-client-containers';
@@ -13,6 +15,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import * as XTerm from 'xterm';
 import * as XTermAddonFit from 'xterm-addon-fit';
 import * as ChartJS from 'chart.js';
+import * as hammerjs from 'hammerjs';
 
 import { Subscription  } from 'rxjs';
 import { Compiler, Injector } from '@angular/core';
@@ -349,6 +352,8 @@ export class PluginsService extends Toolkit.Emitter implements IService {
             '@angular/common': AngularCommon,
             '@angular/forms': AngularForms,
             '@angular/platform-browser': AngularPlatformBrowser,
+            '@angular/material': AngularMaterial,
+            '@angular/cdk': AngularCDK,
             'rxjs': RXJS,
             'chipmunk-client-complex': LogviewerClientComplex,
             'chipmunk-client-containers': LogviewerClientContainers,
@@ -357,7 +362,8 @@ export class PluginsService extends Toolkit.Emitter implements IService {
             'xterm': XTerm,
             'xterm-addon-fit': XTermAddonFit,
             'chart.js': ChartJS,
-            'electron': Electron
+            'electron': Electron,
+            'hammerjs': hammerjs,
         };
     }
 
