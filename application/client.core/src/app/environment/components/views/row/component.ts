@@ -2,7 +2,6 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
 import { ControllerSessionTabStreamOutput } from '../../../controller/controller.session.tab.stream.output';
-import { ControllerSessionTabSourcesState } from '../../../controller/controller.session.tab.sources.state';
 import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../controller/controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope, IRowNumberWidthData } from '../../../controller/controller.session.tab.scope';
 import SourcesService from '../../../services/service.sources';
@@ -45,7 +44,6 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     @Input() public pluginId: number | undefined;
     @Input() public controller: ControllerSessionTabStreamOutput | undefined;
     @Input() public bookmarks: ControllerSessionTabStreamBookmarks | undefined;
-    @Input() public sources: ControllerSessionTabSourcesState | undefined;
     @Input() public scope: ControllerSessionScope | undefined;
     @Input() public rank: number = 1;
     @Input() public parent: string;
@@ -55,7 +53,6 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     public _ng_number_filler: string | undefined;
     public _ng_bookmarked: boolean = false;
     public _ng_sourceColor: string | undefined;
-    public _ng_source: boolean = false;
     public _ng_component: IComponentDesc | undefined;
     public _ng_render: ERenderType = ERenderType.standard;
     public _ng_render_api: any;
@@ -82,11 +79,6 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-        /*
-        Object.keys(this._subjects).forEach((key: string) => {
-            this._subjects[key].unsubscribe();
-        });
-        */
         this._destroyed = true;
     }
 
@@ -117,11 +109,9 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
             this._ng_sourceName = sourceName;
         }
         this._sourceMeta = SourcesService.getSourceMeta(this.pluginId);
-        this._ng_source = this.sources.isVisible();
         this._subscriptions.onRankChanged = this.controller.getObservable().onRankChanged.subscribe(this._onRankChanged);
         this._subscriptions.onAddedBookmark = this.bookmarks.getObservable().onAdded.subscribe(this._onAddedBookmark.bind(this));
         this._subscriptions.onRemovedBookmark = this.bookmarks.getObservable().onRemoved.subscribe(this._onRemovedBookmark.bind(this));
-        this._subscriptions.onSourceChange = this.sources.getObservable().onChanged.subscribe(this._onSourceChange.bind(this));
         this._subscriptions.onSizeRequested = this.scope.get<IRowNumberWidthData>(ControllerSessionScope.Keys.CRowNumberWidth).onSizeRequested.asObservable().subscribe(this._onSizeRequested.bind(this));
         this._subscriptions.onRowWasSelected = OutputRedirectionsService.subscribe(this.sessionId, this._onRowWasSelected.bind(this));
     }
@@ -146,9 +136,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         SelectionParsersService.setContextRowNumber(this._getPosition());
     }
 
-    public _ng_onToggleSource() {
-        this.sources.change(!this._ng_source);
-    }
+
 
     public _ng_isPending() {
         return this.str === undefined;
@@ -299,11 +287,6 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         this._ng_number_filler = this._getNumberFiller();
         this._forceUpdate();
         this._checkNumberNodeWidth();
-    }
-
-    private _onSourceChange(source: boolean) {
-        this._ng_source = source;
-        this._forceUpdate();
     }
 
     private _updateRenderComp() {
