@@ -11,7 +11,7 @@ const CPatches: Array<(logger: Logger) => Promise<void>> = [
         return new Promise((resolve) => {
             const oldHome: string = path.resolve(os.homedir(), '.logviewer');
             const newHome: string = path.resolve(os.homedir(), '.chipmunk');
-            if (!fs.existsSync(oldHome)) {
+            if (!fs.existsSync(oldHome) || fs.existsSync(newHome)) {
                 return resolve();
             }
             fs.rename(oldHome, newHome, (err: NodeJS.ErrnoException | null) => {
