@@ -149,7 +149,7 @@ export default class Logger {
         }
         this._console(message, level);
         this._output(message);
-        LogsService.write(message);
+        LogsService.write(message, level);
         return message;
     }
 
