@@ -187,11 +187,8 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         return OutputRedirectionsService.isSelected(this.sessionId, this._getPosition());
     }
 
-    private _onRowWasSelected(sender: string, row: number, prev: number | undefined) {
+    private _onRowWasSelected(sender: string, selection: number[], clicked: number) {
         const position: number | undefined = this._getPosition();
-        if (position !== row && position !== prev) {
-            return;
-        }
         this._forceUpdate();
     }
 

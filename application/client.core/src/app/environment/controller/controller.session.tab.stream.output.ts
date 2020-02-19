@@ -310,11 +310,11 @@ export class ControllerSessionTabStreamOutput {
         return this._rows.slice(from - offset, to - offset);
     }
 
-    private _onRowSelected(sender: string, row: number) {
+    private _onRowSelected(sender: string, selection: number[], clicked: number) {
         if (sender === 'stream') {
             return;
         }
-        this._subjects.onScrollTo.next(row);
+        this._subjects.onScrollTo.next(clicked);
     }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
