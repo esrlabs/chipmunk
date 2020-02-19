@@ -90,11 +90,11 @@ export class FileWriter extends EventEmitter {
             transform.convert(chunk, (converted: ITransformResult) => {
                 if (converted.output === '') {
                     // Nothing to write
-                    this._logger.debug(`Chunk is empty. Nothing to write.`);
+                    this._logger.env(`Chunk is empty. Nothing to write.`);
                     return resolve();
                 }
                 if (this._stream === undefined) {
-                    this._logger.debug(`Cannot write to stream, while it's blocked.`);
+                    this._logger.env(`Cannot write to stream, while it's blocked.`);
                     return resolve();
                 }
                 // Add data into map
@@ -121,7 +121,7 @@ export class FileWriter extends EventEmitter {
             return;
         }
         if (this._isLocked()) {
-            this._logger.debug(`Task is postponed. Tasks in queue: ${this._tasks.length}`);
+            this._logger.env(`Task is postponed. Tasks in queue: ${this._tasks.length}`);
             return;
         }
         if (this._stream === undefined) {

@@ -81,7 +81,7 @@ class Service {
             ELogLevels.INFO,
             msg,
         );
-        this.write(msg);
+        this.write(msg, ELogLevels.INFO);
     }
 
     public setGlobalLevel(lev: any) {
@@ -96,7 +96,7 @@ class Service {
             msg,
         );
         LogsBuffer.apply(this.getAllowedConsoleOutput());
-        this.write(msg);
+        this.write(msg, ELogLevels.INFO);
     }
 
     public isGlobalSet(): boolean {
@@ -149,7 +149,10 @@ class Service {
         return stamp;
     }
 
-    public write(msg: string) {
+    public write(msg: string, level: ELogLevels) {
+        if (level === ELogLevels.ENV) {
+            return;
+        }
         this._blackbox.write(msg);
     }
 
