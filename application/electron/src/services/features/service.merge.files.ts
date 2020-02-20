@@ -8,10 +8,8 @@ import { Progress } from "indexer-neon";
 import { IFile as ITestFileResponse } from '../../../../common/ipc/electron.ipc.messages/merge.files.test.response';
 import { IFile as IMergeFileRequest } from '../../../../common/ipc/electron.ipc.messages/merge.files.request';
 import * as moment from 'moment-timezone';
-import * as Tools from "../../tools/index";
 import MergeFiles from '../../controllers/features/merge/merge.files';
-import MergeDiscover, { IDatetimeDiscoverResult } from '../../controllers/features/merge/merge.discover';
-import { IDatetimeDiscoverFileResult } from '../../controllers/external/controller.lvin';
+import MergeDiscover, { IDatetimeDiscoverFileResult } from '../../controllers/features/merge/merge.discover';
 import { IMapItem } from '../../controllers/files.parsers/interface';
 
 /**
