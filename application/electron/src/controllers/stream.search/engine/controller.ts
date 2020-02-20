@@ -130,7 +130,7 @@ export class SearchEngine extends EventEmitter {
                     resolve(map);
                 });
             }).cancel(() => {
-                this._logger.env(`Search "${taskId}" was canceled.`);
+                this._logger.verbose(`Search "${taskId}" was canceled.`);
             }).catch((searchErr: Error) => {
                 this._logger.error(`Error during search (task: ${taskId}): ${searchErr.message}`);
                 reject(searchErr);
@@ -218,7 +218,7 @@ export class SearchEngine extends EventEmitter {
                 measure();
             });
         }).cancel(() => {
-            this._logger.env(`Inspecting was canceled.`);
+            this._logger.verbose(`Inspecting was canceled.`);
         });
     }
 

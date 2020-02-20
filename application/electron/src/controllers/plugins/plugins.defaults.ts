@@ -28,7 +28,7 @@ export default class ControllerPluginDefaults {
             Promise.all(plugins.map((plugin: IPluginDefaultInfo) => {
                 return new Promise((resolvePlugin, rejectPlugin) => {
                     this._unpack(plugin.tgz).then((dest: string) => {
-                        this._logger.env(`Default plugin "${plugin.name}@${plugin.version}" is delivered to: ${dest}.`);
+                        this._logger.debug(`Default plugin "${plugin.name}@${plugin.version}" is delivered to: ${dest}.`);
                         resolvePlugin();
                     }).catch((pluginError: Error) => {
                         rejectPlugin(new Error(this._logger.error(`Fail to delivery default plugin "${plugin.name}@${plugin.version}" due error: ${pluginError.message}.`)));
@@ -36,7 +36,7 @@ export default class ControllerPluginDefaults {
                 });
             })).then(() => {
                 if (plugins.length > 0) {
-                    this._logger.env(`${plugins.length} default plugin(s) are delivered.`);
+                    this._logger.debug(`${plugins.length} default plugin(s) are delivered.`);
                 }
                 resolve();
             }).catch(reject);

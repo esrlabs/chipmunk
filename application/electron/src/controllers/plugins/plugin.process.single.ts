@@ -166,7 +166,7 @@ export default class ControllerPluginProcessSingle extends Emitter {
             if (this._connections.has(guid)) {
                 return reject(new Error(this._logger.warn(`Plugin process is already bound with stream "${guid}"`)));
             }
-            this._logger.env(`Sent information about stream GUID: ${guid}.`);
+            this._logger.debug(`Sent information about stream GUID: ${guid}.`);
             // Bind socket
             this._bindRefWithId(connection.socket).then(() => {
                 if (this._process === undefined) {

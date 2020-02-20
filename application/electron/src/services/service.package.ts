@@ -59,7 +59,7 @@ export class ServicePackage implements IService {
                 if (json instanceof Error) {
                     return reject(new Error(this._logger.error(`Cannot parse package file "${this._file}" due error: ${json.message}`)));
                 }
-                this._logger.env(`package.json file successfully read from ${this._file}.`);
+                this._logger.debug(`package.json file successfully read from ${this._file}.`);
                 resolve(json);
             }).catch((error: Error) => {
                 this._logger.error(`Fail to read package at "${this._file}" due error: ${error.message}`);

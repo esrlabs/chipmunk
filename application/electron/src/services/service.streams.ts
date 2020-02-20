@@ -296,7 +296,7 @@ class ServiceStreams implements IService  {
                     connectionFactory: (pluginName: string): Promise<{ socket: Net.Socket, file: string }> => {
                         return new Promise((resolveConnection) => {
                             const socket: Net.Socket = Net.connect(socketFile, () => {
-                                this._logger.env(`Created new connection UNIX socket: ${socketFile} for plugin "${pluginName}".`);
+                                this._logger.debug(`Created new connection UNIX socket: ${socketFile} for plugin "${pluginName}".`);
                                 resolveConnection({ socket: socket, file: socketFile });
                             });
                             (socket as any).__id = Tools.guid();
@@ -333,7 +333,7 @@ class ServiceStreams implements IService  {
         const pluginRef: string = Tools.guid();
         // Start listen new connection
         socket.on('data', this._stream_onData.bind(this, guid, pluginRef));
-        this._logger.env(`New connection to stream "${guid}" is accepted. Reference: ${pluginRef}`);
+        this._logger.debug(`New connection to stream "${guid}" is accepted. Reference: ${pluginRef}`);
         stream.connections.push(socket);
     }
 
@@ -364,7 +364,7 @@ class ServiceStreams implements IService  {
                 return new Promise((resolveUnlink) => {
                     fs.exists(file, (exists: boolean) => {
                         if (!exists) {
-                            this._logger.env(`No need to remove file ${file} because it wasn't created.`);
+                            this._logger.debug(`No need to remove file ${file} because it wasn't created.`);
                             return resolveUnlink();
                         }
                         fs.unlink(file, (removeSocketFileError: NodeJS.ErrnoException | null) => {
@@ -385,7 +385,7 @@ class ServiceStreams implements IService  {
             };
             // Destroy controllers
             destroyControllers().then(() => {
-                this._logger.env(`Controllers of stream "${guid}" are destroyed.`);
+                this._logger.debug(`Controllers of stream "${guid}" are destroyed.`);
                 unlinkStorageFiles().then(() => {
                     this._streams.delete(guid);
                     resolve();
@@ -503,7 +503,7 @@ class ServiceStreams implements IService  {
         }
         this._activeStreamGuid = message.guid;
         this._subjects.onSessionChanged.emit(message.guid);
-        this._logger.env(`Active session is set to: ${this._activeStreamGuid}`);
+        this._logger.debug(`Active session is set to: ${this._activeStreamGuid}`);
     }
 
     private _ipc_onStreamReset(message: IPCElectronMessages.TMessage, response: (message: IPCElectronMessages.TMessage) => void) {
@@ -518,7 +518,7 @@ class ServiceStreams implements IService  {
             stream.processor.reset(),
             stream.search.reset(),
         ]).then(() => {
-            this._logger.env(`Session "${message.guid}" was reset.`);
+            this._logger.debug(`Session "${message.guid}" was reset.`);
             response(new IPCElectronMessages.StreamResetResponse({
                 guid: message.guid,
             }));

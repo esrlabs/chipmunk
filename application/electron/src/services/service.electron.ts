@@ -73,7 +73,7 @@ class ServiceElectron implements IService {
             if (this._controllerBrowserWindow === undefined) {
                 return resolve();
             }
-            this._logger.env(`Destroing browser window`);
+            this._logger.debug(`Destroing browser window`);
             this._controllerBrowserWindow.destroy();
             this._controllerBrowserWindow = undefined;
             resolve();
@@ -111,7 +111,7 @@ class ServiceElectron implements IService {
     }
 
     public quit(code = 0) {
-        this._logger.env(`Closing app with code: ${code}`);
+        this._logger.debug(`Closing app with code: ${code}`);
         app.exit(code);
         process.exit(code);
     }
@@ -175,7 +175,7 @@ class ServiceElectron implements IService {
     }
 
     private _configure() {
-        this._logger.env(`Hardware acceleration is disabled.`);
+        this._logger.debug(`Hardware acceleration is disabled.`);
         app.disableHardwareAcceleration();
     }
 
@@ -205,7 +205,7 @@ class ServiceElectron implements IService {
         if (this._controllerBrowserWindow !== undefined) {
             return;
         }
-        this._logger.env(`Creating new browser window`);
+        this._logger.debug(`Creating new browser window`);
         this._controllerBrowserWindow = new ControllerBrowserWindow(uuid.v4());
         this._controllerBrowserWindow.getIpc().then((ipc: ControllerElectronIpc) => {
             this._ipc = ipc;
@@ -232,10 +232,10 @@ class ServiceElectron implements IService {
         return app.quit();
         /*
         if (process.platform !== 'darwin') {
-            this._logger.env(`Quit application`);
+            this._logger.debug(`Quit application`);
             return app.quit();
         }
-        this._logger.env(`Darwin platform is detected. Application is deactivated.`);
+        this._logger.debug(`Darwin platform is detected. Application is deactivated.`);
         */
     }
 

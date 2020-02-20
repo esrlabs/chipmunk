@@ -127,10 +127,10 @@ class ServiceUpdate implements IService {
             });
             if (info === undefined) {
                 // No update found
-                this._logger.env(`Current version "${current}" is newest, no update needed.`);
+                this._logger.debug(`Current version "${current}" is newest, no update needed.`);
                 return;
             }
-            this._logger.env(`New version is released: ${info.name}`);
+            this._logger.debug(`New version is released: ${info.name}`);
             const targets: string[] | Error = this._getAssetFileName(latest);
             if (targets instanceof Error) {
                 return this._logger.warn(`Fail to get targets due error: ${targets.message}`);
@@ -151,7 +151,7 @@ class ServiceUpdate implements IService {
                 this._tgzfile = file;
                 this._notify(latest);
             } else {
-                this._logger.env(`Found new version "${latest}". Starting downloading: ${tgzfile}.`);
+                this._logger.debug(`Found new version "${latest}". Starting downloading: ${tgzfile}.`);
                 this._getAsset({
                     user: CSettings.user,
                     repo: CSettings.repo,
@@ -162,7 +162,7 @@ class ServiceUpdate implements IService {
                 }).then((_tgzfile: string) => {
                     this._tgzfile = _tgzfile;
                     this._notify(latest);
-                    this._logger.env(`File ${tgzfile} is downloaded into: ${_tgzfile}.`);
+                    this._logger.debug(`File ${tgzfile} is downloaded into: ${_tgzfile}.`);
                 }).catch((downloadError: Error) => {
                     this._logger.error(`Fail to download "${tgzfile}" due error: ${downloadError.message}`);
                 });
@@ -332,7 +332,7 @@ class ServiceUpdate implements IService {
             const existed: string = path.resolve(ServicePaths.getApps(), (os.platform() === 'win32' ? 'updater.exe' : 'updater'));
             if (fs.existsSync(existed)) {
                 try {
-                    this._logger.env(`Found existed updater "${existed}". It will be removed.`);
+                    this._logger.debug(`Found existed updater "${existed}". It will be removed.`);
                     fs.unlinkSync(existed);
                 } catch (e) {
                     return reject(e);
@@ -342,7 +342,7 @@ class ServiceUpdate implements IService {
                 if (error) {
                     return reject(error);
                 }
-                this._logger.env(`Updater "${existed}" is delivered.`);
+                this._logger.debug(`Updater "${existed}" is delivered.`);
                 resolve(existed);
             });
         });
@@ -364,19 +364,19 @@ class ServiceUpdate implements IService {
             return;
         }
         const exec: string = ServicePaths.getExec();
-        this._logger.env(`Prepare app to be closed`);
+        this._logger.debug(`Prepare app to be closed`);
         this._main.destroy().then(() => {
             const exitCode: number = 131;
-            this._logger.env(`Application is ready to be closed`);
+            this._logger.debug(`Application is ready to be closed`);
             /*
-            this._logger.env(`Starting updater:\n\t- ${updater} ${exec} ${this._tgzfile}`);
+            this._logger.debug(`Starting updater:\n\t- ${updater} ${exec} ${this._tgzfile}`);
             const child: ChildProcess = spawn(updater, [exec, this._tgzfile as string], {
                 detached: true,
                 stdio: 'ignore',
             });
             child.unref();
             */
-            this._logger.env(`Force closing of app with code ${exitCode}`);
+            this._logger.debug(`Force closing of app with code ${exitCode}`);
             ServiceElectron.quit(exitCode);
         }).catch((destroyErr: Error) => {
             this._logger.error(`Fail to prepare app to be closed due error: ${destroyErr.message}`);

@@ -220,7 +220,7 @@ class ServiceMergeFiles implements IService {
             return;
         }
         controller.abort().then(() => {
-            this._logger.env(`Task is aborted`);
+            this._logger.debug(`Task is aborted`);
         });
     }
 

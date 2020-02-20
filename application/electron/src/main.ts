@@ -89,7 +89,7 @@ class Application {
                         detail: `Error: ${error.message}`,
                     };
                     dialog.showMessageBox(dialogOpts).then((response: MessageBoxReturnValue) => {
-                        this.logger.env(`Selected option: ${response}`);
+                        this.logger.debug(`Selected option: ${response}`);
                         switch (response.response) {
                             case 0:
                                 FS.rmdir(getHomeFolder()).then(() => {
@@ -124,44 +124,44 @@ class Application {
 
     private _init(stage: number = 0, callback: (error?: Error) => any): void {
         if (InitializeStages.length <= stage) {
-            this.logger.env(`Application is initialized`);
+            this.logger.debug(`Application is initialized`);
             if (typeof callback === 'function') {
                 callback();
             }
             return;
         }
-        this.logger.env(`Application initialization: stage #${stage + 1}: starting...`);
+        this.logger.debug(`Application initialization: stage #${stage + 1}: starting...`);
         const services: any[] = InitializeStages[stage];
         const tasks: Array<Promise<any>> = services.map((ref: any) => {
-            this.logger.env(`Init: ${ref.getName()}`);
+            this.logger.debug(`Init: ${ref.getName()}`);
             return ref.init(this);
         });
         if (tasks.length === 0) {
             return this._init(stage + 1, callback);
         }
         Promise.all(tasks).then(() => {
-            this.logger.env(`Application initialization: stage #${stage + 1}: OK`);
+            this.logger.debug(`Application initialization: stage #${stage + 1}: OK`);
             this._init(stage + 1, callback);
         }).catch((error: Error) => {
-            this.logger.env(`Fail to initialize application dure error: ${error.message}`);
+            this.logger.debug(`Fail to initialize application dure error: ${error.message}`);
             callback(error);
         });
     }
 
     private _destroy(stage: number = 0, callback: (error?: Error) => any): void {
         if (stage < 0) {
-            this.logger.env(`Application is destroyed`);
+            this.logger.debug(`Application is destroyed`);
             if (typeof callback === 'function') {
                 callback();
             }
             return;
         }
-        this.logger.env(`Application destroy: stage #${stage + 1}: starting...`);
+        this.logger.debug(`Application destroy: stage #${stage + 1}: starting...`);
         const services: any[] = InitializeStages[stage];
         const tasks: Array<Promise<any>> = services.map((ref: any) => {
-            this.logger.env(`Destroy: ${ref.getName()}: started...`);
+            this.logger.debug(`Destroy: ${ref.getName()}: started...`);
             return ref.destroy().then(() => {
-                this.logger.env(`Destroy: ${ref.getName()}: DONE`);
+                this.logger.debug(`Destroy: ${ref.getName()}: DONE`);
             }).catch((err: Error) => {
                 this.logger.error(`Destroy: ${ref.getName()}: FAILED due: ${err.message}`);
             });
@@ -170,10 +170,10 @@ class Application {
             return this._destroy(stage - 1, callback);
         }
         Promise.all(tasks).then(() => {
-            this.logger.env(`Application destroyed: stage #${stage + 1}: OK`);
+            this.logger.debug(`Application destroyed: stage #${stage + 1}: OK`);
             this._destroy(stage - 1, callback);
         }).catch((error: Error) => {
-            this.logger.env(`Fail to destroy application dure error: ${error.message}`);
+            this.logger.debug(`Fail to destroy application dure error: ${error.message}`);
             callback(error);
         });
     }
@@ -198,15 +198,15 @@ class Application {
     }
 
     private _process_onExit() {
-        this.logger.env(`Application would be closed.`);
+        this.logger.debug(`Application would be closed.`);
         // Remove existing handlers
         // process.removeAllListeners();
         // Prevent closing application
         process.stdin.resume();
         // Destroy services
         this.destroy().then(() => {
-            this.logger.env(`Application are ready to be closed.`);
-            this.logger.env(`LogsService will be shutdown.`);
+            this.logger.debug(`Application are ready to be closed.`);
+            this.logger.debug(`LogsService will be shutdown.`);
             LogsService.shutdown().then(() => {
                 process.exit(0);
             });
@@ -232,7 +232,7 @@ class Application {
 }
 
 (new Application()).init().then((app: Application) => {
-    app.logger.env(`Application is ready.`);
+    app.logger.debug(`Application is ready.`);
     ServiceElectronState.setStateAsReady();
 }).catch((error: Error) => {
     throw error;

@@ -40,7 +40,7 @@ export default class ControllerPluginInstalled {
             FS.readFolders(this._path).then((folders: string[]) => {
                 if (folders.length === 0) {
                     // No any plugins
-                    this._logger.env(`No any plugins were found. Target folder: ${this._path}`);
+                    this._logger.debug(`No any plugins were found. Target folder: ${this._path}`);
                     return resolve(plugins);
                 }
                 const toBeRemoved: string[] = [];
@@ -135,7 +135,7 @@ export default class ControllerPluginInstalled {
             }
             Promise.all(folders.map((folder: string) => {
                 return FS.rmdir(folder).then(() => {
-                    this._logger.env(`Plugiin "${folder}" was removed.`);
+                    this._logger.debug(`Plugiin "${folder}" was removed.`);
                 });
             })).then(() => {
                 resolve();

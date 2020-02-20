@@ -183,7 +183,7 @@ export class OperationSearch extends EventEmitter {
             expression,
             target,
         ].filter(x => x !== '');
-        this._logger.env(`Next regular expresition will be used with ripgrep: ${expression}. Full command: rg ${args.join(' ')}`);
+        this._logger.debug(`Next regular expresition will be used with ripgrep: ${expression}. Full command: rg ${args.join(' ')}`);
         return args;
     }
 

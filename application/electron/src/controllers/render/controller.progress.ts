@@ -46,10 +46,10 @@ export default class ProgressState {
         if (track === undefined) {
             return;
         }
-        this._logger.env(`Task "${track.name}" done in: ${((Date.now() - track.started) / 1000).toFixed(2)}s`);
+        this._logger.verbose(`Task "${track.name}" done in: ${((Date.now() - track.started) / 1000).toFixed(2)}s`);
         this._tracks.delete(id);
         if (this._tracks.size === 0) {
-            this._logger.env(`No states.`);
+            this._logger.verbose(`No states.`);
         }
         this._send();
     }

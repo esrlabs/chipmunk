@@ -98,7 +98,7 @@ class ServiceFileOpener implements IService {
                     // Create file opener
                     const open = (options: any) => {
                         if (typeof options === 'boolean') {
-                            this._logger.env(`User canceled opening file.`);
+                            this._logger.debug(`User canceled opening file.`);
                             return resolve({ sourceId: -1, options: undefined });
                         }
                         const trackingId: string = Tools.guid();
@@ -141,7 +141,7 @@ class ServiceFileOpener implements IService {
                                 reject(new Error(this._logger.error(`Fail to directly read file "${file}" due error: ${pipeError.message}`)));
                             });
                         }).cancel(() => {
-                            this._logger.env(`Reading operation with "${instanceParser.getAlias()}" was canceled`);
+                            this._logger.debug(`Reading operation with "${instanceParser.getAlias()}" was canceled`);
                         }).finally(() => {
                             this._unsetProgress(instanceParser, trackingId, sessionId);
                             ServiceStreams.reattachSessionFileHandle(sessionId);
@@ -427,7 +427,7 @@ class ServiceFileOpener implements IService {
             return;
         }
         task.abort().then(() => {
-            this._logger.env(`Session "${guid}" is closed. Task "${task.getAlias()}" is aborted.`);
+            this._logger.debug(`Session "${guid}" is closed. Task "${task.getAlias()}" is aborted.`);
         });
     }
 

@@ -275,7 +275,7 @@ export default class ControllerStreamProcessor {
         ServiceStreamSource.set(id, { name: ServicePlugins.getPluginName(id) as string, session: '*' });
         // Bind plugin ref with plugin ID
         this._pluginRefs.set(ref, id);
-        this._logger.env(`Plugin #${id} (${ServicePlugins.getPluginName(id)}) bound with reference "${ref}".`);
+        this._logger.debug(`Plugin #${id} (${ServicePlugins.getPluginName(id)}) bound with reference "${ref}".`);
         // Get IPC of plugin
         const IPC: ControllerIPCPlugin | undefined = ServicePlugins.getPluginIPC(this._guid, token);
         if (IPC === undefined) {
@@ -308,7 +308,7 @@ export default class ControllerStreamProcessor {
                 used: process.memoryUsage().heapUsed / 1024 / 1024,
                 total: process.memoryUsage().heapTotal / 1024 / 1024,
             };
-            this._logger.env(`Session was closed by plugin #${id} in ${((Date.now() - stateInfo.started) / 1000).toFixed(2)}s. Memory: on start: ${stateInfo.memoryUsed.toFixed(2)}Mb; on end: ${memory.used.toFixed(2)}/${memory.used.toFixed(2)}Mb; diff: ${(memory.used - stateInfo.memoryUsed).toFixed(2)}Mb`);
+            this._logger.debug(`Session was closed by plugin #${id} in ${((Date.now() - stateInfo.started) / 1000).toFixed(2)}s. Memory: on start: ${stateInfo.memoryUsed.toFixed(2)}Mb; on end: ${memory.used.toFixed(2)}/${memory.used.toFixed(2)}Mb; diff: ${(memory.used - stateInfo.memoryUsed).toFixed(2)}Mb`);
             // Close "long chunk" by carret
             this.write(Buffer.from('\n'), undefined, undefined, id);
             this._notify();
