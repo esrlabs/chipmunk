@@ -130,6 +130,7 @@ pub async fn index_from_socket2(
                 None
             }
             Event::Msg(Err(DltParseError::Unrecoverable { .. })) => break,
+            Event::Msg(Err(DltParseError::IncompleteParse { .. })) => break,
         };
         match maybe_msg {
             Some(msg) => {
@@ -231,6 +232,7 @@ pub fn index_from_socket(
                     None
                 }
                 Event::Msg(Err(DltParseError::Unrecoverable { .. })) => break,
+                Event::Msg(Err(DltParseError::IncompleteParse { .. })) => break,
             };
             match maybe_msg {
                 Some(msg) => {
@@ -375,17 +377,8 @@ impl futures::Stream for UdpMessageProducer {
                     };
                     futures::task::Poll::Ready(Some(Ok(Some(msg_with_storage_header))))
                 }
-                Err(nom::Err::Incomplete(_n)) => futures::task::Poll::Pending,
-                Err(nom::Err::Error(_e)) => {
-                    futures::task::Poll::Ready(Some(Err(DltParseError::ParsingHickup {
-                        reason: format!("{:?}", _e),
-                    })))
-                }
-                Err(nom::Err::Failure(_e)) => {
-                    futures::task::Poll::Ready(Some(Err(DltParseError::Unrecoverable {
-                        cause: format!("{:?}", _e),
-                    })))
-                }
+                Err(DltParseError::IncompleteParse { .. }) => futures::task::Poll::Pending,
+                Err(e) => futures::task::Poll::Ready(Some(Err(e))),
             }
         }
     }

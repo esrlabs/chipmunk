@@ -33,19 +33,20 @@ use std::str;
 
 const STOP_CHECK_LINE_THRESHOLD: usize = 250_000;
 pub(crate) const DLT_PATTERN_SIZE: usize = 4;
-const DLT_PATTERN: &[u8] = &[0x44, 0x4C, 0x54, 0x01];
+pub(crate) const DLT_PATTERN: &[u8] = &[0x44, 0x4C, 0x54, 0x01];
 
 pub(crate) fn parse_ecu_id(input: &[u8]) -> IResult<&[u8], &str> {
     dlt_zero_terminated_string(input, 4)
 }
-fn skip_to_next_storage_header<'a, T>(
-    input: &'a [u8],
-    index: Option<usize>,
-    update_channel: Option<&cc::Sender<IndexingResults<T>>>,
-) -> Option<&'a [u8]> {
+/// skip ahead in input array till we reach a storage header
+/// return Some(slice) that starts with the next storage header (if any)
+/// or None if no more storage header could be found.
+/// note: we won't skip anything if the input already begins
+/// with a storage header
+pub(crate) fn forward_to_next_storage_header(input: &[u8]) -> Option<(usize, &[u8])> {
     let mut found = false;
     let mut to_drop = 0usize;
-    for v in input.windows(4) {
+    for v in input.windows(DLT_PATTERN_SIZE) {
         if v == DLT_PATTERN {
             found = true;
             break;
@@ -58,26 +59,12 @@ fn skip_to_next_storage_header<'a, T>(
             "did not find another storage header (input left {})",
             input.len()
         );
-        if let Some(tx) = update_channel {
-            let _ = tx.send(Err(Notification {
-                severity: Severity::ERROR,
-                content: "did not find another storage header".to_string(),
-                line: index,
-            }));
-        }
         return None;
     }
     if to_drop > 0 {
-        if let Some(tx) = update_channel {
-            let _ = tx.send(Err(Notification {
-                severity: Severity::ERROR,
-                content: format!("dropped {} to get to next message", to_drop),
-                line: index,
-            }));
-        }
         // println!("dropped {} to get to next message", to_drop);
     }
-    Some(&input[to_drop..])
+    Some((to_drop, &input[to_drop..]))
 }
 
 pub(crate) fn dlt_storage_header<'a, T>(
@@ -86,9 +73,17 @@ pub(crate) fn dlt_storage_header<'a, T>(
     update_channel: Option<&cc::Sender<IndexingResults<T>>>,
 ) -> IResult<&'a [u8], Option<StorageHeader>> {
     // println!("dlt_storage_header (left: {} bytes)", input.len());
-    match skip_to_next_storage_header(input, index, update_channel) {
-        Some(rest) => {
-            // println!("rest is {} bytes", rest.len());
+    match forward_to_next_storage_header(input) {
+        Some((consumed, rest)) => {
+            if consumed > 0 {
+                if let Some(tx) = update_channel {
+                    let _ = tx.send(Err(Notification {
+                        severity: Severity::WARNING,
+                        content: format!("dropped {} to get to next message", consumed),
+                        line: index,
+                    }));
+                }
+            }
             let (i, (_, _, seconds, microseconds)) = tuple((
                 tag("DLT"),
                 tag(&[0x01]),
@@ -108,7 +103,16 @@ pub(crate) fn dlt_storage_header<'a, T>(
                 }),
             ))
         }
-        None => Err(nom::Err::Failure((&[], nom::error::ErrorKind::Verify))),
+        None => {
+            if let Some(tx) = update_channel {
+                let _ = tx.send(Err(Notification {
+                    severity: Severity::ERROR,
+                    content: "did not find another storage header".to_string(),
+                    line: index,
+                }));
+            }
+            Err(nom::Err::Failure((&[], nom::error::ErrorKind::Verify)))
+        }
     }
 }
 
@@ -773,7 +777,7 @@ pub fn dlt_message<'a>(
     update_channel: Option<&cc::Sender<ChunkResults>>,
     fibex_metadata: Option<Rc<FibexMetadata>>,
     with_storage_header: bool,
-) -> IResult<&'a [u8], ParsedMessage> {
+) -> Result<(&'a [u8], ParsedMessage), DltParseError> {
     // trace!("starting to parse dlt_message==================");
     let (after_storage_header, storage_header) = if with_storage_header {
         dlt_storage_header(input, Some(index), update_channel)?
@@ -951,22 +955,64 @@ fn validated_payload_length<T>(
     }
     Some(message_length - headers_length)
 }
+
+fn skip_till_after_next_storage_header(input: &[u8]) -> IResult<&[u8], usize> {
+    match forward_to_next_storage_header(input) {
+        Some((consumed, rest)) => skip_storage_header(rest, consumed),
+        None => Err(nom::Err::Error((&[], nom::error::ErrorKind::Verify))),
+    }
+}
+
+fn skip_storage_header(input: &[u8], already_dropped: usize) -> IResult<&[u8], usize> {
+    let (i, (_, _, _)): (&[u8], _) = tuple((tag("DLT"), tag(&[0x01]), take(12usize)))(input)?;
+    if input.len() - i.len() == STORAGE_HEADER_LENGTH {
+        Ok((i, already_dropped))
+    } else {
+        Err(nom::Err::Error((&[], nom::error::ErrorKind::Verify)))
+    }
+}
+
 pub fn dlt_statistic_row_info<'a, T>(
     input: &'a [u8],
     index: Option<usize>,
     update_channel: Option<&cc::Sender<IndexingResults<T>>>,
-) -> IResult<&'a [u8], StatisticRowInfo> {
+    // ) -> IResult<&'a [u8], StatisticRowInfo> {
+) -> Result<(&'a [u8], StatisticRowInfo), DltParseError> {
     let update_channel_ref = update_channel;
-    let skip_res: IResult<&'a [u8], ()> =
-        match skip_to_next_storage_header(input, index, update_channel_ref) {
-            Some(rest) => {
-                let (i, (_, _, _)): (&'a [u8], _) =
-                    tuple((tag("DLT"), tag(&[0x01]), take(12usize)))(rest)?;
-                Ok((i, ()))
-            }
-            None => Err(nom::Err::Error((&[], nom::error::ErrorKind::Verify))),
-        };
-    let (after_storage_header, _) = skip_res?; //dlt_skip_storage_header(input, index, update_channel_ref)?;
+    let (after_storage_header, unparsable_bytes) = skip_till_after_next_storage_header(input)?;
+    if unparsable_bytes > 0 {
+        if let Some(tx) = update_channel {
+            let _ = tx.send(Err(Notification {
+                severity: Severity::WARNING,
+                content: format!("dropped {} to get to next message", unparsable_bytes),
+                line: index,
+            }));
+        }
+    }
+    // let skip_res: IResult<&'a [u8], ()> = match forward_to_next_storage_header(input) {
+    //     Some((consumed, rest)) => {
+    //         if consumed > 0 {
+    //             if let Some(tx) = update_channel {
+    //                 let _ = tx.send(Err(Notification {
+    //                     severity: Severity::WARNING,
+    //                     content: format!("dropped {} to get to next message", consumed),
+    //                     line: index,
+    //                 }));
+    //             }
+    //         }
+    //         skip_storage_header(rest)
+    //     }
+    //     None => {
+    //         if let Some(tx) = update_channel {
+    //             let _ = tx.send(Err(Notification {
+    //                 severity: Severity::WARNING,
+    //                 content: "did not find another storage header".to_string(),
+    //                 line: index,
+    //             }));
+    //         }
+    //         Err(nom::Err::Error((&[], nom::error::ErrorKind::Verify)))
+    //     }
+    // };
     let (after_storage_and_normal_header, header) = dlt_standard_header(after_storage_header)?;
 
     let payload_length = match validated_payload_length(&header, index, update_channel_ref) {
@@ -1022,11 +1068,32 @@ pub enum DltParseError {
     Unrecoverable { cause: String },
     #[fail(display = "parsing error, try to continue: {}", reason)]
     ParsingHickup { reason: String },
+    #[fail(display = "parsing could not complete: {:?}", needed)]
+    IncompleteParse { needed: Option<usize> },
 }
 impl From<std::io::Error> for DltParseError {
     fn from(err: std::io::Error) -> DltParseError {
         DltParseError::Unrecoverable {
             cause: format!("{}", err),
+        }
+    }
+}
+impl From<nom::Err<(&[u8], nom::error::ErrorKind)>> for DltParseError {
+    fn from(err: nom::Err<(&[u8], nom::error::ErrorKind)>) -> DltParseError {
+        match err {
+            nom::Err::Incomplete(n) => {
+                let needed = match n {
+                    nom::Needed::Size(s) => Some(s),
+                    nom::Needed::Unknown => None,
+                };
+                DltParseError::IncompleteParse { needed }
+            }
+            nom::Err::Error((input, kind)) => DltParseError::ParsingHickup {
+                reason: format!("{:?} ({} bytes left in input)", kind, input.len()),
+            },
+            nom::Err::Failure((input, kind)) => DltParseError::Unrecoverable {
+                cause: format!("{:?} ({} bytes left in input)", kind, input.len()),
+            },
         }
     }
 }
@@ -1239,6 +1306,18 @@ pub fn get_dlt_file_info(
                         }))?;
                         break;
                     }
+                    DltParseError::IncompleteParse { needed } => {
+                        warn!(
+                            "cannot continue parsing, parse was incomplete: {:?}",
+                            needed
+                        );
+                        update_channel.send(Err(Notification {
+                            severity: Severity::ERROR,
+                            content: format!("parse was incomplete: {:?}", needed),
+                            line: None,
+                        }))?;
+                        break;
+                    }
                 }
             }
         }
@@ -1299,40 +1378,9 @@ fn read_one_dlt_message_info<T: Read>(
                 return Ok(None);
             }
             let available = content.len();
-            let res: nom::IResult<&[u8], StatisticRowInfo> =
-                dlt_statistic_row_info(content, index, update_channel);
-            // println!("dlt statistic_row_info got: {:?}", res);
-            match res {
-                Ok(r) => {
-                    let consumed = available - r.0.len();
-                    Ok(Some((consumed, r.1)))
-                }
-                e => match e {
-                    Err(nom::Err::Incomplete(n)) => {
-                        warn!("parse incomplete");
-                        let needed = match n {
-                            nom::Needed::Size(s) => format!("{}", s),
-                            nom::Needed::Unknown => "unknown".to_string(),
-                        };
-                        Err(DltParseError::Unrecoverable {
-                            cause: format!(
-                            "read_one_dlt_message: imcomplete parsing error for dlt messages: (bytes left: {}, but needed: {})",
-                            content.len(),
-                            needed
-                        ),
-                        })
-                    }
-                    Err(nom::Err::Error(_e)) => Err(DltParseError::ParsingHickup {
-                        reason: format!("parsing error for dlt message info: {:?}", _e),
-                    }),
-                    Err(nom::Err::Failure(_e)) => Err(DltParseError::Unrecoverable {
-                        cause: format!("parsing failure for dlt message infos: {:?}", _e),
-                    }),
-                    _ => Err(DltParseError::Unrecoverable {
-                        cause: format!("error while parsing dlt message infos: {:?}", e),
-                    }),
-                },
-            }
+            let r = dlt_statistic_row_info(content, index, update_channel)?;
+            let consumed = available - r.0.len();
+            Ok(Some((consumed, r.1)))
         }
         Err(e) => Err(DltParseError::ParsingHickup {
             reason: format!("error while parsing dlt messages: {}", e),

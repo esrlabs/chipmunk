@@ -5,8 +5,7 @@ use crate::filtering;
 use async_std::task;
 use crossbeam_channel as cc;
 use etherparse::*;
-use failure::err_msg;
-use failure::Error;
+use failure::{err_msg, Error, ResultExt};
 use futures::stream::StreamExt;
 use indexer_base::chunks::{ChunkFactory, ChunkResults};
 use indexer_base::config::IndexingConfig;
@@ -161,30 +160,30 @@ impl futures::Stream for PcapMessageProducer {
                                 Ok((_, ParsedMessage::Invalid)) => {
                                     futures::task::Poll::Ready(Some(Ok(MessageStreamItem::Skipped)))
                                 }
-                                Err(nom::Err::Error(_e)) => futures::task::Poll::Ready(Some(Err(
-                                    DltParseError::ParsingHickup {
-                                        reason: format!("parsing dlt msg error: {:?}", _e),
-                                    },
-                                ))),
-                                Err(nom::Err::Failure(_e)) => futures::task::Poll::Ready(Some(
-                                    Err(DltParseError::Unrecoverable {
-                                        cause: format!("parsing dlt msg failure: {:?}", _e),
-                                    }),
-                                )),
+                                Err(DltParseError::ParsingHickup { reason }) => {
+                                    futures::task::Poll::Ready(Some(Err(
+                                        DltParseError::ParsingHickup { reason },
+                                    )))
+                                }
+                                Err(DltParseError::Unrecoverable { cause }) => {
+                                    futures::task::Poll::Ready(Some(Err(
+                                        DltParseError::Unrecoverable { cause },
+                                    )))
+                                }
 
-                                Err(nom::Err::Incomplete(n)) => {
-                                    let needed = match n {
-                                        nom::Needed::Size(s) => format!("{}", s),
-                                        nom::Needed::Unknown => "unknown".to_string(),
+                                Err(DltParseError::IncompleteParse { needed }) => {
+                                    let needed_s = match needed {
+                                        Some(s) => format!("{}", s),
+                                        None => "unknown".to_string(),
                                     };
                                     futures::task::Poll::Ready(Some(Err(
-                                        DltParseError::Unrecoverable {
-                                            cause: format!(
-                                                "read_one_dlt_message: imcomplete parsing error for dlt messages: (bytes left: {}, but needed: {})",
-                                                value.payload.len(),
-                                                needed)
-                                        },
-                                    )))
+                                          DltParseError::Unrecoverable {
+                                              cause: format!(
+                                                  "read_one_dlt_message: imcomplete parsing error for dlt messages: (bytes left: {}, but needed: {})",
+                                                  value.payload.len(),
+                                                  needed_s)
+                                          },
+                                      )))
                                 }
                             }
                         }
@@ -300,6 +299,17 @@ pub fn index_from_pcap<'a>(
                     warn!("Unrecoverable error in stream: {}", cause);
                     let _ = update_channel.send(Ok(IndexingProgress::Finished));
                     break;
+                }
+                Event::Msg(Err(DltParseError::IncompleteParse { needed })) => {
+                    warn!(
+                        "parse error in stream, was incomplete: (needed {:?})",
+                        needed
+                    );
+                    let _ = update_channel.send(Err(Notification {
+                        severity: Severity::WARNING,
+                        content: format!("parsing incomplete for one message: needed {:?}", needed),
+                        line: None,
+                    }));
                 }
             };
         }

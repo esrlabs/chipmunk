@@ -164,7 +164,7 @@ impl FileMessageProducer {
                     }
                     let available = content.len();
 
-                    let parse_result: nom::IResult<&[u8], ParsedMessage> = dlt_message(
+                    let parse_result: Result<(&[u8], ParsedMessage), DltParseError> = dlt_message(
                         content,
                         self.filter_config.as_ref(),
                         self.stats.parsed + self.stats.no_parse,
@@ -172,6 +172,7 @@ impl FileMessageProducer {
                         self.fibex_metadata.clone(),
                         self.with_storage_header,
                     );
+
                     match parse_result {
                         Ok((rest, maybe_msg)) => {
                             let consumed = available - rest.len();
@@ -179,43 +180,43 @@ impl FileMessageProducer {
                             trace!("parse ok, consumed: {}", consumed);
                             break (consumed, Ok(maybe_msg));
                         }
-                        Err(nom::Err::Incomplete(n)) => {
+                        Err(DltParseError::IncompleteParse { needed }) => {
                             debug!("parse incomplete");
                             self.stats.no_parse += 1;
-                            let needed = match n {
-                                nom::Needed::Size(s) => format!("{}", s),
-                                nom::Needed::Unknown => "unknown".to_string(),
+                            let needed_s = match needed {
+                                Some(s) => format!("{}", s),
+                                None => "unknown".to_string(),
                             };
                             break (0, Err(DltParseError::Unrecoverable {
                                 cause: format!(
                                     "read_one_dlt_message: imcomplete parsing error for dlt messages: (bytes left: {}, but needed: {})",
                                     content.len(),
-                                    needed
+                                    needed_s
                                 ),
                             }));
                         }
-                        Err(nom::Err::Error(_e)) => {
+                        Err(DltParseError::ParsingHickup { reason }) => {
                             warn!("parse error");
                             self.stats.no_parse += 1;
                             break (
                                 DLT_PATTERN_SIZE,
                                 Err(DltParseError::ParsingHickup {
                                     reason: format!(
-                                    "read_one_dlt_message: parsing error for dlt messages: {:?}",
-                                    _e
-                                ),
+                                        "read_one_dlt_message: parsing error for dlt messages: {}",
+                                        reason
+                                    ),
                                 }),
                             );
                         }
-                        Err(nom::Err::Failure(_e)) => {
+                        Err(DltParseError::Unrecoverable { cause }) => {
                             warn!("parse failure");
                             self.stats.no_parse += 1;
                             break (
                                 0,
                                 Err(DltParseError::Unrecoverable {
                                     cause: format!(
-                                    "read_one_dlt_message: parsing failure for dlt messages: {:?}",
-                                    _e
+                                    "read_one_dlt_message: parsing failure for dlt messages: {}",
+                                    cause
                                 ),
                                 }),
                             );
@@ -357,6 +358,18 @@ pub fn index_dlt_content(
                     }))?;
                     break;
                 }
+                DltParseError::IncompleteParse { needed } => {
+                    warn!(
+                        "dlt_file: cannot continue parsing, was incomplete: needed {:?}",
+                        needed
+                    );
+                    update_channel.send(Err(Notification {
+                        severity: Severity::ERROR,
+                        content: format!("error parsing dlt file (incomplete parse): {:?}", needed),
+                        line: None,
+                    }))?;
+                    break;
+                }
             },
         }
     }
@@ -448,4 +461,105 @@ pub(crate) fn session_file_path(session_id: &str) -> Result<PathBuf, Error> {
 pub(crate) fn create_dlt_session_file(session_id: &str) -> Result<std::fs::File, Error> {
     let path = session_file_path(session_id)?;
     Ok(std::fs::File::create(path)?)
+}
+
+struct FilePartitioner {
+    reader: ReduxReader<fs::File, MinBuffered>,
+    parts: Vec<FilePart>,
+}
+impl FilePartitioner {
+    fn partition(&mut self) {
+        // let consume_and_parse_result = loop {
+        //     match self.reader.fill_buf() {
+        //         Ok(content) => {
+        //             trace!("Ok(content (len {}))", content.len());
+        //             if content.is_empty() {
+        //                 trace!("0, Ok(ParsedMessage::Invalid)");
+        //                 return (0, Ok(ParsedMessage::Invalid));
+        //             }
+        //             let available = content.len();
+
+        //             let parse_result: nom::IResult<&[u8], ParsedMessage> = dlt_message(
+        //                 content,
+        //                 self.filter_config.as_ref(),
+        //                 self.stats.parsed + self.stats.no_parse,
+        //                 Some(&self.update_channel),
+        //                 self.fibex_metadata.clone(),
+        //                 self.with_storage_header,
+        //             );
+        //             match parse_result {
+        //                 Ok((rest, maybe_msg)) => {
+        //                     let consumed = available - rest.len();
+        //                     self.stats.parsed += 1;
+        //                     trace!("parse ok, consumed: {}", consumed);
+        //                     break (consumed, Ok(maybe_msg));
+        //                 }
+        //                 Err(nom::Err::Incomplete(n)) => {
+        //                     debug!("parse incomplete");
+        //                     self.stats.no_parse += 1;
+        //                     let needed = match n {
+        //                         nom::Needed::Size(s) => format!("{}", s),
+        //                         nom::Needed::Unknown => "unknown".to_string(),
+        //                     };
+        //                     break (0, Err(DltParseError::Unrecoverable {
+        //                         cause: format!(
+        //                             "read_one_dlt_message: imcomplete parsing error for dlt messages: (bytes left: {}, but needed: {})",
+        //                             content.len(),
+        //                             needed
+        //                         ),
+        //                     }));
+        //                 }
+        //                 Err(nom::Err::Error(_e)) => {
+        //                     warn!("parse error");
+        //                     self.stats.no_parse += 1;
+        //                     break (
+        //                         DLT_PATTERN_SIZE,
+        //                         Err(DltParseError::ParsingHickup {
+        //                             reason: format!(
+        //                             "read_one_dlt_message: parsing error for dlt messages: {:?}",
+        //                             _e
+        //                         ),
+        //                         }),
+        //                     );
+        //                 }
+        //                 Err(nom::Err::Failure(_e)) => {
+        //                     warn!("parse failure");
+        //                     self.stats.no_parse += 1;
+        //                     break (
+        //                         0,
+        //                         Err(DltParseError::Unrecoverable {
+        //                             cause: format!(
+        //                             "read_one_dlt_message: parsing failure for dlt messages: {:?}",
+        //                             _e
+        //                         ),
+        //                         }),
+        //                     );
+        //                 }
+        //             }
+        //         }
+        //         Err(e) => {
+        //             trace!("no more content");
+        //             break (
+        //                 0,
+        //                 Err(DltParseError::Unrecoverable {
+        //                     cause: format!("error for filling buffer with dlt messages: {:?}", e),
+        //                 }),
+        //             );
+        //         }
+        //     }
+        // };
+    }
+}
+struct FilePart {
+    offset: usize,
+    length: usize,
+}
+impl futures::Stream for FilePartitioner {
+    type Item = Result<(usize, Option<FilePart>), DltParseError>;
+    fn poll_next(
+        mut self: std::pin::Pin<&mut Self>,
+        _cx: &mut std::task::Context,
+    ) -> futures::task::Poll<Option<Self::Item>> {
+        futures::task::Poll::Pending
+    }
 }

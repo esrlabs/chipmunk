@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests {
     use crate::dlt::*;
+    use crate::dlt_parse::forward_to_next_storage_header;
+    use crate::dlt_parse::DLT_PATTERN;
     use crate::dlt_parse::*;
     use crate::proptest_strategies::*;
     use dirs;
@@ -24,6 +26,35 @@ mod tests {
             }
             env_logger::init();
         });
+    }
+
+    #[test]
+    fn test_skip_to_next_storage_header_later_in_input() {
+        let input_1: Vec<u8> = concatenate_arrays(&[0xa, 0xb, 0xc], &DLT_PATTERN);
+        assert_eq!(
+            Some((3, DLT_PATTERN)),
+            forward_to_next_storage_header(&input_1)
+        );
+        let input_2: Vec<u8> = concatenate_arrays(&[0xa, 0xb, 0xc, 0xd], &DLT_PATTERN);
+        assert_eq!(
+            Some((4, DLT_PATTERN)),
+            forward_to_next_storage_header(&input_2)
+        );
+    }
+    #[test]
+    fn test_skip_to_next_storage_header_immediately_in_input() {
+        let input_1 = &DLT_PATTERN;
+        let res = forward_to_next_storage_header(&input_1);
+        assert_eq!(Some((0, DLT_PATTERN)), res);
+    }
+    #[test]
+    fn test_skip_to_next_storage_header_no_more_pattern_match() {
+        let input_1 = &[0x1, 0x2, 0x3, 0x4, 0x1, 0x2, 0x3, 0x4, 0x1, 0x2, 0x3];
+        let res = forward_to_next_storage_header(input_1);
+        assert_eq!(None, res);
+    }
+    fn concatenate_arrays<T: Clone>(x: &[T], y: &[T]) -> Vec<T> {
+        x.iter().chain(y).cloned().collect()
     }
 
     #[test]
