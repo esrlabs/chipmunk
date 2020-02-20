@@ -295,6 +295,18 @@ export { IChartRequestResults, IChartMatch, ChartRequestResults, TChartResults }
 import { IChartResultsUpdated, ChartResultsUpdated } from './chart.results.updated';
 export { IChartResultsUpdated, ChartResultsUpdated };
 
+import { IOutputExportFeaturesRequest, OutputExportFeaturesRequest } from './output.export.features.request';
+export { IOutputExportFeaturesRequest, OutputExportFeaturesRequest };
+
+import { OutputExportFeaturesResponse, IOutputExportFeaturesResponse, IExportAction } from './output.export.features.response';
+export { OutputExportFeaturesResponse, IOutputExportFeaturesResponse, IExportAction };
+
+import { IOutputExportFeatureCallRequest, OutputExportFeatureCallRequest } from './output.export.feature.call.request';
+export { IOutputExportFeatureCallRequest, OutputExportFeatureCallRequest };
+
+import { IOutputExportFeatureCallResponse, OutputExportFeatureCallResponse } from './output.export.feature.call.response';
+export { IOutputExportFeatureCallResponse, OutputExportFeatureCallResponse };
+
 // Common type for expected message implementation
 export type TMessage =  HostState |
                         HostStateHistory |
@@ -392,7 +404,11 @@ export type TMessage =  HostState |
                         ChartRequestCancelRequest |
                         ChartRequestCancelResponse |
                         ChartRequestResults |
-                        ChartResultsUpdated;
+                        ChartResultsUpdated |
+                        OutputExportFeaturesRequest |
+                        OutputExportFeaturesResponse |
+                        OutputExportFeatureCallRequest |
+                        OutputExportFeatureCallResponse;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -512,4 +528,9 @@ export const Map = {
     [ChartRequestCancelResponse.signature   ]: ChartRequestCancelResponse,
     [ChartRequestResults.signature          ]: ChartRequestResults,
     [ChartResultsUpdated.signature          ]: ChartResultsUpdated,
+
+    [OutputExportFeaturesRequest.signature  ]: OutputExportFeaturesRequest,
+    [OutputExportFeaturesResponse.signature ]: OutputExportFeaturesResponse,
+    [OutputExportFeatureCallRequest.signature]: OutputExportFeatureCallRequest,
+    [OutputExportFeatureCallResponse.signature]: OutputExportFeatureCallResponse,
 };

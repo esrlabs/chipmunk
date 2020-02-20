@@ -13,7 +13,6 @@ import { AOutputRenderComponent } from '../../../interfaces/interface.output.ren
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { ENotificationType } from '../../../../../../../common/ipc/electron.ipc.messages/index';
-import { CSourceSignatureRegExp } from '../../../controller/helpers/row.helpers';
 
 enum ERenderType {
     standard = 'standard',

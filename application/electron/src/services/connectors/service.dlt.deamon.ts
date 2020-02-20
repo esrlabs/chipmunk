@@ -2,14 +2,20 @@ import { Subscription } from "../../tools/index";
 import { IService } from "../../interfaces/interface.service";
 import { DLTConnectionController, IConnectionOptions } from '../../controllers/connections/dlt.connection';
 import { dialog, SaveDialogReturnValue } from 'electron';
+import { CommonInterfaces } from '../../interfaces/interface.common';
 
 import ServiceStreams from "../service.streams";
 import Logger from "../../tools/env.logger";
 
+import * as Tools from '../../tools';
+
 import ServiceStorage, { IStorageScheme } from '../service.storage';
 import ServiceElectron, { IPCMessages } from "../service.electron";
+import ServiceOutputExport from "../output/service.output.export";
 import indexer, { Progress, DLT, CancelablePromise } from "indexer-neon";
 
+const CExportSelectionActionId = Tools.guid();
+const CExportAllActionId = Tools.guid();
 /**
  * @class ServiceDLTDeamonConnector
  * @description Providers access to DLT deamon (UPD)
@@ -121,6 +127,17 @@ class ServiceDLTDeamonConnector implements IService {
                 // Save session data into history
                 if (this._connectionsHistory.indexOf(req.session) === -1) {
                     this._connectionsHistory.push(req.session);
+                    // Register exports callback
+                    ServiceOutputExport.setAction(req.session, CExportSelectionActionId, {
+                        caption: 'Export selection to DLT file',
+                        handler: this._exportSelection.bind(this, req.session),
+                        isEnabled: this._isExportPossible.bind(this, req.session),
+                    });
+                    ServiceOutputExport.setAction(req.session, CExportAllActionId, {
+                        caption: 'Export all to DLT file',
+                        handler: this._exportAll.bind(this, req.session),
+                        isEnabled: this._isExportPossible.bind(this, req.session),
+                    });
                 }
                 // Response to client
                 response(
@@ -265,14 +282,14 @@ class ServiceDLTDeamonConnector implements IService {
         });
     }
 
-    private _saveAsStream(session: string): Promise<string | undefined> {
+    private _saveAsStream(session: string, sections: CommonInterfaces.DLT.IIndexSection[] = []): Promise<string | undefined> {
         return new Promise((resolve, reject) => {
             this._getFileName().then((filename: string | undefined) => {
                 if (filename === undefined) {
                     return resolve(undefined);
                 }
                 this._logger.info(`Saving`);
-                this._saver = indexer.saveDltFile(session, filename, { sections: [] }).then(() => {
+                this._saver = indexer.saveDltFile(session, filename, { sections: sections }).then(() => {
                     this._logger.info(`Saved`);
                     // Resolving
                     resolve(filename);
@@ -342,6 +359,57 @@ class ServiceDLTDeamonConnector implements IService {
         ServiceStorage.get().set({
             recentDLTConnectorSettings: stored,
         });
+    }
+
+    private _exportSelection(session: string, request: IPCMessages.OutputExportFeaturesRequest | IPCMessages.OutputExportFeatureCallRequest): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const sections: CommonInterfaces.DLT.IIndexSection[] = [];
+            const section: CommonInterfaces.DLT.IIndexSection = {
+                first_line: -1,
+                last_line: -1,
+            };
+            request.selection.forEach((row: number, index: number) => {
+                if (section.first_line === -1) {
+                    section.first_line = row;
+                }
+                if (index !== 0) {
+                    if (request.selection[index - 1] !== row - 1) {
+                        section.last_line = request.selection[index - 1];
+                        sections.push(Object.assign({}, section));
+                        section.last_line = -1;
+                        section.first_line = row;
+                    }
+                }
+                if (index === request.selection.length - 1) {
+                    section.last_line = row;
+                    sections.push(Object.assign({}, section));
+                }
+            });
+            this._saveAsStream(session, sections).then(() => {
+                resolve();
+            }).catch((saveErr: Error) => {
+                this._logger.warn(`Fail to save stream data due error: ${saveErr.message}`);
+                reject(saveErr);
+            });
+        });
+    }
+
+    private _exportAll(session: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._saveAsStream(session).then(() => {
+                resolve();
+            }).catch((saveErr: Error) => {
+                this._logger.warn(`Fail to save stream data due error: ${saveErr.message}`);
+                reject(saveErr);
+            });
+        });
+    }
+
+    private _isExportPossible(session: string, request: IPCMessages.OutputExportFeaturesRequest | IPCMessages.OutputExportFeatureCallRequest): boolean {
+        if (this._connections.has(session)) {
+            return false;
+        }
+        return true;
     }
 
 }
