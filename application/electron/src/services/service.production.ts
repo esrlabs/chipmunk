@@ -28,7 +28,7 @@ class ServiceProduction implements IService {
                 } else {
                     this._production = true;
                 }
-                this._logger.env(`Production is: ${this._production ? 'ON' : 'OFF'}`);
+                this._logger.debug(`Production is: ${this._production ? 'ON' : 'OFF'}`);
                 getEnvVar(CDEV_LOG_LEVEL).then((level: string) => {
                     if (LogsService.isValidLevel(level)) {
                         LogsService.setGlobalLevel(level as ELogLevels);

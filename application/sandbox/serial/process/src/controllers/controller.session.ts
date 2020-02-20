@@ -63,7 +63,7 @@ export class ControllerSession {
                 onError: this._onPortError.bind(this, options.path),
                 onDisconnect: this._onPortDisconnect.bind(this, options.path)
             }).then(() => {
-                this._logger.env(`Port "${options.path}" is assigned with session "${this._session}"`);
+                this._logger.debug(`Port "${options.path}" is assigned with session "${this._session}"`);
                 // Save data
                 this._ports.push(options.path);
                 // Notify render
@@ -106,7 +106,7 @@ export class ControllerSession {
                     });
                 }),
             ).then(() => {
-                this._logger.env(`Starting to spy`);
+                this._logger.debug(`Starting to spy`);
                 resolve();
             }).catch((openErr: Error) => {
                 reject(new Error(this._logger.error(`Failed to start spying on ports due to error: ${openErr.message}`)));
@@ -128,7 +128,7 @@ export class ControllerSession {
                     });
                 })
             ).then(() => {
-                this._logger.env(`Ports no longer being spied on`);
+                this._logger.debug(`Ports no longer being spied on`);
                 resolve();
             }).catch((openErr: Error) => {
                 reject(new Error(this._logger.error(`Failed to stop spying to due error: ${openErr.message}`)));

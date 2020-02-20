@@ -116,7 +116,7 @@ class StreamsService extends EventEmitter {
                 this._createStream(streamId, os.homedir(), this._getInitialOSEnv(Object.assign({}, process.env) as EnvModule.TEnvVars), userShell);
             });
         }).catch((gettingShellErr: Error) => {
-            this._logger.env(`Failed to create stream "${streamId}" due to error: ${gettingShellErr.message}.`)
+            this._logger.debug(`Failed to create stream "${streamId}" due to error: ${gettingShellErr.message}.`)
         });
     }
 
@@ -145,7 +145,7 @@ class StreamsService extends EventEmitter {
             }
         });
         this.emit(this.Events.onStreamOpened, streamId);
-        this._logger.env(`Stream "${streamId}" is bound with cwd "${cwd}".`);
+        this._logger.debug(`Stream "${streamId}" is bound with cwd "${cwd}".`);
     }
 }
 

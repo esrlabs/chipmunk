@@ -9,7 +9,7 @@ class Plugin {
     private _logger: Logger = new Logger('SerialPorts');
 
     constructor() {
-        this._logger.env(`Plugin is executed`);
+        this._logger.debug(`Plugin is executed`);
         process.once('beforeExit', this._beforeProcessExit.bind(this));
     }
 

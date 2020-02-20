@@ -101,7 +101,7 @@ export class ChartingEngine {
                 });
             });
         }).cancel(() => {
-            this._logger.env(`Inspecting was canceled.`);
+            this._logger.verbose(`Inspecting was canceled.`);
         }).finally(() => {
             // Remove unfinishing task (because in case of cancel we also will be here)
             stock.forEach((notFinishedTask: CancelablePromise<IMatch[], void>) => {

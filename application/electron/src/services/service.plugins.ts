@@ -134,7 +134,7 @@ export class ServicePlugins implements IService {
                 // Remove plugins, which should be updated
                 Promise.all(hasToBeUpdated.map((plugin: IPluginBasic) => {
                     return FS.rmdir(plugin.path).then(() => {
-                        ServiceElectronService.logStateToRender(this._logger.env(`Plugin "${plugin.name}" was removed because new version is in package.`));
+                        ServiceElectronService.logStateToRender(this._logger.debug(`Plugin "${plugin.name}" was removed because new version is in package.`));
                     });
                 })).then(() => {
                     if (this._controllerDefaults === undefined) {
@@ -148,7 +148,7 @@ export class ServicePlugins implements IService {
                         this._controllerInstalled.getAll().then((plugins: IPluginBasic[]) => {
                             if (plugins.length === 0) {
                                 // No plugins to be initialized
-                                ServiceElectronService.logStateToRender(this._logger.env(`No plugins installed`));
+                                ServiceElectronService.logStateToRender(this._logger.debug(`No plugins installed`));
                                 return resolve();
                             }
                             // Store plugins data
@@ -157,7 +157,7 @@ export class ServicePlugins implements IService {
                             });
                             // Initialize plugins
                             this._initializeAllPlugins().then(() => {
-                                ServiceElectronService.logStateToRender(this._logger.env(`All plugins are ready`));
+                                ServiceElectronService.logStateToRender(this._logger.debug(`All plugins are ready`));
                                 this._sendRenderPluginsData();
                                 // Attach single plugins
                                 this._initSingleSessionPlugins().then(() => {
@@ -279,7 +279,7 @@ export class ServicePlugins implements IService {
             return new Promise((resolve, reject) => {
                 const plugins: IPlugin[] = [];
                 const singles: IPlugin[] = [];
-                this._logger.env(`New stream is created ${streamId}. Sending information to plugins.`);
+                this._logger.debug(`New stream is created ${streamId}. Sending information to plugins.`);
                 // Get all related transports (plugins)
                 transports.forEach((pluginName: string) => {
                     const plugin: IPlugin | undefined = this._plugins.get(pluginName);
@@ -315,7 +315,7 @@ export class ServicePlugins implements IService {
                                     this._plugins.set(plugin.name, plugin);
                                     // Send notification
                                     ServiceElectronService.logStateToRender(`[${plugin.name}]: attached to session "${streamId}".`);
-                                    this._logger.env(`[${plugin.name}]: attached to session "${streamId}"`);
+                                    this._logger.debug(`[${plugin.name}]: attached to session "${streamId}"`);
                                     resolveTask();
                                 }).catch((bindError: Error) => {
                                     ServiceElectronService.logStateToRender(`[${plugin.name}]: fail to bind due error: ${bindError.message}`);
@@ -344,7 +344,7 @@ export class ServicePlugins implements IService {
                             controller.bindStream(streamId, connection).then(() => {
                                 // Send notification
                                 ServiceElectronService.logStateToRender(`[${plugin.name}]: attached to session "${streamId}".`);
-                                this._logger.env(`[${plugin.name}]: attached to session "${streamId}"`);
+                                this._logger.debug(`[${plugin.name}]: attached to session "${streamId}"`);
                                 resolveTask();
                             }).catch((bindError: Error) => {
                                 ServiceElectronService.logStateToRender(`[${plugin.name}]: fail to bind due error: ${bindError.message}`);
@@ -359,7 +359,7 @@ export class ServicePlugins implements IService {
                 }
                 // Do all
                 Promise.all(tasks).then(() => {
-                    this._logger.env(`All plugins for session "${streamId}" is attached and bound.`);
+                    this._logger.debug(`All plugins for session "${streamId}" is attached and bound.`);
                     resolve();
                 }).catch((error: Error) => {
                     reject(error);
@@ -455,7 +455,7 @@ export class ServicePlugins implements IService {
             }
             Promise.all(tasks).then(() => {
                 ServiceElectronService.logStateToRender(`[${plugin.name}]: initialization of plugin is done.`);
-                this._logger.env(`[${plugin.name}]: initialization of plugin is done.`);
+                this._logger.debug(`[${plugin.name}]: initialization of plugin is done.`);
                 resolve();
             }).catch((error: Error) => {
                 ServiceElectronService.logStateToRender(`[${plugin.name}]: fail to initialize due error: ${error.message}.`);
@@ -484,11 +484,11 @@ export class ServicePlugins implements IService {
             const nodeModulesPath: string = Path.resolve((plugin.packages.process as ControllerPluginPackage).getPath(), './node_modules');
             if (FS.isExist(nodeModulesPath) && !reinstall) {
                 ServiceElectronService.logStateToRender(`[${plugin.name}]: plugin is already installed.`);
-                this._logger.env(`[${plugin.name}]: plugin is already installed.`);
+                this._logger.debug(`[${plugin.name}]: plugin is already installed.`);
                 return resolve(false);
             } else if (FS.isExist(nodeModulesPath) && reinstall) {
                 ServiceElectronService.logStateToRender(`[${plugin.name}]: force reinstalation of plugin; node_modules will be removed.`);
-                this._logger.env(`[${plugin.name}]: force reinstalation of plugin; node_modules will be removed.`);
+                this._logger.debug(`[${plugin.name}]: force reinstalation of plugin; node_modules will be removed.`);
                 FS.rmdir(nodeModulesPath).then(() => {
                     resolve(true);
                 }).catch((error: Error) => {
@@ -496,7 +496,7 @@ export class ServicePlugins implements IService {
                 });
             } else {
                 ServiceElectronService.logStateToRender(`[${plugin.name}]: plugin has to be installed.`);
-                this._logger.env(`[${plugin.name}]: plugin has to be installed.`);
+                this._logger.debug(`[${plugin.name}]: plugin has to be installed.`);
                 resolve(true);
             }
         });
@@ -510,7 +510,7 @@ export class ServicePlugins implements IService {
      */
     private _initializeProcessOfPlugin(plugin: IPlugin, reinstall: boolean = false): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._logger.env(`[${plugin.name}]: checking plugin.`);
+            this._logger.debug(`[${plugin.name}]: checking plugin.`);
             this._preinstalationProcessOfPlugin(plugin, reinstall).then((install: boolean) => {
 
                 const initialize = () => {
@@ -521,11 +521,11 @@ export class ServicePlugins implements IService {
 
                 if (install) {
                     ServiceElectronService.logStateToRender(`[${plugin.name}]: installing`);
-                    this._logger.env(`[${plugin.name}]: installing`);
+                    this._logger.debug(`[${plugin.name}]: installing`);
                     npm.install((plugin.packages.process as ControllerPluginPackage).getPath()).then(() => {
                         ServiceElectronService.logStateToRender(`[${plugin.name}]: installation is complited.`);
                         ServiceElectronService.logStateToRender(`[${plugin.name}]: rebuild.`);
-                        this._logger.env(`[${plugin.name}]: installation is complited.`);
+                        this._logger.debug(`[${plugin.name}]: installation is complited.`);
                         initialize();
                     }).catch((installationError: Error) => {
                         ServiceElectronService.logStateToRender(`[${plugin.name}]: Fail install due error: ${installationError.message}`);
@@ -668,7 +668,7 @@ export class ServicePlugins implements IService {
             if (this._plugins.size === 0) {
                return;
             }
-            this._logger.env(`Information about plugin "${names}" was sent to render`);
+            this._logger.debug(`Information about plugin "${names}" was sent to render`);
         }).catch((sendingError: Error) => {
             ServiceElectronService.logStateToRender(`Fail to send information to render about plugin "${names}" due error: ${sendingError.message}`);
             this._logger.error(`Fail to send information to render about plugin "${names}" due error: ${sendingError.message}`);
@@ -696,7 +696,7 @@ export class ServicePlugins implements IService {
                     controller.attach().then(() => {
                         plugin.single = controller;
                         this._plugins.set(plugin.name, plugin);
-                        this._logger.env(`Plugin "${plugin.name}" is attached as single plugin.`);
+                        this._logger.debug(`Plugin "${plugin.name}" is attached as single plugin.`);
                         resolvePlugin();
                     }).catch((attachError: Error) => {
                         this._logger.warn(`Fail to attach plugin "${plugin.name}" due error: ${attachError.message}`);

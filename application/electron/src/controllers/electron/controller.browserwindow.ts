@@ -33,9 +33,9 @@ export default class ControllerBrowserWindow extends EventEmitter {
         this._onClosed = this._onClosed.bind(this);
         this._onUpdate = this._onUpdate.bind(this);
         this._create().then(() => {
-            this._logger.env(`BrowserWindow guid "${this._guid}" is created.`);
+            this._logger.debug(`BrowserWindow guid "${this._guid}" is created.`);
         }).catch((error: Error) => {
-            this._logger.env(`Fail to create BrowserWindow guid "${this._guid}" due error: ${error.message}.`);
+            this._logger.debug(`Fail to create BrowserWindow guid "${this._guid}" due error: ${error.message}.`);
         });
     }
 
