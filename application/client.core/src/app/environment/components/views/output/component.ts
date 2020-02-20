@@ -16,6 +16,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import { cleanupOutput } from '../row/helpers';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import SelectionParsersService, { ISelectionParser } from '../../../services/standalone/service.selection.parsers';
+import OutputExportsService, { IExportAction } from '../../../services/standalone/service.output.exports';
 
 const CSettings: {
     preloadCount: number,
@@ -177,10 +178,29 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                 ]);
             }
         }
-        ContextMenuService.show({
-            items: items,
-            x: event.pageX,
-            y: event.pageY,
+        OutputExportsService.getActions(this.session.getGuid()).then((actions: IExportAction[]) => {
+            if (actions.length > 0) {
+                items.push(...[
+                    { /* delimiter */ },
+                    ...actions.map((action: IExportAction) => {
+                        return {
+                            caption: action.caption,
+                            handler: action.caller
+                        };
+                    })
+                ]);
+            }
+            ContextMenuService.show({
+                items: items,
+                x: event.pageX,
+                y: event.pageY,
+            });
+        }).catch((err: Error) => {
+            ContextMenuService.show({
+                items: items,
+                x: event.pageX,
+                y: event.pageY,
+            });
         });
     }
 

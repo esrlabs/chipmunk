@@ -1,8 +1,12 @@
 // Libs
+import { app as electronApp, dialog, MessageBoxReturnValue } from 'electron';
+import { CommonInterfaces } from './interfaces/interface.common';
+
+import * as FS from './tools/fs';
+
 import Logger from './tools/env.logger';
 import LogsService from './tools/env.logger.service';
-import { app as electronApp, dialog, MessageBoxReturnValue } from 'electron';
-import * as FS from './tools/fs';
+
 // Services
 import ServiceElectron from './services/service.electron';
 import ServiceNotifications from './services/service.notifications';
@@ -31,7 +35,7 @@ import ServiceUpdate from './services/service.update';
 import ServiceDLTFiles from './services/parsers/service.dlt.files';
 import ServicePatchesBefore from './services/service.patches.before';
 import ServiceDLTDeamonConnector from './services/connectors/service.dlt.deamon';
-import { CommonInterfaces } from './interfaces/interface.common';
+import ServiceOutputExport from './services/output/service.output.export';
 
 const InitializeStages = [
     // Apply patches ("before")
@@ -59,6 +63,7 @@ const InitializeStages = [
         ServiceFileOpener, ServiceAppState,
         ServiceDLTFiles, ServiceHotkeys,
         ServiceFilePicker, ServiceDLTDeamonConnector,
+        ServiceOutputExport,
     ],
     // Stage #10. Init plugins
     [   ServicePlugins ],

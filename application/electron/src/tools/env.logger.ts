@@ -141,6 +141,7 @@ export default class Logger {
     }
 
     private _log(message: string, level: ELogLevels) {
+        const original = message;
         LogsService.introduce();
         if (level === ELogLevels.WTF) {
             message = LogsService.getTimestamp() + 'WTF >>> ' + message;
@@ -150,7 +151,7 @@ export default class Logger {
         this._console(message, level);
         this._output(message);
         LogsService.write(message, level);
-        return message;
+        return original;
     }
 
 }
