@@ -1,15 +1,27 @@
 // tslint:disable:max-classes-per-file
 import ServiceStreams from "../../../services/service.streams";
-import {
-    IDatetimeDiscoverResult,
-    IDatetimeDiscoverFileResult,
-} from "../../external/controller.lvin";
 import indexer, { CancelablePromise, Processor, Progress, Units } from "indexer-neon";
 import Logger from "../../../tools/env.logger";
 import ServiceNotifications from "../../../services/service.notifications";
 import { Subscription } from "../../../tools/index";
 
-export { IDatetimeDiscoverResult };
+export interface IDatetimeDiscoverFileResult {
+    format: string;
+    path: string;
+    error?: string;
+}
+
+export interface IDatetimeDiscoverResult {
+    files: IDatetimeDiscoverFileResult[];
+    logs?: ILogMessage[];
+}
+
+export interface ILogMessage {
+    severity: string;
+    text: string;
+    line_nr: number | null;
+    file_name?: string;
+}
 
 export default class MergeDiscover {
     private _subscriptions: { [key: string]: Subscription } = {};
