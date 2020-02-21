@@ -17,6 +17,7 @@ import { cleanupOutput } from '../row/helpers';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import SelectionParsersService, { ISelectionParser } from '../../../services/standalone/service.selection.parsers';
 import OutputExportsService, { IExportAction } from '../../../services/standalone/service.output.exports';
+import { FilterRequest } from '../../../controller/controller.session.tab.search.filters.storage';
 
 const CSettings: {
     preloadCount: number,
@@ -178,6 +179,20 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                 ]);
             }
         }
+        items.push(...[
+            { /* delimiter */ },
+            {
+                caption: 'Search with selection',
+                handler: () => {
+                    const filter: FilterRequest | undefined = this._getFilterFromStr(selection.selection);
+                    if (filter === undefined) {
+                        return;
+                    }
+                    this.session.getSessionSearch().search(filter);
+                },
+                disabled: selection === undefined || this._getFilterFromStr(selection.selection) === undefined
+            }
+        ]);
         OutputExportsService.getActions(this.session.getGuid()).then((actions: IExportAction[]) => {
             if (actions.length > 0) {
                 items.push(...[
@@ -242,6 +257,17 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
 
     private _api_cleanUpClipboard(str: string): string {
         return cleanupOutput(str);
+    }
+
+    private _getFilterFromStr(str: string): FilterRequest | undefined {
+        try {
+            return new FilterRequest({
+                request: str,
+                flags: { casesensitive: true, wholeword: true, regexp: false },
+            });
+        } catch (e) {
+            return undefined;
+        }
     }
 
     private _onReset() {
