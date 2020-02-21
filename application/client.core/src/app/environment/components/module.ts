@@ -1,9 +1,10 @@
 import { NgModule                               } from '@angular/core';
 import { CommonModule                           } from '@angular/common';
 
-import { ComplexModule                          } from 'chipmunk-client-complex';
-import { PrimitiveModule                        } from 'chipmunk-client-primitive';
-import { ContainersModule                       } from 'chipmunk-client-containers';
+import {
+    ComplexModule,
+    PrimitiveModule,
+    ContainersModule                            } from 'chipmunk-client-material';
 
 import { EnvironmentComplexModule               } from './complex/module';
 import { EnvironmentViewsModule                 } from './views/module';

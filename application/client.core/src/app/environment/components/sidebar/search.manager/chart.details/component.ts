@@ -1,7 +1,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, EventEmitter, NgZone, ViewChild, ViewEncapsulation, SimpleChanges, OnChanges } from '@angular/core';
 import { ChartRequest } from '../../../../controller/controller.session.tab.search.charts.request';
 import ChartControllers, { AChart, IOption, EOptionType, EChartType } from '../../../views/chart/charts/charts';
-import { IComponentDesc } from 'chipmunk-client-containers';
+import { IComponentDesc } from 'chipmunk-client-material';
 import { MatSlider, MatSliderChange } from '@angular/material';
 import { Subject, Observable, Subscription } from 'rxjs';
 import { CColors } from '../../../../conts/colors';

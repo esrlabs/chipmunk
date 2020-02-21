@@ -7,7 +7,7 @@ import ServiceElectronIpc, {
     Subscription as IPCSubscription,
 } from '../services/service.electron.ipc';
 
-import { ITabAPI } from 'chipmunk-client-complex';
+import { ITabAPI } from 'chipmunk-client-material';
 import { Subscription, Observable, Subject } from 'rxjs';
 import { ControllerSessionTabStream, IStreamState } from './controller.session.tab.stream';
 import { ControllerSessionTabSearch } from './controller.session.tab.search';

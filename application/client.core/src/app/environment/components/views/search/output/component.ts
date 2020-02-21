@@ -2,8 +2,8 @@ import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewIni
 import { Subscription, Subject, Observable } from 'rxjs';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { ControllerSessionTabSearchOutput, ISearchStreamPacket, IStreamState, ILoadedRange } from '../../../../controller/controller.session.tab.search.output';
-import { IDataAPI, IRange, IRowsPacket, IStorageInformation, ComplexScrollBoxComponent, IScrollBoxSelection } from 'chipmunk-client-complex';
-import { IComponentDesc } from 'chipmunk-client-containers';
+import { IDataAPI, IRange, IRowsPacket, IStorageInformation, ComplexScrollBoxComponent, IScrollBoxSelection } from 'chipmunk-client-material';
+import { IComponentDesc } from 'chipmunk-client-material';
 import { ViewOutputRowComponent } from '../../row/component';
 import { ViewSearchControlsComponent, IButton } from './controls/component';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';

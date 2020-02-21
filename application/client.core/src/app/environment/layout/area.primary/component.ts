@@ -1,5 +1,5 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { TabsService  } from 'chipmunk-client-complex';
+import { TabsService  } from 'chipmunk-client-material';
 import { AreaState } from '../state';
 import { Subscription } from 'rxjs';
 import { LayoutPrimiryAreaControlsComponent } from './controls/component';

@@ -1,4 +1,4 @@
-import { TabsService, IComponentDesc } from 'chipmunk-client-complex';
+import { TabsService, IComponentDesc } from 'chipmunk-client-material';
 import { Subscription } from 'rxjs';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import { IService } from '../interfaces/interface.service';

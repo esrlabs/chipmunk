@@ -1,4 +1,4 @@
-import { TabsService, DockingComponent, DockDef, DocksService, ITab, ITabAPI } from 'chipmunk-client-complex';
+import { TabsService, DockingComponent, DockDef, DocksService, ITab, ITabAPI } from 'chipmunk-client-material';
 import { Subscription } from './service.electron.ipc';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
 import { IService } from '../interfaces/interface.service';

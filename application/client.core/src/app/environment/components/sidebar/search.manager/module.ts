@@ -1,7 +1,6 @@
 import { NgModule                               } from '@angular/core';
 import { CommonModule                           } from '@angular/common';
-import { PrimitiveModule                        } from 'chipmunk-client-primitive';
-import { ContainersModule                       } from 'chipmunk-client-containers';
+import { PrimitiveModule, ContainersModule      } from 'chipmunk-client-material';
 import { AppDirectiviesModule                   } from '../../../directives/module';
 import { DragDropModule                         } from '@angular/cdk/drag-drop';
 import { EnvironmentCommonModule                } from '../../common/module';

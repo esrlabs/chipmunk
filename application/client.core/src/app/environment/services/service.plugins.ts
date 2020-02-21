@@ -8,9 +8,7 @@ import * as AngularPlatformBrowser from '@angular/platform-browser';
 import * as AngularMaterial from '@angular/material';
 import * as AngularCDK from '@angular/cdk';
 import * as RXJS from 'rxjs';
-import * as LogviewerClientComplex from 'chipmunk-client-complex';
-import * as LogviewerClientContainers from 'chipmunk-client-containers';
-import * as LogviewerClientPrimitive from 'chipmunk-client-primitive';
+import * as LogviewerClientMaterial from 'chipmunk-client-material';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import * as XTerm from 'xterm';
 import * as XTermAddonFit from 'xterm-addon-fit';
@@ -359,9 +357,7 @@ export class PluginsService extends Toolkit.Emitter implements IService {
             '@angular/material': AngularMaterial,
             '@angular/cdk': AngularCDK,
             'rxjs': RXJS,
-            'chipmunk-client-complex': LogviewerClientComplex,
-            'chipmunk-client-containers': LogviewerClientContainers,
-            'chipmunk-client-primitive': LogviewerClientPrimitive,
+            'chipmunk-client-material': LogviewerClientMaterial,
             'chipmunk.client.toolkit': Toolkit,
             'xterm': XTerm,
             'xterm-addon-fit': XTermAddonFit,

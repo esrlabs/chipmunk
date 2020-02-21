@@ -6,9 +6,10 @@ import { ViewSearchComponent                    } from './component';
 import { ViewSearchOutputComponent              } from './output/component';
 import { ViewSearchControlsComponent            } from './output/controls/component';
 
-import { PrimitiveModule                        } from 'chipmunk-client-primitive';
-import { ContainersModule                       } from 'chipmunk-client-containers';
-import { ComplexModule                          } from 'chipmunk-client-complex';
+import {
+    ComplexModule,
+    PrimitiveModule,
+    ContainersModule                            } from 'chipmunk-client-material';
 import { AppDirectiviesModule                   } from '../../../directives/module';
 
 import {

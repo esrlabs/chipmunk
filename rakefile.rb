@@ -33,11 +33,6 @@ DESTS_CLIENT_NPM_LIBS = [
   "#{CLIENT_CORE_DIR}/node_modules",
   "#{CLIENT_PLUGIN_DIR}/node_modules"
 ].freeze
-CLIENT_NPM_LIBS_NAMES = %w[
-  chipmunk-client-containers
-  chipmunk-client-primitive
-  chipmunk-client-complex
-].freeze
 COMPLEX_PLUGINS = %w[
   serial
   processes
@@ -381,33 +376,6 @@ namespace :client do
   end
   task build_core: core_toolkit_installation
 
-  task build_and_deliver_libs: [:build_libs, core_node_installation, client_plugins_node_installation] do
-    puts 'Delivery client libs'
-    DESTS_CLIENT_NPM_LIBS.each do |dest|
-      CLIENT_NPM_LIBS_NAMES.each do |lib|
-        src = "#{SRC_CLIENT_NPM_LIBS}/dist/#{lib}"
-        dest_path = "#{dest}/#{lib}"
-        puts src
-        puts dest_path
-        rm_r(dest_path, force: true)
-        cp_r(src, dest_path, verbose: false)
-      end
-    end
-  end
-
-  desc 'build client libs'
-  task :build_libs
-
-  CLIENT_NPM_LIBS_NAMES.each do |lib|
-    target_file = "#{SRC_CLIENT_NPM_LIBS}/dist/#{lib}/public_api.d.ts"
-    file target_file => FileList["#{SRC_CLIENT_NPM_LIBS}/projects/#{lib}/**/*.*"] do
-      cd SRC_CLIENT_NPM_LIBS do
-        puts 'Installing: components'
-        sh "#{NPM_RUN} build:#{lib}"
-      end
-    end
-    task build_libs: target_file
-  end
 end
 # namespace client
 
@@ -442,7 +410,6 @@ task reinstall: [:folders,
                  'client:rebuild_core',
                  'client:install_components',
                  :compile_electron,
-                 'client:build_and_deliver_libs',
                  'client:create_resources',
                  :add_package_json]
 desc 'install'
@@ -450,7 +417,6 @@ task install: [:folders,
                'client:build_core',
                'client:install_components',
                :compile_electron,
-               'client:build_and_deliver_libs',
                'client:create_resources',
                :add_package_json]
 
@@ -477,7 +443,7 @@ namespace :dev do
   task update_client: ['client:create_resources']
 
   desc 'Developer task: update client and libs'
-  task fullupdate_client: ['client:build_and_deliver_libs', :update_client]
+  task fullupdate_client: ['update_client']
 
   # Application should be built already to use this task
   desc 'Developer task: build launcher and delivery into package.'

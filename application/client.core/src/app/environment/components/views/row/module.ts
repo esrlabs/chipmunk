@@ -9,10 +9,10 @@ import { ViewOutputRowColumnsComponent              } from './columns/component'
 import { ViewOutputRowColumnsHeadersComponent       } from './columns/headers/component';
 import { ViewOutputRowColumnsHeadersMenuComponent   } from './columns/headers/menu/component';
 
-
-import { PrimitiveModule                            } from 'chipmunk-client-primitive';
-import { ContainersModule                           } from 'chipmunk-client-containers';
-import { ComplexModule                              } from 'chipmunk-client-complex';
+import {
+    ComplexModule,
+    PrimitiveModule,
+    ContainersModule                                } from 'chipmunk-client-material';
 
 const rows = [ ViewOutputRowStandardComponent, ViewOutputRowExternalComponent, ViewOutputRowColumnsComponent, ViewOutputRowColumnsHeadersComponent, ViewOutputRowColumnsHeadersMenuComponent ];
 const entryComponents = [ ViewOutputRowComponent, ...rows ];

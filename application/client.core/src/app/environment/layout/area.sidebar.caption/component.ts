@@ -1,6 +1,6 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { IComponentDesc } from 'chipmunk-client-containers';
+import { IComponentDesc } from 'chipmunk-client-material';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import SidebarSessionsService from '../../services/service.sessions.sidebar';
 

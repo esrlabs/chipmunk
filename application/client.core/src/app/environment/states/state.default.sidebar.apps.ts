@@ -2,7 +2,7 @@ import { SidebarAppSearchManagerComponent } from '../components/sidebar/search.m
 import { SidebarAppMergeFilesComponent } from '../components/sidebar/merge/component';
 import { SidebarAppConcatFilesComponent } from '../components/sidebar/concat/component';
 import { SidebarAppDLTConnectorComponent } from '../components/sidebar/dlt.connector/component';
-import { ITab } from 'chipmunk-client-complex';
+import { ITab } from 'chipmunk-client-material';
 
 export { ITab };
 

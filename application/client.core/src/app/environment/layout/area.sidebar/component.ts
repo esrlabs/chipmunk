@@ -1,5 +1,5 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { TabsService, TabsOptions, ETabsListDirection } from 'chipmunk-client-complex';
+import { TabsService, TabsOptions, ETabsListDirection } from 'chipmunk-client-material';
 import { ControllerSessionTab } from '../../controller/controller.session.tab';
 import { AreaState } from '../state';
 import { Subscription, Subject, Observable } from 'rxjs';

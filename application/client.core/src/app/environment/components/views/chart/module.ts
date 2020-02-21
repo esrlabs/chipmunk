@@ -5,8 +5,7 @@ import { ViewChartComponent                         } from './component';
 import { ViewChartCanvasComponent                   } from './chart/component';
 import { ViewChartZoomerCanvasComponent             } from './zoomer/component';
 import { ViewChartZoomerCursorCanvasComponent       } from './zoomer/cursor/component';
-import { PrimitiveModule                            } from 'chipmunk-client-primitive';
-import { ContainersModule                           } from 'chipmunk-client-containers';
+import { PrimitiveModule, ContainersModule          } from 'chipmunk-client-material';
 
 const entryComponents = [ ViewChartComponent, ViewChartCanvasComponent, ViewChartZoomerCanvasComponent, ViewChartZoomerCursorCanvasComponent ];
 const components = [ ...entryComponents ];

@@ -6,7 +6,7 @@ import * as ThemeParams from '../theme/sizes';
 import LayoutStateService from '../services/standalone/service.layout.state';
 import HotkeysService from '../services/service.hotkeys';
 import SidebarSessionsService from '../services/service.sessions.sidebar';
-import { IComponentDesc } from 'chipmunk-client-containers';
+import { IComponentDesc } from 'chipmunk-client-material';
 
 enum EResizeType {
     nothing = 'nothing',

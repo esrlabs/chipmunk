@@ -4,8 +4,7 @@ import { CommonModule                           } from '@angular/common';
 
 import { SidebarAppDLTConnectorComponent        } from './component';
 
-import { PrimitiveModule                        } from 'chipmunk-client-primitive';
-import { ContainersModule                       } from 'chipmunk-client-containers';
+import { PrimitiveModule, ContainersModule      } from 'chipmunk-client-material';
 import { AppDirectiviesModule                   } from '../../../directives/module';
 
 import {

@@ -3,7 +3,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, Input, ViewChild, AfterContentInit, AfterViewInit } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import * as Toolkit from 'chipmunk.client.toolkit';
-import { InputStandardComponent } from 'chipmunk-client-primitive';
+import { InputStandardComponent } from 'chipmunk-client-material';
 import { IFile as ITestResult } from '../../../../../../../../common/ipc/electron.ipc.messages/merge.files.test.response';
 import { Subscription, Observable, Subject } from 'rxjs';
 

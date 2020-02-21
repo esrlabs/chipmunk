@@ -1,6 +1,6 @@
 import { OnDestroy, ChangeDetectorRef, AfterViewInit, AfterContentInit } from '@angular/core';
 import { IOptions } from '../../../common/interface.options';
-import { CheckSimpleComponent, InputStandardComponent, DDListStandardComponent } from 'chipmunk-client-primitive';
+import { CheckSimpleComponent, InputStandardComponent, DDListStandardComponent } from 'chipmunk-client-material';
 export declare class SidebarVerticalPortOptionsWriteComponent implements AfterViewInit, AfterContentInit, OnDestroy {
     private _cdRef;
     _baudRateInputCom: InputStandardComponent;

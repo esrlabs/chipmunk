@@ -1,7 +1,7 @@
 import { OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
 import { IPortInfo, IPortState } from '../../common/interface.portinfo';
 import { IOptions } from '../../common/interface.options';
-import { InputStandardComponent, DDListStandardComponent } from 'chipmunk-client-primitive';
+import { InputStandardComponent, DDListStandardComponent } from 'chipmunk-client-material';
 interface IConnected {
     port: IPortInfo;
     options: IOptions;

@@ -1,7 +1,7 @@
 import { Subscription, Observable, Subject } from 'rxjs';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { TasksHistoryComponent } from './history/component';
-import { IComponentDesc, IFrameOptions } from 'chipmunk-client-containers';
+import { IComponentDesc, IFrameOptions } from 'chipmunk-client-material';
 import { Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
