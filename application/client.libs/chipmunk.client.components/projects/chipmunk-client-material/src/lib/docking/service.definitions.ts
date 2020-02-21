@@ -1,5 +1,5 @@
 import * as Tools from '../../tools/index';
-import { IComponentDesc } from 'chipmunk-client-containers';
+import { IComponentDesc } from '../dynamic/component';
 
 export interface IDockTitleContent {
     id: string | number;

@@ -1,4 +1,4 @@
-import { ContainersModule                   } from 'chipmunk-client-containers';
+import { ContainersModule                   } from '../containers.module';
 import { NgModule                           } from '@angular/core';
 import { CommonModule                       } from '@angular/common';
 

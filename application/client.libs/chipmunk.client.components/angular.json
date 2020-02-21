@@ -3,234 +3,33 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "chipmunk-client-components": {
-      "root": "",
-      "sourceRoot": "src",
-      "projectType": "application",
-      "prefix": "app",
-      "schematics": {
-        "@schematics/angular:component": {
-          "styleext": "less"
-        }
-      },
-      "architect": {
-        "build": {
-          "builder": "@angular-devkit/build-angular:browser",
-          "options": {
-            "outputPath": "dist/chipmunk-client-components",
-            "index": "src/index.html",
-            "main": "src/main.ts",
-            "polyfills": "src/polyfills.ts",
-            "tsConfig": "src/tsconfig.app.json",
-            "assets": [
-              "src/favicon.ico",
-              "src/assets"
-            ],
-            "styles": [
-              "src/styles.less"
-            ],
-            "scripts": []
-          },
-          "configurations": {
-            "production": {
-              "fileReplacements": [
-                {
-                  "replace": "src/environments/environment.ts",
-                  "with": "src/environments/environment.prod.ts"
-                }
-              ],
-              "optimization": true,
-              "outputHashing": "all",
-              "sourceMap": false,
-              "extractCss": true,
-              "namedChunks": false,
-              "aot": true,
-              "extractLicenses": true,
-              "vendorChunk": false,
-              "buildOptimizer": true,
-              "budgets": [
-                {
-                  "type": "initial",
-                  "maximumWarning": "2mb",
-                  "maximumError": "5mb"
-                }
-              ]
-            }
-          }
-        },
-        "serve": {
-          "builder": "@angular-devkit/build-angular:dev-server",
-          "options": {
-            "browserTarget": "chipmunk-client-components:build"
-          },
-          "configurations": {
-            "production": {
-              "browserTarget": "chipmunk-client-components:build:production"
-            }
-          }
-        },
-        "extract-i18n": {
-          "builder": "@angular-devkit/build-angular:extract-i18n",
-          "options": {
-            "browserTarget": "chipmunk-client-components:build"
-          }
-        },
-        "test": {
-          "builder": "@angular-devkit/build-angular:karma",
-          "options": {
-            "main": "src/test.ts",
-            "polyfills": "src/polyfills.ts",
-            "tsConfig": "src/tsconfig.spec.json",
-            "karmaConfig": "src/karma.conf.js",
-            "styles": [
-              "src/styles.less"
-            ],
-            "scripts": [],
-            "assets": [
-              "src/favicon.ico",
-              "src/assets"
-            ]
-          }
-        },
-        "lint": {
-          "builder": "@angular-devkit/build-angular:tslint",
-          "options": {
-            "tsConfig": [
-              "src/tsconfig.app.json",
-              "src/tsconfig.spec.json"
-            ],
-            "exclude": [
-              "**/node_modules/**"
-            ]
-          }
-        }
-      }
-    },
-    "chipmunk-client-components-e2e": {
-      "root": "e2e/",
-      "projectType": "application",
-      "prefix": "",
-      "architect": {
-        "e2e": {
-          "builder": "@angular-devkit/build-angular:protractor",
-          "options": {
-            "protractorConfig": "e2e/protractor.conf.js",
-            "devServerTarget": "chipmunk-client-components:serve"
-          },
-          "configurations": {
-            "production": {
-              "devServerTarget": "chipmunk-client-components:serve:production"
-            }
-          }
-        },
-        "lint": {
-          "builder": "@angular-devkit/build-angular:tslint",
-          "options": {
-            "tsConfig": "e2e/tsconfig.e2e.json",
-            "exclude": [
-              "**/node_modules/**"
-            ]
-          }
-        }
-      }
-    },
-    "chipmunk-client-primitive": {
-      "root": "projects/chipmunk-client-primitive",
-      "sourceRoot": "projects/chipmunk-client-primitive/src",
+    "chipmunk-client-material": {
       "projectType": "library",
+      "root": "projects/chipmunk-client-material",
+      "sourceRoot": "projects/chipmunk-client-material/src",
       "prefix": "lib",
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-ng-packagr:build",
           "options": {
-            "tsConfig": "projects/chipmunk-client-primitive/tsconfig.lib.json",
-            "project": "projects/chipmunk-client-primitive/ng-package.json"
+            "tsConfig": "projects/chipmunk-client-material/tsconfig.lib.json",
+            "project": "projects/chipmunk-client-material/ng-package.json"
           }
         },
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "main": "projects/chipmunk-client-primitive/src/test.ts",
-            "tsConfig": "projects/chipmunk-client-primitive/tsconfig.spec.json",
-            "karmaConfig": "projects/chipmunk-client-primitive/karma.conf.js"
+            "main": "projects/chipmunk-client-material/src/test.ts",
+            "tsConfig": "projects/chipmunk-client-material/tsconfig.spec.json",
+            "karmaConfig": "projects/chipmunk-client-material/karma.conf.js"
           }
         },
         "lint": {
           "builder": "@angular-devkit/build-angular:tslint",
           "options": {
             "tsConfig": [
-              "projects/chipmunk-client-primitive/tsconfig.lib.json",
-              "projects/chipmunk-client-primitive/tsconfig.spec.json"
-            ],
-            "exclude": [
-              "**/node_modules/**"
-            ]
-          }
-        }
-      }
-    },
-    "chipmunk-client-complex": {
-      "root": "projects/chipmunk-client-complex",
-      "sourceRoot": "projects/chipmunk-client-complex/src",
-      "projectType": "library",
-      "prefix": "lib",
-      "architect": {
-        "build": {
-          "builder": "@angular-devkit/build-ng-packagr:build",
-          "options": {
-            "tsConfig": "projects/chipmunk-client-complex/tsconfig.lib.json",
-            "project": "projects/chipmunk-client-complex/ng-package.json"
-          }
-        },
-        "test": {
-          "builder": "@angular-devkit/build-angular:karma",
-          "options": {
-            "main": "projects/chipmunk-client-complex/src/test.ts",
-            "tsConfig": "projects/chipmunk-client-complex/tsconfig.spec.json",
-            "karmaConfig": "projects/chipmunk-client-complex/karma.conf.js"
-          }
-        },
-        "lint": {
-          "builder": "@angular-devkit/build-angular:tslint",
-          "options": {
-            "tsConfig": [
-              "projects/chipmunk-client-complex/tsconfig.lib.json",
-              "projects/chipmunk-client-complex/tsconfig.spec.json"
-            ],
-            "exclude": [
-              "**/node_modules/**"
-            ]
-          }
-        }
-      }
-    },
-    "chipmunk-client-containers": {
-      "root": "projects/chipmunk-client-containers",
-      "sourceRoot": "projects/chipmunk-client-containers/src",
-      "projectType": "library",
-      "prefix": "lib",
-      "architect": {
-        "build": {
-          "builder": "@angular-devkit/build-ng-packagr:build",
-          "options": {
-            "tsConfig": "projects/chipmunk-client-containers/tsconfig.lib.json",
-            "project": "projects/chipmunk-client-containers/ng-package.json"
-          }
-        },
-        "test": {
-          "builder": "@angular-devkit/build-angular:karma",
-          "options": {
-            "main": "projects/chipmunk-client-containers/src/test.ts",
-            "tsConfig": "projects/chipmunk-client-containers/tsconfig.spec.json",
-            "karmaConfig": "projects/chipmunk-client-containers/karma.conf.js"
-          }
-        },
-        "lint": {
-          "builder": "@angular-devkit/build-angular:tslint",
-          "options": {
-            "tsConfig": [
-              "projects/chipmunk-client-containers/tsconfig.lib.json",
-              "projects/chipmunk-client-containers/tsconfig.spec.json"
+              "projects/chipmunk-client-material/tsconfig.lib.json",
+              "projects/chipmunk-client-material/tsconfig.spec.json"
             ],
             "exclude": [
               "**/node_modules/**"
@@ -240,5 +39,5 @@
       }
     }
   },
-  "defaultProject": "chipmunk-client-components"
+  "defaultProject": "chipmunk-client-material"
 }

@@ -1,4 +1,4 @@
-import { IComponentDesc } from 'chipmunk-client-containers';
+import { IComponentDesc } from '../dynamic/component';
 
 export enum ETabsListDirection {
     top = 'top',

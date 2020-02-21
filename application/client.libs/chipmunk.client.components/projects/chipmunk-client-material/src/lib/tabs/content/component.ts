@@ -1,7 +1,7 @@
 import { Component, Input, OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
 import { ITab, TabsService } from '../service';
 import { Subscription } from 'rxjs';
-import { IComponentDesc } from 'chipmunk-client-containers';
+import { IComponentDesc } from '../../dynamic/component';
 
 @Component({
     selector: 'lib-complex-tab-content',
