@@ -11,6 +11,7 @@ import EventsHubService from '../../../../services/standalone/service.eventshub'
 import { cleanupOutput } from '../../row/helpers';
 import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import SelectionParsersService, { ISelectionParser } from '../../../../services/standalone/service.selection.parsers';
+import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.storage';
 
 const CSettings: {
     preloadCount: number,
@@ -117,6 +118,20 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
                 ]);
             }
         }
+        items.push(...[
+            { /* delimiter */ },
+            {
+                caption: 'Search with selection',
+                handler: () => {
+                    const filter: FilterRequest | undefined = this._getFilterFromStr(selection.selection);
+                    if (filter === undefined) {
+                        return;
+                    }
+                    this.session.getSessionSearch().search(filter);
+                },
+                disabled: selection === undefined || this._getFilterFromStr(selection.selection) === undefined
+            }
+        ]);
         ContextMenuService.show({
             items: items,
             x: event.pageX,
@@ -209,6 +224,17 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
 
     private _api_cleanUpClipboard(str: string): string {
         return cleanupOutput(str);
+    }
+
+    private _getFilterFromStr(str: string): FilterRequest | undefined {
+        try {
+            return new FilterRequest({
+                request: str,
+                flags: { casesensitive: true, wholeword: true, regexp: false },
+            });
+        } catch (e) {
+            return undefined;
+        }
     }
 
     private _onSessionChanged(session: ControllerSessionTab) {

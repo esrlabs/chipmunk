@@ -410,7 +410,21 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     private _onFocusSearchInput() {
-        this._focus();
+        const selection: string = document.getSelection().toString();
+        if (selection.trim() === '' || selection.search(/[\n\r]/gi) !== -1 || selection.length > 100) {
+            this._focus();
+        } else {
+            try {
+                const request: FilterRequest = new FilterRequest({
+                    request: selection,
+                    flags: { casesensitive: true, wholeword: true, regexp: false },
+                });
+                document.getSelection().removeAllRanges();
+                this._onForceSearch(request);
+            } catch (e) {
+                return undefined;
+            }
+        }
     }
 
     private _onToolbarToggle() {
