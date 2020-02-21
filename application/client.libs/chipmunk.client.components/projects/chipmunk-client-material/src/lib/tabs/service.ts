@@ -1,10 +1,8 @@
 import { Observable, Subject } from 'rxjs';
 import * as Tools from '../../tools/index';
 import { TabsOptions, ITabsOptions } from './options';
-import { IComponentDesc } from 'chipmunk-client-containers';
+import { IComponentDesc } from '../dynamic/component';
 import { ControllerSessionsHistroy } from './controller.histroy';
-
-export { IComponentDesc };
 
 export interface ITabSubjects {
     onTitleContextMenu: Subject<MouseEvent>;

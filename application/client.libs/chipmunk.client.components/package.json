@@ -4,13 +4,10 @@
   "scripts": {
     "ng": "./node_modules/.bin/ng",
     "start": "./node_modules/.bin/ng serve",
-    "build": "./node_modules/.bin/ng build",
+    "build": "./node_modules/.bin/ng build chipmunk-client-material",
     "test": "./node_modules/.bin/ng test",
     "lint": "./node_modules/.bin/ng lint",
-    "e2e": "./node_modules/.bin/ng e2e",
-    "build:chipmunk-client-containers": "./node_modules/.bin/ng build chipmunk-client-containers",
-    "build:chipmunk-client-primitive": "./node_modules/.bin/ng build chipmunk-client-primitive",
-    "build:chipmunk-client-complex": "./node_modules/.bin/ng build chipmunk-client-complex"
+    "e2e": "./node_modules/.bin/ng e2e"
   },
   "private": true,
   "dependencies": {
@@ -25,6 +22,7 @@
     "@angular/router": "^8.2.12",
     "core-js": "^3.3.5",
     "rxjs": "^6.5.3",
+    "tslib": "^1.10.0",
     "zone.js": "^0.10.2"
   },
   "devDependencies": {

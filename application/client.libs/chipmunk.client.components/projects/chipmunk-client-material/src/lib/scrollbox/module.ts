@@ -5,8 +5,8 @@ import { ComplexScrollBoxComponent              } from './component';
 import { ComplexScrollBoxSBVComponent           } from './sbv/component';
 import { ComplexScrollBoxSBHComponent           } from './sbh/component';
 
-import { PrimitiveModule                        } from 'chipmunk-client-primitive';
-import { ContainersModule                       } from 'chipmunk-client-containers';
+import { PrimitiveModule                        } from '../primitive.module';
+import { ContainersModule                       } from '../containers.module';
 
 const entryComponents = [ ComplexScrollBoxComponent, ComplexScrollBoxSBVComponent, ComplexScrollBoxSBHComponent ];
 const components = [ ...entryComponents ];

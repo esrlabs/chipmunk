@@ -18,23 +18,11 @@
       "dom"
     ],
     "paths": {
-      "chipmunk-client-primitive": [
-        "dist/chipmunk-client-primitive"
+      "chipmunk-client-material": [
+        "dist/chipmunk-client-material"
       ],
-      "chipmunk-client-primitive/*": [
-        "dist/chipmunk-client-primitive/*"
-      ],
-      "chipmunk-client-complex": [
-        "dist/chipmunk-client-complex"
-      ],
-      "chipmunk-client-complex/*": [
-        "dist/chipmunk-client-complex/*"
-      ],
-      "chipmunk-client-containers": [
-        "dist/chipmunk-client-containers"
-      ],
-      "chipmunk-client-containers/*": [
-        "dist/chipmunk-client-containers/*"
+      "chipmunk-client-material/*": [
+        "dist/chipmunk-client-material/*"
       ]
     }
   }
