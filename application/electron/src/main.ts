@@ -40,22 +40,22 @@ import ServiceOutputExport from './services/output/service.output.export';
 const InitializeStages = [
     // Apply patches ("before")
     [   ServicePatchesBefore ],
-    // Stage #1
-    [   ServiceProduction ],
-    // Stage #2
-    [   ServicePaths ],
-    // Stage #3
-    [   ServicePackage ],
-    // Stage #4
-    [   ServiceSettings, ServiceWindowState, ServiceStorage ],
-    // Stage #5. Init electron. Prepare browser window
-    [   ServiceElectron ],
-    // Stage #6. Init services and helpers
-    [   ServiceElectronState, ServiceNotifications ],
-    // Stage #7. Stream service
-    [   ServiceStreamSources, ServiceStreams ],
-    // Stage #8. Detect OS env
+    // Stage #1. Detect OS env
     [   ServiceEnv ],
+    // Stage #2
+    [   ServiceProduction ],
+    // Stage #3
+    [   ServicePaths ],
+    // Stage #4
+    [   ServicePackage ],
+    // Stage #5
+    [   ServiceSettings, ServiceWindowState, ServiceStorage ],
+    // Stage #6. Init electron. Prepare browser window
+    [   ServiceElectron ],
+    // Stage #7. Init services and helpers
+    [   ServiceElectronState, ServiceNotifications ],
+    // Stage #8. Stream service
+    [   ServiceStreamSources, ServiceStreams ],
     // Stage #9. Common functionality
     [   ServiceFileInfo, ServiceMergeFiles,
         ServiceConcatFiles, ServiceFileSearch,
