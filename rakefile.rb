@@ -639,13 +639,18 @@ def install_plugin_complex(plugin)
 end
 
 # Install complex plugins
-task :install_plugins_complex
-COMPLEX_PLUGINS.each do |p|
-  file plugin_bundle_name(p, 'process') do
-    install_plugin_complex(p)
+task :install_plugins_complex do
+  cd CLIENT_PLUGIN_DIR do
+    npm_install
   end
-  task install_plugins_complex: plugin_bundle_name(p, 'process')
+  COMPLEX_PLUGINS.each do |p|
+    file plugin_bundle_name(p, 'process') do
+      install_plugin_complex(p)
+    end
+    task install_plugins_complex: plugin_bundle_name(p, 'process')
+  end
 end
+
 
 def install_plugin_angular(plugin)
   puts "Installing plugin: #{plugin}"
