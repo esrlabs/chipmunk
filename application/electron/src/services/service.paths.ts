@@ -5,6 +5,7 @@ import { app } from 'electron';
 
 import Logger from '../tools/env.logger';
 import ServiceProduction from './service.production';
+import ServiceEnv from './service.env';
 
 import { IService } from '../../src/interfaces/interface.service';
 
@@ -15,6 +16,7 @@ const SOCKETS_FOLDER = 'sockets';
 const STREAMS_FOLDER = 'streams';
 const DOWNLOADS_FOLDER = 'downloads';
 const APPS_FOLDER = 'apps';
+const DEFAULT_PLUGINS_SANDBOX_PATH = '../../../sandbox';
 
 export function getHomeFolder(): string {
     return Path.resolve(OS.homedir(), HOME_FOLDER);
@@ -64,11 +66,6 @@ class ServicePaths implements IService {
             if (root instanceof Error) {
                 return reject(root);
             }
-            if (ServiceProduction.isProduction()) {
-                this._plugins = Path.resolve(this._home, PLUGINS_FOLDER);
-            } else {
-                this._plugins = Path.resolve(root, '../../../sandbox');
-            }
             this._app = root;
             this._root = root;
             const exec: string | Error = this._getExecPath();
@@ -79,6 +76,7 @@ class ServicePaths implements IService {
             this._defaultPlugins = Path.resolve(this._root, 'plugins');
             this._appModules = Path.resolve(this._root, '../../node_modules');
             this._rg = Path.resolve(this._root, `apps/${OS.platform() === 'win32' ? 'rg.exe' : 'rg'}`);
+            this._plugins = this._getPluginsPath(root);
             this._createHomeFolder().then(() => {
                 Promise.all([this._home, this._plugins, this._sockets, this._streams, this._downloads, this._apps, this._pluginsCfgFolder].map((folder: string) => {
                     return this._mkdir(folder);
@@ -232,6 +230,21 @@ class ServicePaths implements IService {
      */
     private _createHomeFolder(): Promise<void> {
         return this._mkdir(this._home);
+    }
+
+    private _getPluginsPath(root: string): string {
+        if (ServiceProduction.isProduction()) {
+            return Path.resolve(this._home, PLUGINS_FOLDER);
+        }
+        const path: string | undefined = ServiceEnv.get().CHIPMUNK_PLUGINS_SANDBOX;
+        if (path === undefined) {
+            return DEFAULT_PLUGINS_SANDBOX_PATH;
+        }
+        if (!FS.isExist(Path.resolve(path))) {
+            this._logger.warn(`Fail to find custom SANDBOX path "${Path.resolve(path)}". Will be used default path.`);
+            return Path.resolve(root, DEFAULT_PLUGINS_SANDBOX_PATH);
+        }
+        return Path.resolve(path);
     }
 
     private _mkdir(dir: string): Promise<void> {
