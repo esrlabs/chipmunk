@@ -1,10 +1,10 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { TabsService, TabsOptions, ETabsListDirection } from 'chipmunk-client-complex';
+import { TabsService, TabsOptions, ETabsListDirection } from 'chipmunk-client-material';
 import { AreaState } from '../state';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { LayoutSecondaryAreaControlsComponent } from './controls/component';
 import ToolbarSessionsService from '../../services/service.sessions.toolbar';
-import { IComponentDesc } from 'chipmunk-client-containers';
+import { IComponentDesc } from 'chipmunk-client-material';
 
 @Component({
     selector: 'app-layout-area-secondary',

@@ -1,7 +1,7 @@
 import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding } from '@angular/core';
 import OutputParsersService from '../../../../services/standalone/service.output.parsers';
 import { AOutputRenderComponent, IOutputRenderInputs } from '../../../../interfaces/interface.output.render';
-import { IComponentDesc } from 'chipmunk-client-containers';
+import { IComponentDesc } from 'chipmunk-client-material';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import { Subject } from 'rxjs';
 import { ControllerSessionScope } from '../../../../controller/controller.session.tab.scope';

@@ -11,9 +11,7 @@ export enum ECoreModules {
     '@angular/forms' = '@angular/forms',
     '@angular/platform-browser' = '@angular/platform-browser',
     'rxjs' = 'rxjs',
-    'chipmunk-client-complex' = 'chipmunk-client-complex',
-    'chipmunk-client-containers' = 'chipmunk-client-containers',
-    'chipmunk-client-primitive' = 'chipmunk-client-primitive',
+    'chipmunk-client-material' = 'chipmunk-client-material',
     'chipmunk.client.toolkit' = 'chipmunk.client.toolkit',
     'xterm' = 'xterm',
     'xterm/lib/addons/fit/fit' = 'xterm/lib/addons/fit/fit',
@@ -26,9 +24,7 @@ export interface ICoreModules {
     '@angular/forms': any;
     '@angular/platform-browser': any;
     'rxjs': any;
-    'chipmunk-client-complex': any;
-    'chipmunk-client-containers': any;
-    'chipmunk-client-primitive': any;
+    'chipmunk-client-material': any;
     'chipmunk.client.toolkit': any;
     'xterm': any;
     'xterm/lib/addons/fit/fit': any;

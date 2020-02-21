@@ -1,6 +1,6 @@
 import { NgModule                                       } from '@angular/core';
 import { CommonModule                                   } from '@angular/common';
-import { ContainersModule                               } from 'chipmunk-client-containers';
+import { ContainersModule                               } from 'chipmunk-client-material';
 
 import { LayoutComponent                                } from './component';
 import { LayoutStatusBarComponent                       } from './bar.status/component';

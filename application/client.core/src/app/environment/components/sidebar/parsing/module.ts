@@ -3,8 +3,7 @@ import { CommonModule                           } from '@angular/common';
 
 import { SidebarAppParsingComponent             } from './component';
 
-import { PrimitiveModule                        } from 'chipmunk-client-primitive';
-import { ContainersModule                       } from 'chipmunk-client-containers';
+import { PrimitiveModule, ContainersModule      } from 'chipmunk-client-material';
 
 const entryComponents = [ SidebarAppParsingComponent ];
 const components = [ ...entryComponents ];

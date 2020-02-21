@@ -1,6 +1,6 @@
 import { OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
 import * as Toolkit from 'chipmunk.client.toolkit';
-import { InputStandardComponent } from 'chipmunk-client-primitive';
+import { InputStandardComponent } from 'chipmunk-client-material';
 export interface IEnvVar {
     key: string;
     value: string;

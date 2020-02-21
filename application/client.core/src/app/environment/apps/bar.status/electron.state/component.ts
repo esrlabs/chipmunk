@@ -1,6 +1,6 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
 import ServiceElectronIpc, { IPCMessages, Subscription } from '../../../services/service.electron.ipc';
-import { IComponentDesc, IFrameOptions } from 'chipmunk-client-containers';
+import { IComponentDesc, IFrameOptions } from 'chipmunk-client-material';
 import { StateHistoryComponent } from './history/component';
 import * as Toolkit from 'chipmunk.client.toolkit';
 

@@ -1,6 +1,6 @@
 import ContextMenuService, { IMenuItem } from '../services/standalone/service.contextmenu';
 
-import { ITabAPI } from 'chipmunk-client-complex';
+import { ITabAPI } from 'chipmunk-client-material';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 

@@ -1,6 +1,6 @@
 import { Observable, Subject } from 'rxjs';
 import * as Toolkit from 'chipmunk.client.toolkit';
-import { IComponentDesc } from 'chipmunk-client-containers';
+import { IComponentDesc } from 'chipmunk-client-material';
 
 export interface IMenuItem {
     id?: string;

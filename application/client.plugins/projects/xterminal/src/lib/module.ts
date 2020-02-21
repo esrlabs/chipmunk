@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core';
 import { SidebarViewComponent } from './view/component';
 import { CommonModule } from '@angular/common';
-import { PrimitiveModule } from 'chipmunk-client-primitive';
+import { PrimitiveModule } from 'chipmunk-client-material';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 @NgModule({

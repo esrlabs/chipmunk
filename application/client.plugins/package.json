@@ -31,6 +31,7 @@
     "@angular/router": "^8.2.12",
     "chart.js": "^2.8.0",
     "chipmunk.client.toolkit": "latest",
+    "chipmunk-client-material": "latest",
     "core-js": "^3.3.5",
     "electron": "^7.0.0",
     "hammerjs": "^2.0.8",

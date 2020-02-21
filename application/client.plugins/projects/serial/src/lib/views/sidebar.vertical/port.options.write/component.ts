@@ -3,7 +3,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, AfterContentInit, Input, ViewChild } from '@angular/core';
 import { IOptions } from '../../../common/interface.options';
 import * as Toolkit from 'chipmunk.client.toolkit';
-import { CheckSimpleComponent, InputStandardComponent, DDListStandardComponent } from 'chipmunk-client-primitive';
+import { CheckSimpleComponent, InputStandardComponent, DDListStandardComponent } from 'chipmunk-client-material';
 
 @Component({
     selector: 'lib-sb-port-options-write-com',

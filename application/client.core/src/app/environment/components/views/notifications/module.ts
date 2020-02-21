@@ -5,8 +5,7 @@ import { SidebarAppNotificationsComponent       } from './component';
 import { SidebarAppNotificationComponent        } from './notification/component';
 import { SidebarAppNotificationsCounterComponent} from './counter/component';
 
-import { PrimitiveModule                        } from 'chipmunk-client-primitive';
-import { ContainersModule                       } from 'chipmunk-client-containers';
+import { PrimitiveModule, ContainersModule      } from 'chipmunk-client-material';
 
 const entryComponents = [ SidebarAppNotificationsComponent, SidebarAppNotificationComponent, SidebarAppNotificationsCounterComponent ];
 const components = [ ...entryComponents ];

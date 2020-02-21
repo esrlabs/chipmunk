@@ -4,8 +4,7 @@ import { CommonModule                           } from '@angular/common';
 import { SidebarAppMergeFilesComponent          } from './component';
 import { SidebarAppMergeFilesItemComponent      } from './file/component';
 
-import { PrimitiveModule                        } from 'chipmunk-client-primitive';
-import { ContainersModule                       } from 'chipmunk-client-containers';
+import { PrimitiveModule, ContainersModule      } from 'chipmunk-client-material';
 
 const entryComponents = [ SidebarAppMergeFilesComponent, SidebarAppMergeFilesItemComponent ];
 const components = [ ...entryComponents ];

@@ -9,7 +9,7 @@ import { SidebarVerticalPortOptionsWriteComponent } from './views/sidebar.vertic
 import { SidebarVerticalPortDialogComponent } from './views/dialog/components';
 import { SidebarTitleAddComponent } from './views/dialog/titlebar/components';
 import { SerialRowComponent } from './views/row/component';
-import { PrimitiveModule } from 'chipmunk-client-primitive';
+import { PrimitiveModule } from 'chipmunk-client-material';
 import { DialogAvailablePortComponent } from './views/dialog/port.available/components';
 import * as Toolkit from 'chipmunk.client.toolkit';
 

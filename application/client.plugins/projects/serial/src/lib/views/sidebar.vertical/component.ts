@@ -4,7 +4,7 @@ import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, ViewChil
 import { EHostEvents } from '../../common/host.events';
 import { IPortInfo, IPortState, IPortSession } from '../../common/interface.portinfo';
 import { IOptions, CDefaultOptions } from '../../common/interface.options';
-import { InputStandardComponent, DDListStandardComponent } from 'chipmunk-client-primitive';
+import { InputStandardComponent, DDListStandardComponent } from 'chipmunk-client-material';
 import { SidebarVerticalPortDialogComponent } from '../dialog/components';
 import { Subscription } from 'rxjs';
 import * as Toolkit from 'chipmunk.client.toolkit';

@@ -6,9 +6,10 @@ import { ViewOutputComponent                    } from './component';
 import { ViewOutputControlsComponent            } from './controls/component';
 import { ViewContentMapComponent                } from './map/component';
 
-import { PrimitiveModule                        } from 'chipmunk-client-primitive';
-import { ContainersModule                       } from 'chipmunk-client-containers';
-import { ComplexModule                          } from 'chipmunk-client-complex';
+import {
+    ComplexModule,
+    PrimitiveModule,
+    ContainersModule                            } from 'chipmunk-client-material';
 
 const entryComponents = [ ViewOutputComponent, ViewOutputControlsComponent, ViewContentMapComponent ];
 const components = [ ViewOutputComponent, ...entryComponents ];
