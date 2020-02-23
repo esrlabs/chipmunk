@@ -22,9 +22,11 @@ extern crate lazy_static;
 use async_std::task;
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
+use dlt::dlt_file::export_as_dlt_file;
 use dlt::dlt_parse::StatisticsResults;
 use dlt::dlt_pcap::convert_to_dlt_file;
 use dlt::fibex::FibexMetadata;
+use failure::{err_msg, Error};
 use indexer_base::chunks::{serialize_chunks, Chunk, ChunkResults};
 use indexer_base::config::*;
 use indexer_base::error_reporter::*;
@@ -55,10 +57,9 @@ use std::io::Read;
 use std::path;
 use std::time::Instant;
 
-use std::io::Result;
 use std::thread;
 
-fn init_logging() -> Result<()> {
+fn init_logging() -> Result<(), Error> {
     let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
     let log_config_path = home_dir.join(".chipmunk").join("log4rs.yaml");
     if !log_config_path.exists() {
@@ -110,14 +111,6 @@ fn main() {
                         .long("out")
                         .value_name("OUT")
                         .help("Output file, \"<file_to_index>.out\" if not present"),
-                )
-                .arg(
-                    Arg::with_name("max_lines")
-                        .short("n")
-                        .long("max_lines")
-                        .help("How many lines to collect before dumping")
-                        .required(false)
-                        .default_value("1000000"),
                 )
                 .arg(
                     Arg::with_name("chunk_size")
@@ -224,6 +217,34 @@ fn main() {
                 ),
         )
         .subcommand(
+            SubCommand::with_name("export")
+                .about("test exorting files")
+                .arg(
+                    Arg::with_name("file")
+                        .short("f")
+                        .long("file")
+                        .help("the file to export")
+                        .required(true)
+                        .index(1),
+                )
+                .arg(
+                    Arg::with_name("sections")
+                        .short("s")
+                        .long("sections")
+                        .value_name("SECTIONS")
+                        .help("what sections to export, e.g. \"0,3|6,100\"")
+                        .required(false)
+                        .default_value(""),
+                )
+                .arg(
+                    Arg::with_name("target")
+                        .short("t")
+                        .long("out")
+                        .value_name("OUT")
+                        .help("Output file, \"<file_to_export>.out\" if not present"),
+                ),
+        )
+        .subcommand(
             SubCommand::with_name("discover")
                 .about("test date discovery, either from a string or from a file")
                 .arg(
@@ -272,14 +293,6 @@ fn main() {
                         .value_name("TAG")
                         .help("tag for each log entry")
                         .required(true),
-                )
-                .arg(
-                    Arg::with_name("max_lines")
-                        .short("n")
-                        .long("max_lines")
-                        .help("How many lines to collect before dumping")
-                        .required(false)
-                        .default_value("1000000"),
                 )
                 .arg(
                     Arg::with_name("chunk_size")
@@ -336,14 +349,6 @@ fn main() {
                         .required(true),
                 )
                 .arg(
-                    Arg::with_name("max_lines")
-                        .short("n")
-                        .long("max_lines")
-                        .help("How many lines to collect before dumping")
-                        .required(false)
-                        .default_value("1000000"),
-                )
-                .arg(
                     Arg::with_name("chunk_size")
                         .short("c")
                         .long("chunk_size")
@@ -391,14 +396,6 @@ fn main() {
                         .value_name("TAG")
                         .help("tag for each log entry")
                         .required(true),
-                )
-                .arg(
-                    Arg::with_name("max_lines")
-                        .short("n")
-                        .long("max_lines")
-                        .help("How many lines to collect before dumping")
-                        .required(false)
-                        .default_value("1000000"),
                 )
                 .arg(
                     Arg::with_name("chunk_size")
@@ -465,6 +462,8 @@ fn main() {
         handle_index_subcommand(matches, start, use_stderr_for_status_updates, &progress_bar)
     } else if let Some(matches) = matches.subcommand_matches("format") {
         handle_format_subcommand(matches, start, use_stderr_for_status_updates)
+    } else if let Some(matches) = matches.subcommand_matches("export") {
+        handle_export_subcommand(matches, start, &progress_bar)
     } else if let Some(matches) = matches.subcommand_matches("dlt") {
         handle_dlt_subcommand(matches, start, &progress_bar)
     } else if let Some(matches) = matches.subcommand_matches("dlt-pcap") {
@@ -667,6 +666,45 @@ fn main() {
                     std::process::exit(2)
                 }
             }
+        }
+    }
+    fn to_pair(input: &str) -> Result<IndexSection, Error> {
+        let elems: Vec<&str> = input.split(',').collect();
+        if elems.len() != 2 {
+            return Err(err_msg("no valid section element"));
+        }
+        Ok(IndexSection {
+            first_line: elems[0].parse()?,
+            last_line: elems[1].parse()?,
+        })
+    }
+    fn handle_export_subcommand(
+        matches: &clap::ArgMatches,
+        _start: std::time::Instant,
+        _progress_bar: &ProgressBar,
+    ) {
+        debug!("handle_export_subcommand");
+        if let Some(file_name) = matches.value_of("file") {
+            let fallback_out = file_name.to_string() + ".out";
+            let out_path = path::PathBuf::from(
+                matches
+                    .value_of("output")
+                    .unwrap_or_else(|| fallback_out.as_str()),
+            );
+            let file_path = path::PathBuf::from(file_name);
+            let sections_string = value_t_or_exit!(matches.value_of("sections"), String);
+            let sections: Vec<IndexSection> = sections_string
+                .split('|')
+                .map(|s| to_pair(s).expect("could not parse section pair"))
+                .collect();
+            println!("sections: {:?}", sections);
+
+            let (tx, _rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
+            export_as_dlt_file(file_path, out_path, SectionConfig { sections }, tx)
+                .expect("export did not work");
+
+            println!("done with handle_export_subcommand");
+            std::process::exit(0)
         }
     }
     fn handle_dlt_subcommand(

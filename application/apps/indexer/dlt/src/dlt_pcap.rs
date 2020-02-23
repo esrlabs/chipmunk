@@ -5,7 +5,7 @@ use crate::filtering;
 use async_std::task;
 use crossbeam_channel as cc;
 use etherparse::*;
-use failure::{err_msg, Error, ResultExt};
+use failure::{err_msg, Error};
 use futures::stream::StreamExt;
 use indexer_base::chunks::{ChunkFactory, ChunkResults};
 use indexer_base::config::IndexingConfig;

@@ -10,21 +10,25 @@
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
 use crate::dlt::Message;
-use crate::dlt_parse::dlt_message;
-use crate::dlt_parse::DLT_PATTERN_SIZE;
-use crate::dlt_parse::{DltParseError, ParsedMessage};
+use crate::dlt_parse::forward_to_next_storage_header;
+use crate::dlt_parse::skip_storage_header;
+use crate::dlt_parse::{
+    dlt_message, DltParseError, ParsedMessage, DLT_MIN_BUFFER_SPACE, DLT_PATTERN_SIZE,
+    DLT_READER_CAPACITY,
+};
 use crate::filtering;
-use crossbeam_channel as cc;
-use indexer_base::chunks::{ChunkFactory, ChunkResults};
-use indexer_base::config::*;
-use indexer_base::progress::*;
-use indexer_base::utils;
-
 use buf_redux::policy::MinBuffered;
 use buf_redux::BufReader as ReduxReader;
+use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
 use failure::{err_msg, Error};
 use futures::stream::StreamExt;
+use indexer_base::{
+    chunks::{ChunkFactory, ChunkResults},
+    config::*,
+    progress::*,
+    utils,
+};
 use std::fs;
 use std::io::{BufRead, BufWriter, Write};
 use std::path::PathBuf;
@@ -131,8 +135,8 @@ impl FileMessageProducer {
                 return Err(err_msg(format!("could not open file ({})", e)));
             }
         };
-        let reader =
-            ReduxReader::with_capacity(10 * 1024 * 1024, f).set_policy(MinBuffered(10 * 1024));
+        let reader = ReduxReader::with_capacity(DLT_READER_CAPACITY, f)
+            .set_policy(MinBuffered(DLT_MIN_BUFFER_SPACE));
         Ok(FileMessageProducer {
             reader,
             filter_config,
@@ -285,8 +289,8 @@ pub fn index_dlt_content(
         0
     };
     // let tmp_file = create_dlt_tmp_file("file")?;
-    // let mut tmp_writer = BufWriter::with_capacity(10 * 1024 * 1024, tmp_file);
-    let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
+    // let mut tmp_writer = BufWriter::with_capacity(DLT_READER_CAPACITY, tmp_file);
+    let mut buf_writer = BufWriter::with_capacity(DLT_READER_CAPACITY, out_file);
 
     let mut progress_reporter = ProgressReporter::new(source_file_size, update_channel.clone());
 
@@ -406,7 +410,7 @@ pub fn index_dlt_content(
     Ok(())
 }
 
-pub fn export_as_dlt_file(
+pub fn export_session_file(
     session_id: String,
     destination_path: PathBuf,
     sections: SectionConfig,
@@ -419,27 +423,49 @@ pub fn export_as_dlt_file(
         sections
     );
     let session_file_path = session_file_path(&session_id)?;
-    if session_file_path.exists() {
-        trace!("found session_file: {:?}", &session_file_path);
-        let f = fs::File::open(session_file_path)?;
-        let mut reader = std::io::BufReader::new(f);
-        let out_file = std::fs::File::create(destination_path)?;
-        // if destination_path.exists() {
-        //     return Err(err_msg(format!(
-        //         "cannot export to {:?}, file already exists!",
-        //         &destination_path
-        //     )));
-        // }
-        trace!("created out_file: {:?}", &out_file);
+    export_as_dlt_file(
+        session_file_path,
+        destination_path,
+        sections,
+        update_channel,
+    )
+}
 
+pub fn export_as_dlt_file(
+    dlt_file_path: PathBuf,
+    destination_path: PathBuf,
+    sections: SectionConfig,
+    update_channel: cc::Sender<ChunkResults>,
+) -> Result<(), Error> {
+    use std::io::Read;
+    use std::io::Seek;
+    trace!(
+        "export_as_dlt_file {:?} to file: {:?}, exporting {:?}",
+        dlt_file_path,
+        destination_path,
+        sections
+    );
+    if dlt_file_path.exists() {
+        trace!("found file to export: {:?}", &dlt_file_path);
+        let f = fs::File::open(&dlt_file_path)?;
+        let mut reader = &mut std::io::BufReader::new(f);
+        let out_file = std::fs::File::create(destination_path)?;
+        trace!("created out_file: {:?}", &out_file);
+        let partitioner = FilePartitioner::new(&dlt_file_path, sections)?;
         let mut out_writer = BufWriter::new(out_file);
-        std::io::copy(&mut reader, &mut out_writer)?;
-        trace!("copied content of file");
-        out_writer.flush()?;
+
+        for part in partitioner.get_parts() {
+            trace!("copy part {:?}", part);
+            reader.seek(std::io::SeekFrom::Start(part.offset as u64))?;
+            let mut take = reader.take(part.length as u64);
+            std::io::copy(&mut take, &mut out_writer)?;
+            reader = take.into_inner();
+            out_writer.flush()?;
+        }
         let _ = update_channel.send(Ok(IndexingProgress::Finished));
         Ok(())
     } else {
-        let reason = format!("couln't find session file: {:?}", session_file_path,);
+        let reason = format!("couln't find session file: {:?}", dlt_file_path,);
         let _ = update_channel.send(Err(Notification {
             severity: Severity::ERROR,
             content: reason.clone(),
@@ -465,101 +491,95 @@ pub(crate) fn create_dlt_session_file(session_id: &str) -> Result<std::fs::File,
 
 struct FilePartitioner {
     reader: ReduxReader<fs::File, MinBuffered>,
-    parts: Vec<FilePart>,
+    offset: usize,
+    section_config: SectionConfig,
 }
 impl FilePartitioner {
-    fn partition(&mut self) {
-        // let consume_and_parse_result = loop {
-        //     match self.reader.fill_buf() {
-        //         Ok(content) => {
-        //             trace!("Ok(content (len {}))", content.len());
-        //             if content.is_empty() {
-        //                 trace!("0, Ok(ParsedMessage::Invalid)");
-        //                 return (0, Ok(ParsedMessage::Invalid));
-        //             }
-        //             let available = content.len();
-
-        //             let parse_result: nom::IResult<&[u8], ParsedMessage> = dlt_message(
-        //                 content,
-        //                 self.filter_config.as_ref(),
-        //                 self.stats.parsed + self.stats.no_parse,
-        //                 Some(&self.update_channel),
-        //                 self.fibex_metadata.clone(),
-        //                 self.with_storage_header,
-        //             );
-        //             match parse_result {
-        //                 Ok((rest, maybe_msg)) => {
-        //                     let consumed = available - rest.len();
-        //                     self.stats.parsed += 1;
-        //                     trace!("parse ok, consumed: {}", consumed);
-        //                     break (consumed, Ok(maybe_msg));
-        //                 }
-        //                 Err(nom::Err::Incomplete(n)) => {
-        //                     debug!("parse incomplete");
-        //                     self.stats.no_parse += 1;
-        //                     let needed = match n {
-        //                         nom::Needed::Size(s) => format!("{}", s),
-        //                         nom::Needed::Unknown => "unknown".to_string(),
-        //                     };
-        //                     break (0, Err(DltParseError::Unrecoverable {
-        //                         cause: format!(
-        //                             "read_one_dlt_message: imcomplete parsing error for dlt messages: (bytes left: {}, but needed: {})",
-        //                             content.len(),
-        //                             needed
-        //                         ),
-        //                     }));
-        //                 }
-        //                 Err(nom::Err::Error(_e)) => {
-        //                     warn!("parse error");
-        //                     self.stats.no_parse += 1;
-        //                     break (
-        //                         DLT_PATTERN_SIZE,
-        //                         Err(DltParseError::ParsingHickup {
-        //                             reason: format!(
-        //                             "read_one_dlt_message: parsing error for dlt messages: {:?}",
-        //                             _e
-        //                         ),
-        //                         }),
-        //                     );
-        //                 }
-        //                 Err(nom::Err::Failure(_e)) => {
-        //                     warn!("parse failure");
-        //                     self.stats.no_parse += 1;
-        //                     break (
-        //                         0,
-        //                         Err(DltParseError::Unrecoverable {
-        //                             cause: format!(
-        //                             "read_one_dlt_message: parsing failure for dlt messages: {:?}",
-        //                             _e
-        //                         ),
-        //                         }),
-        //                     );
-        //                 }
-        //             }
-        //         }
-        //         Err(e) => {
-        //             trace!("no more content");
-        //             break (
-        //                 0,
-        //                 Err(DltParseError::Unrecoverable {
-        //                     cause: format!("error for filling buffer with dlt messages: {:?}", e),
-        //                 }),
-        //             );
-        //         }
-        //     }
-        // };
+    fn new(in_path: &PathBuf, c: SectionConfig) -> Result<Self, Error> {
+        let f = fs::File::open(&in_path)?;
+        Ok(FilePartitioner {
+            reader: ReduxReader::with_capacity(DLT_READER_CAPACITY, f)
+                .set_policy(MinBuffered(DLT_MIN_BUFFER_SPACE)),
+            offset: 0,
+            section_config: c,
+        })
+    }
+    fn get_parts(mut self) -> Vec<FilePart> {
+        let mut index = 0usize;
+        let mut in_section = false;
+        let mut result_vec: Vec<FilePart> = vec![];
+        let mut bytes_in_section = 0usize;
+        let mut section_offset = 0usize;
+        for section in self.section_config.sections {
+            loop {
+                trace!("next[{}]", index);
+                match self.reader.fill_buf() {
+                    Ok(content) => {
+                        trace!("Ok(content (len {}))", content.len());
+                        if content.is_empty() {
+                            trace!("0, Ok(ParsedMessage::Invalid)");
+                            break;
+                        }
+                        match skip_storage_header(content) {
+                            Ok((rest, skipped_bytes)) => match forward_to_next_storage_header(rest)
+                            {
+                                None => {
+                                    trace!("no more storage header found");
+                                    break;
+                                }
+                                Some((dropped, _at_next_storage_header)) => {
+                                    let consumed = skipped_bytes + dropped;
+                                    if index == section.first_line {
+                                        trace!("enter section: {:?}) (index: {})", section, index);
+                                        in_section = true;
+                                        section_offset = self.offset;
+                                    } else if index == section.last_line + 1 {
+                                        trace!(
+                                            "leaving section: {:?}) (index: {})",
+                                            section,
+                                            index
+                                        );
+                                        in_section = false;
+                                        // close partition
+                                        let res = FilePart {
+                                            offset: section_offset,
+                                            length: bytes_in_section,
+                                        };
+                                        trace!(
+                                            "consumed: {}bytes, res: {:?}",
+                                            bytes_in_section,
+                                            &res
+                                        );
+                                        result_vec.push(res);
+                                        bytes_in_section = 0;
+                                        break;
+                                    }
+                                    if in_section {
+                                        bytes_in_section += consumed;
+                                    }
+                                    self.offset += consumed;
+                                    self.reader.consume(consumed);
+                                }
+                            },
+                            Err(_e) => {
+                                warn!("error in FilePartitioner forward: {}", _e);
+                                break;
+                            }
+                        }
+                    }
+                    Err(_e) => {
+                        warn!("error in FilePartitioner iterator: {}", _e);
+                        break;
+                    }
+                }
+                index += 1;
+            }
+        }
+        result_vec
     }
 }
+#[derive(Debug)]
 struct FilePart {
     offset: usize,
     length: usize,
-}
-impl futures::Stream for FilePartitioner {
-    type Item = Result<(usize, Option<FilePart>), DltParseError>;
-    fn poll_next(
-        mut self: std::pin::Pin<&mut Self>,
-        _cx: &mut std::task::Context,
-    ) -> futures::task::Poll<Option<Self::Item>> {
-        futures::task::Poll::Pending
-    }
 }

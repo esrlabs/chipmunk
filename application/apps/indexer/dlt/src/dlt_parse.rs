@@ -32,6 +32,8 @@ use crate::fibex::FibexMetadata;
 use std::str;
 
 const STOP_CHECK_LINE_THRESHOLD: usize = 250_000;
+pub(crate) const DLT_READER_CAPACITY: usize = 10 * 1024 * 1024;
+pub(crate) const DLT_MIN_BUFFER_SPACE: usize = 10 * 1024;
 pub(crate) const DLT_PATTERN_SIZE: usize = 4;
 pub(crate) const DLT_PATTERN: &[u8] = &[0x44, 0x4C, 0x54, 0x01];
 
@@ -39,7 +41,7 @@ pub(crate) fn parse_ecu_id(input: &[u8]) -> IResult<&[u8], &str> {
     dlt_zero_terminated_string(input, 4)
 }
 /// skip ahead in input array till we reach a storage header
-/// return Some(slice) that starts with the next storage header (if any)
+/// return Some(dropped, rest_slice) that starts with the next storage header (if any)
 /// or None if no more storage header could be found.
 /// note: we won't skip anything if the input already begins
 /// with a storage header
@@ -62,7 +64,7 @@ pub(crate) fn forward_to_next_storage_header(input: &[u8]) -> Option<(usize, &[u
         return None;
     }
     if to_drop > 0 {
-        // println!("dropped {} to get to next message", to_drop);
+        trace!("dropped {} to get to next message", to_drop);
     }
     Some((to_drop, &input[to_drop..]))
 }
@@ -956,19 +958,28 @@ fn validated_payload_length<T>(
     Some(message_length - headers_length)
 }
 
-fn skip_till_after_next_storage_header(input: &[u8]) -> IResult<&[u8], usize> {
+fn skip_till_after_next_storage_header(input: &[u8]) -> Result<(&[u8], usize), DltParseError> {
     match forward_to_next_storage_header(input) {
-        Some((consumed, rest)) => skip_storage_header(rest, consumed),
-        None => Err(nom::Err::Error((&[], nom::error::ErrorKind::Verify))),
+        Some((consumed, rest)) => {
+            let (after_storage_header, skipped_bytes) = skip_storage_header(rest)?;
+            Ok((after_storage_header, consumed + skipped_bytes))
+        }
+        None => Err(DltParseError::ParsingHickup {
+            reason: "did not find another storage header".into(),
+        }),
     }
 }
 
-fn skip_storage_header(input: &[u8], already_dropped: usize) -> IResult<&[u8], usize> {
+/// check if the DLT_PATTERN next and just skip the storage header if so
+/// returns a slice where the storage header was removed
+pub(crate) fn skip_storage_header(input: &[u8]) -> Result<(&[u8], usize), DltParseError> {
     let (i, (_, _, _)): (&[u8], _) = tuple((tag("DLT"), tag(&[0x01]), take(12usize)))(input)?;
     if input.len() - i.len() == STORAGE_HEADER_LENGTH {
-        Ok((i, already_dropped))
+        Ok((i, STORAGE_HEADER_LENGTH))
     } else {
-        Err(nom::Err::Error((&[], nom::error::ErrorKind::Verify)))
+        Err(DltParseError::ParsingHickup {
+            reason: "did not match DLT pattern".into(),
+        })
     }
 }
 
@@ -1062,7 +1073,7 @@ pub fn dlt_statistic_row_info<'a, T>(
     ))
 }
 
-#[derive(Debug, Fail)]
+#[derive(Debug, Fail, PartialEq)]
 pub enum DltParseError {
     #[fail(display = "parsing stopped, cannot continue: {}", cause)]
     Unrecoverable { cause: String },
@@ -1228,8 +1239,8 @@ pub fn get_dlt_file_info(
     };
 
     let source_file_size: usize = fs::metadata(&in_file)?.len() as usize;
-    let mut reader =
-        ReduxReader::with_capacity(10 * 1024 * 1024, f).set_policy(MinBuffered(10 * 1024));
+    let mut reader = ReduxReader::with_capacity(DLT_READER_CAPACITY, f)
+        .set_policy(MinBuffered(DLT_MIN_BUFFER_SPACE));
 
     let mut app_ids: IdMap = FxHashMap::default();
     let mut context_ids: IdMap = FxHashMap::default();

@@ -17,8 +17,8 @@ use std::path;
 /// to identify only line 13: first_line = 13, last_line = 13
 #[derive(Serialize, Deserialize, Debug)]
 pub struct IndexSection {
-    first_line: usize,
-    last_line: usize,
+    pub first_line: usize,
+    pub last_line: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

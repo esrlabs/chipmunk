@@ -26,7 +26,7 @@ impl DltExporterEventEmitter {
 
         // Spawn a thread to continue running after this method has returned.
         self.task_thread = Some(thread::spawn(move || {
-            match dlt::dlt_file::export_as_dlt_file(
+            match dlt::dlt_file::export_session_file(
                 session_id,
                 destination_path,
                 sections_config,
