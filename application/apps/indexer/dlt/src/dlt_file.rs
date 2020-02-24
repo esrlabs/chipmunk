@@ -475,6 +475,42 @@ pub fn export_as_dlt_file(
     }
 }
 
+pub fn export_file_line_based(
+    file_path: PathBuf,
+    destination_path: PathBuf,
+    sections: SectionConfig,
+    update_channel: cc::Sender<ChunkResults>,
+) -> Result<(), Error> {
+    use std::io::Read;
+    use std::io::Seek;
+    trace!(
+        "export_file_line_based {:?} to file: {:?}, exporting {:?}",
+        file_path,
+        destination_path,
+        sections
+    );
+    if file_path.exists() {
+        trace!("found file to export: {:?}", &file_path);
+        let f = fs::File::open(&file_path)?;
+        let mut reader = &mut std::io::BufReader::new(f);
+        let out_file = std::fs::File::create(destination_path)?;
+        let lines = reader.lines();
+        let mut out_writer = BufWriter::new(out_file);
+        // TODO
+
+        let _ = update_channel.send(Ok(IndexingProgress::Finished));
+        Ok(())
+    } else {
+        let reason = format!("couln't find session file: {:?}", file_path,);
+        let _ = update_channel.send(Err(Notification {
+            severity: Severity::ERROR,
+            content: reason.clone(),
+            line: None,
+        }));
+        Err(err_msg(reason))
+    }
+}
+
 pub(crate) fn session_file_path(session_id: &str) -> Result<PathBuf, Error> {
     let home_dir = dirs::home_dir().ok_or_else(|| err_msg("couldn't get home directory"))?;
     let tmp_file_name = format!("{}.dlt", session_id);

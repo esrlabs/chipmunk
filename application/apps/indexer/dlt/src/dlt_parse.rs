@@ -991,39 +991,6 @@ pub fn dlt_statistic_row_info<'a, T>(
 ) -> Result<(&'a [u8], StatisticRowInfo), DltParseError> {
     let update_channel_ref = update_channel;
     let (after_storage_header, unparsable_bytes) = skip_till_after_next_storage_header(input)?;
-    if unparsable_bytes > 0 {
-        if let Some(tx) = update_channel {
-            let _ = tx.send(Err(Notification {
-                severity: Severity::WARNING,
-                content: format!("dropped {} to get to next message", unparsable_bytes),
-                line: index,
-            }));
-        }
-    }
-    // let skip_res: IResult<&'a [u8], ()> = match forward_to_next_storage_header(input) {
-    //     Some((consumed, rest)) => {
-    //         if consumed > 0 {
-    //             if let Some(tx) = update_channel {
-    //                 let _ = tx.send(Err(Notification {
-    //                     severity: Severity::WARNING,
-    //                     content: format!("dropped {} to get to next message", consumed),
-    //                     line: index,
-    //                 }));
-    //             }
-    //         }
-    //         skip_storage_header(rest)
-    //     }
-    //     None => {
-    //         if let Some(tx) = update_channel {
-    //             let _ = tx.send(Err(Notification {
-    //                 severity: Severity::WARNING,
-    //                 content: "did not find another storage header".to_string(),
-    //                 line: index,
-    //             }));
-    //         }
-    //         Err(nom::Err::Error((&[], nom::error::ErrorKind::Verify)))
-    //     }
-    // };
     let (after_storage_and_normal_header, header) = dlt_standard_header(after_storage_header)?;
 
     let payload_length = match validated_payload_length(&header, index, update_channel_ref) {
