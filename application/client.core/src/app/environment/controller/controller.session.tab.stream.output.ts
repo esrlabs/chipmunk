@@ -178,10 +178,10 @@ export class ControllerSessionTabStreamOutput {
             if (range.start >= stored.start && range.end <= stored.end) {
                 rows = this._getRowsSliced(range.start, range.end + 1);
                 this._subjects.onSourceChanged.next(rows[0].pluginId);
-            } else if (range.end > stored.start && range.start < stored.start && range.end < stored.end) {
+            } else if (range.end > stored.start && range.start <= stored.start && range.end < stored.end) {
                 rows = this._getPendingPackets(range.start, stored.start);
                 rows.push(...this._getRowsSliced(stored.start, range.end + 1));
-            } else if (range.start < stored.end && range.start > stored.start && range.end > stored.end) {
+            } else if (range.start < stored.end && range.start >= stored.start && range.end > stored.end) {
                 rows = this._getPendingPackets(stored.end + 1, range.end + 1);
                 rows.unshift(...this._getRowsSliced(range.start, stored.end + 1));
             } else {
