@@ -760,23 +760,30 @@ task build_and_package_electron: electron_build_output
 
 desc 'Prepare package to deploy on Github'
 task :prepare_to_deploy do
-  release_name = "chipmunk@#{package_version}-#{target_platform_name}-portable.tgz"
+  release_name = "chipmunk@#{package_version}-#{target_platform_name}-portable"
+  legacy_release_name = nil
   cd ELECTRON_RELEASE_DIR do
     if OS.mac?
+      release_name += '.tgz'
       cd 'mac' do
         sh "tar -czf ../#{release_name} ./chipmunk.app"
       end
     elsif OS.linux?
+      release_name += '.tgz'
       cd "#{target_platform_alias}-unpacked" do
         sh "tar -czf ../#{release_name} *"
       end
     else
+      release_name += '.zip'
+      legacy_release_name += '.tgz'
       cd "#{target_platform_alias}-unpacked" do
-        sh "tar -czf ../#{release_name} ./* --force-local"
+        sh "tar -czf ../#{legacy_release_name} ./* --force-local"
+        sh "powershell -command \"Compress-Archive * ..\\#{release_name}\""
       end
     end
   end
   mv "#{ELECTRON_RELEASE_DIR}/#{release_name}", '.'
+  mv "#{ELECTRON_RELEASE_DIR}/#{legacy_release_name}", '.' if legacy_release_name
 end
 
 desc 'developer job to completely build chipmunk...after that use :start'
