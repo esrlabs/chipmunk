@@ -82,6 +82,54 @@ class ServiceDLTDeamonConnector implements IService {
         return "ServiceDLTDeamonConnector";
     }
 
+    public saveAs(target: string, type: 'session' | 'file', sections: CommonInterfaces.DLT.IIndexSection[] = []): Promise<string | undefined> {
+        return new Promise((resolve, reject) => {
+            this.getFileName().then((filename: string | undefined) => {
+                if (filename === undefined) {
+                    return resolve(undefined);
+                }
+                this._logger.info(`Saving`);
+                this._saver = indexer.saveDltFile(target, type, filename, { sections: sections }).then(() => {
+                    this._logger.info(`Saved`);
+                    // Resolving
+                    resolve(filename);
+                }).canceled(() => {
+                    this._logger.info(`Saving was canceled`);
+                }).catch((error: Error) => {
+                    this._logger.warn(`Exception: ${error.message}`);
+                    reject(error);
+                }).finally(() => {
+                    this._saver = undefined;
+                }).on('progress', (event: Progress.ITicks) => {
+                    // TODO: Do we need this event at all?
+                });
+            }).catch((error: Error) => {
+                reject(error);
+            });
+        });
+    }
+
+    public getFileName(): Promise<string | undefined> {
+        return new Promise((resolve, reject) => {
+            const win = ServiceElectron.getBrowserWindow();
+            if (win === undefined) {
+                return;
+            }
+            dialog.showSaveDialog(win, {
+                title: 'Saving DLT stream',
+                filters: [{
+                    name: 'DLT Files',
+                    extensions: ['dlt'],
+                }],
+            }).then((returnValue: SaveDialogReturnValue) => {
+                resolve(returnValue.filePath);
+            }).catch((error: Error) => {
+                this._logger.error(`Fail get filename for saving due error: ${error.message}`);
+                reject(error);
+            });
+        });
+    }
+
     private _onDLTDeamonConnectRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.DLTDeamonConnectRequest = request as IPCMessages.DLTDeamonConnectRequest;
         if (this._connections.has(req.session)) {
@@ -264,7 +312,7 @@ class ServiceDLTDeamonConnector implements IService {
                 }),
             );
         }
-        this._saveAsStream(req.session).then((filename: string | undefined) => {
+        this.saveAs(req.session, 'session').then((filename: string | undefined) => {
             response(
                 new IPCMessages.DLTDeamonSaveResponse({
                     session: req.session,
@@ -279,54 +327,6 @@ class ServiceDLTDeamonConnector implements IService {
                     error: error.message,
                 }),
             );
-        });
-    }
-
-    private _saveAsStream(session: string, sections: CommonInterfaces.DLT.IIndexSection[] = []): Promise<string | undefined> {
-        return new Promise((resolve, reject) => {
-            this._getFileName().then((filename: string | undefined) => {
-                if (filename === undefined) {
-                    return resolve(undefined);
-                }
-                this._logger.info(`Saving`);
-                this._saver = indexer.saveDltFile(session, 'session', filename, { sections: sections }).then(() => {
-                    this._logger.info(`Saved`);
-                    // Resolving
-                    resolve(filename);
-                }).canceled(() => {
-                    this._logger.info(`Saving was canceled`);
-                }).catch((error: Error) => {
-                    this._logger.warn(`Exception: ${error.message}`);
-                    reject(error);
-                }).finally(() => {
-                    this._saver = undefined;
-                }).on('progress', (event: Progress.ITicks) => {
-                    // TODO: Do we need this event at all?
-                });
-            }).catch((error: Error) => {
-                reject(error);
-            });
-        });
-    }
-
-    private _getFileName(): Promise<string | undefined> {
-        return new Promise((resolve, reject) => {
-            const win = ServiceElectron.getBrowserWindow();
-            if (win === undefined) {
-                return;
-            }
-            dialog.showSaveDialog(win, {
-                title: 'Saving DLT stream',
-                filters: [{
-                    name: 'DLT Files',
-                    extensions: ['dlt'],
-                }],
-            }).then((returnValue: SaveDialogReturnValue) => {
-                resolve(returnValue.filePath);
-            }).catch((error: Error) => {
-                this._logger.error(`Fail get filename for saving due error: ${error.message}`);
-                reject(error);
-            });
         });
     }
 
@@ -385,7 +385,7 @@ class ServiceDLTDeamonConnector implements IService {
                     sections.push(Object.assign({}, section));
                 }
             });
-            this._saveAsStream(session, sections).then(() => {
+            this.saveAs(session, 'session', sections).then(() => {
                 resolve();
             }).catch((saveErr: Error) => {
                 this._logger.warn(`Fail to save stream data due error: ${saveErr.message}`);
@@ -396,7 +396,7 @@ class ServiceDLTDeamonConnector implements IService {
 
     private _exportAll(session: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._saveAsStream(session).then(() => {
+            this.saveAs(session, 'session').then(() => {
                 resolve();
             }).catch((saveErr: Error) => {
                 this._logger.warn(`Fail to save stream data due error: ${saveErr.message}`);

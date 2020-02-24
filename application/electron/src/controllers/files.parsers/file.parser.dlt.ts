@@ -1,21 +1,31 @@
-import { AFileParser, IMapItem } from "./interface";
-import * as path from "path";
-import indexer, { DLT, Progress, CancelablePromise } from "indexer-neon";
-import ServiceStreams from "../../services/service.streams";
 import Logger from "../../tools/env.logger";
+
 import * as Tools from "../../tools/index";
-import ServiceNotifications, { ENotificationType } from "../../services/service.notifications";
+import * as path from "path";
+
+import { AFileParser, IMapItem } from "./interface";
 import { CommonInterfaces } from '../../interfaces/interface.common';
+import { IPCMessages } from "../../services/service.electron";
+
+import indexer, { DLT, Progress, CancelablePromise } from "indexer-neon";
+import ServiceNotifications, { ENotificationType } from "../../services/service.notifications";
+
+import ServiceOutputExport from "../../services/output/service.output.export";
+import ServiceStreams from "../../services/service.streams";
+import ServiceDLTDeamonConnector from '../../services/connectors/service.dlt.deamon';
 
 export const CMetaData = 'dlt';
 
 const ExtNames = ["dlt"];
+
+const CExportSelectionActionId = Tools.guid();
 
 export default class FileParser extends AFileParser {
 
     private _guid: string | undefined;
     private _logger: Logger = new Logger("DLT Indexing");
     private _task: CancelablePromise<void, void, DLT.TIndexDltAsyncEvents, DLT.TIndexDltAsyncEventObject> | undefined;
+    private _saver: CancelablePromise<void, void, DLT.TDLTSocketEvents, DLT.TDLTSocketEventObject> | undefined;
 
     constructor() {
         super();
@@ -111,6 +121,12 @@ export default class FileParser extends AFileParser {
             let completeTicks: number = 0;
             this._task = indexer.indexDltAsync(dltParams).then(() => {
                 resolve(collectedChunks);
+                // Register exports callback
+                ServiceOutputExport.setAction(this._guid as string, CExportSelectionActionId, {
+                    caption: 'Export selection to DLT file',
+                    handler: this._exportSelection.bind(this, srcFile),
+                    isEnabled: () => true,
+                });
             }).catch((error: Error) => {
                 ServiceNotifications.notify({
                     message:
@@ -164,6 +180,39 @@ export default class FileParser extends AFileParser {
             this._task.canceled(() => {
                 resolve();
             }).abort();
+        });
+    }
+
+    private _exportSelection(target: string, request: IPCMessages.OutputExportFeaturesRequest | IPCMessages.OutputExportFeatureCallRequest): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const sections: CommonInterfaces.DLT.IIndexSection[] = [];
+            const section: CommonInterfaces.DLT.IIndexSection = {
+                first_line: -1,
+                last_line: -1,
+            };
+            request.selection.forEach((row: number, index: number) => {
+                if (section.first_line === -1) {
+                    section.first_line = row;
+                }
+                if (index !== 0) {
+                    if (request.selection[index - 1] !== row - 1) {
+                        section.last_line = request.selection[index - 1];
+                        sections.push(Object.assign({}, section));
+                        section.last_line = -1;
+                        section.first_line = row;
+                    }
+                }
+                if (index === request.selection.length - 1) {
+                    section.last_line = row;
+                    sections.push(Object.assign({}, section));
+                }
+            });
+            ServiceDLTDeamonConnector.saveAs(target, 'file', sections).then(() => {
+                resolve();
+            }).catch((saveErr: Error) => {
+                this._logger.warn(`Fail to save stream data due error: ${saveErr.message}`);
+                reject(saveErr);
+            });
         });
     }
 
