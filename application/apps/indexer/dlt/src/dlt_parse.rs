@@ -58,7 +58,7 @@ pub(crate) fn forward_to_next_storage_header(input: &[u8]) -> Option<(usize, &[u
 
     if !found {
         debug!(
-            "did not find another storage header (input left {})",
+            "forward but no more storage header (input left {})",
             input.len()
         );
         return None;

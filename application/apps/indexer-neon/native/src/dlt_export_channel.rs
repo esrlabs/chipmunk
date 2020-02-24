@@ -1,11 +1,15 @@
 use crate::channels::EventEmitterTask;
 use crossbeam_channel as cc;
+use failure::{err_msg, Error};
 use indexer_base::chunks::ChunkResults;
 use indexer_base::config::SectionConfig;
 use neon::prelude::*;
 use std::path;
 use std::sync::{Arc, Mutex};
 use std::thread;
+
+static DLT_SESSION_ID: &str = "session";
+static DLT_SOURCE_FILE: &str = "file";
 
 pub struct DltExporterEventEmitter {
     pub event_receiver: Arc<Mutex<cc::Receiver<ChunkResults>>>,
@@ -16,27 +20,54 @@ impl DltExporterEventEmitter {
     #[allow(clippy::too_many_arguments)]
     pub fn start_exporting_file_in_thread(
         self: &mut Self,
-        session_id: String,
+        source: String,
+        source_type: String,
         destination_path: path::PathBuf,
         sections_config: SectionConfig,
         shutdown_rx: async_std::sync::Receiver<()>,
         chunk_result_sender: cc::Sender<ChunkResults>,
-    ) {
-        info!("start_exporting_file_in_thread: {:?}", sections_config);
+    ) -> Result<(), Error> {
+        info!(
+            "start_exporting_file_in_thread (source type {}): {:?}",
+            source_type, sections_config
+        );
 
         // Spawn a thread to continue running after this method has returned.
-        self.task_thread = Some(thread::spawn(move || {
-            match dlt::dlt_file::export_session_file(
-                session_id,
-                destination_path,
-                sections_config,
-                chunk_result_sender,
-            ) {
-                Ok(_) => {}
-                Err(e) => warn!("error exporting dlt messages: {}", e),
-            }
-            debug!("back after DLT export finished!");
-        }));
+        if source_type == DLT_SESSION_ID {
+            let session_id = source;
+
+            self.task_thread = Some(thread::spawn(move || {
+                match dlt::dlt_file::export_session_file(
+                    session_id,
+                    destination_path,
+                    sections_config,
+                    chunk_result_sender,
+                ) {
+                    Ok(_) => {}
+                    Err(e) => warn!("error exporting dlt messages: {}", e),
+                }
+                debug!("back after DLT export finished!");
+            }));
+            Ok(())
+        } else if source_type == DLT_SOURCE_FILE {
+            let dlt_file_path = path::PathBuf::from(source);
+
+            self.task_thread = Some(thread::spawn(move || {
+                match dlt::dlt_file::export_as_dlt_file(
+                    dlt_file_path,
+                    destination_path,
+                    sections_config,
+                    chunk_result_sender,
+                ) {
+                    Ok(_) => {}
+                    Err(e) => warn!("error exporting dlt messages: {}", e),
+                }
+                debug!("back after DLT export finished!");
+            }));
+            Ok(())
+        } else {
+            Err(err_msg(format!("unknown source type: {}", source_type)))
+        }
     }
 }
 
@@ -45,9 +76,14 @@ declare_types! {
     pub class JsDltExporterEventEmitter for DltExporterEventEmitter {
         init(mut cx) {
             trace!("Rust: JsDltExporterEventEmitter");
-            let session_id = cx.argument::<JsString>(0)?.value();
-            let destination_path = path::PathBuf::from(cx.argument::<JsString>(1)?.value().as_str());
-            let arg_sections_conf = cx.argument::<JsValue>(2)?;
+            let mut i = 0i32;
+            let source = cx.argument::<JsString>(i)?.value();
+            i += 1;
+            let source_type = cx.argument::<JsString>(i)?.value();
+            i += 1;
+            let destination_path = path::PathBuf::from(cx.argument::<JsString>(i)?.value().as_str());
+            i += 1;
+            let arg_sections_conf = cx.argument::<JsValue>(i)?;
             let sections_conf: SectionConfig = neon_serde::from_value(&mut cx, arg_sections_conf)?;
 
             let shutdown_channel = async_std::sync::channel(1);
@@ -58,14 +94,17 @@ declare_types! {
                 task_thread: None,
             };
 
-            emitter.start_exporting_file_in_thread(
-                session_id,
+            match emitter.start_exporting_file_in_thread(
+                source,
+                source_type,
                 destination_path,
                 sections_conf,
                 shutdown_channel.1,
                 tx,
-            );
-            Ok(emitter)
+            ) {
+                Ok(()) => Ok(emitter),
+                Err(_) => Err(neon::result::Throw)
+            }
         }
 
         // will be called by JS to receive data in a loop, but care should be taken to only call it once at a time.

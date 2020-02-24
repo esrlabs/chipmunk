@@ -289,7 +289,7 @@ class ServiceDLTDeamonConnector implements IService {
                     return resolve(undefined);
                 }
                 this._logger.info(`Saving`);
-                this._saver = indexer.saveDltFile(session, filename, { sections: sections }).then(() => {
+                this._saver = indexer.saveDltFile(session, 'session', filename, { sections: sections }).then(() => {
                     this._logger.info(`Saved`);
                     // Resolving
                     resolve(filename);

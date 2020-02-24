@@ -505,14 +505,29 @@ impl FilePartitioner {
         })
     }
     fn get_parts(mut self) -> Vec<FilePart> {
-        let mut index = 0usize;
-        let mut in_section = false;
+        #[derive(Debug)]
+        struct State {
+            index: usize,
+            in_section: bool,
+            bytes_in_section: usize,
+            section_offset: usize,
+        }
         let mut result_vec: Vec<FilePart> = vec![];
-        let mut bytes_in_section = 0usize;
-        let mut section_offset = 0usize;
+        let mut state = State {
+            index: 0,
+            in_section: false,
+            bytes_in_section: 0,
+            section_offset: 0,
+        };
+        impl State {
+            fn reset_section(&mut self) {
+                self.in_section = false;
+                self.bytes_in_section = 0;
+            }
+        }
         for section in self.section_config.sections {
             loop {
-                trace!("next[{}]", index);
+                trace!("next[{:?}] (current section {:?})", state.index, section);
                 match self.reader.fill_buf() {
                     Ok(content) => {
                         trace!("Ok(content (len {}))", content.len());
@@ -525,37 +540,47 @@ impl FilePartitioner {
                             {
                                 None => {
                                     trace!("no more storage header found");
+                                    if state.in_section {
+                                        trace!("closing last section");
+                                        // close partition
+                                        let res = FilePart {
+                                            offset: state.section_offset,
+                                            length: state.bytes_in_section,
+                                        };
+                                        trace!(
+                                            "consumed: {}bytes, res: {:?}",
+                                            state.bytes_in_section,
+                                            &res
+                                        );
+                                        result_vec.push(res);
+                                        state.reset_section();
+                                    }
                                     break;
                                 }
                                 Some((dropped, _at_next_storage_header)) => {
                                     let consumed = skipped_bytes + dropped;
-                                    if index == section.first_line {
-                                        trace!("enter section: {:?}) (index: {})", section, index);
-                                        in_section = true;
-                                        section_offset = self.offset;
-                                    } else if index == section.last_line + 1 {
-                                        trace!(
-                                            "leaving section: {:?}) (index: {})",
-                                            section,
-                                            index
-                                        );
-                                        in_section = false;
+                                    if state.index == section.first_line {
+                                        trace!("enter section: {:?}) ({:?})", section, state);
+                                        state.in_section = true;
+                                        state.section_offset = self.offset;
+                                    } else if state.index == section.last_line + 1 {
+                                        trace!("leaving section: {:?}) ({:?})", section, state);
                                         // close partition
                                         let res = FilePart {
-                                            offset: section_offset,
-                                            length: bytes_in_section,
+                                            offset: state.section_offset,
+                                            length: state.bytes_in_section,
                                         };
                                         trace!(
                                             "consumed: {}bytes, res: {:?}",
-                                            bytes_in_section,
+                                            state.bytes_in_section,
                                             &res
                                         );
                                         result_vec.push(res);
-                                        bytes_in_section = 0;
+                                        state.reset_section();
                                         break;
                                     }
-                                    if in_section {
-                                        bytes_in_section += consumed;
+                                    if state.in_section {
+                                        state.bytes_in_section += consumed;
                                     }
                                     self.offset += consumed;
                                     self.reader.consume(consumed);
@@ -572,9 +597,10 @@ impl FilePartitioner {
                         break;
                     }
                 }
-                index += 1;
+                state.index += 1;
             }
         }
+        trace!("result of partition: {:?}", result_vec);
         result_vec
     }
 }
