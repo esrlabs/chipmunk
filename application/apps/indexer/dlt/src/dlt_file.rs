@@ -536,56 +536,39 @@ impl FilePartitioner {
                             break;
                         }
                         match skip_storage_header(content) {
-                            Ok((rest, skipped_bytes)) => match forward_to_next_storage_header(rest)
-                            {
-                                None => {
-                                    trace!("no more storage header found");
-                                    if state.in_section {
-                                        trace!("closing last section");
-                                        // close partition
-                                        let res = FilePart {
-                                            offset: state.section_offset,
-                                            length: state.bytes_in_section,
-                                        };
-                                        trace!(
-                                            "consumed: {}bytes, res: {:?}",
-                                            state.bytes_in_section,
-                                            &res
-                                        );
-                                        result_vec.push(res);
-                                        state.reset_section();
-                                    }
+                            Ok((rest, skipped_bytes)) => {
+                                let (len_without_storage_header, _was_last) =
+                                    match forward_to_next_storage_header(rest) {
+                                        Some((dropped, _)) => (dropped, false),
+                                        None => (rest.len(), true),
+                                    };
+                                let consumed = skipped_bytes + len_without_storage_header;
+                                if state.index == section.first_line {
+                                    trace!("---> enter section: {:?}) ({:?})", section, state);
+                                    state.in_section = true;
+                                    state.section_offset = self.offset;
+                                }
+                                if state.in_section {
+                                    state.bytes_in_section += consumed;
+                                }
+                                if state.index == section.last_line {
+                                    trace!("<--- leaving section: {:?}) ({:?})", section, state);
+                                    let res = FilePart {
+                                        offset: state.section_offset,
+                                        length: state.bytes_in_section,
+                                    };
+                                    trace!(
+                                        "consumed: {}bytes, res: {:?}",
+                                        state.bytes_in_section,
+                                        &res
+                                    );
+                                    result_vec.push(res);
+                                    state.reset_section();
                                     break;
                                 }
-                                Some((dropped, _at_next_storage_header)) => {
-                                    let consumed = skipped_bytes + dropped;
-                                    if state.index == section.first_line {
-                                        trace!("enter section: {:?}) ({:?})", section, state);
-                                        state.in_section = true;
-                                        state.section_offset = self.offset;
-                                    } else if state.index == section.last_line + 1 {
-                                        trace!("leaving section: {:?}) ({:?})", section, state);
-                                        // close partition
-                                        let res = FilePart {
-                                            offset: state.section_offset,
-                                            length: state.bytes_in_section,
-                                        };
-                                        trace!(
-                                            "consumed: {}bytes, res: {:?}",
-                                            state.bytes_in_section,
-                                            &res
-                                        );
-                                        result_vec.push(res);
-                                        state.reset_section();
-                                        break;
-                                    }
-                                    if state.in_section {
-                                        state.bytes_in_section += consumed;
-                                    }
-                                    self.offset += consumed;
-                                    self.reader.consume(consumed);
-                                }
-                            },
+                                self.offset += consumed;
+                                self.reader.consume(consumed);
+                            }
                             Err(_e) => {
                                 warn!("error in FilePartitioner forward: {}", _e);
                                 break;
