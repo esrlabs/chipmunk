@@ -1,6 +1,6 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
-import ServiceElectronIpc, { IPCMessages, Subscription } from '../service.electron.ipc';
-import OutputRedirectionsService from './service.output.redirections';
+import ServiceElectronIpc, { IPCMessages } from '../service.electron.ipc';
+import OutputRedirectionsService, { IRange } from './service.output.redirections';
 
 export interface IExportAction {
     caller: () => void;
@@ -14,16 +14,22 @@ export class OutputExportsService {
 
     public getActions(session: string): Promise<IExportAction[]> {
         return new Promise<IExportAction[]>((resolve, reject) => {
-            const selection: number[] = OutputRedirectionsService.getSelection(session);
+            let selection: IRange[] | undefined = OutputRedirectionsService.getSelectionRanges(session);
+            if (selection === undefined) {
+                selection = [];
+            }
+            const converted: IPCMessages.IOutputSelectionRange[] = selection.map((range: IRange) => {
+                return { from: range.start, to: range.end };
+            });
             ServiceElectronIpc.request(new IPCMessages.OutputExportFeaturesRequest({
                 session: session,
-                selection: selection,
+                selection: converted,
             }), IPCMessages.OutputExportFeaturesResponse).then((response: IPCMessages.OutputExportFeaturesResponse) => {
                 resolve(response.actions.map((action: IPCMessages.IExportAction) => {
                     return {
                         caption: action.caption,
                         disabled: !action.enabled,
-                        caller: this._caller.bind(this, session, selection, action.id),
+                        caller: this._caller.bind(this, session, converted, action.id),
                     };
                 }));
             }).catch((err: Error) => {
@@ -33,7 +39,7 @@ export class OutputExportsService {
         });
     }
 
-    private _caller(session: string, selection: number[], actionId: string) {
+    private _caller(session: string, selection: IPCMessages.IOutputSelectionRange[], actionId: string) {
         ServiceElectronIpc.request(new IPCMessages.OutputExportFeatureCallRequest({
             actionId: actionId,
             session: session,
