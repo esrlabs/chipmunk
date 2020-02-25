@@ -1,12 +1,16 @@
 import { Component, ChangeDetectorRef, Input, OnInit, OnDestroy, ViewChild, AfterViewInit } from '@angular/core';
-import * as Toolkit from 'chipmunk.client.toolkit';
-import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
-import FileOpenerService from '../../../services/service.file.opener';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { map, startWith } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
 import { MatInput, MatAutocompleteTrigger } from '@angular/material';
 import { Observable } from 'rxjs';
+import { sortFiles, ISortedFile } from '../../../thirdparty/code/engine';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
+
+import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
+import FileOpenerService from '../../../services/service.file.opener';
 
 @Component({
     selector: 'app-views-dialogs-recentfilescation-map',
@@ -19,8 +23,8 @@ export class DialogsRecentFilesActionComponent implements OnInit, AfterViewInit,
     @ViewChild(MatInput, {static: false}) _inputComRef: MatInput;
     @ViewChild(MatAutocompleteTrigger, {static: false}) _autoComRef: MatAutocompleteTrigger;
 
-    public _ng_files: Observable<IPCMessages.IRecentFileInfo[]>;
-    public _files: Array<IPCMessages.IRecentFileInfo> = [];
+    public _ng_files: Observable<ISortedFile[]>;
+    public _files: ISortedFile[] = [];
     public _ng_inputCtrl = new FormControl();
     private _logger: Toolkit.Logger = new Toolkit.Logger('DialogsRecentFilesActionComponent');
     private _destroyed: boolean = false;
@@ -28,7 +32,8 @@ export class DialogsRecentFilesActionComponent implements OnInit, AfterViewInit,
     @Input() close: () => void = () => {};
 
     constructor(private _cdRef: ChangeDetectorRef,
-                private _notificationsService: NotificationsService) {
+                private _notificationsService: NotificationsService,
+                private _sanitizer: DomSanitizer) {
         this._ng_displayWith = this._ng_displayWith.bind(this);
     }
 
@@ -47,13 +52,14 @@ export class DialogsRecentFilesActionComponent implements OnInit, AfterViewInit,
                 });
             } else {
                 this._files = response.files.map((file: IPCMessages.IRecentFileInfo) => {
-                    if (file.filename === undefined) {
-                        file.filename = Toolkit.basename(file.file);
-                    }
-                    if (file.folder === undefined) {
-                        file.folder = Toolkit.dirname(file.file);
-                    }
-                    return file;
+                    return {
+                        file: file.file,
+                        basename: Toolkit.basename(file.file),
+                        dirname: Toolkit.dirname(file.file),
+                        tbasename: Toolkit.basename(file.file),
+                        tdirname: Toolkit.dirname(file.file),
+                        size: file.size,
+                    };
                 });
             }
             this._ng_files = this._ng_inputCtrl.valueChanges.pipe(
@@ -87,11 +93,15 @@ export class DialogsRecentFilesActionComponent implements OnInit, AfterViewInit,
         this.close();
     }
 
-    public _ng_displayWith(file: IPCMessages.IRecentFileInfo): string {
+    public _ng_displayWith(file: ISortedFile): string {
         if (file === null || file === undefined) {
             return '';
         }
-        return file.filename;
+        return file.basename;
+    }
+
+    public _ng_getSafeHTML(str: string): SafeHtml {
+        return this._sanitizer.bypassSecurityTrustHtml(str);
     }
 
     private _focus() {
@@ -103,15 +113,13 @@ export class DialogsRecentFilesActionComponent implements OnInit, AfterViewInit,
         this._inputComRef.focus();
     }
 
-    private _filter(value: string): IPCMessages.IRecentFileInfo[] {
+    private _filter(value: string): ISortedFile[] {
         if (typeof value !== 'string') {
             return;
         }
-        const filted = value.toLowerCase();
+        const scored = sortFiles(this._files, value, 'span');
         this._focus();
-        return this._files.filter((file: IPCMessages.IRecentFileInfo) => {
-            return file.file.includes(filted);
-        });
+        return scored;
     }
 
     private _forceUpdate() {

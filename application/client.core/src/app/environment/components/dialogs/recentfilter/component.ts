@@ -1,11 +1,15 @@
 import { Component, ChangeDetectorRef, Input, OnDestroy, OnInit, AfterViewInit, ViewChild } from '@angular/core';
-import * as Toolkit from 'chipmunk.client.toolkit';
-import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { map, startWith } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
 import { MatInput, MatAutocompleteTrigger } from '@angular/material';
 import { Observable } from 'rxjs';
+import { sortFiles, ISortedFile } from '../../../thirdparty/code/engine';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
+
+import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
 
 @Component({
     selector: 'app-views-dialogs-recentfilters-map',
@@ -18,8 +22,8 @@ export class DialogsRecentFitlersActionComponent implements OnInit, AfterViewIni
     @ViewChild(MatInput, {static: false}) _inputComRef: MatInput;
     @ViewChild(MatAutocompleteTrigger, {static: false}) _autoComRef: MatAutocompleteTrigger;
 
-    public _ng_files: Observable<IPCMessages.IRecentFilterFileInfo[]>;
-    public _files: Array<IPCMessages.IRecentFilterFileInfo> = [];
+    public _ng_files: Observable<ISortedFile[]>;
+    public _files: Array<ISortedFile> = [];
     public _ng_inputCtrl = new FormControl();
     private _logger: Toolkit.Logger = new Toolkit.Logger('DialogsRecentFitlersActionComponent');
     private _destroyed: boolean = false;
@@ -28,7 +32,8 @@ export class DialogsRecentFitlersActionComponent implements OnInit, AfterViewIni
     @Input() open: (file: string) => void = () => {};
 
     constructor(private _cdRef: ChangeDetectorRef,
-                private _notificationsService: NotificationsService) {
+                private _notificationsService: NotificationsService,
+                private _sanitizer: DomSanitizer) {
         this._ng_displayWith = this._ng_displayWith.bind(this);
     }
 
@@ -47,13 +52,15 @@ export class DialogsRecentFitlersActionComponent implements OnInit, AfterViewIni
                 this._logger.warn(`Fail to load recent files due error: ${response.error}`);
             } else {
                 this._files = response.files.map((file: IPCMessages.IRecentFilterFileInfo) => {
-                    if (file.filename === undefined) {
-                        file.filename = Toolkit.basename(file.file);
-                    }
-                    if (file.folder === undefined) {
-                        file.folder = Toolkit.dirname(file.file);
-                    }
-                    return file;
+                    return {
+                        file: file.file,
+                        basename: Toolkit.basename(file.file),
+                        dirname: Toolkit.dirname(file.file),
+                        tbasename: Toolkit.basename(file.file),
+                        tdirname: Toolkit.dirname(file.file),
+                        filters: file.filters,
+                        timestamp: file.timestamp,
+                    };
                 });
             }
             this._ng_files = this._ng_inputCtrl.valueChanges.pipe(
@@ -92,6 +99,10 @@ export class DialogsRecentFitlersActionComponent implements OnInit, AfterViewIni
         return file.filename;
     }
 
+    public _ng_getSafeHTML(str: string): SafeHtml {
+        return this._sanitizer.bypassSecurityTrustHtml(str);
+    }
+
     private _focus() {
         this._forceUpdate();
         if (this._inputComRef === undefined || this._autoComRef === undefined) {
@@ -101,15 +112,13 @@ export class DialogsRecentFitlersActionComponent implements OnInit, AfterViewIni
         this._inputComRef.focus();
     }
 
-    private _filter(value: string): IPCMessages.IRecentFilterFileInfo[] {
+    private _filter(value: string): ISortedFile[] {
         if (typeof value !== 'string') {
             return;
         }
-        const filted = value.toLowerCase();
+        const scored = sortFiles(this._files, value, 'span');
         this._focus();
-        return this._files.filter((file: IPCMessages.IRecentFilterFileInfo) => {
-            return file.file.includes(filted);
-        });
+        return scored;
     }
 
     private _forceUpdate() {
@@ -118,45 +127,5 @@ export class DialogsRecentFitlersActionComponent implements OnInit, AfterViewIni
         }
         this._cdRef.detectChanges();
     }
-/*
-    public _ng_files: Array<IPCMessages.IRecentFilterFileInfo> = [];
-    public _files: Array<IPCMessages.IRecentFilterFileInfo> = [];
 
-    private _logger: Toolkit.Logger = new Toolkit.Logger('DialogsRecentFilesActionComponent');
-
-    @Input() close: () => void = () => {};
-    @Input() open: (file: string) => void = () => {};
-
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _notifications: NotificationsService) {
-        this._ng_onFilterChange = this._ng_onFilterChange.bind(this);
-    }
-
-    public ngAfterContentInit() {
-
-    }
-
-    public _ng_open(file: IPCMessages.IRecentFilterFileInfo) {
-        this.open(file.file);
-        this.close();
-    }
-
-    public _ng_getLocalTime(timestamp: number) {
-        const date: Date = new Date(timestamp);
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-    }
-
-    public _ng_onFilterChange(value: string, event: KeyboardEvent) {
-        const reg: RegExp | Error = Toolkit.regTools.createFromStr(value);
-        if (reg instanceof Error) {
-            this._ng_files = this._files.slice();
-            this._cdRef.detectChanges();
-            return;
-        }
-        this._ng_files = this._files.filter((file: IPCMessages.IRecentFilterFileInfo) => {
-            return file.filename.search(reg) !== -1 || file.folder.search(reg) !== -1;
-        });
-        this._cdRef.detectChanges();
-    }
-*/
 }
