@@ -12,6 +12,7 @@
     line-height: 1.5rem!important;
     max-height: 1.5rem!important;
 }
+
 & mat-form-field.recent-files{
     & input,
     & label {
@@ -51,6 +52,13 @@
             position: relative;
             color: @scheme-color-2;
             vertical-align: top;
+        }
+        & span.filename > span,
+        & span.folder > span {
+            font-weight: bold;
+            background: @scheme-color-2;
+            color: @scheme-color-0;
+            border-radius: 3px;
         }
     }
 }

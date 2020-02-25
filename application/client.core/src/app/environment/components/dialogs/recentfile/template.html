@@ -14,7 +14,7 @@
         [autoActiveFirstOption]="true"
         [displayWith]="_ng_displayWith">
         <mat-option *ngFor="let file of _ng_files | async" [value]="file" [attr.title]="file.file" class="recent-files small t-console t-small">
-            <span class="filename">{{file.filename}}</span><span class="folder">{{file.folder}}</span><span class="size">{{(file.size / 1024 / 1024).toFixed(2)}} Mb</span>
+            <span class="filename" [innerHTML]="_ng_getSafeHTML(file.tbasename)"></span><span class="folder" [innerHTML]="_ng_getSafeHTML(file.tdirname)"></span><span class="size">{{(file.size / 1024 / 1024).toFixed(2)}} Mb</span>
         </mat-option>
     </mat-autocomplete>
 </mat-form-field>

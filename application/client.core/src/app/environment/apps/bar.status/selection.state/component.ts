@@ -5,11 +5,6 @@ import TabsSessionsService from '../../../services/service.sessions.tabs';
 import { Subscription } from 'rxjs';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 
-interface IStorage {
-    read: number;
-    found: number;
-}
-
 @Component({
     selector: 'app-apps-status-bar-selection-state',
     templateUrl: './template.html',
