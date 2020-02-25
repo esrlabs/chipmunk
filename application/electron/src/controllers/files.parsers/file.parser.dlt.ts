@@ -6,6 +6,7 @@ import * as path from "path";
 import { AFileParser, IMapItem } from "./interface";
 import { CommonInterfaces } from '../../interfaces/interface.common';
 import { IPCMessages } from "../../services/service.electron";
+import { CExportSelectionActionId } from '../../consts/output.actions';
 
 import indexer, { DLT, Progress, CancelablePromise } from "indexer-neon";
 import ServiceNotifications, { ENotificationType } from "../../services/service.notifications";
@@ -17,8 +18,6 @@ import ServiceDLTDeamonConnector from '../../services/connectors/service.dlt.dea
 export const CMetaData = 'dlt';
 
 const ExtNames = ["dlt"];
-
-const CExportSelectionActionId = Tools.guid();
 
 export default class FileParser extends AFileParser {
 

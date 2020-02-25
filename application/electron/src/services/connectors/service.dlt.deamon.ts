@@ -3,19 +3,16 @@ import { IService } from "../../interfaces/interface.service";
 import { DLTConnectionController, IConnectionOptions } from '../../controllers/connections/dlt.connection';
 import { dialog, SaveDialogReturnValue } from 'electron';
 import { CommonInterfaces } from '../../interfaces/interface.common';
+import { CExportSelectionActionId, CExportAllActionId } from '../../consts/output.actions';
 
 import ServiceStreams from "../service.streams";
 import Logger from "../../tools/env.logger";
-
-import * as Tools from '../../tools';
 
 import ServiceStorage, { IStorageScheme } from '../service.storage';
 import ServiceElectron, { IPCMessages } from "../service.electron";
 import ServiceOutputExport from "../output/service.output.export";
 import indexer, { Progress, DLT, CancelablePromise } from "indexer-neon";
 
-const CExportSelectionActionId = Tools.guid();
-const CExportAllActionId = Tools.guid();
 /**
  * @class ServiceDLTDeamonConnector
  * @description Providers access to DLT deamon (UPD)
