@@ -12,11 +12,11 @@ extern crate serde;
 
 mod channels;
 mod concatenator_channel;
-mod dlt_export_channel;
 mod dlt_indexer_channel;
 mod dlt_pcap_channel;
 mod dlt_socket_channel;
 mod dlt_stats_channel;
+mod export_channel;
 mod fibex_utils;
 mod indexer_channel;
 mod logging;
@@ -28,8 +28,8 @@ use crossbeam_channel as cc;
 use dlt_indexer_channel::JsDltIndexerEventEmitter;
 use dlt_socket_channel::JsDltSocketEventEmitter;
 
-use dlt_export_channel::JsDltExporterEventEmitter;
 use dlt_stats_channel::JsDltStatsEventEmitter;
+use export_channel::JsExporterEventEmitter;
 use indexer_base::progress::{IndexingProgress, IndexingResults, Notification, Severity};
 use indexer_channel::JsIndexerEventEmitter;
 use log::LevelFilter;
@@ -178,7 +178,7 @@ register_module!(mut cx, {
     cx.export_class::<JsTimestampFormatDetectionEmitter>("RustTimestampFormatDetectionEmitter")?;
     cx.export_class::<JsConcatenatorEmitter>("RustConcatenatorEmitter")?;
     cx.export_class::<JsMergerEmitter>("RustMergerEmitter")?;
-    cx.export_class::<JsDltExporterEventEmitter>("RustDltExporterEventEmitter")?;
+    cx.export_class::<JsExporterEventEmitter>("RustExporterEventEmitter")?;
     // detect_timestamp_formats_in_files
     Ok(())
 });

@@ -476,7 +476,6 @@ pub(crate) fn dlt_fixed_point<T: NomByteOrder>(
     }
 }
 pub(crate) fn dlt_argument<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], Argument> {
-    trace!("parsing argument: ===================================");
     let (i, type_info) = dlt_type_info::<T>(input)?;
     dbg_parsed("type info", input, i, &type_info);
     // println!("type info: {:?}", type_info);

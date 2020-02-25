@@ -4,7 +4,7 @@ import {
 	NativeEventEmitter,
 	RustDltIndexerChannel,
 	RustDltStatsChannel,
-	RustDltSaveFileChannel,
+	RustExportFileChannel,
 	RustDltSocketChannel,
 	RustDltPcapChannel
 } from './emitter';
@@ -13,13 +13,13 @@ import {
 	IDLTFilters,
 	IDLTOptions,
 	IIndexDltParams,
-	IFileSaveParams,
 	DltFilterConf,
 	DltLogLevel,
 	LevelDistribution,
 	StatisticInfo,
 	IFibexConfig
 } from '../../../common/interfaces/interface.dlt';
+import { IFileSaveParams } from '../../../common/interfaces';
 
 export {
 	IDLTFilters,
@@ -128,9 +128,9 @@ export type TDltFileAsyncEvents = 'progress' | 'notification';
 export type TDltFileAsyncEventProgress = (event: ITicks) => void;
 export type TDltFileAsyncEventObject = TDltFileAsyncEventProgress;
 
-export function saveDltFile(
+export function exportDltFile(
 	source: string,
-	sourceType: 'session' | 'file' | 'lines',
+	sourceType: 'session' | 'file',
 	targetFile: string,
 	params: IFileSaveParams
 ): CancelablePromise<void, void, TDltFileAsyncEvents, TDltFileAsyncEventObject> {
@@ -141,16 +141,15 @@ export function saveDltFile(
 		TDltFileAsyncEventObject
 	>((resolve, reject, cancel, refCancelCB, self) => {
 		try {
-			log(`using file-save-parmams: ${params}`);
-			// Get defaults options
+			log(`exportDltFile using file-save-parmams: ${params}`);
 			// Add cancel callback
 			refCancelCB(() => {
 				// Cancelation is started, but not canceled
-				log(`save file command "break" operation`);
+				log(`export dlt file command "break" operation`);
 				emitter.requestShutdown();
 			});
 			// Create channel
-			const channel = new RustDltSaveFileChannel(source, sourceType, targetFile, params);
+			const channel = new RustExportFileChannel(source, sourceType, targetFile, params, false);
 			// Create emitter
 			const emitter: NativeEventEmitter = new NativeEventEmitter(channel);
 			let chunks: number = 0;
@@ -161,7 +160,7 @@ export function saveDltFile(
 			emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
 				log(`we got a stopped event while saving dlt file (${sourceType}) with source ${source}`);
 				emitter.shutdownAcknowledged(() => {
-					log('indexDlt: shutdown completed after we got stopped');
+					log('export dlt: shutdown completed after we got stopped');
 					// Operation is canceled.
 					cancel();
 				});
@@ -172,14 +171,14 @@ export function saveDltFile(
 			emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
 				log('we got a finished event after ' + chunks + ' chunks');
 				emitter.shutdownAcknowledged(() => {
-					log('indexDlt: shutdown completed after finish event');
+					log('export dlt: shutdown completed after finish event');
 					// Operation is done.
 					resolve();
 				});
 			});
 			// Handle finale of promise
 			self.finally(() => {
-				log('processing dlt indexing is finished');
+				log('processing dlt export is finished');
 			});
 		} catch (err) {
 			if (!(err instanceof Error)) {

@@ -185,8 +185,8 @@ export default class FileParser extends AFileParser {
 
     private _exportSelection(target: string, request: IPCMessages.OutputExportFeaturesRequest | IPCMessages.OutputExportFeatureCallRequest): Promise<void> {
         return new Promise((resolve, reject) => {
-            const sections: CommonInterfaces.DLT.IIndexSection[] = [];
-            const section: CommonInterfaces.DLT.IIndexSection = {
+            const sections: CommonInterfaces.IIndexSection[] = [];
+            const section: CommonInterfaces.IIndexSection = {
                 first_line: -1,
                 last_line: -1,
             };

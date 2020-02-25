@@ -12,6 +12,7 @@
 pub mod chunks;
 pub mod config;
 pub mod error_reporter;
+pub mod export;
 pub mod progress;
 pub mod timedline;
 pub mod utils;

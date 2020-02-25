@@ -8,18 +8,19 @@ import * as Units from './units';
 export { CancelablePromise, Processor, Progress, DLT, Merge, Units };
 
 export default {
-    // DLT
-    dltStatsAsync               : DLT.dltStatsAsync,
-    saveDltFile                 : DLT.saveDltFile,
-    indexDltAsync               : DLT.indexDltAsync,
-    dltOverSocket               : DLT.dltOverSocket,
-    indexPcapDlt                : DLT.indexPcapDlt,
-    // Indexing
-    indexAsync                  : Processor.indexAsync,
-    detectTimestampInString     : Processor.detectTimestampInString,
-    detectTimestampFormatInFile : Processor.detectTimestampFormatInFile,
-    discoverTimespanAsync       : Processor.discoverTimespanAsync,
-    // Merging
-    mergeFilesAsync             : Merge.mergeFilesAsync,
-    concatFilesAsync            : Merge.concatFilesAsync,
+	// DLT
+	dltStatsAsync: DLT.dltStatsAsync,
+	exportDltFile: DLT.exportDltFile,
+	indexDltAsync: DLT.indexDltAsync,
+	dltOverSocket: DLT.dltOverSocket,
+	indexPcapDlt: DLT.indexPcapDlt,
+	// Indexing
+	indexAsync: Processor.indexAsync,
+	detectTimestampInString: Processor.detectTimestampInString,
+	detectTimestampFormatInFile: Processor.detectTimestampFormatInFile,
+	discoverTimespanAsync: Processor.discoverTimespanAsync,
+	exportLineBased: Processor.exportLineBased,
+	// Merging
+	mergeFilesAsync: Merge.mergeFilesAsync,
+	concatFilesAsync: Merge.concatFilesAsync
 };

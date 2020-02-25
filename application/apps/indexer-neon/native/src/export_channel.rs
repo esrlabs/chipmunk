@@ -3,6 +3,7 @@ use crossbeam_channel as cc;
 use failure::{err_msg, Error};
 use indexer_base::chunks::ChunkResults;
 use indexer_base::config::SectionConfig;
+use indexer_base::export::export_file_line_based;
 use neon::prelude::*;
 use std::path;
 use std::sync::{Arc, Mutex};
@@ -12,12 +13,12 @@ static DLT_SESSION_ID: &str = "session";
 static DLT_SOURCE_FILE: &str = "file";
 static LINE_BASED_SOURCE_FILE: &str = "lines";
 
-pub struct DltExporterEventEmitter {
+pub struct ExporterEventEmitter {
     pub event_receiver: Arc<Mutex<cc::Receiver<ChunkResults>>>,
     pub shutdown_sender: async_std::sync::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
-impl DltExporterEventEmitter {
+impl ExporterEventEmitter {
     #[allow(clippy::too_many_arguments)]
     pub fn start_exporting_file_in_thread(
         self: &mut Self,
@@ -25,6 +26,7 @@ impl DltExporterEventEmitter {
         source_type: String,
         destination_path: path::PathBuf,
         sections_config: SectionConfig,
+        was_session_file: bool,
         shutdown_rx: async_std::sync::Receiver<()>,
         chunk_result_sender: cc::Sender<ChunkResults>,
     ) -> Result<(), Error> {
@@ -70,10 +72,11 @@ impl DltExporterEventEmitter {
             let file_path = path::PathBuf::from(source);
 
             self.task_thread = Some(thread::spawn(move || {
-                match dlt::dlt_file::export_file_line_based(
+                match export_file_line_based(
                     file_path,
                     destination_path,
                     sections_config,
+                    was_session_file,
                     chunk_result_sender,
                 ) {
                     Ok(_) => {}
@@ -90,9 +93,9 @@ impl DltExporterEventEmitter {
 
 // interface of the Rust code for js, exposes the `poll` and `shutdown` methods
 declare_types! {
-    pub class JsDltExporterEventEmitter for DltExporterEventEmitter {
+    pub class JsExporterEventEmitter for ExporterEventEmitter {
         init(mut cx) {
-            trace!("Rust: JsDltExporterEventEmitter");
+            trace!("Rust: JsExporterEventEmitter");
             let mut i = 0i32;
             let source = cx.argument::<JsString>(i)?.value();
             i += 1;
@@ -102,10 +105,12 @@ declare_types! {
             i += 1;
             let arg_sections_conf = cx.argument::<JsValue>(i)?;
             let sections_conf: SectionConfig = neon_serde::from_value(&mut cx, arg_sections_conf)?;
+            i += 1;
+            let was_session_file = cx.argument::<JsBoolean>(i)?.value();
 
             let shutdown_channel = async_std::sync::channel(1);
             let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
-            let mut emitter = DltExporterEventEmitter {
+            let mut emitter = ExporterEventEmitter {
                 event_receiver: Arc::new(Mutex::new(rx)),
                 shutdown_sender: shutdown_channel.0,
                 task_thread: None,
@@ -116,6 +121,7 @@ declare_types! {
                 source_type,
                 destination_path,
                 sections_conf,
+                was_session_file,
                 shutdown_channel.1,
                 tx,
             ) {

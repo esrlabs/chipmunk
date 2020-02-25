@@ -22,7 +22,7 @@ extern crate lazy_static;
 use async_std::task;
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
-use dlt::dlt_file::{export_as_dlt_file, export_file_line_based};
+use dlt::dlt_file::export_as_dlt_file;
 use dlt::dlt_parse::StatisticsResults;
 use dlt::dlt_pcap::convert_to_dlt_file;
 use dlt::fibex::FibexMetadata;
@@ -30,6 +30,7 @@ use failure::{err_msg, Error};
 use indexer_base::chunks::{serialize_chunks, Chunk, ChunkResults};
 use indexer_base::config::*;
 use indexer_base::error_reporter::*;
+use indexer_base::export::export_file_line_based;
 use indexer_base::progress::IndexingResults;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::rc::Rc;
@@ -235,6 +236,12 @@ fn main() {
                         .help("what sections to export, e.g. \"0,3|6,100\"")
                         .required(false)
                         .default_value(""),
+                )
+                .arg(
+                    Arg::with_name("is_session_file")
+                        .short("x")
+                        .long("sessionfile")
+                        .help("eliminiate session file quirks"),
                 )
                 .arg(
                     Arg::with_name("target")
@@ -693,6 +700,7 @@ fn main() {
                     .unwrap_or_else(|| fallback_out.as_str()),
             );
             let file_path = path::PathBuf::from(file_name);
+            let was_session_file: bool = matches.is_present("is_session_file");
             let sections_string = value_t_or_exit!(matches.value_of("sections"), String);
             let sections: Vec<IndexSection> = sections_string
                 .split('|')
@@ -707,8 +715,14 @@ fn main() {
                     .expect("export did not work");
             } else {
                 trace!("was regular file");
-                export_file_line_based(file_path, out_path, SectionConfig { sections }, tx)
-                    .expect("export did not work");
+                export_file_line_based(
+                    file_path,
+                    out_path,
+                    SectionConfig { sections },
+                    was_session_file,
+                    tx,
+                )
+                .expect("export did not work");
             };
 
             println!("done with handle_export_subcommand");

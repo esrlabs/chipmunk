@@ -82,14 +82,14 @@ class ServiceDLTDeamonConnector implements IService {
         return "ServiceDLTDeamonConnector";
     }
 
-    public saveAs(target: string, type: 'session' | 'file', sections: CommonInterfaces.DLT.IIndexSection[] = []): Promise<string | undefined> {
+    public saveAs(target: string, type: 'session' | 'file', sections: CommonInterfaces.IIndexSection[] = []): Promise<string | undefined> {
         return new Promise((resolve, reject) => {
             this.getFileName().then((filename: string | undefined) => {
                 if (filename === undefined) {
                     return resolve(undefined);
                 }
                 this._logger.info(`Saving`);
-                this._saver = indexer.saveDltFile(target, type, filename, { sections: sections }).then(() => {
+                this._saver = indexer.exportDltFile(target, type, filename, { sections: sections }).then(() => {
                     this._logger.info(`Saved`);
                     // Resolving
                     resolve(filename);
@@ -363,8 +363,8 @@ class ServiceDLTDeamonConnector implements IService {
 
     private _exportSelection(session: string, request: IPCMessages.OutputExportFeaturesRequest | IPCMessages.OutputExportFeatureCallRequest): Promise<void> {
         return new Promise((resolve, reject) => {
-            const sections: CommonInterfaces.DLT.IIndexSection[] = [];
-            const section: CommonInterfaces.DLT.IIndexSection = {
+            const sections: CommonInterfaces.IIndexSection[] = [];
+            const section: CommonInterfaces.IIndexSection = {
                 first_line: -1,
                 last_line: -1,
             };
