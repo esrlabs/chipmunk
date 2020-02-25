@@ -1,6 +1,7 @@
 use crate::chunks::ChunkResults;
 use crate::config::SectionConfig;
 use crate::progress::{IndexingProgress, Notification, Severity};
+use crate::utils::restore_line;
 use crossbeam_channel as cc;
 use failure::{err_msg, Error};
 use std::fs;
@@ -26,7 +27,7 @@ pub fn export_file_line_based(
         let f = fs::File::open(&file_path)?;
         let reader = &mut std::io::BufReader::new(f);
         let out_file = std::fs::File::create(destination_path)?;
-        let lines_iter = &mut reader.lines().map(|l| l.unwrap());
+        let lines_iter = &mut reader.lines();
         let mut out_writer = BufWriter::new(out_file);
         let mut index = 0usize;
         for section in sections.sections {
@@ -35,7 +36,11 @@ pub fn export_file_line_based(
             let section_size = section.last_line - section.first_line + 1;
             let elem_iter = lines_iter.skip(forward).take(section_size);
             for elem in elem_iter {
-                out_writer.write_fmt(format_args!("{}\n", elem))?;
+                if was_session_file {
+                    out_writer.write_fmt(format_args!("{}\n", elem?))?;
+                } else {
+                    out_writer.write_fmt(format_args!("{}\n", restore_line(&elem?)))?;
+                }
             }
             index += forward;
             index += section_size;

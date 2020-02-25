@@ -35,7 +35,6 @@ use indexer_base::progress::IndexingResults;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::rc::Rc;
 
-const TOTAL: u64 = 1000;
 lazy_static! {
     static ref EXAMPLE_FIBEX: std::path::PathBuf =
         std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../dlt/tests/dlt-messages.xml");
@@ -458,41 +457,37 @@ fn main() {
     // (i.e. 'myprog -v -v -v' or 'myprog -vvv' vs 'myprog -v'
     let use_stderr_for_status_updates = matches.occurrences_of("v") >= 1;
 
-    let progress_bar = ProgressBar::new(TOTAL);
-    progress_bar.set_style(ProgressStyle::default_bar()
-                .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
-                .progress_chars("#>-"));
-
     if let Some(matches) = matches.subcommand_matches("merge") {
-        handle_merge_subcommand(matches, start, use_stderr_for_status_updates, &progress_bar)
+        handle_merge_subcommand(matches, start, use_stderr_for_status_updates)
     } else if let Some(matches) = matches.subcommand_matches("index") {
-        handle_index_subcommand(matches, start, use_stderr_for_status_updates, &progress_bar)
+        handle_index_subcommand(matches, start, use_stderr_for_status_updates)
     } else if let Some(matches) = matches.subcommand_matches("format") {
         handle_format_subcommand(matches, start, use_stderr_for_status_updates)
     } else if let Some(matches) = matches.subcommand_matches("export") {
-        handle_export_subcommand(matches, start, &progress_bar)
+        handle_export_subcommand(matches, start)
     } else if let Some(matches) = matches.subcommand_matches("dlt") {
-        handle_dlt_subcommand(matches, start, &progress_bar)
+        handle_dlt_subcommand(matches, start)
     } else if let Some(matches) = matches.subcommand_matches("dlt-pcap") {
-        handle_dlt_pcap_subcommand(matches, &progress_bar)
+        handle_dlt_pcap_subcommand(matches)
     } else if let Some(matches) = matches.subcommand_matches("dlt-udp") {
-        handle_dlt_udp_subcommand(matches, &progress_bar)
+        handle_dlt_udp_subcommand(matches)
     } else if let Some(matches) = matches.subcommand_matches("dlt-stats") {
-        handle_dlt_stats_subcommand(matches, start, use_stderr_for_status_updates, &progress_bar)
+        handle_dlt_stats_subcommand(matches, start, use_stderr_for_status_updates)
     } else if let Some(matches) = matches.subcommand_matches("discover") {
-        handle_discover_subcommand(matches, &progress_bar)
+        handle_discover_subcommand(matches)
     }
 
     fn handle_index_subcommand(
         matches: &clap::ArgMatches,
         start: std::time::Instant,
         status_updates: bool,
-        progress_bar: &ProgressBar,
     ) {
         if matches.is_present("input") && matches.is_present("tag") {
             let file = matches.value_of("input").expect("input must be present");
             let file_path = path::PathBuf::from(file);
             let tag = matches.value_of("tag").expect("tag must be present");
+            let total = fs::metadata(file).expect("file size error").len();
+            let progress_bar = initialize_progress_bar(total);
             let tag_string = tag.to_string();
             let fallback_out = file.to_string() + ".out";
             let out_path = path::PathBuf::from(
@@ -565,7 +560,7 @@ fn main() {
                     Ok(Ok(IndexingProgress::Progress { ticks })) => {
                         let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
                         trace!("progress... ({:.0} %)", progress_fraction * 100.0);
-                        progress_bar.set_position((progress_fraction * (TOTAL as f64)) as u64);
+                        progress_bar.set_position((progress_fraction * (total as f64)) as u64);
                     }
                     Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
                         chunks.push(chunk);
@@ -598,7 +593,6 @@ fn main() {
         _matches: &clap::ArgMatches,
         _start: std::time::Instant,
         _status_updates: bool,
-        _progress_bar: &ProgressBar,
     ) {
     }
 
@@ -685,11 +679,7 @@ fn main() {
             last_line: elems[1].parse()?,
         })
     }
-    fn handle_export_subcommand(
-        matches: &clap::ArgMatches,
-        _start: std::time::Instant,
-        _progress_bar: &ProgressBar,
-    ) {
+    fn handle_export_subcommand(matches: &clap::ArgMatches, _start: std::time::Instant) {
         debug!("handle_export_subcommand");
 
         if let Some(file_name) = matches.value_of("file") {
@@ -729,11 +719,7 @@ fn main() {
             std::process::exit(0)
         }
     }
-    fn handle_dlt_subcommand(
-        matches: &clap::ArgMatches,
-        start: std::time::Instant,
-        progress_bar: &ProgressBar,
-    ) {
+    fn handle_dlt_subcommand(matches: &clap::ArgMatches, start: std::time::Instant) {
         debug!("handle_dlt_subcommand");
         if let (Some(file_name), Some(tag)) = (matches.value_of("input"), matches.value_of("tag")) {
             let filter_conf: Option<dlt::filtering::DltFilterConfig> = match matches
@@ -779,6 +765,7 @@ fn main() {
             // let dlt_file_future = parse_dlt_file(file_path, filter_config, None);
             // let res = task::block_on(dlt_file_future);
 
+            let progress_bar = initialize_progress_bar(source_file_size as u64);
             thread::spawn(move || {
                 if let Err(why) = dlt::dlt_file::create_index_and_mapping_dlt(
                     IndexingConfig {
@@ -824,7 +811,7 @@ fn main() {
                     }
                     Ok(Ok(IndexingProgress::Progress { ticks })) => {
                         let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
-                        let pos = (progress_fraction * (TOTAL as f64)) as u64;
+                        let pos = (progress_fraction * (source_file_size as f64)) as u64;
                         progress_bar.set_position(pos);
                     }
                     Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
@@ -850,7 +837,7 @@ fn main() {
         }
     }
 
-    fn handle_dlt_pcap_subcommand(matches: &clap::ArgMatches, progress_bar: &ProgressBar) {
+    fn handle_dlt_pcap_subcommand(matches: &clap::ArgMatches) {
         debug!("handle_dlt_pcap_subcommand");
         if let (Some(file_name), Some(tag)) = (matches.value_of("input"), matches.value_of("tag")) {
             let filter_conf: Option<dlt::filtering::DltFilterConfig> = match matches
@@ -883,6 +870,8 @@ fn main() {
             let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
             let tag_string = tag.to_string();
+            let total = fs::metadata(&file_path).expect("file size error").len();
+            let progress_bar = initialize_progress_bar(total);
             let in_one_go: bool = matches.is_present("direct");
             if in_one_go {
                 println!("in one go: pcap");
@@ -925,7 +914,7 @@ fn main() {
                         Ok(Ok(IndexingProgress::Progress { ticks })) => {
                             let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
                             trace!("progress... ({:.0} %)", progress_fraction * 100.0);
-                            progress_bar.set_position((progress_fraction * (TOTAL as f64)) as u64);
+                            progress_bar.set_position((progress_fraction * (total as f64)) as u64);
                         }
                         Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
                             println!("{:?}", chunk);
@@ -951,7 +940,7 @@ fn main() {
             }
         }
     };
-    fn handle_dlt_udp_subcommand(matches: &clap::ArgMatches, progress_bar: &ProgressBar) {
+    fn handle_dlt_udp_subcommand(matches: &clap::ArgMatches) {
         debug!("handle_dlt_udp_subcommand");
         if let (Some(ip_address), Some(tag), Some(output)) = (
             matches.value_of("ip"),
@@ -1021,13 +1010,11 @@ fn main() {
                     }
                     Ok(Ok(IndexingProgress::Finished { .. })) => {
                         let _ = serialize_chunks(&chunks, &mapping_out_path);
-                        progress_bar.finish_and_clear();
                         break;
                     }
                     Ok(Ok(IndexingProgress::Progress { ticks })) => {
                         let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
                         trace!("progress... ({:.0} %)", progress_fraction * 100.0);
-                        progress_bar.set_position((progress_fraction * (TOTAL as f64)) as u64);
                     }
                     Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
                         println!("{:?}", chunk);
@@ -1053,7 +1040,7 @@ fn main() {
         }
     }
 
-    fn handle_discover_subcommand(matches: &clap::ArgMatches, progress_bar: &ProgressBar) {
+    fn handle_discover_subcommand(matches: &clap::ArgMatches) {
         if let Some(test_string) = matches.value_of("input-string") {
             match detect_timestamp_in_string(test_string, None) {
                 Ok((timestamp, _, _)) => println!(
@@ -1072,6 +1059,8 @@ fn main() {
             let items: Vec<DiscoverItem> = vec![DiscoverItem {
                 path: file_name_string,
             }];
+
+            let progress_bar = initialize_progress_bar(100);
             thread::spawn(move || {
                 match timespan_in_files(items, &tx) {
                     Ok(()) => (),
@@ -1095,7 +1084,7 @@ fn main() {
                     Ok(Ok(IndexingProgress::Progress { ticks: t })) => {
                         let progress_fraction = t.0 as f64 / t.1 as f64;
                         trace!("progress... ({:.1} %)", progress_fraction * 100.0);
-                        progress_bar.set_position((progress_fraction * (TOTAL as f64)) as u64);
+                        progress_bar.set_position((progress_fraction * 100.0) as u64);
                     }
                     Ok(Ok(IndexingProgress::Finished)) => {
                         trace!("finished...");
@@ -1150,6 +1139,7 @@ fn main() {
                 cc::Receiver<IndexingResults<TimestampFormatResult>>,
             ) = unbounded();
 
+            let progress_bar = initialize_progress_bar(100);
             thread::spawn(move || {
                 match timespan_in_files(items, &tx) {
                     Ok(()) => (),
@@ -1167,7 +1157,7 @@ fn main() {
                     Ok(Ok(IndexingProgress::Progress { ticks: t })) => {
                         let progress_fraction = t.0 as f64 / t.1 as f64;
                         trace!("progress... ({:.1} %)", progress_fraction * 100.0);
-                        progress_bar.set_position((progress_fraction * (TOTAL as f64)) as u64);
+                        progress_bar.set_position((progress_fraction * 100.0) as u64);
                     }
                     Ok(Ok(IndexingProgress::Finished)) => {
                         trace!("finished...");
@@ -1206,7 +1196,6 @@ fn main() {
         matches: &clap::ArgMatches,
         start: std::time::Instant,
         status_updates: bool,
-        progress_bar: &ProgressBar,
     ) {
         let file_name = matches.value_of("input").expect("input must be present");
         let file_path = path::PathBuf::from(file_name);
@@ -1224,6 +1213,7 @@ fn main() {
                 std::process::exit(2);
             }
         };
+        let progress_bar = initialize_progress_bar(source_file_size as u64);
         let (tx, rx): (
             cc::Sender<StatisticsResults>,
             cc::Receiver<StatisticsResults>,
@@ -1262,7 +1252,8 @@ fn main() {
                 Ok(Ok(IndexingProgress::Progress { ticks: t })) => {
                     let progress_fraction = t.0 as f64 / t.1 as f64;
                     trace!("progress... ({:.1} %)", progress_fraction * 100.0);
-                    progress_bar.set_position((progress_fraction * (TOTAL as f64)) as u64);
+                    progress_bar
+                        .set_position((progress_fraction * (source_file_size as f64)) as u64);
                 }
                 Ok(Ok(IndexingProgress::Finished)) => {
                     trace!("finished...");
@@ -1325,4 +1316,11 @@ fn load_test_fibex() -> Option<FibexMetadata> {
             std::process::exit(3);
         }),
     )
+}
+fn initialize_progress_bar(len: u64) -> ProgressBar {
+    let progress_bar = ProgressBar::new(len);
+    progress_bar.set_style(ProgressStyle::default_bar()
+                .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
+                .progress_chars("#>-"));
+    progress_bar
 }

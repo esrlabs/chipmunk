@@ -10,18 +10,20 @@
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
 
-use indexer_base::chunks::ChunkResults;
 use crate::parse;
+use crossbeam_channel as cc;
 use failure::{err_msg, Error};
-use indexer_base::chunks::{ChunkFactory};
+use indexer_base::chunks::ChunkFactory;
+use indexer_base::chunks::ChunkResults;
 use indexer_base::config::IndexingConfig;
 use indexer_base::progress::*;
 use indexer_base::utils;
+use indexer_base::utils::restore_line;
 use parse::detect_timestamp_in_string;
 use std::fs;
 use std::io::{BufRead, BufReader, BufWriter, Write};
+use std::path::PathBuf;
 use std::time::Instant;
-use crossbeam_channel as cc;
 
 pub fn create_index_and_mapping(
     config: IndexingConfig,
@@ -108,69 +110,68 @@ pub fn index_file(
             // no more content
             break;
         };
-        let additional_bytes: usize;
         // only use non-empty lines, others will be dropped
-        if trimmed_len != 0 {
-            if timestamps {
-                let ts = match detect_timestamp_in_string(trimmed_line, None) {
-                    Ok((time, _, _)) => time,
-                    Err(_) => 0,
-                };
-                additional_bytes = utils::create_tagged_line(
-                    config.tag,
-                    &mut buf_writer,
-                    trimmed_line,
-                    line_nr,
-                    had_newline,
-                    Some(ts),
-                )?;
-            } else {
-                additional_bytes = utils::create_tagged_line(
-                    config.tag,
-                    &mut buf_writer,
-                    trimmed_line,
-                    line_nr,
-                    had_newline,
-                    None,
-                )?;
-            }
-            line_nr += 1;
-
-            match chunk_factory.create_chunk_if_needed(line_nr, additional_bytes) {
-                Some(chunk) => {
-                    // check if stop was requested
-                    if let Some(rx) = shutdown_receiver.as_ref() {
-                        match rx.try_recv() {
-                            // Shutdown if we have received a command or if there is
-                            // nothing to send it.
-                            Ok(_) | Err(cc::TryRecvError::Disconnected) => {
-                                info!("shutdown received in indexer",);
-                                stopped = true // stop
-                            }
-                            // No shutdown command, continue
-                            Err(cc::TryRecvError::Empty) => (),
-                        }
-                    };
-                    chunk_count += 1;
-                    last_byte_index = chunk.b.1;
-                    update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }))?;
-                    buf_writer.flush()?;
-                    false
-                }
-                None => false,
+        // if trimmed_len != 0 {
+        let additional_bytes: usize = if timestamps {
+            let ts = match detect_timestamp_in_string(trimmed_line, None) {
+                Ok((time, _, _)) => time,
+                Err(_) => 0,
             };
+            utils::create_tagged_line(
+                config.tag,
+                &mut buf_writer,
+                trimmed_line,
+                line_nr,
+                had_newline,
+                Some(ts),
+            )?
+        } else {
+            utils::create_tagged_line(
+                config.tag,
+                &mut buf_writer,
+                trimmed_line,
+                line_nr,
+                had_newline,
+                None,
+            )?
+        };
+        line_nr += 1;
 
-            if let Some(file_size) = source_file_size {
-                let new_progress_percentage: usize =
-                    (processed_bytes as f64 / file_size as f64 * 100.0).round() as usize;
-                if new_progress_percentage != progress_percentage {
-                    progress_percentage = new_progress_percentage;
-                    update_channel.send(Ok(IndexingProgress::Progress {
-                        ticks: (processed_bytes, file_size),
-                    }))?;
-                }
+        match chunk_factory.create_chunk_if_needed(line_nr, additional_bytes) {
+            Some(chunk) => {
+                // check if stop was requested
+                if let Some(rx) = shutdown_receiver.as_ref() {
+                    match rx.try_recv() {
+                        // Shutdown if we have received a command or if there is
+                        // nothing to send it.
+                        Ok(_) | Err(cc::TryRecvError::Disconnected) => {
+                            info!("shutdown received in indexer",);
+                            stopped = true // stop
+                        }
+                        // No shutdown command, continue
+                        Err(cc::TryRecvError::Empty) => (),
+                    }
+                };
+                chunk_count += 1;
+                last_byte_index = chunk.b.1;
+                update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }))?;
+                buf_writer.flush()?;
+                false
+            }
+            None => false,
+        };
+
+        if let Some(file_size) = source_file_size {
+            let new_progress_percentage: usize =
+                (processed_bytes as f64 / file_size as f64 * 100.0).round() as usize;
+            if new_progress_percentage != progress_percentage {
+                progress_percentage = new_progress_percentage;
+                update_channel.send(Ok(IndexingProgress::Progress {
+                    ticks: (processed_bytes, file_size),
+                }))?;
             }
         }
+        // }
         buf = vec![];
     }
     if stopped {
@@ -204,4 +205,22 @@ pub fn index_file(
         update_channel.send(Ok(IndexingProgress::Finished))?;
         Ok(())
     }
+}
+
+pub fn restore_original_from_indexed_file(
+    indexed_file: &PathBuf,
+    out: &PathBuf,
+) -> Result<(), Error> {
+    let f = fs::File::open(&indexed_file)?;
+    let reader = &mut std::io::BufReader::new(f);
+    let out_file = std::fs::File::create(out)?;
+    trace!("created out_file: {:?}", &out_file);
+    let mut out_writer = BufWriter::new(out_file);
+
+    let lines_iter = &mut reader.lines();
+    for line_res in lines_iter {
+        let line = line_res?;
+        out_writer.write_fmt(format_args!("{}\n", restore_line(&line)))?;
+    }
+    Ok(())
 }

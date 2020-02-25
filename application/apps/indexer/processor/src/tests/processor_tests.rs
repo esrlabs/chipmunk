@@ -3,17 +3,17 @@ mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     extern crate rand;
     extern crate tempdir;
-    use indexer_base::chunks::ChunkResults;
     use crate::processor::*;
+    use crossbeam_channel as cc;
+    use crossbeam_channel::unbounded;
     use indexer_base::chunks::Chunk;
+    use indexer_base::chunks::ChunkResults;
     use indexer_base::config::IndexingConfig;
     use indexer_base::progress::{IndexingProgress, Notification};
     use pretty_assertions::assert_eq;
     use std::fs;
     use std::path::PathBuf;
     use tempdir::TempDir;
-    use crossbeam_channel::unbounded;
-    use crossbeam_channel as cc;
 
     fn get_chunks(
         test_content: &str,
@@ -265,7 +265,7 @@ mod tests {
     fn test_chunking_multiple_chunks_complete_no_nl() {
         let (chunks, content) = get_chunks("A\nB\nC\nD", 2, "tag_complete_no_nl", None);
         println!("chunks: {:?}", chunks);
-        println!("content: {:02X?}", content.as_bytes());
+        trace!("content: {:02X?}", content.as_bytes());
         assert_eq!(2, chunks.len());
         assert_eq!(content.len(), size_of_all_chunks(&chunks));
     }
@@ -286,25 +286,29 @@ mod tests {
         let in_path = PathBuf::from("..").join(&dir_name).join("in.txt");
         let tmp_dir = TempDir::new("test_dir").expect("could not create temp dir");
         let out_file_path = tmp_dir.path().join("tmpTestFile.txt.out");
+        let restored_file_path = tmp_dir.path().join("restoredTestFile.txt.out");
+
+        // ===> use this to create a file that contains the actual bytes in ~
+        // use std::time::{SystemTime, UNIX_EPOCH};
+        // let home_dir = dirs::home_dir().expect("couldn't get home directory");
+        // let now = SystemTime::now();
+        // let since_the_epoch = now.duration_since(UNIX_EPOCH).unwrap();
+        // let last_in_ms = since_the_epoch.as_micros() as i64;
+        // let out_file_path = home_dir.join(format!("{}_sample_test.test.out", last_in_ms));
+
         let append_to_this = PathBuf::from("..").join(&dir_name).join("append_here.log");
         let append_use_case = append_to_this.exists();
 
         if append_use_case {
-            println!("append use case...trying to append to {:?}", append_to_this);
+            println!("append_use_case");
             fs::copy(&append_to_this, &out_file_path).expect("copy content failed");
-            println!("copied from {:?}", append_to_this);
-            let content = fs::read_to_string(append_to_this).expect("could not read file");
-            println!("content was: {:?}", content);
-            println!("copied content to: {:?}", out_file_path);
-            let content2 = fs::read_to_string(&out_file_path).expect("could not read file");
-            println!("copied content was: {:?}", content2);
         }
         let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
         create_index_and_mapping(
             IndexingConfig {
                 tag: "TAG",
                 chunk_size: 1,
-                in_file: in_path,
+                in_file: in_path.clone(),
                 out_path: &out_file_path,
                 append: append_use_case,
             },
@@ -319,15 +323,16 @@ mod tests {
                 Ok(Ok(IndexingProgress::Finished { .. })) => {
                     trace!("finished...");
                     let out_file_content_bytes =
-                        fs::read(out_file_path).expect("could not read file");
+                        fs::read(&out_file_path).expect("could not read file");
                     let out_file_content = String::from_utf8_lossy(&out_file_content_bytes[..]);
                     let expected_path = PathBuf::from("..").join(&dir_name).join("expected.output");
                     let expected_content_bytes =
                         fs::read(expected_path).expect("could not read expected file");
                     let expected_content = String::from_utf8_lossy(&expected_content_bytes[..]);
-                    println!(
+                    trace!(
                         "comparing\n{}\nto expected:\n{}",
-                        out_file_content, expected_content
+                        out_file_content,
+                        expected_content
                     );
                     assert_eq!(expected_content.trim_end(), out_file_content.trim_end());
                     assert_eq!(true, chunks_fit_together(&chunks), "chunks need to fit");
@@ -357,6 +362,26 @@ mod tests {
                 Err(_) => {
                     error!("couldn't process");
                 }
+            }
+        }
+        if !append_use_case {
+            if let Ok(()) = restore_original_from_indexed_file(&out_file_path, &restored_file_path)
+            {
+                let restored_file_content_bytes =
+                    fs::read(restored_file_path).expect("could not read file");
+                let restored_string = String::from_utf8_lossy(&restored_file_content_bytes[..]);
+                let restored_file_content_lines: Vec<&str> = restored_string.lines().collect();
+
+                let original_content_bytes =
+                    fs::read(in_path).expect("could not read expected file");
+                let original_string = String::from_utf8_lossy(&original_content_bytes[..]);
+                let original_content_lines: Vec<&str> = original_string.lines().collect();
+                trace!(
+                    "comparing\n{:?}\nto expected:\n{:?}",
+                    restored_file_content_lines,
+                    original_content_lines
+                );
+                assert_eq!(original_content_lines, restored_file_content_lines);
             }
         }
     }
