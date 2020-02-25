@@ -62,13 +62,17 @@ class ServiceOutputExport implements IService {
         return 'ServiceOutputExport';
     }
 
-    public setAction(session: string, id: string, action: IExportAction): Error | undefined {
+    public setAction(session: string, id: string, action: IExportAction, overwrite: boolean = true): Error | undefined {
         let store: Map<string, IExportAction> | undefined = this._store.get(session);
         if (store === undefined) {
             store = new Map();
         }
         if (store.has(id)) {
-            return new Error(this._logger.debug(`Action with id "${id}" is already registred for session "${session}"`));
+            if (overwrite) {
+                store.delete(id);
+            } else {
+                return new Error(this._logger.debug(`Action with id "${id}" is already registred for session "${session}"`));
+            }
         }
         store.set(id, action);
         this._store.set(session, store);
@@ -77,7 +81,7 @@ class ServiceOutputExport implements IService {
 
     private _onSessionCreated(event: INewSessionEvent) {
         if (this._store.has(event.stream.guid)) {
-            this._store.delete(event.stream.guid);
+            return;
         }
         this._store.set(event.stream.guid, new Map());
     }

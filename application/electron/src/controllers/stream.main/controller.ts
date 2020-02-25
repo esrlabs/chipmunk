@@ -1,14 +1,18 @@
 import * as fs from 'fs';
 import * as Stream from 'stream';
+
 import Logger from '../../tools/env.logger';
 import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from '../../services/service.electron';
 import ServicePlugins from '../../services/service.plugins';
 import ServiceStreamSource from '../../services/service.stream.sources';
-import ControllerIPCPlugin, { IPCMessages as IPCPluginMessages} from '../plugins/plugin.process.ipc';
-import { IMapItem } from './file.map';
 import State from './state';
+
+import ControllerIPCPlugin, { IPCMessages as IPCPluginMessages} from '../plugins/plugin.process.ipc';
+
+import { IMapItem } from './file.map';
 import { EventsHub } from '../stream.common/events';
-import { FileWriter, ITransformResult } from './file.writer';
+import { FileWriter } from './file.writer';
+import { DefaultOutputExport } from './output.export.default';
 
 export interface IPipeOptions {
     reader: fs.ReadStream;
@@ -51,6 +55,7 @@ export default class ControllerStreamProcessor {
     private _state: State;
     private _events: EventsHub;
     private _writer: FileWriter;
+    private _export: DefaultOutputExport;
 
     constructor(guid: string, file: string, events: EventsHub) {
         this._guid = guid;
@@ -59,6 +64,7 @@ export default class ControllerStreamProcessor {
         this._logger = new Logger(`ControllerStreamProcessor: ${this._guid}`);
         this._state = new State(this._guid, this._file);
         this._writer = new FileWriter(guid, file, this._state.map);
+        this._export = new DefaultOutputExport(guid);
         this._writer.on(FileWriter.Events.ChunkWritten, this._onChunkWritten.bind(this));
         this._ipc_onStreamChunkRequested = this._ipc_onStreamChunkRequested.bind(this);
         ServiceElectron.IPC.subscribe(IPCElectronMessages.StreamChunk, this._ipc_onStreamChunkRequested).then((subscription: Subscription) => {
@@ -72,6 +78,7 @@ export default class ControllerStreamProcessor {
         return new Promise((resolve) => {
             this._state.destroy();
             this._writer.removeAllListeners();
+            this._export.destroy();
             // Unsubscribe IPC messages / events
             Object.keys(this._subscriptions).forEach((key: string) => {
                 (this._subscriptions as any)[key].destroy();
@@ -106,42 +113,6 @@ export default class ControllerStreamProcessor {
                 this._state.postman.notification();
                 resolve();
             }).catch(reject);
-            /*
-            // Convert chunk to string
-            const transform: Transform = new Transform( {},
-                                                        this._guid,
-                                                        sourceInfo.id,
-                                                        { bytes: this._state.map.getByteLength(), rows: this._state.map.getRowsCount() });
-            transform.convert(output, (converted: ITransformResult) => {
-                if (converted.output === '') {
-                    // Nothing to write
-                    return resolve();
-                }
-                // Write data
-                const stream: fs.WriteStream | undefined = this._getStreamFileHandle();
-                if (stream === undefined) {
-                    return reject(new Error(`Stream is blocked for writting.`));
-                }
-                // Add data into map
-                // We should update map here, because it might be next write operation is already started.
-                // So cursor in map should be already moved forward.
-                this._state.map.add(converted.map);
-                stream.write(converted.output, (writeError: Error | null | undefined) => {
-                    if (writeError) {
-                        const error: Error = new Error(this._logger.error(`Fail to write data into stream file due error: ${writeError.message}`));
-                        return reject(error);
-                    }
-                    // Send notification to render
-                    this._state.postman.notification();
-                    // Trigger event on stream was updated
-                    this._events.getSubject().onStreamBytesMapUpdated.emit({
-                        bytes: Object.assign({}, converted.map.bytes),
-                        rows: Object.assign({}, converted.map.rows),
-                    });
-                    resolve();
-                });
-            });
-            */
         });
     }
 
