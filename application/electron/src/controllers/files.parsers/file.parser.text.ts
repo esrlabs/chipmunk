@@ -1,20 +1,30 @@
 import { AFileParser, IMapItem } from "./interface";
+import { CommonInterfaces } from '../../interfaces/interface.common';
+import { dialog, SaveDialogReturnValue } from 'electron';
+
 import * as path from "path";
-import indexer, { CancelablePromise, Processor, Progress } from "indexer-neon";
-import ServiceStreams from "../../services/service.streams";
 import * as ft from "file-type";
 import * as fs from "fs";
 import * as Tools from "../../tools/index";
-import Logger from "../../tools/env.logger";
+
+import indexer, { CancelablePromise, Processor, Progress } from "indexer-neon";
 import ServiceNotifications, { ENotificationType } from "../../services/service.notifications";
+import ServiceElectron, { IPCMessages } from "../../services/service.electron";
+
+import ServiceStreams from "../../services/service.streams";
+import Logger from "../../tools/env.logger";
+import ServiceOutputExport from "../../services/output/service.output.export";
 
 const ExtNames = ["txt", "log", "logs", "json", "less", "css", "sass", "ts", "js"];
+
+const CExportSelectionActionId = Tools.guid();
 
 export default class FileParser extends AFileParser {
 
     private _guid: string | undefined;
     private _logger: Logger = new Logger("Plain Text Indexing");
     private _task: CancelablePromise<void, void, Processor.TIndexAsyncEvents, Processor.TIndexAsyncEventObject> | undefined;
+    private _saver: CancelablePromise<void, void, Processor.TFileAsyncEvents, Processor.TFileAsyncEventObject> | undefined;
 
     constructor() {
         super();
@@ -106,6 +116,13 @@ export default class FileParser extends AFileParser {
                         total: completeTicks,
                     });
                 }
+                // Register exports callback
+                ServiceOutputExport.setAction(this._guid as string, CExportSelectionActionId, {
+                    caption: 'Export selection to text file',
+                    // handler: this._exportSelection.bind(this, this._guid as string),
+                    handler: this._exportSelection.bind(this, srcFile),
+                    isEnabled: () => true,
+                });
                 resolve(collectedChunks);
             }).catch((error: Error) => {
                 ServiceNotifications.notify({
@@ -155,6 +172,99 @@ export default class FileParser extends AFileParser {
             this._task.canceled(() => {
                 resolve();
             }).abort();
+        });
+    }
+
+    private _exportSelection(session: string, request: IPCMessages.OutputExportFeaturesRequest | IPCMessages.OutputExportFeatureCallRequest): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const sections: CommonInterfaces.IIndexSection[] = [];
+            const section: CommonInterfaces.IIndexSection = {
+                first_line: -1,
+                last_line: -1,
+            };
+            request.selection.forEach((row: number, index: number) => {
+                if (section.first_line === -1) {
+                    section.first_line = row;
+                }
+                if (index !== 0) {
+                    if (request.selection[index - 1] !== row - 1) {
+                        section.last_line = request.selection[index - 1];
+                        sections.push(Object.assign({}, section));
+                        section.last_line = -1;
+                        section.first_line = row;
+                    }
+                }
+                if (index === request.selection.length - 1) {
+                    section.last_line = row;
+                    sections.push(Object.assign({}, section));
+                }
+            });
+            /*
+            const file = ServiceStreams.getStreamFile(session);
+            if (file instanceof Error) {
+                return reject(new Error(this._logger.warn(`Fail get stream file for session "${session}" due error: ${file.message}`)));
+            }
+            this._saveAs(file.file, sections).then(() => {
+                resolve();
+            }).catch((saveErr: Error) => {
+                this._logger.warn(`Fail to save stream data due error: ${saveErr.message}`);
+                reject(saveErr);
+            });
+            */
+            this._saveAs(session, sections).then(() => {
+                resolve();
+            }).catch((saveErr: Error) => {
+                this._logger.warn(`Fail to save stream data due error: ${saveErr.message}`);
+                reject(saveErr);
+            });
+        });
+    }
+
+    private _saveAs(sessionFile: string, sections: CommonInterfaces.IIndexSection[] = []): Promise<string | undefined> {
+        return new Promise((resolve, reject) => {
+            this._getFileName().then((filename: string | undefined) => {
+                if (filename === undefined) {
+                    return resolve(undefined);
+                }
+                this._logger.info(`Saving`);
+                this._saver = indexer.exportLineBased(sessionFile, filename, /* true */ false, { sections: sections }).then(() => {
+                    this._logger.info(`Saved`);
+                    // Resolving
+                    resolve(filename);
+                }).canceled(() => {
+                    this._logger.info(`Saving was canceled`);
+                }).catch((error: Error) => {
+                    this._logger.warn(`Exception during saving: ${error.message}`);
+                    reject(error);
+                }).finally(() => {
+                    this._saver = undefined;
+                }).on('progress', (event: Progress.ITicks) => {
+                    // TODO: Do we need this event at all?
+                });
+            }).catch((error: Error) => {
+                reject(error);
+            });
+        });
+    }
+
+    private _getFileName(): Promise<string | undefined> {
+        return new Promise((resolve, reject) => {
+            const win = ServiceElectron.getBrowserWindow();
+            if (win === undefined) {
+                return;
+            }
+            dialog.showSaveDialog(win, {
+                title: 'Saving plain-text file',
+                filters: [{
+                    name: 'Text Files',
+                    extensions: ['txt'],
+                }],
+            }).then((returnValue: SaveDialogReturnValue) => {
+                resolve(returnValue.filePath);
+            }).catch((error: Error) => {
+                this._logger.error(`Fail get filename for saving due error: ${error.message}`);
+                reject(error);
+            });
         });
     }
 
