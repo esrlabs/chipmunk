@@ -1,4 +1,4 @@
-import OutputRedirectionsService from '../../../services/standalone/service.output.redirections';
+import OutputRedirectionsService, { ISelectionAccessor, IRange } from '../../../services/standalone/service.output.redirections';
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
@@ -58,7 +58,7 @@ export class AppsStatusBarSelectionStateComponent implements OnDestroy, AfterVie
             this._sessionSubscriptions[key].destroy();
         });
         this._sessionSubscriptions.onRowSelected = OutputRedirectionsService.subscribe(controller.getGuid(), this._onRowSelected.bind(this));
-        this._update(OutputRedirectionsService.getSelection(controller.getGuid()));
+        this._update(OutputRedirectionsService.getSelectionRanges(controller.getGuid()));
     }
 
     private _onSessionClosed(sessionId: string) {
@@ -68,26 +68,13 @@ export class AppsStatusBarSelectionStateComponent implements OnDestroy, AfterVie
         this._update([]);
     }
 
-    private _onRowSelected(sender: string, selection: number[], clicked: number) {
-        this._update(selection);
+    private _onRowSelected(sender: string, accessor: ISelectionAccessor, clicked: number) {
+        this._update(accessor.getSelections());
     }
 
-    private _update(selection: number[]) {
-        let prev: number = -1;
-        let start: number = -1;
-        this._ranges = [];
-        selection.forEach((num: number, i: number) => {
-            if (start === -1) {
-                start = num;
-            }
-            if (prev !== -1 && num - 1 !== prev) {
-                this._ranges.push(start === num ? `${num}` : `${start}:${prev}`);
-                start = num;
-            }
-            if (i === selection.length - 1) {
-                this._ranges.push(start === num ? `${num}` : `${start}:${num}`);
-            }
-            prev = num;
+    private _update(selection: IRange[]) {
+        this._ranges = selection.map((range: IRange) => {
+            return range.start === range.end ? `${range.start}` : `${range.start}:${range.end}`;
         });
         this._cdRef.detectChanges();
     }

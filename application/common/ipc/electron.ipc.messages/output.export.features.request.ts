@@ -1,7 +1,11 @@
+export interface IOutputSelectionRange {
+    from: number;
+    to: number;
+}
 
 export interface IOutputExportFeaturesRequest {
     session: string;
-    selection: number[];
+    selection: IOutputSelectionRange[];
 }
 
 export class OutputExportFeaturesRequest {
@@ -9,7 +13,7 @@ export class OutputExportFeaturesRequest {
     public static signature: string = 'OutputExportFeaturesRequest';
     public signature: string = OutputExportFeaturesRequest.signature;
     public session: string = '';
-    public selection: number[];
+    public selection: IOutputSelectionRange[];
 
     constructor(params: IOutputExportFeaturesRequest) {
         if (typeof params !== 'object' || params === null) {

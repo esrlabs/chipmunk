@@ -363,27 +363,8 @@ class ServiceDLTDeamonConnector implements IService {
 
     private _exportSelection(session: string, request: IPCMessages.OutputExportFeaturesRequest | IPCMessages.OutputExportFeatureCallRequest): Promise<void> {
         return new Promise((resolve, reject) => {
-            const sections: CommonInterfaces.IIndexSection[] = [];
-            const section: CommonInterfaces.IIndexSection = {
-                first_line: -1,
-                last_line: -1,
-            };
-            request.selection.forEach((row: number, index: number) => {
-                if (section.first_line === -1) {
-                    section.first_line = row;
-                }
-                if (index !== 0) {
-                    if (request.selection[index - 1] !== row - 1) {
-                        section.last_line = request.selection[index - 1];
-                        sections.push(Object.assign({}, section));
-                        section.last_line = -1;
-                        section.first_line = row;
-                    }
-                }
-                if (index === request.selection.length - 1) {
-                    section.last_line = row;
-                    sections.push(Object.assign({}, section));
-                }
+            const sections: CommonInterfaces.IIndexSection[] = request.selection.map((range) => {
+                return { first_line: range.from, last_line: range.to };
             });
             this.saveAs(session, 'session', sections).then(() => {
                 resolve();
