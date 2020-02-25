@@ -130,7 +130,7 @@ export type TDltFileAsyncEventObject = TDltFileAsyncEventProgress;
 
 export function saveDltFile(
 	source: string,
-	sourceType: 'session' | 'file',
+	sourceType: 'session' | 'file' | 'lines',
 	targetFile: string,
 	params: IFileSaveParams
 ): CancelablePromise<void, void, TDltFileAsyncEvents, TDltFileAsyncEventObject> {

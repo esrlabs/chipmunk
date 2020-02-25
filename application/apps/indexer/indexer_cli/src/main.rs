@@ -22,7 +22,7 @@ extern crate lazy_static;
 use async_std::task;
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
-use dlt::dlt_file::export_as_dlt_file;
+use dlt::dlt_file::{export_as_dlt_file, export_file_line_based};
 use dlt::dlt_parse::StatisticsResults;
 use dlt::dlt_pcap::convert_to_dlt_file;
 use dlt::fibex::FibexMetadata;
@@ -684,6 +684,7 @@ fn main() {
         _progress_bar: &ProgressBar,
     ) {
         debug!("handle_export_subcommand");
+
         if let Some(file_name) = matches.value_of("file") {
             let fallback_out = file_name.to_string() + ".out";
             let out_path = path::PathBuf::from(
@@ -697,11 +698,18 @@ fn main() {
                 .split('|')
                 .map(|s| to_pair(s).expect("could not parse section pair"))
                 .collect();
-            println!("sections: {:?}", sections);
 
             let (tx, _rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
-            export_as_dlt_file(file_path, out_path, SectionConfig { sections }, tx)
-                .expect("export did not work");
+            let ending = &file_path.extension().expect("could not get extension");
+            if ending.to_str() == Some("dlt") {
+                trace!("was dlt file");
+                export_as_dlt_file(file_path, out_path, SectionConfig { sections }, tx)
+                    .expect("export did not work");
+            } else {
+                trace!("was regular file");
+                export_file_line_based(file_path, out_path, SectionConfig { sections }, tx)
+                    .expect("export did not work");
+            };
 
             println!("done with handle_export_subcommand");
             std::process::exit(0)

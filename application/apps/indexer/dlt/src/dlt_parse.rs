@@ -990,7 +990,7 @@ pub fn dlt_statistic_row_info<'a, T>(
     // ) -> IResult<&'a [u8], StatisticRowInfo> {
 ) -> Result<(&'a [u8], StatisticRowInfo), DltParseError> {
     let update_channel_ref = update_channel;
-    let (after_storage_header, unparsable_bytes) = skip_till_after_next_storage_header(input)?;
+    let (after_storage_header, _) = skip_till_after_next_storage_header(input)?;
     let (after_storage_and_normal_header, header) = dlt_standard_header(after_storage_header)?;
 
     let payload_length = match validated_payload_length(&header, index, update_channel_ref) {

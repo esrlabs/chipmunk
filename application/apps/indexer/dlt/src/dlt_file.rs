@@ -481,8 +481,6 @@ pub fn export_file_line_based(
     sections: SectionConfig,
     update_channel: cc::Sender<ChunkResults>,
 ) -> Result<(), Error> {
-    use std::io::Read;
-    use std::io::Seek;
     trace!(
         "export_file_line_based {:?} to file: {:?}, exporting {:?}",
         file_path,
@@ -492,11 +490,22 @@ pub fn export_file_line_based(
     if file_path.exists() {
         trace!("found file to export: {:?}", &file_path);
         let f = fs::File::open(&file_path)?;
-        let mut reader = &mut std::io::BufReader::new(f);
+        let reader = &mut std::io::BufReader::new(f);
         let out_file = std::fs::File::create(destination_path)?;
-        let lines = reader.lines();
+        let lines_iter = &mut reader.lines().map(|l| l.unwrap());
         let mut out_writer = BufWriter::new(out_file);
-        // TODO
+        let mut index = 0usize;
+        for section in sections.sections {
+            let forward = section.first_line - index;
+            /* since section [1,2] is 2 lines, we have to add 1 here */
+            let section_size = section.last_line - section.first_line + 1;
+            let elem_iter = lines_iter.skip(forward).take(section_size);
+            for elem in elem_iter {
+                out_writer.write_fmt(format_args!("{}\n", elem))?;
+            }
+            index += forward;
+            index += section_size;
+        }
 
         let _ = update_channel.send(Ok(IndexingProgress::Finished));
         Ok(())

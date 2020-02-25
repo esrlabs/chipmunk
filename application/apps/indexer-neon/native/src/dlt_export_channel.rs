@@ -10,6 +10,7 @@ use std::thread;
 
 static DLT_SESSION_ID: &str = "session";
 static DLT_SOURCE_FILE: &str = "file";
+static LINE_BASED_SOURCE_FILE: &str = "lines";
 
 pub struct DltExporterEventEmitter {
     pub event_receiver: Arc<Mutex<cc::Receiver<ChunkResults>>>,
@@ -63,6 +64,22 @@ impl DltExporterEventEmitter {
                     Err(e) => warn!("error exporting dlt messages: {}", e),
                 }
                 debug!("back after DLT export finished!");
+            }));
+            Ok(())
+        } else if source_type == LINE_BASED_SOURCE_FILE {
+            let file_path = path::PathBuf::from(source);
+
+            self.task_thread = Some(thread::spawn(move || {
+                match dlt::dlt_file::export_file_line_based(
+                    file_path,
+                    destination_path,
+                    sections_config,
+                    chunk_result_sender,
+                ) {
+                    Ok(_) => {}
+                    Err(e) => warn!("error exporting lines: {}", e),
+                }
+                debug!("back after line export finished!");
             }));
             Ok(())
         } else {
