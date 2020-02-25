@@ -1,11 +1,5 @@
-// tslint:disable:indent
-// tslint:disable:no-bitwise
-// tslint:disable:no-shadowed-variable
-// tslint:disable:prefer-const
-// tslint:disable:interface-over-type-literal
-// tslint:disable:callable-types
-// tslint:disable:member-ordering
-// tslint:disable:no-unnecessary-initializer
+// tslint:disable
+
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
