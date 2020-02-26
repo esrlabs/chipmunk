@@ -20,7 +20,6 @@ import {
 export interface IControllerSessionStreamCharts {
     guid: string;
     stream: ControllerSessionTabStreamOutput;
-    transports: string[];
     scope: ControllerSessionScope;
 }
 

@@ -10,7 +10,6 @@ export { ControllerSessionTabStreamOutput, IStreamPacket, IStreamState };
 
 export interface IControllerSessionStream {
     guid: string;
-    transports: string[];
     scope: ControllerSessionScope;
 }
 
@@ -20,7 +19,6 @@ export class ControllerSessionTabStream {
     private _queue: Toolkit.Queue;
     private _queueController: IQueueController | undefined;
     private _guid: string;
-    private _transports: string[];
     private _subjects = {
         onSourceChanged: new Subject<number>(),
     };
@@ -31,7 +29,6 @@ export class ControllerSessionTabStream {
 
     constructor(params: IControllerSessionStream) {
         this._guid = params.guid;
-        this._transports = params.transports;
         this._scope = params.scope;
         this._logger = new Toolkit.Logger(`ControllerSessionTabStream: ${params.guid}`);
         this._bookmarks = new ControllerSessionTabStreamBookmarks(params.guid);
@@ -68,7 +65,6 @@ export class ControllerSessionTabStream {
             // Notify electron about new stream
             ServiceElectronIpc.request(new IPCMessages.StreamAddRequest({
                 guid: this._guid,
-                transports: this._transports.slice(),
             }), IPCMessages.StreamAddResponse).then((response: IPCMessages.StreamAddResponse) => {
                 if (response.error) {
                     return reject(new Error(`Fail to init stream due error: ${response.error}`));

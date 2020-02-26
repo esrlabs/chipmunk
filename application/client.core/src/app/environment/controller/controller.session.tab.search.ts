@@ -10,7 +10,6 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 export interface IControllerSessionStream {
     guid: string;
     stream: ControllerSessionTabStreamOutput;
-    transports: string[];
     scope: ControllerSessionScope;
 }
 
