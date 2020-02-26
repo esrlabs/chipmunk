@@ -121,7 +121,7 @@ export default class FileParser extends AFileParser {
                 resolve(collectedChunks);
                 // Register exports callback
                 ServiceOutputExport.setAction(this._guid as string, CExportSelectionActionId, {
-                    caption: 'Export selection to DLT file',
+                    caption: 'Export selection',
                     handler: this._exportSelection.bind(this, srcFile),
                     isEnabled: () => true,
                 });

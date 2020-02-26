@@ -26,7 +26,7 @@ export class DefaultOutputExport {
             isEnabled: () => true,
         });
         ServiceOutputExport.setAction(this._guid, CExportSelectionActionId, {
-            caption: 'Export selection to text file',
+            caption: 'Export selection',
             handler: this._exportSelection.bind(this, this._guid),
             isEnabled: () => true,
         });
