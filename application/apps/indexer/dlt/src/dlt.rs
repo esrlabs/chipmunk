@@ -79,7 +79,7 @@ impl BytesMutExt for BytesMut {
 impl StorageHeader {
     #[allow(dead_code)]
     pub fn as_bytes(self: &StorageHeader) -> Vec<u8> {
-        let mut buf = BytesMut::with_capacity(STORAGE_HEADER_LENGTH);
+        let mut buf = BytesMut::with_capacity(STORAGE_HEADER_LENGTH as usize);
         buf.extend_from_slice(b"DLT");
         buf.put_u8(0x01);
         buf.put_u32_le(self.timestamp.seconds);

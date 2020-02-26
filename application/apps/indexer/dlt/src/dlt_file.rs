@@ -491,8 +491,9 @@ pub(crate) fn create_dlt_session_file(session_id: &str) -> Result<std::fs::File,
 
 struct FilePartitioner {
     reader: ReduxReader<fs::File, MinBuffered>,
-    offset: usize,
+    offset: u64,
     section_config: SectionConfig,
+    file_size: u64,
 }
 impl FilePartitioner {
     fn new(in_path: &PathBuf, c: SectionConfig) -> Result<Self, Error> {
@@ -502,15 +503,22 @@ impl FilePartitioner {
                 .set_policy(MinBuffered(DLT_MIN_BUFFER_SPACE)),
             offset: 0,
             section_config: c,
+            file_size: fs::metadata(in_path)?.len(),
         })
     }
     fn get_parts(mut self) -> Vec<FilePart> {
+        if self.section_config.sections.is_empty() {
+            return vec![FilePart {
+                offset: 0,
+                length: self.file_size,
+            }];
+        }
         #[derive(Debug)]
         struct State {
             index: usize,
             in_section: bool,
-            bytes_in_section: usize,
-            section_offset: usize,
+            bytes_in_section: u64,
+            section_offset: u64,
         }
         let mut result_vec: Vec<FilePart> = vec![];
         let mut state = State {
@@ -549,7 +557,7 @@ impl FilePartitioner {
                                     state.section_offset = self.offset;
                                 }
                                 if state.in_section {
-                                    state.bytes_in_section += consumed;
+                                    state.bytes_in_section += consumed as u64;
                                 }
                                 if state.index == section.last_line {
                                     trace!("<--- leaving section: {:?}) ({:?})", section, state);
@@ -566,7 +574,7 @@ impl FilePartitioner {
                                     state.reset_section();
                                     break;
                                 }
-                                self.offset += consumed;
+                                self.offset += consumed as u64;
                                 self.reader.consume(consumed);
                             }
                             Err(_e) => {
@@ -589,6 +597,6 @@ impl FilePartitioner {
 }
 #[derive(Debug)]
 struct FilePart {
-    offset: usize,
-    length: usize,
+    offset: u64,
+    length: u64,
 }
