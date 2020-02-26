@@ -6,7 +6,7 @@ import * as path from "path";
 import { AFileParser, IMapItem } from "./interface";
 import { CommonInterfaces } from '../../interfaces/interface.common';
 import { IPCMessages } from "../../services/service.electron";
-import { CExportSelectionActionId } from '../../consts/output.actions';
+import { CExportSelectionActionId, CExportAllActionId } from '../../consts/output.actions';
 
 import indexer, { DLT, Progress, CancelablePromise } from "indexer-neon";
 import ServiceNotifications, { ENotificationType } from "../../services/service.notifications";
@@ -120,6 +120,11 @@ export default class FileParser extends AFileParser {
             this._task = indexer.indexDltAsync(dltParams).then(() => {
                 resolve(collectedChunks);
                 // Register exports callback
+                ServiceOutputExport.setAction(this._guid as string, CExportAllActionId, {
+                    caption: 'Export all',
+                    handler: this._exportAll.bind(this, srcFile),
+                    isEnabled: () => true,
+                });
                 ServiceOutputExport.setAction(this._guid as string, CExportSelectionActionId, {
                     caption: 'Export selection',
                     handler: this._exportSelection.bind(this, srcFile),
@@ -178,6 +183,17 @@ export default class FileParser extends AFileParser {
             this._task.canceled(() => {
                 resolve();
             }).abort();
+        });
+    }
+
+    private _exportAll(target: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            ServiceDLTDeamonConnector.saveAs(target, 'file').then(() => {
+                resolve();
+            }).catch((saveErr: Error) => {
+                this._logger.warn(`Fail to save stream data due error: ${saveErr.message}`);
+                reject(saveErr);
+            });
         });
     }
 

@@ -173,14 +173,14 @@ class ServiceDLTDeamonConnector implements IService {
                 if (this._connectionsHistory.indexOf(req.session) === -1) {
                     this._connectionsHistory.push(req.session);
                     // Register exports callback
-                    ServiceOutputExport.setAction(req.session, CExportSelectionActionId, {
-                        caption: 'Export selection',
-                        handler: this._exportSelection.bind(this, req.session),
-                        isEnabled: this._isExportPossible.bind(this, req.session),
-                    });
                     ServiceOutputExport.setAction(req.session, CExportAllActionId, {
                         caption: 'Export all',
                         handler: this._exportAll.bind(this, req.session),
+                        isEnabled: this._isExportPossible.bind(this, req.session),
+                    });
+                    ServiceOutputExport.setAction(req.session, CExportSelectionActionId, {
+                        caption: 'Export selection',
+                        handler: this._exportSelection.bind(this, req.session),
                         isEnabled: this._isExportPossible.bind(this, req.session),
                     });
                 }
