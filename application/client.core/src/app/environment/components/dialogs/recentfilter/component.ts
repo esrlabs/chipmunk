@@ -116,7 +116,7 @@ export class DialogsRecentFitlersActionComponent implements OnInit, AfterViewIni
         if (typeof value !== 'string') {
             return;
         }
-        const scored = sortFiles(this._files, value, 'span');
+        const scored = sortFiles(this._files, value, value !== '', 'span');
         this._focus();
         return scored;
     }
