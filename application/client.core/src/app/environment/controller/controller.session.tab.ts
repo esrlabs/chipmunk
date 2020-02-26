@@ -24,7 +24,6 @@ export { IStreamState };
 
 export interface IControllerSession {
     guid: string;
-    transports: string[];
     sessionsEventsHub: Toolkit.ControllerSessionsEvents;
     tabTitleContentService: TabTitleContentService;
 }
@@ -42,7 +41,6 @@ export interface IInjectionRemoveEvent {
 export class ControllerSessionTab {
     private _logger: Toolkit.Logger;
     private _sessionId: string;
-    private _transports: string[];
     private _stream: ControllerSessionTabStream;
     private _search: ControllerSessionTabSearch;
     private _states: ControllerSessionTabStates;
@@ -65,17 +63,14 @@ export class ControllerSessionTab {
 
     constructor(params: IControllerSession) {
         this._sessionId = params.guid;
-        this._transports = params.transports;
         this._scope = new ControllerSessionScope(this._sessionId, params.sessionsEventsHub);
         this._logger = new Toolkit.Logger(`ControllerSession: ${params.guid}`);
         this._stream = new ControllerSessionTabStream({
             guid: params.guid,
-            transports: params.transports.slice(),
             scope: this._scope,
         });
         this._search = new ControllerSessionTabSearch({
             guid: params.guid,
-            transports: params.transports.slice(),
             stream: this._stream.getOutputStream(),
             scope: this._scope,
         });
@@ -205,22 +200,11 @@ export class ControllerSessionTab {
         return this._map;
     }
 
-    public getTransports(): string[] {
-        return this._transports.slice();
-    }
-
     public getOutputInjections(
         type: Toolkit.EViewsTypes,
     ): Map<string, Toolkit.IComponentInjection> {
         const injections: Map<string, Toolkit.IComponentInjection> = new Map();
-        this._transports.forEach((pluginName: string) => {
-            const plugin: IPluginData | undefined = PluginsService.getPlugin(pluginName);
-            if (plugin === undefined) {
-                this._logger.warn(
-                    `Plugin "${pluginName}" is defined as transport, but doesn't exist in storage.`,
-                );
-                return;
-            }
+        PluginsService.getAvailablePlugins().forEach((plugin: IPluginData) => {
             if (plugin.factories[type] === undefined) {
                 return;
             }

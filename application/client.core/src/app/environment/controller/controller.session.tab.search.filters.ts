@@ -24,7 +24,6 @@ export { FilterRequest, IFilterFlags, FiltersStorage };
 export interface IControllerSessionStreamFilters {
     guid: string;
     stream: ControllerSessionTabStreamOutput;
-    transports: string[];
     scope: ControllerSessionScope;
 }
 

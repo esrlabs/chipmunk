@@ -151,6 +151,10 @@ export class PluginsService extends Toolkit.Emitter implements IService {
         this._getPluginAPIByID = getter;
     }
 
+    public getAvailablePlugins(): IPluginData[] {
+        return Array.from(this._plugins.values());
+    }
+
     private _fire(event: string, ...args: any) {
         this._plugins.forEach((plugin: IPluginData) => {
             const emitter = plugin.controllers.sessions.emit();

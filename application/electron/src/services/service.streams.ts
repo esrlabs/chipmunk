@@ -41,7 +41,6 @@ export interface IPipeOptions {
 
 export interface INewSessionEvent {
     stream: IStreamInfo;
-    transports: string[];
 }
 
 export interface IServiceSubjects {
@@ -446,11 +445,10 @@ class ServiceStreams implements IService  {
                 this._activeStreamGuid = stream.guid;
             }
             // Prepare plugins
-            ServicePlugins.addStream(stream.guid, stream.connectionFactory, message.transports).then(() => {
+            ServicePlugins.addStream(stream.guid, stream.connectionFactory).then(() => {
                 // Emit event
                 this._subjects.onSessionCreated.emit({
                     stream: stream,
-                    transports: message.transports,
                 });
                 // Response
                 response(new IPCElectronMessages.StreamAddResponse({

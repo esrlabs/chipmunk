@@ -197,7 +197,7 @@ export class SidebarSessionsService implements IService {
         this._subjects.injection.next(comp);
     }
 
-    private _create(session: string, transports: string[]) {
+    private _create(session: string) {
         // Reset injected title content
         this.setTitleInjection(undefined);
         if (this._services.has(session)) {
@@ -227,12 +227,7 @@ export class SidebarSessionsService implements IService {
             }
         });
         // Detect tabs related to transports (plugins)
-        transports.forEach((transport: string, index: number) => {
-            const plugin: IPluginData | undefined = PluginsService.getPlugin(transport);
-            if (plugin === undefined) {
-                this._logger.warn(`Plugin "${transport}" is defined as transport, but doesn't exist in storage.`);
-                return;
-            }
+        PluginsService.getAvailablePlugins().forEach((plugin: IPluginData) => {
             if (plugin.factories[Toolkit.EViewsTypes.sidebarVertical] === undefined) {
                 return;
             }
@@ -330,7 +325,7 @@ export class SidebarSessionsService implements IService {
             return;
         }
         // Create
-        this._create(controller.getGuid(), controller.getTransports());
+        this._create(controller.getGuid());
     }
 
     private _onSessionClosed(session: string) {

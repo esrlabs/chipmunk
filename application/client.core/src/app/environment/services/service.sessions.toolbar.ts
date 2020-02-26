@@ -149,19 +149,14 @@ export class ToolbarSessionsService implements IService {
     }
 
     private _getSidebarPlugins(): ISidebarPluginInfo[] {
-        const plugins: string[] = ['xterminal'];
         const info: ISidebarPluginInfo[] = [];
-        plugins.forEach((pluginName: string, index: number) => {
-            const plugin: IPluginData | undefined = PluginsService.getPlugin(pluginName);
-            if (plugin === undefined) {
-                return this._logger.warn(`Plugin "${pluginName}" is defined ot be injected into SidebarHorizontal, but no such plugin found.`);
-            }
+        PluginsService.getAvailablePlugins().forEach((plugin: IPluginData) => {
             if (plugin.factories[Toolkit.EViewsTypes.sidebarHorizontal] === undefined) {
-                return this._logger.warn(`Plugin "${pluginName}" is defined ot be injected into SidebarHorizontal, but target view isn't detected.`);
+                return;
             }
             info.push({
                 id: plugin.id,
-                name: pluginName,
+                name: plugin.name,
                 factory: plugin.factories[Toolkit.EViewsTypes.sidebarHorizontal],
                 ipc: plugin.ipc
             });

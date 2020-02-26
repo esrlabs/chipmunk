@@ -162,6 +162,7 @@ export class ServicePlugins implements IService {
                                 // Attach single plugins
                                 this._initSingleSessionPlugins().then(() => {
                                     // All done now
+                                    console.log(this.getSessionPluginsNames());
                                     resolve();
                                 });
                             }).catch((initializationError: Error) => {
@@ -271,77 +272,43 @@ export class ServicePlugins implements IService {
         });
     }
 
-        /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-        *   Streams
-        * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    *   Streams
+    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-        public addStream(streamId: string, connectionFactory: TConnectionFactory, transports: string[]): Promise<void> {
-            return new Promise((resolve, reject) => {
-                const plugins: IPlugin[] = [];
-                const singles: IPlugin[] = [];
-                this._logger.debug(`New stream is created ${streamId}. Sending information to plugins.`);
-                // Get all related transports (plugins)
-                transports.forEach((pluginName: string) => {
-                    const plugin: IPlugin | undefined = this._plugins.get(pluginName);
-                    if (plugin === undefined) {
+    public addStream(streamId: string, connectionFactory: TConnectionFactory): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const plugins: IPlugin[] = [];
+            const singles: IPlugin[] = [];
+            this._logger.debug(`New stream is created ${streamId}. Sending information to plugins.`);
+            this._plugins.forEach((plugin: IPlugin) => {
+                if (plugin.single !== undefined) {
+                    singles.push(plugin);
+                } else {
+                    if (plugin.sessions.has(streamId)) {
+                        this._logger.warn(`Plugin ${plugin.name} was defined as transport for session "${streamId}", but plugin is already bound with this session.`);
                         return;
                     }
-                    if (plugin.single !== undefined) {
-                        singles.push(plugin);
-                    } else {
-                        if (plugin.sessions.has(streamId)) {
-                            this._logger.warn(`Plugin ${plugin.name} was defined as transport for session "${streamId}", but plugin is already bound with this session.`);
-                            return;
-                        }
-                        plugins.push(plugin);
+                    plugins.push(plugin);
+                }
+            });
+            const tasks: Array<Promise<void>> = [];
+            // Init per session plugins (mulitple)
+            tasks.push(...plugins.map((plugin: IPlugin) => {
+                return new Promise<void>((resolveTask, rejectTask) => {
+                    // Create controller
+                    const controller: ControllerPluginProcessMultiple = new ControllerPluginProcessMultiple(plugin);
+                    if (!controller.canBeAttached()) {
+                        return resolveTask();
                     }
-                });
-                const tasks: Array<Promise<void>> = [];
-                // Init per session plugins (mulitple)
-                tasks.push(...plugins.map((plugin: IPlugin) => {
-                    return new Promise<void>((resolveTask, rejectTask) => {
-                        // Create controller
-                        const controller: ControllerPluginProcessMultiple = new ControllerPluginProcessMultiple(plugin);
-                        if (!controller.canBeAttached()) {
-                            return resolveTask();
-                        }
-                        controller.attach().then(() => {
-                            // Binding controller
-                            connectionFactory(plugin.name).then((connection: { socket: Net.Socket, file: string }) => {
-                                // Send data to plugin
-                                controller.bindStream(streamId, connection).then(() => {
-                                    plugin.sessions.set(streamId, controller);
-                                    // Save data
-                                    this._plugins.set(plugin.name, plugin);
-                                    // Send notification
-                                    ServiceElectronService.logStateToRender(`[${plugin.name}]: attached to session "${streamId}".`);
-                                    this._logger.debug(`[${plugin.name}]: attached to session "${streamId}"`);
-                                    resolveTask();
-                                }).catch((bindError: Error) => {
-                                    ServiceElectronService.logStateToRender(`[${plugin.name}]: fail to bind due error: ${bindError.message}`);
-                                    this._logger.warn(`Fail to bind plugin ${plugin.name} due error: ${bindError.message}.`);
-                                    rejectTask(bindError);
-                                });
-                            });
-                        }).catch((attachError: Error) => {
-                            ServiceElectronService.logStateToRender(`[${plugin.name}]: fail to attach due error: ${attachError.message}`);
-                            this._logger.warn(`Fail to attach plugin ${plugin.name} for session "${streamId}" due error: ${attachError.message}.`);
-                            rejectTask(attachError);
-                        });
-                    });
-                }));
-                // Init single plugins (single)
-                tasks.push(...singles.map((plugin: IPlugin) => {
-                    return new Promise<void>((resolveTask, rejectTask) => {
-                        const controller: ControllerPluginProcessSingle = plugin.single as ControllerPluginProcessSingle;
-                        if (!controller.isAttached()) {
-                            this._logger.warn(`Plugin "${plugin.name}" is defined as single, but wasn't atteched. This plugin will be ignored for session "${streamId}"`);
-                            return resolveTask();
-                        }
+                    controller.attach().then(() => {
                         // Binding controller
                         connectionFactory(plugin.name).then((connection: { socket: Net.Socket, file: string }) => {
                             // Send data to plugin
                             controller.bindStream(streamId, connection).then(() => {
+                                plugin.sessions.set(streamId, controller);
+                                // Save data
+                                this._plugins.set(plugin.name, plugin);
                                 // Send notification
                                 ServiceElectronService.logStateToRender(`[${plugin.name}]: attached to session "${streamId}".`);
                                 this._logger.debug(`[${plugin.name}]: attached to session "${streamId}"`);
@@ -352,55 +319,93 @@ export class ServicePlugins implements IService {
                                 rejectTask(bindError);
                             });
                         });
+                    }).catch((attachError: Error) => {
+                        ServiceElectronService.logStateToRender(`[${plugin.name}]: fail to attach due error: ${attachError.message}`);
+                        this._logger.warn(`Fail to attach plugin ${plugin.name} for session "${streamId}" due error: ${attachError.message}.`);
+                        rejectTask(attachError);
                     });
-                }));
-                if (tasks.length === 0) {
-                    return resolve();
-                }
-                // Do all
-                Promise.all(tasks).then(() => {
-                    this._logger.debug(`All plugins for session "${streamId}" is attached and bound.`);
-                    resolve();
-                }).catch((error: Error) => {
-                    reject(error);
                 });
-            });
-        }
-
-        public removedStream(streamId: string): Promise<void> {
-            return new Promise((resolve, reject) => {
-                const tasks: Array<Promise<void>> = [];
-                // Find all plugins, which are bound with stream
-                this._plugins.forEach((plugin: IPlugin, id: string) => {
-                    if (plugin.single === undefined) {
-                        // Mulitple plugins (plugins per session)
-                        const controller: ControllerPluginProcessMultiple | undefined = plugin.sessions.get(streamId);
-                        if (controller === undefined) {
-                            return;
-                        }
-                        controller.kill();
-                        plugin.sessions.delete(streamId);
-                        this._plugins.set(id, plugin);
-                    } else {
-                        // Single plugins (plugins for all sessions across)
-                        const controller = plugin.single;
-                        tasks.push(new Promise((resolveTask, rejectTask) => {
-                            controller.unbindStream(streamId).then(resolveTask).catch(rejectTask);
-                        }));
+            }));
+            // Init single plugins (single)
+            tasks.push(...singles.map((plugin: IPlugin) => {
+                return new Promise<void>((resolveTask, rejectTask) => {
+                    const controller: ControllerPluginProcessSingle = plugin.single as ControllerPluginProcessSingle;
+                    if (!controller.isAttached()) {
+                        this._logger.warn(`Plugin "${plugin.name}" is defined as single, but wasn't atteched. This plugin will be ignored for session "${streamId}"`);
+                        return resolveTask();
                     }
+                    // Binding controller
+                    connectionFactory(plugin.name).then((connection: { socket: Net.Socket, file: string }) => {
+                        // Send data to plugin
+                        controller.bindStream(streamId, connection).then(() => {
+                            // Send notification
+                            ServiceElectronService.logStateToRender(`[${plugin.name}]: attached to session "${streamId}".`);
+                            this._logger.debug(`[${plugin.name}]: attached to session "${streamId}"`);
+                            resolveTask();
+                        }).catch((bindError: Error) => {
+                            ServiceElectronService.logStateToRender(`[${plugin.name}]: fail to bind due error: ${bindError.message}`);
+                            this._logger.warn(`Fail to bind plugin ${plugin.name} due error: ${bindError.message}.`);
+                            rejectTask(bindError);
+                        });
+                    });
                 });
-                if (tasks.length === 0) {
-                    return resolve();
-                }
-                Promise.all(tasks).then(() => {
-                    resolve();
-                }).catch(reject);
+            }));
+            if (tasks.length === 0) {
+                return resolve();
+            }
+            // Do all
+            Promise.all(tasks).then(() => {
+                this._logger.debug(`All plugins for session "${streamId}" is attached and bound.`);
+                resolve();
+            }).catch((error: Error) => {
+                reject(error);
             });
-        }
+        });
+    }
+
+    public removedStream(streamId: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const tasks: Array<Promise<void>> = [];
+            // Find all plugins, which are bound with stream
+            this._plugins.forEach((plugin: IPlugin, id: string) => {
+                if (plugin.single === undefined) {
+                    // Mulitple plugins (plugins per session)
+                    const controller: ControllerPluginProcessMultiple | undefined = plugin.sessions.get(streamId);
+                    if (controller === undefined) {
+                        return;
+                    }
+                    controller.kill();
+                    plugin.sessions.delete(streamId);
+                    this._plugins.set(id, plugin);
+                } else {
+                    // Single plugins (plugins for all sessions across)
+                    const controller = plugin.single;
+                    tasks.push(new Promise((resolveTask, rejectTask) => {
+                        controller.unbindStream(streamId).then(resolveTask).catch(rejectTask);
+                    }));
+                }
+            });
+            if (tasks.length === 0) {
+                return resolve();
+            }
+            Promise.all(tasks).then(() => {
+                resolve();
+            }).catch(reject);
+        });
+    }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     *   Common
     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    public getSessionPluginsNames(): string[] {
+        const plugins: string[] = [];
+        this._plugins.forEach((desc: IPlugin) => {
+            if (desc.single) {
+                plugins.push(desc.name);
+            }
+        });
+        return plugins;
+    }
     private _getPluginInfoByToken(token: string): IPlugin | undefined {
         let result: IPlugin | undefined;
         this._plugins.forEach((plugin: IPlugin) => {
