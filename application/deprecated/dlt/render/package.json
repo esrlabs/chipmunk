@@ -1,0 +1,21 @@
+{
+  "name": "dlt",
+  "version": "1.0.5",
+  "peerDependencies": {
+    "@angular/common": "^7.0.0",
+    "@angular/core": "^7.0.0"
+  },
+  "main": "bundles/dlt.umd.js",
+  "module": "fesm5/dlt.js",
+  "es2015": "fesm2015/dlt.js",
+  "esm5": "esm5/dlt.js",
+  "esm2015": "esm2015/dlt.js",
+  "fesm5": "fesm5/dlt.js",
+  "fesm2015": "fesm2015/dlt.js",
+  "typings": "dlt.d.ts",
+  "metadata": "dlt.metadata.json",
+  "sideEffects": false,
+  "dependencies": {
+    "tslib": "^1.9.0"
+  }
+}
