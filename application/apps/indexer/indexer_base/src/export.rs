@@ -37,9 +37,9 @@ pub fn export_file_line_based(
             let elem_iter = lines_iter.skip(forward).take(section_size);
             for elem in elem_iter {
                 if was_session_file {
-                    out_writer.write_fmt(format_args!("{}\n", elem?))?;
-                } else {
                     out_writer.write_fmt(format_args!("{}\n", restore_line(&elem?)))?;
+                } else {
+                    out_writer.write_fmt(format_args!("{}\n", elem?))?;
                 }
             }
             index += forward;
