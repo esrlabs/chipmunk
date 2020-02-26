@@ -1,6 +1,6 @@
 {
   "name": "dlt",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "peerDependencies": {
     "@angular/common": "^7.0.0",
     "@angular/core": "^7.0.0"
