@@ -42,8 +42,8 @@ export interface IFileInfo {
     file: string;
 }
 
-export function sortFiles(files: Array<IFileInfo | ISortedFile>, query: string, matchTag?: string): ISortedFile[] {
-    const rates: ISortedFile[] = files.map((file: IFileInfo) => {
+export function sortFiles(files: Array<IFileInfo | ISortedFile>, query: string, removeZeroScore: boolean, matchTag?: string): ISortedFile[] {
+    let rates: ISortedFile[] = files.map((file: IFileInfo) => {
         const desc = URI.file(file.file);
         const score = scorer.scoreItem(desc, scorer.prepareQuery(query), true, ResourceAccessor, cache);
         const basename: string = path.basename(desc.fsPath);
@@ -58,6 +58,11 @@ export function sortFiles(files: Array<IFileInfo | ISortedFile>, query: string, 
     rates.sort((a, b) => {
         return b.score.score - a.score.score;
     });
+    if (removeZeroScore) {
+        rates = rates.filter((rate: ISortedFile) => {
+            return rate.score.score > 0;
+        });
+    }
     return rates.map((rate: ISortedFile) => {
         rate.score = undefined;
         return rate;

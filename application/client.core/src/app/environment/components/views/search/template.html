@@ -1,7 +1,7 @@
 <div *ngIf="_ng_session !== undefined" class="request">
   <div class="comstyle-input-holder search-input-wrapper">
     <div>
-      <mat-form-field class="recent-requests" appearance="outline">
+      <mat-form-field class="recent-requests outline regular" appearance="outline">
         <input  #requestinput
                 tabindex="1000"
                 type="text" 
@@ -17,7 +17,7 @@
                 appMatAutocompleteScrollModificationAccessor
                 [optionHeight]="24"
                 [matAutocomplete]="auto">
-        <mat-autocomplete #auto="matAutocomplete"
+        <mat-autocomplete #auto="matAutocomplete" class="regular"
             (optionSelected)="_ng_onRecentSelected($event)"
             [classList]="'recent-requests'"
             [disableRipple]="true">

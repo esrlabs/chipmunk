@@ -13,79 +13,7 @@
     max-height: 1.5rem!important;
 }
 
-& mat-form-field.recent-files{
-    & input,
-    & label {
-        padding: 0 0.5rem;
-        width: ~"calc(100% - 1rem)";
-    }
-}
-& mat-option.recent-files {
-    &.mat-active{
-        background: @scheme-color-3;
-    }
-    & span.mat-option-text {
-        position: relative;
-        padding: 0 0.5rem;
-        display: flex;
-        flex-flow: row;
-        & span.filename {
-            display: inline-block;
-            position: relative;
-            font-weight: 600;
-            padding: 0 0.5rem;
-            vertical-align: top;
-            color: @scheme-color-0;
-        }
-        & span.folder {
-            display: inline-block;
-            position: relative;
-            text-overflow: ellipsis;
-            direction: rtl;
-            overflow: hidden;
-            color: @scheme-color-2;
-            vertical-align: top;
-            flex: auto;
-        }
-        & span.size {
-            display: inline-block;
-            position: relative;
-            color: @scheme-color-2;
-            vertical-align: top;
-        }
-        & span.filename > span,
-        & span.folder > span {
-            font-weight: bold;
-            background: @scheme-color-2;
-            color: @scheme-color-0;
-            border-radius: 3px;
-        }
-    }
-}
-
-& mat-form-field.recent-requests{
-    & input,
-    & label {
-        padding: 0 0.5rem;
-        width: ~"calc(100% - 1rem)";
-        padding-top: 4px;
-        & span{
-            color: @scheme-color-2;
-            font-size: 0.9rem;
-        }
-    }
-    & .mat-form-field-label-wrapper{
-        overflow: visible;
-    }
-    & .mat-form-field-ripple{
-        visibility: hidden;
-    }
-}
-
 & mat-option.recent-requests {
-    &.mat-active{
-        background: @scheme-color-3;
-    }
     & span.mat-option-text {
         position: relative;
         padding: 0 0.5rem;
@@ -180,4 +108,105 @@ input.mat-input-element.standard{
 .mat-expansion-panel-header-description{
     padding-top: 3px;
     font-size: 12px;
+}
+
+& mat-form-field.outline{
+    & .mat-form-field-infix{
+        border: none;
+    }
+    & .mat-form-field-outline-start,
+    & .mat-form-field-outline-end{
+        border-width: 1px!important;
+        border-color: @scheme-color-4;
+        border-radius: 0;
+    }
+    &.mat-focused{
+        & .mat-form-field-outline{
+            background: @scheme-color-5;
+        }
+        & .mat-form-field-outline-start,
+        & .mat-form-field-outline-end{
+            border-color: fade(@scheme-color-accent, 60%);
+        }
+    }
+}
+
+& mat-form-field.regular{
+    margin: 0 4px;
+    width: 100%;
+    & .mat-form-field-label-wrapper{
+        overflow: visible;
+    }
+    & .mat-form-field-ripple{
+        visibility: hidden;
+    }
+    & input,
+    & label {
+        padding: 0 0.5rem;
+        width: ~"calc(100% - 1rem)";
+        padding-top: 4px;
+        & span{
+            color: @scheme-color-2;
+            font-size: 0.9rem;
+        }
+    }
+    & .mat-form-field-flex{
+        height: 31px;
+    }
+    & .mat-form-field-infix{
+        margin: 4px 0 0 0;
+        padding: 0;
+    }
+}
+& div.mat-autocomplete-panel.regular{
+    & mat-option {
+        &.mat-active{
+            background: fade(@scheme-color-accent, 40%);
+        }
+    }
+}
+& mat-form-field.recent-files{
+    margin: 6px 4px;
+    width: ~"calc(100% - 8px)";
+}
+& div.mat-autocomplete-panel.recent-files{
+    margin-top: 8px;
+}
+& mat-option.recent-files {
+    & span.mat-option-text {
+        position: relative;
+        padding: 0 0.5rem;
+        display: flex;
+        flex-flow: row;
+        & span.filename {
+            display: inline-block;
+            position: relative;
+            font-weight: 600;
+            padding: 0 0.5rem;
+            vertical-align: top;
+            color: @scheme-color-0;
+        }
+        & span.folder {
+            display: inline-block;
+            position: relative;
+            text-overflow: ellipsis;
+            direction: rtl;
+            overflow: hidden;
+            color: @scheme-color-1;
+            vertical-align: top;
+            flex: auto;
+        }
+        & span.size {
+            display: inline-block;
+            position: relative;
+            color: @scheme-color-1;
+            vertical-align: top;
+        }
+        & span.filename > span,
+        & span.folder > span {
+            font-weight: bold;
+            color: @scheme-color-accent;
+            border-radius: 3px;
+        }
+    }
 }
