@@ -234,7 +234,7 @@ export class SidebarSessionsService implements IService {
             // Add to storage
             tabs.set(plugin.name, {
                 guid: plugin.name,
-                name: plugin.name,
+                name: plugin.displayName,
                 active: false,
                 content: {
                     factory: plugin.factories[Toolkit.EViewsTypes.sidebarVertical],

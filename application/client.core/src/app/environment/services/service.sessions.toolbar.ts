@@ -49,6 +49,7 @@ const DefaultViews = [
 export interface ISidebarPluginInfo {
     id: number;
     name: string;
+    displayName: string;
     factory: any;
     ipc: ControllerPluginIPC;
 }
@@ -99,7 +100,7 @@ export class ToolbarSessionsService implements IService {
             }, this._inputs);
             this._tabsService.add({
                 guid: guid,
-                name: pluginInfo.name,
+                name: pluginInfo.displayName,
                 active: false,
                 content: {
                     factory: pluginInfo.factory,
@@ -158,7 +159,8 @@ export class ToolbarSessionsService implements IService {
                 id: plugin.id,
                 name: plugin.name,
                 factory: plugin.factories[Toolkit.EViewsTypes.sidebarHorizontal],
-                ipc: plugin.ipc
+                ipc: plugin.ipc,
+                displayName: plugin.displayName,
             });
         });
         return info;

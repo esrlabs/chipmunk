@@ -40,6 +40,7 @@ export interface IPluginData {
     ipc: ControllerPluginIPC;           // Related to plugin IPC
     controllers: IPluginControllers;    // Collection of controllers to plugin listents
     id: number;                         // ID of plugin
+    displayName: string;                // Displaied name of plugin (for example title of tab)
     factories: { [key: string]: any };
     mwcf?: AngularCore.ModuleWithComponentFactories<any>;
 }
@@ -163,7 +164,7 @@ export class PluginsService extends Toolkit.Emitter implements IService {
         });
     }
 
-    private _loadAndInit(name: string, token: string, id: number, location: string): Promise<IPluginData> {
+    private _loadAndInit(name: string, displayName: string, token: string, id: number, location: string): Promise<IPluginData> {
         return new Promise((resolve, reject) => {
             Toolkit.sequences([
                 // Step 1. Delivery sources of module
@@ -171,7 +172,7 @@ export class PluginsService extends Toolkit.Emitter implements IService {
                 // Steps 2 - 3. Prepare environment and init code of module
                 this._loadAndInit_InitPlugin.bind(this, name, token, id, location),         // Returns { [key: string]: any } - all exports of module
                 // Steps 4 - 6. Compile code as Angular module, discover shares of module
-                this._loadAndInit_CompilePlugin.bind(this, name, token, id, location),      // Returns { IPluginData } - plugin data
+                this._loadAndInit_CompilePlugin.bind(this, name, displayName, token, id, location),      // Returns { IPluginData } - plugin data
                 // Steps 7. Setup access to API for plugin's service (if it exists)
                 this._loadAndInit_SetupPluginService.bind(this, name, token, id, location), // Returns { IPluginData } - plugin data
             ]).then((pluginData: IPluginData) => {
@@ -228,13 +229,14 @@ export class PluginsService extends Toolkit.Emitter implements IService {
         });
     }
 
-    private _loadAndInit_CompilePlugin(name: string, token: string, id: number, location: string, exports: Toolkit.IPluginExports): Promise<IPluginData> {
+    private _loadAndInit_CompilePlugin(name: string, displayName: string, token: string, id: number, location: string, exports: Toolkit.IPluginExports): Promise<IPluginData> {
         return new Promise((resolve, reject) => {
             const ngModule: AngularCore.Type<any> | undefined = this._getNgModule(exports);
             if (ngModule === undefined) {
                 // This is not angular module. Store plugin
                 const pluginData: IPluginData = {
                     name: name,
+                    displayName: displayName,
                     token: token,
                     exports: exports,
                     ipc: new ControllerPluginIPC(name, token),
@@ -261,6 +263,7 @@ export class PluginsService extends Toolkit.Emitter implements IService {
                         // Store plugin data
                         const pluginData: IPluginData = {
                             name: name,
+                            displayName: displayName,
                             token: token,
                             exports: exports,
                             ipc: new ControllerPluginIPC(name, token),
@@ -393,7 +396,7 @@ export class PluginsService extends Toolkit.Emitter implements IService {
         }
         event.plugins.forEach((pluginInfo: IPCMessages.IRenderMountPluginInfo) => {
             this._logger.env(`Information about plugin "${pluginInfo.name}" has been gotten. Starting loading & initialization.`);
-            this._loadAndInit(pluginInfo.name, pluginInfo.token, pluginInfo.id, pluginInfo.location).then((pluginData: IPluginData) => {
+            this._loadAndInit(pluginInfo.name, pluginInfo.displayName, pluginInfo.token, pluginInfo.id, pluginInfo.location).then((pluginData: IPluginData) => {
                 // Store IPC
                 PluginsIPCService.addPlugin(pluginInfo.token, pluginData.ipc);
                 // Save plugin
