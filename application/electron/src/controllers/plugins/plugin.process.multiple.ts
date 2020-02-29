@@ -1,15 +1,14 @@
-import * as Path from 'path';
-import * as FS from '../../tools/fs';
 import * as Net from 'net';
 import * as IPCPluginMessages from '../../../../common/ipc/plugins.ipc.messages/index';
+
 import { ChildProcess, fork } from 'child_process';
 import { Emitter } from '../../tools/index';
-import { IPlugin } from '../../services/service.plugins';
+import { CStdoutSocketAliases } from '../../consts/controller.plugin.process';
+
 import Logger from '../../tools/env.logger';
 import ControllerIPCPlugin from './plugin.process.ipc';
 import ServiceProduction from '../../services/service.production';
 import ServicePaths from '../../services/service.paths';
-import { CStdoutSocketAliases } from '../../consts/controller.plugin.process';
 
 const CDebugPluginPorts: { [key: string]: number } = {
     serial: 9240,
@@ -19,6 +18,13 @@ const CDebugPluginPorts: { [key: string]: number } = {
 interface IConnection {
     socket: Net.Socket;
     file: string;
+}
+
+interface IOpt {
+    id: number;
+    name: string;
+    entrypoint: string;
+    token: string;
 }
 
 /**
@@ -36,31 +42,19 @@ export default class ControllerPluginProcessMultiple extends Emitter {
     };
 
     private _logger: Logger;
-    private _plugin: IPlugin;
+    private _opt: IOpt;
     private _process: ChildProcess | undefined;
     private _ipc: ControllerIPCPlugin | undefined;
     private _connection: IConnection | undefined;
 
-    constructor(plugin: IPlugin) {
+    constructor(opt: IOpt) {
         super();
-        this._plugin = plugin;
-        this._logger = new Logger(`plugin: ${this._plugin.name}`);
+        this._opt = opt;
+        this._logger = new Logger(`plugin: ${this._opt.name}`);
         this._onSTDData = this._onSTDData.bind(this);
         this._onClose = this._onClose.bind(this);
         this._onError = this._onError.bind(this);
         this._onDisconnect = this._onDisconnect.bind(this);
-    }
-
-    public canBeAttached(): boolean {
-        if (this._plugin.packages.process === undefined) {
-            return false;
-        }
-        const mainField: string = this._plugin.packages.process.getPackageJson().main;
-        const mainFile: string = Path.resolve(this._plugin.packages.process.getPath(), mainField);
-        if (!FS.isExist(mainFile)) {
-            return false;
-        }
-        return true;
     }
 
     /**
@@ -69,23 +63,15 @@ export default class ControllerPluginProcessMultiple extends Emitter {
      */
     public attach(): Promise<void> {
         return new Promise((resolve, reject) => {
-            if (this._plugin.packages.process === undefined) {
-                return reject(new Error(this._logger.error(`package.json of plugin isn't found.`)));
-            }
-            const mainField: string = this._plugin.packages.process.getPackageJson().main;
-            const mainFile: string = Path.resolve(this._plugin.packages.process.getPath(), mainField);
-            if (!FS.isExist(mainFile)) {
-                return reject(new Error(this._logger.error(`Cannot find file defined in "main" of package.json. File: ${mainFile}.`)));
-            }
             const args: string[] = [
                 `--chipmunk-settingspath=${ServicePaths.getPluginsCfgFolder()}`,
-                `--chipmunk-plugin-alias=${this._plugin.name.replace(/[^\d\w-_]/gi, '_')}`,
+                `--chipmunk-plugin-alias=${this._opt.name.replace(/[^\d\w-_]/gi, '_')}`,
             ];
             if (!ServiceProduction.isProduction()) {
-                args.push(`--inspect=127.0.0.1:${CDebugPluginPorts[this._plugin.name] === undefined ? (9229 + this._plugin.id - 1) : CDebugPluginPorts[this._plugin.name]}`);
+                args.push(`--inspect=127.0.0.1:${CDebugPluginPorts[this._opt.name] === undefined ? (9229 + this._opt.id - 1) : CDebugPluginPorts[this._opt.name]}`);
             }
             this._process = fork(
-                mainFile,
+                this._opt.entrypoint,
                 args,
                 { stdio: [
                     'pipe', // stdin  - doesn't used by parent process
@@ -103,11 +89,11 @@ export default class ControllerPluginProcessMultiple extends Emitter {
             this._process.on('error', this._onError);
             this._process.on('disconnect', this._onDisconnect);
             // Create IPC controller
-            this._ipc = new ControllerIPCPlugin(this._plugin.name, this._process, this._plugin.token);
+            this._ipc = new ControllerIPCPlugin(this._opt.name, this._process, this._opt.token);
             // Send token
             this._ipc.send(new IPCPluginMessages.PluginToken({
-                token: this._plugin.token,
-                id: this._plugin.id,
+                token: this._opt.token,
+                id: this._opt.id,
             })).catch((sendingError: Error) => {
                 this._logger.error(`Fail delivery plugin token due error: ${sendingError.message}`);
             });
@@ -177,7 +163,7 @@ export default class ControllerPluginProcessMultiple extends Emitter {
 
     private _bindRefWithId(socket: Net.Socket): Promise<void> {
         return new Promise((resolve, reject) => {
-            socket.write(`[plugin:${this._plugin.id}]`, (error: Error) => {
+            socket.write(`[plugin:${this._opt.id}]`, (error: Error) => {
                 if (error) {
                     return reject(new Error(this._logger.error(`Cannot send binding message into socket due error: ${error.message}`)));
                 }

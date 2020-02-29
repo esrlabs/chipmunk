@@ -1,17 +1,15 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as util from 'util';
 import * as os from 'os';
 import ServicePaths from '../services/service.paths';
 import Logger from '../tools/env.logger';
+import { getPlatform, EPlatforms } from '../tools/env.os';
 import { IService } from '../interfaces/interface.service';
 import ServicePackage from './service.package';
 import ServiceElectron, { Subscription, IPCMessages } from './service.electron';
 import ServiceProduction from './service.production';
+import GitHubClient, { IReleaseAsset, IReleaseData } from '../tools/env.github.client';
 import { IMainApp } from '../interfaces/interface.main';
-
-// tslint:disable-next-line:no-var-requires
-const GitHub: any = require('github-releases');
 
 const CHooks = {
     alias: '<alias>',
@@ -21,44 +19,11 @@ const CHooks = {
 const CReleaseNameAliases = [ 'logviewer', 'chipmunk' ];
 const CAssetFilePattern = `${CHooks.alias}@${CHooks.version}-${CHooks.platform}-portable.tgz`;
 const CSettings: {
-    user: string,
     repo: string,
 } = {
-    user: 'esrlabs',
     repo: 'chipmunk',
 };
-export enum EPlatforms {
-    aix = 'aix',
-    darwin = 'darwin',
-    freebsd = 'freebsd',
-    linux = 'linux',
-    openbsd = 'openbsd',
-    sunos = 'sunos',
-    win32 = 'win32',
-    win64 = 'win64',
-    android = 'android',
-    undefined = 'undefined',
-}
 
-export interface IGitHubOptions {
-    user: string;
-    repo: string;
-}
-
-export interface IAssetOptions {
-    version: string;
-    name: string;
-    dest: string;
-}
-
-export interface IReleaseAsset {
-    name: string;
-}
-export interface IReleaseData {
-    assets: IReleaseAsset[];
-    name: string;
-    id: number;
-}
 /**
  * @class ServiceUpdate
  * @description Log information about state of application
@@ -71,6 +36,7 @@ class ServiceUpdate implements IService {
     private _tgzfile: string | undefined;
     private _subscription: { [key: string]: Subscription } = {};
     private _main: IMainApp | undefined;
+
     /**
      * Initialization function
      * @returns Promise<void>
@@ -112,7 +78,7 @@ class ServiceUpdate implements IService {
             // In dev mode do not check for updates
             return;
         }
-        this._getAllReleases().then((releases: IReleaseData[]) => {
+        GitHubClient.getAllReleases({ repo: CSettings.repo }).then((releases: IReleaseData[]) => {
             const current: string | undefined = ServicePackage.get().version;
             if (typeof current !== 'string' || current.trim() === '') {
                 return this._logger.warn(`Fail to detect version of current app.`);
@@ -152,8 +118,7 @@ class ServiceUpdate implements IService {
                 this._notify(latest);
             } else {
                 this._logger.debug(`Found new version "${latest}". Starting downloading: ${tgzfile}.`);
-                this._getAsset({
-                    user: CSettings.user,
+                GitHubClient.download({
                     repo: CSettings.repo,
                 }, {
                     version: latest,
@@ -188,75 +153,8 @@ class ServiceUpdate implements IService {
         }));
     }
 
-    private _getAsset(git: IGitHubOptions, asset: IAssetOptions): Promise<string> {
-        return new Promise((resolve, reject) => {
-            // Create transport
-            let github: any;
-            try {
-                github = new GitHub({
-                    user: git.user,
-                    repo: git.repo,
-                });
-            } catch (e) {
-                return reject(e);
-            }
-            const output = path.join(asset.dest, asset.name);
-            // Check: does already exist
-            if (fs.existsSync(output)) {
-                return resolve(output);
-            }
-            // Downloading
-            github.getReleases({ tag_name: asset.version }, (getReleaseError: Error | null | undefined, releases: any[]) => {
-                if (getReleaseError) {
-                    return reject(getReleaseError);
-                }
-                // Find neccessary asset
-                const last = releases[0];
-                const target = last.assets.find((_: any) => _.name === asset.name);
-                if (!target) {
-                    return reject(new Error(`No asset named ${asset.name} found`));
-                }
-                // Download asset
-                github.downloadAsset(target, (downloadAssetError: Error | null | undefined, reader: fs.ReadStream) => {
-                    if (downloadAssetError) {
-                        return reject(downloadAssetError);
-                    }
-                    // Create writer stream
-                    const writer: fs.WriteStream = fs.createWriteStream(output);
-                    // Attach listeners
-                    reader.on('error', reject);
-                    writer.on('error', reject);
-                    writer.on('close', () => {
-                        resolve(output);
-                    });
-                    // Pipe
-                    reader.pipe(writer);
-                });
-            });
-        });
-    }
-
-    private _getAllReleases(): Promise<IReleaseData[]> {
-        return new Promise((resolve, reject) => {
-            const github = new GitHub({
-                user: CSettings.user,
-                repo: CSettings.repo,
-                token: '',
-            });
-            github.getReleases({}, (error: Error | null, releases: IReleaseData[]) => {
-                if (error) {
-                    return reject(error);
-                }
-                if (!(releases instanceof Array)) {
-                    return reject(new Error(`Unexpected format of releases list: ${util.inspect(releases)}`));
-                }
-                resolve(releases);
-            });
-        });
-    }
-
     private _getAssetFileName(version: string): string[] | Error {
-        const platform: EPlatforms = this._getPlatform();
+        const platform: EPlatforms = getPlatform();
         if (platform === EPlatforms.undefined) {
             return new Error(`Fail to detect supported platform for (${os.platform()}).`);
         }
@@ -293,26 +191,6 @@ class ServiceUpdate implements IService {
             return true;
         }
         return false;
-    }
-
-    private _getPlatform(): EPlatforms {
-        switch (os.platform()) {
-            case EPlatforms.aix:
-            case EPlatforms.freebsd:
-            case EPlatforms.linux:
-            case EPlatforms.openbsd:
-                return EPlatforms.linux;
-            case EPlatforms.darwin:
-                return EPlatforms.darwin;
-            case EPlatforms.win32:
-                if (os.arch() === 'x32') {
-                    return EPlatforms.win32;
-                } else if (os.arch() === 'x64') {
-                    return EPlatforms.win64;
-                }
-                break;
-        }
-        return EPlatforms.undefined;
     }
 
     private _onRenderState(message: IPCMessages.TMessage) {

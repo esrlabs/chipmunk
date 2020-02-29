@@ -25,7 +25,7 @@ export enum EReadingFolderTarget {
  * @param {string} path path to file / folder
  * @returns boolean
  */
-export function doesExist(path: string): Promise<boolean> {
+export function exist(path: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
         fs.stat(path, (err: NodeJS.ErrnoException | null, stat: fs.Stats) => {
             if (err) {
@@ -127,14 +127,18 @@ export function getEntityInfo(entity: string): Promise<fs.Stats> {
  */
 export function readTextFile(file: string, codding: string = "utf8"): Promise<string> {
     return new Promise((resolve, reject) => {
-        if (!isExist(file)) {
-            return reject(new Error(`File "${file}" doesn't exist.`));
-        }
-        fs.readFile(file, codding, (error: NodeJS.ErrnoException | null, data: string) => {
-            if (error) {
-                return reject(error);
+        exist(file).then((_exist: boolean) => {
+            if (!_exist) {
+                return reject(new Error(`File "${file}" doesn't exist.`));
             }
-            resolve(data);
+            fs.readFile(file, codding, (error: NodeJS.ErrnoException | null, data: string) => {
+                if (error) {
+                    return reject(error);
+                }
+                resolve(data);
+            });
+        }).catch((existErr: Error) => {
+            reject(existErr);
         });
     });
 }
@@ -171,14 +175,18 @@ export function writeTextFile(
  */
 export function unlink(file: string): Promise<void> {
     return new Promise((resolve, reject) => {
-        if (!isExist(file)) {
-            return resolve();
-        }
-        fs.unlink(file, (error: NodeJS.ErrnoException | null) => {
-            if (error) {
-                return reject(error);
+        exist(file).then((_exist: boolean) => {
+            if (!_exist) {
+                return resolve();
             }
-            resolve();
+            fs.unlink(file, (error: NodeJS.ErrnoException | null) => {
+                if (error) {
+                    return reject(error);
+                }
+                resolve();
+            });
+        }).catch((existErr: Error) => {
+            reject(existErr);
         });
     });
 }
