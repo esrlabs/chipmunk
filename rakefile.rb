@@ -20,7 +20,6 @@ ELECTRON_COMPILED_DIR = "#{ELECTRON_DIR}/dist/compiled"
 ELECTRON_RELEASE_DIR = "#{ELECTRON_DIR}/dist/release"
 APPS_DIR = 'application/apps'
 CLIENT_CORE_DIR = 'application/client.core'
-CLIENT_PLUGIN_DIR = 'application/client.plugins'
 
 INCLUDED_PLUGINS_FOLDER = "#{ELECTRON_COMPILED_DIR}/plugins"
 INCLUDED_APPS_FOLDER = "#{ELECTRON_COMPILED_DIR}/apps"
@@ -31,17 +30,7 @@ RIPGREP_LOCAL_TMP = File.join(Dir.home, 'tmp/ripgrep_download')
 
 DESTS_CLIENT_NPM_LIBS = [
   "#{CLIENT_CORE_DIR}/node_modules",
-  "#{CLIENT_PLUGIN_DIR}/node_modules"
 ].freeze
-COMPLEX_PLUGINS = %w[
-  serial
-  processes
-  xterminal
-].freeze
-ANGULAR_PLUGINS = ['dlt-render'].freeze
-STANDALONE_PLUGINS = ['row.parser.ascii'].freeze
-
-PLUGINS_SANDBOX = 'application/sandbox'
 
 directory ELECTRON_COMPILED_DIR
 directory ELECTRON_RELEASE_DIR
@@ -139,14 +128,6 @@ def nodejs_platform
 end
 
 puts "Detected target platform is: #{target_platform_name} / #{target_platform_alias}"
-
-def compress_plugin(file, dest)
-  if OS.windows?
-    sh "tar -czf #{file} -C #{PLUGINS_SANDBOX} #{dest} --force-local"
-  else
-    sh "tar -czf #{file} -C #{PLUGINS_SANDBOX} #{dest} "
-  end
-end
 
 desc 'use local verdaccio registry'
 task :use_local_registry do
@@ -312,17 +293,6 @@ namespace :client do
   end
   task install_components: components_installation
 
-  # setup file dependencies for chipmunk.client.toolkit installation
-  plugin_toolkit_installation = "#{CLIENT_PLUGIN_DIR}/node_modules/chipmunk.client.toolkit"
-  file plugin_toolkit_installation => FileList["#{CLIENT_PLUGIN_DIR}/*.json"] do |_t|
-    cd CLIENT_PLUGIN_DIR do
-      npm_install
-      npm_install('chipmunk.client.toolkit@latest')
-      npm_force_resolutions
-    end
-  end
-  task build_plugins: plugin_toolkit_installation
-
   # this task will create the ressources in application/electron/dist/client
   task create_resources: :compile_neon_ts
 
@@ -344,16 +314,6 @@ namespace :client do
   end
   task create_resources: build_target_file
 
-  client_plugins_node_installation = "#{CLIENT_PLUGIN_DIR}/node_modules"
-  # make sure we update if json config files change => compare date of node_modules
-  file client_plugins_node_installation => FileList["#{CLIENT_PLUGIN_DIR}/*.json"] do |_t|
-    puts "NPM isn't installed in project application/client.plugin. Installing..."
-    cd CLIENT_PLUGIN_DIR do
-      npm_install
-      npm_force_resolutions
-      touch 'node_modules'
-    end
-  end
 
   core_node_installation = "#{CLIENT_CORE_DIR}/node_modules"
   # make sure we update if json config files change => compare date of node_modules
@@ -466,15 +426,6 @@ task :add_package_json do
   cp_r(APP_PACKAGE_JSON, "#{ELECTRON_COMPILED_DIR}/package.json")
 end
 
-task plugins: %i[folders install_plugins_standalone install_plugins_complex install_plugins_angular]
-
-def plugin_bundle_name(plugin, kind)
-  dest = "#{PLUGINS_SANDBOX}/#{plugin}"
-  package_str = File.read("#{dest}/#{kind}/package.json")
-  package = JSON.parse(package_str)
-  "#{INCLUDED_PLUGINS_FOLDER}/#{plugin}@#{package['version']}-#{nodejs_platform}.tgz"
-end
-
 desc 'run all tests'
 task :test do
   %w[launcher updater indexer].each do |rust_app|
@@ -558,142 +509,8 @@ task :lint_rust do
   raise es unless errors.empty?
 end
 
-# Install standalone plugins
-task :install_plugins_standalone
-STANDALONE_PLUGINS.each do |p|
-  file plugin_bundle_name(p, 'render') do
-    install_plugin_standalone(p)
-  end
-  task install_plugins_standalone: plugin_bundle_name(p, 'render')
-end
-
-def install_plugin_standalone(plugin)
-  puts "Installing plugin: #{plugin}"
-  src = "application/client.plugins.standalone/#{plugin}"
-  cd src do
-    npm_install
-    npm_reinstall('chipmunk.client.toolkit@latest')
-    npm_force_resolutions
-    sh "#{NPM_RUN} build"
-  end
-  dest = "#{PLUGINS_SANDBOX}/#{plugin}"
-  dest_dist = "#{dest}/render/dist"
-  rm_r(dest_dist, force: true)
-  cp_r("#{src}/dist", dest_dist, verbose: false)
-  cp_r("#{src}/package.json", "#{dest}/render/package.json", verbose: false)
-  arch = plugin_bundle_name(plugin, 'render')
-  rm(arch, force: true)
-  compress_plugin(arch, plugin)
-end
-
 task :sign do
   require 'dotenv/load'
-  sign_plugin_binary("#{PLUGINS_SANDBOX}/serial/process")
-end
-def sign_plugin_binary(plugin_path)
-  return unless OS.mac?
-
-  if !ENV['SKIP_NOTARIZE'].eql?('true')
-    signing_id = ''
-    if ENV.key?('SIGNING_ID')
-      signing_id = ENV['SIGNING_ID']
-    elsif ENV.key?('CHIPMUNK_DEVELOPER_ID')
-      signing_id = ENV['CHIPMUNK_DEVELOPER_ID']
-    else
-      puts 'Cannot sign plugins because cannot find signing_id.'
-      puts 'Define it in APPLEID (for production) or in CHIPMUNK_DEVELOPER_ID (for developing)'
-      return
-    end
-    puts "Detected next SIGNING_ID = #{signing_id}\nTry to sign code for: #{plugin_path}"
-    full_plugin_path = File.expand_path(plugin_path, File.dirname(__FILE__))
-    if ENV.key?('KEYCHAIN_NAME')
-      sh "security unlock-keychain -p \"$KEYCHAIN_PWD\" \"$KEYCHAIN_NAME\""
-    end
-    codesign_execution = "codesign --force --options runtime --deep --sign \"#{signing_id}\" {} \\;"
-    sh "find #{full_plugin_path} -name \"*.node\" -type f -exec #{codesign_execution}"
-  else
-    puts 'Sing binary of plugins will be skipped'
-  end
-end
-
-def install_plugin_complex(plugin)
-  puts "Installing plugin: #{plugin}"
-  require 'dotenv/load'
-  cd "#{PLUGINS_SANDBOX}/#{plugin}/process" do
-    npm_install
-    npm_force_resolutions
-    npm_install("electron@#{ELECTRON_VERSION} electron-rebuild@#{ELECTRON_REBUILD_VERSION}")
-    sh './node_modules/.bin/electron-rebuild'
-    sign_plugin_binary("#{PLUGINS_SANDBOX}/#{plugin}/process")
-    sh 'npm uninstall electron electron-rebuild'
-    sh "#{NPM_RUN} build"
-  end
-  cd CLIENT_PLUGIN_DIR do
-    sh "#{NPM_RUN} build:#{plugin}"
-  end
-  src = "#{CLIENT_PLUGIN_DIR}/dist/#{plugin}"
-  dest_render = "#{PLUGINS_SANDBOX}/#{plugin}/render"
-  rm_r(dest_render, force: true)
-  cp_r(src.to_s, dest_render, verbose: false)
-  compress_plugin(plugin_bundle_name(plugin, 'process'), plugin)
-end
-
-# Install complex plugins
-task :install_plugins_complex do
-  cd CLIENT_PLUGIN_DIR do
-    npm_install
-  end
-  COMPLEX_PLUGINS.each do |p|
-    file plugin_bundle_name(p, 'process') do
-      install_plugin_complex(p)
-    end
-    task install_plugins_complex: plugin_bundle_name(p, 'process')
-  end
-end
-
-
-def install_plugin_angular(plugin)
-  puts "Installing plugin: #{plugin}"
-  cd CLIENT_PLUGIN_DIR do
-    sh "#{NPM_RUN} build:#{plugin}"
-  end
-  src = "#{CLIENT_PLUGIN_DIR}/dist/#{plugin}"
-  dest = "#{PLUGINS_SANDBOX}/#{plugin}"
-  dest_render = "#{dest}/render"
-  rm_r(dest_render, force: true)
-  cp_r(src.to_s, dest_render, verbose: false)
-  arch = plugin_bundle_name(plugin, 'render')
-  compress_plugin(arch, plugin)
-end
-
-# desc "Install render (angular) plugins"
-task :install_plugins_angular
-ANGULAR_PLUGINS.each do |p|
-  file plugin_bundle_name(p, 'render') do
-    install_plugin_angular(p)
-  end
-  task install_plugins_angular: plugin_bundle_name(p, 'render')
-end
-
-# update plugin.ipc
-task :updatepluginipc do
-  cd "#{PLUGINS_SANDBOX}/dlt/process" do
-    puts 'Update toolkits for: dlt plugin'
-    npm_reinstall('chipmunk.plugin.ipc@latest')
-  end
-  cd "#{PLUGINS_SANDBOX}/serial/process" do
-    puts 'Update toolkits for: serial plugin'
-    npm_reinstall('chipmunk.plugin.ipc@latest')
-  end
-  cd "#{PLUGINS_SANDBOX}/processes/process" do
-    puts 'Update toolkits for: processes pluginplugin'
-    npm_reinstall('chipmunk.plugin.ipc@latest')
-  end
-  cd "#{PLUGINS_SANDBOX}/xterminal/process" do
-    puts 'Update toolkits for: xterminal plugin'
-    sh 'npm uninstall chipmunk.plugin.ipc'
-    npm_install('chipmunk.plugin.ipc@latest')
-  end
 end
 
 desc 'build updater'
@@ -967,7 +784,6 @@ end
 
 desc 'developer job to completely build chipmunk...after that use :start'
 task dev: %i[install
-             plugins
              ripgrepdelivery
              add_package_json]
 
@@ -975,7 +791,6 @@ desc 'Build the full build pipeline for a given platform'
 task full_pipeline: %i[check_environment
                        setup_environment
                        install
-                       plugins
                        ripgrepdelivery
                        build_and_package_electron
                        create_release_file_list
