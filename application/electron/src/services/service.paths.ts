@@ -238,7 +238,7 @@ class ServicePaths implements IService {
         }
         const path: string | undefined = ServiceEnv.get().CHIPMUNK_PLUGINS_SANDBOX;
         if (path === undefined) {
-            return DEFAULT_PLUGINS_SANDBOX_PATH;
+            return Path.resolve(root, DEFAULT_PLUGINS_SANDBOX_PATH);
         }
         if (!FS.isExist(Path.resolve(path))) {
             this._logger.warn(`Fail to find custom SANDBOX path "${Path.resolve(path)}". Will be used default path.`);

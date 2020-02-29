@@ -41,7 +41,7 @@ export class ServicePlugins implements IService {
                     this._logger.debug(`Plugins storage data is load`);
                     // Update installed plugins
                     this._storage.update().catch((updateErr: Error) => {
-                        this._logger.warn(`Update of plugins is failed with: ${updateErr.message}`)
+                        this._logger.warn(`Update of plugins is failed with: ${updateErr.message}`);
                     }).finally(() => {
                         // Delivery default plugins
                         this._storage.defaults().then(() => {
