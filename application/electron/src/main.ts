@@ -36,6 +36,7 @@ import ServiceDLTFiles from './services/parsers/service.dlt.files';
 import ServicePatchesBefore from './services/service.patches.before';
 import ServiceDLTDeamonConnector from './services/connectors/service.dlt.deamon';
 import ServiceOutputExport from './services/output/service.output.export';
+import ServiceRenderState from './services/service.render.state';
 
 const InitializeStages = [
     // Apply patches ("before")
@@ -53,7 +54,7 @@ const InitializeStages = [
     // Stage #6. Init electron. Prepare browser window
     [   ServiceElectron ],
     // Stage #7. Init services and helpers
-    [   ServiceElectronState, ServiceNotifications ],
+    [   ServiceElectronState, ServiceNotifications, ServiceRenderState ],
     // Stage #8. Stream service
     [   ServiceStreamSources, ServiceStreams ],
     // Stage #9. Common functionality

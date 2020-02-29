@@ -84,7 +84,7 @@ export class LogsBlackbox {
     }
 
     private _init() {
-        FS.doesExist(this._homeFolder).then((exist: boolean) => {
+        FS.exist(this._homeFolder).then((exist: boolean) => {
             if (!exist) {
                 fs.mkdir(this._homeFolder, (err: NodeJS.ErrnoException | null) => {
                     if (err) {
