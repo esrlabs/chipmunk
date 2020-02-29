@@ -22,7 +22,6 @@ export { InstalledPlugin, TConnectionFactory };
 export default class ControllerPluginsStorage {
 
     private _logger: Logger = new Logger('ControllerPluginsStorage');
-    private _path: string = ServicePaths.getPlugins();
     private _plugins: Map<string, InstalledPlugin> = new Map();
     private _store: ControllerPluginStore;
 
@@ -109,17 +108,18 @@ export default class ControllerPluginsStorage {
 
     public read(): Promise<void> {
         return new Promise((resolve, reject) => {
+            const pluginStorageFolder: string = ServicePaths.getPlugins();
             // Get all sub folders from plugins folder. Expecting: there are plugins folders
-            FS.readFolders(this._path).then((folders: string[]) => {
+            FS.readFolders(pluginStorageFolder).then((folders: string[]) => {
                 if (folders.length === 0) {
                     // No any plugins
-                    this._logger.debug(`No any plugins were found. Target folder: ${this._path}`);
+                    this._logger.debug(`No any plugins were found. Target folder: ${pluginStorageFolder}`);
                     return resolve();
                 }
                 const toBeRemoved: InstalledPlugin[] = [];
                 // Check each plugin folder and read package.json of render and process apps
                 Promise.all(folders.map((folder: string) => {
-                    const plugin: InstalledPlugin = new InstalledPlugin(folder, path.resolve(this._path, folder), this._store);
+                    const plugin: InstalledPlugin = new InstalledPlugin(folder, path.resolve(pluginStorageFolder, folder), this._store);
                     return plugin.read().then(() => {
                         this._plugins.set(plugin.getName(), plugin);
                     }).catch((pluginErr: Error) => {
@@ -144,7 +144,7 @@ export default class ControllerPluginsStorage {
                     });
                 });
             }).catch((error: Error) => {
-                this._logger.error(`Fail to read plugins folder (${this._path}) due error: ${error.message}.`);
+                this._logger.error(`Fail to read plugins folder (${pluginStorageFolder}) due error: ${error.message}.`);
                 resolve();
             });
         });
@@ -169,6 +169,7 @@ export default class ControllerPluginsStorage {
 
     public defaults(): Promise<void> {
         return new Promise((resolve) => {
+            const pluginStorageFolder: string = ServicePaths.getPlugins();
             const installed: string[] = Array.from(this._plugins.values()).map((plugin: InstalledPlugin) => {
                 return plugin.getName();
             }).filter((name: string | undefined) => {
@@ -179,7 +180,7 @@ export default class ControllerPluginsStorage {
                 return resolve();
             }
             Promise.all(plugins.map((info: IPluginReleaseInfo) => {
-                const plugin: InstalledPlugin = new InstalledPlugin(info.name, path.resolve(this._path, info.name), this._store);
+                const plugin: InstalledPlugin = new InstalledPlugin(info.name, path.resolve(pluginStorageFolder, info.name), this._store);
                 return plugin.install().then(() => {
                     this._plugins.set(info.name, plugin);
                 }).catch((installErr: Error) => {

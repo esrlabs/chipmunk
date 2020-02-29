@@ -26,10 +26,12 @@ export class ServiceRenderState implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
-            ServiceElectron.IPC.subscribe(IPCMessages.RenderState, this._ipc_onRenderState).then((subscription: Subscription) => {
+            ServiceElectron.IPC.subscribe(IPCMessages.RenderState, this._ipc_onRenderState.bind(this)).then((subscription: Subscription) => {
                 this._subscriptions.renderState = subscription;
+                resolve();
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to subscribe to render event "RenderState" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+                reject(error);
             });
         });
     }

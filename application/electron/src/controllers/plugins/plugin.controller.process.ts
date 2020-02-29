@@ -185,6 +185,5 @@ export default class ControllerPluginProcess {
             this._mulitple.delete(session);
         });
     }
-    
 
 }

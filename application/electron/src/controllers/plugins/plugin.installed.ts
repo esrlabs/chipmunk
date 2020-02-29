@@ -281,7 +281,7 @@ export default class ControllerPluginInstalled {
             if (this._info.controller.process.isSingleProcess()) {
                 this._info.controller.process.bindSinglePlugin(session, connectionFactory).then(resolve).catch(reject);
             } else if (this._info.controller.process.isMultipleProcess()) {
-                return this._info.controller.process.bindMultiplePlugin(session, connectionFactory).then(resolve).catch(reject);
+                this._info.controller.process.bindMultiplePlugin(session, connectionFactory).then(resolve).catch(reject);
             }
         });
     }
@@ -300,7 +300,7 @@ export default class ControllerPluginInstalled {
             if (this._info.controller.process.isSingleProcess()) {
                 this._info.controller.process.unbindSingle(session).then(resolve).catch(reject);
             } else if (this._info.controller.process.isMultipleProcess()) {
-                return this._info.controller.process.unbindMuliple(session).then(resolve).catch(reject);
+                this._info.controller.process.unbindMuliple(session).then(resolve).catch(reject);
             }
         });
     }
@@ -312,7 +312,7 @@ export default class ControllerPluginInstalled {
             if (this._info.package === undefined) {
                 msg += `\tpackages: NOT READ\n`;
             } else {
-                msg +=`\tpackage render:\t\t${this._info.package.render !== undefined ? 'OK' : '-'}\n\tpackage process:\t${this._info.package.process !== undefined ? 'OK' : '-'}\n`;
+                msg += `\tpackage render:\t\t${this._info.package.render !== undefined ? 'OK' : '-'}\n\tpackage process:\t${this._info.package.process !== undefined ? 'OK' : '-'}\n`;
             }
             if (this._info.controller === undefined) {
                 msg += `\tcontrollers:\tNOT INIT`;
