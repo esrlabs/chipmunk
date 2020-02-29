@@ -26,7 +26,7 @@ export default class ControllerPluginProcess {
         this._token = token;
         this._id = id;
         this._packagejson = packagejson;
-        this._logger = new Logger(`Plugin render [${this._name}]`);
+        this._logger = new Logger(`Plugin process [${this._name}]`);
     }
 
     public destroy(): Promise<void> {
@@ -171,7 +171,12 @@ export default class ControllerPluginProcess {
             if (this._single === undefined) {
                 return reject(new Error(this._logger.warn(`Single process wasn't inited`)));
             }
-            return this._single.unbindStream(session);
+            return this._single.unbindStream(session).then(() => {
+                this._logger.debug(`Plugin is unbind from session ${session}`);
+                resolve();
+            }).catch((error: Error) => {
+                reject(new Error(this._logger.warn(`Fail correctly unbind single plugin's process (session: ${session}) due error: ${error.message}`)));
+            });
         });
     }
 
@@ -183,6 +188,8 @@ export default class ControllerPluginProcess {
             }
             multiple.kill();
             this._mulitple.delete(session);
+            this._logger.debug(`Plugin is unbind from session ${session}`);
+            resolve();
         });
     }
 

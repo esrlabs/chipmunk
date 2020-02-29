@@ -7,6 +7,7 @@ import * as fs from 'fs';
 
 import Logger from '../../tools/env.logger';
 import ServicePaths from '../../services/service.paths';
+import ServiceElectronService from '../../services/service.electron.state';
 
 import GitHubClient, { IReleaseAsset, IReleaseData, GitHubAsset } from '../../tools/env.github.client';
 
@@ -56,6 +57,7 @@ export default class ControllerPluginStore {
 
     public download(name: string): Promise<string> {
         return new Promise((resolve, reject) => {
+            ServiceElectronService.logStateToRender(`Downloading plugin "${name}"...`);
             // Check plugin info
             const plugin: IPluginReleaseInfo | undefined = this.getInfo(name);
             if (plugin === undefined) {
@@ -66,8 +68,10 @@ export default class ControllerPluginStore {
             FS.unlink(target).then(() => {
                 const writer = fs.createWriteStream(target);
                 request(plugin.url).pipe(writer).on('finish', () => {
+                    ServiceElectronService.logStateToRender(`Plugin "${name}" is downloaded`);
                     resolve(target);
                 }).on('error', (error) => {
+                    ServiceElectronService.logStateToRender(`Fail download plugin "${name}"`);
                     reject(error);
                 });
             }).catch((unlinkErr: Error) => {
@@ -84,6 +88,7 @@ export default class ControllerPluginStore {
 
     private _setRegister(): Promise<void> {
         return new Promise((resolve, reject) => {
+            ServiceElectronService.logStateToRender(`Getting plugin's store state.`);
             GitHubClient.getLatestRelease({ user: CSettings.user, repo: CSettings.repo }).then((release: IReleaseData) => {
                 if (release.map === undefined) {
                     return reject(new Error(this._logger.warn(`Plugins-store repo doesn't have any assets in latest release.`)));
@@ -102,6 +107,7 @@ export default class ControllerPluginStore {
                         list.forEach((plugin: IPluginReleaseInfo) => {
                             this._plugins.set(plugin.name, plugin);
                         });
+                        ServiceElectronService.logStateToRender(`Information of last versions of plugins has been gotten`);
                     } catch (e) {
                         return reject(new Error(this._logger.warn(`Fail parse asset to JSON due error: ${e.message}`)));
                     }

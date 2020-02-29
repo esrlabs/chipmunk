@@ -13,6 +13,7 @@ import ControllerPluginRender from './plugin.controller.render';
 import ControllerPluginProcess, { TConnectionFactory } from './plugin.controller.process';
 import ControllerIPCPlugin from './plugin.process.ipc';
 import ServicePaths from '../../services/service.paths';
+import ServiceElectronService from '../../services/service.electron.state';
 
 export { IPackageJson, TConnectionFactory };
 
@@ -24,6 +25,7 @@ export interface IInstalledPluginInfo {
     file: string;           // Included into "info.json"
     version: string;        // Included into "info.json"
     hash: string;           // Included into "info.json"
+    displayName: string;    // Has been taken from package.json (default = "name" of info.json)
     package: {
         render: ControllerPluginPackage | undefined;
         process: ControllerPluginPackage | undefined;
@@ -74,6 +76,7 @@ export default class ControllerPluginInstalled {
     public read(): Promise<void> {
         return new Promise((resolve, reject) => {
             const filename: string = path.resolve(this._path, CPluginInfoFile);
+            ServiceElectronService.logStateToRender(`Reading plugin data "${path.basename(this._path)}"`);
             FS.exist(filename).then((exist: boolean) => {
                 if (!exist) {
                     return reject(new Error(this._logger.warn(`Not valid plugin. Info-file "${filename}" doesn't exist`)));
@@ -86,11 +89,18 @@ export default class ControllerPluginInstalled {
                         this._logger.warn(`Fail parse info-file due error: ${e.message}`);
                         return reject(e);
                     }
+                    ServiceElectronService.logStateToRender(`Reading plugin package "${path.basename(this._path)}"`);
                     this._readPackages().then(() => {
                         if (this._info?.package.render === undefined && this._info?.package.process === undefined) {
                             this._info = undefined;
                             return reject(new Error(this._logger.warn(`Plugin doesn't have valid [render] and [process]. Plugin will not be used.`)));
                         }
+                        if (this._info.package.process !== undefined) {
+                            this._info.displayName = this._info.package.process.getPackageJson().logviewer.displayName;
+                        } else if (this._info.package.render !== undefined) {
+                            this._info.displayName = this._info.package.render.getPackageJson().logviewer.displayName;
+                        }
+                        ServiceElectronService.logStateToRender(`Creating controllers for "${path.basename(this._path)}"`);
                         this._addControllers().then(() => {
                             this._logPluginState();
                             resolve();
@@ -127,6 +137,13 @@ export default class ControllerPluginInstalled {
         return this._info?.name as string;
     }
 
+    public getDisplayName(): string {
+        if (this._info === undefined) {
+            this._logger.error(`Attempt to get displayName of plugin, which isn't read or not valid.`);
+        }
+        return this._info?.displayName as string;
+    }
+
     public getPath(): string {
         return this._path;
     }
@@ -155,7 +172,9 @@ export default class ControllerPluginInstalled {
 
     public remove(): Promise<void> {
         return new Promise((resolve, reject) => {
+            ServiceElectronService.logStateToRender(`Removing plugin "${path.basename(this._path)}"`);
             FS.rmdir(this._path).then(() => {
+                ServiceElectronService.logStateToRender(`Plugin "${path.basename(this._path)}" has been removed`);
                 resolve();
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to remove file due error: ${error.message}`);
@@ -181,12 +200,15 @@ export default class ControllerPluginInstalled {
             // Remove current version of plugin
             this.remove().then(() => {
                 this._logger.debug(`Plugin is removed. New version will be downloaded`);
+                ServiceElectronService.logStateToRender(`Updating plugin "${path.basename(this._path)}"...`);
                 // Download updated version of plugin
                 this._store.download(this._name).then((filename: string) => {
                     this._logger.debug(`New version of plugin is downloaded: ${filename}`);
+                    ServiceElectronService.logStateToRender(`Unpacking package of plugin "${path.basename(this._path)}"`);
                     // Unpack plugin
                     this._unpack(filename).then(() => {
                         this._logger.debug(`Plugin is unpacked`);
+                        ServiceElectronService.logStateToRender(`Plugin "${path.basename(this._path)}" has been unpacked`);
                         // Read plugin info once again
                         this.read().then(() => {
                             this._logger.debug(`Plugin is successfully updated`);
@@ -215,8 +237,10 @@ export default class ControllerPluginInstalled {
             // Download plugin
             this._store.download(this._name).then((filename: string) => {
                 this._logger.debug(`Plugin is downloaded: ${filename}`);
+                ServiceElectronService.logStateToRender(`Unpacking package of plugin "${path.basename(this._path)}"`);
                 // Unpack plugin
                 this._unpack(filename).then(() => {
+                    ServiceElectronService.logStateToRender(`Plugin "${path.basename(this._path)}" has been unpacked`);
                     this._logger.debug(`Plugin is unpacked`);
                     FS.unlink(filename).catch((unlinkErr: Error) => {
                         this._logger.warn(`Fail to remove file "${filename}" due error: ${unlinkErr.message}`);
@@ -343,8 +367,8 @@ export default class ControllerPluginInstalled {
                 render: undefined,
                 process: undefined,
             };
-            const render = new ControllerPluginPackage(path.resolve(this._path, CPluginsFolders.render));
-            const process = new ControllerPluginPackage(path.resolve(this._path, CPluginsFolders.process));
+            const render = new ControllerPluginPackage(path.resolve(this._path, CPluginsFolders.render), this._name);
+            const process = new ControllerPluginPackage(path.resolve(this._path, CPluginsFolders.process), this._name);
             Promise.all([
                 render.read().then(() => {
                     (this._info as IInstalledPluginInfo).package.render = render;
