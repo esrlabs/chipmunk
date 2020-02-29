@@ -194,6 +194,7 @@ export default class ControllerPluginProcessSingle extends Emitter {
                 this._logger.warn(`Plugin process is already unbound from stream "${guid}" or it wasn't bound at all, because plugin doesn't listen "openStream" event`);
                 return resolve();
             }
+            this._connections.delete(guid);
             // Passing sockets is not supported on Windows.
             this._process.send(`${CStdoutSocketAliases.unbind}${guid}`);
             this._setUnbindResolver(guid, resolve);

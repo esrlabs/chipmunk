@@ -1,5 +1,13 @@
 // tslint:disable: max-classes-per-file
+/*
+TODO:
+    - if plugins is failed to be executed (process) - it should be removed from storage
+    - if version of plugins is for newer version of chipmunk - should be ignored
+    - [DONE] logs to render (for long loading cases)
+    - display name for plugin
+    - use-case: plugin doesn't have package.json
 
+*/
 import * as path from 'path';
 import * as FS from '../../tools/fs';
 
@@ -9,6 +17,7 @@ import ControllerPluginRender from './plugin.controller.render';
 
 import InstalledPlugin, { TConnectionFactory } from './plugin.installed';
 import ControllerPluginStore, { IPluginReleaseInfo } from './plugins.store';
+import ServiceElectronService from '../../services/service.electron.state';
 
 import { IPCMessages } from '../../services/service.electron';
 
@@ -96,18 +105,20 @@ export default class ControllerPluginsStorage {
             if (controller === undefined || controller.getEntrypoint() === undefined) {
                 return;
             }
-            return {
+            plugins.push({
                 name: plugin.getName(),
-                location: controller.getEntrypoint(),
+                location: controller.getEntrypoint() as string,
                 token: plugin.getToken(),
                 id: plugin.getId(),
-            };
+                displayName: plugin.getDisplayName(),
+            });
         });
         return plugins;
     }
 
     public read(): Promise<void> {
         return new Promise((resolve, reject) => {
+            ServiceElectronService.logStateToRender(`Reading installed plugins...`);
             const pluginStorageFolder: string = ServicePaths.getPlugins();
             // Get all sub folders from plugins folder. Expecting: there are plugins folders
             FS.readFolders(pluginStorageFolder).then((folders: string[]) => {
@@ -130,8 +141,10 @@ export default class ControllerPluginsStorage {
                 })).catch((readErr: Error) => {
                     this._logger.warn(`Error during reading plugins: ${readErr.message}`);
                 }).finally(() => {
+                    ServiceElectronService.logStateToRender(`Removing invalid plugins...`);
                     Promise.all(toBeRemoved.map((plugin: InstalledPlugin) => {
                         return plugin.remove().then(() => {
+                            ServiceElectronService.logStateToRender(`Plugin "${plugin.getPath()}" has been removed.`);
                             this._logger.debug(`Plugin "${plugin.getPath()}" is removed.`);
                         }).catch((removeErr: Error) => {
                             this._logger.warn(`Fail remove plugin "${plugin.getPath()}" due error: ${removeErr.message}`);
@@ -153,8 +166,11 @@ export default class ControllerPluginsStorage {
     public update(): Promise<void> {
         return new Promise((resolve, reject) => {
             this._logger.debug(`Updating of installed plugins is started`);
+            ServiceElectronService.logStateToRender(`Updating plugins...`);
             Promise.all(Array.from(this._plugins.values()).map((plugin: InstalledPlugin) => {
-                return plugin.update().catch((updateErr: Error) => {
+                return plugin.update().then(() => {
+                    ServiceElectronService.logStateToRender(`Plugin "${plugin.getPath()}" has been updated.`);
+                }).catch((updateErr: Error) => {
                     this._logger.warn(`Fail to update plugin "${plugin.getName()}" due error: ${updateErr.message}`);
                     return Promise.resolve();
                 });
@@ -179,6 +195,7 @@ export default class ControllerPluginsStorage {
             if (plugins.length === 0) {
                 return resolve();
             }
+            ServiceElectronService.logStateToRender(`Installing default plugins`);
             Promise.all(plugins.map((info: IPluginReleaseInfo) => {
                 const plugin: InstalledPlugin = new InstalledPlugin(info.name, path.resolve(pluginStorageFolder, info.name), this._store);
                 return plugin.install().then(() => {

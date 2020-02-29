@@ -12,6 +12,7 @@ export enum EProcessPluginType {
 export interface ILogviewer {
     version: string;
     type: EProcessPluginType;
+    displayName: string;
 }
 
 export interface IPackageJson {
@@ -35,12 +36,14 @@ export default class ControllerPluginPackage {
     private _logger: Logger = new Logger('ControllerPluginPackage');
     private _package: IPackageJson | undefined;
     private _folder: string;
+    private _name: string;
 
     /**
      * @param {string} folder destination folder with package.json file
      */
-    constructor(folder: string) {
+    constructor(folder: string, name: string) {
         this._folder = folder;
+        this._name = name;
     }
 
     /**
@@ -92,9 +95,11 @@ export default class ControllerPluginPackage {
             packageJson.logviewer = {
                 version: '',
                 type: EProcessPluginType.multiple,
+                displayName: this._name,
             };
         }
         packageJson.logviewer.type = packageJson.logviewer.type === undefined ? EProcessPluginType.multiple : packageJson.logviewer.type;
+        packageJson.logviewer.displayName = packageJson.logviewer.displayName === undefined ? this._name : packageJson.logviewer.displayName;
         return packageJson;
     }
 
