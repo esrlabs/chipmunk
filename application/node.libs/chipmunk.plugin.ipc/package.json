@@ -1,6 +1,6 @@
 {
   "name": "chipmunk.plugin.ipc",
-  "version": "0.0.41",
+  "version": "0.0.42",
   "description": "IPC transport and protocol for communication via plugin process and main process for logviewer ",
   "main": "./dist/node.libs/chipmunk.plugin.ipc/src/index.js",
   "types": "./dist/node.libs/chipmunk.plugin.ipc/src/index.d.ts",
