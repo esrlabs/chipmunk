@@ -53,7 +53,8 @@ export default class ControllerPluginProcessMultiple extends Emitter {
         super();
         this._opt = opt;
         this._logger = new Logger(`plugin: ${this._opt.name}`);
-        this._onSTDData = this._onSTDData.bind(this);
+        this._onSTDErr = this._onSTDErr.bind(this);
+        this._onSTDOut = this._onSTDOut.bind(this);
         this._onClose = this._onClose.bind(this);
         this._onError = this._onError.bind(this);
         this._onDisconnect = this._onDisconnect.bind(this);
@@ -86,8 +87,8 @@ export default class ControllerPluginProcessMultiple extends Emitter {
                     // 'pipe', // Stream is deliveried as UNIX socket. We don't need it at the moment. But probably in th future it will be used as channel for sending big data
                 ]});
             // Getting data events
-            this._process.stderr.on('data', this._onSTDData);
-            this._process.stdout.on('data', this._onSTDData);
+            this._process.stderr.on('data', this._onSTDErr);
+            this._process.stdout.on('data', this._onSTDOut);
             // State process events
             this._process.on('exit', this._onClose);
             this._process.on('close', this._onClose);
@@ -109,6 +110,7 @@ export default class ControllerPluginProcessMultiple extends Emitter {
                     token: this._opt.token,
                     id: this._opt.id,
                 })).then(() => {
+                    this._ipc = ipc;
                     this._resolve();
                 }).catch((sendingError: Error) => {
                     this._reject(new Error(this._logger.error(`Fail delivery plugin token due error: ${sendingError.message}`)));
@@ -116,7 +118,9 @@ export default class ControllerPluginProcessMultiple extends Emitter {
             }).then((_subscription: Subscription) => {
                 subscription = _subscription;
                 setTimeout(() => {
-                    this._reject(new Error(this._logger.error(`Fail to start plugin because timeout.`)));
+                    if (this._rejector !== undefined) {
+                        this._reject(new Error(this._logger.error(`Fail to start plugin because timeout.`)));
+                    }
                 }, CPluginStartTimeout);
             }).catch((error: Error) => {
                 this._reject(new Error(this._logger.warn(`Fail to subscribe to plugin's state event due error: ${error.message}`)));
@@ -218,10 +222,20 @@ export default class ControllerPluginProcessMultiple extends Emitter {
      * Handler to listen stdout and stderr of plugin process
      * @returns void
      */
-    private _onSTDData(chunk: Buffer): void {
+    private _onSTDOut(chunk: Buffer): void {
         const str: string = chunk.toString();
         this._logger.debug(str);
         this.emit(ControllerPluginProcessMultiple.Events.output);
+    }
+
+    /**
+     * Handler to listen stdout and stderr of plugin process
+     * @returns void
+     */
+    private _onSTDErr(chunk: Buffer): void {
+        const str: string = chunk.toString();
+        this._logger.debug(str);
+        this._stderr += str;
     }
 
     /**
@@ -249,6 +263,7 @@ export default class ControllerPluginProcessMultiple extends Emitter {
     private _onDisconnect(...args: any[]): void {
         this.kill();
         this.emit(ControllerPluginProcessMultiple.Events.disconnect, ...args);
+        this._reject(new Error(this._stderr));
     }
 
 }
