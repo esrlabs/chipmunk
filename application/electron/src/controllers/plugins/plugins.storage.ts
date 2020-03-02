@@ -36,6 +36,7 @@ export default class ControllerPluginsStorage {
             })).catch((error: Error) => {
                 this._logger.warn(`Error on destroy of plugin's storage: ${error.message}`);
             }).finally(() => {
+                this._plugins.clear();
                 resolve();
             });
         });

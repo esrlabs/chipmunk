@@ -140,7 +140,10 @@ class Application {
         const services: any[] = InitializeStages[stage];
         const tasks: Array<Promise<any>> = services.map((ref: any) => {
             this.logger.debug(`Init: ${ref.getName()}`);
-            return ref.init(this);
+            return ref.init(this).catch((err: Error) => {
+                this.logger.error(`${ref.getName()}: ${err.message}`);
+                return Promise.reject(err);
+            });
         });
         if (tasks.length === 0) {
             return this._init(stage + 1, callback);
@@ -241,5 +244,5 @@ class Application {
     app.logger.debug(`Application is ready.`);
     ServiceElectronState.setStateAsReady();
 }).catch((error: Error) => {
-    throw error;
+    console.log(error);
 });
