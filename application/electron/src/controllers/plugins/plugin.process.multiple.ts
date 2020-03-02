@@ -3,7 +3,7 @@ import * as IPCPluginMessages from '../../../../common/ipc/plugins.ipc.messages/
 import * as Tools from '../../tools/index';
 
 import { ChildProcess, fork } from 'child_process';
-import { Emitter } from '../../tools/index';
+import { Emitter, Subscription } from '../../tools/index';
 import { CStdoutSocketAliases } from '../../consts/controller.plugin.process';
 import { CFirstDebugPort, CDebugPortSeqName } from './plugin.process.single';
 
@@ -24,6 +24,8 @@ interface IOpt {
     token: string;
 }
 
+const CPluginStartTimeout = 10000;
+
 /**
  * @class ControllerPluginProcessMultiple
  * @description Execute plugin node process and provide access to it
@@ -43,6 +45,9 @@ export default class ControllerPluginProcessMultiple extends Emitter {
     private _process: ChildProcess | undefined;
     private _ipc: ControllerIPCPlugin | undefined;
     private _connection: IConnection | undefined;
+    private _stderr: string = '';
+    private _rejector?: (error: Error) => void;
+    private _resolver?: () => void;
 
     constructor(opt: IOpt) {
         super();
@@ -60,6 +65,9 @@ export default class ControllerPluginProcessMultiple extends Emitter {
      */
     public attach(): Promise<void> {
         return new Promise((resolve, reject) => {
+            // Store rejector
+            this._rejector = reject;
+            this._resolver = resolve;
             const args: string[] = [
                 `--chipmunk-settingspath=${ServicePaths.getPluginsCfgFolder()}`,
                 `--chipmunk-plugin-alias=${this._opt.name.replace(/[^\d\w-_]/gi, '_')}`,
@@ -86,15 +94,33 @@ export default class ControllerPluginProcessMultiple extends Emitter {
             this._process.on('error', this._onError);
             this._process.on('disconnect', this._onDisconnect);
             // Create IPC controller
-            this._ipc = new ControllerIPCPlugin(this._opt.name, this._process, this._opt.token);
-            // Send token
-            this._ipc.send(new IPCPluginMessages.PluginToken({
-                token: this._opt.token,
-                id: this._opt.id,
-            })).catch((sendingError: Error) => {
-                this._logger.error(`Fail delivery plugin token due error: ${sendingError.message}`);
+            const ipc = new ControllerIPCPlugin(this._opt.name, this._process, this._opt.token);
+            // Subscribe to state event
+            let subscription: Subscription | undefined;
+            ipc.subscribe(IPCPluginMessages.PluginState, (state: IPCPluginMessages.PluginState) => {
+                if (subscription !== undefined) {
+                    subscription.destroy();
+                }
+                if (state.state !== IPCPluginMessages.EPluginState.ready) {
+                    return this._reject(new Error(this._logger.error(`Fail to attach plugin, because plugin state is: ${state.state}`)));
+                }
+                // Send token
+                ipc.send(new IPCPluginMessages.PluginToken({
+                    token: this._opt.token,
+                    id: this._opt.id,
+                })).then(() => {
+                    this._resolve();
+                }).catch((sendingError: Error) => {
+                    this._reject(new Error(this._logger.error(`Fail delivery plugin token due error: ${sendingError.message}`)));
+                });
+            }).then((_subscription: Subscription) => {
+                subscription = _subscription;
+                setTimeout(() => {
+                    this._reject(new Error(this._logger.error(`Fail to start plugin because timeout.`)));
+                }, CPluginStartTimeout);
+            }).catch((error: Error) => {
+                this._reject(new Error(this._logger.warn(`Fail to subscribe to plugin's state event due error: ${error.message}`)));
             });
-            resolve();
         });
     }
 
@@ -156,6 +182,25 @@ export default class ControllerPluginProcessMultiple extends Emitter {
 
     public isAttached(): boolean {
         return this._process !== undefined;
+    }
+
+    private _reject(error: Error) {
+        if (this._rejector === undefined || this._resolver === undefined) {
+            return;
+        }
+        this.kill();
+        this._rejector(error);
+        this._rejector = undefined;
+        this._resolver = undefined;
+    }
+
+    private _resolve() {
+        if (this._rejector === undefined || this._resolver === undefined) {
+            return;
+        }
+        this._resolver();
+        this._rejector = undefined;
+        this._resolver = undefined;
     }
 
     private _bindRefWithId(socket: Net.Socket): Promise<void> {

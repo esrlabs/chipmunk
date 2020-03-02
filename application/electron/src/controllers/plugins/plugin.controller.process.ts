@@ -101,28 +101,9 @@ export default class ControllerPluginProcess {
                 name: this._name,
                 entrypoint: this._entrypoint,
             });
-            // Listen plugin for disconnection
-            this._single.subscribe(ControllerPluginProcessSingle.Events.disconnect, () => {
-                if (timer === undefined) {
-                    return;
-                } else {
-                    clearTimeout(timer);
-                    timer = undefined;
-                }
-                if (this._single !== undefined) {
-                    this._single.unsubscribeAll();
-                    this._single = undefined;
-                }
-                reject(new Error(this._logger.warn(`Fail to attach plugin, because it was disconnected after start`)));
-            });
-            let timer: any = -1;
             this._single.attach().then(() => {
                 this._logger.debug(`Plugin "${this._name}" is attached as single plugin.`);
-                timer = setTimeout(() => {
-                    clearTimeout(timer);
-                    this._single?.unsubscribeAll();
-                    resolve();
-                }, 250);
+                resolve();
             }).catch((attachError: Error) => {
                 this._single = undefined;
                 reject(new Error(this._logger.warn(`Fail to attach plugin "${this._name}" due error: ${attachError.message}`)));
