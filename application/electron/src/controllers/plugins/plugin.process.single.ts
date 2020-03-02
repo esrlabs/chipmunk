@@ -143,7 +143,9 @@ export default class ControllerPluginProcessSingle extends Emitter {
             }).then((_subscription: Subscription) => {
                 subscription = _subscription;
                 setTimeout(() => {
-                    this._reject(new Error(this._logger.error(`Fail to start plugin because timeout.`)));
+                    if (this._rejector !== undefined) {
+                        this._reject(new Error(this._logger.error(`Fail to start plugin because timeout.`)));
+                    }
                 }, CPluginStartTimeout);
             }).catch((error: Error) => {
                 this._reject(new Error(this._logger.warn(`Fail to subscribe to plugin's state event due error: ${error.message}`)));
