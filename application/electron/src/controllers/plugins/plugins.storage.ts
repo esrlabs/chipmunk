@@ -1,11 +1,12 @@
-// tslint:disable: max-classes-per-file
 /*
 TODO:
-    - if plugins is failed to be executed (process) - it should be removed from storage
+    - [DONE]if plugins is failed to be executed (process) - it should be removed from storage
     - if version of plugins is for newer version of chipmunk - should be ignored
     - [DONE] logs to render (for long loading cases)
-    - display name for plugin
+    - [DONE] display name for plugin
     - use-case: plugin doesn't have package.json
+    - find good solution to listen state of child process start (plugin.controller.process) -> get rid of timer
+    - create local plugin's state-storage (ignore defaults, state of start and etc)
 
 */
 import * as path from 'path';
@@ -18,6 +19,7 @@ import ControllerPluginRender from './plugin.controller.render';
 import InstalledPlugin, { TConnectionFactory } from './plugin.installed';
 import ControllerPluginStore, { IPluginReleaseInfo } from './plugins.store';
 import ServiceElectronService from '../../services/service.electron.state';
+import ServiceEnv from '../../services/service.env';
 
 import { IPCMessages } from '../../services/service.electron';
 
@@ -25,7 +27,7 @@ export { InstalledPlugin, TConnectionFactory };
 
 /**
  * @class ControllerPluginInstalled
- * @description Delivery default plugins into logviewer folder
+ * @description Delivery default plugins into chipmunk folder
  */
 
 export default class ControllerPluginsStorage {
@@ -165,6 +167,10 @@ export default class ControllerPluginsStorage {
 
     public update(): Promise<void> {
         return new Promise((resolve, reject) => {
+            if (ServiceEnv.get().CHIPMUNK_PLUGINS_NO_UPDATES) {
+                this._logger.debug(`Checking of plugin's updates is skipped because envvar CHIPMUNK_PLUGINS_NO_UPDATES is true`);
+                return resolve();
+            }
             this._logger.debug(`Updating of installed plugins is started`);
             ServiceElectronService.logStateToRender(`Updating plugins...`);
             Promise.all(Array.from(this._plugins.values()).map((plugin: InstalledPlugin) => {
@@ -185,6 +191,10 @@ export default class ControllerPluginsStorage {
 
     public defaults(): Promise<void> {
         return new Promise((resolve) => {
+            if (ServiceEnv.get().CHIPMUNK_PLUGINS_NO_DEFAULTS) {
+                this._logger.debug(`Checking defaults plugins is skipped because envvar CHIPMUNK_PLUGINS_NO_DEFAULTS is true`);
+                return resolve();
+            }
             const pluginStorageFolder: string = ServicePaths.getPlugins();
             const installed: string[] = Array.from(this._plugins.values()).map((plugin: InstalledPlugin) => {
                 return plugin.getName();
@@ -217,7 +227,11 @@ export default class ControllerPluginsStorage {
             Promise.all(Array.from(this._plugins.values()).filter((plugin: InstalledPlugin) => {
                 return plugin.isSingleProcess();
             }).map((plugin: InstalledPlugin) => {
-                return plugin.runAsSingle() as Promise<void>;
+                return (plugin.runAsSingle() as Promise<void>).catch((error: Error) => {
+                    this._logger.warn(`Fail to run as single plugin ${plugin.getName()} due error: ${error}.`);
+                    this._exclude(plugin);
+                    return Promise.resolve();
+                });
             })).then(() => {
                 this._logger.debug(`Single process plugins running is done`);
                 resolve();
@@ -231,6 +245,15 @@ export default class ControllerPluginsStorage {
         this._logger.debug(`Next plugins are available:\n${Array.from(this._plugins.values()).map((plugin: InstalledPlugin) => {
             return `\t - ${plugin.getName()}`;
         }).join('\n')}`);
+    }
+
+    private _exclude(plugin: InstalledPlugin) {
+        plugin.destroy().then(() => {
+            this._logger.debug(`Plugin "${plugin.getName()}" was excluded.`);
+        }).catch((error: Error) => {
+            this._logger.debug(`Fail to correctly exclude plugin "${plugin.getName()}" due error: ${error.message}`);
+        });
+        this._plugins.delete(plugin.getName());
     }
 
 }
