@@ -4,22 +4,93 @@ import { getEnvVar } from 'chipmunk.shell.env';
 import { IService } from '../interfaces/interface.service';
 
 export enum EChipmunkEnvVars {
+    /**
+     * ON - activate developing mode:
+     * - all plugins processes will be started with debug-listener
+     * - browser will be started with devtools
+     */
     CHIPMUNK_DEVELOPING_MODE = 'CHIPMUNK_DEVELOPING_MODE',
+
+    /**
+     * Definition of log level:
+     * - INFO (I, IN),
+     * - DEBUG (D, DEB),
+     * - WARNING (W, WAR, WARN),
+     * - VERBOS (V, VER, VERBOSE),
+     * - ERROR (E, ERR),
+     * - ENV - ENV logs never writes into logs file; it's just shown in stdout,
+     * - WTF - WTF logs useful for debuggin. If at least one WTF log was sent, only WTF logs will be shown. This logs never writes into logs file,
+     */
     CHIPMUNK_DEV_LOGLEVEL = 'CHIPMUNK_DEV_LOGLEVEL',
+
+    /**
+     * Path to custom plugins folder
+     */
     CHIPMUNK_PLUGINS_SANDBOX = 'CHIPMUNK_PLUGINS_SANDBOX',
+
+    /**
+     * TRUE (true, ON, on) - prevent downloading of defaults plugins
+     */
+    CHIPMUNK_PLUGINS_NO_DEFAULTS = 'CHIPMUNK_PLUGINS_NO_DEFAULTS',
+
+    /**
+     * TRUE (true, ON, on) - prevent update plugins workflow
+     */
+    CHIPMUNK_PLUGINS_NO_UPDATES = 'CHIPMUNK_PLUGINS_NO_UPDATES',
+
+    /**
+     * TRUE (true, ON, on) - prevent removing not valid plugins
+     */
+    CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID = 'CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID',
 }
 
 export const CChipmunkEnvVars: string[] = [
     EChipmunkEnvVars.CHIPMUNK_DEVELOPING_MODE,
     EChipmunkEnvVars.CHIPMUNK_DEV_LOGLEVEL,
     EChipmunkEnvVars.CHIPMUNK_PLUGINS_SANDBOX,
+    EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_DEFAULTS,
+    EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_UPDATES,
+    EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID,
 ];
 
 export interface IChipmunkEnvVars {
     CHIPMUNK_DEVELOPING_MODE: string | undefined;
     CHIPMUNK_DEV_LOGLEVEL: string | undefined;
     CHIPMUNK_PLUGINS_SANDBOX: string | undefined;
+    CHIPMUNK_PLUGINS_NO_DEFAULTS: boolean | undefined;
+    CHIPMUNK_PLUGINS_NO_UPDATES: boolean | undefined;
+    CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID: boolean | undefined;
 }
+
+const CChipmunkEnvVarsParsers: { [key: string]: (smth: any) => boolean } = {
+    [EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_DEFAULTS]: (smth: any): boolean => {
+        if (typeof smth === 'string' && ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1) {
+            return true;
+        }
+        if (typeof smth === 'number' && smth === 1) {
+            return true;
+        }
+        return false;
+    },
+    [EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_UPDATES]: (smth: any): boolean => {
+        if (typeof smth === 'string' && ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1) {
+            return true;
+        }
+        if (typeof smth === 'number' && smth === 1) {
+            return true;
+        }
+        return false;
+    },
+    [EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID]: (smth: any): boolean => {
+        if (typeof smth === 'string' && ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1) {
+            return true;
+        }
+        if (typeof smth === 'number' && smth === 1) {
+            return true;
+        }
+        return false;
+    },
+};
 
 /**
  * @class ServiceEnv
@@ -33,6 +104,9 @@ class ServiceEnv implements IService {
         CHIPMUNK_DEVELOPING_MODE: undefined,
         CHIPMUNK_DEV_LOGLEVEL: undefined,
         CHIPMUNK_PLUGINS_SANDBOX: undefined,
+        CHIPMUNK_PLUGINS_NO_DEFAULTS: undefined,
+        CHIPMUNK_PLUGINS_NO_UPDATES: undefined,
+        CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID: undefined,
     };
 
     /**
@@ -45,13 +119,20 @@ class ServiceEnv implements IService {
                 EChipmunkEnvVars.CHIPMUNK_DEVELOPING_MODE,
                 EChipmunkEnvVars.CHIPMUNK_DEV_LOGLEVEL,
                 EChipmunkEnvVars.CHIPMUNK_PLUGINS_SANDBOX,
+                EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_DEFAULTS,
+                EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_UPDATES,
+                EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID,
             ];
             Promise.all(list.map((env: string) => {
                 return getEnvVar(env).then((value: string) => {
                     if (typeof value !== 'string' || value.trim() === '') {
                         (this._env as any)[env] = undefined;
                     } else {
-                        (this._env as any)[env] = value;
+                        if (CChipmunkEnvVarsParsers[env] !== undefined) {
+                            (this._env as any)[env] = CChipmunkEnvVarsParsers[env](value);
+                        } else {
+                            (this._env as any)[env] = value;
+                        }
                     }
                 });
             })).then(() => {
