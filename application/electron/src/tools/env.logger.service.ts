@@ -76,7 +76,7 @@ class Service {
             return;
         }
         this._introduced = true;
-        const msg: string = `\n${"-".repeat(30)} Chipmunk session is started at: ${new Date().toUTCString()} ${"-".repeat(30)}\n`;
+        const msg: string = `\n${"-".repeat(30)}\nChipmunk session is started at: ${new Date().toUTCString()}\n${"-".repeat(30)}`;
         LogsBuffer.buffer(
             ELogLevels.INFO,
             msg,

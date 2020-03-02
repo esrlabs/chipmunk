@@ -14,6 +14,7 @@ import ControllerPluginProcess, { TConnectionFactory } from './plugin.controller
 import ControllerIPCPlugin from './plugin.process.ipc';
 import ServicePaths from '../../services/service.paths';
 import ServiceElectronService from '../../services/service.electron.state';
+import ServicePackage from '../../services/service.package';
 
 export { IPackageJson, TConnectionFactory };
 
@@ -88,6 +89,10 @@ export default class ControllerPluginInstalled {
                         this._info = undefined;
                         this._logger.warn(`Fail parse info-file due error: ${e.message}`);
                         return reject(e);
+                    }
+                    if (this._info?.hash !== ServicePackage.getHash()) {
+                        this._logger.warn(`Plugin could not be used, because hash dismatch.\n\t- plugin hash: ${this._info?.hash}\n\t- chipmunk hash: ${ServicePackage.getHash()}`);
+                        return reject(new Error(`Version-hash dismatch`));
                     }
                     ServiceElectronService.logStateToRender(`Reading plugin package "${path.basename(this._path)}"`);
                     this._readPackages().then(() => {
@@ -191,6 +196,10 @@ export default class ControllerPluginInstalled {
             const available: IPluginReleaseInfo | undefined = this._store.getInfo(this._name);
             if (available === undefined) {
                 this._logger.warn(`Plugin will not be update, because there are no such plugin in store`);
+                return resolve();
+            }
+            if (ServicePackage.getHash() !== available.hash) {
+                this._logger.warn(`Plugin will not be updated, because hash dismatch.\n\t- plugin hash: ${available.hash}\n\t- chipmunk hash: ${ServicePackage.getHash()}`);
                 return resolve();
             }
             if (semver.compare(this._info.hash, available.hash) !== -1 && semver.compare(this._info.version, available.version) !== -1) {

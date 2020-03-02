@@ -8,6 +8,7 @@ import * as fs from 'fs';
 import Logger from '../../tools/env.logger';
 import ServicePaths from '../../services/service.paths';
 import ServiceElectronService from '../../services/service.electron.state';
+import ServicePackage from '../../services/service.package';
 
 import GitHubClient, { IReleaseAsset, IReleaseData, GitHubAsset } from '../../tools/env.github.client';
 
@@ -82,6 +83,12 @@ export default class ControllerPluginStore {
 
     public getDefaults(exclude: string[]): IPluginReleaseInfo[] {
         return Array.from(this._plugins.values()).filter((plugin: IPluginReleaseInfo) => {
+            if (plugin.hash !== ServicePackage.getHash()) {
+                this._logger.warn(`Default plugin "${plugin.name}" could not be installed, because hash dismatch.\n\t- plugin hash: ${plugin.hash}\n\t- chipmunk hash: ${ServicePackage.getHash()}`);
+                return false;
+            }
+            return true;
+        }).filter((plugin: IPluginReleaseInfo) => {
             return exclude.indexOf(plugin.name) === -1 && plugin.default;
         });
     }
