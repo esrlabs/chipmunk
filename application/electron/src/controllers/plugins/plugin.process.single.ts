@@ -62,7 +62,7 @@ export default class ControllerPluginProcessSingle extends Emitter {
     constructor(opt: IOpt) {
         super();
         this._opt = opt;
-        this._logger = new Logger(`plugin: ${this._opt.name}`);
+        this._logger = new Logger(`Plugin: ${this._opt.name}`);
         this._onSTDData = this._onSTDData.bind(this);
         this._onClose = this._onClose.bind(this);
         this._onError = this._onError.bind(this);
