@@ -59,11 +59,11 @@ export default class ControllerPluginProcess {
     }
 
     public isSingleProcess(): boolean {
-        return this._packagejson.getPackageJson().logviewer.type === EProcessPluginType.single;
+        return this._packagejson.getPackageJson().chipmunk.type === EProcessPluginType.single;
     }
 
     public isMultipleProcess(): boolean {
-        return this._packagejson.getPackageJson().logviewer.type !== EProcessPluginType.single;
+        return this._packagejson.getPackageJson().chipmunk.type !== EProcessPluginType.single;
     }
 
     public getSessionIPC(session: string): ControllerIPCPlugin | undefined {
@@ -86,7 +86,7 @@ export default class ControllerPluginProcess {
 
     public runAsSingle(): Promise<void> {
         return new Promise((resolve, reject) => {
-            if (this._packagejson.getPackageJson().logviewer.type !== EProcessPluginType.single) {
+            if (this._packagejson.getPackageJson().chipmunk.type !== EProcessPluginType.single) {
                 return reject(new Error(this._logger.warn(`Not single plugin cannot be started as single`)));
             }
             if (this._entrypoint === undefined) {
@@ -101,9 +101,28 @@ export default class ControllerPluginProcess {
                 name: this._name,
                 entrypoint: this._entrypoint,
             });
+            // Listen plugin for disconnection
+            this._single.subscribe(ControllerPluginProcessSingle.Events.disconnect, () => {
+                if (timer === undefined) {
+                    return;
+                } else {
+                    clearTimeout(timer);
+                    timer = undefined;
+                }
+                if (this._single !== undefined) {
+                    this._single.unsubscribeAll();
+                    this._single = undefined;
+                }
+                reject(new Error(this._logger.warn(`Fail to attach plugin, because it was disconnected after start`)));
+            });
+            let timer: any = -1;
             this._single.attach().then(() => {
                 this._logger.debug(`Plugin "${this._name}" is attached as single plugin.`);
-                resolve();
+                timer = setTimeout(() => {
+                    clearTimeout(timer);
+                    this._single?.unsubscribeAll();
+                    resolve();
+                }, 250);
             }).catch((attachError: Error) => {
                 this._single = undefined;
                 reject(new Error(this._logger.warn(`Fail to attach plugin "${this._name}" due error: ${attachError.message}`)));
@@ -133,7 +152,7 @@ export default class ControllerPluginProcess {
 
     public bindMultiplePlugin(session: string, connectionFactory: TConnectionFactory): Promise<void> {
         return new Promise((resolve, reject) => {
-            if (this._packagejson.getPackageJson().logviewer.type === EProcessPluginType.single) {
+            if (this._packagejson.getPackageJson().chipmunk.type === EProcessPluginType.single) {
                 return reject(new Error(this._logger.warn(`Not muplitple plugin cannot be started as single`)));
             }
             if (this._entrypoint === undefined) {

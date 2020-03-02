@@ -96,9 +96,9 @@ export default class ControllerPluginInstalled {
                             return reject(new Error(this._logger.warn(`Plugin doesn't have valid [render] and [process]. Plugin will not be used.`)));
                         }
                         if (this._info.package.process !== undefined) {
-                            this._info.displayName = this._info.package.process.getPackageJson().logviewer.displayName;
+                            this._info.displayName = this._info.package.process.getPackageJson().chipmunk.displayName;
                         } else if (this._info.package.render !== undefined) {
-                            this._info.displayName = this._info.package.render.getPackageJson().logviewer.displayName;
+                            this._info.displayName = this._info.package.render.getPackageJson().chipmunk.displayName;
                         }
                         ServiceElectronService.logStateToRender(`Creating controllers for "${path.basename(this._path)}"`);
                         this._addControllers().then(() => {
