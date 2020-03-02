@@ -9,7 +9,7 @@ export enum EProcessPluginType {
     multiple = 'multiple',
 }
 
-export interface ILogviewer {
+export interface IChipmunk {
     version: string;
     type: EProcessPluginType;
     displayName: string;
@@ -18,8 +18,8 @@ export interface ILogviewer {
 export interface IPackageJson {
     version: string;
     main: string;
-    logviewer: ILogviewer;
-    [key: string]: any;
+    chipmunk: IChipmunk;
+    // [key: string]: any;
  }
 
 const CRequiredFields: { [key: string]: string } = {
@@ -91,15 +91,19 @@ export default class ControllerPluginPackage {
     }
 
     private _setPluginsSettings(packageJson: IPackageJson): IPackageJson {
-        if (typeof packageJson.logviewer !== 'object' || packageJson.logviewer === null) {
-            packageJson.logviewer = {
+        if (typeof (packageJson as any).logviewer === 'object' && (packageJson as any).logviewer !== null &&
+           (typeof packageJson.chipmunk !== 'object' || packageJson.chipmunk === null)) {
+            packageJson.chipmunk = (packageJson as any).logviewer;
+        }
+        if (typeof packageJson.chipmunk !== 'object' || packageJson.chipmunk === null) {
+            packageJson.chipmunk = {
                 version: '',
                 type: EProcessPluginType.multiple,
                 displayName: this._name,
             };
         }
-        packageJson.logviewer.type = packageJson.logviewer.type === undefined ? EProcessPluginType.multiple : packageJson.logviewer.type;
-        packageJson.logviewer.displayName = packageJson.logviewer.displayName === undefined ? this._name : packageJson.logviewer.displayName;
+        packageJson.chipmunk.type = packageJson.chipmunk.type === undefined ? EProcessPluginType.multiple : packageJson.chipmunk.type;
+        packageJson.chipmunk.displayName = packageJson.chipmunk.displayName === undefined ? this._name : packageJson.chipmunk.displayName;
         return packageJson;
     }
 
