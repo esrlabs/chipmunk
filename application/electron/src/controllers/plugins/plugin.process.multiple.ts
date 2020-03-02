@@ -1,19 +1,16 @@
 import * as Net from 'net';
 import * as IPCPluginMessages from '../../../../common/ipc/plugins.ipc.messages/index';
+import * as Tools from '../../tools/index';
 
 import { ChildProcess, fork } from 'child_process';
 import { Emitter } from '../../tools/index';
 import { CStdoutSocketAliases } from '../../consts/controller.plugin.process';
+import { CFirstDebugPort, CDebugPortSeqName } from './plugin.process.single';
 
 import Logger from '../../tools/env.logger';
 import ControllerIPCPlugin from './plugin.process.ipc';
 import ServiceProduction from '../../services/service.production';
 import ServicePaths from '../../services/service.paths';
-
-const CDebugPluginPorts: { [key: string]: number } = {
-    serial: 9240,
-    processes: 9241,
-};
 
 interface IConnection {
     socket: Net.Socket;
@@ -68,7 +65,7 @@ export default class ControllerPluginProcessMultiple extends Emitter {
                 `--chipmunk-plugin-alias=${this._opt.name.replace(/[^\d\w-_]/gi, '_')}`,
             ];
             if (!ServiceProduction.isProduction()) {
-                args.push(`--inspect=127.0.0.1:${CDebugPluginPorts[this._opt.name] === undefined ? (9229 + this._opt.id - 1) : CDebugPluginPorts[this._opt.name]}`);
+                args.push(`--inspect=127.0.0.1:${Tools.getSequence(CDebugPortSeqName, CFirstDebugPort)}`);
             }
             this._process = fork(
                 this._opt.entrypoint,

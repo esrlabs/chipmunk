@@ -1,5 +1,6 @@
 import * as Net from 'net';
 import * as IPCPluginMessages from '../../../../common/ipc/plugins.ipc.messages/index';
+import * as Tools from '../../tools/index';
 
 import { ChildProcess, fork } from 'child_process';
 import { Emitter, Subscription } from '../../tools/index';
@@ -10,10 +11,8 @@ import ControllerIPCPlugin from './plugin.process.ipc';
 import ServiceProduction from '../../services/service.production';
 import ServicePaths from '../../services/service.paths';
 
-const CDebugPluginPorts: { [key: string]: number } = {
-    serial: 9240,
-    processes: 9241,
-};
+export const CFirstDebugPort = 9240;
+export const CDebugPortSeqName = 'plugin_debug_ports';
 
 const CSettings = {
     resolverTimeout: 3000,
@@ -63,7 +62,8 @@ export default class ControllerPluginProcessSingle extends Emitter {
         super();
         this._opt = opt;
         this._logger = new Logger(`Plugin: ${this._opt.name}`);
-        this._onSTDData = this._onSTDData.bind(this);
+        this._onSTDErr = this._onSTDErr.bind(this);
+        this._onSTDOut = this._onSTDOut.bind(this);
         this._onClose = this._onClose.bind(this);
         this._onError = this._onError.bind(this);
         this._onDisconnect = this._onDisconnect.bind(this);
@@ -80,7 +80,7 @@ export default class ControllerPluginProcessSingle extends Emitter {
                 `--chipmunk-plugin-alias=${this._opt.name.replace(/[^\d\w-_]/gi, '_')}`,
             ];
             if (!ServiceProduction.isProduction()) {
-                args.push(`--inspect=127.0.0.1:${CDebugPluginPorts[this._opt.name] === undefined ? (9300 + this._opt.id - 1) : CDebugPluginPorts[this._opt.name]}`);
+                args.push(`--inspect=127.0.0.1:${Tools.getSequence(CDebugPortSeqName, CFirstDebugPort)}`);
             }
             this._process = fork(
                 this._opt.entrypoint,
@@ -92,8 +92,8 @@ export default class ControllerPluginProcessSingle extends Emitter {
                     'ipc',  // ipc    - used by parent process as command sender / reciever
                 ]});
             // Getting data events
-            this._process.stderr.on('data', this._onSTDData);
-            this._process.stdout.on('data', this._onSTDData);
+            this._process.stderr.on('data', this._onSTDErr);
+            this._process.stdout.on('data', this._onSTDOut);
             // State process events
             this._process.on('exit', this._onClose);
             this._process.on('close', this._onClose);
@@ -248,7 +248,17 @@ export default class ControllerPluginProcessSingle extends Emitter {
      * Handler to listen stdout and stderr of plugin process
      * @returns void
      */
-    private _onSTDData(chunk: Buffer): void {
+    private _onSTDOut(chunk: Buffer): void {
+        const str: string = chunk.toString();
+        this._logger.debug(str);
+        this.emit(ControllerPluginProcessSingle.Events.output);
+    }
+
+    /**
+     * Handler to listen stdout and stderr of plugin process
+     * @returns void
+     */
+    private _onSTDErr(chunk: Buffer): void {
         const str: string = chunk.toString();
         this._logger.debug(str);
         this.emit(ControllerPluginProcessSingle.Events.output);
