@@ -144,19 +144,28 @@ export default class ControllerPluginsStorage {
                     this._logger.warn(`Error during reading plugins: ${readErr.message}`);
                 }).finally(() => {
                     ServiceElectronService.logStateToRender(`Removing invalid plugins...`);
-                    Promise.all(toBeRemoved.map((plugin: InstalledPlugin) => {
-                        return plugin.remove().then(() => {
-                            ServiceElectronService.logStateToRender(`Plugin "${plugin.getPath()}" has been removed.`);
-                            this._logger.debug(`Plugin "${plugin.getPath()}" is removed.`);
-                        }).catch((removeErr: Error) => {
-                            this._logger.warn(`Fail remove plugin "${plugin.getPath()}" due error: ${removeErr.message}`);
-                            return Promise.resolve();
+                    if (ServiceEnv.get().CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID) {
+                        if (toBeRemoved.length > 0) {
+                            this._logger.debug(`Found ${toBeRemoved.length} not valid plugins to be removed. But because CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID=true, plugins will not be removed. Not valid plugins:\n${toBeRemoved.map((plugin: InstalledPlugin) => {
+                                return `\t - ${plugin.getPath()}`;
+                            }).join('\n')}`);
+                        }
+                        return resolve();
+                    } else {
+                        Promise.all(toBeRemoved.map((plugin: InstalledPlugin) => {
+                            return plugin.remove().then(() => {
+                                ServiceElectronService.logStateToRender(`Plugin "${plugin.getPath()}" has been removed.`);
+                                this._logger.debug(`Plugin "${plugin.getPath()}" is removed.`);
+                            }).catch((removeErr: Error) => {
+                                this._logger.warn(`Fail remove plugin "${plugin.getPath()}" due error: ${removeErr.message}`);
+                                return Promise.resolve();
+                            });
+                        })).catch((removeErr: Error) => {
+                            this._logger.warn(`Error during removing plugins: ${removeErr.message}`);
+                        }).finally(() => {
+                            resolve();
                         });
-                    })).catch((removeErr: Error) => {
-                        this._logger.warn(`Error during removing plugins: ${removeErr.message}`);
-                    }).finally(() => {
-                        resolve();
-                    });
+                    }
                 });
             }).catch((error: Error) => {
                 this._logger.error(`Fail to read plugins folder (${pluginStorageFolder}) due error: ${error.message}.`);
