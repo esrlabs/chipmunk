@@ -30,6 +30,8 @@ interface IOpt {
     token: string;
 }
 
+const CPluginStartTimeout = 10000;
+
 /**
  * @class ControllerPluginProcessSingle
  * @description Execute plugin node process and provide access to it
@@ -57,6 +59,9 @@ export default class ControllerPluginProcessSingle extends Emitter {
         bind: new Map(),
         unbind: new Map(),
     };
+    private _stderr: string = '';
+    private _rejector?: (error: Error) => void;
+    private _resolver?: () => void;
 
     constructor(opt: IOpt) {
         super();
@@ -75,6 +80,10 @@ export default class ControllerPluginProcessSingle extends Emitter {
      */
     public attach(): Promise<void> {
         return new Promise((resolve, reject) => {
+            // Store rejector
+            this._rejector = reject;
+            this._resolver = resolve;
+            // Prepare arguments
             const args: string[] = [
                 `--chipmunk-settingspath=${ServicePaths.getPluginsCfgFolder()}`,
                 `--chipmunk-plugin-alias=${this._opt.name.replace(/[^\d\w-_]/gi, '_')}`,
@@ -100,27 +109,44 @@ export default class ControllerPluginProcessSingle extends Emitter {
             this._process.on('error', this._onError);
             this._process.on('disconnect', this._onDisconnect);
             // Create IPC controller
-            this._ipc = new ControllerIPCPlugin(this._opt.name, this._process, this._opt.token);
-            // Send token
-            this._ipc.send(new IPCPluginMessages.PluginToken({
-                token: this._opt.token,
-                id: this._opt.id,
-            })).catch((sendingError: Error) => {
-                this._logger.error(`Fail delivery plugin token due error: ${sendingError.message}`);
-            });
-            Promise.all([
-                this._ipc.subscribe(IPCPluginMessages.SessionStreamBound, this._onSessionStreamBound.bind(this)).then((subscription: Subscription) => {
-                    this._subscriptions.SessionStreamBound = subscription;
-                }),
-                this._ipc.subscribe(IPCPluginMessages.SessionStreamUnbound, this._onSessionStreamUnbound.bind(this)).then((subscription: Subscription) => {
-                    this._subscriptions.SessionStreamUnbound = subscription;
-                }),
-            ]).then(() => {
-                resolve();
+            const ipc = new ControllerIPCPlugin(this._opt.name, this._process, this._opt.token);
+            // Subscribe to state event
+            let subscription: Subscription | undefined;
+            ipc.subscribe(IPCPluginMessages.PluginState, (state: IPCPluginMessages.PluginState) => {
+                if (subscription !== undefined) {
+                    subscription.destroy();
+                }
+                if (state.state !== IPCPluginMessages.EPluginState.ready) {
+                    return this._reject(new Error(this._logger.error(`Fail to attach plugin, because plugin state is: ${state.state}`)));
+                }
+                // Send token
+                ipc.send(new IPCPluginMessages.PluginToken({
+                    token: this._opt.token,
+                    id: this._opt.id,
+                })).then(() => {
+                    Promise.all([
+                        ipc.subscribe(IPCPluginMessages.SessionStreamBound, this._onSessionStreamBound.bind(this)).then((_subscription: Subscription) => {
+                            this._subscriptions.SessionStreamBound = _subscription;
+                        }),
+                        ipc.subscribe(IPCPluginMessages.SessionStreamUnbound, this._onSessionStreamUnbound.bind(this)).then((_subscription: Subscription) => {
+                            this._subscriptions.SessionStreamUnbound = _subscription;
+                        }),
+                    ]).then(() => {
+                        this._ipc = ipc;
+                        this._resolve();
+                    }).catch((error: Error) => {
+                        this._reject(new Error(this._logger.warn(`Fail to subscribe to plugin's IPC events due error: ${error.message}`)));
+                    });
+                }).catch((sendingError: Error) => {
+                    this._reject(new Error(this._logger.error(`Fail delivery plugin token due error: ${sendingError.message}`)));
+                });
+            }).then((_subscription: Subscription) => {
+                subscription = _subscription;
+                setTimeout(() => {
+                    this._reject(new Error(this._logger.error(`Fail to start plugin because timeout.`)));
+                }, CPluginStartTimeout);
             }).catch((error: Error) => {
-                const err: string = `Fail to subscribe to plugin's IPC events due error: ${error.message}`;
-                this._logger.warn(err);
-                reject(new Error(err));
+                this._reject(new Error(this._logger.warn(`Fail to subscribe to plugin's state event due error: ${error.message}`)));
             });
         });
     }
@@ -141,18 +167,19 @@ export default class ControllerPluginProcessSingle extends Emitter {
      * @returns void
      */
     public kill(signal: string = 'SIGTERM'): boolean {
-        if (this._process === undefined || this._ipc === undefined) {
-            return false;
-        }
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].destroy();
         });
-        this._ipc.destroy();
-        if (!this._process.killed) {
-            this._process.kill(signal);
+        if (this._ipc !== undefined) {
+            this._ipc.destroy();
         }
-        this._process = undefined;
-        this._connections.clear();
+        if (this._process !== undefined) {
+            if (!this._process.killed) {
+                this._process.kill(signal);
+            }
+            this._process = undefined;
+            this._connections.clear();
+        }
         return true;
     }
 
@@ -203,6 +230,25 @@ export default class ControllerPluginProcessSingle extends Emitter {
 
     public isAttached(): boolean {
         return this._process !== undefined;
+    }
+
+    private _reject(error: Error) {
+        if (this._rejector === undefined || this._resolver === undefined) {
+            return;
+        }
+        this.kill();
+        this._rejector(error);
+        this._rejector = undefined;
+        this._resolver = undefined;
+    }
+
+    private _resolve() {
+        if (this._rejector === undefined || this._resolver === undefined) {
+            return;
+        }
+        this._resolver();
+        this._rejector = undefined;
+        this._resolver = undefined;
     }
 
     private _bindRefWithId(socket: Net.Socket): Promise<void> {
@@ -261,7 +307,7 @@ export default class ControllerPluginProcessSingle extends Emitter {
     private _onSTDErr(chunk: Buffer): void {
         const str: string = chunk.toString();
         this._logger.debug(str);
-        this.emit(ControllerPluginProcessSingle.Events.output);
+        this._stderr += str;
     }
 
     /**
@@ -289,6 +335,7 @@ export default class ControllerPluginProcessSingle extends Emitter {
     private _onDisconnect(...args: any[]): void {
         this.kill();
         this.emit(ControllerPluginProcessSingle.Events.disconnect, ...args);
+        this._reject(new Error(this._stderr));
     }
 
     private _onSessionStreamBound(message: IPCPluginMessages.SessionStreamBound) {
