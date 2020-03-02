@@ -1,14 +1,3 @@
-/*
-TODO:
-    - [DONE]if plugins is failed to be executed (process) - it should be removed from storage
-    - if version of plugins is for newer version of chipmunk - should be ignored
-    - [DONE] logs to render (for long loading cases)
-    - [DONE] display name for plugin
-    - use-case: plugin doesn't have package.json
-    - find good solution to listen state of child process start (plugin.controller.process) -> get rid of timer
-    - create local plugin's state-storage (ignore defaults, state of start and etc)
-
-*/
 import * as path from 'path';
 import * as FS from '../../tools/fs';
 
